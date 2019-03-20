@@ -30,16 +30,6 @@ def testConditions():
     printSuccess()
 
 
-def testMissingVariable():
-    data = initData()
-    flags = initEmptyFlags(data)
-    try:
-        evalCondition("var3 < 5", data, flags, data.columns[0])
-    except NameError:
-        return printSuccess()
-    print("test failed")
-
-
 def testMissingIdentifier():
     data = initData()
     flags = initEmptyFlags(data)
