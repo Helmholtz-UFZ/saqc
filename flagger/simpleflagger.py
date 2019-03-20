@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from .abstractflagger import AbstractFlagger
+from .baseflagger import BaseFlagger
 
 
-class SimpleFlagger(AbstractFlagger):
+class SimpleFlagger(BaseFlagger):
     def __init__(self):
         super().__init__(0, 1)

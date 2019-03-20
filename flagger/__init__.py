@@ -4,4 +4,4 @@
 from .simpleflagger import SimpleFlagger
 from .dmpflagger import DmpFlagger
 from .positionalflagger import PositionalFlagger
-from .abstractflagger import AbstractFlagger
+from .baseflagger import BaseFlagger
