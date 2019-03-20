@@ -25,6 +25,7 @@ Parameters given within a test specification generally target on of the followin
 - test function
 - flagger
 - the general flagging operation (i.e. extensions of flags to an given temporal period)
+
 The question how to solve this differentiation needs to be answered:
 - The easier option (at least from a user/usage standpoint) is to simply throw everthing into on dictionary,
   and pass the entire thing to all the relevant functions/methods.
