@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from numbers import Number
-from typing import Union, Sequence
+from typing import Union, Sequence, Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -10,35 +10,40 @@ import pandas as pd
 from config import NODATA
 from .abstractflagger import AbstractFlagger
 from lib.tools import numpyfy, broadcastMany
+from lib.types import ArrayLike
 
 
 class PositionalFlagger(AbstractFlagger):
 
     def __init__(self, no_flag=9, critical_flag=2):
+        super().__init__(no_flag=no_flag, flag=critical_flag)
         self._flag_pos = 1
         self._initial_flag_pos = 1
-        self._no_flag = no_flag
-        self._critical_flag = critical_flag
+        # self._no_flag = no_flag
+        # self._critical_flag = critical_flag
 
-    @property
-    def critical_flag(self):
-        return self._critical_flag
-
-    @property
-    def no_flag(self):
-        return self._no_flag
-
-    def firstTest(self):
-        self._flag_pos = self._initial_flag_pos
+    # def firstTest(self):
+    #     self._flag_pos = self._initial_flag_pos
 
     def nextTest(self):
         self._flag_pos += 1
 
-    def setFlag(self, flags: pd.DataFrame, flag: Number) -> pd.DataFrame:
-        return self._setFlags(flags, flag, self._flag_pos)
+    # def flagThis(self, flags):
+    #     return self._setFlags(flags, self.flag, self._flag_pos)
+
+    def setFlag(self,
+                flags: ArrayLike,
+                flag: Optional[int] = None,
+                flagpos: Optional[int] = None,
+                **kwds: Any) -> np.ndarray:
+        if flag is None:
+            flag = self.flag
+        if flagpos is None:
+            flagpos = self._flag_pos
+        return self._setFlags(flags, flag, flagpos)
 
     def isFlagged(self, flags: pd.DataFrame):
-        return self._getMaxflags(flags) != self.critical_flag
+        return self._getMaxflags(flags) != self.flag
 
     def _getMaxflags(self, flags: pd.DataFrame,
                      exclude: Union[int, Sequence] = 0) -> pd.DataFrame:

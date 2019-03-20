@@ -54,17 +54,22 @@ def flagGeneric(data, flags, field, flagger, flag_params):
         to_flag = _flagNext(to_flag, flag_values)
 
     # flag to set might be given in 'flag'
-    flag_value = flag_params.get(Params.FLAG, flagger.critical_flag)
-    flags.loc[to_flag, field] = flagger.setFlag(
-        flags=flags.loc[to_flag, field],
-        flag=flag_value)
+
+    fchunk = flagger.setFlag(flags=flags.loc[to_flag, field], **flag_params)
+    flags.loc[to_flag, field] = fchunk
 
     return flags
 
 
-def flaggingRunner(meta, data, flags, flagger):
-    # TODO:
-    # - flags should be optional
+def flaggingRunner(meta, flagger, data, flags=None):
+
+    # TODO: if flags is not None, check its structure
+    if flags is None:
+        flags = flagger.emptyFlags(data)
+    else:
+        if not all(flags.columns == flagger.emptyFlags(data.iloc[0]).columns):
+            raise TypeError("structure of given flag does not "
+                            "correspond to flagger requirements")
 
     # NOTE:
     # we need an index frequency in order to calculate ticks
@@ -101,14 +106,15 @@ def flaggingRunner(meta, data, flags, flagger):
                 continue
             # NOTE:
             # within the activation period of a variable, the flag will
-            # be initialized if
+            # be initialized if necessary
             fchunk = (flags
                       .loc[start_date:end_date]
                       .fillna({varname: flagger.no_flag}))
 
             flag_params = parseFlag(flag_test)
             flag_name = flag_params[Params.NAME]
-            # NOTE: higher flags might be overwriten by lower ones
+
+            # NOTE: higher flags might be overwritten by lower ones
             func = FUNCMAP.get(flag_name, None)
             if func:
                 dchunk, fchunk = func(dchunk, fchunk, varname,
@@ -118,7 +124,7 @@ def flaggingRunner(meta, data, flags, flagger):
                                      flagger, flag_params)
             else:
                 raise RuntimeError(
-                    "Malformed flag field ('{:}') for variable: {:}"
+                    "malformed flag field ('{:}') for variable: {:}"
                     .format(flag_test, varname))
             flagger.nextTest()
             data.loc[start_date:end_date] = dchunk
@@ -159,6 +165,5 @@ if __name__ == "__main__":
     metafname = "resources/meta.csv"
     data = readData(datafname)
     meta = prepareMeta(pd.read_csv(metafname), data)
-    flags = pd.DataFrame(columns=data.columns, index=data.index)
     flagger = PositionalFlagger()
-    pdata, pflags = flaggingRunner(meta, data, flags, flagger)
+    pdata, pflags = flaggingRunner(meta, flagger, data)

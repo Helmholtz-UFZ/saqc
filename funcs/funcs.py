@@ -40,7 +40,7 @@ def flagConstant(data, flags, field, flagger, eps,
         if valueRange(dates_chunk) < length:
             continue
         if valueRange(values_chunk) < eps:
-            flagcol[start_idx:end_idx] = flagger.setCritical()
+            flagcol[start_idx:end_idx] = flagger.setFlags(**kwargs)
 
     data[field] = datacol
     flags[field] = flagcol
