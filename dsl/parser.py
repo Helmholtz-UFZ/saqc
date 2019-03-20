@@ -3,6 +3,7 @@
 
 import re
 
+
 def parseFlag(params):
     out = {}
     for i, part in enumerate(re.split(r";\s*", params)):
@@ -18,4 +19,3 @@ def parseFlag(params):
         elif i == 0:
             out["name"] = part
     return out
-
