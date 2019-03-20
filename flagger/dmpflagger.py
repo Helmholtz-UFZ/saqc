@@ -4,10 +4,10 @@
 import numpy as np
 import pandas as pd
 
-from .abstractflagger import AbstractFlagger
+from .baseflagger import BaseFlagger
 
 
-class DmpFlagger(AbstractFlagger):
+class DmpFlagger(BaseFlagger):
     def __init__(self, no_flag=0, flag=2):
         super().__init__(no_flag, flag)
         self.flag_fields = ["quality_flag", "quality_clause",

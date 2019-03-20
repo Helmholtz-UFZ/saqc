@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from abc import ABC
 from typing import Any, Optional
 from numbers import Number
 
@@ -11,7 +10,7 @@ import pandas as pd
 from lib.types import ArrayLike, T
 
 
-class AbstractFlagger(ABC):
+class BaseFlagger:
     def __init__(self, no_flag: T, flag: T):
         self.no_flag: T = no_flag
         self.flag: T = flag

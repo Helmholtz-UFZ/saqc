@@ -6,7 +6,7 @@ import pandas as pd
 
 from core import flaggingRunner
 from config import Fields
-from flagger import AbstractFlagger
+from flagger import SimpleFlagger
 from .testfuncs import initData
 
 
@@ -27,7 +27,7 @@ def testTemporalPartitioning():
 
     data = initData()
     meta = initMeta(data)
-    flagger = AbstractFlagger(0, 1)
+    flagger = SimpleFlagger()
     pdata, pflags = flaggingRunner(meta, flagger, data)
 
     fields = [Fields.VARNAME, Fields.STARTDATE, Fields.ENDDATE]

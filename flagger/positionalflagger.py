@@ -8,12 +8,12 @@ import numpy as np
 import pandas as pd
 
 from config import NODATA
-from .abstractflagger import AbstractFlagger
+from .baseflagger import BaseFlagger
 from lib.tools import numpyfy, broadcastMany
 from lib.types import ArrayLike
 
 
-class PositionalFlagger(AbstractFlagger):
+class PositionalFlagger(BaseFlagger):
 
     def __init__(self, no_flag=9, critical_flag=2):
         super().__init__(no_flag=no_flag, flag=critical_flag)
