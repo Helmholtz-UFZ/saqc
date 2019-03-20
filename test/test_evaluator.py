@@ -3,13 +3,14 @@
 
 import numpy as np
 
-from .testfuncs import printSuccess, printFailed, initData, initEmptyFlags
+from .testfuncs import initData
+from flagger import SimpleFlagger
 from dsl.evaluator import evalCondition
 
 
 def testConditions():
     data = initData()
-    flags = initEmptyFlags(data)
+    flags = SimpleFlagger().emptyFlags(data)
 
     tests = [
         ("this > 100",
@@ -25,14 +26,12 @@ def testConditions():
 
     for test, expected in tests:
         idx = evalCondition(test, data, flags, data.columns[0])
-        assert (idx == expected).all(), printFailed(test)
-
-    printSuccess()
+        assert (idx == expected).all()
 
 
 def testMissingIdentifier():
     data = initData()
-    flags = initEmptyFlags(data)
+    flags = SimpleFlagger().emptyFlags(data)
     tests = ["func(var2) < 5", "var3 != NODATA"]
     for test in tests:
         try:
@@ -40,8 +39,7 @@ def testMissingIdentifier():
         except NameError:
             continue
         else:
-            printFailed(test)
-    printSuccess()
+            raise AssertionError
 
 
 if __name__ == "__main__":

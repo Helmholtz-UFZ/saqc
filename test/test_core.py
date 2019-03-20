@@ -7,18 +7,7 @@ import pandas as pd
 from core import flaggingRunner
 from config import Fields
 from flagger import AbstractFlagger
-from .testfuncs import initData, initEmptyFlags, printFailed, printSuccess
-
-
-class TestFlagger(AbstractFlagger):
-
-    @property
-    def no_flag(self):
-        return 0
-
-    @property
-    def critical_flag(self):
-        return 2
+from .testfuncs import initData
 
 
 def initMeta(data):
@@ -37,19 +26,18 @@ def initMeta(data):
 def testTemporalPartitioning():
 
     data = initData()
-    flags = initEmptyFlags(data)
     meta = initMeta(data)
-    flagger = TestFlagger()
-    pdata, pflags = flaggingRunner(meta, data, flags, flagger)
+    flagger = AbstractFlagger(0, 1)
+    pdata, pflags = flaggingRunner(meta, flagger, data)
 
     fields = [Fields.VARNAME, Fields.STARTDATE, Fields.ENDDATE]
     for _, row in meta.iterrows():
         vname, start_date, end_date = row[fields]
         fchunk = pflags[vname].dropna()
-        assert fchunk.index.min() == start_date, printFailed("equal start dates")
-        assert fchunk.index.max() == end_date, printFailed("equal end dates")
-    printSuccess()
+        assert fchunk.index.min() == start_date, "different start dates"
+        assert fchunk.index.max() == end_date, "different end dates"
 
 
 if __name__ == "__main__":
+
     testTemporalPartitioning()
