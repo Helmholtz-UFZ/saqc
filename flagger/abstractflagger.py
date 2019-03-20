@@ -21,7 +21,7 @@ class AbstractFlagger(ABC):
                 flag: Optional[T] = None,
                 **kwargs: Any) -> ArrayLike:
         if flag is None:
-            flag = self._flag
+            flag = self.flag
         flags[:] = flag
         return flags
 
