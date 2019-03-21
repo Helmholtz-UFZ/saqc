@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from math import ceil, isnan
+from math import ceil
 
 import numpy as np
 import pandas as pd
