@@ -53,6 +53,26 @@ def test_isflagged():
     assert (flagged == idx).all
 
 
+def test_isflagged_nonstandard():
+
+    flagger = SimpleFlagger()
+    data = initData()
+    flags = flagger.emptyFlags(data, 0)
+    var1, var2, *_ = data.columns
+
+    flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0], -9)
+
+    idx = evalCondition(
+        "isflagged({:}, -9)".format(var1),
+        flagger,
+        data, flags,
+        var2)
+
+    flagged = flagger.isFlagged(flags[var1], -9)
+    assert (flagged == idx).all
+
+
 if __name__ == "__main__":
     test_ismissing()
     test_isflagged()
+    test_isflagged_nonstandard()

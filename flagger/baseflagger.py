@@ -32,8 +32,10 @@ class BaseFlagger:
             columns=data.columns,
             data=value)
 
-    def isFlagged(self, flags: ArrayLike) -> ArrayLike:
-        return flags != self.no_flag
+    def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
+        if flag is None:
+            flag = self.flag
+        return flags == self.flag
 
     def nextTest(self):
         pass
