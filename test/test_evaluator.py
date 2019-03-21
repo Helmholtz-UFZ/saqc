@@ -5,7 +5,7 @@ import numpy as np
 
 from .testfuncs import initData
 from flagger import SimpleFlagger
-from dsl.evaluator import evalCondition
+from dsl import evalCondition
 
 
 def testConditions():

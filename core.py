@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd
 
 from config import Fields, FUNCMAP, Params, NODATA
-from dsl.evaluator import evalCondition
-from dsl.parser import parseFlag
+from dsl import evalCondition, parseFlag
 from flagger import PositionalFlagger
 from lib.types import ArrayLike
 
