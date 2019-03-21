@@ -21,27 +21,17 @@ def _periodToTicks(period, freq):
     return int(ceil(pd.to_timedelta(period)/pd.to_timedelta(freq)))
 
 
-def flagNext(flagger: BaseFlagger, flags: ArrayLike, n: int) -> ArrayLike:
-    """
-    to_flag: Union[np.ndarray[bool], pd.Series[bool]]
-    """
-    for name, values in flags.iteritems():
-        idx = np.nonzero(flagger.isFlagged(values))[0]
-        mask = flagger.isFlagged(values)
-        for nn in range(1, n + 1):
-            nn_idx = np.clip(idx + nn, a_min=None, a_max=len(values) - 1)
-            nn_idx_unflagged = nn_idx[~flagger.isFlagged(values[nn_idx])]
-            values[nn_idx_unflagged] = values[nn_idx_unflagged - nn]
-    return flags
-
-
-
+def flagNext(flagger: BaseFlagger, flags: pd.Series, n: int) -> pd.Series:
+    idx = np.where(flagger.isFlagged(flags))[0]
+    for nn in range(1, n + 1):
+        nn_idx = np.clip(idx + nn, a_min=None, a_max=len(flags) - 1)
+        nn_idx_unflagged = nn_idx[~flagger.isFlagged(flags.iloc[nn_idx])]
+        flags.values[nn_idx_unflagged] = flags.iloc[nn_idx_unflagged - nn]
     return flags
 
 
 def flaggingRunner(meta, flagger, data, flags=None):
 
-    # TODO: if flags is not None, check its structure
     if flags is None:
         flags = flagger.emptyFlags(data)
     else:
@@ -114,12 +104,12 @@ def flaggingRunner(meta, flagger, data, flags=None):
             # number given in 'flag_values'
             flag_values = flag_params.pop(Params.FLAGVALUES, None)
             if flag_values:
-                to_flag = flagNext(to_flag, flag_values)
+                fchunk[varname] = flagNext(flagger, fchunk[varname], flag_values)
 
-
-            flagger.nextTest()
             data.loc[start_date:end_date] = dchunk
             flags.loc[start_date:end_date] = fchunk
+
+        flagger.nextTest()
     return data, flags
 
 

@@ -40,7 +40,7 @@ def test_temporalPartitioning():
 
 def test_flagNext_fill():
     flagger = SimpleFlagger()
-    data = initData()
+    data = initData().iloc[:, 1]
     flags = flagger.emptyFlags(data)
 
     idx = [0, 1, 2]
@@ -55,19 +55,19 @@ def test_flagNext_fill():
 
 def test_flagNext_overwrite():
     flagger = SimpleFlagger()
-    data = initData()
+    data = initData().iloc[:, 0]
     flags = flagger.emptyFlags(data)
 
     flags.iloc[0::3] = flagger.setFlag(flags.iloc[0::3], 1)
     flags.iloc[2::3] = flagger.setFlag(flags.iloc[2::3], 2)
 
-    fflags = flagNext(flagger, flags.copy(), 4)
+    fflags = flagNext(flagger, flags.copy().iloc[:], 4)
     assert ((fflags.values[pd.isnull(flags)] == 1).all(axis=None))
 
 
 def test_flagNext_multicolumn():
     flagger = DmpFlagger()
-    data = initData()
+    data = initData().iloc[:, 0]
     flags = flagger.emptyFlags(data)
 
     flags.iloc[0::3] = flagger.setFlag(flags.iloc[0::3], "DOUBTFUL")
