@@ -24,7 +24,8 @@ class DmpFlagger(BaseFlagger):
         self.flag_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
 
     def emptyFlags(self, data, value="NIL", **kwargs):
-        columns = pd.MultiIndex.from_product([data.columns, self.flag_fields])
+        columns = data.columns if isinstance(data, pd.DataFrame) else [data.name]
+        columns = pd.MultiIndex.from_product([columns, self.flag_fields])
         return pd.DataFrame(data=value,
                             columns=columns, index=data.index)
 
@@ -36,7 +37,8 @@ class DmpFlagger(BaseFlagger):
 
     def isFlagged(self, flags, flag=None):
         self._isFlag(flag)
-        return super().isFlagged(flags, flag)
+        flagcol = flags.loc[:, (slice(None), FlagFields.FLAG)].squeeze()
+        return super().isFlagged(flagcol, flag)
 
     def _isFlag(self, flag):
         assert flag in Flags.__dict__.values()

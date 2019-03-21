@@ -7,7 +7,6 @@ from typing import Union, Sequence, Any, Optional
 import numpy as np
 import pandas as pd
 
-from config import NODATA
 from .baseflagger import BaseFlagger
 from lib.tools import numpyfy, broadcastMany
 from lib.types import ArrayLike
@@ -19,17 +18,9 @@ class PositionalFlagger(BaseFlagger):
         super().__init__(no_flag=no_flag, flag=critical_flag)
         self._flag_pos = 1
         self._initial_flag_pos = 1
-        # self._no_flag = no_flag
-        # self._critical_flag = critical_flag
-
-    # def firstTest(self):
-    #     self._flag_pos = self._initial_flag_pos
 
     def nextTest(self):
         self._flag_pos += 1
-
-    # def flagThis(self, flags):
-    #     return self._setFlags(flags, self.flag, self._flag_pos)
 
     def setFlag(self,
                 flags: ArrayLike,
@@ -40,10 +31,13 @@ class PositionalFlagger(BaseFlagger):
             flag = self.flag
         if flagpos is None:
             flagpos = self._flag_pos
-        return self._setFlags(flags, flag, flagpos)
+        try:
+            return self._setFlags(flags, flag, flagpos)
+        except:
+            import ipdb; ipdb.set_trace()
 
     def isFlagged(self, flags: pd.DataFrame, flag=None):
-        maxflags = self._getMaxflags(flags)
+        maxflags = self._getMaxflags(flags[np.isfinite(flags)])
         if flag is None:
             return (pd.notnull(maxflags) & (maxflags != self.no_flag))
         return maxflags == flag
@@ -78,7 +72,6 @@ class PositionalFlagger(BaseFlagger):
 
     def _prepFlags(self, flags: pd.DataFrame) -> pd.DataFrame:
         out = numpyfy(flags)
-        out[~np.isfinite(out)] = NODATA
         return out
 
     def _setFlags(self, flags: pd.DataFrame,

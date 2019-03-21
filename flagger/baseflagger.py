@@ -7,7 +7,7 @@ from numbers import Number
 import numpy as np
 import pandas as pd
 
-from lib.types import ArrayLike, T
+from lib.types import PandasLike, ArrayLike, T
 
 
 class BaseFlagger:
@@ -16,9 +16,9 @@ class BaseFlagger:
         self.flag: T = flag
 
     def setFlag(self,
-                flags: ArrayLike,
+                flags: PandasLike,
                 flag: Optional[T] = None,
-                **kwargs: Any) -> ArrayLike:
+                **kwargs: Any) -> PandasLike:
         if flag is None:
             flag = self.flag
         flags[:] = flag
@@ -27,10 +27,9 @@ class BaseFlagger:
     def emptyFlags(self,
                    data: pd.DataFrame,
                    value: Optional[Number] = np.nan) -> pd.DataFrame:
-        return pd.DataFrame(
-            index=data.index,
-            columns=data.columns,
-            data=value)
+        out = data.copy()
+        out[:] = value
+        return out
 
     def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
         if flag is None:
