@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from math import ceil, isnan
-from typing import TypeVar
 
 import numpy as np
 import pandas as pd
@@ -11,8 +10,7 @@ from config import Fields, FUNCMAP, Params, NODATA
 from dsl.evaluator import evalCondition
 from dsl.parser import parseFlag
 from flagger import PositionalFlagger
-
-DataSeq = TypeVar("DataSeq", np.ndarray, pd.Series, pd.DataFrame)
+from lib.types import ArrayLike
 
 
 def _inferFrequency(data):
@@ -23,7 +21,7 @@ def _periodToTicks(period, freq):
     return int(ceil(pd.to_timedelta(period)/pd.to_timedelta(freq)))
 
 
-def _flagNext(to_flag: DataSeq, n: int) -> DataSeq:
+def _flagNext(to_flag: ArrayLike, n: int) -> ArrayLike:
     """
     to_flag: Union[np.ndarray[bool], pd.Series[bool]]
     """
