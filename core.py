@@ -6,7 +6,8 @@ from math import ceil
 import numpy as np
 import pandas as pd
 
-from config import Fields, FUNCMAP, Params, NODATA
+from config import Fields, FUNCMAP, NODATA
+from funcs import Params
 from dsl import evalCondition, parseFlag
 from flagger import PositionalFlagger, BaseFlagger
 from lib.types import ArrayLike
@@ -34,14 +35,6 @@ def flagNext(flagger: BaseFlagger, flags: ArrayLike, n: int) -> ArrayLike:
     return flags
 
 
-def flagGeneric(data, flags, field, flagger, **flag_params):
-
-    to_flag = evalCondition(
-        flag_params[Params.FUNC], flagger,
-        data, flags, field, nodata=NODATA)
-
-    fchunk = flagger.setFlag(flags=flags.loc[to_flag, field], **flag_params)
-    flags.loc[to_flag, field] = fchunk
 
     return flags
 
@@ -103,10 +96,7 @@ def flaggingRunner(meta, flagger, data, flags=None):
             func = FUNCMAP.get(flag_name, None)
             if func:
                 dchunk, fchunk = func(dchunk, fchunk, varname,
-                                      flagger, **flag_params)
-            elif flag_name == "generic":
-                fchunk = flagGeneric(dchunk, fchunk, varname,
-                                     flagger, **flag_params)
+                                      flagger, nodata=NODATA, **flag_params)
             else:
                 raise RuntimeError(
                     "malformed flag field ('{:}') for variable: {:}"

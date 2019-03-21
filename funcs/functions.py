@@ -4,9 +4,22 @@
 import numpy as np
 import pandas as pd
 from lib.tools import valueRange, slidingWindowIndices
+from dsl import evalCondition
+from . import Params
 
 
-def flagMaintenance(data, flags, field, flagger, **kwargs):
+def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
+
+    to_flag = evalCondition(
+        flag_params[Params.FUNC], flagger,
+        data, flags, field, nodata=nodata)
+
+    try:
+        fchunk = flagger.setFlag(flags=flags.loc[to_flag, field], **flag_params)
+    except:
+        import ipdb; ipdb.set_trace()
+    flags.loc[to_flag, field] = fchunk
+
     return data, flags
 
 
