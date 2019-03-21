@@ -8,3 +8,4 @@ import pandas as pd
 
 T = TypeVar("T")
 ArrayLike = TypeVar("ArrayLike", np.ndarray, pd.Series, pd.DataFrame)
+PandasLike = TypeVar("PandasLike", pd.Series, pd.DataFrame)
