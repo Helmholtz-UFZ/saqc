@@ -25,6 +25,7 @@ OPERATORS = {
 
 
 def initFunctionNamespace(nodata):
+def initFunctionNamespace(nodata, flagger):
     return {
         "abs": (abs, "data"),
         "max": (max, "data"),
@@ -48,7 +49,7 @@ def _raiseNameError(name, expr):
         .format(name, expr))
 
 
-def evalCondition(expr: str,
+def evalCondition(expr: str, flagger: BaseFlagger,
                   data: pd.DataFrame, flags: pd.DataFrame,
                   field: str, nodata: Number = np.nan,
                   **namespace: dict) -> np.ndarray:
@@ -119,7 +120,7 @@ def evalCondition(expr: str,
         raise TypeError(
             "arguments 'data' and 'flags' need the same column names")
 
-    FUNCTIONS = initFunctionNamespace(nodata)
+    FUNCTIONS = initFunctionNamespace(nodata, flagger)
     namespace = {**namespace,
                  **{"data": data, "flags": flags, "this": field}}
     return _eval(ast.parse(expr, mode='eval').body, namespace)
