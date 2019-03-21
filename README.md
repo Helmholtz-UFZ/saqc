@@ -16,3 +16,16 @@ A test specification contains:
 #### Syntax
 - standard Python syntax
 - all variables within the configuration file can be used
+#### Supported Operators
+- all arithmetic operators
+- all comparison operators
+- bitwise operators: and, or, xor, complement (&, |, ^, ~)
+#### Supported functions:
+- abs: absolute values of a variable
+- max: maximum value of a variable
+- min: minimum value of a variable
+- mean: mean value of a variable
+- sum: sum of a variable
+- std: standard deviation of a variable
+- len: the number of values of variable
+- ismissing: check for missing values (nan and a possibly user defined value)
