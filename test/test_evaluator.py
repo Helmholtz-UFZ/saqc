@@ -10,7 +10,8 @@ from dsl import evalCondition
 
 def testConditions():
     data = initData()
-    flags = SimpleFlagger().emptyFlags(data)
+    flagger = SimpleFlagger()
+    flags = flagger.emptyFlags(data)
 
     tests = [
         ("this > 100",
@@ -25,13 +26,14 @@ def testConditions():
          np.mean(data["var2"]) > np.max(data["var1"]))]
 
     for test, expected in tests:
-        idx = evalCondition(test, data, flags, data.columns[0])
+        idx = evalCondition(test, flagger, data, flags, data.columns[0])
         assert (idx == expected).all()
 
 
 def testMissingIdentifier():
     data = initData()
-    flags = SimpleFlagger().emptyFlags(data)
+    flagger = SimpleFlagger()
+    flags = flagger.emptyFlags(data)
     tests = ["func(var2) < 5", "var3 != NODATA"]
     for test in tests:
         try:

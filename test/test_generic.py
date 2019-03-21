@@ -25,6 +25,7 @@ def test_ismissing():
 
     idx = evalCondition(
         "ismissing({:})".format(var1),
+        flagger,
         data, flags,
         var2,
         nodata=nodata)

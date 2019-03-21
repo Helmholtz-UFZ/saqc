@@ -34,7 +34,7 @@ def _flagNext(to_flag: ArrayLike, n: int) -> ArrayLike:
 def flagGeneric(data, flags, field, flagger, flag_params):
 
     to_flag = evalCondition(
-        flag_params[Params.FUNC],
+        flag_params[Params.FUNC], flagger,
         data, flags, field, nodata=NODATA)
 
     # flag a timespan after the condition is met,
