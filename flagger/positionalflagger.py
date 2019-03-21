@@ -43,9 +43,10 @@ class PositionalFlagger(BaseFlagger):
         return self._setFlags(flags, flag, flagpos)
 
     def isFlagged(self, flags: pd.DataFrame, flag=None):
+        maxflags = self._getMaxflags(flags)
         if flag is None:
-            flag = self.flag
-        return self._getMaxflags(flags) != flag
+            return (pd.notnull(maxflags) & (maxflags != self.no_flag))
+        return maxflags == flag
 
     def _getMaxflags(self, flags: pd.DataFrame,
                      exclude: Union[int, Sequence] = 0) -> pd.DataFrame:

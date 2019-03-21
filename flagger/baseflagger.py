@@ -34,11 +34,8 @@ class BaseFlagger:
 
     def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
         if flag is None:
-            flag = self.flag
-        return flags == self.flag
+            return (pd.notnull(flags) & (flags != self.no_flag))
+        return flags == flag
 
     def nextTest(self):
-        pass
-
-    def firstTest(self):
         pass
