@@ -27,7 +27,7 @@ def _flagNext(to_flag: DataSeq, n: int) -> DataSeq:
     """
     to_flag: Union[np.ndarray[bool], pd.Series[bool]]
     """
-    idx = np.nonzero(flags)[0]
+    idx = np.nonzero(to_flag)[0]
     for nn in range(n + 1):
         nn_idx = np.clip(idx + nn, a_min=None, a_max=len(to_flag) - 1)
         to_flag[nn_idx] = True
@@ -38,7 +38,7 @@ def flagGeneric(data, flags, field, flagger, flag_params):
 
     to_flag = evalCondition(
         flag_params[Params.FUNC],
-        data, flags, field, NODATA=NODATA)
+        data, flags, field, nodata=NODATA)
 
     # flag a timespan after the condition is met,
     # duration given in 'flag_period'
