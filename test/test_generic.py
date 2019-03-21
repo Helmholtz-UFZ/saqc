@@ -34,5 +34,25 @@ def test_ismissing():
     assert (pd.isnull(fdata) | (fdata == nodata)).all()
 
 
+def test_isflagged():
+
+    flagger = SimpleFlagger()
+    data = initData()
+    flags = flagger.emptyFlags(data, 0)
+    var1, var2, *_ = data.columns
+
+    flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0])
+
+    idx = evalCondition(
+        "isflagged({:})".format(var1),
+        flagger,
+        data, flags,
+        var2)
+
+    flagged = flagger.isFlagged(flags[var1])
+    assert (flagged == idx).all
+
+
 if __name__ == "__main__":
     test_ismissing()
+    test_isflagged()

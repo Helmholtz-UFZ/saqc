@@ -9,6 +9,8 @@ from numbers import Number
 import numpy as np
 import pandas as pd
 
+from flagger import BaseFlagger
+
 
 # supported operators
 OPERATORS = {
@@ -24,7 +26,6 @@ OPERATORS = {
 }
 
 
-def initFunctionNamespace(nodata):
 def initFunctionNamespace(nodata, flagger):
     return {
         "abs": (abs, "data"),
@@ -34,7 +35,9 @@ def initFunctionNamespace(nodata, flagger):
         "sum": (np.sum, "data"),
         "std": (np.std, "data"),
         "len": (len, "data"),
-        "ismissing": (lambda d: ((d == nodata) | pd.isnull(d)), "data")}
+        "ismissing": (lambda d: ((d == nodata) | pd.isnull(d)), "data"),
+        "isflagged": (flagger.isFlagged, "flags")
+    }
 
 
 def setKey(d, key, value):
