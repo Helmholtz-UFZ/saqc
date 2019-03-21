@@ -5,6 +5,7 @@ import ast
 import copy
 import numbers
 import operator as op
+from numbers import Number
 import numpy as np
 import pandas as pd
 
@@ -19,17 +20,20 @@ OPERATORS = {
     ast.Gt: op.gt, ast.GtE: op.ge,
     ast.Lt: op.lt, ast.LtE: op.le,
     ast.BitAnd: op.and_, ast.BitOr: op.or_, ast.BitXor: op.xor,
+    ast.Invert: op.invert
 }
-FUNCTIONS = {
-    "abs": (abs, "data"),
-    "max": (max, "data"),
-    "min": (min, "data"),
-    "len": (len, "data"),
-    "mean": (np.mean, "data"),
-    "sum": (np.sum, "data"),
-    "std": (np.std, "data"),
-    # "maxflag": (getMaxflags, "flags")
-}
+
+
+def initFunctionNamespace(nodata):
+    return {
+        "abs": (abs, "data"),
+        "max": (max, "data"),
+        "min": (min, "data"),
+        "mean": (np.mean, "data"),
+        "sum": (np.sum, "data"),
+        "std": (np.std, "data"),
+        "len": (len, "data"),
+        "ismissing": (lambda d: ((d == nodata) | pd.isnull(d)), "data")}
 
 
 def setKey(d, key, value):
@@ -38,13 +42,16 @@ def setKey(d, key, value):
     return out
 
 
-def _raiseNameError(name):
-    raise NameError("name '{:}' is not definied"
-                    .format(name))
+def _raiseNameError(name, expr):
+    raise NameError(
+        "name '{:}' is not definied (failing expression: '{:}')"
+        .format(name, expr))
 
 
-def evalCondition(expr: str, data: pd.DataFrame, flags: pd.DataFrame,
-                  field: str, **namespace: dict) -> np.ndarray:
+def evalCondition(expr: str,
+                  data: pd.DataFrame, flags: pd.DataFrame,
+                  field: str, nodata: Number = np.nan,
+                  **namespace: dict) -> np.ndarray:
 
     # type: (...) -> np.ndarray[bool]
 
@@ -78,7 +85,7 @@ def evalCondition(expr: str, data: pd.DataFrame, flags: pd.DataFrame,
             try:
                 func, target = FUNCTIONS[node.func.id]
             except KeyError:
-                _raiseNameError(node.func.id)
+                _raiseNameError(node.func.id, expr)
 
             namespace = setKey(namespace, "target", target)
             args = [_eval(n, namespace) for n in node.args]
@@ -96,7 +103,7 @@ def evalCondition(expr: str, data: pd.DataFrame, flags: pd.DataFrame,
                 flagcol = namespace["flags"][field]
                 datacol = namespace["data"][field]
             except KeyError:
-                _raiseNameError(field)
+                _raiseNameError(field, expr)
 
             if namespace.get("target") == "flags":
                 out = flagcol
@@ -112,7 +119,9 @@ def evalCondition(expr: str, data: pd.DataFrame, flags: pd.DataFrame,
         raise TypeError(
             "arguments 'data' and 'flags' need the same column names")
 
-    namespace = {**namespace, **{"data": data, "flags": flags, "this": field}}
+    FUNCTIONS = initFunctionNamespace(nodata)
+    namespace = {**namespace,
+                 **{"data": data, "flags": flags, "this": field}}
     return _eval(ast.parse(expr, mode='eval').body, namespace)
     # field = namespace["this"]
     # flags = flag_func(flags=namespace["flags"].loc[to_flag_idx, field])
