@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import pytest
 import numpy as np
 
 from .testfuncs import initData
@@ -36,12 +37,8 @@ def testMissingIdentifier():
     flags = flagger.emptyFlags(data)
     tests = ["func(var2) < 5", "var3 != NODATA"]
     for test in tests:
-        try:
-            evalCondition(test, data, flags, data.columns[0])
-        except NameError:
-            continue
-        else:
-            raise AssertionError
+        with pytest.raises(NameError):
+            evalCondition(test, flagger, data, flags, data.columns[0])
 
 
 if __name__ == "__main__":
