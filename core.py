@@ -8,7 +8,7 @@ import pandas as pd
 
 from config import Fields, FUNCMAP, Params, NODATA
 from dsl import evalCondition, parseFlag
-from flagger import PositionalFlagger
+from flagger import PositionalFlagger, BaseFlagger
 from lib.types import ArrayLike
 
 
@@ -20,37 +20,25 @@ def _periodToTicks(period, freq):
     return int(ceil(pd.to_timedelta(period)/pd.to_timedelta(freq)))
 
 
-def _flagNext(to_flag: ArrayLike, n: int) -> ArrayLike:
+def flagNext(flagger: BaseFlagger, flags: ArrayLike, n: int) -> ArrayLike:
     """
     to_flag: Union[np.ndarray[bool], pd.Series[bool]]
     """
-    idx = np.nonzero(to_flag)[0]
-    for nn in range(n + 1):
-        nn_idx = np.clip(idx + nn, a_min=None, a_max=len(to_flag) - 1)
-        to_flag[nn_idx] = True
-    return to_flag
+    for name, values in flags.iteritems():
+        idx = np.nonzero(flagger.isFlagged(values))[0]
+        mask = flagger.isFlagged(values)
+        for nn in range(1, n + 1):
+            nn_idx = np.clip(idx + nn, a_min=None, a_max=len(values) - 1)
+            nn_idx_unflagged = nn_idx[~flagger.isFlagged(values[nn_idx])]
+            values[nn_idx_unflagged] = values[nn_idx_unflagged - nn]
+    return flags
 
 
-def flagGeneric(data, flags, field, flagger, flag_params):
+def flagGeneric(data, flags, field, flagger, **flag_params):
 
     to_flag = evalCondition(
         flag_params[Params.FUNC], flagger,
         data, flags, field, nodata=NODATA)
-
-    # flag a timespan after the condition is met,
-    # duration given in 'flag_period'
-    flag_period = flag_params.pop(Params.FLAGPERIOD, None)
-    if flag_period:
-        flag_params[Params.FLAGVALUES] = _periodToTicks(flag_period,
-                                                        data.index.freq)
-
-    # flag a certain amount of values after condition is met,
-    # number given in 'flag_values'
-    flag_values = flag_params.pop(Params.FLAGVALUES, None)
-    if flag_values:
-        to_flag = _flagNext(to_flag, flag_values)
-
-    # flag to set might be given in 'flag'
 
     fchunk = flagger.setFlag(flags=flags.loc[to_flag, field], **flag_params)
     flags.loc[to_flag, field] = fchunk
@@ -118,11 +106,27 @@ def flaggingRunner(meta, flagger, data, flags=None):
                                       flagger, **flag_params)
             elif flag_name == "generic":
                 fchunk = flagGeneric(dchunk, fchunk, varname,
-                                     flagger, flag_params)
+                                     flagger, **flag_params)
             else:
                 raise RuntimeError(
                     "malformed flag field ('{:}') for variable: {:}"
                     .format(flag_test, varname))
+
+
+            # flag a timespan after the condition is met,
+            # duration given in 'flag_period'
+            flag_period = flag_params.pop(Params.FLAGPERIOD, None)
+            if flag_period:
+                flag_params[Params.FLAGVALUES] = _periodToTicks(flag_period,
+                                                                data.index.freq)
+
+            # flag a certain amount of values after condition is met,
+            # number given in 'flag_values'
+            flag_values = flag_params.pop(Params.FLAGVALUES, None)
+            if flag_values:
+                to_flag = flagNext(to_flag, flag_values)
+
+
             flagger.nextTest()
             data.loc[start_date:end_date] = dchunk
             flags.loc[start_date:end_date] = fchunk

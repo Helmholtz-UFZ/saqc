@@ -4,9 +4,9 @@
 import numpy as np
 import pandas as pd
 
-from core import flaggingRunner
+from core import flaggingRunner, flagNext
 from config import Fields
-from flagger import SimpleFlagger
+from flagger import SimpleFlagger, DmpFlagger
 from .testfuncs import initData
 
 
@@ -23,7 +23,7 @@ def initMeta(data):
                          Fields.FLAGS: tests})
 
 
-def testTemporalPartitioning():
+def test_temporalPartitioning():
 
     data = initData()
     meta = initMeta(data)
@@ -38,5 +38,47 @@ def testTemporalPartitioning():
         assert fchunk.index.max() == end_date, "different end dates"
 
 
+def test_flagNext_fill():
+    flagger = SimpleFlagger()
+    data = initData()
+    flags = flagger.emptyFlags(data)
+
+    idx = [0, 1, 2]
+    flags.iloc[idx] = flagger.setFlag(flags.iloc[idx])
+
+    n = 4
+    fflags = flagNext(flagger, flags.copy(), 4)
+    result_idx = np.unique(np.where(pd.notnull(fflags))[0])
+    expected_idx = np.arange(min(idx), max(idx) + n + 1)
+    assert (result_idx == expected_idx).all()
+
+
+def test_flagNext_overwrite():
+    flagger = SimpleFlagger()
+    data = initData()
+    flags = flagger.emptyFlags(data)
+
+    flags.iloc[0::3] = flagger.setFlag(flags.iloc[0::3], 1)
+    flags.iloc[2::3] = flagger.setFlag(flags.iloc[2::3], 2)
+
+    fflags = flagNext(flagger, flags.copy(), 4)
+    assert ((fflags.values[pd.isnull(flags)] == 1).all(axis=None))
+
+
+def test_flagNext_multicolumn():
+    flagger = DmpFlagger()
+    data = initData()
+    flags = flagger.emptyFlags(data)
+
+    flags.iloc[0::3] = flagger.setFlag(flags.iloc[0::3], "DOUBTFUL")
+    flags.iloc[2::3] = flagger.setFlag(flags.iloc[2::3], "BAD")
+
+    fflags = flagNext(flagger, flags.copy(), 4)
+    assert ((fflags.values[pd.isnull(flags)] == 1).all(axis=None))
+
+
 if __name__ == "__main__":
-    testTemporalPartitioning()
+    test_temporalPartitioning()
+    test_flagNext_fill()
+    test_flagNext_overwrite()
+    test_flagNext_multicolumn()
