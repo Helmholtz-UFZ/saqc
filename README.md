@@ -31,19 +31,20 @@
   + Number
   + if a value is flagged, so are the next n previously unflagged values
 
-### Predifined Test
-    | name  | required parameters | optional parameters | description               |
-    |-------|---------------------|---------------------|---------------------------|
-    | `mad` | `z`, `length`       | `deriv = 1`         | mean absolute deviation   |
-    |       |                     |                     | with measure of central   |
-    |       |                     |                     | tendency `z` and within   |
-    |       |                     |                     | an rolling window of      |
-    |       |                     |                     | size `z`. Optionally the  |
-    |       |                     |                     | `deriv`'s derivate of     |
-    |       |                     |                     | the dataset is calculated |
-    |       |                     |                     | first.                    |
-    |-------|---------------------|---------------------|---------------------------|
-    |       |                     |                     |                           |
+### Predifined Tests
+
+| name  | required parameters | optional parameters | description               |
+|-------|---------------------|---------------------|---------------------------|
+| `mad` | `z`, `length`       | `deriv = 1`         | mean absolute deviation   |
+|       |                     |                     | with measure of central   |
+|       |                     |                     | tendency `z` and within   |
+|       |                     |                     | an rolling window of      |
+|       |                     |                     | size `z`. Optionally the  |
+|       |                     |                     | `deriv`'s derivate of     |
+|       |                     |                     | the dataset is calculated |
+|       |                     |                     | first.                    |
+| ----- | ------------------- | ------------------- | ------------------------- |
+    
 
 ### User Defined Test
 User defined tests allow to specify simple quality checks directly within the configuration.
@@ -53,8 +54,8 @@ User defined tests allow to specify simple quality checks directly within the co
 - Example: generic, `{func: (thisvar > 0) & ismissing(othervar)}`
 #### Restrictions
 - only the operators and functions listed below are available
-- all checks need to be conditional expression and have to return an array of boolean values. 
-  All other expressions are rejected. This limitation is enforced to somewhat narrow the 
+- all checks need to be conditional expression and have to return an array of boolean values, 
+  all other expressions are rejected. This limitation is enforced to somewhat narrow the 
   scope of the system and therefore the potential to mess things up and might as well be 
   removed in the future.
 #### Syntax
@@ -79,8 +80,9 @@ User defined tests allow to specify simple quality checks directly within the co
 
 #### Referencing Semantics
 If another variable is reference within an generic test, the flags from that variable are
-propagated to the checked variable. For example:
+propagated to the checked variable.
 
+For example:
 Let `var1` and `var2` be two variables of a given dataset and `func: var1 > mean(var1)` 
 the condition wheter to flag `var2`. The result of the check can be described
-as `isflagged(var1) & istrue(func)`.
+as `isflagged(var1) & istrue(func())`.
