@@ -112,9 +112,9 @@ def evalCondition(expr: str, flagger: BaseFlagger,
             if namespace.get("target") == "flags":
                 out = flagcol
             else:
-                out = datacol  # .mask(flagger.isFlagged(flagcol))
+                out = np.ma.masked_array(datacol, mask=flagger.isFlagged(flagcol))
 
-            return out.values
+            return out
 
         else:
             raise TypeError(node)

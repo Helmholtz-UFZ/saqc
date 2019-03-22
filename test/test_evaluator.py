@@ -9,26 +9,29 @@ from flagger import SimpleFlagger
 from dsl import evalCondition
 
 
-def testConditions():
+def testEvaluationBool():
     data = initData()
     flagger = SimpleFlagger()
-    flags = flagger.emptyFlags(data)
+    flags = flagger.emptyFlags(data, 0)
+    var1, var2, *_ = data.columns
 
     tests = [
         ("this > 100",
-         data["var1"] > 100),
+         data[var1] > 100),
         ("var2 < 100",
-         data["var2"] < 100),
-        ("abs(var2 - var1)/2 > 100",
-         abs(data["var2"] - data["var1"])/2 > 100),
-        ("mean(var2) > max(var1)",
-         np.mean(data["var2"]) > np.max(data["var1"])),
-        ("sum(var2)/len(var2) > max(var1)",
-         np.mean(data["var2"]) > np.max(data["var1"]))]
+         data[var2] < 100),
+        (f"abs({var2} - {var1})/2 > 100",
+         abs(data[var2] - data[var1])/2 > 100),
+        (f"mean({var2}) > max({var1})",
+         np.mean(data[var2]) > np.max(data[var1])),
+        (f"sum({var2})/len({var2}) > max({var1})",
+         np.mean(data[var2]) > np.max(data[var1]))]
 
     for test, expected in tests:
-        idx = evalCondition(test, flagger, data, flags, data.columns[0])
-        assert (idx == expected).all()
+        result = evalCondition(test, flagger, data, flags, data.columns[0])
+        if isinstance(result, np.ma.MaskedArray):
+            result = result.filled(True)
+        assert (result == expected).all()
 
 
 def testMissingIdentifier():
@@ -41,6 +44,23 @@ def testMissingIdentifier():
             evalCondition(test, flagger, data, flags, data.columns[0])
 
 
+def testFlagPropagation():
+    data = initData()
+    flagger = SimpleFlagger()
+    flags = flagger.emptyFlags(data, 0)
+    flags.iloc[::5] = flagger.setFlag(flags.iloc[::5])
+
+    var1, var2, *_ = data.columns
+    var2_flags = flagger.isFlagged(flags[var2])
+    var2_data = data[var2].mask(var2_flags)
+
+    result = evalCondition("var2 < mean(var2)", flagger, data, flags, data.columns[0])
+
+    expected = (var2_flags | (var2_data < var2_data.mean()))
+    assert (result.filled(True) == expected).all()
+
+
 if __name__ == "__main__":
-    testConditions()
+    testEvaluationBool()
     testMissingIdentifier()
+    testFlagPropagation()
