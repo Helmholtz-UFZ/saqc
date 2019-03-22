@@ -1,5 +1,5 @@
 headerout,date start,date end,Flag_1,Flag_2,Flag_3,Flag_4
-SHFsc04cal,2013-04-04 11:00:00,,manflag,"generic, {func: ismissing(this)}",,
+SHFsc04cal,2013-04-04 11:00:00,,manflag,"generic, {func: ismissing(this)}","mad, {z: 4, length: 5h, deriv: 1}",
 SHFsc05cal,2013-04-04 11:00:00,,manflag,"generic, {func: ismissing(this)}",,
 SHFsc06cal,2013-04-04 11:00:00,2014-04-04 07:50:00,manflag,"generic, {func: ismissing(this)}",,
 dendro_185,2014-04-03 14:10:00,,manflag,"generic, {func: ismissing(this)}",,"generic, {func: T5_Ptemp < 0, flag_period: 5h}"
