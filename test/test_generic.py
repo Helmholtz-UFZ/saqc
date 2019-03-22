@@ -51,7 +51,7 @@ def test_isflagged():
     assert (flagged == idx).all
 
 
-def test_isflagged_nonstandard():
+def test_isflaggedNonstandard():
 
     flagger = SimpleFlagger()
     data = initData()
@@ -72,4 +72,4 @@ def test_isflagged_nonstandard():
 if __name__ == "__main__":
     test_ismissing()
     test_isflagged()
-    test_isflagged_nonstandard()
+    test_isflaggedNonstandard()
