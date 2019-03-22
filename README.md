@@ -33,17 +33,15 @@
 
 ### Predifined Tests
 
-| name  | required parameters | optional parameters | description               |
-|-------|---------------------|---------------------|---------------------------|
-| `mad` | `z`, `length`       | `deriv = 1`         | mean absolute deviation   |
-|       |                     |                     | with measure of central   |
-|       |                     |                     | tendency `z` and within   |
-|       |                     |                     | an rolling window of      |
-|       |                     |                     | size `z`. Optionally the  |
-|       |                     |                     | `deriv`'s derivate of     |
-|       |                     |                     | the dataset is calculated |
-|       |                     |                     | first.                    |
-| ----- | ------------------- | ------------------- | ------------------------- |
+| name  | required parameters | optional parameters | description                             |
+|-------|---------------------|---------------------|-----------------------------------------|
+| `mad` | `z`, `length`       | `deriv = 1`         | mean absolute deviation with measure of |
+|       |                     |                     | central tendency `z` and within an      |
+|       |                     |                     | rolling window of size `z`. Optionally  |
+|       |                     |                     | `deriv`'s derivate of  the dataset is   |
+|       |                     |                     | calculated first.                       |
+|-------|---------------------|---------------------|-----------------------------------------|
+|       |                     |                     |                                         |
     
 
 ### User Defined Test
