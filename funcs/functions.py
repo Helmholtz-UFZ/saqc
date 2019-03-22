@@ -14,10 +14,7 @@ def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
         flag_params[Params.FUNC], flagger,
         data, flags, field, nodata=nodata)
 
-    try:
-        fchunk = flagger.setFlag(flags=flags.loc[to_flag, field], **flag_params)
-    except:
-        import ipdb; ipdb.set_trace()
+    fchunk = flagger.setFlag(flags=flags.loc[to_flag, field], **flag_params)
     flags.loc[to_flag, field] = fchunk
 
     return data, flags
