@@ -16,7 +16,7 @@ def initMeta(data):
     randg = np.random.randint
     start_dates = [dates[randg(0, (len(dates)//2)-1)] for _ in variables]
     end_dates = [dates[randg(len(dates)//2, len(dates) - 1 )] for _ in variables]
-    tests = ["generic; func: abs(this) + 1 > 0"] * len(variables)
+    tests = ["generic, {func: abs(this) + 1 > 0}"] * len(variables)
     return pd.DataFrame({Fields.VARNAME: data.columns,
                          Fields.STARTDATE: start_dates,
                          Fields.ENDDATE: end_dates,
