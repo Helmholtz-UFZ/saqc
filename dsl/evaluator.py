@@ -52,10 +52,10 @@ def _raiseNameError(name, expr):
         .format(name, expr))
 
 
-def evalCondition(expr: str, flagger: BaseFlagger,
-                  data: pd.DataFrame, flags: pd.DataFrame,
-                  field: str, nodata: Number = np.nan,
-                  **namespace: dict) -> np.ndarray:
+def evalExpression(expr: str, flagger: BaseFlagger,
+                   data: pd.DataFrame, flags: pd.DataFrame,
+                   field: str, nodata: Number = np.nan,
+                   **namespace: dict) -> np.ndarray:
 
     # type: (...) -> np.ndarray[bool]
 

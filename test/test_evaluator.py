@@ -6,7 +6,7 @@ import numpy as np
 
 from .testfuncs import initData
 from flagger import SimpleFlagger
-from dsl import evalCondition
+from dsl import evalExpression
 
 
 def testEvaluationBool():
@@ -28,7 +28,7 @@ def testEvaluationBool():
          np.mean(data[var2]) > np.max(data[var1]))]
 
     for test, expected in tests:
-        result = evalCondition(test, flagger, data, flags, data.columns[0])
+        result = evalExpression(test, flagger, data, flags, data.columns[0])
         if isinstance(result, np.ma.MaskedArray):
             result = result.filled(True)
         assert (result == expected).all()
@@ -41,7 +41,7 @@ def testMissingIdentifier():
     tests = ["func(var2) < 5", "var3 != NODATA"]
     for test in tests:
         with pytest.raises(NameError):
-            evalCondition(test, flagger, data, flags, data.columns[0])
+            evalExpression(test, flagger, data, flags, data.columns[0])
 
 
 def testFlagPropagation():
@@ -54,7 +54,7 @@ def testFlagPropagation():
     var2_flags = flagger.isFlagged(flags[var2])
     var2_data = data[var2].mask(var2_flags)
 
-    result = evalCondition("var2 < mean(var2)", flagger, data, flags, data.columns[0])
+    result = evalExpression("var2 < mean(var2)", flagger, data, flags, data.columns[0])
 
     expected = (var2_flags | (var2_data < var2_data.mean()))
     assert (result.filled(True) == expected).all()

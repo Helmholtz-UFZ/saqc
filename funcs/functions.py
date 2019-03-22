@@ -4,15 +4,14 @@
 import numpy as np
 import pandas as pd
 from lib.tools import valueRange, slidingWindowIndices
-from dsl import evalCondition
+from dsl import evalExpression
 from . import Params
 
 
 def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
 
-    to_flag = evalCondition(
-        flag_params[Params.FUNC], flagger,
-        data, flags, field, nodata=nodata)
+    to_flag = evalExpression(flag_params[Params.FUNC], flagger,
+                             data, flags, field, nodata=nodata)
 
     fchunk = flagger.setFlag(flags=flags.loc[to_flag, field], **flag_params)
     flags.loc[to_flag, field] = fchunk
