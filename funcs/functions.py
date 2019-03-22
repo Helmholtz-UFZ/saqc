@@ -7,11 +7,21 @@ from lib.tools import valueRange, slidingWindowIndices
 from dsl import evalExpression
 from . import Params
 
-
+# TODO: move this function and the Params class into the package dsl
 def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
 
-    to_flag = evalExpression(flag_params[Params.FUNC], flagger,
-                             data, flags, field, nodata=nodata)
+    expression = flag_params[Params.FUNC]
+    result = evalExpression(expression, flagger,
+                            data, flags, field,
+                            nodata=nodata)
+
+    if np.isscalar(result):
+        raise TypeError(f"expression '{expression}' does not return an array")
+
+    if not np.issubdtype(result.dtype, np.bool_):
+        raise TypeError(f"expression '{expression}' does not return a boolean array")
+
+    to_flag = result.filled(True)
 
     fchunk = flagger.setFlag(flags=flags.loc[to_flag, field], **flag_params)
     flags.loc[to_flag, field] = fchunk
