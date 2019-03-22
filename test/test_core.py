@@ -1,10 +1,12 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import pytest
 import numpy as np
 import pandas as pd
 
 from core import flaggingRunner, flagNext
+from funcs import flagGeneric, Params
 from config import Fields
 from flagger import SimpleFlagger, DmpFlagger
 from .testfuncs import initData
@@ -77,8 +79,24 @@ def test_flagNextMulticolumn():
     assert ((fflags.values[pd.isnull(flags)] == 1).all(axis=None))
 
 
+def test_flagGenericFailure():
+    flagger = SimpleFlagger()
+    data = initData()
+    flags = flagger.emptyFlags(data)
+    var1, var2, *_ = data.columns
+
+    # expression does not return a result of identical shape
+    with pytest.raises(TypeError):
+        flagGeneric(data, flags, var2, flagger, **{Params.FUNC: f"sum({var1})"})
+
+    # expression does not return a boolean result
+    with pytest.raises(TypeError):
+        flagGeneric(data, flags, var2, flagger, **{Params.FUNC: f"{var1}"})
+
+
 if __name__ == "__main__":
     test_temporalPartitioning()
     test_flagNextFill()
     test_flagNextOverwrite()
     test_flagNextMulticolumn()
+    test_flagGenericFailure()
