@@ -18,6 +18,7 @@ A test specification contains:
   + if a value is flagged, so is the given time period following the timestamp of that value
   + Number followed by a frequency specification, e.g. '5min', '6D'.
     A comprehensive list of the supported frequies can be found in the table 'Offset Aliases' in the [Pandas Docs](http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects "Pandas Docs"). The (probably) most common options are also listed below:
+
     | frequency string | description |
     |------------------|-------------|
     | 'D'              | one day     |
