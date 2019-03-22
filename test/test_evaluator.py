@@ -9,7 +9,7 @@ from flagger import SimpleFlagger
 from dsl import evalExpression
 
 
-def testEvaluationBool():
+def test_evaluationBool():
     data = initData()
     flagger = SimpleFlagger()
     flags = flagger.emptyFlags(data, 0)
@@ -34,7 +34,7 @@ def testEvaluationBool():
         assert (result == expected).all()
 
 
-def testMissingIdentifier():
+def test_missingIdentifier():
     data = initData()
     flagger = SimpleFlagger()
     flags = flagger.emptyFlags(data)
@@ -44,7 +44,7 @@ def testMissingIdentifier():
             evalExpression(test, flagger, data, flags, data.columns[0])
 
 
-def testFlagPropagation():
+def test_flagPropagation():
     data = initData()
     flagger = SimpleFlagger()
     flags = flagger.emptyFlags(data, 0)
@@ -61,6 +61,6 @@ def testFlagPropagation():
 
 
 if __name__ == "__main__":
-    testEvaluationBool()
-    testMissingIdentifier()
-    testFlagPropagation()
+    test_evaluationBool()
+    test_missingIdentifier()
+    test_flagPropagation()

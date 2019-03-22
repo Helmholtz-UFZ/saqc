@@ -38,7 +38,7 @@ def test_temporalPartitioning():
         assert fchunk.index.max() == end_date, "different end dates"
 
 
-def test_flagNext_fill():
+def test_flagNextFill():
     flagger = SimpleFlagger()
     data = initData().iloc[:, 1]
     flags = flagger.emptyFlags(data)
@@ -53,7 +53,7 @@ def test_flagNext_fill():
     assert (result_idx == expected_idx).all()
 
 
-def test_flagNext_overwrite():
+def test_flagNextOverwrite():
     flagger = SimpleFlagger()
     data = initData().iloc[:, 0]
     flags = flagger.emptyFlags(data)
@@ -65,7 +65,7 @@ def test_flagNext_overwrite():
     assert ((fflags.values[pd.isnull(flags)] == 1).all(axis=None))
 
 
-def test_flagNext_multicolumn():
+def test_flagNextMulticolumn():
     flagger = DmpFlagger()
     data = initData().iloc[:, 0]
     flags = flagger.emptyFlags(data)
@@ -79,6 +79,6 @@ def test_flagNext_multicolumn():
 
 if __name__ == "__main__":
     test_temporalPartitioning()
-    test_flagNext_fill()
-    test_flagNext_overwrite()
-    test_flagNext_multicolumn()
+    test_flagNextFill()
+    test_flagNextOverwrite()
+    test_flagNextMulticolumn()
