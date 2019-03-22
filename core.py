@@ -8,7 +8,7 @@ import pandas as pd
 
 from config import Fields, FUNCMAP, NODATA
 from funcs import Params
-from dsl import evalCondition, parseFlag
+from dsl import evalExpression, parseFlag
 from flagger import PositionalFlagger, BaseFlagger
 from lib.types import ArrayLike
 

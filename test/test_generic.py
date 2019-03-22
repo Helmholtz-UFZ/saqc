@@ -6,7 +6,7 @@ import pandas as pd
 
 from .testfuncs import initData
 
-from dsl import evalCondition
+from dsl import evalExpression
 from flagger import SimpleFlagger
 
 
@@ -23,12 +23,11 @@ def test_ismissing():
 
     var1, var2, *_ = data.columns
 
-    idx = evalCondition(
-        "ismissing({:})".format(var1),
-        flagger,
-        data, flags,
-        var2,
-        nodata=nodata)
+    idx = evalExpression("ismissing({:})".format(var1),
+                         flagger,
+                         data, flags,
+                         var2,
+                         nodata=nodata)
 
     fdata = data.loc[idx, var1]
     assert (pd.isnull(fdata) | (fdata == nodata)).all()
@@ -43,11 +42,10 @@ def test_isflagged():
 
     flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0])
 
-    idx = evalCondition(
-        "isflagged({:})".format(var1),
-        flagger,
-        data, flags,
-        var2)
+    idx = evalExpression("isflagged({:})".format(var1),
+                         flagger,
+                         data, flags,
+                         var2)
 
     flagged = flagger.isFlagged(flags[var1])
     assert (flagged == idx).all
@@ -62,11 +60,10 @@ def test_isflagged_nonstandard():
 
     flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0], -9)
 
-    idx = evalCondition(
-        "isflagged({:}, -9)".format(var1),
-        flagger,
-        data, flags,
-        var2)
+    idx = evalExpression("isflagged({:}, -9)".format(var1),
+                         flagger,
+                         data, flags,
+                         var2)
 
     flagged = flagger.isFlagged(flags[var1], -9)
     assert (flagged == idx).all
