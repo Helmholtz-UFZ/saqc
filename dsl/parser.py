@@ -1,21 +1,12 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import re
+import yaml
 
-
-def parseFlag(params):
+def parseFlag(expr):
+    content = yaml.load("[{:}]".format(expr), Loader=yaml.CLoader)
+    name = content[0]
     out = {}
-    for i, part in enumerate(re.split(r";\s*", params)):
-        if ":" in part:
-            k, v = [i.strip() for i in part.split(":")]
-            try:
-                out[k] = int(v)
-            except ValueError:
-                try:
-                    out[k] = float(v)
-                except ValueError:
-                    out[k] = v
-        elif i == 0:
-            out["name"] = part
-    return out
+    for pdict in content[1:]:
+        out.update(pdict)
+    return name, out

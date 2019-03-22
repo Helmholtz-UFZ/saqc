@@ -79,8 +79,7 @@ def flaggingRunner(meta, flagger, data, flags=None):
                       .loc[start_date:end_date]
                       .fillna({varname: flagger.no_flag}))
 
-            flag_params = parseFlag(flag_test)
-            flag_name = flag_params[Params.NAME]
+            flag_name, flag_params = parseFlag(flag_test)
 
             # NOTE: higher flags might be overwritten by lower ones
             func = FUNCMAP.get(flag_name, None)
