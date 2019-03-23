@@ -6,8 +6,8 @@ from math import ceil
 import numpy as np
 import pandas as pd
 
-from config import Fields, FUNCMAP
-from funcs import Params
+from config import Fields, Params
+from funcs import flagDispatch
 from dsl import evalExpression, parseFlag
 from flagger import PositionalFlagger, BaseFlagger
 from lib.types import ArrayLike
@@ -59,7 +59,7 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
         if meta[flag_field].dropna().empty:
             continue
 
-        for _, configrow in meta.iterrows():
+        for idx, configrow in meta.iterrows():
 
             flag_test = configrow[flag_field]
             if pd.isnull(flag_test):
@@ -79,17 +79,15 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
                       .loc[start_date:end_date]
                       .fillna({varname: flagger.no_flag}))
 
-            flag_name, flag_params = parseFlag(flag_test)
-
-            # NOTE: higher flags might be overwritten by lower ones
-            func = FUNCMAP.get(flag_name, None)
-            if func:
-                dchunk, fchunk = func(dchunk, fchunk, varname,
-                                      flagger, nodata=nodata, **flag_params)
-            else:
-                raise RuntimeError(
-                    "malformed flag field ('{:}') for variable: {:}"
-                    .format(flag_test, varname))
+            func_name, flag_params = parseFlag(flag_test)
+            try:
+                dchunk, fchunk = flagDispatch(func_name,
+                                              dchunk, fchunk, varname,
+                                              flagger, nodata=nodata,
+                                              **flag_params)
+            except NameError:
+                raise NameError(
+                    f"function name {func_name} is not definied (variable '{varname}, 'line: {idx + 1})")
 
 
             # flag a timespan after the condition is met,
@@ -113,8 +111,9 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
 
 
 def prepareMeta(meta, data):
-    # NOTE: an option needed to only pass test within an file and deduce
+    # NOTE: an option needed to only pass tests within an file and deduce
     #       everything else from data
+
     # no dates given, fall back to the available date range
     if Fields.STARTDATE not in meta:
         meta = meta.assign(**{Fields.STARTDATE: np.nan})
@@ -123,7 +122,10 @@ def prepareMeta(meta, data):
     meta = meta.fillna(
         {Fields.ENDDATE: data.index.max(),
          Fields.STARTDATE: data.index.max()})
+
+    # rows without a variables name don't help much
     meta = meta.dropna(subset=[Fields.VARNAME])
+
     meta[Fields.STARTDATE] = pd.to_datetime(meta[Fields.STARTDATE])
     meta[Fields.ENDDATE] = pd.to_datetime(meta[Fields.ENDDATE])
     return meta
