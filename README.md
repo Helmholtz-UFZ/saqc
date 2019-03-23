@@ -31,16 +31,11 @@
   + Number
   + if a value is flagged, so are the next n previously unflagged values
 
-### Predifined Tests
+### Predefined Tests
 
 | name  | required parameters | optional parameters | description                             |
 |-------|---------------------|---------------------|-----------------------------------------|
-| `mad` | `z`, `length`       | `deriv = 1`         | mean absolute deviation with measure of |
-|       |                     |                     | central tendency `z` and within an      |
-|       |                     |                     | rolling window of size `z`. Optionally  |
-|       |                     |                     | `deriv`'s derivate of  the dataset is   |
-|       |                     |                     | calculated first.                       |
-|-------|---------------------|---------------------|-----------------------------------------|
+| `mad` | `z`, `length`       | `deriv = 1`         | mean absolute deviation with measure of <br> central tendency `z` and an <br> rolling window of size `length`. Optionally <br> `deriv`'s derivate of  the dataset is <br> calculated first.                       |
 |       |                     |                     |                                         |
     
 
