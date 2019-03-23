@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from core import runner, flagNext
-from funcs import flagGeneric, Params
+from funcs.functions import flagGeneric, Params
 from config import Fields
 from flagger import SimpleFlagger, DmpFlagger
 from .testfuncs import initData

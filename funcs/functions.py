@@ -5,9 +5,23 @@ import numpy as np
 import pandas as pd
 from lib.tools import valueRange, slidingWindowIndices
 from dsl import evalExpression
-from . import Params
+from config import Params
 
-# TODO: move this function and the Params class into the package dsl
+
+def flagDispatch(func_name, *args, **kwargs):
+    func_map = {
+        "manflag": flagManual,
+        "mad": flagMad,
+        "constant": flagConstant,
+        "generic": flagGeneric}
+
+    func = func_map.get(func_name, None)
+    if func is not None:
+        return func(*args, **kwargs)
+    raise NameError(f"function name {func_name} is not definied")
+
+
+
 def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
 
     expression = flag_params[Params.FUNC]
