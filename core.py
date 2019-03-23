@@ -30,7 +30,7 @@ def flagNext(flagger: BaseFlagger, flags: pd.Series, n: int) -> pd.Series:
     return flags
 
 
-def flaggingRunner(meta, flagger, data, flags=None, nodata=np.nan):
+def runner(meta, flagger, data, flags=None, nodata=np.nan):
 
     if flags is None:
         flags = flagger.emptyFlags(data)
@@ -146,4 +146,4 @@ if __name__ == "__main__":
     data = readData(datafname)
     meta = prepareMeta(pd.read_csv(metafname), data)
     flagger = PositionalFlagger()
-    pdata, pflags = flaggingRunner(meta, flagger, data)
+    pdata, pflags = runner(meta, flagger, data)
