@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from core import flaggingRunner, flagNext
+from core import runner, flagNext
 from funcs import flagGeneric, Params
 from config import Fields
 from flagger import SimpleFlagger, DmpFlagger
@@ -30,7 +30,7 @@ def test_temporalPartitioning():
     data = initData()
     meta = initMeta(data)
     flagger = SimpleFlagger()
-    pdata, pflags = flaggingRunner(meta, flagger, data)
+    pdata, pflags = runner(meta, flagger, data)
 
     fields = [Fields.VARNAME, Fields.STARTDATE, Fields.ENDDATE]
     for _, row in meta.iterrows():
