@@ -40,10 +40,13 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
                             "correspond to flagger requirements")
 
     # NOTE:
-    # we need an index frequency in order to calculate ticks
-    # from given periods further down the road
+    # We need an index frequency in order to calculate ticks
+    # from given periods further down the road. Maybe this
+    # restriction should only be enforced when we really
+    # need a time series...
     data.index.freq = _inferFrequency(data)
-    assert data.index.freq, "no frequency deducable from timeseries"
+    if not data.index.freq:
+        raise TypeError("cannot infer time frequency from dataset")
 
     # the required meta data columns
     fields = [Fields.VARNAME, Fields.STARTDATE, Fields.ENDDATE]
