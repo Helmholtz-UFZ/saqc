@@ -26,5 +26,3 @@ FUNCMAP = {
     "constant": funcs.flagConstant,
     "generic": funcs.flagGeneric
 }
-
-NODATA = np.nan
