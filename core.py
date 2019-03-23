@@ -6,7 +6,7 @@ from math import ceil
 import numpy as np
 import pandas as pd
 
-from config import Fields, FUNCMAP, NODATA
+from config import Fields, FUNCMAP
 from funcs import Params
 from dsl import evalExpression, parseFlag
 from flagger import PositionalFlagger, BaseFlagger
@@ -30,7 +30,7 @@ def flagNext(flagger: BaseFlagger, flags: pd.Series, n: int) -> pd.Series:
     return flags
 
 
-def flaggingRunner(meta, flagger, data, flags=None):
+def flaggingRunner(meta, flagger, data, flags=None, nodata=np.nan):
 
     if flags is None:
         flags = flagger.emptyFlags(data)
@@ -85,7 +85,7 @@ def flaggingRunner(meta, flagger, data, flags=None):
             func = FUNCMAP.get(flag_name, None)
             if func:
                 dchunk, fchunk = func(dchunk, fchunk, varname,
-                                      flagger, nodata=NODATA, **flag_params)
+                                      flagger, nodata=nodata, **flag_params)
             else:
                 raise RuntimeError(
                     "malformed flag field ('{:}') for variable: {:}"
