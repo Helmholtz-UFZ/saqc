@@ -131,10 +131,10 @@ def prepareMeta(meta, data):
     return meta
 
 
-def readData(fname):
+def readData(fname, index_col, nans):
     data = pd.read_csv(
-        fname, index_col="Date Time", parse_dates=True,
-        na_values=["-9999", "-9999.0"], low_memory=False)
+        fname, index_col=index_col, parse_dates=True,
+        na_values=nans, low_memory=False)
     data.columns = [c.split(" ")[0] for c in data.columns]
     data = data.reindex(
         pd.date_range(data.index.min(), data.index.max(), freq="10min"))
@@ -145,7 +145,9 @@ if __name__ == "__main__":
 
     datafname = "resources/data.csv"
     metafname = "resources/meta.csv"
-    data = readData(datafname)
+
+    data = readData(datafname, index_col="Date Time", nans=["-9999", "-9999.0"])
     meta = prepareMeta(pd.read_csv(metafname), data)
+
     flagger = PositionalFlagger()
     pdata, pflags = runner(meta, flagger, data)
