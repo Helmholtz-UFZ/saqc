@@ -124,7 +124,7 @@ def prepareMeta(meta, data):
         meta = meta.assign(**{Fields.ENDDATE: np.nan})
     meta = meta.fillna(
         {Fields.ENDDATE: data.index.max(),
-         Fields.STARTDATE: data.index.max()})
+         Fields.STARTDATE: data.index.min()})
 
     # rows without a variables name don't help much
     meta = meta.dropna(subset=[Fields.VARNAME])
