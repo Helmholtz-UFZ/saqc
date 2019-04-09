@@ -119,10 +119,6 @@ def evalExpression(expr: str, flagger: BaseFlagger,
         else:
             raise TypeError(node)
 
-    if not (data.columns == flags.columns).all():
-        raise TypeError(
-            "arguments 'data' and 'flags' need the same column names")
-
     FUNCTIONS = initFunctionNamespace(nodata, flagger)
     namespace = {**namespace,
                  **{"data": data, "flags": flags, "this": field}}
