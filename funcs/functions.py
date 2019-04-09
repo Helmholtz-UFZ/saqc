@@ -35,13 +35,11 @@ def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
     if not np.issubdtype(result.dtype, np.bool_):
         raise TypeError(f"expression '{expression}' does not return a boolean array")
 
-    to_flag = result.filled(True)
-
-    fchunk = flagger.setFlag(flags=flags.loc[to_flag, field], **flag_params)
+    fchunk = flagger.setFlag(flags=flags.loc[result, field], **flag_params)
 
     # .values transform the data to NumPy array, so the assignment
     # can work for single- and multi- indexed data.
-    flags.loc[to_flag, field] = fchunk.values
+    flags.loc[result, field] = fchunk.values
 
     return data, flags
 
