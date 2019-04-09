@@ -17,6 +17,10 @@ class Flags:
     DOUBTFUL = "DOUBTFUL"
     BAD = "BAD"
 
+    @staticmethod
+    def isValid(flag):
+        return flag in [Flags.OK, Flags.DOUBTFUL, Flags.BAD]
+
 
 class DmpFlagger(BaseFlagger):
     def __init__(self, no_flag="NIL", flag="BAD"):
@@ -35,9 +39,9 @@ class DmpFlagger(BaseFlagger):
         return flags
 
     def isFlagged(self, flags, flag=None):
-        self._isFlag(flag)
         flagcol = flags.loc[:, FlagFields.FLAG].squeeze()
         return super().isFlagged(flagcol, flag)
 
     def _isFlag(self, flag):
-        assert flag in Flags.__dict__.values()
+        assert Flags.isValid(flag)
+

@@ -70,7 +70,9 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
 
             varname, start_date, end_date = configrow[fields]
             if varname not in data:
-                continue
+                # add a new variable
+                dummy = pd.DataFrame(index=data.index, columns=[varname])
+                flags = flags.join(flagger.emptyFlags(dummy))
 
             dchunk = data.loc[start_date:end_date]
             if dchunk.empty:
@@ -97,8 +99,7 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             # duration given in 'flag_period'
             flag_period = flag_params.pop(Params.FLAGPERIOD, None)
             if flag_period:
-                flag_params[Params.FLAGVALUES] = _periodToTicks(flag_period,
-                                                                data.index.freq)
+                flag_params[Params.FLAGVALUES] = _periodToTicks(flag_period, data.index.freq)
 
             # flag a certain amount of values after condition is met,
             # number given in 'flag_values'
