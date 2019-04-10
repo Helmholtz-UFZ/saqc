@@ -26,24 +26,21 @@ class PositionalFlagger(BaseFlagger):
                 flags: ArrayLike,
                 flag: Optional[int] = None,
                 flagpos: Optional[int] = None,
-                **kwds: Any) -> np.ndarray:
+                **kwargs: Any) -> np.ndarray:
         if flag is None:
             flag = self.flag
         if flagpos is None:
             flagpos = self._flag_pos
-        try:
-            return self._setFlags(flags, flag, flagpos)
-        except:
-            import ipdb; ipdb.set_trace()
+        return self._setFlags(flags, flag, flagpos)
 
-    def isFlagged(self, flags: pd.DataFrame, flag=None):
+    def isFlagged(self, flags, flag=None):
         maxflags = self._getMaxflags(flags[np.isfinite(flags)])
         if flag is None:
             return (pd.notnull(maxflags) & (maxflags != self.no_flag))
         return maxflags == flag
 
     def _getMaxflags(self, flags: pd.DataFrame,
-                     exclude: Union[int, Sequence] = 0) -> pd.DataFrame:
+                     exclude: Union[int, Sequence] = 0) -> np.ndarray:
 
         flagmax = np.max(np.array(flags))
         ndigits = int(np.ceil(np.log10(flagmax)))
@@ -57,7 +54,7 @@ class PositionalFlagger(BaseFlagger):
 
         return out
 
-    def _getFlags(self, flags: pd.DataFrame, pos: int) -> pd.DataFrame:
+    def _getFlags(self, flags: pd.DataFrame, pos: int) -> np.ndarray:
 
         flags = self._prepFlags(flags)
         pos = np.broadcast_to(np.atleast_1d(pos), flags.shape)
@@ -70,12 +67,12 @@ class PositionalFlagger(BaseFlagger):
 
         return out
 
-    def _prepFlags(self, flags: pd.DataFrame) -> pd.DataFrame:
+    def _prepFlags(self, flags: ArrayLike) -> np.ndarray:
         out = numpyfy(flags)
         return out
 
     def _setFlags(self, flags: pd.DataFrame,
-                  values: Union[pd.DataFrame, int], pos: int) -> pd.DataFrame:
+                  values: Union[pd.DataFrame, int], pos: int) -> np.ndarray:
 
         flags, pos, values = broadcastMany(flags, pos, values)
 

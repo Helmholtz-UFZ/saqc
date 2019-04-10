@@ -43,7 +43,7 @@ class DmpFlagger(BaseFlagger):
         flags = self._reduceColumns(flags)
         for field, f in zip(self.flag_fields, [flag, cause, comment]):
             flags.loc[:, field] = f
-        return flags
+        return flags.values
 
     def isFlagged(self, flags, flag=None):
         flags = self._reduceColumns(flags)
