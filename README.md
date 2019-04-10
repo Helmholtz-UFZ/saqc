@@ -104,21 +104,21 @@ In order to make your test available for the system you need to:
        the variable, the current test is performed on)
     + `flags: pd.DataFrame`: A dataframe holding the flags for the entire 
        dataset
-    + `field: String`: The name of the variable the current test is performed on.
-       The data and flags for this variable is available via `data[field]` and 
+    + `field: String`: The name of the variable the current test is performed on
+       (i.e. a column index into `data` and `columns`).
+       The data and flags for this variable are available via `data[field]` and 
        `flags[field]` respectively
     + `flagger: flagger.BaseFlagger`: An instance of the `BaseFlagger` class
        (more likely one of its subclasses). To initialize, create or check
        against existing flags you should use the respective `flagger`-methods
        (`flagger.empytFlags`, `flagger.isFlagged` and `flagger.setFlag`)
     + `**kwargs: Any`: All the parameters given in the configuration file are passed
-       to your function, you are of course free to make some of them requires 
-       by the signature. `kwargs` should be passed on to the `flagger.setFlag` 
-       methods, in order to allow configuration based fine tuning of the flagging
+       to your function, you are of course free to make some of them required 
+       by your signature. `kwargs` should be passed on to the `flagger.setFlag` 
+       method, in order to allow configuration based fine tuning of the flagging
   + Function output:
-    Your function needs to return two DataFrame/ndarray, data and flags. As 
-    the names suggest, the first holds the data, the second the possibly 
-    modified flags
+    + `data: Union[np.ndarray, pd.DataFrame]`: The (hopefully unchanged) data
+    + `flags: Union[np.ndarray, pd.DataFrame]`: The (most likely modified) flags
   + Note: The choosen interface allows you to not only manipulate 
     the flags, but also the data of the entire dataset within your function 
     body. This freedom might come in handy, but also requires a certain amount 
