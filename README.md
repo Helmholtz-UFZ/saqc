@@ -30,9 +30,9 @@
 - `flag_values`:
   + Number
   + if a value is flagged, so are the next n previously unflagged values
-- `assign_to`:
-  + String
-  + Assign the test result to a new columns given as a value to assign
+- `assign`:
+  + boolean
+  + Assign the test result to a new column
 ### Predefined Tests
 
 | name  | required parameters | optional parameters | description                             |
