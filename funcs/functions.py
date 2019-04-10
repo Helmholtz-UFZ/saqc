@@ -36,9 +36,7 @@ def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
 
     fchunk = flagger.setFlag(flags=flags.loc[result, field], **flag_params)
 
-    # .values transform the data to NumPy array, so the assignment
-    # can work for single- and multi- indexed data.
-    flags.loc[result, field] = fchunk.values
+    flags.loc[result, field] = fchunk
 
     return data, flags
 

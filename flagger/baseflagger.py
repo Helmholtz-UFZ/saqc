@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Any, Optional
 from numbers import Number
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -18,11 +18,17 @@ class BaseFlagger:
     def setFlag(self,
                 flags: PandasLike,
                 flag: Optional[T] = None,
-                **kwargs: Any) -> PandasLike:
+                **kwargs: Any) -> np.ndarray:
+        """
+        NOTE:
+        this method should really return a numpy array, as
+        pandas data structures tend to behave unpredictively
+        in assignments, especially if a multi column index is used
+        """
         if flag is None:
             flag = self.flag
         flags[:] = flag
-        return flags
+        return flags.values
 
     def emptyFlags(self,
                    data: pd.DataFrame,

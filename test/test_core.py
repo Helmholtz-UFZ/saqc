@@ -74,10 +74,10 @@ def test_flagNextMulticolumn():
     var, *_ = flags.columns.get_level_values(0)
 
     flags.loc[data.index[0::3], var] = flagger.setFlag(
-        flags.loc[data.index[0::3], var], "DOUBTFUL").values
+        flags.loc[data.index[0::3], var], "DOUBTFUL")
 
     flags.loc[data.index[2::3], var] = flagger.setFlag(
-        flags.loc[data.index[2::3], var], "BAD").values
+        flags.loc[data.index[2::3], var], "BAD")
 
     fflags = flagNext(flagger, flags.copy(), 4)
     assert ((fflags.values[pd.isnull(flags)] == 1).all(axis=None))
