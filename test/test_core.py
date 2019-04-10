@@ -71,9 +71,13 @@ def test_flagNextMulticolumn():
     flagger = DmpFlagger()
     data = initData().iloc[:, 0]
     flags = flagger.emptyFlags(data)
+    var, *_ = flags.columns.get_level_values(0)
 
-    flags.iloc[0::3] = flagger.setFlag(flags.iloc[0::3], "DOUBTFUL")
-    flags.iloc[2::3] = flagger.setFlag(flags.iloc[2::3], "BAD")
+    flags.loc[data.index[0::3], var] = flagger.setFlag(
+        flags.loc[data.index[0::3], var], "DOUBTFUL").values
+
+    flags.loc[data.index[2::3], var] = flagger.setFlag(
+        flags.loc[data.index[2::3], var], "BAD").values
 
     fflags = flagNext(flagger, flags.copy(), 4)
     assert ((fflags.values[pd.isnull(flags)] == 1).all(axis=None))

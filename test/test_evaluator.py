@@ -54,7 +54,10 @@ def test_flagPropagation():
     var2_flags = flagger.isFlagged(flags[var2])
     var2_data = data[var2].mask(var2_flags)
 
-    result = evalExpression("var2 < mean(var2)", flagger, data, flags, data.columns[0])
+    result = evalExpression("var2 < mean(var2)",
+                            flagger,
+                            data, flags,
+                            data.columns[0])
 
     expected = (var2_flags | (var2_data < var2_data.mean()))
     assert (result.filled(True) == expected).all()
