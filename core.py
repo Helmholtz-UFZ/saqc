@@ -12,6 +12,13 @@ from dsl import parseFlag
 from flagger import PositionalFlagger, BaseFlagger
 
 
+class FlagParams:
+    FLAG = "flag"
+    PERIODE = "flag_period"
+    VALUES = "flag_values"
+    ASSIGN = "assign_to"
+
+
 def _inferFrequency(data):
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
@@ -67,15 +74,21 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             if pd.isnull(flag_test):
                 continue
 
+            func_name, flag_params = parseFlag(flag_test)
+
+            assign_to = flag_params.get(FlagParams.ASSIGN)
+            if assign_to:
+                dummy = pd.DataFrame(index=data.index, columns=[assign_to])
+                flags = flags.join(flagger.emptyFlags(dummy))
+
             varname, start_date, end_date = configrow[fields]
             if varname not in data:
-                # add a new variable
-                dummy = pd.DataFrame(index=data.index, columns=[varname])
-                flags = flags.join(flagger.emptyFlags(dummy))
+                continue
 
             dchunk = data.loc[start_date:end_date]
             if dchunk.empty:
                 continue
+
             # NOTE:
             # within the activation period of a variable, the flag will
             # be initialized if necessary
@@ -83,7 +96,6 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
                       .loc[start_date:end_date]
                       .fillna({varname: flagger.no_flag}))
 
-            func_name, flag_params = parseFlag(flag_test)
             try:
                 dchunk, fchunk = flagDispatch(func_name,
                                               dchunk, fchunk, varname,
