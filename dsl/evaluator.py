@@ -103,21 +103,16 @@ def evalExpression(expr: str, flagger: BaseFlagger,
                 # name is not referring to an DataFrame field
                 return field
 
-            if namespace.get("target") == "flags":
-                try:
-                    # check if variable is existent
-                    flagcol = namespace["flags"][field]
-                except KeyError:
-                    _raiseNameError(field, expr)
-                out = flagcol
-            else:
-                try:
-                    # check if variable is existent
-                    flagcol = namespace["flags"][field]
+            try:
+                flagcol = namespace["flags"][field]
+                if namespace.get("target") == "flags":
+                    out = flagcol
+                else:
                     datacol = namespace["data"][field]
-                except KeyError:
-                    _raiseNameError(field, expr)
-                out = np.ma.masked_array(datacol, mask=flagger.isFlagged(flagcol)).filled(True)
+                    out = np.ma.masked_array(datacol,
+                                             mask=flagger.isFlagged(flagcol))
+            except KeyError:
+                _raiseNameError(field, expr)
 
             return out
 
