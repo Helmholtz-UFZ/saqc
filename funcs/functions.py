@@ -21,7 +21,6 @@ def flagDispatch(func_name, *args, **kwargs):
     raise NameError(f"function name {func_name} is not definied")
 
 
-
 def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
 
     expression = flag_params[Params.FUNC]
