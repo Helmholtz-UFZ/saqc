@@ -13,10 +13,10 @@
   + test name and parameter object/dictionary need to be seperated by comma
 - Example: `limits, {min: 0, max: 100}`
 #### Optional Test Parameters
-- flag:
+- `flag`:
   The value to set (more precisely the value to pass to the flagging component) if the tests
   does not pass
-- flag_period:
+- `flag_period`:
   + if a value is flagged, so is the given time period following the timestamp of that value
   + Number followed by a frequency specification, e.g. '5min', '6D'.
     A comprehensive list of the supported frequies can be found in the table 'Offset Aliases' in the [Pandas Docs](http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects "Pandas Docs"). The (probably) most common options are also listed below:
@@ -27,10 +27,12 @@
     | `H`              | one hour    |
     | `T` or `min`     | one minute  |
     | `S`              | one second  |
-- flag_values:
+- `flag_values`:
   + Number
   + if a value is flagged, so are the next n previously unflagged values
-
+- `assign_to`:
+  + String
+  + Assign the test result to a new columns given as a value to assign
 ### Predefined Tests
 
 | name  | required parameters | optional parameters | description                             |
