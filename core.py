@@ -16,7 +16,7 @@ class FlagParams:
     FLAG = "flag"
     PERIODE = "flag_period"
     VALUES = "flag_values"
-    ASSIGN = "assign_to"
+    ASSIGN = "assign"
 
 
 def _inferFrequency(data):
@@ -74,14 +74,13 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             if pd.isnull(flag_test):
                 continue
 
+            varname, start_date, end_date = configrow[fields]
             func_name, flag_params = parseFlag(flag_test)
 
-            assign_to = flag_params.get(FlagParams.ASSIGN)
-            if assign_to:
-                dummy = pd.DataFrame(index=data.index, columns=[assign_to])
-                flags = flags.join(flagger.emptyFlags(dummy))
+            if flag_params.get(FlagParams.ASSIGN):
+                dummy = pd.DataFrame(index=data.index, columns=[varname])
+                flags[varname] = flagger.emptyFlags(dummy)
 
-            varname, start_date, end_date = configrow[fields]
             if varname not in data:
                 continue
 
