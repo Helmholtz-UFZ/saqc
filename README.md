@@ -81,3 +81,47 @@ For example:
 Let `var1` and `var2` be two variables of a given dataset and `func: var1 > mean(var1)` 
 the condition wheter to flag `var2`. The result of the check can be described
 as `isflagged(var1) & istrue(func())`.
+
+## Contributing
+### Testing
+Please run the tests before you commit!
+```sh
+python -m pytest test
+```
+can save us a lot of time...
+
+### New QC-Algorithms
+Currently all test algorithms are collected within the module `funcs.functions`.
+In order to make your test available for the system you need to:
+- Place your code into the file `funcs/functions.py`
+- Register your function by adding it to the dictionary `func_map`
+  within the function body of `funcs.functions.flagDispatch`. Your function 
+  will be available to the system by its key.
+- Implement the common interface:
+  + Function input:
+    Your function needs to accept the following arguments:
+    + `data: pd.DataFrame`: A dataframe holding the entire dataset (i.e. not only
+       the variable, the current test is performed on)
+    + `flags: pd.DataFrame`: A dataframe holding the flags for the entire 
+       dataset
+    + `field: String`: The name of the variable the current test is performed on.
+       The data and flags for this variable is available via `data[field]` and 
+       `flags[field]` respectively
+    + `flagger: flagger.BaseFlagger`: An instance of the `BaseFlagger` class
+       (more likely one of its subclasses). To initialize, create or check
+       against existing flags you should use the respective `flagger`-methods
+       (`flagger.empytFlags`, `flagger.isFlagged` and `flagger.setFlag`)
+    + `**kwargs: Any`: All the parameters given in the configuration file are passed
+       to your function, you are of course free to make some of them requires 
+       by the signature. `kwargs` should be passed on to the `flagger.setFlag` 
+       methods, in order to allow configuration based fine tuning of the flagging
+  + Function output:
+    Your function needs to return two DataFrame/ndarray, data and flags. As 
+    the names suggest, the first holds the data, the second the possibly 
+    modified flags
+  + Note: The choosen interface allows you to not only manipulate 
+    the flags, but also the data of the entire dataset within your function 
+    body. This freedom might come in handy, but also requires a certain amount 
+    of care to not mess things up!
+  + Example: The function `flagRange` in `funcs/functions.py` may serve as an
+    simple example of the general scheme
