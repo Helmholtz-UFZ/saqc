@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import numba as nb
 
+from lib.types import PandasLike, ArrayLike
+
 
 @nb.jit(nopython=True, cache=True)
 def findIndex(iterable, value, start):
@@ -69,9 +71,8 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
         start_date = dates[start_idx]
 
 
-def numpyfy(arg: Union[pd.DataFrame,
-                        pd.Series,
-                        np.array,
+def numpyfy(arg:  Union[PandasLike,
+                        np.ndarray,
                         numbers.Number]) -> np.ndarray:
     try:
         # pandas dataframe
@@ -85,7 +86,7 @@ def numpyfy(arg: Union[pd.DataFrame,
             return np.atleast_1d(arg)
 
 
-def broadcastMany(*args):
+def broadcastMany(*args: ArrayLike) -> np.ndarray:
     arrays = [np.atleast_1d(a) for a in args]
     target_ndim = max(arr.ndim for arr in arrays)
     out = []
