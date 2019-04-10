@@ -13,6 +13,7 @@ def flagDispatch(func_name, *args, **kwargs):
         "manflag": flagManual,
         "mad": flagMad,
         "constant": flagConstant,
+        "range": flagRange,
         "generic": flagGeneric}
 
     func = func_map.get(func_name, None)
@@ -79,6 +80,14 @@ def flagConstant(data, flags, field, flagger, eps,
 
 
 def flagManual(data, flags, field, flagger, **kwargs):
+    return data, flags
+
+
+def flagRange(data, flags, field, flagger, min, max, **kwargs):
+
+    datacol = data[field].values
+    mask = (datacol < min) | (datacol >= max)
+    flags.loc[mask, field] = flagger.setFlag(flags.loc[mask, field], **kwargs)
     return data, flags
 
 
