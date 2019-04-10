@@ -8,9 +8,8 @@ import pandas as pd
 
 from config import Fields, Params
 from funcs import flagDispatch
-from dsl import evalExpression, parseFlag
+from dsl import parseFlag
 from flagger import PositionalFlagger, BaseFlagger
-from lib.types import ArrayLike
 
 
 def _inferFrequency(data):
