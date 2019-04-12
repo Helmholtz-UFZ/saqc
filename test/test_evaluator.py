@@ -12,7 +12,7 @@ from dsl import evalExpression
 def test_evaluationBool():
     data = initData()
     flagger = SimpleFlagger()
-    flags = flagger.emptyFlags(data, 0)
+    flags = flagger.initFlags(data, 0)
     var1, var2, *_ = data.columns
 
     tests = [
@@ -37,7 +37,7 @@ def test_evaluationBool():
 def test_missingIdentifier():
     data = initData()
     flagger = SimpleFlagger()
-    flags = flagger.emptyFlags(data)
+    flags = flagger.initFlags(data)
     tests = ["func(var2) < 5", "var3 != NODATA"]
     for test in tests:
         with pytest.raises(NameError):
@@ -47,7 +47,7 @@ def test_missingIdentifier():
 def test_flagPropagation():
     data = initData()
     flagger = SimpleFlagger()
-    flags = flagger.emptyFlags(data, 0)
+    flags = flagger.initFlags(data, 0)
     flags.iloc[::5] = flagger.setFlag(flags.iloc[::5])
 
     var1, var2, *_ = data.columns

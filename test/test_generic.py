@@ -3,11 +3,13 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from .testfuncs import initData
 
 from dsl import evalExpression
 from flagger import SimpleFlagger
+from funcs.functions import flagGeneric, Params
 
 
 def test_ismissing():
@@ -19,7 +21,7 @@ def test_ismissing():
     data.iloc[(len(data)//2)+1:, 0] = nodata
 
     flagger = SimpleFlagger()
-    flags = flagger.emptyFlags(data)
+    flags = flagger.initFlags(data)
 
     var1, var2, *_ = data.columns
 
@@ -37,7 +39,7 @@ def test_isflagged():
 
     flagger = SimpleFlagger()
     data = initData()
-    flags = flagger.emptyFlags(data, 0)
+    flags = flagger.initFlags(data, 0)
     var1, var2, *_ = data.columns
 
     flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0])
@@ -51,11 +53,11 @@ def test_isflagged():
     assert (flagged == idx).all
 
 
-def test_isflaggedNonstandard():
+def test_isflaggedArgument():
 
     flagger = SimpleFlagger()
     data = initData()
-    flags = flagger.emptyFlags(data, 0)
+    flags = flagger.initFlags(data, 0)
     var1, var2, *_ = data.columns
 
     flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0], -9)
@@ -69,7 +71,25 @@ def test_isflaggedNonstandard():
     assert (flagged == idx).all
 
 
+def test_flagFailure():
+    flagger = SimpleFlagger()
+    data = initData()
+    flags = flagger.initFlags(data)
+    var1, var2, *_ = data.columns
+
+    # expression does not return a result of identical shape
+    with pytest.raises(TypeError):
+        flagGeneric(data, flags, var2, flagger,
+                    **{Params.FUNC: f"sum({var1})"})
+
+    # need a test for missing variables
+    with pytest.raises(NameError):
+        flagGeneric(data, flags, var2, flagger,
+                    **{Params.FUNC: f"sum({var1 + 'x'})"})
+
+
 if __name__ == "__main__":
     test_ismissing()
     test_isflagged()
-    test_isflaggedNonstandard()
+    test_isflaggedArgument()
+    test_flagFailure()

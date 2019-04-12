@@ -5,102 +5,136 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from core import runner, flagNext
-from funcs.functions import flagGeneric, Params
+from core import runner, flagNext, prepareMeta
 from config import Fields
-from flagger import SimpleFlagger, DmpFlagger
+from flagger import SimpleFlagger, DmpFlagger, PositionalFlagger
 from .testfuncs import initData
 
 
-def initMeta(data):
-    dates = data.index
-    variables = data.columns
-    randg = np.random.randint
-    start_dates = [dates[randg(0, (len(dates)//2)-1)] for _ in variables]
-    end_dates = [dates[randg(len(dates)//2, len(dates) - 1 )] for _ in variables]
-    tests = ["generic, {func: abs(this) + 1 > 0}"] * len(variables)
-    return pd.DataFrame({Fields.VARNAME: data.columns,
-                         Fields.STARTDATE: start_dates,
-                         Fields.ENDDATE: end_dates,
-                         Fields.FLAGS: tests})
+TESTFLAGGERS = [
+    SimpleFlagger(), DmpFlagger(),  # PositionalFlagger()
+]
 
 
-def test_temporalPartitioning():
+@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+def test_temporalPartitioning(flagger):
+    """
+    Check if the time span in meta is respected
+    """
+    data = initData(3)
+    var1, var2, var3, *_ = data.columns
+    split_date = data.index[len(data.index)//2]
+    tests = ["range, {min: -2, max: -1}",
+             "generic, {func: this <= sum(this)}",
+             "generic, {func: this <= sum(this)}"]
 
-    data = initData()
-    meta = initMeta(data)
-    flagger = SimpleFlagger()
+    meta = prepareMeta(
+        pd.DataFrame(
+            {Fields.VARNAME: [var1, var2, var3],
+             Fields.STARTDATE: [None, None, split_date],
+             Fields.ENDDATE: [None, split_date, None],
+             Fields.FLAGS: tests}),
+        data)
+
     pdata, pflags = runner(meta, flagger, data)
 
     fields = [Fields.VARNAME, Fields.STARTDATE, Fields.ENDDATE]
     for _, row in meta.iterrows():
         vname, start_date, end_date = row[fields]
-        fchunk = pflags[vname].dropna()
+        fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
         assert fchunk.index.min() == start_date, "different start dates"
         assert fchunk.index.max() == end_date, "different end dates"
 
 
-def test_flagNextFill():
-    flagger = SimpleFlagger()
+@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+def test_missingConfig(flagger):
+    """
+    Test if variables available in the dataset but not the config
+    are handled correctly, i.e. are ignored
+    """
+    data = initData(2)
+    var1, var2, *_ = data.columns
+    meta = prepareMeta(
+        pd.DataFrame(
+            {Fields.VARNAME: [var1],
+             Fields.FLAGS: ["range, {min: -9999, max: 9999}"]}),
+        data)
+
+    pdata, pflags = runner(meta, flagger, data)
+    assert var1 in pdata and var2 not in pflags
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+def test_missingVariable(flagger):
+    """
+    Test if variables available in the config but not dataset
+    are handled correctly, i.e. are ignored
+    """
+    data = initData(1)
+    var, *_ = data.columns
+    meta = prepareMeta(
+        pd.DataFrame(
+            {Fields.VARNAME: [var, "empty"],
+             Fields.FLAGS: ["range, {min: -9999, max: 9999}",
+                            "range, {min: -9999, max: 9999}"]}),
+        data)
+
+    pdata, pflags = runner(meta, flagger, data)
+    assert (data.columns == [var]).all()
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+def test_assignVariable(flagger):
+    """
+    Test the assign keyword, a variable present in the configuration, but not
+    dataset will be added to output flags
+    """
+    data = initData(1)
+    var1, *_ = data.columns
+    var2 = "empty"
+    meta = prepareMeta(
+        pd.DataFrame(
+            {Fields.VARNAME: [var1, var2],
+             Fields.FLAGS: ["range, {min: -9999, max: 9999}",
+                            f"generic, {{func: isflagged({var2}), assign: True}}"]}),
+        data)
+
+    pdata, pflags = runner(meta, flagger, data)
+
+    if isinstance(pflags.columns, pd.MultiIndex):
+        cols = (pflags
+                .columns.get_level_values(0)
+                .drop_duplicates())
+        assert (cols == [var1, var2]).all()
+    else:
+        assert (pflags.columns == [var1, var2]).all()
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+def test_flagNext(flagger):
+    """
+    Test if the flagNext functionality works as expected
+    """
     data = initData().iloc[:, 1]
-    flags = flagger.emptyFlags(data)
+    flags = flagger.initFlags(data)
 
     idx = [0, 1, 2]
     flags.iloc[idx] = flagger.setFlag(flags.iloc[idx])
 
     n = 4
     fflags = flagNext(flagger, flags.copy(), 4)
-    result_idx = np.unique(np.where(pd.notnull(fflags))[0])
+    result_idx = np.unique(np.where(flagger.isFlagged(fflags))[0])
     expected_idx = np.arange(min(idx), max(idx) + n + 1)
     assert (result_idx == expected_idx).all()
 
 
-def test_flagNextOverwrite():
-    flagger = SimpleFlagger()
-    data = initData().iloc[:, 0]
-    flags = flagger.emptyFlags(data)
-
-    flags.iloc[0::3] = flagger.setFlag(flags.iloc[0::3], 1)
-    flags.iloc[2::3] = flagger.setFlag(flags.iloc[2::3], 2)
-
-    fflags = flagNext(flagger, flags.copy().iloc[:], 4)
-    assert ((fflags.values[pd.isnull(flags)] == 1).all(axis=None))
-
-
-def test_flagNextMulticolumn():
-    flagger = DmpFlagger()
-    data = initData().iloc[:, 0]
-    flags = flagger.emptyFlags(data)
-    var, *_ = flags.columns.get_level_values(0)
-
-    flags.loc[data.index[0::3], var] = flagger.setFlag(
-        flags.loc[data.index[0::3], var], "DOUBTFUL")
-
-    flags.loc[data.index[2::3], var] = flagger.setFlag(
-        flags.loc[data.index[2::3], var], "BAD")
-
-    fflags = flagNext(flagger, flags.copy(), 4)
-    assert ((fflags.values[pd.isnull(flags)] == 1).all(axis=None))
-
-
-def test_flagGenericFailure():
-    flagger = SimpleFlagger()
-    data = initData()
-    flags = flagger.emptyFlags(data)
-    var1, var2, *_ = data.columns
-
-    # expression does not return a result of identical shape
-    with pytest.raises(TypeError):
-        flagGeneric(data, flags, var2, flagger, **{Params.FUNC: f"sum({var1})"})
-
-    # expression does not return a boolean result
-    with pytest.raises(TypeError):
-        flagGeneric(data, flags, var2, flagger, **{Params.FUNC: f"{var1}"})
-
-
 if __name__ == "__main__":
-    test_temporalPartitioning()
-    test_flagNextFill()
-    test_flagNextOverwrite()
-    test_flagNextMulticolumn()
-    test_flagGenericFailure()
+
+    # NOTE: PositionalFlagger is currently broken, going to fix it when needed
+    # for flagger in [SimpleFlagger, PositionalFlagger, DmpFlagger]:
+    for flagger in [SimpleFlagger(), DmpFlagger()]:
+        test_temporalPartitioning(flagger)
+        test_flagNext(flagger)
+        test_missingConfig(flagger)
+        test_missingVariable(flagger)
+        test_assignVariable(flagger)
