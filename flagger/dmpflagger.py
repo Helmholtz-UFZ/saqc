@@ -31,14 +31,27 @@ class DmpFlagger(BaseFlagger):
         super().__init__(no_flag, flag)
         self.flag_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
 
-    def emptyFlags(self, data, value="NIL", **kwargs):
+    def emptyFlags(self, data, **kwargs):
+        columns = pd.MultiIndex(
+            levels=[[], []],
+            labels=[[], []],
+            names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
+        return pd.DataFrame(index=data.index, columns=columns)
+
+    # def _getColumns(self, data):
+    #     if isinstance(data, pd.DataFrame):
+    #         return data.columns
+    #     return [data.name]
+
+    def initFlags(self, data, value="NIL", **kwargs):
         columns = data.columns if isinstance(data, pd.DataFrame) else [data.name]
         columns = pd.MultiIndex.from_product(
             [columns, self.flag_fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
         return pd.DataFrame(data=value, columns=columns, index=data.index)
 
-    def setFlag(self, flags, flag=Flags.BAD, cause="NIL", comment="NIL", **kwargs):
+    def setFlag(self, flags, flag=Flags.BAD,
+                cause="NIL", comment="NIL", **kwargs):
         self._isFlag(flag)
         flags = self._reduceColumns(flags)
         for field, f in zip(self.flag_fields, [flag, cause, comment]):
