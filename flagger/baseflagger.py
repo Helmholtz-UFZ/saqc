@@ -30,12 +30,15 @@ class BaseFlagger:
         flags[:] = flag
         return flags.values
 
-    def emptyFlags(self,
-                   data: pd.DataFrame,
-                   value: Optional[Number] = np.nan) -> pd.DataFrame:
+    def initFlags(self,
+                  data: pd.DataFrame,
+                  value: Optional[Number] = np.nan) -> pd.DataFrame:
         out = data.copy()
         out[:] = value
         return out
+
+    def emptyFlags(self, data: pd.DataFrame) -> pd.DataFrame:
+        return pd.DataFrame(index=data.index)
 
     def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
         if flag is None:

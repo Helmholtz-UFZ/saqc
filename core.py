@@ -39,11 +39,12 @@ def flagNext(flagger: BaseFlagger, flags: pd.Series, n: int) -> pd.Series:
 def runner(meta, flagger, data, flags=None, nodata=np.nan):
 
     if flags is None:
+        # flags = pd.DataFrame(index=data.index)
         flags = flagger.emptyFlags(data)
-    else:
-        if not all(flags.columns == flagger.emptyFlags(data.iloc[0]).columns):
-            raise TypeError("structure of given flag does not "
-                            "correspond to flagger requirements")
+    # else:
+    #     if not all(flags.columns == flagger.emptyFlags(data.iloc[0]).columns):
+    #         raise TypeError("structure of given flag does not "
+    #                         "correspond to flagger requirements")
 
     # NOTE:
     # We need an index frequency in order to calculate ticks
@@ -77,9 +78,14 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             varname, start_date, end_date = configrow[fields]
             func_name, flag_params = parseFlag(flag_test)
 
-            if flag_params.get(FlagParams.ASSIGN):
+            # NOTE:
+            # create a flag column if this is explicitly stated
+            # or if a variable is checked but no corresponding
+            # flag column exists
+            if (flag_params.get(FlagParams.ASSIGN) or
+                ((varname in data) and (varname not in flags))):
                 dummy = pd.DataFrame(index=data.index, columns=[varname])
-                flags[varname] = flagger.emptyFlags(dummy)
+                flags = flags.join(flagger.initFlags(dummy))
 
             if varname not in data:
                 continue
@@ -104,18 +110,20 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
                 raise NameError(
                     f"function name {func_name} is not definied (variable '{varname}, 'line: {idx + 1})")
 
-
             # flag a timespan after the condition is met,
             # duration given in 'flag_period'
             flag_period = flag_params.pop(Params.FLAGPERIOD, None)
             if flag_period:
-                flag_params[Params.FLAGVALUES] = _periodToTicks(flag_period, data.index.freq)
+                flag_params[Params.FLAGVALUES] = _periodToTicks(
+                    flag_period, data.index.freq)
 
             # flag a certain amount of values after condition is met,
             # number given in 'flag_values'
             flag_values = flag_params.pop(Params.FLAGVALUES, None)
             if flag_values:
-                fchunk[varname] = flagNext(flagger, fchunk[varname], flag_values)
+                fchunk[varname] = flagNext(flagger,
+                                           fchunk[varname],
+                                           flag_values)
 
             data.loc[start_date:end_date] = dchunk
             flags.loc[start_date:end_date] = fchunk
