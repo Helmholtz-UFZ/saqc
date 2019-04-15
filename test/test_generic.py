@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from .testfuncs import initData
+from test.common import initData
 
 from dsl import evalExpression
 from flagger import SimpleFlagger

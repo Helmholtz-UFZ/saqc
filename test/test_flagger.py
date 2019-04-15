@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-from .testfuncs import initData
+from test.common import initData
 from core import runner, prepareMeta
 from flagger.dmpflagger import DmpFlagger, FlagFields, Flags
 
