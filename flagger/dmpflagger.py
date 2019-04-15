@@ -34,7 +34,7 @@ class DmpFlagger(BaseFlagger):
     def emptyFlags(self, data, **kwargs):
         columns = pd.MultiIndex(
             levels=[[], []],
-            labels=[[], []],
+            codes=[[], []],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
         return pd.DataFrame(index=data.index, columns=columns)
 
