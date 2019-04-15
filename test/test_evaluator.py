@@ -4,7 +4,7 @@
 import pytest
 import numpy as np
 
-from .testfuncs import initData
+from test.common import initData
 from flagger import SimpleFlagger
 from dsl import evalExpression
 

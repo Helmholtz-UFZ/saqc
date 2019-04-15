@@ -8,7 +8,7 @@ import pandas as pd
 from core import runner, flagNext, prepareMeta
 from config import Fields
 from flagger import SimpleFlagger, DmpFlagger, PositionalFlagger
-from .testfuncs import initData
+from test.common import initData
 
 
 TESTFLAGGERS = [
