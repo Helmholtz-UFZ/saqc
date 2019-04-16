@@ -29,6 +29,8 @@ def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
                             data, flags, field,
                             nodata=nodata)
 
+    result = result.squeeze()
+
     if np.isscalar(result):
         raise TypeError(f"expression '{expression}' does not return an array")
 

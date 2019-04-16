@@ -82,12 +82,12 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             # create a flag column if this is explicitly stated
             # or if a variable is checked but no corresponding
             # flag column exists
-            if (flag_params.get(FlagParams.ASSIGN) or
-                ((varname in data) and (varname not in flags))):
+            if flag_params.get(FlagParams.ASSIGN) or \
+                    (varname in data and varname not in flags):
                 dummy = pd.DataFrame(index=data.index, columns=[varname])
                 flags = flags.join(flagger.initFlags(dummy))
 
-            if varname not in data:
+            elif varname not in data and varname not in flags:
                 continue
 
             dchunk = data.loc[start_date:end_date]
