@@ -95,19 +95,22 @@ def test_assignVariable(flagger):
     meta = prepareMeta(
         pd.DataFrame(
             {Fields.VARNAME: [var1, var2],
-             Fields.FLAGS: ["range, {min: -9999, max: 9999}",
-                            f"generic, {{func: isflagged({var2}), assign: True}}"]}),
+             Fields.FLAGS: ["range, {min: 99999, max: -99999}",
+                            f"generic, {{func: isflagged({var1}), assign: True}}"]}),
         data)
 
     pdata, pflags = runner(meta, flagger, data)
+
 
     if isinstance(pflags.columns, pd.MultiIndex):
         cols = (pflags
                 .columns.get_level_values(0)
                 .drop_duplicates())
         assert (cols == [var1, var2]).all()
+        assert flagger.isFlagged(pflags[var2]).any()
     else:
         assert (pflags.columns == [var1, var2]).all()
+        assert flagger.isFlagged(pflags[var2]).any()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
