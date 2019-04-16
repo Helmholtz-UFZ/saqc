@@ -103,15 +103,41 @@ def evalExpression(expr: str, flagger: BaseFlagger,
                 # name is not referring to an DataFrame field
                 return field
 
-            try:
-                flagcol = namespace["flags"][field]
-                if namespace.get("target") == "flags":
-                    out = flagcol
-                else:
+            fidx = namespace["flags"].columns
+            if isinstance(fidx, pd.MultiIndex):
+                fcols = fidx.get_level_values(0).unique()
+            else:
+                fcols = fidx.values
+            dcols = namespace["data"].columns.values
+
+            if namespace.get("target") == "flags":
+                # We are forced to work on flags
+                if field in fcols:
+                    out = namespace["flags"][field]
+                elif field in dcols:
+                    # Up to now there are no flagging information on the requested
+                    # field, so return a fresh new unflagged vector
                     datacol = namespace["data"][field]
-                    out = np.ma.masked_array(datacol,
-                                             mask=flagger.isFlagged(flagcol))
-            except KeyError:
+                    dummy = pd.DataFrame(index=datacol.index, columns=[field])
+                    out = flagger.initFlags(dummy)
+                else:
+                    _raiseNameError(field, expr)
+
+            elif field in dcols and field in fcols:
+                # Return all unflagged (original) data
+                datacol = namespace["data"][field]
+                flagcol = namespace["flags"][field]
+                out = np.ma.masked_array(datacol, mask=flagger.isFlagged(flagcol))
+
+            elif field in dcols and field not in fcols:
+                # Return all data, because we have no flagging information
+                out = namespace["data"][field].values
+
+            elif field not in dcols and field in fcols:
+                # Return only flag information, because we have no data
+                out = namespace["flags"][field].values
+
+            else:
                 _raiseNameError(field, expr)
 
             return out
