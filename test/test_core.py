@@ -80,7 +80,7 @@ def test_missingVariable(flagger):
         data)
 
     pdata, pflags = runner(meta, flagger, data)
-    assert (data.columns == [var]).all()
+    assert (pdata.columns == [var]).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
