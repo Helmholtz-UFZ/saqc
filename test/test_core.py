@@ -101,7 +101,6 @@ def test_assignVariable(flagger):
 
     pdata, pflags = runner(meta, flagger, data)
 
-
     if isinstance(pflags.columns, pd.MultiIndex):
         cols = (pflags
                 .columns.get_level_values(0)
