@@ -37,9 +37,6 @@ class BaseFlagger:
         out[:] = value
         return out
 
-    def emptyFlags(self, data: pd.DataFrame) -> pd.DataFrame:
-        return pd.DataFrame(index=data.index)
-
     def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
         if flag is None:
             return (pd.notnull(flags) & (flags != self.no_flag))

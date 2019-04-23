@@ -39,12 +39,7 @@ def flagNext(flagger: BaseFlagger, flags: pd.Series, n: int) -> pd.Series:
 def runner(meta, flagger, data, flags=None, nodata=np.nan):
 
     if flags is None:
-        # flags = pd.DataFrame(index=data.index)
-        flags = flagger.emptyFlags(data)
-    # else:
-    #     if not all(flags.columns == flagger.emptyFlags(data.iloc[0]).columns):
-    #         raise TypeError("structure of given flag does not "
-    #                         "correspond to flagger requirements")
+        flags = pd.DataFrame(index=data.index)
 
     # NOTE:
     # We need an index frequency in order to calculate ticks
@@ -84,8 +79,9 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             # flag column exists
             if flag_params.get(FlagParams.ASSIGN) or \
                     (varname in data and varname not in flags):
-                dummy = pd.DataFrame(index=data.index, columns=[varname])
-                flags = flags.join(flagger.initFlags(dummy))
+                col_flags = flagger.initFlags(
+                    pd.DataFrame(index=data.index, columns=[varname]))
+                flags = col_flags if flags.empty else flags.join(col_flags)
 
             elif varname not in data and varname not in flags:
                 continue
@@ -97,9 +93,7 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             # NOTE:
             # within the activation period of a variable, the flag will
             # be initialized if necessary
-            fchunk = (flags
-                      .loc[start_date:end_date]
-                      .fillna({varname: flagger.no_flag}))
+            fchunk = flags.loc[start_date:end_date]
 
             try:
                 dchunk, fchunk = flagDispatch(func_name,

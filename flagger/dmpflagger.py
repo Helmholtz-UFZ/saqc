@@ -31,18 +31,6 @@ class DmpFlagger(BaseFlagger):
         super().__init__(no_flag, flag)
         self.flag_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
 
-    def emptyFlags(self, data, **kwargs):
-        columns = pd.MultiIndex(
-            levels=[[], []],
-            codes=[[], []],
-            names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
-        return pd.DataFrame(index=data.index, columns=columns)
-
-    # def _getColumns(self, data):
-    #     if isinstance(data, pd.DataFrame):
-    #         return data.columns
-    #     return [data.name]
-
     def initFlags(self, data, value="NIL", **kwargs):
         columns = data.columns if isinstance(data, pd.DataFrame) else [data.name]
         columns = pd.MultiIndex.from_product(
