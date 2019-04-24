@@ -56,7 +56,7 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
     # get to know every variable from meta
     for idx, configrow in meta.iterrows():
         varname, _, _, assign = configrow[fields]
-        if varname not in flags and (varname in data or varname not in data and assign):
+        if varname not in flags and (varname in data or varname not in data and assign is True):
             col_flags = flagger.initFlags(pd.DataFrame(index=data.index, columns=[varname]))
             flags = col_flags if flags.empty else flags.join(col_flags)
     print(flags.columns.values)
