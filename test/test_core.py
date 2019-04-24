@@ -95,8 +95,9 @@ def test_assignVariable(flagger):
     meta = prepareMeta(
         pd.DataFrame(
             {Fields.VARNAME: [var1, var2],
+             Fields.ASSIGN: [False, True],
              Fields.FLAGS: ["range, {min: 99999, max: -99999}",
-                            f"generic, {{func: isflagged({var1}), assign: True}}"]}),
+                            f"generic, {{func: isflagged({var1})}}"]}),
         data)
 
     pdata, pflags = runner(meta, flagger, data)

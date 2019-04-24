@@ -9,6 +9,7 @@ class Fields:
     VARNAME = "headerout"
     STARTDATE = "date start"
     ENDDATE = "date end"
+    ASSIGN = "assign"
     FLAGS = "Flag*"
 
 
