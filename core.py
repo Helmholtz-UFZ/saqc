@@ -51,7 +51,15 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
         raise TypeError("cannot infer time frequency from dataset")
 
     # the required meta data columns
-    fields = [Fields.VARNAME, Fields.STARTDATE, Fields.ENDDATE]
+    fields = [Fields.VARNAME, Fields.STARTDATE, Fields.ENDDATE, Fields.ASSIGN]
+
+    # get to know every variable from meta
+    for idx, configrow in meta.iterrows():
+        varname, _, _, assign = configrow[fields]
+        if varname not in flags and (varname in data or varname not in data and assign):
+            col_flags = flagger.initFlags(pd.DataFrame(index=data.index, columns=[varname]))
+            flags = col_flags if flags.empty else flags.join(col_flags)
+    print(flags.columns.values)
 
     # NOTE:
     # the outer loop runs over the flag tests, the inner one over the
@@ -70,29 +78,16 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             if pd.isnull(flag_test):
                 continue
 
-            varname, start_date, end_date = configrow[fields]
+            varname, start_date, end_date, _ = configrow[fields]
             func_name, flag_params = parseFlag(flag_test)
 
-            # NOTE:
-            # create a flag column if this is explicitly stated
-            # or if a variable is checked but no corresponding
-            # flag column exists
-            if flag_params.get(FlagParams.ASSIGN) or \
-                    (varname in data and varname not in flags):
-                col_flags = flagger.initFlags(
-                    pd.DataFrame(index=data.index, columns=[varname]))
-                flags = col_flags if flags.empty else flags.join(col_flags)
-
-            elif varname not in data and varname not in flags:
+            if varname not in data and varname not in flags:
                 continue
 
             dchunk = data.loc[start_date:end_date]
             if dchunk.empty:
                 continue
 
-            # NOTE:
-            # within the activation period of a variable, the flag will
-            # be initialized if necessary
             fchunk = flags.loc[start_date:end_date]
 
             try:
@@ -138,6 +133,9 @@ def prepareMeta(meta, data):
     meta = meta.fillna(
         {Fields.ENDDATE: data.index.max(),
          Fields.STARTDATE: data.index.min()})
+
+    if Fields.ASSIGN not in meta:
+        meta = meta.assign(**{Fields.ASSIGN: False})
 
     # rows without a variables name don't help much
     meta = meta.dropna(subset=[Fields.VARNAME])
