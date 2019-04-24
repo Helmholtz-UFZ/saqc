@@ -110,34 +110,21 @@ def evalExpression(expr: str, flagger: BaseFlagger,
                 fcols = fidx.values
             dcols = namespace["data"].columns.values
 
-            if namespace.get("target") == "flags":
-                # We are forced to work on flags
+            try:
                 if field in fcols:
-                    out = namespace["flags"][field]
-                elif field in dcols:
-                    # Up to now there are no flagging information on the requested
-                    # field, so return a fresh new unflagged vector
-                    datacol = namespace["data"][field]
-                    dummy = pd.DataFrame(index=datacol.index, columns=[field])
-                    out = flagger.initFlags(dummy)
-                else:
-                    _raiseNameError(field, expr)
+                    flagcol = namespace["flags"][field]
+                    out = flagcol
 
-            elif field in dcols and field in fcols:
-                # Return all unflagged (original) data
-                datacol = namespace["data"][field]
-                flagcol = namespace["flags"][field]
-                out = np.ma.masked_array(datacol, mask=flagger.isFlagged(flagcol))
+                if namespace.get("target") != "flags":
 
-            elif field in dcols and field not in fcols:
-                # Return all data, because we have no flagging information
-                out = namespace["data"][field].values
+                    if field in dcols:
+                        datacol = namespace["data"][field]
+                        out = datacol
 
-            elif field not in dcols and field in fcols:
-                # Return only flag information, because we have no data
-                out = namespace["flags"][field].values
+                    if field in dcols and field in fcols:
+                        out = np.ma.masked_array(datacol, mask=flagger.isFlagged(flagcol))
 
-            else:
+            except KeyError:
                 _raiseNameError(field, expr)
 
             return out
