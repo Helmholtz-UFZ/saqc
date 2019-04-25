@@ -1,8 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import io
+import re
+
 import numpy as np
 import pandas as pd
+
+from core import prepareMeta
 
 
 def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):
@@ -12,3 +17,9 @@ def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):
     for col in range(1, cols+1):
         data[f"var{col}"] = dummy*(col)
     return pd.DataFrame(data, index=dates)
+
+
+def initMeta(metastring, data):
+    fobj = io.StringIO(re.sub("\n[ \t]+", "\n", metastring))
+    meta = pd.read_csv(fobj)
+    return prepareMeta(meta, data)

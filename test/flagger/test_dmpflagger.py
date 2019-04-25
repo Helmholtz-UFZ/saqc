@@ -2,27 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-from ..common import initData
+
+from ..common import initData, initMeta
 from core import runner, prepareMeta
 from flagger.dmpflagger import DmpFlagger, FlagFields
 
 
 def test_basic():
 
+    flagger = DmpFlagger()
     data = initData()
     var1, var2, *_ = data.columns
     var1mean = data[var1].mean()
     var2mean = data[var2].mean()
 
-    meta = [
-        [var1, f"generic, {{func: this < {var1mean}}}", "range, {min: 10, max: 20, comment: saqc}"],
-        [var2, f"generic, {{func: this > {var2mean}, cause: error}}"],
-    ]
-    meta = prepareMeta(
-        pd.DataFrame(meta, columns=["headerout", "Flag_1", "Flag_2"]),
-        data)
+    metastring = f"""
+    headerout, Flag_1, Flag_2
+    {var1},"generic, {{func: this < {var1mean}}}","range, {{min: 10, max: 20, comment: saqc}}"
+    {var2},"generic, {{func: this > {var2mean}, cause: error}}"
+    """
+    meta = initMeta(metastring, data)
 
-    flagger = DmpFlagger()
     data, flags = runner(meta, flagger, data)
 
     col1 = data[var1]
@@ -47,14 +47,12 @@ def test_flagOrder():
     fmin = flagger.flags.min()
     fmax = flagger.flags.max()
 
-    meta = [
-        [var, f"generic, {{func: this > mean(this), flag: {fmax}}}"],
-        [var, f"generic, {{func: this >= min(this), flag: {fmin}}}"],
-    ]
-
-    meta = prepareMeta(
-        pd.DataFrame(meta, columns=["headerout", "Flag_1"]),
-        data)
+    metastring = f"""
+    headerout,Flag
+    {var},"generic, {{func: this > mean(this), flag: {fmax}}}"
+    {var},"generic, {{func: this >= min(this), flag: {fmin}}}"
+    """
+    meta = initMeta(metastring, data)
 
     pdata, pflags = runner(meta, flagger, data)
 
