@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from core import runner, flagNext, prepareMeta
+from core import runner, flagNext, flagPeriod, prepareMeta
 from config import Fields
 from flagger import SimpleFlagger, DmpFlagger, PositionalFlagger
 from test.common import initData
@@ -131,6 +131,29 @@ def test_flagNext(flagger):
     assert (result_idx == expected_idx).all()
 
 
+@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+def test_flagPeriod(flagger):
+    """
+    Test if the flagNext functionality works as expected
+    """
+    data = initData().iloc[:, 1]
+    flags = flagger.initFlags(data)
+
+    idx = [0, 1, 2]
+    flags.iloc[idx] = flagger.setFlag(flags.iloc[idx])
+
+    tdelta = pd.to_timedelta("4h")
+    flags = flagPeriod(flagger, flags.copy(), tdelta)
+    expected_dates = set(flags[flagger.isFlagged(flags)].index)
+
+    dates = set()
+    for start in flags.index[idx]:
+        stop = start + tdelta
+        dates = dates | set(flags[start:stop].index)
+
+    assert expected_dates == dates
+
+
 if __name__ == "__main__":
 
     # NOTE: PositionalFlagger is currently broken, going to fix it when needed
@@ -139,6 +162,7 @@ if __name__ == "__main__":
     # for flagger in [DmpFlagger()]:
         test_temporalPartitioning(flagger)
         test_flagNext(flagger)
+        test_flagPeriod(flagger)
         test_missingConfig(flagger)
         test_missingVariable(flagger)
         test_assignVariable(flagger)
