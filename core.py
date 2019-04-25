@@ -59,7 +59,6 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
         if varname not in flags and (varname in data or varname not in data and assign is True):
             col_flags = flagger.initFlags(pd.DataFrame(index=data.index, columns=[varname]))
             flags = col_flags if flags.empty else flags.join(col_flags)
-    print(flags.columns.values)
 
     # NOTE:
     # the outer loop runs over the flag tests, the inner one over the
