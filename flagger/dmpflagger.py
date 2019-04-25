@@ -46,6 +46,7 @@ class DmpFlagger(BaseFlagger):
 
         flags = self._reduceColumns(flags)
         flags.loc[flags[FlagFields.FLAG] < flag, FlagFields.FLAG] = flag
+
         for field, f in [(FlagFields.CAUSE, cause), (FlagFields.COMMENT, comment)]:
             flags.loc[:, field] = f
 
@@ -60,6 +61,3 @@ class DmpFlagger(BaseFlagger):
         if isinstance(flags.columns, pd.MultiIndex):
             flags.columns = flags.columns.get_level_values(ColumnLevels.FLAGS)
         return flags
-
-    # def _isFlag(self, flag):
-    #     assert Flags.isValid(flag)
