@@ -1,8 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from math import ceil
-
 import numpy as np
 import pandas as pd
 
@@ -156,7 +154,9 @@ if __name__ == "__main__":
     datafname = "resources/data.csv"
     metafname = "resources/meta.csv"
 
-    data = readData(datafname, index_col="Date Time", nans=["-9999", "-9999.0"])
+    data = readData(datafname,
+                    index_col="Date Time",
+                    nans=["-9999", "-9999.0"])
     meta = prepareMeta(pd.read_csv(metafname), data)
 
     flagger = PositionalFlagger()

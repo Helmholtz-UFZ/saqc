@@ -1,10 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pandas as pd
-
 from ..common import initData, initMeta
-from core import runner, prepareMeta
+from core import runner
 from flagger.dmpflagger import DmpFlagger, FlagFields
 
 
