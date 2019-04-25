@@ -4,7 +4,7 @@
 import pandas as pd
 from test.common import initData
 from core import runner, prepareMeta
-from flagger.dmpflagger import DmpFlagger, FlagFields, Flags
+from flagger.dmpflagger import DmpFlagger, FlagFields
 
 
 def test_DmpFlagger():
@@ -22,7 +22,8 @@ def test_DmpFlagger():
         pd.DataFrame(meta, columns=["headerout", "Flag_1", "Flag_2"]),
         data)
 
-    data, flags = runner(meta, DmpFlagger(), data)
+    flagger = DmpFlagger()
+    data, flags = runner(meta, flagger, data)
 
     col1 = data[var1]
     col2 = data[var2]
@@ -32,14 +33,39 @@ def test_DmpFlagger():
 
     flags21 = flags.loc[col2 > var2mean, (var2, FlagFields.CAUSE)]
 
-    assert (flags11 == Flags.BAD).all()
+    assert (flags11 >= flagger.flags.min()).all()
     assert (flags12 == "saqc").all()
     assert (flags21 == "error").all()
 
 
+def test_flagOrder():
 
+    data = initData()
+    var, *_ = data.columns
+
+    flagger = DmpFlagger()
+    fmin = flagger.flags.min()
+    fmax = flagger.flags.max()
+
+    meta = [
+        [var, f"generic, {{func: this > mean(this), flag: {fmax}}}"],
+        [var, f"generic, {{func: this >= min(this), flag: {fmin}}}"],
+    ]
+
+    meta = prepareMeta(
+        pd.DataFrame(meta, columns=["headerout", "Flag_1"]),
+        data)
+
+    pdata, pflags = runner(meta, flagger, data)
+
+    datacol = pdata[var]
+    flagcol = pflags[(var, FlagFields.FLAG)]
+
+    assert (flagcol[datacol > datacol.mean()] == fmax).all()
+    assert (flagcol[datacol <= datacol.mean()] == fmin).all()
 
 
 if __name__ == "__main__":
 
     test_DmpFlagger()
+    test_flagOrder()
