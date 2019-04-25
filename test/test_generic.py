@@ -39,7 +39,7 @@ def test_isflagged():
 
     flagger = SimpleFlagger()
     data = initData()
-    flags = flagger.initFlags(data, 0)
+    flags = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
     flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0])
@@ -57,7 +57,7 @@ def test_isflaggedArgument():
 
     flagger = SimpleFlagger()
     data = initData()
-    flags = flagger.initFlags(data, 0)
+    flags = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
     flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0], -9)

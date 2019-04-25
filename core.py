@@ -32,7 +32,7 @@ def flagNext(flagger: BaseFlagger, flags: pd.Series, n: int) -> pd.Series:
     for nn in range(1, n + 1):
         nn_idx = np.clip(idx + nn, a_min=None, a_max=len(flags) - 1)
         nn_idx_unflagged = nn_idx[~flagger.isFlagged(flags.iloc[nn_idx])]
-        flags.values[nn_idx_unflagged] = flags.iloc[nn_idx_unflagged - nn]
+        flags.loc[flags.index[nn_idx_unflagged]] = flags.iloc[nn_idx_unflagged - nn].values
     return flags
 
 
@@ -115,7 +115,7 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
                                            flag_values)
 
             data.loc[start_date:end_date] = dchunk
-            flags.loc[start_date:end_date] = fchunk
+            flags[start_date:end_date] = fchunk.squeeze()
 
         flagger.nextTest()
     return data, flags
