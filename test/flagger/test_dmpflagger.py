@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-from test.common import initData
+from ..common import initData
 from core import runner, prepareMeta
 from flagger.dmpflagger import DmpFlagger, FlagFields
 
 
-def test_DmpFlagger():
+def test_basic():
 
     data = initData()
     var1, var2, *_ = data.columns
@@ -67,5 +67,5 @@ def test_flagOrder():
 
 if __name__ == "__main__":
 
-    test_DmpFlagger()
+    test_basic()
     test_flagOrder()
