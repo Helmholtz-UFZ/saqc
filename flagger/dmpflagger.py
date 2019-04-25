@@ -16,34 +16,39 @@ class ColumnLevels:
     FLAGS = "flags"
 
 
-class Flags:
-    OK = "OK"
-    DOUBTFUL = "DOUBTFUL"
-    BAD = "BAD"
-
-    @staticmethod
-    def isValid(flag):
-        return flag in [Flags.OK, Flags.DOUBTFUL, Flags.BAD]
+FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 
 class DmpFlagger(BaseFlagger):
-    def __init__(self, no_flag="NIL", flag="BAD"):
-        super().__init__(no_flag, flag)
+
+    def __init__(self):
+        super().__init__(FLAGS)
         self.flag_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
 
-    def initFlags(self, data, value="NIL", **kwargs):
+    def initFlags(self, data, **kwargs):
         columns = data.columns if isinstance(data, pd.DataFrame) else [data.name]
-        columns = pd.MultiIndex.from_product(
+
+        colindex = pd.MultiIndex.from_product(
             [columns, self.flag_fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
-        return pd.DataFrame(data=value, columns=columns, index=data.index)
 
-    def setFlag(self, flags, flag=Flags.BAD,
-                cause="NIL", comment="NIL", **kwargs):
-        self._isFlag(flag)
+        out = pd.DataFrame(data=self.flags[0],
+                           columns=colindex,
+                           index=data.index)
+        return out.astype(
+            {c: self.flags for c in out.columns if FlagFields.FLAG in c})
+
+    def setFlag(self, flags, flag=None, cause="", comment="", **kwargs):
+
+        if flag is None:
+            flag = self.flags.max()
+        assert flag in self.flags
+
         flags = self._reduceColumns(flags)
-        for field, f in zip(self.flag_fields, [flag, cause, comment]):
+        flags.loc[flags[FlagFields.FLAG] < flag, FlagFields.FLAG] = flag
+        for field, f in [(FlagFields.CAUSE, cause), (FlagFields.COMMENT, comment)]:
             flags.loc[:, field] = f
+
         return flags.values
 
     def isFlagged(self, flags, flag=None):
@@ -56,5 +61,5 @@ class DmpFlagger(BaseFlagger):
             flags.columns = flags.columns.get_level_values(ColumnLevels.FLAGS)
         return flags
 
-    def _isFlag(self, flag):
-        assert Flags.isValid(flag)
+    # def _isFlag(self, flag):
+    #     assert Flags.isValid(flag)
