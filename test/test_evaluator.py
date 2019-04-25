@@ -12,7 +12,7 @@ from dsl import evalExpression
 def test_evaluationBool():
     data = initData()
     flagger = SimpleFlagger()
-    flags = flagger.initFlags(data, 0)
+    flags = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
     tests = [
@@ -47,7 +47,7 @@ def test_missingIdentifier():
 def test_flagPropagation():
     data = initData()
     flagger = SimpleFlagger()
-    flags = flagger.initFlags(data, 0)
+    flags = flagger.initFlags(data)
     flags.iloc[::5] = flagger.setFlag(flags.iloc[::5])
 
     var1, var2, *_ = data.columns

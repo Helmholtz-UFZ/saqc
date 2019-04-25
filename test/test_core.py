@@ -135,6 +135,7 @@ if __name__ == "__main__":
     # NOTE: PositionalFlagger is currently broken, going to fix it when needed
     # for flagger in [SimpleFlagger, PositionalFlagger, DmpFlagger]:
     for flagger in [SimpleFlagger(), DmpFlagger()]:
+    # for flagger in [DmpFlagger()]:
         test_temporalPartitioning(flagger)
         test_flagNext(flagger)
         test_missingConfig(flagger)
