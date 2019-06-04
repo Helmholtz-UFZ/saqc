@@ -52,7 +52,7 @@ class BaseFlagger:
     def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
         if flag is None:
             return (pd.notnull(flags) & (flags > self.flags[1]))
-        return flags == flag
+        return flags >= flag
 
     def nextTest(self):
         pass
