@@ -40,24 +40,38 @@ class DmpFlagger(BaseFlagger):
 
     def setFlag(self, flags, flag=None, cause="", comment="", **kwargs):
 
+        if not isinstance(flags, pd.DataFrame):
+            raise TypeError
+
         if flag is None:
             flag = self.flags.max()
-        assert flag in self.flags
+        else:
+            self._check_flag(flag)
 
         flags = self._reduceColumns(flags)
-        flags.loc[flags[FlagFields.FLAG] < flag, FlagFields.FLAG] = flag
-
-        for field, f in [(FlagFields.CAUSE, cause), (FlagFields.COMMENT, comment)]:
-            flags.loc[:, field] = f
+        mask = flags[FlagFields.FLAG] < flag
+        flags.loc[mask, self.flag_fields] = flag, cause, comment
 
         return flags.values
 
     def isFlagged(self, flags, flag=None):
-        flags = self._reduceColumns(flags)
-        flagcol = flags.loc[:, FlagFields.FLAG].squeeze()
-        return super().isFlagged(flagcol, flag)
+        f = self.getFlags(flags)
+        return super().isFlagged(f, flag)
+
+    def getFlags(self, flags):
+        if isinstance(flags, pd.Series):
+            f = flags
+        elif isinstance(flags, pd.DataFrame):
+            if isinstance(flags.columns, pd.MultiIndex):
+                f = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
+            else:
+                f = flags.loc[:, FlagFields.FLAG]
+        else:
+            raise TypeError
+        return f.squeeze()
 
     def _reduceColumns(self, flags):
+        flags = flags.copy()
         if isinstance(flags.columns, pd.MultiIndex):
             flags.columns = flags.columns.get_level_values(ColumnLevels.FLAGS)
         return flags
