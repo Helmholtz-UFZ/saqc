@@ -3,6 +3,7 @@
 
 import numpy as np
 import pandas as pd
+
 from lib.tools import valueRange, slidingWindowIndices
 from dsl import evalExpression
 from config import Params
@@ -23,7 +24,6 @@ def flagDispatch(func_name, *args, **kwargs):
 
 
 def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
-
     expression = flag_params[Params.FUNC]
     result = evalExpression(expression, flagger,
                             data, flags, field,
@@ -46,7 +46,6 @@ def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
 
 def flagConstant(data, flags, field, flagger, eps,
                  length, thmin=None, **kwargs):
-
     datacol = data[field]
     flagcol = flags[field]
 
@@ -86,46 +85,26 @@ def flagManual(data, flags, field, flagger, **kwargs):
 
 
 def flagRange(data, flags, field, flagger, min, max, **kwargs):
-
     datacol = data[field].values
     mask = (datacol < min) | (datacol >= max)
     flags.loc[mask, field] = flagger.setFlag(flags.loc[mask, field], **kwargs)
     return data, flags
 
 
-def flagMad(data, flags, field, flagger, length, z, deriv, **kwargs):
-
-    def _flagMad(data: np.ndarray, z: int, deriv: int) -> np.ndarray:
-        # NOTE: numpy is at least twice as fast as numba.jit(nopython)
-        # median absolute deviation
-        for i in range(deriv):
-            data[i+1:] = np.diff(data[i:])
-            data[i] = np.nan
-        median = np.nanmedian(data)
-        mad = np.nanmedian(np.abs(data-median))
-        tresh = mad * (z/0.6745)
-        with np.errstate(invalid="ignore"):
-            return (data < (median - tresh)) | (data > (median + tresh))
-
-    datacol = data[field]
-    flagcol = flags[field]
-
-    values = (datacol
-              .mask(flagger.isFlagged(flagcol))
-              .values)
-
-    window = pd.to_timedelta(length) - pd.to_timedelta(data.index.freq)
-    mask = np.zeros_like(values, dtype=bool)
-
-    for start_idx, end_idx in slidingWindowIndices(datacol.index, window, "1D"):
-        mad_flags = _flagMad(values[start_idx:end_idx], z, deriv)
-        # reset the mask
-        mask[:] = False
-        mask[start_idx:end_idx] = mad_flags
-        flagcol[mask] = flagger.setFlag(flagcol[mask], **kwargs)
-
-    flags[field] = flagcol
-
+def flagMad(data, flags, field, flagger, length, z, freq=None, **kwargs):
+    # late import because of cyclic import problem
+    # see core -> from import functions import flagDispatch
+    from core import inferFrequency
+    d = data[field].copy()
+    freq = inferFrequency(d) if freq is None else freq
+    if freq is None:
+        raise ValueError("freqency cannot inferred, provide `freq` as a param to mad().")
+    winsz = int(pd.to_timedelta(length) / freq)
+    median = d.rolling(window=winsz, center=True, closed='both').median()
+    diff = abs(d - median)
+    mad = diff.rolling(window=winsz, center=True, closed='both').median()
+    mask = (mad > 0) & (0.6745 * diff > z * mad)
+    flags.loc[mask, field] = flagger.setFlag(flags.loc[mask, field], **kwargs)
     return data, flags
 
 
@@ -156,9 +135,8 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     # retrieve data series input:
     dataseries = pd.Series(data[field].values, index=pd.to_datetime(data.index))
 
-
     # retrieve reference input:
-    #if reference is a string, it refers to data field
+    # if reference is a string, it refers to data field
 
     # if reference series is part of input data frame, evaluate input data flags:
     flag_mask = flagger.isFlagged(flags)[soil_temp_reference]
