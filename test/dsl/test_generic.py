@@ -60,14 +60,14 @@ def test_isflaggedArgument():
     flags = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
-    flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0], -9)
+    flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0], 1)
 
-    idx = evalExpression("isflagged({:}, -9)".format(var1),
+    idx = evalExpression("isflagged({:}, 1)".format(var1),
                          flagger,
                          data, flags,
                          var2)
 
-    flagged = flagger.isFlagged(flags[var1], -9)
+    flagged = flagger.isFlagged(flags[var1], 1)
     assert (flagged == idx).all
 
 
