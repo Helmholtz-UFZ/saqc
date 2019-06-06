@@ -5,8 +5,8 @@ import pytest
 import numpy as np
 
 from test.common import initData
-from flagger import SimpleFlagger
-from dsl import evalExpression
+from flagger.simpleflagger import SimpleFlagger
+from dsl.evaluator import evalExpression
 
 
 def test_evaluationBool():

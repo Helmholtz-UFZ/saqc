@@ -9,11 +9,6 @@ from warnings import warn
 from config import Fields, Params
 from funcs import flagDispatch
 from dsl import parseFlag
-from flagger import PositionalFlagger, BaseFlagger
-
-
-def inferFrequency(data):
-    return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
 def flagWindow(flagger, flags, mask, direction='fw', window=0, **kwargs) -> pd.Series:
@@ -265,6 +260,7 @@ def readData(fname, index_col, nans):
 
 
 if __name__ == "__main__":
+    from flagger import PositionalFlagger
     datafname = "resources/data.csv"
     metafname = "resources/meta.csv"
 
