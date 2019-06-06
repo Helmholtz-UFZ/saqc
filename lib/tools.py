@@ -95,3 +95,8 @@ def broadcastMany(*args: ArrayLike) -> np.ndarray:
     target_shape = np.broadcast(*out).shape
     return tuple(np.broadcast_to(arr, target_shape) for arr in out)
 
+
+def inferFrequency(data):
+    return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
+
+

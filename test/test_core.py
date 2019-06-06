@@ -7,7 +7,9 @@ import pandas as pd
 
 from core import runner, flagNext, flagPeriod, prepareMeta
 from config import Fields
-from flagger import SimpleFlagger, DmpFlagger, PositionalFlagger
+from flagger.simpleflagger import SimpleFlagger
+from flagger.dmpflagger import DmpFlagger
+from flagger.positionalflagger import PositionalFlagger
 from test.common import initData
 
 
@@ -160,7 +162,6 @@ if __name__ == "__main__":
     # NOTE: PositionalFlagger is currently broken, going to fix it when needed
     # for flagger in [SimpleFlagger, PositionalFlagger, DmpFlagger]:
     for flagger in [SimpleFlagger(), DmpFlagger()]:
-    # for flagger in [DmpFlagger()]:
         test_temporalPartitioning(flagger)
         test_flagNext(flagger)
         test_flagPeriod(flagger)
