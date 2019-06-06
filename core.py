@@ -10,33 +10,41 @@ from dsl import parseFlag
 from flagger import PositionalFlagger, BaseFlagger
 
 
-class FlagParams:
-    FLAG = "flag"
-    PERIODE = "flag_period"
-    VALUES = "flag_values"
-    ASSIGN = "assign"
+def inferFrequency(data):
+    return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
-def flagPeriod(flagger: BaseFlagger, flags: pd.Series, freq: str) -> pd.Series:
-    out = flags.copy()
-    for start in flags.index[flagger.isFlagged(flags)]:
-        stop = start + pd.to_timedelta(freq)
-        out.loc[start:stop] = flagger.setFlag(flags.loc[start:stop],
-                                              *np.atleast_1d(flags.loc[start]))
-    return out
+def flagWindow(flagger, flags, mask, direction='fw', window=0, **kwargs) -> pd.Series:
+    fw = False
+    bw = False
+    f = flagger.isFlagged(flags) & mask
 
+    if isinstance(window, int):
+        x = f.rolling(window=window + 1).sum()
+        if direction in ['fw', 'both']:
+            fw = x.fillna(method='bfill').astype(bool)
+        if direction in ['bw', 'both']:
+            bw = x.shift(-window).fillna(method='bfill').astype(bool)
+    else:
+        # time-based windows
+        if direction in ['bw', 'both']:
+            raise NotImplementedError
+        fw = f.rolling(window=window, closed='both').sum().astype(bool)
 
-def flagNext(flagger: BaseFlagger, flags: pd.Series, n: int) -> pd.Series:
-    idx = np.where(flagger.isFlagged(flags))[0]
-    for nn in range(1, n + 1):
-        nn_idx = np.clip(idx + nn, a_min=None, a_max=len(flags) - 1)
-        nn_idx_unflagged = nn_idx[~flagger.isFlagged(flags.iloc[nn_idx])]
-        flags.loc[flags.index[nn_idx_unflagged]] = flags.iloc[nn_idx_unflagged - nn].values
+    fmask = bw | fw
+    flags[fmask] = flagger.setFlag(flags[fmask], **kwargs)
     return flags
 
 
-def runner(meta, flagger, data, flags=None, nodata=np.nan):
+def flagPeriod(flagger, flags, mask=True, flag_period=0, **kwargs) -> pd.Series:
+    return flagWindow(flagger, flags, mask, 'fw', window=flag_period, **kwargs)
 
+
+def flagNext(flagger, flags, mask=True, flag_values=0, **kwargs) -> pd.Series:
+    return flagWindow(flagger, flags, mask, 'fw', window=flag_values, **kwargs)
+
+
+def runner(meta, flagger, data, flags=None, nodata=np.nan):
     if flags is None:
         flags = pd.DataFrame(index=data.index)
 
@@ -49,7 +57,7 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
     for idx, configrow in meta.iterrows():
         varname, _, _, assign = configrow[fields]
         if varname not in flags and \
-           (varname in data or varname not in data and assign is True):
+                (varname in data or varname not in data and assign is True):
             col_flags = flagger.initFlags(pd.DataFrame(index=data.index,
                                                        columns=[varname]))
             flags = col_flags if flags.empty else flags.join(col_flags)
@@ -77,11 +85,11 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             if varname not in data and varname not in flags:
                 continue
 
-            dchunk = data.loc[start_date:end_date]
+            dchunk = data.loc[start_date:end_date].copy()
             if dchunk.empty:
                 continue
 
-            fchunk = flags.loc[start_date:end_date]
+            fchunk = flags.loc[start_date:end_date].copy()
 
             try:
                 dchunk, fchunk = flagDispatch(func_name,
@@ -92,21 +100,22 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
                 raise NameError(
                     f"function name {func_name} is not definied (variable '{varname}, 'line: {idx + 1})")
 
-            # flag a timespan after the condition is met,
-            # duration given in 'flag_period'
-            flag_period = flag_params.pop(Params.FLAGPERIOD, None)
-            if flag_period:
-                fchunk[varname] = flagPeriod(flagger,
-                                             fchunk[varname],
-                                             data.index.freq)
+            old = flagger.getFlags(flags.loc[start_date:end_date, varname])
+            new = flagger.getFlags(fchunk[varname])
+            mask = old != new
 
-            # flag a certain amount of values after condition is met,
-            # number given in 'flag_values'
-            flag_values = flag_params.pop(Params.FLAGVALUES, None)
-            if flag_values:
-                fchunk[varname] = flagNext(flagger,
-                                           fchunk[varname],
-                                           flag_values)
+            # flag a timespan after the condition is met
+            if Params.FLAGPERIOD in flag_params:
+                fchunk[varname] = flagPeriod(flagger, fchunk[varname], mask, **flag_params)
+
+            # flag a certain amount of values after condition is met
+            if Params.FLAGVALUES in flag_params:
+                fchunk[varname] = flagNext(flagger, fchunk[varname], mask, **flag_params)
+
+            if Params.FLAGPERIOD in flag_params or Params.FLAGVALUES in flag_params:
+                # hack as assignment above don't preserve categorical type
+                fchunk = fchunk.astype({
+                    c: flagger.flags for c in fchunk.columns if flagger.flag_fields[0] in c})
 
             data.loc[start_date:end_date] = dchunk
             flags[start_date:end_date] = fchunk.squeeze()
@@ -150,7 +159,6 @@ def readData(fname, index_col, nans):
 
 
 if __name__ == "__main__":
-
     datafname = "resources/data.csv"
     metafname = "resources/meta.csv"
 
