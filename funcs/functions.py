@@ -4,7 +4,7 @@
 import numpy as np
 import pandas as pd
 
-from lib.tools import valueRange, slidingWindowIndices
+from lib.tools import valueRange, slidingWindowIndices, inferFrequency
 from dsl import evalExpression
 from config import Params
 
@@ -92,9 +92,6 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
 
 
 def flagMad(data, flags, field, flagger, length, z, freq=None, **kwargs):
-    # late import because of cyclic import problem
-    # see core -> from import functions import flagDispatch
-    from core import inferFrequency
     d = data[field].copy()
     freq = inferFrequency(d) if freq is None else freq
     if freq is None:

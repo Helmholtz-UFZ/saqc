@@ -7,9 +7,10 @@ import pytest
 
 from test.common import initData
 
-from dsl import evalExpression
-from flagger import SimpleFlagger
-from funcs.functions import flagGeneric, Params
+from dsl.evaluator import evalExpression
+from flagger.simpleflagger import SimpleFlagger
+from funcs.functions import flagGeneric
+from config import Params
 
 
 def test_ismissing():

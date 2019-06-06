@@ -1,9 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# import funcs
-import numpy as np
-
 
 class Fields:
     VARNAME = "headerout"
@@ -19,11 +16,3 @@ class Params:
     FLAGVALUES = "flag_values"
     FLAG = "flag"
     PLOT = "plot"
-
-
-# FUNCMAP = {
-#     "manflag": funcs.flagManual,
-#     "mad": funcs.flagMad,
-#     "constant": funcs.flagConstant,
-#     "generic": funcs.flagGeneric
-# }
