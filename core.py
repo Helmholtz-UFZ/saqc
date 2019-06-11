@@ -91,39 +91,37 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             fchunk = flags.loc[start_date:end_date].copy()
 
             try:
-                dchunk, fchunk = flagDispatch(func_name,
-                                              dchunk, fchunk, varname,
-                                              flagger, nodata=nodata,
-                                              **flag_params)
+                dchunk, ffchunk = flagDispatch(func_name,
+                                               dchunk, fchunk, varname,
+                                               flagger, nodata=nodata,
+                                               **flag_params)
             except NameError:
                 raise NameError(
                     f"function name {func_name} is not definied (variable '{varname}, 'line: {idx + 1})")
 
-            old = flagger.getFlags(flags.loc[start_date:end_date, varname])
-            new = flagger.getFlags(fchunk[varname])
+            old = flagger.getFlags(fchunk[varname])
+            new = flagger.getFlags(ffchunk[varname])
             mask = old != new
 
             # flag a timespan after the condition is met
             if Params.FLAGPERIOD in flag_params:
-                fchunk[varname] = flagPeriod(flagger, fchunk[varname], mask, **flag_params)
+                ffchunk[varname] = flagPeriod(flagger, ffchunk[varname], mask, **flag_params)
 
             # flag a certain amount of values after condition is met
             if Params.FLAGVALUES in flag_params:
-                fchunk[varname] = flagNext(flagger, fchunk[varname], mask, **flag_params)
+                ffchunk[varname] = flagNext(flagger, ffchunk[varname], mask, **flag_params)
 
             if Params.FLAGPERIOD in flag_params or Params.FLAGVALUES in flag_params:
-                # hack as assignment above don't preserve categorical type
-                fchunk = fchunk.astype({
-                    c: flagger.flags for c in fchunk.columns if flagger.flag_fields[0] in c})
+                # hack as assignments above don't preserve categorical type
+                ffchunk = ffchunk.astype({
+                    c: flagger.flags for c in ffchunk.columns if flagger.flag_fields[0] in c})
 
             if flag_params.get(Params.PLOT, False):
                 plotvars.append(varname)
-                new = flagger.getFlags(fchunk[varname])
-                mask = old != new
-                plot(dchunk, fchunk, mask, varname, flagger, title=flag_test)
+                plot(dchunk, ffchunk, mask, varname, flagger, title=flag_test)
 
             data.loc[start_date:end_date] = dchunk
-            flags[start_date:end_date] = fchunk.squeeze()
+            flags[start_date:end_date] = ffchunk.squeeze()
 
         flagger.nextTest()
 
@@ -223,7 +221,7 @@ def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, titl
     plt.plot([], [], ':', color='silver', label="missing data")
     plt.legend()
     plt.show()
-    
+
 
 def prepareMeta(meta, data):
     # NOTE: an option needed to only pass tests within an file and deduce
