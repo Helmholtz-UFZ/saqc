@@ -99,8 +99,8 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
                 raise NameError(
                     f"function name {func_name} is not definied (variable '{varname}, 'line: {idx + 1})")
 
-            old = flagger.getFlags(fchunk[varname])
-            new = flagger.getFlags(ffchunk[varname])
+            old = flagger.isFlagged(fchunk[varname])
+            new = flagger.isFlagged(ffchunk[varname])
             mask = old != new
 
             # flag a timespan after the condition is met
@@ -258,7 +258,7 @@ def readData(fname, index_col, nans):
 
 
 if __name__ == "__main__":
-    from flagger import PositionalFlagger
+    from flagger import DmpFlagger
     datafname = "resources/data.csv"
     metafname = "resources/meta.csv"
 
@@ -267,5 +267,5 @@ if __name__ == "__main__":
                     nans=["-9999", "-9999.0"])
     meta = prepareMeta(pd.read_csv(metafname), data)
 
-    flagger = PositionalFlagger()
+    flagger = DmpFlagger()
     pdata, pflags = runner(meta, flagger, data)

@@ -46,7 +46,7 @@ class DmpFlagger(BaseFlagger):
         if flag is None:
             flag = self.flags.max()
         else:
-            self._check_flag(flag)
+            self._checkFlag(flag)
 
         flags = self._reduceColumns(flags)
         mask = flags[FlagFields.FLAG] < flag
@@ -55,20 +55,9 @@ class DmpFlagger(BaseFlagger):
         return flags.values
 
     def isFlagged(self, flags, flag=None):
-        f = self.getFlags(flags)
-        return super().isFlagged(f, flag)
-
-    def getFlags(self, flags):
-        if isinstance(flags, pd.Series):
-            f = flags
-        elif isinstance(flags, pd.DataFrame):
-            if isinstance(flags.columns, pd.MultiIndex):
-                f = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
-            else:
-                f = flags.loc[:, FlagFields.FLAG]
-        else:
-            raise TypeError
-        return f.squeeze()
+        flags = self._reduceColumns(flags)
+        flagcol = flags.loc[:, FlagFields.FLAG].squeeze()
+        return super().isFlagged(flagcol, flag)
 
     def _reduceColumns(self, flags):
         flags = flags.copy()
