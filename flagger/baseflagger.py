@@ -44,7 +44,7 @@ class BaseFlagger:
         if flag is None:
             flag = self.flags.max()
         else:
-            self._check_flag(flag)
+            self._checkFlag(flag)
         flags = flags.copy()
         flags[flags < flag] = flag
         return flags.values
@@ -57,14 +57,10 @@ class BaseFlagger:
     def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
         if flag is None:
             return pd.notnull(flags) & (flags > self.flags[0])
-        else:
-            self._check_flag(flag)
-            return flags >= flag
+        self._checkFlag(flag)
+        return flags == flag
 
-    def getFlags(self, flags: ArrayLike):
-        return flags
-
-    def _check_flag(self, flag):
+    def _checkFlag(self, flag):
         if flag not in self.flags:
             raise ValueError(f"Invalid flag '{flag}'. "
                              f"Possible choices are {list(self.flags.categories)[1:]}")
