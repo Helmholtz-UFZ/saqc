@@ -60,7 +60,13 @@ class DmpFlagger(BaseFlagger):
         return super().isFlagged(flagcol, flag)
 
     def _reduceColumns(self, flags):
-        flags = flags.copy()
-        if isinstance(flags.columns, pd.MultiIndex):
+        if set(flags.columns) == set(self.flag_fields):
+            pass
+        elif isinstance(flags, pd.DataFrame) \
+                and isinstance(flags.columns, pd.MultiIndex) \
+                and (len(flags.columns) == 3):
+            flags = flags.copy()
             flags.columns = flags.columns.get_level_values(ColumnLevels.FLAGS)
+        else:
+            raise TypeError
         return flags
