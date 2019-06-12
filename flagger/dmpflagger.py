@@ -1,8 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+import subprocess
 import pandas as pd
 
 from .baseflagger import BaseFlagger
+
+
+class Keywords:
+    VERSION = "$version"
 
 
 class FlagFields:
@@ -24,6 +29,8 @@ class DmpFlagger(BaseFlagger):
     def __init__(self):
         super().__init__(FLAGS)
         self.flag_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
+        version = subprocess.check_output('git describe --tags --always --dirty'.split())
+        self.project_version = version.decode().strip()
 
     def initFlags(self, data, **kwargs):
         columns = data.columns if isinstance(data, pd.DataFrame) else [data.name]
@@ -47,6 +54,9 @@ class DmpFlagger(BaseFlagger):
             flag = self.flags.max()
         else:
             self._checkFlag(flag)
+
+        if Keywords.VERSION in comment:
+            comment = comment.replace(Keywords.VERSION, self.project_version)
 
         flags = self._reduceColumns(flags)
         mask = flags[FlagFields.FLAG] < flag
