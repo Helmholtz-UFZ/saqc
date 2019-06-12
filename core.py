@@ -92,7 +92,7 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
 
             try:
                 dchunk, ffchunk = flagDispatch(func_name,
-                                               dchunk, fchunk, varname,
+                                               dchunk, fchunk.copy(), varname,
                                                flagger, nodata=nodata,
                                                **flag_params)
             except NameError:
