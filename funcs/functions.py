@@ -125,10 +125,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     :param frost_level:                 Value level, the flagger shall check against, when evaluating soil frost level.
     """
 
-    # TODO: (To ASK):HOW TO FLAG nan values in input frame? general question: what should a test test?
-    # TODO: -> nan values with reference values that show frost, are flagged bad, nan values with reference value nan
-    # TODO: as well, are not flagged (test not applicable-> no flag)
-    # TODO: puffer zone for intermediate/fluktuating frost state
+    
 
     # retrieve data series input:
     dataseries = pd.Series(data[field].values, index=pd.to_datetime(data.index))
