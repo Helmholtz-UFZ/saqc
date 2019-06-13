@@ -7,9 +7,10 @@ import pytest
 
 from test.common import initData
 
-from dsl import evalExpression
-from flagger import SimpleFlagger
-from funcs.functions import flagGeneric, Params
+from dsl.evaluator import evalExpression
+from flagger.simpleflagger import SimpleFlagger
+from funcs.functions import flagGeneric
+from config import Params
 
 
 def test_ismissing():
@@ -60,14 +61,14 @@ def test_isflaggedArgument():
     flags = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
-    flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0], -9)
+    flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0], 1)
 
-    idx = evalExpression("isflagged({:}, -9)".format(var1),
+    idx = evalExpression("isflagged({:}, 1)".format(var1),
                          flagger,
                          data, flags,
                          var2)
 
-    flagged = flagger.isFlagged(flags[var1], -9)
+    flagged = flagger.isFlagged(flags[var1], 1)
     assert (flagged == idx).all
 
 
