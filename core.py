@@ -171,17 +171,19 @@ def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, titl
         y = data[varname]
         flags_ = flags[varname]
         nrofflags = len(flagger.flags.categories)
-        ax.plot(x, y, '-',markersize=1, color='silver')
+        ax.plot(x, y, '-', markersize=1, color='silver')
         if nrofflags == 3:
             colors = {0:'silver', 1:'lime', 2:'red'}
-        if nrofflags == 4:
+        elif nrofflags == 4:
             colors = {0:'silver', 1:'lime', 2:'yellow', 3:'red'}
+        else:
+            warn(f"To many flags.", UserWarning)
+
 
         # plot (all) data in silver
         ax.plot(x, y, '-', color='silver', label='data')
         # plot (all) missing data in silver
         nans = y.isna()
-        ylim = plt.ylim()
         flagged = flagger.isFlagged(flags_)
         idx = y.index[nans & ~flagged]
         # ax.vlines(idx, *ylim, linestyles=':', color='silver', label="missing")
