@@ -19,6 +19,33 @@ TESTFLAGGERS = [
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
+def test_positionalPartitioning(flagger):
+    data = initData(3).reset_index(drop=True)
+    var1, var2, var3, *_ = data.columns
+    split_index = int(len(data.index)//2)
+    tests = ["range, {min: -2, max: -1}",
+             "generic, {func: this <= sum(this)}",
+             "generic, {func: this <= sum(this)}"]
+
+    meta = prepareMeta(
+        pd.DataFrame(
+            {Fields.VARNAME: [var1, var2, var3],
+             Fields.START: [None, None, split_index],
+             Fields.END: [None, split_index, None],
+             Fields.FLAGS: tests}),
+        data)
+
+    pdata, pflags = runner(meta, flagger, data)
+
+    fields = [Fields.VARNAME, Fields.START, Fields.END]
+    for _, row in meta.iterrows():
+        vname, start_index, end_index = row[fields]
+        fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
+        assert fchunk.index.min() == start_index, "different start indices"
+        assert fchunk.index.max() + 1 == end_index, f"different end indices: {fchunk.index.max()} vs. {end_index}"
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGERS)
 def test_temporalPartitioning(flagger):
     """
     Check if the time span in meta is respected
@@ -33,14 +60,14 @@ def test_temporalPartitioning(flagger):
     meta = prepareMeta(
         pd.DataFrame(
             {Fields.VARNAME: [var1, var2, var3],
-             Fields.STARTDATE: [None, None, split_date],
-             Fields.ENDDATE: [None, split_date, None],
+             Fields.START: [None, None, split_date],
+             Fields.END: [None, split_date, None],
              Fields.FLAGS: tests}),
         data)
 
     pdata, pflags = runner(meta, flagger, data)
 
-    fields = [Fields.VARNAME, Fields.STARTDATE, Fields.ENDDATE]
+    fields = [Fields.VARNAME, Fields.START, Fields.END]
     for _, row in meta.iterrows():
         vname, start_date, end_date = row[fields]
         fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
@@ -162,6 +189,7 @@ if __name__ == "__main__":
     # NOTE: PositionalFlagger is currently broken, going to fix it when needed
     # for flagger in [SimpleFlagger, PositionalFlagger, DmpFlagger]:
     for flagger in [SimpleFlagger(), DmpFlagger()]:
+        test_positionalPartitioning(flagger)
         test_temporalPartitioning(flagger)
         test_flagNext(flagger)
         test_flagPeriod(flagger)

@@ -48,7 +48,7 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
         flags = pd.DataFrame(index=data.index)
 
     # the required meta data columns
-    fields = [Fields.VARNAME, Fields.STARTDATE, Fields.ENDDATE, Fields.ASSIGN]
+    fields = [Fields.VARNAME, Fields.START, Fields.END, Fields.ASSIGN]
 
     # NOTE:
     # get to know every variable from meta
@@ -224,17 +224,18 @@ def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, titl
 
 
 def prepareMeta(meta, data):
-    # NOTE: an option needed to only pass tests within an file and deduce
+    # NOTE: an option needed to only pass tests within a file and deduce
     #       everything else from data
 
-    # no dates given, fall back to the available date range
-    if Fields.STARTDATE not in meta:
-        meta = meta.assign(**{Fields.STARTDATE: np.nan})
-    if Fields.ENDDATE not in meta:
-        meta = meta.assign(**{Fields.ENDDATE: np.nan})
+    # no dates given, fall back to the available index range
+    if Fields.START not in meta:
+        meta = meta.assign(**{Fields.START: np.nan})
+    if Fields.END not in meta:
+        meta = meta.assign(**{Fields.END: np.nan})
+
     meta = meta.fillna(
-        {Fields.ENDDATE: data.index.max(),
-         Fields.STARTDATE: data.index.min()})
+        {Fields.END: data.index.max(),
+         Fields.START: data.index.min()})
 
     if Fields.ASSIGN not in meta:
         meta = meta.assign(**{Fields.ASSIGN: False})
@@ -242,8 +243,11 @@ def prepareMeta(meta, data):
     # rows without a variables name don't help much
     meta = meta.dropna(subset=[Fields.VARNAME])
 
-    meta[Fields.STARTDATE] = pd.to_datetime(meta[Fields.STARTDATE])
-    meta[Fields.ENDDATE] = pd.to_datetime(meta[Fields.ENDDATE])
+    dtype = np.datetime64 if isinstance(data.index, pd.DatetimeIndex) else int
+
+    meta[Fields.START] = meta[Fields.START].astype(dtype)
+    meta[Fields.END] = meta[Fields.END].astype(dtype)
+
     return meta
 
 
@@ -258,14 +262,16 @@ def readData(fname, index_col, nans):
 
 
 if __name__ == "__main__":
+
     from flagger import DmpFlagger
+
     datafname = "resources/data.csv"
     metafname = "resources/meta.csv"
 
     data = readData(datafname,
                     index_col="Date Time",
                     nans=["-9999", "-9999.0"])
-    meta = prepareMeta(pd.read_csv(metafname), data)
+    meta = prepareMeta(pd.read_csv(metafname, comment="#"), data)
 
     flagger = DmpFlagger()
     pdata, pflags = runner(meta, flagger, data)
