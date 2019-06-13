@@ -15,7 +15,8 @@ def flagDispatch(func_name, *args, **kwargs):
         "mad": flagMad,
         "constant": flagConstant,
         "range": flagRange,
-        "generic": flagGeneric}
+        "generic": flagGeneric,
+        "soilMoistureByFrost": flagSoilMoistureBySoilFrost}
 
     func = func_map.get(func_name, None)
     if func is not None:
@@ -124,16 +125,10 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     :param frost_level:                 Value level, the flagger shall check against, when evaluating soil frost level.
     """
 
-    # TODO: (To ASK):HOW TO FLAG nan values in input frame? general question: what should a test test?
-    # TODO: -> nan values with reference values that show frost, are flagged bad, nan values with reference value nan
-    # TODO: as well, are not flagged (test not applicable-> no flag)
-    # TODO: puffer zone for intermediate/fluktuating frost state
+    
 
     # retrieve data series input:
     dataseries = pd.Series(data[field].values, index=pd.to_datetime(data.index))
-
-    # retrieve reference input:
-    # if reference is a string, it refers to data field
 
     # if reference series is part of input data frame, evaluate input data flags:
     flag_mask = flagger.isFlagged(flags)[soil_temp_reference]
@@ -168,3 +163,37 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     flags.loc[mask.values, field] = flagger.setFlag(flags.loc[mask, field], **kwargs)
 
     return data, flags
+
+
+def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, precipitation_reference, sensor_meas_depth=0,
+                                          sensor_accuracy=0, soil_porosity=0, **kwargs):
+    """Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
+    precipitation event. If measurement depth, sensor accuracy of the soil moisture sensor and the porosity of the
+    surrounding soil is passed to the function, an inferior level of precipitation, that has to preceed a significant
+    moisture raise within 24 hours, can be estimated. If those values are not delivered, this inferior bound is set
+    to zero. In that case, any non zero precipitation count will justify any soil moisture raise.
+
+    :param data:                        The pandas dataframe, holding the data-to-be flagged.
+    :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
+    :param field:                       Fieldname of the Soil moisture measurements field in data.
+    :param flagger:                     A flagger - object.
+    :param precipitation_reference:     Fieldname of the precipitation meassurements in data.
+    :param sensor_meas_depth:           Measurement depth of the soil moisture sensor in meter [m].
+    :param sensor_accuracy:             Accuracy of the soil moisture sensor [-].
+    :param soil_porosity:               Porosity of moisture sensors surrounding soil.
+    """
+
+    # retrieve data series input:
+    dataseries = pd.Series(data[field].values, index=pd.to_datetime(data.index))
+
+    # if reference series is part of input data frame, evaluate input data flags:
+    flag_mask = flagger.isFlagged(flags)[precipitation_reference]
+    # retrieve reference series
+    refseries = pd.Series(data[precipitation_reference].values, index=pd.to_datetime(data.index))
+    # drop flagged values:
+    refseries = refseries.loc[~np.array(flag_mask)]
+    # make refseries index a datetime thingy
+    refseries.index = pd.to_datetime(refseries.index)
+    # drop nan values from reference series, since those are values you dont want to refer to.
+    refseries = refseries.dropna()
+
