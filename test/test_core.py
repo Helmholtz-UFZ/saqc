@@ -7,7 +7,9 @@ import pandas as pd
 
 from core import runner, flagNext, flagPeriod, prepareMeta
 from config import Fields
-from flagger import SimpleFlagger, DmpFlagger, PositionalFlagger
+from flagger.simpleflagger import SimpleFlagger
+from flagger.dmpflagger import DmpFlagger
+from flagger.positionalflagger import PositionalFlagger
 from test.common import initData
 
 
@@ -125,7 +127,7 @@ def test_flagNext(flagger):
     flags.iloc[idx] = flagger.setFlag(flags.iloc[idx])
 
     n = 4
-    fflags = flagNext(flagger, flags.copy(), 4)
+    fflags = flagNext(flagger, flags.copy(), flag_values=4)
     result_idx = np.unique(np.where(flagger.isFlagged(fflags))[0])
     expected_idx = np.arange(min(idx), max(idx) + n + 1)
     assert (result_idx == expected_idx).all()
@@ -142,10 +144,11 @@ def test_flagPeriod(flagger):
     idx = [0, 1, 2]
     flags.iloc[idx] = flagger.setFlag(flags.iloc[idx])
 
-    tdelta = pd.to_timedelta("4h")
-    flags = flagPeriod(flagger, flags.copy(), tdelta)
+    period = '4h'
+    flags = flagPeriod(flagger, flags.copy(), flag_period=period)
     expected_dates = set(flags[flagger.isFlagged(flags)].index)
 
+    tdelta = pd.to_timedelta(period)
     dates = set()
     for start in flags.index[idx]:
         stop = start + tdelta
@@ -159,7 +162,6 @@ if __name__ == "__main__":
     # NOTE: PositionalFlagger is currently broken, going to fix it when needed
     # for flagger in [SimpleFlagger, PositionalFlagger, DmpFlagger]:
     for flagger in [SimpleFlagger(), DmpFlagger()]:
-    # for flagger in [DmpFlagger()]:
         test_temporalPartitioning(flagger)
         test_flagNext(flagger)
         test_flagPeriod(flagger)

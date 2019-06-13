@@ -1,8 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+import subprocess
 import pandas as pd
 
 from .baseflagger import BaseFlagger
+
+
+class Keywords:
+    VERSION = "$version"
 
 
 class FlagFields:
@@ -24,6 +29,8 @@ class DmpFlagger(BaseFlagger):
     def __init__(self):
         super().__init__(FLAGS)
         self.flag_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
+        version = subprocess.check_output('git describe --tags --always --dirty'.split())
+        self.project_version = version.decode().strip()
 
     def initFlags(self, data, **kwargs):
         columns = data.columns if isinstance(data, pd.DataFrame) else [data.name]
@@ -40,15 +47,20 @@ class DmpFlagger(BaseFlagger):
 
     def setFlag(self, flags, flag=None, cause="", comment="", **kwargs):
 
+        if not isinstance(flags, pd.DataFrame):
+            raise TypeError
+
         if flag is None:
             flag = self.flags.max()
-        assert flag in self.flags
+        else:
+            self._checkFlag(flag)
+
+        if Keywords.VERSION in comment:
+            comment = comment.replace(Keywords.VERSION, self.project_version)
 
         flags = self._reduceColumns(flags)
-        flags.loc[flags[FlagFields.FLAG] < flag, FlagFields.FLAG] = flag
-
-        for field, f in [(FlagFields.CAUSE, cause), (FlagFields.COMMENT, comment)]:
-            flags.loc[:, field] = f
+        mask = flags[FlagFields.FLAG] < flag
+        flags.loc[mask, self.flag_fields] = flag, cause, comment
 
         return flags.values
 
@@ -58,6 +70,13 @@ class DmpFlagger(BaseFlagger):
         return super().isFlagged(flagcol, flag)
 
     def _reduceColumns(self, flags):
-        if isinstance(flags.columns, pd.MultiIndex):
+        if set(flags.columns) == set(self.flag_fields):
+            pass
+        elif isinstance(flags, pd.DataFrame) \
+                and isinstance(flags.columns, pd.MultiIndex) \
+                and (len(flags.columns) == 3):
+            flags = flags.copy()
             flags.columns = flags.columns.get_level_values(ColumnLevels.FLAGS)
+        else:
+            raise TypeError
         return flags
