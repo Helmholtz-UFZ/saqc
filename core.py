@@ -84,15 +84,16 @@ def runner(meta, flagger, data, flags=None, nodata=np.nan):
             if varname not in data and varname not in flags:
                 continue
 
-            dchunk = data.loc[start_date:end_date].copy()
+            dchunk = data.loc[start_date:end_date]
             if dchunk.empty:
                 continue
 
-            fchunk = flags.loc[start_date:end_date].copy()
+            fchunk = flags.loc[start_date:end_date]
 
             try:
                 dchunk, ffchunk = flagDispatch(func_name,
-                                               dchunk, fchunk, varname,
+                                               dchunk, fchunk.copy(),
+                                               varname,
                                                flagger, nodata=nodata,
                                                **flag_params)
             except NameError:
