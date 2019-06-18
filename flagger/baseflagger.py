@@ -51,6 +51,8 @@ class BaseFlagger:
 
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
         out = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
+        # astype conversion of return Dataframe performed seperately, because pd.DataFrame(...,dtype=self.flags)
+        # wont give you categorical flag objects:
         return out.astype(self.flags)
 
     def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
