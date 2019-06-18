@@ -50,9 +50,8 @@ class BaseFlagger:
         return flags.values
 
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
-        out = data.copy().astype(self.flags)
-        out.loc[:] = self.flags[0]
-        return out
+        out = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
+        return out.astype(self.flags)
 
     def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
         if flag is None:
