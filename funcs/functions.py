@@ -111,7 +111,8 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     """Function flags Soil moisture measurements by evaluating the soil-frost-level in the moment of measurement.
     Soil temperatures below "frost_level" are regarded as denoting frozen soil state.
 
-    :param data:                        The pandas dataframe holding the data-to-be flagged.
+    :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
+                                        series. Dataframe should be indexed by a datetime series.
     :param flags:                       A dataframe holding the flags/flag-entries of "data"
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object.
@@ -125,26 +126,25 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     :param frost_level:                 Value level, the flagger shall check against, when evaluating soil frost level.
     """
 
-    
-
     # retrieve data series input:
-    dataseries = pd.Series(data[field].values, index=pd.to_datetime(data.index))
+    dataseries = data[field]
 
     # if reference series is part of input data frame, evaluate input data flags:
-    flag_mask = flagger.isFlagged(flags)[soil_temp_reference]
+    # flag_mask = flagger.isFlagged(flags)[soil_temp_reference]
     # retrieve reference series
-    refseries = pd.Series(data[soil_temp_reference].values, index=pd.to_datetime(data.index))
+    refseries = data[soil_temp_reference]
     # drop flagged values:
-    refseries = refseries.loc[~np.array(flag_mask)]
+    # refseries = refseries.loc[~np.array(flag_mask)]
     # make refseries index a datetime thingy
     refseries.index = pd.to_datetime(refseries.index)
     # drop nan values from reference series, since those are values you dont want to refer to.
     refseries = refseries.dropna()
 
-    # wrap around df.index.get_loc method to catch key error in case of empty tolerance window:
+    # wrap around df.index.get_loc method, to catch key error in case of empty tolerance window:
     def check_nearest_for_frost(ref_date, ref_series, tolerance, check_level):
+
         try:
-            # if there is no reference value within tolerance margin, following line will rise key error and
+            # if there is no reference value within tolerance margin, following line will raise key error and
             # trigger the exception
             ref_pos = ref_series.index.get_loc(ref_date, method='nearest', tolerance=tolerance)
         except KeyError:
@@ -156,11 +156,11 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
 
     # make temporal frame holding dateindex, since df.apply cant access index
     temp_frame = pd.Series(dataseries.index)
-    # get flagging mask
+    # get flagging mask ("False" denotes "bad"="test succesfull")
     mask = temp_frame.apply(check_nearest_for_frost, args=(refseries,
                                                            tolerated_deviation, frost_level))
     # apply calculated flags
-    flags.loc[mask.values, field] = flagger.setFlag(flags.loc[mask, field], **kwargs)
+    flags.loc[mask.values, field] = flagger.setFlag(flags.loc[mask.values, field], **kwargs)
 
     return data, flags
 
