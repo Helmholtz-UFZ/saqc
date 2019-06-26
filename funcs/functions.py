@@ -126,17 +126,15 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     :param frost_level:                 Value level, the flagger shall check against, when evaluating soil frost level.
     """
 
-    # retrieve data series input:
-    dataseries = data[field]
 
-    # if reference series is part of input data frame, evaluate input data flags:
-    # flag_mask = flagger.isFlagged(flags)[soil_temp_reference]
     # retrieve reference series
     refseries = data[soil_temp_reference]
+    ref_flags = flags[soil_temp_reference]
+    ref_unflagged = flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
+    ref_min_flagged = flagger.isFlagged(ref_flags, flag=flagger.flags.min())
+    ref_use = ref_min_flagged | ref_unflagged
     # drop flagged values:
-    # refseries = refseries.loc[~np.array(flag_mask)]
-    # make refseries index a datetime thingy
-    refseries.index = pd.to_datetime(refseries.index)
+    refseries = refseries[ref_use.values]
     # drop nan values from reference series, since those are values you dont want to refer to.
     refseries = refseries.dropna()
 
@@ -155,7 +153,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
         return ref_series[ref_pos] <= check_level
 
     # make temporal frame holding dateindex, since df.apply cant access index
-    temp_frame = pd.Series(dataseries.index)
+    temp_frame = pd.Series(data.index)
     # get flagging mask ("False" denotes "bad"="test succesfull")
     mask = temp_frame.apply(check_nearest_for_frost, args=(refseries,
                                                            tolerated_deviation, frost_level))
