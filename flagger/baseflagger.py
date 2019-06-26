@@ -46,8 +46,13 @@ class BaseFlagger:
         else:
             self._checkFlag(flag)
         flags = flags.copy()
+        # NOTE: conversion of "flags frame to np.array is done here already, since return argument is just the array
+        # anyway. For applying mulitdimensional indexing on the DataFrame "flags", you would have to stack it first,
+        # with .stack() (try flags.stack[flags<flag] = flag and than unstack.)
+        flags = flags.values
         flags[flags < flag] = flag
-        return flags.values
+
+        return flags
 
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
         out = data.copy()
