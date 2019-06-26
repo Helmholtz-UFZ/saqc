@@ -112,7 +112,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     Soil temperatures below "frost_level" are regarded as denoting frozen soil state.
 
     :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
-                                        series. Dataframe should be indexed by a datetime series.
+                                        series. Data must be indexed by a datetime series.
     :param flags:                       A dataframe holding the flags/flag-entries of "data"
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object.
@@ -130,9 +130,8 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     # retrieve reference series
     refseries = data[soil_temp_reference]
     ref_flags = flags[soil_temp_reference]
-    ref_unflagged = flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
-    ref_min_flagged = flagger.isFlagged(ref_flags, flag=flagger.flags.min())
-    ref_use = ref_min_flagged | ref_unflagged
+    ref_use = flagger.isFlagged(ref_flags, flag=flagger.flags.min()) | \
+              flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
     # drop flagged values:
     refseries = refseries[ref_use.values]
     # drop nan values from reference series, since those are values you dont want to refer to.
@@ -154,7 +153,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
 
     # make temporal frame holding dateindex, since df.apply cant access index
     temp_frame = pd.Series(data.index)
-    # get flagging mask ("False" denotes "bad"="test succesfull")
+    # get flagging mask ("True" denotes "bad"="test succesfull")
     mask = temp_frame.apply(check_nearest_for_frost, args=(refseries,
                                                            tolerated_deviation, frost_level))
     # apply calculated flags
@@ -163,7 +162,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     return data, flags
 
 
-def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, precipitation_reference, sensor_meas_depth=0,
+def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_reference, sensor_meas_depth=0,
                                           sensor_accuracy=0, soil_porosity=0, **kwargs):
     """Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
     precipitation event. If measurement depth, sensor accuracy of the soil moisture sensor and the porosity of the
@@ -171,27 +170,61 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, precipita
     moisture raise within 24 hours, can be estimated. If those values are not delivered, this inferior bound is set
     to zero. In that case, any non zero precipitation count will justify any soil moisture raise.
 
-    :param data:                        The pandas dataframe, holding the data-to-be flagged.
+
+    :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
+                                        series. Data must be indexed by a datetime series.
     :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
     :param field:                       Fieldname of the Soil moisture measurements field in data.
-    :param flagger:                     A flagger - object.
-    :param precipitation_reference:     Fieldname of the precipitation meassurements in data.
-    :param sensor_meas_depth:           Measurement depth of the soil moisture sensor in meter [m].
-    :param sensor_accuracy:             Accuracy of the soil moisture sensor [-].
-    :param soil_porosity:               Porosity of moisture sensors surrounding soil.
+    :param flagger:                     A flagger - object. (saqc.flagger.X)
+    :param prec_reference:              Fieldname of the precipitation meassurements column in data.
+    :param sensor_meas_depth:           Measurement depth of the soil moisture sensor, [m].
+    :param sensor_accuracy:             Accuracy of the soil moisture sensor, [-].
+    :param soil_porosity:               Porosity of moisture sensors surrounding soil, [-].
     """
 
     # retrieve data series input:
-    dataseries = pd.Series(data[field].values, index=pd.to_datetime(data.index))
+    dataseries = data[field]
+    # "nan" suspicious values (neither "unflagged" nor "min-flagged")
+    data_flags = flags[field]
+    data_use = flagger.isFlagged(data_flags, flag=flagger.flags.min()) | \
+              flagger.isFlagged(data_flags, flag=flagger.flags.unflagged())
+    dataseries[~data_use] = np.nan
+    dataseries = dataseries.dropna()
 
-    # if reference series is part of input data frame, evaluate input data flags:
-    flag_mask = flagger.isFlagged(flags)[precipitation_reference]
-    # retrieve reference series
-    refseries = pd.Series(data[precipitation_reference].values, index=pd.to_datetime(data.index))
-    # drop flagged values:
-    refseries = refseries.loc[~np.array(flag_mask)]
-    # make refseries index a datetime thingy
-    refseries.index = pd.to_datetime(refseries.index)
-    # drop nan values from reference series, since those are values you dont want to refer to.
-    refseries = refseries.dropna()
+    # retrieve reference series input
+    refseries = data[prec_ref]
+    # "nan" suspicious values (neither "unflagged" nor "min-flagged")
+    ref_flags = flags[prec_reference]
+    ref_use = flagger.isFlagged(ref_flags, flag=flagger.flags.min()) | \
+              flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
+    refseries[~ref_use] = np.nan
 
+    # estimate moisture sampling frequencie (the original series sampling rate may not match data-input sample rate):
+    scnds_series = (pd.Series(dataseries.index).diff().dt.total_seconds()).dropna()
+    hist = np.histogram(scnds_series, bins=scnds_series.size)
+    moist_rate = pd.tseries.frequencies.to_offset(str(int(hist[1][hist[0].argmax()])) + 's')
+
+    # resample dataseries to its original sampling rate
+    dataseries = dataseries.resample(moist_rate).asfreq()
+
+    # get 24 h prec. monitor (we dont exclude nans, since a 24h window with
+    prec_count = refseries.rolling(window='1D').sum()
+
+    # project it onto dataseries
+    prec_count = prec_count[dataseries.index]
+
+    # make raise and std. dev tester function:
+    def prec_test(x):
+        if x[field][-1] > x[field][-2]:
+            if (x[field][-1] - x[field][0]) > 2*x[field].std():
+                return x[prec_reference][-1] <= (sensor_meas_depth*soil_porosity*sensor_accuracy)
+            else:
+                return False
+        else:
+            return False
+
+    # get valid moisture raises:
+    valid_raises = refseries.rolling(window='1D', closed='both', min_periods=2)\
+        .apply(prec_test).astype(bool)
+
+    # get 24h valid std. dev for valid moisture raises
