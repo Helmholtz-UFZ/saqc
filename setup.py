@@ -2,7 +2,7 @@ import subprocess
 
 import setuptools
 
-with open("Readme.md", "r") as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
