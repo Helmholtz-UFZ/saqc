@@ -7,7 +7,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from core import prepareMeta
+from saqc.core.core import prepareMeta, readMeta
 
 
 def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):
@@ -20,6 +20,11 @@ def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):
 
 
 def initMeta(metastring, data):
-    fobj = io.StringIO(re.sub("\n[ \t]+", "\n", metastring))
-    meta = pd.read_csv(fobj)
-    return prepareMeta(meta, data)
+    cleaned = re.sub(r"\s*,\s*", r",",
+                     re.sub(r"\|", r",",
+                            re.sub(r"\n[ \t]+", r"\n",
+                                   metastring)))
+    fobj = io.StringIO(cleaned)
+    meta = prepareMeta(readMeta(fobj), data)
+    fobj.seek(0)
+    return fobj, meta

@@ -5,12 +5,12 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from core import runner, flagNext, flagPeriod, prepareMeta
-from config import Fields
-from flagger.simpleflagger import SimpleFlagger
-from flagger.dmpflagger import DmpFlagger
-from flagger.positionalflagger import PositionalFlagger
-from test.common import initData
+from saqc.core.core import runner, flagNext, flagPeriod, prepareMeta, readMeta
+from saqc.core.config import Fields
+from saqc.flagger.simpleflagger import SimpleFlagger
+from saqc.flagger.dmpflagger import DmpFlagger
+from saqc.flagger.positionalflagger import PositionalFlagger
+from common import initData, initMeta
 
 
 TESTFLAGGERS = [
@@ -23,19 +23,16 @@ def test_positionalPartitioning(flagger):
     data = initData(3).reset_index(drop=True)
     var1, var2, var3, *_ = data.columns
     split_index = int(len(data.index)//2)
-    tests = ["range, {min: -2, max: -1}",
-             "generic, {func: this <= sum(this)}",
-             "generic, {func: this <= sum(this)}"]
 
-    meta = prepareMeta(
-        pd.DataFrame(
-            {Fields.VARNAME: [var1, var2, var3],
-             Fields.START: [None, None, split_index],
-             Fields.END: [None, split_index, None],
-             Fields.FLAGS: tests}),
-        data)
+    metastring = f"""
+    {Fields.VARNAME}|{Fields.START}|{Fields.END} | Flag_1
+    {var1}          |              |             | "range, {{min: -2, max: -1}}"
+    {var2}          |              |{split_index}| "generic, {{func: this <= sum(this)}}"
+    {var3}          |{split_index} |             | "generic, {{func: this <= sum(this)}}"
+    """
+    metafobj, meta = initMeta(metastring, data)
 
-    pdata, pflags = runner(meta, flagger, data)
+    pdata, pflags = runner(metafobj, flagger, data)
 
     fields = [Fields.VARNAME, Fields.START, Fields.END]
     for _, row in meta.iterrows():
@@ -53,19 +50,16 @@ def test_temporalPartitioning(flagger):
     data = initData(3)
     var1, var2, var3, *_ = data.columns
     split_date = data.index[len(data.index)//2]
-    tests = ["range, {min: -2, max: -1}",
-             "generic, {func: this <= sum(this)}",
-             "generic, {func: this <= sum(this)}"]
 
-    meta = prepareMeta(
-        pd.DataFrame(
-            {Fields.VARNAME: [var1, var2, var3],
-             Fields.START: [None, None, split_date],
-             Fields.END: [None, split_date, None],
-             Fields.FLAGS: tests}),
-        data)
+    metastring = f"""
+    {Fields.VARNAME}|{Fields.START}|{Fields.END} | Flag_1
+    {var1}          |              |             | "range, {{min: -2, max: -1}}"
+    {var2}          |              |{split_date} | "generic, {{func: this <= sum(this)}}"
+    {var3}          |{split_date}  |             | "generic, {{func: this <= sum(this)}}"
+    """
+    metafobj, meta = initMeta(metastring, data)
 
-    pdata, pflags = runner(meta, flagger, data)
+    pdata, pflags = runner(metafobj, flagger, data)
 
     fields = [Fields.VARNAME, Fields.START, Fields.END]
     for _, row in meta.iterrows():
@@ -83,13 +77,15 @@ def test_missingConfig(flagger):
     """
     data = initData(2)
     var1, var2, *_ = data.columns
-    meta = prepareMeta(
-        pd.DataFrame(
-            {Fields.VARNAME: [var1],
-             Fields.FLAGS: ["range, {min: -9999, max: 9999}"]}),
-        data)
 
-    pdata, pflags = runner(meta, flagger, data)
+    metastring = f"""
+    {Fields.VARNAME}|Flag_1
+    {var1}          |"range, {{min: -9999, max: 9999}}"
+    """
+    metafobj, meta = initMeta(metastring, data)
+
+    pdata, pflags = runner(metafobj, flagger, data)
+
     assert var1 in pdata and var2 not in pflags
 
 
@@ -101,14 +97,16 @@ def test_missingVariable(flagger):
     """
     data = initData(1)
     var, *_ = data.columns
-    meta = prepareMeta(
-        pd.DataFrame(
-            {Fields.VARNAME: [var, "empty"],
-             Fields.FLAGS: ["range, {min: -9999, max: 9999}",
-                            "range, {min: -9999, max: 9999}"]}),
-        data)
 
-    pdata, pflags = runner(meta, flagger, data)
+    metastring = f"""
+    {Fields.VARNAME}|Flag_1
+    {var}           |"range, {{min: -9999, max: 9999}}"
+    empty           |"range, {{min: -9999, max: 9999}}"
+    """
+    metafobj, meta = initMeta(metastring, data)
+
+    pdata, pflags = runner(metafobj, flagger, data)
+
     assert (pdata.columns == [var]).all()
 
 
@@ -121,15 +119,15 @@ def test_assignVariable(flagger):
     data = initData(1)
     var1, *_ = data.columns
     var2 = "empty"
-    meta = prepareMeta(
-        pd.DataFrame(
-            {Fields.VARNAME: [var1, var2],
-             Fields.ASSIGN: [False, True],
-             Fields.FLAGS: ["range, {min: 99999, max: -99999}",
-                            f"generic, {{func: isflagged({var1})}}"]}),
-        data)
 
-    pdata, pflags = runner(meta, flagger, data)
+    metastring = f"""
+    {Fields.VARNAME}|{Fields.ASSIGN}| Flag_1
+    {var1}          |False          | "range, {{min: 9999, max: -99999}}"
+    {var2}          |True           | "generic, {{func: isflagged({var1})}}"
+    """
+    metafobj, meta = initMeta(metastring, data)
+
+    pdata, pflags = runner(metafobj, flagger, data)
 
     if isinstance(pflags.columns, pd.MultiIndex):
         cols = (pflags

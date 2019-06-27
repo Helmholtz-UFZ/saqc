@@ -4,9 +4,9 @@
 import pytest
 import numpy as np
 
-from test.common import initData
-from flagger.simpleflagger import SimpleFlagger
-from dsl.evaluator import evalExpression
+from common import initData
+from saqc.flagger.simpleflagger import SimpleFlagger
+from saqc.dsl.evaluator import evalExpression
 
 
 def test_evaluationBool():
