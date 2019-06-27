@@ -1,3 +1,20 @@
+# System for automated Quality Control (SaQC)
+
+Quality Control of numerical data is an profoundly knowledge and experience based activity. Finding a robust setup is usually a time consuming and dynamic endeavor, even for an experienced
+data expert.
+
+SaQC addresses the iterative and explorative characteristics of quality control with its extensive setup and configuration possibilities and a python based extension language. To make the system flexible, many aspects of the quality
+checking process, like
+
++ test parametrization
++ test evaluation and 
++ test exploration 
+
+are easily configurable with plain text files.
+
+Below its userinterface, SaQC is, thus, highly customizable and extensible. Well defined interfaces allow the extension with new quality check routines. Additionally, the core components like the flagging scheme are replaceable.
+
+---
 ## Dependencies
 - numpy
 - pandas
