@@ -4,9 +4,9 @@
 import numpy as np
 import pandas as pd
 
-from lib.tools import valueRange, slidingWindowIndices, inferFrequency
-from dsl import evalExpression
-from config import Params
+from ..lib.tools import valueRange, slidingWindowIndices, inferFrequency
+from ..dsl import evalExpression
+from ..core.config import Params
 
 
 def flagDispatch(func_name, *args, **kwargs):

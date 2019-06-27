@@ -6,9 +6,9 @@ import pandas as pd
 import matplotlib as mpl
 from warnings import warn
 
-from config import Fields, Params
-from funcs import flagDispatch
-from dsl import parseFlag
+from .config import Fields, Params
+from ..funcs import flagDispatch
+from ..dsl import parseFlag
 
 
 def flagWindow(flagger, flags, mask, direction='fw', window=0, **kwargs) -> pd.Series:
@@ -41,7 +41,11 @@ def flagNext(flagger, flags, mask=True, flag_values=0, **kwargs) -> pd.Series:
     return flagWindow(flagger, flags, mask, 'fw', window=flag_values, **kwargs)
 
 
-def runner(meta, flagger, data, flags=None, nodata=np.nan):
+
+def runner(metafname, flagger, data, flags=None, nodata=np.nan):
+
+    meta = prepareMeta(readMeta(metafname), data)
+
     plotvars = []
 
     if flags is None:
@@ -226,6 +230,10 @@ def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, titl
     plt.show()
 
 
+def readMeta(fname):
+    return pd.read_csv(fname, delimiter=",", comment="#")
+
+
 def prepareMeta(meta, data):
     # NOTE: an option needed to only pass tests within a file and deduce
     #       everything else from data
@@ -252,29 +260,3 @@ def prepareMeta(meta, data):
     meta[Fields.END] = meta[Fields.END].astype(dtype)
 
     return meta
-
-
-def readData(fname, index_col, nans):
-    data = pd.read_csv(
-        fname, index_col=index_col, parse_dates=True,
-        na_values=nans, low_memory=False)
-    data.columns = [c.split(" ")[0] for c in data.columns]
-    data = data.reindex(
-        pd.date_range(data.index.min(), data.index.max(), freq="10min"))
-    return data
-
-
-if __name__ == "__main__":
-
-    from flagger import DmpFlagger
-
-    datafname = "resources/data.csv"
-    metafname = "resources/meta.csv"
-
-    data = readData(datafname,
-                    index_col="Date Time",
-                    nans=["-9999", "-9999.0"])
-    meta = prepareMeta(pd.read_csv(metafname, comment="#"), data)
-
-    flagger = DmpFlagger()
-    pdata, pflags = runner(meta, flagger, data)

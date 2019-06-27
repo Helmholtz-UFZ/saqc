@@ -6,7 +6,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
-from lib.types import PandasLike, ArrayLike, T
+from ..lib.types import PandasLike, ArrayLike, T
 
 
 class Flags(pd.CategoricalDtype):

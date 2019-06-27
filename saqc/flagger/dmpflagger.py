@@ -28,8 +28,11 @@ class DmpFlagger(BaseFlagger):
 
     def __init__(self):
         super().__init__(FLAGS)
-        self.flag_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
-        version = subprocess.check_output('git describe --tags --always --dirty'.split())
+        self.flag_fields = [FlagFields.FLAG,
+                            FlagFields.CAUSE,
+                            FlagFields.COMMENT]
+        version = subprocess.check_output(
+            'git describe --tags --always --dirty'.split())
         self.project_version = version.decode().strip()
 
     def initFlags(self, data, **kwargs):

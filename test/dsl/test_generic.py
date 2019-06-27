@@ -5,12 +5,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from test.common import initData
+from common import initData
 
-from dsl.evaluator import evalExpression
-from flagger.simpleflagger import SimpleFlagger
-from funcs.functions import flagGeneric
-from config import Params
+from saqc.dsl.evaluator import evalExpression
+from saqc.flagger.simpleflagger import SimpleFlagger
+from saqc.funcs.functions import flagGeneric
+from saqc.core.config import Params
 
 
 def test_ismissing():

@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 
 from .baseflagger import BaseFlagger
-from lib.tools import numpyfy, broadcastMany
-from lib.types import ArrayLike
+from ..lib.tools import numpyfy, broadcastMany
+from ..lib.types import ArrayLike
 
 
 class PositionalFlagger(BaseFlagger):

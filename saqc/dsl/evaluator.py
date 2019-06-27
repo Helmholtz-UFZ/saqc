@@ -9,7 +9,7 @@ from numbers import Number
 import numpy as np
 import pandas as pd
 
-from flagger import BaseFlagger
+from ..flagger import BaseFlagger
 
 
 # supported operators

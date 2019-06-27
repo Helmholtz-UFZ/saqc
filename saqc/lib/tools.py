@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import numba as nb
 
-from lib.types import PandasLike, ArrayLike
+from ..lib.types import PandasLike, ArrayLike
 
 
 @nb.jit(nopython=True, cache=True)
