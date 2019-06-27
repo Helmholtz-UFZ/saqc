@@ -36,10 +36,11 @@ class DmpFlagger(BaseFlagger):
         self.project_version = version.decode().strip()
 
     def initFlags(self, data, **kwargs):
-        columns = data.columns if isinstance(data, pd.DataFrame) else [data.name]
+        if isinstance(data, pd.Series):
+            data = data.to_frame()
 
         colindex = pd.MultiIndex.from_product(
-            [columns, self.flag_fields],
+            [data.columns, self.flag_fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
 
         out = pd.DataFrame(data=self.flags[0],
@@ -53,10 +54,7 @@ class DmpFlagger(BaseFlagger):
         if not isinstance(flags, pd.DataFrame):
             raise TypeError
 
-        if flag is None:
-            flag = self.flags.max()
-        else:
-            self._checkFlag(flag)
+        flag = self.flags.max() if flag is None else self._checkFlag(flag)
 
         if Keywords.VERSION in comment:
             comment = comment.replace(Keywords.VERSION, self.project_version)
