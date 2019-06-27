@@ -41,14 +41,14 @@ class BaseFlagger:
         pandas data structures tend to behave unpredictively
         in assignments, especially if a multi column index is used
         """
-        if flag is None:
-            flag = self.flags.max()
-        else:
-            self._checkFlag(flag)
+        flag = self.flags.max() if flag is None else self._checkFlag(flag)
         flags = flags.copy()
-        # NOTE: conversion of "flags frame to np.array is done here already, since return argument is just the array
-        # anyway. For applying mulitdimensional indexing on the DataFrame "flags", you would have to stack it first,
-        # with .stack() (try flags.stack[flags<flag] = flag and than unstack.)
+        # NOTE:
+        # conversion of 'flags' frame to np.array is done here already,
+        # since return argument is just the array anyway. For applying
+        # mulitdimensional indexing on the DataFrame 'flags', you would
+        # have to stack it first
+        # (try flags.stack[flags<flag] = flag and than unstack.)
         flags = flags.values
         flags[flags < flag] = flag
 
@@ -57,20 +57,23 @@ class BaseFlagger:
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
         out = data.copy()
         out[:] = self.flags[0]
-        # astype conversion of return Dataframe performed seperately, because pd.DataFrame(...,dtype=self.flags)
-        # wont give you categorical flag objects:
+        # NOTE:
+        # astype conversion of return Dataframe performed
+        # seperately, because pd.DataFrame(..., dtype=self.flags)
+        # wont give you categorical flag objects
         return out.astype(self.flags)
 
     def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
         if flag is None:
             return pd.notnull(flags) & (flags > self.flags[0])
-        self._checkFlag(flag)
-        return flags == flag
+        return flags == self._checkFlag(flag)
 
     def _checkFlag(self, flag):
         if flag not in self.flags:
-            raise ValueError(f"Invalid flag '{flag}'. "
-                             f"Possible choices are {list(self.flags.categories)[1:]}")
+            raise ValueError(
+                f"Invalid flag '{flag}'. "
+                f"Possible choices are {list(self.flags.categories)[1:]}")
+        return flag
 
     def nextTest(self):
         pass
