@@ -55,8 +55,11 @@ class BaseFlagger:
         return flags
 
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
-        out = data.copy()
-        out[:] = self.flags[0]
+        if isinstance(data, pd.Series):
+            out = pd.Series(data=self.flags[0], index=data.index, name=data.name)
+        if isinstance(data, pd.DataFrame):
+            out = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
+
         # NOTE:
         # astype conversion of return Dataframe performed
         # seperately, because pd.DataFrame(..., dtype=self.flags)
