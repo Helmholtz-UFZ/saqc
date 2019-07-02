@@ -117,7 +117,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object.
                                         like thingies that refer to the data(including datestrings).
-    :param tolerated_deviation:         An offset alias, denoting the maximal temporal deviation,
+    :param tolerated_deviation:         total seconds, denoting the maximal temporal deviation,
                                         the soil frost states timestamp is allowed to have, relative to the
                                         data point to-be-flagged.
     :param soil_temp_reference:         A STRING, denoting the fields name in data,
@@ -128,7 +128,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
 
 
     # retrieve reference series
-    refseries = data[soil_temp_reference]
+    refseries = data[soil_temp_reference].copy()
     ref_flags = flags[soil_temp_reference]
     ref_use = flagger.isFlagged(ref_flags, flag=flagger.flags.min()) | \
               flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
@@ -151,7 +151,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
         # if reference value index is available, return comparison result (to determine flag)
         return ref_series[ref_pos] <= check_level
 
-    # make temporal frame holding dateindex, since df.apply cant access index
+    # make temporal frame holding date index, since df.apply cant access index
     temp_frame = pd.Series(data.index)
     # get flagging mask ("True" denotes "bad"="test succesfull")
     mask = temp_frame.apply(check_nearest_for_frost, args=(refseries,
@@ -170,9 +170,11 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     moisture raise within 24 hours, can be estimated. If those values are not delivered, this inferior bound is set
     to zero. In that case, any non zero precipitation count will justify any soil moisture raise.
 
-    NOTE!!: np.nan entries in the input precipitation series will be regarded as susipicious and the test will be
+    NOTE1: np.nan entries in the input precipitation series will be regarded as susipicious and the test will be
     ommited for every 24h interval including a np.nan entrie in the original sampling rate of the
     precipitation interval. Only entry "0" will be regarded as denoting "No Rainfall".
+
+    NOTE2: The function test values that are flagged suspicious anyway - this may change in a future version
 
 
     :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
@@ -190,14 +192,14 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     # retrieve input sampling rate:
     input_rate = estimateSamplingRate(data.index)
     # retrieve data series input:
-    dataseries = data[field].copy()
+    dataseries = data[field]
     # "nan" suspicious values (neither "unflagged" nor "min-flagged")
     data_flags = flags[field]
     data_use = flagger.isFlagged(data_flags, flag=flagger.flags.min()) | \
                flagger.isFlagged(data_flags, flag=flagger.flags.unflagged())
-
-    dataseries.loc[~data_use] = np.nan
-    # drop the suspicious values together with the nan values that result from any preceeding upsampling of the
+    # drop suspicious values
+    dataseries = dataseries[data_use.values]
+    # additionally drop the nan values that result from any preceeding upsampling of the
     # measurements:
     dataseries = dataseries.dropna()
     # estimate moisture sampling frequencie (the original series sampling rate may not match data-input sample rate):
@@ -206,14 +208,14 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     dataseries = dataseries.resample(moist_rate).asfreq()
 
     # retrieve reference series input
-    refseries = data[prec_reference].copy()
+    refseries = data[prec_reference]
     # "nan" suspicious values (neither "unflagged" nor "min-flagged")
     # NOTE: suspicious values wont be dropped from reference series, because they make suspicious the entire
     # 24h aggregation intervall, that is computed later on.
     ref_flags = flags[prec_reference]
     ref_use = flagger.isFlagged(ref_flags, flag=flagger.flags.min()) | \
               flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
-    refseries[~ref_use] = np.nan
+    refseries = refseries[ref_use.values]
     refseries = refseries.dropna()
     prec_rate = estimateSamplingRate(refseries.index)
     refseries.resample(prec_rate).asfreq()
