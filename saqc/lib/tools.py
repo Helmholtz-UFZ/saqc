@@ -113,5 +113,6 @@ def estimateSamplingRate(index):
     max_scnds = scnds_series.max()
     min_scnds = scnds_series.min()
     hist = np.histogram(scnds_series, range=(min_scnds, max_scnds + 1), bins=int(max_scnds - min_scnds + 1))
-    # return smallest non zero sample difference (this works, because input is expected to be harmonized)
+    # return smallest non zero sample difference (this works, because input is expected to be at least
+    # harmonized with skips)
     return pd.tseries.frequencies.to_offset(str(int(hist[1][:-1][hist[0] > 0].min())) + 's')
