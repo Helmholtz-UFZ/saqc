@@ -227,8 +227,8 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     ef = eval_frame[0]
     ef.index = eval_frame['level_0']
 
-    # make raise and std. dev tester function (returns True for values that
-    # should be flagged bad and False respectively. (must be this way, since np.nan gets casted to True))
+    # make raise and std. dev tester function (returns False for values that
+    # should be flagged bad and True respectively. (must be this way, since np.nan gets casted to True)))
     def prec_test(x):
         x_moist = x[0::2]
         x_rain = x[1::2]

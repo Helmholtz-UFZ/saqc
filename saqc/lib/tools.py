@@ -100,3 +100,18 @@ def inferFrequency(data):
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
+def estimateSamplingRate(index):
+    """The function estimates the sampling rate of a datetime index.
+    The estimation basically evaluates a histogram of bins with seconds-accuracy. This means, that the
+    result may be contra intuitive very likely, if the input series is not rastered (harmonized with skips)
+    to an interval divisible by seconds.
+
+    :param index: A DatetimeIndex or array like Datetime listing, of wich you want the sampling rate to be
+                  estimated.
+    """
+    scnds_series = (pd.Series(index).diff().dt.total_seconds()).dropna()
+    max_scnds = scnds_series.max()
+    min_scnds = scnds_series.min()
+    hist = np.histogram(scnds_series, range=(min_scnds, max_scnds + 1), bins=int(max_scnds - min_scnds + 1))
+    # return smallest non zero sample difference (this works, because input is expected to be harmonized)
+    return pd.tseries.frequencies.to_offset(str(int(hist[1][:-1][hist[0] > 0].min())) + 's')
