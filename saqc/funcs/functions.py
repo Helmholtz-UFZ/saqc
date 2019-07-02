@@ -4,7 +4,7 @@
 import numpy as np
 import pandas as pd
 
-from ..lib.tools import valueRange, slidingWindowIndices, inferFrequency
+from ..lib.tools import valueRange, slidingWindowIndices, inferFrequency, estimateSamplingRate
 from ..dsl import evalExpression
 from ..core.config import Params
 
@@ -170,6 +170,10 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     moisture raise within 24 hours, can be estimated. If those values are not delivered, this inferior bound is set
     to zero. In that case, any non zero precipitation count will justify any soil moisture raise.
 
+    NOTE!!: np.nan entries in the input precipitation series will be regarded as susipicious and the test will be
+    ommited for every 24h interval including a np.nan entrie in the original sampling rate of the
+    precipitation interval. Only entry "0" will be regarded as denoting "No Rainfall".
+
 
     :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
                                         series. Data must be indexed by a datetime series and be harmonized onto a
@@ -183,6 +187,8 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     :param soil_porosity:               Porosity of moisture sensors surrounding soil, [-].
     """
 
+    # retrieve input sampling rate:
+    input_rate = estimateSamplingRate(data.index)
     # retrieve data series input:
     dataseries = data[field].copy()
     # "nan" suspicious values (neither "unflagged" nor "min-flagged")
@@ -194,6 +200,10 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     # drop the suspicious values together with the nan values that result from any preceeding upsampling of the
     # measurements:
     dataseries = dataseries.dropna()
+    # estimate moisture sampling frequencie (the original series sampling rate may not match data-input sample rate):
+    moist_rate = estimateSamplingRate(dataseries.index)
+    # resample dataseries to its original sampling rate
+    dataseries = dataseries.resample(moist_rate).asfreq()
 
     # retrieve reference series input
     refseries = data[prec_reference].copy()
@@ -204,20 +214,14 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     ref_use = flagger.isFlagged(ref_flags, flag=flagger.flags.min()) | \
               flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
     refseries[~ref_use] = np.nan
-
-    # estimate moisture sampling frequencie (the original series sampling rate may not match data-input sample rate):
-    scnds_series = (pd.Series(dataseries.index).diff().dt.total_seconds()).dropna()
-    max_scnds = scnds_series.max()
-    min_scnds = scnds_series.min()
-    hist = np.histogram(scnds_series, range=(min_scnds, max_scnds + 1), bins=int(max_scnds - min_scnds + 1))
-    moist_rate = pd.tseries.frequencies.to_offset(str(int(hist[1][hist[0].argmax()])) + 's')
-
-    # resample dataseries to its original sampling rate
-    dataseries = dataseries.resample(moist_rate).asfreq()
+    refseries = refseries.dropna()
+    prec_rate = estimateSamplingRate(refseries.index)
+    refseries.resample(prec_rate).asfreq()
 
     # get 24 h prec. monitor (this makes last-24h-rainfall-evaluation independent from preceeding entries)
-    prec_count = refseries.rolling(window='1D').sum()
-
+    prec_count = refseries.rolling(window='1D').apply(lambda x: x.sum(skipna=False), raw=False)
+    # upsample with zeros to input data sampling rate:
+    prec_count = prec_count.resample(input_rate).pad()
 
     # now we can: project precipitation onto dataseries sampling (and stack result to be able to apply df.rolling())
     eval_frame = pd.merge(dataseries, prec_count, how='left', left_index=True, right_index=True).stack().reset_index()
