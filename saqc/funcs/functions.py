@@ -172,7 +172,8 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
 
 
     :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
-                                        series. Data must be indexed by a datetime series.
+                                        series. Data must be indexed by a datetime series and be harmonized onto a
+                                        time raster with seconds precision.
     :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object. (saqc.flagger.X)
@@ -183,17 +184,22 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     """
 
     # retrieve data series input:
-    dataseries = data[field]
+    dataseries = data[field].copy()
     # "nan" suspicious values (neither "unflagged" nor "min-flagged")
     data_flags = flags[field]
     data_use = flagger.isFlagged(data_flags, flag=flagger.flags.min()) | \
-              flagger.isFlagged(data_flags, flag=flagger.flags.unflagged())
-    dataseries[~data_use] = np.nan
+               flagger.isFlagged(data_flags, flag=flagger.flags.unflagged())
+
+    dataseries.loc[~data_use] = np.nan
+    # drop the suspicious values together with the nan values that result from any preceeding upsampling of the
+    # measurements:
     dataseries = dataseries.dropna()
 
     # retrieve reference series input
-    refseries = data[prec_ref]
+    refseries = data[prec_reference].copy()
     # "nan" suspicious values (neither "unflagged" nor "min-flagged")
+    # NOTE: suspicious values wont be dropped from reference series, because they make suspicious the entire
+    # 24h aggregation intervall, that is computed later on.
     ref_flags = flags[prec_reference]
     ref_use = flagger.isFlagged(ref_flags, flag=flagger.flags.min()) | \
               flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
@@ -201,30 +207,48 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
 
     # estimate moisture sampling frequencie (the original series sampling rate may not match data-input sample rate):
     scnds_series = (pd.Series(dataseries.index).diff().dt.total_seconds()).dropna()
-    hist = np.histogram(scnds_series, bins=scnds_series.size)
+    max_scnds = scnds_series.max()
+    min_scnds = scnds_series.min()
+    hist = np.histogram(scnds_series, range=(min_scnds, max_scnds + 1), bins=int(max_scnds - min_scnds + 1))
     moist_rate = pd.tseries.frequencies.to_offset(str(int(hist[1][hist[0].argmax()])) + 's')
 
     # resample dataseries to its original sampling rate
     dataseries = dataseries.resample(moist_rate).asfreq()
 
-    # get 24 h prec. monitor (we dont exclude nans, since a 24h window with
+    # get 24 h prec. monitor (this makes last-24h-rainfall-evaluation independent from preceeding entries)
     prec_count = refseries.rolling(window='1D').sum()
 
-    # project it onto dataseries
-    prec_count = prec_count[dataseries.index]
 
-    # make raise and std. dev tester function:
+    # now we can: project precipitation onto dataseries sampling (and stack result to be able to apply df.rolling())
+    eval_frame = pd.merge(dataseries, prec_count, how='left', left_index=True, right_index=True).stack().reset_index()
+
+    # following reshaping operations make all columns available to a function applied on rolling windows (rolling will
+    # only eat one column of a dataframe at a time and doesnt like multi indexes as well)
+    ef = eval_frame[0]
+    ef.index = eval_frame['level_0']
+
+    # make raise and std. dev tester function (returns True for values that
+    # should be flagged bad and False respectively. (must be this way, since np.nan gets casted to True))
     def prec_test(x):
-        if x[field][-1] > x[field][-2]:
-            if (x[field][-1] - x[field][0]) > 2*x[field].std():
-                return x[prec_reference][-1] <= (sensor_meas_depth*soil_porosity*sensor_accuracy)
+        x_moist = x[0::2]
+        x_rain = x[1::2]
+        if x_moist[-1] > x_moist[-2]:
+            if (x_moist[-1] - x_moist[0]) > 2*x_moist.std():
+                return ~(x_rain[-1] <= (sensor_meas_depth*soil_porosity*sensor_accuracy))
             else:
-                return False
+                return True
         else:
-            return False
+            return True
 
     # get valid moisture raises:
-    valid_raises = refseries.rolling(window='1D', closed='both', min_periods=2)\
-        .apply(prec_test).astype(bool)
+    # rolling.apply should only get active every second entrie of the stacked frame,
+    # so periods per window have to be calculated,
+    # (this gives sufficiant conditian since window size controlls daterange:)
+    periods = 2*int(24*60*60/moist_rate.n)
+    invalid_raises = ~ef.rolling(window='1D', closed='both', min_periods=periods)\
+        .apply(prec_test, raw=False).astype(bool)
 
-    # get 24h valid std. dev for valid moisture raises
+    # apply calculated flagging mask
+    flags.loc[invalid_raises.values, field] = flagger.setFlag(flags.loc[invalid_raises.values, field], **kwargs)
+
+    return (data, flags)
