@@ -247,8 +247,10 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     periods = 2*int(24*60*60/moist_rate.n)
     invalid_raises = ~ef.rolling(window='1D', closed='both', min_periods=periods)\
         .apply(prec_test, raw=False).astype(bool)
-
-    # apply calculated flagging mask
-    flags.loc[invalid_raises.values, field] = flagger.setFlag(flags.loc[invalid_raises.values, field], **kwargs)
-
+    # undo stacking heritage (only every second entrie actually is holding an information:
+    invalid_raises = invalid_raises[1::2]
+    # retrieve indices referring to values-to-be-flagged-bad
+    invalid_indices = invalid_raises.index[invalid_raises]
+    # set Flags
+    flags.loc[invalid_indices, field] = flagger.setFlag(flags.loc[invalid_indices, field], **kwargs)
     return (data, flags)
