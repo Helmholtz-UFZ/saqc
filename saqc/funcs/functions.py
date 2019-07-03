@@ -16,7 +16,8 @@ def flagDispatch(func_name, *args, **kwargs):
         "constant": flagConstant,
         "range": flagRange,
         "generic": flagGeneric,
-        "soilMoistureByFrost": flagSoilMoistureBySoilFrost}
+        "soilMoistureByFrost": flagSoilMoistureBySoilFrost,
+        "soilMoistureByPrecipitation": flagSoilMoistureByPrecipitationEvents}
 
     func = func_map.get(func_name, None)
     if func is not None:
@@ -126,9 +127,8 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     :param frost_level:                 Value level, the flagger shall check against, when evaluating soil frost level.
     """
 
-
     # retrieve reference series
-    refseries = data[soil_temp_reference].copy()
+    refseries = data[soil_temp_reference]
     ref_flags = flags[soil_temp_reference]
     ref_use = flagger.isFlagged(ref_flags, flag=flagger.flags.min()) | \
               flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
@@ -171,10 +171,10 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     to zero. In that case, any non zero precipitation count will justify any soil moisture raise.
 
     NOTE1: np.nan entries in the input precipitation series will be regarded as susipicious and the test will be
-    ommited for every 24h interval including a np.nan entrie in the original sampling rate of the
-    precipitation interval. Only entry "0" will be regarded as denoting "No Rainfall".
+    omited for every 24h interval including a np.nan entrie in the original precipitation sampling rate.
+    Only entry "0" will be regarded as denoting "No Rainfall".
 
-    NOTE2: The function test values that are flagged suspicious anyway - this may change in a future version
+    NOTE2: The function wont test any values that are flagged suspicious anyway - this may change in a future version.
 
 
     :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
