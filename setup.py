@@ -15,5 +15,12 @@ setuptools.setup(
     # long_description_content_type="text/markdown",
     url="https://git.ufz.de/rdm/saqc",
     packages=['saqc'],
+    install_requires=[
+        'pandas',
+        'numpy',
+        'numba',
+        'PyYAML',
+        'matplotlib'
+      ],
     license='RDM Team - UFZ',
 )
