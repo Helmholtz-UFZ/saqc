@@ -109,6 +109,9 @@ def estimateSamplingRate(index):
     :param index: A DatetimeIndex or array like Datetime listing, of wich you want the sampling rate to be
                   estimated.
     """
+
+    if index.empty:
+        return pd.tseries.frequencies.to_offset('0s')
     scnds_series = (pd.Series(index).diff().dt.total_seconds()).dropna()
     max_scnds = scnds_series.max()
     min_scnds = scnds_series.min()
