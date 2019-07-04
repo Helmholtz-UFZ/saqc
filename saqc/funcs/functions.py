@@ -189,8 +189,9 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     :param soil_porosity:               Porosity of moisture sensors surrounding soil, [-].
     """
 
-    # retrieve input sampling rate:
+    # retrieve input sampling rate (needed to translate ref and data rates into each other):
     input_rate = estimateSamplingRate(data.index)
+
     # retrieve data series input:
     dataseries = data[field]
     # "nan" suspicious values (neither "unflagged" nor "min-flagged")
@@ -199,26 +200,30 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
                flagger.isFlagged(data_flags, flag=flagger.flags.unflagged())
     # drop suspicious values
     dataseries = dataseries[data_use.values]
-    # additionally drop the nan values that result from any preceeding upsampling of the
+    # additionally, drop the nan values that result from any preceeding upsampling of the
     # measurements:
     dataseries = dataseries.dropna()
+    # eventually, after dropping all nans, there is nothing left:
     if dataseries.empty:
         return (data, flags)
-    # estimate moisture sampling frequencie (the original series sampling rate may not match data-input sample rate):
+    # estimate original data sampling frequencie (the original series sampling rate may not match data-input sample
+    # rate):
     moist_rate = estimateSamplingRate(dataseries.index)
-    # resample dataseries to its original sampling rate
+    # resample dataseries to its original sampling rate (now certain, to only get nans, indeed denoting "missing" data)
     dataseries = dataseries.resample(moist_rate).asfreq()
 
     # retrieve reference series input
     refseries = data[prec_reference]
     # "nan" suspicious values (neither "unflagged" nor "min-flagged")
-    # NOTE: suspicious values wont be dropped from reference series, because they make suspicious the entire
-    # 24h aggregation intervall, that is computed later on.
     ref_flags = flags[prec_reference]
     ref_use = flagger.isFlagged(ref_flags, flag=flagger.flags.min()) | \
               flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
+    # drop suspicious values
     refseries = refseries[ref_use.values]
+    # additionally, drop the nan values that result from any preceeding upsampling of the
+    # measurements:
     refseries = refseries.dropna()
+    # eventually after dropping all nans, there is nothing left:
     if refseries.empty:
         return (data,flags)
     prec_rate = estimateSamplingRate(refseries.index)
