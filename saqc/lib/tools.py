@@ -133,8 +133,8 @@ def retrieveTrustworthyOriginal(dataseries, dataflags=None, flagger=None):
 
     """
     if (dataflags is not None) and (flagger is not None):
-        data_use = flagger.isFlagged(data_flags, flag=flagger.flags.min()) | \
-                   flagger.isFlagged(data_flags, flag=flagger.flags.unflagged())
+        data_use = flagger.isFlagged(dataflags, flag=flagger.flags.min()) | \
+                   flagger.isFlagged(dataflags, flag=flagger.flags.unflagged())
     # drop suspicious values
     dataseries = dataseries[data_use.values]
     # additionally, drop the nan values that result from any preceeding upsampling of the
@@ -142,9 +142,9 @@ def retrieveTrustworthyOriginal(dataseries, dataflags=None, flagger=None):
     dataseries = dataseries.dropna()
     # eventually, after dropping all nans, there is nothing left:
     if dataseries.empty:
-        return dataseries
+        return dataseries, np.nan
     # estimate original data sampling frequencie (the original series sampling rate may not match data-input sample
     # rate):
-    moist_rate = estimateSamplingRate(dataseries.index)
+    data_rate = estimateSamplingRate(dataseries.index)
     # resample dataseries to its original sampling rate (now certain, to only get nans, indeed denoting "missing" data)
-    return dataseries.resample(moist_rate).asfreq()
+    return dataseries.resample(data_rate).asfreq(), data_rate
