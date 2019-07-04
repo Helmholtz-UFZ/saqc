@@ -202,6 +202,8 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     # additionally drop the nan values that result from any preceeding upsampling of the
     # measurements:
     dataseries = dataseries.dropna()
+    if dataseries.empty:
+        return (data, flags)
     # estimate moisture sampling frequencie (the original series sampling rate may not match data-input sample rate):
     moist_rate = estimateSamplingRate(dataseries.index)
     # resample dataseries to its original sampling rate
@@ -217,6 +219,8 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
               flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
     refseries = refseries[ref_use.values]
     refseries = refseries.dropna()
+    if refseries.empty:
+        return (data,flags)
     prec_rate = estimateSamplingRate(refseries.index)
     refseries.resample(prec_rate).asfreq()
 
