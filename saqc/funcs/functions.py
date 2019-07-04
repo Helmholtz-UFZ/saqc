@@ -4,7 +4,8 @@
 import numpy as np
 import pandas as pd
 
-from ..lib.tools import valueRange, slidingWindowIndices, inferFrequency, estimateSamplingRate
+from ..lib.tools import valueRange, slidingWindowIndices, inferFrequency, estimateSamplingRate, \
+    retrieveTrustworthyOriginal
 from ..dsl import evalExpression
 from ..core.config import Params
 
@@ -191,47 +192,18 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
 
     # retrieve input sampling rate (needed to translate ref and data rates into each other):
     input_rate = estimateSamplingRate(data.index)
-
-    # retrieve data series input:
-    dataseries = data[field]
-    # "nan" suspicious values (neither "unflagged" nor "min-flagged")
-    data_flags = flags[field]
-    data_use = flagger.isFlagged(data_flags, flag=flagger.flags.min()) | \
-               flagger.isFlagged(data_flags, flag=flagger.flags.unflagged())
-    # drop suspicious values
-    dataseries = dataseries[data_use.values]
-    # additionally, drop the nan values that result from any preceeding upsampling of the
-    # measurements:
-    dataseries = dataseries.dropna()
-    # eventually, after dropping all nans, there is nothing left:
-    if dataseries.empty:
-        return (data, flags)
-    # estimate original data sampling frequencie (the original series sampling rate may not match data-input sample
-    # rate):
-    moist_rate = estimateSamplingRate(dataseries.index)
-    # resample dataseries to its original sampling rate (now certain, to only get nans, indeed denoting "missing" data)
-    dataseries = dataseries.resample(moist_rate).asfreq()
-
-    # retrieve reference series input
-    refseries = data[prec_reference]
-    # "nan" suspicious values (neither "unflagged" nor "min-flagged")
-    ref_flags = flags[prec_reference]
-    ref_use = flagger.isFlagged(ref_flags, flag=flagger.flags.min()) | \
-              flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
-    # drop suspicious values
-    refseries = refseries[ref_use.values]
-    # additionally, drop the nan values that result from any preceeding upsampling of the
-    # measurements:
-    refseries = refseries.dropna()
-    # eventually after dropping all nans, there is nothing left:
-    if refseries.empty:
-        return (data,flags)
-    prec_rate = estimateSamplingRate(refseries.index)
-    refseries.resample(prec_rate).asfreq()
+    dataseries, moist_rate = retrieveTrustworthyOriginal(data[field], flags[field], flagger)
+    refseries, ref_rate = retrieveTrustworthyOriginal(data[prec_reference], flags[field], flagger)
+    # abort processing if any of the measurement series has no valid entries!
+    if moist_rate is np.nan:
+        return data, flags
+    if ref_rate is np.nan:
+        return data, flags
 
     # get 24 h prec. monitor (this makes last-24h-rainfall-evaluation independent from preceeding entries)
     prec_count = refseries.rolling(window='1D').apply(lambda x: x.sum(skipna=False), raw=False)
-    # upsample with zeros to input data sampling rate:
+    # upsample with zeros to input data sampling rate (we want to project the daysums onto the dataseries grid to
+    # prepare for use of rolling:):
     prec_count = prec_count.resample(input_rate).pad()
 
     # now we can: project precipitation onto dataseries sampling (and stack result to be able to apply df.rolling())
@@ -255,14 +227,13 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
         else:
             return True
 
-    # get valid moisture raises:
     # rolling.apply should only get active every second entrie of the stacked frame,
     # so periods per window have to be calculated,
     # (this gives sufficiant conditian since window size controlls daterange:)
     periods = 2*int(24*60*60/moist_rate.n)
     invalid_raises = ~ef.rolling(window='1D', closed='both', min_periods=periods)\
         .apply(prec_test, raw=False).astype(bool)
-    # undo stacking heritage (only every second entrie actually is holding an information:
+    # undo stacking (only every second entrie actually is holding an information:
     invalid_raises = invalid_raises[1::2]
     # retrieve indices referring to values-to-be-flagged-bad
     invalid_indices = invalid_raises.index[invalid_raises]
