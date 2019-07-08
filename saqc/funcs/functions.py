@@ -164,7 +164,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
 
 
 def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_reference, sensor_meas_depth=0,
-                                          sensor_accuracy=0, soil_porosity=0, **kwargs):
+                                          sensor_accuracy=0, soil_porosity=0, std_factor=2, **kwargs):
     """Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
     precipitation event. If measurement depth, sensor accuracy of the soil moisture sensor and the porosity of the
     surrounding soil is passed to the function, an inferior level of precipitation, that has to preceed a significant
@@ -188,6 +188,10 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     :param sensor_meas_depth:           Measurement depth of the soil moisture sensor, [m].
     :param sensor_accuracy:             Accuracy of the soil moisture sensor, [-].
     :param soil_porosity:               Porosity of moisture sensors surrounding soil, [-].
+    :param std_factor:                  The value determines by which rule it is decided, weather a raise in soil
+                                        moisture is significant enough to trigger the flag test or not:
+                                        Significants is assumed, if the raise is  greater then "std_factor" multiplied
+                                        with the last 24 hours standart deviation.
     """
 
     # retrieve input sampling rate (needed to translate ref and data rates into each other):
@@ -220,7 +224,7 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
         x_moist = x[0::2]
         x_rain = x[1::2]
         if x_moist[-1] > x_moist[-2]:
-            if (x_moist[-1] - x_moist[0]) > 2*x_moist.std():
+            if (x_moist[-1] - x_moist[0]) > std_factor*x_moist.std():
                 return ~(x_rain[-1] <= (sensor_meas_depth*soil_porosity*sensor_accuracy))
             else:
                 return True
@@ -239,4 +243,4 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     invalid_indices = invalid_raises.index[invalid_raises]
     # set Flags
     flags.loc[invalid_indices, field] = flagger.setFlag(flags.loc[invalid_indices, field], **kwargs)
-    return (data, flags)
+    return data, flags
