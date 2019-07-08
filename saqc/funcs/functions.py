@@ -198,7 +198,7 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     # retrieve input sampling rate (needed to translate ref and data rates into each other):
     input_rate = estimateSamplingRate(data.index)
     dataseries, moist_rate = retrieveTrustworthyOriginal(data[field], flags[field], flagger)
-    refseries, ref_rate = retrieveTrustworthyOriginal(data[prec_reference], flags[field], flagger)
+    refseries, ref_rate = retrieveTrustworthyOriginal(data[prec_reference], flags[prec_reference], flagger)
     # abort processing if any of the measurement series has no valid entries!
     if moist_rate is np.nan:
         return data, flags
