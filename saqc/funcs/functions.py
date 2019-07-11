@@ -129,6 +129,15 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     :param frost_level:                 Value level, the flagger shall check against, when evaluating soil frost level.
     """
 
+    # SaQC policy: Only data that has been flagged by at least one test is allowed to be referred to:
+    if soil_temp_reference not in flags.columns:
+        print('WARNING - flagSoilMoistureBySoilFrost - :'
+              'The reference variable {} is either not part of the passed data frame, or the value is not registered to'
+              ' the flags frame. To register it to the flags frame and thus, make it available for reference within '
+              'tests, you need to run at least one single target test on it. The test will be skipped.'
+              .format(soil_temp_reference))
+        return data, flags
+
     # retrieve reference series
     refseries = data[soil_temp_reference]
     ref_flags = flags[soil_temp_reference]
@@ -195,6 +204,15 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
                                         with the last 24 hours standart deviation.
     """
 
+    # SaQC policy: Only data that has been flagged by at least one test is allowed to be referred to:
+    if soil_temp_reference not in flags.columns:
+        print('WARNING - flagSoilMoistureByPrecipitationEvents - :'
+              'The reference variable {} is either not part of the passed data frame, or the value is not registered to'
+              ' the flags frame. To register it to the flags frame and thus, make it available for reference within '
+              'tests, you need to run at least one single target test on it. The test will be skipped.'
+              .format(soil_temp_reference))
+        return data, flags
+
     # retrieve input sampling rate (needed to translate ref and data rates into each other):
     input_rate = estimateSamplingRate(data.index)
     dataseries, moist_rate = retrieveTrustworthyOriginal(data[field], flags[field], flagger)
@@ -259,7 +277,7 @@ def flagSoilMoistureBySpikeDetection(data, flags, field, flagger, filter_window_
     (3) the surrounding data is not too noisy. (Coefficient of Variation[+/- 12 h] < 1)
     (controlled by param "noise_barrier")
 
-    Following things you should be conscious about when applying the test:
+    Some things you should be conscious about when applying the test:
 
        NOTE1: You should run less complex tests, especially range-tests, the flag-by-precipitation-test and the
        flag-by-frost test previously to this one, since the spike check for any potential, unflagged spike,
@@ -353,3 +371,28 @@ def flagSoilMoistureBySpikeDetection(data, flags, field, flagger, filter_window_
     spikes = spikes[spikes == True]
     flags.loc[spikes.index, field] = flagger.setFlag(flags.loc[spikes.index, field], **kwargs)
     return data, flags
+
+
+def flagSoilMoistureByBreakDetection(data, flags, field, flagger, **kwargs):
+    """Function
+
+
+
+       :param data:                        The pandas dataframe holding the data-to-be flagged.
+                                           Data must be indexed by a datetime series and be harmonized onto a
+                                           time raster with seconds precision (skips allowed).
+       :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
+       :param field:                       Fieldname of the Soil moisture measurements field in data.
+       :param flagger:                     A flagger - object. (saqc.flagger.X)
+    """
+    # retrieve data series input at its original sampling rate
+    # (Note: case distinction for pure series input to avoid error resulting from trying to access pd.Series[field]
+    if isinstance(data, pd.Series):
+        dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, flagger)
+    else:
+        dataseries, data_rate = retrieveTrustworthyOriginal(data[field], flags[field], flagger)
+    # abort processing if original series has no valid entries!
+    if data_rate is np.nan:
+        return data, flags
+
+    dataseries_shifted = dataseries.shift(+1)
