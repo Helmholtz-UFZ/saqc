@@ -11,17 +11,25 @@ from ..lib.types import PandasLike, ArrayLike, T
 
 class Flags(pd.CategoricalDtype):
     def __init__(self, flags):
+        # NOTE: all flag schemes need to support
+        #       at least 3 flag categories:
+        #       * unflagged
+        #       * good
+        #       * bad
         assert len(flags) > 2
         super().__init__(flags, ordered=True)
 
     def unflagged(self):
         return self[0]
 
-    def min(self):
+    def good(self):
         return self[1]
 
-    def max(self):
+    def bad(self):
         return self[-1]
+
+    def suspicious(self):
+        return self[2:-1]
 
     def __getitem__(self, idx):
         return self.categories[idx]
@@ -35,7 +43,8 @@ class BaseFlagger:
                 flags: PandasLike,
                 flag: Optional[T] = None,
                 **kwargs: Any) -> np.ndarray:
-        flag = self.flags.max() if flag is None else self._checkFlag(flag)
+
+        flag = self.BAD if flag is None else self._checkFlag(flag)
         flags = flags.copy()
         # NOTE:
         # conversion of 'flags' frame to np.array is done here already,
@@ -47,6 +56,22 @@ class BaseFlagger:
         flags[flags < flag] = flag
 
         return flags
+
+    @property
+    def UNFLAGGED(self):
+        return self.flags.unflagged()
+
+    @property
+    def GOOD(self):
+        return self.flags.good()
+
+    @property
+    def BAD(self):
+        return self.flags.bad()
+
+    @property
+    def SUSPICIOUS(self):
+        return self.flags.suspicious()
 
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
         if isinstance(data, pd.Series):

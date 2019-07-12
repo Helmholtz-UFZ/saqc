@@ -54,7 +54,7 @@ class DmpFlagger(BaseFlagger):
         if not isinstance(flags, pd.DataFrame):
             raise TypeError
 
-        flag = self.flags.max() if flag is None else self._checkFlag(flag)
+        flag = self.BAD if flag is None else self._checkFlag(flag)
 
         if Keywords.VERSION in comment:
             comment = comment.replace(Keywords.VERSION, self.project_version)
