@@ -32,7 +32,7 @@ def test_basic():
                           (var1, FlagFields.COMMENT)]
     pflags21 = pflags.loc[col2 > var2mean, (var2, FlagFields.CAUSE)]
 
-    assert (pflags11 > flagger.flags.min()).all()
+    assert (pflags11 > flagger.GOOD).all()
     assert (pflags12 == "saqc").all()
     assert (pflags21 == "error").all()
 
@@ -43,8 +43,8 @@ def test_flagOrder():
     var, *_ = data.columns
 
     flagger = DmpFlagger()
-    fmin = flagger.flags.min()
-    fmax = flagger.flags.max()
+    fmin = flagger.GOOD
+    fmax = flagger.BAD
 
     metastring = f"""
     {Fields.VARNAME},Flag
