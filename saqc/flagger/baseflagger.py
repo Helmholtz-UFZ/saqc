@@ -35,12 +35,6 @@ class BaseFlagger:
                 flags: PandasLike,
                 flag: Optional[T] = None,
                 **kwargs: Any) -> np.ndarray:
-        """
-        NOTE:
-        this method should really return a numpy array, as
-        pandas data structures tend to behave unpredictively
-        in assignments, especially if a multi column index is used
-        """
         flag = self.flags.max() if flag is None else self._checkFlag(flag)
         flags = flags.copy()
         # NOTE:
