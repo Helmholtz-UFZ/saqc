@@ -14,25 +14,32 @@ from ..lib.tools import (
 from ..dsl import evalExpression
 from ..core.config import Params
 
+# NOTE: will be filled by calls to register
+FUNC_MAP = {}
+
+
+def register(name):
+
+    def outer(func):
+        FUNC_MAP[name] = func
+        # func.__name__ = name
+
+        def inner(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return inner
+
+    return outer
+
 
 def flagDispatch(func_name, *args, **kwargs):
-    func_map = {
-        "manflag": flagManual,
-        "mad": flagMad,
-        "constant": flagConstant,
-        "range": flagRange,
-        "generic": flagGeneric,
-        "soilMoistureByFrost": flagSoilMoistureBySoilFrost,
-        "soilMoistureByPrecipitation": flagSoilMoistureByPrecipitationEvents,
-        "soilMoistureBySpikeDetection": flagSoilMoistureBySpikeDetection,
-        "soilMoistureByBreakDetection": flagSoilMoistureByBreakDetection}
-
-    func = func_map.get(func_name, None)
+    func = FUNC_MAP.get(func_name, None)
     if func is not None:
         return func(*args, **kwargs)
     raise NameError(f"function name {func_name} is not definied")
 
 
+@register("generic")
 def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
     expression = flag_params[Params.FUNC]
     result = evalExpression(expression, flagger,
@@ -54,6 +61,7 @@ def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
     return data, flags
 
 
+@register("constant")
 def flagConstant(data, flags, field, flagger, eps,
                  length, thmin=None, **kwargs):
     datacol = data[field]
@@ -90,10 +98,7 @@ def flagConstant(data, flags, field, flagger, eps,
     return data, flags
 
 
-def flagManual(data, flags, field, flagger, **kwargs):
-    return data, flags
-
-
+@register("range")
 def flagRange(data, flags, field, flagger, min, max, **kwargs):
     datacol = data[field].values
     mask = (datacol < min) | (datacol >= max)
@@ -101,6 +106,7 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
     return data, flags
 
 
+@register("mad")
 def flagMad(data, flags, field, flagger, length, z, freq=None, **kwargs):
     d = data[field].copy()
     freq = inferFrequency(d) if freq is None else freq
@@ -115,6 +121,7 @@ def flagMad(data, flags, field, flagger, length, z, freq=None, **kwargs):
     return data, flags
 
 
+@register("flagSoilMoistureByFrost")
 def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference, tolerated_deviation='1h',
                                 frost_level=0, **kwargs):
     """Function flags Soil moisture measurements by evaluating the soil-frost-level in the moment of measurement.
@@ -179,6 +186,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     return data, flags
 
 
+@register("soilMoistureByPrecipitation")
 def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_reference, sensor_meas_depth=0,
                                           sensor_accuracy=0, soil_porosity=0, std_factor=2, **kwargs):
     """Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
@@ -271,6 +279,7 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     return data, flags
 
 
+@register("soilMoistureBySpikeDetection")
 def flagSoilMoistureBySpikeDetection(data, flags, field, flagger, filter_window_size='3h',
                                      normalized_data=True, raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1,
                                      noise_window_size='12h', **kwargs):
@@ -386,6 +395,7 @@ def flagSoilMoistureBySpikeDetection(data, flags, field, flagger, filter_window_
     return data, flags
 
 
+@register("soilMoistureByBreakDetection")
 def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_size='3h', rel_change_rate_min=0.1,
                                      abs_change=0.01, first_der_factor=10, scnd_der_ratio_margin_1=0.05,
                                      scnd_der_ratio_margin_2=10, **kwargs):
@@ -473,3 +483,5 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
     breaks = breaks[breaks == True]
     flags.loc[breaks.index, field] = flagger.setFlag(flags.loc[breaks.index, field], **kwargs)
     return data, flags
+
+
