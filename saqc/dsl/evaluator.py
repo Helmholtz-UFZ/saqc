@@ -46,12 +46,6 @@ def initFunctionNamespace(nodata, flagger):
     }
 
 
-def setKey(d, key, value):
-    out = copy.copy(d)
-    out[key] = value
-    return out
-
-
 def _raiseNameError(name, expr):
     raise NameError(
         "name '{:}' is not definied (failing expression: '{:}')"
@@ -62,8 +56,6 @@ def evalExpression(expr: str, flagger: BaseFlagger,
                    data: pd.DataFrame, flags: pd.DataFrame,
                    field: str, nodata: Number = np.nan,
                    **namespace: dict) -> np.ndarray:
-
-    # type: (...) -> np.ndarray[bool]
 
     def _eval(node, namespace):
         # type: (ast.Node, dict) -> None
@@ -97,8 +89,7 @@ def evalExpression(expr: str, flagger: BaseFlagger,
             except KeyError:
                 _raiseNameError(node.func.id, expr)
 
-            namespace = setKey(namespace, "target", target)
-            args = [_eval(n, namespace) for n in node.args]
+            args = [_eval(n, {**namespace, **{"target": target}}) for n in node.args]
             return func(*args)
 
         elif isinstance(node, ast.Name):  # <variable>

@@ -29,9 +29,7 @@ def test_accesors():
 def test_isFlagged():
     flagger = BaseFlagger([-1, 0, 1])
     data = initData(cols=1).iloc[:50]
-    flags = pd.DataFrame(index=data.index,
-                         columns=data.columns,
-                         data=flagger.UNFLAGGED)
+    flags = flagger.initFlags(data)
     flags.iloc[:10] = flagger.BAD
     flags.iloc[10:20] = flagger.GOOD
 
