@@ -5,8 +5,12 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 
-from ..lib.tools import valueRange, slidingWindowIndices, inferFrequency, estimateSamplingRate, \
-    retrieveTrustworthyOriginal
+from ..lib.tools import (
+    valueRange,
+    slidingWindowIndices,
+    inferFrequency,
+    estimateSamplingRate,
+    retrieveTrustworthyOriginal)
 from ..dsl import evalExpression
 from ..core.config import Params
 
