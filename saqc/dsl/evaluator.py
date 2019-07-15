@@ -27,6 +27,12 @@ OPERATORS = {
 
 
 def initFunctionNamespace(nodata, flagger):
+
+    def isflagged(flags, flag=None, comparator=">"):
+        if flag is None:
+            return flagger.isFlagged(flags, flag, comparator)
+        return flagger.isFlagged(flags, flag, "==")
+
     return {
         "abs": (abs, "data"),
         "max": (max, "data"),
@@ -36,7 +42,7 @@ def initFunctionNamespace(nodata, flagger):
         "std": (np.std, "data"),
         "len": (len, "data"),
         "ismissing": (lambda d: ((d == nodata) | pd.isnull(d)), "data"),
-        "isflagged": (flagger.isFlagged, "flags")
+        "isflagged": (isflagged, "flags")
     }
 
 

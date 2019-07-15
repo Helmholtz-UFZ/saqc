@@ -63,6 +63,24 @@ def test_flagPropagation():
     assert (result.filled(True) == expected).all()
 
 
+def test_isflagged():
+    data = initData(cols=1)
+    flagger = SimpleFlagger()
+    flags = flagger.initFlags(data)
+    flags.iloc[::5] = flagger.setFlag(flags.iloc[::5], flagger.BAD)
+    flags.iloc[1::5] = flagger.setFlag(flags.iloc[1::5], flagger.GOOD)
+
+    tests = {
+        "isflagged(this)" : flagger.isFlagged(flags, flagger.GOOD, ">"),
+        f"isflagged(this, {flagger.GOOD})" : flagger.isFlagged(flags, flagger.GOOD, "=="),
+        # NOTE: _ast.Str is not implemented, not sure if we should do so
+        # f"isflagged(this, {flagger.GOOD}, '<')" : flagger.isFlagged(flags, flagger.GOOD, "<"),
+    }
+    for expr, right in tests.items():
+        left = evalExpression(expr, flagger, data, flags, data.columns[0])
+        assert np.all(left.to_frame() == right)
+
+
 if __name__ == "__main__":
     test_evaluationBool()
     test_missingIdentifier()
