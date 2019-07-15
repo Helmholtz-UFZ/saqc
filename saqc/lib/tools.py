@@ -120,6 +120,7 @@ def estimateSamplingRate(index):
     # harmonized with skips)
     return pd.tseries.frequencies.to_offset(str(int(hist[1][:-1][hist[0] > 0].min())) + 's')
 
+
 def retrieveTrustworthyOriginal(dataseries, dataflags=None, flagger=None):
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
     differenciating between missng value - nans und fillvalue nans is impossible. This function evaluates flags for a
@@ -148,3 +149,12 @@ def retrieveTrustworthyOriginal(dataseries, dataflags=None, flagger=None):
     data_rate = estimateSamplingRate(dataseries.index)
     # resample dataseries to its original sampling rate (now certain, to only get nans, indeed denoting "missing" data)
     return dataseries.resample(data_rate).asfreq(), data_rate
+
+
+def offset2seconds(offset):
+    """Function returns total seconds upon "offset like input
+
+    :param offset:  offset string or pandas offset object.
+    """
+
+    return pd.Timedelta.total_seconds(pd.Timedelta(offset))
