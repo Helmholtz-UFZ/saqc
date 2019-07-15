@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import operator as op
 from typing import Any, Optional
 
 import numpy as np
@@ -8,6 +9,13 @@ import pandas as pd
 
 from ..lib.types import PandasLike, ArrayLike, T
 
+COMPARATOR_MAP = {
+    "==": op.eq,
+    ">=": op.ge,
+    ">" : op.gt,
+    "<=": op.le,
+    "<" : op.lt,
+}
 
 class Flags(pd.CategoricalDtype):
     def __init__(self, flags):
@@ -85,10 +93,13 @@ class BaseFlagger:
         # wont give you categorical flag objects
         return out.astype(self.flags)
 
-    def isFlagged(self, flags: ArrayLike, flag: T = None) -> ArrayLike:
+    def isFlagged(self, flags: ArrayLike, flag: T = None, comparator: str = ">") -> ArrayLike:
+        cp = COMPARATOR_MAP[comparator]
+        # print ("comp:", cp)
         if flag is None:
-            return pd.notnull(flags) & (flags > self.flags[0])
-        return flags == self._checkFlag(flag)
+            flag = self.GOOD
+        return pd.notnull(flags) & cp(flags, self._checkFlag(flag))
+        # return flags == self._checkFlag(flag)
 
     def _checkFlag(self, flag):
         if flag not in self.flags:

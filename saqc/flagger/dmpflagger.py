@@ -65,10 +65,10 @@ class DmpFlagger(BaseFlagger):
 
         return flags.values
 
-    def isFlagged(self, flags, flag=None):
+    def isFlagged(self, flags, flag=None, comparator=">"):
         flags = self._reduceColumns(flags)
         flagcol = flags.loc[:, FlagFields.FLAG].squeeze()
-        return super().isFlagged(flagcol, flag)
+        return super().isFlagged(flagcol, flag, comparator)
 
     def _reduceColumns(self, flags):
         if set(flags.columns) == set(self.flag_fields):
