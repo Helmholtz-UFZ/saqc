@@ -19,7 +19,9 @@ def flagDispatch(func_name, *args, **kwargs):
         "range": flagRange,
         "generic": flagGeneric,
         "soilMoistureByFrost": flagSoilMoistureBySoilFrost,
-        "soilMoistureByPrecipitation": flagSoilMoistureByPrecipitationEvents}
+        "soilMoistureByPrecipitation": flagSoilMoistureByPrecipitationEvents,
+        "soilMoistureBySpikeDetection": flagSoilMoistureBySpikeDetection,
+        "soilMoistureByBreakDetection": flagSoilMoistureByBreakDetection}
 
     func = func_map.get(func_name, None)
     if func is not None:
@@ -380,8 +382,22 @@ def flagSoilMoistureBySpikeDetection(data, flags, field, flagger, filter_window_
     return data, flags
 
 
-def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_size='3h', **kwargs):
-    """Function
+def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_size='3h', rel_change_rate_min=0.1,
+                                     abs_change=0.01, first_der_factor=10, scnd_der_ratio_margin_1=0.05,
+                                     scnd_der_ratio_margin_2=10, **kwargs):
+    """Function flags breaks (jumps/drops) in soil moisture measurement series by. A measurement y_t is flagged a
+    break, if:
+
+    (1) y_t is changing relatively to its preceeding value by at least (100*rel_change_rate_min) percent
+    (2) y_(t-1) is difffering from its preceeding value, by a margin of at least "abs_change"
+    (3) Absolute second derivative |(y_t)'| has to be at least "first_der_factor" times as big as the arithmetic middle
+        over all the first derivative values within a 24h window centered at t.
+    (4) The ratio of the second derivatives at t and t+1 has to be "aproximately" 1.
+        ([1-scnd__der_ration_margin_1, 1+scnd_ratio_margin_1])
+    (5) The ratio of the second derivatives at t+1 and t+2 has to be larger than scnd_der_ratio_margin_2
+
+    Note: As no reliable statement about the plausibility of the meassurements before and after the jump is possible,
+    only the jump itself is flagged.
 
 
 
@@ -391,6 +407,11 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
        :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
        :param field:                       Fieldname of the Soil moisture measurements field in data.
        :param flagger:                     A flagger - object. (saqc.flagger.X)
+       :param rel_change_rate_min          Float in [0,1]. See (1) of function descritpion above to learn more
+       :param abs_change                   Float > 0. See (2) of function descritpion above to learn more.
+       .param first_der_factor             Float > 0. See (3) of function descritpion above to learn more.
+       .param scnd_der_ratio_margin_1      Float in [0,1]. See (4) of function descritpion above to learn more.
+       .param scnd_der_ratio_margin_2      Float in [0,1]. See (5) of function descritpion above to learn more.
     """
     # retrieve data series input at its original sampling rate
     # (Note: case distinction for pure series input to avoid error resulting from trying to access pd.Series[field]
@@ -426,6 +447,7 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
         # condition constructing and testing:
         test_sum = abs((first_deri_series[brake - pd.Timedelta('12h'):brake + pd.Timedelta('12h')].sum()*10)
                        / first_deri_series.size)
+
         if abs(first_deri_series[brake]) > test_sum:
             # second derivative criterion:
             slice_start = brake - pd.Timedelta('3h')
