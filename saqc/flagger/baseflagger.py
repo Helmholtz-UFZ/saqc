@@ -63,7 +63,7 @@ class BaseFlagger:
         flags = flags.values
         flags[flags < flag] = flag
 
-        return flags
+        return np.squeeze(flags)
 
     @property
     def UNFLAGGED(self):
