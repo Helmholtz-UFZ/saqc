@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from common import initData
+from ..common import initData
 
 from saqc.dsl.evaluator import evalExpression
 from saqc.flagger.simpleflagger import SimpleFlagger

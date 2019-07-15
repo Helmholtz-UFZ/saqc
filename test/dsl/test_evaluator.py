@@ -4,7 +4,7 @@
 import pytest
 import numpy as np
 
-from common import initData
+from ..common import initData
 from saqc.flagger.simpleflagger import SimpleFlagger
 from saqc.dsl.evaluator import evalExpression
 

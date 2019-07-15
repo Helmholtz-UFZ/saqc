@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from common import initData, initMeta
+from ..common import initData, initMeta
 from saqc.core.core import runner
 from saqc.flagger.dmpflagger import DmpFlagger, FlagFields
 from saqc.core.config import Fields

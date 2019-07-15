@@ -10,7 +10,7 @@ from saqc.core.config import Fields
 from saqc.flagger.simpleflagger import SimpleFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.positionalflagger import PositionalFlagger
-from common import initData, initMeta
+from .common import initData, initMeta
 
 
 TESTFLAGGERS = [
