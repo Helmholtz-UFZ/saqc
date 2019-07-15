@@ -6,7 +6,7 @@ import pandas as pd
 from scipy.signal import savgol_filter
 
 from ..lib.tools import valueRange, slidingWindowIndices, inferFrequency, estimateSamplingRate, \
-    retrieveTrustworthyOriginal
+    retrieveTrustworthyOriginal, offset2seconds
 from ..dsl import evalExpression
 from ..core.config import Params
 
@@ -347,7 +347,7 @@ def flagSoilMoistureBySpikeDetection(data, flags, field, flagger, filter_window_
     # thousands for year data - a loop going through all the spikes instances is much faster than
     # a rolling window, rolling all through a stacked year dataframe )
     # calculate some values, repeatedly needed in the course of the loop:
-    filter_window_seconds = pd.Timedelta.total_seconds(pd.Timedelta(filter_window_size))
+    filter_window_seconds = offset2seconds(filter_window_size)
     smoothing_periods = int(np.ceil((filter_window_seconds / data_rate.n)))
     lower_dev_bound = 1 - dev_cont_factor
     upper_dev_bound = 1 + dev_cont_factor
@@ -383,15 +383,15 @@ def flagSoilMoistureBySpikeDetection(data, flags, field, flagger, filter_window_
 
 
 def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_size='3h', rel_change_rate_min=0.1,
-                                     abs_change=0.01, first_der_factor=10, scnd_der_ratio_margin_1=0.05,
-                                     scnd_der_ratio_margin_2=10, **kwargs):
+                                     abs_change_min=0.01, first_der_factor=10, first_der_window_size='12h',
+                                     scnd_der_ratio_margin_1=0.05, scnd_der_ratio_margin_2=10, **kwargs):
     """Function flags breaks (jumps/drops) in soil moisture measurement series by. A measurement y_t is flagged a
     break, if:
 
     (1) y_t is changing relatively to its preceeding value by at least (100*rel_change_rate_min) percent
-    (2) y_(t-1) is difffering from its preceeding value, by a margin of at least "abs_change"
+    (2) y_(t-1) is difffering from its preceeding value, by a margin of at least "abs_change_min"
     (3) Absolute second derivative |(y_t)'| has to be at least "first_der_factor" times as big as the arithmetic middle
-        over all the first derivative values within a 24h window centered at t.
+        over all the first derivative values within a 2 times "first_der_window_size" hours window, centered at t.
     (4) The ratio of the second derivatives at t and t+1 has to be "aproximately" 1.
         ([1-scnd__der_ration_margin_1, 1+scnd_ratio_margin_1])
     (5) The ratio of the second derivatives at t+1 and t+2 has to be larger than scnd_der_ratio_margin_2
@@ -407,11 +407,13 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
        :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
        :param field:                       Fieldname of the Soil moisture measurements field in data.
        :param flagger:                     A flagger - object. (saqc.flagger.X)
+       :param filter_window_size:          Offset string. Size of the filter window, used to calculate the deviations.
        :param rel_change_rate_min          Float in [0,1]. See (1) of function descritpion above to learn more
-       :param abs_change                   Float > 0. See (2) of function descritpion above to learn more.
-       .param first_der_factor             Float > 0. See (3) of function descritpion above to learn more.
-       .param scnd_der_ratio_margin_1      Float in [0,1]. See (4) of function descritpion above to learn more.
-       .param scnd_der_ratio_margin_2      Float in [0,1]. See (5) of function descritpion above to learn more.
+       :param abs_change_min               Float > 0. See (2) of function descritpion above to learn more.
+       :param first_der_factor             Float > 0. See (3) of function descritpion above to learn more.
+       :param first_der_window_size        Offset_String. See (3) of function description to learn more.
+       :param scnd_der_ratio_margin_1      Float in [0,1]. See (4) of function descritpion above to learn more.
+       :param scnd_der_ratio_margin_2      Float in [0,1]. See (5) of function descritpion above to learn more.
     """
     # retrieve data series input at its original sampling rate
     # (Note: case distinction for pure series input to avoid error resulting from trying to access pd.Series[field]
@@ -425,7 +427,7 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
 
     # relative - change - break criteria testing:
     abs_change = np.abs(dataseries.shift(+1) - dataseries)
-    breaks = (abs_change > 0.01) & (abs_change / dataseries > 0.1)
+    breaks = (abs_change > abs_change_min) & (abs_change / dataseries > rel_change_rate_min)
     breaks = breaks[breaks == True]
 
     # First derivative criterion
@@ -436,8 +438,8 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
 
     for brake in breaks.index:
         # slice out slice-to-be-filtered (with some safety extension of 3 hours)
-        slice_start = brake - pd.Timedelta('12h') -pd.Timedelta('3h')
-        slice_end = brake + pd.Timedelta('12h') + pd.Timedelta('3h')
+        slice_start = brake - pd.Timedelta(first_der_window_size) -pd.Timedelta('3h')
+        slice_end = brake + pd.Timedelta(first_der_window_size) + pd.Timedelta('3h')
         data_slice = dataseries[slice_start:slice_end]
         first_deri_series = pd.Series(data=savgol_filter(data_slice,
                                                          window_length=smoothing_periods,
@@ -445,8 +447,9 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
                                                          deriv=1),
                                       index=data_slice.index)
         # condition constructing and testing:
-        test_sum = abs((first_deri_series[brake - pd.Timedelta('12h'):brake + pd.Timedelta('12h')].sum()*10)
-                       / first_deri_series.size)
+        test_slice = first_deri_series[brake - pd.Timedelta(first_der_window_size):
+                                          brake + pd.Timedelta(first_der_window_size)]
+        test_sum = abs((test_slice.sum()*first_der_factor) / test_slice.size)
 
         if abs(first_deri_series[brake]) > test_sum:
             # second derivative criterion:
@@ -459,8 +462,11 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
                                                              deriv=2),
                                           index=data_slice.index)
             # criterion evaluation:
-            first_second = 0.95 < abs((second_deri_series[brake] / second_deri_series.shift(-1)[brake])) < 1.05
-            second_second = second_deri_series.shift(-1)[brake] / second_deri_series.shift(-2)[brake] > 10
+            first_second = (1 - scnd_der_ratio_margin_1) \
+                           < abs((second_deri_series[brake] / second_deri_series.shift(-1)[brake])) \
+                           < 1 + scnd_der_ratio_margin_1
+            second_second = abs(second_deri_series.shift(-1)[brake] / second_deri_series.shift(-2)[brake]) \
+                            > scnd_der_ratio_margin_2
             if (~ first_second) | (~ second_second):
                 breaks[brake] = False
         else:
@@ -469,3 +475,6 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
     breaks = breaks[breaks == True]
     flags.loc[breaks.index, field] = flagger.setFlag(flags.loc[breaks.index, field], **kwargs)
     return data, flags
+
+
+#def flagSoilMoistureByConstantsDetection(data, flags, field, flagger):
