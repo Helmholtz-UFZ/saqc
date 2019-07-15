@@ -134,7 +134,7 @@ def retrieveTrustworthyOriginal(dataseries, dataflags=None, flagger=None):
 
     """
     if (dataflags is not None) and (flagger is not None):
-        data_use = flagger.isFlagged(dataflags, flag=flagger.flags.min()) | \
+        data_use = flagger.isFlagged(dataflags, flag=flagger.flags.good()) | \
                    flagger.isFlagged(dataflags, flag=flagger.flags.unflagged())
     # drop suspicious values
     dataseries = dataseries[data_use.values]
