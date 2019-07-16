@@ -28,3 +28,11 @@ def initMeta(metastring, data):
     meta = prepareMeta(readMeta(fobj), data)
     fobj.seek(0)
     return fobj, meta
+
+
+def initMetaDict(metadict, data):
+    meta = prepareMeta(pd.DataFrame(metadict), data)
+    fobj = io.StringIO()
+    meta.to_csv(fobj)
+    fobj.seek(0)
+    return fobj, meta
