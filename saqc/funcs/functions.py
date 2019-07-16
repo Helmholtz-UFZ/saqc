@@ -395,7 +395,10 @@ def flagSoilMoistureBySpikeDetection(data, flags, field, flagger, filter_window_
             spikes[spike] = False
 
     spikes = spikes[spikes == True]
-    flags.loc[spikes.index, field] = flagger.setFlag(flags.loc[spikes.index, field], **kwargs)
+    if isinstance(flags, pd.Series):
+        flags.loc[spikes.index, field] = flagger.setFlag(flags.loc[spikes.index, field], **kwargs)
+    else:
+        flags.loc[spikes.index] = flagger.setFlag(flags.loc[spikes.index], **kwargs)
     return data, flags
 
 
@@ -490,14 +493,18 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
             breaks[brake] = False
 
     breaks = breaks[breaks == True]
-    flags.loc[breaks.index, field] = flagger.setFlag(flags.loc[breaks.index, field], **kwargs)
+    if isinstance(flags, pd,Series):
+        flags.loc[breaks.index] = flagger.setFlag(flags.loc[breaks.index], **kwargs)
+    else:
+        flags.loc[breaks.index, field] = flagger.setFlag(flags.loc[breaks.index, field], **kwargs)
     return data, flags
 
 
 def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_window_min='12h',
                                          plateau_var_limit=0.0005, rainfall_window='12h', filter_window_size='3h',
-                                         i_start_infimum=0.0025, i_end_supremum=0, data_max_tolerance=0.95):
+                                         i_start_infimum=0.0025, i_end_supremum=0, data_max_tolerance=0.95, **kwargs):
     """Function:
+
     :param data:                        The pandas dataframe holding the data-to-be flagged.
                                         Data must be indexed by a datetime series and be harmonized onto a
                                         time raster with seconds precision (skips allowed).
@@ -516,8 +523,8 @@ def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_wi
     # get data max
     data_max = dataseries.max()
     # identify minimal plateaus:
-    plateaus = dataseries.rolling(window=plateau_window_min).apply(lambda x: x.var() < plateau_var_limit, raw=False)\
-        .astype(bool)
+    plateaus = dataseries.rolling(window=plateau_window_min).apply(lambda x: x.var() > plateau_var_limit, raw=False).astype(bool)
+    plateaus = ~plateaus
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
@@ -536,7 +543,7 @@ def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_wi
     plateaus = plateaus['interval_nr']
     invalids = pd.Series([])
     # loop through the intervals to be checked:
-    for interval_2_check in range(1, plateaus.max()):
+    for interval_2_check in range(1, plateaus.max()+1):
         # how big is the interval?
         interval_delimeter = plateaus[plateaus==interval_2_check].index[-1] - \
                              plateaus[plateaus==interval_2_check].index[0]
@@ -597,4 +604,9 @@ def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_wi
         if potential_invalid.mean() > data_max*data_max_tolerance:
             invalids = pd.concat([invalids, potential_invalid])
 
+    if isinstance(flags, pd.Series):
+        flags.loc[invalids.index] = flagger.setFlag(flags.loc[invalids.index], **kwargs)
+    else:
+        flags.loc[invalids.index, field] = flagger.setFlag(flags.loc[invalids.index, field], **kwargs)
 
+    return data, flags
