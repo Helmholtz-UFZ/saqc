@@ -24,7 +24,7 @@ def register(name):
 
     def outer(func):
         FUNC_MAP[name] = func
-        # func.__name__ = name
+        func.__name__ = name
 
         def inner(*args, **kwargs):
             return func(*args, **kwargs)
