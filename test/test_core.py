@@ -137,6 +137,23 @@ def test_assignVariable(flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
+def test_dtypes(flagger):
+    """
+    Test if the categorical dtype is preserved through the core functionality
+    """
+    data = initData(1)
+    flags = flagger.initFlags(data)
+    var, *_ = data.columns
+
+    metadict = [
+        {F.VARNAME: var, "Flag": f"generic, {{func: this > {len(data)//2}, {P.FLAGVALUES}: 4}}"},
+    ]
+    metafobj, meta = initMetaDict(metadict, data)
+    pdata, pflags = runner(metafobj, flagger, data, flags)
+    assert dict(flags.dtypes) == dict(pflags.dtypes)
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGERS)
 def test_flagNext(flagger):
     """
     Test if the flagNext functionality works as expected
