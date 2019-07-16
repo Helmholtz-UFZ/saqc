@@ -95,11 +95,9 @@ class BaseFlagger:
 
     def isFlagged(self, flags: ArrayLike, flag: T = None, comparator: str = ">") -> ArrayLike:
         cp = COMPARATOR_MAP[comparator]
-        # print ("comp:", cp)
         if flag is None:
             flag = self.GOOD
         return pd.notnull(flags) & cp(flags, self._checkFlag(flag))
-        # return flags == self._checkFlag(flag)
 
     def _checkFlag(self, flag):
         if flag not in self.flags:
