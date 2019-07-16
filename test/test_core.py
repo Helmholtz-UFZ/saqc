@@ -10,7 +10,7 @@ from saqc.core.config import Fields
 from saqc.flagger.simpleflagger import SimpleFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.positionalflagger import PositionalFlagger
-from .common import initData, initMeta
+from .common import initData, initMeta, initMetaDict
 
 
 TESTFLAGGERS = [
@@ -24,13 +24,12 @@ def test_positionalPartitioning(flagger):
     var1, var2, var3, *_ = data.columns
     split_index = int(len(data.index)//2)
 
-    metastring = f"""
-    {Fields.VARNAME}|{Fields.START}|{Fields.END} | Flag_1
-    {var1}          |              |             | "range, {{min: -2, max: -1}}"
-    {var2}          |              |{split_index}| "generic, {{func: this <= sum(this)}}"
-    {var3}          |{split_index} |             | "generic, {{func: this <= sum(this)}}"
-    """
-    metafobj, meta = initMeta(metastring, data)
+    metadict = [
+        {Fields.VARNAME: var1, "Flag": "range, {min: -2, max: -1}"},
+        {Fields.VARNAME: var2, "Flag": "generic, {func: this <= sum(this)}", Fields.END: split_index},
+        {Fields.VARNAME: var3, "Flag": "generic, {func: this <= sum(this)}", Fields.START: split_index},
+    ]
+    metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
 
@@ -51,13 +50,12 @@ def test_temporalPartitioning(flagger):
     var1, var2, var3, *_ = data.columns
     split_date = data.index[len(data.index)//2]
 
-    metastring = f"""
-    {Fields.VARNAME}|{Fields.START}|{Fields.END} | Flag_1
-    {var1}          |              |             | "range, {{min: -2, max: -1}}"
-    {var2}          |              |{split_date} | "generic, {{func: this <= sum(this)}}"
-    {var3}          |{split_date}  |             | "generic, {{func: this <= sum(this)}}"
-    """
-    metafobj, meta = initMeta(metastring, data)
+    metadict = [
+        {Fields.VARNAME: var1, "Flag": "range, {min: -2, max: -1}"},
+        {Fields.VARNAME: var2, "Flag": "generic, {func: this <= sum(this)}", Fields.END: split_date},
+        {Fields.VARNAME: var3, "Flag": "generic, {func: this <= sum(this)}", Fields.START: split_date},
+    ]
+    metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
 
@@ -78,11 +76,8 @@ def test_missingConfig(flagger):
     data = initData(2)
     var1, var2, *_ = data.columns
 
-    metastring = f"""
-    {Fields.VARNAME}|Flag_1
-    {var1}          |"range, {{min: -9999, max: 9999}}"
-    """
-    metafobj, meta = initMeta(metastring, data)
+    metadict = [{Fields.VARNAME: var1, "Flag": "range, {min: -9999, max: 9999}"}]
+    metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
 
@@ -98,12 +93,11 @@ def test_missingVariable(flagger):
     data = initData(1)
     var, *_ = data.columns
 
-    metastring = f"""
-    {Fields.VARNAME}|Flag_1
-    {var}           |"range, {{min: -9999, max: 9999}}"
-    empty           |"range, {{min: -9999, max: 9999}}"
-    """
-    metafobj, meta = initMeta(metastring, data)
+    metadict = [
+        {Fields.VARNAME: var, "Flag": "range, {min: -9999, max: 9999}"},
+        {Fields.VARNAME: "empty", "Flag": "range, {min: -9999, max: 9999}"},
+    ]
+    metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
 
@@ -120,12 +114,11 @@ def test_assignVariable(flagger):
     var1, *_ = data.columns
     var2 = "empty"
 
-    metastring = f"""
-    {Fields.VARNAME}|{Fields.ASSIGN}| Flag_1
-    {var1}          |False          | "range, {{min: 9999, max: -99999}}"
-    {var2}          |True           | "generic, {{func: isflagged({var1})}}"
-    """
-    metafobj, meta = initMeta(metastring, data)
+    metadict = [
+        {Fields.VARNAME: var1, Fields.ASSIGN: False, "Flag": "range, {min: 9999, max: -99999}"},
+        {Fields.VARNAME: var2, Fields.ASSIGN: True, "Flag": f"generic, {{func: isflagged({var1})}}"},
+    ]
+    metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
 
@@ -180,17 +173,3 @@ def test_flagPeriod(flagger):
         dates = dates | set(flags[start:stop].index)
 
     assert expected_dates == dates
-
-
-if __name__ == "__main__":
-
-    # NOTE: PositionalFlagger is currently broken, going to fix it when needed
-    # for flagger in [SimpleFlagger, PositionalFlagger, DmpFlagger]:
-    for flagger in [SimpleFlagger(), DmpFlagger()]:
-        test_positionalPartitioning(flagger)
-        test_temporalPartitioning(flagger)
-        test_flagNext(flagger)
-        test_flagPeriod(flagger)
-        test_missingConfig(flagger)
-        test_missingVariable(flagger)
-        test_assignVariable(flagger)
