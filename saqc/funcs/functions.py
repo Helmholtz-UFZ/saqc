@@ -493,7 +493,7 @@ def flagSoilMoistureByBreakDetection(data, flags, field, flagger, filter_window_
     return data, flags
 
 
-def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_window_min='12h'):
+def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005):
     """Function:
     :param data:                        The pandas dataframe holding the data-to-be flagged.
                                         Data must be indexed by a datetime series and be harmonized onto a
@@ -509,6 +509,13 @@ def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_wi
         # abort processing if original series has no valid entries!
     if data_rate is np.nan:
         return data, flags
+
+    #identify minimal plateaus:
+    plateaus = dataseries.rolling(window=plateau_window_min).apply(lambda x: x.var() < plateau_var_limit, raw=False)\
+        .astype(bool)
+
+
+
 
 
 
