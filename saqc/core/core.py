@@ -41,48 +41,53 @@ def flagNext(flagger, flags, mask=True, flag_values=0, **kwargs) -> pd.Series:
     return flagWindow(flagger, flags, mask, 'fw', window=flag_values, **kwargs)
 
 
-
-def runner(metafname, flagger, data, flags=None, nodata=np.nan):
-
-    meta = prepareMeta(readMeta(metafname), data)
-
-    plotvars = []
-
-    if flags is None:
-        flags = pd.DataFrame(index=data.index)
-
-    # the required meta data columns
-    fields = [Fields.VARNAME, Fields.START, Fields.END, Fields.ASSIGN]
-
-    # NOTE:
-    # get to know every variable from meta
-    # should go into a separate function
+def collectVariables(meta, flagger, data, flags):
+    """
+    find every relevant variable and add a respective
+    column to the flags dataframe
+    """
+    # NOTE: get to know every variable from meta
     for idx, configrow in meta.iterrows():
-        varname, _, _, assign = configrow[fields]
+        varname, _, _, assign = configrow
         if varname not in flags and \
                 (varname in data or varname not in data and assign is True):
             col_flags = flagger.initFlags(pd.DataFrame(index=data.index,
                                                        columns=[varname]))
             flags = col_flags if flags.empty else flags.join(col_flags)
+    return flags
+
+
+def runner(metafname, flagger, data, flags=None, nodata=np.nan):
+
+    meta = prepareMeta(readMeta(metafname), data)
+    # NOTE: split meta into the test and some 'meta' data
+    fields = [Fields.VARNAME, Fields.START, Fields.END, Fields.ASSIGN]
+    tests = meta[meta.columns.to_series().filter(regex=Fields.FLAGS)]
+    meta = meta[fields]
+
+    plotvars = []
+
+    # NOTE: prep the flags
+    if flags is None:
+        flags = pd.DataFrame(index=data.index)
+    flags = collectVariables(meta, flagger, data, flags)
 
     # NOTE:
     # the outer loop runs over the flag tests, the inner one over the
     # variables. Switching the loop order would complicate the
     # reference to flags from other variables within the dataset
-    flag_fields = meta.columns.to_series().filter(regex=Fields.FLAGS)
-    for flag_pos, flag_field in enumerate(flag_fields):
+    for _, testcol in tests.iteritems():
 
         # NOTE: just an optimization
-        if meta[flag_field].dropna().empty:
+        if testcol.dropna().empty:
             continue
 
-        for idx, configrow in meta.iterrows():
+        for idx, (varname, start_date, end_date, _) in meta.iterrows():
 
-            flag_test = configrow[flag_field]
+            flag_test = testcol[idx]
             if pd.isnull(flag_test):
                 continue
 
-            varname, start_date, end_date, _ = configrow[fields]
             func_name, flag_params = parseFlag(flag_test)
 
             if varname not in data and varname not in flags:
@@ -118,6 +123,7 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
             if Params.FLAGPERIOD in flag_params or Params.FLAGVALUES in flag_params:
                 # hack as assignments above don't preserve categorical type
+                # BUG: only the dmpflagger has a flag_fields attribute
                 ffchunk = ffchunk.astype({
                     c: flagger.flags for c in ffchunk.columns if flagger.flag_fields[0] in c})
 
