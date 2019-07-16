@@ -159,6 +159,7 @@ def offset2seconds(offset):
 
     return pd.Timedelta.total_seconds(pd.Timedelta(offset))
 
+
 def offset2periods(input_offset, period_offset):
     """Function returns the number of periods of length "periods_offset" that sum up to length "input offset".
     (Namely their fraction.)
