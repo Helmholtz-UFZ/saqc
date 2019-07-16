@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 import subprocess
+import inspect
 import pandas as pd
 
 from .baseflagger import BaseFlagger
@@ -69,6 +70,9 @@ class DmpFlagger(BaseFlagger):
         flags = self._reduceColumns(flags)
         flagcol = flags.loc[:, FlagFields.FLAG].squeeze()
         return super().isFlagged(flagcol, flag, comparator)
+
+    def _getCaller(self):
+        return inspect.stack()[1].function
 
     def _reduceColumns(self, flags):
         if set(flags.columns) == set(self.flag_fields):
