@@ -141,12 +141,13 @@ def test_dtypes(flagger):
     """
     Test if the categorical dtype is preserved through the core functionality
     """
-    data = initData(1)
+    data = initData(3)
     flags = flagger.initFlags(data)
-    var, *_ = data.columns
+    var1, var2, *_ = data.columns
 
     metadict = [
-        {F.VARNAME: var, "Flag": f"generic, {{func: this > {len(data)//2}, {P.FLAGVALUES}: 4}}"},
+        {F.VARNAME: var1, "Flag": f"generic, {{func: this > {len(data)//2}, {P.FLAGVALUES}: 4}}"},
+        {F.VARNAME: var2, "Flag": f"generic, {{func: this < {len(data)//2}, {P.FLAGPERIOD}: 2h}}"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
     pdata, pflags = runner(metafobj, flagger, data, flags)
