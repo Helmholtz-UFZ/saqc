@@ -40,6 +40,20 @@ def flagNext(flagger, flags, mask=True, flag_values=0, **kwargs) -> pd.Series:
     return flagWindow(flagger, flags, mask, 'fw', window=flag_values, **kwargs)
 
 
+def assignTypeSafe(df, colname, rhs):
+    """
+    Works around a pandas bug: when assigning into
+    a pd.DataFrame with MultiIndex-columns, the dtype
+    of categorical columns will be converted to object
+    """
+    df.loc[:, colname] = rhs
+    if isinstance(rhs, pd.Series):
+        dtypes = rhs.dtypes
+    else:
+        dtypes = {(colname, c): rhs.dtypes[c] for c in rhs.columns}
+    return df.astype(dtypes)
+
+
 def collectVariables(meta, flagger, data, flags):
     """
     find every relevant variable and add a respective
@@ -114,17 +128,16 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
             # flag a timespan after the condition is met
             if Params.FLAGPERIOD in flag_params:
-                ffchunk[varname] = flagPeriod(flagger, ffchunk[varname], mask, **flag_params)
+                ffchunk = assignTypeSafe(
+                    ffchunk, varname,
+                    flagPeriod(flagger, ffchunk[varname], mask, **flag_params))
 
             # flag a certain amount of values after condition is met
             if Params.FLAGVALUES in flag_params:
-                ffchunk[varname] = flagNext(flagger, ffchunk[varname], mask, **flag_params)
-
-            if Params.FLAGPERIOD in flag_params or Params.FLAGVALUES in flag_params:
-                # hack as assignments above don't preserve categorical type
-                # BUG: only the dmpflagger has a flag_fields attribute
-                ffchunk = ffchunk.astype({
-                    c: flagger.flags for c in ffchunk.columns if flagger.flag_fields[0] in c})
+                ffchunk = assignTypeSafe(
+                    ffchunk,
+                    varname,
+                    flagNext(flagger, ffchunk[varname], mask, **flag_params))
 
             if flag_params.get(Params.PLOT, False):
                 plotvars.append(varname)
