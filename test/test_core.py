@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 
 from saqc.core.core import runner, flagNext, flagPeriod, prepareMeta, readMeta
-from saqc.core.config import Fields
+from saqc.core.config import Fields as F
+from saqc.core.config import Params as P
 from saqc.flagger.simpleflagger import SimpleFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.positionalflagger import PositionalFlagger
@@ -14,7 +15,9 @@ from .common import initData, initMeta, initMetaDict
 
 
 TESTFLAGGERS = [
-    SimpleFlagger(), DmpFlagger(),  # PositionalFlagger()
+    SimpleFlagger(),
+    DmpFlagger(),
+    # PositionalFlagger()
 ]
 
 
@@ -25,15 +28,15 @@ def test_positionalPartitioning(flagger):
     split_index = int(len(data.index)//2)
 
     metadict = [
-        {Fields.VARNAME: var1, "Flag": "range, {min: -2, max: -1}"},
-        {Fields.VARNAME: var2, "Flag": "generic, {func: this <= sum(this)}", Fields.END: split_index},
-        {Fields.VARNAME: var3, "Flag": "generic, {func: this <= sum(this)}", Fields.START: split_index},
+        {F.VARNAME: var1, "Flag": "range, {min: -2, max: -1}"},
+        {F.VARNAME: var2, "Flag": "generic, {func: this <= sum(this)}", F.END: split_index},
+        {F.VARNAME: var3, "Flag": "generic, {func: this <= sum(this)}", F.START: split_index},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
 
-    fields = [Fields.VARNAME, Fields.START, Fields.END]
+    fields = [F.VARNAME, F.START, F.END]
     for _, row in meta.iterrows():
         vname, start_index, end_index = row[fields]
         fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
@@ -51,15 +54,15 @@ def test_temporalPartitioning(flagger):
     split_date = data.index[len(data.index)//2]
 
     metadict = [
-        {Fields.VARNAME: var1, "Flag": "range, {min: -2, max: -1}"},
-        {Fields.VARNAME: var2, "Flag": "generic, {func: this <= sum(this)}", Fields.END: split_date},
-        {Fields.VARNAME: var3, "Flag": "generic, {func: this <= sum(this)}", Fields.START: split_date},
+        {F.VARNAME: var1, "Flag": "range, {min: -2, max: -1}"},
+        {F.VARNAME: var2, "Flag": "generic, {func: this <= sum(this)}", F.END: split_date},
+        {F.VARNAME: var3, "Flag": "generic, {func: this <= sum(this)}", F.START: split_date},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
 
-    fields = [Fields.VARNAME, Fields.START, Fields.END]
+    fields = [F.VARNAME, F.START, F.END]
     for _, row in meta.iterrows():
         vname, start_date, end_date = row[fields]
         fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
@@ -76,7 +79,7 @@ def test_missingConfig(flagger):
     data = initData(2)
     var1, var2, *_ = data.columns
 
-    metadict = [{Fields.VARNAME: var1, "Flag": "range, {min: -9999, max: 9999}"}]
+    metadict = [{F.VARNAME: var1, "Flag": "range, {min: -9999, max: 9999}"}]
     metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
@@ -94,8 +97,8 @@ def test_missingVariable(flagger):
     var, *_ = data.columns
 
     metadict = [
-        {Fields.VARNAME: var, "Flag": "range, {min: -9999, max: 9999}"},
-        {Fields.VARNAME: "empty", "Flag": "range, {min: -9999, max: 9999}"},
+        {F.VARNAME: var, "Flag": "range, {min: -9999, max: 9999}"},
+        {F.VARNAME: "empty", "Flag": "range, {min: -9999, max: 9999}"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -115,8 +118,8 @@ def test_assignVariable(flagger):
     var2 = "empty"
 
     metadict = [
-        {Fields.VARNAME: var1, Fields.ASSIGN: False, "Flag": "range, {min: 9999, max: -99999}"},
-        {Fields.VARNAME: var2, Fields.ASSIGN: True, "Flag": f"generic, {{func: isflagged({var1})}}"},
+        {F.VARNAME: var1, F.ASSIGN: False, "Flag": "range, {min: 9999, max: -99999}"},
+        {F.VARNAME: var2, F.ASSIGN: True,  "Flag": f"generic, {{func: isflagged({var1})}}"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
