@@ -3,12 +3,11 @@
 
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
-from warnings import warn
 
 from .config import Fields, Params
 from ..funcs import flagDispatch
 from ..dsl import parseFlag
+from ..lib.plotting import plot
 
 
 def flagWindow(flagger, flags, mask, direction='fw', window=0, **kwargs) -> pd.Series:
@@ -41,48 +40,53 @@ def flagNext(flagger, flags, mask=True, flag_values=0, **kwargs) -> pd.Series:
     return flagWindow(flagger, flags, mask, 'fw', window=flag_values, **kwargs)
 
 
-
-def runner(metafname, flagger, data, flags=None, nodata=np.nan):
-
-    meta = prepareMeta(readMeta(metafname), data)
-
-    plotvars = []
-
-    if flags is None:
-        flags = pd.DataFrame(index=data.index)
-
-    # the required meta data columns
-    fields = [Fields.VARNAME, Fields.START, Fields.END, Fields.ASSIGN]
-
-    # NOTE:
-    # get to know every variable from meta
-    # should go into a separate function
+def collectVariables(meta, flagger, data, flags):
+    """
+    find every relevant variable and add a respective
+    column to the flags dataframe
+    """
+    # NOTE: get to know every variable from meta
     for idx, configrow in meta.iterrows():
-        varname, _, _, assign = configrow[fields]
+        varname, _, _, assign = configrow
         if varname not in flags and \
                 (varname in data or varname not in data and assign is True):
             col_flags = flagger.initFlags(pd.DataFrame(index=data.index,
                                                        columns=[varname]))
             flags = col_flags if flags.empty else flags.join(col_flags)
+    return flags
+
+
+def runner(metafname, flagger, data, flags=None, nodata=np.nan):
+
+    meta = prepareMeta(readMeta(metafname), data)
+    # NOTE: split meta into the test and some 'meta' data
+    fields = [Fields.VARNAME, Fields.START, Fields.END, Fields.ASSIGN]
+    tests = meta[meta.columns.to_series().filter(regex=Fields.FLAGS)]
+    meta = meta[fields]
+
+    plotvars = []
+
+    # NOTE: prep the flags
+    if flags is None:
+        flags = pd.DataFrame(index=data.index)
+    flags = collectVariables(meta, flagger, data, flags)
 
     # NOTE:
     # the outer loop runs over the flag tests, the inner one over the
     # variables. Switching the loop order would complicate the
     # reference to flags from other variables within the dataset
-    flag_fields = meta.columns.to_series().filter(regex=Fields.FLAGS)
-    for flag_pos, flag_field in enumerate(flag_fields):
+    for _, testcol in tests.iteritems():
 
         # NOTE: just an optimization
-        if meta[flag_field].dropna().empty:
+        if testcol.dropna().empty:
             continue
 
-        for idx, configrow in meta.iterrows():
+        for idx, (varname, start_date, end_date, _) in meta.iterrows():
 
-            flag_test = configrow[flag_field]
+            flag_test = testcol[idx]
             if pd.isnull(flag_test):
                 continue
 
-            varname, start_date, end_date, _ = configrow[fields]
             func_name, flag_params = parseFlag(flag_test)
 
             if varname not in data and varname not in flags:
@@ -118,6 +122,7 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
             if Params.FLAGPERIOD in flag_params or Params.FLAGVALUES in flag_params:
                 # hack as assignments above don't preserve categorical type
+                # BUG: only the dmpflagger has a flag_fields attribute
                 ffchunk = ffchunk.astype({
                     c: flagger.flags for c in ffchunk.columns if flagger.flag_fields[0] in c})
 
@@ -135,99 +140,6 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
         plot(data, flags, True, set(plotvars), flagger)
 
     return data, flags
-
-
-def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, title="Data Plot"):
-    # the flagmask is True for flags to be shown False otherwise
-    if not interactive_backend:
-        # Import plot libs without interactivity, if not needed. This ensures that this can
-        # produce an plot.png even if tkinter is not installed. E.g. if one want to run this
-        # on machines without X-Server aka. graphic interface.
-        mpl.use('Agg')
-    else:
-        mpl.use('TkAgg')
-    from matplotlib import pyplot as plt
-    # needed for datetime conversion
-    from pandas.plotting import register_matplotlib_converters
-    register_matplotlib_converters()
-
-    if not isinstance(varname, (list, set)):
-        varname = set([varname])
-
-    tmp = []
-    for var in varname:
-        if var not in data.columns:
-            warn(f"Cannot plot column '{var}' that is not present in data.", UserWarning)
-        else:
-            tmp.append(var)
-    if tmp:
-        varname = tmp
-    else:
-        return
-
-    def plot_vline(plt, points, color='blue'):
-        # workaround for ax.vlines() as this work unexpected
-        for point in points:
-            plt.axvline(point, color=color, linestyle=':')
-
-    def _plot(varname, ax):
-        x = data.index
-        y = data[varname]
-        flags_ = flags[varname]
-        nrofflags = len(flagger.flags.categories)
-        ax.plot(x, y, '-', markersize=1, color='silver')
-        if nrofflags == 3:
-            colors = {0:'silver', 1:'lime', 2:'red'}
-        elif nrofflags == 4:
-            colors = {0:'silver', 1:'lime', 2:'yellow', 3:'red'}
-        else:
-            warn(f"To many flags.", UserWarning)
-
-
-        # plot (all) data in silver
-        ax.plot(x, y, '-', color='silver', label='data')
-        # plot (all) missing data in silver
-        nans = y.isna()
-        flagged = flagger.isFlagged(flags_)
-        idx = y.index[nans & ~flagged]
-        # ax.vlines(idx, *ylim, linestyles=':', color='silver', label="missing")
-        plot_vline(ax, idx, color='silver')
-
-        # plot all flagged data in black
-        ax.plot(x[flagged], y[flagged], '.', color='black', label="flagged by other test")
-        # plot all flagged missing data (flagged before) in black
-        idx = y.index[nans & flagged & ~flagmask]
-        # ax.vlines(idx, *ylim, linestyles=':', color='black')
-        plot_vline(ax, idx, color='black')
-        ax.set_ylabel(varname)
-
-        # plot currently flagged data in color of flag
-        for i, f in enumerate(flagger.flags):
-            if i == 0:
-                continue
-            flagged = flagger.isFlagged(flags_, flag=f) & flagmask
-            label = f"flag: {f}" if i else 'data'
-            ax.plot(x[flagged], y[flagged], '.', color=colors[i], label=label)
-            idx = y.index[nans & flagged]
-            # ax.vlines(idx, *ylim, linestyles=':', color=colors[i])
-            plot_vline(ax, idx, color=colors[i])
-
-    plots = len(varname)
-    if plots > 1:
-        fig, axes = plt.subplots(plots, 1, sharex=True)
-        axes[0].set_title(title)
-        for i, v in enumerate(varname):
-            _plot(v, axes[i])
-    else:
-        fig, ax = plt.subplots()
-        plt.title(title)
-        _plot(varname.pop(), ax)
-
-    plt.xlabel('time')
-    # dummy plot for label `missing` see plot_vline for more info
-    plt.plot([], [], ':', color='silver', label="missing data")
-    plt.legend()
-    plt.show()
 
 
 def readMeta(fname):
