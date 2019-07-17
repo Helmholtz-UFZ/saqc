@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 import subprocess
-import inspect
+import json
 import pandas as pd
 
 from .baseflagger import BaseFlagger
@@ -32,8 +32,9 @@ class DmpFlagger(BaseFlagger):
         self.flag_fields = [FlagFields.FLAG,
                             FlagFields.CAUSE,
                             FlagFields.COMMENT]
-        version = subprocess.check_output(
-            'git describe --tags --always --dirty'.split())
+        version = subprocess.run(
+            "git describe --tags --always --dirty",
+            shell=True, check=False, stdout=subprocess.PIPE).stdout
         self.project_version = version.decode().strip()
 
     def initFlags(self, data, **kwargs):
@@ -57,8 +58,11 @@ class DmpFlagger(BaseFlagger):
 
         flag = self.BAD if flag is None else self._checkFlag(flag)
 
-        if Keywords.VERSION in comment:
-            comment = comment.replace(Keywords.VERSION, self.project_version)
+        # if Keywords.VERSION in comment:
+        comment = json.dumps({
+            "comment": comment,
+            "commit": self.project_version,
+            "test": kwargs.get("func_name", "")})
 
         flags = self._reduceColumns(flags)
         mask = flags[FlagFields.FLAG] < flag
