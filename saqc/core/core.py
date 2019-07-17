@@ -42,9 +42,10 @@ def flagNext(flagger, flags, mask=True, flag_values=0, **kwargs) -> pd.Series:
 
 def assignTypeSafe(df, colname, rhs):
     """
-    Works around a pandas bug: when assigning into
-    a pd.DataFrame with MultiIndex-columns, the dtype
-    of categorical columns will be converted to object
+    Works around a pandas issue: when assigning a
+    data frame with differing columns dtypes,
+    all columns are converted to the most generic
+    of the dtypes
     """
     df.loc[:, colname] = rhs
     if isinstance(rhs, pd.Series):
