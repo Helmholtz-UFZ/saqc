@@ -127,9 +127,9 @@ def flagMad(data, flags, field, flagger, length, z, freq=None, **kwargs):
 
 
 @register("Spikes_SpektrumBased")
-def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h',
+def flagSpikes_SpektrumBased(data, flags, field, flagger, diff_method='raw', filter_window_size='3h',
                              raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
-                             noise_statistic='CoVar', **kwargs):
+                             noise_statistic='CoVar', smooth_poly_order=2, **kwargs):
 
     """Function detects and flags spikes in input data series by evaluating its derivatives and applying some
     conditions to it. A datapoint is considered a spike, if:
@@ -151,6 +151,17 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
        Since the relative variance was explicitly denoted in the formulas, the function defaults to relative variance,
        but can be switched to coefficient of variance, by assignment to parameter "noise statistic".
 
+       NOTE3: All derivatives in [Paper] are obtained by applying a Savitzky-Golay filter to the data before
+       differentiating. For the break detection algorithm some of the conditions didnt work well with smoothed
+       derivatives.
+       This is because smoothing distributes the harshness of breaks and jumps over the
+       smoothing window and makes it "smoother".
+       Since just taking the differences as derivatives did work well for my empirical data set,
+       the parameter "diff_method" defaults to "raw". That means, that derivatives will be obtained by just using the
+       differences series.
+       You are free of course, to change this parameter to "savgol" and play around with the associated filter options.
+       (see parameter description below)
+
 
 
        :param data:                        The pandas dataframe holding the data-to-be flagged.
@@ -159,9 +170,13 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
        :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
        :param field:                       Fieldname of the Soil moisture measurements field in data.
        :param flagger:                     A flagger - object. (saqc.flagger.X)
-       :param filter_window_size:          Offset string. For computing second derivate, a Savitzky-Golay filter
-                                           is applied onto the timeseries. This Offset string controlls the sice of the
-                                           smoothing window used.
+       :param diff_method:                 String. Method for obtaining dataseries' derivatives.
+                                           'raw': Just take series step differences (default)
+                                           'savgol': Smooth data with a Savitzky Golay Filter before differentiating.
+       :param filter_window_size:          Offset string. Size of the filter window, used to calculate the derivatives.
+                                           (relevant only, if: diff_method='savgol')
+       :param smooth_poly_order:           Integer. Polynomial order, used for smoothing with savitzk golay filter.
+                                           (relevant only, if: diff_method='savgol')
        :param raise_factor:                A float, determinating the bound, the quotient of two consecutive values
                                            has to exceed, to be regarded as potentially spike. A value of 0.x will
                                            trigger the spike test for value y_t, if:
@@ -214,6 +229,7 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
     # loop through spikes: (loop may sound ugly - but since the number of spikes is supposed to not exceed the
     # thousands for year data - a loop going through all the spikes instances is much faster than
     # a rolling window, rolling all through a stacked year dataframe )
+
     # calculate some values, repeatedly needed in the course of the loop:
 
     filter_window_seconds = offset2seconds(filter_window_size)
@@ -227,10 +243,16 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
     for spike in spikes.index:
         start_slice = spike - pd.Timedelta(filter_window_size)
         end_slice = spike + pd.Timedelta(filter_window_size)
-        scnd_derivate = savgol_filter(dataseries[start_slice:end_slice],
-                               window_length=smoothing_periods,
-                               polyorder=2,
-                               deriv=2)
+
+        if diff_method == 'savgol':
+            scnd_derivate = savgol_filter(dataseries[start_slice:end_slice],
+                                          window_length=smoothing_periods,
+                                          polyorder=smooth_poly_order,
+                                          deriv=2)
+
+        if diff_method == 'raw':
+            scnd_derivative = dataseries[start_slice:end_slice].diff().diff()
+
         length = scnd_derivate.size
         test_ratio_1 = np.abs(scnd_derivate[int((length-1) / 2)] / scnd_derivate[int((length+1) / 2)])
 
@@ -258,9 +280,10 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
 
 
 @register("Breaks_SpektrumBased")
-def flagBreaks_SpektrumBased(data, flags, field, flagger, filter_window_size='3h', rel_change_rate_min=0.1,
-                                     abs_change_min=0.01, first_der_factor=10, first_der_window_size='12h',
-                                     scnd_der_ratio_margin_1=0.05, scnd_der_ratio_margin_2=10, **kwargs):
+def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', filter_window_size='3h',
+                             rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
+                             first_der_window_size='12h', scnd_der_ratio_margin_1=0.05,
+                             scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
 
     """Function flags breaks (jumps/drops) in input measurement series by evaluating its derivatives.
     A measurement y_t is flagged a, break, if:
@@ -273,8 +296,18 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
         ([1-scnd__der_ration_margin_1, 1+scnd_ratio_margin_1])
     (5) The ratio of the second derivatives at t+1 and t+2 has to be larger than scnd_der_ratio_margin_2
 
-    Note: As no reliable statement about the plausibility of the meassurements before and after the jump is possible,
+    NOTE 1: As no reliable statement about the plausibility of the meassurements before and after the jump is possible,
     only the jump itself is flagged. For flagging constant values following upon a jump, use a flagConstants test.
+
+    NOTE 2: All derivatives in [Paper] are obtained by applying a Savitzky-Golay filter to the data before
+    differentiating. I was not able to reproduce satisfaction of all the conditions for synthetically constructed
+    breaks. Especially condition [4] and [5]! This is because smoothing distributes the harshness of the break over the
+    smoothing window. Since just taking the differences as derivatives did work well for my empirical data set,
+    the parameter "diff_method" defaults to "raw". That means, that derivatives will be obtained by just using the
+    differences series.
+    You are free of course, to change this parameter to "savgol" and play around with the associated filter options.
+    (see parameter description below)
+
 
 
 
@@ -284,7 +317,13 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
        :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
        :param field:                       Fieldname of the Soil moisture measurements field in data.
        :param flagger:                     A flagger - object. (saqc.flagger.X)
-       :param filter_window_size:          Offset string. Size of the filter window, used to calculate the deviations.
+       :param diff_method:                 String. Method for obtaining dataseries' derivatives.
+                                           'raw': Just take series step differences (default)
+                                           'savgol': Smooth data with a Savitzky Golay Filter before differentiating.
+       :param filter_window_size:          Offset string. Size of the filter window, used to calculate the derivatives.
+                                           (relevant only, if: diff_method='savgol')
+       :param smooth_poly_order:           Integer. Polynomial order, used for smoothing with savitzk golay filter.
+                                           (relevant only, if: diff_method='savgol')
        :param rel_change_rate_min          Float in [0,1]. See (1) of function descritpion above to learn more
        :param abs_change_min               Float > 0. See (2) of function descritpion above to learn more.
        :param first_der_factor             Float > 0. See (3) of function descritpion above to learn more.
@@ -292,6 +331,7 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
        :param scnd_der_ratio_margin_1      Float in [0,1]. See (4) of function descritpion above to learn more.
        :param scnd_der_ratio_margin_2      Float in [0,1]. See (5) of function descritpion above to learn more.
     """
+
     # retrieve data series input at its original sampling rate
     # (Note: case distinction for pure series input to avoid error resulting from trying to access pd.Series[field]
     if isinstance(data, pd.Series):
@@ -317,14 +357,21 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
         slice_start = brake - pd.Timedelta(first_der_window_size) -pd.Timedelta('3h')
         slice_end = brake + pd.Timedelta(first_der_window_size) + pd.Timedelta('3h')
         data_slice = dataseries[slice_start:slice_end]
-        first_deri_series = pd.Series(data=savgol_filter(data_slice,
-                                                         window_length=smoothing_periods,
-                                                         polyorder=2,
-                                                         deriv=1),
-                                      index=data_slice.index)
+
+        # obtain first derivative:
+        if diff_method == 'savgol':
+            first_deri_series = pd.Series(data=savgol_filter(data_slice,
+                                          window_length=smoothing_periods,
+                                          polyorder=smooth_poly_order,
+                                          deriv=1),
+                                          index=data_slice.index)
+        if diff_method == 'raw':
+            first_deri_series = data_slice.diff()
+
         # condition constructing and testing:
         test_slice = first_deri_series[brake - pd.Timedelta(first_der_window_size):
-                                          brake + pd.Timedelta(first_der_window_size)]
+                                       brake + pd.Timedelta(first_der_window_size)]
+
         test_sum = abs((test_slice.sum()*first_der_factor) / test_slice.size)
 
         if abs(first_deri_series[brake]) > test_sum:
@@ -332,27 +379,38 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
             slice_start = brake - pd.Timedelta('3h')
             slice_end = brake + pd.Timedelta('3h')
             data_slice = data_slice[slice_start:slice_end]
-            second_deri_series = pd.Series(data=savgol_filter(data_slice,
-                                                             window_length=smoothing_periods,
-                                                             polyorder=2,
-                                                             deriv=2),
-                                          index=data_slice.index)
+
+            # obtain second derivative:
+            if diff_method == 'savgol':
+                second_deri_series = pd.Series(data=savgol_filter(data_slice,
+                                               window_length=smoothing_periods,
+                                               polyorder=smooth_poly_order,
+                                               deriv=2),
+                                               index=data_slice.index)
+            if diff_method == 'raw':
+                second_deri_series = data_slice.diff().diff()
+
             # criterion evaluation:
             first_second = (1 - scnd_der_ratio_margin_1) \
-                           < abs((second_deri_series[brake] / second_deri_series.shift(-1)[brake])) \
+                           < abs((second_deri_series.shift(-1)[brake] / second_deri_series.shift(-2)[brake])) \
                            < 1 + scnd_der_ratio_margin_1
+
             second_second = abs(second_deri_series.shift(-1)[brake] / second_deri_series.shift(-2)[brake]) \
                             > scnd_der_ratio_margin_2
+
             if (~ first_second) | (~ second_second):
                 breaks[brake] = False
+
         else:
             breaks[brake] = False
 
     breaks = breaks[breaks == True]
+
     if isinstance(flags, pd,Series):
         flags.loc[breaks.index] = flagger.setFlag(flags.loc[breaks.index], **kwargs)
     else:
         flags.loc[breaks.index, field] = flagger.setFlag(flags.loc[breaks.index, field], **kwargs)
+
     return data, flags
 
 
@@ -369,18 +427,21 @@ def flagSoilMoistureSpikes(data, flags, field, flagger, filter_window_size='3h',
                                     noise_statistic=noise_statistic, **kwargs)
 
 
-@register("Breaks_SpektrumBased")
-def flagSoilMoistureBreaks(data, flags, field, flagger, filter_window_size='3h', rel_change_rate_min=0.1,
-                                     abs_change_min=0.01, first_der_factor=10, first_der_window_size='12h',
-                                     scnd_der_ratio_margin_1=0.05, scnd_der_ratio_margin_2=10, **kwargs):
+@register("SoilMoistureBreaks")
+def flagSoilMoistureBreaks(data, flags, field, flagger, diff_method='raw', filter_window_size='3h',
+                           rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
+                           first_der_window_size='12h', scnd_der_ratio_margin_1=0.05,
+                           scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
 
     """ The Function provides just a call to flagBreaks_SpektrumBased, with parameter defaults that refer to [SM_Paper]
     """
-    return flagSoilMoistureBreaks(data, flags, field, flagger, filter_window_size=filter_window_size,
+    return flagSoilMoistureBreaks(data, flags, field, flagger, diff_method=diff_method,
+                                  filter_window_size=filter_window_size,
                                   rel_change_rate_min=rel_change_rate_min, abs_change_min=abs_change_min,
                                   first_der_factor=first_der_factor, first_der_window_size=first_der_window_size,
                                   scnd_der_ratio_margin_1=scnd_der_ratio_margin_1,
-                                  scnd_der_ratio_margin_2=scnd_der_ratio_margin_2, **kwargs)
+                                  scnd_der_ratio_margin_2=scnd_der_ratio_margin_2,
+                                  smooth_poly_order=smooth_poly_order, **kwargs)
 
 
 @register("flagSoilMoistureByFrost")
