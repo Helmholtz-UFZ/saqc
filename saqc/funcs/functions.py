@@ -128,10 +128,11 @@ def flagMad(data, flags, field, flagger, length, z, freq=None, **kwargs):
     return data, flags
 
 
+@register("Constants_VarianceBased")
 def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min='12h',
                                          plateau_var_limit=0.0005, **kwargs):
 
-    """Function flags plateaus/series of constant values. An interval of values y(t),..y(t+n) is flagged, if:
+    """Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
     (1) n > "plateau_interval_min"
     (2) variance(y(t),...,y(t+n) < plateau_var_limit
@@ -159,21 +160,26 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
     min_periods = int(offset2periods(plateau_window_min, data_rate))
 
     # identify minimal plateaus:
-    plateaus = dataseries.rolling(window=plateau_window_min).apply(lambda x: (x.var() > plateau_var_limit) | (x.size < min_periods), raw=False)
+    plateaus = dataseries.rolling(window=plateau_window_min).apply(lambda x: (x.var() > plateau_var_limit) |
+                                                                             (x.size < min_periods), raw=False)
     plateaus = (~plateaus.astype(bool))
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
         return data, flags
 
+    # nice reverse trick to cover total interval size
     plateaus_reverse = pd.Series(np.flip(plateaus.values), index=plateaus.index)
-    reverse_check = plateaus_reverse.rolling(window=plateau_window_min).apply(lambda x: True if True in x.values else False, raw=False).astype(bool)
+    reverse_check = plateaus_reverse.rolling(window=plateau_window_min).apply(
+        lambda x: True if True in x.values else False, raw=False).astype(bool)
+
+    # result:
     plateaus = pd.Series(np.flip(reverse_check.values), index=plateaus.index)
 
     if isinstance(flags, pd.Series):
-        flags.loc[spikes.index, field] = flagger.setFlag(flags.loc[spikes.index, field], **kwargs)
+        flags.loc[plateaus.index, field] = flagger.setFlag(flags.loc[plateaus.index, field], **kwargs)
     else:
-        flags.loc[spikes.index] = flagger.setFlag(flags.loc[spikes.index], **kwargs)
+        flags.loc[plateaus.index] = flagger.setFlag(flags.loc[plateaus.index], **kwargs)
     return data, flags
 
 
@@ -182,8 +188,14 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
                              raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
                              noise_statistic='CoVar', smooth_poly_order=2, **kwargs):
 
-    """Function detects and flags spikes in input data series by evaluating its derivatives and applying some
+    """This Function is an generalization of the Spectrum based Spike flagging mechanism as presented in:
+
+    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
+    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+
+    Function detects and flags spikes in input data series by evaluating its derivatives and applying some
     conditions to it. A datapoint is considered a spike, if:
+
     (1) the quotient to its preceeding datapoint exceeds a certain bound
     (controlled by param "raise_factor")
     (2) the quotient of the datas second derivate at the preceeding and subsequent timestamps is close enough to 1.
@@ -202,9 +214,9 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
        Since the relative variance was explicitly denoted in the formulas, the function defaults to relative variance,
        but can be switched to coefficient of variance, by assignment to parameter "noise statistic".
 
-       NOTE3: All derivatives in [Paper] are obtained by applying a Savitzky-Golay filter to the data before
-       differentiating. For the break detection algorithm some of the conditions didnt work well with smoothed
-       derivatives.
+       NOTE3: All derivatives in the reference publication are obtained by applying a Savitzky-Golay filter to the data
+       before differentiating. For the break detection algorithm in this publication,
+       some of the conditions didnt work well with smoothed derivatives.
        This is because smoothing distributes the harshness of breaks and jumps over the
        smoothing window and makes it "smoother".
        Since just taking the differences as derivatives did work well for my empirical data set,
@@ -337,7 +349,12 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
                              first_der_window_size='12h', scnd_der_ratio_margin_1=0.05,
                              scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
 
-    """Function flags breaks (jumps/drops) in input measurement series by evaluating its derivatives.
+    """ This Function is an generalization of the Spectrum based break flagging mechanism as presented in:
+
+    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
+    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+
+    The function flags breaks (jumps/drops) in input measurement series by evaluating its derivatives.
     A measurement y_t is flagged a, break, if:
 
     (1) y_t is changing relatively to its preceeding value by at least (100*rel_change_rate_min) percent
@@ -351,9 +368,10 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
     NOTE 1: As no reliable statement about the plausibility of the meassurements before and after the jump is possible,
     only the jump itself is flagged. For flagging constant values following upon a jump, use a flagConstants test.
 
-    NOTE 2: All derivatives in [Paper] are obtained by applying a Savitzky-Golay filter to the data before
-    differentiating. I was not able to reproduce satisfaction of all the conditions for synthetically constructed
-    breaks. Especially condition [4] and [5]! This is because smoothing distributes the harshness of the break over the
+    NOTE 2: All derivatives in the reference publication are obtained by applying a Savitzky-Golay filter to the data
+    before differentiating. However, i was not able to reproduce satisfaction of all the conditions for synthetically
+    constructed breaks.
+    Especially condition [4] and [5]! This is because smoothing distributes the harshness of the break over the
     smoothing window. Since just taking the differences as derivatives did work well for my empirical data set,
     the parameter "diff_method" defaults to "raw". That means, that derivatives will be obtained by just using the
     differences series.
@@ -471,8 +489,13 @@ def flagSoilMoistureSpikes(data, flags, field, flagger, filter_window_size='3h',
                              raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
                              noise_statistic='CoVar', **kwargs):
 
-    """ The Function provides just a call to flagSpikes_SpektrumBased, with parameter defaults that refer to [SM_Paper]
     """
+    The Function provides just a call to flagSpikes_SpektrumBased, with parameter defaults, that refer to:
+
+    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
+    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+    """
+
     return flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size=filter_window_size,
                                     raise_factor=raise_factor, dev_cont_factor=dev_cont_factor,
                                     noise_barrier=noise_barrier, noise_window_size=noise_window_size,
@@ -485,7 +508,12 @@ def flagSoilMoistureBreaks(data, flags, field, flagger, diff_method='raw', filte
                            first_der_window_size='12h', scnd_der_ratio_margin_1=0.05,
                            scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
 
-    """ The Function provides just a call to flagBreaks_SpektrumBased, with parameter defaults that refer to [SM_Paper]
+    """
+    The Function provides just a call to flagBreaks_SpektrumBased, with parameter defaults that refer to:
+
+    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
+    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+
     """
     return flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method=diff_method,
                                     filter_window_size=filter_window_size,
@@ -496,10 +524,18 @@ def flagSoilMoistureBreaks(data, flags, field, flagger, diff_method='raw', filte
                                     smooth_poly_order=smooth_poly_order, **kwargs)
 
 
-@register("flagSoilMoistureByFrost")
+@register("SoilMoistureByFrost")
 def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference, tolerated_deviation='1h',
                                 frost_level=0, **kwargs):
-    """Function flags Soil moisture measurements by evaluating the soil-frost-level in the moment of measurement.
+
+    """This Function is an implementation of the soil temperature based Soil Moisture flagging, as presented in:
+
+    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
+    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+
+    All parameters default to the values, suggested in this publication.
+
+    Function flags Soil moisture measurements by evaluating the soil-frost-level in the moment of measurement.
     Soil temperatures below "frost_level" are regarded as denoting frozen soil state.
 
     :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
@@ -560,11 +596,21 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     return data, flags
 
 
-@register("soilMoistureByPrecipitation")
+@register("SoilMoistureByPrecipitation")
 def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_reference, sensor_meas_depth=0,
                                           sensor_accuracy=0, soil_porosity=0, std_factor=2, std_factor_range='24h',
                                           raise_reference=None, **kwargs):
-    """Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
+
+    """This Function is an implementation of the precipitation based Soil Moisture flagging, as presented in:
+
+    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
+    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+
+    All parameters default to the values, suggested in this publication. (excluding porosity,sensor accuracy and
+    sensor depth)
+
+
+    Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
     precipitation event. If measurement depth, sensor accuracy of the soil moisture sensor and the porosity of the
     surrounding soil is passed to the function, an inferior level of precipitation, that has to preceed a significant
     moisture raise within 24 hours, can be estimated. If those values are not delivered, this inferior bound is set
@@ -677,7 +723,9 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
 def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_window_min='12h',
                                          plateau_var_limit=0.0005, rainfall_window='12h', filter_window_size='3h',
                                          i_start_infimum=0.0025, i_end_supremum=0, data_max_tolerance=0.95, **kwargs):
-    """Function:
+
+    """Function is not ready to use yet: we are waiting for response from the author of [Paper] in order of getting
+    able to exclude some sources of confusion.
 
     :param data:                        The pandas dataframe holding the data-to-be flagged.
                                         Data must be indexed by a datetime series and be harmonized onto a
@@ -707,7 +755,9 @@ def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_wi
         return data, flags
 
     plateaus_reverse = pd.Series(np.flip(plateaus.values), index=plateaus.index)
-    reverse_check = plateaus_reverse.rolling(window=plateau_window_min).apply(lambda x: True if True in x.values else False, raw=False).astype(bool)
+    reverse_check = plateaus_reverse.rolling(window=plateau_window_min).apply(lambda x:
+                                                                              True if True in x.values else False,
+                                                                              raw=False).astype(bool)
     plateaus = pd.Series(np.flip(reverse_check.values), index=plateaus.index)
 
 
