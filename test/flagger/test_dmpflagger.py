@@ -1,7 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from ..common import initData, initMeta
+import json
+import pandas as pd
+
 from saqc.core.core import runner
 from saqc.flagger.dmpflagger import DmpFlagger, FlagFields
 from saqc.core.config import Fields
@@ -27,13 +29,14 @@ def test_basic():
     col1 = pdata[var1]
     col2 = pdata[var2]
 
-    pflags11 = pflags.loc[col1 < var1mean, (var1, FlagFields.FLAG)]
-    pflags12 = pflags.loc[((col1 < 10) | (col1 > 20)),
-                          (var1, FlagFields.COMMENT)]
-    pflags21 = pflags.loc[col2 > var2mean, (var2, FlagFields.CAUSE)]
+    pflags11 = pflags.loc[col1 < var1mean, (var1, F.FLAG)]
+    pflags21 = pflags.loc[col2 > var2mean, (var2, F.CAUSE)]
+    pflags12 = pflags.loc[((col1 < 10) | (col1 > 20)), (var1, F.COMMENT)]
+    pflags12 = pd.io.json.json_normalize(pflags12.apply(json.loads))
 
     assert (pflags11 > flagger.GOOD).all()
-    assert (pflags12 == "saqc").all()
+    assert set(["comment", "commit", "test"]) == set(pflags12.columns)
+    assert (pflags12["comment"] == "saqc").all()
     assert (pflags21 == "error").all()
 
 
