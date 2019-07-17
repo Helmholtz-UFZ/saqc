@@ -130,14 +130,14 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
             if Params.FLAGPERIOD in flag_params:
                 ffchunk = assignTypeSafe(
                     ffchunk, varname,
-                    flagPeriod(flagger, ffchunk[varname], mask, **flag_params))
+                    flagPeriod(flagger, ffchunk[varname], mask, func_name=func_name, **flag_params))
 
             # flag a certain amount of values after condition is met
             if Params.FLAGVALUES in flag_params:
                 ffchunk = assignTypeSafe(
                     ffchunk,
                     varname,
-                    flagNext(flagger, ffchunk[varname], mask, **flag_params))
+                    flagNext(flagger, ffchunk[varname], mask, func_name=func_name, **flag_params))
 
             if flag_params.get(Params.PLOT, False):
                 plotvars.append(varname)

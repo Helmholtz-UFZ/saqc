@@ -1,9 +1,11 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import logging
+from functools import partial
+
 import numpy as np
 import pandas as pd
-import logging
 from scipy.signal import savgol_filter
 
 
@@ -26,8 +28,8 @@ FUNC_MAP = {}
 def register(name):
 
     def outer(func):
+        func = partial(func, func_name=name)
         FUNC_MAP[name] = func
-        func.__name__ = name
 
         def inner(*args, **kwargs):
             return func(*args, **kwargs)
