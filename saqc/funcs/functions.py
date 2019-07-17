@@ -406,7 +406,7 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
 
     breaks = breaks[breaks == True]
 
-    if isinstance(flags, pd,Series):
+    if isinstance(flags, pd.Series):
         flags.loc[breaks.index] = flagger.setFlag(flags.loc[breaks.index], **kwargs)
     else:
         flags.loc[breaks.index, field] = flagger.setFlag(flags.loc[breaks.index, field], **kwargs)
@@ -435,13 +435,13 @@ def flagSoilMoistureBreaks(data, flags, field, flagger, diff_method='raw', filte
 
     """ The Function provides just a call to flagBreaks_SpektrumBased, with parameter defaults that refer to [SM_Paper]
     """
-    return flagSoilMoistureBreaks(data, flags, field, flagger, diff_method=diff_method,
-                                  filter_window_size=filter_window_size,
-                                  rel_change_rate_min=rel_change_rate_min, abs_change_min=abs_change_min,
-                                  first_der_factor=first_der_factor, first_der_window_size=first_der_window_size,
-                                  scnd_der_ratio_margin_1=scnd_der_ratio_margin_1,
-                                  scnd_der_ratio_margin_2=scnd_der_ratio_margin_2,
-                                  smooth_poly_order=smooth_poly_order, **kwargs)
+    return flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method=diff_method,
+                                    filter_window_size=filter_window_size,
+                                    rel_change_rate_min=rel_change_rate_min, abs_change_min=abs_change_min,
+                                    first_der_factor=first_der_factor, first_der_window_size=first_der_window_size,
+                                    scnd_der_ratio_margin_1=scnd_der_ratio_margin_1,
+                                    scnd_der_ratio_margin_2=scnd_der_ratio_margin_2,
+                                    smooth_poly_order=smooth_poly_order, **kwargs)
 
 
 @register("flagSoilMoistureByFrost")
@@ -456,7 +456,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object.
                                         like thingies that refer to the data(including datestrings).
-    :param tolerated_deviation:         total seconds, denoting the maximal temporal deviation,
+    :param tolerated_deviation:         Offset String. Denoting the maximal temporal deviation,
                                         the soil frost states timestamp is allowed to have, relative to the
                                         data point to-be-flagged.
     :param soil_temp_reference:         A STRING, denoting the fields name in data,
@@ -510,12 +510,19 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
 
 @register("soilMoistureByPrecipitation")
 def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_reference, sensor_meas_depth=0,
-                                          sensor_accuracy=0, soil_porosity=0, std_factor=2, **kwargs):
+                                          sensor_accuracy=0, soil_porosity=0, std_factor=2, std_factor_range='24h',
+                                          raise_reference=None, **kwargs):
     """Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
     precipitation event. If measurement depth, sensor accuracy of the soil moisture sensor and the porosity of the
     surrounding soil is passed to the function, an inferior level of precipitation, that has to preceed a significant
     moisture raise within 24 hours, can be estimated. If those values are not delivered, this inferior bound is set
     to zero. In that case, any non zero precipitation count will justify any soil moisture raise.
+
+    A data point y_t is flagged an invalid soil moisture raise, if:
+
+    (1) y_t > y_(t-raise_reference)
+    (2) y_t - y_(t-"std_factor_range") > "std_factor" * std(y_(t-"std_factor_range"),...,y_t)
+    (3) sum(prec(t-24h),...,prec(t)) > sensor_meas_depth * sensor_accuracy * soil_porosity
 
     NOTE1: np.nan entries in the input precipitation series will be regarded as susipicious and the test will be
     omited for every 24h interval including a np.nan entrie in the original precipitation sampling rate.
@@ -538,6 +545,13 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
                                         moisture is significant enough to trigger the flag test or not:
                                         Significants is assumed, if the raise is  greater then "std_factor" multiplied
                                         with the last 24 hours standart deviation.
+    :param std_factor_range:            Offset String. Denotes the range over witch the standart deviation is obtained,
+                                        to test condition [2]. (Should be a multiple of the sampling rate)
+    :param raise_reference:             Offset String. Denotes the distance to the datapoint, relatively to witch
+                                        it is decided if the current datapoint is a raise or not. Equation [1].
+                                        It defaults to None. When None is passed, raise_reference is just the sample
+                                        rate of the data. Any raise reference must be a multiple of the (intended)
+                                        sample rate and below std_factor_range.
     """
 
     # SaQC policy: Only data that has been flagged by at least one test is allowed to be referred to:
@@ -575,12 +589,16 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     ef = eval_frame[0]
     ef.index = eval_frame['level_0']
 
+    if raise_reference is None:
+        raise_reference = 1
+    else:
+        raise_reference = int(offset2periods(raise_reference, moist_rate))
     # make raise and std. dev tester function (returns False for values that
     # should be flagged bad and True respectively. (must be this way, since np.nan gets casted to True)))
-    def prec_test(x, std_fac=std_factor):
+    def prec_test(x, std_fac=std_factor, raise_ref=raise_reference):
         x_moist = x[0::2]
         x_rain = x[1::2]
-        if x_moist[-1] > x_moist[-2]:
+        if x_moist[-1] > x_moist[(-1-raise_ref)]:
             if (x_moist[-1] - x_moist[0]) > std_fac*x_moist.std():
                 return ~(x_rain[-1] <= (sensor_meas_depth*soil_porosity*sensor_accuracy))
             else:
@@ -591,7 +609,8 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     # rolling.apply should only get active every second entrie of the stacked frame,
     # so periods per window have to be calculated,
     # (this gives sufficiant conditian since window size controlls daterange:)
-    periods = 2*int(24*60*60/moist_rate.n)
+
+    periods = int(2*offset2periods(std_factor_range, moist_rate))
     invalid_raises = ~ef.rolling(window='1D', closed='both', min_periods=periods)\
         .apply(prec_test, raw=False).astype(bool)
     # undo stacking (only every second entrie actually is holding an information:
