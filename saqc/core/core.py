@@ -42,9 +42,10 @@ def flagNext(flagger, flags, mask=True, flag_values=0, **kwargs) -> pd.Series:
 
 def assignTypeSafe(df, colname, rhs):
     """
-    Works around a pandas bug: when assigning into
-    a pd.DataFrame with MultiIndex-columns, the dtype
-    of categorical columns will be converted to object
+    Works around a pandas issue: when assigning a
+    data frame with differing columns dtypes,
+    all columns are converted to the most generic
+    of the dtypes
     """
     df.loc[:, colname] = rhs
     if isinstance(rhs, pd.Series):
@@ -130,14 +131,14 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
             if Params.FLAGPERIOD in flag_params:
                 ffchunk = assignTypeSafe(
                     ffchunk, varname,
-                    flagPeriod(flagger, ffchunk[varname], mask, **flag_params))
+                    flagPeriod(flagger, ffchunk[varname], mask, func_name=func_name, **flag_params))
 
             # flag a certain amount of values after condition is met
             if Params.FLAGVALUES in flag_params:
                 ffchunk = assignTypeSafe(
                     ffchunk,
                     varname,
-                    flagNext(flagger, ffchunk[varname], mask, **flag_params))
+                    flagNext(flagger, ffchunk[varname], mask, func_name=func_name, **flag_params))
 
             if flag_params.get(Params.PLOT, False):
                 plotvars.append(varname)

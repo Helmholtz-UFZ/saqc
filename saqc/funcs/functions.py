@@ -1,9 +1,11 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import logging
+from functools import partial
+
 import numpy as np
 import pandas as pd
-import logging
 from scipy.signal import savgol_filter
 
 
@@ -26,8 +28,8 @@ FUNC_MAP = {}
 def register(name):
 
     def outer(func):
+        func = partial(func, func_name=name)
         FUNC_MAP[name] = func
-        func.__name__ = name
 
         def inner(*args, **kwargs):
             return func(*args, **kwargs)
@@ -45,8 +47,8 @@ def flagDispatch(func_name, *args, **kwargs):
 
 
 @register("generic")
-def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
-    expression = flag_params[Params.FUNC]
+def flagGeneric(data, flags, field, flagger, nodata=np.nan, **kwargs):
+    expression = kwargs[Params.FUNC]
     result = evalExpression(expression, flagger,
                             data, flags, field,
                             nodata=nodata)
@@ -59,7 +61,7 @@ def flagGeneric(data, flags, field, flagger, nodata=np.nan, **flag_params):
     if not np.issubdtype(result.dtype, np.bool_):
         raise TypeError(f"expression '{expression}' does not return a boolean array")
 
-    fchunk = flagger.setFlag(flags=flags.loc[result, field], **flag_params)
+    fchunk = flagger.setFlag(flags=flags.loc[result, field], **kwargs)
 
     flags.loc[result, field] = fchunk
 
