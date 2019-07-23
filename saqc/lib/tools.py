@@ -173,7 +173,7 @@ def offset2periods(input_offset, period_offset):
     return offset2seconds(input_offset) / offset2seconds(period_offset)
 
 
-def getVarNames(pandas_like):
+def getPandasVarNames(pandas_like):
     """The function is a workaround, to not have to implement case distinctions whenever your not sure if your
     asking for a dataframes columns or a series name (=1_D Dataframe)' """
     if isinstance(pandas_like, pd.DataFrame):
@@ -227,7 +227,7 @@ def checkQCParameters(para_dict, called_by):
 
         # check range
         if 'range' in sub_dict.keys():
-            if not (sub_dict['range'][0] < sub_dict['value'] < sub_dict['range'][1]):
+            if not (sub_dict['range'][0] <= sub_dict['value'] <= sub_dict['range'][1]):
                 logging.error('Parameter {} passed to Function {}, didnt pass range Test. '
                               'Range restrains for this parameter are: '
                               '[{}, {}]: '.format(para, called_by, str(sub_dict['range'][0]), sub_dict['range'][1]))
