@@ -172,7 +172,24 @@ def offset2periods(input_offset, period_offset):
 
     return offset2seconds(input_offset) / offset2seconds(period_offset)
 
-def check_QC_parameters(para_dict, called_by):
+
+def getVarNames(pandas_like):
+    """The function is a workaround, to not have to implement case distinctions whenever your not sure if your
+    asking for a dataframes columns or a series name (=1_D Dataframe)' """
+    if isinstance(pandas_like, pd.DataFrame):
+        return pandas_like.columns
+    if isinstance(pandas_like, pd.Series):
+        return [pandas_like.name]
+
+
+def getPandasData(pandas_like, fieldname):
+    if isinstance(pandas_like, pd.DataFrame):
+        return pandas_like[fieldname]
+    if isinstance(pandas_like, pd.Series):
+        return pandas_like
+
+
+def checkQCParameters(para_dict, called_by):
     """The function is designed to check parameter passed to the QC functions. The checking method is determined by
     a nested dictionary that has to be passed to the parameter para dict and should have the following form:
 
