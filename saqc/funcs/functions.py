@@ -15,6 +15,8 @@ from ..lib.tools import (
     inferFrequency,
     estimateSamplingRate,
     retrieveTrustworthyOriginal,
+    getPandasVarNames,
+    getPandasData,
     offset2periods,
     offset2seconds,
     checkQCParameters)
@@ -151,21 +153,31 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
     """
 
 
-    para_check = checkQCParameters({'data': {'value': data,
-                                             'type': [pd.Series, pd.DataFrame],
-                                             'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
-                                    'flags': {'value': flags,
-                                              'type': [pd.Series, pd.DataFrame]},
-                                    'field': {'value': field,
-                                              'type': [str]}}, 'flagConstants_VarianceBased')
+    para_check_1 = checkQCParameters({'data': {'value': data,
+                                               'type': [pd.Series, pd.DataFrame],
+                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
+                                      'flags': {'value': flags,
+                                                'type': [pd.Series, pd.DataFrame]},
+                                      'field': {'value': field,
+                                                'type': [str]},
+                                                'tests': {'scheduled in data': lambda x: x in getPandasVarNames(data)}},
+                                     kwargs['func_name'])
 
+    dataseries, data_rate = retrieveTrustworthyOriginal(getPandasData(data, field), flags, flagger)
 
-    if isinstance(data, pd.Series):
-        dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, flagger)
-    else:
-        dataseries, data_rate = retrieveTrustworthyOriginal(data[field], flags[field], flagger)
-        # abort processing if original series has no valid entries!
-    if data_rate is np.nan:
+    para_check_2 = checkQCParameters({'plateau_window_min': {'value': plateau_window_min,
+                                                             'type': [str],
+                                                             'tests': {'Valid Offset String': lambda x: pd.Timedelta(x).total_seconds() % 1 == 0}},
+                                      'plateau_var_limit': {'value': plateau_var_limit,
+                                                            'type': [int, float],
+                                                            'range': [0, np.inf]},
+                                      'data_rate':          {'value': data_rate,
+                                                             'tests': {'not nan': lambda x: x is not np.nan}}},
+                                     kwargs['func_name'])
+
+    if (para_check_1 < 0) | (para_check_2 < 0):
+        logging.warning('test {} will be skipped because not all input parameters satisfied '
+                        'the requirements'.format(kwargs['func_name']))
         return data, flags
 
     min_periods = int(offset2periods(plateau_window_min, data_rate))
@@ -279,15 +291,49 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
                                            'rVar'  -> "relative Variance"
     """
 
+    para_check_1 = checkQCParameters({'data': {'value': data,
+                                               'type': [pd.Series, pd.DataFrame],
+                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
+                                      'flags': {'value': flags,
+                                                'type': [pd.Series, pd.DataFrame]},
+                                      'field': {'value': field,
+                                                'type': [str],
+                                                'tests': {'scheduled in data': lambda x: x in getPandasVarNames(data)}}},
+                                     kwargs['func_name'])
+
+    dataseries, data_rate = retrieveTrustworthyOriginal(getPandasData(data, field), getPandasData(flags, field), flagger)
+
+    para_check_2 = checkQCParameters({'diff_method': {'value': diff_method,
+                                                      'member': ['raw', 'savgol']},
+                                      'noise_statistic': {'value': noise_statistic,
+                                                          'member': ['CoVar', 'rVar']},
+                                      'filter_window_size': {'value': filter_window_size,
+                                                             'type': [str],
+                                                             'tests': {'Valid Offset String': lambda x: pd.Timedelta(
+                                                                 x).total_seconds() % 1 == 0}},
+                                      'noise_window_size': {'value': noise_window_size,
+                                                            'type': [str],
+                                                            'tests': {'Valid Offset String': lambda x: pd.Timedelta(
+                                                                 x).total_seconds() % 1 == 0}},
+                                      'smooth_poly_order': {'value': smooth_poly_order,
+                                                            'type': [int],
+                                                            'range': [0, np.inf]},
+                                      'raise_factor': {'value': raise_factor,
+                                                       'type': [int, float],
+                                                       'range': [0, 1]},
+                                      'noise_barrier': {'value': noise_barrier,
+                                                        'type': [int, float],
+                                                        'range': [0, np.inf]},
+                                      'dev_cont_factor': {'value': dev_cont_factor,
+                                                          'type': [int, float],
+                                                          'range': [0, 1]}},
+                                     kwargs['func_name'])
+
     # retrieve data series input at its original sampling rate
     # (Note: case distinction for pure series input to avoid error resulting from trying to access pd.Series[field]
-    if isinstance(data, pd.Series):
-        dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, flagger)
-    else:
-        dataseries, data_rate = retrieveTrustworthyOriginal(data[field], flags[field], flagger)
-
-    # abort processing if original series has no valid entries!
-    if data_rate is np.nan:
+    if (para_check_1 < 0) | (para_check_2 < 0):
+        logging.warning('test {} will be skipped because not all input parameters satisfied '
+                        'the requirements'.format(kwargs['func_name']))
         return data, flags
 
     # retrieve noise statistic
@@ -414,13 +460,51 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
     """
 
     # retrieve data series input at its original sampling rate
-    # (Note: case distinction for pure series input to avoid error resulting from trying to access pd.Series[field]
-    if isinstance(data, pd.Series):
-        dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, flagger)
-    else:
-        dataseries, data_rate = retrieveTrustworthyOriginal(data[field], flags[field], flagger)
-    # abort processing if original series has no valid entries!
-    if data_rate is np.nan:
+    para_check_1 = checkQCParameters({'data': {'value': data,
+                                               'type': [pd.Series, pd.DataFrame],
+                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
+                                      'flags': {'value': flags,
+                                                'type': [pd.Series, pd.DataFrame]},
+                                      'field': {'value': field,
+                                                'type': [str],
+                                                'tests': {'scheduled in data': lambda x: x in getPandasVarNames(data)}}},
+                                     kwargs['func_name'])
+
+    dataseries, data_rate = retrieveTrustworthyOriginal(getPandasData(data, field), getPandasData(flags, flags), flagger)
+
+    para_check_2 = checkQCParameters({'diff_method': {'value': diff_method,
+                                                      'member': ['raw', 'savgol']},
+                                      'filter_window_size': {'value': filter_window_size,
+                                                             'type': [str],
+                                                             'tests': {'Valid Offset String': lambda x: pd.Timedelta(
+                                                                 x).total_seconds() % 1 == 0}},
+                                      'first_der_window_size': {'value': first_der_window_size,
+                                                                'type': [str],
+                                                                'tests': {'Valid Offset String': lambda x: pd.Timedelta(
+                                                                 x).total_seconds() % 1 == 0}},
+                                      'smooth_poly_order': {'value': smooth_poly_order,
+                                                            'type': [int],
+                                                            'range': [0, np.inf]},
+                                      'rel_change_rate_min': {'value': rel_change_rate_min,
+                                                              'type': [int, float],
+                                                              'range': [0, 1]},
+                                      'scnd_der_ratio_margin_1': {'value': scnd_der_ratio_margin_1,
+                                                                  'type': [int, float],
+                                                                  'range': [0, 1]},
+                                      'scnd_der_ratio_margin_2': {'value': scnd_der_ratio_margin_1,
+                                                                  'type': [int, float],
+                                                                  'range': [0, 1]},
+                                      'abs_change_min': {'value': abs_change_min,
+                                                         'type': [int, float],
+                                                         'range': [0, np.inf]},
+                                      'first_der_factor': {'value': first_der_factor,
+                                                           'type': [int, float],
+                                                           'range': [0, np.inf]}},
+                                     kwargs['func_name'])
+
+    if (para_check_1 < 0) | (para_check_2 < 0):
+        logging.warning('test {} will be skipped because not all input parameters satisfied '
+                        'the requirements'.format(kwargs['func_name']))
         return data, flags
 
     # relative - change - break criteria testing:
@@ -564,12 +648,35 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     :param frost_level:                 Value level, the flagger shall check against, when evaluating soil frost level.
     """
 
+    para_check_1 = checkQCParameters({'data': {'value': data,
+                                               'type': [pd.Series, pd.DataFrame],
+                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
+                                      'flags': {'value': flags,
+                                                'type': [pd.Series, pd.DataFrame]},
+                                      'field': {'value': field,
+                                                'type': [str],
+                                                'tests': {'scheduled in data': lambda x: x in getPandasVarNames(data)}}},
+                                     kwargs['func_name'])
+
+    para_check_2 = checkQCParameters({'soil_temp_reference': {'value': soil_temp_reference,
+                                                              'type': [str],
+                                                              'tests': {'scheduled in data':
+                                                                            lambda x: x in getPandasVarNames(data),
+                                                                        'scheduled in flags':
+                                                                            lambda x: x in getPandasVarNames(data)}},
+                                      'tolerated_deviation': {'value': tolerated_deviation,
+                                                              'type': [str],
+                                                              'tests': {'Valid Offset String': lambda x: pd.Timedelta(
+                                                                 x).total_seconds() % 1 == 0}},
+                                      'frost_level': {'value': frost_level,
+                                                      'type': [int, float],
+                                                      'range': [-np.inf, np.inf]}},
+                                     kwargs['func_name'])
+
     # SaQC policy: Only data that has been flagged by at least one test is allowed to be referred to:
-    if soil_temp_reference not in flags.columns:
-        logging.warning('The reference variable {} is either not part of the passed data frame, or the value is not '
-                        'registered to the flags frame. To register it to the flags frame and thus, make it available '
-                        'for reference within tests, you need to run at least one single targeted test on it. '
-                        'The test will be skipped.'.format(soil_temp_reference))
+    if (para_check_1 < 0) | (para_check_2 < 0):
+        logging.warning('test {} will be skipped because not all input parameters satisfied '
+                        'the requirements'.format(kwargs['func_name']))
         return data, flags
 
     # retrieve reference series
@@ -663,20 +770,60 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
                                         sample rate and below std_factor_range.
     """
 
-    # SaQC policy: Only data that has been flagged by at least one test is allowed to be referred to:
+    para_check_1 = checkQCParameters({'data': {'value': data,
+                                               'type': [pd.Series, pd.DataFrame],
+                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
+                                      'flags': {'value': flags,
+                                                'type': [pd.Series, pd.DataFrame]},
+                                      'field': {'value': field,
+                                                'type': [str],
+                                                'tests': {
+                                                    'scheduled in data': lambda x: x in getPandasVarNames(data)}}},
+                                     kwargs['func_name'])
 
-    if prec_reference not in flags.columns:
-        logging.warning(
-            'The reference variable {} is either not part of the passed data frame, or the value is not '
-            'registered to the flags frame. To register it to the flags frame and thus, make it available '
-            'for reference within tests, you need to run at least one single targeted test on it. '
-            'The test will be skipped.'.format(prec_reference))
+    dataseries, moist_rate = retrieveTrustworthyOriginal(getPandasData(data, field), getPandasData(flags, field), flagger)
+
+    para_check_2 = checkQCParameters({'prec_reference_reference': {'value': prec_reference,
+                                                                   'type': [str],
+                                                                   'tests': {'scheduled in data':
+                                                                             lambda x: x in getPandasVarNames(data),
+                                                                             'scheduled in flags':
+                                                                             lambda x: x in getPandasVarNames(data)}},
+                                      'std_factor_range': {'value': std_factor_range,
+                                                           'type': [str],
+                                                           'tests': {'Valid Offset String': lambda x: pd.Timedelta(
+                                                                  x).total_seconds() % 1 == 0}},
+                                      'raise_reference': {'value': std_factor_range,
+                                                          'type': [str],
+                                                          'tests': {'Valid Offset String': lambda x: pd.Timedelta(
+                                                               x).total_seconds() % 1 == 0,
+                                                                     'Consistent with Sample Rate':
+                                                                         lambda x: (pd.Timedelta(moist_rate) %
+                                                                                    pd.Timedelta(x).total_seconds)
+                                                                                  == 0}},
+                                      'sensor_meas_depth': {'value': sensor_meas_depth,
+                                                            'type': [int, float],
+                                                            'range': [0, np.inf]},
+                                      'sensor_accuracy': {'value': sensor_accuracy,
+                                                          'type': [int, float],
+                                                          'range': [0, np.inf]},
+                                      'soil_porosity': {'value': soil_porosity,
+                                                        'type': [int, float],
+                                                        'range': [0, 1]},
+                                      'std_factor': {'value': std_factor,
+                                                     'type': [int, float],
+                                                     'range': [0, np.inf]}
+                                      },
+                                     kwargs['func_name'])
+
+    if (para_check_1 < 0) | (para_check_2 < 0):
+        logging.warning('test {} will be skipped because not all input parameters satisfied '
+                        'the requirements'.format(kwargs['func_name']))
         return data, flags
 
 
     # retrieve input sampling rate (needed to translate ref and data rates into each other):
     input_rate = estimateSamplingRate(data.index)
-    dataseries, moist_rate = retrieveTrustworthyOriginal(data[field], flags[field], flagger)
     refseries, ref_rate = retrieveTrustworthyOriginal(data[prec_reference], flags[prec_reference], flagger)
     # abort processing if any of the measurement series has no valid entries!
     if moist_rate is np.nan:
