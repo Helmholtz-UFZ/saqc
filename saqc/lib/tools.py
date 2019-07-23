@@ -7,6 +7,8 @@ from typing import Union
 import numpy as np
 import pandas as pd
 import numba as nb
+import logging
+import sys
 
 from ..lib.types import PandasLike, ArrayLike
 
@@ -169,3 +171,85 @@ def offset2periods(input_offset, period_offset):
     """
 
     return offset2seconds(input_offset) / offset2seconds(period_offset)
+
+def check_QC_parameters(para_dict, called_by):
+    """The function is designed to check parameter passed to the QC functions. The checking method is determined by
+    a nested dictionary that has to be passed to the parameter para dict and should have the following form:
+
+    check_dict = {value_name_1: {'value': value,
+                                 'type': [class_1, class_2, ..., classM],
+                                 'range': [min , max],
+                                 'member':[e1, e2, ...,eN]}}
+                                 'tests': {test_1_name: test_func1,
+                                           test_2_name: test_func2,...
+                                           test_M_name: test_funcM},
+                value_name_2: {....}}
+    """
+
+    global_checker = 0
+
+    for para in para_dict.keys():
+
+        local_checker = 0
+        sub_dict = para_dict[para]
+
+        # check the type
+        if 'type' in sub_dict.keys():
+            type_check = 0
+            for type in sub_dict['type']:
+                if isinstance(sub_dict['value'], type):
+                    type_check += 1
+            if type_check == 0:
+                logging.error('Parameter {} passed to Function {} didnt pass type Test. '
+                              'It has to be one out of: '.format(para, called_by, str(sub_dict['type'])))
+                local_checker -= 1
+
+        if local_checker < 0:
+            global_checker -= 1
+            continue
+
+        # check range
+        if 'range' in sub_dict.keys():
+            if not (sub_dict['range'][0] < sub_dict['value'] < sub_dict['range'][1]):
+                logging.error('Parameter {} passed to Function {}, didnt pass range Test. '
+                              'Range restrains for this parameter are: '
+                              '[{}, {}]: '.format(para, called_by, str(sub_dict['range'][0]), sub_dict['range'][1]))
+                local_checker -= 1
+
+        if local_checker < 0:
+            global_checker -= 1
+            continue
+
+        # member test
+        if 'member' in sub_dict.keys():
+            if not (sub_dict['value'] in sub_dict['member']):
+                logging.error('Parameter {} passed to Function {}, didnt pass member-of Test. '
+                              'The parameter has to be one out of: '
+                              '{}.'.format(para, called_by, str(sub_dict['member'])))
+                local_checker -= 1
+
+        if local_checker < 0:
+            global_checker -= 1
+            continue
+
+        # apply individual tests
+        if 'tests' in sub_dict.keys():
+            test_dict = sub_dict['tests']
+            for test in test_dict.keys():
+                try:
+                    test_check = test_dict[test](sub_dict['value'])
+                except:
+                    logging.error('Parameter {}, passed to Function {}, caused the Exception: {},'
+                                  ' when tested by {} - test.'.format(para, called_by, sys.exc_info()[0], test))
+                    test_check = False
+                if test_check is False:
+                    logging.error('Parameter {}, passed to Function {}, didnt pass the {} - '
+                                  'test.'.format(para, called_by, test))
+                    local_checker -= 1
+                    break
+
+            if local_checker < 0:
+                global_checker -= 1
+                continue
+
+    return global_checker
