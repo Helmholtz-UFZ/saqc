@@ -16,7 +16,8 @@ from ..lib.tools import (
     estimateSamplingRate,
     retrieveTrustworthyOriginal,
     offset2periods,
-    offset2seconds)
+    offset2seconds,
+    checkQCParameters)
 
 from ..dsl import evalExpression
 from ..core.config import Params
@@ -148,6 +149,16 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
     :param plateau_var_limit:           Float. The upper barrier, the variance of an interval mus not exceed, if the
                                         interval wants to be flagged a plateau.
     """
+
+
+    para_check = checkQCParameters({'data': {'value': data,
+                                             'type': [pd.Series, pd.DataFrame],
+                                             'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
+                                    'flags': {'value': flags,
+                                              'type': [pd.Series, pd.DataFrame]},
+                                    'field': {'value': field,
+                                              'type': [str]}}, 'flagConstants_VarianceBased')
+
 
     if isinstance(data, pd.Series):
         dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, flagger)
