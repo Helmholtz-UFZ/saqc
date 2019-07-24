@@ -35,7 +35,7 @@ def var_qc(data, max_nan_total=None, max_nan_consec=None):
     will return the variance for a given series input, if the total number of nans in the series does
     not exceed "max_nan_total" and the number of consecutive nans does not exceed max_nan_consec.
 
-    :param data             Pandas Series. The data series, the standart deviation shall be calculated of.
+    :param data             Pandas Series. The data series, the variance shall be calculated of.
     :param max_nan_total    Integer. Number of np.nan entries allowed to be contained in the series
     :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
     """
@@ -60,7 +60,7 @@ def mean_qc(data, max_nan_total=None, max_nan_consec=None):
     will return the mean for a given series input, if the total number of nans in the series does
     not exceed "max_nan_total" and the number of consecutive nans does not exceed max_nan_consec.
 
-    :param data             Pandas Series. The data series, the standart deviation shall be calculated of.
+    :param data             Pandas Series. The data series, the mean shall be calculated of.
     :param max_nan_total    Integer. Number of np.nan entries allowed to be contained in the series
     :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
     """
