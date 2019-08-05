@@ -5,6 +5,23 @@ import pandas as pd
 import numpy as np
 
 
+def _is_valid(data, max_nan_total, max_nan_consec):
+    if max_nan_total is None:
+        return True
+
+    nan_mask = data.isna()
+
+    if nan_mask.sum() <= max_nan_total:
+        if max_nan_consec is None:
+            return True
+        elif ((1-(~nan_mask)).groupby((~nan_mask).cumsum()).transform(pd.Series.cumsum)).max() <= max_nan_consec:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
 def std_qc(data, max_nan_total=None, max_nan_consec=None):
     """Pandas built in function for statistical moments have quite poor nan- control, so here comes a wrapper that
     will return the standart deviation for a given series input, if the total number of nans in the series does
@@ -14,20 +31,9 @@ def std_qc(data, max_nan_total=None, max_nan_consec=None):
     :param max_nan_total    Integer. Number of np.nan entries allowed to be contained in the series
     :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
     """
-    if max_nan_total is None:
+    if _is_valid(data, max_nan_total, max_nan_consec):
         return data.std()
-
-    nan_mask = data.isna()
-
-    if nan_mask.sum() <= max_nan_total:
-        if max_nan_consec is None:
-            return data.std()
-        elif ((1-(~nan_mask)).groupby((~nan_mask).cumsum()).transform(pd.Series.cumsum)).max() <= max_nan_consec:
-            return data.std()
-        else:
-            return np.nan
-    else:
-        return np.nan
+    return np.nan
 
 
 def var_qc(data, max_nan_total=None, max_nan_consec=None):
@@ -39,20 +45,9 @@ def var_qc(data, max_nan_total=None, max_nan_consec=None):
     :param max_nan_total    Integer. Number of np.nan entries allowed to be contained in the series
     :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
     """
-    if max_nan_total is None:
+    if _is_valid(data, max_nan_total, max_nan_consec):
         return data.var()
-
-    nan_mask = data.isna()
-
-    if nan_mask.sum() <= max_nan_total:
-        if max_nan_consec is None:
-            return data.std()
-        elif ((1-(~nan_mask)).groupby((~nan_mask).cumsum()).transform(pd.Series.cumsum)).max() <= max_nan_consec:
-            return data.var()
-        else:
-            return np.nan
-    else:
-        return np.nan
+    return np.nan
 
 
 def mean_qc(data, max_nan_total=None, max_nan_consec=None):
@@ -64,17 +59,6 @@ def mean_qc(data, max_nan_total=None, max_nan_consec=None):
     :param max_nan_total    Integer. Number of np.nan entries allowed to be contained in the series
     :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
     """
-    if max_nan_total is None:
+    if _is_valid(data, max_nan_total, max_nan_consec):
         return data.mean()
-
-    nan_mask = data.isna()
-
-    if nan_mask.sum() <= max_nan_total:
-        if max_nan_consec is None:
-            return data.std()
-        elif ((1-(~nan_mask)).groupby((~nan_mask).cumsum()).transform(pd.Series.cumsum)).max() <= max_nan_consec:
-            return data.mean()
-        else:
-            return np.nan
-    else:
-        return np.nan
+    return np.nan
