@@ -10,6 +10,10 @@ import pandas as pd
 from .functions import (
     register)
 
+from .statistic_functions import (
+    var_qc,
+    mean_qc)
+
 from ..lib.tools import (
     valueRange,
     slidingWindowIndices,
@@ -18,6 +22,7 @@ from ..lib.tools import (
     getPandasData,
     offset2periods,
     checkQCParameters)
+
 
 
 @register("constant")
@@ -59,7 +64,7 @@ def flagConstant(data, flags, field, flagger, eps,
 
 @register("constants_varianceBased")
 def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005,
-                                **kwargs):
+                                var_total_nans=0, var_consec_nans=0, **kwargs):
 
     """Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
@@ -76,6 +81,12 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
                                         chance to get flagged as constant intervals
     :param plateau_var_limit:           Float. The upper barrier, the variance of an interval mus not exceed, if the
                                         interval wants to be flagged a plateau.
+    :param var_total_nans:              maximum number of nan values tolerated in an interval, for retrieving a valid
+                                        variance from it. (Intervals with a number of nans exceeding "var_total_nans"
+                                        have no chance to get flagged a plateau!)
+    :param var_consec_nans:            Maximum number of consecutive nan values allowed in an interval to retrieve a
+                                        valid  variance from it. (Intervals with a number of nans exceeding
+                                        "var_total_nans" have no chance to get flagged a plateau!)
     """
 
     para_check_1 = checkQCParameters({'data': {'value': data,
@@ -93,12 +104,21 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
 
     para_check_2 = checkQCParameters({'plateau_window_min': {'value': plateau_window_min,
                                                              'type': [str],
-                                                             'tests': {'Valid Offset String': lambda x: pd.Timedelta(x).total_seconds() % 1 == 0}},
+                                                             'tests': {'Valid Offset String':
+                                                                       lambda x: pd.Timedelta(x).total_seconds() % 1
+                                                                                 == 0}},
                                       'plateau_var_limit': {'value': plateau_var_limit,
                                                             'type': [int, float],
                                                             'range': [0, np.inf]},
                                       'data_rate':          {'value': data_rate,
-                                                             'tests': {'not nan': lambda x: x is not np.nan}}},
+                                                             'tests': {'not nan': lambda x: x is not np.nan}},
+                                      'var_total_nans': {'value': var_total_nans,
+                                                         'type': [int],
+                                                         'range': [0, np.inf]},
+                                      'var_consec_nans': {'value': var_consec_nans,
+                                                          'type': [int],
+                                                          'range': [0, np.inf]}
+                                      },
                                      kwargs['func_name'])
 
     if (para_check_1 < 0) | (para_check_2 < 0):
@@ -109,7 +129,8 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
     min_periods = int(offset2periods(plateau_window_min, data_rate))
 
     # identify minimal plateaus:
-    plateaus = dataseries.rolling(window=plateau_window_min).apply(lambda x: (x.var() > plateau_var_limit) |
+    plateaus = dataseries.rolling(window=plateau_window_min).apply(lambda x: (var_qc(x, var_total_nans, var_consec_nans)
+                                                                              > plateau_var_limit) |
                                                                              (x.size < min_periods), raw=False)
     plateaus = (~plateaus.astype(bool))
 
