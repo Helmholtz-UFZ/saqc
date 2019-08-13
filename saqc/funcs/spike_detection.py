@@ -35,7 +35,7 @@ def flagMad(data, flags, field, flagger, length, z, freq=None, **kwargs):
 
 
 @register("Spikes_SpektrumBased")
-def flagSpikes_SpektrumBased(data, flags, field, flagger, diff_method='raw', filter_window_size='3h',
+def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h',
                              raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
                              noise_statistic='CoVar', smooth_poly_order=2, **kwargs):
 
@@ -65,16 +65,6 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
        Since the relative variance was explicitly denoted in the formulas, the function defaults to relative variance,
        but can be switched to coefficient of variance, by assignment to parameter "noise statistic".
 
-       NOTE3: All derivatives in the reference publication are obtained by applying a Savitzky-Golay filter to the data
-       before differentiating. For the break detection algorithm in this publication,
-       some of the conditions didnt work well with smoothed derivatives.
-       This is because smoothing distributes the harshness of breaks and jumps over the
-       smoothing window and makes it "smoother".
-       Since just taking the differences as derivatives did work well for my empirical data set,
-       the parameter "diff_method" defaults to "raw". That means, that derivatives will be obtained by just using the
-       differences series.
-       You are free of course, to change this parameter to "savgol" and play around with the associated filter options.
-       (see parameter description below)
 
 
 
@@ -84,9 +74,6 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
        :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
        :param field:                       Fieldname of the Soil moisture measurements field in data.
        :param flagger:                     A flagger - object. (saqc.flagger.X)
-       :param diff_method:                 String. Method for obtaining dataseries' derivatives.
-                                           'raw': Just take series step differences (default)
-                                           'savgol': Smooth data with a Savitzky Golay Filter before differentiating.
        :param filter_window_size:          Offset string. Size of the filter window, used to calculate the derivatives.
                                            (relevant only, if: diff_method='savgol')
        :param smooth_poly_order:           Integer. Polynomial order, used for smoothing with savitzk golay filter.
@@ -134,9 +121,7 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
     dataseries, data_rate = retrieveTrustworthyOriginal(getPandasData(data, field), getPandasData(flags, field),
                                                         flagger)
 
-    para_check_2 = checkQCParameters({'diff_method': {'value': diff_method,
-                                                      'member': ['raw', 'savgol']},
-                                      'noise_statistic': {'value': noise_statistic,
+    para_check_2 = checkQCParameters({'noise_statistic': {'value': noise_statistic,
                                                           'member': ['CoVar', 'rVar']},
                                       'filter_window_size': {'value': filter_window_size,
                                                              'type': [str],
@@ -195,14 +180,10 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
         start_slice = spike - pd.Timedelta(filter_window_size)
         end_slice = spike + pd.Timedelta(filter_window_size)
 
-        if diff_method == 'savgol':
-            scnd_derivate = savgol_filter(dataseries[start_slice:end_slice],
-                                          window_length=smoothing_periods,
-                                          polyorder=smooth_poly_order,
-                                          deriv=2)
-
-        if diff_method == 'raw':
-            scnd_derivate = dataseries[start_slice:end_slice].diff().diff()
+        scnd_derivate = savgol_filter(dataseries[start_slice:end_slice],
+                                      window_length=smoothing_periods,
+                                      polyorder=smooth_poly_order,
+                                      deriv=2)
 
         length = scnd_derivate.size
         test_ratio_1 = np.abs(scnd_derivate[int((length-1) / 2)] / scnd_derivate[int((length+1) / 2)])
