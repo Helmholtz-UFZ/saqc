@@ -224,7 +224,7 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
     spikes = spikes[spikes == True]
 
     if isinstance(flags, pd.Series):
-        flags.loc[spikes.index, field] = flagger.setFlag(flags.loc[spikes.index, field], **kwargs)
-    else:
         flags.loc[spikes.index] = flagger.setFlag(flags.loc[spikes.index], **kwargs)
+    else:
+        flags.loc[spikes.index, field] = flagger.setFlag(flags.loc[spikes.index, field], **kwargs)
     return data, flags
