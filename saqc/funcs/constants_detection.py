@@ -113,10 +113,10 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
                                       'data_rate':          {'value': data_rate,
                                                              'tests': {'not nan': lambda x: x is not np.nan}},
                                       'var_total_nans': {'value': var_total_nans,
-                                                         'type': [int],
+                                                         'type': [int, type(None)],
                                                          'range': [0, np.inf]},
                                       'var_consec_nans': {'value': var_consec_nans,
-                                                          'type': [int],
+                                                          'type': [int, type(None)],
                                                           'range': [0, np.inf]}
                                       },
                                      kwargs['func_name'])
