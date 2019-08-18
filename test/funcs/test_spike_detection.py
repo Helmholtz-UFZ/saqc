@@ -14,8 +14,8 @@ from saqc.funcs.spike_detection import flagSpikes_SpektrumBased, flagMad
 TESTFLAGGERS = [
     BaseFlagger(['NIL', 'GOOD', 'BAD']),
     # DmpFlagger(),
-    SimpleFlagger()
-]
+    SimpleFlagger()]
+
 
 @pytest.fixture(scope='module')
 def spiky_data():
@@ -34,3 +34,13 @@ def test_flagSpikes_SpektrumBased(spiky_data, flagger):
     data, flag_result = flagSpikes_SpektrumBased(data, flags, 'spiky_data', flagger)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
+
+@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+def test_flagMad(spiky_data, flagger):
+    data = spiky_data[0]
+    flags = flagger.initFlags(data)
+    data, flag_result = flagSpikes_SpektrumBased(data, flags, 'spiky_data', flagger)
+    test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
+    assert test_sum == len(spiky_data[1])
+
+
