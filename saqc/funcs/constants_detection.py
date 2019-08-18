@@ -147,7 +147,7 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
     plateaus = pd.Series(np.flip(reverse_check.values), index=plateaus.index)
 
     if isinstance(flags, pd.Series):
-        flags.loc[plateaus.index] = flagger.setFlag(flags.loc[plateaus.index], **kwargs)
+        flags.loc[plateaus] = flagger.setFlag(flags.loc[plateaus], **kwargs)
     else:
-        flags.loc[plateaus.index, field] = flagger.setFlag(flags.loc[plateaus.index, field], **kwargs)
+        flags.loc[plateaus, field] = flagger.setFlag(flags.loc[plateaus, field], **kwargs)
     return data, flags
