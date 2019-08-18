@@ -183,8 +183,19 @@ def getPandasVarNames(pandas_like):
 
 
 def getPandasData(pandas_like, fieldname):
+    """The function is a workaround, to not have to implement case distinctions whenever your not sure if your
+       asking for a dataframes columns data or a series.
+       Note, that indexing by integer is possible as well. With fieldname=0, you will get a series passed, if the input
+       was a series, and the first dataframes column, if input was a DataFrame"""
+
+    # DF input
     if isinstance(pandas_like, pd.DataFrame):
-        return pandas_like[fieldname]
+        if isinstance(fieldname, int):
+            return pandas_like.iloc[fieldname, :]
+        if isinstance(fieldname, str):
+            return pandas_like[fieldname]
+
+    # Series input
     if isinstance(pandas_like, pd.Series):
         return pandas_like
 
