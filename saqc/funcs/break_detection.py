@@ -97,12 +97,18 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
                                                       'member': ['raw', 'savgol']},
                                       'filter_window_size': {'value': filter_window_size,
                                                              'type': [str],
-                                                             'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                                 x).total_seconds() % 1 == 0}},
+                                                             'tests': {'Valid-Offset-String': lambda x: pd.Timedelta(
+                                                                 x).total_seconds() % 1 == 0,
+                                                                       'Filter-window-smaller-than-measurement-scope':
+                                                                        lambda x: pd.Timedelta(x) < pd.Timedelta(
+                                                                            dataseries.index[-1]-dataseries.index[0])}},
                                       'first_der_window_size': {'value': first_der_window_size,
                                                                 'type': [str],
-                                                                'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                                 x).total_seconds() % 1 == 0}},
+                                                                'tests': {'Valid-Offset-String': lambda x: pd.Timedelta(
+                                                                 x).total_seconds() % 1 == 0,
+                                                                       'Deriv-window-smaller-than-measurement-scope':
+                                                                        lambda x: pd.Timedelta(x) < pd.Timedelta(
+                                                                            dataseries.index[-1]-dataseries.index[0])}},
                                       'smooth_poly_order': {'value': smooth_poly_order,
                                                             'type': [int],
                                                             'range': [0, np.inf]},
@@ -178,7 +184,7 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
 
             # criterion evaluation:
             first_second = (1 - scnd_der_ratio_margin_1) < \
-                            abs((second_deri_series.shift(-1)[brake] / second_deri_series.shift(-2)[brake])) < \
+                            abs((second_deri_series.shift(0)[brake] / second_deri_series.shift(-1)[brake])) < \
                             1 + scnd_der_ratio_margin_1
 
             second_second = abs(second_deri_series.shift(-1)[brake] / second_deri_series.shift(-2)[brake]) > \
