@@ -32,7 +32,8 @@ def break_data():
 def test_flagBreaks_SpektrumBased(break_data, flagger):
     data = break_data[0]
     flags = flagger.initFlags(data)
-    data, flag_result = flagBreaks_SpektrumBased(data, flags, 'break_data', flagger, plateau_window_min='1h')
+    data, flag_result = flagBreaks_SpektrumBased(data, flags, 'break_data', flagger, plateau_window_min='1h',
+                                                 first_der_window_size='1h', filter_window_size='1h')
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[break_data[1]] == flagger.BAD).sum()
     assert test_sum == len(break_data[1])
