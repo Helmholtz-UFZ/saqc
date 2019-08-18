@@ -20,8 +20,25 @@ from ..lib.tools import (
 
 
 @register("mad")
-def flagMad(data, flags, field, flagger, length, z, freq=None, **kwargs):
-    d = data[field].copy()
+def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
+    """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
+
+    [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+
+    The test needs the input data to be harmonized to an equidustant time stamp series (=have frequencie))
+
+    :param data:        The pandas dataframe holding the data-to-be flagged.
+                        Data must be indexed by a datetime series and be harmonized onto a
+                        time raster with seconds precision.
+    :param flags:       A dataframe holding the flags/flag-entries associated with "data".
+    :param field:       Fieldname of the Soil moisture measurements field in data.
+    :param flagger:     A flagger - object. (saqc.flagger.X)
+    :param length:      Offset String. Denoting the windows size that that th "Z-scored" values have to lie in.
+    :param z:           Float. The value the Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
+    :param freq:        Frequencie.
+    """
+
+    d = getPandasData(data, field).copy()
     freq = inferFrequency(d) if freq is None else freq
     if freq is None:
         raise ValueError("freqency cannot inferred, provide `freq` as a param to mad().")
@@ -30,8 +47,14 @@ def flagMad(data, flags, field, flagger, length, z, freq=None, **kwargs):
     diff = abs(d - median)
     mad = diff.rolling(window=winsz, center=True, closed='both').median()
     mask = (mad > 0) & (0.6745 * diff > z * mad)
-    flags.loc[mask, field] = flagger.setFlag(flags.loc[mask, field], **kwargs)
+
+    if isinstance(flags, pd.Series):
+        flags.loc[mask] = flagger.setFlag(flags.loc[mask], **kwargs)
+    else:
+        flags.loc[mask, field] = flagger.setFlag(flags.loc[mask, field], **kwargs)
+
     return data, flags
+
 
 
 @register("Spikes_SpektrumBased")
