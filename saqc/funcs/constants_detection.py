@@ -64,7 +64,7 @@ def flagConstant(data, flags, field, flagger, eps,
 
 @register("constants_varianceBased")
 def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005,
-                                var_total_nans=0, var_consec_nans=0, **kwargs):
+                                var_total_nans=None, var_consec_nans=None, **kwargs):
 
     """Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
@@ -147,7 +147,7 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
     plateaus = pd.Series(np.flip(reverse_check.values), index=plateaus.index)
 
     if isinstance(flags, pd.Series):
-        flags.loc[plateaus.index, field] = flagger.setFlag(flags.loc[plateaus.index, field], **kwargs)
-    else:
         flags.loc[plateaus.index] = flagger.setFlag(flags.loc[plateaus.index], **kwargs)
+    else:
+        flags.loc[plateaus.index, field] = flagger.setFlag(flags.loc[plateaus.index, field], **kwargs)
     return data, flags
