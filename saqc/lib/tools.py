@@ -238,11 +238,12 @@ def checkQCParameters(para_dict, called_by):
 
         # check range
         if 'range' in sub_dict.keys():
-            if not (sub_dict['range'][0] <= sub_dict['value'] <= sub_dict['range'][1]):
-                logging.error('Parameter {} passed to Function {}, didnt pass range Test. '
-                              'Range restrains for this parameter are: '
-                              '[{}, {}]: '.format(para, called_by, str(sub_dict['range'][0]), sub_dict['range'][1]))
-                local_checker -= 1
+            if sub_dict['value'] is not None:
+                if not (sub_dict['range'][0] <= sub_dict['value'] <= sub_dict['range'][1]):
+                    logging.error('Parameter {} passed to Function {}, didnt pass range Test. '
+                                  'Range restrains for this parameter are: '
+                                  '[{}, {}]: '.format(para, called_by, str(sub_dict['range'][0]), sub_dict['range'][1]))
+                    local_checker -= 1
 
         if local_checker < 0:
             global_checker -= 1
