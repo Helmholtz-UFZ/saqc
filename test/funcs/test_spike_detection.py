@@ -39,7 +39,7 @@ def test_flagSpikes_SpektrumBased(spiky_data, flagger):
 def test_flagMad(spiky_data, flagger):
     data = spiky_data[0]
     flags = flagger.initFlags(data)
-    data, flag_result = flagSpikes_SpektrumBased(data, flags, 'spiky_data', flagger)
+    data, flag_result = flagMad(data, flags, 'spiky_data', flagger, '1H')
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
 
