@@ -191,7 +191,7 @@ def getPandasData(pandas_like, fieldname):
     # DF input
     if isinstance(pandas_like, pd.DataFrame):
         if isinstance(fieldname, int):
-            return pandas_like.iloc[fieldname, :]
+            return pandas_like.iloc[:, fieldname]
         if isinstance(fieldname, str):
             return pandas_like[fieldname]
 
