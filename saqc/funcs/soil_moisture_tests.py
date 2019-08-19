@@ -126,8 +126,8 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     # retrieve reference series
     refseries = data[soil_temp_reference]
     ref_flags = flags[soil_temp_reference]
-    ref_use = flagger.isFlagged(ref_flags, flag=flagger.flags.min()) | \
-              flagger.isFlagged(ref_flags, flag=flagger.flags.unflagged())
+    ref_use = flagger.isFlagged(ref_flags, flag=flagger.GOOD) | \
+              flagger.isFlagged(ref_flags, flag=flagger.UNFLAGGED)
     # drop flagged values:
     refseries = refseries[ref_use.values]
     # drop nan values from reference series, since those are values you dont want to refer to.
