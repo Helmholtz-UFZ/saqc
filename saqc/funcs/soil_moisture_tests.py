@@ -232,6 +232,7 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     dataseries, moist_rate = retrieveTrustworthyOriginal(getPandasData(data, field), getPandasData(flags, field),
                                                          flagger)
 
+
     para_check_2 = checkQCParameters({'prec_reference_reference': {'value': prec_reference,
                                                                    'type': [str],
                                                                    'tests': {'scheduled in data':
@@ -242,13 +243,15 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
                                                            'type': [str],
                                                            'tests': {'Valid Offset String': lambda x: pd.Timedelta(
                                                                   x).total_seconds() % 1 == 0}},
-                                      'raise_reference': {'value': std_factor_range,
-                                                          'type': [str],
+                                      'raise_reference': {'value': raise_reference,
+                                                          'type': [str, type(None)],
                                                           'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                               x).total_seconds() % 1 == 0,
-                                                                     'Consistent with Sample Rate':
-                                                                     lambda x: (pd.Timedelta(moist_rate) %
-                                                                                pd.Timedelta(x).total_seconds) == 0}},
+                                                               x).total_seconds() % 1 == 0
+                                                               if x is not None else True,
+                                                                     'Consistent-with-Sample-Rate':
+                                                                     lambda x:  (pd.Timedelta(moist_rate) %
+                                                                                pd.Timedelta(x).total_seconds) == 0
+                                                                     if x is not None else True}},
                                       'sensor_meas_depth': {'value': sensor_meas_depth,
                                                             'type': [int, float],
                                                             'range': [0, np.inf]},
