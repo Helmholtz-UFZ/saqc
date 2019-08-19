@@ -126,12 +126,16 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     # retrieve reference series
     refseries = data[soil_temp_reference]
     ref_flags = flags[soil_temp_reference]
-    ref_use = flagger.isFlagged(ref_flags, flag=flagger.GOOD) | \
-              flagger.isFlagged(ref_flags, flag=flagger.UNFLAGGED)
+    ref_use = flagger.isFlagged(ref_flags, flag=flagger.GOOD, comparator='==') | \
+              flagger.isFlagged(ref_flags, flag=flagger.UNFLAGGED, comparator='==')
     # drop flagged values:
     refseries = refseries[ref_use.values]
     # drop nan values from reference series, since those are values you dont want to refer to.
     refseries = refseries.dropna()
+
+    # skip further processing if reference series is empty:
+    if refseries.empty:
+        return data, flags
 
     # wrap around df.index.get_loc method, to catch key error in case of empty tolerance window:
     def check_nearest_for_frost(ref_date, ref_series, tolerance, check_level):
