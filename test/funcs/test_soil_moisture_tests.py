@@ -45,12 +45,4 @@ def test_flagSoilMoisturePrecipitationEvents(flagger):
     test_sum = (flag_result[flag_assertion] == flagger.BAD).sum()
     assert test_sum == len(flag_assertion)
 
-#if __name__ == "__main__":
-#    flagger = SimpleFlagger()
-#    index = pd.date_range(start='1.1.2011 00:00:00', end='1.4.2011 00:00:00', freq='15min')
-#    data = pd.DataFrame({'soil_moisture': np.linspace(0, 1, index.size),
-#                         'precipitation': np.linspace(1, 1, index.size)}, index=index)
-#    data['precipitation']['1.3.2011'] = 0
-#    data['precipitation']['1.4.2011'] = 0
-#    flags = flagger.initFlags(data)
-#    data, flag_result = flagSoilMoistureByPrecipitationEvents(data, flags, 'soil_moisture', flagger, 'precipitation')
+
