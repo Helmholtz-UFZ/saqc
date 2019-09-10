@@ -45,7 +45,7 @@ def var_qc(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     :param max_nan_total    Integer. Number of np.nan entries allowed to be contained in the series
     :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
     """
-    if _is_valid(data, max_nan_total=np.inf, max_nan_consec=np.inf):
+    if _is_valid(data, max_nan_total, max_nan_consec):
         return data.var()
     return np.nan
 
