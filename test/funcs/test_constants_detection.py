@@ -19,7 +19,7 @@ TESTFLAGGERS = [
     SimpleFlagger()]
 
 
-@pytest.fixture(scope='module')
+ @pytest.fixture(scope='module')
 def constants_data():
     index = pd.date_range(start='1.1.2011 00:00:00', end='1.1.2011 03:00:00', freq='5min')
     constants_series = pd.Series(np.linspace(-50, 50, index.size), index=index, name='constants_data')
@@ -29,7 +29,7 @@ def constants_data():
     return constants_series, flag_assertion
 
 
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+ @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_flagConstants_VarianceBased(constants_data, flagger):
     data = constants_data[0]
     flags = flagger.initFlags(data)

@@ -64,7 +64,7 @@ def flagConstant(data, flags, field, flagger, eps,
 
 @register("constants_varianceBased")
 def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005,
-                                var_total_nans=None, var_consec_nans=None, **kwargs):
+                                var_total_nans=np.inf, var_consec_nans=np.inf, **kwargs):
 
     """Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
@@ -113,10 +113,10 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
                                       'data_rate':          {'value': data_rate,
                                                              'tests': {'not nan': lambda x: x is not np.nan}},
                                       'var_total_nans': {'value': var_total_nans,
-                                                         'type': [int, type(None)],
+                                                         'type': [int, float],
                                                          'range': [0, np.inf]},
                                       'var_consec_nans': {'value': var_consec_nans,
-                                                          'type': [int, type(None)],
+                                                          'type': [int, float],
                                                           'range': [0, np.inf]}
                                       },
                                      kwargs['func_name'])
@@ -128,23 +128,17 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
 
     min_periods = int(offset2periods(plateau_window_min, data_rate))
 
-    # identify minimal plateaus:
-    plateaus = dataseries.rolling(window=plateau_window_min).apply(lambda x: (var_qc(x, var_total_nans, var_consec_nans)
-                                                                              > plateau_var_limit) |
-                                                                             (x.size < min_periods), raw=False)
-    plateaus = (~plateaus.astype(bool))
+    plateaus = dataseries.rolling(window=plateau_window_min, min_periods=min_periods).apply(
+        lambda x: True if var_qc(x, var_total_nans, var_consec_nans) < plateau_var_limit else np.nan, raw=False)
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
         return data, flags
 
-    # nice reverse trick to cover total interval size
-    plateaus_reverse = pd.Series(np.flip(plateaus.values), index=plateaus.index)
-    reverse_check = plateaus_reverse.rolling(window=plateau_window_min).apply(
-        lambda x: True if True in x.values else False, raw=False).astype(bool)
+    plateaus.fillna(method='bfill', limit=min_periods, inplace=True)
 
     # result:
-    plateaus = pd.Series(np.flip(reverse_check.values), index=plateaus.index)
+    plateaus = (plateaus[plateaus == 1.0]).index
 
     if isinstance(flags, pd.Series):
         flags.loc[plateaus] = flagger.setFlag(flags.loc[plateaus], **kwargs)
