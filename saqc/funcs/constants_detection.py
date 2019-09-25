@@ -6,9 +6,8 @@ import logging
 
 import numpy as np
 import pandas as pd
+from .register import register
 
-from .functions import (
-    register)
 
 from .statistic_functions import (
     var_qc,

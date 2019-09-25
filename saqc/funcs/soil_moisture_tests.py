@@ -9,9 +9,8 @@ from scipy.signal import savgol_filter
 
 from .break_detection import flagBreaks_SpektrumBased
 from .spike_detection import flagSpikes_SpektrumBased
+from .register import register
 
-from .functions import (
-    register)
 
 from ..lib.tools import (
     estimateSamplingRate,

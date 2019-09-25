@@ -1,29 +1,19 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from functools import partial
-
-import numpy as np
 
 from ..dsl import evalExpression
 from ..core.config import Params
 
-# NOTE: will be filled by calls to register
-FUNC_MAP = {}
+from .register import register, FUNC_MAP
 
-
-def register(name):
-
-    def outer(func):
-        func = partial(func, func_name=name)
-        FUNC_MAP[name] = func
-
-        def inner(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return inner
-
-    return outer
+# keep all imports !
+# to make all function register themself
+from .break_detection import *
+from .constants_detection import *
+from .soil_moisture_tests import *
+from .spike_detection import *
+from .statistic_functions import *
 
 
 def flagDispatch(func_name, *args, **kwargs):
