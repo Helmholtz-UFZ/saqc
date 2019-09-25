@@ -6,10 +6,7 @@ import logging
 import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
-
-
-from .functions import (
-    register)
+from .register import register
 
 from ..lib.tools import (
     retrieveTrustworthyOriginal,
