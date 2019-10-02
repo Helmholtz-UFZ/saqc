@@ -99,6 +99,9 @@ class BaseFlagger:
             flag = self.GOOD
         return pd.notnull(flags) & cp(flags, self._checkFlag(flag))
 
+    def getFlags(self, flags):
+        return flags
+
     def _checkFlag(self, flag):
         if flag not in self.flags:
             raise ValueError(
