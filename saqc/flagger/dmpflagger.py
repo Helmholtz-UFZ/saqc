@@ -76,7 +76,7 @@ class DmpFlagger(BaseFlagger):
 
     def getFlags(self, flags):
         flags = self._reduceColumns(flags)
-        flagcol = flags.loc[:, FlagFields.FLAG].squeeze()
+        flagcol = flags.loc[:, FlagFields.FLAG]
         return super().getFlags(flagcol)
 
     def _reduceColumns(self, flags):
