@@ -61,8 +61,11 @@ class BaseFlagger:
         # have to stack it first
         # (try flags.stack[flags<flag] = flag and than unstack.)
         flags = flags.values
-        flags[flags < flag] = flag
-
+        if not isinstance(flags, pd.Series):
+            flags[flags < flag] = flag
+        else:
+            mask = flags < flag
+            flags[mask] = flag[mask]
         return np.squeeze(flags)
 
     @property
@@ -103,10 +106,16 @@ class BaseFlagger:
         return flags
 
     def _checkFlag(self, flag):
-        if flag not in self.flags:
-            raise ValueError(
-                f"Invalid flag '{flag}'. "
-                f"Possible choices are {list(self.flags.categories)[1:]}")
+        if isinstance(flag, pd.Series):
+            if flag.dtype != self.flags:
+                raise TypeError(
+                    f"Passed flags series is of invalid '{flag.dtype}' dtype. "
+                    f"Expected {self.flags} type with ordered categories {list(self.flags.categories)}")
+        else:
+            if flag not in self.flags:
+                raise ValueError(
+                    f"Invalid flag '{flag}'. "
+                    f"Possible choices are {list(self.flags.categories)[1:]}")
         return flag
 
     def nextTest(self):
