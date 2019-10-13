@@ -145,7 +145,7 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
                 plot(dchunk, ffchunk, mask, varname, flagger, title=flag_test)
 
             data.loc[start_date:end_date] = dchunk
-            flags[start_date:end_date] = ffchunk.squeeze()
+            flags.loc[start_date:end_date] = ffchunk.squeeze()
 
         flagger.nextTest()
 
