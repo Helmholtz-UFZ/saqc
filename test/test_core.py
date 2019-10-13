@@ -41,7 +41,7 @@ def test_positionalPartitioning(flagger):
         vname, start_index, end_index = row[fields]
         fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
         assert fchunk.index.min() == start_index, "different start indices"
-        assert fchunk.index.max() + 1 == end_index, f"different end indices: {fchunk.index.max()} vs. {end_index}"
+        assert fchunk.index.max() == end_index, f"different end indices: {fchunk.index.max()} vs. {end_index}"
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
