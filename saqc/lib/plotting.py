@@ -3,11 +3,11 @@
 
 from warnings import warn
 
-def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, title="Data Plot"):
+_nans_as_vertical_lines = True
 
+def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, title="Data Plot"):
     import matplotlib as mpl
 
-    # the flagmask is True for flags to be shown False otherwise
     if not interactive_backend:
         # Import plot libs without interactivity, if not needed. This ensures that this can
         # produce an plot.png even if tkinter is not installed. E.g. if one want to run this
@@ -36,8 +36,11 @@ def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, titl
 
     def plot_vline(plt, points, color='blue'):
         # workaround for ax.vlines() as this work unexpected
-        for point in points:
-            plt.axvline(point, color=color, linestyle=':')
+        # normally this should work:
+        #   ax.vlines(idx, *ylim, linestyles=':', color='silver', label="missing")
+        if _nans_as_vertical_lines:
+            for point in points:
+                plt.axvline(point, color=color, linestyle=':')
 
     def _plot(varname, ax):
         x = data.index
@@ -46,40 +49,37 @@ def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, titl
         nrofflags = len(flagger.flags.categories)
         ax.plot(x, y, '-', markersize=1, color='silver')
         if nrofflags == 3:
-            colors = {0:'silver', 1:'lime', 2:'red'}
+            colors = {0: 'silver', 1: 'lime', 2: 'red'}
         elif nrofflags == 4:
-            colors = {0:'silver', 1:'lime', 2:'yellow', 3:'red'}
+            colors = {0: 'silver', 1: 'lime', 2: 'yellow', 3: 'red'}
         else:
             warn(f"To many flags.", UserWarning)
 
-
-        # plot (all) data in silver
+        # plot all data in silver
         ax.plot(x, y, '-', color='silver', label='data')
-        # plot (all) missing data in silver
+        # plot all unplottable data as vertical lines
         nans = y.isna()
         flagged = flagger.isFlagged(flags_)
         idx = y.index[nans & ~flagged]
-        # ax.vlines(idx, *ylim, linestyles=':', color='silver', label="missing")
         plot_vline(ax, idx, color='silver')
 
-        # plot all flagged data in black
+        # plot all data and nans that was already flagged in black
         ax.plot(x[flagged], y[flagged], '.', color='black', label="flagged by other test")
-        # plot all flagged missing data (flagged before) in black
         idx = y.index[nans & flagged & ~flagmask]
-        # ax.vlines(idx, *ylim, linestyles=':', color='black')
         plot_vline(ax, idx, color='black')
+
         ax.set_ylabel(varname)
 
         # plot currently flagged data in color of flag
         for i, f in enumerate(flagger.flags):
-            if i == 0:
-                continue
-            flagged = flagger.isFlagged(flags_, flag=f) & flagmask
+            # if i == 0:
+            #     continue
+            flagged = flagger.isFlagged(flags_, flag=f, comparator='==') & flagmask
             label = f"flag: {f}" if i else 'data'
-            ax.plot(x[flagged], y[flagged], '.', color=colors[i], label=label)
+            color = _get_color(f, flagger)
+            ax.plot(x[flagged], y[flagged], '.', color=color, label=label)
             idx = y.index[nans & flagged]
-            # ax.vlines(idx, *ylim, linestyles=':', color=colors[i])
-            plot_vline(ax, idx, color=colors[i])
+            plot_vline(ax, idx, color=color)
 
     plots = len(varname)
     if plots > 1:
@@ -97,4 +97,17 @@ def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, titl
     plt.plot([], [], ':', color='silver', label="missing data")
     plt.legend()
     plt.show()
+
+
+def _get_color(flag, flagger):
+    if flag == flagger.UNFLAGGED:
+        return 'silver'
+    if flag == flagger.GOOD:
+        return 'green'
+    if flag == flagger.BAD:
+        return 'red'
+    if flag in list(flagger.SUSPICIOUS):
+        return 'yellow'
+    return 'blue'
+
 
