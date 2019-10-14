@@ -130,18 +130,17 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
             # flag a timespan after the condition is met
             if Params.FLAGPERIOD in flag_params:
-                ffchunk = assignTypeSafe(
-                    ffchunk, varname,
-                    flagPeriod(flagger, ffchunk[varname], mask, func_name=func_name, **flag_params))
+                periodflags = flagPeriod(flagger, ffchunk[varname], mask, func_name=func_name, **flag_params)
+                ffchunk = assignTypeSafe( ffchunk, varname, periodflags)
 
             # flag a certain amount of values after condition is met
             if Params.FLAGVALUES in flag_params:
-                ffchunk = assignTypeSafe(
-                    ffchunk, varname,
-                    flagNext(flagger, ffchunk[varname], mask, func_name=func_name, **flag_params))
+                valueflags = flagNext(flagger, ffchunk[varname], mask, func_name=func_name, **flag_params)
+                ffchunk = assignTypeSafe(ffchunk, varname, valueflags)
 
             if flag_params.get(Params.PLOT, False):
                 plotvars.append(varname)
+                mask = old != flagger.getFlags(ffchunk[varname])
                 plot(dchunk, ffchunk, mask, varname, flagger, title=flag_test)
 
             data.loc[start_date:end_date] = dchunk
@@ -151,7 +150,7 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
     # plot all together
     if plotvars:
-        plot(data, flags, True, set(plotvars), flagger)
+        plot(data, flags, True, plotvars, flagger)
 
     return data, flags
 
