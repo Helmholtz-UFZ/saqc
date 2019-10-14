@@ -1,0 +1,7 @@
+before_script:
+  - apt-get update -qq && apt-get install -y -qq python3.6 python3-pip
+  - pip3 install -r requirements.txt
+
+pytestCI:
+  script:
+    - python3 -m pytest test
