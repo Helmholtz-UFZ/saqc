@@ -77,9 +77,17 @@ class DmpFlagger(BaseFlagger):
         return super().isFlagged(flagcol, flag, comparator)
 
     def getFlags(self, flags):
-        flags = self._reduceColumns(flags)
-        flagcol = flags.loc[:, FlagFields.FLAG]
-        return super().getFlags(flagcol)
+        if isinstance(flags, pd.Series):
+            return super().getFlags(flags)
+
+        elif isinstance(flags, pd.DataFrame):
+            if isinstance(flags.columns, pd.MultiIndex):
+                f = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
+            else:
+                f = flags.loc[:, FlagFields.FLAG]
+        else:
+            raise TypeError(flags)
+        return f.squeeze()
 
     def _reduceColumns(self, flags):
         if set(flags.columns) == set(self.flag_fields):
