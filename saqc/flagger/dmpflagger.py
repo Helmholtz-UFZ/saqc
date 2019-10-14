@@ -66,8 +66,10 @@ class DmpFlagger(BaseFlagger):
 
         flags = self._reduceColumns(flags)
         mask = flags[FlagFields.FLAG] < flag
-        flags.loc[mask, self.flag_fields] = flag, cause, comment
-
+        if isinstance(flag, pd.Series):
+            flags.loc[mask, self.flag_fields] = flag[mask], cause, comment
+        else:
+            flags.loc[mask, self.flag_fields] = flag, cause, comment
         return flags.values
 
     def isFlagged(self, flags, flag=None, comparator=">"):
