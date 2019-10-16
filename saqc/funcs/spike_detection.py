@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 from .register import register
+import numpy.polynomial.polynomial as poly
 
 from ..lib.tools import (
     inferFrequency,
@@ -14,6 +15,56 @@ from ..lib.tools import (
     getPandasData,
     offset2seconds,
     checkQCParameters)
+
+
+@register("polyresmad")
+def polyResMad(data, flags, field, flagger, winsz, count=1, deg=1, dx=1, z=3.5, **kwargs):
+    d = getPandasData(data, field).copy()
+    d = d[d.notna()]
+    x = (d.index - d.index.min()).total_seconds().values
+    y = d.values
+
+    # checks
+    if len(x) < deg + 1:
+        raise ValueError(f'deg {deg} to low')
+    if deg < 0:
+        raise ValueError("deg must be positive")
+    if dx <= 0:
+        raise ValueError("step size `dx` must be positive and not zero")
+    if dx >= winsz and count > 1:
+        ValueError("If stepsize `dx` is bigger that the window every value is just seen once, so use count=1")
+    if winsz < count * dx:
+        raise ValueError(f"Adjust `dx`, `stepsize` or `winsz`. A single data point is "
+                         f"seen `winsz / dx = {winsz // dx}` times, but count is set to {count}")
+
+    counters = np.ones(len(x)) * count
+
+    # sliding window loop
+    for i in range(0, len(x) - winsz + 1, dx):
+        # Indices of the chunk
+        chunk = np.arange(i, i + winsz)
+        # Exclude points that have been already discarded
+        indices = chunk[counters[chunk] > 0]
+
+        # get residual
+        xx, yy = x[indices], y[indices]
+        coef = poly.polyfit(xx, yy, deg)
+        model = poly.polyval(xx, coef)
+        residual = yy - model
+
+        # calc mad
+        diff = np.abs(residual - np.median(residual))
+        mad = np.median(diff)
+        zscore = (mad > 0) & (0.6745 * diff > z * mad)
+
+        # count`em in
+        goneMad = np.where(zscore)[0]
+        counters[indices[goneMad]] -= 1
+
+    outlier = np.where(counters <= 0)[0]
+    idx = d.iloc[outlier.tolist()].index
+    flags.loc[idx, field] = flagger.setFlag(flags.loc[idx, field], **kwargs)
+    return data, flags
 
 
 @register("mad")
@@ -53,12 +104,10 @@ def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
     return data, flags
 
 
-
 @register("Spikes_SpektrumBased")
 def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h',
                              raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
                              noise_statistic='CoVar', smooth_poly_order=2, **kwargs):
-
     """This Function is an generalization of the Spectrum based Spike flagging mechanism as presented in:
 
     Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
@@ -135,7 +184,7 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
                                       'field': {'value': field,
                                                 'type': [str],
                                                 'tests': {'scheduled in data': lambda x: x in
-                                                          getPandasVarNames(data)}}},
+                                                                                         getPandasVarNames(data)}}},
                                      kwargs['func_name'])
 
     dataseries, data_rate = retrieveTrustworthyOriginal(getPandasData(data, field), getPandasData(flags, field),
@@ -150,7 +199,7 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
                                       'noise_window_size': {'value': noise_window_size,
                                                             'type': [str],
                                                             'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                                 x).total_seconds() % 1 == 0}},
+                                                                x).total_seconds() % 1 == 0}},
                                       'smooth_poly_order': {'value': smooth_poly_order,
                                                             'type': [int],
                                                             'range': [0, np.inf]},
@@ -178,7 +227,7 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
     if noise_statistic == 'rVar':
         noise_func = pd.Series.std
 
-    quotient_series = dataseries/dataseries.shift(+1)
+    quotient_series = dataseries / dataseries.shift(+1)
     spikes = (quotient_series > (1 + raise_factor)) | (quotient_series < (1 - raise_factor))
     spikes = spikes[spikes == True]
 
@@ -206,7 +255,7 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
                                       deriv=2)
 
         length = scnd_derivate.size
-        test_ratio_1 = np.abs(scnd_derivate[int((length-1) / 2)] / scnd_derivate[int((length+1) / 2)])
+        test_ratio_1 = np.abs(scnd_derivate[int((length - 1) / 2)] / scnd_derivate[int((length + 1) / 2)])
 
         if lower_dev_bound < test_ratio_1 < upper_dev_bound:
             # apply noise condition:
