@@ -9,7 +9,7 @@ from saqc.flagger.baseflagger import BaseFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
 
-from saqc.funcs.spike_detection import flagSpikes_SpektrumBased, flagMad
+from saqc.funcs.spike_detection import flagSpikes_SpektrumBased, flagMad, polyResMad
 
 from saqc.lib.tools import getPandasData
 
@@ -49,3 +49,11 @@ def test_flagMad(spiky_data, flagger):
     assert test_sum == len(spiky_data[1])
 
 
+@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+def test_flagPolyResMad(spiky_data, flagger):
+    data = spiky_data[0]
+    flags = flagger.initFlags(data)
+    data, flag_result = polyResMad(data, flags, 'spiky_data', flagger, winsz=30)
+    flag_result = getPandasData(flag_result, 0)
+    test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
+    assert test_sum == len(spiky_data[1])

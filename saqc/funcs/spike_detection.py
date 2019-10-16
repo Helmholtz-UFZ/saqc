@@ -63,7 +63,13 @@ def polyResMad(data, flags, field, flagger, winsz, count=1, deg=1, dx=1, z=3.5, 
 
     outlier = np.where(counters <= 0)[0]
     idx = d.iloc[outlier.tolist()].index
-    flags.loc[idx, field] = flagger.setFlag(flags.loc[idx, field], **kwargs)
+
+    # Keep this as long as baseflagger.initFlags does return a series
+    # see https://git.ufz.de/rdm/saqc/issues/60
+    if isinstance(flags, pd.Series):
+        flags.loc[idx] = flagger.setFlag(flags.loc[idx], **kwargs)
+    else:
+        flags.loc[idx, field] = flagger.setFlag(flags.loc[idx, field], **kwargs)
     return data, flags
 
 
