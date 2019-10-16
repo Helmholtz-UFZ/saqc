@@ -142,9 +142,9 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
         smoothing_periods += 1
 
     for brake in breaks.index:
-        # slice out slice-to-be-filtered (with some safety extension of 3 hours)
-        slice_start = brake - pd.Timedelta(first_der_window_size) - pd.Timedelta('3h')
-        slice_end = brake + pd.Timedelta(first_der_window_size) + pd.Timedelta('3h')
+        # slice out slice-to-be-filtered (with some safety extension of 12 times the data rate)
+        slice_start = brake - pd.Timedelta(first_der_window_size) - 12*pd.Timedelta(data_rate)
+        slice_end = brake + pd.Timedelta(first_der_window_size) + 12*pd.Timedelta(data_rate)
         data_slice = dataseries[slice_start:slice_end]
 
         # obtain first derivative:
@@ -165,8 +165,8 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
 
         if abs(first_deri_series[brake]) > test_sum:
             # second derivative criterion:
-            slice_start = brake - pd.Timedelta('3h')
-            slice_end = brake + pd.Timedelta('3h')
+            slice_start = brake - 12*pd.Timedelta(data_rate)
+            slice_end = brake + 12*pd.Timedelta(data_rate)
             data_slice = data_slice[slice_start:slice_end]
 
             # obtain second derivative:
