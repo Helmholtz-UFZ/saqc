@@ -138,8 +138,8 @@ def retrieveTrustworthyOriginal(dataseries, dataflags=None, flagger=None):
     if (dataflags is not None) and (flagger is not None):
         data_use = flagger.isFlagged(dataflags, flag=flagger.flags.good(), comparator='==') | \
                    flagger.isFlagged(dataflags, flag=flagger.flags.unflagged(), comparator='==')
-    # drop suspicious values
-    dataseries = dataseries[data_use.values]
+        # drop suspicious values
+        dataseries = dataseries[data_use.values]
     # additionally, drop the nan values that result from any preceeding upsampling of the
     # measurements:
     dataseries = dataseries.dropna()
