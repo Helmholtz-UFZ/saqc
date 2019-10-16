@@ -282,3 +282,69 @@ def checkQCParameters(para_dict, called_by):
                 continue
 
     return global_checker
+
+
+def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
+    """
+    This function provide a mask for a sesonal time range in the given dtindex.
+    This means the interval is applied again on every year and even over the change of a year.
+    Note that both edges are inclusive.
+
+    Examples:
+        sesonal(dtindex, 1, 1, 3, 1)  -> [jan-mar]
+        sesonal(dtindex, 8, 1, 8, 15) -> [1.aug-15.aug]
+
+
+    This also works, if the second border is smaller then the first
+
+    Examples:
+        sesonal(dtindex, 10, 1, 2, 1) -> [1.nov-1.feb (following year)]
+        sesonal(dtindex, 1, 10, 1, 1)  -> [10.jan-1.jan(following year)] like everything except ]1.jan-10.jan[
+
+    """
+    if day1 is None:
+        day1 = 31 if month1 in [1,3,5,7,8,10,12] else 29 if month1 == 2 else 30
+
+    # test plausibility of date
+    try:
+        f = '%Y-%m-%d'
+        t0 = pd.to_datetime(f'2001-{month0}-{day0}', format=f)
+        t1 = pd.to_datetime(f'2001-{month1}-{day1}', format=f)
+    except ValueError:
+        raise ValueError('Given datelike parameter not logical')
+
+    # swap
+    if t1 < t0:
+        # we create the same mask as we would do if not inverted
+        # but the borders need special treatment..
+        # ===end]....................[start====
+        # ======]end+1........start-1[=========
+        # ......[end+1========start-1]......... + invert
+        # ......[start`========= end`]......... + invert
+        t0 -= pd.to_timedelta('1d')
+        t1 += pd.to_timedelta('1d')
+        invert = True
+        # only swap id condition is still true
+        t0, t1 = t1, t0 if t1 < t0 else (t0, t1)
+
+        month0, day0 = t0.month, t0.day
+        month1, day1 = t1.month, t1.day
+    else:
+        invert = False
+
+    month = [m for m in range(month0, month1 + 1)]
+
+    # make a mask for [start:end]
+    mask = dtindex.month.isin(month)
+    if day0 > 1:
+        exclude = [d for d in range(1, day0)]
+        mask &= ~(dtindex.month.isin([month0]) & dtindex.day.isin(exclude))
+    if day1 < 31:
+        exclude = [d for d in range(day1 + 1, 31 + 1)]
+        mask &= ~(dtindex.month.isin([month1]) & dtindex.day.isin(exclude))
+
+    if invert:
+        return ~mask
+    else:
+        return mask
+

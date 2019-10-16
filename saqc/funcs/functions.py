@@ -4,6 +4,7 @@
 
 from ..dsl import evalExpression
 from ..core.config import Params
+from ..lib.tools import sesonalMask
 
 from .register import register, FUNC_MAP
 
@@ -51,3 +52,19 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
     mask = (datacol < min) | (datacol >= max)
     flags.loc[mask, field] = flagger.setFlag(flags.loc[mask, field], **kwargs)
     return data, flags
+
+
+@register('sesonalRange')
+def flagSesonalRange(data, flags, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs):
+    mask = sesonalMask(flags.index, startmonth, startday, endmonth, endday)
+    f = flags.loc[mask,:]
+    d = data[mask]
+    if d.empty:
+        return data, flags
+
+    _, ff = flagRange(d, f, field, flagger, min=min, max=max, **kwargs)
+    flags.loc[mask, field] = flagger.setFlag(ff[field])
+    return data, flags
+
+
+
