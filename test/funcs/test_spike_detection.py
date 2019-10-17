@@ -21,7 +21,7 @@ TESTFLAGGERS = [
 
 @pytest.fixture(scope='module')
 def spiky_data():
-    index = pd.date_range(start='1.1.2011', end='2.1.2011', freq='5min')
+    index = pd.date_range(start='2011-01-01', end='2011-01-05', freq='5min')
     spiky_series = pd.Series(np.linspace(1, 2, index.size), index=index, name='spiky_data')
     spiky_series.iloc[100] = 100
     spiky_series.iloc[1000] = -100
@@ -53,7 +53,7 @@ def test_flagMad(spiky_data, flagger):
 def test_flagPolyResMad(spiky_data, flagger):
     data = spiky_data[0]
     flags = flagger.initFlags(data)
-    data, flag_result = polyResMad(data, flags, 'spiky_data', flagger, winsz=30)
+    data, flag_result = polyResMad(data, flags, 'spiky_data', flagger, winsz=300, dx=50)
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])

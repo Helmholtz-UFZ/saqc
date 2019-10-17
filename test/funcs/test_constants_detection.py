@@ -21,7 +21,7 @@ TESTFLAGGERS = [
 
 @pytest.fixture(scope='module')
 def constants_data():
-    index = pd.date_range(start='1.1.2011 00:00:00', end='1.1.2011 03:00:00', freq='5min')
+    index = pd.date_range(start='2011-01-01 00:00:00', end='2011-01-01 03:00:00', freq='5min')
     constants_series = pd.Series(np.linspace(-50, 50, index.size), index=index, name='constants_data')
     constants_series.iloc[5:25] = 0
     # constants_series.iloc[1000] = -100

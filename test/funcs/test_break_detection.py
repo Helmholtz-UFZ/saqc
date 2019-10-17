@@ -21,9 +21,9 @@ TESTFLAGGERS = [
 
 @pytest.fixture(scope='module')
 def break_data():
-    index = pd.date_range(start='1.1.2011 00:00:00', end='1.2.2011 03:00:00', freq='5min')
+    index = pd.date_range(start='2011-01-01 00:00:00', end='2011-01-02 03:00:00', freq='5min')
     break_series = pd.Series(np.linspace(0, 1, index.size), index=index, name='break_data')
-    break_series.iloc[5:15] = +100
+    break_series.iloc[5:15] += 100
     flag_assertion = [5, 15]
     return break_series, flag_assertion
 
