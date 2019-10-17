@@ -21,7 +21,7 @@ TESTFLAGGERS = [
 
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_flagSoilMoistureBySoilFrost(flagger):
-    index = pd.date_range(start='1.1.2011 00:00:00', end='1.1.2011 03:00:00', freq='5min')
+    index = pd.date_range(start='2011-01-01 00:00:00', end='2011-01-01 03:00:00', freq='5min')
     data = pd.DataFrame({'soil_moisture': np.linspace(0, 1, index.size),
                          'soil_temperature': np.linspace(1, -1, index.size)}, index=index)
     flags = flagger.initFlags(data)
@@ -33,11 +33,11 @@ def test_flagSoilMoistureBySoilFrost(flagger):
 
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_flagSoilMoisturePrecipitationEvents(flagger):
-    index = pd.date_range(start='1.1.2011 00:00:00', end='1.4.2011 00:00:00', freq='15min')
+    index = pd.date_range(start='2011-01-01 00:00:00', end='2011-01-04 00:00:00', freq='15min')
     data = pd.DataFrame({'soil_moisture': np.linspace(0, 1, index.size),
                          'precipitation': np.linspace(1, 1, index.size)}, index=index)
-    data['precipitation']['1.3.2011'] = 0
-    data['precipitation']['1.4.2011'] = 0
+    data['precipitation']['2011-01-03'] = 0
+    data['precipitation']['2011-01-04'] = 0
     flags = flagger.initFlags(data)
     data, flag_result = flagSoilMoistureByPrecipitationEvents(data, flags, 'soil_moisture', flagger, 'precipitation')
     flag_assertion = [288, 287]
