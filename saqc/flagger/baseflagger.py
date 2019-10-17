@@ -47,26 +47,22 @@ class BaseFlagger:
     def __init__(self, flags):
         self.flags = Flags(flags)
 
-    def setFlag(self,
-                flags: PandasLike,
-                flag: Optional[T] = None,
-                **kwargs: Any) -> np.ndarray:
-
+    def setFlag(self, flags: PandasLike, flag: Optional[T] = None, **kwargs: Any) -> np.ndarray:
         flag = self.BAD if flag is None else self._checkFlag(flag)
         flags = flags.copy()
-        # NOTE:
-        # conversion of 'flags' frame to np.array is done here already,
-        # since return argument is just the array anyway. For applying
-        # mulitdimensional indexing on the DataFrame 'flags', you would
-        # have to stack it first
-        # (try flags.stack[flags<flag] = flag and than unstack.)
+
+        if isinstance(flags, pd.DataFrame):
+            flags = flags.squeeze()
+
         flags = flags.values
-        if not isinstance(flags, pd.Series):
-            flags[flags < flag] = flag
-        else:
-            mask = flags < flag
+
+        mask = flags < flag
+        if isinstance(flag, pd.Series):
             flags[mask] = flag[mask]
-        return np.squeeze(flags)
+        else:
+            flags[mask] = flag
+
+        return flags
 
     @property
     def UNFLAGGED(self):
