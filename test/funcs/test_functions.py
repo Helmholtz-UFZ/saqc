@@ -11,8 +11,6 @@ from saqc.flagger.simpleflagger import SimpleFlagger
 
 from saqc.funcs.functions import flagRange, flagSesonalRange, forceFlags, clearFlags
 
-from saqc.lib.tools import getPandasData
-
 TESTFLAGGERS = [
     BaseFlagger(['NIL', 'GOOD', 'BAD']),
     DmpFlagger(),
@@ -41,17 +39,50 @@ def test_flagSesonalRange(flagger):
     flags = flagger.initFlags(data)
 
     # test
-    data, flags = flagSesonalRange(data, flags, field, flagger, min=40, max=60, startmonth=7, startday=1, endmonth=8, endday=31)
+    kwargs = dict(min=40, max=60, startmonth=7, startday=1, endmonth=8, endday=31)
+    data, flags = flagSesonalRange(data, flags, field, flagger, **kwargs)
     flagged = flagger.isFlagged(flags[field])
     assert len(flags[flagged]) == (31 + 31) * 4
 
     flags = flagger.initFlags(data)
-    data, flags = flagSesonalRange(data, flags, field, flagger, min=40, max=60, startmonth=12, startday=16, endmonth=1, endday=15)
+    kwargs = dict(min=40, max=60, startmonth=12, startday=16, endmonth=1, endday=15)
+    _, flags = flagSesonalRange(data, flags, field, flagger, **kwargs)
     flagged = flagger.isFlagged(flags[field])
     assert len(flags[flagged]) == 31 * 4
+
+
+@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+def test_clearFlags(flagger):
+    # prepare
+    field = 'testdata'
+    index = pd.date_range(start='2011-01-01', end='2011-01-10', freq='1d')
+    data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
+    orig = flagger.initFlags(data)
+    flags = orig.copy()
+    # test
+    flags[field] = flagger.setFlag(flags)
+    assert (orig != flags).all
+    _, cleared = clearFlags(data, flags, field, flagger)
+    assert (orig == cleared).all
+
+
+@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+def test_forceFlags(flagger):
+    # prepare
+    field = 'testdata'
+    index = pd.date_range(start='2011-01-01', end='2011-01-10', freq='1d')
+    data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
+    flags = flagger.initFlags(data)
+    flags[field] = flagger.setFlag(flags)
+    orig = flags.copy()
+    # test
+    _, foreced = forceFlags(data, flags, field, flagger, flag=flagger.GOOD)
+    assert (orig != foreced).all
 
 
 if __name__ == '__main__':
     for f in TESTFLAGGERS:
         test_range(f)
         test_flagSesonalRange(f)
+        test_clearFlags(f)
+        test_forceFlags(f)

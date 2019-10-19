@@ -64,6 +64,10 @@ class BaseFlagger:
 
         return flags
 
+    def clearFlags(self, flags, **kwargs):
+        flags[:] = self.UNFLAGGED
+        return flags
+
     @property
     def UNFLAGGED(self):
         return self.flags.unflagged()
