@@ -62,9 +62,21 @@ def flagSesonalRange(data, flags, field, flagger, min, max, startmonth=1, endmon
     if d.empty:
         return data, flags
 
-    _, ff = flagRange(d, f, field, flagger, min=min, max=max, **kwargs)
+    _, ff = flagRange(d, f.copy(), field, flagger, min=min, max=max, **kwargs)
     flags.loc[mask, field] = flagger.setFlag(ff[field])
     return data, flags
 
 
+@register('clear')
+def clearFlags(data, flags, field, flagger, **kwargs):
+    flags.loc[:, field] = flagger.clearFlags(flags.loc[:, field], **kwargs)
+    return data, flags
+
+
+@register('force')
+def forceFlags(data, flags, field, flagger, **kwargs):
+    # clear and set
+    flags[field] = flagger.clearFlags(flags[field], **kwargs)
+    flags[field] = flagger.setFlag(flags[field], **kwargs)
+    return data, flags
 

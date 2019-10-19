@@ -72,6 +72,11 @@ class DmpFlagger(BaseFlagger):
             flags.loc[mask, self.flag_fields] = flag, cause, comment
         return flags.values
 
+    def clearFlags(self, flags, **kwargs):
+        flags = self._reduceColumns(flags)
+        flags.loc[:, self.flag_fields] = self.UNFLAGGED, "", ""
+        return flags.values
+
     def isFlagged(self, flags, flag=None, comparator=">"):
         flagcol = self.getFlags(flags)
         return super().isFlagged(flagcol, flag, comparator)
