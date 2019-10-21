@@ -35,20 +35,21 @@ def test_flagSesonalRange(flagger):
     # prepare
     field = 'testdata'
     index = pd.date_range(start='2011-01-01', end='2014-12-31', freq='1d')
-    data = pd.DataFrame(data={field: np.ones(index.size) * 50}, index=index)
+    d = [(x % 2) * 50 for x in range(index.size)]
+    data = pd.DataFrame(data={field: d}, index=index)
     flags = flagger.initFlags(data)
 
     # test
-    kwargs = dict(min=40, max=60, startmonth=7, startday=1, endmonth=8, endday=31)
+    kwargs = dict(min=1, max=100, startmonth=7, startday=1, endmonth=8, endday=31)
     data, flags = flagSesonalRange(data, flags, field, flagger, **kwargs)
     flagged = flagger.isFlagged(flags[field])
-    assert len(flags[flagged]) == (31 + 31) * 4
+    assert len(flags[flagged]) == (31 + 31) * 4 / 2
 
     flags = flagger.initFlags(data)
-    kwargs = dict(min=40, max=60, startmonth=12, startday=16, endmonth=1, endday=15)
+    kwargs = dict(min=1, max=100, startmonth=12, startday=16, endmonth=1, endday=15)
     _, flags = flagSesonalRange(data, flags, field, flagger, **kwargs)
     flagged = flagger.isFlagged(flags[field])
-    assert len(flags[flagged]) == 31 * 4
+    assert len(flags[flagged]) == 31 * 4 / 2
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)

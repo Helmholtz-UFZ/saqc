@@ -56,14 +56,23 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
 
 @register('sesonalRange')
 def flagSesonalRange(data, flags, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs):
-    mask = sesonalMask(flags.index, startmonth, startday, endmonth, endday)
-    f = flags.loc[mask,:]
-    d = data[mask]
+    smask = sesonalMask(flags.index, startmonth, startday, endmonth, endday)
+
+    # work on sesonal
+    d = data.loc[smask, [field]]
     if d.empty:
         return data, flags
 
+    f = flags.loc[smask, [field]]
     _, ff = flagRange(d, f.copy(), field, flagger, min=min, max=max, **kwargs)
-    flags.loc[mask, field] = flagger.setFlag(ff[field])
+    rangeflagged = flagger.getFlags(f[field]) != flagger.getFlags(ff[field])
+
+    if rangeflagged.empty:
+        return data, flags
+
+    # work on all again
+    idx = ff[rangeflagged].index
+    flags.loc[idx, field] = flagger.setFlag(ff.loc[idx, field], **kwargs)
     return data, flags
 
 
