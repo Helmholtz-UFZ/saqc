@@ -88,7 +88,7 @@ class BaseFlagger:
 
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
         if isinstance(data, pd.Series):
-            out = pd.Series(data=self.flags[0], index=data.index, name=data.name)
+            data = data.to_frame(name=data.name)
         if isinstance(data, pd.DataFrame):
             out = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
 

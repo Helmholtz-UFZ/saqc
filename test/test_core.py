@@ -154,6 +154,7 @@ def test_dtypes(flagger):
     assert dict(flags.dtypes) == dict(pflags.dtypes)
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
 def test_flagNext(flagger):
     """
@@ -172,6 +173,7 @@ def test_flagNext(flagger):
     assert (result_idx == expected_idx).all()
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
 def test_flagPeriod(flagger):
     """
