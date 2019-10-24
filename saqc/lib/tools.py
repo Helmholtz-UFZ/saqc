@@ -348,3 +348,6 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
     else:
         return mask
 
+
+def setup():
+    pd.set_option('mode.chained_assignment', 'warn')
