@@ -8,6 +8,7 @@ from .config import Fields, Params
 from ..funcs import flagDispatch
 from ..dsl import parseFlag
 from ..lib.plotting import plot
+from ..lib.tools import setup
 
 
 def flagWindow(flagger, flags, mask, direction='fw', window=0, **kwargs) -> pd.Series:
@@ -74,6 +75,7 @@ def collectVariables(meta, flagger, data, flags):
 
 def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
+    setup()
     meta = prepareMeta(readMeta(metafname), data)
     # NOTE: split meta into the test and some 'meta' data
     fields = [Fields.VARNAME, Fields.START, Fields.END, Fields.ASSIGN]
