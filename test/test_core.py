@@ -154,45 +154,54 @@ def test_dtypes(flagger):
     assert dict(flags.dtypes) == dict(pflags.dtypes)
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
 def test_flagNext(flagger):
     """
     Test if the flagNext functionality works as expected
     """
-    data = initData().iloc[:, 1]
+    data = initData()
     flags = flagger.initFlags(data)
+    orig = flags.copy()
+    var1 = 'var1'
 
     idx = [0, 1, 2]
-    flags.iloc[idx] = flagger.setFlag(flags.iloc[idx])
+    dtidx = data.index[idx]
+    flags.loc[dtidx, var1] = flagger.setFlag(flags.loc[dtidx, var1])
 
     n = 4
-    fflags = flagNext(flagger, flags.copy(), flag_values=4)
-    result_idx = np.unique(np.where(flagger.isFlagged(fflags))[0])
-    expected_idx = np.arange(min(idx), max(idx) + n + 1)
-    assert (result_idx == expected_idx).all()
+    fflags = flagNext(orig, flags, var1, flagger, flag_values=4)
+    flagged = flagger.isFlagged(fflags[var1])
+    ffindex = fflags[flagged].index
+
+    expected = data.index[min(idx):max(idx)+n+1]
+    assert (expected == ffindex).all()
+    o = flagger.getFlags(orig).loc[expected, var1]
+    f = flagger.getFlags(fflags).loc[flagged, var1]
+    assert (o != f).all()
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
 def test_flagPeriod(flagger):
     """
     Test if the flagNext functionality works as expected
     """
-    data = initData().iloc[:, 1]
+    data = initData()
     flags = flagger.initFlags(data)
+    orig = flags.copy()
+    var1 = 'var1'
 
     idx = [0, 1, 2]
-    flags.iloc[idx] = flagger.setFlag(flags.iloc[idx])
+    dtidx = data.index[idx]
+    flags.loc[dtidx, var1] = flagger.setFlag(flags.loc[dtidx, var1])
 
     period = '4h'
-    flags = flagPeriod(flagger, flags.copy(), flag_period=period)
-    expected_dates = set(flags[flagger.isFlagged(flags)].index)
+    fflags = flagPeriod(orig, flags, var1, flagger, flag_period=period)
+    flagged = flagger.isFlagged(fflags[var1])
+    ffindex = fflags[flagged].index
 
-    tdelta = pd.to_timedelta(period)
-    dates = set()
-    for start in flags.index[idx]:
-        stop = start + tdelta
-        dates = dates | set(flags[start:stop].index)
-
-    assert expected_dates == dates
+    m, M = data.index[min(idx)], data.index[max(idx)] + pd.to_timedelta(period)
+    expected = data.loc[m:M].index
+    assert (expected == ffindex).all()
+    o = flagger.getFlags(orig).loc[expected, var1]
+    f = flagger.getFlags(fflags).loc[flagged, var1]
+    assert (o != f).all()

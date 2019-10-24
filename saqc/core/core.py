@@ -11,10 +11,10 @@ from ..lib.plotting import plot
 from ..lib.tools import setup
 
 
-def flagWindow(flagger, flags, mask, direction='fw', window=0, **kwargs) -> pd.Series:
-    fw = False
-    bw = False
-    f = flagger.isFlagged(flags) & mask
+def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> pd.Series:
+    fw, bw = False, False
+    mask = flagger.getFlags(old[field]) != flagger.getFlags(new[field])
+    f = flagger.isFlagged(new[field]) & mask
 
     if isinstance(window, int):
         x = f.rolling(window=window + 1).sum()
@@ -29,16 +29,16 @@ def flagWindow(flagger, flags, mask, direction='fw', window=0, **kwargs) -> pd.S
         fw = f.rolling(window=window, closed='both').sum().astype(bool)
 
     fmask = bw | fw
-    flags.loc[fmask] = flagger.setFlag(flags.loc[fmask], **kwargs)
-    return flags
+    new.loc[fmask, field] = flagger.setFlag(new.loc[fmask, field], **kwargs)
+    return new
 
 
-def flagPeriod(flagger, flags, mask=True, flag_period=0, **kwargs) -> pd.Series:
-    return flagWindow(flagger, flags, mask, 'fw', window=flag_period, **kwargs)
+def flagPeriod(old, new, field, flagger, flag_period=0, **kwargs) -> pd.Series:
+    return flagWindow(old, new, field, flagger, direction='fw', window=flag_period, **kwargs)
 
 
-def flagNext(flagger, flags, mask=True, flag_values=0, **kwargs) -> pd.Series:
-    return flagWindow(flagger, flags, mask, 'fw', window=flag_values, **kwargs)
+def flagNext(old, new, field, flagger, flag_values=0, **kwargs) -> pd.Series:
+    return flagWindow(old, new, field, flagger, direction='fw', window=flag_values, **kwargs)
 
 
 def assignTypeSafe(df, colname, rhs):
@@ -49,6 +49,7 @@ def assignTypeSafe(df, colname, rhs):
     of the dtypes
     """
     # do not use .loc here, as it fails silently :/
+    rhs = rhs[colname]
     df[colname] = rhs
     if isinstance(rhs, pd.Series):
         dtypes = rhs.dtypes
@@ -126,23 +127,19 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
                 raise NameError(
                     f"function name {func_name} is not definied (variable '{varname}, 'line: {idx + 1})")
 
-            old = flagger.getFlags(fchunk[varname])
-            new = flagger.getFlags(ffchunk[varname])
-            mask = old != new
-
             # flag a timespan after the condition is met
             if Params.FLAGPERIOD in flag_params:
-                periodflags = flagPeriod(flagger, ffchunk[varname], mask, func_name=func_name, **flag_params)
-                ffchunk = assignTypeSafe( ffchunk, varname, periodflags)
+                periodflags = flagPeriod(fchunk, ffchunk, varname, flagger, func_name, **flag_params)
+                ffchunk = assignTypeSafe(ffchunk, varname, periodflags)
 
             # flag a certain amount of values after condition is met
             if Params.FLAGVALUES in flag_params:
-                valueflags = flagNext(flagger, ffchunk[varname], mask, func_name=func_name, **flag_params)
+                valueflags = flagNext(fchunk, ffchunk, varname, flagger, func_name, **flag_params)
                 ffchunk = assignTypeSafe(ffchunk, varname, valueflags)
 
             if flag_params.get(Params.PLOT, False):
                 plotvars.append(varname)
-                mask = old != flagger.getFlags(ffchunk[varname])
+                mask = flagger.getFlags(fchunk[varname]) != flagger.getFlags(ffchunk[varname])
                 plot(dchunk, ffchunk, mask, varname, flagger, title=flag_test)
 
             data.loc[start_date:end_date] = dchunk
