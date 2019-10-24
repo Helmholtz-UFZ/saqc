@@ -55,7 +55,9 @@ class BaseFlagger:
             flags = flags.squeeze()
 
         flags = flags.values
-
+        # NOTE:
+        # - breaks if we loose the pd.Categorical dtype, assert this condition!
+        # - there is no way to overwrite with 'better' flags
         mask = flags < flag
         if isinstance(flag, pd.Series):
             flags[mask] = flag[mask]
