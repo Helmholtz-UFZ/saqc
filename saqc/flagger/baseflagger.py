@@ -64,6 +64,17 @@ class BaseFlagger:
     def getFlags(self, flags: PandasLike):
         return flags
 
+    def setFlags(self, flags, field, mask_or_indexer=None, flag=None, **kwargs):
+        # prepare
+        flags = flags.copy()
+        r = slice(None) if mask_or_indexer is None else mask_or_indexer
+        flag = self.BAD if flag is None else self._checkFlag(flag)
+        # set
+        mask = flags.loc[r, field] < flag
+        idx = mask[mask].index
+        flags.loc[idx, field] = flag
+        return flags
+
     def setFlag(self, flags: pd.Series, flag: Optional[T] = None, **kwargs: Any) -> pd.Series:
         flags = self._checkFlagsType(flags)
         flag = self.BAD if flag is None else self._checkFlag(flag)

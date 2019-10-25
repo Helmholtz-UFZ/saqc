@@ -54,9 +54,22 @@ class DmpFlagger(BaseFlagger):
         if isinstance(flags.columns, pd.MultiIndex):
             flags = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
         else:
-            flags = flags[FlagFields.FLAG]
-        if isinstance(flags, pd.DataFrame):
-            flags = flags.to_frame()
+            flags = flags[FlagFields.FLAG].squeeze()
+        return flags
+
+    def setFlags(self, flags, field, mask_or_indexer=None, flag=None, comment='', cause='', **kwargs):
+        comment = json.dumps({
+            "comment": comment,
+            "commit": self.project_version,
+            "test": kwargs.get("func_name", "")})
+
+        flags = flags.copy()
+        r = slice(None) if mask_or_indexer is None else mask_or_indexer
+        flag = self.BAD if flag is None else self._checkFlag(flag)
+        f = self.getFlags(flags[field])
+        mask = f.loc[r] < flag
+        idx = mask[mask].index
+        flags.loc[idx, field] = flag, cause, comment
         return flags
 
     def setFlag(self, flags, flag=None, cause="", comment="", **kwargs):
