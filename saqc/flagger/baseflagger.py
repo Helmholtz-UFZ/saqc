@@ -49,61 +49,67 @@ class BaseFlagger:
         self.flags = Flags(flags)
 
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
-        if isinstance(data, pd.Series):
-            out = pd.Series(data=self.flags[0], index=data.index, name=data.name)
-        if isinstance(data, pd.DataFrame):
-            out = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
-
-        # NOTE:
-        # astype conversion of return Dataframe performed
-        # seperately, because pd.DataFrame(..., dtype=self.flags)
-        # wont give you categorical flag objects
-        return out.astype(self.flags)
-
-    def isFlagged(self, flags: ArrayLike, flag: T = None, comparator: str = ">") -> ArrayLike:
-        cp = COMPARATOR_MAP[comparator]
-        if flag is None:
-            flag = self.GOOD
-        return pd.notnull(flags) & cp(flags, self._checkFlag(flag))
-
-    def getFlags(self, flags):
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError(f"data must be of type pd.DataFrame, {type(data)} was given")
+        flags = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
+        flags = flags.astype(self.flags)
         return flags
 
-    def setFlag(self, flags: PandasLike, flag: Optional[T] = None, **kwargs: Any) -> np.ndarray:
+    def isFlagged(self, flags: PandasLike, flag: T = None, comparator: str = ">") -> PandasLike:
+        cp = COMPARATOR_MAP[comparator]
+        flag = self.GOOD if flag is None else self._checkFlag(flag)
+        isflagged = pd.notna(flags) & cp(flags, flag)
+        return isflagged
+
+    def getFlags(self, flags: PandasLike):
+        return flags
+
+    def setFlag(self, flags: pd.Series, flag: Optional[T] = None, **kwargs: Any) -> pd.Series:
+        flags = self._checkFlagsType(flags)
         flag = self.BAD if flag is None else self._checkFlag(flag)
-        flags = flags.copy()
-
-        if isinstance(flags, pd.DataFrame):
-            flags = flags.squeeze()
-
-        flags = flags.values
+        flags = flags.copy().values
         # NOTE:
         # - breaks if we loose the pd.Categorical dtype, assert this condition!
         # - there is no way to overwrite with 'better' flags
         mask = flags < flag
+
         if isinstance(flag, pd.Series):
             flags[mask] = flag[mask]
         else:
             flags[mask] = flag
 
-        return flags
+        return self._finalizeFlags(flags)
 
-    def clearFlags(self, flags, **kwargs):
+    def clearFlags(self, flags: pd.Series, **kwargs) -> pd.Series:
+        flags = self._checkFlagsType(flags)
+        flags = flags.copy().values
         flags[:] = self.UNFLAGGED
-        return flags
+        return self._finalizeFlags(flags)
 
     def _checkFlag(self, flag):
         if isinstance(flag, pd.Series):
             if flag.dtype != self.flags:
-                raise TypeError(
-                    f"Passed flags series is of invalid '{flag.dtype}' dtype. "
-                    f"Expected {self.flags} type with ordered categories {list(self.flags.categories)}")
+                raise TypeError(f"Passed flags series is of invalid '{flag.dtype}' dtype. "
+                                f"Expected {self.flags} type with ordered categories {list(self.flags.categories)}")
         else:
             if flag not in self.flags:
-                raise ValueError(
-                    f"Invalid flag '{flag}'. "
-                    f"Possible choices are {list(self.flags.categories)[1:]}")
+                raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.flags.categories)[1:]}")
         return flag
+
+    def _checkFlagsType(self, flags):
+        if isinstance(flags, pd.DataFrame):
+            flags = flags.squeeze()
+        if not isinstance(flags, pd.Series):
+            raise TypeError(f"flags must be of type pd.Series, {type(flags)} was given")
+        return flags
+
+    def _finalizeFlags(self, flags: pd.Series):
+        if flags.dtype != self.flags:
+            nancount = flags.isna().sum()
+            flags = flags.astype(self.flags)
+            if nancount != flags.isna.sum():
+                raise RuntimeError("We lost dtype :(")
+        return flags
 
     def nextTest(self):
         pass

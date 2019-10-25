@@ -29,50 +29,38 @@ class DmpFlagger(BaseFlagger):
 
     def __init__(self):
         super().__init__(FLAGS)
-        self.flag_fields = [FlagFields.FLAG,
-                            FlagFields.CAUSE,
-                            FlagFields.COMMENT]
-        version = subprocess.run(
-            "git describe --tags --always --dirty",
-            shell=True, check=False, stdout=subprocess.PIPE).stdout
+        self.flag_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
+        version = subprocess.run("git describe --tags --always --dirty",
+                                 shell=True, check=False, stdout=subprocess.PIPE).stdout
         self.project_version = version.decode().strip()
 
-    def initFlags(self, data, **kwargs):
-        if isinstance(data, pd.Series):
-            data = data.to_frame()
-
+    def initFlags(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError(f"data must be of type pd.DataFrame, {type(data)} was given")
         colindex = pd.MultiIndex.from_product(
             [data.columns, self.flag_fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
+        flags = pd.DataFrame(data=self.flags[0], columns=colindex, index=data.index)
+        flags = flags.astype({c: self.flags for c in flags.columns if FlagFields.FLAG in c})
+        return flags
 
-        out = pd.DataFrame(data=self.flags[0],
-                           columns=colindex,
-                           index=data.index)
-        return out.astype(
-            {c: self.flags for c in out.columns if FlagFields.FLAG in c})
+    def isFlagged(self, flags: pd.DataFrame, flag=None, comparator=">") -> pd.DataFrame:
+        flags = self.getFlags(flags)
+        return super().isFlagged(flags, flag, comparator)
 
-    def isFlagged(self, flags, flag=None, comparator=">"):
-        flagcol = self.getFlags(flags)
-        return super().isFlagged(flagcol, flag, comparator)
-
-    def getFlags(self, flags):
-        if isinstance(flags, pd.Series):
-            return super().getFlags(flags)
-
-        elif isinstance(flags, pd.DataFrame):
-            if isinstance(flags.columns, pd.MultiIndex):
-                f = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
-            else:
-                f = flags.loc[:, FlagFields.FLAG]
+    def getFlags(self, flags: pd.DataFrame) -> pd.DataFrame:
+        if not isinstance(flags, pd.DataFrame):
+            raise TypeError(f"flags must be of type pd.DataFrame, {type(flags)} was given")
+        if isinstance(flags.columns, pd.MultiIndex):
+            flags = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
         else:
-            raise TypeError(flags)
-        return f.squeeze()
+            flags = flags[FlagFields.FLAG]
+        if isinstance(flags, pd.DataFrame):
+            flags = flags.to_frame()
+        return flags
 
     def setFlag(self, flags, flag=None, cause="", comment="", **kwargs):
-
-        if not isinstance(flags, pd.DataFrame):
-            raise TypeError
-
+        flags = self._checkFlagsType(flags)
         flag = self.BAD if flag is None else self._checkFlag(flag)
 
         # if Keywords.VERSION in comment:
@@ -81,7 +69,6 @@ class DmpFlagger(BaseFlagger):
             "commit": self.project_version,
             "test": kwargs.get("func_name", "")})
 
-        flags = self._reduceColumns(flags)
         mask = flags[FlagFields.FLAG] < flag
         if isinstance(flag, pd.Series):
             flags.loc[mask, self.flag_fields] = flag[mask], cause, comment
@@ -90,18 +77,14 @@ class DmpFlagger(BaseFlagger):
         return flags.values
 
     def clearFlags(self, flags, **kwargs):
-        flags = self._reduceColumns(flags)
+        flags = self._checkFlagsType(flags)
         flags.loc[:, self.flag_fields] = self.UNFLAGGED, "", ""
         return flags.values
 
-    def _reduceColumns(self, flags):
-        if set(flags.columns) == set(self.flag_fields):
-            pass
-        elif isinstance(flags, pd.DataFrame) \
-                and isinstance(flags.columns, pd.MultiIndex) \
-                and (len(flags.columns) == 3):
-            flags = flags.copy()
-            flags.columns = flags.columns.get_level_values(ColumnLevels.FLAGS)
-        else:
-            raise TypeError
+    def _checkFlagsType(self, flags):
+        if not isinstance(flags, pd.DataFrame):
+            raise TypeError(f"flags must be of type pd.DataFrame, {type(flags)} was given")
+        if set(flags.columns) != set(self.flag_fields):
+            colstr = f"{list(flags.columns)[0:4]} ..." if len(flags.columns) > 4 else f"{list(flags.columns)[0:4]}"
+            raise TypeError(f"flags must have the exact columns: {self.flag_fields}, but {colstr} was given")
         return flags
