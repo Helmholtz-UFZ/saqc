@@ -12,10 +12,11 @@ from ..lib.types import PandasLike, ArrayLike, T
 COMPARATOR_MAP = {
     "==": op.eq,
     ">=": op.ge,
-    ">" : op.gt,
+    ">": op.gt,
     "<=": op.le,
-    "<" : op.lt,
+    "<": op.lt,
 }
+
 
 class Flags(pd.CategoricalDtype):
     def __init__(self, flags):
@@ -47,6 +48,27 @@ class BaseFlagger:
     def __init__(self, flags):
         self.flags = Flags(flags)
 
+    def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
+        if isinstance(data, pd.Series):
+            out = pd.Series(data=self.flags[0], index=data.index, name=data.name)
+        if isinstance(data, pd.DataFrame):
+            out = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
+
+        # NOTE:
+        # astype conversion of return Dataframe performed
+        # seperately, because pd.DataFrame(..., dtype=self.flags)
+        # wont give you categorical flag objects
+        return out.astype(self.flags)
+
+    def isFlagged(self, flags: ArrayLike, flag: T = None, comparator: str = ">") -> ArrayLike:
+        cp = COMPARATOR_MAP[comparator]
+        if flag is None:
+            flag = self.GOOD
+        return pd.notnull(flags) & cp(flags, self._checkFlag(flag))
+
+    def getFlags(self, flags):
+        return flags
+
     def setFlag(self, flags: PandasLike, flag: Optional[T] = None, **kwargs: Any) -> np.ndarray:
         flag = self.BAD if flag is None else self._checkFlag(flag)
         flags = flags.copy()
@@ -70,43 +92,6 @@ class BaseFlagger:
         flags[:] = self.UNFLAGGED
         return flags
 
-    @property
-    def UNFLAGGED(self):
-        return self.flags.unflagged()
-
-    @property
-    def GOOD(self):
-        return self.flags.good()
-
-    @property
-    def BAD(self):
-        return self.flags.bad()
-
-    @property
-    def SUSPICIOUS(self):
-        return self.flags.suspicious()
-
-    def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
-        if isinstance(data, pd.Series):
-            data = data.to_frame(name=data.name)
-        if isinstance(data, pd.DataFrame):
-            out = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
-
-        # NOTE:
-        # astype conversion of return Dataframe performed
-        # seperately, because pd.DataFrame(..., dtype=self.flags)
-        # wont give you categorical flag objects
-        return out.astype(self.flags)
-
-    def isFlagged(self, flags: ArrayLike, flag: T = None, comparator: str = ">") -> ArrayLike:
-        cp = COMPARATOR_MAP[comparator]
-        if flag is None:
-            flag = self.GOOD
-        return pd.notnull(flags) & cp(flags, self._checkFlag(flag))
-
-    def getFlags(self, flags):
-        return flags
-
     def _checkFlag(self, flag):
         if isinstance(flag, pd.Series):
             if flag.dtype != self.flags:
@@ -122,3 +107,19 @@ class BaseFlagger:
 
     def nextTest(self):
         pass
+
+    @property
+    def UNFLAGGED(self):
+        return self.flags.unflagged()
+
+    @property
+    def GOOD(self):
+        return self.flags.good()
+
+    @property
+    def BAD(self):
+        return self.flags.bad()
+
+    @property
+    def SUSPICIOUS(self):
+        return self.flags.suspicious()

@@ -51,6 +51,23 @@ class DmpFlagger(BaseFlagger):
         return out.astype(
             {c: self.flags for c in out.columns if FlagFields.FLAG in c})
 
+    def isFlagged(self, flags, flag=None, comparator=">"):
+        flagcol = self.getFlags(flags)
+        return super().isFlagged(flagcol, flag, comparator)
+
+    def getFlags(self, flags):
+        if isinstance(flags, pd.Series):
+            return super().getFlags(flags)
+
+        elif isinstance(flags, pd.DataFrame):
+            if isinstance(flags.columns, pd.MultiIndex):
+                f = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
+            else:
+                f = flags.loc[:, FlagFields.FLAG]
+        else:
+            raise TypeError(flags)
+        return f.squeeze()
+
     def setFlag(self, flags, flag=None, cause="", comment="", **kwargs):
 
         if not isinstance(flags, pd.DataFrame):
@@ -76,23 +93,6 @@ class DmpFlagger(BaseFlagger):
         flags = self._reduceColumns(flags)
         flags.loc[:, self.flag_fields] = self.UNFLAGGED, "", ""
         return flags.values
-
-    def isFlagged(self, flags, flag=None, comparator=">"):
-        flagcol = self.getFlags(flags)
-        return super().isFlagged(flagcol, flag, comparator)
-
-    def getFlags(self, flags):
-        if isinstance(flags, pd.Series):
-            return super().getFlags(flags)
-
-        elif isinstance(flags, pd.DataFrame):
-            if isinstance(flags.columns, pd.MultiIndex):
-                f = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
-            else:
-                f = flags.loc[:, FlagFields.FLAG]
-        else:
-            raise TypeError(flags)
-        return f.squeeze()
 
     def _reduceColumns(self, flags):
         if set(flags.columns) == set(self.flag_fields):
