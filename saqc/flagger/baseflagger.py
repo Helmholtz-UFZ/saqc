@@ -52,50 +52,35 @@ class BaseFlagger:
         if not isinstance(data, pd.DataFrame):
             raise TypeError(f"data must be of type pd.DataFrame, {type(data)} was given")
         flags = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
-        flags = flags.astype(self.flags)
-        return flags
+        return self._assureDtype(flags)
 
     def isFlagged(self, flags: PandasLike, flag: T = None, comparator: str = ">") -> PandasLike:
-        cp = COMPARATOR_MAP[comparator]
+        flags = self._assureDtype(flags)
         flag = self.GOOD if flag is None else self._checkFlag(flag)
+        cp = COMPARATOR_MAP[comparator]
         isflagged = pd.notna(flags) & cp(flags, flag)
         return isflagged
 
-    def getFlags(self, flags: PandasLike):
+    def getFlags(self, flags: PandasLike) -> PandasLike:
         return flags
 
-    def setFlags(self, flags, field, mask_or_indexer=None, flag=None, **kwargs):
+    def setFlags(self, flags: pd.DataFrame, field, mask_or_indexer=None, flag=None, **kwargs) -> pd.DataFrame:
+        if not isinstance(flags, pd.DataFrame):
+            raise TypeError(f"flags must be of type pd.DataFrame, {type(flags)} was given")
         # prepare
-        flags = flags.copy()
+        flags = self._assureDtype(flags.copy(), field)
         r = slice(None) if mask_or_indexer is None else mask_or_indexer
         flag = self.BAD if flag is None else self._checkFlag(flag)
         # set
         mask = flags.loc[r, field] < flag
         idx = mask[mask].index
         flags.loc[idx, field] = flag
-        return flags
+        return self._assureDtype(flags, field)
 
-    def setFlag(self, flags: pd.Series, flag: Optional[T] = None, **kwargs: Any) -> pd.Series:
-        flags = self._checkFlagsType(flags)
-        flag = self.BAD if flag is None else self._checkFlag(flag)
-        flags = flags.copy().values
-        # NOTE:
-        # - breaks if we loose the pd.Categorical dtype, assert this condition!
-        # - there is no way to overwrite with 'better' flags
-        mask = flags < flag
-
-        if isinstance(flag, pd.Series):
-            flags[mask] = flag[mask]
-        else:
-            flags[mask] = flag
-
-        return self._finalizeFlags(flags)
-
-    def clearFlags(self, flags: pd.Series, **kwargs) -> pd.Series:
-        flags = self._checkFlagsType(flags)
-        flags = flags.copy().values
-        flags[:] = self.UNFLAGGED
-        return self._finalizeFlags(flags)
+    def clearFlags(self, flags, field, mask_or_indexer=None, **kwargs):
+        moi = slice(None) if mask_or_indexer is None else mask_or_indexer
+        flags.loc[moi, field] = self.UNFLAGGED
+        return self._assureDtype(flags, field)
 
     def _checkFlag(self, flag):
         if isinstance(flag, pd.Series):
@@ -107,19 +92,11 @@ class BaseFlagger:
                 raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.flags.categories)[1:]}")
         return flag
 
-    def _checkFlagsType(self, flags):
-        if isinstance(flags, pd.DataFrame):
-            flags = flags.squeeze()
-        if not isinstance(flags, pd.Series):
-            raise TypeError(f"flags must be of type pd.Series, {type(flags)} was given")
-        return flags
-
-    def _finalizeFlags(self, flags: pd.Series):
-        if flags.dtype != self.flags:
-            nancount = flags.isna().sum()
+    def _assureDtype(self, flags, field=None):
+        if field is None:
             flags = flags.astype(self.flags)
-            if nancount != flags.isna.sum():
-                raise RuntimeError("We lost dtype :(")
+        elif not isinstance(flags[field].dtype, pd.Categorical):
+            flags[field] = flags[field].astype(self.flags)
         return flags
 
     def nextTest(self):
