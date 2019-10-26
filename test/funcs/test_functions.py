@@ -61,7 +61,7 @@ def test_clearFlags(flagger):
     orig = flagger.initFlags(data)
     flags = orig.copy()
     # test
-    flags[field] = flagger.setFlag(flags)
+    flags = flagger.setFlags(flags, field)
     assert (orig != flags).all
     _, cleared = clearFlags(data, flags, field, flagger)
     assert (orig == cleared).all
@@ -74,7 +74,7 @@ def test_forceFlags(flagger):
     index = pd.date_range(start='2011-01-01', end='2011-01-10', freq='1d')
     data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
     flags = flagger.initFlags(data)
-    flags[field] = flagger.setFlag(flags)
+    flags = flagger.setFlags(flags, field)
     orig = flags.copy()
     # test
     _, foreced = forceFlags(data, flags, field, flagger, flag=flagger.GOOD)
