@@ -27,22 +27,15 @@ def flagDispatch(func_name, *args, **kwargs):
 @register("generic")
 def flagGeneric(data, flags, field, flagger, nodata=np.nan, **kwargs):
     expression = kwargs[Params.FUNC]
-    result = evalExpression(expression, flagger,
-                            data, flags, field,
-                            nodata=nodata)
-
+    result = evalExpression(expression, flagger, data, flags, field, nodata=nodata)
     result = result.squeeze()
 
     if np.isscalar(result):
         raise TypeError(f"expression '{expression}' does not return an array")
-
     if not np.issubdtype(result.dtype, np.bool_):
         raise TypeError(f"expression '{expression}' does not return a boolean array")
 
-    fchunk = flagger.setFlag(flags=flags.loc[result, field], **kwargs)
-
-    flags.loc[result, field] = fchunk
-
+    flags = flagger.setFlags(flags, field, result, **kwargs)
     return data, flags
 
 
@@ -50,7 +43,7 @@ def flagGeneric(data, flags, field, flagger, nodata=np.nan, **kwargs):
 def flagRange(data, flags, field, flagger, min, max, **kwargs):
     datacol = data[field].values
     mask = (datacol < min) | (datacol >= max)
-    flags.loc[mask, field] = flagger.setFlag(flags.loc[mask, field], **kwargs)
+    flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
 
 
@@ -58,34 +51,30 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
 def flagSesonalRange(data, flags, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs):
     smask = sesonalMask(flags.index, startmonth, startday, endmonth, endday)
 
-    # work on sesonal
+    f = flags.loc[smask, [field]]
     d = data.loc[smask, [field]]
     if d.empty:
         return data, flags
 
-    f = flags.loc[smask, [field]]
     _, ff = flagRange(d, f.copy(), field, flagger, min=min, max=max, **kwargs)
     rangeflagged = flagger.getFlags(f[field]) != flagger.getFlags(ff[field])
 
     if rangeflagged.empty:
         return data, flags
 
-    # work on all again
-    idx = ff[rangeflagged].index
-    flags.loc[idx, field] = flagger.setFlag(ff.loc[idx, field], **kwargs)
+    flags.update(ff.loc[rangeflagged, [field]])
     return data, flags
 
 
 @register('clear')
 def clearFlags(data, flags, field, flagger, **kwargs):
-    flags.loc[:, field] = flagger.clearFlags(flags.loc[:, field], **kwargs)
+    flags = flagger.clearFlags(flags, field, **kwargs)
     return data, flags
 
 
 @register('force')
 def forceFlags(data, flags, field, flagger, **kwargs):
-    # clear and set
-    flags[field] = flagger.clearFlags(flags[field], **kwargs)
-    flags[field] = flagger.setFlag(flags[field], **kwargs)
+    flags = flagger.clearFlags(flags, field, **kwargs)
+    flags = flagger.setFlags(flags, field, **kwargs)
     return data, flags
 
