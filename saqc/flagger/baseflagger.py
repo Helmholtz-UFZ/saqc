@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from ..lib.types import PandasLike, ArrayLike, T
+from ..lib.tools import *
 
 COMPARATOR_MAP = {
     "==": op.eq,
@@ -49,12 +50,12 @@ class BaseFlagger:
         self.flags = Flags(flags)
 
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError(f"data must be of type pd.DataFrame, {type(data)} was given")
+        check_isdf(data, 'data', allow_multiindex=False)
         flags = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
         return self._assureDtype(flags)
 
     def isFlagged(self, flags: PandasLike, flag: T = None, comparator: str = ">") -> PandasLike:
+        check_ispdlike(flags, 'flags', allow_multiindex=False)
         flags = self._assureDtype(flags)
         flag = self.GOOD if flag is None else self._checkFlag(flag)
         cp = COMPARATOR_MAP[comparator]
@@ -62,11 +63,11 @@ class BaseFlagger:
         return isflagged
 
     def getFlags(self, flags: PandasLike) -> PandasLike:
+        check_ispdlike(flags, 'flags', allow_multiindex=False)
         return flags
 
     def setFlags(self, flags: pd.DataFrame, field, loc=None, iloc=None, flag=None, **kwargs) -> pd.DataFrame:
-        if not isinstance(flags, pd.DataFrame):
-            raise TypeError(f"flags must be of type pd.DataFrame, {type(flags)} was given")
+        check_isdf(flags, 'flags', allow_multiindex=False)
         # prepare
         flags = self._assureDtype(flags, field)
         flag = self.BAD if flag is None else self._checkFlag(flag)
@@ -78,8 +79,7 @@ class BaseFlagger:
         return self._assureDtype(flags, field)
 
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
-        if not isinstance(flags, pd.DataFrame):
-            raise TypeError(f"flags must be of type pd.DataFrame, {type(flags)} was given")
+        check_isdf(flags, 'flags', allow_multiindex=False)
         flags_loc, rows, col = self._getIndexer(flags, field, loc, iloc)
         flags_loc[rows, col] = self.UNFLAGGED
         return self._assureDtype(flags, field)
