@@ -43,12 +43,10 @@ def test_isflagged():
     flags = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
-    flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0])
+    flags = flagger.setFlags(flags, var1, iloc=slice(None, None, 2))
+    flags = flagger.setFlags(flags, var2, iloc=slice(None, None, 2))
 
-    idx = evalExpression("isflagged({:})".format(var1),
-                         flagger,
-                         data, flags,
-                         var2)
+    idx = evalExpression(f"isflagged({var1})", flagger, data, flags, var2)
 
     flagged = flagger.isFlagged(flags[var1])
     assert (flagged == idx).all
@@ -61,12 +59,9 @@ def test_isflaggedArgument():
     flags = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
-    flags.iloc[::2, 0] = flagger.setFlag(flags.iloc[::2, 0], 1)
+    flags = flagger.setFlags(flags, var1, iloc=slice(None, None, 2), flag=1)
 
-    idx = evalExpression("isflagged({:}, 1)".format(var1),
-                         flagger,
-                         data, flags,
-                         var2)
+    idx = evalExpression(f"isflagged({var1}, 1)", flagger, data, flags, var2)
 
     flagged = flagger.isFlagged(flags[var1], 1)
     assert (flagged == idx).all
