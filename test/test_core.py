@@ -166,7 +166,7 @@ def test_flagNext(flagger):
 
     idx = [0, 1, 2]
     dtidx = data.index[idx]
-    flags.loc[dtidx, var1] = flagger.setFlag(flags.loc[dtidx, var1])
+    flags = flagger.setFlags(flags, var1, dtidx)
 
     n = 4
     fflags = flagNext(orig, flags, var1, flagger, flag_values=4)
@@ -192,7 +192,7 @@ def test_flagPeriod(flagger):
 
     idx = [0, 1, 2]
     dtidx = data.index[idx]
-    flags.loc[dtidx, var1] = flagger.setFlag(flags.loc[dtidx, var1])
+    flags = flagger.setFlags(flags, var1, dtidx)
 
     period = '4h'
     fflags = flagPeriod(orig, flags, var1, flagger, flag_period=period)

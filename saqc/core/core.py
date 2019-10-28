@@ -12,9 +12,17 @@ from ..lib.tools import setup
 
 
 def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> pd.Series:
+
+    if window == 0 or window == '':
+        return new
+
     fw, bw = False, False
     mask = flagger.getFlags(old[field]) != flagger.getFlags(new[field])
     f = flagger.isFlagged(new[field]) & mask
+
+    if not mask.any():
+        # nothing was flagged, so nothing need to be flagged additional
+        return new
 
     if isinstance(window, int):
         x = f.rolling(window=window + 1).sum()
@@ -29,8 +37,7 @@ def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> 
         fw = f.rolling(window=window, closed='both').sum().astype(bool)
 
     fmask = bw | fw
-    new.loc[fmask, field] = flagger.setFlag(new.loc[fmask, field], **kwargs)
-    return new
+    return flagger.setFlags(new, field, fmask, **kwargs)
 
 
 def flagPeriod(old, new, field, flagger, flag_period=0, **kwargs) -> pd.Series:
@@ -129,12 +136,12 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
             # flag a timespan after the condition is met
             if Params.FLAGPERIOD in flag_params:
-                periodflags = flagPeriod(fchunk, ffchunk, varname, flagger, func_name, **flag_params)
+                periodflags = flagPeriod(fchunk, ffchunk, varname, flagger, func_name=func_name, **flag_params)
                 ffchunk = assignTypeSafe(ffchunk, varname, periodflags)
 
             # flag a certain amount of values after condition is met
             if Params.FLAGVALUES in flag_params:
-                valueflags = flagNext(fchunk, ffchunk, varname, flagger, func_name, **flag_params)
+                valueflags = flagNext(fchunk, ffchunk, varname, flagger, func_name=func_name, **flag_params)
                 ffchunk = assignTypeSafe(ffchunk, varname, valueflags)
 
             if flag_params.get(Params.PLOT, False):
