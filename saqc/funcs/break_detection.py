@@ -195,9 +195,6 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
 
     breaks = breaks[breaks == True]
 
-    if isinstance(flags, pd.Series):
-        flags.loc[breaks.index] = flagger.setFlag(flags.loc[breaks.index], **kwargs)
-    else:
-        flags.loc[breaks.index, field] = flagger.setFlag(flags.loc[breaks.index, field], **kwargs)
+    flags = flagger.setFlags(flags, field, breaks.index, **kwargs)
 
     return data, flags

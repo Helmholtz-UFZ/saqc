@@ -32,7 +32,7 @@ def spiky_data():
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_flagSpikes_SpektrumBased(spiky_data, flagger):
     data = spiky_data[0]
-    flags = flagger.initFlags(data)
+    flags = flagger.initFlags(data.to_frame())
     data, flag_result = flagSpikes_SpektrumBased(data, flags, 'spiky_data', flagger)
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
@@ -42,7 +42,7 @@ def test_flagSpikes_SpektrumBased(spiky_data, flagger):
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_flagMad(spiky_data, flagger):
     data = spiky_data[0]
-    flags = flagger.initFlags(data)
+    flags = flagger.initFlags(data.to_frame())
     data, flag_result = flagMad(data, flags, 'spiky_data', flagger, '1H')
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
@@ -52,7 +52,7 @@ def test_flagMad(spiky_data, flagger):
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_flagPolyResMad(spiky_data, flagger):
     data = spiky_data[0]
-    flags = flagger.initFlags(data)
+    flags = flagger.initFlags(data.to_frame())
     data, flag_result = polyResMad(data, flags, 'spiky_data', flagger, winsz=300, dx=50)
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
