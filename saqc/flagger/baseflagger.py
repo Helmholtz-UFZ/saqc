@@ -64,22 +64,24 @@ class BaseFlagger:
     def getFlags(self, flags: PandasLike) -> PandasLike:
         return flags
 
-    def setFlags(self, flags: pd.DataFrame, field, mask_or_indexer=None, flag=None, **kwargs) -> pd.DataFrame:
+    def setFlags(self, flags: pd.DataFrame, field, loc=None, iloc=None, flag=None, **kwargs) -> pd.DataFrame:
         if not isinstance(flags, pd.DataFrame):
             raise TypeError(f"flags must be of type pd.DataFrame, {type(flags)} was given")
         # prepare
-        flags = self._assureDtype(flags.copy(), field)
-        r = slice(None) if mask_or_indexer is None else mask_or_indexer
+        flags = self._assureDtype(flags, field)
         flag = self.BAD if flag is None else self._checkFlag(flag)
+        flags_loc, rows, col = self._getIndexer(flags, field, loc, iloc)
         # set
-        mask = flags.loc[r, field] < flag
+        mask = flags_loc[rows, col] < flag
         idx = mask[mask].index
         flags.loc[idx, field] = flag
         return self._assureDtype(flags, field)
 
-    def clearFlags(self, flags, field, mask_or_indexer=None, **kwargs):
-        moi = slice(None) if mask_or_indexer is None else mask_or_indexer
-        flags.loc[moi, field] = self.UNFLAGGED
+    def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
+        if not isinstance(flags, pd.DataFrame):
+            raise TypeError(f"flags must be of type pd.DataFrame, {type(flags)} was given")
+        flags_loc, rows, col = self._getIndexer(flags, field, loc, iloc)
+        flags_loc[rows, col] = self.UNFLAGGED
         return self._assureDtype(flags, field)
 
     def _checkFlag(self, flag):
@@ -92,8 +94,19 @@ class BaseFlagger:
                 raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.flags.categories)[1:]}")
         return flag
 
+    def _getIndexer(self, flags, field, loc=None, iloc=None):
+        if loc is not None and iloc is not None:
+            raise ValueError("params `loc` and `iloc` are mutual exclusive")
+        elif loc is not None and iloc is None:
+            indexer, rows, col = flags.loc, loc, field
+        elif loc is None and iloc is not None:
+            indexer, rows, col = flags.iloc, iloc, flags.columns.get_loc(field)
+        elif loc is None and iloc is None:
+            indexer, rows, col = flags.loc, slice(None), field
+        return indexer, rows, col
+
     def _assureDtype(self, flags, field=None):
-        if field is None:
+        if field is None:  # we got a df
             flags = flags.astype(self.flags)
         elif not isinstance(flags[field].dtype, pd.Categorical):
             flags[field] = flags[field].astype(self.flags)

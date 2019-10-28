@@ -48,7 +48,7 @@ def test_flagPropagation():
     data = initData()
     flagger = SimpleFlagger()
     flags = flagger.initFlags(data)
-    flags.iloc[::5] = flagger.setFlag(flags.iloc[::5])
+    flags = flagger.setFlags(flags, 'var2', iloc=slice(None, None, 5))
 
     var1, var2, *_ = data.columns
     var2_flags = flagger.isFlagged(flags[var2])
@@ -67,8 +67,8 @@ def test_isflagged():
     data = initData(cols=1)
     flagger = SimpleFlagger()
     flags = flagger.initFlags(data)
-    flags.iloc[::5] = flagger.setFlag(flags.iloc[::5], flagger.BAD)
-    flags.iloc[1::5] = flagger.setFlag(flags.iloc[1::5], flagger.GOOD)
+    flags = flagger.setFlags(flags, 'var1', iloc=slice(None, None, 5), flag=flagger.BAD)
+    flags = flagger.setFlags(flags, 'var1', iloc=slice(1, None, 5), flag=flagger.GOOD)
 
     tests = {
         "isflagged(this)" : flagger.isFlagged(flags, flagger.GOOD, ">"),
