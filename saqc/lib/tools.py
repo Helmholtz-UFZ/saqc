@@ -351,3 +351,33 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
 
 def setup():
     pd.set_option('mode.chained_assignment', 'warn')
+
+
+def check_isdf(df, argname='arg', allow_multiindex=True):
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
+    if not allow_multiindex:
+        _forbid_dfmi(df, argname)
+
+
+def check_isseries(df, argname='arg'):
+    if not isinstance(df, pd.Series):
+        raise TypeError(f"{argname} must be of type pd.Series, {type(df)} was given")
+
+
+def check_ispdlike(pdlike, argname='arg', allow_multiindex=True):
+    if not isinstance(pdlike, pd.Series) and not isinstance(pdlike, pd.DataFrame):
+        raise TypeError(f"{argname} must be of type pd.DataFrame or pd.Series, {type(pdlike)} was given")
+    if not allow_multiindex:
+        _forbid_dfmi(pdlike, argname)
+
+
+def check_isdfmi(dfmi, argname=''):
+    check_isdf(dfmi, argname, allow_multiindex=True)
+    if not isinstance(dfmi.columns, pd.MultiIndex):
+        raise TypeError(f"given pd.DataFrame ({argname}) must have a muliindex, but has {type(dfmi.columns)} was given")
+
+
+def _forbid_dfmi(df, argname=''):
+    if isinstance(df, pd.DataFrame) and isinstance(df.columns, pd.MultiIndex):
+        raise TypeError(f"given pd.DataFrame {argname} must NOT have a muliindex")
