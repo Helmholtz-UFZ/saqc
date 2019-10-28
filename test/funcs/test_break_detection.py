@@ -31,7 +31,7 @@ def break_data():
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_flagBreaks_SpektrumBased(break_data, flagger):
     data = break_data[0]
-    flags = flagger.initFlags(data)
+    flags = flagger.initFlags(data.to_frame())
     data, flag_result = flagBreaks_SpektrumBased(data, flags, 'break_data', flagger)
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[break_data[1]] == flagger.BAD).sum()

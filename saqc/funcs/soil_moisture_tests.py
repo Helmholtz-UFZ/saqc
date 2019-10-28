@@ -156,8 +156,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     mask = temp_frame.apply(check_nearest_for_frost, args=(refseries,
                                                            tolerated_deviation, frost_level))
     # apply calculated flags
-    flags.loc[mask.values, field] = flagger.setFlag(flags.loc[mask.values, field], **kwargs)
-
+    flags = flagger.setFlags(flags, field, mask.values, **kwargs)
     return data, flags
 
 
@@ -323,7 +322,7 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     # retrieve indices referring to values-to-be-flagged-bad
     invalid_indices = invalid_raises.index[invalid_raises]
     # set Flags
-    flags.loc[invalid_indices, field] = flagger.setFlag(flags.loc[invalid_indices, field], **kwargs)
+    flags = flagger.setFlags(flags, field, invalid_indices, **kwargs)
     return data, flags
 
 
@@ -439,9 +438,5 @@ def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_wi
         if potential_invalid.mean() > data_max*data_max_tolerance:
             invalids = pd.concat([invalids, potential_invalid])
 
-    if isinstance(flags, pd.Series):
-        flags.loc[invalids.index] = flagger.setFlag(flags.loc[invalids.index], **kwargs)
-    else:
-        flags.loc[invalids.index, field] = flagger.setFlag(flags.loc[invalids.index, field], **kwargs)
-
+    flags = flagger.setFlag(flags, field, invalids.index, **kwargs)
     return data, flags

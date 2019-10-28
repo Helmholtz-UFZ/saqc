@@ -64,12 +64,7 @@ def polyResMad(data, flags, field, flagger, winsz, count=1, deg=1, dx=1, z=3.5, 
     outlier = np.where(counters <= 0)[0]
     idx = d.iloc[outlier.tolist()].index
 
-    # Keep this as long as baseflagger.initFlags does return a series
-    # see https://git.ufz.de/rdm/saqc/issues/60
-    if isinstance(flags, pd.Series):
-        flags.loc[idx] = flagger.setFlag(flags.loc[idx], **kwargs)
-    else:
-        flags.loc[idx, field] = flagger.setFlag(flags.loc[idx, field], **kwargs)
+    flags = flagger.setFlags(flags, field, idx, **kwargs)
     return data, flags
 
 
@@ -102,11 +97,7 @@ def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
     mad = diff.rolling(window=winsz, center=True, closed='both').median()
     mask = (mad > 0) & (0.6745 * diff > z * mad)
 
-    if isinstance(flags, pd.Series):
-        flags.loc[mask] = flagger.setFlag(flags.loc[mask], **kwargs)
-    else:
-        flags.loc[mask, field] = flagger.setFlag(flags.loc[mask, field], **kwargs)
-
+    flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
 
 
@@ -279,8 +270,5 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
 
     spikes = spikes[spikes == True]
 
-    if isinstance(flags, pd.Series):
-        flags.loc[spikes.index] = flagger.setFlag(flags.loc[spikes.index], **kwargs)
-    else:
-        flags.loc[spikes.index, field] = flagger.setFlag(flags.loc[spikes.index, field], **kwargs)
+    flags = flagger.setFlags(flags, field, spikes.index, **kwargs)
     return data, flags

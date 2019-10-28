@@ -32,7 +32,7 @@ def constants_data():
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_flagConstants_VarianceBased(constants_data, flagger):
     data = constants_data[0]
-    flags = flagger.initFlags(data)
+    flags = flagger.initFlags(data.to_frame())
     data, flag_result = flagConstants_VarianceBased(data, flags, 'constants_data', flagger, plateau_window_min='1h')
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[constants_data[1]] == flagger.BAD).sum()
