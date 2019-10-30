@@ -101,12 +101,14 @@ def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
     return data, flags
 
 @register("Spikes_Basic")
-def flagSpikes_Basic(data, flags, field, flagger, thresh=7, toler=0, length=15):
+def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length=15):
     """
     The Function detects spikes which have a first step > thresh and then a 'plateau' for <= length time steps and come back
     to original value within a tolerance of toler. (something like a rectangular shape, but the 'plateau' does not have to be flat,
     it just needs to exceed the threshold without crossing the value before the spike).
     Returns list with indices of detected spikes.
+
+    Data do not have to be harmonized to frequency.
 
     The implementation is basically a copy of code, licensed as follows:
     (original) License:
@@ -143,60 +145,32 @@ def flagSpikes_Basic(data, flags, field, flagger, thresh=7, toler=0, length=15):
     :return:
     """
 
-    # redefining tiny, banned python 2 fella:
-    def cmp(a, b):
-        return (a > b) - (a < b)
+    # retrieve data series
+    dataseries = data[field].dropna()
+    pre_jumps = dataseries.diff(periods=-1).abs() > thresh
+    pre_jumps = pre_jumps[pre_jumps]
+    to_roll = pre_jumps.reindex(dataseries.index, method='ffill', tolerance=length, fill_value=False).dropna()
 
-    # TODO: dropna ?
-    datin = data[field].values
-
-    # differences
-    diff = [datin[k + 1] - datin[k] for k in range(len(datin) - 1)]
-    # get index position of spikes
-    ipos0 = [k for k, a in enumerate(diff) if abs(a) > thresh]
-    if len(ipos0) > 0:
-        # select first spike
-        ipos = ipos0[0]
-        # set max. length of spike plateau
-        maxlen = length
-        spike_pos_all = []
-        while ipos < len(datin) - 1:
-            for i in range(1, maxlen + 1):
-                spike_pos = []
-                if ipos + i + 1 > len(datin) - 1:
-                    ipos = len(datin)
-                    break
-                # diff between first val before spike and all candidates for first val after spike
-                tm = [abs(datin[ipos] - datin[ipos + v]) for v in list(range(2,
-                                                                             i + 2))]
-                # diff between first val before spike and all candidates for first val after spike (with sign)
-                tms = [datin[ipos] - datin[ipos + v] for v in list(range(2,
-                                                                         i + 1))]
-                if len(tm) == 1 and tm[0] < toler:
-                    spike_pos = [ipos + 1]
-                    spike_pos_all.append(spike_pos)
-                    break
-                # check thresh, tolerance and no switching of sign
-                elif len(tm) > 1 and tm[0:-2] > thresh and [cmp(val, 0) for val in tms] == [
-                    cmp(datin[ipos] - datin[ipos + 1], 0) for n in range(len(tms))] and tm[
-                        -1] < toler:
-                    spike_pos = list(range(ipos + 1, ipos + i + 1))
-                    spike_pos_all.append(spike_pos)
-                    break
-            # get index position of next spikes
-            ipos1 = [k for k, a in enumerate(diff) if
-                     abs(a) > thresh and k >= ipos + i + 1]
-            if len(ipos1) > 0:
-                ipos = ipos1[0]
+    def spike_tester(chunk, pre_jumps, thresh, tol):
+        if not chunk.index[0] in pre_jumps.index:
+            return 0
+        else:
+            # signum change!!!
+            chunk_stair = (abs(chunk - chunk[0]) < thresh).cumsum()
+            first_return = (chunk_stair == 2)
+            if first_return.sum() == 0:
+                return 0
+            if abs(chunk[first_return[first_return].index[0]] - chunk[0]) < tol:
+                return (chunk_stair == 1).sum() - 1
             else:
-                break
+                return 0
 
-        # create list without sublists
-        spike_pos_all = [item for sublist in spike_pos_all for item in sublist]
-        return spike_pos_all
+    to_flag = dataseries[to_roll].rolling(length, closed='both').apply(spike_tester, args=(pre_jumps, thresh, tol), raw=False)
+    # little mess, because goddam rolling doesnt offer label='right' option.... god damn it.
 
-    else:
-        return []
+
+
+
 
 
 @register("Spikes_SpektrumBased")
