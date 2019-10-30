@@ -100,12 +100,111 @@ def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
     flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
 
+@register("Spikes_Basic")
+def flagSpikes_Basic(data, flags, field, flagger, thresh=7, toler=0, length=15):
+    """
+    The Function detects spikes which have a first step > thresh and then a 'plateau' for <= length time steps and come back
+    to original value within a tolerance of toler. (something like a rectangular shape, but the 'plateau' does not have to be flat,
+    it just needs to exceed the threshold without crossing the value before the spike).
+    Returns list with indices of detected spikes.
+
+    The implementation is basically a copy of code, licensed as follows:
+    (original) License:
+    -------
+    This file is part of the UFZ Python package.
+
+    The UFZ Python package is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    The UFZ Python package is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with the UFZ Python package (cf. gpl.txt and lgpl.txt).
+    If not, see <http://www.gnu.org/licenses/>.
+
+    Copyright 2016 Benjamin Dechant
+
+    The original code (in its last version) can be found here:
+    https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py
+
+
+    :param data:
+    :param flags:
+    :param field:
+    :param flagger:
+    :param thresh:
+    :param toler:
+    :param length:
+    :return:
+    """
+
+    # redefining tiny, banned python 2 fella:
+    def cmp(a, b):
+        return (a > b) - (a < b)
+
+    # TODO: dropna ?
+    datin = data[field].values
+
+    # differences
+    diff = [datin[k + 1] - datin[k] for k in range(len(datin) - 1)]
+    # get index position of spikes
+    ipos0 = [k for k, a in enumerate(diff) if abs(a) > thresh]
+    if len(ipos0) > 0:
+        # select first spike
+        ipos = ipos0[0]
+        # set max. length of spike plateau
+        maxlen = length
+        spike_pos_all = []
+        while ipos < len(datin) - 1:
+            for i in range(1, maxlen + 1):
+                spike_pos = []
+                if ipos + i + 1 > len(datin) - 1:
+                    ipos = len(datin)
+                    break
+                # diff between first val before spike and all candidates for first val after spike
+                tm = [abs(datin[ipos] - datin[ipos + v]) for v in list(range(2,
+                                                                             i + 2))]
+                # diff between first val before spike and all candidates for first val after spike (with sign)
+                tms = [datin[ipos] - datin[ipos + v] for v in list(range(2,
+                                                                         i + 1))]
+                if len(tm) == 1 and tm[0] < toler:
+                    spike_pos = [ipos + 1]
+                    spike_pos_all.append(spike_pos)
+                    break
+                # check thresh, tolerance and no switching of sign
+                elif len(tm) > 1 and tm[0:-2] > thresh and [cmp(val, 0) for val in tms] == [
+                    cmp(datin[ipos] - datin[ipos + 1], 0) for n in range(len(tms))] and tm[
+                        -1] < toler:
+                    spike_pos = list(range(ipos + 1, ipos + i + 1))
+                    spike_pos_all.append(spike_pos)
+                    break
+            # get index position of next spikes
+            ipos1 = [k for k, a in enumerate(diff) if
+                     abs(a) > thresh and k >= ipos + i + 1]
+            if len(ipos1) > 0:
+                ipos = ipos1[0]
+            else:
+                break
+
+        # create list without sublists
+        spike_pos_all = [item for sublist in spike_pos_all for item in sublist]
+        return spike_pos_all
+
+    else:
+        return []
+
 
 @register("Spikes_SpektrumBased")
 def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h',
                              raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
                              noise_statistic='CoVar', smooth_poly_order=2, **kwargs):
-    """This Function is an generalization of the Spectrum based Spike flagging mechanism as presented in:
+    """
+    This Function is an generalization of the Spectrum based Spike flagging mechanism as presented in:
 
     Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
     Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
