@@ -167,18 +167,14 @@ def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length=15):
 
     to_flag = dataseries[to_roll].rolling(length, closed='both').apply(spike_tester, args=(pre_jumps, thresh, tol), raw=False)
     # little mess, because goddam rolling doesnt offer label='right' option.... god damn it.
-
-
-
-
-
+    to_flag.rolling(1).apply(lambda x: to_flag.index.get_loc(x.index[0] - pd.Timedelta('30min'), method='bfill'), raw=False)
 
 @register("Spikes_SpektrumBased")
 def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h',
                              raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
                              noise_statistic='CoVar', smooth_poly_order=2, **kwargs):
     """
-    This Function is an generalization of the Spectrum based Spike flagging mechanism as presented in:
+    This Function is a generalization of the Spectrum based Spike flagging mechanism as presented in:
 
     Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
     Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
