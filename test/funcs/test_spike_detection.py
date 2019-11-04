@@ -19,7 +19,7 @@ TESTFLAGGERS = [
     SimpleFlagger()]
 
 
-#@pytest.fixture(scope='module')
+@pytest.fixture(scope='module')
 def spiky_data():
     index = pd.date_range(start='2011-01-01', end='2011-01-05', freq='5min')
     spiky_series = pd.Series(np.linspace(1, 2, index.size), index=index, name='spiky_data')
