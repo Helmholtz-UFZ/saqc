@@ -66,19 +66,26 @@ class DmpFlagger(BaseFlagger):
         check_isdfmi(flags, 'flags')
         # prepare
         comment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
-        flags = self._assureDtype(flags, field)
+        flags = self._assureDtype(flags, field).copy()
         flag = self.BAD if flag is None else self._checkFlag(flag)
         # set
-        flags = flags.copy()
-        indexer, rows, col = self._getIndexer(self.getFlags(flags), field, loc, iloc)
+        flags_loc, rows, col = self._getIndexer(self.getFlags(flags), field, loc, iloc)
         if isinstance(flag, pd.Series):
+            if len(flags.index) != len(flags):
+                raise ValueError('Length of flags and flag must match')
             i, r, _ = self._getIndexer(flag, field, loc, iloc)
-            flag = i[r]
+            flag = i[r].squeeze()
+
         if force:
-            idx = indexer[rows, col].index
+            mask = [True] * len(rows)
+            idx = flags_loc[rows, col].index
         else:
-            mask = indexer[rows, col] < flag
+            mask = flags_loc[rows, col] < flag
             idx = mask[mask].index
+
+        if isinstance(flag, pd.Series):
+            flag = flag[mask]
+
         flags.loc[idx, field] = flag, cause, comment
         return self._assureDtype(flags, field)
 
@@ -95,6 +102,6 @@ class DmpFlagger(BaseFlagger):
                 flags = super()._assureDtype(flags, None)
             else:  # we got a df with a multi-index
                 flags = flags.astype({c: self.flags for c in flags.columns if FlagFields.FLAG in c})
-        elif not isinstance(flags[(field, FlagFields.FLAG)].dtype, pd.Categorical):
+        elif not isinstance(flags[(field, FlagFields.FLAG)].dtype, pd.CategoricalDtype):
             flags[(field, FlagFields.FLAG)] = flags[(field, FlagFields.FLAG)].astype(self.flags)
         return flags
