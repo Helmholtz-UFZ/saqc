@@ -57,3 +57,12 @@ def test_flagPolyResMad(spiky_data, flagger):
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
+
+@pytest.mar.parametrize('flagger', TESTFLAGGERS)
+def test_flagSpikes_Basic(spiky_data, flagger):
+    data = spiky_data[0]
+    flags = flagger.initFlags(data.to_frame())
+    data, flag_result = flagSpikes_Basic(data, flags, 'spiky_data', flagger, thresh=60, tol=10, length='20min')
+    flag_result = getPandasData(flag_result, 0)
+    test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
+    assert test_sum == len(spiky_data[1])

@@ -113,6 +113,8 @@ def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length='15min
 
     (3) |x(n-1).index - x(n+k+1).index| < length
 
+    Note, that this definition of a "spike" not only includes one-value outliers, but also plateau-ish value courses.
+
     The implementation is a time-window based version of an outlier test from the UFZ Python library,
     that can be found here:
 
