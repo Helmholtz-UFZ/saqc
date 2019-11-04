@@ -101,73 +101,84 @@ def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
     return data, flags
 
 @register("Spikes_Basic")
-def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length=15):
+def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length='15min', **kwargs):
     """
-    The Function detects spikes which have a first step > thresh and then a 'plateau' for <= length time steps and come back
-    to original value within a tolerance of toler. (something like a rectangular shape, but the 'plateau' does not have to be flat,
-    it just needs to exceed the threshold without crossing the value before the spike).
-    Returns list with indices of detected spikes.
+    A basic outlier test that is designed to work for harmonized and not harmonized data.
 
-    Data do not have to be harmonized to frequency.
+    Values x(n), x(n+1), .... , x(n+k) of a timeseries x are considered spikes, if
 
-    The implementation is basically a copy of code, licensed as follows:
-    (original) License:
-    -------
-    This file is part of the UFZ Python package.
+    (1) |x(n-1) - x(n + s)| > "thresh", for all s in [0,1,2,...,k]
 
-    The UFZ Python package is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+    (2) |x(n-1) - x(n+k+1)| < tol
 
-    The UFZ Python package is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU Lesser General Public License for more details.
+    (3) |x(n-1).index - x(n+k+1).index| < length
 
-    You should have received a copy of the GNU Lesser General Public License
-    along with the UFZ Python package (cf. gpl.txt and lgpl.txt).
-    If not, see <http://www.gnu.org/licenses/>.
+    The implementation is a time-window based version of an outlier test from the UFZ Python library,
+    that can be found here:
 
-    Copyright 2016 Benjamin Dechant
-
-    The original code (in its last version) can be found here:
     https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py
 
 
-    :param data:
-    :param flags:
-    :param field:
-    :param flagger:
-    :param thresh:
-    :param toler:
-    :param length:
+    :param data:    Pandas-like. The pandas dataframe holding the data-to-be flagged.
+    :param flags:   pd.Dataframe. A dataframe holding the flags/flag-entries associated with "data".
+    :param field:   String. Fieldname of the data column to be tested.
+    :param flagger: saqc.flagger. A flagger - object.
+    :param thresh:  Float. The lower bound for a value jump, to be considered as initialising a spike.
+                    (see condition (1) in function description).
+    :param tol:   Float. Tolerance value.  (see condition (2) in function description)
+    :param length:  Offset String. The time span in wich the values of a spikey course have to return to the normal
+                    value course (see condition (3) in function description).
     :return:
     """
 
     # retrieve data series
     dataseries = data[field].dropna()
+    # get all the entries preceding a significant jump
     pre_jumps = dataseries.diff(periods=-1).abs() > thresh
     pre_jumps = pre_jumps[pre_jumps]
+    # get all the entries preceeding a significant jump and its successors within "length" range
     to_roll = pre_jumps.reindex(dataseries.index, method='ffill', tolerance=length, fill_value=False).dropna()
 
-    def spike_tester(chunk, pre_jumps, thresh, tol):
-        if not chunk.index[0] in pre_jumps.index:
+    # define spike testing function to roll with:
+    def spike_tester(chunk, pre_jumps_index, thresh, tol):
+        if not chunk.index[-1] in pre_jumps_index:
             return 0
         else:
             # signum change!!!
-            chunk_stair = (abs(chunk - chunk[0]) < thresh).cumsum()
-            first_return = (chunk_stair == 2)
+            chunk_stair = (abs(chunk - chunk[-1]) < thresh)[::-1].cumsum()
+            first_return = chunk_stair[(chunk_stair == 2)]
             if first_return.sum() == 0:
                 return 0
-            if abs(chunk[first_return[first_return].index[0]] - chunk[0]) < tol:
+            if abs(chunk[first_return.index[0]] - chunk[-1]) < tol:
                 return (chunk_stair == 1).sum() - 1
             else:
                 return 0
 
-    to_flag = dataseries[to_roll].rolling(length, closed='both').apply(spike_tester, args=(pre_jumps, thresh, tol), raw=False)
-    # little mess, because goddam rolling doesnt offer label='right' option.... god damn it.
-    to_flag.rolling(1).apply(lambda x: to_flag.index.get_loc(x.index[0] - pd.Timedelta('30min'), method='bfill'), raw=False)
+    # since .rolling does neither support windows, defined by left starting points, nor rolling over monotonically
+    # decreasing indices, we have to trick the method by inverting the timeseries and transforming the resulting index
+    # to pseudo-increase.
+    to_roll = dataseries[to_roll]
+    original_index = to_roll.index
+    to_roll = to_roll[::-1]
+    pre_jump_reversed_index = to_roll.index[0] - pre_jumps.index
+    to_roll.index = to_roll.index[0] - to_roll.index
+
+    # now lets roll:
+    to_roll = to_roll.rolling(length, closed='both').\
+        apply(spike_tester, args=(pre_jump_reversed_index, thresh, tol), raw=False).astype(int)
+    # reconstruct original index and sequence
+    to_roll = to_roll[::-1]
+    to_roll.index = original_index
+    to_write = to_roll[to_roll != 0]
+    to_flag = pd.Index([])
+    # here comes a loop...):
+    for row in to_write.iteritems():
+        loc = to_roll.index.get_loc(row[0])
+        to_flag = to_flag.append(to_roll.iloc[loc+1:loc+row[1]+1].index)
+
+    to_flag = to_flag.drop_duplicates(keep='first')
+    flags = flagger.setFlags(flags, field, to_flag, **kwargs)
+
 
 @register("Spikes_SpektrumBased")
 def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h',
