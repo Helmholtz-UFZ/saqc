@@ -52,35 +52,39 @@ class DmpFlagger(BaseFlagger):
         check_ispdlike(flags, 'flags')
         if not isinstance(flags, pd.DataFrame):  # series
             super().getFlags(flags)
-        elif isinstance(flags.columns, pd.MultiIndex):  # df, allow_multiindex
+        elif isinstance(flags.columns, pd.MultiIndex):  # df, with a multi-index
             flags = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
-        else:  # df, simple index
-            # if we come here a dataframe with allow_multiindex, was unpacked by a fieldname, like so: getFlags(df[field])
+        else:  # df, with a simple index
+            # if we come here, a df with a multi-index, was unpacked by a fieldname, like so: getFlags(df[field])
             # so we can be sure to have qflag, qcause, qcomment as df-columns (otherwise something went wrong on the
-            # user side). As so we need to squeeze the result to a series, because the df wont have any column info,
+            # user side). As so we need to squeeze the result to a series, because the df does not have the column info,
             # like to which field/variable the qflags belongs to.
             flags = flags[FlagFields.FLAG].squeeze()
         return flags
 
-    def setFlags(self, flags, field, loc=None, iloc=None, flag=None, comment='', cause='', **kwargs):
+    def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, comment='', cause='', **kwargs):
         check_isdfmi(flags, 'flags')
         # prepare
-        ysoncomment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
-        comment = '' if comment is None else ysoncomment
+        comment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
         flags = self._assureDtype(flags, field)
         flag = self.BAD if flag is None else self._checkFlag(flag)
         # set
+        flags = flags.copy()
         indexer, rows, col = self._getIndexer(self.getFlags(flags), field, loc, iloc)
         if isinstance(flag, pd.Series):
             i, r, _ = self._getIndexer(flag, field, loc, iloc)
             flag = i[r]
-        mask = indexer[rows, col] < flag
-        idx = mask[mask].index
+        if force:
+            idx = indexer[rows, col].index
+        else:
+            mask = indexer[rows, col] < flag
+            idx = mask[mask].index
         flags.loc[idx, field] = flag, cause, comment
         return self._assureDtype(flags, field)
 
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
         check_isdfmi(flags, 'flags')
+        flags = flags.copy()
         indexer, rows, col = self._getIndexer(flags, field, loc, iloc)
         indexer[rows, col] = self.UNFLAGGED, '', ''
         return self._assureDtype(flags, field)
@@ -89,7 +93,7 @@ class DmpFlagger(BaseFlagger):
         if field is None:
             if isinstance(flags, pd.Series):  # we got a series
                 flags = super()._assureDtype(flags, None)
-            else:  # we got a df with allow_multiindex
+            else:  # we got a df with a multi-index
                 flags = flags.astype({c: self.flags for c in flags.columns if FlagFields.FLAG in c})
         elif not isinstance(flags[(field, FlagFields.FLAG)].dtype, pd.Categorical):
             flags[(field, FlagFields.FLAG)] = flags[(field, FlagFields.FLAG)].astype(self.flags)
