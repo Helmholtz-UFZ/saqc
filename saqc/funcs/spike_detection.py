@@ -134,7 +134,7 @@ def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length='15min
     """
 
     # retrieve data series
-    dataseries = data[field].dropna()
+    dataseries = getPandasData(data, field).copy().dropna()
     # get all the entries preceding a significant jump
     pre_jumps = dataseries.diff(periods=-1).abs() > thresh
     pre_jumps = pre_jumps[pre_jumps]
@@ -181,6 +181,7 @@ def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length='15min
     to_flag = to_flag.drop_duplicates(keep='first')
     flags = flagger.setFlags(flags, field, to_flag, **kwargs)
 
+    return data, flags
 
 @register("Spikes_SpektrumBased")
 def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h',

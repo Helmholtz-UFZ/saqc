@@ -9,7 +9,7 @@ from saqc.flagger.baseflagger import BaseFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
 
-from saqc.funcs.spike_detection import flagSpikes_SpektrumBased, flagMad, polyResMad
+from saqc.funcs.spike_detection import flagSpikes_SpektrumBased, flagMad, polyResMad, flagSpikes_Basic
 
 from saqc.lib.tools import getPandasData
 
@@ -19,7 +19,7 @@ TESTFLAGGERS = [
     SimpleFlagger()]
 
 
-@pytest.fixture(scope='module')
+#@pytest.fixture(scope='module')
 def spiky_data():
     index = pd.date_range(start='2011-01-01', end='2011-01-05', freq='5min')
     spiky_series = pd.Series(np.linspace(1, 2, index.size), index=index, name='spiky_data')
@@ -58,7 +58,7 @@ def test_flagPolyResMad(spiky_data, flagger):
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
 
-@pytest.mar.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_flagSpikes_Basic(spiky_data, flagger):
     data = spiky_data[0]
     flags = flagger.initFlags(data.to_frame())
@@ -66,3 +66,8 @@ def test_flagSpikes_Basic(spiky_data, flagger):
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
+
+if __name__ == '__main__':
+    flagger = DmpFlagger()
+    d = spiky_data()
+    test_flagSpikes_Basic(d, flagger)
