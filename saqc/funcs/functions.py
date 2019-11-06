@@ -47,9 +47,14 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
     return data, flags
 
 @register("missing")
-def flagMissing(data, flags, missing_indicator=np.nan, **kwargs):
+def flagMissing(data, flags, field, flagger, missing_indicator=np.nan, **kwargs):
     datacol = data[field].values
-    mask = datacol.isna()
+
+    if np.isnan(missing_indicator):
+        mask = datacol.isna()
+    else:
+        mask = datacol[datacol == missing_indicator]
+
     flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
 
