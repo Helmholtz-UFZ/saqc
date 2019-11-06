@@ -46,6 +46,12 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
     flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
 
+@register("missing")
+def flagMissing(data, flags, missing_indicator=np.nan, **kwargs):
+    datacol = data[field].values
+    mask = datacol.isna()
+    flags = flagger.setFlags(flags, field, mask, **kwargs)
+    return data, flags
 
 @register('sesonalRange')
 def flagSesonalRange(data, flags, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs):
