@@ -66,15 +66,30 @@ class BaseFlagger:
         check_ispdlike(flags, 'flags', allow_multiindex=False)
         return flags
 
-    def setFlags(self, flags: pd.DataFrame, field, loc=None, iloc=None, flag=None, **kwargs) -> pd.DataFrame:
+    def setFlags(self, flags: pd.DataFrame, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
         check_isdf(flags, 'flags', allow_multiindex=False)
         # prepare
-        flags = self._assureDtype(flags, field)
+        flags = self._assureDtype(flags, field).copy()
         flag = self.BAD if flag is None else self._checkFlag(flag)
         flags_loc, rows, col = self._getIndexer(flags, field, loc, iloc)
+
         # set
-        mask = flags_loc[rows, col] < flag
-        idx = mask[mask].index
+        if isinstance(flag, pd.Series):
+            if len(flags.index) != len(flags):
+                raise ValueError('Length of flags and flag must match')
+            i, r, _ = self._getIndexer(flag, field, loc, iloc)
+            flag = i[r].squeeze()
+
+        if force:
+            mask = [True] * len(rows)
+            idx = flags_loc[rows, col].index
+        else:
+            mask = flags_loc[rows, col] < flag
+            idx = mask[mask].index
+
+        if isinstance(flag, pd.Series):
+            flag = flag[mask]
+
         flags.loc[idx, field] = flag
         return self._assureDtype(flags, field)
 
@@ -86,9 +101,9 @@ class BaseFlagger:
 
     def _checkFlag(self, flag):
         if isinstance(flag, pd.Series):
-            if flag.dtype != self.flags:
-                raise TypeError(f"Passed flags series is of invalid '{flag.dtype}' dtype. "
-                                f"Expected {self.flags} type with ordered categories {list(self.flags.categories)}")
+            if not self._isFlagsDtype(flag.dtype):
+                raise TypeError(f"flag(-series) is not of expected '{self.flags}'-dtype with ordered categories "
+                                f"{list(self.flags.categories)}, '{flag.dtype}'-dtype was passed.")
         else:
             if flag not in self.flags:
                 raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.flags.categories)[1:]}")
@@ -108,9 +123,12 @@ class BaseFlagger:
     def _assureDtype(self, flags, field=None):
         if field is None:  # we got a df
             flags = flags.astype(self.flags)
-        elif not isinstance(flags[field].dtype, pd.Categorical):
+        elif not self._isFlagsDtype(flags[field].dtype):
             flags[field] = flags[field].astype(self.flags)
         return flags
+
+    def _isFlagsDtype(self, dtype):
+        return isinstance(dtype, pd.CategoricalDtype) and dtype == self.flags
 
     def nextTest(self):
         pass
