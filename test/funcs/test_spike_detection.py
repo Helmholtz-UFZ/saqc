@@ -67,7 +67,4 @@ def test_flagSpikes_Basic(spiky_data, flagger):
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
 
-if __name__ == '__main__':
-    flagger = DmpFlagger()
-    d = spiky_data()
-    test_flagSpikes_Basic(d, flagger)
+
