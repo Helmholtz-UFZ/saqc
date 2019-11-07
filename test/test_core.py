@@ -12,6 +12,7 @@ from saqc.flagger.simpleflagger import SimpleFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.positionalflagger import PositionalFlagger
 from .common import initData, initMeta, initMetaDict
+from saqc.funcs.functions import flagRange
 
 
 TESTFLAGGERS = [
@@ -205,3 +206,21 @@ def test_flagPeriod(flagger):
     o = flagger.getFlags(orig).loc[expected, var1]
     f = flagger.getFlags(fflags).loc[flagged, var1]
     assert (o != f).all()
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+def test_plotting(flagger):
+    """ Test if the plotting code runs. does not show any plot.
+        Note:
+            This test is ignored if matplotlib is not available on the test-system
+    """
+    pytest.importorskip("matplotlib", reason="requires matplotlib")
+    from saqc.lib.plotting import plot
+    field = 'testdata'
+    index = pd.date_range(start='2011-01-01', end='2011-01-02', periods=100)
+    data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
+    flags = flagger.initFlags(data)
+    _, flagged = flagRange(data, flags, field, flagger, min=10, max=90, flag=flagger.BAD)
+    _, flagged = flagRange(data, flagged, field, flagger, min=40, max=60, flag=flagger.GOOD)
+    mask = flagger.getFlags(flags[field]) != flagger.getFlags(flagged[field])
+    plot(data, flagged, mask, field, flagger, interactive_backend=False)
