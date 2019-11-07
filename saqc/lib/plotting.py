@@ -77,7 +77,7 @@ def _plot_qflags(data, flags, varname, flagger, flagmask, ax, show_nans):
 
     # plot flags in the color corresponding to the flag
     # BAD red, GOOD green, all in between aka SUSPISIOUS in yellow
-    for i, f in enumerate(flagger.flags):
+    for i, f in enumerate(flagger.categories):
         if i == 0:
             continue
         flagged = flagger.isFlagged(flags_, flag=f, comparator='==') & flagmask

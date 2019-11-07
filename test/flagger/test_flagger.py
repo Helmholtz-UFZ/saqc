@@ -110,7 +110,7 @@ def test_setFlags_isFlagged(flagger, **kwargs):
     every = 5
     flagseries = pd.Series(data=flagger.GOOD, index=flags.index)
     flagseries.iloc[::every] = flagger.BAD
-    flagseries = flagseries.astype(flagger.flags)
+    flagseries = flagseries.astype(flagger.categories)
     idx = mask[mask].index
     assert len(flags) == len(flagseries)
     assert len(flags) != len(idx)
@@ -125,7 +125,7 @@ def test_setFlags_isFlagged(flagger, **kwargs):
     every = 5
     flagseries = pd.Series(data=flagger.GOOD, index=flags.index)
     flagseries.iloc[::every] = flagger.UNFLAGGED
-    flagseries = flagseries.astype(flagger.flags)
+    flagseries = flagseries.astype(flagger.categories)
     idx = mask[mask].index
     assert len(flags) == len(flagseries)
     assert len(flags) != len(idx)
