@@ -21,15 +21,15 @@ def test_basic():
 
     metadata = [
         {Fields.VARNAME: var1,
-         "Flag_1": f"generic,{{func: this < {var1mean}, flag: DOUBTFUL}}",
-         "Flag_2": f"range, {{min: 10, max: 20, comment: saqc}}"},
+         "Flag_1": f"generic(func=this < {var1mean}, flag='DOUBTFUL')",
+         "Flag_2": f"range(min=10, max=20, comment='saqc')"},
         {Fields.VARNAME: var2,
-         "Flag_1": f"generic,{{func: this > {var1mean}, cause: error}}"}
+         "Flag_1": f"generic(func=this > {var1mean}, cause='error')"}
     ]
 
-    metafobj, meta = initMetaDict(metadata, data)
+    meta_file, _ = initMetaDict(metadata, data)
 
-    pdata, pflags = runner(metafobj, flagger, data)
+    pdata, pflags = runner(meta_file, flagger, data)
 
     col1 = pdata[var1]
     col2 = pdata[var2]
@@ -49,21 +49,21 @@ def test_flagOrder():
 
     data = initData()
     var, *_ = data.columns
-
     flagger = DmpFlagger()
-    fmin = flagger.GOOD
-    fmax = flagger.BAD
 
     metadata = [
-        {Fields.VARNAME: var, "Flag": f"generic, {{func: this > mean(this), flag: {fmax}}}"},
-        {Fields.VARNAME: var, "Flag": f"generic, {{func: this >= min(this), flag: {fmin}}}"},
+        {Fields.VARNAME: var,
+         "Flag": f"generic(func=this > mean(this), flag='{flagger.BAD}')"},
+        {Fields.VARNAME: var,
+         "Flag": f"generic(func=this >= min(this), flag='{flagger.GOOD}')"},
     ]
-    metafobj, meta = initMetaDict(metadata, data)
 
-    pdata, pflags = runner(metafobj, flagger, data)
+    meta_file, _ = initMetaDict(metadata, data)
+
+    pdata, pflags = runner(meta_file, flagger, data)
 
     datacol = pdata[var]
     flagcol = pflags[(var, F.FLAG)]
 
-    assert (flagcol[datacol > datacol.mean()] == fmax).all()
-    assert (flagcol[datacol <= datacol.mean()] == fmin).all()
+    assert (flagcol[datacol > datacol.mean()] == flagger.BAD).all()
+    assert (flagcol[datacol <= datacol.mean()] == flagger.GOOD).all()
