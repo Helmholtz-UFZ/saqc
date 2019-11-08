@@ -3,20 +3,9 @@
 
 import numpy as np
 
-# from ..dsl import evalExpression
-from ..core.config import Params
 from ..lib.tools import sesonalMask
 
-from .register import register, FUNC_MAP
-
-# keep all imports !
-# to make all function register themself
-from .break_detection import *
-from .constants_detection import *
-from .soil_moisture_tests import *
-from .spike_detection import *
-from .statistic_functions import *
-
+from .register import register
 
 # def flagDispatch(func_name, *args, **kwargs):
 #     func = FUNC_MAP.get(func_name, None)
@@ -79,4 +68,3 @@ def forceFlags(data, flags, field, flagger, **kwargs):
     flags = flagger.clearFlags(flags, field, **kwargs)
     flags = flagger.setFlags(flags, field, **kwargs)
     return data, flags
-
