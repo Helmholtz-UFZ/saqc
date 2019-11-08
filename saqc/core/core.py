@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 
 from .config import Fields, Params
-from ..funcs import flagDispatch
-from ..dsl import parseFlag
+# from ..funcs import flagDispatch
+from ..dsl.parser import compileExpression
 from ..lib.plotting import plot
 from ..lib.tools import setup
 
@@ -113,8 +113,6 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
             if pd.isnull(flag_test):
                 continue
 
-            func_name, flag_params = parseFlag(flag_test)
-
             if varname not in data and varname not in flags:
                 continue
 
@@ -124,30 +122,49 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
             fchunk = flags.loc[start_date:end_date]
 
-            try:
-                dchunk, ffchunk = flagDispatch(func_name,
-                                               dchunk, fchunk.copy(),
-                                               varname,
-                                               flagger, nodata=nodata,
-                                               **flag_params)
-            except NameError:
-                raise NameError(
-                    f"function name {func_name} is not definied (variable '{varname}, 'line: {idx + 1})")
+            dchunk, ffchunk = compileExpression(
+                flag_test,
+                data=dchunk, flags=fchunk.copy(), field=varname,
+                flagger=flagger, nodata=nodata)
+                # {"data": dchunk, "flags": fchunk.copy(), "field": varname,
+                #  "this": varname,
+                #  "flagger": flagger, "nodata": nodata})
 
-            # flag a timespan after the condition is met
-            if Params.FLAGPERIOD in flag_params:
-                periodflags = flagPeriod(fchunk, ffchunk, varname, flagger, func_name=func_name, **flag_params)
-                ffchunk = assignTypeSafe(ffchunk, varname, periodflags)
+            # Oh, eval...
+            # dchunk, ffchunk = eval(
+            #     code,
+            #     {"FUNC_MAP": FUNC_MAP, "DSL_FUNC_MAP": DSL_FUNC_MAP},
+            #     {"data": dchunk, "flags": fchunk.copy(), "field": varname,
+            #      "this": varname,
+            #      "flagger": flagger, "NODATA": nodata})
 
-            # flag a certain amount of values after condition is met
-            if Params.FLAGVALUES in flag_params:
-                valueflags = flagNext(fchunk, ffchunk, varname, flagger, func_name=func_name, **flag_params)
-                ffchunk = assignTypeSafe(ffchunk, varname, valueflags)
+            # import ipdb; ipdb.set_trace()
 
-            if flag_params.get(Params.PLOT, False):
-                plotvars.append(varname)
-                mask = flagger.getFlags(fchunk[varname]) != flagger.getFlags(ffchunk[varname])
-                plot(dchunk, ffchunk, mask, varname, flagger, title=flag_test)
+            # try:
+            #     dchunk, ffchunk = flagDispatch(func_name,
+            #                                    dchunk, fchunk.copy(),
+            #                                    varname,
+            #                                    flagger, nodata=nodata,
+            #                                    **flag_params)
+            # except NameError:
+            #     raise NameError(
+            #         f"function name {func_name} is not definied (variable '{varname}, 'line: {idx + 1})")
+
+            # # flag a timespan after the condition is met
+            # # should be moved into functions
+            # if Params.FLAGPERIOD in flag_params:
+            #     periodflags = flagPeriod(fchunk, ffchunk, varname, flagger, func_name=func_name, **flag_params)
+            #     ffchunk = assignTypeSafe(ffchunk, varname, periodflags)
+
+            # # flag a certain amount of values after condition is met
+            # if Params.FLAGVALUES in flag_params:
+            #     valueflags = flagNext(fchunk, ffchunk, varname, flagger, func_name=func_name, **flag_params)
+            #     ffchunk = assignTypeSafe(ffchunk, varname, valueflags)
+
+            # if flag_params.get(Params.PLOT, False):
+            #     plotvars.append(varname)
+            #     mask = flagger.getFlags(fchunk[varname]) != flagger.getFlags(ffchunk[varname])
+            #     plot(dchunk, ffchunk, mask, varname, flagger, title=flag_test)
 
             data.loc[start_date:end_date] = dchunk
             flags.loc[start_date:end_date] = ffchunk.squeeze()
