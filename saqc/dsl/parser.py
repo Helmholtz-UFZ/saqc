@@ -13,7 +13,7 @@ from saqc.funcs.register import FUNC_MAP
 # Module should be renamed to compiler
 
 
-def initDslFuncMap(flagger, level):
+def initDslFuncMap(flagger, nodata, level):
     func_map = {
         "abs": {"func": abs, "target": "data"},
         "max": {"func": max, "target": "data"},
@@ -22,8 +22,12 @@ def initDslFuncMap(flagger, level):
         "sum": {"func": np.sum, "target": "data"},
         "std": {"func": np.std, "target": "data"},
         "len": {"func": len, "target": "data"},
-        "isflagged": {"func": lambda flags: flagger.isFlagged(flags), "target": "flags"}
-        # "ismissing": (lambda d: ((d == nodata) | pd.isnull(d)), "data"),
+        "isflagged": {
+            "func": lambda flags: flagger.isFlagged(flags),
+            "target": "flags"},
+        "ismissing": {
+            "func": lambda data: ((data == nodata) | pd.isnull(data)),
+            "target": "data"},
     }
     return {k: v[level] for k, v in func_map.items()}
 
@@ -32,6 +36,7 @@ class DslTransformer(ast.NodeTransformer):
     # TODO: restrict the supported nodes
 
     SUPPORTED = (
+        ast.Expression,
         ast.Num,
         ast.Compare,
         ast.Add,
@@ -110,7 +115,7 @@ class MetaTransformer(ast.NodeTransformer):
         func_name = node.func.id
 
         if func_name not in FUNC_MAP:
-            raise TypeError("Unknown test function: {func_name}")
+            raise TypeError(f"Unknown test function: {func_name}")
 
         self.func_name = func_name
         new_args = [ast.Name(id="data", ctx=ast.Load()),
@@ -145,32 +150,21 @@ class MetaTransformer(ast.NodeTransformer):
         return super().generic_visit(node)
 
 
-def compileExpression(expr, flagger):
+def parseExpression(expr: str) -> ast.Expression:
     tree = ast.parse(expr, mode="eval")
     if not isinstance(tree.body, ast.Call):
         raise TypeError('function call needed')
+    return tree
 
-    dsl_transformer = DslTransformer(initDslFuncMap(flagger, level="target"))
-    transformed_tree = MetaTransformer(dsl_transformer).visit(tree)
 
-    code = compile(ast.fix_missing_locations(transformed_tree),
+def compileTree(tree: ast.Expression):
+    return compile(ast.fix_missing_locations(tree),
                    "<ast>",
                    mode="eval")
-    return code
-    # global_env = {k: v["func"] for k, v in dsl_func_map.items()}
-    # local_env = {
-    #     "FUNC_MAP": FUNC_MAP,
-    #     "data": data, "flags": flags,
-    #     "field": field, "this": field,
-    #     "flagger": flagger, "NODATA": nodata}
-
-    # return eval(code, global_env, local_env)
 
 
-def evalExpression(expr, data, flags, field, flagger, nodata):
-
-    code = compileExpression(expr, flagger)
-    global_env = initDslFuncMap(flagger, level="func")
+def evalCode(code, data, flags, field, flagger, nodata):
+    global_env = initDslFuncMap(flagger, nodata, level="func")
     local_env = {
         "FUNC_MAP": FUNC_MAP,
         "data": data, "flags": flags,
@@ -180,12 +174,10 @@ def evalExpression(expr, data, flags, field, flagger, nodata):
     return eval(code, global_env, local_env)
 
 
+def evalExpression(expr, data, flags, field, flagger, nodata):
 
-
-# def parseFlag(expr):
-#     content = yaml.load("[{:}]".format(expr), Loader=yaml.SafeLoader)
-#     name = content[0]
-#     out = {}
-#     for pdict in content[1:]:
-#         out.update(pdict)
-#     return name, out
+    tree = parseExpression(expr)
+    dsl_transformer = DslTransformer(initDslFuncMap(flagger, nodata, "target"))
+    transformed_tree = MetaTransformer(dsl_transformer).visit(tree)
+    code = compileTree(transformed_tree)
+    return evalCode(code, data, flags, field, flagger, nodata)

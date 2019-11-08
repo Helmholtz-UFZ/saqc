@@ -4,12 +4,14 @@
 import io
 import re
 
-import pytest
 import numpy as np
 import pandas as pd
 
 from saqc.core.core import prepareMeta, readMeta
+from saqc.flagger import SimpleFlagger, DmpFlagger
 
+
+TESTFLAGGER = (SimpleFlagger(), DmpFlagger())
 
 
 def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):
