@@ -63,11 +63,10 @@ def test_isflaggedArgument(flagger):
     var1, var2, *_ = data.columns
 
     flags = flagger.initFlags(data)
-    flag = flagger.flags.bad()
-    flags = flagger.setFlags(flags, var1, iloc=slice(None, None, 2), flag=flag)
+    flags = flagger.setFlags(flags, var1, iloc=slice(None, None, 2), flag=flagger.BAD)
 
     idx = _evalExpression(
-        f"isflagged({var1}, {flag})", data, flags, var2, flagger)
+        f"isflagged({var1}, {flagger.BAD})", data, flags, var2, flagger)
 
-    flagged = flagger.isFlagged(flags[var1], flag, comparator=">=")
+    flagged = flagger.isFlagged(flags[var1], flagger.BAD, comparator=">=")
     assert (flagged == idx).all()
