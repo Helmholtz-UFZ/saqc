@@ -13,8 +13,8 @@ from saqc.funcs.register import FUNC_MAP
 # Module should be renamed to compiler
 
 
-def initDslFuncMap(flagger):
-    return {
+def initDslFuncMap(flagger, level):
+    func_map = {
         "abs": {"func": abs, "target": "data"},
         "max": {"func": max, "target": "data"},
         "min": {"func": min, "target": "data"},
@@ -25,6 +25,7 @@ def initDslFuncMap(flagger):
         "isflagged": {"func": lambda flags: flagger.isFlagged(flags), "target": "flags"}
         # "ismissing": (lambda d: ((d == nodata) | pd.isnull(d)), "data"),
     }
+    return {k: v[level] for k, v in func_map.items()}
 
 
 class DslTransformer(ast.NodeTransformer):
@@ -144,20 +145,32 @@ class MetaTransformer(ast.NodeTransformer):
         return super().generic_visit(node)
 
 
-def compileExpression(expr, data, flags, field, flagger, nodata):
+def compileExpression(expr, flagger):
     tree = ast.parse(expr, mode="eval")
     if not isinstance(tree.body, ast.Call):
         raise TypeError('function call needed')
 
-    dsl_func_map = initDslFuncMap(flagger)
-    dsl_transformer = DslTransformer({k: v["target"] for k, v in dsl_func_map.items()})
+    dsl_transformer = DslTransformer(initDslFuncMap(flagger, level="target"))
     transformed_tree = MetaTransformer(dsl_transformer).visit(tree)
 
-    print(astor.to_source(transformed_tree))
     code = compile(ast.fix_missing_locations(transformed_tree),
                    "<ast>",
                    mode="eval")
-    global_env = {k: v["func"] for k, v in dsl_func_map.items()}
+    return code
+    # global_env = {k: v["func"] for k, v in dsl_func_map.items()}
+    # local_env = {
+    #     "FUNC_MAP": FUNC_MAP,
+    #     "data": data, "flags": flags,
+    #     "field": field, "this": field,
+    #     "flagger": flagger, "NODATA": nodata}
+
+    # return eval(code, global_env, local_env)
+
+
+def evalExpression(expr, data, flags, field, flagger, nodata):
+
+    code = compileExpression(expr, flagger)
+    global_env = initDslFuncMap(flagger, level="func")
     local_env = {
         "FUNC_MAP": FUNC_MAP,
         "data": data, "flags": flags,
@@ -165,6 +178,8 @@ def compileExpression(expr, data, flags, field, flagger, nodata):
         "flagger": flagger, "NODATA": nodata}
 
     return eval(code, global_env, local_env)
+
+
 
 
 # def parseFlag(expr):
