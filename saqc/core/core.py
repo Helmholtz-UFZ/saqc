@@ -5,8 +5,7 @@ import numpy as np
 import pandas as pd
 
 from .config import Fields, Params
-# from ..funcs import flagDispatch
-from ..dsl.parser import compileExpression
+from ..dsl.parser import evalExpression
 from ..lib.plotting import plot
 from ..lib.tools import setup
 
@@ -122,33 +121,10 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
             fchunk = flags.loc[start_date:end_date]
 
-            dchunk, ffchunk = compileExpression(
+            dchunk, ffchunk = evalExpression(
                 flag_test,
                 data=dchunk, flags=fchunk.copy(), field=varname,
                 flagger=flagger, nodata=nodata)
-                # {"data": dchunk, "flags": fchunk.copy(), "field": varname,
-                #  "this": varname,
-                #  "flagger": flagger, "nodata": nodata})
-
-            # Oh, eval...
-            # dchunk, ffchunk = eval(
-            #     code,
-            #     {"FUNC_MAP": FUNC_MAP, "DSL_FUNC_MAP": DSL_FUNC_MAP},
-            #     {"data": dchunk, "flags": fchunk.copy(), "field": varname,
-            #      "this": varname,
-            #      "flagger": flagger, "NODATA": nodata})
-
-            # import ipdb; ipdb.set_trace()
-
-            # try:
-            #     dchunk, ffchunk = flagDispatch(func_name,
-            #                                    dchunk, fchunk.copy(),
-            #                                    varname,
-            #                                    flagger, nodata=nodata,
-            #                                    **flag_params)
-            # except NameError:
-            #     raise NameError(
-            #         f"function name {func_name} is not definied (variable '{varname}, 'line: {idx + 1})")
 
             # # flag a timespan after the condition is met
             # # should be moved into functions
