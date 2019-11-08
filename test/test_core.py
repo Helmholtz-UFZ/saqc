@@ -18,53 +18,59 @@ from saqc.funcs.functions import flagRange
 TESTFLAGGERS = [
     SimpleFlagger(),
     DmpFlagger(),
-    # PositionalFlagger()
 ]
 
 
+# def prepareInput():
+#     data = initData(3)
+#     var1, var2, var3, *_ = data.columns
+#     split_index = int(len(data.index)//2)
+
+#     metadict = [
+#         {F.VARNAME: var1, "Flag": "range, {min: -2, max: -1}"},
+#         {F.VARNAME: var2, "Flag": "generic, {func: this <= sum(this)}", F.END: split_index},
+#         {F.VARNAME: var3, "Flag": "generic, {func: this <= sum(this)}", F.START: split_index},
+#     ]
+
+#     meta_file, meta_frame = initMetaDict(metadict, data)
+#     return {"data": data, "meta_file": meta_file, "meta_frame": meta_frame}
+
+
+@pytest.fixture
+def data():
+    return initData(3)
+    # return prepareInput()["data"]
+
+
+# @pytest.fixture
+# def meta_file():
+#     return prepareInput()["meta_file"]
+
+
+# @pytest.fixture
+# def meta_frame():
+#     return prepareInput()["meta_frame"]
+
+
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
-def test_positionalPartitioning(flagger):
-    data = initData(3).reset_index(drop=True)
-    var1, var2, var3, *_ = data.columns
-    split_index = int(len(data.index)//2)
-
-    metadict = [
-        {F.VARNAME: var1, "Flag": "range, {min: -2, max: -1}"},
-        {F.VARNAME: var2, "Flag": "generic, {func: this <= sum(this)}", F.END: split_index},
-        {F.VARNAME: var3, "Flag": "generic, {func: this <= sum(this)}", F.START: split_index},
-    ]
-    metafobj, meta = initMetaDict(metadict, data)
-
-    pdata, pflags = runner(metafobj, flagger, data)
-
-    fields = [F.VARNAME, F.START, F.END]
-    for _, row in meta.iterrows():
-        vname, start_index, end_index = row[fields]
-        fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
-        assert fchunk.index.min() == start_index, "different start indices"
-        assert fchunk.index.max() == end_index, f"different end indices: {fchunk.index.max()} vs. {end_index}"
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGERS)
-def test_temporalPartitioning(flagger):
+def test_temporalPartitioning(data, flagger):
     """
     Check if the time span in meta is respected
     """
-    data = initData(3)
     var1, var2, var3, *_ = data.columns
     split_date = data.index[len(data.index)//2]
 
     metadict = [
-        {F.VARNAME: var1, "Flag": "range, {min: -2, max: -1}"},
-        {F.VARNAME: var2, "Flag": "generic, {func: this <= sum(this)}", F.END: split_date},
-        {F.VARNAME: var3, "Flag": "generic, {func: this <= sum(this)}", F.START: split_date},
+        {F.VARNAME: var1, "Flag": "range(min=-2, max=-1)"},
+        {F.VARNAME: var2, "Flag": "generic(func=var2 <= sum(var2))", F.END: split_date},
+        {F.VARNAME: var3, "Flag": "generic(func=this <= sum(this))", F.START: split_date},
     ]
-    metafobj, meta = initMetaDict(metadict, data)
+    meta_file, meta_frame = initMetaDict(metadict, data)
 
-    pdata, pflags = runner(metafobj, flagger, data)
+    pdata, pflags = runner(meta_file, flagger, data)
 
     fields = [F.VARNAME, F.START, F.END]
-    for _, row in meta.iterrows():
+    for _, row in meta_frame.iterrows():
         vname, start_date, end_date = row[fields]
         fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
         assert fchunk.index.min() == start_date, "different start dates"
@@ -72,15 +78,37 @@ def test_temporalPartitioning(flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGERS)
-def test_missingConfig(flagger):
+def test_positionalPartitioning(data, flagger):
+    data = data.reset_index(drop=True)
+    var1, var2, var3, *_ = data.columns
+    split_index = int(len(data.index)//2)
+
+    metadict = [
+        {F.VARNAME: var1, "Flag": "range(min=-2, max=-1)"},
+        {F.VARNAME: var2, "Flag": "generic(func=this <= sum(this))", F.END: split_index},
+        {F.VARNAME: var3, "Flag": "generic(func=this <= sum(this))", F.START: split_index},
+    ]
+    meta_file, meta_frame = initMetaDict(metadict, data)
+
+    pdata, pflags = runner(meta_file, flagger, data)
+
+    fields = [F.VARNAME, F.START, F.END]
+    for _, row in meta_frame.iterrows():
+        vname, start_index, end_index = row[fields]
+        fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
+        assert fchunk.index.min() == start_index, "different start indices"
+        assert fchunk.index.max() == end_index, f"different end indices: {fchunk.index.max()} vs. {end_index}"
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+def test_missingConfig(data, flagger):
     """
     Test if variables available in the dataset but not the config
     are handled correctly, i.e. are ignored
     """
-    data = initData(2)
     var1, var2, *_ = data.columns
 
-    metadict = [{F.VARNAME: var1, "Flag": "range, {min: -9999, max: 9999}"}]
+    metadict = [{F.VARNAME: var1, "Flag": "range(min=-9999, max=9999)"}]
     metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
@@ -98,8 +126,8 @@ def test_missingVariable(flagger):
     var, *_ = data.columns
 
     metadict = [
-        {F.VARNAME: var, "Flag": "range, {min: -9999, max: 9999}"},
-        {F.VARNAME: "empty", "Flag": "range, {min: -9999, max: 9999}"},
+        {F.VARNAME: var, "Flag": "range(min=-9999, max=9999)"},
+        {F.VARNAME: "empty", "Flag": "range(min=-9999, max=9999)"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -119,8 +147,8 @@ def test_assignVariable(flagger):
     var2 = "empty"
 
     metadict = [
-        {F.VARNAME: var1, F.ASSIGN: False, "Flag": "range, {min: 9999, max: -99999}"},
-        {F.VARNAME: var2, F.ASSIGN: True,  "Flag": f"generic, {{func: isflagged({var1})}}"},
+        {F.VARNAME: var1, F.ASSIGN: False, "Flag": "range(min=9999, max=-99999)"},
+        {F.VARNAME: var2, F.ASSIGN: True,  "Flag": f"generic(func=isflagged({var1}))"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -147,8 +175,8 @@ def test_dtypes(flagger):
     var1, var2, *_ = data.columns
 
     metadict = [
-        {F.VARNAME: var1, "Flag": f"generic, {{func: this > {len(data)//2}, {P.FLAGVALUES}: 4}}"},
-        {F.VARNAME: var2, "Flag": f"generic, {{func: this < {len(data)//2}, {P.FLAGPERIOD}: 2h}}"},
+        {F.VARNAME: var1, "Flag": f"generic(func=this > {len(data)//2}, {P.FLAGVALUES}=4)"},
+        {F.VARNAME: var2, "Flag": f"generic(func=this < {len(data)//2}, {P.FLAGPERIOD}='2h')"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
     pdata, pflags = runner(metafobj, flagger, data, flags)
