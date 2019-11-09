@@ -159,7 +159,7 @@ class MetaTransformer(ast.NodeTransformer):
 
 def parseExpression(expr: str) -> ast.Expression:
     tree = ast.parse(expr, mode="eval")
-    if not isinstance(tree.body, ast.Call):
+    if not isinstance(tree.body, (ast.Call, ast.Compare)):
         raise TypeError('function call needed')
     return tree
 
