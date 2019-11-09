@@ -129,15 +129,13 @@ class MetaTransformer(ast.NodeTransformer):
                     ast.Name(id="flagger", ctx=ast.Load())]
 
         node = ast.Call(
-            func=ast.Subscript(
-                value=ast.Name(id="FUNC_MAP", ctx=ast.Load()),
-                slice=ast.Index(value=ast.Str(s=func_name)),
-                ctx=ast.Load()),
+            func=node.func,
             args=new_args + node.args,
             keywords=node.keywords)
         return self.generic_visit(node)
 
     def visit_keyword(self, node):
+        # import ipdb; ipdb.set_trace()
         if self.func_name == "generic" and node.arg == Params.FUNC:
             node = ast.keyword(
                 arg=node.arg,
@@ -171,7 +169,7 @@ def compileTree(tree: ast.Expression):
 def evalCode(code, data, flags, field, flagger, nodata):
     global_env = initDslFuncMap(nodata)
     local_env = {
-        "FUNC_MAP": FUNC_MAP,
+        **FUNC_MAP,
         "data": data, "flags": flags,
         "field": field, "this": field,
         "flagger": flagger, "NODATA": nodata}
