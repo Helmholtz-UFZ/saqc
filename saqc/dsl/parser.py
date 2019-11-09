@@ -15,9 +15,9 @@ from saqc.funcs.register import FUNC_MAP
 
 def initDslFuncMap(flagger, nodata, level):
     func_map = {
-        "abs": {"func": abs, "target": "data"},
-        "max": {"func": max, "target": "data"},
-        "min": {"func": min, "target": "data"},
+        "abs": {"func": np.abs, "target": "data"},
+        "max": {"func": np.max, "target": "data"},
+        "min": {"func": np.min, "target": "data"},
         "mean": {"func": np.mean, "target": "data"},
         "sum": {"func": np.sum, "target": "data"},
         "std": {"func": np.std, "target": "data"},
