@@ -56,15 +56,19 @@ class DslTransformer(ast.NodeTransformer):
         ast.Invert,
     )
 
-    def __init__(self, func_map):
+    def __init__(self, func_map, variables):
         self.func_map = func_map
+        self.variables = set(variables)
 
     def _rename(self, node: ast.Name, target: str) -> ast.Subscript:
 
-        if node.id == "this":
+        name = node.id
+        if name == "this":
             slice = ast.Index(value=ast.Name(id="field", ctx=ast.Load()))
         else:
-            slice = ast.Index(value=ast.Constant(value=node.id))
+            if name not in self.variables:
+                raise NameError(f"unknown variable: '{name}'")
+            slice = ast.Index(value=ast.Constant(value=name))
 
         return ast.Subscript(
             value=ast.Name(id=target, ctx=ast.Load()),
@@ -74,7 +78,7 @@ class DslTransformer(ast.NodeTransformer):
     def visit_Call(self, node):
         func_name = node.func.id
         if func_name not in self.func_map:
-            raise TypeError(f"unspported function: {func_name}")
+            raise NameError(f"unspported function: {func_name}")
 
         node = ast.Call(
             func=node.func,
@@ -180,7 +184,7 @@ def evalCode(code, data, flags, field, flagger, nodata):
 def evalExpression(expr, data, flags, field, flagger, nodata):
 
     tree = parseExpression(expr)
-    dsl_transformer = DslTransformer(initDslFuncMap(nodata))
+    dsl_transformer = DslTransformer(initDslFuncMap(nodata), data.columns)
     transformed_tree = MetaTransformer(dsl_transformer).visit(tree)
     code = compileTree(transformed_tree)
     return evalCode(code, data, flags, field, flagger, nodata)
