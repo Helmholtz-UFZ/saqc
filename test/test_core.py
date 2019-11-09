@@ -2,57 +2,26 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-import numpy as np
 import pandas as pd
 
-from saqc.core.core import runner, flagNext, flagPeriod, prepareMeta, readMeta
+from saqc.funcs import register
+from saqc.core.core import runner, flagNext, flagPeriod
 from saqc.core.config import Fields as F
-from saqc.core.config import Params as P
-from saqc.flagger.simpleflagger import SimpleFlagger
-from saqc.flagger.dmpflagger import DmpFlagger
-from saqc.flagger.positionalflagger import PositionalFlagger
-from .common import initData, initMeta, initMetaDict
-from saqc.funcs.functions import flagRange
-
-
-TESTFLAGGERS = [
-    SimpleFlagger(),
-    DmpFlagger(),
-]
-
-
-# def prepareInput():
-#     data = initData(3)
-#     var1, var2, var3, *_ = data.columns
-#     split_index = int(len(data.index)//2)
-
-#     metadict = [
-#         {F.VARNAME: var1, "Flag": "range, {min: -2, max: -1}"},
-#         {F.VARNAME: var2, "Flag": "generic, {func: this <= sum(this)}", F.END: split_index},
-#         {F.VARNAME: var3, "Flag": "generic, {func: this <= sum(this)}", F.START: split_index},
-#     ]
-
-#     meta_file, meta_frame = initMetaDict(metadict, data)
-#     return {"data": data, "meta_file": meta_file, "meta_frame": meta_frame}
+from .common import initData, initMetaDict, TESTFLAGGER
 
 
 @pytest.fixture
 def data():
     return initData(3)
-    # return prepareInput()["data"]
 
 
-# @pytest.fixture
-# def meta_file():
-#     return prepareInput()["meta_file"]
+@register("flagAll")
+def flagAll(data, flags, field, flagger, **kwargs):
+    # NOTE: remember to rename flag -> flag_values
+    return data, flagger.setFlags(flags, field, flag=flagger.BAD)
 
 
-# @pytest.fixture
-# def meta_frame():
-#     return prepareInput()["meta_frame"]
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_temporalPartitioning(data, flagger):
     """
     Check if the time span in meta is respected
@@ -61,9 +30,9 @@ def test_temporalPartitioning(data, flagger):
     split_date = data.index[len(data.index)//2]
 
     metadict = [
-        {F.VARNAME: var1, "Flag": "range(min=-2, max=-1)"},
-        {F.VARNAME: var2, "Flag": "generic(func=var2 <= sum(var2))", F.END: split_date},
-        {F.VARNAME: var3, "Flag": "generic(func=this <= sum(this))", F.START: split_date},
+        {F.VARNAME: var1, "Flag": "flagAll()"},
+        {F.VARNAME: var2, "Flag": "flagAll()", F.END: split_date},
+        {F.VARNAME: var3, "Flag": "flagAll()", F.START: split_date},
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
 
@@ -77,16 +46,16 @@ def test_temporalPartitioning(data, flagger):
         assert fchunk.index.max() == end_date, "different end dates"
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_positionalPartitioning(data, flagger):
     data = data.reset_index(drop=True)
     var1, var2, var3, *_ = data.columns
     split_index = int(len(data.index)//2)
 
     metadict = [
-        {F.VARNAME: var1, "Flag": "range(min=-2, max=-1)"},
-        {F.VARNAME: var2, "Flag": "generic(func=this <= sum(this))", F.END: split_index},
-        {F.VARNAME: var3, "Flag": "generic(func=this <= sum(this))", F.START: split_index},
+        {F.VARNAME: var1, "Flag": "flagAll()"},
+        {F.VARNAME: var2, "Flag": "flagAll()", F.END: split_index},
+        {F.VARNAME: var3, "Flag": "flagAll()", F.START: split_index},
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
 
@@ -100,7 +69,7 @@ def test_positionalPartitioning(data, flagger):
         assert fchunk.index.max() == end_index, f"different end indices: {fchunk.index.max()} vs. {end_index}"
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_missingConfig(data, flagger):
     """
     Test if variables available in the dataset but not the config
@@ -108,7 +77,7 @@ def test_missingConfig(data, flagger):
     """
     var1, var2, *_ = data.columns
 
-    metadict = [{F.VARNAME: var1, "Flag": "range(min=-9999, max=9999)"}]
+    metadict = [{F.VARNAME: var1, "Flag": "flagAll()"}]
     metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
@@ -116,7 +85,7 @@ def test_missingConfig(data, flagger):
     assert var1 in pdata and var2 not in pflags
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_missingVariable(flagger):
     """
     Test if variables available in the config but not dataset
@@ -126,8 +95,8 @@ def test_missingVariable(flagger):
     var, *_ = data.columns
 
     metadict = [
-        {F.VARNAME: var, "Flag": "range(min=-9999, max=9999)"},
-        {F.VARNAME: "empty", "Flag": "range(min=-9999, max=9999)"},
+        {F.VARNAME: var, "Flag": "flagAll()"},
+        {F.VARNAME: "empty", "Flag": "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -136,7 +105,7 @@ def test_missingVariable(flagger):
     assert (pdata.columns == [var]).all()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_assignVariable(flagger):
     """
     Test the assign keyword, a variable present in the configuration, but not
@@ -147,8 +116,8 @@ def test_assignVariable(flagger):
     var2 = "empty"
 
     metadict = [
-        {F.VARNAME: var1, F.ASSIGN: False, "Flag": "range(min=9999, max=-99999)"},
-        {F.VARNAME: var2, F.ASSIGN: True,  "Flag": f"generic(func=isflagged({var1}))"},
+        {F.VARNAME: var1, F.ASSIGN: False, "Flag": "flagAll()"},
+        {F.VARNAME: var2, F.ASSIGN: True,  "Flag": "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -165,28 +134,30 @@ def test_assignVariable(flagger):
         assert flagger.isFlagged(pflags[var2]).any()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGERS)
-def test_dtypes(flagger):
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_dtypes(data, flagger):
     """
     Test if the categorical dtype is preserved through the core functionality
     """
-    data = initData(3)
     flags = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
     metadict = [
-        {F.VARNAME: var1, "Flag": f"generic(func=this > {len(data)//2}, {P.FLAGVALUES}=4)"},
-        {F.VARNAME: var2, "Flag": f"generic(func=this < {len(data)//2}, {P.FLAGPERIOD}='2h')"},
+        {F.VARNAME: var1, "Flag": "flagAll()"},
+        {F.VARNAME: var2, "Flag": "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
     pdata, pflags = runner(metafobj, flagger, data, flags)
     assert dict(flags.dtypes) == dict(pflags.dtypes)
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagNext(flagger):
     """
     Test if the flagNext functionality works as expected
+
+    NOTE:
+    needs to move out of this module
     """
     data = initData()
     flags = flagger.initFlags(data)
@@ -209,10 +180,13 @@ def test_flagNext(flagger):
     assert (o != f).all()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagPeriod(flagger):
     """
     Test if the flagNext functionality works as expected
+
+    NOTE:
+    needs to move out of this module
     """
     data = initData()
     flags = flagger.initFlags(data)
@@ -236,7 +210,7 @@ def test_flagPeriod(flagger):
     assert (o != f).all()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGERS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_plotting(flagger):
     """ Test if the plotting code runs. does not show any plot.
         Note:
