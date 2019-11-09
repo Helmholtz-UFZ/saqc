@@ -12,12 +12,13 @@ from ..common import initData, TESTFLAGGER
 from saqc.dsl.parser import (
     DslTransformer,
     initDslFuncMap,
+    evalExpression,
     compileTree,
     evalCode)
 
 
 def _evalExpression(expr, data, flags, field, flagger, nodata=np.nan):
-    dsl_transformer = DslTransformer(initDslFuncMap(flagger, nodata, "target"))
+    dsl_transformer = DslTransformer(initDslFuncMap(nodata))
     tree = ast.parse(expr, mode="eval")
     transformed_tree = dsl_transformer.visit(tree)
     code = compileTree(transformed_tree)
@@ -34,6 +35,40 @@ def nodata():
     return -99990
 
 
+# @pytest.mark.parametrize("flagger", TESTFLAGGER)
+# def test_flagPropagation(data, flagger):
+#     flags = flagger.setFlags(
+#         flagger.initFlags(data),
+#         'var2', iloc=slice(None, None, 5))
+
+#     var1, var2, *_ = data.columns
+#     this = var1
+#     var2_flags = flagger.isFlagged(flags[var2])
+#     var2_data = data[var2].mask(var2_flags)
+#     data, flags = evalExpression(
+#         "generic(func=var2 < mean(var2))",
+#         data, flags,
+#         this,
+#         flagger, np.nan
+#     )
+
+#     expected = (var2_flags | (var2_data < var2_data.mean()))
+#     result = flagger.isFlagged(flags[this])
+#     assert (result == expected).all()
+
+
+# @pytest.mark.parametrize("flagger", TESTFLAGGER)
+# def test_missingIdentifier(data, flagger):
+#     flags = flagger.initFlags(data)
+#     tests = [
+#         "func(var2) < 5",
+#         "var3 != NODATA"
+#     ]
+#     for expr in tests:
+#         with pytest.raises(NameError):
+#             _evalExpression(expr, data, flags, data.columns[0], flagger)
+
+
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_comparisons(data, flagger):
     flags = flagger.initFlags(data)
@@ -44,11 +79,24 @@ def test_comparisons(data, flagger):
         ("this > 100", data[this] > 100),
         (f"10 >= {var2}", 10 >= data[var2]),
         (f"{var2} < 100", data[var2] < 100),
-        (f"this <= {var2}", data[this] <= data[var2])]
+        (f"this <= {var2}", data[this] <= data[var2])
+    ]
 
+    # check directly
     for expr, expected in tests:
         result = _evalExpression(expr, data, flags, this, flagger, np.nan)
         assert (result == expected).all()
+
+    # check within the usually enclosing scope
+    for expr, mask in tests:
+        _, result_flags = evalExpression(
+            f"generic(func={expr})",
+            data, flags,
+            this, flagger, np.nan)
+        expected_flags = flagger.setFlags(flags, this, loc=mask, test="generic")
+        assert np.all(
+            flagger.isFlagged(result_flags) == flagger.isFlagged(expected_flags)
+        )
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
