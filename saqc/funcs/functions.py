@@ -16,17 +16,18 @@ from .register import register
 
 @register("generic")
 def flagGeneric(data, flags, field, flagger, func, **kwargs):
-    """
-    NOTE:
-    The naming of the func parameter is pretty confusing
-    as it actually holds the result of a generic expression
-    """
-    result = func.squeeze()
-    if np.isscalar(result):
+    # NOTE:
+    # - The naming of the func parameter is pretty confusing
+    #   as it actually holds the result of a generic expression
+    # - if the result series carries a name, it was explicitly created
+    #   from one single columns, so we need to preserve this columns
+    #   properties
+    mask = func.squeeze() | flagger.isFlagged(flags[func.name or field])
+    if np.isscalar(mask):
         raise TypeError(f"generic expression does not return an array")
-    if not np.issubdtype(result.dtype, np.bool_):
+    if not np.issubdtype(mask.dtype, np.bool_):
         raise TypeError(f"generic expression does not return a boolean array")
-    flags = flagger.setFlags(flags, field, result, **kwargs)
+    flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
 
 

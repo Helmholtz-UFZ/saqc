@@ -18,7 +18,7 @@ from saqc.dsl.parser import (
 
 
 def _evalExpression(expr, data, flags, field, flagger, nodata=np.nan):
-    dsl_transformer = DslTransformer(initDslFuncMap(nodata))
+    dsl_transformer = DslTransformer(initDslFuncMap(nodata), data.columns)
     tree = ast.parse(expr, mode="eval")
     transformed_tree = dsl_transformer.visit(tree)
     code = compileTree(transformed_tree)
@@ -35,38 +35,38 @@ def nodata():
     return -99990
 
 
-# @pytest.mark.parametrize("flagger", TESTFLAGGER)
-# def test_flagPropagation(data, flagger):
-#     flags = flagger.setFlags(
-#         flagger.initFlags(data),
-#         'var2', iloc=slice(None, None, 5))
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_flagPropagation(data, flagger):
+    flags = flagger.setFlags(
+        flagger.initFlags(data),
+        'var2', iloc=slice(None, None, 5))
 
-#     var1, var2, *_ = data.columns
-#     this = var1
-#     var2_flags = flagger.isFlagged(flags[var2])
-#     var2_data = data[var2].mask(var2_flags)
-#     data, flags = evalExpression(
-#         "generic(func=var2 < mean(var2))",
-#         data, flags,
-#         this,
-#         flagger, np.nan
-#     )
+    var1, var2, *_ = data.columns
+    this = var1
+    var2_flags = flagger.isFlagged(flags[var2])
+    var2_data = data[var2].mask(var2_flags)
+    data, flags = evalExpression(
+        "generic(func=var2 < mean(var2))",
+        data, flags,
+        this,
+        flagger, np.nan
+    )
 
-#     expected = (var2_flags | (var2_data < var2_data.mean()))
-#     result = flagger.isFlagged(flags[this])
-#     assert (result == expected).all()
+    expected = (var2_flags | (var2_data < var2_data.mean()))
+    result = flagger.isFlagged(flags[this])
+    assert (result == expected).all()
 
 
-# @pytest.mark.parametrize("flagger", TESTFLAGGER)
-# def test_missingIdentifier(data, flagger):
-#     flags = flagger.initFlags(data)
-#     tests = [
-#         "func(var2) < 5",
-#         "var3 != NODATA"
-#     ]
-#     for expr in tests:
-#         with pytest.raises(NameError):
-#             _evalExpression(expr, data, flags, data.columns[0], flagger)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_missingIdentifier(data, flagger):
+    flags = flagger.initFlags(data)
+    tests = [
+        "func(var2) < 5",
+        "var3 != NODATA"
+    ]
+    for expr in tests:
+        with pytest.raises(NameError):
+            _evalExpression(expr, data, flags, data.columns[0], flagger)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
