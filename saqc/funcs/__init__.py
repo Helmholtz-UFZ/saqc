@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # imports needed to make the functions register themself
+from .register import register
 from .functions import *
 from .break_detection import *
 from .constants_detection import *
