@@ -4,7 +4,7 @@
 import pytest
 import numpy as np
 
-from saqc.dsl.parser import (
+from saqc.core.evaluator import (
     compileTree,
     parseExpression,
     initDslFuncMap,

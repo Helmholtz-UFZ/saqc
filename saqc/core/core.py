@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from .config import Fields, Params
-from ..dsl.parser import evalExpression
+from .evaluator import evalExpression
 from ..lib.plotting import plot
 from ..lib.tools import setup
 
