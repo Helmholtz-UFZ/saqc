@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import ast
-from typing import List
+from functools import partial
+
 import astor
 import numpy as np
 import pandas as pd
@@ -13,23 +14,26 @@ from saqc.funcs.register import FUNC_MAP
 # Module should be renamed to compiler
 
 
-def initDslFuncMap(flagger, nodata, level):
-    func_map = {
-        "abs": {"func": np.abs, "target": "data"},
-        "max": {"func": np.max, "target": "data"},
-        "min": {"func": np.min, "target": "data"},
-        "mean": {"func": np.mean, "target": "data"},
-        "sum": {"func": np.sum, "target": "data"},
-        "std": {"func": np.std, "target": "data"},
-        "len": {"func": len, "target": "data"},
-        "isflagged": {
-            "func": lambda flags: flagger.isFlagged(flags),
-            "target": "flags"},
-        "ismissing": {
-            "func": lambda data: ((data == nodata) | pd.isnull(data)),
-            "target": "data"},
+def _dslInner(func, data, flags, flagger):
+    return func(data.mask(flagger.isFlagged(flags)))
+
+
+def _dslIsFlagged(data, flags, flagger):
+    return flagger.isFlagged(flags)
+
+
+def initDslFuncMap(nodata):
+    return {
+        "abs": partial(_dslInner, np.abs),
+        "max": partial(_dslInner, np.nanmax),
+        "min": partial(_dslInner, np.nanmin),
+        "mean": partial(_dslInner, np.nanmean),
+        "sum": partial(_dslInner, np.nansum),
+        "std": partial(_dslInner, np.nanstd),
+        "len": partial(_dslInner, len),
+        "isflagged": _dslIsFlagged,
+        "ismissing": lambda data, flags, flagger: ((data == nodata) | pd.isnull(data)),
     }
-    return {k: v[level] for k, v in func_map.items()}
 
 
 class DslTransformer(ast.NodeTransformer):
@@ -72,11 +76,13 @@ class DslTransformer(ast.NodeTransformer):
         if func_name not in self.func_map:
             raise TypeError(f"unspported function: {func_name}")
 
-        target = self.func_map[func_name]
-
         node = ast.Call(
             func=node.func,
-            args=[self._rename(node.args[0], target)],
+            args=[
+                self._rename(node.args[0], "data"),
+                self._rename(node.args[0], "flags"),
+                ast.Name(id="flagger", ctx=ast.Load()),
+            ],
             keywords=[]
         )
         return node
@@ -88,7 +94,6 @@ class DslTransformer(ast.NodeTransformer):
         if not isinstance(node, self.SUPPORTED):
             raise TypeError(f"Invalid expression: {node}")
         return super().generic_visit(node)
-
 
 
 class MetaTransformer(ast.NodeTransformer):
@@ -164,7 +169,7 @@ def compileTree(tree: ast.Expression):
 
 
 def evalCode(code, data, flags, field, flagger, nodata):
-    global_env = initDslFuncMap(flagger, nodata, level="func")
+    global_env = initDslFuncMap(nodata)
     local_env = {
         "FUNC_MAP": FUNC_MAP,
         "data": data, "flags": flags,
@@ -177,7 +182,7 @@ def evalCode(code, data, flags, field, flagger, nodata):
 def evalExpression(expr, data, flags, field, flagger, nodata):
 
     tree = parseExpression(expr)
-    dsl_transformer = DslTransformer(initDslFuncMap(flagger, nodata, "target"))
+    dsl_transformer = DslTransformer(initDslFuncMap(nodata))
     transformed_tree = MetaTransformer(dsl_transformer).visit(tree)
     code = compileTree(transformed_tree)
     return evalCode(code, data, flags, field, flagger, nodata)
