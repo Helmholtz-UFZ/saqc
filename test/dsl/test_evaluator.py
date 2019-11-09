@@ -6,32 +6,12 @@ import numpy as np
 
 from ..common import initData
 from saqc.flagger.simpleflagger import SimpleFlagger
-from saqc.dsl.evaluator import evalExpression
+from saqc.dsl.parser import evalExpression
 
 
-def test_evaluationBool():
-    data = initData()
-    flagger = SimpleFlagger()
-    flags = flagger.initFlags(data)
-    var1, var2, *_ = data.columns
-
-    tests = [
-        ("this > 100",
-         data[var1] > 100),
-        ("var2 < 100",
-         data[var2] < 100),
-        (f"abs({var2} - {var1})/2 > 100",
-         abs(data[var2] - data[var1])/2 > 100),
-        (f"mean({var2}) > max({var1})",
-         np.mean(data[var2]) > np.max(data[var1])),
-        (f"sum({var2})/len({var2}) > max({var1})",
-         np.mean(data[var2]) > np.max(data[var1]))]
-
-    for test, expected in tests:
-        result = evalExpression(test, flagger, data, flags, data.columns[0])
-        if isinstance(result, np.ma.MaskedArray):
-            result = result.filled(True)
-        assert (result == expected).all()
+@pytest.fixture
+def data():
+    return initData(3)
 
 
 def test_missingIdentifier():
@@ -79,9 +59,3 @@ def test_isflagged():
     for expr, right in tests.items():
         left = evalExpression(expr, flagger, data, flags, data.columns[0])
         assert np.all(left.to_frame() == right)
-
-
-if __name__ == "__main__":
-    test_evaluationBool()
-    test_missingIdentifier()
-    test_flagPropagation()
