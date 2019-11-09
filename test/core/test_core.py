@@ -7,7 +7,7 @@ import pandas as pd
 from saqc.funcs import register
 from saqc.core.core import runner, flagNext, flagPeriod
 from saqc.core.config import Fields as F
-from .common import initData, initMetaDict, TESTFLAGGER
+from test.common import initData, initMetaDict, TESTFLAGGER
 
 
 @pytest.fixture

@@ -5,9 +5,9 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from ..common import initData, TESTFLAGGER
+from test.common import initData, TESTFLAGGER
 
-from saqc.dsl.parser import (
+from saqc.core.evaluator import (
     DslTransformer,
     initDslFuncMap,
     parseExpression,
