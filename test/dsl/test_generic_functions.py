@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import ast
+
 import pytest
 import numpy as np
 import pandas as pd
@@ -10,25 +12,84 @@ from ..common import initData, TESTFLAGGER
 from saqc.dsl.parser import (
     DslTransformer,
     initDslFuncMap,
-    parseExpression,
     compileTree,
     evalCode)
 
 
 def _evalExpression(expr, data, flags, field, flagger, nodata=np.nan):
     dsl_transformer = DslTransformer(initDslFuncMap(flagger, nodata, "target"))
-    tree = parseExpression(expr)
+    tree = ast.parse(expr, mode="eval")
     transformed_tree = dsl_transformer.visit(tree)
     code = compileTree(transformed_tree)
     return evalCode(code, data, flags, "var1", flagger, nodata)
 
 
+@pytest.fixture
+def data():
+    return initData()
+
+
+@pytest.fixture
+def nodata():
+    return -99990
+
+
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_ismissing(flagger):
+def test_comparisons(data, flagger):
+    flags = flagger.initFlags(data)
+    var1, var2, *_ = data.columns
+    this = var1
 
-    nodata = -9999
+    tests = [
+        ("this > 100", data[this] > 100),
+        (f"10 >= {var2}", 10 >= data[var2]),
+        (f"{var2} < 100", data[var2] < 100),
+        (f"this <= {var2}", data[this] <= data[var2])]
 
-    data = initData()
+    for expr, expected in tests:
+        result = _evalExpression(expr, data, flags, this, flagger, np.nan)
+        assert (result == expected).all()
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_nonReduncingBuiltins(data, flagger):
+    flags = flagger.initFlags(data)
+    var1, var2, *_ = data.columns
+    this = var1
+
+    tests = [
+        ("abs(this)", np.abs(data[this])),
+    ]
+
+    for expr, expected in tests:
+        result = _evalExpression(expr, data, flags, this, flagger, np.nan)
+        assert (result == expected).all()
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_reduncingBuiltins(data, flagger):
+    flags = flagger.initFlags(data)
+    var1, var2, *_ = data.columns
+    this = var1
+
+    tests = [
+        ("min(this)", np.min(data[this])),
+        (f"max({var1})", np.max(data[var1])),
+        (f"sum({var2})", np.sum(data[var2])),
+        ("mean(this)", np.mean(data[this])),
+        (f"std({var1})", np.std(data[var1])),
+        (f"len({var2})", len(data[var2])),
+    ]
+
+    for expr, expected in tests:
+        result = _evalExpression(expr, data, flags, this, flagger, np.nan)
+        assert result == expected
+
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_ismissing(data, flagger, nodata):
+
     data.iloc[:len(data)//2, 0] = np.nan
     data.iloc[(len(data)//2)+1:, 0] = nodata
     var1, var2, *_ = data.columns
@@ -41,9 +102,8 @@ def test_ismissing(flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_isflagged(flagger):
+def test_isflagged(data, flagger):
 
-    data = initData()
     flags = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
@@ -57,9 +117,8 @@ def test_isflagged(flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_isflaggedArgument(flagger):
+def test_isflaggedArgument(data, flagger):
 
-    data = initData()
     var1, var2, *_ = data.columns
 
     flags = flagger.initFlags(data)
