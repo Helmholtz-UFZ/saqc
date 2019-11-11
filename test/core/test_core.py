@@ -8,9 +8,9 @@ import numpy as np
 from saqc.funcs import register, flagRange
 from saqc.core.core import runner, flagNext, flagPeriod
 from saqc.core.config import Fields as F
+from saqc.lib.plotting import plot
 from test.common import initData, initMetaDict, TESTFLAGGER
 
-from test.common import initData, initMetaDict, TESTFLAGGER
 
 @pytest.fixture
 def data():
@@ -35,9 +35,9 @@ def test_temporalPartitioning(data, flagger):
     split_date = data.index[len(data.index)//2]
 
     metadict = [
-        {F.VARNAME: var1, "Flag": "flagAll()"},
-        {F.VARNAME: var2, "Flag": "flagAll()", F.END: split_date},
-        {F.VARNAME: var3, "Flag": "flagAll()", F.START: split_date},
+        {F.VARNAME: var1, "check": "flagAll()"},
+        {F.VARNAME: var2, "check": "flagAll()", F.END: split_date},
+        {F.VARNAME: var3, "check": "flagAll()", F.START: split_date},
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
 
@@ -58,9 +58,9 @@ def test_positionalPartitioning(data, flagger):
     split_index = int(len(data.index)//2)
 
     metadict = [
-        {F.VARNAME: var1, "Flag": "flagAll()"},
-        {F.VARNAME: var2, "Flag": "flagAll()", F.END: split_index},
-        {F.VARNAME: var3, "Flag": "flagAll()", F.START: split_index},
+        {F.VARNAME: var1, "check": "flagAll()"},
+        {F.VARNAME: var2, "check": "flagAll()", F.END: split_index},
+        {F.VARNAME: var3, "check": "flagAll()", F.START: split_index},
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
 
@@ -82,7 +82,7 @@ def test_missingConfig(data, flagger):
     """
     var1, var2, *_ = data.columns
 
-    metadict = [{F.VARNAME: var1, "Flag": "flagAll()"}]
+    metadict = [{F.VARNAME: var1, "check": "flagAll()"}]
     metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
@@ -100,8 +100,8 @@ def test_missingVariable(flagger):
     var, *_ = data.columns
 
     metadict = [
-        {F.VARNAME: var, "Flag": "flagAll()"},
-        {F.VARNAME: "empty", "Flag": "flagAll()"},
+        {F.VARNAME: var, "check": "flagAll()"},
+        {F.VARNAME: "empty", "check": "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -121,8 +121,8 @@ def test_assignVariable(flagger):
     var2 = "empty"
 
     metadict = [
-        {F.VARNAME: var1, F.ASSIGN: False, "Flag": "flagAll()"},
-        {F.VARNAME: var2, F.ASSIGN: True,  "Flag": "flagAll()"},
+        {F.VARNAME: var1, F.ASSIGN: False, "check": "flagAll()"},
+        {F.VARNAME: var2, F.ASSIGN: True,  "check": "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -148,8 +148,8 @@ def test_dtypes(data, flagger):
     var1, var2, *_ = data.columns
 
     metadict = [
-        {F.VARNAME: var1, "Flag": "flagAll()"},
-        {F.VARNAME: var2, "Flag": "flagAll()"},
+        {F.VARNAME: var1, "check": "flagAll()"},
+        {F.VARNAME: var2, "check": "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
     pdata, pflags = runner(metafobj, flagger, data, flags)
@@ -222,7 +222,6 @@ def test_plotting(flagger):
             This test is ignored if matplotlib is not available on the test-system
     """
     pytest.importorskip("matplotlib", reason="requires matplotlib")
-    from saqc.lib.plotting import plot
     field = 'testdata'
     index = pd.date_range(start='2011-01-01', end='2011-01-02', periods=100)
     data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
@@ -231,3 +230,8 @@ def test_plotting(flagger):
     _, flagged = flagRange(data, flagged, field, flagger, min=40, max=60, flag=flagger.GOOD)
     mask = flagger.getFlags(flags[field]) != flagger.getFlags(flagged[field])
     plot(data, flagged, mask, field, flagger, interactive_backend=False)
+
+def test_configReader():
+    meta = """
+    var1|2012-01-01|
+    """
