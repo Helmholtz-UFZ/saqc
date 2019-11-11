@@ -55,6 +55,8 @@ class BaseFlagger:
         return self._assureDtype(flags)
 
     def isFlagged(self, flags: PandasLike, flag: T = None, comparator: str = ">") -> PandasLike:
+        # NOTE: I dislike the comparator default, as it does not comply with
+        #       the setFlag defautl behaviour, which is not changable, btw
         check_ispdlike(flags, 'flags', allow_multiindex=False)
         flags = self._assureDtype(flags)
         flag = self.GOOD if flag is None else self._checkFlag(flag)
