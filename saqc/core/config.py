@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
+# maybe we should use dataclasses here
+
 class Fields:
     VARNAME = "headerout"
     START = "date start"
