@@ -162,8 +162,8 @@ def test_bitOps(data, flagger, nodata):
     ]
 
     for expr, expected in tests:
-        _, flags = evalExpression(expr, data, flags, "var1", flagger, nodata)
-        assert (flagger.isFlagged(flags) == expected).all()
+        _, flags = evalExpression(expr, data, flags, this, flagger, nodata)
+        assert (flagger.isFlagged(flags[this]) == expected).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
