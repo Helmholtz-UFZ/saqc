@@ -3,17 +3,22 @@
 
 import pytest
 import pandas as pd
+import numpy as np
 
-from saqc.funcs import register
+from saqc.funcs import register, flagRange
 from saqc.core.core import runner, flagNext, flagPeriod
 from saqc.core.config import Fields as F
 from test.common import initData, initMetaDict, TESTFLAGGER
 
+from test.common import initData, initMetaDict, TESTFLAGGER
 
 @pytest.fixture
 def data():
     return initData(3)
 
+@pytest.fixture
+def data():
+    return initData(3)
 
 @register("flagAll")
 def flagAll(data, flags, field, flagger, **kwargs):
