@@ -47,11 +47,11 @@ class Flags(pd.CategoricalDtype):
 
 class BaseFlagger:
     def __init__(self, flags):
-        self.flags = Flags(flags)
+        self.categories = Flags(flags)
 
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:
         check_isdf(data, 'data', allow_multiindex=False)
-        flags = pd.DataFrame(data=self.flags[0], index=data.index, columns=data.columns)
+        flags = pd.DataFrame(data=self.categories[0], index=data.index, columns=data.columns)
         return self._assureDtype(flags)
 
     def isFlagged(self, flags: PandasLike, flag: T = None, comparator: str = ">") -> PandasLike:
@@ -104,11 +104,11 @@ class BaseFlagger:
     def _checkFlag(self, flag):
         if isinstance(flag, pd.Series):
             if not self._isFlagsDtype(flag.dtype):
-                raise TypeError(f"flag(-series) is not of expected '{self.flags}'-dtype with ordered categories "
-                                f"{list(self.flags.categories)}, '{flag.dtype}'-dtype was passed.")
+                raise TypeError(f"flag(-series) is not of expected '{self.categories}'-dtype with ordered categories "
+                                f"{list(self.categories.categories)}, '{flag.dtype}'-dtype was passed.")
         else:
-            if flag not in self.flags:
-                raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.flags.categories)[1:]}")
+            if flag not in self.categories:
+                raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.categories.categories)[1:]}")
         return flag
 
     def _getIndexer(self, flags, field, loc=None, iloc=None):
@@ -124,29 +124,29 @@ class BaseFlagger:
 
     def _assureDtype(self, flags, field=None):
         if field is None:  # we got a df
-            flags = flags.astype(self.flags)
+            flags = flags.astype(self.categories)
         elif not self._isFlagsDtype(flags[field].dtype):
-            flags[field] = flags[field].astype(self.flags)
+            flags[field] = flags[field].astype(self.categories)
         return flags
 
     def _isFlagsDtype(self, dtype):
-        return isinstance(dtype, pd.CategoricalDtype) and dtype == self.flags
+        return isinstance(dtype, pd.CategoricalDtype) and dtype == self.categories
 
     def nextTest(self):
         pass
 
     @property
     def UNFLAGGED(self):
-        return self.flags.unflagged()
+        return self.categories.unflagged()
 
     @property
     def GOOD(self):
-        return self.flags.good()
+        return self.categories.good()
 
     @property
     def BAD(self):
-        return self.flags.bad()
+        return self.categories.bad()
 
     @property
     def SUSPICIOUS(self):
-        return self.flags.suspicious()
+        return self.categories.suspicious()

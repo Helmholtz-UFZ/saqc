@@ -30,7 +30,7 @@ class DmpFlagger(BaseFlagger):
 
     def __init__(self):
         super().__init__(FLAGS)
-        self.flag_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
+        self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
         version = subprocess.run("git describe --tags --always --dirty",
                                  shell=True, check=False, stdout=subprocess.PIPE).stdout
         self.project_version = version.decode().strip()
@@ -38,9 +38,9 @@ class DmpFlagger(BaseFlagger):
     def initFlags(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
         check_isdf(data, 'data', allow_multiindex=False)
         colindex = pd.MultiIndex.from_product(
-            [data.columns, self.flag_fields],
+            [data.columns, self.flags_fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
-        flags = pd.DataFrame(data=self.flags[0], columns=colindex, index=data.index)
+        flags = pd.DataFrame(data=self.categories[0], columns=colindex, index=data.index)
         return self._assureDtype(flags)
 
     def isFlagged(self, flags: PandasLike, flag=None, comparator=">") -> PandasLike:
@@ -101,7 +101,7 @@ class DmpFlagger(BaseFlagger):
             if isinstance(flags, pd.Series):  # we got a series
                 flags = super()._assureDtype(flags, None)
             else:  # we got a df with a multi-index
-                flags = flags.astype({c: self.flags for c in flags.columns if FlagFields.FLAG in c})
+                flags = flags.astype({c: self.categories for c in flags.columns if FlagFields.FLAG in c})
         elif not isinstance(flags[(field, FlagFields.FLAG)].dtype, pd.CategoricalDtype):
-            flags[(field, FlagFields.FLAG)] = flags[(field, FlagFields.FLAG)].astype(self.flags)
+            flags[(field, FlagFields.FLAG)] = flags[(field, FlagFields.FLAG)].astype(self.categories)
         return flags
