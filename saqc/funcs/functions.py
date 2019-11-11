@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import numpy as np
 
 from ..dsl import evalExpression
 from ..core.config import Params
@@ -47,13 +48,13 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
     return data, flags
 
 @register("missing")
-def flagMissing(data, flags, field, flagger, missing_indicator=np.nan, **kwargs):
+def flagMissing(data, flags, field, flagger, nodata=np.nan, **kwargs):
     datacol = data[field].values
 
-    if np.isnan(missing_indicator):
+    if np.isnan(nodata):
         mask = datacol.isna()
     else:
-        mask = datacol[datacol == missing_indicator]
+        mask = datacol[datacol == nodata]
 
     flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags

@@ -25,8 +25,7 @@ from ..lib.tools import (
 
 
 @register("constant")
-def flagConstant(data, flags, field, flagger, eps,
-                 length, thmin=None, **kwargs):
+def flagConstant(data, flags, field, flagger, eps, length, thmin=None, **kwargs):
     datacol = data[field]
     flagcol = flags[field]
 
