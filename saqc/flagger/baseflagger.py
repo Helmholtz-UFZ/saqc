@@ -56,13 +56,17 @@ class BaseFlagger:
         flags = pd.DataFrame(data=self.categories[0], index=data.index, columns=data.columns)
         self._flags = self._assureDtype(flags)
 
-    def isFlagged(self, flags: PandasLike = None, flag: T = None, comparator: str = ">") -> PandasLike:
-        if flags is None:
-            flags = self._flags
-        else:
-            check_ispdlike(flags, 'flags', allow_multiindex=False)
-            flags = self._assureDtype(flags)  # never trust the user
+    def isFlagged(self, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
+        flags = self._flags if field is None else self._flags[self._checkField(field)]
         flag = self.GOOD if flag is None else self._checkFlag(flag)
+
+        # upcast flag to series
+        if not isinstance(flag, pd.Series):
+            flag = pd.Series(data=flag, index=flags.index)
+
+        locator, rows, cols = self._getIndexer(flags, field, loc, iloc)
+        flags = locator[rows, cols]
+
         cp = COMPARATOR_MAP[comparator]
         isflagged = pd.notna(flags) & cp(flags, flag)
         return isflagged
@@ -75,10 +79,7 @@ class BaseFlagger:
         self._checkField(field)
         src = self.BAD if flag is None else self._checkFlag(flag)
         dest = self._flags
-        if isinstance(src, pd.Series):
-            if len(src.index) != len(dest.index):
-                raise ValueError(f'Length of flags ({len(dest.index)}) and flag ({len(src.index)}) must match')
-        else:
+        if not isinstance(src, pd.Series):
             src = np.full(len(dest.index), src)
 
         # get locations on src
@@ -107,26 +108,32 @@ class BaseFlagger:
     def _checkField(self, field):
         if field not in self._flags:
             raise KeyError(f"field {field} is not in flags")
+        return field
 
     def _checkFlag(self, flag):
         if isinstance(flag, pd.Series):
+
+            if len(flag.index) != len(self._flags.index):
+                raise ValueError(f'Length of flags ({len(self._flags.index)}) and flag ({len(flag.index)}) must match')
+
             if not self._isFlagsDtype(flag):
                 raise TypeError(f"flag(-series) is not of expected '{self.categories}'-dtype with ordered categories "
                                 f"{list(self.categories.categories)}, '{flag.dtype}'-dtype was passed.")
         else:
             if flag not in self.categories:
-                raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.categories.categories)[1:]}")
+                raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.categories.categories)}")
         return flag
 
     def _getIndexer(self, flags, field, loc=None, iloc=None):
         if loc is not None and iloc is not None:
             raise ValueError("params `loc` and `iloc` are mutual exclusive")
         elif loc is not None and iloc is None:
-            indexer, rows, col = flags.loc, loc, field
+            indexer, rows, col = flags.loc, loc, field or slice(None)
         elif loc is None and iloc is not None:
-            indexer, rows, col = flags.iloc, iloc, flags.columns.get_loc(field)
+            field = slice(None) if field is None else flags.columns.get_loc(field)
+            indexer, rows, col = flags.iloc, iloc, field
         elif loc is None and iloc is None:
-            indexer, rows, col = flags.loc, slice(None), field
+            indexer, rows, col = flags.loc, slice(None), field or slice(None)
         return indexer, rows, col
 
     def _assureDtype(self, flags, field=None):
