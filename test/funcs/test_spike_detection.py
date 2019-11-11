@@ -9,7 +9,7 @@ from saqc.flagger.baseflagger import BaseFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
 
-from saqc.funcs.spike_detection import flagSpikes_SpektrumBased, flagMad, polyResMad, flagSpikes_Basic
+from saqc.funcs.spike_detection import flagSpikes_SpektrumBased, flagMad, slidingOutlier, flagSpikes_Basic
 
 from saqc.lib.tools import getPandasData
 
@@ -50,13 +50,23 @@ def test_flagMad(spiky_data, flagger):
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
-def test_flagPolyResMad(spiky_data, flagger):
-    data = spiky_data[0]
-    flags = flagger.initFlags(data.to_frame())
-    data, flag_result = polyResMad(data, flags, 'spiky_data', flagger, winsz=300, dx=50)
+@pytest.mark.parametrize('method', ['modZ', 'zscore'])
+def test_slidingOutlier(spiky_data, flagger, method):
+
+    # test for numeric input
+    data = spiky_data[0].to_frame()
+    flags = flagger.initFlags(data)
+    _, flag_result = slidingOutlier(data, flags, 'spiky_data', flagger, winsz=300, dx=50, method=method)
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
+
+    # test for offset input
+    _, flag_result = slidingOutlier(data, flags, 'spiky_data', flagger, winsz='1500min', dx='250min', method=method)
+    flag_result = getPandasData(flag_result, 0)
+    test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
+    assert test_sum == len(spiky_data[1])
+
 
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_flagSpikes_Basic(spiky_data, flagger):
@@ -66,8 +76,3 @@ def test_flagSpikes_Basic(spiky_data, flagger):
     flag_result = getPandasData(flag_result, 0)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
-
-if __name__ == '__main__':
-    flagger = DmpFlagger()
-    d = spiky_data()
-    test_flagSpikes_Basic(d, flagger)

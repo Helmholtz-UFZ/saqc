@@ -148,7 +148,7 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
         flagger.nextTest()
 
     # plot all together
-    if plotvars:
+    if len(plotvars) > 1:
         plot(data, flags, True, plotvars, flagger)
 
     return data, flags
