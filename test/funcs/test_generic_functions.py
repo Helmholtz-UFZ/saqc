@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from test.common import initData, TESTFLAGGER
+from test.common import initData, TESTFLAGGER, TESTNODATA
 
 from saqc.core.evaluator import (
     DslTransformer,
@@ -27,11 +27,6 @@ def _evalExpression(expr, data, flags, field, flagger, nodata=np.nan):
 @pytest.fixture
 def data():
     return initData()
-
-
-@pytest.fixture
-def nodata():
-    return -99990
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -104,12 +99,14 @@ def test_nonReduncingBuiltins(data, flagger):
     ]
 
     for expr, expected in tests:
-        result = _evalExpression(expr, data, flags, this, flagger, np.nan)
+        result = _evalExpression(expr, data, flags, this, flagger)
         assert (result == expected).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_reduncingBuiltins(data, flagger):
+@pytest.mark.parametrize("nodata", TESTNODATA)
+def test_reduncingBuiltins(data, flagger, nodata):
+    data.loc[::4] = nodata
     flags = flagger.initFlags(data)
     var1, var2, *_ = data.columns
     this = var1
@@ -124,23 +121,49 @@ def test_reduncingBuiltins(data, flagger):
     ]
 
     for expr, expected in tests:
-        result = _evalExpression(expr, data, flags, this, flagger, np.nan)
+        result = _evalExpression(expr, data, flags, this, flagger, nodata)
         assert result == expected
 
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
+@pytest.mark.parametrize("nodata", TESTNODATA)
 def test_ismissing(data, flagger, nodata):
 
     data.iloc[:len(data)//2, 0] = np.nan
-    data.iloc[(len(data)//2)+1:, 0] = nodata
+    data.iloc[(len(data)//2)+1:, 0] = -9999
     var1, var2, *_ = data.columns
 
     flags = flagger.initFlags(data)
 
-    idx = _evalExpression(f"ismissing({var1})", data, flags, "var1", flagger, nodata)
-    fdata = data.loc[idx, var1]
-    assert (pd.isnull(fdata) | (fdata == nodata)).all()
+    tests = [
+        (f"ismissing({var1})", lambda data: (pd.isnull(data) | (data == nodata)).all()),
+        (f"~ismissing({var1})", lambda data: (pd.notnull(data) & (data != nodata)).all())
+    ]
+
+    for expr, checkFunc in tests:
+        idx = _evalExpression(expr, data, flags, "var1", flagger, nodata)
+        assert checkFunc(data.loc[idx, var1])
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+@pytest.mark.parametrize("nodata", TESTNODATA)
+def test_bitOps(data, flagger, nodata):
+    var1, var2, *_ = data.columns
+    this = var1
+
+    flags = flagger.initFlags(data)
+
+    # TODO: extend the test list
+    tests = [
+        (f"generic(func=~(this > mean(this)))", ~(data[this] > np.nanmean(data[this]))),
+        (f"generic(func=(this <= 0) | (0 < {var1}))", (data[this] <= 0) | (0 < data[var1])),
+        (f"generic(func=({var2} >= 0) & (0 > this))", (data[var2] >= 0) | (0 > data[this]))
+    ]
+
+    for expr, expected in tests:
+        _, flags = evalExpression(expr, data, flags, "var1", flagger, nodata)
+        assert (flagger.isFlagged(flags) == expected).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

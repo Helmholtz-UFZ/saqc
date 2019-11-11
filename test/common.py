@@ -11,6 +11,9 @@ from saqc.core.core import prepareMeta, readMeta
 from saqc.flagger import SimpleFlagger, DmpFlagger
 
 
+TESTNODATA = (np.nan, -9999)
+
+
 TESTFLAGGER = (SimpleFlagger(), DmpFlagger())
 
 
