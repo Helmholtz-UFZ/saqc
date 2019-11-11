@@ -22,7 +22,7 @@ from ..lib.tools import (
 
 
 @register("sliding_outlier")
-def slidingOutlier(data, flags, field, flagger, winsz='1h', dx='1h', count=1, deg=1, z=3.5, method='modZ', **kwargs):
+def slidingOutlier(data, flags, field, flagger, winsz, dx, count=1, deg=1, z=3.5, method='modZ', **kwargs):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
 
@@ -62,7 +62,7 @@ def slidingOutlier(data, flags, field, flagger, winsz='1h', dx='1h', count=1, de
             dx_s = offset2seconds(dx)
             winsz_s = offset2seconds(winsz)
         else:
-            raise TypeError("`winsz` and `dx` must both be an offset or both be numeric")
+            raise TypeError(f"`winsz` and `dx` must both be an offset or both be numeric, {winsz} and {dx} was passed")
 
     # check params
     if deg < 0:
@@ -71,7 +71,10 @@ def slidingOutlier(data, flags, field, flagger, winsz='1h', dx='1h', count=1, de
         raise ValueError("z must be positive")
     if count <= 0:
         raise ValueError("count must be positive and not zero")
-    if dx_s >= winsz_s and count > 1:
+
+    if dx_s >= winsz_s and count == 1:
+        pass
+    elif dx_s >= winsz_s and count > 1:
         ValueError("If stepsize `dx` is bigger that the window-size, every value is seen just once, so use count=1")
     elif count > winsz_s // dx_s:
         raise ValueError(f"Adjust `dx`, `stepsize` or `winsz`. A single data point is "
