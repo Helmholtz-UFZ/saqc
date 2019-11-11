@@ -41,6 +41,10 @@ class DslTransformer(ast.NodeTransformer):
 
     SUPPORTED = (
         ast.Expression,
+        ast.UnaryOp,
+        ast.BinOp,
+        ast.BitOr,
+        ast.BitAnd,
         ast.Num,
         ast.Compare,
         ast.Add,
@@ -139,7 +143,6 @@ class MetaTransformer(ast.NodeTransformer):
         return self.generic_visit(node)
 
     def visit_keyword(self, node):
-        # import ipdb; ipdb.set_trace()
         if self.func_name == "generic" and node.arg == Params.FUNC:
             node = ast.keyword(
                 arg=node.arg,
@@ -159,8 +162,8 @@ class MetaTransformer(ast.NodeTransformer):
 
 def parseExpression(expr: str) -> ast.Expression:
     tree = ast.parse(expr, mode="eval")
-    if not isinstance(tree.body, (ast.Call, ast.Compare)):
-        raise TypeError('function call needed')
+    # if not isinstance(tree.body, (ast.Call, ast.Compare)):
+    #     raise TypeError('function call needed')
     return tree
 
 
