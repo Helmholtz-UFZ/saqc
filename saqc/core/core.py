@@ -10,23 +10,6 @@ from ..lib.plotting import plot
 from ..lib.tools import setup
 
 
-def assignTypeSafe(df, colname, rhs):
-    """
-    Works around a pandas issue: when assigning a
-    data frame with differing columns dtypes,
-    all columns are converted to the most generic
-    of the dtypes
-    """
-    # do not use .loc here, as it fails silently :/
-    rhs = rhs[colname]
-    df[colname] = rhs
-    if isinstance(rhs, pd.Series):
-        dtypes = rhs.dtypes
-    else:
-        dtypes = {(colname, c): rhs.dtypes[c] for c in rhs.columns}
-    return df.astype(dtypes)
-
-
 def collectVariables(meta, flagger, data, flags):
     """
     find every relevant variable and add a respective
