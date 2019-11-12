@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 from saqc.funcs import register, flagRange
-from saqc.core.core import runner, flagNext, flagPeriod
+from saqc.core.core import runner
 from saqc.core.config import Fields as F
 from saqc.lib.plotting import plot
 from test.common import initData, initMetaDict, TESTFLAGGER
@@ -154,65 +154,6 @@ def test_dtypes(data, flagger):
     metafobj, meta = initMetaDict(metadict, data)
     pdata, pflags = runner(metafobj, flagger, data, flags)
     assert dict(flags.dtypes) == dict(pflags.dtypes)
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_flagNext(flagger):
-    """
-    Test if the flagNext functionality works as expected
-
-    NOTE:
-    needs to move out of this module
-    """
-    data = initData()
-    flags = flagger.initFlags(data)
-    orig = flags.copy()
-    var1 = 'var1'
-
-    idx = [0, 1, 2]
-    dtidx = data.index[idx]
-    flags = flagger.setFlags(flags, var1, dtidx)
-
-    n = 4
-    fflags = flagNext(orig, flags, var1, flagger, flag_values=4)
-    flagged = flagger.isFlagged(fflags[var1])
-    ffindex = fflags[flagged].index
-
-    expected = data.index[min(idx):max(idx)+n+1]
-    assert (expected == ffindex).all()
-    o = flagger.getFlags(orig).loc[expected, var1]
-    f = flagger.getFlags(fflags).loc[flagged, var1]
-    assert (o != f).all()
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_flagPeriod(flagger):
-    """
-    Test if the flagNext functionality works as expected
-
-    NOTE:
-    needs to move out of this module
-    """
-    data = initData()
-    flags = flagger.initFlags(data)
-    orig = flags.copy()
-    var1 = 'var1'
-
-    idx = [0, 1, 2]
-    dtidx = data.index[idx]
-    flags = flagger.setFlags(flags, var1, dtidx)
-
-    period = '4h'
-    fflags = flagPeriod(orig, flags, var1, flagger, flag_period=period)
-    flagged = flagger.isFlagged(fflags[var1])
-    ffindex = fflags[flagged].index
-
-    m, M = data.index[min(idx)], data.index[max(idx)] + pd.to_timedelta(period)
-    expected = data.loc[m:M].index
-    assert (expected == ffindex).all()
-    o = flagger.getFlags(orig).loc[expected, var1]
-    f = flagger.getFlags(fflags).loc[flagged, var1]
-    assert (o != f).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

@@ -10,43 +10,6 @@ from ..lib.plotting import plot
 from ..lib.tools import setup
 
 
-def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> pd.Series:
-
-    if window == 0 or window == '':
-        return new
-
-    fw, bw = False, False
-    mask = flagger.getFlags(old[field]) != flagger.getFlags(new[field])
-    f = flagger.isFlagged(new[field]) & mask
-
-    if not mask.any():
-        # nothing was flagged, so nothing need to be flagged additional
-        return new
-
-    if isinstance(window, int):
-        x = f.rolling(window=window + 1).sum()
-        if direction in ['fw', 'both']:
-            fw = x.fillna(method='bfill').astype(bool)
-        if direction in ['bw', 'both']:
-            bw = x.shift(-window).fillna(method='bfill').astype(bool)
-    else:
-        # time-based windows
-        if direction in ['bw', 'both']:
-            raise NotImplementedError
-        fw = f.rolling(window=window, closed='both').sum().astype(bool)
-
-    fmask = bw | fw
-    return flagger.setFlags(new, field, fmask, **kwargs)
-
-
-def flagPeriod(old, new, field, flagger, flag_period=0, **kwargs) -> pd.Series:
-    return flagWindow(old, new, field, flagger, direction='fw', window=flag_period, **kwargs)
-
-
-def flagNext(old, new, field, flagger, flag_values=0, **kwargs) -> pd.Series:
-    return flagWindow(old, new, field, flagger, direction='fw', window=flag_values, **kwargs)
-
-
 def assignTypeSafe(df, colname, rhs):
     """
     Works around a pandas issue: when assigning a
@@ -121,29 +84,13 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
             fchunk = flags.loc[start_date:end_date]
 
-            dchunk, ffchunk = evalExpression(
+            dchunk, fchunk = evalExpression(
                 flag_test,
                 data=dchunk, flags=fchunk.copy(), field=varname,
                 flagger=flagger, nodata=nodata)
 
-            # # flag a timespan after the condition is met
-            # # should be moved into functions
-            # if Params.FLAGPERIOD in flag_params:
-            #     periodflags = flagPeriod(fchunk, ffchunk, varname, flagger, func_name=func_name, **flag_params)
-            #     ffchunk = assignTypeSafe(ffchunk, varname, periodflags)
-
-            # # flag a certain amount of values after condition is met
-            # if Params.FLAGVALUES in flag_params:
-            #     valueflags = flagNext(fchunk, ffchunk, varname, flagger, func_name=func_name, **flag_params)
-            #     ffchunk = assignTypeSafe(ffchunk, varname, valueflags)
-
-            # if flag_params.get(Params.PLOT, False):
-            #     plotvars.append(varname)
-            #     mask = flagger.getFlags(fchunk[varname]) != flagger.getFlags(ffchunk[varname])
-            #     plot(dchunk, ffchunk, mask, varname, flagger, title=flag_test)
-
             data.loc[start_date:end_date] = dchunk
-            flags.loc[start_date:end_date] = ffchunk.squeeze()
+            flags.loc[start_date:end_date] = fchunk.squeeze()
 
         flagger.nextTest()
 

@@ -184,7 +184,7 @@ def evalCode(code, data, flags, field, flagger, nodata):
     return eval(code, global_env, local_env)
 
 
-def evalExpression(expr, data, flags, field, flagger, nodata):
+def evalExpression(expr, data, flags, field, flagger, nodata=np.nan):
 
     tree = parseExpression(expr)
     dsl_transformer = DslTransformer(initDslFuncMap(nodata), data.columns)

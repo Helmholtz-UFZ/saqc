@@ -284,6 +284,35 @@ def checkQCParameters(para_dict, called_by):
     return global_checker
 
 
+def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> pd.Series:
+
+    if window == 0 or window == '':
+        return new
+
+    fw, bw = False, False
+    mask = flagger.getFlags(old[field]) != flagger.getFlags(new[field])
+    f = flagger.isFlagged(new[field]) & mask
+
+    if not mask.any():
+        # nothing was flagged, so nothing need to be flagged additional
+        return new
+
+    if isinstance(window, int):
+        x = f.rolling(window=window + 1).sum()
+        if direction in ['fw', 'both']:
+            fw = x.fillna(method='bfill').astype(bool)
+        if direction in ['bw', 'both']:
+            bw = x.shift(-window).fillna(method='bfill').astype(bool)
+    else:
+        # time-based windows
+        if direction in ['bw', 'both']:
+            raise NotImplementedError
+        fw = f.rolling(window=window, closed='both').sum().astype(bool)
+
+    fmask = bw | fw
+    return flagger.setFlags(new, field, fmask, **kwargs)
+
+
 def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
     """
     This function provide a mask for a sesonal time range in the given dtindex.
