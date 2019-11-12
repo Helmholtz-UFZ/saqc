@@ -3,10 +3,12 @@
 
 import pytest
 import numpy as np
+import pandas as pd
 
+from saqc.core.evaluator import evalExpression
 from saqc.funcs.functions import flagRange, flagSesonalRange, forceFlags, clearFlags
 
-from test.common import initData, TESTFLAGGER
+from test.common import initData, TESTFLAGGER, initMetaDict
 
 
 @pytest.fixture
@@ -20,6 +22,28 @@ def data():
 @pytest.fixture
 def field(data):
     return data.columns[0]
+
+
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
+def test_flagAfter(data, field, flagger):
+    flags = flagger.initFlags(data)
+
+    min = data.iloc[int(len(data)*.3), 0]
+    max = data.iloc[int(len(data)*.6), 0]
+    _, range_flags = flagRange(data, flags, field, flagger, min, max)
+
+    tests = [
+        (f"flagWindowAfterFlag(window='3D', func=range(min={min}, max={max}))", "3D"),
+        (f"flagNextAfterFlag(n=4, func=range(min={min}, max={max}))", 4),
+    ]
+
+    for expr, window in tests:
+        _, repeated_flags = evalExpression(expr, data, flags, field, flagger)
+        flagged = repeated_flags[flagger.isFlagged(flags)].dropna()
+        flag_groups = (flagged
+                       .rolling(window=window)
+                       .apply(lambda df: flagger.isFlagged(flags).all(), raw=False))
+        assert np.all(flag_groups)
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)

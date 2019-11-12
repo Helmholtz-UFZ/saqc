@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from ..lib.tools import sesonalMask
+from ..lib.tools import sesonalMask, flagWindow
 
 from .register import register
 
@@ -34,9 +34,26 @@ def flagGeneric(data, flags, field, flagger, func, **kwargs):
     flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
 
-# @register("ttt")
-# def flagTTT(data, flags, field, flagger, func, **kwargs):
-#     import ipdb; ipdb.set_trace()
+
+@register("flagWindowAfterFlag")
+def flagWindowAfterFlag(data, flags, field, flagger, window, func, **kwargs):
+    data, new_flags = func
+    repeated_flags = flagWindow(flags, new_flags,
+                                field, flagger,
+                                direction='fw', window=window,
+                                **kwargs)
+    return data, repeated_flags
+
+
+@register("flagNextAfterFlag")
+def flagNextAfterFlag(data, flags, field, flagger, n, func, **kwargs):
+    data, new_flags = func
+    repeated_flags = flagWindow(flags, new_flags,
+                                field, flagger,
+                                direction='fw', window=n,
+                                **kwargs)
+    return data, repeated_flags
+
 
 @register("range")
 def flagRange(data, flags, field, flagger, min, max, **kwargs):
