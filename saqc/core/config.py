@@ -9,7 +9,7 @@ class Fields:
     START = "start_date"
     END = "end_date"
     ASSIGN = "assign"
-    FLAGS = "check*"
+    TESTS = "test*"
     PLOT = "plot"
 
 

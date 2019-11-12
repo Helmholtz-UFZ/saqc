@@ -21,10 +21,10 @@ def test_basic():
 
     metadata = [
         {Fields.VARNAME: var1,
-         "check_1": f"generic(func=this < {var1mean}, flag='DOUBTFUL')",
-         "check_2": f"range(min=10, max=20, comment='saqc')"},
+         "test_1": f"generic(func=this < {var1mean}, flag='DOUBTFUL')",
+         "test_2": f"range(min=10, max=20, comment='saqc')"},
         {Fields.VARNAME: var2,
-         "check_1": f"generic(func=this > {var1mean}, cause='error')"}
+         "test_1": f"generic(func=this > {var1mean}, cause='error')"}
     ]
 
     meta_file, _ = initMetaDict(metadata, data)
@@ -53,9 +53,9 @@ def test_flagOrder():
 
     metadata = [
         {Fields.VARNAME: var,
-         "check": f"generic(func=this > mean(this), flag='{flagger.BAD}')"},
+         "test": f"generic(func=this > mean(this), flag='{flagger.BAD}')"},
         {Fields.VARNAME: var,
-         "check": f"generic(func=this >= min(this), flag='{flagger.GOOD}')"},
+         "test": f"generic(func=this >= min(this), flag='{flagger.GOOD}')"},
     ]
 
     meta_file, _ = initMetaDict(metadata, data)
