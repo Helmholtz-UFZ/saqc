@@ -15,14 +15,18 @@ TESTFLAGGERS = [
     BaseFlagger(['NIL', 'GOOD', 'BAD']),
     DmpFlagger(),
     SimpleFlagger()]
+from test.common import initData, TESTFLAGGER
 
 
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
-def test_range(flagger):
-    # prepare
-    field = 'testdata'
-    index = pd.date_range(start='2011-01-01', end='2011-01-02', periods=100)
-    data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
+@pytest.fixture
+def data():
+    return initData(cols=1, start_date="2016-01-01", end_date="2018-12-31", freq="1D")
+
+
+@pytest.fixture
+def field(data):
+    return data.columns[0]
+
     flags = flagger.initFlags(data)
     # test
     data, flags = flagRange(data, flags, field, flagger, min=10, max=90)
@@ -67,23 +71,10 @@ def test_clearFlags(flagger):
     assert (orig == cleared).all
 
 
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
-def test_forceFlags(flagger):
-    # prepare
-    field = 'testdata'
-    index = pd.date_range(start='2011-01-01', end='2011-01-10', freq='1d')
-    data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
-    flags = flagger.initFlags(data)
-    flags = flagger.setFlags(flags, field)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
+def test_forceFlags(data, flagger):
+    field, *_ = data.columns
+    flags = flagger.setFlags(flagger.initFlags(data), field)
     orig = flags.copy()
-    # test
-    _, foreced = forceFlags(data, flags, field, flagger, flag=flagger.GOOD)
-    assert (orig != foreced).all
-
-
-if __name__ == '__main__':
-    for f in TESTFLAGGERS:
-        test_range(f)
-        test_flagSesonalRange(f)
-        test_clearFlags(f)
-        test_forceFlags(f)
+    _, forced = forceFlags(data, flags, field, flagger, flag=flagger.GOOD)
+    assert np.all(flagger.getFlags(orig) != flagger.getFlags(forced))
