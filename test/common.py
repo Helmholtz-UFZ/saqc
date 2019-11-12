@@ -18,7 +18,7 @@ TESTFLAGGER = (SimpleFlagger(), DmpFlagger())
 
 
 def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):
-    dates = pd.date_range(start="2017-01-01", end="2017-12-31", freq="1h")
+    dates = pd.date_range(start=start_date, end=end_date, freq=freq)
     data = {}
     dummy = np.arange(len(dates))
     for col in range(1, cols+1):
