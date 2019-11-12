@@ -97,9 +97,10 @@ class BaseFlagger:
 
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
         check_isdf(flags, 'flags', allow_multiindex=False)
-        flags_loc, rows, col = self._getIndexer(flags, field, loc, iloc)
+        out = flags.copy()
+        flags_loc, rows, col = self._getIndexer(out, field, loc, iloc)
         flags_loc[rows, col] = self.UNFLAGGED
-        return self._assureDtype(flags, field)
+        return self._assureDtype(out, field)
 
     def _checkFlag(self, flag):
         if isinstance(flag, pd.Series):
