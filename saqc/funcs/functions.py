@@ -34,6 +34,9 @@ def flagGeneric(data, flags, field, flagger, func, **kwargs):
     flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
 
+# @register("ttt")
+# def flagTTT(data, flags, field, flagger, func, **kwargs):
+#     import ipdb; ipdb.set_trace()
 
 @register("range")
 def flagRange(data, flags, field, flagger, min, max, **kwargs):
@@ -41,6 +44,7 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
     mask = (datacol < min) | (datacol >= max)
     flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
+
 
 @register("missing")
 def flagMissing(data, flags, field, flagger, nodata=np.nan, **kwargs):
