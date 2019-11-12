@@ -40,7 +40,7 @@ class DmpFlagger(BaseFlagger):
         colindex = pd.MultiIndex.from_product(
             [data.columns, self.flags_fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
-        flags = pd.DataFrame(data=self.categories[0], columns=colindex, index=data.index)
+        flags = pd.DataFrame(data=self.UNFLAGGED, columns=colindex, index=data.index)
         return self._assureDtype(flags)
 
     def isFlagged(self, flags: PandasLike, flag=None, comparator=">") -> PandasLike:
@@ -91,10 +91,10 @@ class DmpFlagger(BaseFlagger):
 
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
         check_isdfmi(flags, 'flags')
-        flags = flags.copy()
-        indexer, rows, col = self._getIndexer(flags, field, loc, iloc)
-        indexer[rows, col] = self.UNFLAGGED, '', ''
-        return self._assureDtype(flags, field)
+        out = flags.copy()
+        indexer, rows, col = self._getIndexer(out, field, loc, iloc)
+        indexer[rows, col] = self.UNFLAGGED
+        return self._assureDtype(out, field)
 
     def _assureDtype(self, flags, field=None):
         if field is None:

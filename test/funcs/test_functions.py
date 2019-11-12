@@ -56,19 +56,13 @@ def test_flagSesonalRange(flagger):
     assert len(flags[flagged]) == 31 * 4 / 2
 
 
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
-def test_clearFlags(flagger):
-    # prepare
-    field = 'testdata'
-    index = pd.date_range(start='2011-01-01', end='2011-01-10', freq='1d')
-    data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
+def test_clearFlags(data, field, flagger):
     orig = flagger.initFlags(data)
-    flags = orig.copy()
-    # test
-    flags = flagger.setFlags(flags, field)
-    assert (orig != flags).all
+    flags = flagger.setFlags(orig.copy(), field, flag=flagger.BAD)
     _, cleared = clearFlags(data, flags, field, flagger)
-    assert (orig == cleared).all
+    assert np.all(orig != flags)
+    assert np.all(orig == cleared)
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
