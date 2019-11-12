@@ -3,7 +3,6 @@
 
 import pytest
 import pandas as pd
-import numpy as np
 
 from saqc.funcs import register, flagRange
 from saqc.core.core import runner
@@ -35,9 +34,9 @@ def test_temporalPartitioning(data, flagger):
     split_date = data.index[len(data.index)//2]
 
     metadict = [
-        {F.VARNAME: var1, "check": "flagAll()"},
-        {F.VARNAME: var2, "check": "flagAll()", F.END: split_date},
-        {F.VARNAME: var3, "check": "flagAll()", F.START: split_date},
+        {F.VARNAME: var1, F.TESTS: "flagAll()"},
+        {F.VARNAME: var2, F.TESTS: "flagAll()", F.END: split_date},
+        {F.VARNAME: var3, F.TESTS: "flagAll()", F.START: split_date},
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
 
@@ -58,9 +57,9 @@ def test_positionalPartitioning(data, flagger):
     split_index = int(len(data.index)//2)
 
     metadict = [
-        {F.VARNAME: var1, "check": "flagAll()"},
-        {F.VARNAME: var2, "check": "flagAll()", F.END: split_index},
-        {F.VARNAME: var3, "check": "flagAll()", F.START: split_index},
+        {F.VARNAME: var1, F.TESTS: "flagAll()"},
+        {F.VARNAME: var2, F.TESTS: "flagAll()", F.END: split_index},
+        {F.VARNAME: var3, F.TESTS: "flagAll()", F.START: split_index},
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
 
@@ -82,7 +81,7 @@ def test_missingConfig(data, flagger):
     """
     var1, var2, *_ = data.columns
 
-    metadict = [{F.VARNAME: var1, "check": "flagAll()"}]
+    metadict = [{F.VARNAME: var1, F.TESTS: "flagAll()"}]
     metafobj, meta = initMetaDict(metadict, data)
 
     pdata, pflags = runner(metafobj, flagger, data)
@@ -100,8 +99,8 @@ def test_missingVariable(flagger):
     var, *_ = data.columns
 
     metadict = [
-        {F.VARNAME: var, "check": "flagAll()"},
-        {F.VARNAME: "empty", "check": "flagAll()"},
+        {F.VARNAME: var, F.TESTS: "flagAll()"},
+        {F.VARNAME: "empty", F.TESTS: "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -121,8 +120,8 @@ def test_assignVariable(flagger):
     var2 = "empty"
 
     metadict = [
-        {F.VARNAME: var1, F.ASSIGN: False, "check": "flagAll()"},
-        {F.VARNAME: var2, F.ASSIGN: True,  "check": "flagAll()"},
+        {F.VARNAME: var1, F.ASSIGN: False, F.TESTS: "flagAll()"},
+        {F.VARNAME: var2, F.ASSIGN: True,  F.TESTS: "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -148,8 +147,8 @@ def test_dtypes(data, flagger):
     var1, var2, *_ = data.columns
 
     metadict = [
-        {F.VARNAME: var1, "check": "flagAll()"},
-        {F.VARNAME: var2, "check": "flagAll()"},
+        {F.VARNAME: var1, F.TESTS: "flagAll()"},
+        {F.VARNAME: var2, "test": "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
     pdata, pflags = runner(metafobj, flagger, data, flags)
@@ -157,22 +156,57 @@ def test_dtypes(data, flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_plotting(flagger):
-    """ Test if the plotting code runs. does not show any plot.
-        Note:
-            This test is ignored if matplotlib is not available on the test-system
+def test_plotting(data, flagger):
+    """
+    Test if the plotting code runs, does not show any plot.
+
+    NOTE:
+    This test is ignored if matplotlib is not available on the test-system
     """
     pytest.importorskip("matplotlib", reason="requires matplotlib")
-    field = 'testdata'
-    index = pd.date_range(start='2011-01-01', end='2011-01-02', periods=100)
-    data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
+    field, *_ = data.columns
     flags = flagger.initFlags(data)
     _, flagged = flagRange(data, flags, field, flagger, min=10, max=90, flag=flagger.BAD)
     _, flagged = flagRange(data, flagged, field, flagger, min=40, max=60, flag=flagger.GOOD)
     mask = flagger.getFlags(flags[field]) != flagger.getFlags(flagged[field])
     plot(data, flagged, mask, field, flagger, interactive_backend=False)
 
-def test_configReader():
-    meta = """
-    var1|2012-01-01|
-    """
+
+def test_configReader(data):
+    var1, var2, var3, *_ = data.columns
+    date = data.index[len(data.index)//2]
+
+    tests = [
+        {F.VARNAME: var1, F.START: date, F.TESTS: "flagAll()", F.PLOT: True},
+        {F.VARNAME: var2, F.TESTS: "flagAll()", F.PLOT: False},
+        {F.VARNAME: var3, F.END: date, F.TESTS: "flagAll()", F.ASSIGN: True},
+        {F.VARNAME: var3, F.TESTS: "flagAll()", },
+    ]
+
+    defaults = {
+        F.START: data.index.min(), F.END: data.index.max(),
+        F.ASSIGN: False, F.PLOT: False
+    }
+
+    for test in tests:
+        _, meta_frame = initMetaDict([test], data)
+        result = dict(zip(meta_frame.columns, meta_frame.iloc[0]))
+        expected = {**defaults, **test}
+        assert result == expected
+
+
+def test_configReaderExcpetion(data):
+    var1, var2, var3, *_ = data.columns
+    date = data.index[len(data.index)//2]
+
+    tests = [
+        {},
+        {F.TESTS: "flagAll()"},
+        {F.VARNAME: var2},
+        {F.VARNAME: var3, F.END: date, F.ASSIGN: True},
+    ]
+
+    for test in tests:
+        with pytest.raises(TypeError):
+            initMetaDict([test], data)
+

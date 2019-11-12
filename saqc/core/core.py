@@ -4,7 +4,7 @@
 import numpy as np
 import pandas as pd
 
-from .config import Fields, Params
+from .config import Fields
 from .evaluator import evalExpression
 from ..lib.plotting import plot
 from ..lib.tools import setup
@@ -34,7 +34,8 @@ def collectVariables(meta, flagger, data, flags):
     """
     # NOTE: get to know every variable from meta
     for idx, configrow in meta.iterrows():
-        varname, _, _, assign = configrow
+        varname = configrow[Fields.VARNAME]
+        assign = configrow[Fields.ASSIGN]
         if varname not in flags and \
                 (varname in data or varname not in data and assign is True):
             col_flags = flagger.initFlags(pd.DataFrame(index=data.index,
@@ -48,11 +49,8 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
     setup()
     meta = prepareMeta(readMeta(metafname), data)
     # NOTE: split meta into the test and some 'meta' data
-    fields = [Fields.VARNAME, Fields.START, Fields.END, Fields.ASSIGN]
-    tests = meta[meta.columns.to_series().filter(regex=Fields.FLAGS)]
-    meta = meta[fields]
-
-    plotvars = []
+    tests = meta[meta.columns.to_series().filter(regex=Fields.TESTS)]
+    meta = meta[meta.columns.difference(tests.columns)]
 
     # NOTE: prep the flags
     if flags is None:
@@ -69,7 +67,10 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
         if testcol.dropna().empty:
             continue
 
-        for idx, (varname, start_date, end_date, _) in meta.iterrows():
+        for idx, configrow in meta.iterrows():
+            varname = configrow[Fields.VARNAME]
+            start_date = configrow[Fields.START]
+            end_date = configrow[Fields.END]
 
             flag_test = testcol[idx]
             if pd.isnull(flag_test):
@@ -92,10 +93,12 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
             data.loc[start_date:end_date] = dchunk
             flags.loc[start_date:end_date] = fchunk.squeeze()
 
+        # NOTE: this method should be removed
         flagger.nextTest()
 
     # plot all together
-    if len(plotvars) > 1:
+    plotvars = meta[meta[Fields.PLOT]][Fields.VARNAME].tolist()
+    if plotvars:
         plot(data, flags, True, plotvars, flagger)
 
     return data, flags
@@ -110,20 +113,25 @@ def prepareMeta(meta, data):
     #       everything else from data
 
     # no dates given, fall back to the available index range
-    if Fields.START not in meta:
-        meta = meta.assign(**{Fields.START: np.nan})
-    if Fields.END not in meta:
-        meta = meta.assign(**{Fields.END: np.nan})
+    for field in [Fields.VARNAME, Fields.TESTS, Fields.START, Fields.END, Fields.ASSIGN, Fields.PLOT]:
+        if field not in meta:
+            meta = meta.assign(**{field: np.nan})
 
-    meta = meta.fillna(
-        {Fields.END: data.index.max(),
-         Fields.START: data.index.min()})
+    meta = meta.fillna({
+        Fields.VARNAME: np.nan,
+        Fields.TESTS: np.nan,
+        Fields.START: data.index.min(),
+        Fields.END: data.index.max(),
+        Fields.ASSIGN: False,
+        Fields.PLOT: False,
+    })
 
-    if Fields.ASSIGN not in meta:
-        meta = meta.assign(**{Fields.ASSIGN: False})
+    if meta[Fields.VARNAME].isna().any():
+        raise TypeError(f"columns {Fields.VARNAME} is needed")
 
-    # rows without a variables name don't help much
-    meta = meta.dropna(subset=[Fields.VARNAME])
+    tests = meta.filter(regex=Fields.TESTS)
+    if tests.isna().all(axis=1).any():
+        raise TypeError("at least one test must be given")
 
     dtype = np.datetime64 if isinstance(data.index, pd.DatetimeIndex) else int
 
