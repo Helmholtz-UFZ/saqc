@@ -50,7 +50,8 @@ def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, titl
     # dummy plot for the label `missing` see plot_vline for more info
     plt.plot([], [], ':', color='silver', label="missing data")
     plt.legend()
-    plt.show()
+    if interactive_backend:
+        plt.show()
 
 
 def _plot_qflags(data, flags, varname, flagger, flagmask, ax, show_nans):
