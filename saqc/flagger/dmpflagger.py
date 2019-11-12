@@ -69,11 +69,11 @@ class DmpFlagger(BaseFlagger):
         flags = self._assureDtype(flags, field).copy()
         flag = self.BAD if flag is None else self._checkFlag(flag)
         # set
-        flags_loc, rows, col = self._getIndexer(self.getFlags(flags), field, loc, iloc)
+        flags_loc, rows, col = self._getLocator(self.getFlags(flags), field, loc, iloc)
         if isinstance(flag, pd.Series):
             if len(flags.index) != len(flags):
                 raise ValueError('Length of flags and flag must match')
-            i, r, _ = self._getIndexer(flag, field, loc, iloc)
+            i, r, _ = self._getLocator(flag, field, loc, iloc)
             flag = i[r].squeeze()
 
         if force:
@@ -92,7 +92,7 @@ class DmpFlagger(BaseFlagger):
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
         check_isdfmi(flags, 'flags')
         flags = flags.copy()
-        indexer, rows, col = self._getIndexer(flags, field, loc, iloc)
+        indexer, rows, col = self._getLocator(flags, field, loc, iloc)
         indexer[rows, col] = self.UNFLAGGED, '', ''
         return self._assureDtype(flags, field)
 

@@ -57,22 +57,17 @@ class BaseFlagger:
         self._flags = self._assureDtype(flags)
 
     def isFlagged(self, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
-        flags = self._flags if field is None else self._flags[self._checkField(field)]
+        flags = self.getFlags(field, loc, iloc)
         flag = self.GOOD if flag is None else self._checkFlag(flag)
-
-        # upcast flag to series
-        if not isinstance(flag, pd.Series):
-            flag = pd.Series(data=flag, index=flags.index)
-
-        locator, rows, cols = self._getIndexer(flags, field, loc, iloc)
-        flags = locator[rows, cols]
-
         cp = COMPARATOR_MAP[comparator]
         isflagged = pd.notna(flags) & cp(flags, flag)
         return isflagged
 
-    def getFlags(self) -> pd.DataFrame:
-        return self._flags
+    def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
+        flags = self._flags if field is None else self._flags[self._checkField(field)]
+        locator, rows, _ = self._getLocator(flags, field, loc, iloc)
+        flags = locator[rows]
+        return self._assureDtype(flags, field)
 
     def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
         # prepare
@@ -80,14 +75,14 @@ class BaseFlagger:
         src = self.BAD if flag is None else self._checkFlag(flag)
         dest = self._flags
         if not isinstance(src, pd.Series):
-            src = np.full(len(dest.index), src)
+            src = pd.Series(data=src, index=dest.index)
 
         # get locations on src
-        i, r, _ = self._getIndexer(src, field, loc, iloc)
+        i, r, _ = self._getLocator(src, field, loc, iloc)
         src = i[r].squeeze()
 
         # get locations on dest
-        dest_loc, rows, col = self._getIndexer(self._flags, field, loc, iloc)
+        dest_loc, rows, col = self._getLocator(self._flags, field, loc, iloc)
         if force:
             idx = dest_loc[rows, col].index
         else:
@@ -102,7 +97,7 @@ class BaseFlagger:
 
     def clearFlags(self, field, loc=None, iloc=None, **kwargs):
         self._checkField(field)
-        flags_loc, rows, col = self._getIndexer(self._flags, field, loc, iloc)
+        flags_loc, rows, col = self._getLocator(self._flags, field, loc, iloc)
         flags_loc[rows, col] = self.UNFLAGGED
 
     def _checkField(self, field):
@@ -110,8 +105,10 @@ class BaseFlagger:
             raise KeyError(f"field {field} is not in flags")
         return field
 
-    def _checkFlag(self, flag):
+    def _checkFlag(self, flag, allow_series=False):
         if isinstance(flag, pd.Series):
+            if not allow_series:
+                raise TypeError('series of flags are not allowed here')
 
             if len(flag.index) != len(self._flags.index):
                 raise ValueError(f'Length of flags ({len(self._flags.index)}) and flag ({len(flag.index)}) must match')
@@ -124,7 +121,7 @@ class BaseFlagger:
                 raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.categories.categories)}")
         return flag
 
-    def _getIndexer(self, flags, field, loc=None, iloc=None):
+    def _getLocator(self, flags, field, loc=None, iloc=None):
         if loc is not None and iloc is not None:
             raise ValueError("params `loc` and `iloc` are mutual exclusive")
         elif loc is not None and iloc is None:
@@ -137,11 +134,15 @@ class BaseFlagger:
         return indexer, rows, col
 
     def _assureDtype(self, flags, field=None):
-        if field is None:  # we got a df
-            for c in flags:
-                flags[c] = self._assureDtype(flags, c)
-        elif not self._isFlagsDtype(flags[field]):
-            flags[field] = flags[field].astype(self.categories)
+        if isinstance(flags, pd.Series):
+            return flags if self._isFlagsDtype(flags) else flags.astype(self.categories)
+
+        else:  # got a df, recurse
+            if field is None:
+                for c in flags:
+                    flags[c] = self._assureDtype(flags[c])
+            else:
+                flags[field] = self._assureDtype(flags[field])
         return flags
 
     def _isFlagsDtype(self, series):
