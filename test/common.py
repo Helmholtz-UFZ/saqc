@@ -26,7 +26,7 @@ def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):
     return pd.DataFrame(data, index=dates)
 
 
-def initMeta(metastring, data):
+def initMetaString(metastring, data):
     cleaned = re.sub(r"\s*,\s*", r",",
                      re.sub(r"\|", r",",
                             re.sub(r"\n[ \t]+", r"\n",
@@ -40,6 +40,6 @@ def initMeta(metastring, data):
 def initMetaDict(metadict, data):
     meta = prepareMeta(pd.DataFrame(metadict), data)
     fobj = io.StringIO()
-    meta.to_csv(fobj)
+    meta.to_csv(fobj, index=False)
     fobj.seek(0)
     return fobj, meta

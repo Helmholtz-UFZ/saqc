@@ -11,6 +11,7 @@ class Fields:
     ASSIGN = "assign"
     TESTS = "test*"
     PLOT = "plot"
+    LINENUMBER = "line"
 
 
 class Params:

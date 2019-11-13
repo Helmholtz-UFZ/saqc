@@ -4,7 +4,7 @@
 import json
 import pandas as pd
 
-from ..common import initData, initMeta, initMetaDict
+from ..common import initData, initMetaDict
 from saqc.core.core import runner
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.dmpflagger import FlagFields as F
