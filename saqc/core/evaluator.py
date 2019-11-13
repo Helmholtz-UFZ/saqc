@@ -130,6 +130,9 @@ class MetaTransformer(ast.NodeTransformer):
         if func_name not in FUNC_MAP:
             raise NameError(f"unknown test function: '{func_name}'")
 
+        if node.args:
+            raise TypeError("only keyword arguments are supported")
+
         self.func_name = func_name
         new_args = [ast.Name(id="data", ctx=ast.Load()),
                     ast.Name(id="flags", ctx=ast.Load()),
@@ -148,11 +151,10 @@ class MetaTransformer(ast.NodeTransformer):
                 arg=node.arg,
                 value=self.dsl_transformer.visit(node.value))
             return node
+        if not isinstance(node.value, (ast.Str, ast.Num, ast.Call)):
+            raise TypeError(
+                f"only concrete values and function calls are valid function arguments")
         return self.generic_visit(node)
-
-    def visit_UnaryOp(self, node):
-        # we support all unary ops
-        return node
 
     def generic_visit(self, node):
         if not isinstance(node, self.SUPPORTED):
