@@ -27,8 +27,7 @@ def test_initFlags(flagger):
     field = 'testdata'
     index = pd.date_range(start='2011-01-01', end='2011-01-02', periods=100)
     data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
-    flagger.initFlags(data)
-    flags = flagger._flags
+    flags = flagger.initFlags(data)
     assert len(flags) == 100
     assert isinstance(flags, pd.DataFrame)
 
@@ -38,10 +37,10 @@ def test_getFlags(flagger):
     field = 'testdata'
     index = pd.date_range(start='2011-01-01', end='2011-01-02', periods=100)
     data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
-    flagger.initFlags(data)
-    flags0 = flagger.getFlags()
+    flags = flagger.initFlags(data)
+    flags0 = flagger.getFlags(flags)
     assert isinstance(flags0, pd.DataFrame)
-    flags1 = flagger.getFlags(field)
+    flags1 = flagger.getFlags(flags, field)
     assert isinstance(flags1, pd.Series)
     assert isinstance(flags1.dtype, pd.CategoricalDtype)
     assert (flags0[field] == flags1).all()
@@ -52,10 +51,10 @@ def test_isFlagged(flagger):
     field = 'testdata'
     index = pd.date_range(start='2011-01-01', end='2011-01-02', periods=100)
     data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
-    flagger.initFlags(data)
-    isflagged0 = flagger.isFlagged()
+    flags = flagger.initFlags(data)
+    isflagged0 = flagger.isFlagged(flags)
     assert isinstance(isflagged0, pd.DataFrame)
-    isflagged1 = flagger.isFlagged(field)
+    isflagged1 = flagger.isFlagged(flags, field)
     assert isinstance(isflagged1, pd.Series)
     assert (isflagged0[field] == isflagged1).all()
 
@@ -64,7 +63,7 @@ def test_isFlagged(flagger):
     flag = pd.Series(index=index, data=d).astype(flagger.categories)
     try:
         # must be single value
-        isflagged2 = flagger.isFlagged(field=field, flag=flag)
+        isflagged2 = flagger.isFlagged(flags, field=field, flag=flag)
     except TypeError:
         pass
     else:
@@ -76,11 +75,11 @@ def test_loc(flagger):
     field = 'testdata'
     index = pd.date_range(start='2011-01-01', end='2011-01-10', periods=100)
     data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
-    flagger.initFlags(data)
+    flags = flagger.initFlags(data)
     chunk = data.loc['2011-01-02':'2011-01-05', field]
     loc = slice('2011-01-02', '2011-01-05')
-    flags0 = flagger.getFlags(field, loc=chunk.index)
-    flags1 = flagger.getFlags(field, loc=loc)
+    flags0 = flagger.getFlags(flags, field, loc=chunk.index)
+    flags1 = flagger.getFlags(flags, field, loc=loc)
     assert (flags0 == flags1).all()
 
 

@@ -48,22 +48,26 @@ class Flags(pd.CategoricalDtype):
 class BaseFlagger:
     def __init__(self, flag_categories):
         self.categories = Flags(flag_categories)
-        self._flags = None
         # todo move initFlags code here
 
     def initFlags(self, data: pd.DataFrame):
         check_isdf(data, 'data', allow_multiindex=False)
         flags = pd.DataFrame(data=self.categories[0], index=data.index, columns=data.columns)
-        self._flags = self._assureDtype(flags)
+        return self._assureDtype(flags)
 
-    def isFlagged(self, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
-        flags = self.getFlags(field, loc, iloc)
+    def _checkFlags(self, flags):
+        check_isdf(flags)
+        return flags
+
+    def isFlagged(self, flags, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
+        self._checkFlags(flags)
+        flags = self.getFlags(flags, field, loc, iloc)
         flag = self.GOOD if flag is None else self._checkFlag(flag)
         cp = COMPARATOR_MAP[comparator]
         isflagged = pd.notna(flags) & cp(flags, flag)
         return isflagged
 
-    def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
+    def getFlags(self, flags, field=None, loc=None, iloc=None, **kwargs):
         """
         Return flags information.
 
@@ -79,14 +83,15 @@ class BaseFlagger:
 
         Note: [2] https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.iloc.html
         """
-        flags = self._flags if field is None else self._flags[self._checkField(field)]
+        self._checkFlags(flags)
+        flags = flags if field is None else flags[field]
         locator, rows, _ = self._getLocator(flags, field, loc, iloc)
         flags = locator[rows]
         return self._assureDtype(flags, field)
 
-    def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
+    def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
         # prepare dest
-        dest = self._flags[self._checkField(field)]
+        dest = self._checkFlags(flags)[field]
         dest_loc, rows, _ = self._getLocator(self._flags, None, loc, iloc)
         dest_len = len(dest)
         col = None
@@ -115,7 +120,7 @@ class BaseFlagger:
 
         # actually set src to dest
         dest.loc[idx, field] = src
-        self._flags = self._assureDtype(dest, field)
+        return self._assureDtype(dest, field)
 
     def clearFlags(self, field, loc=None, iloc=None, **kwargs):
         self._checkField(field)
