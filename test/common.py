@@ -9,6 +9,7 @@ import pandas as pd
 
 from saqc.core.core import prepareMeta, readMeta
 from saqc.flagger import SimpleFlagger, DmpFlagger
+from saqc.core.config import Fields as F
 
 
 TESTNODATA = (np.nan, -9999)
@@ -37,8 +38,18 @@ def initMetaString(metastring, data):
     return fobj, meta
 
 
+def _getKeys(metadict):
+    keys = list(metadict[0].keys())
+    for row in metadict[1:]:
+        for k in row.keys():
+            if k not in keys:
+                keys.append(k)
+    return keys
+
+
 def initMetaDict(metadict, data):
-    meta = prepareMeta(pd.DataFrame(metadict), data)
+    df = pd.DataFrame(metadict)[_getKeys(metadict)]
+    meta = prepareMeta(df, data)
     fobj = io.StringIO()
     meta.to_csv(fobj, index=False)
     fobj.seek(0)
