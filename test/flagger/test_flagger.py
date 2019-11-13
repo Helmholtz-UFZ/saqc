@@ -18,7 +18,7 @@ from saqc.funcs.functions import flagRange, flagSesonalRange, forceFlags, clearF
 
 TESTFLAGGERS = [
     BaseFlagger(['NIL', 'GOOD', 'BAD']),
-    # DmpFlagger(),
+    DmpFlagger(),
     SimpleFlagger()]
 
 
@@ -89,31 +89,33 @@ def test_iloc(flagger):
     pass
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_setFlags(flagger):
     field = 'testdata'
     index = pd.date_range(start='2011-01-01', end='2011-01-02', periods=100)
     data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
-    flagger.initFlags(data)
-    origin = flagger._flags
+    origin = flagger.initFlags(data)
 
-    flags = flagger.getFlags(field)
-    flagger.setFlags(field, flag=flagger.GOOD)
-    flagged = flagger.getFlags(field, flags)
+    flags0 = flagger.setFlags(origin, field, flag=flagger.GOOD)
+    assert flags0.shape == origin.shape
+    flagged = flagger.getFlags(flags0, field)
+    assert len(flagged) > 0
     assert isinstance(flagged.dtype, pd.CategoricalDtype)
     assert (flagged == flagger.GOOD).all()
 
-    flags = flagger.setFlags(flags, field, flag=flagger.BAD)
-    flagged = flagger.getFlags(flags)[field]
+    flags1 = flagger.setFlags(flags0, field, flag=flagger.BAD)
+    flagged = flagger.getFlags(flags1, field)
+    assert len(flagged) > 0
+    assert isinstance(flagged.dtype, pd.CategoricalDtype)
     assert (flagged == flagger.BAD).all()
 
-    flags = flagger.setFlags(flags, field, flag=flagger.GOOD)
-    flagged = flagger.getFlags(flags)[field]
+    flags2 = flagger.setFlags(flags1, field, flag=flagger.GOOD)
+    flagged = flagger.getFlags(flags2, field)
+    assert len(flagged) > 0
+    assert isinstance(flagged.dtype, pd.CategoricalDtype)
     assert (flagged == flagger.BAD).all()
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_setFlags_isFlagged(flagger, **kwargs):
     field = 'testdata'
@@ -197,6 +199,6 @@ def test_setFlags_isFlagged(flagger, **kwargs):
 
 
 if __name__ == '__main__':
-    flagger = TESTFLAGGERS[0]
-    test_setFlags_isFlagged(flagger)
+    flagger = TESTFLAGGERS[1]
+    test_getFlags(flagger)
     print('done')

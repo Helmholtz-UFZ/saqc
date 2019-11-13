@@ -4,6 +4,7 @@ import subprocess
 import json
 import pandas as pd
 
+from .simpleflagger import SimpleFlagger
 from .baseflagger import BaseFlagger, PandasLike
 from ..lib.tools import *
 
@@ -43,65 +44,60 @@ class DmpFlagger(BaseFlagger):
         flags = pd.DataFrame(data=self.categories[0], columns=colindex, index=data.index)
         return self._assureDtype(flags)
 
-    def isFlagged(self, flags: PandasLike, flag=None, comparator=">") -> PandasLike:
-        check_ispdlike(flags, 'flags')
-        flags = self.getFlags(flags)
-        return super().isFlagged(flags, flag, comparator)
-
-    def getFlags(self, flags: PandasLike) -> PandasLike:
-        check_ispdlike(flags, 'flags')
-        if not isinstance(flags, pd.DataFrame):  # series
-            super().getFlags(flags)
-        elif isinstance(flags.columns, pd.MultiIndex):  # df, with a multi-index
+    def getFlags(self, flags, field=None, loc=None, iloc=None, **kwargs):
+        self._checkFlags(flags, multi=True)
+        if field is None:
             flags = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
-        else:  # df, with a simple index
-            # if we come here, a df with a multi-index, was unpacked by a fieldname, like so: getFlags(df[field])
-            # so we can be sure to have qflag, qcause, qcomment as df-columns (otherwise something went wrong on the
-            # user side). As so we need to squeeze the result to a series, because the df does not have the column info,
-            # like to which field/variable the qflags belongs to.
-            flags = flags[FlagFields.FLAG].squeeze()
-        return flags
-
-    def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, comment='', cause='', **kwargs):
-        check_isdfmi(flags, 'flags')
-        # prepare
-        comment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
-        flags = self._assureDtype(flags, field).copy()
-        flag = self.BAD if flag is None else self._checkFlag(flag)
-        # set
-        flags_loc, rows, col = self._getLocator(self.getFlags(flags), field, loc, iloc)
-        if isinstance(flag, pd.Series):
-            if len(flags.index) != len(flags):
-                raise ValueError('Length of flags and flag must match')
-            i, r, _ = self._getLocator(flag, field, loc, iloc)
-            flag = i[r].squeeze()
-
-        if force:
-            mask = [True] * len(rows)
-            idx = flags_loc[rows, col].index
         else:
-            mask = flags_loc[rows, col] < flag
-            idx = mask[mask].index
+            flags = flags[[(field, FlagFields.FLAG)]]
+            flags.columns = [field]
+        flags = super().getFlags(flags, field, loc, iloc, **kwargs)
+        return flags
+        # getFlags(flags, field, loc, iloc, **kwargs)
 
-        if isinstance(flag, pd.Series):
-            flag = flag[mask]
+    def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, comment='', **kwargs):
+        comment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
+        return super().setFlags(flags, field, loc, iloc, flag, force, comment=comment, cause='')
 
-        flags.loc[idx, field] = flag, cause, comment
+    def _setFlags(self, flags, rowindex, field, flag, comment=None, cause=None, **kwargs):
+        if comment is None or cause is None:
+            raise AssertionError('wrong implemented :/')
+        flags.loc[rowindex, field] = flag, cause, comment
         return self._assureDtype(flags, field)
 
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
-        check_isdfmi(flags, 'flags')
-        flags = flags.copy()
-        indexer, rows, col = self._getLocator(flags, field, loc, iloc)
-        indexer[rows, col] = self.UNFLAGGED, '', ''
-        return self._assureDtype(flags, field)
+        if field is None:
+            raise ValueError('field cannot be None')
+        f = self.getFlags(flags, field, loc, iloc, **kwargs)
+        return self._setFlags(flags, f.index, field, flag=self.UNFLAGGED, cause='', comment='', **kwargs)
+
+    def _checkFlags(self, flags, multi=False, **kwargs):
+        if multi:
+            check_isdfmi(flags, argname='flags')
+            return flags
+        else:
+            return super()._checkFlags(flags, **kwargs)
 
     def _assureDtype(self, flags, field=None):
-        if field is None:
-            if isinstance(flags, pd.Series):  # we got a series
-                flags = super()._assureDtype(flags, None)
-            else:  # we got a df with a multi-index
-                flags = flags.astype({c: self.categories for c in flags.columns if FlagFields.FLAG in c})
-        elif not isinstance(flags[(field, FlagFields.FLAG)].dtype, pd.CategoricalDtype):
-            flags[(field, FlagFields.FLAG)] = flags[(field, FlagFields.FLAG)].astype(self.categories)
+        if isinstance(flags, pd.Series):
+            return flags if self._isFlagsDtype(flags) else flags.astype(self.categories)
+
+        else:  # got a df, recurse
+            if field is None:
+                for c in flags:
+                    flags[c] = self._assureDtype(flags[c])
+            else:
+                flags[field] = self._assureDtype(flags[field])
+        return flags
+
+    def _assureDtype(self, flags, field=None):
+        if isinstance(flags, pd.DataFrame) and isinstance(flags.columns, pd.MultiIndex):
+            if field is None:
+                cols = [c for c in flags.columns if FlagFields.FLAG in c]
+            else:
+                cols = [(field, FlagFields.FLAG)]
+            for c in cols:
+                flags[c] = super()._assureDtype(flags[c])
+        else:
+            flags = super()._assureDtype(flags, field)
         return flags

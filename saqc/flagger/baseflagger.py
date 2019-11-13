@@ -55,12 +55,14 @@ class BaseFlagger:
         flags = pd.DataFrame(data=self.categories[0], index=data.index, columns=data.columns)
         return self._assureDtype(flags)
 
-    def _checkFlags(self, flags):
-        check_isdf(flags)
-        return flags
-
     def isFlagged(self, flags, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
-        self._checkFlags(flags)
+        """
+        Return bool information on flags.
+
+        :param flags: pd.Dataframe only
+        :param field: None or str. Labelbased column indexer.
+        :return: pd.Dataframe if field is None, pd.Series otherwise
+        """
         flags = self.getFlags(flags, field, loc, iloc)
         flag = self.GOOD if flag is None else self._checkFlag(flag)
         cp = COMPARATOR_MAP[comparator]
@@ -71,6 +73,7 @@ class BaseFlagger:
         """
         Return flags information.
 
+        :param flags: pd.Dataframe only
         :param field: None or str. Labelbased column indexer.
         :param loc: mask or bool-array or Series used as row indexer (see. [1]). Mutual exclusive with `iloc`
         :param iloc: mask or bool-array or int-array used as relative row indexer (see. [2]).
@@ -85,54 +88,52 @@ class BaseFlagger:
         """
         self._checkFlags(flags)
         flags = flags if field is None else flags[field]
-        locator, rows, _ = self._getLocator(flags, field, loc, iloc)
+        locator, rows = self._getRowIndexer(flags, loc, iloc)
         flags = locator[rows]
         return self._assureDtype(flags, field)
 
     def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
-        # prepare dest
-        dest = self._checkFlags(flags)[field]
-        dest_loc, rows, _ = self._getLocator(self._flags, None, loc, iloc)
-        dest_len = len(dest)
-        col = None
-        dest = dest_loc[rows]
+        if field is None:
+            raise ValueError('field cannot be None')
+        dest_len = len(flags.index)
+        dest = self.getFlags(flags, field, loc, iloc, **kwargs)
 
         # prepare src
         src = self.BAD if flag is None else self._checkFlag(flag, allow_series=True)
         if isinstance(src, pd.Series):
             if len(src.index) != dest_len:
-                raise ValueError(f'Length of flags ({dest_len}) and flag ({len(flag.index)}) must, if flag not a '
-                                 f'scalar')
-
-            if len(src.index) != len(dest.index):
-                raise
+                raise ValueError(f'Length of flags ({dest_len}) and flag ({len(flag.index)}) must match, if flag is '
+                                 f'not a scalar')
+        else:
             src = pd.Series(data=src, index=dest.index)
-        i, r, _ = self._getLocator(src, field, loc, iloc)
+            src = self._assureDtype(src)
+        i, r = self._getRowIndexer(src, loc, iloc)
         src = i[r].squeeze()
 
         if force:
-            idx = dest_loc[rows, col].index
+            idx = dest.index
         else:
-            mask = dest_loc[rows, col] < src
-            idx = mask[mask].index
-            # do also shrink src, to fit dest !
+            mask = dest < src
+            idx = dest[mask].index
             src = src[mask]
 
-        # actually set src to dest
-        dest.loc[idx, field] = src
-        return self._assureDtype(dest, field)
+        flags = self._setFlags(flags, idx, field, src, **kwargs)
+        return self._assureDtype(flags, field)
 
-    def clearFlags(self, field, loc=None, iloc=None, **kwargs):
-        self._checkField(field)
-        flags_loc, rows, col = self._getLocator(self._flags, field, loc, iloc)
-        flags_loc[rows, col] = self.UNFLAGGED
+    def _setFlags(self, flags, rowindex, field, values, **kwargs):
+        flags.loc[rowindex, field] = values
+        return flags
 
-    def _checkField(self, field):
-        if field not in self._flags:
-            if field is None:
-                raise KeyError("field cannot be None")
-            raise KeyError(f"field {field} is not in flags")
-        return field
+    def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
+        if field is None:
+            raise ValueError('field cannot be None')
+        f = self.getFlags(flags, field, loc, iloc, **kwargs)
+        vals = self.UNFLAGGED
+        self._setFlags(flags, f.index, field, vals, **kwargs)
+
+    def _checkFlags(self, flags, **kwargs):
+        check_isdf(flags, argname='flags')
+        return flags
 
     def _checkFlag(self, flag, allow_series=False):
         if isinstance(flag, pd.Series):
@@ -149,17 +150,16 @@ class BaseFlagger:
                 raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.categories.categories)}")
         return flag
 
-    def _getLocator(self, flags, field, loc=None, iloc=None):
+    def _getRowIndexer(self, flags, loc=None, iloc=None):
         if loc is not None and iloc is not None:
             raise ValueError("params `loc` and `iloc` are mutual exclusive")
         elif loc is not None and iloc is None:
-            indexer, rows, col = flags.loc, loc, field or slice(None)
+            indexer, rows = flags.loc, loc
         elif loc is None and iloc is not None:
-            field = slice(None) if field is None else flags.columns.get_loc(field)
-            indexer, rows, col = flags.iloc, iloc, field
+            indexer, rows = flags.iloc, iloc
         elif loc is None and iloc is None:
-            indexer, rows, col = flags.loc, slice(None), field or slice(None)
-        return indexer, rows, col
+            indexer, rows = flags.loc, slice(None)
+        return indexer, rows
 
     def _assureDtype(self, flags, field=None):
         if isinstance(flags, pd.Series):
