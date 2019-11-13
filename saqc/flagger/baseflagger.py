@@ -64,25 +64,47 @@ class BaseFlagger:
         return isflagged
 
     def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
+        """
+        Return flags information.
+
+        :param field: None or str. Labelbased column indexer.
+        :param loc: mask or bool-array or Series used as row indexer (see. [1]). Mutual exclusive with `iloc`
+        :param iloc: mask or bool-array or int-array used as relative row indexer (see. [2]).
+            Mutual exclusive with `loc`
+        :param kwargs: unused
+
+        :return: pd.Dataframe if field is None, pd.Series otherwise
+
+        Note: [1] https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.loc.html
+
+        Note: [2] https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.iloc.html
+        """
         flags = self._flags if field is None else self._flags[self._checkField(field)]
         locator, rows, _ = self._getLocator(flags, field, loc, iloc)
         flags = locator[rows]
         return self._assureDtype(flags, field)
 
     def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
-        # prepare
-        self._checkField(field)
-        src = self.BAD if flag is None else self._checkFlag(flag)
-        dest = self._flags
-        if not isinstance(src, pd.Series):
-            src = pd.Series(data=src, index=dest.index)
+        # prepare dest
+        dest = self._flags[self._checkField(field)]
+        dest_loc, rows, _ = self._getLocator(self._flags, None, loc, iloc)
+        dest_len = len(dest)
+        col = None
+        dest = dest_loc[rows]
 
-        # get locations on src
+        # prepare src
+        src = self.BAD if flag is None else self._checkFlag(flag, allow_series=True)
+        if isinstance(src, pd.Series):
+            if len(src.index) != dest_len:
+                raise ValueError(f'Length of flags ({dest_len}) and flag ({len(flag.index)}) must, if flag not a '
+                                 f'scalar')
+
+            if len(src.index) != len(dest.index):
+                raise
+            src = pd.Series(data=src, index=dest.index)
         i, r, _ = self._getLocator(src, field, loc, iloc)
         src = i[r].squeeze()
 
-        # get locations on dest
-        dest_loc, rows, col = self._getLocator(self._flags, field, loc, iloc)
         if force:
             idx = dest_loc[rows, col].index
         else:
@@ -102,6 +124,8 @@ class BaseFlagger:
 
     def _checkField(self, field):
         if field not in self._flags:
+            if field is None:
+                raise KeyError("field cannot be None")
             raise KeyError(f"field {field} is not in flags")
         return field
 
@@ -110,14 +134,13 @@ class BaseFlagger:
             if not allow_series:
                 raise TypeError('series of flags are not allowed here')
 
-            if len(flag.index) != len(self._flags.index):
-                raise ValueError(f'Length of flags ({len(self._flags.index)}) and flag ({len(flag.index)}) must match')
-
             if not self._isFlagsDtype(flag):
                 raise TypeError(f"flag(-series) is not of expected '{self.categories}'-dtype with ordered categories "
                                 f"{list(self.categories.categories)}, '{flag.dtype}'-dtype was passed.")
         else:
             if flag not in self.categories:
+                if flag is None:
+                    raise KeyError("flag cannot be None")
                 raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.categories.categories)}")
         return flag
 

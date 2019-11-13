@@ -71,10 +71,17 @@ def test_isFlagged(flagger):
         raise AssertionError('this should not work')
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_loc(flagger):
-    pass
+    field = 'testdata'
+    index = pd.date_range(start='2011-01-01', end='2011-01-10', periods=100)
+    data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
+    flagger.initFlags(data)
+    chunk = data.loc['2011-01-02':'2011-01-05', field]
+    loc = slice('2011-01-02', '2011-01-05')
+    flags0 = flagger.getFlags(field, loc=chunk.index)
+    flags1 = flagger.getFlags(field, loc=loc)
+    assert (flags0 == flags1).all()
 
 
 @pytest.mark.skip()
@@ -92,9 +99,9 @@ def test_setFlags(flagger):
     flagger.initFlags(data)
     origin = flagger._flags
 
-    flags = flagger.getFlags()
+    flags = flagger.getFlags(field)
     flagger.setFlags(field, flag=flagger.GOOD)
-    flagged = flagger.getFlags(flags)[field]
+    flagged = flagger.getFlags(field, flags)
     assert isinstance(flagged.dtype, pd.CategoricalDtype)
     assert (flagged == flagger.GOOD).all()
 
