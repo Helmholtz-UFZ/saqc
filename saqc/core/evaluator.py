@@ -82,7 +82,7 @@ class DslTransformer(ast.NodeTransformer):
     def visit_Call(self, node):
         func_name = node.func.id
         if func_name not in self.func_map:
-            raise NameError(f"unspported function: {func_name}")
+            raise NameError(f"unspported function: '{func_name}'")
 
         node = ast.Call(
             func=node.func,
@@ -100,7 +100,7 @@ class DslTransformer(ast.NodeTransformer):
 
     def generic_visit(self, node):
         if not isinstance(node, self.SUPPORTED):
-            raise TypeError(f"Invalid expression: {node}")
+            raise TypeError(f"invalid expression: '{node}'")
         return super().generic_visit(node)
 
 
@@ -128,7 +128,7 @@ class MetaTransformer(ast.NodeTransformer):
         func_name = node.func.id
 
         if func_name not in FUNC_MAP:
-            raise TypeError(f"Unknown test function: {func_name}")
+            raise NameError(f"unknown test function: '{func_name}'")
 
         self.func_name = func_name
         new_args = [ast.Name(id="data", ctx=ast.Load()),
@@ -156,7 +156,7 @@ class MetaTransformer(ast.NodeTransformer):
 
     def generic_visit(self, node):
         if not isinstance(node, self.SUPPORTED):
-            raise TypeError(f"Invalid expression: {node}")
+            raise TypeError(f"invalid expression: '{node}'")
         return super().generic_visit(node)
 
 
