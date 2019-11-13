@@ -48,9 +48,9 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
     if np.any(np.diff(dates) <= 0):
         raise ValueError("strictly monotic index needed")
 
-    window_size = pd.to_timedelta(window_size, box=False).astype(np.int64)
+    window_size = pd.to_timedelta(window_size).to_timedelta64().astype(np.int64)
     if iter_delta:
-        iter_delta = pd.to_timedelta(iter_delta, box=False).astype(np.int64)
+        iter_delta = pd.to_timedelta(iter_delta).to_timedelta64().astype(np.int64)
 
     start_date = dates[0]
     last_date = dates[-1]
