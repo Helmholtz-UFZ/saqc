@@ -8,7 +8,7 @@ from saqc.funcs import register, flagRange
 from saqc.core.core import runner
 from saqc.core.config import Fields as F
 from saqc.lib.plotting import plot
-from test.common import initData, initMetaDict, TESTFLAGGER
+from test.common import initData, initMetaDict, initMetaString, TESTFLAGGER
 
 
 @pytest.fixture
@@ -35,11 +35,10 @@ def test_temporalPartitioning(data, flagger):
 
     metadict = [
         {F.VARNAME: var1, F.TESTS: "flagAll()"},
-        {F.VARNAME: var2, F.TESTS: "flagAll()", F.END: split_date},
-        {F.VARNAME: var3, F.TESTS: "flagAll()", F.START: split_date},
+        # {F.VARNAME: var2, F.TESTS: "flagAll()", F.END: split_date},
+        # {F.VARNAME: var3, F.TESTS: "flagAll()", F.START: split_date},
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
-
     pdata, pflags = runner(meta_file, flagger, data)
 
     fields = [F.VARNAME, F.START, F.END]
@@ -172,7 +171,7 @@ def test_plotting(data, flagger):
     plot(data, flagged, mask, field, flagger, interactive_backend=False)
 
 
-def test_configReader(data):
+def test_configPreparation(data):
     var1, var2, var3, *_ = data.columns
     date = data.index[len(data.index)//2]
 
@@ -185,28 +184,45 @@ def test_configReader(data):
 
     defaults = {
         F.START: data.index.min(), F.END: data.index.max(),
-        F.ASSIGN: False, F.PLOT: False
+        F.ASSIGN: False, F.PLOT: False, F.LINENUMBER: 1
     }
 
-    for test in tests:
+    for i, test in enumerate(tests):
         _, meta_frame = initMetaDict([test], data)
         result = dict(zip(meta_frame.columns, meta_frame.iloc[0]))
         expected = {**defaults, **test}
         assert result == expected
 
 
-def test_configReaderExcpetion(data):
+def test_configPreparationExcpetion(data):
     var1, var2, var3, *_ = data.columns
     date = data.index[len(data.index)//2]
 
     tests = [
         {},
-        {F.TESTS: "flagAll()"},
-        {F.VARNAME: var2},
-        {F.VARNAME: var3, F.END: date, F.ASSIGN: True},
+        # {F.TESTS: "flagAll()"},
+        # {F.VARNAME: var2},
+        # {F.VARNAME: var3, F.END: date, F.ASSIGN: True},
     ]
 
     for test in tests:
         with pytest.raises(TypeError):
             initMetaDict([test], data)
 
+
+def test_configReaderLineNumbers(data):
+    config = f"""
+    {F.VARNAME}|{F.TESTS}
+    #temp1|flagAll()
+    temp1|flagAll()
+    temp2|flagAll()
+    pre1|flagAll()
+    pre2|flagAll()
+    SM|flagAll()
+    #SM|flagAll()
+    SM1|flagAll()
+    """
+    meta_fname, meta_frame = initMetaString(config, data)
+    result = meta_frame[F.LINENUMBER].tolist()
+    expected = [2, 3, 4, 5, 6, 8]
+    assert result == expected

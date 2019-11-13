@@ -88,18 +88,31 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
 
 def readMeta(fname):
-    return pd.read_csv(fname, delimiter=",", comment="#")
+    return pd.read_csv(fname, delimiter=",")
 
 
 def prepareMeta(meta, data):
     # NOTE: an option needed to only pass tests within a file and deduce
     #       everything else from data
 
+    if Fields.VARNAME not in meta or meta[Fields.VARNAME].isna().any():
+        raise TypeError(f"columns {Fields.VARNAME} is needed")
+
+    tests = meta.filter(regex=Fields.TESTS)
+    if tests.empty or tests.isna().all(axis=1).any():
+        raise TypeError("at least one test must be given")
+
+    # add line numbers and remove comments
+    meta[Fields.LINENUMBER] = np.arange(len(meta)) + 1
+    comment_mask = ~meta.iloc[:, 0].str.startswith("#")
+    meta = meta[comment_mask]
+
     # no dates given, fall back to the available index range
     for field in [Fields.VARNAME, Fields.TESTS, Fields.START, Fields.END, Fields.ASSIGN, Fields.PLOT]:
         if field not in meta:
             meta = meta.assign(**{field: np.nan})
 
+    # fill with default values
     meta = meta.fillna({
         Fields.VARNAME: np.nan,
         Fields.TESTS: np.nan,
@@ -108,13 +121,6 @@ def prepareMeta(meta, data):
         Fields.ASSIGN: False,
         Fields.PLOT: False,
     })
-
-    if meta[Fields.VARNAME].isna().any():
-        raise TypeError(f"columns {Fields.VARNAME} is needed")
-
-    tests = meta.filter(regex=Fields.TESTS)
-    if tests.isna().all(axis=1).any():
-        raise TypeError("at least one test must be given")
 
     dtype = np.datetime64 if isinstance(data.index, pd.DatetimeIndex) else int
 

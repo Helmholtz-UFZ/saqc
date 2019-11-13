@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from ..common import initData, initMeta
+from ..common import initData
 from saqc.flagger import BaseFlagger
 
 import numpy as np
