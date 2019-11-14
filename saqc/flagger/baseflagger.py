@@ -53,7 +53,7 @@ class BaseFlagger:
     def initFlags(self, data: pd.DataFrame):
         check_isdf(data, 'data', allow_multiindex=False)
         flags = pd.DataFrame(data=self.categories[0], index=data.index, columns=data.columns)
-        return self._assureDtype(flags)
+        return self._assureDtype(flags, None)
 
     def isFlagged(self, flags, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
         """
@@ -63,11 +63,14 @@ class BaseFlagger:
         :param field: None or str. Labelbased column indexer.
         :return: pd.Dataframe if field is None, pd.Series otherwise
         """
-        flags = self.getFlags(flags, field, loc, iloc)
         flag = self.GOOD if flag is None else self._checkFlag(flag)
+        flags = self._checkFlags(flags, **kwargs)
+        flags = self._reduceColumns(flags, **kwargs)
+        flags = self._reduceRows(flags, field, loc, iloc, **kwargs)
+        flags = self._assureDtype(flags, field, **kwargs)
         cp = COMPARATOR_MAP[comparator]
-        isflagged = pd.notna(flags) & cp(flags, flag)
-        return isflagged
+        flagged = pd.notna(flags) & cp(flags, flag)
+        return flagged
 
     def getFlags(self, flags, field=None, loc=None, iloc=None, **kwargs):
         """
@@ -86,30 +89,34 @@ class BaseFlagger:
 
         Note: [2] https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.iloc.html
         """
-        self._checkFlags(flags)
-        flags = flags if field is None else flags[field]
-        locator, rows = self._getRowIndexer(flags, loc, iloc)
-        flags = locator[rows]
-        return self._assureDtype(flags, field)
+        flags = self._checkFlags(flags, **kwargs)
+        flags = self._reduceColumns(flags, **kwargs)
+        flags = self._reduceRows(flags, field, loc, iloc, **kwargs)
+        flags = self._assureDtype(flags, field, **kwargs)
+        return flags
 
     def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
+        # in: df, out: df, can modify just one (!) (flag-)column
         if field is None:
             raise ValueError('field cannot be None')
-        dest_len = len(flags.index)
-        dest = self.getFlags(flags, field, loc, iloc, **kwargs)
+        dest = self._checkFlags(flags, **kwargs)
+        dest = self._reduceColumns(dest, **kwargs)
+        dest_len = len(dest.index)
+        dest = self._reduceRows(dest, field, loc, iloc, **kwargs)
+        dest = self._assureDtype(dest, field, **kwargs)
+        assert isinstance(dest, pd.Series)
 
         # prepare src
-        src = self.BAD if flag is None else self._checkFlag(flag, allow_series=True)
-        if isinstance(src, pd.Series):
-            if len(src.index) != dest_len:
-                raise ValueError(f'Length of flags ({dest_len}) and flag ({len(flag.index)}) must match, if flag is '
-                                 f'not a scalar')
-        else:
+        src = self.BAD if flag is None else self._checkFlag(flag, allow_series=True, lenght=dest_len)
+        if not isinstance(src, pd.Series):
             src = pd.Series(data=src, index=dest.index)
-            src = self._assureDtype(src)
-        i, r = self._getRowIndexer(src, loc, iloc)
-        src = i[r].squeeze()
+        src = self._reduceRows(src, None, loc, iloc, **kwargs)
+        src = self._assureDtype(src, None, **kwargs)
 
+        # now src and dest are equal-length pd.Series with correct categorical dtype
+        assert isinstance(dest, pd.Series)
+        assert isinstance(src, pd.Series)
+        assert len(src) == len(dest)
         if force:
             idx = dest.index
         else:
@@ -117,64 +124,87 @@ class BaseFlagger:
             idx = dest[mask].index
             src = src[mask]
 
-        flags = self._setFlags(flags, idx, field, src, **kwargs)
-        return self._assureDtype(flags, field)
-
-    def _setFlags(self, flags, rowindex, field, values, **kwargs):
-        flags.loc[rowindex, field] = values
-        return flags
+        flags = self._writeFlags(flags, idx, field, src, **kwargs)
+        return self._assureDtype(flags, field, **kwargs)
 
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
         if field is None:
             raise ValueError('field cannot be None')
-        f = self.getFlags(flags, field, loc, iloc, **kwargs)
-        vals = self.UNFLAGGED
-        self._setFlags(flags, f.index, field, vals, **kwargs)
+        f = self._checkFlags(flags, **kwargs)
+        f = self._reduceColumns(f, **kwargs)
+        f = self._reduceRows(f, field, loc, iloc, **kwargs)
+        f = self._assureDtype(f, field, **kwargs)
+        flags = self._writeFlags(flags, f.index, field, self.UNFLAGGED, **kwargs)
+        return self._assureDtype(flags)
+
+    def _reduceColumns(self, df, field=None, **kwargs) -> pd.DataFrame:
+        # in: ?, out: df
+        return df
+
+    def _reduceRows(self, df_or_ser, field, loc, iloc, **kwargs) -> pd.DataFrame:
+        # in: df, out: df(w/. field), ser(w/o. field), reduced in rows, mismatched loc/iloc: empty df/ser
+        df_or_ser = df_or_ser if field is None else df_or_ser[field]
+        if loc is not None and iloc is not None:
+            raise ValueError("params `loc` and `iloc` are mutual exclusive")
+        elif loc is not None and iloc is None:
+            return df_or_ser.loc[loc]
+        elif loc is None and iloc is not None:
+            return df_or_ser.iloc[iloc]
+        elif loc is None and iloc is None:
+            return df_or_ser
+
+    def _writeFlags(self, flags, rowindex, field, flag, **kwargs):
+        # in: df, out: df, w/ modified values
+        flags.loc[rowindex, field] = flag
+        return flags
 
     def _checkFlags(self, flags, **kwargs):
         check_isdf(flags, argname='flags')
         return flags
 
-    def _checkFlag(self, flag, allow_series=False):
+    def _checkFlag(self, flag, allow_series=False, lenght=None):
+        if flag is None:
+            raise ValueError("flag cannot be None")
+
         if isinstance(flag, pd.Series):
             if not allow_series:
                 raise TypeError('series of flags are not allowed here')
 
-            if not self._isFlagsDtype(flag):
+            if not self._isSelfCategoricalType(flag):
                 raise TypeError(f"flag(-series) is not of expected '{self.categories}'-dtype with ordered categories "
                                 f"{list(self.categories.categories)}, '{flag.dtype}'-dtype was passed.")
-        else:
-            if flag not in self.categories:
-                if flag is None:
-                    raise KeyError("flag cannot be None")
-                raise ValueError(f"Invalid flag '{flag}'. Possible choices are {list(self.categories.categories)}")
+
+            assert lenght is not None, 'faulty Implementation, length param must be given if flag is a series'
+            if len(flag.index) != lenght:
+                raise ValueError(f'length of flags ({lenght}) and flag ({len(flag.index)}) must match, if flag is '
+                                 f'a series')
+
+        elif not self._isSelfCategoricalType(flag):
+            raise TypeError(f"Invalid flag '{flag}'. Possible choices are {list(self.categories.categories)}")
+
         return flag
 
-    def _getRowIndexer(self, flags, loc=None, iloc=None):
-        if loc is not None and iloc is not None:
-            raise ValueError("params `loc` and `iloc` are mutual exclusive")
-        elif loc is not None and iloc is None:
-            indexer, rows = flags.loc, loc
-        elif loc is None and iloc is not None:
-            indexer, rows = flags.iloc, iloc
-        elif loc is None and iloc is None:
-            indexer, rows = flags.loc, slice(None)
-        return indexer, rows
-
-    def _assureDtype(self, flags, field=None):
+    def _assureDtype(self, flags, field, **kwargs):
+        # in: df/ser, out: df/ser, affect only the minimal set of columns
         if isinstance(flags, pd.Series):
-            return flags if self._isFlagsDtype(flags) else flags.astype(self.categories)
+            return flags if self._isSelfCategoricalType(flags) else flags.astype(self.categories)
 
-        else:  # got a df, recurse
+        elif isinstance(flags, pd.DataFrame):
             if field is None:
                 for c in flags:
-                    flags[c] = self._assureDtype(flags[c])
+                    flags[c] = self._assureDtype(flags[c], None, **kwargs)
             else:
-                flags[field] = self._assureDtype(flags[field])
+                flags[field] = self._assureDtype(flags[field], None, **kwargs)
+        else:
+            raise NotImplementedError
+
         return flags
 
-    def _isFlagsDtype(self, series):
-        return isinstance(series.dtype, pd.CategoricalDtype) and series.dtype == self.categories
+    def _isSelfCategoricalType(self, f) -> bool:
+        if isinstance(f, pd.Series):
+            return isinstance(f.dtype, pd.CategoricalDtype) and f.dtype == self.categories
+        else:
+            return f in self.categories
 
     def nextTest(self):
         pass

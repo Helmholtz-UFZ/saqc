@@ -116,6 +116,7 @@ def test_setFlags(flagger):
     assert (flagged == flagger.BAD).all()
 
 
+@pytest.mark.skip()
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_setFlags_isFlagged(flagger, **kwargs):
     field = 'testdata'

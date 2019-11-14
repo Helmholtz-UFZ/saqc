@@ -44,6 +44,9 @@ class DmpFlagger(BaseFlagger):
         flags = pd.DataFrame(data=self.categories[0], columns=colindex, index=data.index)
         return self._assureDtype(flags)
 
+    # def isFlagged(self, flags, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
+    #     super().isFlagged(flags=flags, field=field, loc=loc, iloc=iloc, flag=flag, comparator=comparator, **kwargs)
+
     def getFlags(self, flags, field=None, loc=None, iloc=None, **kwargs):
         self._checkFlags(flags, multi=True)
         if field is None:
@@ -51,15 +54,14 @@ class DmpFlagger(BaseFlagger):
         else:
             flags = flags[[(field, FlagFields.FLAG)]]
             flags.columns = [field]
-        flags = super().getFlags(flags, field, loc, iloc, **kwargs)
-        return flags
-        # getFlags(flags, field, loc, iloc, **kwargs)
+        locator, rows = self._getRowIndexer(flags, loc, iloc)
+        return flags[rows]
 
     def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, comment='', **kwargs):
         comment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
         return super().setFlags(flags, field, loc, iloc, flag, force, comment=comment, cause='')
 
-    def _setFlags(self, flags, rowindex, field, flag, comment=None, cause=None, **kwargs):
+    def _writeFlags(self, flags, rowindex, field, flag, comment=None, cause=None, **kwargs):
         if comment is None or cause is None:
             raise AssertionError('wrong implemented :/')
         flags.loc[rowindex, field] = flag, cause, comment
@@ -69,25 +71,10 @@ class DmpFlagger(BaseFlagger):
         if field is None:
             raise ValueError('field cannot be None')
         f = self.getFlags(flags, field, loc, iloc, **kwargs)
-        return self._setFlags(flags, f.index, field, flag=self.UNFLAGGED, cause='', comment='', **kwargs)
+        return self._writeFlags(flags, f.index, field, flag=self.UNFLAGGED, cause='', comment='', **kwargs)
 
     def _checkFlags(self, flags, multi=False, **kwargs):
-        if multi:
-            check_isdfmi(flags, argname='flags')
-            return flags
-        else:
-            return super()._checkFlags(flags, **kwargs)
-
-    def _assureDtype(self, flags, field=None):
-        if isinstance(flags, pd.Series):
-            return flags if self._isFlagsDtype(flags) else flags.astype(self.categories)
-
-        else:  # got a df, recurse
-            if field is None:
-                for c in flags:
-                    flags[c] = self._assureDtype(flags[c])
-            else:
-                flags[field] = self._assureDtype(flags[field])
+        check_isdfmi(flags, argname='flags')
         return flags
 
     def _assureDtype(self, flags, field=None):
