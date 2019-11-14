@@ -7,9 +7,8 @@ import re
 import numpy as np
 import pandas as pd
 
-from saqc.core.core import prepareMeta, readMeta
+from saqc.core.core import prepareConfig, readConfig
 from saqc.flagger import SimpleFlagger, DmpFlagger
-from saqc.core.config import Fields as F
 
 
 TESTNODATA = (np.nan, -9999)
@@ -33,7 +32,7 @@ def initMetaString(metastring, data):
                             re.sub(r"\n[ \t]+", r"\n",
                                    metastring)))
     fobj = io.StringIO(cleaned)
-    meta = prepareMeta(readMeta(fobj), data)
+    meta = prepareConfig(readConfig(fobj), data)
     fobj.seek(0)
     return fobj, meta
 
@@ -49,7 +48,7 @@ def _getKeys(metadict):
 
 def initMetaDict(config_dict, data):
     df = pd.DataFrame(config_dict)[_getKeys(config_dict)]
-    meta = prepareMeta(df, data)
+    meta = prepareConfig(df, data)
     fobj = io.StringIO()
     meta.to_csv(fobj, index=False)
     fobj.seek(0)
