@@ -47,6 +47,7 @@ class Flags(pd.CategoricalDtype):
 
 class BaseFlagger:
     def __init__(self, flags):
+        self.signature = ("flag", "force")
         self.categories = Flags(flags)
 
     def initFlags(self, data: pd.DataFrame) -> pd.DataFrame:

@@ -47,8 +47,8 @@ def _getKeys(metadict):
     return keys
 
 
-def initMetaDict(metadict, data):
-    df = pd.DataFrame(metadict)[_getKeys(metadict)]
+def initMetaDict(config_dict, data):
+    df = pd.DataFrame(config_dict)[_getKeys(config_dict)]
     meta = prepareMeta(df, data)
     fobj = io.StringIO()
     meta.to_csv(fobj, index=False)

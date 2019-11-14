@@ -34,6 +34,7 @@ class DmpFlagger(BaseFlagger):
         version = subprocess.run("git describe --tags --always --dirty",
                                  shell=True, check=False, stdout=subprocess.PIPE).stdout
         self.project_version = version.decode().strip()
+        self.signature = ("flag", "comment", "cause", "force")
 
     def initFlags(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
         check_isdf(data, 'data', allow_multiindex=False)
