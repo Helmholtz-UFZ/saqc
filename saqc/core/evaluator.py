@@ -14,6 +14,11 @@ from saqc.funcs.register import FUNC_MAP
 # Module should be renamed to compiler
 
 
+class Targets:
+    DATA = "data"
+    FLAGS = "flags"
+
+
 def _dslInner(func, data, flags, flagger):
     return func(data.mask(flagger.isFlagged(flags)))
 
@@ -62,7 +67,7 @@ class DslTransformer(ast.NodeTransformer):
 
     def __init__(self, func_map, variables):
         self.func_map = func_map
-        self.variables = set(variables)
+        self.variables = variables
 
     def _rename(self, node: ast.Name, target: str) -> ast.Subscript:
 
@@ -87,8 +92,8 @@ class DslTransformer(ast.NodeTransformer):
         node = ast.Call(
             func=node.func,
             args=[
-                self._rename(node.args[0], "data"),
-                self._rename(node.args[0], "flags"),
+                self._rename(node.args[0], Targets.DATA),
+                self._rename(node.args[0], Targets.FLAGS),
                 ast.Name(id="flagger", ctx=ast.Load()),
             ],
             keywords=[]
@@ -186,10 +191,15 @@ def evalCode(code, data, flags, field, flagger, nodata):
     return eval(code, global_env, local_env)
 
 
+def compileExpression(expr, data, flags, nodata):
+    varmap = set(data.columns.tolist() + flags.columns.tolist())
+    tree = parseExpression(expr)
+    dsl_transformer = DslTransformer(initDslFuncMap(nodata), varmap)
+    transformed_tree = MetaTransformer(dsl_transformer).visit(tree)
+    return compileTree(transformed_tree)
+
+
 def evalExpression(expr, data, flags, field, flagger, nodata=np.nan):
 
-    tree = parseExpression(expr)
-    dsl_transformer = DslTransformer(initDslFuncMap(nodata), data.columns)
-    transformed_tree = MetaTransformer(dsl_transformer).visit(tree)
-    code = compileTree(transformed_tree)
+    code = compileExpression(expr, data, flags, nodata)
     return evalCode(code, data, flags, field, flagger, nodata)
