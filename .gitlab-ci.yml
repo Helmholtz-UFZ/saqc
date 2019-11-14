@@ -1,6 +1,6 @@
 before_script:
   - apt-get update -qq
-  - apt-get install -y -qq python3.6  python3-pip
+  - apt-get install -y -qq python3.6  python3-pip git
   - git clone https://github.com/pyenv/pyenv.git ~/.pyenv
   - export PYENV_ROOT="$HOME/.pyenv"
   - export PATH="$PYENV_ROOT/bin:$PATH"
