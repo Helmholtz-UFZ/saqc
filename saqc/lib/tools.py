@@ -19,9 +19,6 @@ def findIndex(iterable, value, start):
     while i < len(iterable):
         v = iterable[i]
         if v >= value:
-            # if v == value:
-                # include the end_date if present
-                # return i + 1
             return i
         i = i + 1
     return -1
@@ -45,8 +42,9 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
     if isinstance(dates, pd.DataFrame):
         dates = dates.index
     dates = np.array(dates, dtype=np.int64)
+
     if np.any(np.diff(dates) <= 0):
-        raise ValueError("strictly monotic index needed")
+        raise ValueError("strictly monotonic index needed")
 
     window_size = pd.to_timedelta(window_size).to_timedelta64().astype(np.int64)
     if iter_delta:

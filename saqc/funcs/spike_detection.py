@@ -32,8 +32,7 @@ def slidingOutlier(data, flags, field, flagger, winsz, dx, count=1, deg=1, z=3.5
     3.  the outlier `method` detect potential outlier
     4.  the window is continued by `dx` to the next data-slot.
     5.  processing continue at 1. until end of data.
-    5.  all potential outlier, that are detected `count`-many times, are promoted to real outlier and flagged by the
-    `flagger`
+    6.  all potential outlier, that are detected `count`-many times, are promoted to real outlier and flagged by the `flagger`
 
     :param data:        pandas dataframe. holding the data
     :param flags:       pandas dataframe. holding the flags
@@ -107,6 +106,7 @@ def slidingOutlier(data, flags, field, flagger, winsz, dx, count=1, deg=1, z=3.5
         def loopfun (arr, wsz, step):
             for i in range(0, len(arr) - wsz + 1, step):
                 yield i, i + wsz
+
 
     for start, end in loopfun(d.index, winsz, dx):
         # mask points that have been already discarded
