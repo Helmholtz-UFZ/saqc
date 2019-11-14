@@ -42,42 +42,30 @@ class DmpFlagger(BaseFlagger):
             [data.columns, self.flags_fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
         flags = pd.DataFrame(data=self.categories[0], columns=colindex, index=data.index)
-        return self._assureDtype(flags)
+        return self._assureDtype(flags, )
 
-    # def isFlagged(self, flags, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
-    #     super().isFlagged(flags=flags, field=field, loc=loc, iloc=iloc, flag=flag, comparator=comparator, **kwargs)
-
-    def getFlags(self, flags, field=None, loc=None, iloc=None, **kwargs):
-        self._checkFlags(flags, multi=True)
-        if field is None:
-            flags = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
-        else:
-            flags = flags[[(field, FlagFields.FLAG)]]
-            flags.columns = [field]
-        locator, rows = self._getRowIndexer(flags, loc, iloc)
-        return flags[rows]
-
-    def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, comment='', **kwargs):
+    def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, comment='', cause='', **kwargs):
         comment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
-        return super().setFlags(flags, field, loc, iloc, flag, force, comment=comment, cause='')
+        return super().setFlags(flags, field, loc, iloc, flag, force, comment=comment, cause=cause)
 
-    def _writeFlags(self, flags, rowindex, field, flag, comment=None, cause=None, **kwargs):
-        if comment is None or cause is None:
-            raise AssertionError('wrong implemented :/')
+    def _writeFlags(self, flags, rowindex, field, flag, cause=None, comment=None, **kwargs):
+        assert comment is not None and cause is not None
         flags.loc[rowindex, field] = flag, cause, comment
-        return self._assureDtype(flags, field)
+        return flags
+
+    def _reduceColumns(self, flags, field=None, loc=None, iloc=None, **kwargs):
+        flags = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
+        return flags
 
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
-        if field is None:
-            raise ValueError('field cannot be None')
-        f = self.getFlags(flags, field, loc, iloc, **kwargs)
-        return self._writeFlags(flags, f.index, field, flag=self.UNFLAGGED, cause='', comment='', **kwargs)
+        # call is redirected to self._writeFlags()
+        return super().clearFlags(flags, field, loc=loc, iloc=iloc, cause='', comment='', **kwargs)
 
-    def _checkFlags(self, flags, multi=False, **kwargs):
+    def _checkFlags(self, flags, **kwargs):
         check_isdfmi(flags, argname='flags')
         return flags
 
-    def _assureDtype(self, flags, field=None):
+    def _assureDtype(self, flags, field=None, **kwargs):
         if isinstance(flags, pd.DataFrame) and isinstance(flags.columns, pd.MultiIndex):
             if field is None:
                 cols = [c for c in flags.columns if FlagFields.FLAG in c]

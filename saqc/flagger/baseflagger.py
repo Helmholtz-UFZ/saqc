@@ -53,7 +53,7 @@ class BaseFlagger:
     def initFlags(self, data: pd.DataFrame):
         check_isdf(data, 'data', allow_multiindex=False)
         flags = pd.DataFrame(data=self.categories[0], index=data.index, columns=data.columns)
-        return self._assureDtype(flags, None)
+        return self._assureDtype(flags)
 
     def isFlagged(self, flags, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
         """
@@ -64,10 +64,7 @@ class BaseFlagger:
         :return: pd.Dataframe if field is None, pd.Series otherwise
         """
         flag = self.GOOD if flag is None else self._checkFlag(flag)
-        flags = self._checkFlags(flags, **kwargs)
-        flags = self._reduceColumns(flags, **kwargs)
-        flags = self._reduceRows(flags, field, loc, iloc, **kwargs)
-        flags = self._assureDtype(flags, field, **kwargs)
+        flags = self.getFlags(flags, field, loc, iloc, **kwargs)
         cp = COMPARATOR_MAP[comparator]
         flagged = pd.notna(flags) & cp(flags, flag)
         return flagged
@@ -111,12 +108,10 @@ class BaseFlagger:
         if not isinstance(src, pd.Series):
             src = pd.Series(data=src, index=dest.index)
         src = self._reduceRows(src, None, loc, iloc, **kwargs)
-        src = self._assureDtype(src, None, **kwargs)
+        src = self._assureDtype(src, **kwargs)
 
         # now src and dest are equal-length pd.Series with correct categorical dtype
-        assert isinstance(dest, pd.Series)
-        assert isinstance(src, pd.Series)
-        assert len(src) == len(dest)
+        # assert isinstance(dest, pd.Series) and isinstance(src, pd.Series) and len(src) == len(dest)
         if force:
             idx = dest.index
         else:
@@ -130,11 +125,8 @@ class BaseFlagger:
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
         if field is None:
             raise ValueError('field cannot be None')
-        f = self._checkFlags(flags, **kwargs)
-        f = self._reduceColumns(f, **kwargs)
-        f = self._reduceRows(f, field, loc, iloc, **kwargs)
-        f = self._assureDtype(f, field, **kwargs)
-        flags = self._writeFlags(flags, f.index, field, self.UNFLAGGED, **kwargs)
+        f = self.getFlags(flags, field, loc, iloc, **kwargs)
+        flags = self._writeFlags(flags, f.index, field, flag=self.UNFLAGGED, **kwargs)
         return self._assureDtype(flags)
 
     def _reduceColumns(self, df, field=None, **kwargs) -> pd.DataFrame:
@@ -184,7 +176,7 @@ class BaseFlagger:
 
         return flag
 
-    def _assureDtype(self, flags, field, **kwargs):
+    def _assureDtype(self, flags, field=None, **kwargs):
         # in: df/ser, out: df/ser, affect only the minimal set of columns
         if isinstance(flags, pd.Series):
             return flags if self._isSelfCategoricalType(flags) else flags.astype(self.categories)
@@ -192,9 +184,9 @@ class BaseFlagger:
         elif isinstance(flags, pd.DataFrame):
             if field is None:
                 for c in flags:
-                    flags[c] = self._assureDtype(flags[c], None, **kwargs)
+                    flags[c] = self._assureDtype(flags[c], **kwargs)
             else:
-                flags[field] = self._assureDtype(flags[field], None, **kwargs)
+                flags[field] = self._assureDtype(flags[field], **kwargs)
         else:
             raise NotImplementedError
 
