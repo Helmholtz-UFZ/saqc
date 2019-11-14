@@ -124,21 +124,19 @@ class MetaTransformer(ast.NodeTransformer):
         ast.Subscript,
         ast.Index)
 
-    def __init__(self, dsl_transformer):
+    def __init__(self, dsl_transformer, pass_parameter):
         self.dsl_transformer = dsl_transformer
+        self.pass_parameter = pass_parameter
         self.func_name = None
 
     def visit_Call(self, node):
-
         func_name = node.func.id
-
         if func_name not in FUNC_MAP:
             raise NameError(f"unknown test function: '{func_name}'")
-
         if node.args:
             raise TypeError("only keyword arguments are supported")
-
         self.func_name = func_name
+
         new_args = [ast.Name(id="data", ctx=ast.Load()),
                     ast.Name(id="flags", ctx=ast.Load()),
                     ast.Name(id="field", ctx=ast.Load()),
@@ -148,17 +146,24 @@ class MetaTransformer(ast.NodeTransformer):
             func=node.func,
             args=new_args + node.args,
             keywords=node.keywords)
+
         return self.generic_visit(node)
 
     def visit_keyword(self, node):
-        if self.func_name == "generic" and node.arg == Params.FUNC:
+        key, value = node.arg, node.value
+        if self.func_name == "generic" and key == Params.FUNC:
             node = ast.keyword(
-                arg=node.arg,
-                value=self.dsl_transformer.visit(node.value))
+                arg=key,
+                value=self.dsl_transformer.visit(value))
             return node
-        if not isinstance(node.value, (ast.Str, ast.Num, ast.Call)):
+
+        if key not in FUNC_MAP[self.func_name].signature + self.pass_parameter:
+            raise TypeError(f"unknown function parameter '{node.arg}'")
+
+        if not isinstance(value, (ast.Str, ast.Num, ast.Call)):
             raise TypeError(
                 f"only concrete values and function calls are valid function arguments")
+
         return self.generic_visit(node)
 
     def generic_visit(self, node):
@@ -191,15 +196,15 @@ def evalCode(code, data, flags, field, flagger, nodata):
     return eval(code, global_env, local_env)
 
 
-def compileExpression(expr, data, flags, nodata):
+def compileExpression(expr, data, flags, flagger, nodata):
     varmap = set(data.columns.tolist() + flags.columns.tolist())
     tree = parseExpression(expr)
     dsl_transformer = DslTransformer(initDslFuncMap(nodata), varmap)
-    transformed_tree = MetaTransformer(dsl_transformer).visit(tree)
+    transformed_tree = MetaTransformer(dsl_transformer, flagger.signature).visit(tree)
     return compileTree(transformed_tree)
 
 
 def evalExpression(expr, data, flags, field, flagger, nodata=np.nan):
 
-    code = compileExpression(expr, data, flags, nodata)
+    code = compileExpression(expr, data, flags, flagger, nodata)
     return evalCode(code, data, flags, field, flagger, nodata)
