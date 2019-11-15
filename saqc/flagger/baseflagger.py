@@ -7,6 +7,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
+from .template import FlaggerTemplate
 from ..lib.types import PandasLike, ArrayLike, T
 from ..lib.tools import *
 
@@ -45,7 +46,7 @@ class Flags(pd.CategoricalDtype):
         return self.categories[idx]
 
 
-class BaseFlagger:
+class BaseFlagger(FlaggerTemplate):
     def __init__(self, flags):
         self.signature = ("flag", "force")
         self.categories = Flags(flags)
@@ -56,13 +57,6 @@ class BaseFlagger:
         return self._assureDtype(flags)
 
     def isFlagged(self, flags, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
-        """
-        Return bool information on flags.
-
-        :param flags: pd.Dataframe only
-        :param field: None or str. Labelbased column indexer.
-        :return: pd.Dataframe if field is None, pd.Series otherwise
-        """
         # NOTE: I dislike the comparator default, as it does not comply with
         #       the setFlag defautl behaviour, which is not changable, btw
         flag = self.GOOD if flag is None else self._checkFlag(flag)
@@ -72,22 +66,6 @@ class BaseFlagger:
         return flagged
 
     def getFlags(self, flags, field=None, loc=None, iloc=None, **kwargs):
-        """
-        Return flags information.
-
-        :param flags: pd.Dataframe only
-        :param field: None or str. Labelbased column indexer.
-        :param loc: mask or bool-array or Series used as row indexer (see. [1]). Mutual exclusive with `iloc`
-        :param iloc: mask or bool-array or int-array used as relative row indexer (see. [2]).
-            Mutual exclusive with `loc`
-        :param kwargs: unused
-
-        :return: pd.Dataframe if field is None, pd.Series otherwise
-
-        Note: [1] https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.loc.html
-
-        Note: [2] https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.iloc.html
-        """
         flags = flags.copy()
         flags = self._checkFlags(flags, **kwargs)
         flags = self._reduceColumns(flags, **kwargs)
