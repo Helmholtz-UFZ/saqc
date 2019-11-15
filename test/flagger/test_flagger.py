@@ -17,11 +17,12 @@ from pandas.core.indexing import IndexingError
 
 from saqc.funcs.functions import flagRange, flagSesonalRange, forceFlags, clearFlags
 
+
 def get_dataset(rows, cols):
     index = pd.date_range(start='2011-01-01', end='2011-01-10', periods=rows)
     df = pd.DataFrame(index=index)
     for c in range(cols):
-        df[f'var{c}'] = np.linspace(0 + 100*c, index.size - 1, index.size)
+        df[f'var{c}'] = np.linspace(0 + 100 * c, index.size, index.size)
     return df
 
 
@@ -84,6 +85,7 @@ def test_getFlags(data, flagger):
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_isFlagged(data, flagger):
     # todo: add testcase with comparator
+
     flags = flagger.initFlags(data)
 
     # df
@@ -117,6 +119,8 @@ def test_isFlagged(data, flagger):
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_setFlags(data, flagger):
+    # todo flag=series
+
     origin = flagger.initFlags(data)
     sl = slice('2011-01-02', '2011-01-05')
 
@@ -161,8 +165,6 @@ def test_setFlags(data, flagger):
         pass
     else:
         raise AssertionError
-
-    # todo flag=series
 
 
 @pytest.mark.parametrize('data', DATASETS)
@@ -273,7 +275,6 @@ def test_loc(data, flagger, flaggerfunc):
     assert (sflags0 == iflags0).all()
 
 
-
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 @pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
@@ -323,88 +324,26 @@ def test_iloc(data, flagger, flaggerfunc):
     assert (sflags0 == mflags0).all()
 
 
-
-@pytest.mark.skip()
+@pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
-def test_setFlags_isFlagged(flagger, **kwargs):
-    field = 'testdata'
-    index = pd.date_range(start='2011-01-01', end='2011-01-02', periods=100)
-    data = pd.DataFrame(data={field: np.linspace(0, index.size - 1, index.size)}, index=index)
+def test_classicUseCases(data, flagger):
     flags = flagger.initFlags(data)
 
+    # data-mask, same length than flags
     d = data[field]
     mask = d < (d.max() - d.min()) // 2
-    assert len(mask) == len(flags.index)
+    flags0 = flagger.setFlags(flags, field, loc=mask, flag=flagger.BAD)
+    flagged = flagger.isFlagged(flags0, field)
+    assert (flagged == mask).all()
 
-    f = flagger.setFlags(flags, field, loc=mask.values, flag=flagger.BAD)
-    # test isFlagged
-    isflagged = flagger.isFlagged(f[field])
-    assert (isflagged == mask).all()
-
-    # test setFlag with mask
-    flagged = flagger.getFlags(f[field])
-    isflagged = flagged == flagger.BAD
-    assert (isflagged == mask).all()
-
-    # ok we can use isFlagged now :D
-
-    # test with mask and iloc
-    f = flagger.setFlags(flags, field, iloc=mask.values, flag=flagger.BAD)
-    isflagged = flagger.isFlagged(f[field])
-    assert (isflagged == mask).all()
-
-    try:
-        m = mask[mask]
-        m.iloc[0:10] = False
-        m = m[m]
-        f = flagger.setFlags(flags, field, loc=m, flag=flagger.BAD)
-    except IndexingError:
-        pass
-    else:
-        raise AssertionError
-
-    # test setFlags with loc and index
-    idx = mask[mask].index
-    assert len(idx) < len(flags.index)
-    f = flagger.setFlags(flags, field, loc=idx, flag=flagger.BAD)
-    isflagged = flagger.isFlagged(f[field])
-    assert (isflagged == mask).all()
-
-    # test setFlags with iloc and index
-    idx = mask[mask].reset_index(drop=True).index
-    assert len(idx) < len(flags.index)
-    f = flagger.setFlags(flags, field, iloc=idx, flag=flagger.BAD)
-    isflagged = flagger.isFlagged(f[field])
-    assert (isflagged == mask).all()
-
-    # test passing a series of flags as flag-arg
-    every = 5
-    flagseries = pd.Series(data=flagger.GOOD, index=flags.index)
-    flagseries.iloc[::every] = flagger.BAD
-    flagseries = flagseries.astype(flagger.categories)
-    idx = mask[mask].index
-    assert len(flags) == len(flagseries)
-    assert len(flags) != len(idx)
-    f = flagger.setFlags(flags, field, loc=idx, flag=flagseries)
-    bads = flagger.isFlagged(f[field], flag=flagger.BAD, comparator='==')
-    bads = bads[bads]
-    valid = mask[mask].iloc[::every]
-    assert len(valid) == len(bads) and (valid == bads).all()
-
-    # test passing a series of flags as flag-arg and force
-    f = flagger.setFlags(flags, field, flag=flagger.BAD)
-    every = 5
-    flagseries = pd.Series(data=flagger.GOOD, index=flags.index)
-    flagseries.iloc[::every] = flagger.UNFLAGGED
-    flagseries = flagseries.astype(flagger.categories)
-    idx = mask[mask].index
-    assert len(flags) == len(flagseries)
-    assert len(flags) != len(idx)
-    f = flagger.setFlags(f, field, loc=idx, flag=flagseries, force=True)
-    unflagged = flagger.isFlagged(f[field], flag=flagger.UNFLAGGED, comparator='==')
-    unflagged = unflagged[unflagged]
-    valid = mask[mask].iloc[::every]
-    assert len(valid) == len(unflagged) and (valid == unflagged).all()
+    # some fun with numpy but not same dimensions.. pass indices to iloc
+    indices = np.arange(0, len(data))
+    mask = indices % 3 == 0
+    indices = indices[indices]
+    flags1 = flagger.setFlags(flags, field, iloc=indices, flag=flagger.BAD)
+    flagged = flagger.isFlagged(flags1, field)
+    assert (flagged.iloc[indices] == flagged[flagged]).all()
+    unflagged = ~flagged
 
 
 if __name__ == '__main__':
