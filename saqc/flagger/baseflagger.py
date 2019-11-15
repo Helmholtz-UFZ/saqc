@@ -50,35 +50,39 @@ class BaseFlagger(FlaggerTemplate):
     def __init__(self, flags):
         self.signature = ("flag", "force")
         self.categories = Flags(flags)
+        self._flags = None
 
     def initFlags(self, data: pd.DataFrame):
         check_isdf(data, 'data', allow_multiindex=False)
-        flags = pd.DataFrame(data=self.categories[0], index=data.index, columns=data.columns)
-        return self._assureDtype(flags)
+        df = pd.DataFrame(data=self.categories[0], index=data.index, columns=data.columns)
+        self._flags = self._assureDtype(df)
 
-    def isFlagged(self, flags, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
+    def isFlagged(self, flags=None, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
         # NOTE: I dislike the comparator default, as it does not comply with
         #       the setFlag defautl behaviour, which is not changable, btw
         flag = self.GOOD if flag is None else self._checkFlag(flag)
-        flags = self.getFlags(flags, field, loc, iloc, **kwargs)
+        if flags is None:
+            flags = self.getFlags(field, loc, iloc, **kwargs)
+        else:
+            check_ispdlike(flags, argname='flags', allow_multiindex=False)
+            flags = self._reduceRows(flags.copy(), field, loc, iloc, **kwargs)
+            flags = self._assureDtype(flags, field, **kwargs)
         cp = COMPARATOR_MAP[comparator]
         flagged = pd.notna(flags) & cp(flags, flag)
         return flagged
 
-    def getFlags(self, flags, field=None, loc=None, iloc=None, **kwargs):
-        flags = flags.copy()
-        flags = self._checkFlags(flags, **kwargs)
+    def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
+        flags = self._flags.copy()
         flags = self._reduceColumns(flags, **kwargs)
         flags = self._reduceRows(flags, field, loc, iloc, **kwargs)
         flags = self._assureDtype(flags, field, **kwargs)
         return flags
 
-    def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
+    def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
         # in: df, out: df, can modify just one (!) (flag-)column
         if field is None:
             raise ValueError('field cannot be None')
-        flags = flags.copy()
-        dest = self._checkFlags(flags, **kwargs)
+        dest = self._flags.copy()
         dest = self._reduceColumns(dest, **kwargs)
 
         # prepare src
@@ -100,18 +104,21 @@ class BaseFlagger(FlaggerTemplate):
             mask = dest < src
             idx = dest[mask].index
             src = src[mask]
+        self._writeFlags(idx, field, src, **kwargs)
 
-        flags = self._writeFlags(flags, idx, field, src, **kwargs)
-        return self._assureDtype(flags, field, **kwargs)
+        ret = self._reduceColumns(self._flags, field, **kwargs)
+        return self._assureDtype(ret, field, **kwargs)
 
-    def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
+    def clearFlags(self, field, loc=None, iloc=None, **kwargs):
         if field is None:
             raise ValueError('field cannot be None')
-        flags = flags.copy()
         kwargs.pop('flag', None)
-        f = self.getFlags(flags, field, loc, iloc, **kwargs)
-        flags = self._writeFlags(flags, f.index, field, flag=self.UNFLAGGED, **kwargs)
-        return self._assureDtype(flags)
+
+        ridx = self.getFlags(field, loc, iloc, **kwargs).index
+        self._writeFlags(ridx, field, flag=self.UNFLAGGED, **kwargs)
+
+        ret = self._reduceColumns(self._flags, field, **kwargs)
+        return self._assureDtype(ret, field, **kwargs)
 
     def _reduceColumns(self, df, field=None, **kwargs) -> pd.DataFrame:
         # in: ?, out: df
@@ -129,14 +136,9 @@ class BaseFlagger(FlaggerTemplate):
         elif loc is None and iloc is None:
             return df_or_ser
 
-    def _writeFlags(self, flags, rowindex, field, flag, **kwargs):
+    def _writeFlags(self, rowindex, field, flag, **kwargs):
         # in: df, out: df, w/ modified values
-        flags.loc[rowindex, field] = flag
-        return flags
-
-    def _checkFlags(self, flags, **kwargs):
-        check_isdf(flags, argname='flags')
-        return flags
+        self._flags.loc[rowindex, field] = flag
 
     def _checkFlag(self, flag, allow_series=False, lenght=None):
         if flag is None:

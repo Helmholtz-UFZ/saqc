@@ -121,11 +121,6 @@ class FlaggerTemplate(ABC):
         ...
 
     @abstractmethod
-    def _checkFlags(self, flags, **kwargs):
-        """ Check if the flags input frame is valid """
-        ...
-
-    @abstractmethod
     def _checkFlag(self, flag, **kwargs):
         """ Check if the flag parmeter is valid """
         ...
