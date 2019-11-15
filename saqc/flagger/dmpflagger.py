@@ -42,11 +42,16 @@ class DmpFlagger(BaseFlagger):
             [data.columns, self.flags_fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
         flags = pd.DataFrame(data=self.categories[0], columns=colindex, index=data.index)
-        return self._assureDtype(flags, )
+        return self._assureDtype(flags)
 
     def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, comment='', cause='', **kwargs):
         comment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
+        # call is redirected to self._writeFlags()
         return super().setFlags(flags, field, loc, iloc, flag, force, comment=comment, cause=cause)
+
+    def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
+        # call is redirected to self._writeFlags()
+        return super().clearFlags(flags, field, loc=loc, iloc=iloc, cause='', comment='', **kwargs)
 
     def _writeFlags(self, flags, rowindex, field, flag, cause=None, comment=None, **kwargs):
         assert comment is not None and cause is not None
@@ -56,10 +61,6 @@ class DmpFlagger(BaseFlagger):
     def _reduceColumns(self, flags, field=None, loc=None, iloc=None, **kwargs):
         flags = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
         return flags
-
-    def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
-        # call is redirected to self._writeFlags()
-        return super().clearFlags(flags, field, loc=loc, iloc=iloc, cause='', comment='', **kwargs)
 
     def _checkFlags(self, flags, **kwargs):
         check_isdfmi(flags, argname='flags')

@@ -48,7 +48,6 @@ class Flags(pd.CategoricalDtype):
 class BaseFlagger:
     def __init__(self, flag_categories):
         self.categories = Flags(flag_categories)
-        # todo move initFlags code here
 
     def initFlags(self, data: pd.DataFrame):
         check_isdf(data, 'data', allow_multiindex=False)
@@ -86,6 +85,7 @@ class BaseFlagger:
 
         Note: [2] https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.iloc.html
         """
+        flags = flags.copy()
         flags = self._checkFlags(flags, **kwargs)
         flags = self._reduceColumns(flags, **kwargs)
         flags = self._reduceRows(flags, field, loc, iloc, **kwargs)
@@ -96,9 +96,10 @@ class BaseFlagger:
         # in: df, out: df, can modify just one (!) (flag-)column
         if field is None:
             raise ValueError('field cannot be None')
+        flags = flags.copy()
         dest = self._checkFlags(flags, **kwargs)
         dest = self._reduceColumns(dest, **kwargs)
-        dest_len = len(dest.index)
+        dest_len = len(dest)
         dest = self._reduceRows(dest, field, loc, iloc, **kwargs)
         dest = self._assureDtype(dest, field, **kwargs)
         assert isinstance(dest, pd.Series)
@@ -125,6 +126,7 @@ class BaseFlagger:
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
         if field is None:
             raise ValueError('field cannot be None')
+        flags = flags.copy()
         f = self.getFlags(flags, field, loc, iloc, **kwargs)
         flags = self._writeFlags(flags, f.index, field, flag=self.UNFLAGGED, **kwargs)
         return self._assureDtype(flags)
@@ -167,8 +169,8 @@ class BaseFlagger:
                                 f"{list(self.categories.categories)}, '{flag.dtype}'-dtype was passed.")
 
             assert lenght is not None, 'faulty Implementation, length param must be given if flag is a series'
-            if len(flag.index) != lenght:
-                raise ValueError(f'length of flags ({lenght}) and flag ({len(flag.index)}) must match, if flag is '
+            if len(flag) != lenght:
+                raise ValueError(f'length of flags ({lenght}) and flag ({len(flag)}) must match, if flag is '
                                  f'a series')
 
         elif not self._isSelfCategoricalType(flag):
