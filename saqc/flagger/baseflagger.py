@@ -80,15 +80,15 @@ class BaseFlagger(FlaggerTemplate):
         flags = flags.copy()
         dest = self._checkFlags(flags, **kwargs)
         dest = self._reduceColumns(dest, **kwargs)
-        dest_len = len(dest)
-        dest = self._reduceRows(dest, field, loc, iloc, **kwargs)
-        dest = self._assureDtype(dest, field, **kwargs)
-        # assert isinstance(dest, pd.Series)
 
         # prepare src
-        src = self.BAD if flag is None else self._checkFlag(flag, allow_series=True, lenght=dest_len)
+        src = self.BAD if flag is None else self._checkFlag(flag, allow_series=True, lenght=len(dest))
         if not isinstance(src, pd.Series):
             src = pd.Series(data=src, index=dest.index)
+
+        # shrink data
+        dest = self._reduceRows(dest, field, loc, iloc, **kwargs)
+        dest = self._assureDtype(dest, field, **kwargs)
         src = self._reduceRows(src, None, loc, iloc, **kwargs)
         src = self._assureDtype(src, **kwargs)
 
