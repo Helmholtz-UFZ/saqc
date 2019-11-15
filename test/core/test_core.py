@@ -40,7 +40,7 @@ def test_temporalPartitioning(data, flagger):
     fields = [F.VARNAME, F.START, F.END]
     for _, row in meta_frame.iterrows():
         vname, start_date, end_date = row[fields]
-        fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
+        fchunk = pflags.loc[flagger.isFlagged(pflags, vname), vname]
         assert fchunk.index.min() == start_date, "different start dates"
         assert fchunk.index.max() == end_date, "different end dates"
 
@@ -63,7 +63,7 @@ def test_positionalPartitioning(data, flagger):
     fields = [F.VARNAME, F.START, F.END]
     for _, row in meta_frame.iterrows():
         vname, start_index, end_index = row[fields]
-        fchunk = pflags.loc[flagger.isFlagged(pflags[vname]), vname]
+        fchunk = pflags.loc[flagger.isFlagged(pflags, vname), vname]
         assert fchunk.index.min() == start_index, "different start indices"
         assert fchunk.index.max() == end_index, f"different end indices: {fchunk.index.max()} vs. {end_index}"
 
@@ -127,10 +127,10 @@ def test_assignVariable(flagger):
                 .columns.get_level_values(0)
                 .drop_duplicates())
         assert (cols == [var1, var2]).all()
-        assert flagger.isFlagged(pflags[var2]).any()
+        assert flagger.isFlagged(pflags, var2).any()
     else:
         assert (pflags.columns == [var1, var2]).all()
-        assert flagger.isFlagged(pflags[var2]).any()
+        assert flagger.isFlagged(pflags, var2).any()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -163,6 +163,6 @@ def test_plotting(data, flagger):
     flags = flagger.initFlags(data)
     _, flagged = flagRange(data, flags, field, flagger, min=10, max=90, flag=flagger.BAD)
     _, flagged = flagRange(data, flagged, field, flagger, min=40, max=60, flag=flagger.GOOD)
-    mask = flagger.getFlags(flags[field]) != flagger.getFlags(flagged[field])
+    mask = flagger.getFlags(flags, field) != flagger.getFlags(flagged, field)
     plot(data, flagged, mask, field, flagger, interactive_backend=False)
 

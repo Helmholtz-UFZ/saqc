@@ -83,7 +83,7 @@ class BaseFlagger(FlaggerTemplate):
         dest_len = len(dest)
         dest = self._reduceRows(dest, field, loc, iloc, **kwargs)
         dest = self._assureDtype(dest, field, **kwargs)
-        assert isinstance(dest, pd.Series)
+        # assert isinstance(dest, pd.Series)
 
         # prepare src
         src = self.BAD if flag is None else self._checkFlag(flag, allow_series=True, lenght=dest_len)

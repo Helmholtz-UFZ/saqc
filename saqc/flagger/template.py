@@ -32,10 +32,12 @@ class FlaggerTemplate(ABC):
 
     @abstractmethod
     def __init__(self, flags):
+        """ Init the class and set the categories (in param flags) that are used here."""
         ...
 
     @abstractmethod
     def initFlags(self, data: pd.DataFrame) -> newT:
+        """ Prepare the flags to your desire. data is passed as reference shape """
         ...
 
     @abstractmethod
