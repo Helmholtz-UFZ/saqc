@@ -53,7 +53,8 @@ class DmpFlagger(BaseFlagger):
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
         # call is redirected to self._writeFlags()
         kwargs.pop('cause', None), kwargs.pop('comment', None)
-        flags = super().clearFlags(flags, field, loc=loc, iloc=iloc, cause='', comment='', **kwargs)
+        flags = super().clearFlags(flags, field, loc=loc, iloc=iloc,
+                                   cause=self.UNFLAGGED, comment=self.UNFLAGGED, **kwargs)
         return flags
 
     def _writeFlags(self, flags, rowindex, field, flag, cause=None, comment=None, **kwargs):

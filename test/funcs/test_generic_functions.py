@@ -37,7 +37,7 @@ def test_flagPropagation(data, flagger):
 
     var1, var2, *_ = data.columns
     this = var1
-    var2_flags = flagger.isFlagged(flags[var2])
+    var2_flags = flagger.isFlagged(flags, var2)
     var2_data = data[var2].mask(var2_flags)
     data, flags = evalExpression(
         "generic(func=var2 < mean(var2))",
@@ -47,7 +47,7 @@ def test_flagPropagation(data, flagger):
     )
 
     expected = (var2_flags | (var2_data < var2_data.mean()))
-    result = flagger.isFlagged(flags[this])
+    result = flagger.isFlagged(flags, this)
     assert (result == expected).all()
 
 
@@ -177,7 +177,7 @@ def test_isflagged(data, flagger):
 
     idx = _evalExpression(f"isflagged({var1})", data, flags, var2, flagger)
 
-    flagged = flagger.isFlagged(flags[var1])
+    flagged = flagger.isFlagged(flags, var1)
     assert (flagged == idx).all
 
 
@@ -192,5 +192,5 @@ def test_isflaggedArgument(data, flagger):
     idx = _evalExpression(
         f"isflagged({var1}, {flagger.BAD})", data, flags, var2, flagger)
 
-    flagged = flagger.isFlagged(flags[var1], flagger.BAD, comparator=">=")
+    flagged = flagger.isFlagged(flags, var1, flagger.BAD, comparator=">=")
     assert (flagged == idx).all()

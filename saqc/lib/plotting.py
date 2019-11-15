@@ -59,12 +59,11 @@ def _plot_qflags(data, flags, varname, flagger, flagmask, ax, show_nans):
 
     x = data.index
     y = data[varname]
-    flags_ = flags[varname]
     ax.plot(x, y, '-', markersize=1, color='silver')
 
     # plot all data in silver (NaNs as vertical lines)
     ax.plot(x, y, '-', color='silver', label='data')
-    flagged = flagger.isFlagged(flags_)
+    flagged = flagger.isFlagged(flags, varname)
     if show_nans:
         nans = y.isna()
         idx = y.index[nans & ~flagged]
@@ -81,7 +80,7 @@ def _plot_qflags(data, flags, varname, flagger, flagmask, ax, show_nans):
     for i, f in enumerate(flagger.categories):
         if i == 0:
             continue
-        flagged = flagger.isFlagged(flags_, flag=f, comparator='==') & flagmask
+        flagged = flagger.isFlagged(flags, varname, flag=f, comparator='==') & flagmask
         label = f"flag: {f}"
         color = _get_color(f, flagger)
         ax.plot(x[flagged], y[flagged], '.', color=color, label=label)

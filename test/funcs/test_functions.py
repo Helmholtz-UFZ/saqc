@@ -80,7 +80,7 @@ def test_flagSesonalRange(data, field, flagger):
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_clearFlags(data, field, flagger):
     orig = flagger.initFlags(data)
-    flags = flagger.setFlags(orig.copy(), field, flag=flagger.BAD)
+    flags = flagger.setFlags(orig, field, flag=flagger.BAD)
     _, cleared = clearFlags(data, flags, field, flagger)
     assert np.all(orig != flags)
     assert np.all(orig == cleared)
