@@ -49,7 +49,8 @@ TESTFLAGGERS = [
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_initFlags(data, flagger):
-    flags = flagger.initFlags(data)
+    flagger.initFlags(data)
+    flags = flagger._flags
     assert isinstance(flags, pd.DataFrame)
     assert len(flags.index) == len(data.index)
     assert len(flags.columns) >= len(data.columns)
@@ -58,10 +59,10 @@ def test_initFlags(data, flagger):
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_getFlags(data, flagger):
-    flags = flagger.initFlags(data)
 
     # df
-    flags0 = flagger.getFlags(flags)
+    flagger.initFlags(data)
+    flags0 = flagger.getFlags()
     assert isinstance(flags0, pd.DataFrame)
     assert flags0.shape == data.shape
     assert (flags0.columns == data.columns).all()
@@ -69,16 +70,18 @@ def test_getFlags(data, flagger):
         assert isinstance(dt, pd.CategoricalDtype)
 
     # series
-    flags1 = flagger.getFlags(flags, field)
+    flagger.initFlags(data)
+    flags1 = flagger.getFlags(field)
     assert isinstance(flags1, pd.Series)
     assert isinstance(flags1.dtype, pd.CategoricalDtype)
     assert flags1.shape[0] == data.shape[0]
     assert flags1.name in data.columns
 
     # all the same
-    flags2 = flagger.getFlags(flags[[field]]).squeeze()
-    assert (flags0[field] == flags1).all()
-    assert (flags0[field] == flags2).all()
+    flagger.initFlags(data)
+    f0 = flagger.getFlags()[field]
+    f1 = flagger.getFlags(field)
+    assert np.all(f0 == f1)
 
 
 @pytest.mark.parametrize('data', DATASETS)
@@ -86,10 +89,9 @@ def test_getFlags(data, flagger):
 def test_isFlagged(data, flagger):
     # todo: add testcase with comparator
 
-    flags = flagger.initFlags(data)
-
     # df
-    flagged0 = flagger.isFlagged(flags)
+    flagger.initFlags(data)
+    flagged0 = flagger.isFlagged()
     assert isinstance(flagged0, pd.DataFrame)
     assert flagged0.shape == data.shape
     assert (flagged0.columns == data.columns).all()
@@ -97,7 +99,8 @@ def test_isFlagged(data, flagger):
         assert is_bool_dtype(dt)
 
     # series
-    flagged1 = flagger.isFlagged(flags, field)
+    flagger.initFlags(data)
+    flagged1 = flagger.isFlagged(field)
     assert isinstance(flagged1, pd.Series)
     assert is_bool_dtype(flagged1.dtype)
     assert flagged1.shape[0] == data.shape[0]
@@ -107,9 +110,10 @@ def test_isFlagged(data, flagger):
     assert (flagged0[field] == flagged1).all()
 
     # flag cannot be series
+    flagger.initFlags(data)
     flag = pd.Series(index=data.index, data=flagger.BAD).astype(flagger.categories)
     try:
-        flagger.isFlagged(flags, field=field, flag=flag)
+        flagger.isFlagged(field, flag=flag)
     except TypeError:
         pass
     else:
@@ -121,46 +125,44 @@ def test_isFlagged(data, flagger):
 def test_setFlags(data, flagger):
     # todo flag=series
 
-    origin = flagger.initFlags(data)
+    flagger.initFlags(data)
+    origin = flagger.getFlags()
     sl = slice('2011-01-02', '2011-01-05')
 
     # selection, return nevertheless the whole frame
-    flags0 = flagger.setFlags(origin, field, flag=flagger.GOOD, loc=sl)
+    flags0 = flagger.setFlags(field, flag=flagger.GOOD, loc=sl)
     assert flags0.shape == origin.shape
     assert (flags0.columns == origin.columns).all()
 
     # all
-    flags0 = flagger.setFlags(origin, field, flag=flagger.GOOD)
+    flagger.initFlags(data)
+    flags0 = flagger.setFlags(field, flag=flagger.GOOD)
     assert flags0.shape == origin.shape
     assert (flags0.columns == origin.columns).all()
-
-    flagged0 = flagger.getFlags(flags0, field)
+    flagged0 = flagger.getFlags(field)
     assert (flagged0 == flagger.GOOD).all()
-
     # overflag works BAD > GOOD
-    flags1 = flagger.setFlags(flags0, field, flag=flagger.BAD)
-    flagged1 = flagger.getFlags(flags1, field)
+    flagger.setFlags(field, flag=flagger.BAD)
+    flagged1 = flagger.getFlags(field)
     assert (flagged1 == flagger.BAD).all()
-
     # overflag dont work GOOD < BAD
-    flags2 = flagger.setFlags(flags1, field, flag=flagger.GOOD)
-    flagged2 = flagger.getFlags(flags2, field)
+    flagger.setFlags(field, flag=flagger.GOOD)
+    flagged2 = flagger.getFlags(field)
     assert (flagged2 == flagger.BAD).all()  # still BAD
-
     # overflag do work with force
-    flags3 = flagger.setFlags(flags2, field, flag=flagger.GOOD, force=True)
-    flagged3 = flagger.getFlags(flags3, field)
+    flagger.setFlags(field, flag=flagger.GOOD, force=True)
+    flagged3 = flagger.getFlags(field)
     assert (flagged3 == flagger.GOOD).all()
 
     # no field throw err
     try:
-        flagger.setFlags(origin)
+        flagger.setFlags()
     except TypeError:
         pass
     else:
         raise AssertionError
     try:
-        flagger.setFlags(origin, field=None)
+        flagger.setFlags(field=None)
     except ValueError:
         pass
     else:
@@ -170,39 +172,43 @@ def test_setFlags(data, flagger):
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_clearFlags(data, flagger):
-    origin = flagger.initFlags(data)
+    flagger.initFlags(data)
+    origin = flagger.getFlags()
     sl = slice('2011-01-02', '2011-01-05')
 
-    flags0 = flagger.setFlags(origin, field, flag=flagger.BAD)
-    flagged = flagger.isFlagged(flags0, field)
+    flagger.initFlags(data)
+    flagger.setFlags(field, flag=flagger.BAD)
+    flagged = flagger.isFlagged(field)
     assert len(flagged[flagged]) == len(data)
-    cleared = flagger.clearFlags(flags0, field)
+    cleared = flagger.clearFlags(field)
     assert cleared.shape == origin.shape
     assert (cleared.columns == origin.columns).all()
-    flagged = flagger.isFlagged(cleared, field)
+    flagged = flagger.isFlagged(field)
     assert len(flagged[flagged]) == 0
 
     # with chunk
-    flags0 = flagger.setFlags(origin, field, flag=flagger.BAD)
-    flagged = flagger.isFlagged(flags0, field)
+    flagger.initFlags(data)
+    flagger.setFlags(field, flag=flagger.BAD)
+    flagged = flagger.isFlagged(field)
     assert len(flagged[flagged]) == len(data)
-    cleared = flagger.clearFlags(flags0, field, loc=sl)
+    cleared = flagger.clearFlags(field, loc=sl)
     assert cleared.shape == origin.shape
     assert (cleared.columns == origin.columns).all()
-    flagged = flagger.isFlagged(cleared, field)
+    flagged = flagger.isFlagged(field)
     assert len(flagged[flagged]) > 0
-    unflagged = flagger.isFlagged(cleared, field, flag=flagger.UNFLAGGED, comparator='==')
+    unflagged = flagger.isFlagged(field, flag=flagger.UNFLAGGED, comparator='==')
     assert len(flagged[flagged]) + len(unflagged[unflagged]) == len(data)
 
     # no field throw err
+    flagger.initFlags(data)
     try:
-        flagger.clearFlags(origin)
+        flagger.clearFlags()
     except TypeError:
         pass
     else:
         raise AssertionError
     try:
-        flagger.clearFlags(origin, field=None)
+        flagger.clearFlags(field=None)
     except ValueError:
         pass
     else:
@@ -212,15 +218,16 @@ def test_clearFlags(data, flagger):
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_returnCopy(data, flagger):
-    origin = flagger.initFlags(data)
+    flagger.initFlags(data)
+    origin = flagger.getFlags()
 
-    f = flagger.getFlags(origin)
+    f = flagger.getFlags()
     assert f is not origin
-    f = flagger.isFlagged(origin)
+    f = flagger.isFlagged()
     assert f is not origin
-    f = flagger.setFlags(origin, field)
+    f = flagger.setFlags(field)
     assert f is not origin
-    f = flagger.clearFlags(origin, field)
+    f = flagger.clearFlags(field)
     assert f is not origin
 
 
@@ -234,7 +241,6 @@ LOC_ILOC_FUNCS = [
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 @pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
 def test_loc(data, flagger, flaggerfunc):
-    flags = flagger.initFlags(data)
     sl = slice('2011-01-02', '2011-01-05')
     chunk = data.loc[sl, field]
     d = data.loc[sl]
@@ -246,28 +252,40 @@ def test_loc(data, flagger, flaggerfunc):
     flagger_func = getattr(flagger, flaggerfunc)
 
     # masked
-    mflags0 = flagger_func(flags, field, loc=mask)
-    mflags1 = flagger_func(flags).loc[mask, field]
-    mflags2 = flagger_func(flags, field).loc[mask]
-    mflags3 = flagger_func(flags, loc=mask)[field]
+    flagger.initFlags(data)
+    mflags0 = flagger_func(field, loc=mask)
+    flagger.initFlags(data)
+    mflags1 = flagger_func().loc[mask, field]
+    flagger.initFlags(data)
+    mflags2 = flagger_func(field).loc[mask]
+    flagger.initFlags(data)
+    mflags3 = flagger_func(loc=mask)[field]
     assert (mflags0 == mflags1).all()
     assert (mflags0 == mflags2).all()
     assert (mflags0 == mflags3).all()
 
     # indexed
-    iflags0 = flagger_func(flags, field, loc=chunk.index)
-    iflags1 = flagger_func(flags).loc[chunk.index, field]
-    iflags2 = flagger_func(flags, field).loc[chunk.index]
-    iflags3 = flagger_func(flags, loc=chunk.index)[field]
+    flagger.initFlags(data)
+    iflags0 = flagger_func(field, loc=chunk.index)
+    flagger.initFlags(data)
+    iflags1 = flagger_func().loc[chunk.index, field]
+    flagger.initFlags(data)
+    iflags2 = flagger_func(field).loc[chunk.index]
+    flagger.initFlags(data)
+    iflags3 = flagger_func(loc=chunk.index)[field]
     assert (iflags0 == iflags1).all()
     assert (iflags0 == iflags2).all()
     assert (iflags0 == iflags3).all()
 
     # sliced
-    sflags0 = flagger_func(flags, field, loc=sl)
-    sflags1 = flagger_func(flags).loc[sl, field]
-    sflags2 = flagger_func(flags, field).loc[sl]
-    sflags3 = flagger_func(flags, loc=sl)[field]
+    flagger.initFlags(data)
+    sflags0 = flagger_func(field, loc=sl)
+    flagger.initFlags(data)
+    sflags1 = flagger_func().loc[sl, field]
+    flagger.initFlags(data)
+    sflags2 = flagger_func(field).loc[sl]
+    flagger.initFlags(data)
+    sflags3 = flagger_func(loc=sl)[field]
     assert (sflags0 == sflags1).all()
     assert (sflags0 == sflags2).all()
     assert (sflags0 == sflags3).all()
@@ -279,7 +297,6 @@ def test_loc(data, flagger, flaggerfunc):
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 @pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
 def test_iloc(data, flagger, flaggerfunc):
-    flags = flagger.initFlags(data)
     M = len(data.index) - 1
     if M < 3:
         return
@@ -294,28 +311,40 @@ def test_iloc(data, flagger, flaggerfunc):
     flagger_func = getattr(flagger, flaggerfunc)
 
     # masked
-    mflags0 = flagger_func(flags, field, iloc=mask)
-    mflags1 = flagger_func(flags).iloc[mask, 0]
-    mflags2 = flagger_func(flags, field).iloc[mask]
-    mflags3 = flagger_func(flags, iloc=mask)[field]
+    flagger.initFlags(data)
+    mflags0 = flagger_func(field, iloc=mask)
+    flagger.initFlags(data)
+    mflags1 = flagger_func().iloc[mask, 0]
+    flagger.initFlags(data)
+    mflags2 = flagger_func(field).iloc[mask]
+    flagger.initFlags(data)
+    mflags3 = flagger_func(iloc=mask)[field]
     assert (mflags0 == mflags1).all()
     assert (mflags0 == mflags2).all()
     assert (mflags0 == mflags3).all()
 
     # indexed
-    iflags0 = flagger_func(flags, field, iloc=array)
-    iflags1 = flagger_func(flags).iloc[array, 0]
-    iflags2 = flagger_func(flags, field).iloc[array]
-    iflags3 = flagger_func(flags, iloc=array)[field]
+    flagger.initFlags(data)
+    iflags0 = flagger_func(field, iloc=array)
+    flagger.initFlags(data)
+    iflags1 = flagger_func().iloc[array, 0]
+    flagger.initFlags(data)
+    iflags2 = flagger_func(field).iloc[array]
+    flagger.initFlags(data)
+    iflags3 = flagger_func(iloc=array)[field]
     assert (iflags0 == iflags1).all()
     assert (iflags0 == iflags2).all()
     assert (iflags0 == iflags3).all()
 
     # sliced
-    sflags0 = flagger_func(flags, field, iloc=sl)
-    sflags1 = flagger_func(flags).iloc[sl, 0]
-    sflags2 = flagger_func(flags, field).iloc[sl]
-    sflags3 = flagger_func(flags, iloc=sl)[field]
+    flagger.initFlags(data)
+    sflags0 = flagger_func(field, iloc=sl)
+    flagger.initFlags(data)
+    sflags1 = flagger_func().iloc[sl, 0]
+    flagger.initFlags(data)
+    sflags2 = flagger_func(field).iloc[sl]
+    flagger.initFlags(data)
+    sflags3 = flagger_func(iloc=sl)[field]
     assert (sflags0 == sflags1).all()
     assert (sflags0 == sflags2).all()
     assert (sflags0 == sflags3).all()
@@ -327,21 +356,22 @@ def test_iloc(data, flagger, flaggerfunc):
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_classicUseCases(data, flagger):
-    flags = flagger.initFlags(data)
 
     # data-mask, same length than flags
+    flagger.initFlags(data)
     d = data[field]
     mask = d < (d.max() - d.min()) // 2
-    flags0 = flagger.setFlags(flags, field, loc=mask, flag=flagger.BAD)
-    flagged = flagger.isFlagged(flags0, field)
+    flagger.setFlags(field, loc=mask, flag=flagger.BAD)
+    flagged = flagger.isFlagged(field)
     assert (flagged == mask).all()
 
     # some fun with numpy but not same dimensions.. pass indices to iloc
+    flagger.initFlags(data)
     indices = np.arange(0, len(data))
     mask = indices % 3 == 0
-    indices = indices[indices]
-    flags1 = flagger.setFlags(flags, field, iloc=indices, flag=flagger.BAD)
-    flagged = flagger.isFlagged(flags1, field)
+    indices = indices[mask]
+    flagger.setFlags(field, iloc=indices, flag=flagger.BAD)
+    flagged = flagger.isFlagged(field)
     assert (flagged.iloc[indices] == flagged[flagged]).all()
     unflagged = ~flagged
 

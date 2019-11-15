@@ -57,16 +57,11 @@ class BaseFlagger(FlaggerTemplate):
         df = pd.DataFrame(data=self.categories[0], index=data.index, columns=data.columns)
         self._flags = self._assureDtype(df)
 
-    def isFlagged(self, flags=None, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
+    def isFlagged(self, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
         # NOTE: I dislike the comparator default, as it does not comply with
         #       the setFlag defautl behaviour, which is not changable, btw
         flag = self.GOOD if flag is None else self._checkFlag(flag)
-        if flags is None:
-            flags = self.getFlags(field, loc, iloc, **kwargs)
-        else:
-            check_ispdlike(flags, argname='flags', allow_multiindex=False)
-            flags = self._reduceRows(flags.copy(), field, loc, iloc, **kwargs)
-            flags = self._assureDtype(flags, field, **kwargs)
+        flags = self.getFlags(field, loc, iloc, **kwargs)
         cp = COMPARATOR_MAP[comparator]
         flagged = pd.notna(flags) & cp(flags, flag)
         return flagged
