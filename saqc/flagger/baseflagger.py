@@ -108,6 +108,7 @@ class BaseFlagger(FlaggerTemplate):
         if field is None:
             raise ValueError('field cannot be None')
         flags = flags.copy()
+        kwargs.pop('flag', None)
         f = self.getFlags(flags, field, loc, iloc, **kwargs)
         flags = self._writeFlags(flags, f.index, field, flag=self.UNFLAGGED, **kwargs)
         return self._assureDtype(flags)

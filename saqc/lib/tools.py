@@ -288,8 +288,8 @@ def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> 
         return new
 
     fw, bw = False, False
-    mask = flagger.getFlags(old[field]) != flagger.getFlags(new[field])
-    f = flagger.isFlagged(new[field]) & mask
+    mask = flagger.getFlags(old, field) != flagger.getFlags(new, field)
+    f = flagger.isFlagged(new, field) & mask
 
     if not mask.any():
         # nothing was flagged, so nothing need to be flagged additional

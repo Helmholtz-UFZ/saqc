@@ -52,7 +52,9 @@ class DmpFlagger(BaseFlagger):
 
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
         # call is redirected to self._writeFlags()
-        return super().clearFlags(flags, field, loc=loc, iloc=iloc, cause='', comment='', **kwargs)
+        kwargs.pop('cause', None), kwargs.pop('comment', None)
+        flags = super().clearFlags(flags, field, loc=loc, iloc=iloc, cause='', comment='', **kwargs)
+        return flags
 
     def _writeFlags(self, flags, rowindex, field, flag, cause=None, comment=None, **kwargs):
         assert comment is not None and cause is not None

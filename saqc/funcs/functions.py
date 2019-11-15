@@ -85,7 +85,7 @@ def flagSesonalRange(data, flags, field, flagger, min, max, startmonth=1, endmon
         return data, flags
 
     _, ff = flagRange(d, f.copy(), field, flagger, min=min, max=max, **kwargs)
-    rangeflagged = flagger.getFlags(f[field]) != flagger.getFlags(ff[field])
+    rangeflagged = flagger.getFlags(f, field) != flagger.getFlags(ff, field)
 
     if rangeflagged.empty:
         return data, flags
