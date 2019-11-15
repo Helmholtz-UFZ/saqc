@@ -2,12 +2,16 @@
 # -*- coding: utf-8 -*-
 
 
+# maybe we should use dataclasses here
+
 class Fields:
-    VARNAME = "headerout"
-    START = "date start"
-    END = "date end"
+    VARNAME = "varname"
+    START = "start_date"
+    END = "end_date"
     ASSIGN = "assign"
-    FLAGS = "Flag*"
+    TESTS = "test*"
+    PLOT = "plot"
+    LINENUMBER = "line"
 
 
 class Params:

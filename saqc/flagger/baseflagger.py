@@ -46,8 +46,9 @@ class Flags(pd.CategoricalDtype):
 
 
 class BaseFlagger:
-    def __init__(self, flag_categories):
-        self.categories = Flags(flag_categories)
+    def __init__(self, flags):
+        self.signature = ("flag", "force")
+        self.categories = Flags(flags)
 
     def initFlags(self, data: pd.DataFrame):
         check_isdf(data, 'data', allow_multiindex=False)
@@ -62,6 +63,8 @@ class BaseFlagger:
         :param field: None or str. Labelbased column indexer.
         :return: pd.Dataframe if field is None, pd.Series otherwise
         """
+        # NOTE: I dislike the comparator default, as it does not comply with
+        #       the setFlag defautl behaviour, which is not changable, btw
         flag = self.GOOD if flag is None else self._checkFlag(flag)
         flags = self.getFlags(flags, field, loc, iloc, **kwargs)
         cp = COMPARATOR_MAP[comparator]

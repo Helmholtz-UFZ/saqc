@@ -35,13 +35,14 @@ class DmpFlagger(BaseFlagger):
         version = subprocess.run("git describe --tags --always --dirty",
                                  shell=True, check=False, stdout=subprocess.PIPE).stdout
         self.project_version = version.decode().strip()
+        self.signature = ("flag", "comment", "cause", "force")
 
     def initFlags(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
         check_isdf(data, 'data', allow_multiindex=False)
         colindex = pd.MultiIndex.from_product(
             [data.columns, self.flags_fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
-        flags = pd.DataFrame(data=self.categories[0], columns=colindex, index=data.index)
+        flags = pd.DataFrame(data=self.UNFLAGGED, columns=colindex, index=data.index)
         return self._assureDtype(flags)
 
     def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, comment='', cause='', **kwargs):

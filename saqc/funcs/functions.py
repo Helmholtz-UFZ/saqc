@@ -3,41 +3,56 @@
 
 import numpy as np
 
-from ..dsl import evalExpression
-from ..core.config import Params
-from ..lib.tools import sesonalMask
+from ..lib.tools import sesonalMask, flagWindow
 
-from .register import register, FUNC_MAP
+from .register import register
 
-# keep all imports !
-# to make all function register themself
-from .break_detection import *
-from .constants_detection import *
-from .soil_moisture_tests import *
-from .spike_detection import *
-from .statistic_functions import *
-
-
-def flagDispatch(func_name, *args, **kwargs):
-    func = FUNC_MAP.get(func_name, None)
-    if func is not None:
-        return func(*args, **kwargs)
-    raise NameError(f"function name {func_name} is not definied")
+# def flagDispatch(func_name, *args, **kwargs):
+#     func = FUNC_MAP.get(func_name, None)
+#     if func is not None:
+#         return func(*args, **kwargs)
+#     raise NameError(f"function name {func_name} is not definied")
 
 
 @register("generic")
-def flagGeneric(data, flags, field, flagger, nodata=np.nan, **kwargs):
-    expression = kwargs[Params.FUNC]
-    result = evalExpression(expression, flagger, data, flags, field, nodata=nodata)
-    result = result.squeeze()
-
-    if np.isscalar(result):
-        raise TypeError(f"expression '{expression}' does not return an array")
-    if not np.issubdtype(result.dtype, np.bool_):
-        raise TypeError(f"expression '{expression}' does not return a boolean array")
-
-    flags = flagger.setFlags(flags, field, result, **kwargs)
+def flagGeneric(data, flags, field, flagger, func, **kwargs):
+    # NOTE:
+    # - The naming of the func parameter is pretty confusing
+    #   as it actually holds the result of a generic expression
+    # - if the result series carries a name, it was explicitly created
+    #   from one single columns, so we need to preserve this columns
+    #   properties
+    # - the check if func.name is in data.columns is necessary as
+    #   DmpFlagger.isFlagged does not preserve the name of the column
+    #   it was executed on -> would be nice to overcome this restriction
+    flags_field = func.name if func.name in data.columns else field
+    mask = func.squeeze() | flagger.isFlagged(flags[flags_field])
+    if np.isscalar(mask):
+        raise TypeError(f"generic expression does not return an array")
+    if not np.issubdtype(mask.dtype, np.bool_):
+        raise TypeError(f"generic expression does not return a boolean array")
+    flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
+
+
+@register("flagWindowAfterFlag")
+def flagWindowAfterFlag(data, flags, field, flagger, window, func, **kwargs):
+    data, new_flags = func
+    repeated_flags = flagWindow(flags, new_flags,
+                                field, flagger,
+                                direction='fw', window=window,
+                                **kwargs)
+    return data, repeated_flags
+
+
+@register("flagNextAfterFlag")
+def flagNextAfterFlag(data, flags, field, flagger, n, func, **kwargs):
+    data, new_flags = func
+    repeated_flags = flagWindow(flags, new_flags,
+                                field, flagger,
+                                direction='fw', window=n,
+                                **kwargs)
+    return data, repeated_flags
 
 
 @register("range")
@@ -46,6 +61,7 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
     mask = (datacol < min) | (datacol >= max)
     flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
+
 
 @register("missing")
 def flagMissing(data, flags, field, flagger, nodata=np.nan, **kwargs):
@@ -89,4 +105,3 @@ def forceFlags(data, flags, field, flagger, **kwargs):
     flags = flagger.clearFlags(flags, field, **kwargs)
     flags = flagger.setFlags(flags, field, **kwargs)
     return data, flags
-

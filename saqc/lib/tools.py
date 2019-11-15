@@ -19,9 +19,6 @@ def findIndex(iterable, value, start):
     while i < len(iterable):
         v = iterable[i]
         if v >= value:
-            # if v == value:
-                # include the end_date if present
-                # return i + 1
             return i
         i = i + 1
     return -1
@@ -45,12 +42,13 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
     if isinstance(dates, pd.DataFrame):
         dates = dates.index
     dates = np.array(dates, dtype=np.int64)
-    if np.any(np.diff(dates) <= 0):
-        raise ValueError("strictly monotic index needed")
 
-    window_size = pd.to_timedelta(window_size, box=False).astype(np.int64)
+    if np.any(np.diff(dates) <= 0):
+        raise ValueError("strictly monotonic index needed")
+
+    window_size = pd.to_timedelta(window_size).to_timedelta64().astype(np.int64)
     if iter_delta:
-        iter_delta = pd.to_timedelta(iter_delta, box=False).astype(np.int64)
+        iter_delta = pd.to_timedelta(iter_delta).to_timedelta64().astype(np.int64)
 
     start_date = dates[0]
     last_date = dates[-1]
@@ -282,6 +280,35 @@ def checkQCParameters(para_dict, called_by):
                 continue
 
     return global_checker
+
+
+def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> pd.Series:
+
+    if window == 0 or window == '':
+        return new
+
+    fw, bw = False, False
+    mask = flagger.getFlags(old[field]) != flagger.getFlags(new[field])
+    f = flagger.isFlagged(new[field]) & mask
+
+    if not mask.any():
+        # nothing was flagged, so nothing need to be flagged additional
+        return new
+
+    if isinstance(window, int):
+        x = f.rolling(window=window + 1).sum()
+        if direction in ['fw', 'both']:
+            fw = x.fillna(method='bfill').astype(bool)
+        if direction in ['bw', 'both']:
+            bw = x.shift(-window).fillna(method='bfill').astype(bool)
+    else:
+        # time-based windows
+        if direction in ['bw', 'both']:
+            raise NotImplementedError
+        fw = f.rolling(window=window, closed='both').sum().astype(bool)
+
+    fmask = bw | fw
+    return flagger.setFlags(new, field, fmask, **kwargs)
 
 
 def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
