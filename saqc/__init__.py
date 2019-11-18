@@ -2,4 +2,4 @@
 # -*- coding: utf-8 -*-
 
 from .core import runner
-from .flagger import DmpFlagger, PositionalFlagger, SimpleFlagger, BaseFlagger
+from .flagger import *
