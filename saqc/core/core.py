@@ -9,6 +9,7 @@ from .config import Fields
 from .evaluator import evalExpression
 from ..lib.plotting import plot
 from ..lib.tools import setup
+from ..flagger import FlaggerTemplate, BaseFlagger, SimpleFlagger, DmpFlagger
 
 
 def collectVariables(meta, flagger, data, flags):
@@ -28,9 +29,28 @@ def collectVariables(meta, flagger, data, flags):
     return flags
 
 
-def runner(metafname, flagger, data, flags=None, nodata=np.nan):
+def _check_input(data, flags, flagger):
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError('data must be of type pd.DataFrame')
 
+    if not isinstance(flagger, FlaggerTemplate):
+        flaggerlist = [BaseFlagger, SimpleFlagger, DmpFlagger]
+        raise TypeError(f'flagger must be of type {flaggerlist} or any inherit class from {FlaggerTemplate}')
+
+    if flags is None:
+        return
+
+    if not isinstance(flags, pd.DataFrame):
+        raise TypeError('flags must be of type pd.DataFrame')
+
+    refflags = flagger.initFlags(data)
+    if refflags.shape != flags.shape:
+        raise ValueError('flags has not the same dimensions as flagger.initFlags() would return')
+
+
+def runner(metafname, flagger, data, flags=None, nodata=np.nan):
     setup()
+    _check_input(data, flags, flagger)
     meta = prepareConfig(readConfig(metafname), data)
     # NOTE: split meta into the test and some 'meta' data
     tests = meta[meta.columns.to_series().filter(regex=Fields.TESTS)]
