@@ -98,7 +98,7 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
                                                           lambda x: x in getPandasVarNames(data)}}},
                                      kwargs['func_name'])
 
-    dataseries, data_rate = retrieveTrustworthyOriginal(getPandasData(data, field), getPandasData(flags, field), flagger)
+    dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
 
     para_check_2 = checkQCParameters({'plateau_window_min': {'value': plateau_window_min,
                                                              'type': [str],

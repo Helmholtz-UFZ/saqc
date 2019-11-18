@@ -87,8 +87,7 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
                                                           getPandasVarNames(data)}}},
                                      kwargs['func_name'])
 
-    dataseries, data_rate = retrieveTrustworthyOriginal(getPandasData(data, field), getPandasData(flags, field),
-                                                        flagger)
+    dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
 
     para_check_2 = checkQCParameters({'diff_method': {'value': diff_method,
                                                       'member': ['raw', 'savgol']},

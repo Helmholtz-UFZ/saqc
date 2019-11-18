@@ -154,7 +154,7 @@ def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
     :param freq:        Frequencie.
     """
 
-    d = getPandasData(data, field).copy()
+    d = data[field].copy()
     freq = inferFrequency(d) if freq is None else freq
     if freq is None:
         raise ValueError("freqency cannot inferred, provide `freq` as a param to mad().")
@@ -200,8 +200,7 @@ def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length='15min
     :return:
     """
 
-    # retrieve data series
-    dataseries = getPandasData(data, field).copy().dropna()
+    dataseries = data[field].dropna()
     # get all the entries preceding a significant jump
     pre_jumps = dataseries.diff(periods=-1).abs() > thresh
     pre_jumps = pre_jumps[pre_jumps]
@@ -334,8 +333,7 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
                                                                                          getPandasVarNames(data)}}},
                                      kwargs['func_name'])
 
-    dataseries, data_rate = retrieveTrustworthyOriginal(getPandasData(data, field), getPandasData(flags, field),
-                                                        flagger)
+    dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
 
     para_check_2 = checkQCParameters({'noise_statistic': {'value': noise_statistic,
                                                           'member': ['CoVar', 'rVar']},

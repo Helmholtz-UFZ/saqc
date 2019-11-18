@@ -121,7 +121,7 @@ def estimateSamplingRate(index):
     return pd.tseries.frequencies.to_offset(str(int(hist[1][:-1][hist[0] > 0].min())) + 's')
 
 
-def retrieveTrustworthyOriginal(dataseries, dataflags=None, flagger=None):
+def retrieveTrustworthyOriginal(data, flags, field, flagger=None):
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
     differenciating between missng value - nans und fillvalue nans is impossible. This function evaluates flags for a
     passed series, if flags and flagger object are passed and downsamples the input series to its original sampling
@@ -133,21 +133,23 @@ def retrieveTrustworthyOriginal(dataseries, dataflags=None, flagger=None):
     :param dataflags:   A flagger object, to apply the passed flags onto the dataseries.
 
     """
-    if (dataflags is not None) and (flagger is not None):
-        data_use = flagger.isFlagged(dataflags, flag=flagger.GOOD, comparator='==') | \
-                   flagger.isFlagged(dataflags, flag=flagger.UNFLAGGED, comparator='==')
-        # drop suspicious values
-        dataseries = dataseries[data_use.values]
-    # additionally, drop the nan values that result from any preceeding upsampling of the
-    # measurements:
+    dataseries = data[field]
+    if flagger is not None:
+        data_use = flagger.isFlagged(flags, field, flag=flagger.GOOD, comparator='<=')
+        # drop all flags that are suspicious or worse
+        dataseries = dataseries[data_use]
+
+    # drop the nan values that may result from any preceeding upsampling of the measurements:
     dataseries = dataseries.dropna()
-    # eventually, after dropping all nans, there is nothing left:
     if dataseries.empty:
         return dataseries, np.nan
-    # estimate original data sampling frequencie (the original series sampling rate may not match data-input sample
-    # rate):
+
+    # estimate original data sampling frequencie
+    # (the original series sampling rate may not match data-input sample rate):
     data_rate = estimateSamplingRate(dataseries.index)
-    # resample dataseries to its original sampling rate (now certain, to only get nans, indeed denoting "missing" data)
+
+    # resample dataseries to its original sampling rate
+    # (now certain, to only get nans, indeed denoting "missing" data)
     return dataseries.resample(data_rate).asfreq(), data_rate
 
 

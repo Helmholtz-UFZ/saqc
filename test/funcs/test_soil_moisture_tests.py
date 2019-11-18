@@ -27,7 +27,7 @@ def test_flagSoilMoistureBySoilFrost(flagger):
     flags = flagger.initFlags(data)
     data, flag_result = flagSoilMoistureBySoilFrost(data, flags, 'soil_moisture', flagger, 'soil_temperature')
     flag_assertion = list(range(18, 37))
-    flag_result = getPandasData(flag_result, 0)
+    flag_result = flag_result.iloc[:, 0]
     test_sum = (flag_result[flag_assertion] == flagger.BAD).sum()
     assert test_sum == len(flag_assertion)
 
@@ -41,7 +41,7 @@ def test_flagSoilMoisturePrecipitationEvents(flagger):
     flags = flagger.initFlags(data)
     data, flag_result = flagSoilMoistureByPrecipitationEvents(data, flags, 'soil_moisture', flagger, 'precipitation')
     flag_assertion = [288, 287]
-    flag_result = getPandasData(flag_result, 0)
+    flag_result = flag_result.iloc[:, 0]
     test_sum = (flag_result[flag_assertion] == flagger.BAD).sum()
     assert test_sum == len(flag_assertion)
 

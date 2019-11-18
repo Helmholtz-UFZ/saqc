@@ -226,9 +226,7 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
                                                     'scheduled in data': lambda x: x in getPandasVarNames(data)}}},
                                      kwargs['func_name'])
 
-    dataseries, moist_rate = retrieveTrustworthyOriginal(getPandasData(data, field), getPandasData(flags, field),
-                                                         flagger)
-
+    dataseries, moist_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
 
     para_check_2 = checkQCParameters({'prec_reference_reference': {'value': prec_reference,
                                                                    'type': [str],
@@ -271,7 +269,7 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
 
     # retrieve input sampling rate (needed to translate ref and data rates into each other):
     input_rate = estimateSamplingRate(data.index)
-    refseries, ref_rate = retrieveTrustworthyOriginal(data[prec_reference], flags[prec_reference], flagger)
+    refseries, ref_rate = retrieveTrustworthyOriginal(data, flags, prec_reference, flagger)
     # abort processing if any of the measurement series has no valid entries!
     if moist_rate is np.nan:
         return data, flags
@@ -339,11 +337,9 @@ def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_wi
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object. (saqc.flagger.X)
     """
-    if isinstance(data, pd.Series):
-        dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, flagger)
-    else:
-        dataseries, data_rate = retrieveTrustworthyOriginal(data[field], flags[field], flagger)
-        # abort processing if original series has no valid entries!
+    dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
+
+    # abort processing if original series has no valid entries!
     if data_rate is np.nan:
         return data, flags
 
