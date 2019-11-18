@@ -17,8 +17,8 @@ from saqc.core.evaluator import (
 
 
 def _evalExpression(expr, data, flags, field, flagger, nodata=np.nan):
-    dsl_transformer = DslTransformer(initDslFuncMap(nodata), data.columns)
     tree = parseExpression(expr)
+    dsl_transformer = DslTransformer(initDslFuncMap(nodata), data.columns)
     transformed_tree = dsl_transformer.visit(tree)
     code = compileTree(transformed_tree)
     return evalCode(code, data, flags, field, flagger, nodata)
@@ -37,7 +37,7 @@ def test_flagPropagation(data, flagger):
 
     var1, var2, *_ = data.columns
     this = var1
-    var2_flags = flagger.isFlagged(flags[var2])
+    var2_flags = flagger.isFlagged(flags, var2)
     var2_data = data[var2].mask(var2_flags)
     data, flags = evalExpression(
         "generic(func=var2 < mean(var2))",
@@ -47,7 +47,7 @@ def test_flagPropagation(data, flagger):
     )
 
     expected = (var2_flags | (var2_data < var2_data.mean()))
-    result = flagger.isFlagged(flags[this])
+    result = flagger.isFlagged(flags, this)
     assert (result == expected).all()
 
 
@@ -163,7 +163,7 @@ def test_bitOps(data, flagger, nodata):
 
     for expr, expected in tests:
         _, flags = evalExpression(expr, data, flags, this, flagger, nodata)
-        assert (flagger.isFlagged(flags[this]) == expected).all()
+        assert (flagger.isFlagged(flags, this) == expected).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -177,7 +177,7 @@ def test_isflagged(data, flagger):
 
     idx = _evalExpression(f"isflagged({var1})", data, flags, var2, flagger)
 
-    flagged = flagger.isFlagged(flags[var1])
+    flagged = flagger.isFlagged(flags, var1)
     assert (flagged == idx).all
 
 
@@ -192,5 +192,5 @@ def test_isflaggedArgument(data, flagger):
     idx = _evalExpression(
         f"isflagged({var1}, {flagger.BAD})", data, flags, var2, flagger)
 
-    flagged = flagger.isFlagged(flags[var1], flagger.BAD, comparator=">=")
+    flagged = flagger.isFlagged(flags, var1, flag=flagger.BAD, comparator=">=")
     assert (flagged == idx).all()

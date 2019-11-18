@@ -51,7 +51,7 @@ def test_range(data, field, flagger):
     min, max = 10, 90
     flags = flagger.initFlags(data)
     data, flags = flagRange(data, flags, field, flagger, min=min, max=max)
-    flagged = flagger.isFlagged(flags[field])
+    flagged = flagger.isFlagged(flags, field)
     expected = (data[field] < min) | (data[field] >= max)
     assert np.all(flagged == expected)
 
@@ -73,14 +73,14 @@ def test_flagSesonalRange(data, field, flagger):
     for test, expected in tests:
         flags = flagger.initFlags(data)
         data, flags = flagSesonalRange(data, flags, field, flagger, **test)
-        flagged = flagger.isFlagged(flags[field])
+        flagged = flagger.isFlagged(flags, field)
         assert flagged.sum() == expected
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_clearFlags(data, field, flagger):
     orig = flagger.initFlags(data)
-    flags = flagger.setFlags(orig.copy(), field, flag=flagger.BAD)
+    flags = flagger.setFlags(orig, field, flag=flagger.BAD)
     _, cleared = clearFlags(data, flags, field, flagger)
     assert np.all(orig != flags)
     assert np.all(orig == cleared)
