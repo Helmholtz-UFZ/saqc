@@ -9,18 +9,11 @@ before_script:
   - eval "$(pyenv init -)"
 
 
-test:python35:
-  script:
-    - pyenv install 3.5.9
-    - pyenv shell 3.5.9
-    - pip install -r requirements.txt
-    - python -m pytest test
-
-
 test:python36:
   script:
     - pyenv install 3.6.9
     - pyenv shell 3.6.9
+    - pip install --upgrade pip
     - pip install -r requirements.txt
     - python -m pytest test
 
@@ -29,6 +22,7 @@ test:python37:
   script:
     - pyenv install 3.7.5
     - pyenv shell 3.7.5
+    - pip install --upgrade pip
     - pip install -r requirements.txt
     - python -m pytest test
 
@@ -37,5 +31,6 @@ test:python38:
   script:
     - pyenv install 3.8.0
     - pyenv shell 3.8.0
+    - pip install --upgrade pip
     - pip install -r requirements.txt
     - python -m pytest test
