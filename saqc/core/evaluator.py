@@ -19,12 +19,12 @@ class Targets:
     FLAGS = "flags"
 
 
-def _dslInner(func, data, flags, flagger):
-    return func(data.mask(flagger.isFlagged(flags)))
+def _dslInner(func, data, flags, field, flagger):
+    return func(data.mask(flagger.isFlagged(flags, field)))
 
 
-def _dslIsFlagged(data, flags, flagger):
-    return flagger.isFlagged(flags)
+def _dslIsFlagged(data, flags, field, flagger):
+    return flagger.isFlagged(flags, field)
 
 
 def initDslFuncMap(nodata):
@@ -37,7 +37,7 @@ def initDslFuncMap(nodata):
         "std": partial(_dslInner, np.nanstd),
         "len": partial(_dslInner, len),
         "isflagged": _dslIsFlagged,
-        "ismissing": lambda data, flags, flagger: ((data == nodata) | pd.isnull(data)),
+        "ismissing": lambda data, flags, field, flagger: ((data == nodata) | pd.isnull(data)),
     }
 
 
@@ -70,19 +70,21 @@ class DslTransformer(ast.NodeTransformer):
         self.variables = variables
 
     def _rename(self, node: ast.Name, target: str) -> ast.Subscript:
-
         name = node.id
         if name == "this":
-            slice = ast.Index(value=ast.Name(id="field", ctx=ast.Load()))
+            value = ast.Name(id="field", ctx=ast.Load())
         else:
             if name not in self.variables:
                 raise NameError(f"unknown variable: '{name}'")
-            slice = ast.Index(value=ast.Constant(value=name))
+            value = ast.Constant(value=name)
 
-        return ast.Subscript(
-            value=ast.Name(id=target, ctx=ast.Load()),
-            slice=slice,
-            ctx=ast.Load())
+        if target == Targets.FLAGS:
+            return value
+        else:
+            return ast.Subscript(
+                value=ast.Name(id=target, ctx=ast.Load()),
+                slice=ast.Index(value=value),
+                ctx=ast.Load())
 
     def visit_Call(self, node):
         func_name = node.func.id
@@ -93,6 +95,7 @@ class DslTransformer(ast.NodeTransformer):
             func=node.func,
             args=[
                 self._rename(node.args[0], Targets.DATA),
+                ast.Name(id=Targets.FLAGS, ctx=ast.Load()),
                 self._rename(node.args[0], Targets.FLAGS),
                 ast.Name(id="flagger", ctx=ast.Load()),
             ],

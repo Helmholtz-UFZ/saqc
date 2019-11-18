@@ -42,6 +42,6 @@ def test_isFlagged():
     }
 
     for (flag, comparator), right in checks.items():
-        left = flagger.isFlagged(flags, flag, comparator)
+        left = flagger.isFlagged(flags, flag=flag, comparator=comparator)
         assert np.all(left == right)
 

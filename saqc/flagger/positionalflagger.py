@@ -31,7 +31,7 @@ class PositionalFlagger(BaseFlagger):
             flag = self.flag
         if flagpos is None:
             flagpos = self._flag_pos
-        return self._setFlags(flags, flag, flagpos)
+        return self._writeFlags(flags, flag, flagpos)
 
     def isFlagged(self, flags, flag=None):
         maxflags = self._getMaxflags(flags[np.isfinite(flags)])
@@ -71,8 +71,8 @@ class PositionalFlagger(BaseFlagger):
         out = numpyfy(flags)
         return out
 
-    def _setFlags(self, flags: pd.DataFrame,
-                  values: Union[pd.DataFrame, int], pos: int) -> np.ndarray:
+    def _writeFlags(self, flags: pd.DataFrame,
+                    values: Union[pd.DataFrame, int], pos: int) -> np.ndarray:
 
         flags, pos, values = broadcastMany(flags, pos, values)
 
