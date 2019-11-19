@@ -31,17 +31,17 @@ class FlaggerTemplate(ABC):
     """
 
     @abstractmethod
-    def __init__(self, flags):
+    def __init__(self, data):
         """ Init the class and set the categories (in param flags) that are used here."""
         ...
 
-    @abstractmethod
-    def initFlags(self, data: pd.DataFrame) -> newT:
-        """ Prepare the flags to your desire. data is passed as reference shape """
-        ...
+    # @abstractmethod
+    # def initFlags(self, data: pd.DataFrame) -> newT:
+    #     """ Prepare the flags to your desire. data is passed as reference shape """
+    #     ...
 
     @abstractmethod
-    def isFlagged(self, flags: newT, field: str = None, loc=None, iloc=None, flag=None,
+    def isFlagged(self, field: str = None, loc=None, iloc=None, flag=None,
                   comparator: str = ">", **kwargs) -> PandasLike:
         """
         Return bool information on flags.
@@ -60,7 +60,7 @@ class FlaggerTemplate(ABC):
         ...
 
     @abstractmethod
-    def getFlags(self, flags: newT, field: str = None, loc=None, iloc=None, **kwargs):
+    def getFlags(self, field: str = None, loc=None, iloc=None, **kwargs) -> None:
         """
         Return the flags information, reduced to only the pure flag information
 
@@ -76,7 +76,7 @@ class FlaggerTemplate(ABC):
         ...
 
     @abstractmethod
-    def setFlags(self, flags: newT, field: str, loc=None, iloc=None, flag=None, force=False, **kwargs) -> newT:
+    def setFlags(self, field: str, loc=None, iloc=None, flag=None, force=False, **kwargs):
         """
         Set flags, if flags are lower in order than flag.
 
@@ -92,7 +92,7 @@ class FlaggerTemplate(ABC):
         ...
 
     @abstractmethod
-    def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
+    def clearFlags(self, field, loc=None, iloc=None, **kwargs):
         """
         Clear flags.
 
@@ -105,30 +105,30 @@ class FlaggerTemplate(ABC):
         """
         ...
 
-    @abstractmethod
-    def _reduceColumns(self, df: newT, field=None, **kwargs) -> pd.DataFrame:
-        """ Reduce a object of your desired type to a simple single-indexed pandas.DataFrame """
-        ...
+    # @abstractmethod
+    # def _reduceColumns(self, df: newT, field=None, **kwargs) -> pd.DataFrame:
+    #     """ Reduce a object of your desired type to a simple single-indexed pandas.DataFrame """
+    #     ...
 
-    @abstractmethod
-    def _reduceRows(self, df_or_ser: PandasLike, field, loc, iloc, **kwargs) -> PandasLike:
-        """ Reduce rows with the given loc or iloc. May also reduce a df to a series"""
-        ...
+    # @abstractmethod
+    # def _reduceRows(self, df_or_ser: PandasLike, field, loc, iloc, **kwargs) -> PandasLike:
+    #     """ Reduce rows with the given loc or iloc. May also reduce a df to a series"""
+    #     ...
 
-    @abstractmethod
-    def _writeFlags(self, flags, rowindex, field, flag, **kwargs):
-        """ Write unconditional(!) to flags """
-        ...
+    # @abstractmethod
+    # def _writeFlags(self, flags, rowindex, field, flag, **kwargs):
+    #     """ Write unconditional(!) to flags """
+    #     ...
 
-    @abstractmethod
-    def _checkFlags(self, flags, **kwargs):
-        """ Check if the flags input frame is valid """
-        ...
+    # @abstractmethod
+    # def _checkFlags(self, flags, **kwargs):
+    #     """ Check if the flags input frame is valid """
+    #     ...
 
-    @abstractmethod
-    def _checkFlag(self, flag, **kwargs):
-        """ Check if the flag parmeter is valid """
-        ...
+    # @abstractmethod
+    # def _checkFlag(self, flag, **kwargs):
+    #     """ Check if the flag parmeter is valid """
+    #     ...
 
     @property
     @abstractmethod
