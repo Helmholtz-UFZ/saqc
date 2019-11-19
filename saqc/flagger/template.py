@@ -14,6 +14,14 @@ from typing import TypeVar
 
 newT = TypeVar("newT")
 
+COMPARATOR_MAP = {
+    "==": op.eq,
+    ">=": op.ge,
+    ">": op.gt,
+    "<=": op.le,
+    "<": op.lt,
+}
+
 
 class FlaggerTemplate(ABC):
     """
@@ -22,8 +30,6 @@ class FlaggerTemplate(ABC):
      - these original `flags` must not be modified. use flags.copy() !
      - `loc`, `iloc` should behave the same in all public methods, and do the same as described in [1]
      - implemt the loc/iloc-behavior in self._reduceRows()
-     - if `flag` is None it should default to any of the flags(categories) from __init__, normally
-       this defaults to the possibly best or worst flag
 
     Notes: [1]
      https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.loc.html,
@@ -31,16 +37,14 @@ class FlaggerTemplate(ABC):
     """
 
     @abstractmethod
-    def __init__(self, flags):
+    def __init__(self, dtype):
         """ Init the class and set the categories (in param flags) that are used here."""
-        ...
+        self.dtype = dtype
 
-    @abstractmethod
     def initFlags(self, data: pd.DataFrame) -> newT:
         """ Prepare the flags to your desire. data is passed as reference shape """
         ...
 
-    @abstractmethod
     def isFlagged(self, flags: newT, field: str = None, loc=None, iloc=None, flag=None,
                   comparator: str = ">", **kwargs) -> PandasLike:
         """
@@ -50,16 +54,14 @@ class FlaggerTemplate(ABC):
          - return a pandas.DataFrame, if `field` is None
          - return a pandas.Series, otherwise.
          - the `comparator` can be used to alter the behavior of the comparison between `flags` and `flag`
-
-        calls:
-         - self.getFlags() or all subcalls there
-         - self._checkFlag()
         """
         # NOTE: I dislike the comparator default, as it does not comply with
         #       the setFlag defautl behaviour, which is not changable, btw
-        ...
+        flags = self.getFlags(flags, field, loc, iloc, **kwargs)
+        cp = COMPARATOR_MAP[comparator]
+        flagged = pd.notna(flags) & cp(flags, flag)
+        return flagged
 
-    @abstractmethod
     def getFlags(self, flags: newT, field: str = None, loc=None, iloc=None, **kwargs):
         """
         Return the flags information, reduced to only the pure flag information
@@ -67,68 +69,81 @@ class FlaggerTemplate(ABC):
         Implementation constrains:
          - return a pandas.DataFrame, if `field` is None
          - return a pandas.Series, otherwise.
-
-        calls:
-         - self._checkFlags()
-         - self._reduceColumns()
-         - self._reduceRows()
         """
-        ...
+        flags = flags.copy()
+        flags = self._reduceColumns(flags, field, **kwargs)
+        flags = self._reduceRows(flags, loc, iloc, **kwargs)
+        return flags
 
-    @abstractmethod
     def setFlags(self, flags: newT, field: str, loc=None, iloc=None, flag=None, force=False, **kwargs) -> newT:
         """
         Set flags, if flags are lower in order than flag.
 
         Implementation constrains:
          - return the a modified copy of flags with same dimension than the original
-         - this should call self._writeFlags()
-
-        calls:
-         - self.getFlags() or all subcalls there
-         - self._writeFlags()
-         - self._checkFlag()
         """
-        ...
+        flags = flags.copy()
+        idx, values = self._prepareWrite(flags, field, flag, loc, iloc, force, **kwargs)
+        flags = self._writeFlags(flags, field, idx, values, **kwargs)
+        return flags
 
-    @abstractmethod
     def clearFlags(self, flags, field, loc=None, iloc=None, **kwargs):
         """
         Clear flags.
 
         Implementation constrains:
          - return the a modified copy of flags with same dimension than the original
-
-        calls:
-         - self.getFlags() or all subcalls there
-         - self._writeFlags()
         """
-        ...
+        flags = flags.copy()
+        kwargs.pop('force', None)
+        idx, values = self._prepareWrite(flags, field, self.UNFLAGGED, loc, iloc, force=True, **kwargs)
+        flags = self._writeFlags(flags, field, idx, values, **kwargs)
+        return flags
 
-    @abstractmethod
-    def _reduceColumns(self, df: newT, field=None, **kwargs) -> pd.DataFrame:
-        """ Reduce a object of your desired type to a simple single-indexed pandas.DataFrame """
-        ...
+    def _reduceColumns(self, df: newT, field, **kwargs) -> pd.DataFrame:
+        """ Reduce a object of your desired type and return
+         a pd.DataFrame [1] if field is None, otherwise a pd.Series
 
-    @abstractmethod
-    def _reduceRows(self, df_or_ser: PandasLike, field, loc, iloc, **kwargs) -> PandasLike:
-        """ Reduce rows with the given loc or iloc. May also reduce a df to a series"""
-        ...
+        [1] a standard `normal`-indexed pandas.DataFrame
+        """
+        return df if field is None else df[field]
 
-    @abstractmethod
-    def _writeFlags(self, flags, rowindex, field, flag, **kwargs):
+    def _reduceRows(self, df_or_ser: PandasLike, loc, iloc, **kwargs) -> PandasLike:
+        """ Reduce rows with the given loc or iloc """
+        if loc is not None and iloc is not None:
+            raise ValueError("params `loc` and `iloc` are mutual exclusive")
+        elif loc is not None and iloc is None:
+            return df_or_ser.loc[loc]
+        elif loc is None and iloc is not None:
+            return df_or_ser.iloc[iloc]
+        elif loc is None and iloc is None:
+            return df_or_ser
+
+    def _prepareWrite(self, dest, field, src, loc, iloc, force, **kwargs):
+        dest = dest.copy()
+        dest = self._reduceColumns(dest, field, **kwargs)
+
+        if not isinstance(src, pd.Series):
+            # assert len(src) == len(dest) if hasattr(src, '__len__') else True
+            src = pd.Series(data=src, index=dest.index).astype(self.dtype)
+
+        # shrink data
+        dest = self._reduceRows(dest, loc, iloc, **kwargs)
+        src = self._reduceRows(src, loc, iloc, **kwargs)
+
+        # assert isinstance(dest, pd.Series) and isinstance(src, pd.Series) and len(src) == len(dest)
+        if force:
+            idx = dest.index
+        else:
+            mask = dest < src
+            idx = dest[mask].index
+            src = src[mask]
+        return idx, src
+
+    def _writeFlags(self, flags, field, rowindex, values, **kwargs):
         """ Write unconditional(!) to flags """
-        ...
-
-    @abstractmethod
-    def _checkFlags(self, flags, **kwargs):
-        """ Check if the flags input frame is valid """
-        ...
-
-    @abstractmethod
-    def _checkFlag(self, flag, **kwargs):
-        """ Check if the flag parmeter is valid """
-        ...
+        flags.loc[rowindex, field] = values
+        return flags
 
     @property
     @abstractmethod

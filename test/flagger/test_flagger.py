@@ -107,7 +107,7 @@ def test_isFlagged(data, flagger):
     assert (flagged0[field] == flagged1).all()
 
     # flag cannot be series
-    flag = pd.Series(index=data.index, data=flagger.BAD).astype(flagger.categories)
+    flag = pd.Series(index=data.index, data=flagger.BAD).astype(flagger._categories)
     try:
         flagger.isFlagged(flags, field=field, flag=flag)
     except TypeError:

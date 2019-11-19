@@ -57,14 +57,14 @@ class DmpFlagger(BaseFlagger):
                                    cause=self.UNFLAGGED, comment=self.UNFLAGGED, **kwargs)
         return flags
 
-    def _writeFlags(self, flags, rowindex, field, flag, cause=None, comment=None, **kwargs):
+    def _writeFlags(self, flags, field, rowindex, values, cause=None, comment=None, **kwargs):
         assert comment is not None and cause is not None
-        flags.loc[rowindex, field] = flag, cause, comment
+        flags.loc[rowindex, field] = values, cause, comment
         return flags
 
-    def _reduceColumns(self, flags, field=None, loc=None, iloc=None, **kwargs):
+    def _reduceColumns(self, flags, field=None, **kwargs):
         flags = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
-        return flags
+        return super()._reduceColumns(flags, field, **kwargs)
 
     def _checkFlags(self, flags, **kwargs):
         check_isdfmi(flags, argname='flags')
