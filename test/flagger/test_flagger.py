@@ -9,9 +9,10 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype
 
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger.categoricalflagger import CategoricalFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
+from saqc.flagger.continuousflagger import ContinuousFlagger
 
 from pandas.core.indexing import IndexingError
 
@@ -41,9 +42,11 @@ DATASETS = [
 ]
 
 TESTFLAGGERS = [
-    BaseFlagger(['NIL', 'GOOD', 'BAD']),
-    DmpFlagger(),
-    SimpleFlagger()]
+    CategoricalFlagger(['NIL', 'GOOD', 'BAD']),
+    ContinuousFlagger(),
+    # DmpFlagger(),
+    # SimpleFlagger()
+]
 
 
 @pytest.mark.parametrize('data', DATASETS)
@@ -65,13 +68,15 @@ def test_getFlags(data, flagger):
     assert isinstance(flags0, pd.DataFrame)
     assert flags0.shape == data.shape
     assert (flags0.columns == data.columns).all()
+
+    assert isinstance(flags0[field].dtype, flagger.dtype) # fixme
     for dt in flags0.dtypes:
-        assert isinstance(dt, pd.CategoricalDtype)
+        assert isinstance(dt, flagger.dtype)
 
     # series
     flags1 = flagger.getFlags(flags, field)
     assert isinstance(flags1, pd.Series)
-    assert isinstance(flags1.dtype, pd.CategoricalDtype)
+    assert isinstance(flags1.dtype, flagger.dtype)
     assert flags1.shape[0] == data.shape[0]
     assert flags1.name in data.columns
 
@@ -107,7 +112,7 @@ def test_isFlagged(data, flagger):
     assert (flagged0[field] == flagged1).all()
 
     # flag cannot be series
-    flag = pd.Series(index=data.index, data=flagger.BAD).astype(flagger._categories)
+    flag = pd.Series(index=data.index, data=flagger.BAD).astype(flagger.dtype)
     try:
         flagger.isFlagged(flags, field=field, flag=flag)
     except TypeError:

@@ -30,6 +30,8 @@ class FlaggerTemplate(ABC):
      - these original `flags` must not be modified. use flags.copy() !
      - `loc`, `iloc` should behave the same in all public methods, and do the same as described in [1]
      - implemt the loc/iloc-behavior in self._reduceRows()
+     - all additional instance attributes (that are not present in *all* flaggers) should start single
+     _underscored (private) or even __double_underscored.
 
     Notes: [1]
      https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.loc.html,
@@ -37,9 +39,9 @@ class FlaggerTemplate(ABC):
     """
 
     @abstractmethod
-    def __init__(self, dtype):
+    def __init__(self, flags_dtype):
         """ Init the class and set the categories (in param flags) that are used here."""
-        self.dtype = dtype
+        self.dtype = flags_dtype
 
     def initFlags(self, data: pd.DataFrame) -> newT:
         """ Prepare the flags to your desire. data is passed as reference shape """
@@ -148,23 +150,23 @@ class FlaggerTemplate(ABC):
     @property
     @abstractmethod
     def UNFLAGGED(self):
-        """ Return the category that indicates that the flag is unflagged"""
+        """ Return the flag that indicates unflagged data """
         ...
 
     @property
     @abstractmethod
     def GOOD(self):
-        """ Return the category that indicates the best flag"""
+        """ Return the flag that indicates the very best data """
         ...
 
     @property
     @abstractmethod
     def BAD(self):
-        """ Return the category that indicates the worst flag"""
+        """ Return the flag that indicates the worst data """
         ...
 
-    @property
     @abstractmethod
-    def SUSPICIOUS(self):
-        """ Return the categories that lie between self.GOOD and self.BAD"""
+    def isSUSPICIOUS(self, flag):
+        """ Return bool that indicates if the given flag is valid, but neither
+        UNFLAGGED, BAD, nor GOOD."""
         ...

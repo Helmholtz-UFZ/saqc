@@ -38,11 +38,11 @@ class Flags(pd.CategoricalDtype):
         return self.categories[idx]
 
 
-class BaseFlagger(FlaggerTemplate):
+class CategoricalFlagger(FlaggerTemplate):
     def __init__(self, flags):
         self.signature = ("flag", "force")
-        self._categories = Flags(flags)
-        super().__init__(self._categories)
+        self.__categories = Flags(flags)
+        super().__init__(flags_dtype=self.__categories)
 
     def initFlags(self, data: pd.DataFrame):
         check_isdf(data, 'data', allow_multiindex=False)
@@ -96,15 +96,15 @@ class BaseFlagger(FlaggerTemplate):
 
             if not isinstance(flag.dtype, type(self.dtype)):
                 raise TypeError(f"flag(-series) is not of expected '{self.dtype}'-dtype with ordered categories "
-                                f"{list(self._categories.categories)}, '{flag.dtype}'-dtype was passed.")
+                                f"{list(self.__categories.categories)}, '{flag.dtype}'-dtype was passed.")
 
             assert lenght is not None, 'faulty Implementation, length param must be given if flag is a series'
             if len(flag) != lenght:
                 raise ValueError(f'length of flags ({lenght}) and flag ({len(flag)}) must match, if flag is '
                                  f'a series')
 
-        elif flag not in self._categories:
-            raise TypeError(f"Invalid flag '{flag}'. Possible choices are {list(self._categories.categories)}")
+        elif flag not in self.__categories:
+            raise TypeError(f"Invalid flag '{flag}'. Possible choices are {list(self.__categories.categories)}")
 
         return flag
 
@@ -129,16 +129,15 @@ class BaseFlagger(FlaggerTemplate):
 
     @property
     def UNFLAGGED(self):
-        return self._categories.unflagged()
+        return self.__categories.unflagged()
 
     @property
     def GOOD(self):
-        return self._categories.good()
+        return self.__categories.good()
 
     @property
     def BAD(self):
-        return self._categories.bad()
+        return self.__categories.bad()
 
-    @property
-    def SUSPICIOUS(self):
-        return self._categories.suspicious()
+    def isSUSPICIOUS(self, flag):
+        return flag in self.__categories.suspicious()
