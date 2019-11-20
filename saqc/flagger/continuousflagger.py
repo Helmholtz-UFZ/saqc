@@ -13,7 +13,7 @@ class ContinuousFlagger(FlaggerTemplate):
 
     def __init__(self, min_=0., max_=1., unflagged=-1.):
         assert unflagged < 0 <= min_ < max_
-        super().__init__(flags_dtype=np.float64)
+        super().__init__(dtype=np.float64)
         self._interval = I.closed(min_, max_)
         self._unflagged_flag = unflagged
 

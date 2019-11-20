@@ -13,11 +13,7 @@ from ..lib.tools import *
 from pandas.api.types import CategoricalDtype
 
 
-class Flags(CategoricalDtype):
-
-    def put(self, *args, **kwargs):
-        raise NotImplementedError('modification not implemented')
-
+class Flags(pd.CategoricalDtype):
     def __init__(self, flags):
         # NOTE: all flag schemes need to support
         #       at least 3 flag categories:
@@ -27,27 +23,13 @@ class Flags(CategoricalDtype):
         assert len(flags) > 2
         super().__init__(flags, ordered=True)
 
-    def unflagged(self):
-        return self[0]
-
-    def good(self):
-        return self[1]
-
-    def bad(self):
-        return self[-1]
-
-    def suspicious(self):
-        return self[2:-1]
-
-    def __getitem__(self, idx):
-        return self.categories[idx]
-
 
 class CategoricalFlagger(FlaggerTemplate):
+
     def __init__(self, flags):
+        super().__init__(dtype=Flags(flags))
+        self._categories = self.dtype.categories
         self.signature = ("flag", "force")
-        self.__categories = Flags(flags)
-        super().__init__(flags_dtype=self.__categories)
 
     def initFlags(self, data: pd.DataFrame):
         check_isdf(data, 'data', allow_multiindex=False)
@@ -99,24 +81,24 @@ class CategoricalFlagger(FlaggerTemplate):
             if not allow_series:
                 raise TypeError('series of flags are not allowed here')
 
-            if not isinstance(flag.dtype, self.dtype):
-                raise TypeError(f"flag(-series) is not of expected '{self.dtype}'-dtype with ordered categories "
-                                f"{list(self.__categories.categories)}, '{flag.dtype}'-dtype was passed.")
+            if not self._isDtype(flag.dtype):
+                raise TypeError(f"flag-series is not of expected dtype {self.dtype}, instead a series with " 
+                                f"{flag.dtype} dtype was passed.")
 
             assert lenght is not None, 'faulty Implementation, length param must be given if flag is a series'
             if len(flag) != lenght:
                 raise ValueError(f'length of flags ({lenght}) and flag ({len(flag)}) must match, if flag is '
                                  f'a series')
 
-        elif flag not in self.__categories:
-            raise TypeError(f"Invalid flag '{flag}'. Possible choices are {list(self.__categories.categories)}")
+        elif flag not in self._categories:
+            raise TypeError(f"Invalid flag '{flag}'. Possible choices are {list(self._categories.categories)}")
 
         return flag
 
     def _assureDtype(self, flags, field=None, **kwargs):
         # in: df/ser, out: df/ser, affect only the minimal set of columns
         if isinstance(flags, pd.Series):
-            return flags if isinstance(flags.dtype, self.dtype) else flags.astype(self.dtype)
+            return flags if self._isDtype(flags.dtype) else flags.astype(self.dtype)
 
         elif isinstance(flags, pd.DataFrame):
             if field is None:
@@ -129,20 +111,23 @@ class CategoricalFlagger(FlaggerTemplate):
 
         return flags
 
+    def _isDtype(self, t):
+        return isinstance(t, pd.CategoricalDtype) and t == self.dtype
+
     def nextTest(self):
         pass
 
     @property
     def UNFLAGGED(self):
-        return self.__categories.unflagged()
+        return self._categories[0]
 
     @property
     def GOOD(self):
-        return self.__categories.good()
+        return self._categories[1]
 
     @property
     def BAD(self):
-        return self.__categories.bad()
+        return self._categories[-1]
 
     def isSUSPICIOUS(self, flag):
-        return flag in self.__categories.suspicious()
+        return flag in self._categories.suspicious()

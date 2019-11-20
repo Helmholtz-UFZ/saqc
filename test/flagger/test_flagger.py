@@ -220,8 +220,6 @@ def test_clearFlags(data, flagger):
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_dtype(data, flagger):
 
-    assert flagger.UNFLAGGED < flagger.GOOD < flagger.BAD
-
     origin = flagger.initFlags(data)
 
     flags = origin.copy()
@@ -247,15 +245,16 @@ def test_dtype(data, flagger):
     except TypeError:
         pass
     # and all is str(bad)
-    assert (raw == str(flagger.BAD)).all
-    # that is fatal because:
-    assert flagger.BAD > flagger.GOOD
-    assert str(flagger.BAD) < str(flagger.GOOD)
-
-    # but all functions should restore dtype
-    restored = flagger.setFlags(flags, field)
+    assert (raw == flagger.BAD).all
+    # that is fatal because as strings the order is different than the locical order
+    # so e.g str(GOOD) < str(BAD) but this shouldnt be !
+    # so we check if setFlags still behave correct.. and restore the dtype
+    restored = flagger.setFlags(flags, field, flag=flagger.GOOD)
     raw = flagger._reduceColumns(restored, field)
     assert raw.dtype == flagger.dtype
+    assert (raw == flagger.BAD).all
+
+    # also getFlags should restore the dtype
     restored = flagger.getFlags(flags, field)
     assert restored.dtype == flagger.dtype
 

@@ -39,13 +39,12 @@ class FlaggerTemplate(ABC):
     """
 
     @abstractmethod
-    def __init__(self, flags_dtype):
+    def __init__(self, dtype):
         """ Init the class and set the categories (in param flags) that are used here."""
-        self.dtype = flags_dtype
+        self.dtype = dtype
 
     def initFlags(self, data: pd.DataFrame) -> newT:
         """ Prepare the flags to your desire. data is passed as reference shape """
-        ...
 
     def isFlagged(self, flags: newT, field: str = None, loc=None, iloc=None, flag=None,
                   comparator: str = ">", **kwargs) -> PandasLike:
