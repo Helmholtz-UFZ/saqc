@@ -32,11 +32,12 @@ field = 'var0'
 DATASETS = [
     # get_dataset(0, 1),
     # get_dataset(1, 1),
-    get_dataset(100, 1),
+    get_dataset(4, 2),
+    # get_dataset(100, 1),
     # get_dataset(1000, 1),
     # get_dataset(0, 4),
     # get_dataset(1, 4),
-    get_dataset(100, 4),
+    # get_dataset(100, 4),
     # get_dataset(1000, 4),
     # get_dataset(10000, 40),
 ]
@@ -44,8 +45,8 @@ DATASETS = [
 TESTFLAGGERS = [
     CategoricalFlagger(['NIL', 'GOOD', 'BAD']),
     ContinuousFlagger(),
-    # DmpFlagger(),
-    # SimpleFlagger()
+    DmpFlagger(),
+    SimpleFlagger()
 ]
 
 
@@ -69,14 +70,13 @@ def test_getFlags(data, flagger):
     assert flags0.shape == data.shape
     assert (flags0.columns == data.columns).all()
 
-    assert isinstance(flags0[field].dtype, flagger.dtype) # fixme
     for dt in flags0.dtypes:
-        assert isinstance(dt, flagger.dtype)
+        assert dt == flagger.dtype
 
     # series
     flags1 = flagger.getFlags(flags, field)
     assert isinstance(flags1, pd.Series)
-    assert isinstance(flags1.dtype, flagger.dtype)
+    assert flags1.dtype == flagger.dtype
     assert flags1.shape[0] == data.shape[0]
     assert flags1.name in data.columns
 
@@ -104,7 +104,7 @@ def test_isFlagged(data, flagger):
     # series
     flagged1 = flagger.isFlagged(flags, field)
     assert isinstance(flagged1, pd.Series)
-    assert is_bool_dtype(flagged1.dtype)
+    assert flagged1.dtype == bool
     assert flagged1.shape[0] == data.shape[0]
     assert flagged1.name in data.columns
 
@@ -115,7 +115,7 @@ def test_isFlagged(data, flagger):
     flag = pd.Series(index=data.index, data=flagger.BAD).astype(flagger.dtype)
     try:
         flagger.isFlagged(flags, field=field, flag=flag)
-    except TypeError:
+    except (TypeError, ValueError):
         pass
     else:
         raise AssertionError('this should not work')
@@ -133,6 +133,8 @@ def test_setFlags(data, flagger):
     flags0 = flagger.setFlags(origin, field, flag=flagger.GOOD, loc=sl)
     assert flags0.shape == origin.shape
     assert (flags0.columns == origin.columns).all()
+    raw = flagger._reduceColumns(flags0, field)
+    assert raw.dtype == flagger.dtype
 
     # all
     flags0 = flagger.setFlags(origin, field, flag=flagger.GOOD)
@@ -212,6 +214,50 @@ def test_clearFlags(data, flagger):
         pass
     else:
         raise AssertionError
+
+
+@pytest.mark.parametrize('data', DATASETS)
+@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+def test_dtype(data, flagger):
+
+    assert flagger.UNFLAGGED < flagger.GOOD < flagger.BAD
+
+    origin = flagger.initFlags(data)
+
+    flags = origin.copy()
+    failflag = flagger.getFlags(flags, field).astype(str)
+    try:
+        flagger.setFlags(flags, field, flag=failflag)
+    except TypeError:
+        pass
+    else:
+        raise AssertionError('this should fail')
+
+    raw = flagger._reduceColumns(flags, field)
+    assert raw.dtype == flagger.dtype
+
+    # this is how we loose the dtype
+    f = flagger.setFlags(flags, field).astype(str)
+    wrongdtype = flags.copy()
+    wrongdtype[:] = f.values
+    raw = flagger._reduceColumns(wrongdtype, field)
+    # here the proof that we lost dtype
+    try:
+        assert raw.dtype != flagger.dtype
+    except TypeError:
+        pass
+    # and all is str(bad)
+    assert (raw == str(flagger.BAD)).all
+    # that is fatal because:
+    assert flagger.BAD > flagger.GOOD
+    assert str(flagger.BAD) < str(flagger.GOOD)
+
+    # but all functions should restore dtype
+    restored = flagger.setFlags(flags, field)
+    raw = flagger._reduceColumns(restored, field)
+    assert raw.dtype == flagger.dtype
+    restored = flagger.getFlags(flags, field)
+    assert restored.dtype == flagger.dtype
 
 
 @pytest.mark.parametrize('data', DATASETS)
@@ -349,6 +395,8 @@ def test_classicUseCases(data, flagger):
     flagged = flagger.isFlagged(flags1, field)
     assert (flagged.iloc[indices] == flagged[flagged]).all()
     unflagged = ~flagged
+
+
 
 
 if __name__ == '__main__':

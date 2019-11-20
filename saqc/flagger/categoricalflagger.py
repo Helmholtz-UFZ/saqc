@@ -10,9 +10,14 @@ import pandas as pd
 from .template import FlaggerTemplate
 from ..lib.types import PandasLike, ArrayLike, T
 from ..lib.tools import *
+from pandas.api.types import CategoricalDtype
 
 
-class Flags(pd.CategoricalDtype):
+class Flags(CategoricalDtype):
+
+    def put(self, *args, **kwargs):
+        raise NotImplementedError('modification not implemented')
+
     def __init__(self, flags):
         # NOTE: all flag schemes need to support
         #       at least 3 flag categories:
@@ -50,8 +55,6 @@ class CategoricalFlagger(FlaggerTemplate):
         return self._assureDtype(flags)
 
     def isFlagged(self, flags, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
-        # NOTE: I dislike the comparator default, as it does not comply with
-        #       the setFlag defautl behaviour, which is not changable, btw
         flag = self.GOOD if flag is None else self._checkFlag(flag)
         flagged = super().isFlagged(flags, field, loc, iloc, flag, comparator, **kwargs)
         return flagged
@@ -79,6 +82,8 @@ class CategoricalFlagger(FlaggerTemplate):
         prelen = len(df_or_ser)
         df_or_ser = super()._reduceRows(df_or_ser, loc, iloc)
         if prelen == len(df_or_ser):
+            # this is a cheap OPTIMISATION, and works because we only
+            # loose the dtype if all values was overwritten
             df_or_ser = self._assureDtype(df_or_ser)
         return df_or_ser
 
@@ -94,7 +99,7 @@ class CategoricalFlagger(FlaggerTemplate):
             if not allow_series:
                 raise TypeError('series of flags are not allowed here')
 
-            if not isinstance(flag.dtype, type(self.dtype)):
+            if not isinstance(flag.dtype, self.dtype):
                 raise TypeError(f"flag(-series) is not of expected '{self.dtype}'-dtype with ordered categories "
                                 f"{list(self.__categories.categories)}, '{flag.dtype}'-dtype was passed.")
 
@@ -111,7 +116,7 @@ class CategoricalFlagger(FlaggerTemplate):
     def _assureDtype(self, flags, field=None, **kwargs):
         # in: df/ser, out: df/ser, affect only the minimal set of columns
         if isinstance(flags, pd.Series):
-            return flags if isinstance(flags.dtype, type(self.dtype)) else flags.astype(self.dtype)
+            return flags if isinstance(flags.dtype, self.dtype) else flags.astype(self.dtype)
 
         elif isinstance(flags, pd.DataFrame):
             if field is None:
