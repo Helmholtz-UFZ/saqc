@@ -17,7 +17,7 @@ def _raise(config_row, exc, msg, field=None):
     raise exc(msg)
 
 
-def checkConfig(config_df, data, flags, flagger, nodata):
+def checkConfig(config_df, data, flagger, nodata):
     for _, config_row in config_df.iterrows():
         if pd.isnull(config_row[F.VARNAME]):
             # NOTE: better messages needed
@@ -36,7 +36,7 @@ def checkConfig(config_df, data, flags, flagger, nodata):
 
         for col, expr in test_fields.iteritems():
             try:
-                compileExpression(expr, data, flags, flagger, nodata)
+                compileExpression(expr, data, flagger, nodata)
             except (TypeError, NameError, SyntaxError) as exc:
                 _raise(config_row, type(exc),
                        exc.args[0] + f" (failing statement: '{expr}')",

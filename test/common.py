@@ -8,13 +8,17 @@ import numpy as np
 import pandas as pd
 
 from saqc.core.core import prepareConfig, readConfig
-from saqc.flagger import SimpleFlagger, DmpFlagger
+from saqc.flagger import SimpleFlagger, DmpFlagger, BaseFlagger
 
 
 TESTNODATA = (np.nan, -9999)
 
 
-TESTFLAGGER = (SimpleFlagger(), DmpFlagger())
+TESTFLAGGER = (
+    SimpleFlagger(),
+    DmpFlagger(),
+    BaseFlagger(["NIL", "GOOD", "BAD"])
+)
 
 
 def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):

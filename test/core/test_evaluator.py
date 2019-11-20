@@ -11,7 +11,7 @@ from saqc.core.evaluator import (
     DslTransformer,
     MetaTransformer)
 
-from ..common import TESTFLAGGER
+from test.common import TESTFLAGGER
 
 
 def compileExpression(expr, flagger, nodata=np.nan):

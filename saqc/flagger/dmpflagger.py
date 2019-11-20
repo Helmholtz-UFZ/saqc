@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 import subprocess
 import json
+from copy import deepcopy
+from typing import Sequence
+
 import pandas as pd
 
 from .simpleflagger import SimpleFlagger
@@ -38,15 +41,30 @@ class DmpFlagger(BaseFlagger):
         self.signature = ("flag", "comment", "cause", "force")
         self._flags = None
 
+    def _getColumns(self, cols, fields: Sequence=None):
+        if fields is None:
+            fields = self.flags_fields
+        return pd.MultiIndex.from_product(
+            [cols, fields],
+            names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
 
     def initFlags(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
         check_isdf(data, 'data', allow_multiindex=False)
-        colindex = pd.MultiIndex.from_product(
-            [data.columns, self.flags_fields],
-            names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
+        colindex = self._getColumns(data.columns)
         flags = pd.DataFrame(data=self.UNFLAGGED, columns=colindex, index=data.index)
         self._flags = self._assureDtype(flags)
         return self
+
+    def initFromFlags(self, flags: pd.DataFrame):
+        if not isinstance(flags, pd.DataFrame):
+            raise TypeError("expected a pandas.DataFrame")
+        if not isinstance(flags.columns, pd.MultiIndex):
+            flags = (flags
+                     .T.set_index(keys=self._getColumns(flags.columns, [FlagFields.FLAG])).T
+                     .reindex(columns=self._getColumns(flags.columns)))
+        out = deepcopy(self)
+        out._flags = out._assureDtype(flags)
+        return out
 
     def _assureDtype(self, flags):
         flags_only = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)

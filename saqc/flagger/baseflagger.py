@@ -3,6 +3,7 @@
 
 import operator as op
 from typing import Any, Optional
+from copy import deepcopy
 
 import numpy as np
 import pandas as pd
@@ -47,16 +48,30 @@ class Flags(pd.CategoricalDtype):
 
 
 class BaseFlagger(FlaggerTemplate):
-    def __init__(self, flags):
+    def __init__(self, categories):
         self.signature = ("flag", "force")
-        self.categories = Flags(flags)
+        self.categories = Flags(categories)
         self._flags = None
 
     def initFlags(self, data: pd.DataFrame):
+        """
+        TODO: rename to initFromData
+        """
         check_isdf(data, 'data', allow_multiindex=False)
-        flags = pd.DataFrame(data=self.categories[0], index=data.index, columns=data.columns)
+        flags = pd.DataFrame(data=self.UNFLAGGED, index=data.index, columns=data.columns)
         self._flags = self._assureDtype(flags)
         return self
+
+    def initFromFlags(self, flags: pd.DataFrame):
+        check_isdf(flags, 'flags', allow_multiindex=False)
+        out = deepcopy(self) #BaseFlagger(self.categories.categories)
+        out._flags = out._assureDtype(flags)
+        return out
+
+    def getFlagger(self, field=None, loc=None, iloc=None):
+        out = BaseFlagger(self.categories.categories)
+        out._flags = self.getFlags(field=field, loc=loc, iloc=iloc)
+        return out
 
     def isFlagged(self, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
         # NOTE: I dislike the comparator default, as it does not comply with
@@ -93,7 +108,7 @@ class BaseFlagger(FlaggerTemplate):
 
         if np.isscalar(flag):
             flag = np.full(len(this), flag)
-        assert len(flag) == len(this)
+        # assert len(flag) == len(this)
 
         return pd.Series(
             data=flag, index=this.index,

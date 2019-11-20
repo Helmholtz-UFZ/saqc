@@ -61,7 +61,8 @@ def test_configReaderLineNumbers(data):
 @pytest.mark.parametrize("nodata", TESTNODATA)
 def test_configChecks(data, flagger, nodata, caplog):
 
-    flags = flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
+    flags = flagger.getFlags()
     var1, var2, var3, *_ = data.columns
 
     tests = [
@@ -78,4 +79,4 @@ def test_configChecks(data, flagger, nodata, caplog):
     for config_dict, expected in tests:
         _, config_df = initMetaDict([config_dict], data)
         with pytest.raises(expected):
-            checkConfig(config_df, data, flags, flagger, nodata)
+            checkConfig(config_df, data, flagger, nodata)

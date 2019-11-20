@@ -19,12 +19,12 @@ class Targets:
     FLAGS = "flags"
 
 
-def _dslInner(func, data, flags, field, flagger):
-    return func(data.mask(flagger.isFlagged(flags, field)))
+def _dslInner(func, data, field, flagger):
+    return func(data.mask(flagger.isFlagged(field)))
 
 
-def _dslIsFlagged(data, flags, field, flagger):
-    return flagger.isFlagged(flags, field)
+def _dslIsFlagged(data, field, flagger):
+    return flagger.isFlagged(field)
 
 
 def initDslFuncMap(nodata):
@@ -37,7 +37,7 @@ def initDslFuncMap(nodata):
         "std": partial(_dslInner, np.nanstd),
         "len": partial(_dslInner, len),
         "isflagged": _dslIsFlagged,
-        "ismissing": lambda data, flags, field, flagger: ((data == nodata) | pd.isnull(data)),
+        "ismissing": lambda data, field, flagger: ((data == nodata) | pd.isnull(data)),
     }
 
 
@@ -141,7 +141,6 @@ class MetaTransformer(ast.NodeTransformer):
         self.func_name = func_name
 
         new_args = [ast.Name(id="data", ctx=ast.Load()),
-                    ast.Name(id="flags", ctx=ast.Load()),
                     ast.Name(id="field", ctx=ast.Load()),
                     ast.Name(id="flagger", ctx=ast.Load())]
 
@@ -188,26 +187,26 @@ def compileTree(tree: ast.Expression):
                    mode="eval")
 
 
-def evalCode(code, data, flags, field, flagger, nodata):
+def evalCode(code, data, field, flagger, nodata):
     global_env = initDslFuncMap(nodata)
     local_env = {
         **FUNC_MAP,
-        "data": data, "flags": flags,
+        "data": data,
         "field": field, "this": field,
         "flagger": flagger, "NODATA": nodata}
 
     return eval(code, global_env, local_env)
 
 
-def compileExpression(expr, data, flags, flagger, nodata):
-    varmap = set(data.columns.tolist() + flags.columns.tolist())
+def compileExpression(expr, data, flagger, nodata):
+    varmap = set(data.columns.tolist() + flagger.getFlags().columns.tolist())
     tree = parseExpression(expr)
     dsl_transformer = DslTransformer(initDslFuncMap(nodata), varmap)
     transformed_tree = MetaTransformer(dsl_transformer, flagger.signature).visit(tree)
     return compileTree(transformed_tree)
 
 
-def evalExpression(expr, data, flags, field, flagger, nodata=np.nan):
+def evalExpression(expr, data, field, flagger, nodata=np.nan):
 
-    code = compileExpression(expr, data, flags, flagger, nodata)
-    return evalCode(code, data, flags, field, flagger, nodata)
+    code = compileExpression(expr, data, flagger, nodata)
+    return evalCode(code, data, field, flagger, nodata)
