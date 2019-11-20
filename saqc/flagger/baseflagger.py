@@ -72,7 +72,8 @@ class BaseFlagger(FlaggerTemplate):
         field = field or slice(None)
         flags = self._flags.copy()
         mask = self._locator2Mask(field, loc, iloc)
-        return flags[field][mask]
+        # return flags[field][mask]
+        return self._assureDtype(flags.loc[mask, field])
 
     def _locator2Mask(self, field=None, loc=None, iloc=None):
         # get a single locator
@@ -97,7 +98,6 @@ class BaseFlagger(FlaggerTemplate):
         return pd.Series(
             data=flag, index=this.index,
             name=field, dtype=self.categories)
-
 
     def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
 
@@ -142,19 +142,13 @@ class BaseFlagger(FlaggerTemplate):
 
         return flag
 
-    def _assureDtype(self, flags, field=None):
-        # in: df/ser, out: df/ser, affect only the minimal set of columns
+    def _assureDtype(self, flags):
         if isinstance(flags, pd.Series):
-            return flags.astype(self.categories)
-
-        if field is not None:
-            flags[field] = self._assureDtype(flags[field])
+            flags = flags.astype(self.categories)
             return flags
 
-        if field is None:
-            for c in flags:
-                flags[c] = self._assureDtype(flags[c])
-
+        for c in flags.columns:
+            flags[c] = flags[c].astype(self.categories)
         return flags
 
     def _isSelfCategoricalType(self, f) -> bool:

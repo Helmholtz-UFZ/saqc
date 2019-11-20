@@ -41,8 +41,8 @@ DATASETS = [
 ]
 
 TESTFLAGGERS = [
-    # BaseFlagger(['NIL', 'GOOD', 'BAD']),
-    # DmpFlagger(),
+    BaseFlagger(['NIL', 'GOOD', 'BAD']),
+    DmpFlagger(),
     SimpleFlagger()
 ]
 
@@ -75,12 +75,6 @@ def test_getFlags(data, flagger):
     assert isinstance(flags1.dtype, pd.CategoricalDtype)
     assert flags1.shape[0] == data.shape[0]
     assert flags1.name in data.columns
-
-    # all the same
-    # NOTE: doesn't make sense here
-    # flags2 = flagger.getFlags(flags[[field]]).squeeze()
-    # assert (flags0[field] == flags1).all()
-    # assert (flags0[field] == flags2).all()
 
 
 @pytest.mark.parametrize('data', DATASETS)
