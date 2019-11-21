@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
-from .template import FlaggerTemplate
+from .baseflagger import BaseFlagger
 from ..lib.tools import check_isdf
 import pandas as pd
 import numpy as np
 import intervals as I
 
 
-class ContinuousFlagger(FlaggerTemplate):
+class ContinuousBaseFlagger(BaseFlagger):
 
     def __init__(self, min_=0., max_=1., unflagged=-1.):
         assert unflagged < 0 <= min_ < max_

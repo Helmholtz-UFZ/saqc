@@ -9,10 +9,10 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype
 
-from saqc.flagger.categoricalflagger import CategoricalFlagger
+from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
-from saqc.flagger.continuousflagger import ContinuousFlagger
+from saqc.flagger.continuousflagger import ContinuousBaseFlagger
 
 from pandas.core.indexing import IndexingError
 
@@ -43,8 +43,8 @@ DATASETS = [
 ]
 
 TESTFLAGGERS = [
-    CategoricalFlagger(['NIL', 'GOOD', 'BAD']),
-    ContinuousFlagger(),
+    CategoricalBaseFlagger(['NIL', 'GOOD', 'BAD']),
+    ContinuousBaseFlagger(),
     DmpFlagger(),
     SimpleFlagger()
 ]

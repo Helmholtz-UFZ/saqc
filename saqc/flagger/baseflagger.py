@@ -23,7 +23,7 @@ COMPARATOR_MAP = {
 }
 
 
-class FlaggerTemplate(ABC):
+class BaseFlagger(ABC):
     """
     General implementation constrains for all public methods:
      - the `flags` input must be of same type and dimensions of whatever self.initFlags returns

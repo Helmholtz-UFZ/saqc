@@ -9,7 +9,7 @@ from .config import Fields
 from .evaluator import evalExpression
 from ..lib.plotting import plot
 from ..lib.tools import setup
-from ..flagger import FlaggerTemplate, CategoricalFlagger, SimpleFlagger, DmpFlagger
+from ..flagger import BaseFlagger, CategoricalBaseFlagger, SimpleFlagger, DmpFlagger
 
 
 def collectVariables(meta, flagger, data, flags):
@@ -33,9 +33,9 @@ def _check_input(data, flags, flagger):
     if not isinstance(data, pd.DataFrame):
         raise TypeError('data must be of type pd.DataFrame')
 
-    if not isinstance(flagger, FlaggerTemplate):
-        flaggerlist = [CategoricalFlagger, SimpleFlagger, DmpFlagger]
-        raise TypeError(f'flagger must be of type {flaggerlist} or any inherit class from {FlaggerTemplate}')
+    if not isinstance(flagger, BaseFlagger):
+        flaggerlist = [CategoricalBaseFlagger, SimpleFlagger, DmpFlagger]
+        raise TypeError(f'flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}')
 
     if flags is None:
         return

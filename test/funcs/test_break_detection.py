@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from saqc.flagger.categoricalflagger import CategoricalFlagger
+from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
 
@@ -14,7 +14,7 @@ from saqc.funcs.break_detection import flagBreaks_SpektrumBased
 from saqc.lib.tools import getPandasData
 
 TESTFLAGGERS = [
-    CategoricalFlagger(['NIL', 'GOOD', 'BAD']),
+    CategoricalBaseFlagger(['NIL', 'GOOD', 'BAD']),
     DmpFlagger(),
     SimpleFlagger()]
 

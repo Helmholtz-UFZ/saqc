@@ -7,7 +7,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
-from .template import FlaggerTemplate
+from .baseflagger import BaseFlagger
 from ..lib.types import PandasLike, ArrayLike, T
 from ..lib.tools import *
 from pandas.api.types import CategoricalDtype
@@ -24,7 +24,7 @@ class Flags(pd.CategoricalDtype):
         super().__init__(flags, ordered=True)
 
 
-class CategoricalFlagger(FlaggerTemplate):
+class CategoricalBaseFlagger(BaseFlagger):
 
     def __init__(self, flags):
         super().__init__(dtype=Flags(flags))

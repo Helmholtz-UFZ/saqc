@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from ..common import initData
-from saqc.flagger import CategoricalFlagger
+from saqc.flagger import CategoricalBaseFlagger
 
 import numpy as np
 import pandas as pd
 
 
 def test_flagOrder():
-    flagger = CategoricalFlagger([-1, 0, 1])
+    flagger = CategoricalBaseFlagger([-1, 0, 1])
     assert flagger.UNFLAGGED < flagger.GOOD
     assert flagger.UNFLAGGED < flagger.BAD
     assert flagger.GOOD < flagger.BAD
@@ -20,14 +20,14 @@ def test_accesors():
     unflagged = -1
     good = 0
     bad = 1
-    flagger = CategoricalFlagger([unflagged, good, bad])
+    flagger = CategoricalBaseFlagger([unflagged, good, bad])
     assert flagger.UNFLAGGED == unflagged
     assert flagger.GOOD == good
     assert flagger.BAD == bad
 
 
 def test_isFlagged():
-    flagger = CategoricalFlagger([-1, 0, 1])
+    flagger = CategoricalBaseFlagger([-1, 0, 1])
     data = initData(cols=1).iloc[:50]
     flags = flagger.initFlags(data)
     flags.iloc[:10] = flagger.BAD
