@@ -32,14 +32,14 @@ field = 'var0'
 DATASETS = [
     # get_dataset(0, 1),
     # get_dataset(1, 1),
-    get_dataset(4, 2),
-    # get_dataset(100, 1),
+    get_dataset(100, 1),
     # get_dataset(1000, 1),
     # get_dataset(0, 4),
     # get_dataset(1, 4),
     # get_dataset(100, 4),
     # get_dataset(1000, 4),
     # get_dataset(10000, 40),
+    get_dataset(20, 4),
 ]
 
 TESTFLAGGERS = [
@@ -234,15 +234,19 @@ def test_dtype(data, flagger):
     raw = flagger._reduceColumns(flags, field)
     assert raw.dtype == flagger.dtype
 
-    # this is how we loose the dtype
-    f = flagger.setFlags(flags, field).astype(str)
-    wrongdtype = flags.copy()
-    wrongdtype[:] = f.values
-    raw = flagger._reduceColumns(wrongdtype, field)
-    # here the proof that we lost dtype
     try:
+        # this is how we loose the dtype
+        f = flagger.setFlags(flags, field).astype(str)
+        wrongdtype = flags.copy()
+        wrongdtype[:] = f.values
+        raw = flagger._reduceColumns(wrongdtype, field)
+        # here the proof that we lost dtype
         assert raw.dtype != flagger.dtype
-    except TypeError:
+    except (TypeError, ValueError):
+        # TypeError: the assert fails, due `cannot comare different ... fooo`, but thats ok, because
+        # we lost (successfully) dtype
+        # ValueError: `wrongdtype[:] = f.values` fails because we cannot write to a categorcical dtype,
+        # non categorical data.. but this only works for 1dim-objects (e.g. 1d-df)
         pass
     # and all is str(bad)
     assert (raw == flagger.BAD).all
