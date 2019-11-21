@@ -2,6 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from .template import FlaggerTemplate
-from .categoricalflagger import CategoricalFlagger
+from .baseflagger import BaseFlagger
 from .simpleflagger import SimpleFlagger
 from .dmpflagger import DmpFlagger

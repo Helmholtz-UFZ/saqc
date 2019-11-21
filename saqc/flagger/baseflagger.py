@@ -24,7 +24,7 @@ class Flags(pd.CategoricalDtype):
         super().__init__(flags, ordered=True)
 
 
-class CategoricalFlagger(FlaggerTemplate):
+class BaseFlagger(FlaggerTemplate):
 
     def __init__(self, flags):
         super().__init__(dtype=Flags(flags))

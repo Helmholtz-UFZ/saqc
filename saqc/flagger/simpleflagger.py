@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 
 
-from .categoricalflagger import CategoricalFlagger
+from .baseflagger import BaseFlagger
 
 
 FLAGS = [-1, 0, 1]
 
 
-class SimpleFlagger(CategoricalFlagger):
+class SimpleFlagger(BaseFlagger):
 
     def __init__(self):
         super().__init__(FLAGS)
