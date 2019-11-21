@@ -77,10 +77,11 @@ def _plot_qflags(data, flags, varname, flagger, flagmask, ax, show_nans):
 
     # plot flags in the color corresponding to the flag
     # BAD red, GOOD green, all in between aka SUSPISIOUS in yellow
-    for i, f in enumerate(flagger.categories):
-        if i == 0:
-            continue
-        flagged = flagger.isFlagged(flags, varname, flag=f, comparator='==') & flagmask
+    bads = flagger.isFlagged(flags, varname, flag=flagger.BAD, comparator='==') & flagmask
+    good = flagger.isFlagged(flags, varname, flag=flagger.GOOD, comparator='==') & flagmask
+    susp = flagger.isFlagged(flags, varname, flag=flagger.GOOD, comparator='>') & flagmask & ~bads
+    flaglist = [flagger.GOOD, flagger.BAD, 'Suspicious']
+    for f, flagged in zip(flaglist, [good, bads, susp]):
         label = f"flag: {f}"
         color = _get_color(f, flagger)
         ax.plot(x[flagged], y[flagged], '.', color=color, label=label)
@@ -100,12 +101,12 @@ def _plot_vline(plt, points, color='blue'):
 def _get_color(flag, flagger):
     if flag == flagger.UNFLAGGED:
         return 'silver'
-    if flag == flagger.GOOD:
+    elif flag == flagger.GOOD:
         return 'green'
-    if flag == flagger.BAD:
+    elif flag == flagger.BAD:
         return 'red'
-    if flag in list(flagger.SUSPICIOUS):
+    else:
+        # suspicios
         return 'yellow'
-    return 'blue'
 
 

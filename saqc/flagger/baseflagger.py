@@ -130,4 +130,4 @@ class BaseFlagger(FlaggerTemplate):
         return self._categories[-1]
 
     def isSUSPICIOUS(self, flag):
-        return flag in self._categories.suspicious()
+        return flag in self._categories[2:-1]
