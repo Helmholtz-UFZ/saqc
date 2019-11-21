@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype
 
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger.categoricalflagger import CategoricalFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
 from saqc.flagger.continuousflagger import ContinuousFlagger
@@ -43,7 +43,7 @@ DATASETS = [
 ]
 
 TESTFLAGGERS = [
-    BaseFlagger(['NIL', 'GOOD', 'BAD']),
+    CategoricalFlagger(['NIL', 'GOOD', 'BAD']),
     ContinuousFlagger(),
     DmpFlagger(),
     SimpleFlagger()

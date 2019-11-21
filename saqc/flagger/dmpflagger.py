@@ -5,7 +5,7 @@ import json
 import pandas as pd
 
 from .simpleflagger import SimpleFlagger
-from .baseflagger import BaseFlagger, PandasLike
+from .categoricalflagger import CategoricalFlagger, PandasLike
 from ..lib.tools import *
 
 
@@ -27,7 +27,7 @@ class ColumnLevels:
 FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 
-class DmpFlagger(BaseFlagger):
+class DmpFlagger(CategoricalFlagger):
 
     def __init__(self):
         super().__init__(FLAGS)
