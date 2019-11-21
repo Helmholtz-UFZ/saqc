@@ -4,34 +4,38 @@
 import numpy as np
 import pandas as pd
 
-from .reader import readConfig, prepareConfig
+from .reader import readConfig, prepareConfig, checkConfig
 from .config import Fields
 from .evaluator import evalExpression
 from ..lib.plotting import plot
-from ..lib.tools import setup
 from ..flagger import BaseFlagger, CategoricalBaseFlagger, SimpleFlagger, DmpFlagger
 
 
 def collectVariables(meta, flagger, data, flags):
-    """
-    find every relevant variable and add a respective
-    column to the flags dataframe
-    """
-    # NOTE: get to know every variable from meta
+    """ find every requested variable in the meta, that is not already present in flags """
+    if flags is None:
+        ignore = list()
+    else:
+        ignore = list(flags.columns.get_level_values(level=0))
+
+    varnames = []
     for idx, configrow in meta.iterrows():
-        varname = configrow[Fields.VARNAME]
-        assign = configrow[Fields.ASSIGN]
-        if varname not in flags and \
-                (varname in data or varname not in data and assign is True):
-            col_flags = flagger.initFlags(pd.DataFrame(index=data.index,
-                                                       columns=[varname]))
-            flags = col_flags if flags.empty else flags.join(col_flags)
-    return flags
+        varname, assign = configrow[Fields.VARNAME], configrow[Fields.ASSIGN]
+        if varname not in ignore and (varname in data or varname not in data and assign is True):
+            varnames.append(varname)
+
+    return varnames
 
 
 def _check_input(data, flags, flagger):
     if not isinstance(data, pd.DataFrame):
         raise TypeError('data must be of type pd.DataFrame')
+
+    if isinstance(data.index, pd.MultiIndex):
+        raise TypeError('the index of data is not allowed to be a multiindex')
+
+    if isinstance(data.columns, pd.MultiIndex):
+        raise TypeError('the columns of data is not allowed to be a multiindex')
 
     if not isinstance(flagger, BaseFlagger):
         flaggerlist = [CategoricalBaseFlagger, SimpleFlagger, DmpFlagger]
@@ -43,25 +47,33 @@ def _check_input(data, flags, flagger):
     if not isinstance(flags, pd.DataFrame):
         raise TypeError('flags must be of type pd.DataFrame')
 
-    refflags = flagger.initFlags(data)
-    if refflags.shape != flags.shape:
-        raise ValueError('flags has not the same dimensions as flagger.initFlags() would return')
+    if isinstance(data.index, pd.MultiIndex):
+        raise TypeError('the index of flags is not allowed to be a multiindex')
+
+    if len(data) != len(flags):
+        raise ValueError('the index of flags and data has not the same length')
+
+    # do not test columns as they not necessarily must be the same
+
+
+def _setup():
+    pd.set_option('mode.chained_assignment', 'warn')
 
 
 def runner(metafname, flagger, data, flags=None, nodata=np.nan):
-    setup()
+    _setup()
     _check_input(data, flags, flagger)
     meta = prepareConfig(readConfig(metafname), data)
-    # NOTE: split meta into the test and some 'meta' data
-    tests = meta[meta.columns.to_series().filter(regex=Fields.TESTS)]
+
+    # split meta into the test and some 'meta' data
+    tests = meta[meta.columns.to_series().filter(regex=Fields.TESTS + '*')]
     meta = meta[meta.columns.difference(tests.columns)]
 
-    # NOTE: prep the flags
-    if flags is None:
-        flags = pd.DataFrame(index=data.index)
-    flags = collectVariables(meta, flagger, data, flags)
+    # prepapre the flags
+    varnames = collectVariables(meta, flagger, data, flags)
+    fresh = flagger.initFlags(pd.DataFrame(index=data.index, columns=varnames))
+    flags = fresh if flags is None else flags.join(fresh)
 
-    # NOTE:
     # the outer loop runs over the flag tests, the inner one over the
     # variables. Switching the loop order would complicate the
     # reference to flags from other variables within the dataset

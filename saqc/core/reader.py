@@ -27,7 +27,7 @@ def checkConfig(config_df, data, flags, flagger, nodata):
         test_fields = config_row.filter(regex=F.TESTS)
         if test_fields.isna().all():
             _raise(config_row,  SyntaxError,
-                   f"at least one test needs to be given vor variable")
+                   f"at least one test needs to be given for variable")
 
         var_name = config_row[F.VARNAME]
         if var_name not in data.columns and not config_row[F.ASSIGN]:

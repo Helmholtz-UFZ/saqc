@@ -91,7 +91,7 @@ class CategoricalBaseFlagger(BaseFlagger):
                                  f'a series')
 
         elif flag not in self._categories:
-            raise TypeError(f"Invalid flag '{flag}'. Possible choices are {list(self._categories.categories)}")
+            raise TypeError(f"Invalid flag '{flag}'. Possible choices are {list(self._categories)}")
 
         return flag
 
