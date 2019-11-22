@@ -15,9 +15,9 @@ TESTNODATA = (np.nan, -9999)
 
 
 TESTFLAGGER = (
+    BaseFlagger(["NIL", "GOOD", "BAD"]),
     SimpleFlagger(),
     DmpFlagger(),
-    BaseFlagger(["NIL", "GOOD", "BAD"])
 )
 
 

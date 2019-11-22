@@ -80,7 +80,7 @@ class DmpFlagger(BaseFlagger):
 
     def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
         field = field or slice(None)
-        mask = self._locator2Mask(field, loc, iloc)
+        mask = self._locatorMask(field, loc, iloc)
         flags = self._flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1).copy()
         return super()._assureDtype(flags.loc[mask, field])
 
@@ -94,7 +94,7 @@ class DmpFlagger(BaseFlagger):
 
         this = self.getFlags(field=field)
         other = self._broadcastFlags(field=field, flag=flag)
-        mask = self._locator2Mask(field, loc, iloc)
+        mask = self._locatorMask(field, loc, iloc)
         if not force:
             mask &= (this < other).values
 

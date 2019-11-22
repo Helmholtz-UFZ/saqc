@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import operator as op
-from typing import Any, Optional
 from copy import deepcopy
 from collections import OrderedDict
 
@@ -54,10 +53,6 @@ class BaseFlagger(FlaggerTemplate):
         self.categories = Flags(categories)
         self._flags = None
 
-    # @property
-    # def flags(self):
-    #     return self._flags
-
     def initFlags(self, data: pd.DataFrame):
         """
         TODO: rename to initFromData
@@ -81,16 +76,45 @@ class BaseFlagger(FlaggerTemplate):
         # NOTE: I have no idea, why the next statement is failing...
         #       it does however make the loop necessary
         #out._flags.loc[other_flags.index, other_flags.columns] = self._assureDtype(other_flags)
+
         # TODO: get rid of the loop
         for v in other_flags.columns:
             out._flags.loc[other_flags.index, v] = other_flags[v]
         return out
 
     def getFlagger(self, loc=None, iloc=None):
-        mask = self._locator2Mask(field=slice(None), loc=loc, iloc=iloc)
+        mask = self._locatorMask(field=slice(None), loc=loc, iloc=iloc)
         out = deepcopy(self)
         out._flags = self._flags[mask]
         return out
+
+    def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
+        # NOTE: needs a copy argument to prevent unnecessary copies
+        field = field or slice(None)
+        flags = self._flags.copy()
+        mask = self._locatorMask(field, loc, iloc)
+        return self._assureDtype(flags.loc[mask, field])
+
+    def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
+
+        flag = self.BAD if flag is None else self._checkFlag(flag)
+
+        this = self.getFlags(field=field)
+        other = self._broadcastFlags(field=field, flag=flag)
+
+        mask = self._locatorMask(field, loc, iloc)
+        if not force:
+            mask &= (this < other).values
+
+        out = deepcopy(self)
+        out._flags.loc[mask, field] = other[mask]
+        return out
+
+    def clearFlags(self, field, loc=None, iloc=None, **kwargs):
+        if field is None:
+            # NOTE: I don't see a need for this restriction
+            raise ValueError('field cannot be None')
+        return self.setFlags(field=field, loc=loc, iloc=iloc, flag=self.UNFLAGGED, force=True)
 
     def isFlagged(self, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
         # NOTE: I dislike the comparator default, as it does not comply with
@@ -101,15 +125,7 @@ class BaseFlagger(FlaggerTemplate):
         flagged = pd.notna(flags) & cp(flags, flag)
         return flagged
 
-    def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
-        # NOTE: needs a copy argument to prevent unnecessary copies
-        field = field or slice(None)
-        flags = self._flags.copy()
-        mask = self._locator2Mask(field, loc, iloc)
-        # return flags[field][mask]
-        return self._assureDtype(flags.loc[mask, field])
-
-    def _locator2Mask(self, field=None, loc=None, iloc=None):
+    def _locatorMask(self, field=None, loc=None, iloc=None):
         locator = [l for l in (loc, iloc, slice(None)) if l is not None][0]
         if np.isscalar(field):
             field = [field]
@@ -133,49 +149,10 @@ class BaseFlagger(FlaggerTemplate):
             data=flag, index=this.index,
             name=field, dtype=self.categories)
 
-    def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
-
-        flag = self.BAD if flag is None else flag
-
-        this = self.getFlags(field=field)
-        other = self._broadcastFlags(field=field, flag=flag)
-
-        mask = self._locator2Mask(field, loc, iloc)
-        if not force:
-            mask &= (this < other).values
-
-        out = deepcopy(self)
-        out._flags.loc[mask, field] = other[mask]
-        return out
-        # self._flags.loc[mask, field] = other[mask]
-        # return self
-
-    def clearFlags(self, field, loc=None, iloc=None, **kwargs):
-        if field is None:
-            # NOTE: I don't see a need for this restriction
-            raise ValueError('field cannot be None')
-        return self.setFlags(field=field, loc=loc, iloc=iloc, flag=self.UNFLAGGED, force=True)
-
-    def _checkFlag(self, flag, allow_series=False, lenght=None):
-        if flag is None:
-            raise ValueError("flag cannot be None")
-
-        if isinstance(flag, pd.Series):
-            if not allow_series:
-                raise TypeError('series of flags are not allowed here')
-
-            if not self._isSelfCategoricalType(flag):
-                raise TypeError(f"flag(-series) is not of expected '{self.categories}'-dtype with ordered categories "
-                                f"{list(self.categories.categories)}, '{flag.dtype}'-dtype was passed.")
-
-            assert lenght is not None, 'faulty Implementation, length param must be given if flag is a series'
-            if len(flag) != lenght:
-                raise ValueError(f'length of flags ({lenght}) and flag ({len(flag)}) must match, if flag is '
-                                 f'a series')
-
-        elif not self._isSelfCategoricalType(flag):
-            raise TypeError(f"Invalid flag '{flag}'. Possible choices are {list(self.categories.categories)}")
-
+    def _checkFlag(self, flag):
+        if not self._isCategorical(flag):
+            raise TypeError(
+                f"invalid flag '{flag}', possible choices are '{list(self.categories.categories)}'")
         return flag
 
     def _assureDtype(self, flags):
@@ -188,11 +165,10 @@ class BaseFlagger(FlaggerTemplate):
             tmp[c] = flags[c].astype(self.categories)
         return pd.DataFrame(tmp)
 
-    def _isSelfCategoricalType(self, f) -> bool:
+    def _isCategorical(self, f) -> bool:
         if isinstance(f, pd.Series):
             return isinstance(f.dtype, pd.CategoricalDtype) and f.dtype == self.categories
-        else:
-            return f in self.categories
+        return f in self.categories
 
     def nextTest(self):
         pass
