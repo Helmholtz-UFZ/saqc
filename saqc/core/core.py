@@ -89,9 +89,8 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
                 flagger=fchunk, nodata=nodata)
 
             data.loc[start_date:end_date] = dchunk
-            # import pdb; pdb.set_trace()
-            flagger = flagger.setFlags(field=varname, loc=dchunk.index, flag=fchunk.getFlags(field=varname))
-            # flagger._flags.loc[start_date:end_date] == fchunk._flags
+            # flagger = flagger.setFlags(field=varname, loc=dchunk.index, flag=fchunk.getFlags(field=varname))
+            flagger = flagger.setFlagger(fchunk)
 
         # NOTE: this method should be removed
         flagger.nextTest()

@@ -53,6 +53,10 @@ class BaseFlagger(FlaggerTemplate):
         self.categories = Flags(categories)
         self._flags = None
 
+    # @property
+    # def flags(self):
+    #     return self._flags
+
     def initFlags(self, data: pd.DataFrame):
         """
         TODO: rename to initFromData
@@ -64,13 +68,27 @@ class BaseFlagger(FlaggerTemplate):
 
     def initFromFlags(self, flags: pd.DataFrame):
         check_isdf(flags, 'flags', allow_multiindex=False)
-        out = deepcopy(self) #BaseFlagger(self.categories.categories)
+        out = deepcopy(self)
         out._flags = out._assureDtype(flags)
         return out
 
-    def getFlagger(self, field=None, loc=None, iloc=None):
-        out = BaseFlagger(self.categories.categories)
-        out._flags = self.getFlags(field=field, loc=loc, iloc=iloc)
+    def setFlagger(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"flagger of type '{self.__class__}' needed")
+        other_flags = other._flags
+        out = deepcopy(self)
+        # NOTE: I have no idea, why the next statement is failing...
+        #       it does however make the loop necessary
+        #out._flags.loc[other_flags.index, other_flags.columns] = self._assureDtype(other_flags)
+        # TODO: get rid of the loop
+        for v in other_flags.columns:
+            out._flags.loc[other_flags.index, v] = other_flags[v]
+        return out
+
+    def getFlagger(self, loc=None, iloc=None):
+        mask = self._locator2Mask(field=slice(None), loc=loc, iloc=iloc)
+        out = deepcopy(self)
+        out._flags = self._flags[mask]
         return out
 
     def isFlagged(self, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
@@ -91,8 +109,9 @@ class BaseFlagger(FlaggerTemplate):
         return self._assureDtype(flags.loc[mask, field])
 
     def _locator2Mask(self, field=None, loc=None, iloc=None):
-        # get a single locator
         locator = [l for l in (loc, iloc, slice(None)) if l is not None][0]
+        if np.isscalar(field):
+            field = [field]
         flags = self._flags[field]
         mask = pd.Series(
             data=np.zeros(len(flags)),
@@ -108,7 +127,6 @@ class BaseFlagger(FlaggerTemplate):
 
         if np.isscalar(flag):
             flag = np.full(len(this), flag)
-        # assert len(flag) == len(this)
 
         return pd.Series(
             data=flag, index=this.index,
