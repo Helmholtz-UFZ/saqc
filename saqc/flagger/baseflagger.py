@@ -4,6 +4,7 @@
 import operator as op
 from typing import Any, Optional
 from copy import deepcopy
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -178,13 +179,14 @@ class BaseFlagger(FlaggerTemplate):
         return flag
 
     def _assureDtype(self, flags):
+        # NOTE: building up new DataFrames is significantly
+        #       faster than assigning into existing ones
         if isinstance(flags, pd.Series):
-            flags = flags.astype(self.categories)
-            return flags
-
+            return flags.astype(self.categories)
+        tmp = OrderedDict()
         for c in flags.columns:
-            flags[c] = flags[c].astype(self.categories)
-        return flags
+            tmp[c] = flags[c].astype(self.categories)
+        return pd.DataFrame(tmp)
 
     def _isSelfCategoricalType(self, f) -> bool:
         if isinstance(f, pd.Series):

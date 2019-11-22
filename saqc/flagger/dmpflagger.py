@@ -3,6 +3,7 @@
 import subprocess
 import json
 from copy import deepcopy
+from collections import OrderedDict
 from typing import Sequence
 
 import pandas as pd
@@ -67,11 +68,15 @@ class DmpFlagger(BaseFlagger):
         return out
 
     def _assureDtype(self, flags):
-        flags_only = flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1)
-        checked = super()._assureDtype(flags_only)
-        for col in checked.columns:
-            flags.loc[:, (col, FlagFields.FLAG)] = checked[col]
-        return flags
+        # NOTE: building up new DataFrames is significantly
+        #       faster than assigning into existing ones
+        tmp = OrderedDict()
+        for (var, flag_field) in flags.columns:
+            col_data = flags[(var, flag_field)]
+            if flag_field == FlagFields.FLAG:
+                col_data = col_data.astype(self.categories)
+            tmp[(var, flag_field)] = col_data
+        return pd.DataFrame(tmp, columns=flags.columns, index=flags.index)
 
     def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
         field = field or slice(None)
