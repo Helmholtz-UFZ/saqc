@@ -121,7 +121,7 @@ def estimateSamplingRate(index):
     return pd.tseries.frequencies.to_offset(str(int(hist[1][:-1][hist[0] > 0].min())) + 's')
 
 
-def retrieveTrustworthyOriginal(data, flags, field, flagger=None):
+def retrieveTrustworthyOriginal(data, field, flagger=None):
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
     differenciating between missng value - nans und fillvalue nans is impossible. This function evaluates flags for a
     passed series, if flags and flagger object are passed and downsamples the input series to its original sampling
@@ -129,13 +129,12 @@ def retrieveTrustworthyOriginal(data, flags, field, flagger=None):
 
     :param dataseries:  The pd.dataseries object that you want to sample to original rate. It has to have a harmonic
                         timestamp.
-    :param dataflags:   the flags series,referring to the passed dataseries.
     :param dataflags:   A flagger object, to apply the passed flags onto the dataseries.
 
     """
     dataseries = data[field]
     if flagger is not None:
-        data_use = flagger.isFlagged(flags, field, flag=flagger.GOOD, comparator='<=')
+        data_use = flagger.isFlagged(field, flag=flagger.GOOD, comparator='<=')
         # drop all flags that are suspicious or worse
         dataseries = dataseries[data_use]
 

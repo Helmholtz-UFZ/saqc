@@ -17,7 +17,7 @@ from ..lib.tools import (
 
 
 @register("Breaks_SpektrumBased")
-def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', filter_window_size='3h',
+def flagBreaks_SpektrumBased(data, field, flagger, diff_method='raw', filter_window_size='3h',
                              rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
                              first_der_window_size='12h', scnd_der_ratio_margin_1=0.05,
                              scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
@@ -79,15 +79,13 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
     para_check_1 = checkQCParameters({'data': {'value': data,
                                                'type': [pd.Series, pd.DataFrame],
                                                'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
-                                      'flags': {'value': flags,
-                                                'type': [pd.Series, pd.DataFrame]},
                                       'field': {'value': field,
                                                 'type': [str],
                                                 'tests': {'scheduled in data': lambda x: x in
                                                           getPandasVarNames(data)}}},
                                      kwargs['func_name'])
 
-    dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
+    dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     para_check_2 = checkQCParameters({'diff_method': {'value': diff_method,
                                                       'member': ['raw', 'savgol']},
@@ -128,7 +126,7 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
     if (para_check_1 < 0) | (para_check_2 < 0):
         logging.warning('test {} will be skipped because not all input parameters satisfied '
                         'the requirements'.format(kwargs['func_name']))
-        return data, flags
+        return data, flagger
 
     # relative - change - break criteria testing:
     abs_change = np.abs(dataseries.shift(+1) - dataseries)
@@ -194,6 +192,6 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
 
     breaks = breaks[breaks == True]
 
-    flags = flagger.setFlags(flags, field, breaks.index, **kwargs)
+    flagger = flagger.setFlags(field, breaks.index, **kwargs)
 
-    return data, flags
+    return data, flagger

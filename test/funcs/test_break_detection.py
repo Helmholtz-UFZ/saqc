@@ -2,47 +2,28 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-import numpy as np
-import pandas as pd
-
-from saqc.flagger.baseflagger import BaseFlagger
-from saqc.flagger.dmpflagger import DmpFlagger
-from saqc.flagger.simpleflagger import SimpleFlagger
 
 from saqc.funcs.break_detection import flagBreaks_SpektrumBased
 
-from saqc.lib.tools import getPandasData
-
-TESTFLAGGERS = [
-    BaseFlagger(['NIL', 'GOOD', 'BAD']),
-    DmpFlagger(),
-    SimpleFlagger()]
+from test.common import TESTFLAGGER, initData
 
 
-@pytest.fixture(scope='module')
-def break_data():
-    index = pd.date_range(start='2011-01-01 00:00:00', end='2011-01-02 03:00:00', freq='5min')
-    break_series = pd.DataFrame(dict(break_data=np.linspace(0, 1, index.size)), index=index)
-    break_series.iloc[5:15] += 100
-    flag_assertion = [5, 15]
-    return break_series, flag_assertion
+@pytest.fixture
+def data():
+    return initData(
+        1,
+        start_date='2011-01-01 00:00:00',
+        end_date='2011-01-02 03:00:00',
+        freq='5min')
 
 
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
-def test_flagBreaks_SpektrumBased(break_data, flagger):
-    data = break_data[0]
-    flags = flagger.initFlags(data)
-    data, flag_result = flagBreaks_SpektrumBased(data, flags, 'break_data', flagger)
-    flag_result = flag_result.iloc[:, 0]
-    test_sum = (flag_result[break_data[1]] == flagger.BAD).sum()
-    assert test_sum == len(break_data[1])
-
-
-if __name__ == "__main__":
-    flagger = DmpFlagger()
-    data = break_data()[0]
-    flags = flagger.initFlags(data)
-    data, flag_result = flagBreaks_SpektrumBased(data, flags, 'break_data', flagger)
-
-
-
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
+def test_flagBreaks_SpektrumBased(data, flagger):
+    field, *_ = data.columns
+    data.iloc[5:15] += 100
+    break_positions = [5, 15]
+    flagger = flagger.initFlags(data)
+    data, flagger_result = flagBreaks_SpektrumBased(data, field, flagger)
+    flag_result = flagger_result.getFlags(field)
+    test_sum = (flag_result[break_positions] == flagger.BAD).sum()
+    assert test_sum == len(break_positions)
