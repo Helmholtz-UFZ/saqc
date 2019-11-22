@@ -65,7 +65,8 @@ def flagRange(data, flags, field, flagger, min, max, **kwargs):
 
 @register("missing")
 def flagMissing(data, flags, field, flagger, nodata=np.nan, **kwargs):
-    datacol = data[field].values
+
+    datacol = data[field]
 
     if np.isnan(nodata):
         mask = datacol.isna()
