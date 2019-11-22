@@ -3,8 +3,26 @@
 
 from warnings import warn
 
+from ..core.config import Params
 
-def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, title="Data Plot", show_nans=True):
+__plotvars = []
+
+
+def plotall_hook(data, flags, flagger):
+    if len(__plotvars) > 1:
+        _plot(data, flags, True, __plotvars, flagger)
+
+
+def plot_hook(data, old, new, varname, do_plot, flag_test, flagger):
+    if do_plot:
+        __plotvars.append(varname)
+        # cannot use getFlags here, because if a flag was set (e.g. with force) the
+        # flag may be the same, but any additional row (e.g. comment-field) would differ
+        mask = (old[varname] == new[varname]).any(axis=1)
+        _plot(data, new, mask, varname, flagger, title=flag_test)
+
+
+def _plot(data, flags, flagmask, varname, flagger, interactive_backend=True, title="Data Plot", show_nans=True):
 
     # only import if plotting is requested by the user
     import matplotlib as mpl

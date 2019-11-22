@@ -7,7 +7,7 @@ import pandas as pd
 from .reader import readConfig, prepareConfig, checkConfig
 from .config import Fields
 from .evaluator import evalExpression
-from ..lib.plotting import plot
+from ..lib.plotting import plot_hook, plotall_hook
 from ..flagger import BaseFlagger, CategoricalBaseFlagger, SimpleFlagger, DmpFlagger
 
 
@@ -104,20 +104,19 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
             fchunk = flags.loc[start_date:end_date]
 
-            dchunk, fchunk = evalExpression(
+            dchunk, ffchunk = evalExpression(
                 flag_test,
                 data=dchunk, flags=fchunk.copy(), field=varname,
                 flagger=flagger, nodata=nodata)
 
             data.loc[start_date:end_date] = dchunk
-            flags.loc[start_date:end_date] = fchunk.squeeze()
+            flags.loc[start_date:end_date] = ffchunk.squeeze()
+
+            plot_hook(dchunk, fchunk, ffchunk, varname, configrow[Fields.PLOT], flag_test, flagger)
 
         # NOTE: this method should be removed
         flagger.nextTest()
 
-    # plot all together
-    plotvars = meta.loc[meta[Fields.PLOT], Fields.VARNAME].tolist()
-    if plotvars:
-        plot(data, flags, True, plotvars, flagger)
+    plotall_hook(data, flags, flagger)
 
     return data, flags

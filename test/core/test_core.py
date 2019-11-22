@@ -7,7 +7,7 @@ import pandas as pd
 from saqc.funcs import register, flagRange
 from saqc.core.core import runner
 from saqc.core.config import Fields as F
-from saqc.lib.plotting import plot
+from saqc.lib.plotting import _plot
 from test.common import initData, initMetaDict, TESTFLAGGER
 
 
@@ -164,5 +164,5 @@ def test_plotting(data, flagger):
     _, flagged = flagRange(data, flags, field, flagger, min=10, max=90, flag=flagger.BAD)
     _, flagged = flagRange(data, flagged, field, flagger, min=40, max=60, flag=flagger.GOOD)
     mask = flagger.getFlags(flags, field) != flagger.getFlags(flagged, field)
-    plot(data, flagged, mask, field, flagger, interactive_backend=False)
+    _plot(data, flagged, mask, field, flagger, interactive_backend=False)
 
