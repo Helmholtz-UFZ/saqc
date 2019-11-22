@@ -31,18 +31,12 @@ def flagGeneric(data, field, flagger, func, **kwargs):
         raise TypeError(f"generic expression does not return an array")
     if not np.issubdtype(mask.dtype, np.bool_):
         raise TypeError(f"generic expression does not return a boolean array")
-    flagger.setFlags(field, mask, **kwargs)
+    flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
 
 @register("flagWindowAfterFlag")
 def flagWindowAfterFlag(data, field, flagger, window, func, **kwargs):
-    # data, new_flags = func
-    # repeated_flags = flagWindow(flags, new_flags,
-    #                             field, flagger,
-    #                             direction='fw', window=window,
-    #                             **kwargs)
-    # return data, repeated_flags
     data, flagger_new = func
     flagger_repeated = flagWindow(flagger, flagger_new,
                                   field,
@@ -53,13 +47,6 @@ def flagWindowAfterFlag(data, field, flagger, window, func, **kwargs):
 
 @register("flagNextAfterFlag")
 def flagNextAfterFlag(data, field, flagger, n, func, **kwargs):
-    # data, new_flags = func
-    # repeated_flags = flagWindow(flags, new_flags,
-    #                             field, flagger,
-    #                             direction='fw', window=n,
-    #                             **kwargs)
-    # return data, repeated_flags
-
     data, flagger_new = func
     flagger_repeated = flagWindow(flagger, flagger_new,
                                   field,
