@@ -4,7 +4,7 @@
 from warnings import warn
 
 
-def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, title="Data Plot", show_nans=True):
+def plot(data, flagmask, varname, flagger, interactive_backend=True, title="Data Plot", show_nans=True):
 
     # only import if plotting is requested by the user
     import matplotlib as mpl
@@ -40,11 +40,11 @@ def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, titl
         fig, axes = plt.subplots(plots, 1, sharex=True)
         axes[0].set_title(title)
         for i, v in enumerate(varname):
-            _plot_qflags(data, flags, v, flagger, flagmask, axes[i], show_nans)
+            _plot_qflags(data, v, flagger, flagmask, axes[i], show_nans)
     else:
         fig, ax = plt.subplots()
         plt.title(title)
-        _plot_qflags(data, flags, varname.pop(), flagger, flagmask, ax, show_nans)
+        _plot_qflags(data, varname.pop(), flagger, flagmask, ax, show_nans)
 
     plt.xlabel('time')
     # dummy plot for the label `missing` see plot_vline for more info
@@ -54,7 +54,7 @@ def plot(data, flags, flagmask, varname, flagger, interactive_backend=True, titl
         plt.show()
 
 
-def _plot_qflags(data, flags, varname, flagger, flagmask, ax, show_nans):
+def _plot_qflags(data, varname, flagger, flagmask, ax, show_nans):
     ax.set_ylabel(varname)
 
     x = data.index
@@ -63,7 +63,7 @@ def _plot_qflags(data, flags, varname, flagger, flagmask, ax, show_nans):
 
     # plot all data in silver (NaNs as vertical lines)
     ax.plot(x, y, '-', color='silver', label='data')
-    flagged = flagger.isFlagged(flags, varname)
+    flagged = flagger.isFlagged(varname)
     if show_nans:
         nans = y.isna()
         idx = y.index[nans & ~flagged]
@@ -80,7 +80,7 @@ def _plot_qflags(data, flags, varname, flagger, flagmask, ax, show_nans):
     for i, f in enumerate(flagger.categories):
         if i == 0:
             continue
-        flagged = flagger.isFlagged(flags, varname, flag=f, comparator='==') & flagmask
+        flagged = flagger.isFlagged(varname, flag=f, comparator='==') & flagmask
         label = f"flag: {f}"
         color = _get_color(f, flagger)
         ax.plot(x[flagged], y[flagged], '.', color=color, label=label)

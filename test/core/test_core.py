@@ -153,19 +153,19 @@ def test_dtypes(data, flagger):
     assert dict(flags.dtypes) == dict(pflags.dtypes)
 
 
-# @pytest.mark.parametrize("flagger", TESTFLAGGER)
-# def test_plotting(data, flagger):
-#     """
-#     Test if the plotting code runs, does not show any plot.
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_plotting(data, flagger):
+    """
+    Test if the plotting code runs, does not show any plot.
 
-#     NOTE:
-#     This test is ignored if matplotlib is not available on the test-system
-#     """
-#     pytest.importorskip("matplotlib", reason="requires matplotlib")
-#     field, *_ = data.columns
-#     flags = flagger.initFlags(data)
-#     _, flagged = flagRange(data, flags, field, flagger, min=10, max=90, flag=flagger.BAD)
-#     _, flagged = flagRange(data, flagged, field, flagger, min=40, max=60, flag=flagger.GOOD)
-#     mask = flagger.getFlags(flags, field) != flagger.getFlags(flagged, field)
-#     plot(data, flagged, mask, field, flagger, interactive_backend=False)
+    NOTE:
+    This test is ignored if matplotlib is not available on the test-system
+    """
+    pytest.importorskip("matplotlib", reason="requires matplotlib")
+    field, *_ = data.columns
+    flagger = flagger.initFlags(data)
+    _, flagger_range = flagRange(data, field, flagger, min=10, max=90, flag=flagger.BAD)
+    _, flagger_range = flagRange(data, field, flagger_range, min=40, max=60, flag=flagger.GOOD)
+    mask = flagger.getFlags(field) != flagger_range.getFlags(field)
+    plot(data, mask, field, flagger, interactive_backend=False)
 
