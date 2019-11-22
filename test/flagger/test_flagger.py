@@ -59,7 +59,7 @@ def test_initFlags(data, flagger):
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_getFlags(data, flagger):
-    flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
 
     # df
     flags0 = flagger.getFlags()
@@ -82,7 +82,7 @@ def test_getFlags(data, flagger):
 def test_isFlagged(data, flagger):
     # todo: add testcase with comparator
 
-    flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
 
     # df
     flagged0 = flagger.isFlagged()
@@ -119,42 +119,43 @@ def test_setFlags(data, flagger):
     base = flagger.initFlags(data).getFlags()
     sl = slice('2011-01-02', '2011-01-05')
 
-    flags0 = flagger.setFlags(field, flag=flagger.GOOD, loc=sl).getFlags()
-    assert flags0.shape == base.shape
-    assert (flags0.columns == base.columns).all()
-    assert (flags0.loc[sl, field] == flagger.GOOD).all()
+    flagger_good = flagger.setFlags(field, flag=flagger.GOOD, loc=sl)
+    flags_good = flagger_good.getFlags()
+    assert flags_good.shape == base.shape
+    assert (flags_good.columns == base.columns).all()
+    assert (flags_good.loc[sl, field] == flagger.GOOD).all()
 
     # overflag works BAD > GOOD
-    flags1 = flagger.setFlags(field, flag=flagger.BAD).getFlags(field)
-    assert (flags1 == flagger.BAD).all()
+    flagger_bad = flagger_good.setFlags(field, flag=flagger.BAD)
+    assert (flagger_bad.getFlags(field) == flagger.BAD).all()
 
     # overflag doesn't work GOOD < BAD
-    flags2 = flagger.setFlags(field, flag=flagger.GOOD).getFlags(field)
-    assert (flags2 == flagger.BAD).all()  # still BAD
+    flagger_still_bad = flagger_bad.setFlags(field, flag=flagger.GOOD)
+    assert (flagger_still_bad.getFlags(field) == flagger.BAD).all()
 
     # overflag does work with force
-    flags3 = flagger.setFlags(field, flag=flagger.GOOD, force=True).getFlags(field)
-    assert (flags3 == flagger.GOOD).all()
+    flagger_forced_good = flagger_bad.setFlags(field, flag=flagger.GOOD, force=True)
+    assert (flagger_forced_good.getFlags(field) == flagger.GOOD).all()
 
 
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGERS)
 def test_clearFlags(data, flagger):
 
-    flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
     origin = flagger.getFlags()
     sl = slice('2011-01-02', '2011-01-05')
 
-    flagger.setFlags(field=field, flag=flagger.BAD)
+    flagger = flagger.setFlags(field=field, flag=flagger.BAD)
     assert np.sum(flagger.isFlagged(field)) == len(origin)
 
-    flagger.clearFlags(field)
+    flagger = flagger.clearFlags(field)
     assert np.sum(flagger.isFlagged(field)) == 0
 
-    flagger.setFlags(field=field, flag=flagger.BAD)
+    flagger = flagger.setFlags(field=field, flag=flagger.BAD)
     assert np.sum(flagger.isFlagged(field)) == len(origin)
 
-    flagger.clearFlags(field, loc=sl)
+    flagger = flagger.clearFlags(field, loc=sl)
     unflagged = flagger.isFlagged(field, loc=sl)
     assert np.sum(unflagged) == 0
     assert np.sum(flagger.isFlagged(field)) == len(data) - len(unflagged)

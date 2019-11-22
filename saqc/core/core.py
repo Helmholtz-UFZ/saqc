@@ -90,7 +90,7 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
 
             data.loc[start_date:end_date] = dchunk
             # import pdb; pdb.set_trace()
-            flagger.setFlags(field=varname, loc=dchunk.index, flag=fchunk.getFlags(field=varname))
+            flagger = flagger.setFlags(field=varname, loc=dchunk.index, flag=fchunk.getFlags(field=varname))
             # flagger._flags.loc[start_date:end_date] == fchunk._flags
 
         # NOTE: this method should be removed
