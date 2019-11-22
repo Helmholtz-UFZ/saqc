@@ -99,9 +99,12 @@ def test_missingVariable(flagger):
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
-    pdata, pflags = runner(metafobj, flagger, data)
-
-    assert (pdata.columns == [var]).all()
+    try:
+        pdata, pflags = runner(metafobj, flagger, data)
+    except NameError:
+        pass
+    else:
+        raise AssertionError('config checker should find this')
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

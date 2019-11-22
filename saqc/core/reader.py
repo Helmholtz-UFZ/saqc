@@ -24,8 +24,8 @@ def checkConfig(config_df, data, flags, flagger, nodata):
             _raise(config_row, SyntaxError,
                    f"non-optional column '{F.VARNAME}' is missing")
 
-        test_fields = config_row.filter(regex=F.TESTS)
-        if test_fields.isna().all():
+        test_fields = config_row.filter(regex=F.TESTS).dropna()
+        if test_fields.empty:
             _raise(config_row,  SyntaxError,
                    f"at least one test needs to be given for variable")
 
