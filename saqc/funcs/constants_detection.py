@@ -61,7 +61,7 @@ def flagConstant(data, flags, field, flagger, eps, length, thmin=None, **kwargs)
 
 
 @register("constants_varianceBased")
-def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005,
+def flagConstants_VarianceBased(data, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005,
                                 var_total_nans=np.inf, var_consec_nans=np.inf, **kwargs):
 
     """Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
@@ -72,7 +72,6 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
     :param data:                        The pandas dataframe holding the data-to-be flagged.
                                         Data must be indexed by a datetime series and be harmonized onto a
                                         time raster with seconds precision (skips allowed).
-    :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object. (saqc.flagger.X)
     :param plateau_window_min:          Offset String. Only intervals of minimum size "plateau_window_min" have the
@@ -90,15 +89,13 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
     para_check_1 = checkQCParameters({'data': {'value': data,
                                                'type': [pd.Series, pd.DataFrame],
                                                'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
-                                      'flags': {'value': flags,
-                                                'type': [pd.Series, pd.DataFrame]},
                                       'field': {'value': field,
                                                 'type': [str],
                                                 'tests': {'scheduled in data':
                                                           lambda x: x in getPandasVarNames(data)}}},
                                      kwargs['func_name'])
 
-    dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
+    dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     para_check_2 = checkQCParameters({'plateau_window_min': {'value': plateau_window_min,
                                                              'type': [str],
@@ -122,7 +119,7 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
     if (para_check_1 < 0) | (para_check_2 < 0):
         logging.warning('test {} will be skipped because not all input parameters satisfied '
                         'the requirements'.format(kwargs['func_name']))
-        return data, flags
+        return data, flagger
 
     min_periods = int(offset2periods(plateau_window_min, data_rate))
 
@@ -131,12 +128,12 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
-        return data, flags
+        return data, flagger
 
     plateaus.fillna(method='bfill', limit=min_periods, inplace=True)
 
     # result:
     plateaus = (plateaus[plateaus == 1.0]).index
 
-    flags = flagger.setFlags(flags, field, plateaus, **kwargs)
-    return data, flags
+    flagger = flagger.setFlags(field, plateaus, **kwargs)
+    return data, flagger
