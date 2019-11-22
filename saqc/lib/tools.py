@@ -383,6 +383,8 @@ def check_isdf(df, argname='arg', allow_multiindex=True):
         raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
     if not allow_multiindex:
         _forbid_dfmi(df, argname)
+    if not df.columns.is_unique:
+        raise TypeError(f"{argname} must have unique columns")
 
 
 def check_isseries(df, argname='arg'):

@@ -21,9 +21,9 @@ def collectVariables(meta, flagger, data, flags):
     varnames = []
     for idx, configrow in meta.iterrows():
         varname, assign = configrow[Fields.VARNAME], configrow[Fields.ASSIGN]
-        if varname not in ignore and (varname in data or varname not in data and assign is True):
-            varnames.append(varname)
-
+        if varname not in ignore and varname not in varnames:
+            if varname in data or assign is True:
+                varnames.append(varname)
     return varnames
 
 
@@ -63,16 +63,19 @@ def _setup():
 def runner(metafname, flagger, data, flags=None, nodata=np.nan):
     _setup()
     _check_input(data, flags, flagger)
-    meta = prepareConfig(readConfig(metafname), data)
+    config = prepareConfig(readConfig(metafname), data)
 
-    # split meta into the test and some 'meta' data
-    tests = meta[meta.columns.to_series().filter(regex=Fields.TESTS + '*')]
-    meta = meta[meta.columns.difference(tests.columns)]
+    # split config into the test and some 'meta' data
+    tests = config.filter(regex=Fields.TESTS)
+    meta = config[config.columns.difference(tests.columns)]
 
     # prepapre the flags
     varnames = collectVariables(meta, flagger, data, flags)
     fresh = flagger.initFlags(pd.DataFrame(index=data.index, columns=varnames))
     flags = fresh if flags is None else flags.join(fresh)
+
+    # this checks comes late, but the compiling of the user-test need fully prepared flags
+    checkConfig(config, data, flags, flagger, nodata)
 
     # the outer loop runs over the flag tests, the inner one over the
     # variables. Switching the loop order would complicate the
@@ -113,7 +116,7 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
         flagger.nextTest()
 
     # plot all together
-    plotvars = meta[meta[Fields.PLOT]][Fields.VARNAME].tolist()
+    plotvars = meta.loc[meta[Fields.PLOT], Fields.VARNAME].tolist()
     if plotvars:
         plot(data, flags, True, plotvars, flagger)
 
