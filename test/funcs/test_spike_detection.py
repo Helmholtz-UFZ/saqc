@@ -60,7 +60,7 @@ def test_slidingOutlier(spiky_data, flagger, method):
     ]
 
     for _, flagger_result in tests:
-        flag_result = flagger.getFlags(field)
+        flag_result = flagger_result.getFlags(field)
         test_sum = (flag_result.iloc[spiky_data[1]] == flagger.BAD).sum()
         assert int(test_sum) == len(spiky_data[1])
 

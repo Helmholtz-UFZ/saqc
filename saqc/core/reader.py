@@ -41,6 +41,7 @@ def checkConfig(config_df, data, flagger, nodata):
                 _raise(config_row, type(exc),
                        exc.args[0] + f" (failing statement: '{expr}')",
                        col)
+    return config_df
 
 
 def prepareConfig(config_df, data):

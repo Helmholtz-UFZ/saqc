@@ -3,6 +3,7 @@
 
 import ast
 from functools import partial
+from typing import Union
 
 # import astor
 import numpy as np
@@ -69,7 +70,7 @@ class DslTransformer(ast.NodeTransformer):
         self.func_map = func_map
         self.variables = variables
 
-    def _rename(self, node: ast.Name, target: str) -> ast.Subscript:
+    def _rename(self, node: ast.Name, target: str) -> Union[ast.Subscript, ast.Name, ast.Constant]:
         name = node.id
         if name == "this":
             value = ast.Name(id="field", ctx=ast.Load())
@@ -81,10 +82,11 @@ class DslTransformer(ast.NodeTransformer):
         if target == Targets.FLAGS:
             return value
         else:
-            return ast.Subscript(
+            out = ast.Subscript(
                 value=ast.Name(id=target, ctx=ast.Load()),
                 slice=ast.Index(value=value),
                 ctx=ast.Load())
+            return out
 
     def visit_Call(self, node):
         func_name = node.func.id
@@ -95,7 +97,6 @@ class DslTransformer(ast.NodeTransformer):
             func=node.func,
             args=[
                 self._rename(node.args[0], Targets.DATA),
-                ast.Name(id=Targets.FLAGS, ctx=ast.Load()),
                 self._rename(node.args[0], Targets.FLAGS),
                 ast.Name(id="flagger", ctx=ast.Load()),
             ],
@@ -174,7 +175,7 @@ class MetaTransformer(ast.NodeTransformer):
         return super().generic_visit(node)
 
 
-def parseExpression(expr: str) -> ast.Expression:
+def parseExpression(expr: str) -> ast.AST:
     tree = ast.parse(expr, mode="eval")
     # if not isinstance(tree.body, (ast.Call, ast.Compare)):
     #     raise TypeError('function call needed')

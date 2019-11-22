@@ -27,13 +27,6 @@ def test_flagConstants_VarianceBased(data, flagger):
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
     data, flagger_result = flagConstants_VarianceBased(data, field, flagger, plateau_window_min='1h')
-    flag_result = flagger.getFlags(field)
+    flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[expected] == flagger.BAD).sum()
     assert test_sum == len(expected)
-
-
-
-
-
-
-

@@ -16,7 +16,7 @@ def data():
     return initData(
         cols=1,
         start_date="2016-01-01", end_date="2018-12-31",
-        freq="10Min")
+        freq="1D")
 
 
 @pytest.fixture
@@ -43,14 +43,14 @@ def test_flagAfter(data, field, flagger):
     for expr, window in tests:
         _, flagger_range_repeated = evalExpression(expr, data, field, flagger)
 
-        # check = (flagged_range
-        #          .rolling(window=window)
-        #          .apply(
-        #              lambda df: (flagger_range_repeated
-        #                          .isFlagged(field, loc=df.index)
-        #                          .all()),
-        #              raw=False))
-        # assert check.all()
+        check = (flagged_range
+                 .rolling(window=window)
+                 .apply(
+                     lambda df: (flagger_range_repeated
+                                 .isFlagged(field, loc=df.index)
+                                 .all()),
+                     raw=False))
+        assert check.all()
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
