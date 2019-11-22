@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import time
 
 import numpy as np
 import pandas as pd
@@ -22,7 +21,7 @@ from ..lib.tools import (
 
 
 @register("sliding_outlier")
-def slidingOutlier(data, flags, field, flagger, winsz, dx, count=1, deg=1, z=3.5, method='modZ', **kwargs):
+def slidingOutlier(data, field, flagger, winsz, dx, count=1, deg=1, z=3.5, method='modZ', **kwargs):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
 
@@ -35,8 +34,7 @@ def slidingOutlier(data, flags, field, flagger, winsz, dx, count=1, deg=1, z=3.5
     6.  all potential outlier, that are detected `count`-many times, are promoted to real outlier and flagged by the `flagger`
 
     :param data:        pandas dataframe. holding the data
-    :param flags:       pandas dataframe. holding the flags
-    :param field:       fieldname in `data` and `flags`, which holds the relevant infos
+    :param field:       fieldname in `data`, which holds the relevant infos
     :param flagger:     flagger.
     :param winsz:       int or time-offset string (see [2]). The size of the window the outlier detection is run in. default: 1h
     :param dx:          int or time-offset string (see [2]). Stepsize the window is set further. default: 1h
@@ -131,12 +129,12 @@ def slidingOutlier(data, flags, field, flagger, winsz, dx, count=1, deg=1, z=3.5
 
     outlier = np.where(counters <= 0)[0]
     loc = d[outlier].index
-    flags = flagger.setFlags(flags, field, loc=loc, **kwargs)
-    return data, flags
+    flagger = flagger.setFlags(field, loc=loc, **kwargs)
+    return data, flagger
 
 
 @register("mad")
-def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
+def flagMad(data, field, flagger, length, z=3.5, freq=None, **kwargs):
     """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
 
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
@@ -146,7 +144,6 @@ def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
     :param data:        The pandas dataframe holding the data-to-be flagged.
                         Data must be indexed by a datetime series and be harmonized onto a
                         time raster with seconds precision.
-    :param flags:       A dataframe holding the flags/flag-entries associated with "data".
     :param field:       Fieldname of the Soil moisture measurements field in data.
     :param flagger:     A flagger - object. (saqc.flagger.X)
     :param length:      Offset String. Denoting the windows size that that th "Z-scored" values have to lie in.
@@ -164,11 +161,11 @@ def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
     mad = diff.rolling(window=winsz, center=True, closed='both').median()
     mask = (mad > 0) & (0.6745 * diff > z * mad)
 
-    flags = flagger.setFlags(flags, field, mask, **kwargs)
-    return data, flags
+    flagger = flagger.setFlags(field, mask, **kwargs)
+    return data, flagger
 
 @register("Spikes_Basic")
-def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length='15min', **kwargs):
+def flagSpikes_Basic(data, field, flagger, thresh=7, tol=0, length='15min', **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -189,7 +186,6 @@ def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length='15min
 
 
     :param data:    Pandas-like. The pandas dataframe holding the data-to-be flagged.
-    :param flags:   pd.Dataframe. A dataframe holding the flags/flag-entries associated with "data".
     :param field:   String. Fieldname of the data column to be tested.
     :param flagger: saqc.flagger. A flagger - object.
     :param thresh:  Float. The lower bound for a value jump, to be considered as initialising a spike.
@@ -245,12 +241,11 @@ def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length='15min
         to_flag = to_flag.append(to_roll.iloc[loc+1:loc+row[1]+1].index)
 
     to_flag = to_flag.drop_duplicates(keep='first')
-    flags = flagger.setFlags(flags, field, to_flag, **kwargs)
-
-    return data, flags
+    flagger = flagger.setFlags(field, to_flag, **kwargs)
+    return data, flagger
 
 @register("Spikes_SpektrumBased")
-def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h',
+def flagSpikes_SpektrumBased(data, field, flagger, filter_window_size='3h',
                              raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
                              noise_statistic='CoVar', smooth_poly_order=2, **kwargs):
     """
@@ -286,7 +281,6 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
        :param data:                        The pandas dataframe holding the data-to-be flagged.
                                            Data must be indexed by a datetime series and be harmonized onto a
                                            time raster with seconds precision.
-       :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
        :param field:                       Fieldname of the Soil moisture measurements field in data.
        :param flagger:                     A flagger - object. (saqc.flagger.X)
        :param filter_window_size:          Offset string. Size of the filter window, used to calculate the derivatives.
@@ -325,15 +319,13 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
     para_check_1 = checkQCParameters({'data': {'value': data,
                                                'type': [pd.Series, pd.DataFrame],
                                                'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
-                                      'flags': {'value': flags,
-                                                'type': [pd.Series, pd.DataFrame]},
                                       'field': {'value': field,
                                                 'type': [str],
                                                 'tests': {'scheduled in data': lambda x: x in
                                                                                          getPandasVarNames(data)}}},
                                      kwargs['func_name'])
 
-    dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
+    dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     para_check_2 = checkQCParameters({'noise_statistic': {'value': noise_statistic,
                                                           'member': ['CoVar', 'rVar']},
@@ -364,7 +356,7 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
     if (para_check_1 < 0) | (para_check_2 < 0):
         logging.warning('test {} will be skipped because not all input parameters satisfied '
                         'the requirements'.format(kwargs['func_name']))
-        return data, flags
+        return data, flagger
 
     # retrieve noise statistic
     if noise_statistic == 'CoVar':
@@ -418,5 +410,5 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
 
     spikes = spikes[spikes == True]
 
-    flags = flagger.setFlags(flags, field, spikes.index, **kwargs)
-    return data, flags
+    flagger = flagger.setFlags(field, spikes.index, **kwargs)
+    return data, flagger
