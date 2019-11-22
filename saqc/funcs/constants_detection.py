@@ -25,9 +25,8 @@ from ..lib.tools import (
 
 
 @register("constant")
-def flagConstant(data, flags, field, flagger, eps, length, thmin=None, **kwargs):
+def flagConstant(data, field, flagger, eps, length, thmin=None, **kwargs):
     datacol = data[field]
-    flagcol = flags[field]
 
     length = ((pd.to_timedelta(length) - data.index.freq)
               .to_timedelta64()
@@ -53,11 +52,10 @@ def flagConstant(data, flags, field, flagger, eps, length, thmin=None, **kwargs)
         if valueRange(dates_chunk) < length:
             continue
         if valueRange(values_chunk) < eps:
-            flagcol[start_idx:end_idx] = flagger.setFlags(flagcol[start_idx:end_idx], **kwargs)
+            flagger = flagger.setFlags(field, loc=slice(start_idx, end_idx), **kwargs)
 
     data[field] = datacol
-    flags[field] = flagcol
-    return data, flags
+    return data, flagger
 
 
 @register("constants_varianceBased")
