@@ -93,5 +93,8 @@ class DmpFlagger(BaseFlagger):
         if not force:
             mask &= (this < other).values
 
-        self._flags.loc[mask, field] = other[mask], cause, comment
-        return self
+        out = deepcopy(self)
+        out._flags.loc[mask, field] = other[mask], cause, comment
+        return out
+        # self._flags.loc[mask, field] = other[mask], cause, comment
+        # return self

@@ -121,13 +121,15 @@ class BaseFlagger(FlaggerTemplate):
         this = self.getFlags(field=field)
         other = self._broadcastFlags(field=field, flag=flag)
 
-
         mask = self._locator2Mask(field, loc, iloc)
         if not force:
             mask &= (this < other).values
 
-        self._flags.loc[mask, field] = other[mask]
-        return self
+        out = deepcopy(self)
+        out._flags.loc[mask, field] = other[mask]
+        return out
+        # self._flags.loc[mask, field] = other[mask]
+        # return self
 
     def clearFlags(self, field, loc=None, iloc=None, **kwargs):
         if field is None:
