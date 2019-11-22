@@ -77,22 +77,21 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
 
 
 @register('sesonalRange')
-def flagSesonalRange(data, flags, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs):
-    smask = sesonalMask(flags.index, startmonth, startday, endmonth, endday)
+def flagSesonalRange(data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs):
+    smask = sesonalMask(data.index, startmonth, startday, endmonth, endday)
 
-    f = flags.loc[smask, [field]]
     d = data.loc[smask, [field]]
     if d.empty:
-        return data, flags
+        return data, flagger
 
-    _, ff = flagRange(d, f.copy(), field, flagger, min=min, max=max, **kwargs)
-    rangeflagged = flagger.getFlags(f, field) != flagger.getFlags(ff, field)
+    _, flagger_range = flagRange(d, field, flagger.getFlagger(loc=d.index),
+                                 min=min, max=max, **kwargs)
 
-    if rangeflagged.empty:
-        return data, flags
+    if not flagger_range.isFlagged(field).any():
+        return data, flagger
 
-    flags.update(ff.loc[rangeflagged, [field]])
-    return data, flags
+    flagger = flagger.setFlagger(flagger_range)
+    return data, flagger
 
 
 @register('clear')

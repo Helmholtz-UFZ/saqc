@@ -68,25 +68,25 @@ def test_range(data, field, flagger):
 #     pass
 
 
-# @pytest.mark.parametrize('flagger', TESTFLAGGER)
-# def test_flagSesonalRange(data, field, flagger):
-#     # prepare
-#     data.loc[::2] = 0
-#     data.loc[1::2] = 50
-#     nyears = len(data.index.year.unique())
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
+def test_flagSesonalRange(data, field, flagger):
+    # prepare
+    data.loc[::2] = 0
+    data.loc[1::2] = 50
+    nyears = len(data.index.year.unique())
 
-#     tests = [
-#         ({"min": 1, "max": 100, "startmonth": 7, "startday": 1, "endmonth": 8, "endday": 31},
-#          31*2*nyears//2),
-#         ({"min": 1, "max": 100, "startmonth": 12, "startday": 16, "endmonth": 1, "endday": 15},
-#          31*nyears//2 + 1)
-#     ]
+    tests = [
+        ({"min": 1, "max": 100, "startmonth": 7, "startday": 1, "endmonth": 8, "endday": 31},
+         31*2*nyears//2),
+        ({"min": 1, "max": 100, "startmonth": 12, "startday": 16, "endmonth": 1, "endday": 15},
+         31*nyears//2 + 1)
+    ]
 
-#     for test, expected in tests:
-#         flagger = flagger.initFlags(data)
-#         data, flagger = flagSesonalRange(data, field, flagger, **test)
-#         flagged = flagger.isFlagged(field)
-#         assert flagged.sum() == expected
+    for test, expected in tests:
+        flagger = flagger.initFlags(data)
+        data, flagger = flagSesonalRange(data, field, flagger, **test)
+        flagged = flagger.isFlagged(field)
+        assert flagged.sum() == expected
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
