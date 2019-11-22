@@ -106,3 +106,26 @@ def forceFlags(data, flags, field, flagger, **kwargs):
     flags = flagger.clearFlags(flags, field, **kwargs)
     flags = flagger.setFlags(flags, field, **kwargs)
     return data, flags
+
+@register('Isolated')
+def flagIsolated(data, flags, field, flagger, isolation_range, max_isolated_group_size=1, drop_flags=None, **kwargs):
+
+    drop_mask = pd.Series(data=False, index=flags.index)
+    if drop_flags is 'suspicious':
+        drop_mask |= ~(flagger.isFlagged(flags, field, flag=flagger.GOOD, comparator='<='))
+    elif drop_flags is 'BAD':
+        drop_mask |= flagger.isFlagged(flags, field, flag=flagger.BAD, comparator='==')
+    elif isinstance(drop_flags, list):
+        for to_drop in drop_flags:
+            drop_mask |= flagger.isFlagged(flags, field, flag=to_drop, comparator='==')
+
+    dat_col = data[field][~drop_mask]
+    dat_col.dropna(inplace=True)
+    gap_check = dat_col.rolling(isolation_range).count()
+    # exclude series initials:
+    gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)):]
+    # reverse rolling trick:
+    isolated_indices = gap_check[(gap_check[::-1].rolling(2).sum()==2)[::-1].values].index
+    flags = flagger.setFlags(flags, field, isolated_indices, **kwargs)
+
+    return data, flags
