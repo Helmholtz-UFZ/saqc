@@ -152,6 +152,14 @@ SoilMoistureSpikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0
 ```
 ### Description
 
+The Function is just a wrapper around `flagSpikes_SpektrumBased`, from the 
+spike detection library and performs a call to this function with a parameter 
+set, referring to:
+
+Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture
+Data from the international Soil Moisture Network. 2013. 
+Vadoze Zone J. doi:10.2136/vzj2012.0097.
+
 
 ## SoilMoistureBreaks
 ### Signature
@@ -163,6 +171,14 @@ SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
 ```
 ### Description
 
+The Function is just a wrapper around `flagBreaks_SpektrumBased`, from the 
+breaks detection library and performs a call to this function with a parameter 
+set, referring to:
+
+Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture
+Data from the international Soil Moisture Network. 2013. 
+Vadoze Zone J. doi:10.2136/vzj2012.0097.
+
 
 ## SoilMoistureByFrost
 ### Signature
@@ -170,6 +186,7 @@ SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
 SoilMoistureByFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0)
 ```
 ### Description
+
 
 
 ## SoilMoistureByPrecipitation
