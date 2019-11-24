@@ -4,12 +4,13 @@ import subprocess
 import json
 from copy import deepcopy
 from collections import OrderedDict
-from typing import Sequence
+from typing import Sequence, Union, TypeVar
 
 import pandas as pd
+import numpy as np
 
 from .simpleflagger import SimpleFlagger
-from .baseflagger import BaseFlagger, PandasLike
+from .categoricalflagger import CategoricalBaseFlagger, PandasLike
 from ..lib.tools import *
 
 
@@ -28,10 +29,20 @@ class ColumnLevels:
     FLAGS = "flags"
 
 
+T = TypeVar("T")
+def _toSequence(value: Union[T, Sequence[T]],
+                default: Union[T, Sequence[T]] = None) -> Sequence[T]:
+    if value is None:
+        value = default
+    if np.isscalar(value):
+        value = [value]
+    return value
+
+
 FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 
-class DmpFlagger(BaseFlagger):
+class DmpFlagger(CategoricalBaseFlagger):
 
     def __init__(self):
         super().__init__(FLAGS)
@@ -42,12 +53,21 @@ class DmpFlagger(BaseFlagger):
         self.signature = ("flag", "comment", "cause", "force")
         self._flags = None
 
-    def _getColumns(self, cols, fields: Sequence=None):
-        if fields is None:
-            fields = self.flags_fields
+    def _getColumns(self,
+                    cols: Union[str, Sequence[str]],
+                    fields: Union[str, Sequence[str]] = None) -> pd.MultiIndex:
+        cols = _toSequence(cols)
+        fields = _toSequence(fields, self.flags_fields)
         return pd.MultiIndex.from_product(
             [cols, fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
+
+    def getFlagger(self, field=None, loc=None, iloc=None):
+        # NOTE: we need to preserve all indexing levels
+        out = super().getFlagger(field, loc, iloc)
+        cols = _toSequence(field, self._flags.columns.levels[0])
+        out._flags.columns = self._getColumns(cols)
+        return out
 
     def initFlags(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
         check_isdf(data, 'data', allow_multiindex=False)
@@ -74,7 +94,7 @@ class DmpFlagger(BaseFlagger):
         for (var, flag_field) in flags.columns:
             col_data = flags[(var, flag_field)]
             if flag_field == FlagFields.FLAG:
-                col_data = col_data.astype(self.categories)
+                col_data = col_data.astype(self.dtype)
             tmp[(var, flag_field)] = col_data
         return pd.DataFrame(tmp, columns=flags.columns, index=flags.index)
 
@@ -86,7 +106,7 @@ class DmpFlagger(BaseFlagger):
 
     def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, comment='', cause='', **kwargs):
 
-        flag = self.BAD if flag is None else flag
+        flag = self.BAD if flag is None else self._checkFlag(flag)
 
         comment = json.dumps({"comment": comment,
                               "commit": self.project_version,
@@ -101,5 +121,3 @@ class DmpFlagger(BaseFlagger):
         out = deepcopy(self)
         out._flags.loc[mask, field] = other[mask], cause, comment
         return out
-        # self._flags.loc[mask, field] = other[mask], cause, comment
-        # return self

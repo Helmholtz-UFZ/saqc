@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from .template import FlaggerTemplate
 from .baseflagger import BaseFlagger
+from .categoricalflagger import CategoricalBaseFlagger
 from .simpleflagger import SimpleFlagger
 from .dmpflagger import DmpFlagger

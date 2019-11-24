@@ -13,6 +13,7 @@ from saqc.funcs.spike_detection import (
 
 from test.common import TESTFLAGGER
 
+
 @pytest.fixture(scope='module')
 def spiky_data():
     index = pd.date_range(start='2011-01-01', end='2011-01-05', freq='5min')

@@ -8,8 +8,7 @@ from saqc.funcs.constants_detection import flagConstants_VarianceBased
 
 from test.common import TESTFLAGGER, initData
 
-
-@pytest.fixture(scope='module')
+@pytest.fixture
 def data():
     constants_data = initData(
         1,

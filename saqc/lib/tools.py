@@ -405,15 +405,13 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
         return mask
 
 
-def setup():
-    pd.set_option('mode.chained_assignment', 'warn')
-
-
 def check_isdf(df, argname='arg', allow_multiindex=True):
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
     if not allow_multiindex:
         _forbid_dfmi(df, argname)
+    if not df.columns.is_unique:
+        raise TypeError(f"{argname} must have unique columns")
 
 
 def check_isseries(df, argname='arg'):

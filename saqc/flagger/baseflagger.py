@@ -4,13 +4,15 @@
 import operator as op
 from copy import deepcopy
 from collections import OrderedDict
+from abc import ABC, abstractmethod, abstractproperty
+from typing import TypeVar
 
 import numpy as np
 import pandas as pd
 
-from .template import FlaggerTemplate
-from ..lib.types import PandasLike, ArrayLike, T
-from ..lib.tools import *
+from saqc.lib.tools import check_isdf
+
+newT = TypeVar("newT")
 
 COMPARATOR_MAP = {
     "==": op.eq,
@@ -21,48 +23,25 @@ COMPARATOR_MAP = {
 }
 
 
-class Flags(pd.CategoricalDtype):
-    def __init__(self, flags):
-        # NOTE: all flag schemes need to support
-        #       at least 3 flag categories:
-        #       * unflagged
-        #       * good
-        #       * bad
-        assert len(flags) > 2
-        super().__init__(flags, ordered=True)
+class BaseFlagger(ABC):
 
-    def unflagged(self):
-        return self[0]
-
-    def good(self):
-        return self[1]
-
-    def bad(self):
-        return self[-1]
-
-    def suspicious(self):
-        return self[2:-1]
-
-    def __getitem__(self, idx):
-        return self.categories[idx]
-
-
-class BaseFlagger(FlaggerTemplate):
-    def __init__(self, categories):
-        self.signature = ("flag", "force")
-        self.categories = Flags(categories)
+    @abstractmethod
+    def __init__(self, dtype):
+        """ Init the class and set the categories (in param flags) that are used here."""
+        self.dtype = dtype
         self._flags = None
 
     def initFlags(self, data: pd.DataFrame):
         """
         TODO: rename to initFromData
         """
-        check_isdf(data, 'data', allow_multiindex=False)
-        flags = pd.DataFrame(data=self.UNFLAGGED, index=data.index, columns=data.columns)
-        self._flags = self._assureDtype(flags)
-        return self
+        pass
 
     def initFromFlags(self, flags: pd.DataFrame):
+        """
+        TODO: merge into initFlags,
+              controlled by an optional argument
+        """
         check_isdf(flags, 'flags', allow_multiindex=False)
         out = deepcopy(self)
         out._flags = out._assureDtype(flags)
@@ -82,10 +61,15 @@ class BaseFlagger(FlaggerTemplate):
             out._flags.loc[other_flags.index, v] = other_flags[v]
         return out
 
-    def getFlagger(self, loc=None, iloc=None):
+    def getFlagger(self, field=None, loc=None, iloc=None):
+        # TODO: multiindex-column flagger implementtions might loose
+        #       an index-level here. Take care of that
         mask = self._locatorMask(field=slice(None), loc=loc, iloc=iloc)
         out = deepcopy(self)
-        out._flags = self._flags[mask]
+        flags = self._flags.loc[mask, field or slice(None)]
+        if isinstance(flags, pd.Series):
+            flags = flags.to_frame()
+        out._flags = flags
         return out
 
     def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
@@ -147,44 +131,41 @@ class BaseFlagger(FlaggerTemplate):
 
         return pd.Series(
             data=flag, index=this.index,
-            name=field, dtype=self.categories)
+            name=field, dtype=self.dtype)
 
-    def _checkFlag(self, flag):
-        if not self._isCategorical(flag):
-            raise TypeError(
-                f"invalid flag '{flag}', possible choices are '{list(self.categories.categories)}'")
-        return flag
+    @abstractmethod
+    def _checkFlag(self, flags):
+        pass
 
+    @abstractmethod
     def _assureDtype(self, flags):
-        # NOTE: building up new DataFrames is significantly
-        #       faster than assigning into existing ones
-        if isinstance(flags, pd.Series):
-            return flags.astype(self.categories)
-        tmp = OrderedDict()
-        for c in flags.columns:
-            tmp[c] = flags[c].astype(self.categories)
-        return pd.DataFrame(tmp)
+        pass
 
     def _isCategorical(self, f) -> bool:
         if isinstance(f, pd.Series):
-            return isinstance(f.dtype, pd.CategoricalDtype) and f.dtype == self.categories
-        return f in self.categories
+            return isinstance(f.dtype, pd.CategoricalDtype) and f.dtype == self.dtype
+        return f in self.dtype.categories
 
     def nextTest(self):
         pass
 
-    @property
+    @abstractproperty
     def UNFLAGGED(self):
-        return self.categories.unflagged()
+        """ Return the flag that indicates unflagged data """
+        pass
 
-    @property
+    @abstractproperty
     def GOOD(self):
-        return self.categories.good()
+        """ Return the flag that indicates the very best data """
+        pass
 
-    @property
+    @abstractproperty
     def BAD(self):
-        return self.categories.bad()
+        """ Return the flag that indicates the worst data """
+        pass
 
-    @property
-    def SUSPICIOUS(self):
-        return self.categories.suspicious()
+    @abstractmethod
+    def isSUSPICIOUS(self, flag):
+        """ Return bool that indicates if the given flag is valid, but neither
+        UNFLAGGED, BAD, nor GOOD."""
+        pass

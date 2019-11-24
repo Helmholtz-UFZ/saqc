@@ -8,14 +8,10 @@ import pytest
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype
-
-from saqc.flagger.baseflagger import BaseFlagger
-from saqc.flagger.dmpflagger import DmpFlagger
-from saqc.flagger.simpleflagger import SimpleFlagger
-
 from pandas.core.indexing import IndexingError
 
 from saqc.funcs.functions import flagRange, flagSesonalRange, forceFlags, clearFlags
+from test.common import TESTFLAGGER
 
 
 def get_dataset(rows, cols):
@@ -35,20 +31,15 @@ DATASETS = [
     # get_dataset(1000, 1),
     # get_dataset(0, 4),
     # get_dataset(1, 4),
-    get_dataset(100, 4),
+    # get_dataset(100, 4),
     # get_dataset(1000, 4),
     # get_dataset(10000, 40),
-]
-
-TESTFLAGGERS = [
-    BaseFlagger(['NIL', 'GOOD', 'BAD']),
-    DmpFlagger(),
-    SimpleFlagger()
+    get_dataset(20, 4),
 ]
 
 
 @pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_initFlags(data, flagger):
     flags = flagger.initFlags(data).getFlags()
     assert isinstance(flags, pd.DataFrame)
@@ -57,7 +48,7 @@ def test_initFlags(data, flagger):
 
 
 @pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_getFlags(data, flagger):
     flagger = flagger.initFlags(data)
 
@@ -66,19 +57,20 @@ def test_getFlags(data, flagger):
     assert isinstance(flags0, pd.DataFrame)
     assert flags0.shape == data.shape
     assert (flags0.columns == data.columns).all()
+
     for dt in flags0.dtypes:
-        assert isinstance(dt, pd.CategoricalDtype)
+        assert dt == flagger.dtype
 
     # series
     flags1 = flagger.getFlags(field)
     assert isinstance(flags1, pd.Series)
-    assert isinstance(flags1.dtype, pd.CategoricalDtype)
+    assert flags1.dtype == flagger.dtype
     assert flags1.shape[0] == data.shape[0]
     assert flags1.name in data.columns
 
 
 @pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_isFlagged(data, flagger):
     # todo: add testcase with comparator
 
@@ -95,28 +87,19 @@ def test_isFlagged(data, flagger):
     # series
     flagged1 = flagger.isFlagged(field)
     assert isinstance(flagged1, pd.Series)
-    assert is_bool_dtype(flagged1.dtype)
+    assert flagged1.dtype == bool
     assert flagged1.shape[0] == data.shape[0]
     assert flagged1.name in data.columns
 
     # both the same
     assert (flagged0[field] == flagged1).all()
 
-    # # flag cannot be series
-    # # NOTE: doesn't make sense here
-    # flag = pd.Series(index=data.index, data=flagger.BAD).astype(flagger.categories)
-    # try:
-    #     flagger.isFlagged(flags, field=field, flag=flag)
-    # except TypeError:
-    #     pass
-    # else:
-    #     raise AssertionError('this should not work')
-
 
 @pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_setFlags(data, flagger):
-    base = flagger.initFlags(data).getFlags()
+    flagger = flagger.initFlags(data)
+    base = flagger.getFlags()
     sl = slice('2011-01-02', '2011-01-05')
 
     flagger_good = flagger.setFlags(field, flag=flagger.GOOD, loc=sl)
@@ -139,7 +122,7 @@ def test_setFlags(data, flagger):
 
 
 @pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_clearFlags(data, flagger):
 
     flagger = flagger.initFlags(data)
@@ -162,7 +145,25 @@ def test_clearFlags(data, flagger):
 
 
 @pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
+def test_dtype(data, flagger):
+
+    flagger = flagger.initFlags(data)
+
+    tests = (
+        flagger.getFlags(field).astype(str),
+        "TEST",
+        55,
+    )
+
+    for test in tests:
+        with pytest.raises(TypeError):
+            flagger = flagger.setFlags(field, flag=test)
+        assert flagger.getFlags(field).dtype == flagger.dtype
+
+
+@pytest.mark.parametrize('data', DATASETS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_returnCopy(data, flagger):
     flagger.initFlags(data)
     origin = flagger.getFlags()
@@ -184,7 +185,7 @@ LOC_ILOC_FUNCS = [
 
 
 @pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
 @pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
 def test_loc(data, flagger, flaggerfunc):
     flagger.initFlags(data)
@@ -230,7 +231,7 @@ def test_loc(data, flagger, flaggerfunc):
 
 
 @pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
 @pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
 def test_iloc(data, flagger, flaggerfunc):
     flagger.initFlags(data)
@@ -280,7 +281,7 @@ def test_iloc(data, flagger, flaggerfunc):
 
 
 @pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_classicUseCases(data, flagger):
     flagger.initFlags(data)
     flags = flagger.getFlags()

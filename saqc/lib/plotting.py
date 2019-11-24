@@ -3,8 +3,26 @@
 
 from warnings import warn
 
+from ..core.config import Params
 
-def plot(data, flagmask, varname, flagger, interactive_backend=True, title="Data Plot", show_nans=True):
+__plotvars = []
+
+
+def plotall_hook(data, flags, flagger):
+    if len(__plotvars) > 1:
+        _plot(data, flags, True, __plotvars, flagger)
+
+
+def plot_hook(data, old, new, varname, do_plot, flag_test, flagger):
+    if do_plot:
+        __plotvars.append(varname)
+        # cannot use getFlags here, because if a flag was set (e.g. with force) the
+        # flag may be the same, but any additional row (e.g. comment-field) would differ
+        mask = (old[varname] == new[varname]).any(axis=1)
+        _plot(data, new, mask, varname, flagger, title=flag_test)
+
+
+def _plot(data, flags, flagmask, varname, flagger, interactive_backend=True, title="Data Plot", show_nans=True):
 
     # only import if plotting is requested by the user
     import matplotlib as mpl
@@ -75,18 +93,26 @@ def _plot_qflags(data, varname, flagger, flagmask, ax, show_nans):
         idx = y.index[nans & flagged & ~flagmask]
         _plot_vline(ax, idx, color='black')
 
-    # plot flags in the color corresponding to the flag
-    # BAD red, GOOD green, all in between aka SUSPISIOUS in yellow
-    for i, f in enumerate(flagger.categories):
-        if i == 0:
-            continue
-        flagged = flagger.isFlagged(varname, flag=f, comparator='==') & flagmask
-        label = f"flag: {f}"
-        color = _get_color(f, flagger)
-        ax.plot(x[flagged], y[flagged], '.', color=color, label=label)
-        if show_nans:
-            idx = y.index[nans & flagged]
-            _plot_vline(ax, idx, color=color)
+#     # plot flags in the color corresponding to the flag
+#     # BAD red, GOOD green, all in between aka SUSPISIOUS in yellow
+# <<<<<<< HEAD
+#     for i, f in enumerate(flagger.categories):
+#         if i == 0:
+#             continue
+#         flagged = flagger.isFlagged(varname, flag=f, comparator='==') & flagmask
+# =======
+#     bads = flagger.isFlagged(flags, varname, flag=flagger.BAD, comparator='==') & flagmask
+#     good = flagger.isFlagged(flags, varname, flag=flagger.GOOD, comparator='==') & flagmask
+#     susp = flagger.isFlagged(flags, varname, flag=flagger.GOOD, comparator='>') & flagmask & ~bads
+#     flaglist = [flagger.GOOD, flagger.BAD, 'Suspicious']
+#     for f, flagged in zip(flaglist, [good, bads, susp]):
+# >>>>>>> master
+#         label = f"flag: {f}"
+#         color = _get_color(f, flagger)
+#         ax.plot(x[flagged], y[flagged], '.', color=color, label=label)
+#         if show_nans:
+#             idx = y.index[nans & flagged]
+#             _plot_vline(ax, idx, color=color)
 
 
 def _plot_vline(plt, points, color='blue'):
@@ -100,12 +126,10 @@ def _plot_vline(plt, points, color='blue'):
 def _get_color(flag, flagger):
     if flag == flagger.UNFLAGGED:
         return 'silver'
-    if flag == flagger.GOOD:
+    elif flag == flagger.GOOD:
         return 'green'
-    if flag == flagger.BAD:
+    elif flag == flagger.BAD:
         return 'red'
-    if flag in list(flagger.SUSPICIOUS):
+    else:
+        # suspicios
         return 'yellow'
-    return 'blue'
-
-

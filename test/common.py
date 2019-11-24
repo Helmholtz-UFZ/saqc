@@ -8,16 +8,20 @@ import numpy as np
 import pandas as pd
 
 from saqc.core.core import prepareConfig, readConfig
-from saqc.flagger import SimpleFlagger, DmpFlagger, BaseFlagger
+from saqc.flagger.simpleflagger import SimpleFlagger
+from saqc.flagger.dmpflagger import DmpFlagger
+from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
+from saqc.flagger.continuousflagger import ContinuousBaseFlagger
 
 
 TESTNODATA = (np.nan, -9999)
 
 
 TESTFLAGGER = (
-    BaseFlagger(["NIL", "GOOD", "BAD"]),
+    CategoricalBaseFlagger(['NIL', 'GOOD', 'BAD']),
     SimpleFlagger(),
     DmpFlagger(),
+    # ContinuousBaseFlagger(),
 )
 
 

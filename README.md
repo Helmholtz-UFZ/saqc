@@ -125,7 +125,7 @@ In order to make your test available for the system you need to:
        (i.e. a column index into `data` and `columns`).
        The data and flags for this variable are available via `data[field]` and 
        `flags[field]` respectively
-    + `flagger: flagger.BaseFlagger`: An instance of the `BaseFlagger` class
+    + `flagger: flagger.CategoricalBaseFlagger`: An instance of the `CategoricalBaseFlagger` class
        (more likely one of its subclasses). To initialize, create or check
        against existing flags you should use the respective `flagger`-methods
        (`flagger.empytFlags`, `flagger.isFlagged` and `flagger.setFlag`)

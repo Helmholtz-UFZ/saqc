@@ -31,7 +31,7 @@ def test_configPreparation(data):
 
     defaults = {
         F.START: data.index.min(), F.END: data.index.max(),
-        F.ASSIGN: False, F.PLOT: False, F.LINENUMBER: 1
+        F.ASSIGN: False, F.PLOT: False, F.LINENUMBER: 2
     }
 
     for i, test in enumerate(tests):
@@ -53,7 +53,7 @@ def test_configReaderLineNumbers(data):
     """
     meta_fname, meta_frame = initMetaString(config, data)
     result = meta_frame[F.LINENUMBER].tolist()
-    expected = [2, 3, 4, 6]
+    expected = [3, 4, 5, 7]
     assert result == expected
 
 

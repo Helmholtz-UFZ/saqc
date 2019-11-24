@@ -7,7 +7,7 @@ import pandas as pd
 from saqc.funcs import register, flagRange
 from saqc.core.core import runner
 from saqc.core.config import Fields as F
-from saqc.lib.plotting import plot
+from saqc.lib.plotting import _plot
 from test.common import initData, initMetaDict, TESTFLAGGER
 
 
@@ -98,10 +98,8 @@ def test_missingVariable(flagger):
         {F.VARNAME: "empty", F.TESTS: "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
-
-    pdata, _ = runner(metafobj, flagger, data)
-
-    assert (pdata.columns == [var]).all()
+    with pytest.raises(NameError):
+        runner(metafobj, flagger, data)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -153,6 +151,7 @@ def test_dtypes(data, flagger):
     assert dict(flags.dtypes) == dict(pflags.dtypes)
 
 
+@pytest.mark.skip(reason="not ported yet")
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_plotting(data, flagger):
     """
@@ -168,4 +167,3 @@ def test_plotting(data, flagger):
     _, flagger_range = flagRange(data, field, flagger_range, min=40, max=60, flag=flagger.GOOD)
     mask = flagger.getFlags(field) != flagger_range.getFlags(field)
     plot(data, mask, field, flagger, interactive_backend=False)
-

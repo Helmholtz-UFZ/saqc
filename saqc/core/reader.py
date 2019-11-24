@@ -24,10 +24,10 @@ def checkConfig(config_df, data, flagger, nodata):
             _raise(config_row, SyntaxError,
                    f"non-optional column '{F.VARNAME}' is missing")
 
-        test_fields = config_row.filter(regex=F.TESTS)
-        if test_fields.isna().all():
+        test_fields = config_row.filter(regex=F.TESTS).dropna()
+        if test_fields.empty:
             _raise(config_row,  SyntaxError,
-                   f"at least one test needs to be given vor variable")
+                   f"at least one test needs to be given for variable")
 
         var_name = config_row[F.VARNAME]
         if var_name not in data.columns and not config_row[F.ASSIGN]:
@@ -45,23 +45,28 @@ def checkConfig(config_df, data, flagger, nodata):
 
 
 def prepareConfig(config_df, data):
+    # ensure column-names are lowercase and have no trailing whitespaces
+    config_df.columns = [c.lstrip().lower() for c in config_df.columns]
+
     # add line numbers and remove comments
-    config_df[F.LINENUMBER] = np.arange(len(config_df)) + 1
+    config_df[F.LINENUMBER] = np.arange(len(config_df)) + 2
     try:
         comment_mask = ~config_df.iloc[:, 0].str.startswith("#")
     except AttributeError:
         comment_mask = np.ones(len(config_df), dtype=np.bool)
     config_df = config_df[comment_mask]
 
-    # no dates given, fall back to the available index range
-    for field in [F.VARNAME, F.TESTS, F.START, F.END, F.ASSIGN, F.PLOT]:
+    if config_df.empty:
+        raise SyntaxWarning('config file is empty or all lines are #commented')
+
+    # fill missing header fields
+    for field in [F.VARNAME, F.START, F.END, F.ASSIGN, F.PLOT]:
         if field not in config_df:
             config_df = config_df.assign(**{field: np.nan})
 
-    # fill with default values
+    # fill nans with default values
     config_df = config_df.fillna({
         F.VARNAME: np.nan,
-        F.TESTS: np.nan,
         F.START: data.index.min(),
         F.END: data.index.max(),
         F.ASSIGN: False,
@@ -77,4 +82,4 @@ def prepareConfig(config_df, data):
 
 
 def readConfig(fname):
-    return pd.read_csv(fname, delimiter=",")
+    return pd.read_csv(fname, delimiter=",", skipinitialspace=True)
