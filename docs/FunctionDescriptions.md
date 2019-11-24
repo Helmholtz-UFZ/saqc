@@ -14,7 +14,10 @@ range(min, max)
 missing(nodata=NaN)
 ```
 ### Description
-
+The Function flags those values in the the passed data series, that are 
+associated with "missing" data. The missing value indicator (np.nan by default),
+can be altered to any other value by passing this new value to the 
+parameter `nodata`.
 
 ## sesonalRange
 ### Signature
