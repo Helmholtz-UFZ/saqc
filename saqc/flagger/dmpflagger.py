@@ -55,8 +55,10 @@ class DmpFlagger(CategoricalBaseFlagger):
         return super()._assureDtype(flags.loc[mask, field])
 
     def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, comment='', cause='', **kwargs):
+        if field is None:
+            raise ValueError('field cannot be None')
 
-        flag = self.BAD if flag is None else self._checkFlags(flag)
+        flag = self.BAD if flag is None else self._checkFlag(flag)
 
         comment = json.dumps({"comment": comment,
                               "commit": self.project_version,

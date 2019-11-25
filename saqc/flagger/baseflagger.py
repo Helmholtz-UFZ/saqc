@@ -80,6 +80,8 @@ class BaseFlagger(ABC):
         return flags.loc[mask, field]
 
     def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
+        if field is None:
+            raise ValueError('field cannot be None')
 
         flag = self.BAD if flag is None else flag
 
@@ -96,7 +98,6 @@ class BaseFlagger(ABC):
 
     def clearFlags(self, field, loc=None, iloc=None, **kwargs):
         if field is None:
-            # NOTE: I don't see a need for this restriction
             raise ValueError('field cannot be None')
         return self.setFlags(field=field, loc=loc, iloc=iloc, flag=self.UNFLAGGED, force=True)
 

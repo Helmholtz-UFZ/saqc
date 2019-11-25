@@ -56,13 +56,13 @@ class CategoricalBaseFlagger(BaseFlagger):
     def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, **kwargs):
         return super().setFlags(
             field=field, loc=loc, iloc=iloc,
-            flag=self._checkFlags(flag), force=force,
+            flag=self._checkFlag(flag), force=force,
             **kwargs)
 
     def isFlagged(self, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
         return super().isFlagged(
             field=field, loc=loc, iloc=iloc,
-            flag=self._checkFlags(flag), comparator=comparator,
+            flag=self._checkFlag(flag), comparator=comparator,
             **kwargs)
 
     def _assureDtype(self, flags):
@@ -83,7 +83,7 @@ class CategoricalBaseFlagger(BaseFlagger):
             return isinstance(f.dtype, pd.CategoricalDtype) and f.dtype == self.dtype
         return f in self.dtype.categories
 
-    def _checkFlags(self, flag):
+    def _checkFlag(self, flag):
         if flag is not None and not self._isCategorical(flag):
             raise TypeError(
                 f"invalid flag '{flag}', possible choices are '{list(self.dtype.categories)}'")

@@ -26,16 +26,16 @@ def get_dataset(rows, cols):
 field = 'var0'
 
 DATASETS = [
-    get_dataset(0, 1),
-    get_dataset(1, 1),
+    # get_dataset(0, 1),
+    # get_dataset(1, 1),
     get_dataset(100, 1),
-    get_dataset(1000, 1),
-    get_dataset(0, 4),
-    get_dataset(1, 4),
+    # get_dataset(1000, 1),
+    # get_dataset(0, 4),
+    # get_dataset(1, 4),
     get_dataset(100, 4),
-    get_dataset(1000, 4),
-    get_dataset(10000, 40),
-    get_dataset(20, 4),
+    # get_dataset(1000, 4),
+    # get_dataset(10000, 40),
+    # get_dataset(20, 4),
 ]
 
 
@@ -95,6 +95,11 @@ def test_isFlagged(data, flagger):
     # both the same
     assert (flagged0[field] == flagged1).all()
 
+    flag = pd.Series(index=data.index, data=flagger.BAD).astype(flagger.dtype)
+
+    # fixme !!
+    flagger.isFlagged(flag=flag)
+
 
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
@@ -120,6 +125,10 @@ def test_setFlags(data, flagger):
     # overflag does work with force
     flagger_forced_good = flagger_bad.setFlags(field, flag=flagger.GOOD, force=True)
     assert (flagger_forced_good.getFlags(field) == flagger.GOOD).all()
+
+    with pytest.raises(ValueError):
+        flagger.setFlags(field=None, flag=flagger.BAD)
+
 
 
 @pytest.mark.parametrize('data', DATASETS)
@@ -166,16 +175,16 @@ def test_dtype(data, flagger):
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_returnCopy(data, flagger):
-    flagger.initFlags(data)
-    origin = flagger.getFlags()
+    origin = flagger.initFlags(data)
+    origin_data = origin.getFlags()
 
     f = flagger.getFlags()
-    assert f is not origin
+    assert f is not origin_data
     f = flagger.isFlagged()
+    assert f is not origin_data
+    f = flagger.setFlags(field)
     assert f is not origin
-    f = flagger.setFlags(field).getFlags()
-    assert f is not origin
-    f = flagger.clearFlags(field).getFlags()
+    f = flagger.clearFlags(field)
     assert f is not origin
 
 
