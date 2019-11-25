@@ -7,9 +7,9 @@ import pandas as pd
 
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
-from saqc.flagger.continuousflagger import ContinuousBaseFlagger
+from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
 
-from saqc.funcs.harm_functions import harm_wrapper
+from saqc.funcs.harm_functions import harm_wrapper, _interpolate, _interpolate_grid, _insert_grid, _outsort_crap
 
 from saqc.lib.tools import getPandasData
 from saqc.funcs.functions import flagMissing
@@ -17,8 +17,8 @@ from saqc.funcs.functions import flagMissing
 
 TESTFLAGGERS = [
     DmpFlagger(),
-    SimpleFlagger()
-    #ContinuousBaseFlagger()
+    SimpleFlagger(),
+    CategoricalBaseFlagger(['NIL', 'GOOD', 'BAD'])
     ]
 
 RESHAPERS = [
@@ -43,6 +43,12 @@ INTERPOLATIONS = [
     'nearest_shift',
     'nearest_agg',
     'bagg'
+]
+
+INTERPOLATIONS2 = [
+    'fagg',
+    'time',
+    'polynomial'
 ]
 
 FREQS = [
@@ -210,7 +216,6 @@ def test_multivariat_harmonization(multi_data, flagger, shift_comment):
     multi_data, flags = harm_wrapper()(multi_data, flags, 'data3', flagger, freq, 'fshift', 'fshift',
                                        reshape_shift_comment=shift_comment)
 
-   # pdb.set_trace()
     assert multi_data.index.equals(test_index)
     assert pd.Timedelta(pd.infer_freq(multi_data.index)) == pd.Timedelta(freq)
 
@@ -222,17 +227,39 @@ def test_multivariat_harmonization(multi_data, flagger, shift_comment):
     assert len(multi_data) == len(flags)
     assert (pre_flags.index == flags.index).all()
 
-if __name__ == "__main__":
-    data = data()
-    multi_data = multi_data()
-    flagger = SimpleFlagger()
-    #flagger = DmpFlagger()
-    flagger = ContinuousBaseFlagger()
+
+@pytest.mark.parametrize('method', INTERPOLATIONS2)
+def test_grid_interpolation(data, method):
+    freq = '15min'
+    data = ((data * np.sin(data)).append(data.shift(1, '2h')).shift(1, '3s'))
+    # we are just testing if the interolation gets passed to the series without causing an error:
+    _interpolate_grid(data, freq, method, order=1, agg_method=sum, downcast_interpolation=True)
+    if method == 'polynomial':
+        _interpolate_grid(data, freq, method, order=2, agg_method=sum, downcast_interpolation=True)
+        _interpolate_grid(data, freq, method, order=10, agg_method=sum, downcast_interpolation=True)
+        data = _insert_grid(data, freq)
+        _interpolate(data, method, inter_limit=3)
 
 
-    test_multivariat_harmonization(multi_data,  ContinuousBaseFlagger(), shift_comment=True)
-    test_multivariat_harmonization(data, DmpFlagger())
-    test_multivariat_harmonization(data, SimpleFlagger())
+@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+def test_outsort_crap(data, flagger):
+    field = data.columns[0]
+    flags = flagger.initFlags(data)
+    drop_index = data.index[5:7]
+    flags = flagger.setFlags(flags, field, iloc=slice(5, 7))
+    d, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=True, drop_bad=False)
+    assert drop_index.difference(d.index).equals(drop_index)
+    d, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=False, drop_bad=True)
+    assert drop_index.difference(d.index).equals(drop_index)
+    drop_index = drop_index.insert(-1, flags.index[0])
+    flags = flagger.setFlags(flags, field, iloc=slice(0,1), flag=flagger.GOOD)
+    d, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=False, drop_bad=False,
+                         drop_list=[flagger.BAD, flagger.GOOD])
+    assert drop_index.sort_values().difference(d.index).equals(drop_index.sort_values())
+    f_drop, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=False, drop_bad=False,
+                         drop_list=[flagger.BAD, flagger.GOOD], return_drops=True)
+    assert f_drop.index.sort_values().equals(drop_index.sort_values())
+
 
 
 

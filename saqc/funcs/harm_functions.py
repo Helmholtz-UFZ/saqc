@@ -32,6 +32,7 @@ def harm_wrapper(harm=True, heap={}):
                      'nearest_agg': 'invert_nearest'}
 
     def harmonize(data, flags, field, flagger, freq, inter_method, reshape_method, inter_agg=np.mean, inter_order=1,
+                  inter_downcast=False,
                   reshape_agg=max, reshape_missing_flag_index=-1,
                   reshape_shift_comment=False, outsort_drop_susp=True, outsort_drop_list=None
                   , data_missing_value=np.nan, **kwargs):
@@ -62,7 +63,8 @@ def harm_wrapper(harm=True, heap={}):
                                            drop_bad=True, drop_list=outsort_drop_list)
         # interpolation! (yeah)
         dat_col = _interpolate_grid(dat_col, freq, method=inter_method, order=inter_order, agg_method=inter_agg,
-                                    total_range=(heap['initial_ts'][0], heap['initial_ts'][-1]))
+                                    total_range=(heap['initial_ts'][0], heap['initial_ts'][-1]),
+                                    downcast_interpolation=inter_downcast)
 
         # flags now have to be carefully adjusted according to the changes/shifts we did to data
         flags_col = _reshape_flags(flags_col, flagger, field, ref_index=dat_col.index, method=reshape_method,
@@ -202,7 +204,7 @@ def _insert_grid(data, freq):
     return data.reindex(data.index.join(_make_grid(data.index[0], data.index[-1], freq), how='outer'))
 
 
-def _interpolate_grid(data, freq, method, order=1, agg_method=sum, total_range=None):
+def _interpolate_grid(data, freq, method, order=1, agg_method=sum, total_range=None, downcast_interpolation=False):
     """The function calculates grid point values for a passed pd.Series (['data']) by applying
     the selected interpolation/fill method. (passed to key word 'method'). The interpolation will apply for grid points
     only, that have preceding (forward-aggregation/forward-shifts) or succeeding (backward-aggregation/backward-shift)
@@ -309,7 +311,7 @@ def _interpolate_grid(data, freq, method, order=1, agg_method=sum, total_range=N
     elif method in interpolations:
 
         data = _insert_grid(data, freq)
-        data = _interpolate(data, method, order=order, inter_limit=2)
+        data = _interpolate(data, method, order=order, inter_limit=2, downcast_interpolation=downcast_interpolation)
         if total_range is None:
             data = data.asfreq(freq, fill_value=np.nan)
 
@@ -364,13 +366,19 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
         data = pd.merge(gap_mask, data, how='inner', left_index=True, right_index=True)
 
         def interpol_wrapper(x, wrap_order=order, wrap_method=method):
-            if x.count() > order:
-                return x.interpolate(method=wrap_method, order=wrap_order)
+            if x.count() > wrap_order:
+                try:
+                    return x.interpolate(method=wrap_method, order=int(wrap_order))
+                except (NotImplementedError, ValueError):
+                    logging.warning('Interpolation with method {} is not supported at order {}. '
+                                    'Interpolation will be performed with order {}'.
+                                    format(method, str(wrap_order), str(wrap_order-1)))
+                    return interpol_wrapper(x, int(wrap_order-1), wrap_method)
             elif x.size < 3:
                 return x
             else:
                 if downcast_interpolation:
-                    return interpol_wrapper(x, x.count()-1, wrap_method)
+                    return interpol_wrapper(x, int(x.count()-1), wrap_method)
                 else:
                     return x
 
