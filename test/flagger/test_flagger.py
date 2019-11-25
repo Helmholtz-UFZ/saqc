@@ -15,25 +15,26 @@ from test.common import TESTFLAGGER
 
 
 def get_dataset(rows, cols):
-    index = pd.date_range(start='2011-01-01', end='2011-01-10', periods=rows)
-    df = pd.DataFrame(index=index)
+    df = pd.DataFrame()
     for c in range(cols):
-        df[f'var{c}'] = np.linspace(0 + 100 * c, index.size, index.size)
+        df[f'var{c}'] = np.linspace(0 + 100 * c, rows, rows)
+    vals = pd.date_range(start='2011-01-01', end='2011-01-10', periods=rows)
+    df.index = pd.DatetimeIndex(data=vals)
     return df
 
 
 field = 'var0'
 
 DATASETS = [
-    # get_dataset(0, 1),
-    # get_dataset(1, 1),
+    get_dataset(0, 1),
+    get_dataset(1, 1),
     get_dataset(100, 1),
-    # get_dataset(1000, 1),
-    # get_dataset(0, 4),
-    # get_dataset(1, 4),
-    # get_dataset(100, 4),
-    # get_dataset(1000, 4),
-    # get_dataset(10000, 40),
+    get_dataset(1000, 1),
+    get_dataset(0, 4),
+    get_dataset(1, 4),
+    get_dataset(100, 4),
+    get_dataset(1000, 4),
+    get_dataset(10000, 40),
     get_dataset(20, 4),
 ]
 
@@ -193,10 +194,13 @@ def test_loc(data, flagger, flaggerfunc):
     sl = slice('2011-01-02', '2011-01-05')
     chunk = data.loc[sl, field]
     d = data.loc[sl]
-    m = data.index.get_loc(d.index[0])
-    M = data.index.get_loc(d.index[-1])
-    mask = np.full(len(data), False)
-    mask[m:M] = True
+    if d.empty:
+        mask = []
+    else:
+        m = data.index.get_loc(d.index[0])
+        M = data.index.get_loc(d.index[-1])
+        mask = np.full(len(data), False)
+        mask[m:M] = True
 
     flagger_func = getattr(flagger, flaggerfunc)
 
@@ -236,9 +240,7 @@ def test_loc(data, flagger, flaggerfunc):
 def test_iloc(data, flagger, flaggerfunc):
     flagger.initFlags(data)
     flags = flagger.getFlags()
-    M = len(data.index) - 1
-    if M < 3:
-        return
+    M = len(data.index) - 1 if len(data.index) > 0 else 0
     m = M // 3
     M = m * 2
 
