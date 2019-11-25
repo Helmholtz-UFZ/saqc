@@ -135,7 +135,7 @@ def harm_wrapper(harm=True, heap={}):
         # but to stick with the policy of always having flags as pd.DataFrames we blow up the flags col again:
         if isinstance(flags_col, pd.Series):
             flags_col = flags_col.to_frame()
-        flagger_back_full = flagger.initFromFlags(flags_col)
+        flagger_back_full = flagger.initFlags(flags=flags_col)
 
         dat_col = heap[field]['original_data'].reindex(flags_col.index, fill_value=np.nan)
         dat_col.name = field
@@ -480,7 +480,7 @@ def _reshape_flags(flagger, field, ref_index,
         # if you want to keep previous comments - only newly generated missing flags get commented:
         flags_series = flags.squeeze()
 
-        flagger_new = flagger.initFromFlags(flags).setFlags(
+        flagger_new = flagger.initFlags(flags=flags).setFlags(
             field,
             loc=flags_series.isna(),
             flag=flagger.dtype.categories[missing_flag],
@@ -530,7 +530,7 @@ def _reshape_flags(flagger, field, ref_index,
             flags = flags.shift(
                 periods=-shift_correcture, freq=pd.Timedelta(freq) / 2)
 
-        flagger_new = flagger_new.initFromFlags(flags.to_frame(name=field))
+        flagger_new = flagger_new.initFlags(flags=flags.to_frame(name=field))
 
     else:
         methods = ", ".join(shifts + ['\n'] + aggregations)
@@ -661,7 +661,7 @@ def _backtrack_flags(flagger_post, flagger_pre, freq, track_method='invert_fshif
     if isinstance(flags_pre, pd.Series):
         flags_pre = flags_pre.to_frame()
 
-    return flagger_pre.initFromFlags(flags_pre)
+    return flagger_pre.initFlags(flags=flags_pre)
 
 # def _fromMerged(data, flags, flagger, fieldname):
 #     # we need a not-na mask for the flags data to be retrieved:
@@ -765,14 +765,14 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
         # erase nan rows in the data, that became redundant because of harmonization and merge with data-to-insert:
         data = pd.merge(data[mask], data_to_insert, how='outer', left_index=True, right_index=True)
         flags = pd.merge(flags[mask], flags_to_insert, how='outer', left_index=True, right_index=True)
-        return data, flagger.initFromFlags(flags)
+        return data, flagger.initFlags(flags=flags)
 
     else:
         # trivial case: there is only one variable:
         if flags.empty:
             data = data_to_insert.reindex(target_index).to_frame(name=fieldname)
             flags = flags_to_insert.reindex(target_index, fill_value=flagger.dtype.categories[0])
-            return data, flagger.initFromFlags(flags)
+            return data, flagger.initFlags(flags=flags)
         # annoying case: more than one variables:
         # erase nan rows resulting from harmonization but keep/regain those, that were initially present in the data:
         new_index = data[mask].index.join(target_index, how='outer')
@@ -784,7 +784,7 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
 
         # internally harmonization memorizes its own manipulation by inserting nan flags -
         # those we will now assign the flagger.bad flag by the "missingTest":
-        return flagMissing(data, fieldname, flagger.initFromFlags(flags), nodata=np.nan)
+        return flagMissing(data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan)
 
 
 

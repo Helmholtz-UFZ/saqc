@@ -77,7 +77,7 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
         flag_cols = collectVariables(meta, data)
         flagger = flagger.initFlags(pd.DataFrame(index=data.index, columns=flag_cols))
     else:
-        flagger = flagger.initFromFlags(flags)
+        flagger = flagger.initFlags(flags=flags)
 
 
     # this checks comes late, but the compiling of the user-test need fully prepared flags

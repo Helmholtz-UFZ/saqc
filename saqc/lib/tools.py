@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numbers
-from typing import Union
+from typing import Sequence, Union, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -11,6 +11,16 @@ import logging
 import sys
 
 from ..lib.types import PandasLike, ArrayLike
+
+
+T = TypeVar("T")
+def _toSequence(value: Union[T, Sequence[T]],
+                default: Union[T, Sequence[T]] = None) -> Sequence[T]:
+    if value is None:
+        value = default
+    if np.isscalar(value):
+        value = [value]
+    return value
 
 
 @nb.jit(nopython=True, cache=True)
@@ -282,34 +292,6 @@ def checkQCParameters(para_dict, called_by):
 
     return global_checker
 
-
-# def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> pd.Series:
-
-#     if window == 0 or window == '':
-#         return new
-
-#     fw, bw = False, False
-#     mask = flagger.getFlags(old, field) != flagger.getFlags(new, field)
-#     f = flagger.isFlagged(new, field) & mask
-
-#     if not mask.any():
-#         # nothing was flagged, so nothing need to be flagged additional
-#         return new
-
-#     if isinstance(window, int):
-#         x = f.rolling(window=window + 1).sum()
-#         if direction in ['fw', 'both']:
-#             fw = x.fillna(method='bfill').astype(bool)
-#         if direction in ['bw', 'both']:
-#             bw = x.shift(-window).fillna(method='bfill').astype(bool)
-#     else:
-#         # time-based windows
-#         if direction in ['bw', 'both']:
-#             raise NotImplementedError
-#         fw = f.rolling(window=window, closed='both').sum().astype(bool)
-
-#     fmask = bw | fw
-#     return flagger.setFlags(new, field, fmask, **kwargs)
 
 def flagWindow(flagger_old, flagger_new, field, direction='fw', window=0, **kwargs) -> pd.Series:
 

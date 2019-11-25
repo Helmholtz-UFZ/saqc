@@ -4,14 +4,12 @@ import subprocess
 import json
 from copy import deepcopy
 from collections import OrderedDict
-from typing import Sequence, Union, TypeVar
+from typing import Union, Sequence
 
 import pandas as pd
-import numpy as np
 
-from .simpleflagger import SimpleFlagger
-from .categoricalflagger import CategoricalBaseFlagger, PandasLike
-from ..lib.tools import *
+from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
+from saqc.lib.tools import check_isdf, _toSequence
 
 
 class Keywords:
@@ -29,16 +27,6 @@ class ColumnLevels:
     FLAGS = "flags"
 
 
-T = TypeVar("T")
-def _toSequence(value: Union[T, Sequence[T]],
-                default: Union[T, Sequence[T]] = None) -> Sequence[T]:
-    if value is None:
-        value = default
-    if np.isscalar(value):
-        value = [value]
-    return value
-
-
 FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 
@@ -53,50 +41,12 @@ class DmpFlagger(CategoricalBaseFlagger):
         self.signature = ("flag", "comment", "cause", "force")
         self._flags = None
 
-    def _getColumns(self,
-                    cols: Union[str, Sequence[str]],
-                    fields: Union[str, Sequence[str]] = None) -> pd.MultiIndex:
-        cols = _toSequence(cols)
-        fields = _toSequence(fields, self.flags_fields)
-        return pd.MultiIndex.from_product(
-            [cols, fields],
-            names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
-
     def getFlagger(self, field=None, loc=None, iloc=None):
         # NOTE: we need to preserve all indexing levels
-        out = super().getFlagger(field, loc, iloc)
         cols = _toSequence(field, self._flags.columns.levels[0])
-        out._flags.columns = self._getColumns(cols)
+        out = super().getFlagger(field, loc, iloc)
+        out._flags.columns = self._getColumnIndex(cols)
         return out
-
-    def initFlags(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
-        check_isdf(data, 'data', allow_multiindex=False)
-        colindex = self._getColumns(data.columns)
-        flags = pd.DataFrame(data=self.UNFLAGGED, columns=colindex, index=data.index)
-        self._flags = self._assureDtype(flags)
-        return self
-
-    def initFromFlags(self, flags: pd.DataFrame):
-        if not isinstance(flags, pd.DataFrame):
-            raise TypeError("expected a pandas.DataFrame")
-        if not isinstance(flags.columns, pd.MultiIndex):
-            flags = (flags
-                     .T.set_index(keys=self._getColumns(flags.columns, [FlagFields.FLAG])).T
-                     .reindex(columns=self._getColumns(flags.columns)))
-        out = deepcopy(self)
-        out._flags = out._assureDtype(flags)
-        return out
-
-    def _assureDtype(self, flags):
-        # NOTE: building up new DataFrames is significantly
-        #       faster than assigning into existing ones
-        tmp = OrderedDict()
-        for (var, flag_field) in flags.columns:
-            col_data = flags[(var, flag_field)]
-            if flag_field == FlagFields.FLAG:
-                col_data = col_data.astype(self.dtype)
-            tmp[(var, flag_field)] = col_data
-        return pd.DataFrame(tmp, columns=flags.columns, index=flags.index)
 
     def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
         field = field or slice(None)
@@ -106,7 +56,7 @@ class DmpFlagger(CategoricalBaseFlagger):
 
     def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, comment='', cause='', **kwargs):
 
-        flag = self.BAD if flag is None else self._checkFlag(flag)
+        flag = self.BAD if flag is None else self._checkFlags(flag)
 
         comment = json.dumps({"comment": comment,
                               "commit": self.project_version,
@@ -121,3 +71,41 @@ class DmpFlagger(CategoricalBaseFlagger):
         out = deepcopy(self)
         out._flags.loc[mask, field] = other[mask], cause, comment
         return out
+
+    def _initFromData(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
+        check_isdf(data, 'data', allow_multiindex=False)
+        colindex = self._getColumnIndex(data.columns)
+        flags = pd.DataFrame(data=self.UNFLAGGED, columns=colindex, index=data.index)
+        self._flags = self._assureDtype(flags)
+        return self
+
+    def _initFromFlags(self, flags: pd.DataFrame):
+        check_isdf(flags, "flags", allow_multiindex=True)
+        if not isinstance(flags.columns, pd.MultiIndex):
+            flags = (flags
+                     .T.set_index(keys=self._getColumnIndex(flags.columns, [FlagFields.FLAG])).T
+                     .reindex(columns=self._getColumnIndex(flags.columns)))
+        out = deepcopy(self)
+        out._flags = out._assureDtype(flags)
+        return out
+
+    def _getColumnIndex(self,
+                        cols: Union[str, Sequence[str]],
+                        fields: Union[str, Sequence[str]] = None) -> pd.MultiIndex:
+        cols = _toSequence(cols)
+        fields = _toSequence(fields, self.flags_fields)
+        return pd.MultiIndex.from_product(
+            [cols, fields],
+            names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
+
+    def _assureDtype(self, flags):
+        # NOTE: building up new DataFrames is significantly
+        #       faster than assigning into existing ones
+        tmp = OrderedDict()
+        for (var, flag_field) in flags.columns:
+            col_data = flags[(var, flag_field)]
+            if flag_field == FlagFields.FLAG:
+                col_data = col_data.astype(self.dtype)
+            tmp[(var, flag_field)] = col_data
+        return pd.DataFrame(tmp, columns=flags.columns, index=flags.index)
+

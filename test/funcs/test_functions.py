@@ -32,8 +32,8 @@ def test_flagAfter(data, field, flagger):
     min = data.iloc[int(len(data)*.3), 0]
     max = data.iloc[int(len(data)*.6), 0]
     _, flagger_range = flagRange(data, field, flagger, min, max)
-    flagged_range = flagger_range.isFlagged(field,
-                                          loc=flagger_range.isFlagged(field))
+    flagged_range = flagger_range.isFlagged(
+        field, loc=flagger_range.isFlagged(field))
 
     tests = [
         (f"flagWindowAfterFlag(window='3D', func=range(min={min}, max={max}))", "3D"),
