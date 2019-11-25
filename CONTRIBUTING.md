@@ -7,3 +7,6 @@
  
 ## Formatting
 We use (black)[https://black.readthedocs.io/en/stable/]
+
+## Imports
+Only absolute imports are accepted
