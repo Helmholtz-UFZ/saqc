@@ -9,7 +9,7 @@ from typing import TypeVar
 import numpy as np
 import pandas as pd
 
-from saqc.lib.tools import _toSequence
+from saqc.lib.tools import toSequence
 
 newT = TypeVar("newT")
 
@@ -112,7 +112,7 @@ class BaseFlagger(ABC):
     def _locatorMask(self, field, loc=None, iloc=None):
         # NOTE: get the first non-None locator option or a default slice(None)
         locator = [l for l in (loc, iloc, slice(None)) if l is not None][0]
-        flags = self._flags[_toSequence(field)]
+        flags = self._flags[toSequence(field)]
         mask = pd.Series(data=np.zeros(len(flags), dtype=bool), index=flags.index)
         mask[locator] = True
         return mask
@@ -131,17 +131,20 @@ class BaseFlagger(ABC):
     def nextTest(self):
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def UNFLAGGED(self):
         """ Return the flag that indicates unflagged data """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def GOOD(self):
         """ Return the flag that indicates the very best data """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def BAD(self):
         """ Return the flag that indicates the worst data """
         pass

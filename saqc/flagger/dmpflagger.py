@@ -9,7 +9,7 @@ from typing import Union, Sequence
 import pandas as pd
 
 from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
-from saqc.lib.tools import check_isdf, _toSequence
+from saqc.lib.tools import check_isdf, toSequence
 
 
 class Keywords:
@@ -43,7 +43,7 @@ class DmpFlagger(CategoricalBaseFlagger):
 
     def getFlagger(self, field=None, loc=None, iloc=None):
         # NOTE: we need to preserve all indexing levels
-        cols = _toSequence(field, self._flags.columns.levels[0])
+        cols = toSequence(field, self._flags.columns.levels[0])
         out = super().getFlagger(field, loc, iloc)
         out._flags.columns = self._getColumnIndex(cols)
         return out
@@ -92,8 +92,8 @@ class DmpFlagger(CategoricalBaseFlagger):
     def _getColumnIndex(self,
                         cols: Union[str, Sequence[str]],
                         fields: Union[str, Sequence[str]] = None) -> pd.MultiIndex:
-        cols = _toSequence(cols)
-        fields = _toSequence(fields, self.flags_fields)
+        cols = toSequence(cols)
+        fields = toSequence(fields, self.flags_fields)
         return pd.MultiIndex.from_product(
             [cols, fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])

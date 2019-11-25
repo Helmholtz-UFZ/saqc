@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numbers
-from typing import Sequence, Union, TypeVar
+from typing import Sequence, Union, T
 
 import numpy as np
 import pandas as pd
@@ -13,9 +13,8 @@ import sys
 from ..lib.types import PandasLike, ArrayLike
 
 
-T = TypeVar("T")
-def _toSequence(value: Union[T, Sequence[T]],
-                default: Union[T, Sequence[T]] = None) -> Sequence[T]:
+def toSequence(value: Union[T, Sequence[T]],
+               default: Union[T, Sequence[T]] = None) -> Sequence[T]:
     if value is None:
         value = default
     if np.isscalar(value):
