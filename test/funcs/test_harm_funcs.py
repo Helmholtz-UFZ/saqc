@@ -11,9 +11,6 @@ from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
 
 from saqc.funcs.harm_functions import harm_wrapper, _interpolate, _interpolate_grid, _insert_grid, _outsort_crap
 
-from saqc.lib.tools import getPandasData
-from saqc.funcs.functions import flagMissing
-
 
 TESTFLAGGERS = [
     DmpFlagger(),

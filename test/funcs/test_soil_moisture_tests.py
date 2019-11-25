@@ -11,8 +11,6 @@ from saqc.flagger.simpleflagger import SimpleFlagger
 
 from saqc.funcs.soil_moisture_tests import flagSoilMoistureBySoilFrost, flagSoilMoistureByPrecipitationEvents
 
-from saqc.lib.tools import getPandasData
-
 TESTFLAGGERS = [
     CategoricalBaseFlagger(['NIL', 'GOOD', 'BAD']),
     DmpFlagger(),

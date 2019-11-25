@@ -11,7 +11,6 @@ from saqc.flagger.simpleflagger import SimpleFlagger
 
 from saqc.funcs.break_detection import flagBreaks_SpektrumBased
 
-from saqc.lib.tools import getPandasData
 
 TESTFLAGGERS = [
     CategoricalBaseFlagger(['NIL', 'GOOD', 'BAD']),

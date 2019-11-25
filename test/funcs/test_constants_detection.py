@@ -11,7 +11,7 @@ from saqc.flagger.simpleflagger import SimpleFlagger
 
 from saqc.funcs.constants_detection import flagConstants_VarianceBased
 
-from saqc.lib.tools import getPandasData
+
 
 TESTFLAGGERS = [
     CategoricalBaseFlagger(['NIL', 'GOOD', 'BAD']),
