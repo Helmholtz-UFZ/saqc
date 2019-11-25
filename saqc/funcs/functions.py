@@ -121,18 +121,16 @@ def flagIsolated(data, flags, field, flagger, isolation_range, max_isolated_grou
         for to_drop in drop_flags:
             drop_mask |= flagger.isFlagged(flags, field, flag=to_drop, comparator='==')
 
-        dat_col = data[field][~drop_mask]
-        dat_col.dropna(inplace=True)
+    dat_col = data[field][~drop_mask]
+    dat_col.dropna(inplace=True)
 
     if max_isolated_group_size == 1:
-        # isolated single values are much easier to identifie:
-
+        # isolated single values are much easier to identify:
         gap_check = dat_col.rolling(isolation_range).count()
         # exclude series initials:
         gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)):]
         # reverse rolling trick:
         isolated_indices = gap_check[(gap_check[::-1].rolling(2).sum() == 2)[::-1].values].index
-        flags = flagger.setFlags(flags, field, isolated_indices, **kwargs)
 
     else:
         gap_check = dat_col.rolling(isolation_range).count()
@@ -140,10 +138,25 @@ def flagIsolated(data, flags, field, flagger, isolation_range, max_isolated_grou
         continuation_check = gap_check.rolling(continuation_range).count()
         # exclude series initials:
         gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)):]
-        # check wich values are sparsely enough surrounded
-        isolated_indices = gap_check[gap_check[::-1].rolling(2).apply(lambda x: int((x[0] == 1) & (x[1] <= max_isolated_group_size)), raw=False)[::-1] == 1].index
+        # check which values are sparsely enough surrounded
+        gap_check = gap_check[::-1].rolling(2).apply(lambda x: int((x[0] == 1) & (x[1] <= max_isolated_group_size)),
+                                                     raw=False)
+        gap_check = (gap_check[::-1] == 1)
+        isolated_indices = gap_check[gap_check].index
         # check if the isolated values groups are sufficiently centered:
         isolated_indices = isolated_indices[continuation_check[isolated_indices] <= max_isolated_group_size]
-        # propagate True value onto all the isolated group:
+        # propagate True value onto entire isolated group (will not work with bfill method, because its not sure the
+        # frequencie grid is actually equidistant - so here comes rolling reverse trick for offset defined windows
+        # again):
+        gap_check[:] = np.nan
+        gap_check.loc[isolated_indices] = True
+        original_index = gap_check.index
+        gap_check = gap_check[::-1]
+        pseudo_increasing_index = gap_check.index[0] - gap_check.index
+        gap_check.index = pseudo_increasing_index
+        gap_check = gap_check.rolling(continuation_range).count().notna()[::-1]
+        isolated_indices = original_index[gap_check.values]
+
+    flags = flagger.setFlags(flags, field, isolated_indices, **kwargs)
 
     return data, flags

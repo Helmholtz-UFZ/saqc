@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 
 from saqc.core.evaluator import evalExpression
-from saqc.funcs.functions import flagRange, flagSesonalRange, forceFlags, clearFlags
-
+from saqc.funcs.functions import flagRange, flagSesonalRange, forceFlags, clearFlags, flagIsolated
+from saqc.flagger.dmpflagger import DmpFlagger
 from test.common import initData, TESTFLAGGER, initMetaDict
 
 
@@ -93,3 +93,23 @@ def test_forceFlags(data, flagger):
     orig = flags.copy()
     _, forced = forceFlags(data, flags, field, flagger, flag=flagger.GOOD)
     assert np.all(flagger.getFlags(orig) != flagger.getFlags(forced))
+
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
+def test_flagIsolated(data, flagger):
+    field = data.columns[0]
+    data.iloc[1:3, 0] = np.nan
+    data.iloc[4:5, 0] = np.nan
+    data.iloc[11:13, 0] = np.nan
+    data.iloc[15:17, 0] = np.nan
+    flags = flagger.initFlags(data)
+    flags = flagger.setFlags(flags, field, iloc=slice(5, 6))
+    data, flags = flagIsolated(data, flags, field, flagger, '2.1D', drop_flags='BAD')
+
+    assert flagger.isFlagged(flags,field)[slice(3, 6, 2)].all()
+
+    flags = flagger.setFlags(flags, field, iloc=slice(3,4), flag=flagger.UNFLAGGED, force=True)
+    data, flags = flagIsolated(data, flags, field, flagger, '2.1D', max_isolated_group_size=2,
+                               continuation_range='1.1D', drop_flags='BAD')
+
+    assert flagger.isFlagged(flags, field)[[3, 5, 13, 14]].all()
+
