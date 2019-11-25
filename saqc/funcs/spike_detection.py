@@ -14,10 +14,7 @@ import numpy.polynomial.polynomial as poly
 from ..lib.tools import (
     inferFrequency,
     retrieveTrustworthyOriginal,
-    getPandasVarNames,
-    getPandasData,
     offset2seconds,
-    checkQCParameters,
     slidingWindowIndices)
 
 
@@ -322,49 +319,7 @@ def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h
                                            'rVar'  -> "relative Variance"
     """
 
-    para_check_1 = checkQCParameters({'data': {'value': data,
-                                               'type': [pd.Series, pd.DataFrame],
-                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
-                                      'flags': {'value': flags,
-                                                'type': [pd.Series, pd.DataFrame]},
-                                      'field': {'value': field,
-                                                'type': [str],
-                                                'tests': {'scheduled in data': lambda x: x in
-                                                                                         getPandasVarNames(data)}}},
-                                     kwargs['func_name'])
-
     dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
-
-    para_check_2 = checkQCParameters({'noise_statistic': {'value': noise_statistic,
-                                                          'member': ['CoVar', 'rVar']},
-                                      'filter_window_size': {'value': filter_window_size,
-                                                             'type': [str],
-                                                             'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                                 x).total_seconds() % 1 == 0}},
-                                      'noise_window_size': {'value': noise_window_size,
-                                                            'type': [str],
-                                                            'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                                x).total_seconds() % 1 == 0}},
-                                      'smooth_poly_order': {'value': smooth_poly_order,
-                                                            'type': [int],
-                                                            'range': [0, np.inf]},
-                                      'raise_factor': {'value': raise_factor,
-                                                       'type': [int, float],
-                                                       'range': [0, 1]},
-                                      'noise_barrier': {'value': noise_barrier,
-                                                        'type': [int, float],
-                                                        'range': [0, np.inf]},
-                                      'dev_cont_factor': {'value': dev_cont_factor,
-                                                          'type': [int, float],
-                                                          'range': [0, 1]}},
-                                     kwargs['func_name'])
-
-    # retrieve data series input at its original sampling rate
-    # (Note: case distinction for pure series input to avoid error resulting from trying to access pd.Series[field]
-    if (para_check_1 < 0) | (para_check_2 < 0):
-        logging.warning('test {} will be skipped because not all input parameters satisfied '
-                        'the requirements'.format(kwargs['func_name']))
-        return data, flags
 
     # retrieve noise statistic
     if noise_statistic == 'CoVar':

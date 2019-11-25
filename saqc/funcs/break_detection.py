@@ -10,10 +10,7 @@ from .register import register
 
 from ..lib.tools import (
     retrieveTrustworthyOriginal,
-    getPandasVarNames,
-    getPandasData,
-    offset2periods,
-    checkQCParameters)
+    offset2periods)
 
 
 @register("Breaks_SpektrumBased")
@@ -76,59 +73,7 @@ def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', fil
     """
 
     # retrieve data series input at its original sampling rate
-    para_check_1 = checkQCParameters({'data': {'value': data,
-                                               'type': [pd.Series, pd.DataFrame],
-                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
-                                      'flags': {'value': flags,
-                                                'type': [pd.Series, pd.DataFrame]},
-                                      'field': {'value': field,
-                                                'type': [str],
-                                                'tests': {'scheduled in data': lambda x: x in
-                                                          getPandasVarNames(data)}}},
-                                     kwargs['func_name'])
-
     dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
-
-    para_check_2 = checkQCParameters({'diff_method': {'value': diff_method,
-                                                      'member': ['raw', 'savgol']},
-                                      'filter_window_size': {'value': filter_window_size,
-                                                             'type': [str],
-                                                             'tests': {'Valid-Offset-String': lambda x: pd.Timedelta(
-                                                                 x).total_seconds() % 1 == 0,
-                                                                       'Filter-window-smaller-than-measurement-scope':
-                                                                        lambda x: pd.Timedelta(x) < pd.Timedelta(
-                                                                            dataseries.index[-1]-dataseries.index[0])}},
-                                      'first_der_window_size': {'value': first_der_window_size,
-                                                                'type': [str],
-                                                                'tests': {'Valid-Offset-String': lambda x: pd.Timedelta(
-                                                                 x).total_seconds() % 1 == 0,
-                                                                       'Deriv-window-smaller-than-measurement-scope':
-                                                                        lambda x: pd.Timedelta(x) < pd.Timedelta(
-                                                                            dataseries.index[-1]-dataseries.index[0])}},
-                                      'smooth_poly_order': {'value': smooth_poly_order,
-                                                            'type': [int],
-                                                            'range': [0, np.inf]},
-                                      'rel_change_rate_min': {'value': rel_change_rate_min,
-                                                              'type': [int, float],
-                                                              'range': [0, 1]},
-                                      'scnd_der_ratio_margin_1': {'value': scnd_der_ratio_margin_1,
-                                                                  'type': [int, float],
-                                                                  'range': [0, 1]},
-                                      'scnd_der_ratio_margin_2': {'value': scnd_der_ratio_margin_1,
-                                                                  'type': [int, float],
-                                                                  'range': [0, 1]},
-                                      'abs_change_min': {'value': abs_change_min,
-                                                         'type': [int, float],
-                                                         'range': [0, np.inf]},
-                                      'first_der_factor': {'value': first_der_factor,
-                                                           'type': [int, float],
-                                                           'range': [0, np.inf]}},
-                                     kwargs['func_name'])
-
-    if (para_check_1 < 0) | (para_check_2 < 0):
-        logging.warning('test {} will be skipped because not all input parameters satisfied '
-                        'the requirements'.format(kwargs['func_name']))
-        return data, flags
 
     # relative - change - break criteria testing:
     abs_change = np.abs(dataseries.shift(+1) - dataseries)

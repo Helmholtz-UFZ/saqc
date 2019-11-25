@@ -10,17 +10,13 @@ from .register import register
 
 
 from .statistic_functions import (
-    var_qc,
-    mean_qc)
+    var_qc)
 
 from ..lib.tools import (
     valueRange,
     slidingWindowIndices,
     retrieveTrustworthyOriginal,
-    getPandasVarNames,
-    getPandasData,
-    offset2periods,
-    checkQCParameters)
+    offset2periods)
 
 
 
@@ -87,42 +83,7 @@ def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min=
                                         "var_total_nans" have no chance to get flagged a plateau!)
     """
 
-    para_check_1 = checkQCParameters({'data': {'value': data,
-                                               'type': [pd.Series, pd.DataFrame],
-                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
-                                      'flags': {'value': flags,
-                                                'type': [pd.Series, pd.DataFrame]},
-                                      'field': {'value': field,
-                                                'type': [str],
-                                                'tests': {'scheduled in data':
-                                                          lambda x: x in getPandasVarNames(data)}}},
-                                     kwargs['func_name'])
-
     dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
-
-    para_check_2 = checkQCParameters({'plateau_window_min': {'value': plateau_window_min,
-                                                             'type': [str],
-                                                             'tests': {'Valid Offset String':
-                                                                       lambda x: pd.Timedelta(x).total_seconds() % 1
-                                                                                 == 0}},
-                                      'plateau_var_limit': {'value': plateau_var_limit,
-                                                            'type': [int, float],
-                                                            'range': [0, np.inf]},
-                                      'data_rate':          {'value': data_rate,
-                                                             'tests': {'not nan': lambda x: x is not np.nan}},
-                                      'var_total_nans': {'value': var_total_nans,
-                                                         'type': [int, float],
-                                                         'range': [0, np.inf]},
-                                      'var_consec_nans': {'value': var_consec_nans,
-                                                          'type': [int, float],
-                                                          'range': [0, np.inf]}
-                                      },
-                                     kwargs['func_name'])
-
-    if (para_check_1 < 0) | (para_check_2 < 0):
-        logging.warning('test {} will be skipped because not all input parameters satisfied '
-                        'the requirements'.format(kwargs['func_name']))
-        return data, flags
 
     min_periods = int(offset2periods(plateau_window_min, data_rate))
 
