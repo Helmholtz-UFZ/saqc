@@ -9,7 +9,7 @@ from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
 
-from saqc.funcs.break_detection import flagBreaks_SpektrumBased
+from saqc.funcs.break_detection import flagBreaks_spektrumBased
 
 
 TESTFLAGGERS = [
@@ -31,7 +31,7 @@ def break_data():
 def test_flagBreaks_SpektrumBased(break_data, flagger):
     data = break_data[0]
     flags = flagger.initFlags(data)
-    data, flag_result = flagBreaks_SpektrumBased(data, flags, 'break_data', flagger)
+    data, flag_result = flagBreaks_spektrumBased(data, flags, 'break_data', flagger)
     flag_result = flag_result.iloc[:, 0]
     test_sum = (flag_result[break_data[1]] == flagger.BAD).sum()
     assert test_sum == len(break_data[1])
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     flagger = DmpFlagger()
     data = break_data()[0]
     flags = flagger.initFlags(data)
-    data, flag_result = flagBreaks_SpektrumBased(data, flags, 'break_data', flagger)
+    data, flag_result = flagBreaks_spektrumBased(data, flags, 'break_data', flagger)
 
 
 

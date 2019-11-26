@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 
-from .break_detection import flagBreaks_SpektrumBased
+from .break_detection import flagBreaks_spektrumBased
 from .spike_detection import flagSpikes_SpektrumBased
 from .register import register
 
@@ -43,13 +43,13 @@ def flagSoilMoistureBreaks(data, flags, field, flagger, diff_method='raw', filte
                            scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
 
     """
-    The Function provides just a call to flagBreaks_SpektrumBased, with parameter defaults that refer to:
+    The Function provides just a call to flagBreaks_spektrumBased, with parameter defaults that refer to:
 
     Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
     Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
     """
-    return flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method=diff_method,
+    return flagBreaks_spektrumBased(data, flags, field, flagger, diff_method=diff_method,
                                     filter_window_size=filter_window_size,
                                     rel_change_rate_min=rel_change_rate_min, abs_change_min=abs_change_min,
                                     first_der_factor=first_der_factor, first_der_window_size=first_der_window_size,

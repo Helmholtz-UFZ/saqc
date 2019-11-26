@@ -19,4 +19,3 @@ class Params:
     FLAGPERIOD = "flag_period"
     FLAGVALUES = "flag_values"
     FLAG = "flag"
-    PLOT = "plot"

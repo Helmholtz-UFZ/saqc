@@ -9,7 +9,7 @@ from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
 
-from saqc.funcs.constants_detection import flagConstants_VarianceBased
+from saqc.funcs.constants_detection import flagConstant_varianceBased
 
 
 
@@ -33,7 +33,7 @@ def constants_data():
 def test_flagConstants_VarianceBased(constants_data, flagger):
     data = constants_data[0]
     flags = flagger.initFlags(data)
-    data, flag_result = flagConstants_VarianceBased(data, flags, 'constants_data', flagger, plateau_window_min='1h')
+    data, flag_result = flagConstant_varianceBased(data, flags, 'constants_data', flagger, plateau_window_min='1h')
     flag_result = flag_result.iloc[:, 0]
     test_sum = (flag_result[constants_data[1]] == flagger.BAD).sum()
     assert test_sum == len(constants_data[1])

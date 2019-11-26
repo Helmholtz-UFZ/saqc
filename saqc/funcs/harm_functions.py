@@ -6,6 +6,7 @@ import numpy as np
 import logging
 
 from saqc.funcs.functions import flagMissing
+from saqc.funcs.register import _directRegister
 
 
 # todo: frequencie estimation function
@@ -130,6 +131,18 @@ def harm_wrapper(harm=True, heap={}):
         return harmonize
     else:
         return deharmonize
+
+
+# make functions public
+harmonize = harm_wrapper(harm=True)
+deharmonize = harm_wrapper(harm=False)
+
+# the wrapper needs a special treatment
+_directRegister(harmonize, 'harmonize')
+_directRegister(deharmonize, 'deharmonize')
+
+
+# (de-)harmonize helper
 
 
 def _outsort_crap(data, flags, field, flagger, drop_suspicious=True, drop_bad=True, drop_list=None, return_drops=False,
@@ -630,8 +643,6 @@ def _toMerged(data, flags, flagger, fieldname, data_to_insert, flags_to_insert, 
         data, flags = flagMissing(data, flags, fieldname, flagger, nodata=np.nan)
 
     return data, flags
-
-
 
 
 

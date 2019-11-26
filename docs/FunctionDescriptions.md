@@ -171,7 +171,7 @@ SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
 ```
 ### Description
 
-The Function is just a wrapper around `flagBreaks_SpektrumBased`, from the 
+The Function is just a wrapper around `flagBreaks_spektrumBased`, from the 
 breaks detection library and performs a call to this function with a parameter 
 set, referring to:
 

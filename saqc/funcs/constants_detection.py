@@ -56,9 +56,9 @@ def flagConstant(data, flags, field, flagger, eps, length, thmin=None, **kwargs)
     return data, flags
 
 
-@register("constants_varianceBased")
-def flagConstants_VarianceBased(data, flags, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005,
-                                var_total_nans=np.inf, var_consec_nans=np.inf, **kwargs):
+@register("constant_varianceBased")
+def flagConstant_varianceBased(data, flags, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005,
+                               var_total_nans=np.inf, var_consec_nans=np.inf, **kwargs):
 
     """Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 

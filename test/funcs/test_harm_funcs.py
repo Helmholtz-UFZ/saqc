@@ -9,7 +9,9 @@ from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
 from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
 
-from saqc.funcs.harm_functions import harm_wrapper, _interpolate, _interpolate_grid, _insert_grid, _outsort_crap
+from saqc.funcs.harm_functions import harmonize, deharmonize,\
+    _interpolate, _interpolate_grid, _insert_grid, _outsort_crap
+from saqc.core import runner
 
 
 TESTFLAGGERS = [
@@ -107,11 +109,12 @@ def test_harm_single_var_intermediate_flagging(data, flagger, reshaper, co_flagg
     freq = '15min'
 
     # harmonize data:
-    data, flags = harm_wrapper()(data, flags, 'data', flagger, freq, 'time', reshaper)
+    data, flags = harmonize(data, flags, 'data', flagger, freq, 'time', reshaper)
 
     # flag something bad
     flags = flagger.setFlags(flags, 'data', loc=flags.index[3:4])
-    data, flags = harm_wrapper(harm=False)(data, flags, 'data', flagger, co_flagging=co_flagging)
+
+    data, flags = deharmonize(data, flags, 'data', flagger, co_flagging=co_flagging)
 
     if reshaper is 'nearest_shift':
         if co_flagging is True:
@@ -155,7 +158,7 @@ def test_harm_single_var_interpolations(data, flagger, interpolation, freq):
     harm_start = data.index[0].floor(freq=freq)
     harm_end = data.index[-1].ceil(freq=freq)
     test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
-    data, flags = harm_wrapper()(data, flags, 'data', flagger, freq, interpolation, 'fshift',
+    data, flags = harmonize(data, flags, 'data', flagger, freq, interpolation, 'fshift',
                                  reshape_shift_comment=False, inter_agg=np.sum)
 
     if interpolation is 'fshift':
@@ -184,9 +187,9 @@ def test_harm_single_var_interpolations(data, flagger, interpolation, freq):
         if freq == '30min':
             assert data.equals(pd.DataFrame({'data': [-50.0, -75.0, 50.0, 50.0]}, index=test_index))
 
-    data, flags = harm_wrapper(harm=False)(data, flags, 'data', flagger, co_flagging=True)
+    data, flags = deharmonize(data, flags, 'data', flagger, co_flagging=True)
 
-    data, flags = harm_wrapper(harm=False)(data, flags, 'data', flagger, co_flagging=True)
+    data, flags = deharmonize(data, flags, 'data', flagger, co_flagging=True)
 
     assert pre_data.equals(data)
     assert len(data) == len(flags)
@@ -206,19 +209,19 @@ def test_multivariat_harmonization(multi_data, flagger, shift_comment):
     harm_end = multi_data.index[-1].ceil(freq=freq)
     test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
     # harm:
-    multi_data, flags = harm_wrapper()(multi_data, flags, 'data', flagger, freq, 'time', 'nearest_shift',
+    multi_data, flags = harmonize(multi_data, flags, 'data', flagger, freq, 'time', 'nearest_shift',
                                        reshape_shift_comment=shift_comment)
-    multi_data, flags = harm_wrapper()(multi_data, flags, 'data2', flagger, freq, 'bagg', 'bshift', inter_agg=sum,
+    multi_data, flags = harmonize(multi_data, flags, 'data2', flagger, freq, 'bagg', 'bshift', inter_agg=sum,
                                        reshape_agg=max, reshape_shift_comment=shift_comment)
-    multi_data, flags = harm_wrapper()(multi_data, flags, 'data3', flagger, freq, 'fshift', 'fshift',
+    multi_data, flags = harmonize(multi_data, flags, 'data3', flagger, freq, 'fshift', 'fshift',
                                        reshape_shift_comment=shift_comment)
 
     assert multi_data.index.equals(test_index)
     assert pd.Timedelta(pd.infer_freq(multi_data.index)) == pd.Timedelta(freq)
 
-    multi_data, flags = harm_wrapper(harm=False)(multi_data, flags, 'data3', flagger, co_flagging=False)
-    multi_data, flags = harm_wrapper(harm=False)(multi_data, flags, 'data2', flagger, co_flagging=True)
-    multi_data, flags = harm_wrapper(harm=False)(multi_data, flags, 'data', flagger, co_flagging=True)
+    multi_data, flags = deharmonize(multi_data, flags, 'data3', flagger, co_flagging=False)
+    multi_data, flags = deharmonize(multi_data, flags, 'data2', flagger, co_flagging=True)
+    multi_data, flags = deharmonize(multi_data, flags, 'data', flagger, co_flagging=True)
 
     assert pre_data.equals(multi_data[pre_data.columns.to_list()])
     assert len(multi_data) == len(flags)
@@ -258,6 +261,15 @@ def test_outsort_crap(data, flagger):
     assert f_drop.index.sort_values().equals(drop_index.sort_values())
 
 
+def test_core_harm():
+    pass
+    # harmonize data:
+    metadict = [
+        # {'varname': 'data', 'test1': f'harmonize(freq="15min", inter_method="time", reshape_method="{reshaper}")'},
+        # {'varname': 'data', 'test1': f'deharmonize(co_flagging="{co_flagging}")'}
+    ]
+    # meta_file, meta_frame = initMetaDict(metadict, data)
+    # data2, flags2 = runner(meta_file, flagger, pre_data, pre_flags)
 
 
 

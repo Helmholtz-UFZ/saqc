@@ -13,8 +13,8 @@ from ..lib.tools import (
     offset2periods)
 
 
-@register("Breaks_SpektrumBased")
-def flagBreaks_SpektrumBased(data, flags, field, flagger, diff_method='raw', filter_window_size='3h',
+@register("breaks_spektrumBased")
+def flagBreaks_spektrumBased(data, flags, field, flagger, diff_method='raw', filter_window_size='3h',
                              rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
                              first_der_window_size='12h', scnd_der_ratio_margin_1=0.05,
                              scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
