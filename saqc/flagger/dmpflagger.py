@@ -6,7 +6,6 @@ from copy import deepcopy
 from collections import OrderedDict
 from typing import Union, Sequence
 
-import numpy as np
 import pandas as pd
 
 from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
@@ -42,6 +41,29 @@ class DmpFlagger(CategoricalBaseFlagger):
         self.signature = ("flag", "comment", "cause", "force")
         self._flags = None
 
+    def initFlags(self, data: pd.DataFrame = None, flags: pd.DataFrame = None):
+        """
+        initialize a flagger based on the given 'data' or 'flags'
+        if 'data' is not None: return a flagger with flagger.UNFALGGED values
+        if 'flags' is not None: return a flagger with the given flags
+        """
+        if data is not None:
+            isDataFrameCheck(data, 'data', allow_multiindex=False)
+            flags = pd.DataFrame(
+                data=self.UNFLAGGED,
+                columns=self._getColumnIndex(data.columns),
+                index=data.index)
+        elif flags is not None:
+            isDataFrameCheck(flags, 'flags', allow_multiindex=False)
+            if not isinstance(flags.columns, pd.MultiIndex):
+                flags = (flags
+                         .T.set_index(keys=self._getColumnIndex(flags.columns, [FlagFields.FLAG])).T
+                         .reindex(columns=self._getColumnIndex(flags.columns)))
+        else:
+            raise TypeError("either 'data' or 'flags' are required")
+
+        return self._copy(self._assureDtype(flags))
+
     def getFlagger(self, field=None, loc=None, iloc=None):
         # NOTE: we need to preserve all indexing levels
         assertScalar("field", field, optional=True)
@@ -74,23 +96,6 @@ class DmpFlagger(CategoricalBaseFlagger):
 
         out = deepcopy(self)
         out._flags.loc[mask, field] = other[mask], cause, comment
-        return out
-
-    def _initFromData(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
-        isDataFrameCheck(data, 'data', allow_multiindex=False)
-        colindex = self._getColumnIndex(data.columns)
-        flags = pd.DataFrame(data=self.UNFLAGGED, columns=colindex, index=data.index)
-        self._flags = self._assureDtype(flags)
-        return self
-
-    def _initFromFlags(self, flags: pd.DataFrame):
-        isDataFrameCheck(flags, "flags", allow_multiindex=True)
-        if not isinstance(flags.columns, pd.MultiIndex):
-            flags = (flags
-                     .T.set_index(keys=self._getColumnIndex(flags.columns, [FlagFields.FLAG])).T
-                     .reindex(columns=self._getColumnIndex(flags.columns)))
-        out = deepcopy(self)
-        out._flags = out._assureDtype(flags)
         return out
 
     def _getColumnIndex(self,

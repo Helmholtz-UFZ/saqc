@@ -3,13 +3,14 @@
 
 import operator as op
 from copy import deepcopy
+from collections import OrderedDict
 from abc import ABC, abstractmethod
-from typing import TypeVar, Union
+from typing import TypeVar, Union, Any
 
 import numpy as np
 import pandas as pd
 
-from saqc.lib.tools import toSequence, assertScalar
+from saqc.lib.tools import toSequence, assertScalar, isDataFrameCheck
 
 
 COMPARATOR_MAP = {
@@ -23,13 +24,20 @@ COMPARATOR_MAP = {
 
 BaseFlaggerT = TypeVar("BaseFlaggerT")
 PandasT = Union[pd.Series, pd.DataFrame]
+# TODO: get some real types here (could be tricky...)
+LocT = Any
+IlocT = Any
+FlagT = Any
 
 
 class BaseFlagger(ABC):
 
     @abstractmethod
     def __init__(self, dtype):
+        # NOTE: the type of the _flags DataFrame
         self.dtype = dtype
+        # NOTE: the arggumens of setFlags supported from
+        #       the configuration functions
         self.signature = ("flag",)
         self._flags: pd.DataFrame
 
@@ -39,7 +47,15 @@ class BaseFlagger(ABC):
         if 'data' is not None: return a flagger with flagger.UNFALGGED values
         if 'flags' is not None: return a flagger with the given flags
         """
-        pass
+        if data is not None:
+            isDataFrameCheck(data, 'data', allow_multiindex=False)
+            flags = pd.DataFrame(
+                data=self.UNFLAGGED, index=data.index, columns=data.columns)
+        elif flags is not None:
+            isDataFrameCheck(flags, 'flags', allow_multiindex=False)
+        else:
+            raise TypeError("either 'data' or 'flags' are required")
+        return self._copy(self._assureDtype(flags))
 
     def setFlagger(self, other: BaseFlaggerT):
         """
@@ -54,20 +70,18 @@ class BaseFlagger(ABC):
             out._flags.loc[other._flags.index, v] = other._flags[v]
         return out
 
-    def getFlagger(self, field: str = None, loc=None, iloc=None) -> BaseFlaggerT:
+    def getFlagger(self, field: str = None, loc: LocT = None, iloc: IlocT = None) -> BaseFlaggerT:
         """
         return a potentially trimmed down copy of self
         """
         assertScalar("field", field, optional=True)
         mask = self._locatorMask(field=slice(None), loc=loc, iloc=iloc)
-        out = deepcopy(self)
         flags = self._flags.loc[mask, field or slice(None)]
         if isinstance(flags, pd.Series):
             flags = flags.to_frame()
-        out._flags = flags
-        return out
+        return self._copy(flags)
 
-    def getFlags(self, field: str = None, loc=None, iloc=None, **kwargs) -> PandasT:
+    def getFlags(self, field: str = None, loc: LocT = None, iloc: IlocT = None, **kwargs) -> PandasT:
         """
         return a copy of potentially trimmed down 'self._flags' DataFrame
         """
@@ -77,10 +91,10 @@ class BaseFlagger(ABC):
         mask = self._locatorMask(field, loc, iloc)
         return flags.loc[mask, field]
 
-    def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, **kwargs) -> BaseFlaggerT:
+    def setFlags(self, field: str, loc: LocT = None, iloc: IlocT = None, flag: FlagT = None, force: bool = False, **kwargs) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
 
-        flag = self.BAD if flag is None else flag
+        flag = self.BAD if flag is None else self._checkFlag(flag)
 
         this = self.getFlags(field=field)
         other = self._broadcastFlags(field=field, flag=flag)
@@ -93,11 +107,11 @@ class BaseFlagger(ABC):
         out._flags.loc[mask, field] = other[mask]
         return out
 
-    def clearFlags(self, field: str, loc=None, iloc=None, **kwargs) -> BaseFlaggerT:
+    def clearFlags(self, field: str, loc: LocT = None, iloc: IlocT = None, **kwargs) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
         return self.setFlags(field=field, loc=loc, iloc=iloc, flag=self.UNFLAGGED, force=True)
 
-    def isFlagged(self, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs) -> PandasT:
+    def isFlagged(self, field=None, loc: LocT = None, iloc: IlocT = None, flag: FlagT = None, comparator: str = ">", **kwargs) -> PandasT:
         assertScalar("field", field, optional=True)
         assertScalar("flag", flag, optional=True)
         flag = self.GOOD if flag is None else flag
@@ -106,7 +120,13 @@ class BaseFlagger(ABC):
         flagged = pd.notna(flags) & cp(flags, flag)
         return flagged
 
-    def _locatorMask(self, field: str = None, loc=None, iloc=None) -> PandasT:
+    def _copy(self, flags: pd.DataFrame = None) -> BaseFlaggerT:
+        out = deepcopy(self)
+        if flags is not None:
+            out._flags = flags
+        return out
+
+    def _locatorMask(self, field: str = None, loc: LocT = None, iloc: IlocT = None) -> PandasT:
         field = field or slice(None)
         locator = [l for l in (loc, iloc, slice(None)) if l is not None][0]
         flags = self._flags[toSequence(field)]
@@ -114,7 +134,7 @@ class BaseFlagger(ABC):
         mask[locator] = True
         return mask
 
-    def _broadcastFlags(self, field: str, flag) -> PandasT:
+    def _broadcastFlags(self, field: str, flag: FlagT) -> pd.Series:
 
         this = self.getFlags(field)
 
@@ -125,29 +145,47 @@ class BaseFlagger(ABC):
             data=flag, index=this.index,
             name=field, dtype=self.dtype)
 
-    def nextTest(self):
+    def _checkFlag(self, flag):
+        if flag is not None and not self._isDtype(flag):
+            raise TypeError(
+                f"flag '{flag}' needs to be of type '{self.dtype}'")
+        return flag
+
+    def _assureDtype(self, flags):
+        # NOTE: building up new DataFrames is significantly
+        #       faster than assigning into existing ones
+        if isinstance(flags, pd.Series):
+            return flags.astype(self.dtype)
+        tmp = OrderedDict()
+        for c in flags.columns:
+            tmp[c] = flags[c].astype(self.dtype)
+        return pd.DataFrame(tmp)
+
+
+    @abstractmethod
+    def _isDtype(self, flag) -> bool:
         pass
 
     @property
     @abstractmethod
-    def UNFLAGGED(self):
+    def UNFLAGGED(self) -> FlagT:
         """ Return the flag that indicates unflagged data """
         pass
 
     @property
     @abstractmethod
-    def GOOD(self):
+    def GOOD(self) -> FlagT:
         """ Return the flag that indicates the very best data """
         pass
 
     @property
     @abstractmethod
-    def BAD(self):
+    def BAD(self) -> FlagT:
         """ Return the flag that indicates the worst data """
         pass
 
     @abstractmethod
-    def isSUSPICIOUS(self, flag) -> bool:
+    def isSUSPICIOUS(self, flag: FlagT) -> bool:
         """ Return bool that indicates if the given flag is valid, but neither
         UNFLAGGED, BAD, nor GOOD."""
         pass

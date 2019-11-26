@@ -1,14 +1,11 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from copy import deepcopy
-
 import pandas as pd
 import numpy as np
 import intervals
 
 from saqc.flagger.baseflagger import BaseFlagger
-from saqc.lib.tools import isDataFrameCheck
 
 
 class ContinuousBaseFlagger(BaseFlagger):
@@ -20,23 +17,6 @@ class ContinuousBaseFlagger(BaseFlagger):
         self._unflagged_flag = unflagged
         self.signature = ("flag", "factor", "modify")
 
-    def initFlags(self, data: pd.DataFrame = None, flags: pd.DataFrame = None):
-        if data is not None:
-            isDataFrameCheck(data, 'data', allow_multiindex=False)
-            flags = pd.DataFrame(
-                data=self.UNFLAGGED, index=data.index, columns=data.columns)
-        elif flags is not None:
-            isDataFrameCheck(flags, 'flags', allow_multiindex=False)
-        out = deepcopy(self)
-        out._flags = flags
-        return out
-
-    def isFlagged(self, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
-        return super().isFlagged(
-            field=field, loc=loc, iloc=iloc,
-            flag=self._checkFlag(flag), comparator=comparator,
-            **kwargs)
-
     def setFlags(self, field, loc=None, iloc=None, flag=None,
                  force=False, factor=1, modify=False, **kwargs):
         # NOTE: incomplete, as the option to
@@ -46,14 +26,13 @@ class ContinuousBaseFlagger(BaseFlagger):
             flag=self._checkFlag(flag), force=force,
             **kwargs)
 
-    def _checkFlag(self, flag):
-        if flag is not None and not self._isInterval(flag):
-            raise TypeError(
-                f"invalid flag: '{flag}'")
-        return flag
+    # NOTE:
+    # we should probably override _assureDtype here
 
-    def _isInterval(self, flag):
+    def _isDtype(self, flag):
         if isinstance(flag, pd.Series):
+            # NOTE: it should be made sure, that all
+            #       values fall into the interval
             return flag.dtype == self.dtype
         return flag in self._interval or flag == self.UNFLAGGED
 
