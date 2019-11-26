@@ -110,7 +110,6 @@ def test_forceFlags(data, flagger):
     assert np.all(flags_orig != flags_forced)
 
 
-@pytest.mark.skip(reason="not ported yet")
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_flagIsolated(data, flagger):
     field = data.columns[0]
@@ -118,14 +117,17 @@ def test_flagIsolated(data, flagger):
     data.iloc[4:5, 0] = np.nan
     data.iloc[11:13, 0] = np.nan
     data.iloc[15:17, 0] = np.nan
-    flags = flagger.initFlags(data)
-    flags = flagger.setFlags(flags, field, iloc=slice(5, 6))
-    data, flags = flagIsolated(data, flags, field, flagger, '2.1D', drop_flags='BAD')
+    flagger = flagger.initFlags(data)
+    flagger = flagger.setFlags(field, iloc=slice(5, 6))
+    data, flagger = flagIsolated(data, field, flagger, '2.1D', drop_flags='BAD')
 
-    assert flagger.isFlagged(flags,field)[slice(3, 6, 2)].all()
+    assert flagger.isFlagged(field)[slice(3, 6, 2)].all()
 
-    flags = flagger.setFlags(flags, field, iloc=slice(3,4), flag=flagger.UNFLAGGED, force=True)
-    data, flags = flagIsolated(data, flags, field, flagger, '2.1D', max_isolated_group_size=2,
-                               continuation_range='1.1D', drop_flags='BAD')
+    flagger = flagger.setFlags(field, iloc=slice(3,4), flag=flagger.UNFLAGGED, force=True)
+    data, flagger = flagIsolated(
+        data, field, flagger, '2.1D',
+        max_isolated_group_size=2,
+        continuation_range='1.1D',
+        drop_flags='BAD')
 
-    assert flagger.isFlagged(flags, field)[[3, 5, 13, 14]].all()
+    assert flagger.isFlagged(field)[[3, 5, 13, 14]].all()

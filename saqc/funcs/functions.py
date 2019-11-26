@@ -108,18 +108,20 @@ def forceFlags(data, field, flagger, **kwargs):
 
 
 @register('isolated')
-def flagIsolated(data, flags, field, flagger, isolation_range, max_isolated_group_size=1, continuation_range='10min',
+def flagIsolated(data, field, flagger, isolation_range,
+                 max_isolated_group_size=1,
+                 continuation_range='10min',
                  drop_flags=None, **kwargs):
 
-    drop_mask = pd.Series(data=False, index=flags.index)
+    drop_mask = pd.Series(data=False, index=data.index)
     # todo susp/BAD: make same case
-    if drop_flags is 'suspicious':
-        drop_mask |= ~(flagger.isFlagged(flags, field, flag=flagger.GOOD, comparator='<='))
-    elif drop_flags is 'BAD':
-        drop_mask |= flagger.isFlagged(flags, field, flag=flagger.BAD, comparator='==')
+    if drop_flags == 'suspicious':
+        drop_mask |= ~(flagger.isFlagged(field, flag=flagger.GOOD, comparator='<='))
+    elif drop_flags == 'BAD':
+        drop_mask |= flagger.isFlagged(field, flag=flagger.BAD, comparator='==')
     elif isinstance(drop_flags, list):
         for to_drop in drop_flags:
-            drop_mask |= flagger.isFlagged(flags, field, flag=to_drop, comparator='==')
+            drop_mask |= flagger.isFlagged(field, flag=to_drop, comparator='==')
 
     dat_col = data[field][~drop_mask]
     dat_col.dropna(inplace=True)
@@ -157,6 +159,6 @@ def flagIsolated(data, flags, field, flagger, isolation_range, max_isolated_grou
         gap_check = gap_check.rolling(continuation_range).count().notna()[::-1]
         isolated_indices = original_index[gap_check.values]
 
-    flags = flagger.setFlags(flags, field, isolated_indices, **kwargs)
+    flagger = flagger.setFlags(field, isolated_indices, **kwargs)
 
-    return data, flags
+    return data, flagger
