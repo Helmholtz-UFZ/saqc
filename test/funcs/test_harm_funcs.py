@@ -250,7 +250,6 @@ def test_multivariat_harmonization(multi_data, flagger, shift_comment):
     assert len(multi_data) == len(flags)
     assert (pre_flags.index == flags.index).all()
 
-@pytest.mark.skip(reason="not ported yet")
 @pytest.mark.parametrize('method', INTERPOLATIONS2)
 def test_grid_interpolation(data, method):
     freq = '15min'
@@ -264,22 +263,26 @@ def test_grid_interpolation(data, method):
         _interpolate(data, method, inter_limit=3)
 
 
-@pytest.mark.skip(reason="not ported yet")
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_outsort_crap(data, flagger):
+
     field = data.columns[0]
-    flags = flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
+    flagger = flagger.setFlags(field, iloc=slice(5, 7))
+
     drop_index = data.index[5:7]
-    flags = flagger.setFlags(flags, field, iloc=slice(5, 7))
-    d, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=True, drop_bad=False)
+    d, _ = _outsort_crap(data, field, flagger, drop_suspicious=True, drop_bad=False)
     assert drop_index.difference(d.index).equals(drop_index)
-    d, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=False, drop_bad=True)
+
+    d, _ = _outsort_crap(data, field, flagger, drop_suspicious=False, drop_bad=True)
     assert drop_index.difference(d.index).equals(drop_index)
-    drop_index = drop_index.insert(-1, flags.index[0])
-    flags = flagger.setFlags(flags, field, iloc=slice(0,1), flag=flagger.GOOD)
-    d, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=False, drop_bad=False,
+
+    flagger = flagger.setFlags(field, iloc=slice(0, 1), flag=flagger.GOOD)
+    drop_index = drop_index.insert(-1, data.index[0])
+    d, _ = _outsort_crap(data, field, flagger, drop_suspicious=False, drop_bad=False,
                          drop_list=[flagger.BAD, flagger.GOOD])
+
     assert drop_index.sort_values().difference(d.index).equals(drop_index.sort_values())
-    f_drop, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=False, drop_bad=False,
-                         drop_list=[flagger.BAD, flagger.GOOD], return_drops=True)
+    f_drop, _ = _outsort_crap(data, field, flagger, drop_suspicious=False, drop_bad=False,
+                              drop_list=[flagger.BAD, flagger.GOOD], return_drops=True)
     assert f_drop.index.sort_values().equals(drop_index.sort_values())
