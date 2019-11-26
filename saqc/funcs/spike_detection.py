@@ -13,15 +13,12 @@ import numpy.polynomial.polynomial as poly
 from ..lib.tools import (
     inferFrequency,
     retrieveTrustworthyOriginal,
-    getPandasVarNames,
-    getPandasData,
     offset2seconds,
-    checkQCParameters,
     slidingWindowIndices)
 
 
-@register("sliding_outlier")
-def slidingOutlier(data, field, flagger, winsz, dx, count=1, deg=1, z=3.5, method='modZ', **kwargs):
+@register("spikes_slidingZscore")
+def flagSpikes_slidingZscore(data, field, flagger, winsz, dx, count=1, deg=1, z=3.5, method='modZ', **kwargs):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
 
@@ -133,8 +130,8 @@ def slidingOutlier(data, field, flagger, winsz, dx, count=1, deg=1, z=3.5, metho
     return data, flagger
 
 
-@register("mad")
-def flagMad(data, field, flagger, length, z=3.5, freq=None, **kwargs):
+@register("spikes_simpleMad")
+def flagSpikes_simpleMad(data, field, flagger, length, z=3.5, freq=None, **kwargs):
     """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
 
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
@@ -164,8 +161,8 @@ def flagMad(data, field, flagger, length, z=3.5, freq=None, **kwargs):
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
-@register("Spikes_Basic")
-def flagSpikes_Basic(data, field, flagger, thresh=7, tol=0, length='15min', **kwargs):
+@register("spikes_basic")
+def flagSpikes_basic(data, field, flagger, thresh=7, tol=0, length='15min', **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -244,8 +241,9 @@ def flagSpikes_Basic(data, field, flagger, thresh=7, tol=0, length='15min', **kw
     flagger = flagger.setFlags(field, to_flag, **kwargs)
     return data, flagger
 
-@register("Spikes_SpektrumBased")
-def flagSpikes_SpektrumBased(data, field, flagger, filter_window_size='3h',
+
+@register("spikes_spektrumBased")
+def flagSpikes_spektrumBased(data, field, flagger, filter_window_size='3h',
                              raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
                              noise_statistic='CoVar', smooth_poly_order=2, **kwargs):
     """
@@ -316,47 +314,7 @@ def flagSpikes_SpektrumBased(data, field, flagger, filter_window_size='3h',
                                            'rVar'  -> "relative Variance"
     """
 
-    para_check_1 = checkQCParameters({'data': {'value': data,
-                                               'type': [pd.Series, pd.DataFrame],
-                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
-                                      'field': {'value': field,
-                                                'type': [str],
-                                                'tests': {'scheduled in data': lambda x: x in
-                                                                                         getPandasVarNames(data)}}},
-                                     kwargs['func_name'])
-
     dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
-
-    para_check_2 = checkQCParameters({'noise_statistic': {'value': noise_statistic,
-                                                          'member': ['CoVar', 'rVar']},
-                                      'filter_window_size': {'value': filter_window_size,
-                                                             'type': [str],
-                                                             'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                                 x).total_seconds() % 1 == 0}},
-                                      'noise_window_size': {'value': noise_window_size,
-                                                            'type': [str],
-                                                            'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                                x).total_seconds() % 1 == 0}},
-                                      'smooth_poly_order': {'value': smooth_poly_order,
-                                                            'type': [int],
-                                                            'range': [0, np.inf]},
-                                      'raise_factor': {'value': raise_factor,
-                                                       'type': [int, float],
-                                                       'range': [0, 1]},
-                                      'noise_barrier': {'value': noise_barrier,
-                                                        'type': [int, float],
-                                                        'range': [0, np.inf]},
-                                      'dev_cont_factor': {'value': dev_cont_factor,
-                                                          'type': [int, float],
-                                                          'range': [0, 1]}},
-                                     kwargs['func_name'])
-
-    # retrieve data series input at its original sampling rate
-    # (Note: case distinction for pure series input to avoid error resulting from trying to access pd.Series[field]
-    if (para_check_1 < 0) | (para_check_2 < 0):
-        logging.warning('test {} will be skipped because not all input parameters satisfied '
-                        'the requirements'.format(kwargs['func_name']))
-        return data, flagger
 
     # retrieve noise statistic
     if noise_statistic == 'CoVar':

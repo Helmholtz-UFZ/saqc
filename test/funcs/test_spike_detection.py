@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 
 from saqc.funcs.spike_detection import (
-    flagSpikes_SpektrumBased,
-    flagMad,
-    slidingOutlier,
-    flagSpikes_Basic)
+    flagSpikes_spektrumBased,
+    flagSpikes_simpleMad,
+    flagSpikes_slidingZscore,
+    flagSpikes_basic)
 
 from test.common import TESTFLAGGER
 
@@ -29,7 +29,7 @@ def test_flagSpikes_SpektrumBased(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
-    data, flagger_result = flagSpikes_SpektrumBased(data, field, flagger)
+    data, flagger_result = flagSpikes_spektrumBased(data, field, flagger)
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
@@ -40,7 +40,7 @@ def test_flagMad(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
-    data, flagger_result = flagMad(data, field, flagger, '1H')
+    data, flagger_result = flagSpikes_simpleMad(data, field, flagger, '1H')
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
@@ -56,8 +56,8 @@ def test_slidingOutlier(spiky_data, flagger, method):
     flagger = flagger.initFlags(data)
 
     tests = [
-        slidingOutlier(data, field, flagger, winsz=300, dx=50, method=method),
-        slidingOutlier(data, field, flagger, winsz='1500min', dx='250min', method=method)
+        flagSpikes_slidingZscore(data, field, flagger, winsz=300, dx=50, method=method),
+        flagSpikes_slidingZscore(data, field, flagger, winsz='1500min', dx='250min', method=method)
     ]
 
     for _, flagger_result in tests:
@@ -71,7 +71,7 @@ def test_flagSpikes_Basic(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
-    data, flagger_result = flagSpikes_Basic(data, field, flagger, thresh=60, tol=10, length='20min')
+    data, flagger_result = flagSpikes_basic(data, field, flagger, thresh=60, tol=10, length='20min')
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])

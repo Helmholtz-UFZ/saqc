@@ -10,6 +10,10 @@ from saqc.funcs.harm_functions import harm_wrapper
 
 from test.common import TESTFLAGGER
 
+from saqc.funcs.harm_functions import harmonize, deharmonize,\
+    _interpolate, _interpolate_grid, _insert_grid, _outsort_crap
+
+
 
 RESHAPERS = [
     'nearest_shift',
@@ -36,6 +40,12 @@ INTERPOLATIONS = [
     'nearest_shift',
     'nearest_agg',
     'bagg'
+]
+
+INTERPOLATIONS2 = [
+    'fagg',
+    'time',
+    'polynomial'
 ]
 
 
@@ -101,12 +111,12 @@ def test_harm_single_var_intermediate_flagging(data, flagger, reshaper, co_flagg
     freq = '15min'
 
     # harmonize data:
-    data, flagger = harm_wrapper()(data, 'data', flagger, freq, 'time', reshaper)
+    data, flagger = harmonize(data, 'data', flagger, freq, 'time', reshaper)
 
     # flag something bad
     flagger = flagger.setFlags('data', loc=data.index[3:4])
-    data, flagger = harm_wrapper(harm=False)\
-        (data, 'data', flagger, co_flagging=co_flagging)
+    data, flagger = deharmonize(
+        data, 'data', flagger, co_flagging=co_flagging)
 
     if reshaper is 'nearest_shift':
         if co_flagging is True:
@@ -152,9 +162,9 @@ def test_harm_single_var_interpolations(data, flagger, interpolation, freq):
     harm_start = data.index[0].floor(freq=freq)
     harm_end = data.index[-1].ceil(freq=freq)
     test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
-    data, flagger = harm_wrapper()\
-        (data, 'data', flagger, freq, interpolation, 'fshift',
-         reshape_shift_comment=False, inter_agg=np.sum)
+    data, flagger = harmonize(
+        data, 'data', flagger, freq, interpolation, 'fshift',
+        reshape_shift_comment=False, inter_agg=np.sum)
 
     if interpolation is 'fshift':
         if freq == '15min':
@@ -182,9 +192,9 @@ def test_harm_single_var_interpolations(data, flagger, interpolation, freq):
         if freq == '30min':
             assert data.equals(pd.DataFrame({'data': [-50.0, -75.0, 50.0, 50.0]}, index=test_index))
 
-    data, flagger = harm_wrapper(harm=False)(data, 'data', flagger, co_flagging=True)
+    data, flagger = deharmonize(data, 'data', flagger, co_flagging=True)
 
-    data, flagger = harm_wrapper(harm=False)(data, 'data', flagger, co_flagging=True)
+    data, flagger = deharmonize(data, 'data', flagger, co_flagging=True)
     flags = flagger.getFlags()
 
     assert pre_data.equals(data)
@@ -206,35 +216,32 @@ def test_multivariat_harmonization(multi_data, flagger, shift_comment):
     harm_end = multi_data.index[-1].ceil(freq=freq)
     test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
     # harm:
-    harmonizer = harm_wrapper()
-    deharmonizer = harm_wrapper(harm=False)
-    multi_data, flagger = harmonizer(
+    multi_data, flagger = harmonize(
         multi_data, 'data', flagger,
         freq, 'time', 'nearest_shift',
         reshape_shift_comment=shift_comment)
 
-    multi_data, flagger = harmonizer(
+    multi_data, flagger = harmonize(
         multi_data, 'data2', flagger,
         freq, 'bagg', 'bshift',
         inter_agg=sum,
         reshape_agg=max,
         reshape_shift_comment=shift_comment)
 
-    multi_data, flagger= harmonizer(
+    multi_data, flagger = harmonize(
         multi_data, 'data3', flagger,
         freq, 'fshift', 'fshift',
-         reshape_shift_comment=shift_comment)
-
+        reshape_shift_comment=shift_comment)
     assert multi_data.index.equals(test_index)
     assert pd.Timedelta(pd.infer_freq(multi_data.index)) == pd.Timedelta(freq)
 
-    multi_data, flagger = deharmonizer(
+    multi_data, flagger = deharmonize(
         multi_data, 'data3', flagger,
         co_flagging=False)
-    multi_data, flagger = deharmonizer(
+    multi_data, flagger = deharmonize(
         multi_data, 'data2', flagger,
         co_flagging=True)
-    multi_data, flagger = deharmonizer(
+    multi_data, flagger = deharmonize(
         multi_data, 'data', flagger,
         co_flagging=True)
 
@@ -242,3 +249,37 @@ def test_multivariat_harmonization(multi_data, flagger, shift_comment):
     assert pre_data.equals(multi_data[pre_data.columns.to_list()])
     assert len(multi_data) == len(flags)
     assert (pre_flags.index == flags.index).all()
+
+@pytest.mark.skip(reason="not ported yet")
+@pytest.mark.parametrize('method', INTERPOLATIONS2)
+def test_grid_interpolation(data, method):
+    freq = '15min'
+    data = ((data * np.sin(data)).append(data.shift(1, '2h')).shift(1, '3s'))
+    # we are just testing if the interolation gets passed to the series without causing an error:
+    _interpolate_grid(data, freq, method, order=1, agg_method=sum, downcast_interpolation=True)
+    if method == 'polynomial':
+        _interpolate_grid(data, freq, method, order=2, agg_method=sum, downcast_interpolation=True)
+        _interpolate_grid(data, freq, method, order=10, agg_method=sum, downcast_interpolation=True)
+        data = _insert_grid(data, freq)
+        _interpolate(data, method, inter_limit=3)
+
+
+@pytest.mark.skip(reason="not ported yet")
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
+def test_outsort_crap(data, flagger):
+    field = data.columns[0]
+    flags = flagger.initFlags(data)
+    drop_index = data.index[5:7]
+    flags = flagger.setFlags(flags, field, iloc=slice(5, 7))
+    d, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=True, drop_bad=False)
+    assert drop_index.difference(d.index).equals(drop_index)
+    d, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=False, drop_bad=True)
+    assert drop_index.difference(d.index).equals(drop_index)
+    drop_index = drop_index.insert(-1, flags.index[0])
+    flags = flagger.setFlags(flags, field, iloc=slice(0,1), flag=flagger.GOOD)
+    d, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=False, drop_bad=False,
+                         drop_list=[flagger.BAD, flagger.GOOD])
+    assert drop_index.sort_values().difference(d.index).equals(drop_index.sort_values())
+    f_drop, f = _outsort_crap(data, flags, field, flagger, drop_suspicious=False, drop_bad=False,
+                         drop_list=[flagger.BAD, flagger.GOOD], return_drops=True)
+    assert f_drop.index.sort_values().equals(drop_index.sort_values())

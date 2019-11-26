@@ -8,12 +8,12 @@ from ..core.config import Params
 __plotvars = []
 
 
-def plotall_hook(data, flags, flagger):
+def plotAllHook(data, flags, flagger):
     if len(__plotvars) > 1:
         _plot(data, flags, True, __plotvars, flagger)
 
 
-def plot_hook(data, old, new, varname, do_plot, flag_test, flagger):
+def plotHook(data, old, new, varname, do_plot, flag_test, flagger):
     if do_plot:
         __plotvars.append(varname)
         # cannot use getFlags here, because if a flag was set (e.g. with force) the

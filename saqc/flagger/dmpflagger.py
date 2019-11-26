@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
-from saqc.lib.tools import check_isdf, toSequence, assertScalar
+from saqc.lib.tools import isDataFrameCheck, toSequence, assertScalar
 
 
 class Keywords:
@@ -77,14 +77,14 @@ class DmpFlagger(CategoricalBaseFlagger):
         return out
 
     def _initFromData(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
-        check_isdf(data, 'data', allow_multiindex=False)
+        isDataFrameCheck(data, 'data', allow_multiindex=False)
         colindex = self._getColumnIndex(data.columns)
         flags = pd.DataFrame(data=self.UNFLAGGED, columns=colindex, index=data.index)
         self._flags = self._assureDtype(flags)
         return self
 
     def _initFromFlags(self, flags: pd.DataFrame):
-        check_isdf(flags, "flags", allow_multiindex=True)
+        isDataFrameCheck(flags, "flags", allow_multiindex=True)
         if not isinstance(flags.columns, pd.MultiIndex):
             flags = (flags
                      .T.set_index(keys=self._getColumnIndex(flags.columns, [FlagFields.FLAG])).T
@@ -112,4 +112,3 @@ class DmpFlagger(CategoricalBaseFlagger):
                 col_data = col_data.astype(self.dtype)
             tmp[(var, flag_field)] = col_data
         return pd.DataFrame(tmp, columns=flags.columns, index=flags.index)
-

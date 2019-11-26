@@ -188,117 +188,6 @@ def offset2periods(input_offset, period_offset):
     return offset2seconds(input_offset) / offset2seconds(period_offset)
 
 
-def getPandasVarNames(pandas_like):
-    """The function is a workaround, to not have to implement case distinctions whenever your not sure if your
-    asking for a dataframes columns or a series name (=1_D Dataframe)' """
-    if isinstance(pandas_like, pd.DataFrame):
-        return pandas_like.columns
-    if isinstance(pandas_like, pd.Series):
-        return [pandas_like.name]
-
-
-def getPandasData(pandas_like, fieldname):
-    """The function is a workaround, to not have to implement case distinctions whenever your not sure if your
-       asking for a dataframes columns data or a series.
-       Note, that indexing by integer is possible as well. With fieldname=0, you will get a series passed, if the input
-       was a series, and the first dataframes column, if input was a DataFrame"""
-
-    # DF input
-    if isinstance(pandas_like, pd.DataFrame):
-        if isinstance(fieldname, int):
-            return pandas_like.iloc[:, fieldname]
-        if isinstance(fieldname, str):
-            return pandas_like[fieldname]
-
-    # Series input
-    if isinstance(pandas_like, pd.Series):
-        return pandas_like
-
-
-def checkQCParameters(para_dict, called_by):
-    """The function is designed to check parameter passed to the QC functions. The checking method is determined by
-    a nested dictionary that has to be passed to the parameter para dict and should have the following form:
-
-    check_dict = {value_name_1: {'value': value,
-                                 'type': [class_1, class_2, ..., classM],
-                                 'range': [min , max],
-                                 'member':[e1, e2, ...,eN]}}
-                                 'tests': {test_1_name: test_func1,
-                                           test_2_name: test_func2,...
-                                           test_M_name: test_funcM},
-                value_name_2: {....}}
-    """
-
-    global_checker = 0
-
-    for para in para_dict.keys():
-
-        local_checker = 0
-        sub_dict = para_dict[para]
-
-        # check the type
-        if 'type' in sub_dict.keys():
-            type_check = 0
-            for type in sub_dict['type']:
-                if isinstance(sub_dict['value'], type):
-                    type_check += 1
-            if type_check == 0:
-                logging.error('Parameter {} passed to Function {} didnt pass type Test. '
-                              'It has to be one out of: '.format(para, called_by, str(sub_dict['type'])))
-                local_checker -= 1
-
-        if local_checker < 0:
-            global_checker -= 1
-            continue
-
-        # check range
-        if 'range' in sub_dict.keys():
-            if sub_dict['value'] is not None:
-                if not (sub_dict['range'][0] <= sub_dict['value'] <= sub_dict['range'][1]):
-                    logging.error('Parameter {} passed to Function {}, didnt pass range Test. '
-                                  'Range restrains for this parameter are: '
-                                  '[{}, {}]: '.format(para, called_by, str(sub_dict['range'][0]), sub_dict['range'][1]))
-                    local_checker -= 1
-
-        if local_checker < 0:
-            global_checker -= 1
-            continue
-
-        # member test
-        if 'member' in sub_dict.keys():
-            if not (sub_dict['value'] in sub_dict['member']):
-                logging.error('Parameter {} passed to Function {}, didnt pass member-of Test. '
-                              'The parameter has to be one out of: '
-                              '{}.'.format(para, called_by, str(sub_dict['member'])))
-                local_checker -= 1
-
-        if local_checker < 0:
-            global_checker -= 1
-            continue
-
-        # apply individual tests
-        if 'tests' in sub_dict.keys():
-            test_dict = sub_dict['tests']
-            for test in test_dict.keys():
-                try:
-                    test_check = test_dict[test](sub_dict['value'])
-                except:
-                    logging.error('Parameter {}, passed to Function {}, caused the Exception: {},'
-                                  ' when tested by {} - test.'.format(para, called_by, sys.exc_info()[0], test))
-                    test_check = False
-                if test_check is False:
-                    logging.error('Parameter {}, passed to Function {}, didnt pass the {} - '
-                                  'test.'.format(para, called_by, test))
-                    local_checker -= 1
-                    break
-
-            if local_checker < 0:
-                global_checker -= 1
-                continue
-
-    return global_checker
-
-
 def flagWindow(flagger_old, flagger_new, field, direction='fw', window=0, **kwargs) -> pd.Series:
 
     if window == 0 or window == '':
@@ -321,6 +210,7 @@ def flagWindow(flagger_old, flagger_new, field, direction='fw', window=0, **kwar
     else:
         # time-based windows
         if direction in ['bw', 'both']:
+            # todo: implement time-based backward rolling
             raise NotImplementedError
         fw = f.rolling(window=window, closed='both').sum().astype(bool)
 
@@ -393,33 +283,34 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
         return mask
 
 
-def check_isdf(df, argname='arg', allow_multiindex=True):
+def isDataFrameCheck(df, argname='arg', allow_multiindex=True):
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
     if not allow_multiindex:
-        _forbid_dfmi(df, argname)
+        _raiseIffMultiindex(df, argname)
     if not df.columns.is_unique:
         raise TypeError(f"{argname} must have unique columns")
 
 
-def check_isseries(df, argname='arg'):
+def isSeriesCheck(df, argname='arg'):
     if not isinstance(df, pd.Series):
         raise TypeError(f"{argname} must be of type pd.Series, {type(df)} was given")
 
 
-def check_ispdlike(pdlike, argname='arg', allow_multiindex=True):
+def isPandasLikeCheck(pdlike, argname='arg', allow_multiindex=True):
     if not isinstance(pdlike, pd.Series) and not isinstance(pdlike, pd.DataFrame):
         raise TypeError(f"{argname} must be of type pd.DataFrame or pd.Series, {type(pdlike)} was given")
     if not allow_multiindex:
-        _forbid_dfmi(pdlike, argname)
+        _raiseIffMultiindex(pdlike, argname)
 
 
-def check_isdfmi(dfmi, argname=''):
-    check_isdf(dfmi, argname, allow_multiindex=True)
+def isDataframeMultiindexedCheck(dfmi, argname=''):
+    isDataframeCheck(dfmi, argname, allow_multiindex=True)
     if not isinstance(dfmi.columns, pd.MultiIndex):
-        raise TypeError(f"given pd.DataFrame ({argname}) must have a muliindex, but has {type(dfmi.columns)} was given")
+        raise TypeError(f"given pd.DataFrame ({argname}) need to have a muliindex on columns, "
+                        f"instead it has a {type(dfmi.columns)}")
 
 
-def _forbid_dfmi(df, argname=''):
+def _raiseIffMultiindex(df, argname=''):
     if isinstance(df, pd.DataFrame) and isinstance(df.columns, pd.MultiIndex):
-        raise TypeError(f"given pd.DataFrame {argname} must NOT have a muliindex")
+        raise TypeError(f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns")

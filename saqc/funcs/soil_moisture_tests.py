@@ -7,18 +7,15 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 
-from .break_detection import flagBreaks_SpektrumBased
-from .spike_detection import flagSpikes_SpektrumBased
+from .break_detection import flagBreaks_spektrumBased
+from .spike_detection import flagSpikes_spektrumBased
 from .register import register
 
 
 from ..lib.tools import (
     estimateSamplingRate,
     retrieveTrustworthyOriginal,
-    getPandasVarNames,
-    getPandasData,
-    offset2periods,
-    checkQCParameters)
+    offset2periods)
 
 
 @register("SoilMoistureSpikes")
@@ -27,13 +24,13 @@ def flagSoilMoistureSpikes(data, field, flagger, filter_window_size='3h',
                            noise_statistic='CoVar', **kwargs):
 
     """
-    The Function provides just a call to flagSpikes_SpektrumBased, with parameter defaults, that refer to:
+    The Function provides just a call to flagSpikes_spektrumBased, with parameter defaults, that refer to:
 
     Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
     Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
     """
 
-    return flagSpikes_SpektrumBased(data, field, flagger, filter_window_size=filter_window_size,
+    return flagSpikes_spektrumBased(data, flags, field, flagger, filter_window_size=filter_window_size,
                                     raise_factor=raise_factor, dev_cont_factor=dev_cont_factor,
                                     noise_barrier=noise_barrier, noise_window_size=noise_window_size,
                                     noise_statistic=noise_statistic, **kwargs)
@@ -46,13 +43,13 @@ def flagSoilMoistureBreaks(data, field, flagger, diff_method='raw', filter_windo
                            scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
 
     """
-    The Function provides just a call to flagBreaks_SpektrumBased, with parameter defaults that refer to:
+    The Function provides just a call to flagBreaks_spektrumBased, with parameter defaults that refer to:
 
     Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
     Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
     """
-    return flagBreaks_SpektrumBased(data, field, flagger, diff_method=diff_method,
+    return flagBreaks_spektrumBased(data, flags, field, flagger, diff_method=diff_method,
                                     filter_window_size=filter_window_size,
                                     rel_change_rate_min=rel_change_rate_min, abs_change_min=abs_change_min,
                                     first_der_factor=first_der_factor, first_der_window_size=first_der_window_size,
@@ -88,36 +85,6 @@ def flagSoilMoistureBySoilFrost(data, field, flagger, soil_temp_reference, toler
                                         the to-be-flagged values shall be checked against.
     :param frost_level:                 Value level, the flagger shall check against, when evaluating soil frost level.
     """
-
-    para_check_1 = checkQCParameters({'data': {'value': data,
-                                               'type': [pd.Series, pd.DataFrame],
-                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
-                                      'field': {'value': field,
-                                                'type': [str],
-                                                'tests': {'scheduled in data':
-                                                          lambda x: x in getPandasVarNames(data)}}},
-                                     kwargs['func_name'])
-
-    para_check_2 = checkQCParameters({'soil_temp_reference': {'value': soil_temp_reference,
-                                                              'type': [str],
-                                                              'tests': {'scheduled in data':
-                                                                            lambda x: x in getPandasVarNames(data),
-                                                                        'scheduled in flags':
-                                                                            lambda x: x in getPandasVarNames(data)}},
-                                      'tolerated_deviation': {'value': tolerated_deviation,
-                                                              'type': [str],
-                                                              'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                                 x).total_seconds() % 1 == 0}},
-                                      'frost_level': {'value': frost_level,
-                                                      'type': [int, float],
-                                                      'range': [-np.inf, np.inf]}},
-                                     kwargs['func_name'])
-
-    # SaQC policy: Only data that has been flagged by at least one test is allowed to be referred to:
-    if (para_check_1 < 0) | (para_check_2 < 0):
-        logging.warning('test {} will be skipped because not all input parameters satisfied '
-                        'the requirements'.format(kwargs['func_name']))
-        return data, flagger
 
     # retrieve reference series
     refseries = data[soil_temp_reference]
@@ -211,55 +178,7 @@ def flagSoilMoistureByPrecipitationEvents(data, field, flagger, prec_reference, 
                                         sample rate and below std_factor_range.
     """
 
-    para_check_1 = checkQCParameters({'data': {'value': data,
-                                               'type': [pd.Series, pd.DataFrame],
-                                               'tests': {'harmonized': lambda x: pd.infer_freq(x.index) is not None}},
-                                      'field': {'value': field,
-                                                'type': [str],
-                                                'tests': {
-                                                    'scheduled in data': lambda x: x in getPandasVarNames(data)}}},
-                                     kwargs['func_name'])
-
     dataseries, moist_rate = retrieveTrustworthyOriginal(data, field, flagger)
-
-    para_check_2 = checkQCParameters({'prec_reference_reference': {'value': prec_reference,
-                                                                   'type': [str],
-                                                                   'tests': {'scheduled in data':
-                                                                             lambda x: x in getPandasVarNames(data),
-                                                                             'scheduled in flags':
-                                                                             lambda x: x in getPandasVarNames(data)}},
-                                      'std_factor_range': {'value': std_factor_range,
-                                                           'type': [str],
-                                                           'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                                  x).total_seconds() % 1 == 0}},
-                                      'raise_reference': {'value': raise_reference,
-                                                          'type': [str, type(None)],
-                                                          'tests': {'Valid Offset String': lambda x: pd.Timedelta(
-                                                               x).total_seconds() % 1 == 0
-                                                               if x is not None else True,
-                                                                     'Consistent-with-Sample-Rate':
-                                                                     lambda x:  (pd.Timedelta(moist_rate) %
-                                                                                pd.Timedelta(x).total_seconds) == 0
-                                                                     if x is not None else True}},
-                                      'sensor_meas_depth': {'value': sensor_meas_depth,
-                                                            'type': [int, float],
-                                                            'range': [0, np.inf]},
-                                      'sensor_accuracy': {'value': sensor_accuracy,
-                                                          'type': [int, float],
-                                                          'range': [0, np.inf]},
-                                      'soil_porosity': {'value': soil_porosity,
-                                                        'type': [int, float],
-                                                        'range': [0, 1]},
-                                      'std_factor': {'value': std_factor,
-                                                     'type': [int, float],
-                                                     'range': [0, np.inf]}
-                                      },
-                                     kwargs['func_name'])
-
-    if (para_check_1 < 0) | (para_check_2 < 0):
-        logging.warning('test {} will be skipped because not all input parameters satisfied '
-                        'the requirements'.format(kwargs['func_name']))
-        return data, flagger
 
     # retrieve input sampling rate (needed to translate ref and data rates into each other):
     input_rate = estimateSamplingRate(data.index)

@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+import logging
 
 import numpy as np
 import pandas as pd
@@ -7,11 +8,11 @@ import pandas as pd
 from .reader import readConfig, prepareConfig, checkConfig
 from .config import Fields
 from .evaluator import evalExpression
-from ..lib.plotting import plot_hook, plotall_hook
+from ..lib.plotting import plotHook, plotAllHook
 from ..flagger import BaseFlagger, CategoricalBaseFlagger, SimpleFlagger, DmpFlagger
 
 
-def collectVariables(meta, data):
+def _collectVariables(meta, data):
     """
     find every relevant variable
     """
@@ -27,7 +28,7 @@ def collectVariables(meta, data):
     return flags
 
 
-def _check_input(data, flagger, flags):
+def _checkInput(data, flags, flagger):
     if not isinstance(data, pd.DataFrame):
         raise TypeError('data must be of type pd.DataFrame')
 
@@ -53,16 +54,16 @@ def _check_input(data, flagger, flags):
     if len(data) != len(flags):
         raise ValueError('the index of flags and data has not the same length')
 
-    # do not test columns as they not necessarily must be the same
+    # NOTE: do not test columns as they not necessarily must be the same
 
 
 def _setup():
     pd.set_option('mode.chained_assignment', 'warn')
 
 
-def runner(metafname, flagger, data, flags=None, nodata=np.nan):
+def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy='raise'):
     _setup()
-    _check_input(data, flagger, flags)
+    _checkInput(data, flags, flagger)
     config = prepareConfig(readConfig(metafname), data)
 
     # split config into the test and some 'meta' data
@@ -74,7 +75,7 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
     # fresh = flagger.initFlags(pd.DataFrame(index=data.index, columns=varnames))
     # flags = fresh if flags is None else flags.join(fresh)
     if flags is None:
-        flag_cols = collectVariables(meta, data)
+        flag_cols = _collectVariables(meta, data)
         flagger = flagger.initFlags(pd.DataFrame(index=data.index, columns=flag_cols))
     else:
         flagger = flagger.initFlags(flags=flags)
@@ -93,6 +94,8 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
             continue
 
         for idx, configrow in meta.iterrows():
+
+            # store config params in some handy variables
             varname = configrow[Fields.VARNAME]
             start_date = configrow[Fields.START]
             end_date = configrow[Fields.END]
@@ -104,21 +107,39 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan):
             if varname not in data and varname not in flagger.getFlags().columns:
                 continue
 
+            # prepare the data for the tests
             dchunk = data.loc[start_date:end_date]
             if dchunk.empty:
                 continue
-
             flagger_chunk = flagger.getFlagger(loc=dchunk.index)
 
-            dchunk, flagger_chunk_result = evalExpression(
-                flag_test,
-                data=dchunk, field=varname,
-                flagger=flagger_chunk, nodata=nodata)
+            try:
+                # actually run the tests
+                dchunk, flagger_chunk_result = evalExpression(
+                    flag_test,
+                    data=dchunk, field=varname,
+                    flagger=flagger_chunk, nodata=nodata)
+            except Exception as e:
+                if _handleErrors(e, configrow, flag_test, error_policy):
+                    raise e
+                continue
 
-            data.loc[start_date:end_date] = dchunk
             flagger = flagger.setFlagger(flagger_chunk_result)
-            # plot_hook(dchunk, fchunk, ffchunk.getFlags(), varname, configrow[Fields.PLOT], flag_test, flagger)
-
-    # plotall_hook(data, flagger.getFlags(), flagger)
+            # plotHook(dchunk, fchunk, ffchunk, varname, configrow[Fields.PLOT], flag_test, flagger)
+    # plotAllHook(data, flags, flagger)
 
     return data, flagger
+
+
+def _handleErrors(err, configrow, test, policy):
+    line = configrow[Fields.LINENUMBER]
+    msg = f" config, line {line}, test: `{test}` failed with `{type(err).__name__}: {err}`"
+    if policy == 'raise':
+        return True
+    elif policy == 'ignore':
+        logging.debug(msg)
+        return False
+    elif policy == 'warn':
+        logging.warning(msg)
+        return False
+    return True

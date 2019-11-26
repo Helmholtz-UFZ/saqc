@@ -7,7 +7,7 @@ from copy import deepcopy
 import pandas as pd
 
 from saqc.flagger.baseflagger import BaseFlagger
-from saqc.lib.tools import check_isdf
+from saqc.lib.tools import isDataFrameCheck
 
 
 class Flags(pd.CategoricalDtype):
@@ -37,14 +37,14 @@ class CategoricalBaseFlagger(BaseFlagger):
             raise TypeError("either 'data' or 'flags' are required")
 
     def _initFromData(self, data: pd.DataFrame):
-        check_isdf(data, 'data', allow_multiindex=False)
+        isDataFrameCheck(data, 'data', allow_multiindex=False)
         flags = pd.DataFrame(
             data=self.UNFLAGGED, index=data.index, columns=data.columns)
         self._flags = self._assureDtype(flags)
         return self
 
     def _initFromFlags(self, flags: pd.DataFrame):
-        check_isdf(flags, 'flags', allow_multiindex=False)
+        isDataFrameCheck(flags, 'flags', allow_multiindex=False)
         out = deepcopy(self)
         out._flags = out._assureDtype(flags)
         return out
