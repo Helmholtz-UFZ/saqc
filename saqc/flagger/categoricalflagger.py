@@ -26,7 +26,6 @@ class CategoricalBaseFlagger(BaseFlagger):
     def __init__(self, flags):
         super().__init__(dtype=Flags(flags))
         self._categories = self.dtype.categories
-        self.signature = ("flag", "force")
 
     def initFlags(self, data=None, flags=None):
         if data is not None:

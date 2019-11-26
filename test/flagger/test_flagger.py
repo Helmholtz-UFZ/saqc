@@ -178,19 +178,19 @@ def test_dtype(data, flagger):
 
 
 @pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize('flagger', TESTFLAGGER[-1:])
 def test_returnCopy(data, flagger):
-    origin = flagger.initFlags(data)
-    origin_data = origin.getFlags()
+    flagger = flagger.initFlags(data)
+    origin_data = flagger.getFlags()
 
     f = flagger.getFlags()
     assert f is not origin_data
     f = flagger.isFlagged()
     assert f is not origin_data
     f = flagger.setFlags(field)
-    assert f is not origin
+    assert f is not flagger
     f = flagger.clearFlags(field)
-    assert f is not origin
+    assert f is not flagger
 
 
 LOC_ILOC_FUNCS = [
@@ -203,7 +203,7 @@ LOC_ILOC_FUNCS = [
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 @pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
 def test_loc(data, flagger, flaggerfunc):
-    flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
     sl = slice('2011-01-02', '2011-01-05')
     chunk = data.loc[sl, field]
     d = data.loc[sl]
@@ -251,7 +251,7 @@ def test_loc(data, flagger, flaggerfunc):
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 @pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
 def test_iloc(data, flagger, flaggerfunc):
-    flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
     M = len(data.index) - 1 if len(data.index) > 0 else 0
     m = M // 3
     M = m * 2
@@ -297,12 +297,12 @@ def test_iloc(data, flagger, flaggerfunc):
 @pytest.mark.parametrize('data', DATASETS)
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_classicUseCases(data, flagger):
-    flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
 
     # data-mask, same length than flags
     d = data[field]
     mask = d < (d.max() - d.min()) // 2
-    flagger.clearFlags(field)
+    flagger = flagger.clearFlags(field)
     flagged = flagger.setFlags(field, loc=mask, flag=flagger.BAD).isFlagged(field)
     assert (flagged == mask).all()
 

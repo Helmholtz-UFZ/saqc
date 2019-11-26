@@ -14,6 +14,8 @@ from saqc.funcs.harm_functions import harmonize, deharmonize,\
     _interpolate, _interpolate_grid, _insert_grid, _outsort_crap
 
 
+TESTFLAGGER = TESTFLAGGER[:-1]
+
 
 RESHAPERS = [
     'nearest_shift',

@@ -30,6 +30,7 @@ class BaseFlagger(ABC):
     @abstractmethod
     def __init__(self, dtype):
         self.dtype = dtype
+        self.signature = ("flag",)
         self._flags: pd.DataFrame
 
     def initFlags(self, data: pd.DataFrame = None, flags: pd.DataFrame = None) -> BaseFlaggerT:
