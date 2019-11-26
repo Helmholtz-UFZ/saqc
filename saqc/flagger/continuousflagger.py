@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
-from .baseflagger import BaseFlagger
-from ..lib.tools import isDataframeCheck
+from saqc.flagger.baseflagger import BaseFlagger
+from saqc.lib.tools import isDataFrameCheck
 import pandas as pd
 import numpy as np
 import intervals as I
@@ -18,12 +18,12 @@ class ContinuousBaseFlagger(BaseFlagger):
         self._unflagged_flag = unflagged
 
     def initFlags(self, data: pd.DataFrame):
-        isDataframeCheck(data, 'data', allow_multiindex=False)
+        isDataFrameCheck(data, 'data', allow_multiindex=False)
         flags = pd.DataFrame(data=self.UNFLAGGED, index=data.index, columns=data.columns)
         return flags
 
     def isFlagged(self, flags, field=None, loc=None, iloc=None, flag=None, comparator: str = ">", **kwargs):
-        flag = self.GOOD if flag is None else self._checkFlag(flag, allow_series=False)
+        flag = self.GOOD if flag is None else self._checkFlags(flag, allow_series=False)
         return super().isFlagged(flags, field, loc, iloc, flag, comparator, **kwargs)
 
     def setFlags(self, flags, field, loc=None, iloc=None, flag=None, force=False, factor=1, modify=False, **kwargs):
@@ -33,7 +33,7 @@ class ContinuousBaseFlagger(BaseFlagger):
 
         if modify is False:
             # normal setFlags
-            flag = self.BAD if flag is None else self._checkFlag(flag, allow_series=True)
+            flag = self.BAD if flag is None else self._checkFlags(flag, allow_series=True)
             idx, values = self._prepareWrite(flags, field, flag, loc, iloc, force, **kwargs)
             self._writeFlags(flags, field, idx, values, **kwargs)
 
@@ -53,7 +53,7 @@ class ContinuousBaseFlagger(BaseFlagger):
         flags.loc[flagged.index] *= factor
         return flags
 
-    def _checkFlag(self, f, allow_series=False):
+    def _checkFlags(self, f, allow_series=False):
         if f is None:
             raise ValueError('flag cannot be None')
 

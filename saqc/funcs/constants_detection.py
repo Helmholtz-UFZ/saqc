@@ -19,9 +19,8 @@ from ..lib.tools import (
 
 
 @register("constant")
-def flagConstant(data, flags, field, flagger, eps, length, thmin=None, **kwargs):
+def flagConstant(data, field, flagger, eps, length, thmin=None, **kwargs):
     datacol = data[field]
-    flagcol = flags[field]
 
     length = ((pd.to_timedelta(length) - data.index.freq)
               .to_timedelta64()
@@ -47,15 +46,14 @@ def flagConstant(data, flags, field, flagger, eps, length, thmin=None, **kwargs)
         if valueRange(dates_chunk) < length:
             continue
         if valueRange(values_chunk) < eps:
-            flagcol[start_idx:end_idx] = flagger.setFlags(flagcol[start_idx:end_idx], **kwargs)
+            flagger = flagger.setFlags(field, loc=slice(start_idx, end_idx), **kwargs)
 
     data[field] = datacol
-    flags[field] = flagcol
-    return data, flags
+    return data, flagger
 
 
 @register("constant_varianceBased")
-def flagConstant_varianceBased(data, flags, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005,
+def flagConstant_varianceBased(data, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005,
                                var_total_nans=np.inf, var_consec_nans=np.inf, **kwargs):
 
     """Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
@@ -66,7 +64,6 @@ def flagConstant_varianceBased(data, flags, field, flagger, plateau_window_min='
     :param data:                        The pandas dataframe holding the data-to-be flagged.
                                         Data must be indexed by a datetime series and be harmonized onto a
                                         time raster with seconds precision (skips allowed).
-    :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object. (saqc.flagger.X)
     :param plateau_window_min:          Offset String. Only intervals of minimum size "plateau_window_min" have the
@@ -81,7 +78,7 @@ def flagConstant_varianceBased(data, flags, field, flagger, plateau_window_min='
                                         "var_total_nans" have no chance to get flagged a plateau!)
     """
 
-    dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
+    dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     min_periods = int(offset2periods(plateau_window_min, data_rate))
 
@@ -90,12 +87,12 @@ def flagConstant_varianceBased(data, flags, field, flagger, plateau_window_min='
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
-        return data, flags
+        return data, flagger
 
     plateaus.fillna(method='bfill', limit=min_periods, inplace=True)
 
     # result:
     plateaus = (plateaus[plateaus == 1.0]).index
 
-    flags = flagger.setFlags(flags, field, plateaus, **kwargs)
-    return data, flags
+    flagger = flagger.setFlags(field, plateaus, **kwargs)
+    return data, flagger

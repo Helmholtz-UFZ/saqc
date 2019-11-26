@@ -26,11 +26,14 @@ def field(data):
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_flagAfter(data, field, flagger):
-    flags = flagger.initFlags(data)
+
+    flagger = flagger.initFlags(data)
 
     min = data.iloc[int(len(data)*.3), 0]
     max = data.iloc[int(len(data)*.6), 0]
-    _, range_flags = flagRange(data, flags, field, flagger, min, max)
+    _, flagger_range = flagRange(data, field, flagger, min, max)
+    flagged_range = flagger_range.isFlagged(
+        field, loc=flagger_range.isFlagged(field))
 
     tests = [
         (f"flagWindowAfterFlag(window='3D', func=range(min={min}, max={max}))", "3D"),
@@ -38,22 +41,31 @@ def test_flagAfter(data, field, flagger):
     ]
 
     for expr, window in tests:
-        _, repeated_flags = evalExpression(expr, data, flags, field, flagger)
-        flagged = repeated_flags[flagger.isFlagged(flags)].dropna()
-        flag_groups = (flagged
-                       .rolling(window=window)
-                       .apply(lambda df: flagger.isFlagged(flags).all(), raw=False))
-        assert np.all(flag_groups)
+        _, flagger_range_repeated = evalExpression(expr, data, field, flagger)
+
+        check = (flagged_range
+                 .rolling(window=window)
+                 .apply(
+                     lambda df: (flagger_range_repeated
+                                 .isFlagged(field, loc=df.index)
+                                 .all()),
+                     raw=False))
+        assert check.all()
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_range(data, field, flagger):
     min, max = 10, 90
-    flags = flagger.initFlags(data)
-    data, flags = flagRange(data, flags, field, flagger, min=min, max=max)
-    flagged = flagger.isFlagged(flags, field)
+    flagger = flagger.initFlags(data)
+    data, flagger = flagRange(data, field, flagger, min=min, max=max)
+    flagged = flagger.isFlagged(field)
     expected = (data[field] < min) | (data[field] >= max)
     assert np.all(flagged == expected)
+
+
+# @pytest.mark.parametrize('flagger', TESTFLAGGER)
+# def test_missing(data, field, flagger):
+#     pass
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
@@ -71,28 +83,32 @@ def test_flagSesonalRange(data, field, flagger):
     ]
 
     for test, expected in tests:
-        flags = flagger.initFlags(data)
-        data, flags = flagSesonalRange(data, flags, field, flagger, **test)
-        flagged = flagger.isFlagged(flags, field)
+        flagger = flagger.initFlags(data)
+        data, flagger = flagSesonalRange(data, field, flagger, **test)
+        flagged = flagger.isFlagged(field)
         assert flagged.sum() == expected
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_clearFlags(data, field, flagger):
-    orig = flagger.initFlags(data)
-    flags = flagger.setFlags(orig, field, flag=flagger.BAD)
-    _, cleared = clearFlags(data, flags, field, flagger)
-    assert np.all(orig != flags)
-    assert np.all(orig == cleared)
+    flagger = flagger.initFlags(data)
+    flags_orig = flagger.getFlags()
+    flags_set = flagger.setFlags(field, flag=flagger.BAD).getFlags()
+    _, flagger = clearFlags(data, field, flagger)
+    flags_cleared = flagger.getFlags()
+    assert np.all(flags_orig != flags_set)
+    assert np.all(flags_orig == flags_cleared)
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_forceFlags(data, flagger):
+    flagger = flagger.initFlags(data)
     field, *_ = data.columns
-    flags = flagger.setFlags(flagger.initFlags(data), field)
-    orig = flags.copy()
-    _, forced = forceFlags(data, flags, field, flagger, flag=flagger.GOOD)
-    assert np.all(flagger.getFlags(orig) != flagger.getFlags(forced))
+    flags_orig = flagger.setFlags(field).getFlags(field)
+    _, flagger = forceFlags(data, field, flagger, flag=flagger.GOOD)
+    flags_forced = flagger.getFlags(field)
+    assert np.all(flags_orig != flags_forced)
+
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_flagIsolated(data, flagger):
@@ -101,15 +117,17 @@ def test_flagIsolated(data, flagger):
     data.iloc[4:5, 0] = np.nan
     data.iloc[11:13, 0] = np.nan
     data.iloc[15:17, 0] = np.nan
-    flags = flagger.initFlags(data)
-    flags = flagger.setFlags(flags, field, iloc=slice(5, 6))
-    data, flags = flagIsolated(data, flags, field, flagger, '2.1D', drop_flags='BAD')
+    flagger = flagger.initFlags(data)
+    flagger = flagger.setFlags(field, iloc=slice(5, 6))
+    data, flagger = flagIsolated(data, field, flagger, '2.1D', drop_flags='BAD')
 
-    assert flagger.isFlagged(flags,field)[slice(3, 6, 2)].all()
+    assert flagger.isFlagged(field)[slice(3, 6, 2)].all()
 
-    flags = flagger.setFlags(flags, field, iloc=slice(3,4), flag=flagger.UNFLAGGED, force=True)
-    data, flags = flagIsolated(data, flags, field, flagger, '2.1D', max_isolated_group_size=2,
-                               continuation_range='1.1D', drop_flags='BAD')
+    flagger = flagger.setFlags(field, iloc=slice(3,4), flag=flagger.UNFLAGGED, force=True)
+    data, flagger = flagIsolated(
+        data, field, flagger, '2.1D',
+        max_isolated_group_size=2,
+        continuation_range='1.1D',
+        drop_flags='BAD')
 
-    assert flagger.isFlagged(flags, field)[[3, 5, 13, 14]].all()
-
+    assert flagger.isFlagged(field)[[3, 5, 13, 14]].all()

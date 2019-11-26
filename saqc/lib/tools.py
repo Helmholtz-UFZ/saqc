@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numbers
-from typing import Union
+from typing import Sequence, Union, T
 
 import numpy as np
 import pandas as pd
@@ -11,6 +11,22 @@ import logging
 import sys
 
 from ..lib.types import PandasLike, ArrayLike
+
+
+def assertScalar(name, value, optional=False):
+    if (not np.isscalar(value)) and (value is not None) and (optional is True):
+        raise ValueError(f"'{name}' needs to be a scalar or 'None'")
+    elif (not np.isscalar(value)) and optional is False:
+        raise ValueError(f"'{name}' needs to be a scalar")
+
+
+def toSequence(value: Union[T, Sequence[T]],
+               default: Union[T, Sequence[T]] = None) -> Sequence[T]:
+    if value is None:
+        value = default
+    if np.isscalar(value):
+        value = [value]
+    return value
 
 
 @nb.jit(nopython=True, cache=True)
@@ -121,7 +137,7 @@ def estimateSamplingRate(index):
     return pd.tseries.frequencies.to_offset(str(int(hist[1][:-1][hist[0] > 0].min())) + 's')
 
 
-def retrieveTrustworthyOriginal(data, flags, field, flagger=None):
+def retrieveTrustworthyOriginal(data, field, flagger=None):
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
     differenciating between missng value - nans und fillvalue nans is impossible. This function evaluates flags for a
     passed series, if flags and flagger object are passed and downsamples the input series to its original sampling
@@ -129,13 +145,12 @@ def retrieveTrustworthyOriginal(data, flags, field, flagger=None):
 
     :param dataseries:  The pd.dataseries object that you want to sample to original rate. It has to have a harmonic
                         timestamp.
-    :param dataflags:   the flags series,referring to the passed dataseries.
     :param dataflags:   A flagger object, to apply the passed flags onto the dataseries.
 
     """
     dataseries = data[field]
     if flagger is not None:
-        data_use = flagger.isFlagged(flags, field, flag=flagger.GOOD, comparator='<=')
+        data_use = flagger.isFlagged(field, flag=flagger.GOOD, comparator='<=')
         # drop all flags that are suspicious or worse
         dataseries = dataseries[data_use]
 
@@ -173,18 +188,18 @@ def offset2periods(input_offset, period_offset):
     return offset2seconds(input_offset) / offset2seconds(period_offset)
 
 
-def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> pd.Series:
+def flagWindow(flagger_old, flagger_new, field, direction='fw', window=0, **kwargs) -> pd.Series:
 
     if window == 0 or window == '':
-        return new
+        return flagger_new
 
     fw, bw = False, False
-    mask = flagger.getFlags(old, field) != flagger.getFlags(new, field)
-    f = flagger.isFlagged(new, field) & mask
+    mask = flagger_old.getFlags(field) != flagger_new.getFlags(field)
+    f = flagger_new.isFlagged(field) & mask
 
     if not mask.any():
         # nothing was flagged, so nothing need to be flagged additional
-        return new
+        return flagger_new
 
     if isinstance(window, int):
         x = f.rolling(window=window + 1).sum()
@@ -200,7 +215,7 @@ def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> 
         fw = f.rolling(window=window, closed='both').sum().astype(bool)
 
     fmask = bw | fw
-    return flagger.setFlags(new, field, fmask, **kwargs)
+    return flagger_new.setFlags(field, fmask, **kwargs)
 
 
 def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
@@ -268,7 +283,7 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
         return mask
 
 
-def isDataframeCheck(df, argname='arg', allow_multiindex=True):
+def isDataFrameCheck(df, argname='arg', allow_multiindex=True):
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
     if not allow_multiindex:

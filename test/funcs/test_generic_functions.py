@@ -16,12 +16,12 @@ from saqc.core.evaluator import (
     evalCode)
 
 
-def _evalExpression(expr, data, flags, field, flagger, nodata=np.nan):
+def _evalExpression(expr, data, field, flagger, nodata=np.nan):
     tree = parseExpression(expr)
     dsl_transformer = DslTransformer(initDslFuncMap(nodata), data.columns)
     transformed_tree = dsl_transformer.visit(tree)
     code = compileTree(transformed_tree)
-    return evalCode(code, data, flags, field, flagger, nodata)
+    return evalCode(code, data, field, flagger, nodata)
 
 
 @pytest.fixture
@@ -31,41 +31,40 @@ def data():
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagPropagation(data, flagger):
-    flags = flagger.setFlags(
-        flagger.initFlags(data),
-        'var2', iloc=slice(None, None, 5))
-
     var1, var2, *_ = data.columns
     this = var1
-    var2_flags = flagger.isFlagged(flags, var2)
+
+    flagger = (flagger
+               .initFlags(data)
+               .setFlags(var2, iloc=slice(None, None, 5)))
+
+    var2_flags = flagger.isFlagged(var2)
     var2_data = data[var2].mask(var2_flags)
-    data, flags = evalExpression(
+    data, flagger_result = evalExpression(
         "generic(func=var2 < mean(var2))",
-        data, flags,
-        this,
-        flagger, np.nan
+        data, this, flagger, np.nan
     )
 
     expected = (var2_flags | (var2_data < var2_data.mean()))
-    result = flagger.isFlagged(flags, this)
+    result = flagger_result.isFlagged(this)
     assert (result == expected).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_missingIdentifier(data, flagger):
-    flags = flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
     tests = [
         "generic(func=func(var2) < 5)",
         "generic(func=var3 != NODATA)"
     ]
     for expr in tests:
         with pytest.raises(NameError):
-            evalExpression(expr, data, flags, data.columns[0], flagger, np.nan)
+            evalExpression(expr, data, data.columns[0], flagger, np.nan)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_comparisons(data, flagger):
-    flags = flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
     var1, var2, *_ = data.columns
     this = var1
 
@@ -78,19 +77,18 @@ def test_comparisons(data, flagger):
 
     # check within the usually enclosing scope
     for expr, mask in tests:
-        _, result_flags = evalExpression(
+        _, result_flagger = evalExpression(
             f"generic(func={expr})",
-            data, flags,
-            this, flagger, np.nan)
-        expected_flags = flagger.setFlags(flags, this, loc=mask, test="generic")
+            data, this, flagger, np.nan)
+        expected_flagger = flagger.setFlags(this, loc=mask, test="generic")
         assert np.all(
-            flagger.isFlagged(result_flags) == flagger.isFlagged(expected_flags)
+            result_flagger.isFlagged() == expected_flagger.isFlagged()
         )
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_nonReduncingBuiltins(data, flagger):
-    flags = flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
     var1, var2, *_ = data.columns
     this = var1
 
@@ -99,7 +97,7 @@ def test_nonReduncingBuiltins(data, flagger):
     ]
 
     for expr, expected in tests:
-        result = _evalExpression(expr, data, flags, this, flagger)
+        result = _evalExpression(expr, data, this, flagger)
         assert (result == expected).all()
 
 
@@ -107,7 +105,7 @@ def test_nonReduncingBuiltins(data, flagger):
 @pytest.mark.parametrize("nodata", TESTNODATA)
 def test_reduncingBuiltins(data, flagger, nodata):
     data.loc[::4] = nodata
-    flags = flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
     var1, var2, *_ = data.columns
     this = var1
 
@@ -121,7 +119,7 @@ def test_reduncingBuiltins(data, flagger, nodata):
     ]
 
     for expr, expected in tests:
-        result = _evalExpression(expr, data, flags, this, flagger, nodata)
+        result = _evalExpression(expr, data, this, flagger, nodata)
         assert result == expected
 
 
@@ -134,7 +132,7 @@ def test_ismissing(data, flagger, nodata):
     data.iloc[(len(data)//2)+1:, 0] = -9999
     var1, var2, *_ = data.columns
 
-    flags = flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
 
     tests = [
         (f"ismissing({var1})", lambda data: (pd.isnull(data) | (data == nodata)).all()),
@@ -142,7 +140,7 @@ def test_ismissing(data, flagger, nodata):
     ]
 
     for expr, checkFunc in tests:
-        idx = _evalExpression(expr, data, flags, "var1", flagger, nodata)
+        idx = _evalExpression(expr, data, var1, flagger, nodata)
         assert checkFunc(data.loc[idx, var1])
 
 
@@ -152,32 +150,31 @@ def test_bitOps(data, flagger, nodata):
     var1, var2, *_ = data.columns
     this = var1
 
-    flags = flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
 
-    # TODO: extend the test list
     tests = [
         (f"generic(func=~(this > mean(this)))", ~(data[this] > np.nanmean(data[this]))),
         (f"generic(func=(this <= 0) | (0 < {var1}))", (data[this] <= 0) | (0 < data[var1])),
-        (f"generic(func=({var2} >= 0) & (0 > this))", (data[var2] >= 0) | (0 > data[this]))
+        (f"generic(func=({var2} >= 0) & (0 > this))", (data[var2] >= 0) & (0 > data[this]))
     ]
 
     for expr, expected in tests:
-        _, flags = evalExpression(expr, data, flags, this, flagger, nodata)
-        assert (flagger.isFlagged(flags, this) == expected).all()
+        _, flagger_result = evalExpression(expr, data, this, flagger, nodata)
+        assert (flagger_result.isFlagged(this) == expected).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_isflagged(data, flagger):
 
-    flags = flagger.initFlags(data)
+    flagger = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
-    flags = flagger.setFlags(flags, var1, iloc=slice(None, None, 2))
-    flags = flagger.setFlags(flags, var2, iloc=slice(None, None, 2))
+    flagger = flagger.setFlags(var1, iloc=slice(None, None, 2))
+    flagger = flagger.setFlags(var2, iloc=slice(None, None, 2))
 
-    idx = _evalExpression(f"isflagged({var1})", data, flags, var2, flagger)
+    idx = _evalExpression(f"isflagged({var1})", data, var2, flagger)
 
-    flagged = flagger.isFlagged(flags, var1)
+    flagged = flagger.isFlagged(var1)
     assert (flagged == idx).all
 
 
@@ -186,11 +183,12 @@ def test_isflaggedArgument(data, flagger):
 
     var1, var2, *_ = data.columns
 
-    flags = flagger.initFlags(data)
-    flags = flagger.setFlags(flags, var1, iloc=slice(None, None, 2), flag=flagger.BAD)
+    flagger = (flagger
+               .initFlags(data)
+               .setFlags(var1, iloc=slice(None, None, 2), flag=flagger.BAD))
 
     idx = _evalExpression(
-        f"isflagged({var1}, {flagger.BAD})", data, flags, var2, flagger)
+        f"isflagged({var1}, {flagger.BAD})", data, var2, flagger)
 
-    flagged = flagger.isFlagged(flags, var1, flag=flagger.BAD, comparator=">=")
+    flagged = flagger.isFlagged(var1, flag=flagger.BAD, comparator=">=")
     assert (flagged == idx).all()

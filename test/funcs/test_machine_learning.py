@@ -1,21 +1,13 @@
 import pytest
-import numpy as np
+
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+
 from saqc.funcs.machine_learning import flagML
 
-from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
-from saqc.flagger.dmpflagger import DmpFlagger
-from saqc.flagger.simpleflagger import SimpleFlagger
-from saqc.flagger.continuousflagger import ContinuousBaseFlagger
+from test.common import TESTFLAGGER
 
-TESTFLAGGERS = [
-    CategoricalBaseFlagger(['NIL', 'GOOD', 'BAD']),
-    DmpFlagger(),
-    SimpleFlagger(),
-    ContinuousBaseFlagger()]
 
-@pytest.mark.parametrize('flagger', TESTFLAGGERS)
+@pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_flagML(flagger):
     ### CREATE MWE DATA
     data = pd.read_feather("ressources/machine_learning/data/soil_moisture_mwe.feather")
@@ -31,24 +23,24 @@ def test_flagML(flagger):
     field = "SM2"
 
     # prepare flagsframe
-    flags = flagger.initFlags(data)
-    flags = flagger.setFlags(flags,field,loc=mask_bad[field])
-    flags = flagger.setFlags(flags,field,loc=mask_unflagged[field],flag=flagger.UNFLAGGED)
-    flags = flagger.setFlags(flags,field,loc=mask_good[field],flag=flagger.GOOD)
+    flagger = flagger.initFlags(data)
+    flagger = flagger.setFlags(field, loc=mask_bad[field])
+    flagger = flagger.setFlags(field, loc=mask_unflagged[field], flag=flagger.UNFLAGGED)
+    flagger = flagger.setFlags(field, loc=mask_good[field], flag=flagger.GOOD)
 
-    references = ["Temp2","BattV"]
+    references = ["Temp2", "BattV"]
     window_values = 20
     window_flags = 20
     groupvar = 0.2
-    modelname="testmodel"
-    path = "ressources/machine_learning/models/"+modelname+"_"+str(groupvar)+".pkl"
+    modelname = "testmodel"
+    path = f"ressources/machine_learning/models/{modelname}_{groupvar}.pkl"
 
-    outdat, outflags = flagML(data,flags,field, flagger, references, window_values, window_flags, path)
+    outdat, outflagger = flagML(data, field, flagger, references, window_values, window_flags, path)
 
     # compare
-    #assert resulting no of bad flags
-    badflags = flagger.isFlagged(outflags,field)
-    assert(badflags.sum()==10447)#assert
+    # assert resulting no of bad flags
+    badflags = outflagger.isFlagged(field)
+    assert(badflags.sum() == 10447)
 
     # Have the right values been flagged?
     checkdates = pd.DatetimeIndex(['2014-08-05 23:03:59', '2014-08-06 01:35:44',

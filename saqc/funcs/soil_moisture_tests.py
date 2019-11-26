@@ -19,7 +19,7 @@ from ..lib.tools import (
 
 
 @register("SoilMoistureSpikes")
-def flagSoilMoistureSpikes(data, flags, field, flagger, filter_window_size='3h',
+def flagSoilMoistureSpikes(data, field, flagger, filter_window_size='3h',
                            raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
                            noise_statistic='CoVar', **kwargs):
 
@@ -37,7 +37,7 @@ def flagSoilMoistureSpikes(data, flags, field, flagger, filter_window_size='3h',
 
 
 @register("SoilMoistureBreaks")
-def flagSoilMoistureBreaks(data, flags, field, flagger, diff_method='raw', filter_window_size='3h',
+def flagSoilMoistureBreaks(data, field, flagger, diff_method='raw', filter_window_size='3h',
                            rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
                            first_der_window_size='12h', scnd_der_ratio_margin_1=0.05,
                            scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
@@ -59,7 +59,7 @@ def flagSoilMoistureBreaks(data, flags, field, flagger, diff_method='raw', filte
 
 
 @register("SoilMoistureByFrost")
-def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference, tolerated_deviation='1h',
+def flagSoilMoistureBySoilFrost(data, field, flagger, soil_temp_reference, tolerated_deviation='1h',
                                 frost_level=0, **kwargs):
 
     """This Function is an implementation of the soil temperature based Soil Moisture flagging, as presented in:
@@ -74,7 +74,6 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
 
     :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
                                         series. Data must be indexed by a datetime series.
-    :param flags:                       A dataframe holding the flags/flag-entries of "data"
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object.
                                         like thingies that refer to the data(including datestrings).
@@ -89,8 +88,8 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
 
     # retrieve reference series
     refseries = data[soil_temp_reference]
-    ref_use = flagger.isFlagged(flags, soil_temp_reference, flag=flagger.GOOD, comparator='==') | \
-              flagger.isFlagged(flags, soil_temp_reference, flag=flagger.UNFLAGGED, comparator='==')
+    ref_use = flagger.isFlagged(soil_temp_reference, flag=flagger.GOOD, comparator='==') | \
+              flagger.isFlagged(soil_temp_reference, flag=flagger.UNFLAGGED, comparator='==')
     # drop flagged values:
     refseries = refseries[ref_use.values]
     # drop nan values from reference series, since those are values you dont want to refer to.
@@ -98,7 +97,7 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
 
     # skip further processing if reference series is empty:
     if refseries.empty:
-        return data, flags
+        return data, flagger
 
     # wrap around df.index.get_loc method, to catch key error in case of empty tolerance window:
     def check_nearest_for_frost(ref_date, ref_series, tolerance, check_level):
@@ -120,12 +119,12 @@ def flagSoilMoistureBySoilFrost(data, flags, field, flagger, soil_temp_reference
     mask = temp_frame.apply(check_nearest_for_frost, args=(refseries,
                                                            tolerated_deviation, frost_level))
     # apply calculated flags
-    flags = flagger.setFlags(flags, field, mask.values, **kwargs)
-    return data, flags
+    flagger = flagger.setFlags(field, mask.values, **kwargs)
+    return data, flagger
 
 
 @register("SoilMoistureByPrecipitation")
-def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_reference, sensor_meas_depth=0,
+def flagSoilMoistureByPrecipitationEvents(data, field, flagger, prec_reference, sensor_meas_depth=0,
                                           sensor_accuracy=0, soil_porosity=0, std_factor=2, std_factor_range='24h',
                                           raise_reference=None, **kwargs):
 
@@ -160,7 +159,6 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
                                         series. Data must be indexed by a datetime series and be harmonized onto a
                                         time raster with seconds precision.
-    :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object. (saqc.flagger.X)
     :param prec_reference:              Fieldname of the precipitation meassurements column in data.
@@ -180,16 +178,16 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
                                         sample rate and below std_factor_range.
     """
 
-    dataseries, moist_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
+    dataseries, moist_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     # retrieve input sampling rate (needed to translate ref and data rates into each other):
     input_rate = estimateSamplingRate(data.index)
-    refseries, ref_rate = retrieveTrustworthyOriginal(data, flags, prec_reference, flagger)
+    refseries, ref_rate = retrieveTrustworthyOriginal(data, prec_reference, flagger)
     # abort processing if any of the measurement series has no valid entries!
     if moist_rate is np.nan:
-        return data, flags
+        return data, flagger
     if ref_rate is np.nan:
-        return data, flags
+        return data, flagger
 
     # get 24 h prec. monitor (this makes last-24h-rainfall-evaluation independent from preceeding entries)
     prec_count = refseries.rolling(window='1D').apply(lambda x: x.sum(skipna=False), raw=False)
@@ -234,11 +232,11 @@ def flagSoilMoistureByPrecipitationEvents(data, flags, field, flagger, prec_refe
     # retrieve indices referring to values-to-be-flagged-bad
     invalid_indices = invalid_raises.index[invalid_raises]
     # set Flags
-    flags = flagger.setFlags(flags, field, invalid_indices, **kwargs)
-    return data, flags
+    flagger = flagger.setFlags(field, invalid_indices, **kwargs)
+    return data, flagger
 
 
-def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_window_min='12h',
+def flagSoilMoistureByConstantsDetection(data, field, flagger, plateau_window_min='12h',
                                          plateau_var_limit=0.0005, rainfall_window='12h', filter_window_size='3h',
                                          i_start_infimum=0.0025, i_end_supremum=0, data_max_tolerance=0.95, **kwargs):
 
@@ -248,15 +246,14 @@ def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_wi
     :param data:                        The pandas dataframe holding the data-to-be flagged.
                                         Data must be indexed by a datetime series and be harmonized onto a
                                         time raster with seconds precision (skips allowed).
-    :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object. (saqc.flagger.X)
     """
-    dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
+    dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     # abort processing if original series has no valid entries!
     if data_rate is np.nan:
-        return data, flags
+        return data, flagger
 
     # get data max
     data_max = dataseries.max()
@@ -269,7 +266,7 @@ def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_wi
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
-        return data, flags
+        return data, flagger
 
     plateaus_reverse = pd.Series(np.flip(plateaus.values), index=plateaus.index)
     reverse_check = plateaus_reverse.rolling(window=plateau_window_min).apply(lambda x:
@@ -348,5 +345,5 @@ def flagSoilMoistureByConstantsDetection(data, flags, field, flagger, plateau_wi
         if potential_invalid.mean() > data_max*data_max_tolerance:
             invalids = pd.concat([invalids, potential_invalid])
 
-    flags = flagger.setFlag(flags, field, invalids.index, **kwargs)
-    return data, flags
+    flagger = flagger.setFlag(field, invalids.index, **kwargs)
+    return data, flagger

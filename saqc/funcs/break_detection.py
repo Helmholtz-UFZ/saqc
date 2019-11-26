@@ -14,7 +14,7 @@ from ..lib.tools import (
 
 
 @register("breaks_spektrumBased")
-def flagBreaks_spektrumBased(data, flags, field, flagger, diff_method='raw', filter_window_size='3h',
+def flagBreaks_spektrumBased(data, field, flagger, diff_method='raw', filter_window_size='3h',
                              rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
                              first_der_window_size='12h', scnd_der_ratio_margin_1=0.05,
                              scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
@@ -73,7 +73,7 @@ def flagBreaks_spektrumBased(data, flags, field, flagger, diff_method='raw', fil
     """
 
     # retrieve data series input at its original sampling rate
-    dataseries, data_rate = retrieveTrustworthyOriginal(data, flags, field, flagger)
+    dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     # relative - change - break criteria testing:
     abs_change = np.abs(dataseries.shift(+1) - dataseries)
@@ -125,11 +125,11 @@ def flagBreaks_spektrumBased(data, flags, field, flagger, diff_method='raw', fil
 
             # criterion evaluation:
             first_second = (1 - scnd_der_ratio_margin_1) < \
-                            abs((second_deri_series.shift(0)[brake] / second_deri_series.shift(-1)[brake])) < \
-                            1 + scnd_der_ratio_margin_1
+                abs((second_deri_series.shift(0)[brake] / second_deri_series.shift(-1)[brake])) < \
+                1 + scnd_der_ratio_margin_1
 
             second_second = abs(second_deri_series.shift(-1)[brake] / second_deri_series.shift(-2)[brake]) > \
-                            scnd_der_ratio_margin_2
+                scnd_der_ratio_margin_2
 
             if (~ first_second) | (~ second_second):
                 breaks[brake] = False
@@ -139,6 +139,6 @@ def flagBreaks_spektrumBased(data, flags, field, flagger, diff_method='raw', fil
 
     breaks = breaks[breaks == True]
 
-    flags = flagger.setFlags(flags, field, breaks.index, **kwargs)
+    flagger = flagger.setFlags(field, breaks.index, **kwargs)
 
-    return data, flags
+    return data, flagger

@@ -2,4 +2,5 @@
 *.pyc
 .idea/
 testspace/
+venv/
 .DS_Store

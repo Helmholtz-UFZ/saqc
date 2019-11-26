@@ -6,10 +6,21 @@ from sklearn.ensemble import RandomForestClassifier
 import joblib
 
 
+def _refCalc(reference, window_values):
+    # Helper function for calculation of moving window values
+    outdata = pd.DataFrame()
+    name = reference.name
+    # derive gradients from reference series
+    outdata[name+"_Dt_1"] = reference-reference.shift(1)# gradient t vs. t-1
+    outdata[name+"_Dt1"] = reference-reference.shift(-1)# gradient t vs. t+1
+    # moving mean of gradients var1 and var2 before/after
+    outdata[name+"_Dt_"+str(window_values)] = outdata[name+"_Dt_1"].rolling(window_values,center=False).mean()# mean gradient t to t-window
+    outdata[name+"_Dt"+str(window_values)] = outdata[name+"_Dt_1"].iloc[::-1].rolling(window_values,center=False).mean()[::-1]# mean gradient t to t+window
+    return(outdata)
 
 
 @register("machinelearning")
-def flagML(data, flags, field, flagger, references, window_values:int, window_flags:int, path:str,**kwargs):
+def flagML(data, field, flagger, references, window_values: int, window_flags: int, path: str,**kwargs):
 
     """This Function uses pre-trained machine-learning model objects for flagging of a specific variable. The model is supposed to be trained using the script provided in "ressources/machine_learning/train_machine_learning.py".
     For flagging, Inputs to the model are the timeseries of the respective target at one specific sensors, the automatic flags that were assigned by SaQC as well as multiple reference series.
@@ -29,23 +40,10 @@ def flagML(data, flags, field, flagger, references, window_values:int, window_fl
     # - make flagger iterate over groupvar if multiple sensors are passed into saqc (Does that happen?)
 
     # Function for moving window calculations
-    def refCalc (reference,window_values):
-        # Helper function for calculation of moving window values
-        outdata = pd.DataFrame()
-        name = reference.name
-        # derive gradients from reference series
-        outdata[name+"_Dt_1"] = reference-reference.shift(1)# gradient t vs. t-1
-        outdata[name+"_Dt1"] = reference-reference.shift(-1)# gradient t vs. t+1
-        # moving mean of gradients var1 and var2 before/after
-        outdata[name+"_Dt_"+str(window_values)] = outdata[name+"_Dt_1"].rolling(window_values,center=False).mean()# mean gradient t to t-window
-        outdata[name+"_Dt"+str(window_values)] = outdata[name+"_Dt_1"].iloc[::-1].rolling(window_values,center=False).mean()[::-1]# mean gradient t to t+window
-        return(outdata)
-
-
     # Create custom df for easier processing
-    df = data.loc[:,[field]+references]
+    df = data.loc[:, [field]+references]
     # Create binary column of BAD-Flags
-    df["flag_bin"] = flagger.isFlagged(flags, field, flag=flagger.BAD, comparator='==').astype("int")#get "BAD"-flags and turn into binary
+    df["flag_bin"] = flagger.isFlagged(field, flag=flagger.BAD, comparator='==').astype("int")#get "BAD"-flags and turn into binary
 
     # Add context information of flags
     df["flag_bin_t_1"] = df["flag_bin"]-df["flag_bin"].shift(1)# Flag at t-1
@@ -56,7 +54,7 @@ def flagML(data, flags, field, flagger, references, window_values:int, window_fl
 
     # Add context information for field+references
     for i in [field]+references:
-        df = pd.concat([df,refCalc(reference=df[i],window_values=window_values)],axis=1)
+        df = pd.concat([df, _refCalc(reference=df[i],window_values=window_values)],axis=1)
 
     # remove rows that contain NAs (new ones occured during predictor calculation)
     df = df.dropna(axis=0,how="any")
@@ -66,9 +64,8 @@ def flagML(data, flags, field, flagger, references, window_values:int, window_fl
     model = joblib.load(path)
     preds = model.predict(df)
 
-    print(str(preds.sum())+" Values flagged")
     #Get indices of flagged values
     flag_indices = df[preds.astype('bool')].index
     # set Flags
-    flags = flagger.setFlags(flags, field, loc = flag_indices, **kwargs)
-    return data, flags
+    flagger = flagger.setFlags(field, loc=flag_indices, **kwargs)
+    return data, flagger
