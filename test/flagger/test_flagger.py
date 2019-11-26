@@ -95,10 +95,15 @@ def test_isFlagged(data, flagger):
     # both the same
     assert (flagged0[field] == flagged1).all()
 
-    flag = pd.Series(index=data.index, data=flagger.BAD).astype(flagger.dtype)
 
     # fixme !!
-    flagger.isFlagged(flag=flag)
+    fail_tests = [
+        {"flag": pd.Series(index=data.index, data=flagger.BAD).astype(flagger.dtype)},
+        {"field": ["var1", "var2"]}
+    ]
+    # for args in fail_tests:
+    #     with pytest.raises(ValueError):
+    #         flagger.isFlagged(*args)
 
 
 @pytest.mark.parametrize('data', DATASETS)
@@ -199,7 +204,6 @@ LOC_ILOC_FUNCS = [
 @pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
 def test_loc(data, flagger, flaggerfunc):
     flagger.initFlags(data)
-    flags = flagger.getFlags()
     sl = slice('2011-01-02', '2011-01-05')
     chunk = data.loc[sl, field]
     d = data.loc[sl]
@@ -248,7 +252,6 @@ def test_loc(data, flagger, flaggerfunc):
 @pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
 def test_iloc(data, flagger, flaggerfunc):
     flagger.initFlags(data)
-    flags = flagger.getFlags()
     M = len(data.index) - 1 if len(data.index) > 0 else 0
     m = M // 3
     M = m * 2
@@ -295,7 +298,6 @@ def test_iloc(data, flagger, flaggerfunc):
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 def test_classicUseCases(data, flagger):
     flagger.initFlags(data)
-    flags = flagger.getFlags()
 
     # data-mask, same length than flags
     d = data[field]

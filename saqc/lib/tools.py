@@ -13,6 +13,13 @@ import sys
 from ..lib.types import PandasLike, ArrayLike
 
 
+def assertScalar(name, value, optional=False):
+    if (not np.isscalar(value)) and (value is not None) and (optional is True):
+        raise ValueError(f"'{name}' needs to be a scalar or 'None'")
+    elif (not np.isscalar(value)) and optional is False:
+        raise ValueError(f"'{name}' needs to be a scalar")
+
+
 def toSequence(value: Union[T, Sequence[T]],
                default: Union[T, Sequence[T]] = None) -> Sequence[T]:
     if value is None:

@@ -6,10 +6,11 @@ from copy import deepcopy
 from collections import OrderedDict
 from typing import Union, Sequence
 
+import numpy as np
 import pandas as pd
 
 from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
-from saqc.lib.tools import check_isdf, toSequence
+from saqc.lib.tools import check_isdf, toSequence, assertScalar
 
 
 class Keywords:
@@ -43,20 +44,21 @@ class DmpFlagger(CategoricalBaseFlagger):
 
     def getFlagger(self, field=None, loc=None, iloc=None):
         # NOTE: we need to preserve all indexing levels
+        assertScalar("field", field, optional=True)
         cols = toSequence(field, self._flags.columns.levels[0])
         out = super().getFlagger(field, loc, iloc)
         out._flags.columns = self._getColumnIndex(cols)
         return out
 
     def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
+        assertScalar("field", field, optional=True)
         field = field or slice(None)
         mask = self._locatorMask(field, loc, iloc)
         flags = self._flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1).copy()
         return super()._assureDtype(flags.loc[mask, field])
 
     def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, comment='', cause='', **kwargs):
-        if field is None:
-            raise ValueError('field cannot be None')
+        assertScalar("field", field, optional=True)
 
         flag = self.BAD if flag is None else self._checkFlag(flag)
 
