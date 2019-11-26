@@ -18,8 +18,8 @@ from ..lib.tools import (
     slidingWindowIndices)
 
 
-@register("sliding_outlier")
-def slidingOutlier(data, flags, field, flagger, winsz, dx, count=1, deg=1, z=3.5, method='modZ', **kwargs):
+@register("spikes_slidingZscore")
+def flagSpikes_slidingZscore(data, flags, field, flagger, winsz, dx, count=1, deg=1, z=3.5, method='modZ', **kwargs):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
 
@@ -132,8 +132,8 @@ def slidingOutlier(data, flags, field, flagger, winsz, dx, count=1, deg=1, z=3.5
     return data, flags
 
 
-@register("mad")
-def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
+@register("spikes_simpleMad")
+def flagSpikes_simpleMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
     """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
 
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
@@ -164,8 +164,8 @@ def flagMad(data, flags, field, flagger, length, z=3.5, freq=None, **kwargs):
     flags = flagger.setFlags(flags, field, mask, **kwargs)
     return data, flags
 
-@register("Spikes_Basic")
-def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length='15min', **kwargs):
+@register("spikes_basic")
+def flagSpikes_basic(data, flags, field, flagger, thresh=7, tol=0, length='15min', **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -246,8 +246,8 @@ def flagSpikes_Basic(data, flags, field, flagger, thresh=7, tol=0, length='15min
 
     return data, flags
 
-@register("Spikes_SpektrumBased")
-def flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size='3h',
+@register("spikes_spektrumBased")
+def flagSpikes_spektrumBased(data, flags, field, flagger, filter_window_size='3h',
                              raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
                              noise_statistic='CoVar', smooth_poly_order=2, **kwargs):
     """

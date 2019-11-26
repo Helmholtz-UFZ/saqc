@@ -1,15 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
-
 
 import numpy as np
 import pandas as pd
 from .register import register
 
 
-from .statistic_functions import (
+from saqc.lib.statistic_functions import (
     var_qc)
 
 from ..lib.tools import (

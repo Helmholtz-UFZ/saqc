@@ -8,7 +8,7 @@ import pandas as pd
 from scipy.signal import savgol_filter
 
 from .break_detection import flagBreaks_spektrumBased
-from .spike_detection import flagSpikes_SpektrumBased
+from .spike_detection import flagSpikes_spektrumBased
 from .register import register
 
 
@@ -24,13 +24,13 @@ def flagSoilMoistureSpikes(data, flags, field, flagger, filter_window_size='3h',
                            noise_statistic='CoVar', **kwargs):
 
     """
-    The Function provides just a call to flagSpikes_SpektrumBased, with parameter defaults, that refer to:
+    The Function provides just a call to flagSpikes_spektrumBased, with parameter defaults, that refer to:
 
     Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
     Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
     """
 
-    return flagSpikes_SpektrumBased(data, flags, field, flagger, filter_window_size=filter_window_size,
+    return flagSpikes_spektrumBased(data, flags, field, flagger, filter_window_size=filter_window_size,
                                     raise_factor=raise_factor, dev_cont_factor=dev_cont_factor,
                                     noise_barrier=noise_barrier, noise_window_size=noise_window_size,
                                     noise_statistic=noise_statistic, **kwargs)

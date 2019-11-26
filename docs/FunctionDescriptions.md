@@ -152,7 +152,7 @@ SoilMoistureSpikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0
 ```
 ### Description
 
-The Function is just a wrapper around `flagSpikes_SpektrumBased`, from the 
+The Function is just a wrapper around `flagSpikes_spektrumBased`, from the 
 spike detection library and performs a call to this function with a parameter 
 set, referring to:
 
