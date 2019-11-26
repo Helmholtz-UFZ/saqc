@@ -32,7 +32,7 @@ class CategoricalBaseFlagger(BaseFlagger):
         self.signature = ("flag", "force")
 
     def initFlags(self, data: pd.DataFrame):
-        check_isdf(data, 'data', allow_multiindex=False)
+        isDataframeCheck(data, 'data', allow_multiindex=False)
         flags = pd.DataFrame(data=self.UNFLAGGED, index=data.index, columns=data.columns)
         return self._assureDtype(flags)
 
@@ -70,7 +70,7 @@ class CategoricalBaseFlagger(BaseFlagger):
         return df_or_ser
 
     def _checkFlags(self, flags, **kwargs):
-        check_isdf(flags, argname='flags')
+        isDataframeCheck(flags, argname='flags')
         return flags
 
     def _checkFlag(self, flag, allow_series=False, lenght=None):

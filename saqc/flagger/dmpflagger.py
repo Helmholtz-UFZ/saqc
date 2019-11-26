@@ -38,7 +38,7 @@ class DmpFlagger(CategoricalBaseFlagger):
         self.signature = ("flag", "comment", "cause", "force")
 
     def initFlags(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
-        check_isdf(data, 'data', allow_multiindex=False)
+        isDataframeCheck(data, 'data', allow_multiindex=False)
         colindex = pd.MultiIndex.from_product(
             [data.columns, self.flags_fields],
             names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
@@ -67,7 +67,7 @@ class DmpFlagger(CategoricalBaseFlagger):
         return super()._reduceColumns(flags, field, **kwargs)
 
     def _checkFlags(self, flags, **kwargs):
-        check_isdfmi(flags, argname='flags')
+        isDataframeMultiindexedCheck(flags, argname='flags')
         return flags
 
     def _assureDtype(self, flags, field=None, **kwargs):

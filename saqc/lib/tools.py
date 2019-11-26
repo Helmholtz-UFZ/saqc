@@ -195,6 +195,7 @@ def flagWindow(old, new, field, flagger, direction='fw', window=0, **kwargs) -> 
     else:
         # time-based windows
         if direction in ['bw', 'both']:
+            # todo: implement time-based backward rolling
             raise NotImplementedError
         fw = f.rolling(window=window, closed='both').sum().astype(bool)
 
@@ -267,33 +268,34 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
         return mask
 
 
-def check_isdf(df, argname='arg', allow_multiindex=True):
+def isDataframeCheck(df, argname='arg', allow_multiindex=True):
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
     if not allow_multiindex:
-        _forbid_dfmi(df, argname)
+        _raiseIffMultiindex(df, argname)
     if not df.columns.is_unique:
         raise TypeError(f"{argname} must have unique columns")
 
 
-def check_isseries(df, argname='arg'):
+def isSeriesCheck(df, argname='arg'):
     if not isinstance(df, pd.Series):
         raise TypeError(f"{argname} must be of type pd.Series, {type(df)} was given")
 
 
-def check_ispdlike(pdlike, argname='arg', allow_multiindex=True):
+def isPandasLikeCheck(pdlike, argname='arg', allow_multiindex=True):
     if not isinstance(pdlike, pd.Series) and not isinstance(pdlike, pd.DataFrame):
         raise TypeError(f"{argname} must be of type pd.DataFrame or pd.Series, {type(pdlike)} was given")
     if not allow_multiindex:
-        _forbid_dfmi(pdlike, argname)
+        _raiseIffMultiindex(pdlike, argname)
 
 
-def check_isdfmi(dfmi, argname=''):
-    check_isdf(dfmi, argname, allow_multiindex=True)
+def isDataframeMultiindexedCheck(dfmi, argname=''):
+    isDataframeCheck(dfmi, argname, allow_multiindex=True)
     if not isinstance(dfmi.columns, pd.MultiIndex):
-        raise TypeError(f"given pd.DataFrame ({argname}) must have a muliindex, but has {type(dfmi.columns)} was given")
+        raise TypeError(f"given pd.DataFrame ({argname}) need to have a muliindex on columns, "
+                        f"instead it has a {type(dfmi.columns)}")
 
 
-def _forbid_dfmi(df, argname=''):
+def _raiseIffMultiindex(df, argname=''):
     if isinstance(df, pd.DataFrame) and isinstance(df.columns, pd.MultiIndex):
-        raise TypeError(f"given pd.DataFrame {argname} must NOT have a muliindex")
+        raise TypeError(f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns")
