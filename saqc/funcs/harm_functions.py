@@ -6,7 +6,7 @@ import numpy as np
 import logging
 
 from saqc.funcs.functions import flagMissing
-from saqc.funcs.register import _directRegister
+from saqc.funcs.register import register
 
 
 # todo: frequencie estimation function
@@ -138,8 +138,8 @@ harmonize = harm_wrapper(harm=True)
 deharmonize = harm_wrapper(harm=False)
 
 # the wrapper needs a special treatment
-_directRegister(harmonize, 'harmonize')
-_directRegister(deharmonize, 'deharmonize')
+register('harmonize')(harmonize)
+register('deharmonize')(deharmonize)
 
 
 # (de-)harmonize helper

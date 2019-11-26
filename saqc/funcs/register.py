@@ -28,7 +28,3 @@ def register(name):
         return inner
 
     return outer
-
-
-def _directRegister(func, name):
-    FUNC_MAP[name] = Partial(func, func_name=name)

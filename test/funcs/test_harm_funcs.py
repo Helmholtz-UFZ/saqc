@@ -261,16 +261,6 @@ def test_outsort_crap(data, flagger):
     assert f_drop.index.sort_values().equals(drop_index.sort_values())
 
 
-def test_core_harm():
-    pass
-    # harmonize data:
-    metadict = [
-        # {'varname': 'data', 'test1': f'harmonize(freq="15min", inter_method="time", reshape_method="{reshaper}")'},
-        # {'varname': 'data', 'test1': f'deharmonize(co_flagging="{co_flagging}")'}
-    ]
-    # meta_file, meta_frame = initMetaDict(metadict, data)
-    # data2, flags2 = runner(meta_file, flagger, pre_data, pre_flags)
-
 
 
 
