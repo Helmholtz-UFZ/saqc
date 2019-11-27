@@ -40,7 +40,6 @@ def flagSoilMoistureSpikes(
 
     return flagSpikes_spektrumBased(
         data,
-        flags,
         field,
         flagger,
         filter_window_size=filter_window_size,
@@ -79,7 +78,6 @@ def flagSoilMoistureBreaks(
     """
     return flagBreaks_spektrumBased(
         data,
-        flags,
         field,
         flagger,
         diff_method=diff_method,
