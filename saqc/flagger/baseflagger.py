@@ -86,7 +86,7 @@ class BaseFlagger(ABC):
         return self._copy(flags)
 
     def getFlags(
-        self, field: str = None, loc: LocT = None, iloc: IlocT = None, **kwargs
+        self, field: str = None, loc: LocT = None, iloc: IlocT = None
     ) -> PandasT:
         """
         return a copy of potentially trimmed down 'self._flags' DataFrame

@@ -76,7 +76,7 @@ class DmpFlagger(CategoricalBaseFlagger):
         out._flags.columns = self._getColumnIndex(cols)
         return out
 
-    def getFlags(self, field=None, loc=None, iloc=None, **kwargs):
+    def getFlags(self, field=None, loc=None, iloc=None):
         assertScalar("field", field, optional=True)
         field = field or slice(None)
         mask = self._locatorMask(field, loc, iloc)
