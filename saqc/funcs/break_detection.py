@@ -15,8 +15,6 @@ def flagBreaks_spektrumBased(
     data,
     field,
     flagger,
-    diff_method="raw",
-    filter_window_size="3h",
     rel_change_min=0.1,
     abs_change_min=0.01,
     first_der_factor=10,
@@ -24,6 +22,8 @@ def flagBreaks_spektrumBased(
     scnd_der_ratio_margin_1=0.05,
     scnd_der_ratio_margin_2=10,
     smooth_poly_order=2,
+    diff_method="savgol",
+    filter_window_size=None,
     **kwargs
 ):
 
@@ -83,6 +83,11 @@ def flagBreaks_spektrumBased(
     # retrieve data series input at its original sampling rate
     dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
+    if filter_window_size is None:
+        filter_window_size = 3 * pd.Timedelta(data_rate)
+    else:
+        filter_window_size = pd.Timedelta(filter_window_size)
+
     # relative - change - break criteria testing:
     abs_change = np.abs(dataseries.shift(+1) - dataseries)
     breaks = (abs_change > abs_change_min) & (
@@ -91,17 +96,17 @@ def flagBreaks_spektrumBased(
     breaks = breaks[breaks == True]
 
     # First derivative criterion
-    smoothing_periods = int(np.ceil(offset2periods(filter_window_size, data_rate)))
+    smoothing_periods = int(np.ceil((filter_window_size.seconds / data_rate.n)))
     if smoothing_periods % 2 == 0:
         smoothing_periods += 1
 
     for brake in breaks.index:
         # slice out slice-to-be-filtered (with some safety extension of 12 times the data rate)
         slice_start = (
-                brake - pd.Timedelta(first_der_window_range) - 12 * pd.Timedelta(data_rate)
+                brake - pd.Timedelta(first_der_window_range) - smoothing_periods * pd.Timedelta(data_rate)
         )
         slice_end = (
-                brake + pd.Timedelta(first_der_window_range) + 12 * pd.Timedelta(data_rate)
+                brake + pd.Timedelta(first_der_window_range) + smoothing_periods * pd.Timedelta(data_rate)
         )
         data_slice = dataseries[slice_start:slice_end]
 
@@ -153,8 +158,8 @@ def flagBreaks_spektrumBased(
                 (1 - scnd_der_ratio_margin_1)
                 < abs(
                     (
-                        second_deri_series.shift(0)[brake]
-                        / second_deri_series.shift(-1)[brake]
+                        second_deri_series.shift(+1)[brake]
+                        / second_deri_series[brake]
                     )
                 )
                 < 1 + scnd_der_ratio_margin_1
@@ -162,8 +167,8 @@ def flagBreaks_spektrumBased(
 
             second_second = (
                 abs(
-                    second_deri_series.shift(-1)[brake]
-                    / second_deri_series.shift(-2)[brake]
+                    second_deri_series[brake]
+                    / second_deri_series.shift(-1)[brake]
                 )
                 > scnd_der_ratio_margin_2
             )

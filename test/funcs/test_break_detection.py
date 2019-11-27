@@ -8,7 +8,7 @@ from saqc.funcs.break_detection import flagBreaks_spektrumBased
 from test.common import TESTFLAGGER, initData
 
 
-@pytest.fixture
+#@pytest.fixture
 def data():
     return initData(
         1, start_date="2011-01-01 00:00:00", end_date="2011-01-02 03:00:00", freq="5min"
@@ -25,3 +25,7 @@ def test_flagBreaks_SpektrumBased(data, flagger):
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[break_positions] == flagger.BAD).sum()
     assert test_sum == len(break_positions)
+
+if __name__ == "__main__":
+    flagger = TESTFLAGGER[2]
+    test_flagBreaks_SpektrumBased(data(),flagger)
