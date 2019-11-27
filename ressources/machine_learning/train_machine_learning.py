@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
-import random #for random sampling of training/test
+import random  # for random sampling of training/test
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import recall_score, precision_score, classification_report
-import joblib # for saving of model objects
+import joblib  # for saving of model objects
 
 ###--------------------
 ### EXAMPLE PARAMETRIZATION:
@@ -30,7 +30,19 @@ import joblib # for saving of model objects
 # group_field = "GroupVar"
 
 
-def trainML(data, field, references, sensor_field:str, group_field:str, window_values:int = 20, window_flags:int = 20, path:str, modelname:str, testratio:float, **kwargs):
+def trainML(
+    data,
+    field,
+    references,
+    sensor_field: str,
+    group_field: str,
+    window_values: int,
+    window_flags: int,
+    path: str,
+    modelname: str,
+    testratio: float,
+    **kwargs
+):
 
     """This Function trains machine-learning models to reproduce manual flags that were
     set for a specific variable. Inputs to the model are the timeseries of the
@@ -61,94 +73,173 @@ def trainML(data, field, references, sensor_field:str, group_field:str, window_v
     ### Prepare data, i.e. compute moving windows
     print("Computing time-lags")
     # save original row index for merging into original dataframe, as NAs will be introduced
-    data = data.rename(columns={"index":"RowIndex"})
+    data = data.rename(columns={"index": "RowIndex"})
     # define Test/Training
-    data = data.assign(TeTr = "Tr")
+    data = data.assign(TeTr="Tr")
     # create empty df for training data
     traindata = pd.DataFrame()
     # calculate windows
     for sensor_id in data[sensor_field].unique():
         print(sensor_id)
-        sensordf = data.loc[data[sensor_field]==sensor_id]
-        index_test = sensordf.RowIndex.sample(n=int(testratio*len(sensordf)), random_state=randomseed)#draw random sample
-        sensordf.TeTr[index_test] = "Te"#assign test samples
+        sensordf = data.loc[data[sensor_field] == sensor_id]
+        index_test = sensordf.RowIndex.sample(
+            n=int(testratio * len(sensordf)), random_state=randomseed
+        )  # draw random sample
+        sensordf.TeTr[index_test] = "Te"  # assign test samples
 
-        sensordf["flag_bin_t_1"] = sensordf["flag_bin"]-sensordf["flag_bin"].shift(1)# Flag at t-1
-        sensordf["flag_bin_t1"] = sensordf["flag_bin"]-sensordf["flag_bin"].shift(-1)# Flag at t+1
-        sensordf["flag_bin_t_"+str(window_flags)] = sensordf["flag_bin"].rolling(window_flags+1,center=False).sum()# n Flags in interval t to t-window_flags
-        sensordf["flag_bin_t"+str(window_flags)] = sensordf["flag_bin"].iloc[::-1].rolling(window_flags+1,center=False).sum()[::-1]# n Flags in interval t to t+window_flags
+        sensordf["flag_bin_t_1"] = sensordf["flag_bin"] - sensordf["flag_bin"].shift(
+            1
+        )  # Flag at t-1
+        sensordf["flag_bin_t1"] = sensordf["flag_bin"] - sensordf["flag_bin"].shift(
+            -1
+        )  # Flag at t+1
+        sensordf["flag_bin_t_" + str(window_flags)] = (
+            sensordf["flag_bin"].rolling(window_flags + 1, center=False).sum()
+        )  # n Flags in interval t to t-window_flags
+        sensordf["flag_bin_t" + str(window_flags)] = (
+            sensordf["flag_bin"]
+            .iloc[::-1]
+            .rolling(window_flags + 1, center=False)
+            .sum()[::-1]
+        )  # n Flags in interval t to t+window_flags
         # forward-orientation not possible, so right-orientation on reversed data an reverse result
 
         # Add context information for field+references
-        for i in [field]+references:
-            sensordf = pd.concat([sensordf,refCalc(reference=sensordf[i],window_values=window_values)],axis=1)
+        for i in [field] + references:
+            sensordf = pd.concat(
+                [sensordf, refCalc(reference=sensordf[i], window_values=window_values)],
+                axis=1,
+            )
 
         # write back into new dataframe
         traindata = traindata.append(sensordf)
 
     # remove rows that contain NAs (new ones occured during predictor calculation)
-    traindata = traindata.dropna(axis=0,how="any")
-
+    traindata = traindata.dropna(axis=0, how="any")
 
     ################
     ### FIT Model
     ################
-    n_cores = os.getenv('NSLOTS', 1)
-    print("MODEL TRAINING ON "+str(n_cores)+" CORES")
+    n_cores = os.getenv("NSLOTS", 1)
+    print("MODEL TRAINING ON " + str(n_cores) + " CORES")
 
     # make column in "traindata" to store predictions
     traindata = traindata.assign(PredMan=0)
     outinfo_df = []
-    resultfile = open(os.path.join(path,modelname+"_resultfile.txt"),"w")
+    resultfile = open(os.path.join(path, modelname + "_resultfile.txt"), "w")
     starttime = time.time()
     # For each category of groupvar, fit a separate model
 
     for groupvar in traindata[group_field].unique():
-        resultfile.write("GROUPVAR: " + str(groupvar)+"\n")
+        resultfile.write("GROUPVAR: " + str(groupvar) + "\n")
         print("GROUPVAR: " + str(groupvar))
         print("TRAINING MODEL...")
         # drop unneeded columns
-        groupdata = traindata[traindata[group_field]==groupvar].drop(columns=["Time","RowIndex","Flag","flag_bin","PredMan",group_field, sensor_field])
-        forest = RandomForestClassifier(n_estimators=500, random_state=randomseed,oob_score=True,n_jobs=-1)
-        X_tr = groupdata.drop(columns=["TeTr","FlagMan"])[groupdata.TeTr=="Tr"]
-        Y_tr = groupdata.FlagMan[groupdata.TeTr=="Tr"]
+        groupdata = traindata[traindata[group_field] == groupvar].drop(
+            columns=[
+                "Time",
+                "RowIndex",
+                "Flag",
+                "flag_bin",
+                "PredMan",
+                group_field,
+                sensor_field,
+            ]
+        )
+        forest = RandomForestClassifier(
+            n_estimators=500, random_state=randomseed, oob_score=True, n_jobs=-1
+        )
+        X_tr = groupdata.drop(columns=["TeTr", "FlagMan"])[groupdata.TeTr == "Tr"]
+        Y_tr = groupdata.FlagMan[groupdata.TeTr == "Tr"]
         forest.fit(y=Y_tr, X=X_tr)
         # save model object
-        joblib.dump(forest, os.path.join(path,modelname+"_"+str(groupvar)+".pkl"))
+        joblib.dump(
+            forest, os.path.join(path, modelname + "_" + str(groupvar) + ".pkl")
+        )
         # retrieve training predictions
         print("PREDICTING...")
-        preds_tr = forest.oob_decision_function_[:,1]>forest.oob_decision_function_[:,0]#training, derive from OOB class votes
+        preds_tr = (
+            forest.oob_decision_function_[:, 1] > forest.oob_decision_function_[:, 0]
+        )  # training, derive from OOB class votes
         preds_tr = preds_tr.astype("int")
 
         # get test predictions
-        X_te = groupdata.drop(columns=["TeTr","FlagMan"])[groupdata.TeTr=="Te"]
-        Y_te = groupdata.FlagMan[groupdata.TeTr=="Te"]
-        preds_te = forest.predict(X_te)#test
+        X_te = groupdata.drop(columns=["TeTr", "FlagMan"])[groupdata.TeTr == "Te"]
+        Y_te = groupdata.FlagMan[groupdata.TeTr == "Te"]
+        preds_te = forest.predict(X_te)  # test
 
         # Collect info on model run (n datapoints, share of flags, Test/Training accuracy...)
-        outinfo = [groupvar,groupdata.shape[0],len(preds_tr),len(preds_te),sum(groupdata.FlagMan[groupdata.TeTr=="Tr"])/len(preds_tr)*100,sum(groupdata.FlagMan[groupdata.TeTr=="Te"])/len(preds_te)*100,\
-                   recall_score(Y_tr,preds_tr),recall_score(Y_te,preds_te),\
-                   precision_score(Y_tr,preds_tr),precision_score(Y_te,preds_te)]
-        resultfile.write("TRAINING RECALL:"+"\n")
-        resultfile.write(str(recall_score(groupdata.FlagMan[groupdata.TeTr=="Tr"],preds_tr))+"\n")# Training error (Out-of-Bag)
-        resultfile.write("TEST RECALL:"+"\n")
-        resultfile.write(str(recall_score(groupdata.FlagMan[groupdata.TeTr=="Te"],preds_te))+"\n"+"\n")# Test error
+        outinfo = [
+            groupvar,
+            groupdata.shape[0],
+            len(preds_tr),
+            len(preds_te),
+            sum(groupdata.FlagMan[groupdata.TeTr == "Tr"]) / len(preds_tr) * 100,
+            sum(groupdata.FlagMan[groupdata.TeTr == "Te"]) / len(preds_te) * 100,
+            recall_score(Y_tr, preds_tr),
+            recall_score(Y_te, preds_te),
+            precision_score(Y_tr, preds_tr),
+            precision_score(Y_te, preds_te),
+        ]
+        resultfile.write("TRAINING RECALL:" + "\n")
+        resultfile.write(
+            str(recall_score(groupdata.FlagMan[groupdata.TeTr == "Tr"], preds_tr))
+            + "\n"
+        )  # Training error (Out-of-Bag)
+        resultfile.write("TEST RECALL:" + "\n")
+        resultfile.write(
+            str(recall_score(groupdata.FlagMan[groupdata.TeTr == "Te"], preds_te))
+            + "\n"
+            + "\n"
+        )  # Test error
         outinfo_df.append(outinfo)
         # save back to dataframe
-        traindata.PredMan[(traindata.TeTr=="Tr") & (traindata[group_field]==groupvar)] = preds_tr
-        traindata.PredMan[(traindata.TeTr=="Te") & (traindata[group_field]==groupvar)] = preds_te
+        traindata.PredMan[
+            (traindata.TeTr == "Tr") & (traindata[group_field] == groupvar)
+        ] = preds_tr
+        traindata.PredMan[
+            (traindata.TeTr == "Te") & (traindata[group_field] == groupvar)
+        ] = preds_te
 
     endtime = time.time()
-    print("TIME ELAPSED: "+str(timedelta(seconds=endtime-starttime))+" min")
-    outinfo_df = pd.DataFrame.from_records(outinfo_df,columns=[group_field,"n","n_Tr", "n_Te", "Percent_Flags_Tr","Percent_Flags_Te", "Recall_Tr", "Recall_Te", "Precision_Tr","Precision_Te"])
+    print("TIME ELAPSED: " + str(timedelta(seconds=endtime - starttime)) + " min")
+    outinfo_df = pd.DataFrame.from_records(
+        outinfo_df,
+        columns=[
+            group_field,
+            "n",
+            "n_Tr",
+            "n_Te",
+            "Percent_Flags_Tr",
+            "Percent_Flags_Te",
+            "Recall_Tr",
+            "Recall_Te",
+            "Precision_Tr",
+            "Precision_Te",
+        ],
+    )
     outinfo_df = outinfo_df.assign(Modelname=modelname)
     resultfile.write(str(outinfo_df))
-    outinfo_df.to_csv(os.path.join(path,modelname+"_outinfo.csv"),index=False)
+    outinfo_df.to_csv(os.path.join(path, modelname + "_outinfo.csv"), index=False)
     resultfile.close()
 
     # write results back into original "data" dataframe
     data = data.assign(PredMan=np.nan)
-    data.PredMan[traindata.RowIndex] = traindata.PredMan# based on RowIndex as NAs were created in traindata
+    data.PredMan[
+        traindata.RowIndex
+    ] = traindata.PredMan  # based on RowIndex as NAs were created in traindata
     data.to_feather("data/sm/03_data_preds")
 
-trainML(data,field, references, sensor_field,group_field, window_values, window_flags, path, modelname,0.3)
+
+trainML(
+    data,
+    field,
+    references,
+    sensor_field,
+    group_field,
+    window_values,
+    window_flags,
+    path,
+    modelname,
+    0.3,
+)
