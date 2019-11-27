@@ -52,6 +52,8 @@ sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 | startday   | integer      | `1`           |             |
 | endday     | integer      | `31`          |             |
 
+### Description
+
 
 ## `clear`
 ### Signature
@@ -123,6 +125,7 @@ mad(length, z=3.5, freq=None)
 ```
 Spikes_Basic(thresh, tolerance, window_size)
 ```
+
 ### Parameters
 | parameter   | data type | default value | description |
 | ------      | ------    | ------        | ----        |
@@ -157,6 +160,7 @@ UFZ Python library, that can be found [here](https://git.ufz.de/chs/python/blob/
 
 
 ## `Spikes_SpektrumBased`
+
 ### Signature
 ```
 Spikes_SpektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
@@ -177,7 +181,6 @@ Spikes_SpektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
 
 
 ### Description
-
 The function detects and flags spikes in input data series by evaluating the 
 the timeseries' derivatives and applying some conditions to them. 
 
@@ -211,6 +214,7 @@ doi:10.2136/vzj2012.0097.
 
 
 ## `constant`
+
 ### Signature
 ```
 constant(eps, length, thmin=None)
@@ -235,7 +239,6 @@ constants_varianceBased(plateau_window_min="12h", plateau_var_limit=0.0005,
 ```
 
 ### Parameters
-
 | parameter          | data type | default value | description |
 | ------             | ------    | ------        | ----        |
 | plateau_window_min | string    |               | Minimum barrier for the duration, values have to be continouos to be plateau canditaes. See condition (1). |
@@ -264,7 +267,6 @@ SoilMoistureSpikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0
 ```
 
 ### Parameters
-
 | parameter          | data type | default value | description |
 | ------             | ------    | ------        | ----        |
 | filter_window_size | string    | `"3h"`        |             |
@@ -276,7 +278,6 @@ SoilMoistureSpikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0
 
 
 ### Description
-
 The Function is just a wrapper around `flagSpikes_spektrumBased`, from the 
 spike detection library and performs a call to this function with a parameter 
 set, referring to:
@@ -297,7 +298,6 @@ SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
 ```
 
 ### Parameters
-
 | parameter               | data type | default value | description |
 | ------                  | ------    | ------        | ----        |
 | diff_method             | string    | `"raw"`       |             |
@@ -312,7 +312,6 @@ SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
 
 
 ### Description
-
 The Function is just a wrapper around `flagBreaks_spektrumBased`, from the 
 breaks detection library and performs a call to this function with a parameter 
 set, referring to:
@@ -323,13 +322,13 @@ Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
 
 ## `SoilMoistureByFrost`
+
 ### Signature
 ```
 SoilMoistureByFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0)
 ```
 
 ### Parameters
-
 | parameter           | data type | default value | description |
 | ------              | ------    | ------        | ----        |
 | soil_temp_reference |           |               |             |
@@ -341,16 +340,29 @@ SoilMoistureByFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0
 
 
 ## `SoilMoistureByPrecipitation`
+
 ### Signature
 ```
 SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
                             sensor_accuracy=0, soil_porosity=0,
                             std_factor=2, std_factor_range="24h")
 ```
+
+### Parameters
+| parameter         | data type | default value | description |
+| ------            | ------    | ------        | ----        |
+| prec_reference    |           |               |             |
+| sensor_meas_depth | integer   | `0`           |             |
+| sensor_accuracy   | integer   | `0`           |             |
+| soil_porosity     | integer   | `0`           |             |
+| std_factor        | integer   | `2`           |             |
+| std_factor_range  | string    | `"24h"`       |             |
+
 ### Description
 
 
 ## Breaks_SpektrumBased
+
 ### Signature
 ```                            
 Breaks_SpektrumBased(diff_method="raw", filter_window_size="3h",
@@ -358,8 +370,22 @@ Breaks_SpektrumBased(diff_method="raw", filter_window_size="3h",
                      first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
                      scnd_der_ratio_margin_2=10, smooth_poly_order=2)
 ```
-### Description
 
+### Parameters
+| parameter               | data type | default value | description |
+| ------                  | ------    | ------        | ----        |
+| diff_method             | string    | `"raw"`       |             |
+| filter_window_size      | string    | `"3h"`        |             |
+| rel_change_rate_min     | float     | `0.1`         |             |
+| abs_change_min          | float     | `0.01`        |             |
+| first_der_factor        | integer   | `10`          |             |
+| first_der_window_size   | string    | `"12h"`       |             |
+| scnd_der_ratio_margin_1 | float     | `0.05`        |             |
+| scnd_der_ratio_margin_2 | float     | `10.0`        |             |
+| smooth_poly_order       | integer   | `2`           |             | 
+
+
+### Description
 The function flags breaks (jumps/drops) in input measurement series by 
 evaluating its derivatives.
 
@@ -388,16 +414,3 @@ mechanism as presented in:
 Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture 
 Data from the international Soil Moisture Network. 2013. Vadoze Zone J. 
 doi:10.2136/vzj2012.0097.
-
-All parameters default to the values given there.
-
-| parameter | data format (default) | description |
-| ------ | ------ | ------ |
-| rel_change_min | cell | cell |
-| abs_change_min | cell | cell |
-| first_der_factor | cell | cell |  
-| first_der_window_range | cell | cell |  
-| scnd_der_ratio_margin | cell | cell |  
-| cell | cell | cell |  
-| cell | cell | cell |  
-
