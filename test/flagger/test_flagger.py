@@ -72,45 +72,77 @@ def test_getFlags(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_isFlagged(data, flagger):
-    # todo: add testcase with comparator
+def test_isFlaggedDataFrame(data, flagger):
 
     flagger = flagger.initFlags(data)
+    field, *_ = data.columns
 
-    # df
-    flagged0 = flagger.isFlagged()
-    assert isinstance(flagged0, pd.DataFrame)
-    assert flagged0.shape == data.shape
-    assert (flagged0.columns == data.columns).all()
-    for dt in flagged0.dtypes:
-        assert is_bool_dtype(dt)
+    mask = np.zeros(len(data), dtype=bool)
 
-    # series
-    flagged1 = flagger.isFlagged(field)
-    assert isinstance(flagged1, pd.Series)
-    assert flagged1.dtype == bool
-    assert flagged1.shape[0] == data.shape[0]
-    assert flagged1.name in data.columns
+    df_tests = [
+        (flagger.isFlagged(), mask),
+        (flagger.setFlags(field).isFlagged(), ~mask),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator=">"), mask),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="<"), mask),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="=="), ~mask),
+    ]
+    for flags, expected in df_tests:
+        assert np.all(flags[field] == expected)
+        assert isinstance(flags, pd.DataFrame)
+        assert flags.shape == data.shape
+        assert (flags.columns == data.columns).all()
+        for dt in flags.dtypes:
+            assert is_bool_dtype(dt)
 
-    # both the same
-    assert (flagged0[field] == flagged1).all()
 
-    # fixme !!
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_isFlaggedSeries(data, flagger):
+
+    flagger = flagger.initFlags(data)
+    field, *_ = data.columns
+
+    mask = np.zeros(len(data), dtype=bool)
+
+    series_tests = [
+        (flagger.isFlagged(field), mask),
+        (flagger.setFlags(field).isFlagged(field), ~mask),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator=">"), mask),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="<"), mask),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="=="), ~mask),
+    ]
+    for flags, expected in series_tests:
+        assert np.all(flags == expected)
+        assert isinstance(flags, pd.Series)
+        assert flags.dtype == bool
+        assert flags.shape[0] == data.shape[0]
+        assert flags.name in data.columns
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_isFlaggedSeries(data, flagger):
+
+    flagger = flagger.initFlags(data)
+    field, *_ = data.columns
+
     fail_tests = [
         {"flag": pd.Series(index=data.index, data=flagger.BAD).astype(flagger.dtype)},
         {"field": ["var1", "var2"]},
     ]
-    # for args in fail_tests:
-    #     with pytest.raises(ValueError):
-    #         flagger.isFlagged(*args)
+    for args in fail_tests:
+        with pytest.raises(ValueError):
+            flagger.isFlagged(**args)
 
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_setFlags(data, flagger):
     flagger = flagger.initFlags(data)
-    base = flagger.getFlags()
     sl = slice("2011-01-02", "2011-01-05")
+    field, *_ = data.columns
+
+    base = flagger.getFlags()
 
     flagger_good = flagger.setFlags(field, flag=flagger.GOOD, loc=sl)
     flags_good = flagger_good.getFlags()
