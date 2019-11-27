@@ -100,14 +100,15 @@ def flagSesonalRange(
 
 @register("clear")
 def clearFlags(data, field, flagger, **kwargs):
-    flagger.clearFlags(field, **kwargs)
+    flagger = flagger.clearFlags(field, **kwargs)
     return data, flagger
 
 
 @register("force")
 def forceFlags(data, field, flagger, **kwargs):
-    flagger.clearFlags(field, **kwargs)
-    flagger.setFlags(field, **kwargs)
+    flagger = (flagger
+               .clearFlags(field)
+               .setFlags(field, **kwargs))
     return data, flagger
 
 
