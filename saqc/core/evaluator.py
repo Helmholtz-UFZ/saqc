@@ -40,7 +40,6 @@ def initDslFuncMap(nodata):
 
 
 class DslTransformer(ast.NodeTransformer):
-    # TODO: restrict the supported nodes
 
     SUPPORTED = (
         ast.Expression,
