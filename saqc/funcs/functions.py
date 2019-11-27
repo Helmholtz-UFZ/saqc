@@ -106,9 +106,7 @@ def clearFlags(data, field, flagger, **kwargs):
 
 @register("force")
 def forceFlags(data, field, flagger, **kwargs):
-    flagger = (flagger
-               .clearFlags(field)
-               .setFlags(field, **kwargs))
+    flagger = flagger.clearFlags(field).setFlags(field, **kwargs)
     return data, flagger
 
 
@@ -138,7 +136,7 @@ def flagIsolated(
     dat_col.dropna(inplace=True)
 
     gap_check = dat_col.rolling(isolation_range).count()
-    gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)):]
+    gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)) :]
 
     if max_isolated_group_size == 1:
         # isolated single values are much easier to identify:
