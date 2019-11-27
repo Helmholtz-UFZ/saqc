@@ -391,7 +391,7 @@ def flagSpikes_spektrumBased(
 
         length = scnd_derivate.size
         test_ratio_1 = np.abs(
-            scnd_derivate[int((length - 1) / 2)] / scnd_derivate[int((length + 1) / 2)]
+            scnd_derivate[int(((length + 1) / 2) - 2)] / scnd_derivate[int(((length + 1) / 2))]
         )
 
         if lower_dev_bound < test_ratio_1 < upper_dev_bound:
