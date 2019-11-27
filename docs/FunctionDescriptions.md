@@ -178,7 +178,7 @@ equadistant frequencie grid.
 | parameter | data format (default) | description |
 | ------ | ------ | ------ |
 | plateau_window_min | Offset String. | Minimum barrier for the duration, values have to be continouos to be plateau canditaes. See condition (1). |
-| plateau_var_limit | Float. (0.2). | Barrier, the variance of a group of values must not exceed to be flagged a plateau .See condition (2). |
+| plateau_var_limit | Float. (0.0005). | Barrier, the variance of a group of values must not exceed to be flagged a plateau .See condition (2). |
 | var_total_nans | Integer (np.inf) | Maximum number of nan values allowed, for a calculated variance to be valid. |
 | var_consec_nans | Integer (np.inf) |  Maximum number of consecutive nan values allowed, for a calculated variance to be valid. |
 
@@ -243,8 +243,50 @@ SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
 ### Signature
 ```                            
 Breaks_SpektrumBased(diff_method="raw", filter_window_size="3h",
-                     rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
+                     rel_change_min=0.1, abs_change_min=0.01, first_der_factor=10,
                      first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
                      scnd_der_ratio_margin_2=10, smooth_poly_order=2)
 ```
 ### Description
+
+The function flags breaks (jumps/drops) in input measurement series by 
+evaluating its derivatives.
+
+NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an 
+equadistant frequencie grid.
+
+NOTE, that the derivative is calculated after applying a savitsky-golay filter 
+to $`x`$.
+
+A value $`x_k`$ of a data series $`x`$, is flagged a break, if:
+
+1. $`x_k`$ represents a sufficient absolute jump in the course of data values:
+    * $`|x_k - x_{k-1}| >`$ `abs_change_min`
+2. $`x_k`$ represents a sufficient relative jump in the course of data values:
+    * $`|\frac{x_k - x_{k-1}}{x_k}| >`$ `rel_change_min`
+3. Let $`X_k`$ be the set of all values that lie within a `first_der_window_range` range around $`x_k`$. Then, for its arithmetic mean $`\bar{X_k}`$, following equation has to hold: 
+    * $`|x'_k| >`$ `first_der_factor` $` \times \bar{X_k} `$
+4. The second derivations quatients are "sufficiently equalling 1":
+    * $` 1 -`$ `scnd_der_ratio_margin_1` $`< \frac{|x''_k|}{|x_{k''+1}|} < 1 + `$`scnd_der_ratio_margin_1`
+5. The the succeeding second derivatives values quotient has to be sufficiently high:
+    * $`|\frac{x''_{k+1}}{x''_{k+2}'}| > `$`scnd_der_ratio_margin_2`
+
+This Function is a generalization of the Spectrum based Spike flagging 
+mechanism as presented in:
+
+Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture 
+Data from the international Soil Moisture Network. 2013. Vadoze Zone J. 
+doi:10.2136/vzj2012.0097.
+
+All parameters default to the values given there.
+
+| parameter | data format (default) | description |
+| ------ | ------ | ------ |
+| rel_change_min | cell | cell |
+| abs_change_min | cell | cell |
+| first_der_factor | cell | cell |  
+| first_der_window_range | cell | cell |  
+| scnd_der_ratio_margin | cell | cell |  
+| cell | cell | cell |  
+| cell | cell | cell |  
+
