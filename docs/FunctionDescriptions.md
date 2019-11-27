@@ -172,12 +172,15 @@ $`x_k,..., x_{k+n}`$ of a timeseries $`x`$ is flagged, if:
 1. $`n > `$`plateau_window_min`
 2. $`\sigma(x_k,..., x_{k+n})`$ < `plateau_var_limit`
 
+NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an 
+equadistant frequencie grid.
+
 | parameter | data format (default) | description |
 | ------ | ------ | ------ |
-| plateau_window_min | Offset String. | Minimum change margin for a datapoint to become a candidate for a spike. See condition (1). |
-| plateau_var_limit | Float. (0.2). | See condition (2). |
-| var_total_nans | Float. (1). | Upper bound for noisyness of data surrounding potential spikes. See condition (3).|
-| var_consec_nans | Offset String. ("12h"). | Range of the timewindow of the "surrounding" data of a potential spike. See condition (3). |
+| plateau_window_min | Offset String. | Minimum barrier for the duration, values have to be continouos to be plateau canditaes. See condition (1). |
+| plateau_var_limit | Float. (0.2). | Barrier, the variance of a group of values must not exceed to be flagged a plateau .See condition (2). |
+| var_total_nans | Integer (np.inf) | Maximum number of nan values allowed, for a calculated variance to be valid. |
+| var_consec_nans | Integer (np.inf) |  Maximum number of consecutive nan values allowed, for a calculated variance to be valid. |
 
 
 
