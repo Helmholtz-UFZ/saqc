@@ -6,7 +6,7 @@ This file is part of the "System for Automated Quality Control" developed by the
 of the Helmholtz-Centre for Environmental Research Leipzig.
 
 ==============
-COPRIGHT NOTICE
+COPYRIGHT NOTICE
 ==============
 
 Copyright(c) 2019, 

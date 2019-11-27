@@ -142,3 +142,18 @@ In order to make your test available for the system you need to:
     of care to not mess things up!
   + Example: The function `flagRange` in `funcs/functions.py` may serve as an
     simple example of the general scheme
+
+### License
+Copyright(c) 2019, 
+Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ. 
+All rights reserved.
+
+The "System for Automated Quality Control" is free software. You can 
+redistribute it and/or modify it under the terms of the GNU General 
+Public License as published by the free Software Foundation either 
+version 3 of the License, or (at your option) any later version. See the [license](license.txt) for detaily.
+
+This program is distributed in the hope that it will be useful, but 
+WITHOUT ANY WARRANTY; without even the implied warranty of 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+See the GNU General Public License for more details.
