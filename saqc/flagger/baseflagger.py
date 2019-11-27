@@ -126,7 +126,7 @@ class BaseFlagger(ABC):
     ) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
         return self.setFlags(
-            field=field, loc=loc, iloc=iloc, flag=self.UNFLAGGED, force=True
+            field=field, loc=loc, iloc=iloc, flag=self.UNFLAGGED, force=True, **kwargs
         )
 
     def isFlagged(
