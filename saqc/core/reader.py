@@ -1,11 +1,11 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 import numpy as np
 import pandas as pd
-from .config import Fields as F
-from .evaluator import compileExpression
+
+from saqc.core.config import Fields as F
+from saqc.core.evaluator import compileExpression
 
 
 def _raise(config_row, exc, msg, field=None):

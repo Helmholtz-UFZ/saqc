@@ -7,12 +7,10 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 
-from .break_detection import flagBreaks_spektrumBased
-from .spike_detection import flagSpikes_spektrumBased
-from .register import register
-
-
-from ..lib.tools import (
+from saqc.funcs.break_detection import flagBreaks_spektrumBased
+from saqc.funcs.spike_detection import flagSpikes_spektrumBased
+from saqc.funcs.register import register
+from saqc.lib.tools import (
     estimateSamplingRate,
     retrieveTrustworthyOriginal,
     offset2periods)

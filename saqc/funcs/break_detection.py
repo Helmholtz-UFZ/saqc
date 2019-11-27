@@ -1,14 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
-
 import numpy as np
 import pandas as pd
-from scipy.signal import savgol_filter
-from .register import register
 
-from ..lib.tools import (
+from scipy.signal import savgol_filter
+
+from saqc.funcs.register import register
+from saqc.lib.tools import (
     retrieveTrustworthyOriginal,
     offset2periods)
 

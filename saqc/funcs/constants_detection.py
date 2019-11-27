@@ -1,16 +1,12 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 import numpy as np
 import pandas as pd
-from .register import register
 
-
-from saqc.lib.statistic_functions import (
-    varQC)
-
-from ..lib.tools import (
+from saqc.funcs.register import register
+from saqc.lib.statistic_functions import varQC
+from saqc.lib.tools import (
     valueRange,
     slidingWindowIndices,
     retrieveTrustworthyOriginal,

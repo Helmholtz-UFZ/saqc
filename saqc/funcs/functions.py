@@ -6,7 +6,7 @@ import pandas as pd
 
 from saqc.lib.tools import sesonalMask, flagWindow
 
-from .register import register
+from saqc.funcs.register import register
 
 
 @register("generic")

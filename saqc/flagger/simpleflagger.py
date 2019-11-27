@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-from .categoricalflagger import CategoricalBaseFlagger
+from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
 
 
 FLAGS = [-1, 0, 1]

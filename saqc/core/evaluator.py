@@ -5,14 +5,11 @@ import ast
 from functools import partial
 from typing import Union
 
-# import astor
 import numpy as np
 import pandas as pd
 
 from saqc.core.config import Params
 from saqc.funcs.register import FUNC_MAP
-
-# Module should be renamed to compiler
 
 
 class Targets:

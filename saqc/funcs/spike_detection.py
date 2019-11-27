@@ -7,10 +7,10 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 from scipy.stats import zscore
-from .register import register
+from saqc.funcs.register import register
 import numpy.polynomial.polynomial as poly
 
-from ..lib.tools import (
+from saqc.lib.tools import (
     inferFrequency,
     retrieveTrustworthyOriginal,
     offset2seconds,

@@ -5,11 +5,15 @@ import logging
 import numpy as np
 import pandas as pd
 
-from .reader import readConfig, prepareConfig, checkConfig
-from .config import Fields
-from .evaluator import evalExpression
-from ..lib.plotting import plotHook, plotAllHook
-from ..flagger import BaseFlagger, CategoricalBaseFlagger, SimpleFlagger, DmpFlagger
+from saqc.core.reader import readConfig, prepareConfig, checkConfig
+from saqc.core.config import Fields
+from saqc.core.evaluator import evalExpression
+from saqc.lib.plotting import plotHook, plotAllHook
+from saqc.flagger import (
+    BaseFlagger,
+    CategoricalBaseFlagger,
+    SimpleFlagger,
+    DmpFlagger)
 
 
 def _collectVariables(meta, data):

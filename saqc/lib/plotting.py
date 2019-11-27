@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# TODO: use the logging module
 from warnings import warn
 
-from ..core.config import Params
 
 __plotvars = []
 

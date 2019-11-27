@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from .baseflagger import BaseFlagger
-from .categoricalflagger import CategoricalBaseFlagger
-from .simpleflagger import SimpleFlagger
-from .dmpflagger import DmpFlagger
+from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
+from saqc.flagger.simpleflagger import SimpleFlagger
+from saqc.flagger.dmpflagger import DmpFlagger
+from saqc.flagger.continuousflagger import ContinuousBaseFlagger
