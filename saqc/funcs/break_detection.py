@@ -17,7 +17,7 @@ def flagBreaks_spektrumBased(
     flagger,
     diff_method="raw",
     filter_window_size="3h",
-    rel_change_rate_min=0.1,
+    rel_change_min=0.1,
     abs_change_min=0.01,
     first_der_factor=10,
     first_der_window_size="12h",
@@ -72,7 +72,7 @@ def flagBreaks_spektrumBased(
                                            (relevant only, if: diff_method='savgol')
        :param smooth_poly_order:           Integer. Polynomial order, used for smoothing with savitzk golay filter.
                                            (relevant only, if: diff_method='savgol')
-       :param rel_change_rate_min          Float in [0,1]. See (1) of function descritpion above to learn more
+       :param rel_change_min          Float in [0,1]. See (1) of function descritpion above to learn more
        :param abs_change_min               Float > 0. See (2) of function descritpion above to learn more.
        :param first_der_factor             Float > 0. See (3) of function descritpion above to learn more.
        :param first_der_window_size        Offset_String. See (3) of function description to learn more.
@@ -86,7 +86,7 @@ def flagBreaks_spektrumBased(
     # relative - change - break criteria testing:
     abs_change = np.abs(dataseries.shift(+1) - dataseries)
     breaks = (abs_change > abs_change_min) & (
-        abs_change / dataseries > rel_change_rate_min
+            abs_change / dataseries > rel_change_min
     )
     breaks = breaks[breaks == True]
 

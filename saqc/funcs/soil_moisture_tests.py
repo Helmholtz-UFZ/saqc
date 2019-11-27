@@ -82,7 +82,7 @@ def flagSoilMoistureBreaks(
         flagger,
         diff_method=diff_method,
         filter_window_size=filter_window_size,
-        rel_change_rate_min=rel_change_rate_min,
+        rel_change_min=rel_change_rate_min,
         abs_change_min=abs_change_min,
         first_der_factor=first_der_factor,
         first_der_window_size=first_der_window_size,
