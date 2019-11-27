@@ -178,7 +178,7 @@ def flagSpikes_simpleMad(data, field, flagger, length, z=3.5, freq=None, **kwarg
 
 
 @register("spikes_basic")
-def flagSpikes_basic(data, field, flagger, thresh=7, tol=0, length="15min", **kwargs):
+def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window_size="15min", **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -203,8 +203,8 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tol=0, length="15min", **kw
     :param flagger: saqc.flagger. A flagger - object.
     :param thresh:  Float. The lower bound for a value jump, to be considered as initialising a spike.
                     (see condition (1) in function description).
-    :param tol:   Float. Tolerance value.  (see condition (2) in function description)
-    :param length:  Offset String. The time span in wich the values of a spikey course have to return to the normal
+    :param tolerance: Float. Tolerance value.  (see condition (2) in function description)
+    :param window_size:  Offset String. The time span in wich the values of a spikey course have to return to the normal
                     value course (see condition (3) in function description).
     :return:
     """
@@ -215,7 +215,7 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tol=0, length="15min", **kw
     pre_jumps = pre_jumps[pre_jumps]
     # get all the entries preceeding a significant jump and its successors within "length" range
     to_roll = pre_jumps.reindex(
-        dataseries.index, method="ffill", tolerance=length, fill_value=False
+        dataseries.index, method="ffill", tolerance=window_size, fill_value=False
     ).dropna()
 
     # define spike testing function to roll with:
@@ -244,8 +244,8 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tol=0, length="15min", **kw
 
     # now lets roll:
     to_roll = (
-        to_roll.rolling(length, closed="both")
-        .apply(spike_tester, args=(pre_jump_reversed_index, thresh, tol), raw=False)
+        to_roll.rolling(window_size, closed="both")
+        .apply(spike_tester, args=(pre_jump_reversed_index, thresh, tolerance), raw=False)
         .astype(int)
     )
     # reconstruct original index and sequence
