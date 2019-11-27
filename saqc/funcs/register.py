@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from functools import partial
-from inspect import signature
+from inspect import signature, _VAR_KEYWORD
 
 
 class Partial(partial):
@@ -10,7 +10,11 @@ class Partial(partial):
 
     @property
     def signature(self):
-        return tuple(self._signature.parameters.keys())
+        out = []
+        for k, v in self._signature.parameters.items():
+            if v.kind != _VAR_KEYWORD:
+                out.append(k)
+        return tuple(out)
 
 
 # NOTE: will be filled by calls to register
