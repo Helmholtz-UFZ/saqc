@@ -22,20 +22,32 @@ def plotHook(data, old, new, varname, do_plot, flag_test, flagger):
         _plot(data, new, mask, varname, flagger, title=flag_test)
 
 
-def _plot(data, flags, flagmask, varname, flagger, interactive_backend=True, title="Data Plot", show_nans=True):
+def _plot(
+    data,
+    flags,
+    flagmask,
+    varname,
+    flagger,
+    interactive_backend=True,
+    title="Data Plot",
+    show_nans=True,
+):
 
     # only import if plotting is requested by the user
     import matplotlib as mpl
+
     if not interactive_backend:
         # Import plot libs without interactivity, if not needed. This ensures that this can
         # produce an plot.png even if tkinter is not installed. E.g. if one want to run this
         # on machines without X-Server aka. graphic interface.
-        mpl.use('Agg')
+        mpl.use("Agg")
     else:
-        mpl.use('TkAgg')
+        mpl.use("TkAgg")
     from matplotlib import pyplot as plt
+
     # needed for datetime conversion
     from pandas.plotting import register_matplotlib_converters
+
     register_matplotlib_converters()
 
     if not isinstance(varname, (list, set)):
@@ -48,7 +60,9 @@ def _plot(data, flags, flagmask, varname, flagger, interactive_backend=True, tit
         if var in data.columns:
             tmp.append(var)
         else:
-            warn(f"Cannot plot column '{var}' that is not present in data.", UserWarning)
+            warn(
+                f"Cannot plot column '{var}' that is not present in data.", UserWarning
+            )
     if not tmp:
         return
     varname = tmp
@@ -64,9 +78,9 @@ def _plot(data, flags, flagmask, varname, flagger, interactive_backend=True, tit
         plt.title(title)
         _plotQflags(data, varname.pop(), flagger, flagmask, ax, show_nans)
 
-    plt.xlabel('time')
+    plt.xlabel("time")
     # dummy plot for the label `missing` see plot_vline for more info
-    plt.plot([], [], ':', color='silver', label="missing data")
+    plt.plot([], [], ":", color="silver", label="missing data")
     plt.legend()
     if interactive_backend:
         plt.show()
@@ -77,21 +91,22 @@ def _plotQflags(data, varname, flagger, flagmask, ax, show_nans):
 
     x = data.index
     y = data[varname]
-    ax.plot(x, y, '-', markersize=1, color='silver')
+    ax.plot(x, y, "-", markersize=1, color="silver")
 
     # plot all data in silver (NaNs as vertical lines)
-    ax.plot(x, y, '-', color='silver', label='data')
+    ax.plot(x, y, "-", color="silver", label="data")
     flagged = flagger.isFlagged(varname)
     if show_nans:
         nans = y.isna()
         idx = y.index[nans & ~flagged]
-        _plotVline(ax, idx, color='silver')
+        _plotVline(ax, idx, color="silver")
 
     # plot all data (and nans) that are already flagged in black
-    ax.plot(x[flagged], y[flagged], '.', color='black', label="flagged by other test")
+    ax.plot(x[flagged], y[flagged], ".", color="black", label="flagged by other test")
     if show_nans:
         idx = y.index[nans & flagged & ~flagmask]
-        _plotVline(ax, idx, color='black')
+        _plotVline(ax, idx, color="black")
+
 
 #     # plot flags in the color corresponding to the flag
 #     # BAD red, GOOD green, all in between aka SUSPISIOUS in yellow
@@ -115,21 +130,21 @@ def _plotQflags(data, varname, flagger, flagmask, ax, show_nans):
 #             _plotVline(ax, idx, color=color)
 
 
-def _plotVline(plt, points, color='blue'):
+def _plotVline(plt, points, color="blue"):
     # workaround for ax.vlines() as this work unexpected
     # normally this should work like so:
     #   ax.vlines(idx, *ylim, linestyles=':', color='silver', label="missing")
     for point in points:
-        plt.axvline(point, color=color, linestyle=':')
+        plt.axvline(point, color=color, linestyle=":")
 
 
 def _getColor(flag, flagger):
     if flag == flagger.UNFLAGGED:
-        return 'silver'
+        return "silver"
     elif flag == flagger.GOOD:
-        return 'green'
+        return "green"
     elif flag == flagger.BAD:
-        return 'red'
+        return "red"
     else:
         # suspicios
-        return 'yellow'
+        return "yellow"

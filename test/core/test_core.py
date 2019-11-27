@@ -15,6 +15,7 @@ from test.common import initData, initMetaDict, TESTFLAGGER
 def data():
     return initData(3)
 
+
 @register("flagAll")
 def flagAll(data, field, flagger, **kwargs):
     # NOTE: remember to rename flag -> flag_values
@@ -27,7 +28,7 @@ def test_temporalPartitioning(data, flagger):
     Check if the time span in meta is respected
     """
     var1, var2, var3, *_ = data.columns
-    split_date = data.index[len(data.index)//2]
+    split_date = data.index[len(data.index) // 2]
 
     metadict = [
         {F.VARNAME: var1, F.TESTS: "flagAll()"},
@@ -49,7 +50,7 @@ def test_temporalPartitioning(data, flagger):
 def test_positionalPartitioning(data, flagger):
     data = data.reset_index(drop=True)
     var1, var2, var3, *_ = data.columns
-    split_index = int(len(data.index)//2)
+    split_index = int(len(data.index) // 2)
 
     metadict = [
         {F.VARNAME: var1, F.TESTS: "flagAll()"},
@@ -65,7 +66,9 @@ def test_positionalPartitioning(data, flagger):
         vname, start_index, end_index = row[fields]
         fchunk = pflagger.getFlags(field=vname, loc=pflagger.isFlagged(vname))
         assert fchunk.index.min() == start_index, "different start indices"
-        assert fchunk.index.max() == end_index, f"different end indices: {fchunk.index.max()} vs. {end_index}"
+        assert (
+            fchunk.index.max() == end_index
+        ), f"different end indices: {fchunk.index.max()} vs. {end_index}"
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -114,7 +117,7 @@ def test_assignVariable(flagger):
 
     metadict = [
         {F.VARNAME: var1, F.ASSIGN: False, F.TESTS: "flagAll()"},
-        {F.VARNAME: var2, F.ASSIGN: True,  F.TESTS: "flagAll()"},
+        {F.VARNAME: var2, F.ASSIGN: True, F.TESTS: "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -122,9 +125,7 @@ def test_assignVariable(flagger):
     pflags = pflagger.getFlags()
 
     if isinstance(pflags.columns, pd.MultiIndex):
-        cols = (pflags
-                .columns.get_level_values(0)
-                .drop_duplicates())
+        cols = pflags.columns.get_level_values(0).drop_duplicates()
         assert (cols == [var1, var2]).all()
         assert pflagger.isFlagged(var2).any()
     else:
@@ -164,6 +165,8 @@ def test_plotting(data, flagger):
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
     _, flagger_range = flagRange(data, field, flagger, min=10, max=90, flag=flagger.BAD)
-    _, flagger_range = flagRange(data, field, flagger_range, min=40, max=60, flag=flagger.GOOD)
+    _, flagger_range = flagRange(
+        data, field, flagger_range, min=40, max=60, flag=flagger.GOOD
+    )
     mask = flagger.getFlags(field) != flagger_range.getFlags(field)
     plot(data, mask, field, flagger, interactive_backend=False)

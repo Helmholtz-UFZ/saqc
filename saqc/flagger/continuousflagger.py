@@ -9,22 +9,34 @@ from saqc.flagger.baseflagger import BaseFlagger
 
 
 class ContinuousBaseFlagger(BaseFlagger):
-
-    def __init__(self, min_=0., max_=1., unflagged=-1.):
+    def __init__(self, min_=0.0, max_=1.0, unflagged=-1.0):
         assert unflagged < 0 <= min_ < max_
         super().__init__(dtype=np.float64)
         self._interval = intervals.closed(min_, max_)
         self._unflagged_flag = unflagged
         self.signature = ("flag", "factor", "modify")
 
-    def setFlags(self, field, loc=None, iloc=None, flag=None,
-                 force=False, factor=1, modify=False, **kwargs):
+    def setFlags(
+        self,
+        field,
+        loc=None,
+        iloc=None,
+        flag=None,
+        force=False,
+        factor=1,
+        modify=False,
+        **kwargs
+    ):
         # NOTE: incomplete, as the option to
         #       update flags is temporarily gone
         return super().setFlags(
-            field=field, loc=loc, iloc=iloc,
-            flag=self._checkFlag(flag), force=force,
-            **kwargs)
+            field=field,
+            loc=loc,
+            iloc=iloc,
+            flag=self._checkFlag(flag),
+            force=force,
+            **kwargs
+        )
 
     # NOTE:
     # we should probably override _assureDtype here

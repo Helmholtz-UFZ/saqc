@@ -9,7 +9,8 @@ from saqc.core.evaluator import (
     parseExpression,
     initDslFuncMap,
     DslTransformer,
-    MetaTransformer)
+    MetaTransformer,
+)
 
 from test.common import TESTFLAGGER
 

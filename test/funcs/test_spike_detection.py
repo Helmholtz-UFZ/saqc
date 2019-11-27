@@ -9,22 +9,25 @@ from saqc.funcs.spike_detection import (
     flagSpikes_spektrumBased,
     flagSpikes_simpleMad,
     flagSpikes_slidingZscore,
-    flagSpikes_basic)
+    flagSpikes_basic,
+)
 
 from test.common import TESTFLAGGER
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def spiky_data():
-    index = pd.date_range(start='2011-01-01', end='2011-01-05', freq='5min')
-    spiky_series = pd.DataFrame(dict(spiky_data=np.linspace(1, 2, index.size)), index=index)
+    index = pd.date_range(start="2011-01-01", end="2011-01-05", freq="5min")
+    spiky_series = pd.DataFrame(
+        dict(spiky_data=np.linspace(1, 2, index.size)), index=index
+    )
     spiky_series.iloc[100] = 100
     spiky_series.iloc[1000] = -100
     flag_assertion = [100, 1000]
     return spiky_series, flag_assertion
 
 
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagSpikes_SpektrumBased(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
@@ -35,19 +38,19 @@ def test_flagSpikes_SpektrumBased(spiky_data, flagger):
     assert test_sum == len(spiky_data[1])
 
 
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagMad(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
-    data, flagger_result = flagSpikes_simpleMad(data, field, flagger, '1H')
+    data, flagger_result = flagSpikes_simpleMad(data, field, flagger, "1H")
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
 
 
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
-@pytest.mark.parametrize('method', ['modZ', 'zscore'])
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+@pytest.mark.parametrize("method", ["modZ", "zscore"])
 def test_slidingOutlier(spiky_data, flagger, method):
 
     # test for numeric input
@@ -57,7 +60,9 @@ def test_slidingOutlier(spiky_data, flagger, method):
 
     tests = [
         flagSpikes_slidingZscore(data, field, flagger, winsz=300, dx=50, method=method),
-        flagSpikes_slidingZscore(data, field, flagger, winsz='1500min', dx='250min', method=method)
+        flagSpikes_slidingZscore(
+            data, field, flagger, winsz="1500min", dx="250min", method=method
+        ),
     ]
 
     for _, flagger_result in tests:
@@ -66,12 +71,14 @@ def test_slidingOutlier(spiky_data, flagger, method):
         assert int(test_sum) == len(spiky_data[1])
 
 
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagSpikes_Basic(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
-    data, flagger_result = flagSpikes_basic(data, field, flagger, thresh=60, tol=10, length='20min')
+    data, flagger_result = flagSpikes_basic(
+        data, field, flagger, thresh=60, tol=10, length="20min"
+    )
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])

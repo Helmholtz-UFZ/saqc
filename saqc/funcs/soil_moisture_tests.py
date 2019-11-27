@@ -13,13 +13,23 @@ from saqc.funcs.register import register
 from saqc.lib.tools import (
     estimateSamplingRate,
     retrieveTrustworthyOriginal,
-    offset2periods)
+    offset2periods,
+)
 
 
 @register("SoilMoistureSpikes")
-def flagSoilMoistureSpikes(data, field, flagger, filter_window_size='3h',
-                           raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
-                           noise_statistic='CoVar', **kwargs):
+def flagSoilMoistureSpikes(
+    data,
+    field,
+    flagger,
+    filter_window_size="3h",
+    raise_factor=0.15,
+    dev_cont_factor=0.2,
+    noise_barrier=1,
+    noise_window_size="12h",
+    noise_statistic="CoVar",
+    **kwargs
+):
 
     """
     The Function provides just a call to flagSpikes_spektrumBased, with parameter defaults, that refer to:
@@ -28,17 +38,37 @@ def flagSoilMoistureSpikes(data, field, flagger, filter_window_size='3h',
     Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
     """
 
-    return flagSpikes_spektrumBased(data, flags, field, flagger, filter_window_size=filter_window_size,
-                                    raise_factor=raise_factor, dev_cont_factor=dev_cont_factor,
-                                    noise_barrier=noise_barrier, noise_window_size=noise_window_size,
-                                    noise_statistic=noise_statistic, **kwargs)
+    return flagSpikes_spektrumBased(
+        data,
+        flags,
+        field,
+        flagger,
+        filter_window_size=filter_window_size,
+        raise_factor=raise_factor,
+        dev_cont_factor=dev_cont_factor,
+        noise_barrier=noise_barrier,
+        noise_window_size=noise_window_size,
+        noise_statistic=noise_statistic,
+        **kwargs
+    )
 
 
 @register("SoilMoistureBreaks")
-def flagSoilMoistureBreaks(data, field, flagger, diff_method='raw', filter_window_size='3h',
-                           rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
-                           first_der_window_size='12h', scnd_der_ratio_margin_1=0.05,
-                           scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
+def flagSoilMoistureBreaks(
+    data,
+    field,
+    flagger,
+    diff_method="raw",
+    filter_window_size="3h",
+    rel_change_rate_min=0.1,
+    abs_change_min=0.01,
+    first_der_factor=10,
+    first_der_window_size="12h",
+    scnd_der_ratio_margin_1=0.05,
+    scnd_der_ratio_margin_2=10,
+    smooth_poly_order=2,
+    **kwargs
+):
 
     """
     The Function provides just a call to flagBreaks_spektrumBased, with parameter defaults that refer to:
@@ -47,18 +77,34 @@ def flagSoilMoistureBreaks(data, field, flagger, diff_method='raw', filter_windo
     Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
     """
-    return flagBreaks_spektrumBased(data, flags, field, flagger, diff_method=diff_method,
-                                    filter_window_size=filter_window_size,
-                                    rel_change_rate_min=rel_change_rate_min, abs_change_min=abs_change_min,
-                                    first_der_factor=first_der_factor, first_der_window_size=first_der_window_size,
-                                    scnd_der_ratio_margin_1=scnd_der_ratio_margin_1,
-                                    scnd_der_ratio_margin_2=scnd_der_ratio_margin_2,
-                                    smooth_poly_order=smooth_poly_order, **kwargs)
+    return flagBreaks_spektrumBased(
+        data,
+        flags,
+        field,
+        flagger,
+        diff_method=diff_method,
+        filter_window_size=filter_window_size,
+        rel_change_rate_min=rel_change_rate_min,
+        abs_change_min=abs_change_min,
+        first_der_factor=first_der_factor,
+        first_der_window_size=first_der_window_size,
+        scnd_der_ratio_margin_1=scnd_der_ratio_margin_1,
+        scnd_der_ratio_margin_2=scnd_der_ratio_margin_2,
+        smooth_poly_order=smooth_poly_order,
+        **kwargs
+    )
 
 
 @register("SoilMoistureByFrost")
-def flagSoilMoistureBySoilFrost(data, field, flagger, soil_temp_reference, tolerated_deviation='1h',
-                                frost_level=0, **kwargs):
+def flagSoilMoistureBySoilFrost(
+    data,
+    field,
+    flagger,
+    soil_temp_reference,
+    tolerated_deviation="1h",
+    frost_level=0,
+    **kwargs
+):
 
     """This Function is an implementation of the soil temperature based Soil Moisture flagging, as presented in:
 
@@ -86,8 +132,9 @@ def flagSoilMoistureBySoilFrost(data, field, flagger, soil_temp_reference, toler
 
     # retrieve reference series
     refseries = data[soil_temp_reference]
-    ref_use = flagger.isFlagged(soil_temp_reference, flag=flagger.GOOD, comparator='==') | \
-              flagger.isFlagged(soil_temp_reference, flag=flagger.UNFLAGGED, comparator='==')
+    ref_use = flagger.isFlagged(
+        soil_temp_reference, flag=flagger.GOOD, comparator="=="
+    ) | flagger.isFlagged(soil_temp_reference, flag=flagger.UNFLAGGED, comparator="==")
     # drop flagged values:
     refseries = refseries[ref_use.values]
     # drop nan values from reference series, since those are values you dont want to refer to.
@@ -103,7 +150,9 @@ def flagSoilMoistureBySoilFrost(data, field, flagger, soil_temp_reference, toler
         try:
             # if there is no reference value within tolerance margin, following line will raise key error and
             # trigger the exception
-            ref_pos = ref_series.index.get_loc(ref_date, method='nearest', tolerance=tolerance)
+            ref_pos = ref_series.index.get_loc(
+                ref_date, method="nearest", tolerance=tolerance
+            )
         except KeyError:
             # since test is not applicable: make no change to flag state
             return False
@@ -114,17 +163,28 @@ def flagSoilMoistureBySoilFrost(data, field, flagger, soil_temp_reference, toler
     # make temporal frame holding date index, since df.apply cant access index
     temp_frame = pd.Series(data.index)
     # get flagging mask ("True" denotes "bad"="test succesfull")
-    mask = temp_frame.apply(check_nearest_for_frost, args=(refseries,
-                                                           tolerated_deviation, frost_level))
+    mask = temp_frame.apply(
+        check_nearest_for_frost, args=(refseries, tolerated_deviation, frost_level)
+    )
     # apply calculated flags
     flagger = flagger.setFlags(field, mask.values, **kwargs)
     return data, flagger
 
 
 @register("SoilMoistureByPrecipitation")
-def flagSoilMoistureByPrecipitationEvents(data, field, flagger, prec_reference, sensor_meas_depth=0,
-                                          sensor_accuracy=0, soil_porosity=0, std_factor=2, std_factor_range='24h',
-                                          raise_reference=None, **kwargs):
+def flagSoilMoistureByPrecipitationEvents(
+    data,
+    field,
+    flagger,
+    prec_reference,
+    sensor_meas_depth=0,
+    sensor_accuracy=0,
+    soil_porosity=0,
+    std_factor=2,
+    std_factor_range="24h",
+    raise_reference=None,
+    **kwargs
+):
 
     """This Function is an implementation of the precipitation based Soil Moisture flagging, as presented in:
 
@@ -188,18 +248,24 @@ def flagSoilMoistureByPrecipitationEvents(data, field, flagger, prec_reference, 
         return data, flagger
 
     # get 24 h prec. monitor (this makes last-24h-rainfall-evaluation independent from preceeding entries)
-    prec_count = refseries.rolling(window='1D').apply(lambda x: x.sum(skipna=False), raw=False)
+    prec_count = refseries.rolling(window="1D").apply(
+        lambda x: x.sum(skipna=False), raw=False
+    )
     # upsample with zeros to input data sampling rate (we want to project the daysums onto the dataseries grid to
     # prepare for use of rolling:):
     prec_count = prec_count.resample(input_rate).pad()
 
     # now we can: project precipitation onto dataseries sampling (and stack result to be able to apply df.rolling())
-    eval_frame = pd.merge(dataseries, prec_count, how='left', left_index=True, right_index=True).stack(dropna=False).reset_index()
+    eval_frame = (
+        pd.merge(dataseries, prec_count, how="left", left_index=True, right_index=True)
+        .stack(dropna=False)
+        .reset_index()
+    )
 
     # following reshaping operations make all columns available to a function applied on rolling windows (rolling will
     # only eat one column of a dataframe at a time and doesnt like multi indexes as well)
     ef = eval_frame[0]
-    ef.index = eval_frame['level_0']
+    ef.index = eval_frame["level_0"]
 
     if raise_reference is None:
         raise_reference = 1
@@ -210,9 +276,11 @@ def flagSoilMoistureByPrecipitationEvents(data, field, flagger, prec_reference, 
     def _precTest(x, std_fac=std_factor, raise_ref=raise_reference):
         x_moist = x[0::2]
         x_rain = x[1::2]
-        if x_moist[-1] > x_moist[(-1-raise_ref)]:
-            if (x_moist[-1] - x_moist[0]) > std_fac*x_moist.std():
-                return ~(x_rain[-1] <= (sensor_meas_depth*soil_porosity*sensor_accuracy))
+        if x_moist[-1] > x_moist[(-1 - raise_ref)]:
+            if (x_moist[-1] - x_moist[0]) > std_fac * x_moist.std():
+                return ~(
+                    x_rain[-1] <= (sensor_meas_depth * soil_porosity * sensor_accuracy)
+                )
             else:
                 return True
         else:
@@ -222,9 +290,12 @@ def flagSoilMoistureByPrecipitationEvents(data, field, flagger, prec_reference, 
     # so periods per window have to be calculated,
     # (this gives sufficiant conditian since window size controlls daterange:)
 
-    periods = int(2*offset2periods(std_factor_range, moist_rate))
-    invalid_raises = ~ef.rolling(window='1D', closed='both', min_periods=periods)\
-        .apply(_precTest, raw=False).astype(bool)
+    periods = int(2 * offset2periods(std_factor_range, moist_rate))
+    invalid_raises = (
+        ~ef.rolling(window="1D", closed="both", min_periods=periods)
+        .apply(_precTest, raw=False)
+        .astype(bool)
+    )
     # undo stacking (only every second entrie actually is holding an information:
     invalid_raises = invalid_raises[1::2]
     # retrieve indices referring to values-to-be-flagged-bad
@@ -234,9 +305,19 @@ def flagSoilMoistureByPrecipitationEvents(data, field, flagger, prec_reference, 
     return data, flagger
 
 
-def flagSoilMoistureByConstantsDetection(data, field, flagger, plateau_window_min='12h',
-                                         plateau_var_limit=0.0005, rainfall_window='12h', filter_window_size='3h',
-                                         i_start_infimum=0.0025, i_end_supremum=0, data_max_tolerance=0.95, **kwargs):
+def flagSoilMoistureByConstantsDetection(
+    data,
+    field,
+    flagger,
+    plateau_window_min="12h",
+    plateau_var_limit=0.0005,
+    rainfall_window="12h",
+    filter_window_size="3h",
+    i_start_infimum=0.0025,
+    i_end_supremum=0,
+    data_max_tolerance=0.95,
+    **kwargs
+):
 
     """Function is not ready to use yet: we are waiting for response from the author of [Paper] in order of getting
     able to exclude some sources of confusion.
@@ -258,38 +339,52 @@ def flagSoilMoistureByConstantsDetection(data, field, flagger, plateau_window_mi
 
     min_periods = int(offset2periods(plateau_window_min, data_rate))
     # identify minimal plateaus:
-    plateaus = dataseries.rolling(window=plateau_window_min).apply(lambda x: (x.var() > plateau_var_limit)
-                                                                   | (x.size < min_periods), raw=False)
-    plateaus = (~plateaus.astype(bool))
+    plateaus = dataseries.rolling(window=plateau_window_min).apply(
+        lambda x: (x.var() > plateau_var_limit) | (x.size < min_periods), raw=False
+    )
+    plateaus = ~plateaus.astype(bool)
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
         return data, flagger
 
     plateaus_reverse = pd.Series(np.flip(plateaus.values), index=plateaus.index)
-    reverse_check = plateaus_reverse.rolling(window=plateau_window_min).apply(lambda x:
-                                                                              True if True in x.values else False,
-                                                                              raw=False).astype(bool)
+    reverse_check = (
+        plateaus_reverse.rolling(window=plateau_window_min)
+        .apply(lambda x: True if True in x.values else False, raw=False)
+        .astype(bool)
+    )
     plateaus = pd.Series(np.flip(reverse_check.values), index=plateaus.index)
 
     # reverse the reversed ts and transform to dataframe, filter for consecutive timestamp values:
-    plateaus = pd.DataFrame({'date': dataseries.index, 'mask': np.flip(plateaus.values)}, index=dataseries.index)
-    plateaus = plateaus[plateaus['mask'] == True].drop('mask', axis=1)
-    seperator_stair = plateaus['date'].diff() != pd.Timedelta(data_rate)
-    plateaus['interval_nr'] = seperator_stair.cumsum()
-    plateaus = plateaus['interval_nr']
+    plateaus = pd.DataFrame(
+        {"date": dataseries.index, "mask": np.flip(plateaus.values)},
+        index=dataseries.index,
+    )
+    plateaus = plateaus[plateaus["mask"] == True].drop("mask", axis=1)
+    seperator_stair = plateaus["date"].diff() != pd.Timedelta(data_rate)
+    plateaus["interval_nr"] = seperator_stair.cumsum()
+    plateaus = plateaus["interval_nr"]
     invalids = pd.Series([])
     # loop through the intervals to be checked:
-    for interval_2_check in range(1, plateaus.max()+1):
+    for interval_2_check in range(1, plateaus.max() + 1):
         # how big is the interval?
-        interval_delimeter = plateaus[plateaus == interval_2_check].index[-1] - \
-                             plateaus[plateaus == interval_2_check].index[0]
+        interval_delimeter = (
+            plateaus[plateaus == interval_2_check].index[-1]
+            - plateaus[plateaus == interval_2_check].index[0]
+        )
 
         # slices of the area for the rainfallsearch
-        check_start = plateaus[plateaus == interval_2_check].index[0] - \
-                      interval_delimeter - pd.Timedelta(rainfall_window)
-        check_end = plateaus[plateaus == interval_2_check].index[-1] - \
-                    interval_delimeter + pd.Timedelta(rainfall_window)
+        check_start = (
+            plateaus[plateaus == interval_2_check].index[0]
+            - interval_delimeter
+            - pd.Timedelta(rainfall_window)
+        )
+        check_end = (
+            plateaus[plateaus == interval_2_check].index[-1]
+            - interval_delimeter
+            + pd.Timedelta(rainfall_window)
+        )
 
         # slices to be smoothed and derivated
         smooth_start = check_start - pd.Timedelta(filter_window_size)
@@ -308,11 +403,12 @@ def flagSoilMoistureByConstantsDetection(data, field, flagger, plateau_window_mi
                 smoothing_periods -= 1
 
         # calculate the derivative
-        first_deri_series = pd.Series(data=savgol_filter(data_slice,
-                                      window_length=smoothing_periods,
-                                      polyorder=2,
-                                      deriv=1),
-                                      index=data_slice.index)
+        first_deri_series = pd.Series(
+            data=savgol_filter(
+                data_slice, window_length=smoothing_periods, polyorder=2, deriv=1
+            ),
+            index=data_slice.index,
+        )
 
         # get test slice
         first_deri_series = first_deri_series[check_start:check_end]
@@ -320,11 +416,15 @@ def flagSoilMoistureByConstantsDetection(data, field, flagger, plateau_window_mi
             continue
 
         # check some explicit and implicit conditions:
-        rainfall_periods = int(offset2periods(rainfall_window, data_rate)*2)
+        rainfall_periods = int(offset2periods(rainfall_window, data_rate) * 2)
         if rainfall_periods % 2 == 0:
             rainfall_periods += 1
-        maximums = first_deri_series.rolling(window=rainfall_periods, center=True, closed='left').max()
-        minimums = first_deri_series.rolling(window=rainfall_periods, center=True, closed='left').min()
+        maximums = first_deri_series.rolling(
+            window=rainfall_periods, center=True, closed="left"
+        ).max()
+        minimums = first_deri_series.rolling(
+            window=rainfall_periods, center=True, closed="left"
+        ).min()
 
         maximums = maximums[maximums > i_start_infimum]
         minimums = minimums[minimums < i_end_supremum]
@@ -340,7 +440,7 @@ def flagSoilMoistureByConstantsDetection(data, field, flagger, plateau_window_mi
 
         potential_invalid = data_slice[i_start_index:i_end_index]
         # test if the plateau is a high level plateau:
-        if potential_invalid.mean() > data_max*data_max_tolerance:
+        if potential_invalid.mean() > data_max * data_max_tolerance:
             invalids = pd.concat([invalids, potential_invalid])
 
     flagger = flagger.setFlag(field, invalids.index, **kwargs)

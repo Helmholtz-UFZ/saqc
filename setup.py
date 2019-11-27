@@ -7,20 +7,16 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="saqc",
-    version=subprocess.check_output('git describe --tags --always'.split()).decode().strip(),
+    version=subprocess.check_output("git describe --tags --always".split())
+    .decode()
+    .strip(),
     author="Bert Palm, David Schaefer, Peter Luenenschloss, Lennard Schmidt",
     author_email="bert.palm@ufz.de, david.schaefer@ufz.de, peter.luenenschloss@ufz.de, lennart.schmidt@ufz.de",
     description="automated quality assurance and control tool",
     long_description=long_description,
     # long_description_content_type="text/markdown",
     url="https://git.ufz.de/rdm/saqc",
-    packages=['saqc'],
-    install_requires=[
-        'pandas',
-        'numpy',
-        'numba',
-        'PyYAML',
-        'matplotlib'
-      ],
-    license='RDM Team - UFZ',
+    packages=["saqc"],
+    install_requires=["pandas", "numpy", "numba", "PyYAML", "matplotlib"],
+    license="RDM Team - UFZ",
 )

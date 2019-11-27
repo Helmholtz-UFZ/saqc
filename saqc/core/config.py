@@ -4,6 +4,7 @@
 
 # maybe we should use dataclasses here
 
+
 class Fields:
     VARNAME = "varname"
     START = "start_date"

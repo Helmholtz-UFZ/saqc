@@ -14,11 +14,14 @@ from saqc.lib.tools import (
     inferFrequency,
     retrieveTrustworthyOriginal,
     offset2seconds,
-    slidingWindowIndices)
+    slidingWindowIndices,
+)
 
 
 @register("spikes_slidingZscore")
-def flagSpikes_slidingZscore(data, field, flagger, winsz, dx, count=1, deg=1, z=3.5, method='modZ', **kwargs):
+def flagSpikes_slidingZscore(
+    data, field, flagger, winsz, dx, count=1, deg=1, z=3.5, method="modZ", **kwargs
+):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
 
@@ -56,7 +59,9 @@ def flagSpikes_slidingZscore(data, field, flagger, winsz, dx, count=1, deg=1, z=
             dx_s = offset2seconds(dx)
             winsz_s = offset2seconds(winsz)
         else:
-            raise TypeError(f"`winsz` and `dx` must both be an offset or both be numeric, {winsz} and {dx} was passed")
+            raise TypeError(
+                f"`winsz` and `dx` must both be an offset or both be numeric, {winsz} and {dx} was passed"
+            )
 
     # check params
     if deg < 0:
@@ -69,21 +74,29 @@ def flagSpikes_slidingZscore(data, field, flagger, winsz, dx, count=1, deg=1, z=
     if dx_s >= winsz_s and count == 1:
         pass
     elif dx_s >= winsz_s and count > 1:
-        ValueError("If stepsize `dx` is bigger that the window-size, every value is seen just once, so use count=1")
+        ValueError(
+            "If stepsize `dx` is bigger that the window-size, every value is seen just once, so use count=1"
+        )
     elif count > winsz_s // dx_s:
-        raise ValueError(f"Adjust `dx`, `stepsize` or `winsz`. A single data point is "
-                         f"seen `floor(winsz / dx) = {winsz_s // dx_s}` times, but count is set to {count}")
+        raise ValueError(
+            f"Adjust `dx`, `stepsize` or `winsz`. A single data point is "
+            f"seen `floor(winsz / dx) = {winsz_s // dx_s}` times, but count is set to {count}"
+        )
 
     # prepare the method
-    if method == 'modZ':
+    if method == "modZ":
+
         def _calc(residual):
             diff = np.abs(residual - np.median(residual))
             mad = np.median(diff)
             return (mad > 0) & (0.6745 * diff > z * mad)
-    elif method == 'zscore':
+
+    elif method == "zscore":
+
         def _calc(residual):
             score = zscore(residual, ddof=1)
             return np.abs(score) > z
+
     else:
         raise NotImplementedError
     method = _calc
@@ -98,10 +111,10 @@ def flagSpikes_slidingZscore(data, field, flagger, winsz, dx, count=1, deg=1, z=
     if use_offset:
         _loopfun = slidingWindowIndices
     else:
-        def _loopfun (arr, wsz, step):
+
+        def _loopfun(arr, wsz, step):
             for i in range(0, len(arr) - wsz + 1, step):
                 yield i, i + wsz
-
 
     for start, end in _loopfun(d.index, winsz, dx):
         # mask points that have been already discarded
@@ -151,18 +164,21 @@ def flagSpikes_simpleMad(data, field, flagger, length, z=3.5, freq=None, **kwarg
     d = data[field].copy()
     freq = inferFrequency(d) if freq is None else freq
     if freq is None:
-        raise ValueError("freqency cannot inferred, provide `freq` as a param to mad().")
+        raise ValueError(
+            "freqency cannot inferred, provide `freq` as a param to mad()."
+        )
     winsz = int(pd.to_timedelta(length) / freq)
-    median = d.rolling(window=winsz, center=True, closed='both').median()
+    median = d.rolling(window=winsz, center=True, closed="both").median()
     diff = abs(d - median)
-    mad = diff.rolling(window=winsz, center=True, closed='both').median()
+    mad = diff.rolling(window=winsz, center=True, closed="both").median()
     mask = (mad > 0) & (0.6745 * diff > z * mad)
 
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
+
 @register("spikes_basic")
-def flagSpikes_basic(data, field, flagger, thresh=7, tol=0, length='15min', **kwargs):
+def flagSpikes_basic(data, field, flagger, thresh=7, tol=0, length="15min", **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -198,7 +214,9 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tol=0, length='15min', **kw
     pre_jumps = dataseries.diff(periods=-1).abs() > thresh
     pre_jumps = pre_jumps[pre_jumps]
     # get all the entries preceeding a significant jump and its successors within "length" range
-    to_roll = pre_jumps.reindex(dataseries.index, method='ffill', tolerance=length, fill_value=False).dropna()
+    to_roll = pre_jumps.reindex(
+        dataseries.index, method="ffill", tolerance=length, fill_value=False
+    ).dropna()
 
     # define spike testing function to roll with:
     def spike_tester(chunk, pre_jumps_index, thresh, tol):
@@ -225,8 +243,11 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tol=0, length='15min', **kw
     to_roll.index = to_roll.index[0] - to_roll.index
 
     # now lets roll:
-    to_roll = to_roll.rolling(length, closed='both').\
-        apply(spike_tester, args=(pre_jump_reversed_index, thresh, tol), raw=False).astype(int)
+    to_roll = (
+        to_roll.rolling(length, closed="both")
+        .apply(spike_tester, args=(pre_jump_reversed_index, thresh, tol), raw=False)
+        .astype(int)
+    )
     # reconstruct original index and sequence
     to_roll = to_roll[::-1]
     to_roll.index = original_index
@@ -235,17 +256,27 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tol=0, length='15min', **kw
     # here comes a loop...):
     for row in to_write.iteritems():
         loc = to_roll.index.get_loc(row[0])
-        to_flag = to_flag.append(to_roll.iloc[loc+1:loc+row[1]+1].index)
+        to_flag = to_flag.append(to_roll.iloc[loc + 1 : loc + row[1] + 1].index)
 
-    to_flag = to_flag.drop_duplicates(keep='first')
+    to_flag = to_flag.drop_duplicates(keep="first")
     flagger = flagger.setFlags(field, to_flag, **kwargs)
     return data, flagger
 
 
 @register("spikes_spektrumBased")
-def flagSpikes_spektrumBased(data, field, flagger, filter_window_size='3h',
-                             raise_factor=0.15, dev_cont_factor=0.2, noise_barrier=1, noise_window_size='12h',
-                             noise_statistic='CoVar', smooth_poly_order=2, **kwargs):
+def flagSpikes_spektrumBased(
+    data,
+    field,
+    flagger,
+    filter_window_size="3h",
+    raise_factor=0.15,
+    dev_cont_factor=0.2,
+    noise_barrier=1,
+    noise_window_size="12h",
+    noise_statistic="CoVar",
+    smooth_poly_order=2,
+    **kwargs,
+):
     """
     This Function is a generalization of the Spectrum based Spike flagging mechanism as presented in:
 
@@ -317,13 +348,15 @@ def flagSpikes_spektrumBased(data, field, flagger, filter_window_size='3h',
     dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     # retrieve noise statistic
-    if noise_statistic == 'CoVar':
+    if noise_statistic == "CoVar":
         noise_func = pd.Series.var
-    if noise_statistic == 'rVar':
+    if noise_statistic == "rVar":
         noise_func = pd.Series.std
 
     quotient_series = dataseries / dataseries.shift(+1)
-    spikes = (quotient_series > (1 + raise_factor)) | (quotient_series < (1 - raise_factor))
+    spikes = (quotient_series > (1 + raise_factor)) | (
+        quotient_series < (1 - raise_factor)
+    )
     spikes = spikes[spikes == True]
 
     # loop through spikes: (loop may sound ugly - but since the number of spikes is supposed to not exceed the
@@ -344,13 +377,17 @@ def flagSpikes_spektrumBased(data, field, flagger, filter_window_size='3h',
         start_slice = spike - pd.Timedelta(filter_window_size)
         end_slice = spike + pd.Timedelta(filter_window_size)
 
-        scnd_derivate = savgol_filter(dataseries[start_slice:end_slice],
-                                      window_length=smoothing_periods,
-                                      polyorder=smooth_poly_order,
-                                      deriv=2)
+        scnd_derivate = savgol_filter(
+            dataseries[start_slice:end_slice],
+            window_length=smoothing_periods,
+            polyorder=smooth_poly_order,
+            deriv=2,
+        )
 
         length = scnd_derivate.size
-        test_ratio_1 = np.abs(scnd_derivate[int((length - 1) / 2)] / scnd_derivate[int((length + 1) / 2)])
+        test_ratio_1 = np.abs(
+            scnd_derivate[int((length - 1) / 2)] / scnd_derivate[int((length + 1) / 2)]
+        )
 
         if lower_dev_bound < test_ratio_1 < upper_dev_bound:
             # apply noise condition:

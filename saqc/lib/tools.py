@@ -16,8 +16,9 @@ def assertScalar(name, value, optional=False):
         raise ValueError(f"'{name}' needs to be a scalar")
 
 
-def toSequence(value: Union[T, Sequence[T]],
-               default: Union[T, Sequence[T]] = None) -> Sequence[T]:
+def toSequence(
+    value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = None
+) -> Sequence[T]:
     if value is None:
         value = default
     if np.isscalar(value):
@@ -76,7 +77,7 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
         yield start_idx, end_idx
 
         if iter_delta:
-            start_idx = findIndex(dates, start_date+iter_delta, start_idx)
+            start_idx = findIndex(dates, start_date + iter_delta, start_idx)
         else:
             start_idx += 1
 
@@ -98,14 +99,20 @@ def estimateSamplingRate(index):
     """
 
     if index.empty:
-        return pd.tseries.frequencies.to_offset('0s')
+        return pd.tseries.frequencies.to_offset("0s")
     scnds_series = (pd.Series(index).diff().dt.total_seconds()).dropna()
     max_scnds = scnds_series.max()
     min_scnds = scnds_series.min()
-    hist = np.histogram(scnds_series, range=(min_scnds, max_scnds + 1), bins=int(max_scnds - min_scnds + 1))
+    hist = np.histogram(
+        scnds_series,
+        range=(min_scnds, max_scnds + 1),
+        bins=int(max_scnds - min_scnds + 1),
+    )
     # return smallest non zero sample difference (this works, because input is expected to be at least
     # harmonized with skips)
-    return pd.tseries.frequencies.to_offset(str(int(hist[1][:-1][hist[0] > 0].min())) + 's')
+    return pd.tseries.frequencies.to_offset(
+        str(int(hist[1][:-1][hist[0] > 0].min())) + "s"
+    )
 
 
 def retrieveTrustworthyOriginal(data, field, flagger=None):
@@ -121,7 +128,7 @@ def retrieveTrustworthyOriginal(data, field, flagger=None):
     """
     dataseries = data[field]
     if flagger is not None:
-        data_use = flagger.isFlagged(field, flag=flagger.GOOD, comparator='<=')
+        data_use = flagger.isFlagged(field, flag=flagger.GOOD, comparator="<=")
         # drop all flags that are suspicious or worse
         dataseries = dataseries[data_use]
 
@@ -159,9 +166,11 @@ def offset2periods(input_offset, period_offset):
     return offset2seconds(input_offset) / offset2seconds(period_offset)
 
 
-def flagWindow(flagger_old, flagger_new, field, direction='fw', window=0, **kwargs) -> pd.Series:
+def flagWindow(
+    flagger_old, flagger_new, field, direction="fw", window=0, **kwargs
+) -> pd.Series:
 
-    if window == 0 or window == '':
+    if window == 0 or window == "":
         return flagger_new
 
     fw, bw = False, False
@@ -174,16 +183,16 @@ def flagWindow(flagger_old, flagger_new, field, direction='fw', window=0, **kwar
 
     if isinstance(window, int):
         x = f.rolling(window=window + 1).sum()
-        if direction in ['fw', 'both']:
-            fw = x.fillna(method='bfill').astype(bool)
-        if direction in ['bw', 'both']:
-            bw = x.shift(-window).fillna(method='bfill').astype(bool)
+        if direction in ["fw", "both"]:
+            fw = x.fillna(method="bfill").astype(bool)
+        if direction in ["bw", "both"]:
+            bw = x.shift(-window).fillna(method="bfill").astype(bool)
     else:
         # time-based windows
-        if direction in ['bw', 'both']:
+        if direction in ["bw", "both"]:
             # todo: implement time-based backward rolling
             raise NotImplementedError
-        fw = f.rolling(window=window, closed='both').sum().astype(bool)
+        fw = f.rolling(window=window, closed="both").sum().astype(bool)
 
     fmask = bw | fw
     return flagger_new.setFlags(field, fmask, **kwargs)
@@ -208,15 +217,15 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
 
     """
     if day1 is None:
-        day1 = 31 if month1 in [1,3,5,7,8,10,12] else 29 if month1 == 2 else 30
+        day1 = 31 if month1 in [1, 3, 5, 7, 8, 10, 12] else 29 if month1 == 2 else 30
 
     # test plausibility of date
     try:
-        f = '%Y-%m-%d'
-        t0 = pd.to_datetime(f'2001-{month0}-{day0}', format=f)
-        t1 = pd.to_datetime(f'2001-{month1}-{day1}', format=f)
+        f = "%Y-%m-%d"
+        t0 = pd.to_datetime(f"2001-{month0}-{day0}", format=f)
+        t1 = pd.to_datetime(f"2001-{month1}-{day1}", format=f)
     except ValueError:
-        raise ValueError('Given datelike parameter not logical')
+        raise ValueError("Given datelike parameter not logical")
 
     # swap
     if t1 < t0:
@@ -226,8 +235,8 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
         # ======]end+1........start-1[=========
         # ......[end+1========start-1]......... + invert
         # ......[start`========= end`]......... + invert
-        t0 -= pd.to_timedelta('1d')
-        t1 += pd.to_timedelta('1d')
+        t0 -= pd.to_timedelta("1d")
+        t1 += pd.to_timedelta("1d")
         invert = True
         # only swap id condition is still true
         t0, t1 = t1, t0 if t1 < t0 else (t0, t1)
@@ -254,7 +263,7 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
         return mask
 
 
-def assertDataFrame(df, argname='arg', allow_multiindex=True):
+def assertDataFrame(df, argname="arg", allow_multiindex=True):
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
     if not allow_multiindex:
@@ -263,25 +272,31 @@ def assertDataFrame(df, argname='arg', allow_multiindex=True):
         raise TypeError(f"{argname} must have unique columns")
 
 
-def assertSeries(df, argname='arg'):
+def assertSeries(df, argname="arg"):
     if not isinstance(df, pd.Series):
         raise TypeError(f"{argname} must be of type pd.Series, {type(df)} was given")
 
 
-def assertPandas(pdlike, argname='arg', allow_multiindex=True):
+def assertPandas(pdlike, argname="arg", allow_multiindex=True):
     if not isinstance(pdlike, pd.Series) and not isinstance(pdlike, pd.DataFrame):
-        raise TypeError(f"{argname} must be of type pd.DataFrame or pd.Series, {type(pdlike)} was given")
+        raise TypeError(
+            f"{argname} must be of type pd.DataFrame or pd.Series, {type(pdlike)} was given"
+        )
     if not allow_multiindex:
         assertSingleColumns(pdlike, argname)
 
 
-def assertMultiColumns(dfmi, argname=''):
+def assertMultiColumns(dfmi, argname=""):
     assertDataFrame(dfmi, argname, allow_multiindex=True)
     if not isinstance(dfmi.columns, pd.MultiIndex):
-        raise TypeError(f"given pd.DataFrame ({argname}) need to have a muliindex on columns, "
-                        f"instead it has a {type(dfmi.columns)}")
+        raise TypeError(
+            f"given pd.DataFrame ({argname}) need to have a muliindex on columns, "
+            f"instead it has a {type(dfmi.columns)}"
+        )
 
 
-def assertSingleColumns(df, argname=''):
+def assertSingleColumns(df, argname=""):
     if isinstance(df, pd.DataFrame) and isinstance(df.columns, pd.MultiIndex):
-        raise TypeError(f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns")
+        raise TypeError(
+            f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns"
+        )

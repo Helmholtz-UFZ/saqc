@@ -21,7 +21,6 @@ class Flags(pd.CategoricalDtype):
 
 
 class CategoricalBaseFlagger(BaseFlagger):
-
     def __init__(self, flags):
         super().__init__(dtype=Flags(flags))
         self._categories = self.dtype.categories
@@ -31,7 +30,9 @@ class CategoricalBaseFlagger(BaseFlagger):
         not needed here, move out
         """
         if isinstance(flag, pd.Series):
-            return isinstance(flag.dtype, pd.CategoricalDtype) and flag.dtype == self.dtype
+            return (
+                isinstance(flag.dtype, pd.CategoricalDtype) and flag.dtype == self.dtype
+            )
         return flag in self.dtype.categories
 
     @property

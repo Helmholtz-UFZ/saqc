@@ -21,26 +21,32 @@ def checkConfig(config_df, data, flagger, nodata):
     for _, config_row in config_df.iterrows():
         if pd.isnull(config_row[F.VARNAME]):
             # NOTE: better messages needed
-            _raise(config_row, SyntaxError,
-                   f"non-optional column '{F.VARNAME}' is missing")
+            _raise(
+                config_row, SyntaxError, f"non-optional column '{F.VARNAME}' is missing"
+            )
 
         test_fields = config_row.filter(regex=F.TESTS).dropna()
         if test_fields.empty:
-            _raise(config_row,  SyntaxError,
-                   f"at least one test needs to be given for variable")
+            _raise(
+                config_row,
+                SyntaxError,
+                f"at least one test needs to be given for variable",
+            )
 
         var_name = config_row[F.VARNAME]
         if var_name not in data.columns and not config_row[F.ASSIGN]:
-            _raise(config_row, NameError,
-                   f"unknown variable '{var_name}'")
+            _raise(config_row, NameError, f"unknown variable '{var_name}'")
 
         for col, expr in test_fields.iteritems():
             try:
                 compileExpression(expr, data, flagger, nodata)
             except (TypeError, NameError, SyntaxError) as exc:
-                _raise(config_row, type(exc),
-                       exc.args[0] + f" (failing statement: '{expr}')",
-                       col)
+                _raise(
+                    config_row,
+                    type(exc),
+                    exc.args[0] + f" (failing statement: '{expr}')",
+                    col,
+                )
     return config_df
 
 
@@ -57,7 +63,7 @@ def prepareConfig(config_df, data):
     config_df = config_df[comment_mask]
 
     if config_df.empty:
-        raise SyntaxWarning('config file is empty or all lines are #commented')
+        raise SyntaxWarning("config file is empty or all lines are #commented")
 
     # fill missing header fields
     for field in [F.VARNAME, F.START, F.END, F.ASSIGN, F.PLOT]:
@@ -65,13 +71,15 @@ def prepareConfig(config_df, data):
             config_df = config_df.assign(**{field: np.nan})
 
     # fill nans with default values
-    config_df = config_df.fillna({
-        F.VARNAME: np.nan,
-        F.START: data.index.min(),
-        F.END: data.index.max(),
-        F.ASSIGN: False,
-        F.PLOT: False,
-    })
+    config_df = config_df.fillna(
+        {
+            F.VARNAME: np.nan,
+            F.START: data.index.min(),
+            F.END: data.index.max(),
+            F.ASSIGN: False,
+            F.PLOT: False,
+        }
+    )
 
     dtype = np.datetime64 if isinstance(data.index, pd.DatetimeIndex) else int
 

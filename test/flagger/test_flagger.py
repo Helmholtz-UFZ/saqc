@@ -17,13 +17,13 @@ from test.common import TESTFLAGGER
 def get_dataset(rows, cols):
     df = pd.DataFrame()
     for c in range(cols):
-        df[f'var{c}'] = np.linspace(0 + 100 * c, rows, rows)
-    vals = pd.date_range(start='2011-01-01', end='2011-01-10', periods=rows)
+        df[f"var{c}"] = np.linspace(0 + 100 * c, rows, rows)
+    vals = pd.date_range(start="2011-01-01", end="2011-01-10", periods=rows)
     df.index = pd.DatetimeIndex(data=vals)
     return df
 
 
-field = 'var0'
+field = "var0"
 
 DATASETS = [
     # get_dataset(0, 1),
@@ -39,8 +39,8 @@ DATASETS = [
 ]
 
 
-@pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_initFlags(data, flagger):
     flags = flagger.initFlags(data).getFlags()
     assert isinstance(flags, pd.DataFrame)
@@ -48,8 +48,8 @@ def test_initFlags(data, flagger):
     assert len(flags.columns) >= len(data.columns)
 
 
-@pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_getFlags(data, flagger):
     flagger = flagger.initFlags(data)
 
@@ -70,8 +70,8 @@ def test_getFlags(data, flagger):
     assert flags1.name in data.columns
 
 
-@pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_isFlagged(data, flagger):
     # todo: add testcase with comparator
 
@@ -95,23 +95,22 @@ def test_isFlagged(data, flagger):
     # both the same
     assert (flagged0[field] == flagged1).all()
 
-
     # fixme !!
     fail_tests = [
         {"flag": pd.Series(index=data.index, data=flagger.BAD).astype(flagger.dtype)},
-        {"field": ["var1", "var2"]}
+        {"field": ["var1", "var2"]},
     ]
     # for args in fail_tests:
     #     with pytest.raises(ValueError):
     #         flagger.isFlagged(*args)
 
 
-@pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_setFlags(data, flagger):
     flagger = flagger.initFlags(data)
     base = flagger.getFlags()
-    sl = slice('2011-01-02', '2011-01-05')
+    sl = slice("2011-01-02", "2011-01-05")
 
     flagger_good = flagger.setFlags(field, flag=flagger.GOOD, loc=sl)
     flags_good = flagger_good.getFlags()
@@ -135,14 +134,13 @@ def test_setFlags(data, flagger):
         flagger.setFlags(field=None, flag=flagger.BAD)
 
 
-
-@pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_clearFlags(data, flagger):
 
     flagger = flagger.initFlags(data)
     origin = flagger.getFlags()
-    sl = slice('2011-01-02', '2011-01-05')
+    sl = slice("2011-01-02", "2011-01-05")
 
     flagger = flagger.setFlags(field=field, flag=flagger.BAD)
     assert np.sum(flagger.isFlagged(field)) == len(origin)
@@ -159,8 +157,8 @@ def test_clearFlags(data, flagger):
     assert np.sum(flagger.isFlagged(field)) == len(data) - len(unflagged)
 
 
-@pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_dtype(data, flagger):
 
     flagger = flagger.initFlags(data)
@@ -177,8 +175,8 @@ def test_dtype(data, flagger):
         assert flagger.getFlags(field).dtype == flagger.dtype
 
 
-@pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER[-1:])
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER[-1:])
 def test_returnCopy(data, flagger):
     flagger = flagger.initFlags(data)
     origin_data = flagger.getFlags()
@@ -193,18 +191,15 @@ def test_returnCopy(data, flagger):
     assert f is not flagger
 
 
-LOC_ILOC_FUNCS = [
-    'isFlagged',
-    'getFlags'
-]
+LOC_ILOC_FUNCS = ["isFlagged", "getFlags"]
 
 
-@pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
-@pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+@pytest.mark.parametrize("flaggerfunc", LOC_ILOC_FUNCS)
 def test_loc(data, flagger, flaggerfunc):
     flagger = flagger.initFlags(data)
-    sl = slice('2011-01-02', '2011-01-05')
+    sl = slice("2011-01-02", "2011-01-05")
     chunk = data.loc[sl, field]
     d = data.loc[sl]
     if d.empty:
@@ -247,9 +242,9 @@ def test_loc(data, flagger, flaggerfunc):
     assert (sflags0 == iflags0).all()
 
 
-@pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
-@pytest.mark.parametrize('flaggerfunc', LOC_ILOC_FUNCS)
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+@pytest.mark.parametrize("flaggerfunc", LOC_ILOC_FUNCS)
 def test_iloc(data, flagger, flaggerfunc):
     flagger = flagger.initFlags(data)
     M = len(data.index) - 1 if len(data.index) > 0 else 0
@@ -294,8 +289,8 @@ def test_iloc(data, flagger, flaggerfunc):
     assert (sflags0 == mflags0).all()
 
 
-@pytest.mark.parametrize('data', DATASETS)
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_classicUseCases(data, flagger):
     flagger = flagger.initFlags(data)
 

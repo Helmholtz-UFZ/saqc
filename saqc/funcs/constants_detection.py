@@ -10,22 +10,19 @@ from saqc.lib.tools import (
     valueRange,
     slidingWindowIndices,
     retrieveTrustworthyOriginal,
-    offset2periods)
-
+    offset2periods,
+)
 
 
 @register("constant")
 def flagConstant(data, field, flagger, eps, length, thmin=None, **kwargs):
     datacol = data[field]
 
-    length = ((pd.to_timedelta(length) - data.index.freq)
-              .to_timedelta64()
-              .astype(np.int64))
+    length = (
+        (pd.to_timedelta(length) - data.index.freq).to_timedelta64().astype(np.int64)
+    )
 
-    values = (datacol
-              .mask((datacol < thmin) | datacol.isnull())
-              .values
-              .astype(np.int64))
+    values = datacol.mask((datacol < thmin) | datacol.isnull()).values.astype(np.int64)
 
     dates = datacol.index.values.astype(np.int64)
 
@@ -49,8 +46,16 @@ def flagConstant(data, field, flagger, eps, length, thmin=None, **kwargs):
 
 
 @register("constant_varianceBased")
-def flagConstant_varianceBased(data, field, flagger, plateau_window_min='12h', plateau_var_limit=0.0005,
-                               var_total_nans=np.inf, var_consec_nans=np.inf, **kwargs):
+def flagConstant_varianceBased(
+    data,
+    field,
+    flagger,
+    plateau_window_min="12h",
+    plateau_var_limit=0.0005,
+    var_total_nans=np.inf,
+    var_consec_nans=np.inf,
+    **kwargs
+):
 
     """Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
@@ -78,14 +83,20 @@ def flagConstant_varianceBased(data, field, flagger, plateau_window_min='12h', p
 
     min_periods = int(offset2periods(plateau_window_min, data_rate))
 
-    plateaus = dataseries.rolling(window=plateau_window_min, min_periods=min_periods).apply(
-        lambda x: True if varQC(x, var_total_nans, var_consec_nans) < plateau_var_limit else np.nan, raw=False)
+    plateaus = dataseries.rolling(
+        window=plateau_window_min, min_periods=min_periods
+    ).apply(
+        lambda x: True
+        if varQC(x, var_total_nans, var_consec_nans) < plateau_var_limit
+        else np.nan,
+        raw=False,
+    )
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
         return data, flagger
 
-    plateaus.fillna(method='bfill', limit=min_periods, inplace=True)
+    plateaus.fillna(method="bfill", limit=min_periods, inplace=True)
 
     # result:
     plateaus = (plateaus[plateaus == 1.0]).index

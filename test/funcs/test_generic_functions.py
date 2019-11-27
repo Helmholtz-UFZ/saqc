@@ -13,7 +13,8 @@ from saqc.core.evaluator import (
     parseExpression,
     evalExpression,
     compileTree,
-    evalCode)
+    evalCode,
+)
 
 
 def _evalExpression(expr, data, field, flagger, nodata=np.nan):
@@ -34,18 +35,15 @@ def test_flagPropagation(data, flagger):
     var1, var2, *_ = data.columns
     this = var1
 
-    flagger = (flagger
-               .initFlags(data)
-               .setFlags(var2, iloc=slice(None, None, 5)))
+    flagger = flagger.initFlags(data).setFlags(var2, iloc=slice(None, None, 5))
 
     var2_flags = flagger.isFlagged(var2)
     var2_data = data[var2].mask(var2_flags)
     data, flagger_result = evalExpression(
-        "generic(func=var2 < mean(var2))",
-        data, this, flagger, np.nan
+        "generic(func=var2 < mean(var2))", data, this, flagger, np.nan
     )
 
-    expected = (var2_flags | (var2_data < var2_data.mean()))
+    expected = var2_flags | (var2_data < var2_data.mean())
     result = flagger_result.isFlagged(this)
     assert (result == expected).all()
 
@@ -53,10 +51,7 @@ def test_flagPropagation(data, flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_missingIdentifier(data, flagger):
     flagger = flagger.initFlags(data)
-    tests = [
-        "generic(func=func(var2) < 5)",
-        "generic(func=var3 != NODATA)"
-    ]
+    tests = ["generic(func=func(var2) < 5)", "generic(func=var3 != NODATA)"]
     for expr in tests:
         with pytest.raises(NameError):
             evalExpression(expr, data, data.columns[0], flagger, np.nan)
@@ -72,18 +67,16 @@ def test_comparisons(data, flagger):
         ("this > 100", data[this] > 100),
         (f"10 >= {var2}", 10 >= data[var2]),
         (f"{var2} < 100", data[var2] < 100),
-        (f"this <= {var2}", data[this] <= data[var2])
+        (f"this <= {var2}", data[this] <= data[var2]),
     ]
 
     # check within the usually enclosing scope
     for expr, mask in tests:
         _, result_flagger = evalExpression(
-            f"generic(func={expr})",
-            data, this, flagger, np.nan)
-        expected_flagger = flagger.setFlags(this, loc=mask, test="generic")
-        assert np.all(
-            result_flagger.isFlagged() == expected_flagger.isFlagged()
+            f"generic(func={expr})", data, this, flagger, np.nan
         )
+        expected_flagger = flagger.setFlags(this, loc=mask, test="generic")
+        assert np.all(result_flagger.isFlagged() == expected_flagger.isFlagged())
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -123,20 +116,22 @@ def test_reduncingBuiltins(data, flagger, nodata):
         assert result == expected
 
 
-
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("nodata", TESTNODATA)
 def test_ismissing(data, flagger, nodata):
 
-    data.iloc[:len(data)//2, 0] = np.nan
-    data.iloc[(len(data)//2)+1:, 0] = -9999
+    data.iloc[: len(data) // 2, 0] = np.nan
+    data.iloc[(len(data) // 2) + 1 :, 0] = -9999
     var1, var2, *_ = data.columns
 
     flagger = flagger.initFlags(data)
 
     tests = [
         (f"ismissing({var1})", lambda data: (pd.isnull(data) | (data == nodata)).all()),
-        (f"~ismissing({var1})", lambda data: (pd.notnull(data) & (data != nodata)).all())
+        (
+            f"~ismissing({var1})",
+            lambda data: (pd.notnull(data) & (data != nodata)).all(),
+        ),
     ]
 
     for expr, checkFunc in tests:
@@ -154,8 +149,14 @@ def test_bitOps(data, flagger, nodata):
 
     tests = [
         (f"generic(func=~(this > mean(this)))", ~(data[this] > np.nanmean(data[this]))),
-        (f"generic(func=(this <= 0) | (0 < {var1}))", (data[this] <= 0) | (0 < data[var1])),
-        (f"generic(func=({var2} >= 0) & (0 > this))", (data[var2] >= 0) & (0 > data[this]))
+        (
+            f"generic(func=(this <= 0) | (0 < {var1}))",
+            (data[this] <= 0) | (0 < data[var1]),
+        ),
+        (
+            f"generic(func=({var2} >= 0) & (0 > this))",
+            (data[var2] >= 0) & (0 > data[this]),
+        ),
     ]
 
     for expr, expected in tests:
@@ -183,12 +184,11 @@ def test_isflaggedArgument(data, flagger):
 
     var1, var2, *_ = data.columns
 
-    flagger = (flagger
-               .initFlags(data)
-               .setFlags(var1, iloc=slice(None, None, 2), flag=flagger.BAD))
+    flagger = flagger.initFlags(data).setFlags(
+        var1, iloc=slice(None, None, 2), flag=flagger.BAD
+    )
 
-    idx = _evalExpression(
-        f"isflagged({var1}, {flagger.BAD})", data, var2, flagger)
+    idx = _evalExpression(f"isflagged({var1}, {flagger.BAD})", data, var2, flagger)
 
     flagged = flagger.isFlagged(var1, flag=flagger.BAD, comparator=">=")
     assert (flagged == idx).all()

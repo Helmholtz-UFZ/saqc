@@ -31,7 +31,6 @@ FlagT = Any
 
 
 class BaseFlagger(ABC):
-
     @abstractmethod
     def __init__(self, dtype):
         # NOTE: the type of the _flags DataFrame
@@ -41,18 +40,21 @@ class BaseFlagger(ABC):
         self.signature = ("flag",)
         self._flags: pd.DataFrame
 
-    def initFlags(self, data: pd.DataFrame = None, flags: pd.DataFrame = None) -> BaseFlaggerT:
+    def initFlags(
+        self, data: pd.DataFrame = None, flags: pd.DataFrame = None
+    ) -> BaseFlaggerT:
         """
         initialize a flagger based on the given 'data' or 'flags'
         if 'data' is not None: return a flagger with flagger.UNFALGGED values
         if 'flags' is not None: return a flagger with the given flags
         """
         if data is not None:
-            assertDataFrame(data, 'data', allow_multiindex=False)
+            assertDataFrame(data, "data", allow_multiindex=False)
             flags = pd.DataFrame(
-                data=self.UNFLAGGED, index=data.index, columns=data.columns)
+                data=self.UNFLAGGED, index=data.index, columns=data.columns
+            )
         elif flags is not None:
-            assertDataFrame(flags, 'flags', allow_multiindex=False)
+            assertDataFrame(flags, "flags", allow_multiindex=False)
         else:
             raise TypeError("either 'data' or 'flags' are required")
         return self._copy(self._assureDtype(flags))
@@ -70,7 +72,9 @@ class BaseFlagger(ABC):
             out._flags.loc[other._flags.index, v] = other._flags[v]
         return out
 
-    def getFlagger(self, field: str = None, loc: LocT = None, iloc: IlocT = None) -> BaseFlaggerT:
+    def getFlagger(
+        self, field: str = None, loc: LocT = None, iloc: IlocT = None
+    ) -> BaseFlaggerT:
         """
         return a potentially trimmed down copy of self
         """
@@ -81,7 +85,9 @@ class BaseFlagger(ABC):
             flags = flags.to_frame()
         return self._copy(flags)
 
-    def getFlags(self, field: str = None, loc: LocT = None, iloc: IlocT = None, **kwargs) -> PandasT:
+    def getFlags(
+        self, field: str = None, loc: LocT = None, iloc: IlocT = None, **kwargs
+    ) -> PandasT:
         """
         return a copy of potentially trimmed down 'self._flags' DataFrame
         """
@@ -91,7 +97,15 @@ class BaseFlagger(ABC):
         mask = self._locatorMask(field, loc, iloc)
         return flags.loc[mask, field]
 
-    def setFlags(self, field: str, loc: LocT = None, iloc: IlocT = None, flag: FlagT = None, force: bool = False, **kwargs) -> BaseFlaggerT:
+    def setFlags(
+        self,
+        field: str,
+        loc: LocT = None,
+        iloc: IlocT = None,
+        flag: FlagT = None,
+        force: bool = False,
+        **kwargs,
+    ) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
 
         flag = self.BAD if flag is None else self._checkFlag(flag)
@@ -107,11 +121,23 @@ class BaseFlagger(ABC):
         out._flags.loc[mask, field] = other[mask]
         return out
 
-    def clearFlags(self, field: str, loc: LocT = None, iloc: IlocT = None, **kwargs) -> BaseFlaggerT:
+    def clearFlags(
+        self, field: str, loc: LocT = None, iloc: IlocT = None, **kwargs
+    ) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
-        return self.setFlags(field=field, loc=loc, iloc=iloc, flag=self.UNFLAGGED, force=True)
+        return self.setFlags(
+            field=field, loc=loc, iloc=iloc, flag=self.UNFLAGGED, force=True
+        )
 
-    def isFlagged(self, field=None, loc: LocT = None, iloc: IlocT = None, flag: FlagT = None, comparator: str = ">", **kwargs) -> PandasT:
+    def isFlagged(
+        self,
+        field=None,
+        loc: LocT = None,
+        iloc: IlocT = None,
+        flag: FlagT = None,
+        comparator: str = ">",
+        **kwargs,
+    ) -> PandasT:
         assertScalar("field", field, optional=True)
         assertScalar("flag", flag, optional=True)
         flag = self.GOOD if flag is None else flag
@@ -126,7 +152,9 @@ class BaseFlagger(ABC):
             out._flags = flags
         return out
 
-    def _locatorMask(self, field: str = None, loc: LocT = None, iloc: IlocT = None) -> PandasT:
+    def _locatorMask(
+        self, field: str = None, loc: LocT = None, iloc: IlocT = None
+    ) -> PandasT:
         field = field or slice(None)
         locator = [l for l in (loc, iloc, slice(None)) if l is not None][0]
         flags = self._flags[toSequence(field)]
@@ -141,14 +169,11 @@ class BaseFlagger(ABC):
         if np.isscalar(flag):
             flag = np.full_like(this, flag)
 
-        return pd.Series(
-            data=flag, index=this.index,
-            name=field, dtype=self.dtype)
+        return pd.Series(data=flag, index=this.index, name=field, dtype=self.dtype)
 
     def _checkFlag(self, flag):
         if flag is not None and not self._isDtype(flag):
-            raise TypeError(
-                f"flag '{flag}' needs to be of type '{self.dtype}'")
+            raise TypeError(f"flag '{flag}' needs to be of type '{self.dtype}'")
         return flag
 
     def _assureDtype(self, flags):
@@ -160,7 +185,6 @@ class BaseFlagger(ABC):
         for c in flags.columns:
             tmp[c] = flags[c].astype(self.dtype)
         return pd.DataFrame(tmp)
-
 
     @abstractmethod
     def _isDtype(self, flag) -> bool:

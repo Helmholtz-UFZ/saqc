@@ -14,7 +14,7 @@ def _isValid(data, max_nan_total, max_nan_consec):
     if nan_mask.sum() <= max_nan_total:
         if max_nan_consec is np.inf:
             return True
-        elif nan_mask.rolling(window=max_nan_consec+1).sum().max() <= max_nan_consec:
+        elif nan_mask.rolling(window=max_nan_consec + 1).sum().max() <= max_nan_consec:
             return True
         else:
             return False
@@ -62,5 +62,3 @@ def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     if _isValid(data, max_nan_total, max_nan_consec):
         return data.mean()
     return np.nan
-
-

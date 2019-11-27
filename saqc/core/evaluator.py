@@ -67,7 +67,9 @@ class DslTransformer(ast.NodeTransformer):
         self.func_map = func_map
         self.variables = variables
 
-    def _rename(self, node: ast.Name, target: str) -> Union[ast.Subscript, ast.Name, ast.Constant]:
+    def _rename(
+        self, node: ast.Name, target: str
+    ) -> Union[ast.Subscript, ast.Name, ast.Constant]:
         name = node.id
         if name == "this":
             value = ast.Name(id="field", ctx=ast.Load())
@@ -82,7 +84,8 @@ class DslTransformer(ast.NodeTransformer):
             out = ast.Subscript(
                 value=ast.Name(id=target, ctx=ast.Load()),
                 slice=ast.Index(value=value),
-                ctx=ast.Load())
+                ctx=ast.Load(),
+            )
             return out
 
     def visit_Call(self, node):
@@ -97,7 +100,7 @@ class DslTransformer(ast.NodeTransformer):
                 self._rename(node.args[0], Targets.FLAGS),
                 ast.Name(id="flagger", ctx=ast.Load()),
             ],
-            keywords=[]
+            keywords=[],
         )
         return node
 
@@ -123,7 +126,8 @@ class MetaTransformer(ast.NodeTransformer):
         ast.Load,
         ast.Expression,
         ast.Subscript,
-        ast.Index)
+        ast.Index,
+    )
 
     def __init__(self, dsl_transformer, pass_parameter):
         self.dsl_transformer = dsl_transformer
@@ -138,23 +142,22 @@ class MetaTransformer(ast.NodeTransformer):
             raise TypeError("only keyword arguments are supported")
         self.func_name = func_name
 
-        new_args = [ast.Name(id="data", ctx=ast.Load()),
-                    ast.Name(id="field", ctx=ast.Load()),
-                    ast.Name(id="flagger", ctx=ast.Load())]
+        new_args = [
+            ast.Name(id="data", ctx=ast.Load()),
+            ast.Name(id="field", ctx=ast.Load()),
+            ast.Name(id="flagger", ctx=ast.Load()),
+        ]
 
         node = ast.Call(
-            func=node.func,
-            args=new_args + node.args,
-            keywords=node.keywords)
+            func=node.func, args=new_args + node.args, keywords=node.keywords
+        )
 
         return self.generic_visit(node)
 
     def visit_keyword(self, node):
         key, value = node.arg, node.value
         if self.func_name == "generic" and key == Params.FUNC:
-            node = ast.keyword(
-                arg=key,
-                value=self.dsl_transformer.visit(value))
+            node = ast.keyword(arg=key, value=self.dsl_transformer.visit(value))
             return node
 
         if key not in FUNC_MAP[self.func_name].signature + self.pass_parameter:
@@ -162,7 +165,8 @@ class MetaTransformer(ast.NodeTransformer):
 
         if not isinstance(value, (ast.Str, ast.Num, ast.Call)):
             raise TypeError(
-                f"only concrete values and function calls are valid function arguments")
+                f"only concrete values and function calls are valid function arguments"
+            )
 
         return self.generic_visit(node)
 
@@ -180,9 +184,7 @@ def parseExpression(expr: str) -> ast.AST:
 
 
 def compileTree(tree: ast.Expression):
-    return compile(ast.fix_missing_locations(tree),
-                   "<ast>",
-                   mode="eval")
+    return compile(ast.fix_missing_locations(tree), "<ast>", mode="eval")
 
 
 def evalCode(code, data, field, flagger, nodata):
@@ -190,8 +192,11 @@ def evalCode(code, data, field, flagger, nodata):
     local_env = {
         **FUNC_MAP,
         "data": data,
-        "field": field, "this": field,
-        "flagger": flagger, "NODATA": nodata}
+        "field": field,
+        "this": field,
+        "flagger": flagger,
+        "NODATA": nodata,
+    }
 
     return eval(code, global_env, local_env)
 

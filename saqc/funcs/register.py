@@ -16,8 +16,8 @@ class Partial(partial):
 # NOTE: will be filled by calls to register
 FUNC_MAP = {}
 
-def register(name):
 
+def register(name):
     def outer(func):
         func = Partial(func, func_name=name)
         FUNC_MAP[name] = func

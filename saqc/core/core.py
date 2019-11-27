@@ -9,11 +9,7 @@ from saqc.core.reader import readConfig, prepareConfig, checkConfig
 from saqc.core.config import Fields
 from saqc.core.evaluator import evalExpression
 from saqc.lib.plotting import plotHook, plotAllHook
-from saqc.flagger import (
-    BaseFlagger,
-    CategoricalBaseFlagger,
-    SimpleFlagger,
-    DmpFlagger)
+from saqc.flagger import BaseFlagger, CategoricalBaseFlagger, SimpleFlagger, DmpFlagger
 
 
 def _collectVariables(meta, data):
@@ -21,7 +17,7 @@ def _collectVariables(meta, data):
     find every relevant variable
     """
     # NOTE: get to know every variable from meta
-    flags = [] #data.columns.tolist()
+    flags = []  # data.columns.tolist()
     for idx, configrow in meta.iterrows():
         varname = configrow[Fields.VARNAME]
         assign = configrow[Fields.ASSIGN]
@@ -34,38 +30,40 @@ def _collectVariables(meta, data):
 
 def _checkInput(data, flags, flagger):
     if not isinstance(data, pd.DataFrame):
-        raise TypeError('data must be of type pd.DataFrame')
+        raise TypeError("data must be of type pd.DataFrame")
 
     if isinstance(data.index, pd.MultiIndex):
-        raise TypeError('the index of data is not allowed to be a multiindex')
+        raise TypeError("the index of data is not allowed to be a multiindex")
 
     if isinstance(data.columns, pd.MultiIndex):
-        raise TypeError('the columns of data is not allowed to be a multiindex')
+        raise TypeError("the columns of data is not allowed to be a multiindex")
 
     if not isinstance(flagger, BaseFlagger):
         flaggerlist = [CategoricalBaseFlagger, SimpleFlagger, DmpFlagger]
-        raise TypeError(f'flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}')
+        raise TypeError(
+            f"flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}"
+        )
 
     if flags is None:
         return
 
     if not isinstance(flags, pd.DataFrame):
-        raise TypeError('flags must be of type pd.DataFrame')
+        raise TypeError("flags must be of type pd.DataFrame")
 
     if isinstance(data.index, pd.MultiIndex):
-        raise TypeError('the index of data is not allowed to be a multiindex')
+        raise TypeError("the index of data is not allowed to be a multiindex")
 
     if len(data) != len(flags):
-        raise ValueError('the index of flags and data has not the same length')
+        raise ValueError("the index of flags and data has not the same length")
 
     # NOTE: do not test columns as they not necessarily must be the same
 
 
 def _setup():
-    pd.set_option('mode.chained_assignment', 'warn')
+    pd.set_option("mode.chained_assignment", "warn")
 
 
-def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy='raise'):
+def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
     _setup()
     _checkInput(data, flags, flagger)
     config = prepareConfig(readConfig(metafname), data)
@@ -83,7 +81,6 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy='ra
         flagger = flagger.initFlags(pd.DataFrame(index=data.index, columns=flag_cols))
     else:
         flagger = flagger.initFlags(flags=flags)
-
 
     # this checks comes late, but the compiling of the user-test need fully prepared flags
     checkConfig(config, data, flagger, nodata)
@@ -121,8 +118,11 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy='ra
                 # actually run the tests
                 dchunk, flagger_chunk_result = evalExpression(
                     flag_test,
-                    data=dchunk, field=varname,
-                    flagger=flagger_chunk, nodata=nodata)
+                    data=dchunk,
+                    field=varname,
+                    flagger=flagger_chunk,
+                    nodata=nodata,
+                )
             except Exception as e:
                 if _handleErrors(e, configrow, flag_test, error_policy):
                     raise e
@@ -138,12 +138,12 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy='ra
 def _handleErrors(err, configrow, test, policy):
     line = configrow[Fields.LINENUMBER]
     msg = f" config, line {line}, test: `{test}` failed with `{type(err).__name__}: {err}`"
-    if policy == 'raise':
+    if policy == "raise":
         return True
-    elif policy == 'ignore':
+    elif policy == "ignore":
         logging.debug(msg)
         return False
-    elif policy == 'warn':
+    elif policy == "warn":
         logging.warning(msg)
         return False
     return True

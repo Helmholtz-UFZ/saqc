@@ -7,16 +7,25 @@ import pandas as pd
 from scipy.signal import savgol_filter
 
 from saqc.funcs.register import register
-from saqc.lib.tools import (
-    retrieveTrustworthyOriginal,
-    offset2periods)
+from saqc.lib.tools import retrieveTrustworthyOriginal, offset2periods
 
 
 @register("breaks_spektrumBased")
-def flagBreaks_spektrumBased(data, field, flagger, diff_method='raw', filter_window_size='3h',
-                             rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
-                             first_der_window_size='12h', scnd_der_ratio_margin_1=0.05,
-                             scnd_der_ratio_margin_2=10, smooth_poly_order=2, **kwargs):
+def flagBreaks_spektrumBased(
+    data,
+    field,
+    flagger,
+    diff_method="raw",
+    filter_window_size="3h",
+    rel_change_rate_min=0.1,
+    abs_change_min=0.01,
+    first_der_factor=10,
+    first_der_window_size="12h",
+    scnd_der_ratio_margin_1=0.05,
+    scnd_der_ratio_margin_2=10,
+    smooth_poly_order=2,
+    **kwargs
+):
 
     """ This Function is an generalization of the Spectrum based break flagging mechanism as presented in:
 
@@ -76,7 +85,9 @@ def flagBreaks_spektrumBased(data, field, flagger, diff_method='raw', filter_win
 
     # relative - change - break criteria testing:
     abs_change = np.abs(dataseries.shift(+1) - dataseries)
-    breaks = (abs_change > abs_change_min) & (abs_change / dataseries > rel_change_rate_min)
+    breaks = (abs_change > abs_change_min) & (
+        abs_change / dataseries > rel_change_rate_min
+    )
     breaks = breaks[breaks == True]
 
     # First derivative criterion
@@ -86,51 +97,78 @@ def flagBreaks_spektrumBased(data, field, flagger, diff_method='raw', filter_win
 
     for brake in breaks.index:
         # slice out slice-to-be-filtered (with some safety extension of 12 times the data rate)
-        slice_start = brake - pd.Timedelta(first_der_window_size) - 12*pd.Timedelta(data_rate)
-        slice_end = brake + pd.Timedelta(first_der_window_size) + 12*pd.Timedelta(data_rate)
+        slice_start = (
+            brake - pd.Timedelta(first_der_window_size) - 12 * pd.Timedelta(data_rate)
+        )
+        slice_end = (
+            brake + pd.Timedelta(first_der_window_size) + 12 * pd.Timedelta(data_rate)
+        )
         data_slice = dataseries[slice_start:slice_end]
 
         # obtain first derivative:
-        if diff_method == 'savgol':
-            first_deri_series = pd.Series(data=savgol_filter(data_slice,
-                                          window_length=smoothing_periods,
-                                          polyorder=smooth_poly_order,
-                                          deriv=1),
-                                          index=data_slice.index)
-        if diff_method == 'raw':
+        if diff_method == "savgol":
+            first_deri_series = pd.Series(
+                data=savgol_filter(
+                    data_slice,
+                    window_length=smoothing_periods,
+                    polyorder=smooth_poly_order,
+                    deriv=1,
+                ),
+                index=data_slice.index,
+            )
+        if diff_method == "raw":
             first_deri_series = data_slice.diff()
 
         # condition constructing and testing:
-        test_slice = first_deri_series[brake - pd.Timedelta(first_der_window_size):
-                                       brake + pd.Timedelta(first_der_window_size)]
+        test_slice = first_deri_series[
+            brake
+            - pd.Timedelta(first_der_window_size) : brake
+            + pd.Timedelta(first_der_window_size)
+        ]
 
-        test_sum = abs((test_slice.sum()*first_der_factor) / test_slice.size)
+        test_sum = abs((test_slice.sum() * first_der_factor) / test_slice.size)
 
         if abs(first_deri_series[brake]) > test_sum:
             # second derivative criterion:
-            slice_start = brake - 12*pd.Timedelta(data_rate)
-            slice_end = brake + 12*pd.Timedelta(data_rate)
+            slice_start = brake - 12 * pd.Timedelta(data_rate)
+            slice_end = brake + 12 * pd.Timedelta(data_rate)
             data_slice = data_slice[slice_start:slice_end]
 
             # obtain second derivative:
-            if diff_method == 'savgol':
-                second_deri_series = pd.Series(data=savgol_filter(data_slice,
-                                               window_length=smoothing_periods,
-                                               polyorder=smooth_poly_order,
-                                               deriv=2),
-                                               index=data_slice.index)
-            if diff_method == 'raw':
+            if diff_method == "savgol":
+                second_deri_series = pd.Series(
+                    data=savgol_filter(
+                        data_slice,
+                        window_length=smoothing_periods,
+                        polyorder=smooth_poly_order,
+                        deriv=2,
+                    ),
+                    index=data_slice.index,
+                )
+            if diff_method == "raw":
                 second_deri_series = data_slice.diff().diff()
 
             # criterion evaluation:
-            first_second = (1 - scnd_der_ratio_margin_1) < \
-                abs((second_deri_series.shift(0)[brake] / second_deri_series.shift(-1)[brake])) < \
-                1 + scnd_der_ratio_margin_1
+            first_second = (
+                (1 - scnd_der_ratio_margin_1)
+                < abs(
+                    (
+                        second_deri_series.shift(0)[brake]
+                        / second_deri_series.shift(-1)[brake]
+                    )
+                )
+                < 1 + scnd_der_ratio_margin_1
+            )
 
-            second_second = abs(second_deri_series.shift(-1)[brake] / second_deri_series.shift(-2)[brake]) > \
-                scnd_der_ratio_margin_2
+            second_second = (
+                abs(
+                    second_deri_series.shift(-1)[brake]
+                    / second_deri_series.shift(-2)[brake]
+                )
+                > scnd_der_ratio_margin_2
+            )
 
-            if (~ first_second) | (~ second_second):
+            if (~first_second) | (~second_second):
                 breaks[brake] = False
 
         else:

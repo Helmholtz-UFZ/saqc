@@ -33,20 +33,18 @@ def flagGeneric(data, field, flagger, func, **kwargs):
 @register("flagWindowAfterFlag")
 def flagWindowAfterFlag(data, field, flagger, window, func, **kwargs):
     data, flagger_new = func
-    flagger_repeated = flagWindow(flagger, flagger_new,
-                                  field,
-                                  direction='fw', window=window,
-                                  **kwargs)
+    flagger_repeated = flagWindow(
+        flagger, flagger_new, field, direction="fw", window=window, **kwargs
+    )
     return data, flagger_repeated
 
 
 @register("flagNextAfterFlag")
 def flagNextAfterFlag(data, field, flagger, n, func, **kwargs):
     data, flagger_new = func
-    flagger_repeated = flagWindow(flagger, flagger_new,
-                                  field,
-                                  direction='fw', window=n,
-                                  **kwargs)
+    flagger_repeated = flagWindow(
+        flagger, flagger_new, field, direction="fw", window=n, **kwargs
+    )
     return data, flagger_repeated
 
 
@@ -70,16 +68,28 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     return data, flagger
 
 
-@register('sesonalRange')
-def flagSesonalRange(data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs):
+@register("sesonalRange")
+def flagSesonalRange(
+    data,
+    field,
+    flagger,
+    min,
+    max,
+    startmonth=1,
+    endmonth=12,
+    startday=1,
+    endday=31,
+    **kwargs,
+):
     smask = sesonalMask(data.index, startmonth, startday, endmonth, endday)
 
     d = data.loc[smask, [field]]
     if d.empty:
         return data, flagger
 
-    _, flagger_range = flagRange(d, field, flagger.getFlagger(loc=d.index),
-                                 min=min, max=max, **kwargs)
+    _, flagger_range = flagRange(
+        d, field, flagger.getFlagger(loc=d.index), min=min, max=max, **kwargs
+    )
 
     if not flagger_range.isFlagged(field).any():
         return data, flagger
@@ -88,34 +98,40 @@ def flagSesonalRange(data, field, flagger, min, max, startmonth=1, endmonth=12, 
     return data, flagger
 
 
-@register('clear')
+@register("clear")
 def clearFlags(data, field, flagger, **kwargs):
     flagger.clearFlags(field, **kwargs)
     return data, flagger
 
 
-@register('force')
+@register("force")
 def forceFlags(data, field, flagger, **kwargs):
     flagger.clearFlags(field, **kwargs)
     flagger.setFlags(field, **kwargs)
     return data, flagger
 
 
-@register('isolated')
-def flagIsolated(data, field, flagger, isolation_range,
-                 max_isolated_group_size=1,
-                 continuation_range='10min',
-                 drop_flags=None, **kwargs):
+@register("isolated")
+def flagIsolated(
+    data,
+    field,
+    flagger,
+    isolation_range,
+    max_isolated_group_size=1,
+    continuation_range="10min",
+    drop_flags=None,
+    **kwargs,
+):
 
     drop_mask = pd.Series(data=False, index=data.index)
     # todo susp/BAD: make same case
-    if drop_flags == 'suspicious':
-        drop_mask |= ~(flagger.isFlagged(field, flag=flagger.GOOD, comparator='<='))
-    elif drop_flags == 'BAD':
-        drop_mask |= flagger.isFlagged(field, flag=flagger.BAD, comparator='==')
+    if drop_flags == "suspicious":
+        drop_mask |= ~(flagger.isFlagged(field, flag=flagger.GOOD, comparator="<="))
+    elif drop_flags == "BAD":
+        drop_mask |= flagger.isFlagged(field, flag=flagger.BAD, comparator="==")
     elif isinstance(drop_flags, list):
         for to_drop in drop_flags:
-            drop_mask |= flagger.isFlagged(field, flag=to_drop, comparator='==')
+            drop_mask |= flagger.isFlagged(field, flag=to_drop, comparator="==")
 
     dat_col = data[field][~drop_mask]
     dat_col.dropna(inplace=True)
@@ -124,23 +140,33 @@ def flagIsolated(data, field, flagger, isolation_range,
         # isolated single values are much easier to identify:
         gap_check = dat_col.rolling(isolation_range).count()
         # exclude series initials:
-        gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)):]
+        gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)) :]
         # reverse rolling trick:
-        isolated_indices = gap_check[(gap_check[::-1].rolling(2).sum() == 2)[::-1].values].index
+        isolated_indices = gap_check[
+            (gap_check[::-1].rolling(2).sum() == 2)[::-1].values
+        ].index
 
     else:
         gap_check = dat_col.rolling(isolation_range).count()
         # check, which groups are centered enough for being isolated
         continuation_check = gap_check.rolling(continuation_range).count()
         # exclude series initials:
-        gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)):]
+        gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)) :]
         # check which values are sparsely enough surrounded
-        gap_check = gap_check[::-1].rolling(2).apply(lambda x: int((x[0] == 1) & (x[1] <= max_isolated_group_size)),
-                                                     raw=False)
-        gap_check = (gap_check[::-1] == 1)
+        gap_check = (
+            gap_check[::-1]
+            .rolling(2)
+            .apply(
+                lambda x: int((x[0] == 1) & (x[1] <= max_isolated_group_size)),
+                raw=False,
+            )
+        )
+        gap_check = gap_check[::-1] == 1
         isolated_indices = gap_check[gap_check].index
         # check if the isolated values groups are sufficiently centered:
-        isolated_indices = isolated_indices[continuation_check[isolated_indices] <= max_isolated_group_size]
+        isolated_indices = isolated_indices[
+            continuation_check[isolated_indices] <= max_isolated_group_size
+        ]
         # propagate True value onto entire isolated group (will not work with bfill method, because its not sure the
         # frequencie grid is actually equidistant - so here comes rolling reverse trick for offset defined windows
         # again):

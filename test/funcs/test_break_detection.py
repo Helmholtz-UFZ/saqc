@@ -7,16 +7,15 @@ from saqc.funcs.break_detection import flagBreaks_spektrumBased
 
 from test.common import TESTFLAGGER, initData
 
+
 @pytest.fixture
 def data():
     return initData(
-        1,
-        start_date='2011-01-01 00:00:00',
-        end_date='2011-01-02 03:00:00',
-        freq='5min')
+        1, start_date="2011-01-01 00:00:00", end_date="2011-01-02 03:00:00", freq="5min"
+    )
 
 
-@pytest.mark.parametrize('flagger', TESTFLAGGER)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagBreaks_SpektrumBased(data, flagger):
     field, *_ = data.columns
     data.iloc[5:15] += 100

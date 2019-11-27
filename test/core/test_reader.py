@@ -5,12 +5,7 @@ import pytest
 
 from saqc.core.reader import checkConfig
 from saqc.core.config import Fields as F
-from test.common import (
-    initData,
-    initMetaDict,
-    initMetaString,
-    TESTFLAGGER,
-    TESTNODATA)
+from test.common import initData, initMetaDict, initMetaString, TESTFLAGGER, TESTNODATA
 
 
 @pytest.fixture
@@ -20,18 +15,21 @@ def data():
 
 def test_configPreparation(data):
     var1, var2, var3, *_ = data.columns
-    date = data.index[len(data.index)//2]
+    date = data.index[len(data.index) // 2]
 
     tests = [
         {F.VARNAME: var1, F.START: date, F.TESTS: "flagAll()", F.PLOT: True},
         {F.VARNAME: var2, F.TESTS: "flagAll()", F.PLOT: False},
         {F.VARNAME: var3, F.END: date, F.TESTS: "flagAll()", F.ASSIGN: True},
-        {F.VARNAME: var3, F.TESTS: "flagAll()", },
+        {F.VARNAME: var3, F.TESTS: "flagAll()",},
     ]
 
     defaults = {
-        F.START: data.index.min(), F.END: data.index.max(),
-        F.ASSIGN: False, F.PLOT: False, F.LINENUMBER: 2
+        F.START: data.index.min(),
+        F.END: data.index.max(),
+        F.ASSIGN: False,
+        F.PLOT: False,
+        F.LINENUMBER: 2,
     }
 
     for i, test in enumerate(tests):
@@ -73,8 +71,8 @@ def test_configChecks(data, flagger, nodata, caplog):
         ({F.VARNAME: "", F.TESTS: "range(min=3)"}, NameError),
         ({F.VARNAME: "", F.TESTS: ""}, NameError),
         ({F.VARNAME: ""}, SyntaxError),
-        ({F.TESTS: "range(min=3)"}, SyntaxError)
-        ]
+        ({F.TESTS: "range(min=3)"}, SyntaxError),
+    ]
 
     for config_dict, expected in tests:
         _, config_df = initMetaDict([config_dict], data)
