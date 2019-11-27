@@ -19,9 +19,9 @@ associated with "missing" data. The missing data indicator (`np.nan` by default)
 , can be altered to any other value by passing this new value to the 
 parameter `nodata`.
 
-| parameter | description |
-| ------ | ------ |
-| nodata | Value. (Default = np.nan). Any value, that shall indicate missing data in the passed dataseries. |
+| parameter | data format | description |
+| ------ | ------ | ------ |
+| nodata | any Value. (Default = np.nan). | Any value, that shall indicate missing data in the passed dataseries. (If not np.nan, evaluation will be performed by `nodata == data`) |
            
 
 ## sesonalRange
@@ -93,18 +93,18 @@ outliers, but also plateau-ish value courses.
 The implementation is a time-window based version of an outlier test from the 
 UFZ Python library, that can be found [here](https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py).
 
-| parameter | description |
-| ------ | ------ |
-| thresh | Float. <br/> Minimum jump margin for spikes. See condition (1). |
-| tolerance | Float. <br/> Range of area, containing al "valid return values". See condition (2). |
-| window_size | Offset String. <br/> An offset string, denoting the maximal length of "spikish" value courses. See condition (3). |
+| parameter | data format | description |
+| ------ | ------ | ------ |
+| thresh | Float. | Minimum jump margin for spikes. See condition (1). |
+| tolerance | Float. | Range of area, containing al "valid return values". See condition (2). |
+| window_size | Offset String. | An offset string, denoting the maximal length of "spikish" value courses. See condition (3). |
 
 ## Spikes_SpektrumBased
 ### Signature
 ```
-Spikes_SpektrumBased(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0.2,
+Spikes_SpektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
                      noise_barrier=1, noise_window_size="12h", noise_statistic="CoVar",
-                     smooth_poly_order=2)
+                     smooth_poly_order=2, filter_window_size=None)
 ```
 ### Description
 
@@ -124,11 +124,13 @@ is considered a spike, if:
    and subsequent timestamps is close enough to 1:
     * $`|\frac{x''_{k-1}}{x''_{k+1}} | > 1 -`$ `dev_cont_factor`, and
     * $`|\frac{x''_{k-1}}{x''_{k+1}} | < 1 +`$ `dev_cont_factor`   
-3. The dataset, $`X_k`$, surrounding $`x_{k}`$, within `noise_window_size` range, 
+3. The dataset, $`X_k`$, surrounding $`x_{k}`$, within `noise_window_range` range, 
    but excluding $`x_{k}`$, is not too noisy. Wheras the noisyness gets measured 
    by `noise_statistic`: 
     * `noise_statistic`$`(X_k) <`$ `noise_barrier`
 
+NOTE, that the derivative is calculated after applying a savitsky-golay filter 
+to $`x`$.
 
 This Function is a generalization of the Spectrum based Spike flagging 
 mechanism as presented in:
@@ -139,13 +141,15 @@ doi:10.2136/vzj2012.0097.
 
 All parameters default to the values given there.
 
-| parameter | description |
-| ------ | ------ |
-| raise_factor | Float. (Default=0.15). <br/> Minimum change margin for a datapoint to become a candidate for a spike. See condition (1). |
-| dev_cont_factor | Float. (Default=0.2). <br/> See condition (2). |
-| noise_barrier| Float. (Default=1). <br/> Upper bound for noisyness of data surrounding potential spikes. See condition (3).|
-| noise_window_size| Offset String. (Default='12h'). <br/> Size of the timewindow of the "surrounding" data of a potential spike. See condition (3). |
-| noise_statistic| String. (Default="CoVar"). <br/> Operator to calculate noisyness of data, surrounding potential spike. Either "Covar" (=Coefficient od Variation) or "rvar" (=relative Variance).|
+| parameter | data format | description |
+| ------ | ------ | ------ |
+| raise_factor | Float. (Default=0.15). | Minimum change margin for a datapoint to become a candidate for a spike. See condition (1). |
+| dev_cont_factor | Float. (Default=0.2). | See condition (2). |
+| noise_barrier| Float. (Default=1). | Upper bound for noisyness of data surrounding potential spikes. See condition (3).|
+| noise_window_range| Offset String. (Default='12h'). | Range of the timewindow of the "surrounding" data of a potential spike. See condition (3). |
+| noise_statistic| String. (Default="CoVar"). | Operator to calculate noisyness of data, surrounding potential spike. Either "Covar" (=Coefficient od Variation) or "rvar" (=relative Variance).|
+| smooth_poly_order| Integer. | Order of the polynomial fit, applied for smoothing|
+| filter_window_size | Offset String. (Default=None) | Range of the smoothing window. The default value (='None') results in a window range, equalling 3 times the sampling rate and thus including always 3 values in a smoothing window. |
 
 ## constant
 ### Signature
