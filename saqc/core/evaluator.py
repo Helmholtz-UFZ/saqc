@@ -115,18 +115,16 @@ class DslTransformer(ast.NodeTransformer):
 
 class MetaTransformer(ast.NodeTransformer):
 
-    SUPPORTED = (
-        ast.Call,
-        ast.Num,
-        ast.Str,
-        ast.keyword,
-        ast.NameConstant,
-        ast.UnaryOp,
-        ast.Name,
-        ast.Load,
-        ast.Expression,
-        ast.Subscript,
-        ast.Index,
+    SUPPORTED_NODES = (
+        ast.Call, ast.Num, ast.Str, ast.keyword,
+        ast.NameConstant, ast.UnaryOp, ast.Name,
+        ast.Load, ast.Expression, ast.Subscript,
+        ast.Index, ast.USub
+    )
+
+    SUPPORTED_ARGUMENTS = (
+        ast.Str, ast.Num, ast.NameConstant, ast.Call,
+        ast.UnaryOp, ast.USub
     )
 
     def __init__(self, dsl_transformer, pass_parameter):
@@ -156,22 +154,22 @@ class MetaTransformer(ast.NodeTransformer):
 
     def visit_keyword(self, node):
         key, value = node.arg, node.value
-        if self.func_name == "generic" and key == Params.FUNC:
+        if self.func_name == Params.GENERIC and key == Params.FUNC:
             node = ast.keyword(arg=key, value=self.dsl_transformer.visit(value))
             return node
 
         if key not in FUNC_MAP[self.func_name].signature + self.pass_parameter:
             raise TypeError(f"unknown function parameter '{node.arg}'")
 
-        if not isinstance(value, (ast.Str, ast.Num, ast.Call)):
+        if not isinstance(value, self.SUPPORTED_ARGUMENTS):
             raise TypeError(
-                f"only concrete values and function calls are valid function arguments"
+                f"invalid argument type '{type(value)}'"
             )
 
         return self.generic_visit(node)
 
     def generic_visit(self, node):
-        if not isinstance(node, self.SUPPORTED):
+        if not isinstance(node, self.SUPPORTED_NODES):
             raise TypeError(f"invalid expression: '{node}'")
         return super().generic_visit(node)
 
