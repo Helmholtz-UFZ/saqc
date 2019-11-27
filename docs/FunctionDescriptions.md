@@ -21,7 +21,7 @@ parameter `nodata`.
 
 | parameter | data format | description |
 | ------ | ------ | ------ |
-| nodata | any Value. (Default = np.nan). | Any value, that shall indicate missing data in the passed dataseries. (If not np.nan, evaluation will be performed by `nodata == data`) |
+| nodata | any Value. (Default = np.nan). | Any value, that shall indicate missing data in the passed dataseries. (If value is not `np.nan`, evaluation will be performed by `nodata == data`) |
            
 
 ## sesonalRange
@@ -143,13 +143,13 @@ All parameters default to the values given there.
 
 | parameter | data format | description |
 | ------ | ------ | ------ |
-| raise_factor | Float. (Default=0.15). | Minimum change margin for a datapoint to become a candidate for a spike. See condition (1). |
-| dev_cont_factor | Float. (Default=0.2). | See condition (2). |
-| noise_barrier| Float. (Default=1). | Upper bound for noisyness of data surrounding potential spikes. See condition (3).|
-| noise_window_range| Offset String. (Default='12h'). | Range of the timewindow of the "surrounding" data of a potential spike. See condition (3). |
-| noise_statistic| String. (Default="CoVar"). | Operator to calculate noisyness of data, surrounding potential spike. Either "Covar" (=Coefficient od Variation) or "rvar" (=relative Variance).|
+| raise_factor | Float. (0.15). | Minimum change margin for a datapoint to become a candidate for a spike. See condition (1). |
+| dev_cont_factor | Float. (0.2). | See condition (2). |
+| noise_barrier| Float. (1). | Upper bound for noisyness of data surrounding potential spikes. See condition (3).|
+| noise_window_range| Offset String. ("12h"). | Range of the timewindow of the "surrounding" data of a potential spike. See condition (3). |
+| noise_statistic| String. ("CoVar"). | Operator to calculate noisyness of data, surrounding potential spike. Either "Covar" (=Coefficient od Variation) or "rvar" (=relative Variance).|
 | smooth_poly_order| Integer. | Order of the polynomial fit, applied for smoothing|
-| filter_window_size | Offset String. (Default=None) | Range of the smoothing window. The default value (='None') results in a window range, equalling 3 times the sampling rate and thus including always 3 values in a smoothing window. |
+| filter_window_size | Offset String. (None) | Range of the smoothing window. The default value (='None') results in a window range, equalling 3 times the sampling rate and thus including always 3 values in a smoothing window. |
 
 ## constant
 ### Signature
@@ -166,6 +166,19 @@ constants_varianceBased(plateau_window_min="12h", plateau_var_limit=0.0005,
                         var_total_nans=Inf, var_consec_nans=Inf)
 ```
 ### Description
+Function flags plateaus/series of constant values. Any set of consecutive values 
+$`x_k,..., x_{k+n}`$ of a timeseries $`x`$ is flagged, if:
+
+1. $`n > `$`plateau_window_min`
+2. $`\sigma(x_k,..., x_{k+n})`$ < `plateau_var_limit`
+
+| parameter | data format (default) | description |
+| ------ | ------ | ------ |
+| plateau_window_min | Offset String. | Minimum change margin for a datapoint to become a candidate for a spike. See condition (1). |
+| plateau_var_limit | Float. (0.2). | See condition (2). |
+| var_total_nans | Float. (1). | Upper bound for noisyness of data surrounding potential spikes. See condition (3).|
+| var_consec_nans | Offset String. ("12h"). | Range of the timewindow of the "surrounding" data of a potential spike. See condition (3). |
+
 
 
 ## SoilMoistureSpikes
