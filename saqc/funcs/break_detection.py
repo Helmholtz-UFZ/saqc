@@ -20,7 +20,7 @@ def flagBreaks_spektrumBased(
     rel_change_min=0.1,
     abs_change_min=0.01,
     first_der_factor=10,
-    first_der_window_size="12h",
+    first_der_window_range="12h",
     scnd_der_ratio_margin_1=0.05,
     scnd_der_ratio_margin_2=10,
     smooth_poly_order=2,
@@ -75,7 +75,7 @@ def flagBreaks_spektrumBased(
        :param rel_change_min          Float in [0,1]. See (1) of function descritpion above to learn more
        :param abs_change_min               Float > 0. See (2) of function descritpion above to learn more.
        :param first_der_factor             Float > 0. See (3) of function descritpion above to learn more.
-       :param first_der_window_size        Offset_String. See (3) of function description to learn more.
+       :param first_der_window_range        Offset_String. See (3) of function description to learn more.
        :param scnd_der_ratio_margin_1      Float in [0,1]. See (4) of function descritpion above to learn more.
        :param scnd_der_ratio_margin_2      Float in [0,1]. See (5) of function descritpion above to learn more.
     """
@@ -98,10 +98,10 @@ def flagBreaks_spektrumBased(
     for brake in breaks.index:
         # slice out slice-to-be-filtered (with some safety extension of 12 times the data rate)
         slice_start = (
-            brake - pd.Timedelta(first_der_window_size) - 12 * pd.Timedelta(data_rate)
+                brake - pd.Timedelta(first_der_window_range) - 12 * pd.Timedelta(data_rate)
         )
         slice_end = (
-            brake + pd.Timedelta(first_der_window_size) + 12 * pd.Timedelta(data_rate)
+                brake + pd.Timedelta(first_der_window_range) + 12 * pd.Timedelta(data_rate)
         )
         data_slice = dataseries[slice_start:slice_end]
 
@@ -122,8 +122,8 @@ def flagBreaks_spektrumBased(
         # condition constructing and testing:
         test_slice = first_deri_series[
             brake
-            - pd.Timedelta(first_der_window_size) : brake
-            + pd.Timedelta(first_der_window_size)
+            - pd.Timedelta(first_der_window_range): brake
+                                                    + pd.Timedelta(first_der_window_range)
         ]
 
         test_sum = abs((test_slice.sum() * first_der_factor) / test_slice.size)

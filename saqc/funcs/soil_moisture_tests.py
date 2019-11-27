@@ -85,7 +85,7 @@ def flagSoilMoistureBreaks(
         rel_change_min=rel_change_rate_min,
         abs_change_min=abs_change_min,
         first_der_factor=first_der_factor,
-        first_der_window_size=first_der_window_size,
+        first_der_window_range=first_der_window_size,
         scnd_der_ratio_margin_1=scnd_der_ratio_margin_1,
         scnd_der_ratio_margin_2=scnd_der_ratio_margin_2,
         smooth_poly_order=smooth_poly_order,
