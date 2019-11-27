@@ -58,11 +58,11 @@ def _plot(data, flags, flagmask, varname, flagger, interactive_backend=True, tit
         fig, axes = plt.subplots(plots, 1, sharex=True)
         axes[0].set_title(title)
         for i, v in enumerate(varname):
-            _plot_qflags(data, v, flagger, flagmask, axes[i], show_nans)
+            _plotQflags(data, v, flagger, flagmask, axes[i], show_nans)
     else:
         fig, ax = plt.subplots()
         plt.title(title)
-        _plot_qflags(data, varname.pop(), flagger, flagmask, ax, show_nans)
+        _plotQflags(data, varname.pop(), flagger, flagmask, ax, show_nans)
 
     plt.xlabel('time')
     # dummy plot for the label `missing` see plot_vline for more info
@@ -72,7 +72,7 @@ def _plot(data, flags, flagmask, varname, flagger, interactive_backend=True, tit
         plt.show()
 
 
-def _plot_qflags(data, varname, flagger, flagmask, ax, show_nans):
+def _plotQflags(data, varname, flagger, flagmask, ax, show_nans):
     ax.set_ylabel(varname)
 
     x = data.index
@@ -85,13 +85,13 @@ def _plot_qflags(data, varname, flagger, flagmask, ax, show_nans):
     if show_nans:
         nans = y.isna()
         idx = y.index[nans & ~flagged]
-        _plot_vline(ax, idx, color='silver')
+        _plotVline(ax, idx, color='silver')
 
     # plot all data (and nans) that are already flagged in black
     ax.plot(x[flagged], y[flagged], '.', color='black', label="flagged by other test")
     if show_nans:
         idx = y.index[nans & flagged & ~flagmask]
-        _plot_vline(ax, idx, color='black')
+        _plotVline(ax, idx, color='black')
 
 #     # plot flags in the color corresponding to the flag
 #     # BAD red, GOOD green, all in between aka SUSPISIOUS in yellow
@@ -108,14 +108,14 @@ def _plot_qflags(data, varname, flagger, flagmask, ax, show_nans):
 #     for f, flagged in zip(flaglist, [good, bads, susp]):
 # >>>>>>> master
 #         label = f"flag: {f}"
-#         color = _get_color(f, flagger)
+#         color = _getColor(f, flagger)
 #         ax.plot(x[flagged], y[flagged], '.', color=color, label=label)
 #         if show_nans:
 #             idx = y.index[nans & flagged]
-#             _plot_vline(ax, idx, color=color)
+#             _plotVline(ax, idx, color=color)
 
 
-def _plot_vline(plt, points, color='blue'):
+def _plotVline(plt, points, color='blue'):
     # workaround for ax.vlines() as this work unexpected
     # normally this should work like so:
     #   ax.vlines(idx, *ylim, linestyles=':', color='silver', label="missing")
@@ -123,7 +123,7 @@ def _plot_vline(plt, points, color='blue'):
         plt.axvline(point, color=color, linestyle=':')
 
 
-def _get_color(flag, flagger):
+def _getColor(flag, flagger):
     if flag == flagger.UNFLAGGED:
         return 'silver'
     elif flag == flagger.GOOD:

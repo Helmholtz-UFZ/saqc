@@ -21,7 +21,7 @@ from saqc.funcs.register import register
 # todo: Bug in set shift comment!
 # todo: accelerated func applies
 
-def harm_wrapper(harm=True, heap={}):
+def harmWrapper(harm=True, heap={}):
     # NOTE:
     # (1) - harmonization will ALWAYS flag flagger.BAD all the np.nan values and afterwards DROP ALL
     #       flagger.BAD flagged values from flags frame for further flagging!!!!!!!!!!!!!!!!!!!!!
@@ -67,12 +67,12 @@ def harm_wrapper(harm=True, heap={}):
             heap.update({'initial_ts': dat_col.index})
 
         # now we can manipulate it without loosing information gathered before harmonization
-        dat_col, flagger_merged_clean = _outsort_crap(
+        dat_col, flagger_merged_clean = _outsortCrap(
             dat_col, field, flagger_merged, drop_suspicious=outsort_drop_susp,
             drop_bad=True, drop_list=outsort_drop_list)
 
         # interpolation! (yeah)
-        dat_col = _interpolate_grid(
+        dat_col = _interpolateGrid(
             dat_col, freq,
             method=inter_method,
             order=inter_order,
@@ -82,7 +82,7 @@ def harm_wrapper(harm=True, heap={}):
         )
 
         # flags now have to be carefully adjusted according to the changes/shifts we did to data
-        flagger_merged_clean_reshaped = _reshape_flags(
+        flagger_merged_clean_reshaped = _reshapeFlags(
             flagger_merged_clean, field,
             ref_index=dat_col.index,
             method=reshape_method,
@@ -118,8 +118,8 @@ def harm_wrapper(harm=True, heap={}):
         dat_col, flagger_merged = _fromMerged(data, flagger, field)
 
         # reconstruct the drops that were performed before harmonization
-        # drops, pre_flags = _outsort_crap(
-        drops, flagger_original_clean = _outsort_crap(
+        # drops, pre_flags = _outsortCrap(
+        drops, flagger_original_clean = _outsortCrap(
             dat_col,
             field,
             heap[field]["original_flagger"],
@@ -130,7 +130,7 @@ def harm_wrapper(harm=True, heap={}):
 
         # with reconstructed pre-harmonization flags-frame -> perform the projection of the flags calculated for
         # the harmonized timeseries, onto the original timestamps
-        flagger_back = _backtrack_flags(
+        flagger_back = _backtrackFlags(
             flagger_merged, flagger_original_clean, freq,
             track_method=resolve_method,
             co_flagging=co_flagging)
@@ -169,8 +169,8 @@ def harm_wrapper(harm=True, heap={}):
 
 
 # make functions public
-harmonize = harm_wrapper(harm=True)
-deharmonize = harm_wrapper(harm=False)
+harmonize = harmWrapper(harm=True)
+deharmonize = harmWrapper(harm=False)
 
 # the wrapper needs a special treatment
 register('harmonize')(harmonize)
@@ -178,7 +178,7 @@ register('deharmonize')(deharmonize)
 
 
 # (de-)harmonize helper
-def _outsort_crap(data, field, flagger, drop_suspicious=True, drop_bad=True, drop_list=None, return_drops=False,
+def _outsortCrap(data, field, flagger, drop_suspicious=True, drop_bad=True, drop_list=None, return_drops=False,
                   **kwargs):
 
     """Harmonization gets the more easy, the more data points we can exclude from crowded sampling intervals.
@@ -226,7 +226,7 @@ def _outsort_crap(data, field, flagger, drop_suspicious=True, drop_bad=True, dro
     return data[~drop_mask], flagger_out
 
 
-def _make_grid(t0, t1, freq):
+def _makeGrid(t0, t1, freq):
     """
     Returns a frequency grid, covering the date range of 'data'.
     :param data:    pd.Series. ['data']
@@ -239,7 +239,7 @@ def _make_grid(t0, t1, freq):
     return pd.date_range(start=harm_start, end=harm_end, freq=freq)
 
 
-def _insert_grid(data, freq):
+def _insertGrid(data, freq):
     """
     Depending on the frequency, the data has to be harmonized to, the passed data series gets reindexed with an index,
     containing the 'original' entries and additionally, if not present, the equidistant entries of the frequency grid.
@@ -248,10 +248,10 @@ def _insert_grid(data, freq):
     :return:        pd.Series. ['data'].
     """
 
-    return data.reindex(data.index.join(_make_grid(data.index[0], data.index[-1], freq), how='outer'))
+    return data.reindex(data.index.join(_makeGrid(data.index[0], data.index[-1], freq), how='outer'))
 
 
-def _interpolate_grid(data, freq, method, order=1, agg_method=sum, total_range=None, downcast_interpolation=False):
+def _interpolateGrid(data, freq, method, order=1, agg_method=sum, total_range=None, downcast_interpolation=False):
     """The function calculates grid point values for a passed pd.Series (['data']) by applying
     the selected interpolation/fill method. (passed to key word 'method'). The interpolation will apply for grid points
     only, that have preceding (forward-aggregation/forward-shifts) or succeeding (backward-aggregation/backward-shift)
@@ -311,9 +311,9 @@ def _interpolate_grid(data, freq, method, order=1, agg_method=sum, total_range=N
     interpolations = ['linear', 'time', 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'spline', 'barycentric',
             'polynomial', 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima']
     data = data.copy()
-    ref_index = _make_grid(data.index[0], data.index[-1], freq)
+    ref_index = _makeGrid(data.index[0], data.index[-1], freq)
     if total_range is not None:
-        total_index = _make_grid(total_range[0], total_range[1], freq)
+        total_index = _makeGrid(total_range[0], total_range[1], freq)
 
     # Aggregations:
     if method in aggregations:
@@ -357,7 +357,7 @@ def _interpolate_grid(data, freq, method, order=1, agg_method=sum, total_range=N
     # Interpolations:
     elif method in interpolations:
 
-        data = _insert_grid(data, freq)
+        data = _insertGrid(data, freq)
         data = _interpolate(data, method, order=order, inter_limit=2, downcast_interpolation=downcast_interpolation)
         if total_range is None:
             data = data.asfreq(freq, fill_value=np.nan)
@@ -412,7 +412,7 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
         gap_mask = (~gap_mask).cumsum()
         data = pd.merge(gap_mask, data, how='inner', left_index=True, right_index=True)
 
-        def interpol_wrapper(x, wrap_order=order, wrap_method=method):
+        def _interpolWrapper(x, wrap_order=order, wrap_method=method):
             if x.count() > wrap_order:
                 try:
                     return x.interpolate(method=wrap_method, order=int(wrap_order))
@@ -420,21 +420,21 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
                     logging.warning('Interpolation with method {} is not supported at order {}. '
                                     'Interpolation will be performed with order {}'.
                                     format(method, str(wrap_order), str(wrap_order-1)))
-                    return interpol_wrapper(x, int(wrap_order-1), wrap_method)
+                    return _interpolWrapper(x, int(wrap_order-1), wrap_method)
             elif x.size < 3:
                 return x
             else:
                 if downcast_interpolation:
-                    return interpol_wrapper(x, int(x.count()-1), wrap_method)
+                    return _interpolWrapper(x, int(x.count()-1), wrap_method)
                 else:
                     return x
 
-        data = data.groupby(data.columns[0]).transform(interpol_wrapper)
+        data = data.groupby(data.columns[0]).transform(_interpolWrapper)
 
     return data
 
 
-def _reshape_flags(flagger, field, ref_index,
+def _reshapeFlags(flagger, field, ref_index,
                    method='fshift',
                    agg_method=max,
                    missing_flag=-1,
@@ -566,7 +566,7 @@ def _reshape_flags(flagger, field, ref_index,
     return flagger_new
 
 
-def _backtrack_flags(flagger_post, flagger_pre, freq, track_method='invert_fshift', co_flagging=False):
+def _backtrackFlags(flagger_post, flagger_pre, freq, track_method='invert_fshift', co_flagging=False):
 
     # NOTE: PROBLEM flager_pre carries one value ib exces (index: -3)
     flags_post = flagger_post.getFlags()

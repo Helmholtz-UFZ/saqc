@@ -4,15 +4,9 @@
 import numpy as np
 import pandas as pd
 
-from ..lib.tools import sesonalMask, flagWindow
+from saqc.lib.tools import sesonalMask, flagWindow
 
 from .register import register
-
-# def flagDispatch(func_name, *args, **kwargs):
-#     func = FUNC_MAP.get(func_name, None)
-#     if func is not None:
-#         return func(*args, **kwargs)
-#     raise NameError(f"function name {func_name} is not definied")
 
 
 @register("generic")

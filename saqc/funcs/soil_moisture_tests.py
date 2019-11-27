@@ -209,7 +209,7 @@ def flagSoilMoistureByPrecipitationEvents(data, field, flagger, prec_reference, 
         raise_reference = int(offset2periods(raise_reference, moist_rate))
     # make raise and std. dev tester function (returns False for values that
     # should be flagged bad and True respectively. (must be this way, since np.nan gets casted to True)))
-    def prec_test(x, std_fac=std_factor, raise_ref=raise_reference):
+    def _precTest(x, std_fac=std_factor, raise_ref=raise_reference):
         x_moist = x[0::2]
         x_rain = x[1::2]
         if x_moist[-1] > x_moist[(-1-raise_ref)]:
@@ -226,7 +226,7 @@ def flagSoilMoistureByPrecipitationEvents(data, field, flagger, prec_reference, 
 
     periods = int(2*offset2periods(std_factor_range, moist_rate))
     invalid_raises = ~ef.rolling(window='1D', closed='both', min_periods=periods)\
-        .apply(prec_test, raw=False).astype(bool)
+        .apply(_precTest, raw=False).astype(bool)
     # undo stacking (only every second entrie actually is holding an information:
     invalid_raises = invalid_raises[1::2]
     # retrieve indices referring to values-to-be-flagged-bad

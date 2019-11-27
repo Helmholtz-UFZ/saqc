@@ -76,17 +76,17 @@ def flagSpikes_slidingZscore(data, field, flagger, winsz, dx, count=1, deg=1, z=
 
     # prepare the method
     if method == 'modZ':
-        def calc_(residual):
+        def _calc(residual):
             diff = np.abs(residual - np.median(residual))
             mad = np.median(diff)
             return (mad > 0) & (0.6745 * diff > z * mad)
     elif method == 'zscore':
-        def calc_(residual):
+        def _calc(residual):
             score = zscore(residual, ddof=1)
             return np.abs(score) > z
     else:
         raise NotImplementedError
-    method = calc_
+    method = _calc
 
     # prepare data, work on numpy arrays for the fulfilling pleasure of performance
     d = data[field].dropna()
@@ -96,14 +96,14 @@ def flagSpikes_slidingZscore(data, field, flagger, winsz, dx, count=1, deg=1, z=
     counters = np.full(len(d.index), count)
 
     if use_offset:
-        loopfun = slidingWindowIndices
+        _loopfun = slidingWindowIndices
     else:
-        def loopfun (arr, wsz, step):
+        def _loopfun (arr, wsz, step):
             for i in range(0, len(arr) - wsz + 1, step):
                 yield i, i + wsz
 
 
-    for start, end in loopfun(d.index, winsz, dx):
+    for start, end in _loopfun(d.index, winsz, dx):
         # mask points that have been already discarded
         mask = counters[start:end] > 0
         indices = all_indices[all_indices[start:end][mask]]

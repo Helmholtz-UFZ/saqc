@@ -7,10 +7,6 @@ from typing import Sequence, Union, T
 import numpy as np
 import pandas as pd
 import numba as nb
-import logging
-import sys
-
-from ..lib.types import PandasLike, ArrayLike
 
 
 def assertScalar(name, value, optional=False):
@@ -85,31 +81,6 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
             start_idx += 1
 
         start_date = dates[start_idx]
-
-
-def numpyfy(arg:  Union[PandasLike,
-                        np.ndarray,
-                        numbers.Number]) -> np.ndarray:
-    try:
-        # pandas dataframe
-        return arg.values
-    except AttributeError:
-        try:
-            # numpy array
-            return arg.copy()
-        except AttributeError:
-            # scalar
-            return np.atleast_1d(arg)
-
-
-def broadcastMany(*args: ArrayLike) -> np.ndarray:
-    arrays = [np.atleast_1d(a) for a in args]
-    target_ndim = max(arr.ndim for arr in arrays)
-    out = []
-    for arr in arrays:
-        out.append(arr[(slice(None),) + (None,) * (target_ndim - arr.ndim)])
-    target_shape = np.broadcast(*out).shape
-    return tuple(np.broadcast_to(arr, target_shape) for arr in out)
 
 
 def inferFrequency(data):
@@ -283,34 +254,34 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
         return mask
 
 
-def isDataFrameCheck(df, argname='arg', allow_multiindex=True):
+def assertDataFrame(df, argname='arg', allow_multiindex=True):
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
     if not allow_multiindex:
-        _raiseIffMultiindex(df, argname)
+        assertSingleColumns(df, argname)
     if not df.columns.is_unique:
         raise TypeError(f"{argname} must have unique columns")
 
 
-def isSeriesCheck(df, argname='arg'):
+def assertSeries(df, argname='arg'):
     if not isinstance(df, pd.Series):
         raise TypeError(f"{argname} must be of type pd.Series, {type(df)} was given")
 
 
-def isPandasLikeCheck(pdlike, argname='arg', allow_multiindex=True):
+def assertPandas(pdlike, argname='arg', allow_multiindex=True):
     if not isinstance(pdlike, pd.Series) and not isinstance(pdlike, pd.DataFrame):
         raise TypeError(f"{argname} must be of type pd.DataFrame or pd.Series, {type(pdlike)} was given")
     if not allow_multiindex:
-        _raiseIffMultiindex(pdlike, argname)
+        assertSingleColumns(pdlike, argname)
 
 
-def isDataframeMultiindexedCheck(dfmi, argname=''):
-    isDataframeCheck(dfmi, argname, allow_multiindex=True)
+def assertMultiColumns(dfmi, argname=''):
+    assertDataFrame(dfmi, argname, allow_multiindex=True)
     if not isinstance(dfmi.columns, pd.MultiIndex):
         raise TypeError(f"given pd.DataFrame ({argname}) need to have a muliindex on columns, "
                         f"instead it has a {type(dfmi.columns)}")
 
 
-def _raiseIffMultiindex(df, argname=''):
+def assertSingleColumns(df, argname=''):
     if isinstance(df, pd.DataFrame) and isinstance(df.columns, pd.MultiIndex):
         raise TypeError(f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns")

@@ -10,7 +10,7 @@ from typing import TypeVar, Union, Any
 import numpy as np
 import pandas as pd
 
-from saqc.lib.tools import toSequence, assertScalar, isDataFrameCheck
+from saqc.lib.tools import toSequence, assertScalar, assertDataFrame
 
 
 COMPARATOR_MAP = {
@@ -48,11 +48,11 @@ class BaseFlagger(ABC):
         if 'flags' is not None: return a flagger with the given flags
         """
         if data is not None:
-            isDataFrameCheck(data, 'data', allow_multiindex=False)
+            assertDataFrame(data, 'data', allow_multiindex=False)
             flags = pd.DataFrame(
                 data=self.UNFLAGGED, index=data.index, columns=data.columns)
         elif flags is not None:
-            isDataFrameCheck(flags, 'flags', allow_multiindex=False)
+            assertDataFrame(flags, 'flags', allow_multiindex=False)
         else:
             raise TypeError("either 'data' or 'flags' are required")
         return self._copy(self._assureDtype(flags))

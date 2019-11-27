@@ -6,12 +6,10 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from saqc.funcs.harm_functions import harm_wrapper
-
 from test.common import TESTFLAGGER
 
 from saqc.funcs.harm_functions import harmonize, deharmonize,\
-    _interpolate, _interpolate_grid, _insert_grid, _outsort_crap
+    _interpolate, _interpolateGrid, _insertGrid, _outsortCrap
 
 
 TESTFLAGGER = TESTFLAGGER[:-1]
@@ -103,7 +101,7 @@ def multi_data():
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 @pytest.mark.parametrize('reshaper', RESHAPERS)
 @pytest.mark.parametrize('co_flagging', COFLAGGING)
-def test_harm_single_var_intermediate_flagging(data, flagger, reshaper, co_flagging):
+def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging):
 
     flagger = flagger.initFlags(data)
     # flags = flagger.initFlags(data)
@@ -154,7 +152,7 @@ def test_harm_single_var_intermediate_flagging(data, flagger, reshaper, co_flagg
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 @pytest.mark.parametrize('interpolation', INTERPOLATIONS)
 @pytest.mark.parametrize('freq', FREQS)
-def test_harm_single_var_interpolations(data, flagger, interpolation, freq):
+def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
     flagger = flagger.initFlags(data)
     flags = flagger.getFlags()
     # make pre harm copies:
@@ -206,7 +204,7 @@ def test_harm_single_var_interpolations(data, flagger, interpolation, freq):
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
 @pytest.mark.parametrize('shift_comment', SETSHIFTCOMMENT)
-def test_multivariat_harmonization(multi_data, flagger, shift_comment):
+def test_multivariatHarmonization(multi_data, flagger, shift_comment):
     flagger = flagger.initFlags(multi_data)
     flags = flagger.getFlags()
     # for comparison
@@ -253,38 +251,38 @@ def test_multivariat_harmonization(multi_data, flagger, shift_comment):
     assert (pre_flags.index == flags.index).all()
 
 @pytest.mark.parametrize('method', INTERPOLATIONS2)
-def test_grid_interpolation(data, method):
+def test_gridInterpolation(data, method):
     freq = '15min'
     data = ((data * np.sin(data)).append(data.shift(1, '2h')).shift(1, '3s'))
     # we are just testing if the interolation gets passed to the series without causing an error:
-    _interpolate_grid(data, freq, method, order=1, agg_method=sum, downcast_interpolation=True)
+    _interpolateGrid(data, freq, method, order=1, agg_method=sum, downcast_interpolation=True)
     if method == 'polynomial':
-        _interpolate_grid(data, freq, method, order=2, agg_method=sum, downcast_interpolation=True)
-        _interpolate_grid(data, freq, method, order=10, agg_method=sum, downcast_interpolation=True)
-        data = _insert_grid(data, freq)
+        _interpolateGrid(data, freq, method, order=2, agg_method=sum, downcast_interpolation=True)
+        _interpolateGrid(data, freq, method, order=10, agg_method=sum, downcast_interpolation=True)
+        data = _insertGrid(data, freq)
         _interpolate(data, method, inter_limit=3)
 
 
 @pytest.mark.parametrize('flagger', TESTFLAGGER)
-def test_outsort_crap(data, flagger):
+def test_outsortCrap(data, flagger):
 
     field = data.columns[0]
     flagger = flagger.initFlags(data)
     flagger = flagger.setFlags(field, iloc=slice(5, 7))
 
     drop_index = data.index[5:7]
-    d, _ = _outsort_crap(data, field, flagger, drop_suspicious=True, drop_bad=False)
+    d, _ = _outsortCrap(data, field, flagger, drop_suspicious=True, drop_bad=False)
     assert drop_index.difference(d.index).equals(drop_index)
 
-    d, _ = _outsort_crap(data, field, flagger, drop_suspicious=False, drop_bad=True)
+    d, _ = _outsortCrap(data, field, flagger, drop_suspicious=False, drop_bad=True)
     assert drop_index.difference(d.index).equals(drop_index)
 
     flagger = flagger.setFlags(field, iloc=slice(0, 1), flag=flagger.GOOD)
     drop_index = drop_index.insert(-1, data.index[0])
-    d, _ = _outsort_crap(data, field, flagger, drop_suspicious=False, drop_bad=False,
+    d, _ = _outsortCrap(data, field, flagger, drop_suspicious=False, drop_bad=False,
                          drop_list=[flagger.BAD, flagger.GOOD])
 
     assert drop_index.sort_values().difference(d.index).equals(drop_index.sort_values())
-    f_drop, _ = _outsort_crap(data, field, flagger, drop_suspicious=False, drop_bad=False,
+    f_drop, _ = _outsortCrap(data, field, flagger, drop_suspicious=False, drop_bad=False,
                               drop_list=[flagger.BAD, flagger.GOOD], return_drops=True)
     assert f_drop.index.sort_values().equals(drop_index.sort_values())

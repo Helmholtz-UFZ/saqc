@@ -9,7 +9,7 @@ from typing import Union, Sequence
 import pandas as pd
 
 from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
-from saqc.lib.tools import isDataFrameCheck, toSequence, assertScalar
+from saqc.lib.tools import assertDataFrame, toSequence, assertScalar
 
 
 class Keywords:
@@ -48,13 +48,13 @@ class DmpFlagger(CategoricalBaseFlagger):
         if 'flags' is not None: return a flagger with the given flags
         """
         if data is not None:
-            isDataFrameCheck(data, 'data', allow_multiindex=False)
+            assertDataFrame(data, 'data', allow_multiindex=False)
             flags = pd.DataFrame(
                 data=self.UNFLAGGED,
                 columns=self._getColumnIndex(data.columns),
                 index=data.index)
         elif flags is not None:
-            isDataFrameCheck(flags, 'flags', allow_multiindex=False)
+            assertDataFrame(flags, 'flags', allow_multiindex=False)
             if not isinstance(flags.columns, pd.MultiIndex):
                 flags = (flags
                          .T.set_index(keys=self._getColumnIndex(flags.columns, [FlagFields.FLAG])).T

@@ -8,7 +8,7 @@ from .register import register
 
 
 from saqc.lib.statistic_functions import (
-    var_qc)
+    varQC)
 
 from ..lib.tools import (
     valueRange,
@@ -83,7 +83,7 @@ def flagConstant_varianceBased(data, field, flagger, plateau_window_min='12h', p
     min_periods = int(offset2periods(plateau_window_min, data_rate))
 
     plateaus = dataseries.rolling(window=plateau_window_min, min_periods=min_periods).apply(
-        lambda x: True if var_qc(x, var_total_nans, var_consec_nans) < plateau_var_limit else np.nan, raw=False)
+        lambda x: True if varQC(x, var_total_nans, var_consec_nans) < plateau_var_limit else np.nan, raw=False)
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
