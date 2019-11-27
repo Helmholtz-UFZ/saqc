@@ -17,7 +17,7 @@ from saqc.lib.tools import (
 )
 
 
-@register("SoilMoistureSpikes")
+@register("soilMoisture_spikes")
 def flagSoilMoistureSpikes(
     data,
     field,
@@ -53,7 +53,7 @@ def flagSoilMoistureSpikes(
     )
 
 
-@register("SoilMoistureBreaks")
+@register("soilMoisture_breaks")
 def flagSoilMoistureBreaks(
     data,
     field,
@@ -95,7 +95,7 @@ def flagSoilMoistureBreaks(
     )
 
 
-@register("SoilMoistureByFrost")
+@register("soilMoisture_frost")
 def flagSoilMoistureBySoilFrost(
     data,
     field,
@@ -145,7 +145,7 @@ def flagSoilMoistureBySoilFrost(
         return data, flagger
 
     # wrap around df.index.get_loc method, to catch key error in case of empty tolerance window:
-    def check_nearest_for_frost(ref_date, ref_series, tolerance, check_level):
+    def _checkNearestForFrost(ref_date, ref_series, tolerance, check_level):
 
         try:
             # if there is no reference value within tolerance margin, following line will raise key error and
@@ -164,14 +164,14 @@ def flagSoilMoistureBySoilFrost(
     temp_frame = pd.Series(data.index)
     # get flagging mask ("True" denotes "bad"="test succesfull")
     mask = temp_frame.apply(
-        check_nearest_for_frost, args=(refseries, tolerated_deviation, frost_level)
+        _checkNearestForFrost, args=(refseries, tolerated_deviation, frost_level)
     )
     # apply calculated flags
     flagger = flagger.setFlags(field, mask.values, **kwargs)
     return data, flagger
 
 
-@register("SoilMoistureByPrecipitation")
+@register("soilMoisture_precipitation")
 def flagSoilMoistureByPrecipitationEvents(
     data,
     field,
@@ -305,6 +305,7 @@ def flagSoilMoistureByPrecipitationEvents(
     return data, flagger
 
 
+@register("soilMoisture_constant")
 def flagSoilMoistureByConstantsDetection(
     data,
     field,
