@@ -22,12 +22,12 @@ def flagSoilMoistureSpikes(
     data,
     field,
     flagger,
-    filter_window_size="3h",
     raise_factor=0.15,
     dev_cont_factor=0.2,
     noise_barrier=1,
     noise_window_size="12h",
     noise_statistic="CoVar",
+    filter_window_size=None,
     **kwargs
 ):
 
