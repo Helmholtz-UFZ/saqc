@@ -1,43 +1,70 @@
 # Implemented QC functions
 
-## range
+## `range`
+
 ### Signature
 ```
 range(min, max)
 ```
+
+### Parameters
+| parameter | data type | default value | description |
+| --------- | --------- | ------------- | ----------- |
+| min       | float     |               |             |
+| max       | float     |               |             |
+
 ### Description
 
 
-## missing
+## `missing`
+
 ### Signature
 ```
 missing(nodata=NaN)
 ```
-### Description
-The Function flags those values in the the passed data series, that are 
-associated with "missing" data. The missing data indicator (`np.nan` by default)
-, can be altered to any other value by passing this new value to the 
-parameter `nodata`.
 
-| parameter | data format | description |
-| ------ | ------ | ------ |
-| nodata | any Value. (Default = np.nan). | Any value, that shall indicate missing data in the passed dataseries. (If value is not `np.nan`, evaluation will be performed by `nodata == data`) |
+### Parameters
+| parameter | data type  | default value  | description |
+| --------- | ---------- | -------------- | ----------- |
+| nodata    | any        | `NaN`          | Value indicating missing values in the passed data |
            
 
-## sesonalRange
+### Description
+The function flags those values in the the passed data series, that are 
+associated with "missing" data. The missing data indicator (default: `NaN`), can
+be altered to any other value by passing this new value to the parameter `nodata`.
+
+
+## `seasonalRange`
+
 ### Signature
 ```
 sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 ```
 
+### Parameters
+| parameter  | data type    | default value | description |
+| ---------  | -----------  | ----          | ----------- |
+| min        | float        |               |             |
+| max        | float        |               |             |
+| startmonth | integer      | `1`           |             |
+| endmonth   | integer      | `12`          |             |
+| startday   | integer      | `1`           |             |
+| endday     | integer      | `31`          |             |
 
-## clear
+
+## `clear`
 ### Signature
 ```
 clear()
 ```
-### Description
 
+### Parameters
+| parameter  | data type    | default value | description |
+| ---------  | -----------  | ----          | ----------- |
+
+### Description
+Remove all previously set flags.
 
 ## force
 ### Signature
