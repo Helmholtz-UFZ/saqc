@@ -137,22 +137,20 @@ def flagIsolated(
     dat_col = data[field][~drop_mask]
     dat_col.dropna(inplace=True)
 
+    gap_check = dat_col.rolling(isolation_range).count()
+    gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)):]
+
     if max_isolated_group_size == 1:
         # isolated single values are much easier to identify:
-        gap_check = dat_col.rolling(isolation_range).count()
         # exclude series initials:
-        gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)) :]
         # reverse rolling trick:
         isolated_indices = gap_check[
             (gap_check[::-1].rolling(2).sum() == 2)[::-1].values
         ].index
 
     else:
-        gap_check = dat_col.rolling(isolation_range).count()
         # check, which groups are centered enough for being isolated
         continuation_check = gap_check.rolling(continuation_range).count()
-        # exclude series initials:
-        gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)) :]
         # check which values are sparsely enough surrounded
         gap_check = (
             gap_check[::-1]
@@ -168,9 +166,11 @@ def flagIsolated(
         isolated_indices = isolated_indices[
             continuation_check[isolated_indices] <= max_isolated_group_size
         ]
-        # propagate True value onto entire isolated group (will not work with bfill method, because its not sure the
-        # frequencie grid is actually equidistant - so here comes rolling reverse trick for offset defined windows
-        # again):
+        # propagate True value onto entire isolated group
+        # NOTE:
+        # will not work with bfill method, because its not sure the frequency
+        # grid is actually equidistant - so here comes the rolling reverse
+        # trick for offset defined windows again
         gap_check[:] = np.nan
         gap_check.loc[isolated_indices] = True
         original_index = gap_check.index
