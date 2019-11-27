@@ -53,9 +53,6 @@ def flagML(
     :param path:                        A string giving the path to the respective model object, i.e. its name and the respective value of the grouping variable. e.g. "models/model_0.2.pkl"
     """
 
-    # TO DO:
-    # - make flagger iterate over groupvar if multiple sensors are passed into saqc (Does that happen?)
-
     # Function for moving window calculations
     # Create custom df for easier processing
     df = data.loc[:, [field] + references]
