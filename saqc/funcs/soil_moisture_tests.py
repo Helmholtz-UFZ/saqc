@@ -129,7 +129,7 @@ def flagSoilMoistureBySoilFrost(
     """
 
     # retrieve reference series
-    refseries = data[soil_temp_reference]
+    refseries = data[soil_temp_reference].copy()
     ref_use = flagger.isFlagged(
         soil_temp_reference, flag=flagger.GOOD, comparator="=="
     ) | flagger.isFlagged(soil_temp_reference, flag=flagger.UNFLAGGED, comparator="==")
@@ -137,35 +137,14 @@ def flagSoilMoistureBySoilFrost(
     refseries = refseries[ref_use.values]
     # drop nan values from reference series, since those are values you dont want to refer to.
     refseries = refseries.dropna()
-
     # skip further processing if reference series is empty:
     if refseries.empty:
         return data, flagger
 
-    # wrap around df.index.get_loc method, to catch key error in case of empty tolerance window:
-    def _checkNearestForFrost(ref_date, ref_series, tolerance, check_level):
+    refseries = refseries.reindex(data[field].dropna().index, method="nearest", tolerance=tolerated_deviation)
+    refseries = refseries[refseries < frost_level].index
 
-        try:
-            # if there is no reference value within tolerance margin, following line will raise key error and
-            # trigger the exception
-            ref_pos = ref_series.index.get_loc(
-                ref_date, method="nearest", tolerance=tolerance
-            )
-        except KeyError:
-            # since test is not applicable: make no change to flag state
-            return False
-
-        # if reference value index is available, return comparison result (to determine flag)
-        return ref_series[ref_pos] <= check_level
-
-    # make temporal frame holding date index, since df.apply cant access index
-    temp_frame = pd.Series(data.index)
-    # get flagging mask ("True" denotes "bad"="test succesfull")
-    mask = temp_frame.apply(
-        _checkNearestForFrost, args=(refseries, tolerated_deviation, frost_level)
-    )
-    # apply calculated flags
-    flagger = flagger.setFlags(field, mask.values, **kwargs)
+    flagger = flagger.setFlags(field, refseries, **kwargs)
     return data, flagger
 
 
@@ -236,9 +215,8 @@ def flagSoilMoistureByPrecipitationEvents(
     :param ignore_missing:
     """
 
-    dataseries, moist_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
-    # data harmonized: refseries, ref_rate = retrieveTrustworthyOriginal(data, prec_reference, flagger)
+    dataseries, moist_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     # data not hamronized:
     refseries = data[prec_reference].dropna()
@@ -249,7 +227,7 @@ def flagSoilMoistureByPrecipitationEvents(
         return data, flagger
 
     refseries = refseries.reindex(refseries.index.join(dataseries.index, how='outer'))
-    # get 24 h prec. monitor (this makes last-24h-rainfall-evaluation independent from preceeding entries)
+    # get 24 h prec. monitor
     prec_count = refseries.rolling(window="1D").sum()
     # exclude data not signifying a raise::
     if raise_reference is None:
