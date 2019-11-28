@@ -21,6 +21,8 @@ def _collectVariables(meta, data):
     for idx, configrow in meta.iterrows():
         varname = configrow[Fields.VARNAME]
         assign = configrow[Fields.ASSIGN]
+        if varname in flags:
+            continue
         if varname in data:
             flags.append(varname)
         elif varname not in flags and assign is True:
@@ -73,14 +75,14 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy="ra
     meta = config[config.columns.difference(tests.columns)]
 
     # # prepapre the flags
-    # varnames = collectVariables(meta, data)
-    # fresh = flagger.initFlags(pd.DataFrame(index=data.index, columns=varnames))
-    # flags = fresh if flags is None else flags.join(fresh)
-    if flags is None:
-        flag_cols = _collectVariables(meta, data)
-        flagger = flagger.initFlags(pd.DataFrame(index=data.index, columns=flag_cols))
-    else:
-        flagger = flagger.initFlags(flags=flags)
+    varnames = _collectVariables(meta, data)
+    fresh = flagger.initFlags(pd.DataFrame(index=data.index, columns=varnames))
+    flagger = fresh if flags is None else flags._flags.join(fresh._flags)
+    # if flags is None:
+    #     flag_cols = _collectVariables(meta, data)
+    #     flagger = flagger.initFlags(pd.DataFrame(index=data.index, columns=flag_cols))
+    # else:
+    #     flagger = flagger.initFlags(flags=flags)
 
     # this checks comes late, but the compiling of the user-test need fully prepared flags
     checkConfig(config, data, flagger, nodata)
@@ -129,8 +131,10 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy="ra
                 continue
 
             flagger = flagger.setFlagger(flagger_chunk_result)
-            # plotHook(dchunk, fchunk, ffchunk, varname, configrow[Fields.PLOT], flag_test, flagger)
-    # plotAllHook(data, flags, flagger)
+
+            plotHook(dchunk, flagger_chunk, flagger_chunk_result, varname, configrow[Fields.PLOT], flag_test)
+
+    plotAllHook(data, flagger)
 
     return data, flagger
 
