@@ -23,6 +23,15 @@ from saqc.lib.tools import toSequence
 # todo: accelerated func applies
 
 
+class Heap:
+    INDEX = "initial_index"
+    DATA = "original_data"
+    FLAGGER = "original_flagger"
+    FREQ = "frequency"
+    METHOD = "reshape_method"
+    DROP = "drop_flags"
+
+
 def harmWrapper(harm=True, heap={}):
     # NOTE:
     # (1) - harmonization will ALWAYS flag flagger.BAD all the np.nan values and afterwards DROP ALL
@@ -50,8 +59,6 @@ def harmWrapper(harm=True, heap={}):
         reshape_missing_flag=None,
         reshape_shift_comment=False,
         drop_flags=None,
-        # outsort_drop_susp=True,
-        # outsort_drop_list=None,
         data_missing_value=np.nan,
         **kwargs
     ):
@@ -70,18 +77,16 @@ def harmWrapper(harm=True, heap={}):
         # now we send the flags frame in its current shape to the future:
         # heap.update({field: {'original_data': flags_col.assign(data_values=dat_col)}})
         heap[field] = {
-            "original_data": dat_col,
-            "original_flagger": flagger_merged,
-            "freq": freq,
-            "reshape_method": reshape_method,
-            "drop_flags": drop_flags,
-            # "drop_susp": outsort_drop_susp,
-            # "drop_list": outsort_drop_list,
+            Heap.DATA: dat_col,
+            Heap.FLAGGER: flagger_merged,
+            Heap.FREQ: freq,
+            Heap.METHOD: reshape_method,
+            Heap.DROP: drop_flags,
         }
 
         # furthermore we need to memorize the initial timestamp to ensure output format will equal input format.
-        if "initial_ts" not in heap.keys():
-            heap.update({"initial_ts": dat_col.index})
+        if Heap.INDEX not in heap.keys():
+            heap.update({Heap.INDEX: dat_col.index})
 
         # now we can manipulate it without loosing information gathered before harmonization
         dat_col, flagger_merged_clean = _outsortCrap(
@@ -95,7 +100,7 @@ def harmWrapper(harm=True, heap={}):
             method=inter_method,
             order=inter_order,
             agg_method=inter_agg,
-            total_range=(heap["initial_ts"][0], heap["initial_ts"][-1]),
+            total_range=(heap[Heap.INDEX][0], heap[Heap.INDEX][-1]),
             downcast_interpolation=inter_downcast,
         )
 
@@ -134,11 +139,11 @@ def harmWrapper(harm=True, heap={}):
             return data, flagger
 
         # get some deharm configuration infos from the heap:
-        freq = heap[field]["freq"]
-        redrop_flags = heap[field]["drop_flags"]
+        freq = heap[field][Heap.FREQ]
+        redrop_flags = heap[field][Heap.DROP]
         # redrop_susp = heap[field]["drop_susp"]
         # redrop_list = heap[field]["drop_list"]
-        resolve_method = harm_2_deharm[heap[field]["reshape_method"]]
+        resolve_method = harm_2_deharm[heap[field][Heap.METHOD]]
 
         # retrieve data and flags from the merged saqc-conform data frame (and by that get rid of blow-up entries).
         dat_col, flagger_merged = _fromMerged(data, flagger, field)
@@ -148,7 +153,7 @@ def harmWrapper(harm=True, heap={}):
         drops, flagger_original_clean = _outsortCrap(
             dat_col,
             field,
-            heap[field]["original_flagger"],
+            heap[field][Heap.FLAGGER],
             # drop_suspicious=redrop_susp,
             # drop_bad=True,
             drop_flags=redrop_flags,
@@ -177,9 +182,7 @@ def harmWrapper(harm=True, heap={}):
             flags_col = flags_col.to_frame()
         flagger_back_full = flagger.initFlags(flags=flags_col)
 
-        dat_col = heap[field]["original_data"].reindex(
-            flags_col.index, fill_value=np.nan
-        )
+        dat_col = heap[field][Heap.DATA].reindex(flags_col.index, fill_value=np.nan)
         dat_col.name = field
         # transform the result into the form, data travels through saqc:
         data, flagger_out = _toMerged(
@@ -188,7 +191,7 @@ def harmWrapper(harm=True, heap={}):
             field,
             dat_col,
             flagger_back_full,
-            target_index=heap["initial_ts"],
+            target_index=heap[Heap.INDEX],
         )
         # remove weight from the heap:
         heap.pop(field)
