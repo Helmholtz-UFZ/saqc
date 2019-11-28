@@ -266,6 +266,9 @@ $`x_k,..., x_{k+n}`$ of a timeseries $`x`$ is flagged, if:
 NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
 equadistant frequency grid.
 
+NOTE, that when `var_total_nans` or `var_consec_nans` are set to a value < `Inf`
+, plateaus that can not be calculated the variance of, due to missing values, 
+will never be flagged. (Test not applicable rule.) 
 
 ## `SoilMoistureSpikes`
 
@@ -368,18 +371,20 @@ All parameters default to the values, suggested in this publication.
 ```
 SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
                             sensor_accuracy=0, soil_porosity=0,
-                            std_factor=2, std_factor_range="24h")
+                            std_factor=2, std_factor_range="24h"
+                            ignore_missing=False)
 ```
 
 ### Parameters
 | parameter         | data type | default value | description |
 | ------            | ------    | ------        | ----        |
-| prec_reference    | string    |               |             |
-| sensor_meas_depth | integer   | `0`           |             |
-| sensor_accuracy   | integer   | `0`           |             |
-| soil_porosity     | integer   | `0`           |             |
-| std_factor        | integer   | `2`           |             |
-| std_factor_range  | string    | `"24h"`       |             |
+| prec_reference    | string    |               | A string, denoting the fields name in data, that holds the data series of precipitation values, the to-be-flagged values shall be checked against.            |
+| sensor_meas_depth | integer   | `0`           | Depth of the soil moisture sensor in meter.|
+| sensor_accuracy   | integer   | `0`           | Soil moisture sensor accuracy in $`\frac{m^3}{m^{-3}}`$ |
+| soil_porosity     | integer   | `0`           | Porosoty of the soil, surrounding the soil moisture sensor |
+| std_factor        | integer   | `2`           | See condition (2) |
+| std_factor_range  | string    | `"24h"`       | See condition (2) |
+| ignore_missing    | bool      | `False`       | If True, the variance of condition (2), will also be calculated if there is a value missing in the time window. Selcting Flase (default) results in values that succeed a time window containing a missing value never being flagged (test not applicable rule) |
 
 ### Description
 
@@ -395,8 +400,8 @@ Thus, a data point $`x_k`$ with sampling rate $`f`$ is flagged an invalid soil m
     * $`x_k > x_{k-s}`$
 2. The rise must be sufficient. Meassured in terms of the standart deviation 
    $`V`$, of the values in the preceeding `std_factor_range` - window. 
-   This means, with $`h = `$`standart_factor_range` / $`f`$:
-    * $`x_k - x_{k-h} >`$ `std_factor` $`\times V(x_{t-h},...,x_k{k})`$
+   This means, with $`h = `$`std_factor_range` / $`f`$:
+    * $`x_k - x_{k-s} >`$ `std_factor` $`\times V(x_{t-h},...,x_k{k})`$
 3. Depending on some sensor specifications, there can be calculated a bound $`>0`$, the rainfall has to exceed to justify the eventual soil moisture raise. 
    For the series of the precipitation meassurements $`y`$, and the quotient $`j = `$ "24h" /  $`f`$,   this means:
     * $` y_{k-j} + y_{k-j+1} + ... + y_{k} < `$ `sensor_meas_depth` $`\times`$ `sensor_accuracy` $`\times`$ `soil_porosity`
