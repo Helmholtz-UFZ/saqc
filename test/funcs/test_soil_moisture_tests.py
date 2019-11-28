@@ -57,3 +57,7 @@ def test_flagSoilMoisturePrecipitationEvents(flagger):
     flag_result = flag_result.getFlags("soil_moisture")
     test_sum = (flag_result[flag_assertion] == flagger.BAD).sum()
     assert test_sum == len(flag_assertion)
+
+if __name__ == "__main__":
+    flagger = TESTFLAGGER[2]
+    test_flagSoilMoisturePrecipitationEvents(flagger)

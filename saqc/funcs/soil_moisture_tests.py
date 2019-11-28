@@ -181,6 +181,7 @@ def flagSoilMoistureByPrecipitationEvents(
     std_factor=2,
     std_factor_range="24h",
     raise_reference=None,
+    ignore_missing=False,
     **kwargs
 ):
 
@@ -232,74 +233,48 @@ def flagSoilMoistureByPrecipitationEvents(
                                         It defaults to None. When None is passed, raise_reference is just the sample
                                         rate of the data. Any raise reference must be a multiple of the (intended)
                                         sample rate and below std_factor_range.
+    :param ignore_missing:
     """
 
     dataseries, moist_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
-    # retrieve input sampling rate (needed to translate ref and data rates into each other):
-    input_rate = estimateSamplingRate(data.index)
-    refseries, ref_rate = retrieveTrustworthyOriginal(data, prec_reference, flagger)
+    # data harmonized: refseries, ref_rate = retrieveTrustworthyOriginal(data, prec_reference, flagger)
+
+    # data not hamronized:
+    refseries = data[prec_reference].dropna()
     # abort processing if any of the measurement series has no valid entries!
     if moist_rate is np.nan:
         return data, flagger
-    if ref_rate is np.nan:
+    if refseries.empty:
         return data, flagger
 
+    refseries = refseries.reindex(refseries.index.join(dataseries.index, how='outer'))
     # get 24 h prec. monitor (this makes last-24h-rainfall-evaluation independent from preceeding entries)
-    prec_count = refseries.rolling(window="1D").apply(
-        lambda x: x.sum(skipna=False), raw=False
-    )
-    # upsample with zeros to input data sampling rate (we want to project the daysums onto the dataseries grid to
-    # prepare for use of rolling:):
-    prec_count = prec_count.resample(input_rate).pad()
-
-    # now we can: project precipitation onto dataseries sampling (and stack result to be able to apply df.rolling())
-    eval_frame = (
-        pd.merge(dataseries, prec_count, how="left", left_index=True, right_index=True)
-        .stack(dropna=False)
-        .reset_index()
-    )
-
-    # following reshaping operations make all columns available to a function applied on rolling windows (rolling will
-    # only eat one column of a dataframe at a time and doesnt like multi indexes as well)
-    ef = eval_frame[0]
-    ef.index = eval_frame["level_0"]
-
+    prec_count = refseries.rolling(window="1D").sum()
+    # exclude data not signifying a raise::
     if raise_reference is None:
         raise_reference = 1
     else:
-        raise_reference = int(offset2periods(raise_reference, moist_rate))
-    # make raise and std. dev tester function (returns False for values that
-    # should be flagged bad and True respectively. (must be this way, since np.nan gets casted to True)))
-    def _precTest(x, std_fac=std_factor, raise_ref=raise_reference):
-        x_moist = x[0::2]
-        x_rain = x[1::2]
-        if x_moist[-1] > x_moist[(-1 - raise_ref)]:
-            if (x_moist[-1] - x_moist[0]) > std_fac * x_moist.std():
-                return ~(
-                    x_rain[-1] <= (sensor_meas_depth * soil_porosity * sensor_accuracy)
-                )
-            else:
-                return True
-        else:
-            return True
+        raise_reference = int(np.ceil(pd.Timedelta(raise_reference)/moist_rate))
 
-    # rolling.apply should only get active every second entrie of the stacked frame,
-    # so periods per window have to be calculated,
-    # (this gives sufficiant conditian since window size controlls daterange:)
+    # first raise condition:
+    raise_mask = dataseries > dataseries.shift(raise_reference)
 
-    periods = int(2 * offset2periods(std_factor_range, moist_rate))
-    invalid_raises = (
-        ~ef.rolling(window="1D", closed="both", min_periods=periods)
-        .apply(_precTest, raw=False)
-        .astype(bool)
-    )
-    # undo stacking (only every second entrie actually is holding an information:
-    invalid_raises = invalid_raises[1::2]
-    # retrieve indices referring to values-to-be-flagged-bad
-    invalid_indices = invalid_raises.index[invalid_raises]
+    # second raise condition:
+    std_factor_range = int(np.ceil(pd.Timedelta(std_factor_range)/moist_rate))
+    if ignore_missing:
+        std_mask = dataseries.dropna().rolling(std_factor_range).std() < (
+                (dataseries - dataseries.shift(std_factor_range)) / std_factor)
+    else:
+        std_mask = dataseries.rolling(std_factor_range).std() < (
+                    (dataseries - dataseries.shift(std_factor_range)) / std_factor)
+
+    dataseries = dataseries[raise_mask & std_mask]
+    invalid_indices = (prec_count[dataseries.index] <= sensor_meas_depth*sensor_accuracy*soil_porosity)
+    invalid_indices = invalid_indices[invalid_indices]
+
     # set Flags
-    flagger = flagger.setFlags(field, invalid_indices, **kwargs)
+    flagger = flagger.setFlags(field, loc=invalid_indices.index, **kwargs)
     return data, flagger
 
 

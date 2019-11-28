@@ -8,6 +8,7 @@ from saqc.funcs.break_detection import flagBreaks_spektrumBased
 from test.common import TESTFLAGGER, initData
 
 
+
 @pytest.fixture
 def data():
     return initData(

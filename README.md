@@ -143,6 +143,8 @@ In order to make your test available for the system you need to:
   + Example: The function `flagRange` in `funcs/functions.py` may serve as an
     simple example of the general scheme
 
+=======
+
 ### License
 Copyright(c) 2019, 
 Helmholtz-Zentrum fuer Umweltforschung GmbH - UFZ. 
@@ -157,3 +159,4 @@ This program is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of 
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
 See the GNU General Public License for more details.
+

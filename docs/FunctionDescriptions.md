@@ -1,11 +1,17 @@
 # Implemented QC functions
 
+
 ## `range`
 
 ### Signature
 ```
 range(min, max)
 ```
+### Description
+
+
+## missing
+=======
 
 ### Parameters
 | parameter | data type | default value | description |
@@ -56,6 +62,7 @@ sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 
 
 ## `clear`
+
 ### Signature
 ```
 clear()
@@ -70,10 +77,12 @@ Remove all previously set flags.
 
 ## `force`
 
+
 ### Signature
 ```
 force()
 ```
+
 
 ### Parameters
 | parameter  | data type    | default value | description |
@@ -174,10 +183,10 @@ Spikes_SpektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
 | raise_factor       | float     | `0.15`        | Minimum change margin for a datapoint to become a candidate for a spike. See condition (1). |
 | dev_cont_factor    | float     | `0.2`         | See condition (2). |
 | noise_barrier      | float     | `1`           | Upper bound for noisyness of data surrounding potential spikes. See condition (3).|
-| noise_window_range | string    | `"12h"`       | Range of the timewindow of the "surrounding" data of a potential spike. See condition (3). |
-| noise_statistic    | string    | `"CoVar"`     | Operator to calculate noisyness of data, surrounding potential spike. Either "Covar" (=Coefficient od Variation) or "rvar" (=relative Variance).|
+| noise_window_range | string    | `"12h"`       | Any offset string. Determines the range of the timewindow of the "surrounding" data of a potential spike. See condition (3). |
+| noise_statistic    | string    | `"CoVar"`     | Operator to calculate noisyness of data, surrounding potential spike. Either `"Covar"` (=Coefficient od Variation) or `"rvar"` (=relative Variance).|
 | smooth_poly_order  | integer   | `2`           | Order of the polynomial fit, applied for smoothing|
-| filter_window_size | string    | `None`        | Range of the smoothing window. The default value (='None') results in a window range, equalling 3 times the sampling rate and thus including always 3 values in a smoothing window. |
+| filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.| 
 
 
 ### Description
@@ -241,10 +250,10 @@ constants_varianceBased(plateau_window_min="12h", plateau_var_limit=0.0005,
 ### Parameters
 | parameter          | data type | default value | description |
 | ------             | ------    | ------        | ----        |
-| plateau_window_min | string    |               | Minimum barrier for the duration, values have to be continouos to be plateau canditaes. See condition (1). |
-| plateau_var_limit  | float     | `0.0005`      | Barrier, the variance of a group of values must not exceed to be flagged a plateau .See condition (2). |
-| var_total_nans     | integer   | `Inf`         | Maximum number of nan values allowed, for a calculated variance to be valid. |
-| var_consec_nans    | integer   | `Inf`         | Maximum number of consecutive nan values allowed, for a calculated variance to be valid. |
+| plateau_window_min | string    |               | Options <br/> - any offset string <br/> <br/> Minimum barrier for the duration, values have to be continouos to be plateau canditaes. See condition (1). |
+| plateau_var_limit  | float     | `0.0005`      | Barrier, the variance of a group of values must not exceed to be flagged a plateau. See condition (2). |
+| var_total_nans     | integer   | `Inf`         | Maximum number of nan values allowed, for a calculated variance to be valid. (Default skips the condition.) |
+| var_consec_nans    | integer   | `Inf`         | Maximum number of consecutive nan values allowed, for a calculated variance to be valid. (Default skips the condition.) |
 
 
 ### Description
@@ -254,7 +263,7 @@ $`x_k,..., x_{k+n}`$ of a timeseries $`x`$ is flagged, if:
 1. $`n > `$`plateau_window_min`
 2. $`\sigma(x_k,..., x_{k+n})`$ < `plateau_var_limit`
 
-NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an 
+NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
 equadistant frequency grid.
 
 
@@ -331,11 +340,25 @@ SoilMoistureByFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0
 ### Parameters
 | parameter           | data type | default value | description |
 | ------              | ------    | ------        | ----        |
-| soil_temp_reference |           |               |             |
-| tolerated_deviation | string    | `"1h"`        |             |
-| frost_level         | integer   | `0`           |             |
+| soil_temp_reference | string    |               |  A string, denoting the fields name in data, that holds the data series of soil temperature values, the to-be-flagged values shall be checked against.|
+| tolerated_deviation | string    | `"1h"`        |  An offset string, denoting the maximal temporal deviation, the soil frost states timestamp is allowed to have, relative to the data point to be flagged.|
+| frost_level         | integer   | `0`           |  Value level, the flagger shall check against, when evaluating soil frost level. |
 
 ### Description
+
+The function flags Soil moisture measurements by evaluating the soil-frost-level 
+in the moment of measurement (+/- `tolerated deviation`).
+Soil temperatures below "frost_level" are regarded as denoting frozen soil 
+state and result in the checked soil moisture value to get flagged.
+
+This Function is an implementation of the soil temperature based Soil Moisture 
+flagging, as presented in:
+
+Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data 
+from the international Soil Moisture Network. 2013. Vadoze Zone J. 
+doi:10.2136/vzj2012.0097.
+
+All parameters default to the values, suggested in this publication.
 
 
 
@@ -351,7 +374,7 @@ SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
 ### Parameters
 | parameter         | data type | default value | description |
 | ------            | ------    | ------        | ----        |
-| prec_reference    |           |               |             |
+| prec_reference    | string    |               |             |
 | sensor_meas_depth | integer   | `0`           |             |
 | sensor_accuracy   | integer   | `0`           |             |
 | soil_porosity     | integer   | `0`           |             |
@@ -360,29 +383,63 @@ SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
 
 ### Description
 
+Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
+precipitation event. If measurement depth, sensor accuracy of the soil moisture sensor and the porosity of the
+surrounding soil is passed to the function, an inferior level of precipitation, that has to preceed a significant
+moisture raise within 24 hours, can be estimated. If those values are not delivered, this inferior bound is set
+to zero. In that case, any non zero precipitation count will justify any soil moisture raise.
+
+Thus, a data point $`x_k`$ with sampling rate $`f`$ is flagged an invalid soil moisture raise, if:
+
+1. The value to be flagged has to signify a rise. This means, for the quotient $`s = `$ (`raise_reference` / $`f`$):
+    * $`x_k > x_{k-s}`$
+2. The rise must be sufficient. Meassured in terms of the standart deviation 
+   $`V`$, of the values in the preceeding `std_factor_range` - window. 
+   This means, with $`h = `$`standart_factor_range` / $`f`$:
+    * $`x_k - x_{k-h} >`$ `std_factor` $`\times V(x_{t-h},...,x_k{k})`$
+3. Depending on some sensor specifications, there can be calculated a bound $`>0`$, the rainfall has to exceed to justify the eventual soil moisture raise. 
+   For the series of the precipitation meassurements $`y`$, and the quotient $`j = `$ "24h" /  $`f`$,   this means:
+    * $` y_{k-j} + y_{k-j+1} + ... + y_{k} < `$ `sensor_meas_depth` $`\times`$ `sensor_accuracy` $`\times`$ `soil_porosity`
+
+
+Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
+precipitation event. If measurement depth, sensor accuracy of the soil moisture sensor and the porosity of the
+surrounding soil is passed to the function, an inferior level of precipitation, that has to preceed a significant
+moisture raise within 24 hours, can be estimated. If those values are not delivered, this inferior bound is set
+to zero. In that case, any non zero precipitation count will justify any soil moisture raise.
+
+This Function is an implementation of the precipitation based Soil Moisture 
+flagging, as presented in:
+
+Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data 
+from the international Soil Moisture Network. 2013. Vadoze Zone J. 
+doi:10.2136/vzj2012.0097.
+
+All parameters default to the values, suggested in this publication.
+
 
 ## `Breaks_SpektrumBased`
 
 ### Signature
 ```                            
-Breaks_SpektrumBased(diff_method="raw", filter_window_size="3h",
-                     rel_change_min=0.1, abs_change_min=0.01, first_der_factor=10,
+Breaks_SpektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=10,
                      first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
-                     scnd_der_ratio_margin_2=10, smooth_poly_order=2)
+                     scnd_der_ratio_margin_2=10, smooth_poly_order=2, 
+                     diff_method="raw", filter_window_size="3h")
 ```
 
 ### Parameters
 | parameter               | data type | default value | description |
 | ------                  | ------    | ------        | ----        |
-| diff_method             | string    | `"raw"`       |             |
-| filter_window_size      | string    | `"3h"`        |             |
-| rel_change_rate_min     | float     | `0.1`         |             |
-| abs_change_min          | float     | `0.01`        |             |
-| first_der_factor        | integer   | `10`          |             |
-| first_der_window_size   | string    | `"12h"`       |             |
-| scnd_der_ratio_margin_1 | float     | `0.05`        |             |
-| scnd_der_ratio_margin_2 | float     | `10.0`        |             |
-| smooth_poly_order       | integer   | `2`           |             | 
+| rel_change_rate_min     | float     | `0.1`         | Lower bound for the relative difference, a value has to have to its preceeding value, to be a candidate for being break-flagged. See condition (2).|
+| abs_change_min          | float     | `0.01`        | Lower bound for the absolute difference, a value has to have to its preceeding value, to be a candidate for being break-flagged. See condition (1).|
+| first_der_factor        | float     | `10`          | Factor of the second derivates "arithmetic middle bound". See condition (3).|
+| first_der_window_size   | string    | `"12h"`       | Options: <br/> - any offset String <br/> <br/> Determining the size of the window, covering all the values included in the the arithmetic middle calculation of condition (3).|
+| scnd_der_ratio_margin_1 | float     | `0.05`        | Range of the area, covering all the values of the second derivatives quotient, that are regarded "sufficiently close to 1" for signifying a break. See condition (5).|
+| scnd_der_ratio_margin_2 | float     | `10.0`        | Lower bound for the break succeeding second derivatives quotients. See condition (5). |
+| smooth_poly_order       | integer   | `2`           | When calculating derivatives from smoothed timeseries (diff_method="savgol"), this value gives the order of the fitting polynomial calculated in the smoothing process.| 
+| diff_method             | string    | `"savgol"     | Options: <br/> - `"savgol"`  <br/> - `"raw"` <br/><br/> Select "raw", to skip smoothing before differenciation. |
+| filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.          | 
 
 
 ### Description
@@ -392,7 +449,7 @@ evaluating its derivatives.
 NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an 
 equadistant frequencie grid.
 
-NOTE, that the derivative is calculated after applying a savitsky-golay filter 
+NOTE, that the derivatives are calculated after applying a savitsky-golay filter 
 to $`x`$.
 
 A value $`x_k`$ of a data series $`x`$, is flagged a break, if:
@@ -404,9 +461,9 @@ A value $`x_k`$ of a data series $`x`$, is flagged a break, if:
 3. Let $`X_k`$ be the set of all values that lie within a `first_der_window_range` range around $`x_k`$. Then, for its arithmetic mean $`\bar{X_k}`$, following equation has to hold: 
     * $`|x'_k| >`$ `first_der_factor` $` \times \bar{X_k} `$
 4. The second derivations quatients are "sufficiently equalling 1":
-    * $` 1 -`$ `scnd_der_ratio_margin_1` $`< \frac{|x''_k|}{|x_{k''+1}|} < 1 + `$`scnd_der_ratio_margin_1`
+    * $` 1 -`$ `scnd_der_ratio_margin_1` $`< |\frac{x''_{k-1}}{x_{k''}}| < 1 + `$`scnd_der_ratio_margin_1`
 5. The the succeeding second derivatives values quotient has to be sufficiently high:
-    * $`|\frac{x''_{k+1}}{x''_{k+2}'}| > `$`scnd_der_ratio_margin_2`
+    * $`|\frac{x''_{k}}{x''_{k+1}}| > `$`scnd_der_ratio_margin_2`
 
 This Function is a generalization of the Spectrum based Spike flagging 
 mechanism as presented in:
