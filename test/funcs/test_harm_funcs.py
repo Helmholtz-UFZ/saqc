@@ -18,22 +18,15 @@ from saqc.funcs.harm_functions import (
 )
 
 
-TESTFLAGGER = TESTFLAGGER[:-1]
-
-
 RESHAPERS = ["nearest_shift", "fshift", "bshift"]
-
 
 COFLAGGING = [False, True]
 
-
 SETSHIFTCOMMENT = [False, True]
-
 
 INTERPOLATIONS = ["fshift", "bshift", "nearest_shift", "nearest_agg", "bagg"]
 
 INTERPOLATIONS2 = ["fagg", "time", "polynomial"]
-
 
 FREQS = ["15min", "30min"]
 
@@ -317,31 +310,15 @@ def test_outsortCrap(data, flagger):
     flagger = flagger.setFlags(field, iloc=slice(5, 7))
 
     drop_index = data.index[5:7]
-    d, _ = _outsortCrap(data, field, flagger, drop_suspicious=True, drop_bad=False)
-    assert drop_index.difference(d.index).equals(drop_index)
-
-    d, _ = _outsortCrap(data, field, flagger, drop_suspicious=False, drop_bad=True)
+    d, _ = _outsortCrap(data, field, flagger, drop_flags=flagger.BAD)
     assert drop_index.difference(d.index).equals(drop_index)
 
     flagger = flagger.setFlags(field, iloc=slice(0, 1), flag=flagger.GOOD)
     drop_index = drop_index.insert(-1, data.index[0])
-    d, _ = _outsortCrap(
-        data,
-        field,
-        flagger,
-        drop_suspicious=False,
-        drop_bad=False,
-        drop_list=[flagger.BAD, flagger.GOOD],
-    )
-
+    d, _ = _outsortCrap(data, field, flagger, drop_flags=[flagger.BAD, flagger.GOOD],)
     assert drop_index.sort_values().difference(d.index).equals(drop_index.sort_values())
+
     f_drop, _ = _outsortCrap(
-        data,
-        field,
-        flagger,
-        drop_suspicious=False,
-        drop_bad=False,
-        drop_list=[flagger.BAD, flagger.GOOD],
-        return_drops=True,
+        data, field, flagger, drop_flags=[flagger.BAD, flagger.GOOD], return_drops=True,
     )
     assert f_drop.index.sort_values().equals(drop_index.sort_values())
