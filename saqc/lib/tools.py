@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import numbers
-from typing import Sequence, Union, T
+from typing import Sequence, Union
 
 import numpy as np
 import pandas as pd
 import numba as nb
+
+from saqc.lib.types import T
 
 
 def assertScalar(name, value, optional=False):
