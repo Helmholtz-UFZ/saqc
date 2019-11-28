@@ -14,6 +14,7 @@ from saqc.lib.tools import toSequence, assertScalar, assertDataFrame
 
 
 COMPARATOR_MAP = {
+    "!=": op.ne,
     "==": op.eq,
     ">=": op.ge,
     ">": op.gt,
