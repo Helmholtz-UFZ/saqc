@@ -133,5 +133,7 @@ class DmpFlagger(CategoricalBaseFlagger):
             col_data = flags[(var, flag_field)]
             if flag_field == FlagFields.FLAG:
                 col_data = col_data.astype(self.dtype)
+            else:
+                col_data = col_data.astype(str)
             tmp[(var, flag_field)] = col_data
         return pd.DataFrame(tmp, columns=flags.columns, index=flags.index)

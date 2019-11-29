@@ -59,7 +59,31 @@ def test_setFlagger(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_setFlaggerDiff(data, flagger):
+def test_setFlaggerColumnsDiff(data, flagger):
+
+    field, *_ = data.columns
+    new_field = field + "_new"
+    iloc = slice(None, None, 2)
+
+    other_data = data.iloc[iloc]
+    other_data.columns = [new_field] + data.columns[1:].to_list()
+
+    this_flagger = flagger.initFlags(data).setFlags(field, flag=flagger.BAD)
+    other_flagger = flagger.initFlags(other_data)
+    result_flagger = this_flagger.setFlagger(other_flagger)
+
+    assert np.all(
+        result_flagger.getFlags(new_field, loc=other_data.index)
+        == other_flagger.getFlags(new_field)
+    )
+    assert np.all(
+        result_flagger.getFlags(new_field, loc=data.index) == flagger.UNFLAGGED
+    )
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_setFlaggerIndexDiff(data, flagger):
 
     field, *_ = data.columns
     iloc = slice(None, None, 2)

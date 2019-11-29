@@ -66,11 +66,20 @@ class BaseFlagger(ABC):
         # NOTE: add more checks !?
         if not isinstance(other, self.__class__):
             raise TypeError(f"flagger of type '{self.__class__}' needed")
-        out = deepcopy(self)
-        # NOTE: for a weird reason, this only works with the loop
-        for v in other._flags.columns:
-            out._flags.loc[other._flags.index, v] = other._flags[v]
-        return out
+
+        this = self._flags
+        other = other._flags
+
+        flags = this.reindex(
+            index=this.index.union(other.index),
+            columns=this.columns.union(other.columns, sort=False),
+            fill_value=self.UNFLAGGED,
+        )
+
+        for key, values in other.iteritems():
+            flags.loc[other.index, key] = values
+
+        return self._copy(flags)
 
     def getFlagger(
         self, field: str = None, loc: LocT = None, iloc: IlocT = None
