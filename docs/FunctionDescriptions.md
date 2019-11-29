@@ -7,12 +7,6 @@
 ```
 range(min, max)
 ```
-### Description
-
-
-## missing
-=======
-
 ### Parameters
 | parameter | data type | default value | description |
 | --------- | --------- | ------------- | ----------- |
@@ -33,10 +27,10 @@ missing(nodata=NaN)
 | parameter | data type  | default value  | description |
 | --------- | ---------- | -------------- | ----------- |
 | nodata    | any        | `NaN`          | Value indicating missing values in the passed data |
-           
+
 
 ### Description
-The function flags those values in the the passed data series, that are 
+The function flags those values in the the passed data series, that are
 associated with "missing" data. The missing data indicator (default: `NaN`), can
 be altered to any other value by passing this new value to the parameter `nodata`.
 
@@ -143,28 +137,28 @@ Spikes_Basic(thresh, tolerance, window_size)
 | window_size | ftring    |               | An offset string, denoting the maximal length of "spikish" value courses. See condition (3). |
 
 ### Description
-A basic outlier test, that is designed to work for harmonized, as well as raw 
+A basic outlier test, that is designed to work for harmonized, as well as raw
 (not-harmonized) data.
 
-The values $`x_{n}, x_{n+1}, .... , x_{n+k} `$ of a passed timeseries $`x`$, 
+The values $`x_{n}, x_{n+1}, .... , x_{n+k} `$ of a passed timeseries $`x`$,
 are considered spikes, if:
 
 1. $`|x_{n-1} - x_{n + s}| > `$ `thresh`, $` s \in \{0,1,2,...,k\} `$
 
 2. $`|x_{n-1} - x_{n+k+1}| < `$ `tolerance`
 
-3. $` |y_{n-1} - y_{n+k+1}| < `$ `window_size`, with $`y `$, denoting the series 
+3. $` |y_{n-1} - y_{n+k+1}| < `$ `window_size`, with $`y `$, denoting the series
    of timestamps associated with $`x `$.
 
-By this definition, spikes are values, that, after a jump of margin `thresh`(1), 
-are keeping that new value level they jumped to, for a timespan smaller than 
-`window_size` (3), and do then return to the initial value level - 
+By this definition, spikes are values, that, after a jump of margin `thresh`(1),
+are keeping that new value level they jumped to, for a timespan smaller than
+`window_size` (3), and do then return to the initial value level -
 within a tolerance margin of `tolerance` (2).  
 
-Note, that this characterization of a "spike", not only includes one-value 
+Note, that this characterization of a "spike", not only includes one-value
 outliers, but also plateau-ish value courses.
 
-The implementation is a time-window based version of an outlier test from the 
+The implementation is a time-window based version of an outlier test from the
 UFZ Python library, that can be found [here](https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py).
 
 
@@ -186,39 +180,39 @@ Spikes_SpektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
 | noise_window_range | string    | `"12h"`       | Any offset string. Determines the range of the timewindow of the "surrounding" data of a potential spike. See condition (3). |
 | noise_statistic    | string    | `"CoVar"`     | Operator to calculate noisyness of data, surrounding potential spike. Either `"Covar"` (=Coefficient od Variation) or `"rvar"` (=relative Variance).|
 | smooth_poly_order  | integer   | `2`           | Order of the polynomial fit, applied for smoothing|
-| filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.| 
+| filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.|
 
 
 ### Description
-The function detects and flags spikes in input data series by evaluating the 
-the timeseries' derivatives and applying some conditions to them. 
+The function detects and flags spikes in input data series by evaluating the
+the timeseries' derivatives and applying some conditions to them.
 
-NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an 
+NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
 equadistant frequencie grid.
 
-A datapoint $`x_k `$ of a dataseries $`x`$, 
+A datapoint $`x_k `$ of a dataseries $`x`$,
 is considered a spike, if:
 
 1. The quotient to its preceeding datapoint exceeds a certain bound:
     * $`|\frac{x_k}{x_{k-1}}| > 1 +`$ `raise_factor`, or:
     * $`|\frac{x_k}{x_{k-1}}| < 1 -`$ `raise_factor`
-2. The quotient of the datas second derivate $`x''`$, at the preceeding 
+2. The quotient of the datas second derivate $`x''`$, at the preceeding
    and subsequent timestamps is close enough to 1:
     * $`|\frac{x''_{k-1}}{x''_{k+1}} | > 1 -`$ `dev_cont_factor`, and
     * $`|\frac{x''_{k-1}}{x''_{k+1}} | < 1 +`$ `dev_cont_factor`   
-3. The dataset, $`X_k`$, surrounding $`x_{k}`$, within `noise_window_range` range, 
-   but excluding $`x_{k}`$, is not too noisy. Wheras the noisyness gets measured 
-   by `noise_statistic`: 
+3. The dataset, $`X_k`$, surrounding $`x_{k}`$, within `noise_window_range` range,
+   but excluding $`x_{k}`$, is not too noisy. Wheras the noisyness gets measured
+   by `noise_statistic`:
     * `noise_statistic`$`(X_k) <`$ `noise_barrier`
 
-NOTE, that the derivative is calculated after applying a savitsky-golay filter 
+NOTE, that the derivative is calculated after applying a savitsky-golay filter
 to $`x`$.
 
-This Function is a generalization of the Spectrum based Spike flagging 
+This Function is a generalization of the Spectrum based Spike flagging
 mechanism as presented in:
 
-Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture 
-Data from the international Soil Moisture Network. 2013. Vadoze Zone J. 
+Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
+Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
 doi:10.2136/vzj2012.0097.
 
 
@@ -257,7 +251,7 @@ constants_varianceBased(plateau_window_min="12h", plateau_var_limit=0.0005,
 
 
 ### Description
-Function flags plateaus/series of constant values. Any set of consecutive values 
+Function flags plateaus/series of constant values. Any set of consecutive values
 $`x_k,..., x_{k+n}`$ of a timeseries $`x`$ is flagged, if:
 
 1. $`n > `$`plateau_window_min`
@@ -267,8 +261,8 @@ NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
 equadistant frequency grid.
 
 NOTE, that when `var_total_nans` or `var_consec_nans` are set to a value < `Inf`
-, plateaus that can not be calculated the variance of, due to missing values, 
-will never be flagged. (Test not applicable rule.) 
+, plateaus that can not be calculated the variance of, due to missing values,
+will never be flagged. (Test not applicable rule.)
 
 ## `SoilMoistureSpikes`
 
@@ -285,17 +279,17 @@ SoilMoistureSpikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0
 | raise_factor       | float     | `0.15`        |             |
 | dev_cont_factor    | float     | `0.2`         |             |
 | noise_barrier      | integer   | `1`           |             |
-| noise_window_size  | string    | `"12h"`       |             | 
+| noise_window_size  | string    | `"12h"`       |             |
 | noise_statistic    | string    | `"CoVar"`     |             |
 
 
 ### Description
-The Function is just a wrapper around `flagSpikes_spektrumBased`, from the 
-spike detection library and performs a call to this function with a parameter 
+The Function is just a wrapper around `flagSpikes_spektrumBased`, from the
+spike detection library and performs a call to this function with a parameter
 set, referring to:
 
-Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture
-Data from the international Soil Moisture Network. 2013. 
+Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
+Data from the international Soil Moisture Network. 2013.
 Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
 
@@ -320,16 +314,16 @@ SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
 | first_der_window_size   | string    | `"12h"`       |             |
 | scnd_der_ratio_margin_1 | float     | `0.05`        |             |
 | scnd_der_ratio_margin_2 | float     | `10.0`        |             |
-| smooth_poly_order       | integer   | `2`           |             | 
+| smooth_poly_order       | integer   | `2`           |             |
 
 
 ### Description
-The Function is just a wrapper around `flagBreaks_spektrumBased`, from the 
-breaks detection library and performs a call to this function with a parameter 
+The Function is just a wrapper around `flagBreaks_spektrumBased`, from the
+breaks detection library and performs a call to this function with a parameter
 set, referring to:
 
-Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture
-Data from the international Soil Moisture Network. 2013. 
+Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
+Data from the international Soil Moisture Network. 2013.
 Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
 
@@ -349,16 +343,16 @@ SoilMoistureByFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0
 
 ### Description
 
-The function flags Soil moisture measurements by evaluating the soil-frost-level 
+The function flags Soil moisture measurements by evaluating the soil-frost-level
 in the moment of measurement (+/- `tolerated deviation`).
-Soil temperatures below "frost_level" are regarded as denoting frozen soil 
+Soil temperatures below "frost_level" are regarded as denoting frozen soil
 state and result in the checked soil moisture value to get flagged.
 
-This Function is an implementation of the soil temperature based Soil Moisture 
+This Function is an implementation of the soil temperature based Soil Moisture
 flagging, as presented in:
 
-Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data 
-from the international Soil Moisture Network. 2013. Vadoze Zone J. 
+Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture Data
+from the international Soil Moisture Network. 2013. Vadoze Zone J.
 doi:10.2136/vzj2012.0097.
 
 All parameters default to the values, suggested in this publication.
@@ -398,11 +392,11 @@ Thus, a data point $`x_k`$ with sampling rate $`f`$ is flagged an invalid soil m
 
 1. The value to be flagged has to signify a rise. This means, for the quotient $`s = `$ (`raise_reference` / $`f`$):
     * $`x_k > x_{k-s}`$
-2. The rise must be sufficient. Meassured in terms of the standart deviation 
-   $`V`$, of the values in the preceeding `std_factor_range` - window. 
+2. The rise must be sufficient. Meassured in terms of the standart deviation
+   $`V`$, of the values in the preceeding `std_factor_range` - window.
    This means, with $`h = `$`std_factor_range` / $`f`$:
     * $`x_k - x_{k-s} >`$ `std_factor` $`\times V(x_{t-h},...,x_k{k})`$
-3. Depending on some sensor specifications, there can be calculated a bound $`>0`$, the rainfall has to exceed to justify the eventual soil moisture raise. 
+3. Depending on some sensor specifications, there can be calculated a bound $`>0`$, the rainfall has to exceed to justify the eventual soil moisture raise.
    For the series of the precipitation meassurements $`y`$, and the quotient $`j = `$ "24h" /  $`f`$,   this means:
     * $` y_{k-j} + y_{k-j+1} + ... + y_{k} < `$ `sensor_meas_depth` $`\times`$ `sensor_accuracy` $`\times`$ `soil_porosity`
 
@@ -413,11 +407,11 @@ surrounding soil is passed to the function, an inferior level of precipitation, 
 moisture raise within 24 hours, can be estimated. If those values are not delivered, this inferior bound is set
 to zero. In that case, any non zero precipitation count will justify any soil moisture raise.
 
-This Function is an implementation of the precipitation based Soil Moisture 
+This Function is an implementation of the precipitation based Soil Moisture
 flagging, as presented in:
 
-Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data 
-from the international Soil Moisture Network. 2013. Vadoze Zone J. 
+Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture Data
+from the international Soil Moisture Network. 2013. Vadoze Zone J.
 doi:10.2136/vzj2012.0097.
 
 All parameters default to the values, suggested in this publication.
@@ -429,7 +423,7 @@ All parameters default to the values, suggested in this publication.
 ```                            
 Breaks_SpektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=10,
                      first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
-                     scnd_der_ratio_margin_2=10, smooth_poly_order=2, 
+                     scnd_der_ratio_margin_2=10, smooth_poly_order=2,
                      diff_method="raw", filter_window_size="3h")
 ```
 
@@ -442,19 +436,19 @@ Breaks_SpektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=1
 | first_der_window_size   | string    | `"12h"`       | Options: <br/> - any offset String <br/> <br/> Determining the size of the window, covering all the values included in the the arithmetic middle calculation of condition (3).|
 | scnd_der_ratio_margin_1 | float     | `0.05`        | Range of the area, covering all the values of the second derivatives quotient, that are regarded "sufficiently close to 1" for signifying a break. See condition (5).|
 | scnd_der_ratio_margin_2 | float     | `10.0`        | Lower bound for the break succeeding second derivatives quotients. See condition (5). |
-| smooth_poly_order       | integer   | `2`           | When calculating derivatives from smoothed timeseries (diff_method="savgol"), this value gives the order of the fitting polynomial calculated in the smoothing process.| 
+| smooth_poly_order       | integer   | `2`           | When calculating derivatives from smoothed timeseries (diff_method="savgol"), this value gives the order of the fitting polynomial calculated in the smoothing process.|
 | diff_method             | string    | `"savgol"     | Options: <br/> - `"savgol"`  <br/> - `"raw"` <br/><br/> Select "raw", to skip smoothing before differenciation. |
-| filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.          | 
+| filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.          |
 
 
 ### Description
-The function flags breaks (jumps/drops) in input measurement series by 
+The function flags breaks (jumps/drops) in input measurement series by
 evaluating its derivatives.
 
-NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an 
+NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
 equadistant frequencie grid.
 
-NOTE, that the derivatives are calculated after applying a savitsky-golay filter 
+NOTE, that the derivatives are calculated after applying a savitsky-golay filter
 to $`x`$.
 
 A value $`x_k`$ of a data series $`x`$, is flagged a break, if:
@@ -463,16 +457,35 @@ A value $`x_k`$ of a data series $`x`$, is flagged a break, if:
     * $`|x_k - x_{k-1}| >`$ `abs_change_min`
 2. $`x_k`$ represents a sufficient relative jump in the course of data values:
     * $`|\frac{x_k - x_{k-1}}{x_k}| >`$ `rel_change_min`
-3. Let $`X_k`$ be the set of all values that lie within a `first_der_window_range` range around $`x_k`$. Then, for its arithmetic mean $`\bar{X_k}`$, following equation has to hold: 
+3. Let $`X_k`$ be the set of all values that lie within a `first_der_window_range` range around $`x_k`$. Then, for its arithmetic mean $`\bar{X_k}`$, following equation has to hold:
     * $`|x'_k| >`$ `first_der_factor` $` \times \bar{X_k} `$
 4. The second derivations quatients are "sufficiently equalling 1":
     * $` 1 -`$ `scnd_der_ratio_margin_1` $`< |\frac{x''_{k-1}}{x_{k''}}| < 1 + `$`scnd_der_ratio_margin_1`
 5. The the succeeding second derivatives values quotient has to be sufficiently high:
     * $`|\frac{x''_{k}}{x''_{k+1}}| > `$`scnd_der_ratio_margin_2`
 
-This Function is a generalization of the Spectrum based Spike flagging 
+This Function is a generalization of the Spectrum based Spike flagging
 mechanism as presented in:
 
-Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture 
-Data from the international Soil Moisture Network. 2013. Vadoze Zone J. 
+Dorigo,W. et al.: Global Automated Quality Control of In Situ Soil Moisture
+Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
 doi:10.2136/vzj2012.0097.
+
+## `machinelearning`
+
+### Signature
+```
+machinelearning(references, window_values, window_flags, path)
+```
+
+### Parameters
+| parameter | data type  | default value  | description |
+| --------- | ---------- | -------------- | ----------- |
+| references    | string or list of strings        |           | the fieldnames of the data series that should be used as reference variables |
+| window_values    | integer        |           | Window size that is used to derive the gradients of both the field- and reference-series inside the moving window|
+| window_flags   | integer        |          | Window size that is used to count the surrounding automatic flags that have been set before |
+| path    | string        |           | Path to the respective model object, i.e. its name and the respective value of the grouping variable. e.g. "models/model_0.2.pkl" |
+
+
+### Description
+This Function uses pre-trained machine-learning model objects for flagging. This requires training a model by use of the [training script](../ressources/machine_learning/train_machine_learning.py) provided. For flagging, inputs to the model are the data of the variable of interest, data of reference variables and the automatic flags that were assigned by other tests inside SaQC. Internally, context information for each point is gathered in form of moving windows. The size of the moving windows for counting of the surrounding automatic flags and for calculation of gradients in the data is specified by the user during model training. For the model to work, the parameters 'references', 'window_values' and 'window_flags' have to be set to the same values as during training. For a more detailed description of the modeling aproach see the [training script](../ressources/machine_learning/train_machine_learning.py).

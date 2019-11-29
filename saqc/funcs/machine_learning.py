@@ -47,7 +47,7 @@ def flagML(
     :param flags:                       A dataframe holding the flags
     :param field:                       Fieldname of the field in data that is to be flagged.
     :param flagger:                     A flagger - object.
-    :param references:                  A strong or list of strings, denoting the fieldnames of the data series that should be used as reference variables
+    :param references:                  A string or list of strings, denoting the fieldnames of the data series that should be used as reference variables
     :param window_values:               An integer, denoting the window size that is used to derive the gradients of both the field- and reference-series inside the moving window
     :param window_flags:                An integer, denoting the window size that is used to count the surrounding automatic flags that have been set before
     :param path:                        A string giving the path to the respective model object, i.e. its name and the respective value of the grouping variable. e.g. "models/model_0.2.pkl"

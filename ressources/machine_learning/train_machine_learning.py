@@ -44,14 +44,16 @@ def trainML(
     **kwargs
 ):
 
-    """This Function trains machine-learning models to reproduce manual flags that were
-    set for a specific variable. Inputs to the model are the timeseries of the
+    """This Function trains machine-learning models to reproduce manual flags that were set for a specific variable. Inputs to the training script are the timeseries of the
     respective target variable at multiple sensors, the automatic flags that were assigned by SaQC as well as multiple reference series.
-    Internally, context information for each point is gathered in form of moving windows to improve the flagging algorithm. By default, for both the target timeseries and the automatic flags, the
-    information of the previous and preceeding timestep are gathered. Next, according to user inputs of window_flags and window_values, the number of flags
-    and the mean gradient of the specified windows is calculated, both for t+windowsize and t-windowsize. The moving window calculations are executed for each sensor, seperately,
+    Internally, context information for each point is gathered in form of moving windows to improve the flagging algorithm. By default, the
+    information of the previous and preceeding timestep of each data point t are gathered: For the target and reference series, this refers to the gradient of t+/-1 with respect to t. For
+    the automatic flgs, this denotes whether an automatic flag was set at t+/-1.
+    Next, according to user inputs of window_flags and window_values, the number of flags
+    and the mean gradient within the specified moving windows is calculated, both for t+windowsize and t-windowsize. The moving window calculations are executed for each sensor, seperately,
     and multiple models are trained, one for each level a grouping variable that can be defined by the user. The model objects that can be used for future flagging are stored
-    along with log-files that store the models`accuracy on training and test.
+    along with log-files that give information on the training process, e.g. models`accuracy on training and test. The algorithm used is randomForest at default parameters.
+    For usage of the model inside the SaQC-pipeline, see "machinelearning" in the function reference.
 
 
     :param data:                        The pandas dataframe holding the data of the target variable at multiple sensors in long format, i.e. concatenated row-wise.
