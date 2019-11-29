@@ -114,12 +114,11 @@ def test_missingConfig(data, flagger, flags):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_missingVariable(flagger):
+def test_missingVariable(data, flagger):
     """
     Test if variables available in the config but not dataset
     are handled correctly, i.e. are ignored
     """
-    data = initData(1)
     var, *_ = data.columns
 
     metadict = [
@@ -129,6 +128,30 @@ def test_missingVariable(flagger):
     metafobj, meta = initMetaDict(metadict, data)
     with pytest.raises(NameError):
         runner(metafobj, flagger, data)
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_errorHandling(data, flagger):
+
+    @register("raisingFunc")
+    def _raisingFunc(data, fielf, flagger, **kwargs):
+        raise TypeError
+
+    var1, *_ = data.columns
+
+    metadict = [
+        {F.VARNAME: var1, F.TESTS: "raisingFunc()"},
+    ]
+
+    tests = [
+        "ignore",
+        "warn"
+    ]
+
+    for policy in tests:
+        # NOTE: should not fail, that's all we are testing here
+        metafobj, _ = initMetaDict(metadict, data)
+        runner(metafobj, flagger, data, error_policy=policy)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -150,7 +173,6 @@ def test_duplicatedVariable(flagger):
         assert np.all(cols == [var1])
     else:
         assert (pflags.columns == [var1]).all()
-
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
