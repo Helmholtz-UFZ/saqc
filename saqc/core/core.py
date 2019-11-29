@@ -147,9 +147,7 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy="ra
 def _handleErrors(err, configrow, test, policy):
     line = configrow[Fields.LINENUMBER]
     msg = f" config, line {line}, test: `{test}` failed with `{type(err).__name__}: {err}`"
-    if policy == "raise":
-        return True
-    elif policy == "ignore":
+    if policy == "ignore":
         logging.debug(msg)
         return False
     elif policy == "warn":
