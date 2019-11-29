@@ -29,10 +29,10 @@ def test_flagSoilMoistureBySoilFrost(flagger):
     data, flagger_result = flagSoilMoistureBySoilFrost(
         data, "soil_moisture", flagger, "soil_temperature"
     )
-    flag_assertion = np.arange(18, 37)
+    flag_assertion = np.arange(19, 37)
     flag_result = flagger_result.getFlags("soil_moisture")  # .iloc[:, 0]
-    test_sum = (flag_result[flag_assertion] == flagger.BAD).sum()
-    assert test_sum == len(flag_assertion)
+    assert (flag_result[flag_assertion] == flagger.BAD).all()
+
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -60,4 +60,4 @@ def test_flagSoilMoisturePrecipitationEvents(flagger):
 
 if __name__ == "__main__":
     flagger = TESTFLAGGER[2]
-    test_flagSoilMoisturePrecipitationEvents(flagger)
+    test_flagSoilMoistureBySoilFrost(flagger)
