@@ -17,17 +17,15 @@ def _collectVariables(meta, data):
     find every relevant variable
     """
     # NOTE: get to know every variable from meta
-    flags = []  # data.columns.tolist()
+    variables = []
     for idx, configrow in meta.iterrows():
         varname = configrow[Fields.VARNAME]
         assign = configrow[Fields.ASSIGN]
-        if varname in flags:
+        if varname in variables:
             continue
-        if varname in data:
-            flags.append(varname)
-        elif varname not in flags and assign is True:
-            flags.append(varname)
-    return flags
+        if (varname in data) or (varname not in variables and assign is True):
+            variables.append(varname)
+    return variables
 
 
 def _checkInput(data, flags, flagger):
