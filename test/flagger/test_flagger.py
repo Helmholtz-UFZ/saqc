@@ -8,9 +8,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype
-from pandas.core.indexing import IndexingError
 
-from saqc.funcs.functions import flagRange, flagSesonalRange, forceFlags, clearFlags
 from test.common import TESTFLAGGER
 
 
@@ -35,6 +33,75 @@ DATASETS = [
     # _getDataset(10000, 40),
     # _getDataset(20, 4),
 ]
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_setFlagger(data, flagger):
+
+    field, *_ = data.columns
+
+    this_flagger = flagger.initFlags(data)
+    other_flagger = this_flagger.getFlagger(iloc=slice(None, None, 3)).setFlags(field)
+    result_flagger = this_flagger.setFlagger(other_flagger)
+
+    other_flags = other_flagger.getFlags()
+    result_flags = result_flagger.getFlags(field)
+
+    assert np.all(
+        result_flagger.getFlags(loc=other_flagger.getFlags().index) == other_flags
+    )
+
+    assert np.all(
+        result_flags[~result_flags.index.isin(other_flags.index)] == flagger.UNFLAGGED
+    )
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_setFlaggerColumnsDiff(data, flagger):
+
+    field, *_ = data.columns
+    new_field = field + "_new"
+    iloc = slice(None, None, 2)
+
+    other_data = data.iloc[iloc]
+    other_data.columns = [new_field] + data.columns[1:].to_list()
+
+    this_flagger = flagger.initFlags(data).setFlags(field, flag=flagger.BAD)
+    other_flagger = flagger.initFlags(other_data)
+    result_flagger = this_flagger.setFlagger(other_flagger)
+
+    assert np.all(
+        result_flagger.getFlags(new_field, loc=other_data.index)
+        == other_flagger.getFlags(new_field)
+    )
+    assert np.all(
+        result_flagger.getFlags(new_field, loc=data.index) == flagger.UNFLAGGED
+    )
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_setFlaggerIndexDiff(data, flagger):
+
+    field, *_ = data.columns
+    iloc = slice(None, None, 2)
+
+    other_data = data.iloc[iloc]
+    other_data.index = other_data.index + pd.Timedelta(minutes=2, seconds=25)
+
+    this_flagger = flagger.initFlags(data).setFlags(field, flag=flagger.BAD)
+    other_flagger = flagger.initFlags(other_data)
+    result_flagger = this_flagger.setFlagger(other_flagger)
+
+    assert np.all(
+        result_flagger.getFlags(field, loc=other_data.index)
+        == other_flagger.getFlags(field)
+    )
+    assert np.all(
+        result_flagger.getFlags(field, loc=data.index) == this_flagger.getFlags(field)
+    )
 
 
 @pytest.mark.parametrize("data", DATASETS)
@@ -81,9 +148,24 @@ def test_isFlaggedDataFrame(data, flagger):
     df_tests = [
         (flagger.isFlagged(), mask),
         (flagger.setFlags(field).isFlagged(), ~mask),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator=">"), mask),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="<"), mask),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="=="), ~mask),
+        (
+            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(
+                flag=flagger.GOOD, comparator=">"
+            ),
+            mask,
+        ),
+        (
+            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(
+                flag=flagger.GOOD, comparator="<"
+            ),
+            mask,
+        ),
+        (
+            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(
+                flag=flagger.GOOD, comparator="=="
+            ),
+            ~mask,
+        ),
     ]
     for flags, expected in df_tests:
         assert np.all(flags[field] == expected)
@@ -106,9 +188,24 @@ def test_isFlaggedSeries(data, flagger):
     series_tests = [
         (flagger.isFlagged(field), mask),
         (flagger.setFlags(field).isFlagged(field), ~mask),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator=">"), mask),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="<"), mask),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="=="), ~mask),
+        (
+            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(
+                field, flag=flagger.GOOD, comparator=">"
+            ),
+            mask,
+        ),
+        (
+            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(
+                field, flag=flagger.GOOD, comparator="<"
+            ),
+            mask,
+        ),
+        (
+            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(
+                field, flag=flagger.GOOD, comparator="=="
+            ),
+            ~mask,
+        ),
     ]
     for flags, expected in series_tests:
         assert np.all(flags == expected)

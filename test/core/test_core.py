@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import numpy as np
 import pandas as pd
 
 from saqc.funcs import register, flagRange
@@ -11,9 +12,7 @@ from saqc.lib.plotting import _plot
 from test.common import initData, initMetaDict, TESTFLAGGER
 
 
-@pytest.fixture
-def data():
-    return initData(3)
+OPTIONAL = [False, True]
 
 
 @register("flagAll")
@@ -22,8 +21,31 @@ def flagAll(data, field, flagger, **kwargs):
     return data, flagger.setFlags(field=field, flag=flagger.BAD)
 
 
+@pytest.fixture
+def data():
+    return initData(3)
+
+
+def _initFlags(flagger, data, optional):
+    return None
+    if optional:
+        return flagger.initFlags(data[data.columns[::2]])._flags
+
+
+@pytest.fixture
+def flags(flagger, data, optional):
+    if not optional:
+        return flagger.initFlags(data[data.columns[::2]])._flags
+
+
+# NOTE: there is a lot of pytest magic involved:
+#       the parametrize parameters are implicitly available
+#       within the used fixtures, that is why we need the optional
+#       parametrization without actually using it in the
+#       function
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_temporalPartitioning(data, flagger):
+@pytest.mark.parametrize("optional", OPTIONAL)
+def test_temporalPartitioning(data, flagger, flags):
     """
     Check if the time span in meta is respected
     """
@@ -36,7 +58,7 @@ def test_temporalPartitioning(data, flagger):
         {F.VARNAME: var3, F.TESTS: "flagAll()", F.START: split_date},
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
-    pdata, pflagger = runner(meta_file, flagger, data)
+    pdata, pflagger = runner(meta_file, flagger, data, flags=flags)
 
     fields = [F.VARNAME, F.START, F.END]
     for _, row in meta_frame.iterrows():
@@ -47,8 +69,11 @@ def test_temporalPartitioning(data, flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_positionalPartitioning(data, flagger):
+@pytest.mark.parametrize("optional", OPTIONAL)
+def test_positionalPartitioning(data, flagger, flags):
     data = data.reset_index(drop=True)
+    if flags is not None:
+        flags = flags.reset_index(drop=True)
     var1, var2, var3, *_ = data.columns
     split_index = int(len(data.index) // 2)
 
@@ -59,7 +84,7 @@ def test_positionalPartitioning(data, flagger):
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
 
-    pdata, pflagger = runner(meta_file, flagger, data)
+    pdata, pflagger = runner(meta_file, flagger, data, flags=flags)
 
     fields = [F.VARNAME, F.START, F.END]
     for _, row in meta_frame.iterrows():
@@ -72,7 +97,8 @@ def test_positionalPartitioning(data, flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_missingConfig(data, flagger):
+@pytest.mark.parametrize("optional", OPTIONAL)
+def test_missingConfig(data, flagger, flags):
     """
     Test if variables available in the dataset but not the config
     are handled correctly, i.e. are ignored
@@ -82,7 +108,7 @@ def test_missingConfig(data, flagger):
     metadict = [{F.VARNAME: var1, F.TESTS: "flagAll()"}]
     metafobj, meta = initMetaDict(metadict, data)
 
-    pdata, pflagger = runner(metafobj, flagger, data)
+    pdata, pflagger = runner(metafobj, flagger, data, flags=flags)
 
     assert var1 in pdata and var2 not in pflagger.getFlags()
 
@@ -103,6 +129,28 @@ def test_missingVariable(flagger):
     metafobj, meta = initMetaDict(metadict, data)
     with pytest.raises(NameError):
         runner(metafobj, flagger, data)
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_duplicatedVariable(flagger):
+    data = initData(1)
+    var1, *_ = data.columns
+
+    metadict = [
+        {F.VARNAME: var1, F.ASSIGN: False, F.TESTS: "flagAll()"},
+        {F.VARNAME: var1, F.ASSIGN: True, F.TESTS: "flagAll()"},
+    ]
+    metafobj, meta = initMetaDict(metadict, data)
+
+    pdata, pflagger = runner(metafobj, flagger, data)
+    pflags = pflagger.getFlags()
+
+    if isinstance(pflags.columns, pd.MultiIndex):
+        cols = pflags.columns.get_level_values(0).drop_duplicates()
+        assert np.all(cols == [var1])
+    else:
+        assert (pflags.columns == [var1]).all()
+
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -134,7 +182,8 @@ def test_assignVariable(flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_dtypes(data, flagger):
+@pytest.mark.parametrize("optional", OPTIONAL)
+def test_dtypes(data, flagger, flags):
     """
     Test if the categorical dtype is preserved through the core functionality
     """
@@ -147,12 +196,11 @@ def test_dtypes(data, flagger):
         {F.VARNAME: var2, F.TESTS: "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
-    pdata, pflagger = runner(metafobj, flagger, data, flags)
+    pdata, pflagger = runner(metafobj, flagger, data, flags=flags)
     pflags = pflagger.getFlags()
     assert dict(flags.dtypes) == dict(pflags.dtypes)
 
 
-@pytest.mark.skip(reason="not ported yet")
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_plotting(data, flagger):
     """
@@ -169,4 +217,4 @@ def test_plotting(data, flagger):
         data, field, flagger_range, min=40, max=60, flag=flagger.GOOD
     )
     mask = flagger.getFlags(field) != flagger_range.getFlags(field)
-    plot(data, mask, field, flagger, interactive_backend=False)
+    _plot(data, mask, field, flagger, interactive_backend=False)

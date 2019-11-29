@@ -17,17 +17,15 @@ def _collectVariables(meta, data):
     find every relevant variable
     """
     # NOTE: get to know every variable from meta
-    flags = []  # data.columns.tolist()
+    variables = []
     for idx, configrow in meta.iterrows():
         varname = configrow[Fields.VARNAME]
         assign = configrow[Fields.ASSIGN]
-        if varname in flags:
+        if varname in variables:
             continue
-        if varname in data:
-            flags.append(varname)
-        elif varname not in flags and assign is True:
-            flags.append(varname)
-    return flags
+        if (varname in data) or (varname not in variables and assign is True):
+            variables.append(varname)
+    return variables
 
 
 def _checkInput(data, flags, flagger):
@@ -75,14 +73,14 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy="ra
     meta = config[config.columns.difference(tests.columns)]
 
     # # prepapre the flags
-    varnames = _collectVariables(meta, data)
-    fresh = flagger.initFlags(pd.DataFrame(index=data.index, columns=varnames))
-    flagger = fresh if flags is None else flags._flags.join(fresh._flags)
-    # if flags is None:
-    #     flag_cols = _collectVariables(meta, data)
-    #     flagger = flagger.initFlags(pd.DataFrame(index=data.index, columns=flag_cols))
-    # else:
-    #     flagger = flagger.initFlags(flags=flags)
+    # varnames = _collectVariables(meta, data)
+    # fresh = flagger.initFlags(pd.DataFrame(index=data.index, columns=varnames))
+    # flagger = fresh if flags is None else flags.join(fresh._flags)
+
+    flag_cols = _collectVariables(meta, data)
+    flagger = flagger.initFlags(data=pd.DataFrame(index=data.index, columns=flag_cols))
+    if flags is not None:
+        flagger = flagger.setFlagger(flagger.initFlags(flags=flags))
 
     # this checks comes late, but the compiling of the user-test need fully prepared flags
     checkConfig(config, data, flagger, nodata)
@@ -132,7 +130,14 @@ def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy="ra
 
             flagger = flagger.setFlagger(flagger_chunk_result)
 
-            plotHook(dchunk, flagger_chunk, flagger_chunk_result, varname, configrow[Fields.PLOT], flag_test)
+            plotHook(
+                dchunk,
+                flagger_chunk,
+                flagger_chunk_result,
+                varname,
+                configrow[Fields.PLOT],
+                flag_test,
+            )
 
     plotAllHook(data, flagger)
 
