@@ -49,15 +49,13 @@ class BaseFlagger(ABC):
         if 'data' is not None: return a flagger with flagger.UNFALGGED values
         if 'flags' is not None: return a flagger with the given flags
         """
+
+        if data is None and flags is None:
+            raise TypeError("either 'data' or 'flags' are required")
         if data is not None:
-            assertDataFrame(data, "data", allow_multiindex=False)
             flags = pd.DataFrame(
                 data=self.UNFLAGGED, index=data.index, columns=data.columns
             )
-        elif flags is not None:
-            assertDataFrame(flags, "flags", allow_multiindex=False)
-        else:
-            raise TypeError("either 'data' or 'flags' are required")
         return self._copy(self._assureDtype(flags))
 
     def setFlagger(self, other: BaseFlaggerT):
@@ -80,7 +78,7 @@ class BaseFlagger(ABC):
         for key, values in other.iteritems():
             flags.loc[other.index, key] = values
 
-        return self._copy(flags)
+        return self._copy(self._assureDtype(flags))
 
     def getFlagger(
         self, field: str = None, loc: LocT = None, iloc: IlocT = None

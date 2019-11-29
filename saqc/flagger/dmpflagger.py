@@ -50,15 +50,14 @@ class DmpFlagger(CategoricalBaseFlagger):
         if 'data' is not None: return a flagger with flagger.UNFALGGED values
         if 'flags' is not None: return a flagger with the given flags
         """
+
         if data is not None:
-            assertDataFrame(data, "data", allow_multiindex=False)
             flags = pd.DataFrame(
                 data=self.UNFLAGGED,
                 columns=self._getColumnIndex(data.columns),
                 index=data.index,
             )
         elif flags is not None:
-            assertDataFrame(flags, "flags", allow_multiindex=False)
             if not isinstance(flags.columns, pd.MultiIndex):
                 flags = flags.T.set_index(
                     keys=self._getColumnIndex(flags.columns, [FlagFields.FLAG])
