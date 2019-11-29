@@ -74,3 +74,6 @@ Breaks_SpektrumBased(diff_method="raw", filter_window_size="3h",
                      first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
                      scnd_der_ratio_margin_2=10, smooth_poly_order=2)
 ```
+```
+machinelearning(references, window_values, window_flags, path)
+```
