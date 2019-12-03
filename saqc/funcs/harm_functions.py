@@ -600,7 +600,7 @@ def _reshapeFlags(
             base = seconds_total / 2
             freq_string = str(int(seconds_total)) + "s"
             if (
-                abs(flags.index[0] - flags.index[0].ceil(freq))
+                abs(flagger._flags.index[0] - flagger._flags.index[0].ceil(freq))
                 <= pd.Timedelta(freq) / 2
             ):
                 shift_correcture = -1
@@ -609,7 +609,7 @@ def _reshapeFlags(
 
         # resampling the flags series with aggregation method
         flags = (
-            flagger_new.getFlags()
+            flagger.getFlags()
             # NOTE: otherwise the datetime index will get lost
             .squeeze()
             .resample(freq_string, closed=closed, label=label, base=base)
@@ -622,7 +622,7 @@ def _reshapeFlags(
         if method == "nearest_agg":
             flags = flags.shift(periods=-shift_correcture, freq=pd.Timedelta(freq) / 2)
 
-        flagger_new = flagger_new.initFlags(flags=flags.to_frame(name=field))
+        flagger_new = flagger.initFlags(flags=flags.to_frame(name=field))
 
     else:
         methods = ", ".join(shifts + ["\n"] + aggregations)
