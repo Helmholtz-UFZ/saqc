@@ -8,9 +8,10 @@ import pandas as pd
 from saqc.funcs.soil_moisture_tests import (
     flagSoilMoistureBySoilFrost,
     flagSoilMoistureByPrecipitationEvents,
+    flagSoilMoistureByConstantsDetection
 )
 
-from test.common import TESTFLAGGER
+from test.common import TESTFLAGGER, initData
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -58,6 +59,22 @@ def test_flagSoilMoisturePrecipitationEvents(flagger):
     test_sum = (flag_result[flag_assertion] == flagger.BAD).sum()
     assert test_sum == len(flag_assertion)
 
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_flagSoilMoistureByConstantsDetection(flagger):
+
+    data = initData(
+        1, start_date="2011-01-01 00:00:00", end_date="2011-01-02 00:00:00", freq="5min"
+    )
+    data.iloc[5:25] = 0
+    data.iloc[100:120] = data.max()[0]
+    field = data.columns[0]
+    flagger = flagger.initFlags(data)
+    data, flagger = flagSoilMoistureByConstantsDetection(data, field, flagger, plateau_window_min='1h',
+                                                         rainfall_window_range='1h')
+
+    assert ~(flagger.isFlagged()[5:25]).all()[0]
+    assert (flagger.isFlagged()[100:120]).all()[0]
+
 if __name__ == "__main__":
     flagger = TESTFLAGGER[2]
-    test_flagSoilMoistureBySoilFrost(flagger)
+    test_flagSoilMoistureByConstantsDetection(flagger)

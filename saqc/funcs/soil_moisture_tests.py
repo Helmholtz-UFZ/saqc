@@ -265,17 +265,17 @@ def flagSoilMoistureByConstantsDetection(
     plateau_window_min="12h",
     plateau_var_limit=0.0005,
     rainfall_window_range="12h",
-    filter_window_size="3h",
+    filter_window_size=None,
     var_total_nans=np.inf,
     var_consec_nans=np.inf,
     derivative_maximum_lb=0.0025,
     derivative_minimum_ub=0,
     data_max_tolerance=0.95,
+    smooth_poly_order=2,
     **kwargs
 ):
 
-    """Function is not ready to use yet: we are waiting for response from the author of [Paper] in order of getting
-    able to exclude some sources of confusion.
+    """
 
     Note, function has to be harmonized to equidistant freq_grid
 
@@ -322,13 +322,27 @@ def flagSoilMoistureByConstantsDetection(
     # 2. extend forwards:
     if period_diff > 0:
         cond1_sets = cond1_sets.replace(1, method='ffill', limit=period_diff)
+
     # get first derivative
+    if filter_window_size is None:
+        filter_window_size = 3 * pd.Timedelta(moist_rate)
+    else:
+        filter_window_size = pd.Timedelta(filter_window_size)
     first_derivative = dataseries.diff()
-    # cumsum trick to seperate continous plateau groups from each other
+    filter_window_seconds = filter_window_size.seconds
+    smoothing_periods = int(np.ceil((filter_window_seconds / moist_rate.n)))
+    first_derivate = savgol_filter(
+        dataseries,
+        window_length=smoothing_periods,
+        polyorder=smooth_poly_order,
+        deriv=1,
+    )
+    first_derivate = pd.Series(data=first_derivate, index=dataseries.index, name=dataseries.name)
+    # cumsumming to seperate continous plateau groups from each other:
     group_counter = cond1_sets.cumsum()
     group_counter = group_counter[group_counter.diff() == 0]
     group_counter.name = 'group_counter'
-    group_frame = pd.merge(group_counter, first_derivative, left_index=True, right_index=True, how='inner')
+    group_frame = pd.merge(group_counter, first_derivate, left_index=True, right_index=True, how='inner')
     group_frame = group_frame.groupby('group_counter')
     condition_passed = group_frame.filter(
         lambda x: (x[field].max() >= derivative_maximum_lb) & (x[field].min() <= derivative_minimum_ub))
