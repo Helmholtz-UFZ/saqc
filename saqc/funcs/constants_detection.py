@@ -96,7 +96,7 @@ def flagConstant_varianceBased(
     if plateaus.sum() == 0:
         return data, flagger
 
-    plateaus.fillna(method="bfill", limit=min_periods, inplace=True)
+    plateaus.fillna(method="bfill", limit=min_periods-1, inplace=True)
 
     # result:
     plateaus = (plateaus[plateaus == 1.0]).index
