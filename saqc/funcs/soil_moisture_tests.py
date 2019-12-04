@@ -12,9 +12,7 @@ from saqc.funcs.spike_detection import flagSpikes_spektrumBased
 from saqc.funcs.constants_detection import flagConstant_varianceBased
 from saqc.funcs.register import register
 from saqc.lib.tools import (
-    estimateSamplingRate,
-    retrieveTrustworthyOriginal,
-    offset2periods,
+    retrieveTrustworthyOriginal
 )
 
 

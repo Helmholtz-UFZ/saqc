@@ -157,17 +157,6 @@ def offset2seconds(offset):
     return pd.Timedelta.total_seconds(pd.Timedelta(offset))
 
 
-def offset2periods(input_offset, period_offset):
-    """Function returns the number of periods of length "periods_offset" that sum up to length "input offset".
-    (Namely their fraction.)
-
-    :param input_offset         Offset string or pandas offset object.
-    :param period_offset        Offset string or pandas offset object.
-    """
-
-    return offset2seconds(input_offset) / offset2seconds(period_offset)
-
-
 def flagWindow(
     flagger_old, flagger_new, field, direction="fw", window=0, **kwargs
 ) -> pd.Series:

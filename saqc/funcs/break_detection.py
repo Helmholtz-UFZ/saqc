@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.signal import savgol_filter
 
 from saqc.funcs.register import register
-from saqc.lib.tools import retrieveTrustworthyOriginal, offset2periods
+from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
 @register("breaks_spektrumBased")

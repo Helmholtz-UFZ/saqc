@@ -83,7 +83,7 @@ def flagConstant_varianceBased(
 
     dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
-    min_periods = int(offset2periods(plateau_window_min, data_rate))
+    min_periods = int(np.ceil(pd.Timedelta(plateau_window_min) / pd.Timedelta(data_rate)))
 
     plateaus = dataseries.rolling(
         window=plateau_window_min, min_periods=min_periods
