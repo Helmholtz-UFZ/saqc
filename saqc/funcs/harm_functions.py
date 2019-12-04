@@ -608,7 +608,6 @@ def _reshapeFlags(
             # NOTE: breaks for non categorical flaggers
             .apply(lambda x: agg_method(x) if not x.empty else missing_flag)
             .astype(flagger.dtype)
-            .to_frame(name=field)
         )
 
         if method == "nearest_agg":
@@ -776,3 +775,60 @@ def _toMerged(
         return flagMissing(
             data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan
         )
+
+
+@register('harmonize_shift2Grid')
+def shift2Grid(data, field, flagger, freq, shift_method='nearest_shift', drop_flags=None, **kwargs):
+    return harmonize(
+        data,
+        field,
+        flagger,
+        freq,
+        inter_method=shift_method,
+        reshape_method=shift_method,
+        drop_flags=drop_flags,
+        **kwargs)
+
+
+@register('harmonize_aggregate2Grid')
+def aggregate2Grid(data, field, flagger, freq, agg_func, agg_method='nearest_agg', flag_agg_func=max, drop_flags=None, **kwargs):
+    return harmonize(
+        data,
+        field,
+        flagger,
+        freq,
+        inter_method=agg_method,
+        reshape_method=agg_method,
+        inter_agg=agg_func,
+        reshape_agg=flag_agg_func,
+        drop_flags=drop_flags,
+        **kwargs)
+
+
+@register('harmonize_linear2Grid')
+def linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func=max, drop_flags=None, **kwargs):
+    return harmonize(
+        data,
+        field,
+        flagger,
+        freq,
+        inter_method='time',
+        reshape_method=flag_assignment_method,
+        reshape_agg=flag_agg_func,
+        drop_flags=drop_flags,
+        **kwargs)
+
+
+@register('harmonize_interpolate2Grid')
+def interpolate2Grid(data, field, flagger, freq, interpolation_method, interpolation_order=1, flag_assignment_method='nearest_agg', flag_agg_func=max, drop_flags=None, **kwargs):
+    return harmonize(
+        data,
+        field,
+        flagger,
+        freq,
+        inter_method=interpolation_method,
+        inter_order=interpolation_order,
+        reshape_method=flag_assignment_method,
+        reshape_agg=flag_agg_func,
+        drop_flags=drop_flags,
+        **kwargs)

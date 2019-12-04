@@ -15,6 +15,10 @@ from saqc.funcs.harm_functions import (
     _interpolateGrid,
     _insertGrid,
     _outsortCrap,
+    linear2Grid,
+    interpolate2Grid,
+    shift2Grid,
+    aggregate2Grid
 )
 
 
@@ -287,7 +291,7 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
 def test_gridInterpolation(data, method):
     freq = "15min"
     data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
-    # we are just testing if the interolation gets passed to the series without causing an error:
+    # we are just testing if the interpolation gets passed to the series without causing an error:
     _interpolateGrid(
         data, freq, method, order=1, agg_method=sum, downcast_interpolation=True
     )
@@ -322,3 +326,16 @@ def test_outsortCrap(data, flagger):
         data, field, flagger, drop_flags=[flagger.BAD, flagger.GOOD], return_drops=True,
     )
     assert f_drop.index.sort_values().equals(drop_index.sort_values())
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_wrapper(data, flagger):
+    # we are only testing, whether the wrappers do pass processing:
+    field = data.columns[0]
+    freq = '15min'
+    flagger = flagger.initFlags(data)
+    linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func=max,
+                               drop_flags=None)
+    aggregate2Grid(data, field, flagger, freq, agg_func=sum, agg_method='nearest_agg',
+                                  flag_agg_func=max, drop_flags=None)
+    shift2Grid(data, field, flagger, freq, shift_method='nearest_shift', drop_flags=None)
+
