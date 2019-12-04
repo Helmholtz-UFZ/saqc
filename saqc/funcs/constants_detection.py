@@ -9,8 +9,7 @@ from saqc.lib.statistic_functions import varQC
 from saqc.lib.tools import (
     valueRange,
     slidingWindowIndices,
-    retrieveTrustworthyOriginal,
-    offset2periods,
+    retrieveTrustworthyOriginal
 )
 
 # todo: flagConstant does not flag the constant plateau data from test_constants properly

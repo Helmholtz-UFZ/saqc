@@ -90,62 +90,57 @@ def inferFrequency(data):
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
-def estimateSamplingRate(index):
-    """The function estimates the sampling rate of a datetime index.
-    The estimation basically evaluates a histogram of bins with seconds-accuracy. This means, that the
-    result may be contra intuitive or trashy very likely, if the input series is not rastered (harmonized with skips)
-    to an interval divisible by seconds.
 
-    :param index: A DatetimeIndex or array like Datetime listing, of wich you want the sampling rate to be
-                  estimated.
-    """
-
-    if index.empty:
-        return pd.tseries.frequencies.to_offset("0s")
-    scnds_series = (pd.Series(index).diff().dt.total_seconds()).dropna()
-    max_scnds = scnds_series.max()
-    min_scnds = scnds_series.min()
-    hist = np.histogram(
-        scnds_series,
-        range=(min_scnds, max_scnds + 1),
-        bins=int(max_scnds - min_scnds + 1),
-    )
-    # return smallest non zero sample difference (this works, because input is expected to be at least
-    # harmonized with skips)
-    return pd.tseries.frequencies.to_offset(
-        str(int(hist[1][:-1][hist[0] > 0].min())) + "s"
-    )
-
-
-def retrieveTrustworthyOriginal(data, field, flagger=None):
+def retrieveTrustworthyOriginal(data, field, flagger=None, level=None):
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
-    differenciating between missng value - nans und fillvalue nans is impossible. This function evaluates flags for a
-    passed series, if flags and flagger object are passed and downsamples the input series to its original sampling
-    rate and sparsity.
+    differenciating between missng value - nans und fillvalue nans is impossible.
 
-    :param dataseries:  The pd.dataseries object that you want to sample to original rate. It has to have a harmonic
-                        timestamp.
-    :param dataflags:   A flagger object, to apply the passed flags onto the dataseries.
+    This function:
+    (1) if flagger is None:
+        (a) estimates the sampling rate of the input dataseries by dropping all nans and then returns the series at the
+            estimated samplng rate.
+
+    (2) if "flagger" is not None but "level" is None:
+        (a) all values are dropped, that are flagged worse then flagger.GOOD. (so unflagged values wont be dropped)
+        (b) estimates the sampling rate of the input dataseries by dropping all nans and then returns the series at the
+            estimated samplng rate.
+    (3) if "flagger" is not None and "level" is not None:
+        (a) all values are dropped, that are flagged worse then level. (so unflagged values wont be dropped)
+        (b) estimates the sampling rate of the input dataseries by dropping all nans and then returns the series at the
+            estimated samplng rate.
+
+    Note, that the passed dataseries should be harmonized to an equidistant
+        frequencie grid (maybe including blow up entries).
+
+    :param data:        DataFrame. The Data frame holding the data containing 'field'.
+    :param field:       String. Fieldname of the column in data, that you want to sample to original sampling rate.
+                        It has to have a harmonic
+    :param flagger:     None or a flagger object.
+    :param level:       Lower bound of flags that are excepted for data. Must be a flag the flagger can handle.
 
     """
     dataseries = data[field]
+
     if flagger is not None:
-        data_use = flagger.isFlagged(field, flag=flagger.GOOD, comparator="<=")
+        if level is not None:
+            data_use = flagger.isFlagged(field, flag=level, comparator="<=")
+        else:
+            data_use = flagger.isFlagged(field, flag=flagger.GOOD, comparator="<=")
         # drop all flags that are suspicious or worse
         dataseries = dataseries[data_use]
 
     # drop the nan values that may result from any preceeding upsampling of the measurements:
     dataseries = dataseries.dropna()
+
     if dataseries.empty:
         return dataseries, np.nan
 
     # estimate original data sampling frequencie
     # (the original series sampling rate may not match data-input sample rate):
-    data_rate = estimateSamplingRate(dataseries.index)
+    seconds_rate = (dataseries.index - dataseries.index.shift(-1)).to_series().min().seconds
+    data_rate = pd.tseries.frequencies.to_offset(str(seconds_rate) + 's')
 
-    # resample dataseries to its original sampling rate
-    # (now certain, to only get nans, indeed denoting "missing" data)
-    return dataseries.resample(data_rate).asfreq(), data_rate
+    return dataseries.asfreq(data_rate), data_rate
 
 
 def offset2seconds(offset):

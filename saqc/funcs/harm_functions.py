@@ -62,7 +62,8 @@ def harmWrapper(heap={}):
         )
         # and dropped for harmonization:
         if drop_flags is not None:
-            drop_flags.append(flagger.BAD)
+            if flagger.BAD not in drop_flags:
+                drop_flags.append(flagger.BAD)
 
         # before sending the current flags and data frame to the future (for backtracking reasons), we clear it
         # from merge-nans that just resulted from harmonization of other variables!
