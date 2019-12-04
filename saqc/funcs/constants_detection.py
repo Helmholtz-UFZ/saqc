@@ -13,6 +13,8 @@ from saqc.lib.tools import (
     offset2periods,
 )
 
+# todo: flagConstant does not flag the constant plateau data from test_constants properly
+# todo: maybe generalize flag_constant to work on non harmonized data as well.
 
 @register("constant")
 def flagConstant(data, field, flagger, eps, length, thmin=None, **kwargs):
