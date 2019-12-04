@@ -11,15 +11,6 @@ from saqc.lib.tools import toSequence
 
 
 # todo: frequencie estimation function
-# todo: tests!
-# todo: flag assignment to wholes is slightly unconsistent since it doesnt get the missing keyword.
-# todo: restrict parameter freedom (harm_freq and deharm_freq have to equal -> auto derive deharm_freq)
-# todo: check agg_method argument behavior as passed to resample (nan handling / empty series handling)
-# todo: drop-lists
-# todo: rename set_shift_comment
-# todo: rong method keyword error raise
-# todo: make - full grid!
-# todo: Bug in set shift comment!
 # todo: accelerated func applies
 
 
@@ -599,8 +590,9 @@ def _reshapeFlags(
             seconds_total = pd.Timedelta(freq).total_seconds()
             base = seconds_total / 2
             freq_string = str(int(seconds_total)) + "s"
+            i_start = flagger.getFlags().index[0]
             if (
-                abs(flagger._flags.index[0] - flagger._flags.index[0].ceil(freq))
+                abs(i_start - i_start.ceil(freq))
                 <= pd.Timedelta(freq) / 2
             ):
                 shift_correcture = -1
