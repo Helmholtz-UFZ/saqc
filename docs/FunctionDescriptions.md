@@ -544,4 +544,42 @@ machinelearning(references, window_values, window_flags, path)
 
 
 ### Description
-This Function uses pre-trained machine-learning model objects for flagging. This requires training a model by use of the [training script](../ressources/machine_learning/train_machine_learning.py) provided. For flagging, inputs to the model are the data of the variable of interest, data of reference variables and the automatic flags that were assigned by other tests inside SaQC. Internally, context information for each point is gathered in form of moving windows. The size of the moving windows for counting of the surrounding automatic flags and for calculation of gradients in the data is specified by the user during model training. For the model to work, the parameters 'references', 'window_values' and 'window_flags' have to be set to the same values as during training. For a more detailed description of the modeling aproach see the [training script](../ressources/machine_learning/train_machine_learning.py).
+This Function uses pre-trained machine-learning model objects for flagging. 
+This requires training a model by use of the [training script](../ressources/machine_learning/train_machine_learning.py) provided. 
+For flagging, inputs to the model are the data of the variable of interest, 
+data of reference variables and the automatic flags that were assigned by other 
+tests inside SaQC. 
+Internally, context information for each point is gathered in form of moving 
+windows. The size of the moving windows for counting of the surrounding 
+automatic flags and for calculation of gradients in the data is specified by 
+the user during model training. For the model to work, the parameters 
+'references', 'window_values' and 'window_flags' have to be set to the same 
+values as during training. For a more detailed description of the modeling 
+aproach see the [training script](../ressources/machine_learning/train_machine_learning.py).
+
+## `constant`
+
+### Signature
+```
+harmonize(freq, inter_method, reshape_method, inter_agg=np.mean, inter_order=1,
+          inter_downcast=False, reshape_agg=max, reshape_missing_flag=None,
+          reshape_shift_comment=False, drop_flags=None, 
+          data_missing_value=np.nan, **kwargs)
+```
+
+### Parameters
+| parameter          | data type | default value | description |
+| ------             | ------    | ------        | ----        |
+| eps                |           |               |             |
+| length             |           |               |             |
+| thmin              |           | `None`        |             |
+| eps                |           |               |             |
+| length             |           |               |             |
+| thmin              |           | `None`        |             |
+| eps                |           |               |             |
+| length             |           |               |             |
+| thmin              |           | `None`        |             |
+
+### Description
+
+
