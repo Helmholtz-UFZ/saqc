@@ -642,8 +642,8 @@ Key word overview:
     * There are available all the interpolation methods from the pandas.interpolate() method and they can be reffered to with
       the very same keywords, that you would pass to pd.Series.interpolates's method parameter.
     * Available interpolations: ´"linear"´, ´"time"´, ´"nearest"´, ´"zero"´, ´"slinear"´,
-      ´"quadratic"´, ´"cubic"´, ´"spline"´, ´"barycentric"´, ´"polynomial"´, ´"krogh"´,
-      ´"piecewise_polynomial"´, ´"spline"´, ´"pchip"´, ´"akima"´.
+      `"quadratic"`, `"cubic"`, `"spline"`, `"barycentric"`, `"polynomial"`, `"krogh"`,
+      `"piecewise_polynomial"`, `"spline"`, `"pchip"`, `"akima"`.
     * If a selected interpolation method needs to get passed an order of 
       interpolation, it will get passed the order, passed to `inter_order`.
     * Note, that ´"linear"´ does not refer to timestamp aware, linear 
@@ -667,8 +667,8 @@ Key word overview:
       if there is one available in the succeeding sampling interval. If not, BAD - flag gets assigned.
     * `"nearest_shift"`: every grid point gets assigned the flag in its range. ( range = +/- `freq`/2 ).
     * Extra flag fields like "comment", just get shifted along with the flag. 
-      Only inserted flags for empty intervals will take the **kwargs argument.
-      Set "`set_shift_comment`"" to `True`,  to apply kwargs** to all flags.
+      Only inserted flags for empty intervals will signified by the set flag routine of the current flagger..
+      Set `set_shift_comment` to `True`,  to apply setFlags signification to all flags.
 2. Aggregations:
     * `"fagg"`: all falgs in a sampling interval get aggregated with the function passed to `agg_method`
                 , and the result gets assigned to the last grid point.
@@ -676,6 +676,9 @@ Key word overview:
                 , and the result gets assigned to the next grid point.
     * `"nearest_agg"`: all flags in the range (+/- freq/2) of a grid point get 
                        aggregated with the function passed to agg_method and assigned to it.
+
+
+
 
 
  
