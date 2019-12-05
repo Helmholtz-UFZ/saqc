@@ -264,7 +264,7 @@ NOTE, that when `var_total_nans` or `var_consec_nans` are set to a value < `Inf`
 , plateaus that can not be calculated the variance of, due to missing values,
 will never be flagged. (Test not applicable rule.)
 
-## `constant`
+## `soilMoisture_plateaus`
 
 ### Signature
 ```
@@ -557,29 +557,70 @@ the user during model training. For the model to work, the parameters
 values as during training. For a more detailed description of the modeling 
 aproach see the [training script](../ressources/machine_learning/train_machine_learning.py).
 
-## `constant`
+## `harmonize`
 
 ### Signature
 ```
 harmonize(freq, inter_method, reshape_method, inter_agg=np.mean, inter_order=1,
           inter_downcast=False, reshape_agg=max, reshape_missing_flag=None,
-          reshape_shift_comment=False, drop_flags=None, 
-          data_missing_value=np.nan, **kwargs)
+          reshape_shift_comment=True, drop_flags=None, 
+          data_missing_value=np.nan)
 ```
 
 ### Parameters
-| parameter          | data type | default value | description |
-| ------             | ------    | ------        | ----        |
-| eps                |           |               |             |
-| length             |           |               |             |
-| thmin              |           | `None`        |             |
-| eps                |           |               |             |
-| length             |           |               |             |
-| thmin              |           | `None`        |             |
-| eps                |           |               |             |
-| length             |           |               |             |
-| thmin              |           | `None`        |             |
+| parameter          | data type        | default value    | description |
+| ------             | ------           | ------           | ----        |
+| freq               | string           |           | Offset string. The frequency of the grid, the data-to-be-flagged shall be projected on.|
+| inter_method       | string           |           | A keyword, determining the method, used for projecting the data on the new, equidistant data index. See a list of options below.|
+| reshape_method     | string           |           | A keyword, determining the method, used for projecting the flags on the new, equidistant data index. See a list of options below.|
+| inter_agg          | func             |`np.mean`  | A function, used for aggregation, if an aggregation method is selected as `inter_method`. |
+| inter_order        | int              |`1`        | The order of interpolation applied, if an interpolation method is passed to `inter_method`|
+| inter_downcast     | boolean          |`False`    | `True`: Use lower interpolation order to interpolate data chunks that are too short to be interpolated with order `inter_order`. <br/> `False`: Project values of too-short data chunks onto `NaN`. <br/> Option only relevant if `inter_method` can be of certain order.| 
+| reshape_shift_comment | boolean       |`True`     | `True`: Flags that got shifted forward or backward on the new equidistant data index, get resetted additionally. This may, for example, result in eventually present comment fields, to get overwritten with whatever is defaultly been written in this field for the current flagger, if a function sets a flag. <br/> `False`: No reset of the shifted flag will be made. <br/> <br/> Only relevant for flagger having more fields then the flags field and a shifting method passed to `inter_method`|
+| drop_flags         | list or Nonetype |`None`     | A list of flags to exclude from harmonization. See step (1) below. If `None` is passed, only BAD - flagged values get dropped. If a list is passed, the BAD flag gets added to that list by default |
+| data_missing_value | any valeu        |`np.nan`   | The value, indicating missing data in the dataseries-to-be-flagged.|
 
 ### Description
+
+The function "harmonizes" the data-to-be-flagged, to match an equidistant 
+frequency grid. In general this includes projection and/or interpolation of 
+the data at timestamp values, that are multiples of `freq`.
+
+In detail the process includes:
+
+1. All missing values in the data, identified by `data_missing_value` 
+   get flagged and will be excluded from the harmonization process.
+   NOTE, that implicitly this step includes a call to `missing` onto the 
+   data-to-be-flagged. 
+2. Additionally, if a list is passed to `drop_flags`, all the values in data, 
+   that are flagged with a flag, listed in `drop_list`, will be excluded from
+   harmonization - meaning, that they will not affect the further 
+   interpolation/aggregation prozess.
+3. Depending on the keyword passed to `inter_method`, new data values get 
+   calculated for an equidistant timestamp series of frequency `freq`, ranging 
+   from start to end of the data-to-be-flagged.
+   NOTE, that this step will very likely change the size of the dataseries 
+   to-be-flagged.
+   New sampling intervals, covering no data in the original dataseries or only 
+   data that got excluded in step (1), will be regarded as representing missing 
+   data (Thus get assigned `NaN` value). 
+   The original data will be dropped (but can be regained by function 
+   `deharmonize`).
+4. Depending on the keyword passed to `reshape_method`, the original flags get
+   projected/aggregated onto the new, harmonized data, generated in step (3).
+   New sampling intervals, covering no data in the original dataseries or only 
+   data that got excluded in step (1), will be regarded as representing missing 
+   data and thus get assigned the worst flag level available.
+
+NOTE, that, if: 
+
+(1) you want to calculate flags on the new, harmonic dataseries and 
+    project this flags back onto the original timestamps/flags, you have to 
+    add a call to `deharmonize` on this variable in your meta file.
+
+(2) you want to restore the original data shape, as inserted into saqc - you
+    have to add a call to deharmonize on all the variables harmonized 
+    in the meta. 
+
 
 
