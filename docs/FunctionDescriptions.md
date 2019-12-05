@@ -614,13 +614,31 @@ In detail the process includes:
 
 NOTE, that, if: 
 
-(1) you want to calculate flags on the new, harmonic dataseries and 
+1.  you want to calculate flags on the new, harmonic dataseries and 
     project this flags back onto the original timestamps/flags, you have to 
     add a call to `deharmonize` on this variable in your meta file.
 
-(2) you want to restore the original data shape, as inserted into saqc - you
+2.  you want to restore the original data shape, as inserted into saqc - you
     have to add a call to deharmonize on all the variables harmonized 
     in the meta. 
+
+Key word overview:
+
+`inter_method`:
+
+1. Shifts:
+    * `"fshift"`: 
+    * `"bshift"`:
+    * `"nearest_shift"`:
+2. Aggregations:
+    * `"fagg"`:
+    * `"bagg"`:
+    * `"nearest_agg"`:
+3. Interpolations:
+    * 
+
+`reshape_method`:
+
 
 
 
