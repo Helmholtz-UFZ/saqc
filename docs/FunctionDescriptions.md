@@ -264,6 +264,62 @@ NOTE, that when `var_total_nans` or `var_consec_nans` are set to a value < `Inf`
 , plateaus that can not be calculated the variance of, due to missing values,
 will never be flagged. (Test not applicable rule.)
 
+## `constant`
+
+### Signature
+```
+soilMoisture_plateaus(plateau_window_min="12h", plateau_var_limit=0.0005,
+                      rainfall_window_range="12h", var_total_nans=np.inf, 
+                      var_consec_nans=np.inf, derivative_max_lb=0.0025, 
+                      derivative_min_ub=0, data_max_tolerance=0.95, 
+                      filter_window_size=None, smooth_poly_order=2, **kwargs)
+```
+
+### Parameters
+| parameter          | data type    | default value | description |
+| ------             | ------       | ------        | ----        |
+| plateau_window_min | string       | `"12h"`       | Options <br/> - any offset string <br/> <br/> Minimum barrier for the duration, values have to be continouos to be plateau canditaes. See condition (1).|
+| plateau_var_limit  | float        | `0.0005`      | Barrier, the variance of a group of values must not exceed to be flagged a plateau. See condition (2). |
+| rainfall_range     | string       | `"12h"`       | An Offset string. See condition (3) and (4) |
+| var_total_nans     | int or 'inf' | `np.inf`      | Maximum number of nan values allowed, for a calculated variance to be valid. (Default skips the condition.) |
+| var_consec_nans    | int or 'inf' | `np.inf`      | Maximum number of consecutive nan values allowed, for a calculated variance to be valid. (Default skips the condition.) |
+| derivative_max_lb  | float        | `0.0025`      | Lower bound for the second derivatives maximum in `rainfall_range` range. See condition (3)|
+| derivative_min_ub  | float        | `0`           | Upper bound for the second derivatives minimum in `rainfall_range` range. See condition (4)|
+| data_max_tolerance | flaot        | `0.95`        | Factor for data max barrier of condition (5).|
+| filter_window_size | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.|
+| smooth_poly_order  | int          | `2` | Order of the polynomial used for fitting while smoothing. |
+
+
+### Description
+
+NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
+equadistant frequency grid.
+
+The function represents a stricter version of the `constant_varianceBased` 
+test from the constants detection library. The added constraints for values to 
+be flagged (3)-(5), are designed to match the special case of constant value courses of 
+soil moisture meassurements and basically check the derivative for being 
+determined by preceeding rainfall events ((3) and (4)), as well as the plateau
+for being sufficiently high in value (5).
+
+Any set of consecutive values
+$`x_k,..., x_{k+n}`$, of a timeseries $`x`$ is flagged, if:
+
+1. $`n > `$`plateau_window_min`
+2. $`\sigma(x_k, x_{k+1},..., x_{k+n}) < `$`plateau_var_limit`
+3. $`\max(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \geq`$ `derivative_max_lb`, with $`s`$ denoting periods per `rainfall_range`  
+4. $`\min(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \leq`$ `derivative_min_ub`, with $`s`$ denoting periods per `rainfall_range`
+5. $`\mu(x_k, x_{k+1},..., x_{k+n}) < \max(x) \times`$`plateau_var_limit`
+
+This Function is an implementation of the soil temperature based Soil Moisture
+flagging, as presented in:
+
+Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture Data
+from the international Soil Moisture Network. 2013. Vadoze Zone J.
+doi:10.2136/vzj2012.0097.
+
+All parameters default to the values, suggested in this publication.
+
 ## `SoilMoistureSpikes`
 
 ### Signature
@@ -438,7 +494,7 @@ Breaks_SpektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=1
 | scnd_der_ratio_margin_2 | float     | `10.0`        | Lower bound for the break succeeding second derivatives quotients. See condition (5). |
 | smooth_poly_order       | integer   | `2`           | When calculating derivatives from smoothed timeseries (diff_method="savgol"), this value gives the order of the fitting polynomial calculated in the smoothing process.|
 | diff_method             | string    | `"savgol"     | Options: <br/> - `"savgol"`  <br/> - `"raw"` <br/><br/> Select "raw", to skip smoothing before differenciation. |
-| filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.          |
+| filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.|
 
 
 ### Description
