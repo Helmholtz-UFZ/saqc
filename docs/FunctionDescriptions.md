@@ -1,30 +1,25 @@
 # Implemented QC functions
 
 
-## `range`
+## range
 
-### Signature
 ```
 range(min, max)
 ```
-### Parameters
 | parameter | data type | default value | description |
 | --------- | --------- | ------------- | ----------- |
 | min       | float     |               | Upper bound for valid values. ($`<`$) |
 | max       | float     |               | lower bound for valid values. ($`\geq`$)|
 
-### Description
 
 The function flags all the values, that exceed the right open interval $`[`$`min`, `max`$`)`$.
 
-## `isolated`
+## isolated
 
-### Signature
 ```
 isolated(isolation_range, max_isolated_group_size=1, continuation_range='1min', 
          drop_flags=None)
 ```
-### Parameters
 | parameter               | data type       | default value | description |
 | ---------               | ---------       | ------------- | ----------- |
 | isolation_range         | string          |               | Offset string. The range, within there are no valid values allowed for a valuegroup to get flagged isolated. See condition (1) and (2).|
@@ -32,7 +27,6 @@ isolated(isolation_range, max_isolated_group_size=1, continuation_range='1min',
 | continuation_range      | string          | `"1min"`      | Offset string. The upper bound for the temporal extension of a value group to be considered an isolated group. See condition (4). Only relevant if `max_islated_group_size` > 1.|
 | drop_flags              | list or Nonetype| `None`        | A list of flags, that are to be considered, signifying invalid values. See condition (1) and (2).|
 
-### Description
 
 The function flags isolated values / value groups. 
 Isolated values are values / value groups,
@@ -59,33 +53,28 @@ is considered "isolated", if:
 
 
 
-## `missing`
+## missing
 
-### Signature
 ```
 missing(nodata=NaN)
 ```
 
-### Parameters
 | parameter | data type  | default value  | description |
 | --------- | ---------- | -------------- | ----------- |
 | nodata    | any        | `NaN`          | Value indicating missing values in the passed data |
 
 
-### Description
 The function flags those values in the the passed data series, that are
 associated with "missing" data. The missing data indicator (default: `NaN`), can
 be altered to any other value by passing this new value to the parameter `nodata`.
 
 
-## `seasonalRange`
+## seasonalRange
 
-### Signature
 ```
 sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 ```
 
-### Parameters
 | parameter  | data type    | default value | description |
 | ---------  | -----------  | ----          | ----------- |
 | min        | float        |               |             |
@@ -95,47 +84,38 @@ sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 | startday   | integer      | `1`           |             |
 | endday     | integer      | `31`          |             |
 
-### Description
 
 
-## `clear`
+## clear
 
-### Signature
 ```
 clear()
 ```
 
-### Parameters
 | parameter  | data type    | default value | description |
 | ---------  | -----------  | ----          | ----------- |
 
-### Description
 Remove all previously set flags.
 
-## `force`
+## force
 
 
-### Signature
 ```
 force()
 ```
 
 
-### Parameters
 | parameter  | data type    | default value | description |
 | ---------  | -----------  | ----          | ----------- |
 
-### Description
 
 
-## `sliding_outlier`
+## sliding_outlier
 
-### Signature
 ```
 sliding_outlier(winsz="1h", dx="1h", count=1, deg=1, z=3.5, method="modZ")
 ```
 
-### Parameters
 | parameter  | data type    | default value | description |
 | ---------  | -----------  | ----          | ----------- |
 | winsz      | string       | `"1h"`        |             |
@@ -145,17 +125,14 @@ sliding_outlier(winsz="1h", dx="1h", count=1, deg=1, z=3.5, method="modZ")
 | z          | float        | `3.5`         |             |
 | method     | string       | `"modZ"`      |             |
 
-### Description
 
 
-## `mad`
+## mad
 
-### Signature
 ```
 mad(length, z=3.5, freq=None)
 ```
 
-### Parameters
 | parameter  | data type    | default value | description |
 | ---------  | -----------  | ----          | ----------- |
 | length     |              |               |             |
@@ -163,23 +140,19 @@ mad(length, z=3.5, freq=None)
 | freq       |              | `None`        |             |
 
 
-### Description
 
 
-## `Spikes_Basic`
-### Signature
+## Spikes_Basic
 ```
 Spikes_Basic(thresh, tolerance, window_size)
 ```
 
-### Parameters
 | parameter   | data type | default value | description |
 | ------      | ------    | ------        | ----        |
 | thresh      | float     |               | Minimum jump margin for spikes. See condition (1). |
 | tolerance   | float     |               | Range of area, containing al "valid return values". See condition (2). |
 | window_size | ftring    |               | An offset string, denoting the maximal length of "spikish" value courses. See condition (3). |
 
-### Description
 A basic outlier test, that is designed to work for harmonized, as well as raw
 (not-harmonized) data.
 
@@ -205,16 +178,14 @@ The implementation is a time-window based version of an outlier test from the
 UFZ Python library, that can be found [here](https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py).
 
 
-## `Spikes_SpektrumBased`
+## Spikes_SpektrumBased
 
-### Signature
 ```
 Spikes_SpektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
                      noise_barrier=1, noise_window_size="12h", noise_statistic="CoVar",
                      smooth_poly_order=2, filter_window_size=None)
 ```
 
-### Parameters
 | parameter          | data type | default value | description |
 | ------             | ------    | ------        | ----        |
 | raise_factor       | float     | `0.15`        | Minimum change margin for a datapoint to become a candidate for a spike. See condition (1). |
@@ -226,7 +197,6 @@ Spikes_SpektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
 | filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.|
 
 
-### Description
 The function detects and flags spikes in input data series by evaluating the
 the timeseries' derivatives and applying some conditions to them.
 
@@ -259,32 +229,27 @@ Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
 doi:10.2136/vzj2012.0097.
 
 
-## `constant`
+## constant
 
-### Signature
 ```
 constant(eps, length, thmin=None)
 ```
 
-### Parameters
 | parameter          | data type | default value | description |
 | ------             | ------    | ------        | ----        |
 | eps                |           |               |             |
 | length             |           |               |             |
 | thmin              |           | `None`        |             |
 
-### Description
 
 
-## `constants_varianceBased`
+## constants_varianceBased
 
-### Signature
 ```
 constants_varianceBased(plateau_window_min="12h", plateau_var_limit=0.0005,
                         var_total_nans=Inf, var_consec_nans=Inf)
 ```
 
-### Parameters
 | parameter          | data type | default value | description |
 | ------             | ------    | ------        | ----        |
 | plateau_window_min | string    |               | Options <br/> - any offset string <br/> <br/> Minimum barrier for the duration, values have to be continouos to be plateau canditaes. See condition (1). |
@@ -293,7 +258,6 @@ constants_varianceBased(plateau_window_min="12h", plateau_var_limit=0.0005,
 | var_consec_nans    | integer   | `Inf`         | Maximum number of consecutive nan values allowed, for a calculated variance to be valid. (Default skips the condition.) |
 
 
-### Description
 Function flags plateaus/series of constant values. Any set of consecutive values
 $`x_k,..., x_{k+n}`$ of a timeseries $`x`$ is flagged, if:
 
@@ -307,9 +271,8 @@ NOTE, that when `var_total_nans` or `var_consec_nans` are set to a value < `Inf`
 , plateaus that can not be calculated the variance of, due to missing values,
 will never be flagged. (Test not applicable rule.)
 
-## `soilMoisture_plateaus`
+## soilMoisture_plateaus
 
-### Signature
 ```
 soilMoisture_plateaus(plateau_window_min="12h", plateau_var_limit=0.0005,
                       rainfall_window_range="12h", var_total_nans=np.inf, 
@@ -318,7 +281,6 @@ soilMoisture_plateaus(plateau_window_min="12h", plateau_var_limit=0.0005,
                       filter_window_size=None, smooth_poly_order=2, **kwargs)
 ```
 
-### Parameters
 | parameter          | data type    | default value | description |
 | ------             | ------       | ------        | ----        |
 | plateau_window_min | string       | `"12h"`       | Options <br/> - any offset string <br/> <br/> Minimum barrier for the duration, values have to be continouos to be plateau canditaes. See condition (1).|
@@ -333,7 +295,6 @@ soilMoisture_plateaus(plateau_window_min="12h", plateau_var_limit=0.0005,
 | smooth_poly_order  | int          | `2` | Order of the polynomial used for fitting while smoothing. |
 
 
-### Description
 
 NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
 equadistant frequency grid.
@@ -363,15 +324,13 @@ doi:10.2136/vzj2012.0097.
 
 All parameters default to the values, suggested in this publication.
 
-## `SoilMoistureSpikes`
+## SoilMoistureSpikes
 
-### Signature
 ```
 SoilMoistureSpikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0.2,
                    noise_barrier=1, noise_window_size="12h", noise_statistic="CoVar")
 ```
 
-### Parameters
 | parameter          | data type | default value | description |
 | ------             | ------    | ------        | ----        |
 | filter_window_size | string    | `"3h"`        |             |
@@ -382,7 +341,6 @@ SoilMoistureSpikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0
 | noise_statistic    | string    | `"CoVar"`     |             |
 
 
-### Description
 The Function is just a wrapper around `flagSpikes_spektrumBased`, from the
 spike detection library and performs a call to this function with a parameter
 set, referring to:
@@ -392,9 +350,8 @@ Data from the international Soil Moisture Network. 2013.
 Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
 
-## `SoilMoistureBreaks`
+## SoilMoistureBreaks
 
-### Signature
 ```
 SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
                    rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
@@ -402,7 +359,6 @@ SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
                    scnd_der_ratio_margin_2=10, smooth_poly_order=2)
 ```
 
-### Parameters
 | parameter               | data type | default value | description |
 | ------                  | ------    | ------        | ----        |
 | diff_method             | string    | `"raw"`       |             |
@@ -416,7 +372,6 @@ SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
 | smooth_poly_order       | integer   | `2`           |             |
 
 
-### Description
 The Function is just a wrapper around `flagBreaks_spektrumBased`, from the
 breaks detection library and performs a call to this function with a parameter
 set, referring to:
@@ -426,21 +381,18 @@ Data from the international Soil Moisture Network. 2013.
 Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
 
-## `SoilMoistureByFrost`
+## SoilMoistureByFrost
 
-### Signature
 ```
 SoilMoistureByFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0)
 ```
 
-### Parameters
 | parameter           | data type | default value | description |
 | ------              | ------    | ------        | ----        |
 | soil_temp_reference | string    |               |  A string, denoting the fields name in data, that holds the data series of soil temperature values, the to-be-flagged values shall be checked against.|
 | tolerated_deviation | string    | `"1h"`        |  An offset string, denoting the maximal temporal deviation, the soil frost states timestamp is allowed to have, relative to the data point to be flagged.|
 | frost_level         | integer   | `0`           |  Value level, the flagger shall check against, when evaluating soil frost level. |
 
-### Description
 
 The function flags Soil moisture measurements by evaluating the soil-frost-level
 in the moment of measurement (+/- `tolerated deviation`).
@@ -458,9 +410,8 @@ All parameters default to the values, suggested in this publication.
 
 
 
-## `SoilMoistureByPrecipitation`
+## SoilMoistureByPrecipitation
 
-### Signature
 ```
 SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
                             sensor_accuracy=0, soil_porosity=0,
@@ -468,7 +419,6 @@ SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
                             ignore_missing=False)
 ```
 
-### Parameters
 | parameter         | data type | default value | description |
 | ------            | ------    | ------        | ----        |
 | prec_reference    | string    |               | A string, denoting the fields name in data, that holds the data series of precipitation values, the to-be-flagged values shall be checked against.            |
@@ -479,7 +429,6 @@ SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
 | std_factor_range  | string    | `"24h"`       | See condition (2) |
 | ignore_missing    | bool      | `False`       | If True, the variance of condition (2), will also be calculated if there is a value missing in the time window. Selcting Flase (default) results in values that succeed a time window containing a missing value never being flagged (test not applicable rule) |
 
-### Description
 
 Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
 precipitation event. If measurement depth, sensor accuracy of the soil moisture sensor and the porosity of the
@@ -516,9 +465,8 @@ doi:10.2136/vzj2012.0097.
 All parameters default to the values, suggested in this publication.
 
 
-## `Breaks_SpektrumBased`
+## Breaks_SpektrumBased
 
-### Signature
 ```                            
 Breaks_SpektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=10,
                      first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
@@ -526,7 +474,6 @@ Breaks_SpektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=1
                      diff_method="raw", filter_window_size="3h")
 ```
 
-### Parameters
 | parameter               | data type | default value | description |
 | ------                  | ------    | ------        | ----        |
 | rel_change_rate_min     | float     | `0.1`         | Lower bound for the relative difference, a value has to have to its preceeding value, to be a candidate for being break-flagged. See condition (2).|
@@ -540,7 +487,6 @@ Breaks_SpektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=1
 | filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.|
 
 
-### Description
 The function flags breaks (jumps/drops) in input measurement series by
 evaluating its derivatives.
 
@@ -570,14 +516,12 @@ Dorigo,W. et al.: Global Automated Quality Control of In Situ Soil Moisture
 Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
 doi:10.2136/vzj2012.0097.
 
-## `machinelearning`
+## machinelearning
 
-### Signature
 ```
 machinelearning(references, window_values, window_flags, path)
 ```
 
-### Parameters
 | parameter | data type  | default value  | description |
 | --------- | ---------- | -------------- | ----------- |
 | references    | string or list of strings        |           | the fieldnames of the data series that should be used as reference variables |
@@ -586,7 +530,6 @@ machinelearning(references, window_values, window_flags, path)
 | path    | string        |           | Path to the respective model object, i.e. its name and the respective value of the grouping variable. e.g. "models/model_0.2.pkl" |
 
 
-### Description
 This Function uses pre-trained machine-learning model objects for flagging. 
 This requires training a model by use of the [training script](../ressources/machine_learning/train_machine_learning.py) provided. 
 For flagging, inputs to the model are the data of the variable of interest, 
@@ -600,9 +543,8 @@ the user during model training. For the model to work, the parameters
 values as during training. For a more detailed description of the modeling 
 aproach see the [training script](../ressources/machine_learning/train_machine_learning.py).
 
-## `harmonize`
+## harmonize
 
-### Signature
 ```
 harmonize(freq, inter_method, reshape_method, inter_agg=np.mean, inter_order=1,
           inter_downcast=False, reshape_agg=max, reshape_missing_flag=None,
@@ -610,7 +552,6 @@ harmonize(freq, inter_method, reshape_method, inter_agg=np.mean, inter_order=1,
           data_missing_value=np.nan)
 ```
 
-### Parameters
 | parameter          | data type        | default value    | description |
 | ------             | ------           | ------           | ----        |
 | freq               | string           |           | Offset string. The frequency of the grid, the data-to-be-flagged shall be projected on.|
@@ -623,7 +564,6 @@ harmonize(freq, inter_method, reshape_method, inter_agg=np.mean, inter_order=1,
 | drop_flags         | list or Nonetype |`None`     | A list of flags to exclude from harmonization. See step (1) below. If `None` is passed, only BAD - flagged values get dropped. If a list is passed, the BAD flag gets added to that list by default |
 | data_missing_value | any valeu        |`np.nan`   | The value, indicating missing data in the dataseries-to-be-flagged.|
 
-### Description
 
 The function "harmonizes" the data-to-be-flagged, to match an equidistant 
 frequency grid. In general this includes projection and/or interpolation of 
@@ -720,19 +660,16 @@ Key word overview:
     * `"nearest_agg"`: all flags in the range (+/- freq/2) of a grid point get 
                        aggregated with the function passed to agg_method and assigned to it.
 
-## `deharmonize`
+## deharmonize
 
-### Signature
 ```
 deharmonize(co_flagging)
 ```
-### Parameters
 | parameter | data type | default value | description |
 | --------- | --------- | ------------- | ----------- |
 | co_flagging       | boolean     |               | `False`: depending on the harmonization method applied, only overwrite ultimately preceeding, first succeeding or nearest flag to a harmonized flag. <br/> `True`: Depending on the harmonization method applied, overwrite all the values covered by the succeeding or preceeding sampling intervall, or, all the values in the range of a harmonic flags timestamp. |
 
 
-### Description
 
 After having calculated flags on an equidistant frequency grid, generated by 
 a call to a harmonization function, you may want to project
