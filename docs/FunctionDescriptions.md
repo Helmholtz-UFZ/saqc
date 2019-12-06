@@ -121,20 +121,51 @@ force()
 
 ## sliding_outlier
 
+Detect outlier/spikes by a given method in a sliding window.
+
 ```
 sliding_outlier(winsz="1h", dx="1h", count=1, deg=1, z=3.5, method="modZ")
 ```
 
-| parameter  | data type    | default value | description |
-| ---------  | -----------  | ----          | ----------- |
-| winsz      | string       | `"1h"`        |             |
-| dx         | string       | `"1h"`        |             |
-| count      | integer      | `1`           |             |
-| deg        | integer      | `1"`          |             |
-| z          | float        | `3.5`         |             |
-| method     | string       | `"modZ"`      |             |
+| parameter  | data type            | default value | description |
+| ---------  | -----------          | ----          | ----------- |
+| winsz      | offset-string/integer | `"1h"`        | size of the sliding window, the *method* is applied on      |
+| dx         | offset-string/integer | `"1h"`        | the step size the sliding window is continued after calculation |
+| count      | integer              | `1`           | the minimal count, a possible outlier needs, to be flagged   |
+| deg        | integer              | `1"`          | the degree of the polynomial fit, to calculate the residual  |
+| z          | float                | `3.5`         | z-parameter for the *method* (see description)               |
+| method     | string               | `"modZ"`      | the method outlier are detected with                         |
 
+Parameter notes: 
+ - `winsz` and `dx` must be of same type, mixing of offset and integer is not supported and will fail.
+ - if offset-strings only work with datetime indexed data
 
+The algorithm works as follows:
+  1.  a window of size `winsz` is cut from the data
+  2.  normalisation - (the data is fit by a polynomial of the given degree `deg`, which is subtracted from the data)
+  3.  the outlier detection `method` is applied on the residual, and possible outlier are marked
+  4.  the window (on the data) is continued by `dx` to the next data-slot
+  5.  start over from 1. until the end of data is reached
+  6.  all potential outlier, that are detected `count`-many times, are flagged as outlier 
+
+The possible outlier detection methods are *zscore* and *modZ*. 
+In the following description, the residual (calculated from a slice by the sliding window) is referred as *data*.
+
+The **zscore** (Z-score) [1] mark every value as possible outlier, which fulfill:
+```math
+ |r - m| > s * z
+```
+with $` r, m, s, z `$: data, data mean, data standard deviation, `z`.
+
+The **modz** (modified Z-score) [2] mark every value as possible outlier, which fulfill:
+```math
+ 0.6745 * |r - M| > mad * z > 0
+```
+with $` r, M, mad, z `$: data, data median, data variance, `z`.
+
+See also:
+[1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+[2] https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
 
 ## mad
 
