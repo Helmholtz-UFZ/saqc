@@ -10,10 +10,12 @@ range(min, max)
 ### Parameters
 | parameter | data type | default value | description |
 | --------- | --------- | ------------- | ----------- |
-| min       | float     |               |             |
-| max       | float     |               |             |
+| min       | float     |               | Upper bound for valid values. ($`<`$) |
+| max       | float     |               | lower bound for valid values. ($`\geq`$)|
 
 ### Description
+
+The function flags all the values, that exceed the right open interval $`[`$`min`, `max`$`)`$.
 
 ## `isolated`
 
