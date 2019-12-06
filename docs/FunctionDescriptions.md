@@ -15,6 +15,47 @@ range(min, max)
 
 ### Description
 
+## `isolated`
+
+### Signature
+```
+isolated(isolation_range, max_isolated_group_size=1, continuation_range='1min', 
+         drop_flags=None)
+```
+### Parameters
+| parameter               | data type       | default value | description |
+| ---------               | ---------       | ------------- | ----------- |
+| isolation_range         | string          |               | Offset string. The range, within there are no valid values allowed for a valuegroup to get flagged isolated. See condition (1) and (2).|
+| max_isolated_group_size | integer         | `1`           | The upper bound for the size of a value group to be considered an isolated group. See condition (3).|
+| continuation_range      | string          | `"1min"`      | Offset string. The upper bound for the temporal extension of a value group to be considered an isolated group. See condition (4). Only relevant if `max_islated_group_size` > 1.|
+| drop_flags              | list or Nonetype| `None`        | A list of flags, that are to be considered, signifying invalid values. See condition (1) and (2).|
+
+### Description
+
+The function flags isolated values / value groups. 
+Isolated values are values / value groups,
+that, in a range of `isolation_range`,
+are surrounded either by invalid values only, or by no values.
+
+The function defaults to flag isolated single values only. But the parameters 
+allow for detections of more complex isolation definitions, including groups 
+of isolated values.
+
+A continuous group of values 
+$`x_{k}, x_{k+1},...,x_{k+n}`$ of the timeseries of meassurements $`x`$, 
+is considered "isolated", if:
+
+1. There are no values, preceeding $`x_{k}`$ within `isolation_range` or all the 
+   preceeding values within this range are flagged with a flag listed in 
+   `drop_list`.
+2. There are no values, succeeding $`x_{k+n}`$, within `isolation_range`, or all the 
+   succeeding values within this range are flagged with a flag listed in 
+   `drop_list`.
+3. $`n \leq `$ `max_isolated_group_size`
+4. $` |y_{k} - y_{n+k}| < `$ `continuation_range`, with $`y `$, denoting the series
+   of timestamps associated with $`x`$. 
+
+
 
 ## `missing`
 
