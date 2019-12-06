@@ -77,14 +77,23 @@ sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 
 | parameter  | data type    | default value | description |
 | ---------  | -----------  | ----          | ----------- |
-| min        | float        |               |             |
-| max        | float        |               |             |
-| startmonth | integer      | `1`           |             |
-| endmonth   | integer      | `12`          |             |
-| startday   | integer      | `1`           |             |
-| endday     | integer      | `31`          |             |
+| min        | float        |               | Upper bound for valid values. ($`<`$) |
+| max        | float        |               | lower bound for valid values. ($`\geq`$)|
+| startmonth | integer      | `1`           | interval start month          |
+| endmonth   | integer      | `12`          | interval end month            |
+| startday   | integer      | `1`           | interval start day            |            
+| endday     | integer      | `31`          | interval end day              |             
 
+The function do the same as `range` do 
+(flags all data, that exceed the interval $`[`$`min`, `max`$`)`$), 
+but only, if the timestamp of the data-point lies in a time interval defined by day and month only. 
+The year is **not** used by the interval calculation. 
+The left interval boundary is defined by `startmonth` and `startday`, the right by `endmonth` and `endday`. 
+Both boundaries are inclusive. 
+If the left side lies in time, after the right side, the interval is extended over the change of year 
+(e.g. an interval of [01/12, 01/03], will flag values in december, january and february).
 
+Note: Only work for datetime indexed data
 
 ## clear
 
