@@ -729,7 +729,7 @@ deharmonize(co_flagging)
 ### Parameters
 | parameter | data type | default value | description |
 | --------- | --------- | ------------- | ----------- |
-| co_flagging       | boolean     |               |  |
+| co_flagging       | boolean     |               | `False`: depending on the harmonization method applied, only overwrite ultimately preceeding, first succeeding or nearest flag to a harmonized flag. <br/> `True`: Depending on the harmonization method applied, overwrite all the values covered by the succeeding or preceeding sampling intervall, or, all the values in the range of a harmonic flags timestamp. |
 
 
 ### Description
