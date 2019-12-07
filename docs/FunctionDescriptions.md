@@ -109,16 +109,14 @@ Remove all previously set flags.
 
 ## force
 
-
 ```
 force()
 ```
 
-
 | parameter  | data type    | default value | description |
 | ---------  | -----------  | ----          | ----------- |
 
-
+Force flags to a flag-value.
 
 ## sliding_outlier
 
