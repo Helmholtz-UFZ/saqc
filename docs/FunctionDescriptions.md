@@ -102,9 +102,6 @@ Note: Only work for datetime indexed data
 clear()
 ```
 
-| parameter  | data type    | default value | description |
-| ---------  | -----------  | ----          | ----------- |
-
 Remove all previously set flags.
 
 ## force
@@ -112,9 +109,6 @@ Remove all previously set flags.
 ```
 force()
 ```
-
-| parameter  | data type    | default value | description |
-| ---------  | -----------  | ----          | ----------- |
 
 Force flags to a flag-value.
 
