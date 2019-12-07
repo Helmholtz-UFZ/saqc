@@ -157,29 +157,44 @@ The **zscore** (Z-score) [1] mark every value as possible outlier, which fulfill
 ```
 with $` r, m, s, z `$: data, data mean, data standard deviation, `z`.
 
-The **modz** (modified Z-score) [2] mark every value as possible outlier, which fulfill:
+The **modZ** (modified Z-score) [1] mark every value as possible outlier, which fulfill:
 ```math
  0.6745 * |r - M| > mad * z > 0
 ```
-with $` r, M, mad, z `$: data, data median, data variance, `z`.
+with $` r, M, mad, z `$: data, data median, data median absolute deviation, `z`.
 
 See also:
 [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
-[2] https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
 
 ## mad
+
+Flag outlier by simple median absolute deviation test.
 
 ```
 mad(length, z=3.5, freq=None)
 ```
 
-| parameter  | data type    | default value | description |
-| ---------  | -----------  | ----          | ----------- |
-| length     |              |               |             |
-| z          | float        | `3.5`         |             |
-| freq       |              | `None`        |             |
+| parameter  | data type     | default value | description |
+| ---------  | -----------   | ----          | ----------- |
+| length     | offset-string | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
+| z          | float         | `3.5`         | z-parameter the modified Z-score |
+| freq       |               | `None`        | The frequency the data have |
 
+Parameter note: If freq is omitted, it is tried to infer the correct frequency. This is not fail save (!), because
+if no frequency can be found a error is thrown, but even worse, also a wrong frequency could be assumed. 
 
+The *modified Z-score* [1] is used to detect outlier. 
+All values are flagged as outlier, if in any slice of thw sliding window, a value fulfill:
+```math
+ 0.6745 * |x - M| > mad * z > 0
+```
+with $` x, M, mad, z `$: window data, window median, window median absolute deviation, `z`.
+The window is continued by one frequency step.
+
+Note: This function should only applied on normalised data.
+ 
+See also:
+[1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
 
 
 ## Spikes_Basic
