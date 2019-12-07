@@ -2,6 +2,31 @@
 
 Main documentation of the implemented functions, their purpose and parameters and their description.
 
+## Index
+
+ - [range](#range)
+ - [isolated](#isolated)
+ - [missing](#missing)
+ - [seasonalRange](#seasonalRange)
+ - [clear](#clear)
+ - [force](#force)
+ - [sliding_outlier](#sliding_outlier)
+ - [mad](#mad)
+ - [Spikes_Basic](#Spikes_Basic)
+ - [Spikes_SpektrumBased](#Spikes_SpektrumBased)
+ - [constant](#constant)
+ - [constants_varianceBased](#constants_varianceBased)
+ - [soilMoisture_plateaus](#soilMoisture_plateaus)
+ - [SoilMoistureSpikes](#SoilMoistureSpikes)
+ - [SoilMoistureBreaks](#SoilMoistureBreaks)
+ - [SoilMoistureByFrost](#SoilMoistureByFrost)
+ - [SoilMoistureByPrecipitation](#SoilMoistureByPrecipitation)
+ - [Breaks_SpektrumBased](#Breaks_SpektrumBased)
+ - [machinelearning](#machinelearning)
+ - [harmonize](#harmonize)
+ - [deharmonize](#deharmonize)
+
+
 ## range
 
 ```
