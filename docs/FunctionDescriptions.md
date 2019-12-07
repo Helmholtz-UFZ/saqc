@@ -1,5 +1,6 @@
 # Implemented QC functions
 
+Main documentation of the implemented functions, their purpose and parameters and their description.
 
 ## range
 
