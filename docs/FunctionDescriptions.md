@@ -4,15 +4,6 @@ Main documentation of the implemented functions, their purpose and parameters an
 
 ## Index
 
-<!-- 
-linkmagic: 
- - the pointing link must be lowercase 
- - for the name everything is fine
- - only use one `#` even if the heading has more `####`
-e.g: 
-[Facncy Link Name](#fancy_link_name_all_lowercase)
--->
-
  - [range](#range)
  - [isolated](#isolated)
  - [missing](#missing)
@@ -34,7 +25,7 @@ e.g:
  - [machinelearning](#machinelearning)
  - [harmonize](#harmonize)
  - [deharmonize](#deharmonize)
- - [harmonize_shift2Grid](#harmonize_shift2grid)
+ - [harmonize_shift2Grid](#harmonize_shift2Grid)
  
 
 ## range
@@ -807,8 +798,8 @@ In detail, the process includes:
    data-to-be-flagged. 
 2. Additionally, if a list is passed to `drop_flags`, all the values in data, 
    that are flagged with a flag, listed in `drop_list`, will be excluded from
-   harmonization - meaning, that they will not affect the further 
-   interpolation/aggregation prozess.
+   shifting - meaning, that they will not affect the further 
+   shifting prozess.
 3. Depending on the keyword passed to `shift_method`, 
    the data gets shifted, together with its flags,
    to a timestamp that is a multiple of `freq`.
@@ -828,7 +819,60 @@ In detail, the process includes:
       if there is one available in the succeeding sampling interval. If not, BAD/np.nan - flag gets assigned.
     * `"nearest_shift"`: every grid point gets assigned the closest flag/datapoint in its range. ( range = +/- `freq`/2 ).
    
-    
+## harmonize_aggregate2Grid
+
+```
+harmonize_aggregate2Grid(freq, agg_func, agg_method='nearest_agg', flag_agg_func=max, drop_flags=None)
+```
+| parameter     | data type         | default value     | description |
+| ---------     | ---------         | -------------     | ----------- |
+| freq          | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be shifted to.  |
+| agg_func      | func              |                   | Function. Function used for data aggregation.|
+| agg_method    | string            | `nearest_agg`     | Method, determining the range of data and flags aggregation. See a list of methods below. |
+| flag_agg_func | func              | max               | Function used for flags aggregation.|   
+| drop_flags    | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 3 below. |
+
+
+The function aggregates the data-to-be-flagged, to match an equidistant 
+frequency grid. 
+The data aggregagation is carried out, according to the aggregation method `agg_method`, 
+the aggregated value is calculated with `agg_func` and gets assigning to a 
+timestamp value, that is a multiples of `freq`.
+
+In detail, the process includes:
+ 
+1. All missing values in the data, identified by `np.nan`, 
+   get flagged and will be excluded from the aggregation process.
+   NOTE, that implicitly this step includes a call to `missing` onto the 
+   data-to-be-flagged. 
+2. Additionally, if a list is passed to `drop_flags`, all the values in data, 
+   that are flagged with a flag, listed in `drop_list`, will be excluded from
+   aggregation - meaning, that they will not affect the further 
+   aggregation prozess.
+3. Depending on the keyword passed to `agg_method`, values get aggregated by 
+   `agg_func` and the result, assigned to a timestamp value - again - depending 
+   on your selection of `agg_method`.
+   NOTE, that this step will very likely change the size of the dataseries 
+   to-be-flagged.
+   New sampling intervals, covering no data in the original dataseries or only 
+   data that got excluded in step (1), will be regarded as representing missing 
+   data (Thus get assigned `NaN` value). 
+   The original data will be dropped (but can be regained by function 
+   `deharmonize`).
+4. Depending on the keyword passed to agg_flag_func, the original flags get
+   aggregated and assigned onto the new, harmonized data, generated in step (3).
+   New sampling intervals, covering no data in the original dataseries or only 
+   data that got excluded in step (1), will be regarded as representing missing 
+   data and thus get assigned the worst flag level available.
+
+
+`agg_method` keywords:
+    * `"fagg"`: all flags/values in a sampling interval get aggregated with the function passed to `agg_method`
+                , and the result gets assigned to the last grid point.
+    * `"bagg"`: all flags/values in a sampling interval get aggregated with the function passed to `agg_method`
+                , and the result gets assigned to the next grid point.
+    * `"nearest_agg"`: all flags/values in the range (+/- freq/2) of a grid point get 
+                       aggregated with the function passed to agg_method and assigned to it.
 
 
 
