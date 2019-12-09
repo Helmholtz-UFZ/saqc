@@ -616,6 +616,12 @@ def _reshapeFlags(
         if method == "nearest_agg":
             flags = flags.shift(periods=-shift_correcture, freq=pd.Timedelta(freq) / 2)
 
+        # some consistency clean up to ensure new flags frame matching new data frames size:
+        if ref_index[0] != flags.index[0]:
+            flags = pd.Series(data=flagger.BAD, index=[ref_index[0]], dtype=flagger.dtype).append(flags)
+        if ref_index[-1] != flags.index[-1]:
+            flags = flags.append(pd.Series(data=flagger.BAD, index=[ref_index[-1]], dtype=flagger.dtype))
+
         flagger_new = flagger.initFlags(flags=flags.to_frame(name=field))
 
     else:

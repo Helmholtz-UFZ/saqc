@@ -35,7 +35,7 @@ INTERPOLATIONS2 = ["fagg", "time", "polynomial"]
 FREQS = ["15min", "30min"]
 
 
-@pytest.fixture
+#@pytest.fixture
 def data():
     index = pd.date_range(
         start="1.1.2011 00:00:00", end="1.1.2011 01:00:00", freq="15min"
@@ -339,3 +339,15 @@ def test_wrapper(data, flagger):
                                   flag_agg_func=max, drop_flags=None)
     shift2Grid(data, field, flagger, freq, shift_method='nearest_shift', drop_flags=None)
 
+if __name__ == "__main__":
+    dat = data()
+    dat = dat.drop(dat.index[1:3])
+    dat2 = dat.copy()
+    flagger = TESTFLAGGER[2]
+    flagger2 = TESTFLAGGER[2]
+    flagger = flagger.initFlags(dat)
+    flagger2 = flagger.initFlags(dat2)
+    dat_out, flagger = linear2Grid(dat, 'data', flagger, '15min', flag_assignment_method='nearest_agg',
+                                    flag_agg_func=max, drop_flags=None)
+
+    print("stop")
