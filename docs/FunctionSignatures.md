@@ -7,6 +7,15 @@
 -->
 
 
+<!-- 
+linkmagic: 
+ - the pointing link must be lowercase 
+ - for the name everything is fine
+ - only use one `#` even if the heading has more `####`
+e.g: 
+[Facncy Link Name](path/file/#fancy_link_name_all_lowercase)
+-->
+
 ```
 range(min, max)
 ```
