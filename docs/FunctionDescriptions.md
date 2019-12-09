@@ -813,11 +813,11 @@ In detail, the process includes:
 
 
 `shift_method` keywords::
-    * `"fshift"`: every grid point gets assigned its ultimately preceeding flag/datapoint 
+* `"fshift"`: every grid point gets assigned its ultimately preceeding flag/datapoint 
       if there is one available in the preceeding sampling interval. If not, BAD/np.nan - flag gets assigned.
-    * `"bshift"`: every grid point gets assigned its first succeeding flag/datapoint 
+* `"bshift"`: every grid point gets assigned its first succeeding flag/datapoint 
       if there is one available in the succeeding sampling interval. If not, BAD/np.nan - flag gets assigned.
-    * `"nearest_shift"`: every grid point gets assigned the closest flag/datapoint in its range. ( range = +/- `freq`/2 ).
+* `"nearest_shift"`: every grid point gets assigned the closest flag/datapoint in its range. ( range = +/- `freq`/2 ).
    
 ## harmonize_aggregate2Grid
 
@@ -867,12 +867,13 @@ In detail, the process includes:
 
 
 `agg_method` keywords:
-    * `"fagg"`: all flags/values in a sampling interval get aggregated with the function passed to `agg_method`
+    
+* `"fagg"`: all flags/values in a sampling interval get aggregated with the function passed to `agg_method`
                 , and the result gets assigned to the last grid point.
-    * `"bagg"`: all flags/values in a sampling interval get aggregated with the function passed to `agg_method`
+* `"bagg"`: all flags/values in a sampling interval get aggregated with the function passed to `agg_method`
                 , and the result gets assigned to the next grid point.
-    * `"nearest_agg"`: all flags/values in the range (+/- freq/2) of a grid point get 
-                       aggregated with the function passed to agg_method and assigned to it.
+* `"nearest_agg"`: all flags/values in the range (+/- freq/2) of a grid point get 
+           aggregated with the function passed to agg_method and assigned to it.
 
 
 
