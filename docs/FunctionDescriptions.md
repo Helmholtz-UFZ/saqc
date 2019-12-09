@@ -782,7 +782,7 @@ harmonize_shift2Grid(freq, shift_method='nearest_shift', drop_flags=None)
 | parameter | data type | default value | description |
 | --------- | --------- | ------------- | ----------- |
 | freq          | string            |                   | Offset string. Detemining the frequency grid, the data shall be shifted to.  |
-| shift_method  | string            | `nearest_shift`   | Method, used for data shifting. See a list of methods below. |
+| shift_method  | string            | `nearest_shift`   | Method, used for shifting of data and flags. See a list of methods below. |
 | drop_flags    | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 3 below. |
 
 
@@ -830,13 +830,13 @@ harmonize_aggregate2Grid(freq, agg_func, agg_method='nearest_agg', flag_agg_func
 | agg_func      | func              |                   | Function. Function used for data aggregation.|
 | agg_method    | string            | `nearest_agg`     | Method, determining the range of data and flags aggregation. See a list of methods below. |
 | flag_agg_func | func              | max               | Function used for flags aggregation.|   
-| drop_flags    | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 3 below. |
+| drop_flags    | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 2 below. |
 
 
 The function aggregates the data-to-be-flagged, to match an equidistant 
 frequency grid. 
 The data aggregagation is carried out, according to the aggregation method `agg_method`, 
-the aggregated value is calculated with `agg_func` and gets assigning to a 
+the aggregated value is calculated with `agg_func` and gets assigned to a 
 timestamp value, that is a multiples of `freq`.
 
 In detail, the process includes:
@@ -874,6 +874,19 @@ In detail, the process includes:
                 , and the result gets assigned to the next grid point.
 * `"nearest_agg"`: all flags/values in the range (+/- freq/2) of a grid point get 
            aggregated with the function passed to agg_method and assigned to it.
+
+
+## harmonize_linear2Grid
+
+```
+harmonize_linear2Grid(freq, flag_assignment_method='nearest_agg', flag_agg_func=max, drop_flags=None)
+```
+| parameter             | data type         | default value     | description |
+| ---------             | ---------         | -------------     | ----------- |
+| freq                  | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be shifted to.|
+| flag_assignment_method| string            | "nearest_agg"     | Function. Function used for data aggregation.|
+| flag_agg_func         | func              | max               | Function used for flags aggregation.|   
+| drop_flags            | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 2 below. |
 
 
 
