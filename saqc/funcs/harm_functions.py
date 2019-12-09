@@ -618,9 +618,9 @@ def _reshapeFlags(
 
         # some consistency clean up to ensure new flags frame matching new data frames size:
         if ref_index[0] != flags.index[0]:
-            flags = pd.Series(data=flagger.BAD, index=[ref_index[0]], dtype=flagger.dtype).append(flags)
+            flags = pd.Series(data=flagger.BAD, index=[ref_index[0]]).astype(flagger.dtype).append(flags)
         if ref_index[-1] != flags.index[-1]:
-            flags = flags.append(pd.Series(data=flagger.BAD, index=[ref_index[-1]], dtype=flagger.dtype))
+            flags = flags.append(pd.Series(data=flagger.BAD, index=[ref_index[-1]]).astype(flagger.dtype))
 
         flagger_new = flagger.initFlags(flags=flags.to_frame(name=field))
 

@@ -291,6 +291,7 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
 def test_gridInterpolation(data, method):
     freq = "15min"
     data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
+    data = data.squeeze()
     # we are just testing if the interpolation gets passed to the series without causing an error:
     _interpolateGrid(
         data, freq, method, order=1, agg_method=sum, downcast_interpolation=True
@@ -341,9 +342,8 @@ def test_wrapper(data, flagger):
 
 if __name__ == "__main__":
     dat = data()
-    dat = dat.drop(dat.index[1:3])
-    dat2 = dat.copy()
-    flagger = TESTFLAGGER[2]
+    flagger = TESTFLAGGER[1]
+    test_gridInterpolation(data(), 'polynomial')
     flagger2 = TESTFLAGGER[2]
     flagger = flagger.initFlags(dat)
     flagger2 = flagger.initFlags(dat2)
