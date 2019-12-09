@@ -698,7 +698,7 @@ Key word overview:
 3. Interpolations:
     * There are available all the interpolation methods from the pandas.interpolate() method and they can be reffered to with
       the very same keywords, that you would pass to pd.Series.interpolates's method parameter.
-    * Available interpolations: ´"linear"´, ´"time"´, ´"nearest"´, ´"zero"´, ´"slinear"´,
+    * Available interpolations: `"linear"`, `"time"`, `"nearest"`, `"zero"`, `"slinear"`,
       `"quadratic"`, `"cubic"`, `"spline"`, `"barycentric"`, `"polynomial"`, `"krogh"`,
       `"piecewise_polynomial"`, `"spline"`, `"pchip"`, `"akima"`.
     * If a selected interpolation method needs to get passed an order of 
@@ -826,7 +826,7 @@ harmonize_aggregate2Grid(freq, agg_func, agg_method='nearest_agg', flag_agg_func
 ```
 | parameter     | data type         | default value     | description |
 | ---------     | ---------         | -------------     | ----------- |
-| freq          | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be shifted to.  |
+| freq          | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be aggregated to.  |
 | agg_func      | func              |                   | Function. Function used for data aggregation.|
 | agg_method    | string            | `nearest_agg`     | Method, determining the range of data and flags aggregation. See a list of methods below. |
 | flag_agg_func | func              | max               | Function used for flags aggregation.|   
@@ -859,7 +859,7 @@ In detail, the process includes:
    data (Thus get assigned `NaN` value). 
    The original data will be dropped (but can be regained by function 
    `deharmonize`).
-4. Depending on the keyword passed to agg_flag_func, the original flags get
+4. Depending on the keyword passed to `agg_flag_func`, the original flags get
    aggregated and assigned onto the new, harmonized data, generated in step (3).
    New sampling intervals, covering no data in the original dataseries or only 
    data that got excluded in step (1), will be regarded as representing missing 
@@ -883,13 +883,115 @@ harmonize_linear2Grid(freq, flag_assignment_method='nearest_agg', flag_agg_func=
 ```
 | parameter             | data type         | default value     | description |
 | ---------             | ---------         | -------------     | ----------- |
-| freq                  | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be shifted to.|
-| flag_assignment_method| string            | "nearest_agg"     | Function. Function used for data aggregation.|
+| freq                  | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be interpolated at.|
+| flag_assignment_method| string            | "nearest_agg"     | Method keyword, signifying method used for flags aggregation. See step 4 and table below|
 | flag_agg_func         | func              | max               | Function used for flags aggregation.|   
 | drop_flags            | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 2 below. |
 
+Linear interpolation of an inserted equidistant frequency grid of sampling rate `freq`.
 
+1. All missing values in the data, identified by `np.nan`, 
+   get flagged and will be excluded from the aggregation process.
+   NOTE, that implicitly this step includes a call to `missing` onto the 
+   data-to-be-flagged. 
+2. Additionally, if a list is passed to `drop_flags`, all the values in data, 
+   that are flagged with a flag, listed in `drop_list`, will be excluded from
+   interpolation - meaning, that they will not affect the further 
+   aggregation prozess.
+3. Data interpolation gets carried out: since the function is a harmonization function, the interpolation will not fill
+   gaps in your timeseries, but only calculate an interpolation value for grid points, that are surrounded by 
+   valid values within `freq` range. If there is either no valid value to the right, or to the left of a new grid point, 
+   that new grid point gets assigned `np.nan` (missing.)
+4. Depending on the keyword passed to `flag_assignment_method`, the original flags get
+   shifted, or aggregated with `flag_agg_func` onto the new, harmonized data index, generated in step (3).
+   New sampling intervals, covering no data in the original dataseries or only 
+   data that got excluded in step (1), will be regarded as representing missing 
+   data and thus get assigned the worst flag level available.
+   
 
+`flag_assignment_method` - Keywords
 
+1. Shifts:
+    * `"fshift"`: every grid point gets assigned its ultimately preceeding flag 
+      if there is one available in the preceeding sampling interval. If not, BAD - flag gets assigned.
+    * `"bshift"`: every grid point gets assigned its first succeeding flag 
+      if there is one available in the succeeding sampling interval. If not, BAD - flag gets assigned.
+    * `"nearest_shift"`: every grid point gets assigned the flag in its range. ( range = +/- `freq`/2 ).
+    * Extra flag fields like "comment", just get shifted along with the flag. 
+      Only inserted flags for empty intervals will get signified by the set flag routine of the current flagger.
+      Set `set_shift_comment` to `True`,  to apply setFlags signification to all flags.
+2. Aggregations:
+    * `"fagg"`: all flags in a sampling interval get aggregated with the function passed to `agg_func`
+                , and the result gets assigned to the last grid point.
+    * `"bagg"`: all flags in a sampling interval get aggregated with the function passed to `agg_func`
+                , and the result gets assigned to the next grid point.
+    * `"nearest_agg"`: all flags in the range (+/- freq/2) of a grid point get 
+                       aggregated with the function passed to `agg_func` and assigned to it.
+                      
 
+## harmonize_interpolate2Grid
 
+```
+harmonize_interpolate2Grid(freq, interpolation_method, interpolation_order=1, flag_assignment_method='nearest_agg', 
+                           flag_agg_func=max, drop_flags=None)
+```
+| parameter             | data type         | default value     | description |
+| ---------             | ---------         | -------------     | ----------- |
+| freq                  | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be interpolated at.|
+| interpolation_method  | string            |                   | Method keyword, signifying method used for grid interpolation. See step 3 and table below|
+| interpolation_order   | func              | 1                 | If needed - order of the interpolation, carried out.|   
+| flag_assignment_method| string            | "nearest_agg"     | Method keyword, signifying method used for flags aggregation. See step 4 and table below|
+| flag_agg_func         | func              | max               | Function used for flags aggregation.|   
+| drop_flags            | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 2 below. |
+
+Interpolation of an inserted equidistant frequency grid of sampling rate `freq`.
+
+1. All missing values in the data, identified by `np.nan`, 
+   get flagged and will be excluded from the aggregation process.
+   NOTE, that implicitly this step includes a call to `missing` onto the 
+   data-to-be-flagged. 
+2. Additionally, if a list is passed to `drop_flags`, all the values in data, 
+   that are flagged with a flag, listed in `drop_list`, will be excluded from
+   interpolation - meaning, that they will not affect the further 
+   aggregation prozess.
+3. Data interpolation with `interpolation_method` gets carried out: since the function is a harmonization function, the interpolation will not fill
+   gaps in your timeseries, but only calculate an interpolation value for grid points, that are surrounded by 
+   valid values within `freq` range. If there is either no valid value to the right, or to the left of a new grid point, 
+   that new grid point gets assigned `np.nan` (missing.)
+4. Depending on the keyword passed to `flag_assignment_method`, the original flags get
+   shifted, or aggregated with `flag_agg_func` onto the new, harmonized data index, generated in step (3).
+   New sampling intervals, covering no data in the original dataseries or only 
+   data that got excluded in step (1), will be regarded as representing missing 
+   data and thus get assigned the worst flag level available.
+
+`interpolation_method` - Keywords:
+* There are available all the interpolation methods from the pandas.interpolate() method and they can be reffered to with
+    the very same keywords, that you would pass to pd.Series.interpolates's method parameter.
+* Available interpolations: `"linear"`, `"time"`, `"nearest"`, `"zero"`, `"slinear"`,
+    `"quadratic"`, `"cubic"`, `"spline"`, `"barycentric"`, `"polynomial"`, `"krogh"`,
+    `"piecewise_polynomial"`, `"spline"`, `"pchip"`, `"akima"`.
+* Be careful with pd.Series.interpolate's `"nearest"` and `"pad"`:
+      To just fill grid points forward/backward or from the nearest point - and
+      assign grid points, that refer to missing data, a nan value, the use of `"fshift"`, `"bshift"` and `"nearest_shift"` is
+      recommended, to ensure getting the result expected. (The methods diverge in some 
+      special cases and do not properly interpolate grid-only.).
+
+`flag_assignment_method` - Keywords
+
+1. Shifts:
+    * `"fshift"`: every grid point gets assigned its ultimately preceeding flag 
+      if there is one available in the preceeding sampling interval. If not, BAD - flag gets assigned.
+    * `"bshift"`: every grid point gets assigned its first succeeding flag 
+      if there is one available in the succeeding sampling interval. If not, BAD - flag gets assigned.
+    * `"nearest_shift"`: every grid point gets assigned the flag in its range. ( range = +/- `freq`/2 ).
+    * Extra flag fields like "comment", just get shifted along with the flag. 
+      Only inserted flags for empty intervals will get signified by the set flag routine of the current flagger.
+      Set `set_shift_comment` to `True`,  to apply setFlags signification to all flags.
+2. Aggregations:
+    * `"fagg"`: all flags in a sampling interval get aggregated with the function passed to `agg_func`
+                , and the result gets assigned to the last grid point.
+    * `"bagg"`: all flags in a sampling interval get aggregated with the function passed to `agg_func`
+                , and the result gets assigned to the next grid point.
+    * `"nearest_agg"`: all flags in the range (+/- freq/2) of a grid point get 
+                       aggregated with the function passed to `agg_func` and assigned to it.
+          
