@@ -4,6 +4,15 @@ Main documentation of the implemented functions, their purpose and parameters an
 
 ## Index
 
+<!-- 
+linkmagic: 
+ - the pointing link must be lowercase 
+ - for the name everything is fine
+ - only use one `#` even if the heading has more `####`
+e.g: 
+[Facncy Link Name](#fancy_link_name_all_lowercase)
+-->
+
  - [range](#range)
  - [isolated](#isolated)
  - [missing](#missing)
@@ -25,7 +34,7 @@ Main documentation of the implemented functions, their purpose and parameters an
  - [machinelearning](#machinelearning)
  - [harmonize](#harmonize)
  - [deharmonize](#deharmonize)
- - [harmonize_shift2Grid](#harmonize_shift2Grid)
+ - [harmonize_shift2Grid](#harmonize_shift2grid)
  
 
 ## range
