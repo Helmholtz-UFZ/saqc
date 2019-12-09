@@ -457,7 +457,7 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
         data.interpolate(method=method, inplace=True, limit=1, limit_area="inside")
 
     else:
-
+        dat_name = data.name
         gap_mask = (~gap_mask).cumsum()
         data = pd.merge(gap_mask, data, how="inner", left_index=True, right_index=True)
 
@@ -482,7 +482,9 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
                     return x
 
         data = data.groupby(data.columns[0]).transform(_interpolWrapper)
-
+        # squeezing the 1-dimensional frame resulting from groupby for consistency reasons
+        data = data.squeeze(axis=1)
+        data.name = dat_name
     return data
 
 
@@ -833,3 +835,5 @@ def interpolate2Grid(data, field, flagger, freq, interpolation_method, interpola
         reshape_agg=flag_agg_func,
         drop_flags=drop_flags,
         **kwargs)
+
+#def aggregate(data, field, flagger, freq_base, freq_target, agg_func, **kwargs):
