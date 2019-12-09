@@ -35,7 +35,7 @@ INTERPOLATIONS2 = ["fagg", "time", "polynomial"]
 FREQS = ["15min", "30min"]
 
 
-#@pytest.fixture
+@pytest.fixture
 def data():
     index = pd.date_range(
         start="1.1.2011 00:00:00", end="1.1.2011 01:00:00", freq="15min"
@@ -347,7 +347,7 @@ if __name__ == "__main__":
     flagger2 = TESTFLAGGER[2]
     flagger = flagger.initFlags(dat)
     flagger2 = flagger.initFlags(dat2)
-    dat_out, flagger = linear2Grid(dat, 'data', flagger, '15min', flag_assignment_method='nearest_agg',
+    dat_out, flagger = interpolate2Grid(dat, 'data', flagger, '15min', interpolation_method="polynomial", flag_assignment_method='nearest_agg',
                                     flag_agg_func=max, drop_flags=None)
 
     print("stop")
