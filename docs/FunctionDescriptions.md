@@ -25,6 +25,7 @@ Main documentation of the implemented functions, their purpose and parameters an
  - [machinelearning](#machinelearning)
  - [harmonize](#harmonize)
  - [deharmonize](#deharmonize)
+ - [harmonize_shift2Grid](#harmonize_shift2Grid)
  
 
 ## range
@@ -772,7 +773,52 @@ and than:
       get overwritten with the harmonized flag - if they are "better" than this harmonized flag. 
       (According to the flagging order of the current flagger.)  
 
+
+## harmonize_shift2Grid
+
+```
+harmonize_shift2Grid(freq, shift_method='nearest_shift', drop_flags=None)
+```
+| parameter | data type | default value | description |
+| --------- | --------- | ------------- | ----------- |
+| freq          | string            |                   | Offset string. Detemining the frequency grid, the data shall be shifted to.  |
+| shift_method  | string            | `nearest_shift`   | Method, used for data shifting. See a list of methods below. |
+| drop_flags    | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 3 below. |
+
+
+The function "harmonizes" the data-to-be-flagged, to match an equidistant 
+frequency grid by shifting the datapoints. This is achieved by shifting all data 
+points to timestamp values, that are multiples of `freq`.
+
+In detail, the process includes:
  
+1. All missing values in the data, identified by `np.nan` 
+   get flagged and will be excluded from the shifting process.
+   NOTE, that implicitly this step includes a call to `missing` onto the 
+   data-to-be-flagged. 
+2. Additionally, if a list is passed to `drop_flags`, all the values in data, 
+   that are flagged with a flag, listed in `drop_list`, will be excluded from
+   harmonization - meaning, that they will not affect the further 
+   interpolation/aggregation prozess.
+3. Depending on the keyword passed to `shift_method`, 
+   the data gets shifted, together with its flags,
+   to a timestamp that is a multiple of `freq`.
+   NOTE, that this step projects the data to an equidistant frequencie grid ranging from the initial to the last timestamp of the data passen and by this,
+   will very likely change the size of the dataseries to-be-flagged.
+   New sampling in the equidistant freq grid, covering no data in the 
+   original dataseries, or only data that got excluded in step (1), 
+   will be regarded as representing missing data (Thus get assigned `NaN` value). 
+   The original data will be dropped (but can be regained by function 
+   `deharmonize`).
+
+
+`shift_method` keywords::
+    * `"fshift"`: every grid point gets assigned its ultimately preceeding flag/datapoint 
+      if there is one available in the preceeding sampling interval. If not, BAD/np.nan - flag gets assigned.
+    * `"bshift"`: every grid point gets assigned its first succeeding flag/datapoint 
+      if there is one available in the succeeding sampling interval. If not, BAD/np.nan - flag gets assigned.
+    * `"nearest_shift"`: every grid point gets assigned the closest flag/datapoint in its range. ( range = +/- `freq`/2 ).
+   
     
 
 
