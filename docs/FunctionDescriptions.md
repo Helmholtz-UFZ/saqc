@@ -972,7 +972,7 @@ Interpolation of an inserted equidistant frequency grid of sampling rate `freq`.
     `"piecewise_polynomial"`, `"spline"`, `"pchip"`, `"akima"`.
 * Be careful with pd.Series.interpolate's `"nearest"` and `"pad"`:
       To just fill grid points forward/backward or from the nearest point - and
-      assign grid points, that refer to missing data, a nan value, the use of `"fshift"`, `"bshift"` and `"nearest_shift"` is
+      assign grid points, that refer to missing data, a nan value, the use of `harmonize_shift2Grid` function is
       recommended, to ensure getting the result expected. (The methods diverge in some 
       special cases and do not properly interpolate grid-only.).
 
