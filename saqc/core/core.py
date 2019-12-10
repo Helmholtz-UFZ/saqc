@@ -9,7 +9,7 @@ from saqc.core.reader import readConfig, prepareConfig, checkConfig
 from saqc.core.config import Fields
 from saqc.core.evaluator import evalExpression
 from saqc.lib.plotting import plotHook, plotAllHook
-from saqc.flagger import BaseFlagger, CategoricalBaseFlagger, SimpleFlagger, DmpFlagger
+from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 
 
 def _collectVariables(meta, data):
@@ -39,7 +39,7 @@ def _checkInput(data, flags, flagger):
         raise TypeError("the columns of data is not allowed to be a multiindex")
 
     if not isinstance(flagger, BaseFlagger):
-        flaggerlist = [CategoricalBaseFlagger, SimpleFlagger, DmpFlagger]
+        flaggerlist = [CategoricalFlagger, SimpleFlagger, DmpFlagger]
         raise TypeError(
             f"flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}"
         )
