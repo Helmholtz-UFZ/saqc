@@ -59,6 +59,6 @@ def initMetaDict(config_dict, data):
     df = pd.DataFrame(config_dict)[_getKeys(config_dict)]
     meta = prepareConfig(df, data)
     fobj = io.StringIO()
-    meta.to_csv(fobj, index=False)
+    meta.to_csv(fobj, index=False, sep=";")
     fobj.seek(0)
     return fobj, meta
