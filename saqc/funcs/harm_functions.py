@@ -876,14 +876,14 @@ def aggregate(data, field, flagger, source_freq, target_freq, agg_func=np.mean, 
 
             else:
                 def aggregator(x):
-                    agg_func(getattr(x.resample(source_freq), sample_func_name)())
+                    return agg_func(getattr(x.resample(source_freq), sample_func_name)())
 
         else:
             if max_invalid < np.inf:
                 def aggregator(x):
                     y = x.resample(source_freq).apply(sample_func)
                     if y.isna().sum() < max_invalid:
-                        agg_func(y)
+                        return agg_func(y)
                     else:
                         return np.nan
             else:
