@@ -63,10 +63,10 @@ def _setup():
     pd.set_option("mode.chained_assignment", "warn")
 
 
-def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
+def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
     _setup()
     _checkInput(data, flags, flagger)
-    config = prepareConfig(readConfig(metafname), data)
+    config = prepareConfig(readConfig(config_file), data)
 
     # split config into the test and some 'meta' data
     tests = config.filter(regex=Fields.TESTS)
