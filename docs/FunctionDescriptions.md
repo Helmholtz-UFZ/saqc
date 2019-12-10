@@ -26,9 +26,9 @@ Main documentation of the implemented functions, their purpose and parameters an
  - [harmonize](#harmonize)
  - [deharmonize](#deharmonize)
  - [harmonize_shift2Grid](#harmonize_shift2grid)
- - [harmonize_shift2Grid](#harmonize_aggregate2grid)
- - [harmonize_shift2Grid](#harmonize_linear2grid)
- - [harmonize_shift2Grid](#harmonize_interpolate2grid)
+ - [harmonize_aggregate2Grid](#harmonize_aggregate2grid)
+ - [harmonize_linear2Grid](#harmonize_linear2grid)
+ - [harmonize_interpolate2Grid](#harmonize_interpolate2grid)
  
 
 ## range
