@@ -16,7 +16,7 @@ def plotAllHook(data, flagger):
         _plot(data, flagger, True, __plotvars)
 
 
-def plotHook(data, old, new, varname, do_plot, flag_test, plot_nans=True):
+def plotHook(data, old, new, varname, do_plot, flag_test, plot_nans=False):
     # old/new: flagger
     if do_plot:
         __plotvars.append(varname)
