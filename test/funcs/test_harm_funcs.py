@@ -18,7 +18,8 @@ from saqc.funcs.harm_functions import (
     linear2Grid,
     interpolate2Grid,
     shift2Grid,
-    aggregate2Grid
+    aggregate2Grid,
+    aggregate
 )
 
 
@@ -334,20 +335,10 @@ def test_wrapper(data, flagger):
     field = data.columns[0]
     freq = '15min'
     flagger = flagger.initFlags(data)
+    aggregate(data, field, flagger, '15min', '30min', agg_func=np.sum, sample_func=np.mean)
+
     linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func=max,
                                drop_flags=None)
     aggregate2Grid(data, field, flagger, freq, agg_func=sum, agg_method='nearest_agg',
                                   flag_agg_func=max, drop_flags=None)
     shift2Grid(data, field, flagger, freq, shift_method='nearest_shift', drop_flags=None)
-
-if __name__ == "__main__":
-    dat = data()
-    flagger = TESTFLAGGER[1]
-    test_gridInterpolation(data(), 'polynomial')
-    flagger2 = TESTFLAGGER[2]
-    flagger = flagger.initFlags(dat)
-    flagger2 = flagger.initFlags(dat2)
-    dat_out, flagger = interpolate2Grid(dat, 'data', flagger, '15min', interpolation_method="polynomial", flag_assignment_method='nearest_agg',
-                                    flag_agg_func=max, drop_flags=None)
-
-    print("stop")

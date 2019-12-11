@@ -8,7 +8,7 @@ import intervals
 from saqc.flagger.baseflagger import BaseFlagger
 
 
-class ContinuousBaseFlagger(BaseFlagger):
+class ContinuousFlagger(BaseFlagger):
     def __init__(self, min_=0.0, max_=1.0, unflagged=-1.0):
         assert unflagged < 0 <= min_ < max_
         super().__init__(dtype=np.float64)

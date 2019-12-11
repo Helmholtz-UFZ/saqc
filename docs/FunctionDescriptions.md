@@ -25,7 +25,10 @@ Main documentation of the implemented functions, their purpose and parameters an
  - [machinelearning](#machinelearning)
  - [harmonize](#harmonize)
  - [deharmonize](#deharmonize)
- - [harmonize_shift2Grid](#harmonize_shift2Grid)
+ - [harmonize_shift2Grid](#harmonize_shift2grid)
+ - [harmonize_aggregate2Grid](#harmonize_aggregate2grid)
+ - [harmonize_linear2Grid](#harmonize_linear2grid)
+ - [harmonize_interpolate2Grid](#harmonize_interpolate2grid)
  
 
 ## range
@@ -774,7 +777,7 @@ and than:
       (According to the flagging order of the current flagger.)  
 
 
-## harmonize_shift2Grid
+## harmonize_shift2grid
 
 ```
 harmonize_shift2Grid(freq, shift_method='nearest_shift', drop_flags=None)
@@ -819,7 +822,7 @@ In detail, the process includes:
       if there is one available in the succeeding sampling interval. If not, BAD/np.nan - flag gets assigned.
 * `"nearest_shift"`: every grid point gets assigned the closest flag/datapoint in its range. ( range = +/- `freq`/2 ).
    
-## harmonize_aggregate2Grid
+## harmonize_aggregate2grid
 
 ```
 harmonize_aggregate2Grid(freq, agg_func, agg_method='nearest_agg', flag_agg_func=max, drop_flags=None)
@@ -876,7 +879,7 @@ In detail, the process includes:
            aggregated with the function passed to agg_method and assigned to it.
 
 
-## harmonize_linear2Grid
+## harmonize_linear2grid
 
 ```
 harmonize_linear2Grid(freq, flag_assignment_method='nearest_agg', flag_agg_func=max, drop_flags=None)
@@ -929,7 +932,7 @@ Linear interpolation of an inserted equidistant frequency grid of sampling rate 
                        aggregated with the function passed to `agg_func` and assigned to it.
                       
 
-## harmonize_interpolate2Grid
+## harmonize_interpolate2grid
 
 ```
 harmonize_interpolate2Grid(freq, interpolation_method, interpolation_order=1, flag_assignment_method='nearest_agg', 

@@ -21,7 +21,9 @@ def flagGeneric(data, field, flagger, func, **kwargs):
     #   DmpFlagger.isFlagged does not preserve the name of the column
     #   it was executed on -> would be nice to overcome this restriction
     flags_field = func.name if func.name in data.columns else field
-    mask = func.squeeze() | flagger.isFlagged(flags_field)
+    mask = func.squeeze()
+    if flags_field in flagger.getFlags():
+        mask |= flagger.isFlagged(flags_field)
     if np.isscalar(mask):
         raise TypeError(f"generic expression does not return an array")
     if not np.issubdtype(mask.dtype, np.bool_):

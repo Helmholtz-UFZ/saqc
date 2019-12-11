@@ -9,7 +9,7 @@ from saqc.core.reader import readConfig, prepareConfig, checkConfig
 from saqc.core.config import Fields
 from saqc.core.evaluator import evalExpression
 from saqc.lib.plotting import plotHook, plotAllHook
-from saqc.flagger import BaseFlagger, CategoricalBaseFlagger, SimpleFlagger, DmpFlagger
+from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 
 
 def _collectVariables(meta, data):
@@ -39,7 +39,7 @@ def _checkInput(data, flags, flagger):
         raise TypeError("the columns of data is not allowed to be a multiindex")
 
     if not isinstance(flagger, BaseFlagger):
-        flaggerlist = [CategoricalBaseFlagger, SimpleFlagger, DmpFlagger]
+        flaggerlist = [CategoricalFlagger, SimpleFlagger, DmpFlagger]
         raise TypeError(
             f"flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}"
         )
@@ -63,10 +63,10 @@ def _setup():
     pd.set_option("mode.chained_assignment", "warn")
 
 
-def runner(metafname, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
+def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
     _setup()
     _checkInput(data, flags, flagger)
-    config = prepareConfig(readConfig(metafname), data)
+    config = prepareConfig(readConfig(config_file), data)
 
     # split config into the test and some 'meta' data
     tests = config.filter(regex=Fields.TESTS)

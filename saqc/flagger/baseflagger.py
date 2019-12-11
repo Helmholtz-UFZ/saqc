@@ -165,8 +165,8 @@ class BaseFlagger(ABC):
     ) -> PandasT:
         field = field or slice(None)
         locator = [l for l in (loc, iloc, slice(None)) if l is not None][0]
-        flags = self._flags[toSequence(field)]
-        mask = pd.Series(data=np.zeros(len(flags), dtype=bool), index=flags.index)
+        index = self._flags.index
+        mask = pd.Series(data=np.zeros(len(index), dtype=bool), index=index)
         mask[locator] = True
         return mask
 

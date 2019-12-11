@@ -1,13 +1,16 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+TODO: remove
+"""
 
-from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
+from saqc.flagger.categoricalflagger import CategoricalFlagger
 
 
 FLAGS = [-1, 0, 1]
 
 
-class SimpleFlagger(CategoricalBaseFlagger):
+class SimpleFlagger(CategoricalFlagger):
     def __init__(self):
         super().__init__(FLAGS)

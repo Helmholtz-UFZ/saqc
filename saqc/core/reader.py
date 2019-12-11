@@ -90,4 +90,4 @@ def prepareConfig(config_df, data):
 
 
 def readConfig(fname):
-    return pd.read_csv(fname, delimiter=",", skipinitialspace=True)
+    return pd.read_csv(fname, delimiter=";", skipinitialspace=True)

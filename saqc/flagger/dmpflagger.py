@@ -8,7 +8,7 @@ from typing import Union, Sequence
 
 import pandas as pd
 
-from saqc.flagger.categoricalflagger import CategoricalBaseFlagger
+from saqc.flagger.categoricalflagger import CategoricalFlagger
 from saqc.lib.tools import assertDataFrame, toSequence, assertScalar
 
 
@@ -30,7 +30,7 @@ class ColumnLevels:
 FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 
-class DmpFlagger(CategoricalBaseFlagger):
+class DmpFlagger(CategoricalFlagger):
     def __init__(self):
         super().__init__(FLAGS)
         self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]

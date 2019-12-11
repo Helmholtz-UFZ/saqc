@@ -1,11 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# TODO: use the logging module
 import logging
 import pandas as pd
 import numpy as np
-from warnings import warn
 
 
 __plotvars = []
@@ -24,7 +22,9 @@ def plotHook(data, old, new, varname, do_plot, flag_test, plot_nans=True):
         __plotvars.append(varname)
         # cannot use getFlags here, because if a flag was set (e.g. with force) the
         # flag may be the same, but any additional row (e.g. comment-field) would differ
-        mask = (old._flags[varname] != new._flags[varname]).any(axis=1)
+        mask = (old._flags[varname] != new._flags[varname])
+        if isinstance(mask, pd.DataFrame):
+            mask = mask.any(axis=1)
         _plot(data, new, mask, varname, title=flag_test, plot_nans=plot_nans)
 
 
