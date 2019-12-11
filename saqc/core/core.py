@@ -73,19 +73,18 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
     tests = config.filter(regex=Fields.TESTS)
     meta = config[config.columns.difference(tests.columns)]
 
-    # # prepapre the flags
-    # varnames = _collectVariables(meta, data)
-    # fresh = flagger.initFlags(pd.DataFrame(index=data.index, columns=varnames))
-    # flagger = fresh if flags is None else flags.join(fresh._flags)
-
+    # prepapre the flags
     flag_cols = _collectVariables(meta, data)
     flagger = flagger.initFlags(data=pd.DataFrame(index=data.index, columns=flag_cols))
     if flags is not None:
         flagger = flagger.setFlagger(flagger.initFlags(flags=flags))
 
-    # this checks comes late, but the compiling of the user-test need fully prepared flags
+    # NOTE:
+    # this checks comes late, but the compilation of
+    # user-test needs fully prepared flags
     checkConfig(config, data, flagger, nodata)
 
+    # NOTE:
     # the outer loop runs over the flag tests, the inner one over the
     # variables. Switching the loop order would complicate the
     # reference to flags from other variables within the dataset
@@ -106,7 +105,7 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
             if pd.isnull(flag_test):
                 continue
 
-            if varname not in data and varname not in flagger.getFlags().columns:
+            if varname not in data and varname not in flagger.getFlags():
                 continue
 
             # prepare the data for the tests
