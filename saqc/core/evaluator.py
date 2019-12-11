@@ -135,7 +135,7 @@ class MetaTransformer(ast.NodeTransformer):
 
     SUPPORTED_ARGUMENTS = (
         ast.Str, ast.Num, ast.NameConstant, ast.Call,
-        ast.UnaryOp, ast.USub
+        ast.UnaryOp, ast.USub, ast.Name
     )
 
     def __init__(self, dsl_transformer, pass_parameter):

@@ -53,8 +53,6 @@ def test_typeError(flagger):
         "func(x=5)",
         "func(otherFunc())",
         "func(kwarg=otherFunc(this))",
-        "func(kwarg=otherFunc(kwarg=this))",
-
     ]
 
     for expr in exprs:
