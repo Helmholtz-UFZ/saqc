@@ -608,7 +608,7 @@ This Function uses pre-trained machine-learning model objects for flagging.
 This requires training a model by use of the [training script](../ressources/machine_learning/train_machine_learning.py) provided. 
 For flagging, inputs to the model are the data of the variable of interest, 
 data of reference variables and the automatic flags that were assigned by other 
-tests inside SaQC. 
+tests inside SaQC. Therefore, this function should be defined last in the config-file, i.e. it should be the last test that is executed.
 Internally, context information for each point is gathered in form of moving 
 windows. The size of the moving windows for counting of the surrounding 
 automatic flags and for calculation of gradients in the data is specified by 
