@@ -1,0 +1,12 @@
+varname;test;plot
+# SM1;range(min=10, max=60);False
+SM2;missing(nodata=nan);True
+# SM2;range(min=10, max=60);True
+# SM2;spikes_basic(thresh=30, tolerance=15, window_size="50d");True
+# SM2;generic(func=Battery<3500);True
+  
+# The plot looks horrible
+# Battery;generic(func=this<3500);False
+# SM2;generic(func=isflagged(Battery));True
+# Bad error message: Battery,generic(self<2.5),True
+
