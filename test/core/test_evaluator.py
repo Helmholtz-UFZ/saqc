@@ -13,7 +13,7 @@ from saqc.core.evaluator import (
     MetaTransformer,
 )
 
-from test.common import TESTFLAGGER
+from test.common import TESTFLAGGER, dummyRegisterFunc
 
 
 def compileExpression(expr, flagger, nodata=np.nan):
@@ -22,10 +22,6 @@ def compileExpression(expr, flagger, nodata=np.nan):
     transformed_tree = MetaTransformer(dsl_transformer, flagger.signature).visit(tree)
     code = compileTree(transformed_tree)
     return code
-
-
-def _dummyFunc(data, field, flagger, kwarg, **kwargs):
-    pass
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -44,8 +40,8 @@ def test_syntaxError(flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_typeError(flagger):
 
-    register("func")(_dummyFunc)
-    register("otherFunc")(_dummyFunc)
+    register("func")(dummyRegisterFunc)
+    register("otherFunc")(dummyRegisterFunc)
 
     exprs = [
         # "func",
@@ -66,8 +62,8 @@ def test_typeError(flagger):
 def test_supportedArguments(flagger):
 
 
-    register("func")(_dummyFunc)
-    register("otherFunc")(_dummyFunc)
+    register("func")(dummyRegisterFunc)
+    register("otherFunc")(dummyRegisterFunc)
 
     exprs = [
         "func(kwarg='str')",
