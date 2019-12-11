@@ -3,12 +3,16 @@
 
 import logging
 import pandas as pd
-import numpy as np
 
 
 __plotvars = []
 
-_colors = dict(unflagged='silver', good='seagreen', bad='firebrick', suspicious='gold')
+_colors = {
+    "unflagged": "silver",
+    "good": "seagreen",
+    "bad": "firebrick",
+    "suspicious": "gold"
+}
 
 
 def plotAllHook(data, flagger):
@@ -54,7 +58,7 @@ def _plot(
     else:
         mpl.use("TkAgg")
 
-    if np.isscalar(varname):
+    if not isinstance(varname, (list, set)):
         varname = [varname]
     varname = set(varname)
 
