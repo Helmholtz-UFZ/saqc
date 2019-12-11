@@ -4,12 +4,14 @@ import random  # for random sampling of training/test
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import recall_score, precision_score, classification_report
 import joblib  # for saving of model objects
-
+import os
+import time
+import datetime
 ###--------------------
 ### EXAMPLE PARAMETRIZATION:
 ###--------------------
 
-# pd.options.mode.chained_assignment = None  # default='warn'
+#pd.options.mode.chained_assignment = None  # default='warn'
 # data = pd.read_feather("data/sm/02_data.feather")
 # data = data.reset_index()#data.index has to be reset as I use row nos only for indexing
 #
@@ -23,9 +25,8 @@ import joblib  # for saving of model objects
 # references = ["Var1","Var2"]
 # window_values = 20
 # window_flags = 20
-# modelname="testmodel"
-# #groupvar = 0.2
-# path = "saqc/ressources/machine_learning/models/"
+# modelname="name"
+# path = "models/"
 # sensor_field="SensorID"
 # group_field = "GroupVar"
 
@@ -71,6 +72,25 @@ def trainML(
     :param testratio                    A float denoting the ratio of the test- vs. training-set to be drawn from the data, e.g. 0.3
     """
 
+    def _refCalc(reference, window_values):
+        # Helper function for calculation of moving window values
+        outdata = pd.DataFrame()
+        name = reference.name
+        # derive gradients from reference series
+        outdata[name + "_Dt_1"] = reference - reference.shift(1)  # gradient t vs. t-1
+        outdata[name + "_Dt1"] = reference - reference.shift(-1)  # gradient t vs. t+1
+        # moving mean of gradients var1 and var2 before/after
+        outdata[name + "_Dt_" + str(window_values)] = (
+            outdata[name + "_Dt_1"].rolling(window_values, center=False).mean()
+        )  # mean gradient t to t-window
+        outdata[name + "_Dt" + str(window_values)] = (
+            outdata[name + "_Dt_1"]
+            .iloc[::-1]
+            .rolling(window_values, center=False)
+            .mean()[::-1]
+        )  # mean gradient t to t+window
+        return outdata
+
     randomseed = 36
     ### Prepare data, i.e. compute moving windows
     print("Computing time-lags")
@@ -109,7 +129,7 @@ def trainML(
         # Add context information for field+references
         for i in [field] + references:
             sensordf = pd.concat(
-                [sensordf, refCalc(reference=sensordf[i], window_values=window_values)],
+                [sensordf, _refCalc(reference=sensordf[i], window_values=window_values)],
                 axis=1,
             )
 
@@ -128,7 +148,7 @@ def trainML(
     # make column in "traindata" to store predictions
     traindata = traindata.assign(PredMan=0)
     outinfo_df = []
-    resultfile = open(os.path.join(path, modelname + "_resultfile.txt"), "w")
+    resultfile = open(os.path.join(os.getcwd(),path, modelname + "_resultfile.txt"), "w")
     starttime = time.time()
     # For each category of groupvar, fit a separate model
 
@@ -204,7 +224,7 @@ def trainML(
         ] = preds_te
 
     endtime = time.time()
-    print("TIME ELAPSED: " + str(timedelta(seconds=endtime - starttime)) + " min")
+    print("TIME ELAPSED: " + str(datetime.timedelta(seconds=endtime - starttime)) + " hours")
     outinfo_df = pd.DataFrame.from_records(
         outinfo_df,
         columns=[
@@ -230,7 +250,7 @@ def trainML(
     data.PredMan[
         traindata.RowIndex
     ] = traindata.PredMan  # based on RowIndex as NAs were created in traindata
-    data.to_feather("data/sm/03_data_preds")
+    data.to_feather(os.path.join(path, modelname + "_data_preds.feather"))
 
 
 trainML(
