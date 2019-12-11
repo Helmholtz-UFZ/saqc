@@ -10,10 +10,10 @@ Main documentation of the implemented functions, their purpose and parameters an
  - [seasonalRange](#seasonalrange)
  - [clear](#clear)
  - [force](#force)
- - [sliding_outlier](#sliding_outlier)
+ - [spikes_basic](#spikes_basic)
  - [spikes_simpleMad](#spikes_simpleMad)
- - [spikes_Basic](#spikes_basic)
- - [Spikes_SpektrumBased](#spikes_spektrumbased)
+ - [spikes_slidingZscore](#spikes_slidingZscore)
+ - [spikes_spektrumBased](#spikes_spektrumBased)
  - [constant](#constant)
  - [constants_varianceBased](#constants_variancebased)
  - [soilMoisture_plateaus](#soilmoisture_plateaus)
@@ -141,22 +141,81 @@ force()
 
 Force flags to a flag-value.
 
-## sliding_outlier
+## spikes_basic
+```
+spikes_basic(thresh, tolerance, window_size)
+```
+
+| parameter   | data type | default value | description                                                                                  |
+| ------      | ------    | ------        | ----                                                                                         |
+| thresh      | float     |               | Minimum jump margin for spikes. See condition (1).                                           |
+| tolerance   | float     |               | Range of area, containing al "valid return values". See condition (2).                       |
+| window_size | ftring    |               | An offset string, denoting the maximal length of "spikish" value courses. See condition (3). |
+
+A basic outlier test, that is designed to work for harmonized, as well as raw
+(not-harmonized) data.
+
+The values $`x_{n}, x_{n+1}, .... , x_{n+k} `$ of a passed timeseries $`x`$,
+are considered spikes, if:
+
+1. $`|x_{n-1} - x_{n + s}| > `$ `thresh`, $` s \in \{0,1,2,...,k\} `$
+
+2. $`|x_{n-1} - x_{n+k+1}| < `$ `tolerance`
+
+3. $` |y_{n-1} - y_{n+k+1}| < `$ `window_size`, with $`y `$, denoting the series
+   of timestamps associated with $`x `$.
+
+By this definition, spikes are values, that, after a jump of margin `thresh`(1),
+are keeping that new value level they jumped to, for a timespan smaller than
+`window_size` (3), and do then return to the initial value level -
+within a tolerance margin of `tolerance` (2).  
+
+Note, that this characterization of a "spike", not only includes one-value
+outliers, but also plateau-ish value courses.
+
+## spikes_simpleMad
+
+Flag outlier by simple median absolute deviation test.
+
+```
+spikes_simpleMad(length, z=3.5)
+```
+
+| parameter | data type            | default value | description                                                          |
+| --------- | -----------          | ----          | -----------                                                          |
+| winsz     | offset-string or int | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
+| z         | float                | `3.5`         | z-parameter the modified Z-score                                     |
+
+
+The *modified Z-score* [1] is used to detect outlier. 
+All values are flagged as outlier, if in any slice of thw sliding window, a value fulfill:
+```math
+ 0.6745 * |x - M| > mad * z > 0
+```
+with $` x, M, mad, z `$: window data, window median, window median absolute deviation, `z`.
+The window is continued by one frequency step.
+
+Note: This function should only applied on normalised data.
+ 
+See also:
+[1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+
+## spikes_slidingZscore
 
 Detect outlier/spikes by a given method in a sliding window.
 
 ```
-sliding_outlier(winsz="1h", dx="1h", count=1, deg=1, z=3.5, method="modZ")
+spikes_slidingZscore(winsz="1h", dx="1h", count=1, deg=1, z=3.5, method="modZ")
 ```
 
-| parameter  | data type            | default value | description |
-| ---------  | -----------          | ----          | ----------- |
-| winsz      | offset-string/integer | `"1h"`        | size of the sliding window, the *method* is applied on      |
-| dx         | offset-string/integer | `"1h"`        | the step size the sliding window is continued after calculation |
-| count      | integer              | `1`           | the minimal count, a possible outlier needs, to be flagged   |
-| deg        | integer              | `1"`          | the degree of the polynomial fit, to calculate the residual  |
-| z          | float                | `3.5`         | z-parameter for the *method* (see description)               |
-| method     | string               | `"modZ"`      | the method outlier are detected with                         |
+| parameter | data type             | default value | description                                                     |
+| --------- | -----------           | ----          | -----------                                                     |
+| winsz     | offset-string/integer | `"1h"`        | size of the sliding window, the *method* is applied on          |
+| dx        | offset-string/integer | `"1h"`        | the step size the sliding window is continued after calculation |
+| count     | integer               | `1`           | the minimal count, a possible outlier needs, to be flagged      |
+| deg       | integer               | `1"`          | the degree of the polynomial fit, to calculate the residual     |
+| z         | float                 | `3.5`         | z-parameter for the *method* (see description)                  |
+| method    | string                | `"modZ"`      | the method outlier are detected with                            |
 
 Parameter notes: 
  - `winsz` and `dx` must be of same type, mixing of offset and integer is not supported and will fail.
@@ -188,87 +247,23 @@ with $` r, M, mad, z `$: data, data median, data median absolute deviation, `z`.
 See also:
 [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
 
-## spikes_simpleMad
-
-Flag outlier by simple median absolute deviation test.
+## spikes_spektrumBased
 
 ```
-spikes_simpleMad(length, z=3.5)
-```
-
-| parameter | data type            | default value | description                                                          |
-| --------- | -----------          | ----          | -----------                                                          |
-| winsz     | offset-string or int | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
-| z         | float                | `3.5`         | z-parameter the modified Z-score                                     |
-
-
-The *modified Z-score* [1] is used to detect outlier. 
-All values are flagged as outlier, if in any slice of thw sliding window, a value fulfill:
-```math
- 0.6745 * |x - M| > mad * z > 0
-```
-with $` x, M, mad, z `$: window data, window median, window median absolute deviation, `z`.
-The window is continued by one frequency step.
-
-Note: This function should only applied on normalised data.
- 
-See also:
-[1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
-
-
-## Spikes_Basic
-```
-Spikes_Basic(thresh, tolerance, window_size)
-```
-
-| parameter   | data type | default value | description |
-| ------      | ------    | ------        | ----        |
-| thresh      | float     |               | Minimum jump margin for spikes. See condition (1). |
-| tolerance   | float     |               | Range of area, containing al "valid return values". See condition (2). |
-| window_size | ftring    |               | An offset string, denoting the maximal length of "spikish" value courses. See condition (3). |
-
-A basic outlier test, that is designed to work for harmonized, as well as raw
-(not-harmonized) data.
-
-The values $`x_{n}, x_{n+1}, .... , x_{n+k} `$ of a passed timeseries $`x`$,
-are considered spikes, if:
-
-1. $`|x_{n-1} - x_{n + s}| > `$ `thresh`, $` s \in \{0,1,2,...,k\} `$
-
-2. $`|x_{n-1} - x_{n+k+1}| < `$ `tolerance`
-
-3. $` |y_{n-1} - y_{n+k+1}| < `$ `window_size`, with $`y `$, denoting the series
-   of timestamps associated with $`x `$.
-
-By this definition, spikes are values, that, after a jump of margin `thresh`(1),
-are keeping that new value level they jumped to, for a timespan smaller than
-`window_size` (3), and do then return to the initial value level -
-within a tolerance margin of `tolerance` (2).  
-
-Note, that this characterization of a "spike", not only includes one-value
-outliers, but also plateau-ish value courses.
-
-The implementation is a time-window based version of an outlier test from the
-UFZ Python library, that can be found [here](https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py).
-
-
-## Spikes_SpektrumBased
-
-```
-Spikes_SpektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
+spikes_spektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
                      noise_barrier=1, noise_window_size="12h", noise_statistic="CoVar",
                      smooth_poly_order=2, filter_window_size=None)
 ```
 
-| parameter          | data type | default value | description |
-| ------             | ------    | ------        | ----        |
-| raise_factor       | float     | `0.15`        | Minimum change margin for a datapoint to become a candidate for a spike. See condition (1). |
-| dev_cont_factor    | float     | `0.2`         | See condition (2). |
-| noise_barrier      | float     | `1`           | Upper bound for noisyness of data surrounding potential spikes. See condition (3).|
-| noise_window_range | string    | `"12h"`       | Any offset string. Determines the range of the timewindow of the "surrounding" data of a potential spike. See condition (3). |
-| noise_statistic    | string    | `"CoVar"`     | Operator to calculate noisyness of data, surrounding potential spike. Either `"Covar"` (=Coefficient od Variation) or `"rvar"` (=relative Variance).|
-| smooth_poly_order  | integer   | `2`           | Order of the polynomial fit, applied for smoothing|
-| filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.|
+| parameter          | data type          | default value | description                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------             | ------             | ------        | ----                                                                                                                                                                                                                                                                                                                                                                                                               |
+| raise_factor       | float              | `0.15`        | Minimum change margin for a datapoint to become a candidate for a spike. See condition (1).                                                                                                                                                                                                                                                                                                                        |
+| dev_cont_factor    | float              | `0.2`         | See condition (2).                                                                                                                                                                                                                                                                                                                                                                                                 |
+| noise_barrier      | float              | `1`           | Upper bound for noisyness of data surrounding potential spikes. See condition (3).                                                                                                                                                                                                                                                                                                                                 |
+| noise_window_range | string             | `"12h"`       | Any offset string. Determines the range of the timewindow of the "surrounding" data of a potential spike. See condition (3).                                                                                                                                                                                                                                                                                       |
+| noise_statistic    | string             | `"CoVar"`     | Operator to calculate noisyness of data, surrounding potential spike. Either `"Covar"` (=Coefficient od Variation) or `"rvar"` (=relative Variance).                                                                                                                                                                                                                                                               |
+| smooth_poly_order  | integer            | `2`           | Order of the polynomial fit, applied for smoothing                                                                                                                                                                                                                                                                                                                                                                 |
+| filter_window_size | Nonetype or string | `None`        | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase. |
 
 
 The function detects and flags spikes in input data series by evaluating the
@@ -301,7 +296,6 @@ mechanism as presented in:
 Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
 Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
 doi:10.2136/vzj2012.0097.
-
 
 ## constant
 
