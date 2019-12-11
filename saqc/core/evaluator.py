@@ -25,8 +25,8 @@ def _dslIsFlagged(data, field, flagger):
     return flagger.isFlagged(field)
 
 
-def initDslFuncMap(nodata):
-    return {
+def initGlobalMap():
+    out = {
         "abs": partial(_dslInner, np.abs),
         "max": partial(_dslInner, np.nanmax),
         "min": partial(_dslInner, np.nanmin),
@@ -35,6 +35,18 @@ def initDslFuncMap(nodata):
         "std": partial(_dslInner, np.nanstd),
         "len": partial(_dslInner, len),
         "isflagged": _dslIsFlagged,
+        "nan": np.nan,
+        **FUNC_MAP,
+    }
+    return out
+
+def initLocalMap(data, field, flagger, nodata):
+    return {
+        "data": data,
+        "field": field,
+        "this": field,
+        "flagger": flagger,
+        "NODATA": nodata,
         "ismissing": lambda data, field, flagger: ((data == nodata) | pd.isnull(data)),
     }
 
@@ -184,29 +196,21 @@ def compileTree(tree: ast.Expression):
     return compile(ast.fix_missing_locations(tree), "<ast>", mode="eval")
 
 
-def evalCode(code, data, field, flagger, nodata):
-    global_env = initDslFuncMap(nodata)
-    local_env = {
-        **FUNC_MAP,
-        "data": data,
-        "field": field,
-        "this": field,
-        "flagger": flagger,
-        "NODATA": nodata,
-    }
-
+def evalCode(code, global_env, local_env):
     return eval(code, global_env, local_env)
 
 
-def compileExpression(expr, data, flagger, nodata):
+def compileExpression(expr, data, flagger, env):
     varmap = set(data.columns.tolist() + flagger.getFlags().columns.tolist())
     tree = parseExpression(expr)
-    dsl_transformer = DslTransformer(initDslFuncMap(nodata), varmap)
+    dsl_transformer = DslTransformer(env, varmap)
     transformed_tree = MetaTransformer(dsl_transformer, flagger.signature).visit(tree)
     return compileTree(transformed_tree)
 
 
 def evalExpression(expr, data, field, flagger, nodata=np.nan):
 
-    code = compileExpression(expr, data, flagger, nodata)
-    return evalCode(code, data, field, flagger, nodata)
+    global_env = initGlobalMap()
+    local_env = initLocalMap(data, field, flagger, nodata)
+    code = compileExpression(expr, data, flagger, {**global_env, **local_env})
+    return evalCode(code, global_env, local_env)

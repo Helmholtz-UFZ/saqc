@@ -9,7 +9,8 @@ from test.common import initData, TESTFLAGGER, TESTNODATA
 
 from saqc.core.evaluator import (
     DslTransformer,
-    initDslFuncMap,
+    initGlobalMap,
+    initLocalMap,
     parseExpression,
     evalExpression,
     compileTree,
@@ -17,12 +18,14 @@ from saqc.core.evaluator import (
 )
 
 
-def _evalExpression(expr, data, field, flagger, nodata=np.nan):
+def _evalDslExpression(expr, data, field, flagger, nodata=np.nan):
+    global_env = initGlobalMap()
+    local_env = initLocalMap(data, field, flagger, nodata)
     tree = parseExpression(expr)
-    dsl_transformer = DslTransformer(initDslFuncMap(nodata), data.columns)
+    dsl_transformer = DslTransformer({**global_env, **local_env}, data.columns)
     transformed_tree = dsl_transformer.visit(tree)
     code = compileTree(transformed_tree)
-    return evalCode(code, data, field, flagger, nodata)
+    return evalCode(code, global_env, local_env)
 
 
 @pytest.fixture
@@ -50,8 +53,12 @@ def test_flagPropagation(data, flagger):
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_missingIdentifier(data, flagger):
+
     flagger = flagger.initFlags(data)
-    tests = ["generic(func=func(var2) < 5)", "generic(func=var3 != NODATA)"]
+    tests = [
+        "generic(func=fff(var2) < 5)",
+        "generic(func=var3 != NODATA)"
+    ]
     for expr in tests:
         with pytest.raises(NameError):
             evalExpression(expr, data, data.columns[0], flagger, np.nan)
@@ -90,7 +97,7 @@ def test_nonReduncingBuiltins(data, flagger):
     ]
 
     for expr, expected in tests:
-        result = _evalExpression(expr, data, this, flagger)
+        result = _evalDslExpression(expr, data, this, flagger)
         assert (result == expected).all()
 
 
@@ -112,7 +119,7 @@ def test_reduncingBuiltins(data, flagger, nodata):
     ]
 
     for expr, expected in tests:
-        result = _evalExpression(expr, data, this, flagger, nodata)
+        result = _evalDslExpression(expr, data, this, flagger, nodata)
         assert result == expected
 
 
@@ -135,7 +142,7 @@ def test_ismissing(data, flagger, nodata):
     ]
 
     for expr, checkFunc in tests:
-        idx = _evalExpression(expr, data, var1, flagger, nodata)
+        idx = _evalDslExpression(expr, data, var1, flagger, nodata)
         assert checkFunc(data.loc[idx, var1])
 
 
@@ -173,7 +180,7 @@ def test_isflagged(data, flagger):
     flagger = flagger.setFlags(var1, iloc=slice(None, None, 2))
     flagger = flagger.setFlags(var2, iloc=slice(None, None, 2))
 
-    idx = _evalExpression(f"isflagged({var1})", data, var2, flagger)
+    idx = _evalDslExpression(f"isflagged({var1})", data, var2, flagger)
 
     flagged = flagger.isFlagged(var1)
     assert (flagged == idx).all
@@ -188,7 +195,7 @@ def test_isflaggedArgument(data, flagger):
         var1, iloc=slice(None, None, 2), flag=flagger.BAD
     )
 
-    idx = _evalExpression(f"isflagged({var1}, {flagger.BAD})", data, var2, flagger)
+    idx = _evalDslExpression(f"isflagged({var1}, {flagger.BAD})", data, var2, flagger)
 
     flagged = flagger.isFlagged(var1, flag=flagger.BAD, comparator=">=")
     assert (flagged == idx).all()

@@ -8,7 +8,7 @@ from saqc.funcs import register
 from saqc.core.evaluator import (
     compileTree,
     parseExpression,
-    initDslFuncMap,
+    initGlobalMap,
     DslTransformer,
     MetaTransformer,
 )
@@ -18,7 +18,7 @@ from test.common import TESTFLAGGER
 
 def compileExpression(expr, flagger, nodata=np.nan):
     tree = parseExpression(expr)
-    dsl_transformer = DslTransformer(initDslFuncMap(nodata), {})
+    dsl_transformer = DslTransformer(initGlobalMap(), {})
     transformed_tree = MetaTransformer(dsl_transformer, flagger.signature).visit(tree)
     code = compileTree(transformed_tree)
     return code
