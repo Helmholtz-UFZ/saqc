@@ -61,6 +61,7 @@ def _checkInput(data, flags, flagger):
 
 def _setup():
     pd.set_option("mode.chained_assignment", "warn")
+    np.seterr(invalid="ignore")
 
 
 def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
