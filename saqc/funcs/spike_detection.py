@@ -144,7 +144,7 @@ def flagSpikes_slidingZscore(
 
 
 @register("spikes_simpleMad")
-def flagSpikes_simpleMad(data, field, flagger, length, z=3.5, freq=None, **kwargs):
+def flagSpikes_simpleMad(data, field, flagger, winsz, z=3.5, **kwargs):
     """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
 
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
@@ -156,21 +156,14 @@ def flagSpikes_simpleMad(data, field, flagger, length, z=3.5, freq=None, **kwarg
                         time raster with seconds precision.
     :param field:       Fieldname of the Soil moisture measurements field in data.
     :param flagger:     A flagger - object. (saqc.flagger.X)
-    :param length:      Offset String. Denoting the windows size that that th "Z-scored" values have to lie in.
+    :param winsz:      Offset String. Denoting the windows size that that th "Z-scored" values have to lie in.
     :param z:           Float. The value the Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
-    :param freq:        Frequencie.
     """
 
     d = data[field].copy()
-    freq = inferFrequency(d) if freq is None else freq
-    if freq is None:
-        raise ValueError(
-            "freqency cannot inferred, provide `freq` as a param to mad()."
-        )
-    winsz = int(pd.to_timedelta(length) / freq)
-    median = d.rolling(window=winsz, center=True, closed="both").median()
+    median = d.rolling(window=winsz, closed="both").median()
     diff = abs(d - median)
-    mad = diff.rolling(window=winsz, center=True, closed="both").median()
+    mad = diff.rolling(window=winsz, closed="both").median()
     mask = (mad > 0) & (0.6745 * diff > z * mad)
 
     flagger = flagger.setFlags(field, mask, **kwargs)

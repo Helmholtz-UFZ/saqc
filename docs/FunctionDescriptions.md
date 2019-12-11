@@ -11,7 +11,7 @@ Main documentation of the implemented functions, their purpose and parameters an
  - [clear](#clear)
  - [force](#force)
  - [sliding_outlier](#sliding_outlier)
- - [mad](#mad)
+ - [spikes_simpleMad](#spikes_simpleMad)
  - [spikes_Basic](#spikes_basic)
  - [Spikes_SpektrumBased](#spikes_spektrumbased)
  - [constant](#constant)
@@ -188,22 +188,19 @@ with $` r, M, mad, z `$: data, data median, data median absolute deviation, `z`.
 See also:
 [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
 
-## mad
+## spikes_simpleMad
 
 Flag outlier by simple median absolute deviation test.
 
 ```
-mad(length, z=3.5, freq=None)
+spikes_simpleMad(length, z=3.5)
 ```
 
-| parameter  | data type     | default value | description |
-| ---------  | -----------   | ----          | ----------- |
-| length     | offset-string | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
-| z          | float         | `3.5`         | z-parameter the modified Z-score |
-| freq       |               | `None`        | The frequency the data have |
+| parameter | data type            | default value | description                                                          |
+| --------- | -----------          | ----          | -----------                                                          |
+| winsz     | offset-string or int | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
+| z         | float                | `3.5`         | z-parameter the modified Z-score                                     |
 
-Parameter note: If freq is omitted, it is tried to infer the correct frequency. This is not fail save (!), because
-if no frequency can be found a error is thrown, but even worse, also a wrong frequency could be assumed. 
 
 The *modified Z-score* [1] is used to detect outlier. 
 All values are flagged as outlier, if in any slice of thw sliding window, a value fulfill:
