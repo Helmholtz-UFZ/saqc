@@ -20,11 +20,11 @@ def _collectVariables(meta, data):
     variables = []
     for idx, configrow in meta.iterrows():
         varname = configrow[Fields.VARNAME]
-        assign = configrow[Fields.ASSIGN]
+        # assign = configrow[Fields.ASSIGN]
         if varname in variables:
             continue
-        if (varname in data) or (varname not in variables and assign is True):
-            variables.append(varname)
+        # if (varname in data):  # or (varname not in variables and assign is True):
+        variables.append(varname)
     return variables
 
 
@@ -84,6 +84,7 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
     # user-test needs fully prepared flags
     checkConfig(config, data, flagger, nodata)
 
+
     # NOTE:
     # the outer loop runs over the flag tests, the inner one over the
     # variables. Switching the loop order would complicate the
@@ -116,7 +117,7 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
 
             try:
                 # actually run the tests
-                dchunk, flagger_chunk_result = evalExpression(
+                dchunk_result, flagger_chunk_result = evalExpression(
                     flag_test,
                     data=dchunk,
                     field=varname,
@@ -131,7 +132,7 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
             flagger = flagger.setFlagger(flagger_chunk_result)
 
             plotHook(
-                dchunk,
+                dchunk_result,
                 flagger_chunk,
                 flagger_chunk_result,
                 varname,

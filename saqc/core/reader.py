@@ -34,10 +34,12 @@ def checkConfig(config_df, data, flagger, nodata):
             )
 
         var_name = config_row[F.VARNAME]
-        if var_name not in data.columns and not config_row[F.ASSIGN]:
-            _raise(config_row, NameError, f"unknown variable '{var_name}'")
+        if not var_name:
+            _raise(config_row, SyntaxError, f"field '{F.VARNAME}' may not be empty")
 
         for col, expr in test_fields.iteritems():
+            if not expr:
+                _raise(config_row, SyntaxError, f"field '{col}' may not be empty")
             try:
                 compileExpression(expr, data, flagger, nodata)
             except (TypeError, NameError, SyntaxError) as exc:
@@ -66,7 +68,7 @@ def prepareConfig(config_df, data):
         raise SyntaxWarning("config file is empty or all lines are #commented")
 
     # fill missing header fields
-    for field in [F.VARNAME, F.START, F.END, F.ASSIGN, F.PLOT]:
+    for field in [F.VARNAME, F.START, F.END, F.PLOT]:
         if field not in config_df:
             config_df = config_df.assign(**{field: np.nan})
 
@@ -76,7 +78,6 @@ def prepareConfig(config_df, data):
             F.VARNAME: np.nan,
             F.START: data.index.min(),
             F.END: data.index.max(),
-            F.ASSIGN: False,
             F.PLOT: False,
         }
     )

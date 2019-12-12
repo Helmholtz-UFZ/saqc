@@ -114,23 +114,6 @@ def test_missingConfig(data, flagger, flags):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_missingVariable(data, flagger):
-    """
-    Test if variables available in the config but not dataset
-    are handled correctly, i.e. are ignored
-    """
-    var, *_ = data.columns
-
-    metadict = [
-        {F.VARNAME: var, F.TESTS: "flagAll()"},
-        {F.VARNAME: "empty", F.TESTS: "flagAll()"},
-    ]
-    metafobj, meta = initMetaDict(metadict, data)
-    with pytest.raises(NameError):
-        runner(metafobj, flagger, data)
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_errorHandling(data, flagger):
 
     @register("raisingFunc")
@@ -160,8 +143,8 @@ def test_duplicatedVariable(flagger):
     var1, *_ = data.columns
 
     metadict = [
-        {F.VARNAME: var1, F.ASSIGN: False, F.TESTS: "flagAll()"},
-        {F.VARNAME: var1, F.ASSIGN: True, F.TESTS: "flagAll()"},
+        {F.VARNAME: var1, F.TESTS: "flagAll()"},
+        {F.VARNAME: var1, F.TESTS: "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
@@ -178,16 +161,15 @@ def test_duplicatedVariable(flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_assignVariable(flagger):
     """
-    Test the assign keyword, a variable present in the configuration, but not
-    dataset will be added to output flags
+    test implicit assignments
     """
     data = initData(1)
     var1, *_ = data.columns
     var2 = "empty"
 
     metadict = [
-        {F.VARNAME: var1, F.ASSIGN: False, F.TESTS: "flagAll()"},
-        {F.VARNAME: var2, F.ASSIGN: True, F.TESTS: "flagAll()"},
+        {F.VARNAME: var1, F.TESTS: "flagAll()"},
+        {F.VARNAME: var2, F.TESTS: "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
