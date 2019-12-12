@@ -36,7 +36,6 @@ def initGlobalMap():
         "len": partial(_dslInner, len),
         "isflagged": _dslIsFlagged,
         "nan": np.nan,
-        **FUNC_MAP,
     }
     return out
 
@@ -74,8 +73,8 @@ class DslTransformer(ast.NodeTransformer):
         ast.Invert,
     )
 
-    def __init__(self, func_map, variables):
-        self.func_map = func_map
+    def __init__(self, environment, variables):
+        self.environment = environment
         self.variables = variables
 
     def _rename(
@@ -101,7 +100,7 @@ class DslTransformer(ast.NodeTransformer):
 
     def visit_Call(self, node):
         func_name = node.func.id
-        if func_name not in self.func_map:
+        if func_name not in self.environment:
             raise NameError(f"unspported function: '{func_name}'")
 
         node = ast.Call(
@@ -187,8 +186,6 @@ class MetaTransformer(ast.NodeTransformer):
 
 def parseExpression(expr: str) -> ast.AST:
     tree = ast.parse(expr, mode="eval")
-    # if not isinstance(tree.body, (ast.Call, ast.Compare)):
-    #     raise TypeError('function call needed')
     return tree
 
 
@@ -210,7 +207,9 @@ def compileExpression(expr, data, flagger, env):
 
 def evalExpression(expr, data, field, flagger, nodata=np.nan):
 
-    global_env = initGlobalMap()
-    local_env = initLocalMap(data, field, flagger, nodata)
-    code = compileExpression(expr, data, flagger, {**global_env, **local_env})
-    return evalCode(code, global_env, local_env)
+    local_env = {
+        **initGlobalMap(),
+        **initLocalMap(data, field, flagger, nodata)
+    }
+    code = compileExpression(expr, data, flagger, local_env)
+    return evalCode(code, FUNC_MAP, local_env)
