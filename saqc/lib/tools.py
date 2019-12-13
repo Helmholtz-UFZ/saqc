@@ -307,7 +307,10 @@ def funcInput_2_func(func):
     """
     # if input is a callable - than just pass it:
     if hasattr(func, "__call__"):
-        return func
+        if (func.__name__ == "aggregator") & (func.__module__ == "saqc.funcs.harm_functions"):
+            return func
+        else:
+            raise ValueError("The function you passed is suspicious!")
     elif func in STRING_2_FUNC.keys():
         return STRING_2_FUNC[func]
     else:

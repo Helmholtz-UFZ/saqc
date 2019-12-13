@@ -616,8 +616,8 @@ aproach see the [training script](../ressources/machine_learning/train_machine_l
 ## harmonize
 
 ```
-harmonize(freq, inter_method, reshape_method, inter_agg=np.mean, inter_order=1,
-          inter_downcast=False, reshape_agg=max, reshape_missing_flag=None,
+harmonize(freq, inter_method, reshape_method, inter_agg="mean", inter_order=1,
+          inter_downcast=False, reshape_agg="max", reshape_missing_flag=None,
           reshape_shift_comment=True, drop_flags=None, 
           data_missing_value=np.nan)
 ```
@@ -818,7 +818,7 @@ In detail, the process includes:
 ## harmonize_aggregate2grid
 
 ```
-harmonize_aggregate2Grid(freq, agg_func, agg_method='nearest_agg', flag_agg_func=max, drop_flags=None)
+harmonize_aggregate2Grid(freq, agg_func, agg_method='nearest_agg', flag_agg_func="max", drop_flags=None)
 ```
 | parameter     | data type         | default value     | description |
 | ---------     | ---------         | -------------     | ----------- |
@@ -875,7 +875,7 @@ In detail, the process includes:
 ## harmonize_linear2grid
 
 ```
-harmonize_linear2Grid(freq, flag_assignment_method='nearest_agg', flag_agg_func=max, drop_flags=None)
+harmonize_linear2Grid(freq, flag_assignment_method='nearest_agg', flag_agg_func="max", drop_flags=None)
 ```
 | parameter             | data type         | default value     | description |
 | ---------             | ---------         | -------------     | ----------- |
@@ -929,7 +929,7 @@ Linear interpolation of an inserted equidistant frequency grid of sampling rate 
 
 ```
 harmonize_interpolate2Grid(freq, interpolation_method, interpolation_order=1, flag_assignment_method='nearest_agg', 
-                           flag_agg_func=max, drop_flags=None)
+                           flag_agg_func="max", drop_flags=None)
 ```
 | parameter             | data type         | default value     | description |
 | ---------             | ---------         | -------------     | ----------- |
@@ -995,7 +995,7 @@ Interpolation of an inserted equidistant frequency grid of sampling rate `freq`.
 ## harmonize_downsample
 
 ```
-harmonize_downsample(sample_freq, agg_freq, sample_func=np.mean, agg_func=np.mean,
+harmonize_downsample(sample_freq, agg_freq, sample_func="mean", agg_func="mean",
                      invalid_flags=None, max_invalid=np.inf)
 ```
 | parameter             | data type         | default value     | description |

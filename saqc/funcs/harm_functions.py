@@ -10,9 +10,6 @@ from saqc.funcs.register import register
 from saqc.lib.tools import toSequence, funcInput_2_func
 
 
-# todo: frequencie estimation function
-# todo: accelerated func applies
-
 
 class Heap:
     INDEX = "initial_ts"
@@ -804,7 +801,7 @@ def shift2Grid(data, field, flagger, freq, shift_method='nearest_shift', drop_fl
 
 
 @register('harmonize_aggregate2Grid')
-def aggregate2Grid(data, field, flagger, freq, agg_func, agg_method='nearest_agg', flag_agg_func=max, drop_flags=None, **kwargs):
+def aggregate2Grid(data, field, flagger, freq, agg_func, agg_method='nearest_agg', flag_agg_func="max", drop_flags=None, **kwargs):
     return harmonize(
         data,
         field,
@@ -819,7 +816,7 @@ def aggregate2Grid(data, field, flagger, freq, agg_func, agg_method='nearest_agg
 
 
 @register('harmonize_linear2Grid')
-def linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func=max, drop_flags=None, **kwargs):
+def linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func="max", drop_flags=None, **kwargs):
     return harmonize(
         data,
         field,
@@ -908,6 +905,6 @@ def downsample(data, field, flagger, sample_freq, agg_freq, sample_func="mean", 
         inter_method='bagg',
         reshape_method='bagg',
         inter_agg=aggregator,
-        reshape_agg=max,
+        reshape_agg="max",
         drop_flags=invalid_flags,
         **kwargs)
