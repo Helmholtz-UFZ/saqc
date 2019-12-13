@@ -179,7 +179,7 @@ outliers, but also plateau-ish value courses.
 Flag outlier by simple median absolute deviation test.
 
 ```
-spikes_simpleMad(length, z=3.5)
+spikes_simpleMad(winsz="1h", length, z=3.5)
 ```
 
 | parameter | data type            | default value | description                                                          |
@@ -396,7 +396,7 @@ All parameters default to the values, suggested in this publication.
 ## SoilMoisture_spikes
 
 ```
-SoilMoisture_spikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0.2,
+soilMoisture_spikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0.2,
                    noise_barrier=1, noise_window_size="12h", noise_statistic="CoVar")
 ```
 
@@ -419,10 +419,10 @@ Data from the international Soil Moisture Network. 2013.
 Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
 
-## SoilMoistureBreaks
+## soilMoisture_breaks
 
 ```
-SoilMoisture_breaks(diff_method="raw", filter_window_size="3h",
+soilMoisture_breaks(diff_method="raw", filter_window_size="3h",
                    rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
                    first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
                    scnd_der_ratio_margin_2=10, smooth_poly_order=2)
@@ -450,10 +450,10 @@ Data from the international Soil Moisture Network. 2013.
 Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
 
-## SoilMoistureByFrost
+## soilMoisture_byFrost
 
 ```
-SoilMoisture_byFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0)
+soilMoisture_byFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0)
 ```
 
 | parameter           | data type | default value | description |
@@ -479,10 +479,10 @@ All parameters default to the values, suggested in this publication.
 
 
 
-## SoilMoisture_byPrecipitation
+## soilMoisture_byPrecipitation
 
 ```
-SoilMoisture_byPrecipitation(prec_reference, sensor_meas_depth=0,
+soilMoisture_byPrecipitation(prec_reference, sensor_meas_depth=0,
                             sensor_accuracy=0, soil_porosity=0,
                             std_factor=2, std_factor_range="24h"
                             ignore_missing=False)
@@ -534,10 +534,10 @@ doi:10.2136/vzj2012.0097.
 All parameters default to the values, suggested in this publication.
 
 
-## Breaks_SpektrumBased
+## breaks_spektrumBased
 
 ```                            
-Breaks_spektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=10,
+breaks_spektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=10,
                      first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
                      scnd_der_ratio_margin_2=10, smooth_poly_order=2,
                      diff_method="raw", filter_window_size="3h")

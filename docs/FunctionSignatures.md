@@ -59,22 +59,21 @@ force()
 
 
 ```
-sliding_outlier(winsz="1h", dx="1h", count=1, deg=1, z=3.5, method="modZ")
+spikes_simpleMad(winsz="1h", length, z=3.5)
 ```
-[->description](docs/FunctionDescriptions.md#sliding_outlier)
-
-
-
-```
-mad(length, z=3.5, freq=None)
-```
-[->description](docs/FunctionDescriptions.md#mad)
-
+[->description](docs/FunctionDescriptions.md#spikes_simplemad)
 
 
 
 ```
-Spikes_Basic(thresh=7, tol=0, length="15min")
+spikes_slidingZscore(winsz="1h", dx="1h", count=1, deg=1, z=3.5, method="modZ")
+```
+[->description](docs/FunctionDescriptions.md#spikes_slidingzscore)
+
+
+
+```
+spikes_basic(thresh, tolerance, window_size)
 ```
 [->description](docs/FunctionDescriptions.md#spikes_basic)
 
@@ -82,9 +81,9 @@ Spikes_Basic(thresh=7, tol=0, length="15min")
 
 
 ```
-Spikes_SpektrumBased(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0.2,
+spikes_spektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
                      noise_barrier=1, noise_window_size="12h", noise_statistic="CoVar",
-                     smooth_poly_order=2)
+                     smooth_poly_order=2, filter_window_size=None)
 ```
 [->description](docs/FunctionDescriptions.md#spikes_spektrumbased)
 
@@ -112,7 +111,7 @@ soilMoisture_plateaus(plateau_window_min="12h", plateau_var_limit=0.0005,
                       rainfall_window_range="12h", var_total_nans=np.inf, 
                       var_consec_nans=np.inf, derivative_max_lb=0.0025, 
                       derivative_min_ub=0, data_max_tolerance=0.95, 
-                      filter_window_size=None, smooth_poly_order=2, **kwargs)
+                      filter_window_size=None, smooth_poly_order=2)
 ```                      
 [->description](docs/FunctionDescriptions.md#soilmoisture_plateaus)
 
@@ -120,7 +119,7 @@ soilMoisture_plateaus(plateau_window_min="12h", plateau_var_limit=0.0005,
 
 
 ```
-SoilMoistureSpikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0.2,
+soilMoisture_spikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0.2,
                    noise_barrier=1, noise_window_size="12h", noise_statistic="CoVar")
 ```
 [->description](docs/FunctionDescriptions.md#soilmoisturespikes)
@@ -128,7 +127,7 @@ SoilMoistureSpikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0
 
 
 ```
-SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
+soilMoisture_breaks(diff_method="raw", filter_window_size="3h",
                    rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
                    first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
                    scnd_der_ratio_margin_2=10, smooth_poly_order=2)
@@ -138,7 +137,7 @@ SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
 
 
 ```
-SoilMoistureByFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0)
+soilMoisture_byFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0)
 ```
 [->description](docs/FunctionDescriptions.md#soilmoisturebyfrost)
 
@@ -146,7 +145,7 @@ SoilMoistureByFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0
 
 
 ```
-SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
+soilMoisture_byPrecipitation(prec_reference, sensor_meas_depth=0,
                             sensor_accuracy=0, soil_porosity=0,
                             std_factor=2, std_factor_range="24h")
 ```
@@ -155,7 +154,7 @@ SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
                             
 
 ```                            
-Breaks_SpektrumBased(diff_method="raw", filter_window_size="3h",
+breaks_spektrumBased(diff_method="raw", filter_window_size="3h",
                      rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
                      first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
                      scnd_der_ratio_margin_2=10, smooth_poly_order=2)
