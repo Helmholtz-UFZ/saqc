@@ -296,6 +296,7 @@ def assertSingleColumns(df, argname=""):
             f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns"
         )
 
+
 def funcInput_2_func(func):
     """
     Aggregation functions passed by the user, are selected by looking them up in the STRING_2_DICT dictionary -

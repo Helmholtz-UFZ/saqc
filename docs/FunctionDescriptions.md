@@ -30,6 +30,7 @@ Main documentation of the implemented functions, their purpose and parameters an
  - [harmonize_linear2Grid](#harmonize_linear2grid)
  - [harmonize_interpolate2Grid](#harmonize_interpolate2grid)
  - [harmonize_downsample](#harmonize_downsample)
+ - [aggregations](#aggregations)
  
 
 ## range
@@ -626,7 +627,7 @@ harmonize(freq, inter_method, reshape_method, inter_agg=np.mean, inter_order=1,
 | freq               | string           |           | Offset string. The frequency of the grid, the data-to-be-flagged shall be projected on.|
 | inter_method       | string           |           | A keyword, determining the method, used for projecting the data on the new, equidistant data index. See a list of options below.|
 | reshape_method     | string           |           | A keyword, determining the method, used for projecting the flags on the new, equidistant data index. See a list of options below.|
-| inter_agg          | func             |`np.mean`  | A function, used for aggregation, if an aggregation method is selected as `inter_method`. |
+| inter_agg          | string             |`"mean"`  | String, signifying a function, used for aggregation, if an aggregation method is selected as `inter_method`. See a table of keywords [here](#aggregations).|
 | inter_order        | int              |`1`        | The order of interpolation applied, if an interpolation method is passed to `inter_method`|
 | inter_downcast     | boolean          |`False`    | `True`: Use lower interpolation order to interpolate data chunks that are too short to be interpolated with order `inter_order`. <br/> `False`: Project values of too-short data chunks onto `NaN`. <br/> Option only relevant if `inter_method` can be of certain order.| 
 | reshape_shift_comment | boolean       |`True`     | `True`: Flags that got shifted forward or backward on the new equidistant data index, get resetted additionally. This may, for example, result in eventually present comment fields, to get overwritten with whatever is defaultly been written in this field for the current flagger, if a function sets a flag. <br/> `False`: No reset of the shifted flag will be made. <br/> <br/> Only relevant for flagger having more fields then the flags field and a shifting method passed to `inter_method`|
@@ -822,9 +823,9 @@ harmonize_aggregate2Grid(freq, agg_func, agg_method='nearest_agg', flag_agg_func
 | parameter     | data type         | default value     | description |
 | ---------     | ---------         | -------------     | ----------- |
 | freq          | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be aggregated to.  |
-| agg_func      | func              |                   | Function. Function used for data aggregation.|
+| agg_func      | string              |                   | String, signifying a function used for data aggregation. See a table of keywords [here](#aggregations).|
 | agg_method    | string            | `nearest_agg`     | Method, determining the range of data and flags aggregation. See a list of methods below. |
-| flag_agg_func | func              | `max`               | Function used for flags aggregation.|   
+| flag_agg_func | string            | `"max"`           |  String, signifying a function used for flags aggregation. See a table of keywords [here](#aggregations).|   
 | drop_flags    | list or Nonetype  | `None`              | Flags to be excluded from harmonization. See description of step 2 below. |
 
 
@@ -880,7 +881,7 @@ harmonize_linear2Grid(freq, flag_assignment_method='nearest_agg', flag_agg_func=
 | ---------             | ---------         | -------------     | ----------- |
 | freq                  | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be interpolated at.|
 | flag_assignment_method| string            | "nearest_agg"     | Method keyword, signifying method used for flags aggregation. See step 4 and table below|
-| flag_agg_func         | func              | `max`               | Function used for flags aggregation.|   
+| flag_agg_func         | func              | `"max"`               | String, signifying a function used for flags aggregation. See a table of keywords [here](#aggregations).|   
 | drop_flags            | list or Nonetype  | `None`              | Flags to be excluded from harmonization. See description of step 2 below. |
 
 Linear interpolation of an inserted equidistant frequency grid of sampling rate `freq`.
@@ -934,9 +935,9 @@ harmonize_interpolate2Grid(freq, interpolation_method, interpolation_order=1, fl
 | ---------             | ---------         | -------------     | ----------- |
 | freq                  | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be interpolated at.|
 | interpolation_method  | string            |                   | Method keyword, signifying method used for grid interpolation. See step 3 and table below|
-| interpolation_order   | func              | `1`               | If needed - order of the interpolation, carried out.|   
+| interpolation_order   | integer              | `1`               | If needed - order of the interpolation, carried out.|   
 | flag_assignment_method| string            | `"nearest_agg"`   | Method keyword, signifying method used for flags aggregation. See step 4 and table below|
-| flag_agg_func         | func              | `max`             | Function used for flags aggregation.|   
+| flag_agg_func         | string              | `"max"`         | String, signifying a function, used for flags aggregation. Must be applicable on the ordered categorical flag type of the current flagger. See a table of keywords [here](#aggregations). |   
 | drop_flags            | list or Nonetype  | `None`            | Flags to be excluded from harmonization. See description of step 2 below. |
 
 Interpolation of an inserted equidistant frequency grid of sampling rate `freq`.
@@ -1001,8 +1002,8 @@ harmonize_downsample(sample_freq, agg_freq, sample_func=np.mean, agg_func=np.mea
 | ---------             | ---------         | -------------     | ----------- |
 | sample_freq           | string            |                   | Offset String. Determining the intended sampling rate of the data-to-be aggregated |
 | agg_freq              | string            |                   | Offset String. Determining the frequency to aggregate to. |
-| sample_func           | func or Nonetype  | `mean`           | Function to gather/aggregate data within every sampling interval. If `None` is passed, data is expected to already match a sampling grid of `sample_freq` |   
-| agg_func              | func              | `mean`           | Aggregation function, used to downsample data from `sample_freq` to `agg_freq`. |
+| sample_func           | string or Nonetype  | `"mean"`           | String, signifying a Function to gather/aggregate data within every sampling interval. If `None` is passed, data is expected to already match a sampling grid of `sample_freq`. Additionally to the funcs listed in the agg func table, its possible to pass the keywords `first` and `last`, referring to selection of very first and very last of every sampling intervals meassurement. |   
+| agg_func              | string              | `"mean"`           | String, signifying a function used to downsample data from `sample_freq` to `agg_freq`. See a table of keywords [here](#aggregations). |
 | invalid_flags         | list or Nonetype  | `None`              | List of flags, to be regarded as signifying invalid values. By default (=`None`), `NaN` data and `BAD`-flagged data is considered invalid. See description below.|   
 | max_invalid           | integer           | `Inf`             | Maximum number of invalid data points allowed for an aggregation interval to not get assigned `NaN` |
 
@@ -1024,4 +1025,14 @@ unexpected results.(BAD - flagging of all  the values contained in an invalid ag
 (an option to just regain initial data frame shape with initial flags is to be implemented)
 
 
+## aggregations
 
+Here is a table of aggregation keywords, to pass to the different aggregation parameters, and the functions they refer to. 
+
+| keyword       | function              |
+| ---------     | ---------             | 
+| `"sum"`       | Sum of values.        |                   
+| `"mean"`      | Mean over the values  |                   
+| `"min"`       | Minimum               |
+| `"max"`       | Maximum               |               
+| `"median"`    | Median of the values  |             
