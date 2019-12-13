@@ -844,7 +844,7 @@ def interpolate2Grid(data, field, flagger, freq, interpolation_method, interpola
         **kwargs)
 
 
-@register('downsample')
+@register('harmonize_downsample')
 def downsample(data, field, flagger, sample_freq, agg_freq, sample_func=np.mean, agg_func=np.mean,
                invalid_flags=None, max_invalid=np.inf, **kwargs):
 

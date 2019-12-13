@@ -29,6 +29,7 @@ Main documentation of the implemented functions, their purpose and parameters an
  - [harmonize_aggregate2Grid](#harmonize_aggregate2grid)
  - [harmonize_linear2Grid](#harmonize_linear2grid)
  - [harmonize_interpolate2Grid](#harmonize_interpolate2grid)
+ - [harmonize_downsample](#harmonize_downsample)
  
 
 ## range
@@ -989,3 +990,38 @@ Interpolation of an inserted equidistant frequency grid of sampling rate `freq`.
     * `"nearest_agg"`: all flags in the range (+/- freq/2) of a grid point get 
                        aggregated with the function passed to `agg_func` and assigned to it.
           
+
+## harmonize_downsample
+
+```
+harmonize_downsample(sample_freq, agg_freq, sample_func=np.mean, agg_func=np.mean,
+                     invalid_flags=None, max_invalid=np.inf)
+```
+| parameter             | data type         | default value     | description |
+| ---------             | ---------         | -------------     | ----------- |
+| sample_freq           | string            |                   | Offset String. Determining the intended sampling rate of the data-to-be aggregated |
+| agg_freq              | string            |                   | Offset String. Determining the frequency to aggregate to. |
+| sample_func           | func or Nonetype  | np.mean           | Function to gather/aggregate data within every sampling interval. If `None` is passed, data is expected to already match a sampling grid of `sample_freq` |   
+| agg_func              | func              | np.mean           | Aggregation function, used to downsample data from `sample_freq` to `agg_freq`. |
+| invalid_flags         | list or Nonetype  | None              | List of flags, to be regarded as signifying invalid values. By default (=`None`), `NaN` data and `BAD`-flagged data is considered invalid. See description below.|   
+| max_invalid           | integer           | `Inf`             | Maximum number of invalid data points allowed for an aggregation interval to not get assigned `NaN` |
+
+The function downsamples the data-to-be flagged from its intended sampling rate, assumed to be `sample_freq`, to a lower
+sampling rate of `agg_freq`, by applying `agg_func` onto intervals of size `agg_freq`.
+
+If `sample_func` is not `None`, in a preceeding step the data, contained in a sampling interval of `sample_freq`, 
+gets aggregated with `sample_func` to a `sampling_freq` sized grid.
+
+The parameter `invalid_flags` allows for marking data values, flagged with a flag listed in `invalid_flags` as invalid.
+By setting `max_invalid` to a value < `inf`, you can determine the aggregation of aggregation intervals containing 
+more than `max_invalid` invalid values to get assigned `NaN` value.
+By default, `BAD` - flagged, as well as missing/ `NaN` data is considered invalid.
+
+Although, the function is a wrapper around `harmonize` - the deharmonization of "real" 
+downsamples (`sample_freq` < `agg_freq`) is not recommended, since, the backtracking of flags would result in really 
+unexpected results.(BAD - flagging of all  the values contained in an invalid aggregate) 
+
+(an option to just regain initial data frame shape with initial flags is to be implemented)
+
+
+
