@@ -19,7 +19,7 @@ from saqc.funcs.harm_functions import (
     interpolate2Grid,
     shift2Grid,
     aggregate2Grid,
-    aggregate
+    downsample
 )
 
 
@@ -335,7 +335,7 @@ def test_wrapper(data, flagger):
     field = data.columns[0]
     freq = '15min'
     flagger = flagger.initFlags(data)
-    aggregate(data, field, flagger, '15min', '30min', agg_func=np.sum, sample_func=np.mean)
+    downsample(data, field, flagger, '15min', '30min', agg_func=np.sum, sample_func=np.mean)
 
     linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func=max,
                                drop_flags=None)

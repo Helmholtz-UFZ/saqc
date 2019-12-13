@@ -844,8 +844,9 @@ def interpolate2Grid(data, field, flagger, freq, interpolation_method, interpola
         **kwargs)
 
 
-def aggregate(data, field, flagger, source_freq, target_freq, agg_func=np.mean, sample_func=np.mean,
-              invalid_flags=None, max_invalid=np.inf, **kwargs):
+@register('downsample')
+def downsample(data, field, flagger, sample_freq, agg_freq, sample_func=np.mean, agg_func=np.mean,
+               invalid_flags=None, max_invalid=np.inf, **kwargs):
 
     # define the "fastest possible" aggregator
     if sample_func is None:
@@ -868,7 +869,7 @@ def aggregate(data, field, flagger, source_freq, target_freq, agg_func=np.mean, 
             sample_func_name = sample_func.__name__
             if max_invalid < np.inf:
                 def aggregator(x):
-                    y = getattr(x.resample(source_freq), sample_func_name)()
+                    y = getattr(x.resample(sample_freq), sample_func_name)()
                     if y.isna().sum() < max_invalid:
                         return agg_func(y)
                     else:
@@ -876,25 +877,25 @@ def aggregate(data, field, flagger, source_freq, target_freq, agg_func=np.mean, 
 
             else:
                 def aggregator(x):
-                    return agg_func(getattr(x.resample(source_freq), sample_func_name)())
+                    return agg_func(getattr(x.resample(sample_freq), sample_func_name)())
 
         else:
             if max_invalid < np.inf:
                 def aggregator(x):
-                    y = x.resample(source_freq).apply(sample_func)
+                    y = x.resample(sample_freq).apply(sample_func)
                     if y.isna().sum() < max_invalid:
                         return agg_func(y)
                     else:
                         return np.nan
             else:
                 def aggregator(x):
-                    return agg_func(x.resample(source_freq).apply(sample_func))
+                    return agg_func(x.resample(sample_freq).apply(sample_func))
 
     return harmonize(
         data,
         field,
         flagger,
-        target_freq,
+        agg_freq,
         inter_method='bagg',
         reshape_method='bagg',
         inter_agg=aggregator,
