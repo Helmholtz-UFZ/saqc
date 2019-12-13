@@ -17,11 +17,11 @@ Main documentation of the implemented functions, their purpose and parameters an
  - [constant](#constant)
  - [constants_varianceBased](#constants_variancebased)
  - [soilMoisture_plateaus](#soilmoisture_plateaus)
- - [SoilMoistureSpikes](#soilmoisturespikes)
- - [SoilMoistureBreaks](#soilmoisturebreaks)
- - [SoilMoistureByFrost](#soilmoisturebyfrost)
- - [SoilMoistureByPrecipitation](#soilmoisturebyprecipitation)
- - [Breaks_SpektrumBased](#breaks_spektrumbased)
+ - [soilMoisture_spikes](#soilmoisture_spikes)
+ - [soilMoisture_breaks](#soilmoisture_breaks)
+ - [soilMoisture_byFrost](#soilmoisture_byfrost)
+ - [soilMoisture_byPrecipitation](#soilmoisture_byprecipitation)
+ - [breaks_spektrumBased](#breaks_spektrumbased)
  - [machinelearning](#machinelearning)
  - [harmonize](#harmonize)
  - [deharmonize](#deharmonize)
@@ -56,7 +56,7 @@ isolated(isolation_range, max_isolated_group_size=1, continuation_range='1min',
 | isolation_range         | string          |               | Offset string. The range, within there are no valid values allowed for a valuegroup to get flagged isolated. See condition (1) and (2).|
 | max_isolated_group_size | integer         | `1`           | The upper bound for the size of a value group to be considered an isolated group. See condition (3).|
 | continuation_range      | string          | `"1min"`      | Offset string. The upper bound for the temporal extension of a value group to be considered an isolated group. See condition (4). Only relevant if `max_islated_group_size` > 1.|
-| drop_flags              | list or Nonetype| `None`        | A list of flags, that are to be considered, signifying invalid values. See condition (1) and (2).|
+| drop_flags              | list or Nonetype| `None`        | A list of flags, that are to be regarded as signifying invalid values. See condition (1) and (2).|
 
 
 The function flags isolated values / value groups. 
@@ -92,7 +92,7 @@ missing(nodata=NaN)
 
 | parameter | data type  | default value  | description |
 | --------- | ---------- | -------------- | ----------- |
-| nodata    | any        | `NaN`          | Value indicating missing values in the passed data |
+| nodata    | any        | `NaN`          | Value indicating missing values in the passed data. |
 
 
 The function flags those values in the the passed data series, that are
@@ -150,8 +150,8 @@ spikes_basic(thresh, tolerance, window_size)
 | parameter   | data type | default value | description                                                                                  |
 | ------      | ------    | ------        | ----                                                                                         |
 | thresh      | float     |               | Minimum jump margin for spikes. See condition (1).                                           |
-| tolerance   | float     |               | Range of area, containing al "valid return values". See condition (2).                       |
-| window_size | ftring    |               | An offset string, denoting the maximal length of "spikish" value courses. See condition (3). |
+| tolerance   | float     |               | Range of area, containing all "valid return values". See condition (2).                       |
+| window_size | string    |               | An offset string, denoting the maximum length of "spikish" value courses. See condition (3). |
 
 A basic outlier test, that is designed to work for harmonized, as well as raw
 (not-harmonized) data.
@@ -258,12 +258,12 @@ spikes_spektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
 
 | parameter          | data type          | default value | description                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------             | ------             | ------        | ----                                                                                                                                                                                                                                                                                                                                                                                                               |
-| raise_factor       | float              | `0.15`        | Minimum change margin for a datapoint to become a candidate for a spike. See condition (1).                                                                                                                                                                                                                                                                                                                        |
+| raise_factor       | float              | `0.15`        | Minimum margin of value change, a datapoint has to represent, to become a candidate for a spike. See condition (1).                                                                                                                                                                                                                                                                                                                        |
 | dev_cont_factor    | float              | `0.2`         | See condition (2).                                                                                                                                                                                                                                                                                                                                                                                                 |
 | noise_barrier      | float              | `1`           | Upper bound for noisyness of data surrounding potential spikes. See condition (3).                                                                                                                                                                                                                                                                                                                                 |
-| noise_window_range | string             | `"12h"`       | Any offset string. Determines the range of the timewindow of the "surrounding" data of a potential spike. See condition (3).                                                                                                                                                                                                                                                                                       |
-| noise_statistic    | string             | `"CoVar"`     | Operator to calculate noisyness of data, surrounding potential spike. Either `"Covar"` (=Coefficient od Variation) or `"rvar"` (=relative Variance).                                                                                                                                                                                                                                                               |
-| smooth_poly_order  | integer            | `2`           | Order of the polynomial fit, applied for smoothing                                                                                                                                                                                                                                                                                                                                                                 |
+| noise_window_range | string             | `"12h"`       | Any offset string. Determines the range of the time window of the "surrounding" data of a potential spike. See condition (3).                                                                                                                                                                                                                                                                                       |
+| noise_statistic    | string             | `"CoVar"`     | Operator to calculate noisyness of data, surrounding potential spikes. Either `"Covar"` (=Coefficient od Variation) or `"rvar"` (=relative Variance).                                                                                                                                                                                                                                                               |
+| smooth_poly_order  | integer            | `2`           | Order of the polynomial fit, applied with savitsky-Golay-filter.                                                                                                                                                                                                                                                                                                                                                                 |
 | filter_window_size | Nonetype or string | `None`        | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase. |
 
 
@@ -347,7 +347,7 @@ soilMoisture_plateaus(plateau_window_min="12h", plateau_var_limit=0.0005,
                       rainfall_window_range="12h", var_total_nans=np.inf, 
                       var_consec_nans=np.inf, derivative_max_lb=0.0025, 
                       derivative_min_ub=0, data_max_tolerance=0.95, 
-                      filter_window_size=None, smooth_poly_order=2, **kwargs)
+                      filter_window_size=None, smooth_poly_order=2)
 ```
 
 | parameter          | data type    | default value | description |
@@ -393,10 +393,10 @@ doi:10.2136/vzj2012.0097.
 
 All parameters default to the values, suggested in this publication.
 
-## SoilMoistureSpikes
+## SoilMoisture_spikes
 
 ```
-SoilMoistureSpikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0.2,
+SoilMoisture_spikes(filter_window_size="3h", raise_factor=0.15, dev_cont_factor=0.2,
                    noise_barrier=1, noise_window_size="12h", noise_statistic="CoVar")
 ```
 
@@ -422,7 +422,7 @@ Vadoze Zone J. doi:10.2136/vzj2012.0097.
 ## SoilMoistureBreaks
 
 ```
-SoilMoistureBreaks(diff_method="raw", filter_window_size="3h",
+SoilMoisture_breaks(diff_method="raw", filter_window_size="3h",
                    rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
                    first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
                    scnd_der_ratio_margin_2=10, smooth_poly_order=2)
@@ -453,7 +453,7 @@ Vadoze Zone J. doi:10.2136/vzj2012.0097.
 ## SoilMoistureByFrost
 
 ```
-SoilMoistureByFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0)
+SoilMoisture_byFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0)
 ```
 
 | parameter           | data type | default value | description |
@@ -479,10 +479,10 @@ All parameters default to the values, suggested in this publication.
 
 
 
-## SoilMoistureByPrecipitation
+## SoilMoisture_byPrecipitation
 
 ```
-SoilMoistureByPrecipitation(prec_reference, sensor_meas_depth=0,
+SoilMoisture_byPrecipitation(prec_reference, sensor_meas_depth=0,
                             sensor_accuracy=0, soil_porosity=0,
                             std_factor=2, std_factor_range="24h"
                             ignore_missing=False)
@@ -537,7 +537,7 @@ All parameters default to the values, suggested in this publication.
 ## Breaks_SpektrumBased
 
 ```                            
-Breaks_SpektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=10,
+Breaks_spektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=10,
                      first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
                      scnd_der_ratio_margin_2=10, smooth_poly_order=2,
                      diff_method="raw", filter_window_size="3h")
@@ -552,7 +552,7 @@ Breaks_SpektrumBased(rel_change_min=0.1, abs_change_min=0.01, first_der_factor=1
 | scnd_der_ratio_margin_1 | float     | `0.05`        | Range of the area, covering all the values of the second derivatives quotient, that are regarded "sufficiently close to 1" for signifying a break. See condition (5).|
 | scnd_der_ratio_margin_2 | float     | `10.0`        | Lower bound for the break succeeding second derivatives quotients. See condition (5). |
 | smooth_poly_order       | integer   | `2`           | When calculating derivatives from smoothed timeseries (diff_method="savgol"), this value gives the order of the fitting polynomial calculated in the smoothing process.|
-| diff_method             | string    | `"savgol"     | Options: <br/> - `"savgol"`  <br/> - `"raw"` <br/><br/> Select "raw", to skip smoothing before differenciation. |
+| diff_method             | string    | `"savgol"`     | Options: <br/> - `"savgol"`  <br/> - `"raw"` <br/><br/> Select "raw", to skip smoothing before differenciation. |
 | filter_window_size      | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.|
 
 
@@ -778,7 +778,7 @@ harmonize_shift2Grid(freq, shift_method='nearest_shift', drop_flags=None)
 | --------- | --------- | ------------- | ----------- |
 | freq          | string            |                   | Offset string. Detemining the frequency grid, the data shall be shifted to.  |
 | shift_method  | string            | `nearest_shift`   | Method, used for shifting of data and flags. See a list of methods below. |
-| drop_flags    | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 3 below. |
+| drop_flags    | list or Nonetype  | `None`              | Flags to be excluded from harmonization. See description of step 3 below. |
 
 
 The function "harmonizes" the data-to-be-flagged, to match an equidistant 
@@ -824,8 +824,8 @@ harmonize_aggregate2Grid(freq, agg_func, agg_method='nearest_agg', flag_agg_func
 | freq          | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be aggregated to.  |
 | agg_func      | func              |                   | Function. Function used for data aggregation.|
 | agg_method    | string            | `nearest_agg`     | Method, determining the range of data and flags aggregation. See a list of methods below. |
-| flag_agg_func | func              | max               | Function used for flags aggregation.|   
-| drop_flags    | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 2 below. |
+| flag_agg_func | func              | `max`               | Function used for flags aggregation.|   
+| drop_flags    | list or Nonetype  | `None`              | Flags to be excluded from harmonization. See description of step 2 below. |
 
 
 The function aggregates the data-to-be-flagged, to match an equidistant 
@@ -880,8 +880,8 @@ harmonize_linear2Grid(freq, flag_assignment_method='nearest_agg', flag_agg_func=
 | ---------             | ---------         | -------------     | ----------- |
 | freq                  | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be interpolated at.|
 | flag_assignment_method| string            | "nearest_agg"     | Method keyword, signifying method used for flags aggregation. See step 4 and table below|
-| flag_agg_func         | func              | max               | Function used for flags aggregation.|   
-| drop_flags            | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 2 below. |
+| flag_agg_func         | func              | `max`               | Function used for flags aggregation.|   
+| drop_flags            | list or Nonetype  | `None`              | Flags to be excluded from harmonization. See description of step 2 below. |
 
 Linear interpolation of an inserted equidistant frequency grid of sampling rate `freq`.
 
@@ -934,10 +934,10 @@ harmonize_interpolate2Grid(freq, interpolation_method, interpolation_order=1, fl
 | ---------             | ---------         | -------------     | ----------- |
 | freq                  | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be interpolated at.|
 | interpolation_method  | string            |                   | Method keyword, signifying method used for grid interpolation. See step 3 and table below|
-| interpolation_order   | func              | 1                 | If needed - order of the interpolation, carried out.|   
-| flag_assignment_method| string            | "nearest_agg"     | Method keyword, signifying method used for flags aggregation. See step 4 and table below|
-| flag_agg_func         | func              | max               | Function used for flags aggregation.|   
-| drop_flags            | list or Nonetype  | None              | Flags to be excluded from harmonization. See description of step 2 below. |
+| interpolation_order   | func              | `1`               | If needed - order of the interpolation, carried out.|   
+| flag_assignment_method| string            | `"nearest_agg"`   | Method keyword, signifying method used for flags aggregation. See step 4 and table below|
+| flag_agg_func         | func              | `max`             | Function used for flags aggregation.|   
+| drop_flags            | list or Nonetype  | `None`            | Flags to be excluded from harmonization. See description of step 2 below. |
 
 Interpolation of an inserted equidistant frequency grid of sampling rate `freq`.
 
@@ -1001,9 +1001,9 @@ harmonize_downsample(sample_freq, agg_freq, sample_func=np.mean, agg_func=np.mea
 | ---------             | ---------         | -------------     | ----------- |
 | sample_freq           | string            |                   | Offset String. Determining the intended sampling rate of the data-to-be aggregated |
 | agg_freq              | string            |                   | Offset String. Determining the frequency to aggregate to. |
-| sample_func           | func or Nonetype  | np.mean           | Function to gather/aggregate data within every sampling interval. If `None` is passed, data is expected to already match a sampling grid of `sample_freq` |   
-| agg_func              | func              | np.mean           | Aggregation function, used to downsample data from `sample_freq` to `agg_freq`. |
-| invalid_flags         | list or Nonetype  | None              | List of flags, to be regarded as signifying invalid values. By default (=`None`), `NaN` data and `BAD`-flagged data is considered invalid. See description below.|   
+| sample_func           | func or Nonetype  | `mean`           | Function to gather/aggregate data within every sampling interval. If `None` is passed, data is expected to already match a sampling grid of `sample_freq` |   
+| agg_func              | func              | `mean`           | Aggregation function, used to downsample data from `sample_freq` to `agg_freq`. |
+| invalid_flags         | list or Nonetype  | `None`              | List of flags, to be regarded as signifying invalid values. By default (=`None`), `NaN` data and `BAD`-flagged data is considered invalid. See description below.|   
 | max_invalid           | integer           | `Inf`             | Maximum number of invalid data points allowed for an aggregation interval to not get assigned `NaN` |
 
 The function downsamples the data-to-be flagged from its intended sampling rate, assumed to be `sample_freq`, to a lower
