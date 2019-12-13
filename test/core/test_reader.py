@@ -17,10 +17,12 @@ def test_configPreparation(data):
     var1, var2, var3, *_ = data.columns
     date = data.index[len(data.index) // 2]
 
+    # NOTE:
+    # time slicing support is currently disabled
     tests = [
-        {F.VARNAME: var1, F.START: date, F.TESTS: "flagAll()", F.PLOT: True},
+        # {F.VARNAME: var1, F.START: date, F.TESTS: "flagAll()", F.PLOT: True},
         {F.VARNAME: var2, F.TESTS: "flagAll()", F.PLOT: False},
-        {F.VARNAME: var3, F.END: date, F.TESTS: "flagAll()"},
+        # {F.VARNAME: var3, F.END: date, F.TESTS: "flagAll()"},
         {F.VARNAME: var3, F.TESTS: "flagAll()",},
     ]
 

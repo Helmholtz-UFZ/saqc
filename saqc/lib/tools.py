@@ -108,8 +108,6 @@ def combineDataFrames(left, right, fill_value=np.nan):
     return combined
 
 
-
-
 def retrieveTrustworthyOriginal(data, field, flagger=None, level=None):
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
     differenciating between missng value - nans und fillvalue nans is impossible.

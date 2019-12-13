@@ -43,6 +43,7 @@ def flags(flagger, data, optional):
 #       within the used fixtures, that is why we need the optional
 #       parametrization without actually using it in the
 #       function
+@pytest.mark.skip(reason="test slicing support is currently disabled")
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("optional", OPTIONAL)
 def test_temporalPartitioning(data, flagger, flags):
@@ -68,6 +69,7 @@ def test_temporalPartitioning(data, flagger, flags):
         assert fchunk.index.max() == end_date, "different end dates"
 
 
+@pytest.mark.skip(reason="test slicing support is currently disabled")
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("optional", OPTIONAL)
 def test_positionalPartitioning(data, flagger, flags):

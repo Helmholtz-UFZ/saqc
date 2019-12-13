@@ -9,6 +9,7 @@ from saqc.core.reader import readConfig, prepareConfig, checkConfig
 from saqc.core.config import Fields
 from saqc.core.evaluator import evalExpression
 from saqc.lib.plotting import plotHook, plotAllHook
+from saqc.lib.tools import combineDataFrames
 from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 
 
@@ -109,17 +110,20 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
             if varname not in data and varname not in flagger.getFlags():
                 continue
 
+            # NOTE:
+            # time slicing support is currently disabled
             # prepare the data for the tests
-            dchunk = data.loc[start_date:end_date]
-            if dchunk.empty:
+            # data_chunk = data.loc[start_date:end_date]
+            data_chunk = data
+            if data_chunk.empty:
                 continue
-            flagger_chunk = flagger.getFlagger(loc=dchunk.index)
+            flagger_chunk = flagger.getFlagger(loc=data_chunk.index)
 
             try:
                 # actually run the tests
-                dchunk_result, flagger_chunk_result = evalExpression(
+                data_chunk_result, flagger_chunk_result = evalExpression(
                     func,
-                    data=dchunk,
+                    data=data_chunk,
                     field=varname,
                     flagger=flagger_chunk,
                     nodata=nodata,
@@ -129,16 +133,22 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
                     raise e
                 continue
 
-            flagger = flagger.setFlagger(flagger_chunk_result)
-
             plotHook(
-                dchunk_result,
+                data_chunk_result,
                 flagger_chunk,
                 flagger_chunk_result,
                 varname,
                 configrow[Fields.PLOT],
                 func,
             )
+
+            # NOTE:
+            # time slicing support is currently disabled
+            # flagger = flagger.setFlagger(flagger_chunk_result)
+            # data = combineDataFrames(data, data_chunk_result)
+            flagger = flagger_chunk_result
+            data = data_chunk_result
+
 
     plotAllHook(data, flagger)
 
