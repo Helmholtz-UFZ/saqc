@@ -90,6 +90,25 @@ def inferFrequency(data):
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
+def combineDataFrames(left, right, fill_value=np.nan):
+    """
+    Combine the given DataFrames 'left' and 'right' such that, the
+    output is union of the indices and the columns of both. In case
+    of duplicated values, 'left' is overwritten by 'right'
+    """
+    combined = left.reindex(
+        index=left.index.union(right.index),
+        columns=left.columns.union(right.columns, sort=False),
+        fill_value=fill_value
+    )
+
+    for key, values in right.iteritems():
+        combined.loc[right.index, key] = values
+
+    return combined
+
+
+
 
 def retrieveTrustworthyOriginal(data, field, flagger=None, level=None):
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
@@ -120,14 +139,12 @@ def retrieveTrustworthyOriginal(data, field, flagger=None, level=None):
 
     """
     dataseries = data[field]
+    # import ipdb; ipdb.set_trace()
 
     if flagger is not None:
-        if level is not None:
-            data_use = flagger.isFlagged(field, flag=level, comparator="<=")
-        else:
-            data_use = flagger.isFlagged(field, flag=flagger.GOOD, comparator="<=")
+        mask = flagger.isFlagged(field, flag=level or flagger.GOOD, comparator="<=")
         # drop all flags that are suspicious or worse
-        dataseries = dataseries[data_use]
+        dataseries = dataseries[mask]
 
     # drop the nan values that may result from any preceeding upsampling of the measurements:
     dataseries = dataseries.dropna()
@@ -137,7 +154,7 @@ def retrieveTrustworthyOriginal(data, field, flagger=None, level=None):
 
     # estimate original data sampling frequencie
     # (the original series sampling rate may not match data-input sample rate):
-    seconds_rate = (dataseries.index - dataseries.index.shift(-1)).to_series().min().seconds
+    seconds_rate = dataseries.index.to_series().diff().min().seconds
     data_rate = pd.tseries.frequencies.to_offset(str(seconds_rate) + 's')
 
     return dataseries.asfreq(data_rate), data_rate
