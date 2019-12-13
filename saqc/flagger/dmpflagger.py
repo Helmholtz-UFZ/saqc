@@ -70,7 +70,10 @@ class DmpFlagger(CategoricalFlagger):
     def getFlagger(self, field=None, loc=None, iloc=None):
         # NOTE: we need to preserve all indexing levels
         assertScalar("field", field, optional=True)
-        cols = toSequence(field, self._flags.columns.levels[0])
+        variables = (self._flags.columns
+                     .get_level_values(ColumnLevels.VARIABLES)
+                     .drop_duplicates())
+        cols = toSequence(field, variables)
         out = super().getFlagger(field, loc, iloc)
         out._flags.columns = self._getColumnIndex(cols)
         return out
