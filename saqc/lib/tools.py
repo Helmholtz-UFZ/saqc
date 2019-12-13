@@ -10,6 +10,15 @@ import numba as nb
 
 from saqc.lib.types import T
 
+STRING_2_FUNC = {
+    'sum':      np.sum,
+    'mean':     np.mean,
+    'median':   np.median,
+    'min':      np.min,
+    'max':      np.max,
+    'first':    pd.Series(np.nan, index=pd.DatetimeIndex([])).resample('0min').first,
+    'last':     pd.Series(np.nan, index=pd.DatetimeIndex([])).resample('0min').last
+}
 
 def assertScalar(name, value, optional=False):
     if (not np.isscalar(value)) and (value is not None) and (optional is True):
@@ -286,3 +295,19 @@ def assertSingleColumns(df, argname=""):
         raise TypeError(
             f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns"
         )
+
+def funcInput_2_func(func):
+    """
+    Aggregation functions passed by the user, are selected by looking them up in the STRING_2_DICT dictionary -
+    But since there are wrappers, that dynamically generate aggregation functions and pass those on ,the parameter
+    interfaces must as well be capable of processing real functions passed. This function does that.
+
+    :param func: A key to the STRING_2_FUNC dict, or an actual function
+    """
+    # if input is a callable - than just pass it:
+    if hasattr(func, "__call__"):
+        return func
+    elif func in STRING_2_FUNC.keys():
+        return STRING_2_FUNC[func]
+    else:
+        raise ValueError("Function input not a callable nor a known key to internal the func dictionary.")

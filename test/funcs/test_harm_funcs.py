@@ -161,7 +161,7 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
         interpolation,
         "fshift",
         reshape_shift_comment=False,
-        inter_agg=np.sum,
+        inter_agg="sum",
     )
 
     if interpolation is "fshift":
@@ -261,8 +261,8 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
         freq,
         "bagg",
         "bshift",
-        inter_agg=sum,
-        reshape_agg=max,
+        inter_agg="sum",
+        reshape_agg="max",
         reshape_shift_comment=shift_comment,
     )
 
@@ -295,14 +295,14 @@ def test_gridInterpolation(data, method):
     data = data.squeeze()
     # we are just testing if the interpolation gets passed to the series without causing an error:
     _interpolateGrid(
-        data, freq, method, order=1, agg_method=sum, downcast_interpolation=True
+        data, freq, method, order=1, agg_method="sum", downcast_interpolation=True
     )
     if method == "polynomial":
         _interpolateGrid(
-            data, freq, method, order=2, agg_method=sum, downcast_interpolation=True
+            data, freq, method, order=2, agg_method="sum", downcast_interpolation=True
         )
         _interpolateGrid(
-            data, freq, method, order=10, agg_method=sum, downcast_interpolation=True
+            data, freq, method, order=10, agg_method="sum", downcast_interpolation=True
         )
         data = _insertGrid(data, freq)
         _interpolate(data, method, inter_limit=3)
@@ -335,10 +335,10 @@ def test_wrapper(data, flagger):
     field = data.columns[0]
     freq = '15min'
     flagger = flagger.initFlags(data)
-    downsample(data, field, flagger, '15min', '30min', agg_func=np.sum, sample_func=np.mean)
+    downsample(data, field, flagger, '15min', '30min', agg_func="sum", sample_func="mean")
 
-    linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func=max,
+    linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func="max",
                                drop_flags=None)
-    aggregate2Grid(data, field, flagger, freq, agg_func=sum, agg_method='nearest_agg',
-                                  flag_agg_func=max, drop_flags=None)
+    aggregate2Grid(data, field, flagger, freq, agg_func="sum", agg_method='nearest_agg',
+                                  flag_agg_func="max", drop_flags=None)
     shift2Grid(data, field, flagger, freq, shift_method='nearest_shift', drop_flags=None)

@@ -7,7 +7,7 @@ import logging
 
 from saqc.funcs.functions import flagMissing
 from saqc.funcs.register import register
-from saqc.lib.tools import toSequence
+from saqc.lib.tools import toSequence, funcInput_2_func
 
 
 # todo: frequencie estimation function
@@ -44,16 +44,20 @@ def harmWrapper(heap={}):
         freq,
         inter_method,
         reshape_method,
-        inter_agg=np.mean,
+        inter_agg="mean",
         inter_order=1,
         inter_downcast=False,
-        reshape_agg=max,
+        reshape_agg="max",
         reshape_missing_flag=None,
         reshape_shift_comment=False,
         drop_flags=None,
         data_missing_value=np.nan,
         **kwargs
     ):
+
+        # get funcs from strings:
+        inter_agg = funcInput_2_func(inter_agg)
+        reshape_agg = funcInput_2_func(reshape_agg)
 
         # for some tingle tangle reasons, resolving the harmonization will not be sound, if not all missing/np.nan
         # values get flagged initially:
@@ -830,7 +834,7 @@ def linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg'
 
 @register('harmonize_interpolate2Grid')
 def interpolate2Grid(data, field, flagger, freq, interpolation_method, interpolation_order=1,
-                     flag_assignment_method='nearest_agg', flag_agg_func=max, drop_flags=None, **kwargs):
+                     flag_assignment_method='nearest_agg', flag_agg_func="max", drop_flags=None, **kwargs):
     return harmonize(
         data,
         field,
@@ -845,8 +849,13 @@ def interpolate2Grid(data, field, flagger, freq, interpolation_method, interpola
 
 
 @register('harmonize_downsample')
-def downsample(data, field, flagger, sample_freq, agg_freq, sample_func=np.mean, agg_func=np.mean,
+def downsample(data, field, flagger, sample_freq, agg_freq, sample_func="mean", agg_func="mean",
                invalid_flags=None, max_invalid=np.inf, **kwargs):
+
+    agg_func = funcInput_2_func(agg_func)
+
+    if sample_func is not None:
+        sample_func = funcInput_2_func(sample_func)
 
     # define the "fastest possible" aggregator
     if sample_func is None:
