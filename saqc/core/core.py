@@ -102,8 +102,8 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
             start_date = configrow[Fields.START]
             end_date = configrow[Fields.END]
 
-            flag_test = testcol[idx]
-            if pd.isnull(flag_test):
+            func = testcol[idx]
+            if pd.isnull(func):
                 continue
 
             if varname not in data and varname not in flagger.getFlags():
@@ -118,14 +118,14 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
             try:
                 # actually run the tests
                 dchunk_result, flagger_chunk_result = evalExpression(
-                    flag_test,
+                    func,
                     data=dchunk,
                     field=varname,
                     flagger=flagger_chunk,
                     nodata=nodata,
                 )
             except Exception as e:
-                if _handleErrors(e, configrow, flag_test, error_policy):
+                if _handleErrors(e, configrow, func, error_policy):
                     raise e
                 continue
 
@@ -137,7 +137,7 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
                 flagger_chunk_result,
                 varname,
                 configrow[Fields.PLOT],
-                flag_test,
+                func,
             )
 
     plotAllHook(data, flagger)
