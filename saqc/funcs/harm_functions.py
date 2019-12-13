@@ -737,7 +737,7 @@ def _toMerged(
     flags.drop(fieldname, axis="columns", errors="ignore", inplace=True)
 
     # first case: there is no data, the data-to-insert would have to be merged with, and also are we not deharmonizing:
-    if (flags.empty) & (target_index is None):
+    if data.empty & (target_index is None):
         return data_to_insert.to_frame(name=fieldname), flagger_to_insert
 
     # if thats not the case: generate the drop mask for the remaining data:
@@ -762,7 +762,7 @@ def _toMerged(
 
     else:
         # trivial case: there is only one variable:
-        if flags.empty:
+        if data.empty:
             data = data_to_insert.reindex(target_index).to_frame(name=fieldname)
             flags = flags_to_insert.reindex(target_index, fill_value=flagger.UNFLAGGED)
             return data, flagger.initFlags(flags=flags)
