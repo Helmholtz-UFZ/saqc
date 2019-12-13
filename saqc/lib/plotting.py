@@ -20,16 +20,16 @@ def plotAllHook(data, flagger):
         _plot(data, flagger, True, __plotvars)
 
 
-def plotHook(data, old, new, varname, do_plot, flag_test, plot_nans=False):
-    # old/new: flagger
+def plotHook(data, flagger_old, flagger_new, varname, do_plot, flag_test, plot_nans=False):
+    # flagger_old/flagger_new: flagger
     if do_plot:
         __plotvars.append(varname)
         # cannot use getFlags here, because if a flag was set (e.g. with force) the
         # flag may be the same, but any additional row (e.g. comment-field) would differ
-        mask = (old._flags[varname] != new._flags[varname])
+        mask = (flagger_old._flags[varname] != flagger_new._flags[varname])
         if isinstance(mask, pd.DataFrame):
             mask = mask.any(axis=1)
-        _plot(data, new, mask, varname, title=flag_test, plot_nans=plot_nans)
+        _plot(data, flagger_new, mask, varname, title=flag_test, plot_nans=plot_nans)
 
 
 def _plot(

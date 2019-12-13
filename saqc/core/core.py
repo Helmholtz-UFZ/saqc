@@ -9,6 +9,7 @@ from saqc.core.reader import readConfig, prepareConfig, checkConfig
 from saqc.core.config import Fields
 from saqc.core.evaluator import evalExpression
 from saqc.lib.plotting import plotHook, plotAllHook
+from saqc.lib.tools import combineDataFrames
 from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 
 
@@ -20,11 +21,11 @@ def _collectVariables(meta, data):
     variables = []
     for idx, configrow in meta.iterrows():
         varname = configrow[Fields.VARNAME]
-        assign = configrow[Fields.ASSIGN]
+        # assign = configrow[Fields.ASSIGN]
         if varname in variables:
             continue
-        if (varname in data) or (varname not in variables and assign is True):
-            variables.append(varname)
+        # if (varname in data):  # or (varname not in variables and assign is True):
+        variables.append(varname)
     return variables
 
 
@@ -84,6 +85,7 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
     # user-test needs fully prepared flags
     checkConfig(config, data, flagger, nodata)
 
+
     # NOTE:
     # the outer loop runs over the flag tests, the inner one over the
     # variables. Switching the loop order would complicate the
@@ -101,43 +103,52 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
             start_date = configrow[Fields.START]
             end_date = configrow[Fields.END]
 
-            flag_test = testcol[idx]
-            if pd.isnull(flag_test):
+            func = testcol[idx]
+            if pd.isnull(func):
                 continue
 
             if varname not in data and varname not in flagger.getFlags():
                 continue
 
+            # NOTE:
+            # time slicing support is currently disabled
             # prepare the data for the tests
-            dchunk = data.loc[start_date:end_date]
-            if dchunk.empty:
+            # data_chunk = data.loc[start_date:end_date]
+            data_chunk = data
+            if data_chunk.empty:
                 continue
-            flagger_chunk = flagger.getFlagger(loc=dchunk.index)
+            flagger_chunk = flagger.getFlagger(loc=data_chunk.index)
 
             try:
                 # actually run the tests
-                dchunk, flagger_chunk_result = evalExpression(
-                    flag_test,
-                    data=dchunk,
+                data_chunk_result, flagger_chunk_result = evalExpression(
+                    func,
+                    data=data_chunk,
                     field=varname,
                     flagger=flagger_chunk,
                     nodata=nodata,
                 )
             except Exception as e:
-                if _handleErrors(e, configrow, flag_test, error_policy):
+                if _handleErrors(e, configrow, func, error_policy):
                     raise e
                 continue
 
-            flagger = flagger.setFlagger(flagger_chunk_result)
-
             plotHook(
-                dchunk,
+                data_chunk_result,
                 flagger_chunk,
                 flagger_chunk_result,
                 varname,
                 configrow[Fields.PLOT],
-                flag_test,
+                func,
             )
+
+            # NOTE:
+            # time slicing support is currently disabled
+            # flagger = flagger.setFlagger(flagger_chunk_result)
+            # data = combineDataFrames(data, data_chunk_result)
+            flagger = flagger_chunk_result
+            data = data_chunk_result
+
 
     plotAllHook(data, flagger)
 
