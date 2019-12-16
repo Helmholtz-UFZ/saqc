@@ -1,7 +1,7 @@
 varname;test;plot
 SM1;range(min=10, max=60);False
 SM2;missing(nodata=nan);False
-SM2;range(min=10, max=60);True
-SM2;spikes_basic(thresh=30, tolerance=15, window_size="50d");True
-SM2;harmonize_shift2Grid(freq="15Min");False
+SM2;range(min=10, max=60);False
+SM2;spikes_simpleMad(winsz="30d", z=3.5);True
+# SM2;harmonize_shift2Grid(freq="15Min");False
 
