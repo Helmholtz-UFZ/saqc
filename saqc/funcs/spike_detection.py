@@ -159,8 +159,7 @@ def flagSpikes_simpleMad(data, field, flagger, winsz, z=3.5, **kwargs):
     :param winsz:      Offset String. Denoting the windows size that that th "Z-scored" values have to lie in.
     :param z:           Float. The value the Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
     """
-
-    d = data[field].copy()
+    d = data[field].copy().mask(flagger.isFlagged(field))
     median = d.rolling(window=winsz, closed="both").median()
     diff = abs(d - median)
     mad = diff.rolling(window=winsz, closed="both").median()
