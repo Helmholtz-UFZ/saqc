@@ -161,9 +161,21 @@ def flagSpikes_simpleMad(data, field, flagger, winsz, z=3.5, **kwargs):
     """
     d = data[field].copy().mask(flagger.isFlagged(field))
     median = d.rolling(window=winsz, closed="both").median()
-    diff = abs(d - median)
+    diff = (d - median).abs()
     mad = diff.rolling(window=winsz, closed="both").median()
     mask = (mad > 0) & (0.6745 * diff > z * mad)
+    # NOTE:
+    # In pandas <= 0.25.3, the window size is not fixed if the
+    # window-argument to rolling is a frequency. That implies,
+    # that during the first iterations the window has a size of
+    # 1, 2, 3, ... until it eventually covers the disered time
+    # span. For stuff the calculation of median, that is rather
+    # unfortunate, as the size of calculation base might differ
+    # heavily. So don't flag something until, the window reaches
+    # its target size
+    if not isinstance(winsz, int):
+        index = mask.index
+        mask.loc[index < index[0] + pd.to_timedelta(winsz)] = False
 
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
