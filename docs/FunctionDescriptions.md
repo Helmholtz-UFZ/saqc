@@ -519,12 +519,6 @@ Thus, a data point $`x_k`$ with sampling rate $`f`$ is flagged an invalid soil m
     * $` y_{k-j} + y_{k-j+1} + ... + y_{k} < `$ `sensor_meas_depth` $`\times`$ `sensor_accuracy` $`\times`$ `soil_porosity`
 
 
-Function flags Soil moisture measurements by flagging moisture rises that do not follow up a sufficient
-precipitation event. If measurement depth, sensor accuracy of the soil moisture sensor and the porosity of the
-surrounding soil is passed to the function, an inferior level of precipitation, that has to preceed a significant
-moisture raise within 24 hours, can be estimated. If those values are not delivered, this inferior bound is set
-to zero. In that case, any non zero precipitation count will justify any soil moisture raise.
-
 This Function is an implementation of the precipitation based Soil Moisture
 flagging, as presented in:
 
