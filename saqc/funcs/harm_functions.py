@@ -560,7 +560,7 @@ def _reshapeFlags(
             tolerance = pd.Timedelta(freq) / 2
 
         flags = flagger.getFlags().reindex(
-            ref_index, tolerance=tolerance, method=direction
+            ref_index, tolerance=tolerance, method=direction, fill_value=np.nan
         )
 
         # if you want to keep previous comments - only newly generated missing flags get commented:
@@ -763,7 +763,7 @@ def _toMerged(
         return data, flagger.initFlags(flags=flags)
 
     else:
-        # trivial case: there is only one variable:
+        # trivial case: there is only one variable ("reindexing to make sure shape matches pre-harm shape"):
         if data.empty:
             data = data_to_insert.reindex(target_index).to_frame(name=fieldname)
             flags = flags_to_insert.reindex(target_index, fill_value=flagger.UNFLAGGED)
@@ -779,7 +779,8 @@ def _toMerged(
         flags = pd.merge(
             flags, flags_to_insert, how="outer", left_index=True, right_index=True
         )
-        flags.fillna(flagger.UNFLAGGED, inplace=True)
+        # exclusion of the following line makes sure, only newly inserted values
+        #flags.fillna(flagger.UNFLAGGED, inplace=True)
 
         # internally harmonization memorizes its own manipulation by inserting nan flags -
         # those we will now assign the flagger.bad flag by the "missingTest":
