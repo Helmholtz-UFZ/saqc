@@ -15,9 +15,9 @@ _colors = {
 }
 
 
-def plotAllHook(data, flagger):
+def plotAllHook(data, flagger, plot_nans=False):
     if len(__plotvars) > 1:
-        _plot(data, flagger, True, __plotvars)
+        _plot(data, flagger, True, __plotvars, plot_nans=plot_nans)
 
 
 def plotHook(data, flagger_old, flagger_new, varname, do_plot, flag_test, plot_nans=False):
