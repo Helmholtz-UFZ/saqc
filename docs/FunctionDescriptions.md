@@ -180,7 +180,7 @@ outliers, but also plateau-ish value courses.
 Flag outlier by simple median absolute deviation test.
 
 ```
-spikes_simpleMad(winsz="1h", length, z=3.5)
+spikes_simpleMad(winsz="1h", z=3.5)
 ```
 
 | parameter | data type            | default value | description                                                          |
