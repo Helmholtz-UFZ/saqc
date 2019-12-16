@@ -36,7 +36,7 @@ INTERPOLATIONS2 = ["fagg", "time", "polynomial"]
 FREQS = ["15min", "30min"]
 
 
-@pytest.fixture
+#@pytest.fixture
 def data():
     index = pd.date_range(
         start="1.1.2011 00:00:00", end="1.1.2011 01:00:00", freq="15min"
@@ -222,7 +222,7 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
 
     data, flagger = deharmonize(data, "data", flagger, co_flagging=True)
 
-    data, flagger = deharmonize(data, "data", flagger, co_flagging=True)
+    #data, flagger = deharmonize(data, "data", flagger, co_flagging=True)
     flags = flagger.getFlags()
 
     assert pre_data.equals(data)
@@ -343,3 +343,12 @@ def test_wrapper(data, flagger):
                                   flag_agg_func="max", drop_flags=None)
     shift2Grid(data, field, flagger, freq, shift_method='nearest_shift', drop_flags=None)
 
+if __name__ == "__main__":
+    dat = data()
+    dat2 = dat.shift(1, '91min')
+    dat = dat.append(dat2)
+    dat = dat.drop(dat.index[8])
+    flagger = TESTFLAGGER[2]
+    interpolation = 'linear'
+    freq="15min"
+    test_harmSingleVarInterpolations(dat, flagger, interpolation, freq)

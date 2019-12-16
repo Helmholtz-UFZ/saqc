@@ -89,7 +89,7 @@ def harmWrapper(heap={}):
         )
 
         # interpolation! (yeah)
-        dat_col = _interpolateGrid(
+        dat_col, chunk_bounds = _interpolateGrid(
             dat_col,
             freq,
             method=inter_method,
@@ -108,6 +108,7 @@ def harmWrapper(heap={}):
             agg_method=reshape_agg,
             missing_flag=reshape_missing_flag,
             set_shift_comment=reshape_shift_comment,
+            block_flags=chunk_bounds,
             **kwargs
         )
 
@@ -325,6 +326,7 @@ def _interpolateGrid(
     :return:            pd.DataFrame. ['data'].
     """
 
+    chunk_bounds = None
     aggregations = ["nearest_agg", "bagg", "fagg"]
     shifts = ["fshift", "bshift", "nearest_shift"]
     interpolations = [
@@ -392,7 +394,7 @@ def _interpolateGrid(
     elif method in interpolations:
 
         data = _insertGrid(data, freq)
-        data = _interpolate(
+        data, chunk_bounds = _interpolate(
             data,
             method,
             order=order,
@@ -412,7 +414,7 @@ def _interpolateGrid(
     if total_range is not None:
         data = data.reindex(total_index)
 
-    return data
+    return data, chunk_bounds
 
 
 def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=False):
@@ -450,6 +452,11 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
             .replace(np.nan, True)
             .astype(bool)
         )
+    # start end ending points of interpolation chunks have to be memorized to block their flagging:
+    chunk_switches = gap_mask.astype(int).diff()
+    chunk_starts = chunk_switches[chunk_switches == -1].index
+    chunk_ends = chunk_switches[(chunk_switches.shift(-1) == 1)].index
+    chunk_bounds = chunk_starts.join(chunk_ends, how='outer', sort=True)
 
     data = data[gap_mask]
 
@@ -486,7 +493,7 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
         # squeezing the 1-dimensional frame resulting from groupby for consistency reasons
         data = data.squeeze(axis=1)
         data.name = dat_name
-    return data
+    return data, chunk_bounds
 
 
 def _reshapeFlags(
@@ -497,6 +504,7 @@ def _reshapeFlags(
     agg_method=max,
     missing_flag=None,
     set_shift_comment=True,
+    block_flags=None,
     **kwargs
 ):
     """To continue processing flags after harmonization/interpolation, old pre-harm flags have to be distributed onto
@@ -536,6 +544,9 @@ def _reshapeFlags(
                         however, the methods used, do not allow to 'reflag' and apply eventually passed **kwargs.
                         Setting set_shift_comment to True, **kwargs will be applied, but the whole process will slow
                         down significantly.
+    :block_flags:       DatetimeIndex. A DatetimeIndex containing labels that will get the "nan-flag" assigned.
+                        This option mainly is introduced to account for the backtracking inconsistencies at the end
+                        and beginning of interpolation chunks.
     :return: flags:     pd.Series/pd.DataFrame. The reshaped pandas like Flags object, referring to the harmonized data.
     """
 
@@ -565,7 +576,10 @@ def _reshapeFlags(
 
         # if you want to keep previous comments - only newly generated missing flags get commented:
         flags_series = flags.squeeze()
-
+        # block flagging/backtracking of chunk_starts/chunk_ends
+        if block_flags is not None:
+            flags_series[block_flags] = np.nan
+        # TODO: - here nan values get casted to missing_flag!!!-> thats  why interpol chunks wont be properly nan-marked!!
         flagger_new = flagger.initFlags(flags=flags).setFlags(
             field, loc=flags_series.isna(), flag=missing_flag, force=True, **kwargs
         )
@@ -622,6 +636,10 @@ def _reshapeFlags(
             flags = pd.Series(data=flagger.BAD, index=[ref_index[0]]).astype(flagger.dtype).append(flags)
         if ref_index[-1] != flags.index[-1]:
             flags = flags.append(pd.Series(data=flagger.BAD, index=[ref_index[-1]]).astype(flagger.dtype))
+
+        # block flagging/backtracking of chunk_starts/chunk_ends
+        if block_flags is not None:
+            flags[block_flags] = np.nan
 
         flagger_new = flagger.initFlags(flags=flags.to_frame(name=field))
 
