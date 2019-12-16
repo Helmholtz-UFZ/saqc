@@ -61,9 +61,25 @@ def valueRange(iterable):
 
 
 def slidingWindowIndices(dates, window_size, iter_delta=None):
+    """
+    this function is a building block of a custom implementation of
+    the pandas 'rolling' method. A number of shortcomings in the
+    'rolling' implementation might made this a worthwhil endavour,
+    namly:
+    + There is no way to provide a step size, i.e. to not start the
+      next rolling window at the very next row in the DataFrame/Series
+    + The inconsistent bahaviour with numerical vs frequency based
+      window sizes. When winsz is an integer, all windows are equally
+      large (winsz=5 -> windows contain 5 elements), but variable in
+      size, when the winsz is a frequency string (winsz="2D" ->
+      window grows from size 1 during the first iteration until it
+      covers the given frequency). Especially the bahaviour with
+      frequency strings is quite unfortunate when calling methods
+      relying on the size of the window (sum, mean, median)
+    """
 
     # lets work on numpy data structures for performance reasons
-    if isinstance(dates, pd.DataFrame):
+    if isinstance(dates, (pd.DataFrame, pd.Series)):
         dates = dates.index
     dates = np.array(dates, dtype=np.int64)
 
