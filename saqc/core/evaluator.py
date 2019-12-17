@@ -13,44 +13,37 @@ from saqc.core.config import Params
 from saqc.funcs.register import FUNC_MAP
 
 
-class Targets:
-    DATA = "data"
-    FLAGS = "flags"
+def _dslInner(flagger, func, data):
+    return func(data.mask(flagger.isFlagged(data.name)))
 
 
-def _dslInner(func, data, field, flagger):
-    return func(data.mask(flagger.isFlagged(field)))
+def _dslIsFlagged(flagger, data, flag=None):
+    return flagger.isFlagged(data.name, flag=flag)
 
 
-def _dslIsFlagged(data, field, flagger):
-    return flagger.isFlagged(field)
-
-
-def initGlobalMap() -> Dict[str, Any]:
-    out = {
-        "abs": partial(_dslInner, np.abs),
-        "max": partial(_dslInner, np.nanmax),
-        "min": partial(_dslInner, np.nanmin),
-        "mean": partial(_dslInner, np.nanmean),
-        "sum": partial(_dslInner, np.nansum),
-        "std": partial(_dslInner, np.nanstd),
-        "len": partial(_dslInner, len),
-        "isflagged": _dslIsFlagged,
-        "nan": np.nan,
-    }
-    return out
-
-def initLocalMap(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
+def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
+    partialInner = partial(_dslInner, flagger)
     return {
         "data": data,
         "field": field,
         "this": field,
         "flagger": flagger,
+
+        "NAN": np.nan,
         "NODATA": nodata,
         "GOOD": flagger.GOOD,
         "BAD": flagger.BAD,
         "UNFLAGGED": flagger.UNFLAGGED,
-        "ismissing": lambda data, field, flagger: ((data == nodata) | pd.isnull(data)),
+
+        "ismissing": lambda data: ((data == nodata) | pd.isnull(data)),
+        "isflagged": partial(_dslIsFlagged, flagger),
+        "abs": partial(partialInner, np.abs),
+        "max": partial(partialInner, np.nanmax),
+        "min": partial(partialInner, np.nanmin),
+        "mean": partial(partialInner, np.nanmean),
+        "sum": partial(partialInner, np.nansum),
+        "std": partial(partialInner, np.nanstd),
+        "len": partial(partialInner, len),
     }
 
 
@@ -58,68 +51,53 @@ class DslTransformer(ast.NodeTransformer):
 
     SUPPORTED = (
         ast.Expression,
-        ast.UnaryOp,
-        ast.BinOp,
-        ast.BitOr,
-        ast.BitAnd,
+        ast.UnaryOp, ast.BinOp,
+        ast.BitOr, ast.BitAnd,
         ast.Num,
         ast.Compare,
-        ast.Add,
-        ast.Mult,
+        ast.Add, ast.Sub,
+        ast.Mult, ast.Div,
         ast.Pow,
         ast.USub,
         ast.NotEq,
-        ast.Gt,
-        ast.Lt,
-        ast.GtE,
-        ast.LtE,
-        ast.BitAnd,
+        ast.Gt, ast.Lt,
+        ast.GtE, ast.LtE,
         ast.Invert,
+        ast.Name,
     )
 
     def __init__(self, environment, variables):
         self.environment = environment
         self.variables = variables
 
-    def _rename(
-        self, node: ast.Name, target: str
-    ) -> Union[ast.Subscript, ast.Name, ast.Constant]:
-        name = node.id
-        if name == "this":
-            value = ast.Name(id="field", ctx=ast.Load())
-        else:
-            if name not in self.variables:
-                raise NameError(f"unknown variable: '{name}'")
-            value = ast.Constant(value=name)
-
-        if target == Targets.FLAGS:
-            return value
-        else:
-            out = ast.Subscript(
-                value=ast.Name(id=target, ctx=ast.Load()),
-                slice=ast.Index(value=value),
-                ctx=ast.Load(),
-            )
-            return out
 
     def visit_Call(self, node):
         func_name = node.func.id
         if func_name not in self.environment:
             raise NameError(f"unspported function: '{func_name}'")
 
-        node = ast.Call(
+        return ast.Call(
             func=node.func,
-            args=[
-                self._rename(node.args[0], Targets.DATA),
-                self._rename(node.args[0], Targets.FLAGS),
-                ast.Name(id="flagger", ctx=ast.Load()),
-            ],
+            args=[self.visit(arg) for arg in node.args],
             keywords=[],
         )
-        return node
 
     def visit_Name(self, node):
-        return self._rename(node, "data")
+        name = node.id
+        if name == "this":
+            name = self.environment["field"]
+
+        if name in self.variables:
+            value = ast.Constant(value=name)
+            return ast.Subscript(
+                value=ast.Name(id="data", ctx=ast.Load()),
+                slice=ast.Index(value=value),
+                ctx=ast.Load(),
+            )
+        if name in self.environment:
+            return ast.Constant(value=name)
+
+        raise NameError(f"unknown variable: '{name}'")
 
     def generic_visit(self, node):
         if not isinstance(node, self.SUPPORTED):
@@ -184,7 +162,7 @@ class MetaTransformer(ast.NodeTransformer):
 
     def generic_visit(self, node):
         if not isinstance(node, self.SUPPORTED_NODES):
-            raise TypeError(f"invalid expression: '{node}'")
+            raise TypeError(f"invalid node: '{node}'")
         return super().generic_visit(node)
 
 
@@ -197,15 +175,12 @@ def compileTree(tree: ast.Expression):
     return compile(ast.fix_missing_locations(tree), "<ast>", mode="eval")
 
 
-def evalCode(code, global_env, local_env):
-    return eval(code, global_env, local_env)
+def evalCode(code, global_env=None, local_env=None):
+    return eval(code, global_env or {}, local_env or {})
 
 
 def compileExpression(expr, data, field, flagger, nodata=np.nan):
-    local_env = {
-        **initGlobalMap(),
-        **initLocalMap(data, field, flagger, nodata)
-    }
+    local_env = initLocalEnv(data, field, flagger, nodata)
     varmap = set(data.columns.tolist() + flagger.getFlags().columns.tolist())
     tree = parseExpression(expr)
     dsl_transformer = DslTransformer(local_env, varmap)
@@ -214,6 +189,5 @@ def compileExpression(expr, data, field, flagger, nodata=np.nan):
 
 
 def evalExpression(expr, data, field, flagger, nodata=np.nan):
-
     local_env, code = compileExpression(expr, data, field, flagger, nodata)
     return evalCode(code, FUNC_MAP, local_env)

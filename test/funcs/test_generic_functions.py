@@ -9,8 +9,7 @@ from test.common import initData, TESTFLAGGER, TESTNODATA
 
 from saqc.core.evaluator import (
     DslTransformer,
-    initGlobalMap,
-    initLocalMap,
+    initLocalEnv,
     parseExpression,
     evalExpression,
     compileTree,
@@ -19,13 +18,12 @@ from saqc.core.evaluator import (
 
 
 def _evalDslExpression(expr, data, field, flagger, nodata=np.nan):
-    global_env = initGlobalMap()
-    local_env = initLocalMap(data, field, flagger, nodata)
+    env = initLocalEnv(data, field, flagger, nodata)
     tree = parseExpression(expr)
-    dsl_transformer = DslTransformer({**global_env, **local_env}, data.columns)
+    dsl_transformer = DslTransformer(env, data.columns)
     transformed_tree = dsl_transformer.visit(tree)
     code = compileTree(transformed_tree)
-    return evalCode(code, global_env, local_env)
+    return evalCode(code, local_env=env)
 
 
 @pytest.fixture
@@ -197,5 +195,5 @@ def test_isflaggedArgument(data, flagger):
 
     idx = _evalDslExpression(f"isflagged({var1}, {flagger.BAD})", data, var2, flagger)
 
-    flagged = flagger.isFlagged(var1, flag=flagger.BAD, comparator=">=")
+    flagged = flagger.isFlagged(var1, flag=flagger.BAD)
     assert (flagged == idx).all()

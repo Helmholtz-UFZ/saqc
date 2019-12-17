@@ -8,17 +8,20 @@ from saqc.funcs import register
 from saqc.core.evaluator import (
     compileTree,
     parseExpression,
-    initGlobalMap,
+    initLocalEnv,
     DslTransformer,
     MetaTransformer,
 )
 
-from test.common import TESTFLAGGER, dummyRegisterFunc
+from test.common import TESTFLAGGER, dummyRegisterFunc, initData
 
 
 def compileExpression(expr, flagger, nodata=np.nan):
+    data = initData()
+    field = data.columns[0]
     tree = parseExpression(expr)
-    dsl_transformer = DslTransformer(initGlobalMap(), {})
+    env = initLocalEnv(data, field, flagger, nodata)
+    dsl_transformer = DslTransformer(env, {})
     transformed_tree = MetaTransformer(dsl_transformer, flagger.signature).visit(tree)
     code = compileTree(transformed_tree)
     return code
