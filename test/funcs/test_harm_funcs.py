@@ -336,7 +336,6 @@ def test_wrapper(data, flagger):
     freq = '15min'
     flagger = flagger.initFlags(data)
     downsample(data, field, flagger, '15min', '30min', agg_func="sum", sample_func="mean")
-
     linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func="max",
                                drop_flags=None)
     aggregate2Grid(data, field, flagger, freq, agg_func="sum", agg_method='nearest_agg',
@@ -349,6 +348,4 @@ if __name__ == "__main__":
     dat = dat.append(dat2)
     dat = dat.drop(dat.index[8])
     flagger = TESTFLAGGER[2]
-    interpolation = 'linear'
-    freq="15min"
-    test_harmSingleVarInterpolations(dat, flagger, interpolation, freq)
+    test_wrapper(dat, flagger)

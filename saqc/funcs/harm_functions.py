@@ -27,6 +27,9 @@ HARM_2_DEHARM = {
     "fagg": "invert_fshift",
     "bagg": "invert_bshift",
     "nearest_agg": "invert_nearest",
+    "fagg_no_deharm": "regain",
+    "bagg_no_deharm": "regain",
+    "nearest_agg_no_deharm": "regain"
 }
 
 
@@ -551,7 +554,7 @@ def _reshapeFlags(
     """
 
     missing_flag = missing_flag or flagger.BAD
-    aggregations = ["nearest_agg", "bagg", "fagg"]
+    aggregations = ["nearest_agg", "bagg", "fagg", "nearest_agg_no_deharm", "bagg_no_deharm", "fagg_no_deharm"]
     shifts = ["fshift", "bshift", "nearest_shift"]
 
     freq = ref_index.freqstr
@@ -588,12 +591,12 @@ def _reshapeFlags(
 
     elif method in aggregations:
         # prepare resampling keywords
-        if method == "fagg":
+        if method in ["fagg", "fagg_no_deharm"]:
             closed = "right"
             label = "right"
             base = 0
             freq_string = freq
-        elif method == "bagg":
+        elif method in ["bagg", "bagg_no_deharm"]:
             closed = "left"
             label = "left"
             base = 0
@@ -659,6 +662,10 @@ def _reshapeFlags(
 def _backtrackFlags(
     flagger_post, flagger_pre, freq, track_method="invert_fshift", co_flagging=False
 ):
+
+    # in the case of "real" up/downsampling - evaluating the harm flags against the original flags makes no sence!
+    if track_method in ["regain"]:
+        return flagger_pre
 
     # NOTE: PROBLEM flager_pre carries one value ib exces (index: -3)
     flags_post = flagger_post.getFlags()
@@ -926,7 +933,7 @@ def downsample(data, field, flagger, sample_freq, agg_freq, sample_func="mean", 
         flagger,
         agg_freq,
         inter_method='bagg',
-        reshape_method='bagg',
+        reshape_method='bagg_no_deharm',
         inter_agg=aggregator,
         reshape_agg="max",
         drop_flags=invalid_flags,
