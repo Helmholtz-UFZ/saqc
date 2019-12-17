@@ -627,6 +627,8 @@ harmonize(freq, inter_method, reshape_method, inter_agg="mean", inter_order=1,
 | inter_agg          | string             |`"mean"`  | String, signifying a function, used for aggregation, if an aggregation method is selected as `inter_method`. See a table of keywords [here](#aggregations).|
 | inter_order        | int              |`1`        | The order of interpolation applied, if an interpolation method is passed to `inter_method`|
 | inter_downcast     | boolean          |`False`    | `True`: Use lower interpolation order to interpolate data chunks that are too short to be interpolated with order `inter_order`. <br/> `False`: Project values of too-short data chunks onto `NaN`. <br/> Option only relevant if `inter_method` can be of certain order.| 
+| reshape_agg        | string           | `"max"`   | String, signifying a function, used for aggregation of flags in the interval determined by `reshape_method`. By default (`"max"`), the worst flag gets assigned |
+| reshape_missing_flag| string or Nonetype | `None`    | Either a string, referring to a flags name of the flagger you use, or `None`. The flag signified by this parameter gets inserted whenever there is no data available for for an harmonization interval. The default, `None`, leads to insertion of the currents flaggers `BAD` flag.
 | reshape_shift_comment | boolean       |`True`     | `True`: Flags that got shifted forward or backward on the new equidistant data index, get resetted additionally. This may, for example, result in eventually present comment fields, to get overwritten with whatever is defaultly been written in this field for the current flagger, if a function sets a flag. <br/> `False`: No reset of the shifted flag will be made. <br/> <br/> Only relevant for flagger having more fields then the flags field and a shifting method passed to `inter_method`|
 | drop_flags         | list or Nonetype |`None`     | A list of flags to exclude from harmonization. See step (1) below. If `None` is passed, only BAD - flagged values get dropped. If a list is passed, the BAD flag gets added to that list by default |
 | data_missing_value | any valeu        |`np.nan`   | The value, indicating missing data in the dataseries-to-be-flagged.|
@@ -653,14 +655,14 @@ In detail the process includes:
    to-be-flagged.
    New sampling intervals, covering no data in the original dataseries or only 
    data that got excluded in step (1), will be regarded as representing missing 
-   data (Thus get assigned `NaN` value). 
+   data (Thus get assigned `NaN` value and the). 
    The original data will be dropped (but can be regained by function 
    `deharmonize`).
 4. Depending on the keyword passed to `reshape_method`, the original flags get
    projected/aggregated onto the new, harmonized data, generated in step (3).
    New sampling intervals, covering no data in the original dataseries or only 
    data that got excluded in step (1), will be regarded as representing missing 
-   data and thus get assigned the worst flag level available.
+   data and thus get assigned the `reshape_missing` flag.
 
 NOTE, that, if: 
 

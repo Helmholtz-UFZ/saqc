@@ -27,6 +27,9 @@ HARM_2_DEHARM = {
     "fagg": "invert_fshift",
     "bagg": "invert_bshift",
     "nearest_agg": "invert_nearest",
+    "fagg_no_deharm": "regain",
+    "bagg_no_deharm": "regain",
+    "nearest_agg_no_deharm": "regain"
 }
 
 
@@ -89,7 +92,7 @@ def harmWrapper(heap={}):
         )
 
         # interpolation! (yeah)
-        dat_col = _interpolateGrid(
+        dat_col, chunk_bounds = _interpolateGrid(
             dat_col,
             freq,
             method=inter_method,
@@ -108,6 +111,7 @@ def harmWrapper(heap={}):
             agg_method=reshape_agg,
             missing_flag=reshape_missing_flag,
             set_shift_comment=reshape_shift_comment,
+            block_flags=chunk_bounds,
             **kwargs
         )
 
@@ -325,6 +329,7 @@ def _interpolateGrid(
     :return:            pd.DataFrame. ['data'].
     """
 
+    chunk_bounds = None
     aggregations = ["nearest_agg", "bagg", "fagg"]
     shifts = ["fshift", "bshift", "nearest_shift"]
     interpolations = [
@@ -392,7 +397,7 @@ def _interpolateGrid(
     elif method in interpolations:
 
         data = _insertGrid(data, freq)
-        data = _interpolate(
+        data, chunk_bounds = _interpolate(
             data,
             method,
             order=order,
@@ -412,7 +417,7 @@ def _interpolateGrid(
     if total_range is not None:
         data = data.reindex(total_index)
 
-    return data
+    return data, chunk_bounds
 
 
 def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=False):
@@ -450,6 +455,11 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
             .replace(np.nan, True)
             .astype(bool)
         )
+    # start end ending points of interpolation chunks have to be memorized to block their flagging:
+    chunk_switches = gap_mask.astype(int).diff()
+    chunk_starts = chunk_switches[chunk_switches == -1].index
+    chunk_ends = chunk_switches[(chunk_switches.shift(-1) == 1)].index
+    chunk_bounds = chunk_starts.join(chunk_ends, how='outer', sort=True)
 
     data = data[gap_mask]
 
@@ -486,7 +496,7 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
         # squeezing the 1-dimensional frame resulting from groupby for consistency reasons
         data = data.squeeze(axis=1)
         data.name = dat_name
-    return data
+    return data, chunk_bounds
 
 
 def _reshapeFlags(
@@ -497,6 +507,7 @@ def _reshapeFlags(
     agg_method=max,
     missing_flag=None,
     set_shift_comment=True,
+    block_flags=None,
     **kwargs
 ):
     """To continue processing flags after harmonization/interpolation, old pre-harm flags have to be distributed onto
@@ -536,11 +547,14 @@ def _reshapeFlags(
                         however, the methods used, do not allow to 'reflag' and apply eventually passed **kwargs.
                         Setting set_shift_comment to True, **kwargs will be applied, but the whole process will slow
                         down significantly.
+    :block_flags:       DatetimeIndex. A DatetimeIndex containing labels that will get the "nan-flag" assigned.
+                        This option mainly is introduced to account for the backtracking inconsistencies at the end
+                        and beginning of interpolation chunks.
     :return: flags:     pd.Series/pd.DataFrame. The reshaped pandas like Flags object, referring to the harmonized data.
     """
 
-    missing_flag = missing_flag or flagger.UNFLAGGED
-    aggregations = ["nearest_agg", "bagg", "fagg"]
+    missing_flag = missing_flag or flagger.BAD
+    aggregations = ["nearest_agg", "bagg", "fagg", "nearest_agg_no_deharm", "bagg_no_deharm", "fagg_no_deharm"]
     shifts = ["fshift", "bshift", "nearest_shift"]
 
     freq = ref_index.freqstr
@@ -560,7 +574,7 @@ def _reshapeFlags(
             tolerance = pd.Timedelta(freq) / 2
 
         flags = flagger.getFlags().reindex(
-            ref_index, tolerance=tolerance, method=direction
+            ref_index, tolerance=tolerance, method=direction, fill_value=np.nan
         )
 
         # if you want to keep previous comments - only newly generated missing flags get commented:
@@ -577,12 +591,12 @@ def _reshapeFlags(
 
     elif method in aggregations:
         # prepare resampling keywords
-        if method == "fagg":
+        if method in ["fagg", "fagg_no_deharm"]:
             closed = "right"
             label = "right"
             base = 0
             freq_string = freq
-        elif method == "bagg":
+        elif method in ["bagg", "bagg_no_deharm"]:
             closed = "left"
             label = "left"
             base = 0
@@ -623,6 +637,10 @@ def _reshapeFlags(
         if ref_index[-1] != flags.index[-1]:
             flags = flags.append(pd.Series(data=flagger.BAD, index=[ref_index[-1]]).astype(flagger.dtype))
 
+        # block flagging/backtracking of chunk_starts/chunk_ends
+        if block_flags is not None:
+            flags[block_flags] = np.nan
+
         flagger_new = flagger.initFlags(flags=flags.to_frame(name=field))
 
     else:
@@ -632,12 +650,22 @@ def _reshapeFlags(
                 method, methods
             )
         )
+
+    # block flagging/backtracking of chunk_starts/chunk_ends
+    if block_flags is not None:
+        flagger_new = flagger_new.setFlags(field, loc=block_flags,
+                                           flag=pd.Series(np.nan, index=block_flags).astype(flagger_new.dtype),
+                                           force=True)
     return flagger_new
 
 
 def _backtrackFlags(
     flagger_post, flagger_pre, freq, track_method="invert_fshift", co_flagging=False
 ):
+
+    # in the case of "real" up/downsampling - evaluating the harm flags against the original flags makes no sence!
+    if track_method in ["regain"]:
+        return flagger_pre
 
     # NOTE: PROBLEM flager_pre carries one value ib exces (index: -3)
     flags_post = flagger_post.getFlags()
@@ -763,7 +791,7 @@ def _toMerged(
         return data, flagger.initFlags(flags=flags)
 
     else:
-        # trivial case: there is only one variable:
+        # trivial case: there is only one variable ("reindexing to make sure shape matches pre-harm shape"):
         if data.empty:
             data = data_to_insert.reindex(target_index).to_frame(name=fieldname)
             flags = flags_to_insert.reindex(target_index, fill_value=flagger.UNFLAGGED)
@@ -779,7 +807,8 @@ def _toMerged(
         flags = pd.merge(
             flags, flags_to_insert, how="outer", left_index=True, right_index=True
         )
-        flags.fillna(flagger.UNFLAGGED, inplace=True)
+        # exclusion of the following line makes sure, only newly inserted values
+        #flags.fillna(flagger.UNFLAGGED, inplace=True)
 
         # internally harmonization memorizes its own manipulation by inserting nan flags -
         # those we will now assign the flagger.bad flag by the "missingTest":
@@ -904,7 +933,7 @@ def downsample(data, field, flagger, sample_freq, agg_freq, sample_func="mean", 
         flagger,
         agg_freq,
         inter_method='bagg',
-        reshape_method='bagg',
+        reshape_method='bagg_no_deharm',
         inter_agg=aggregator,
         reshape_agg="max",
         drop_flags=invalid_flags,
