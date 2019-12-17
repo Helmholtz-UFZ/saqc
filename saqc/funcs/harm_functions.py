@@ -550,7 +550,7 @@ def _reshapeFlags(
     :return: flags:     pd.Series/pd.DataFrame. The reshaped pandas like Flags object, referring to the harmonized data.
     """
 
-    missing_flag = missing_flag or flagger.UNFLAGGED
+    missing_flag = missing_flag or flagger.BAD
     aggregations = ["nearest_agg", "bagg", "fagg"]
     shifts = ["fshift", "bshift", "nearest_shift"]
 
