@@ -197,19 +197,19 @@ def evalCode(code, global_env, local_env):
     return eval(code, global_env, local_env)
 
 
-def compileExpression(expr, data, flagger, env):
-    varmap = set(data.columns.tolist() + flagger.getFlags().columns.tolist())
-    tree = parseExpression(expr)
-    dsl_transformer = DslTransformer(env, varmap)
-    transformed_tree = MetaTransformer(dsl_transformer, flagger.signature).visit(tree)
-    return compileTree(transformed_tree)
-
-
-def evalExpression(expr, data, field, flagger, nodata=np.nan):
-
+def compileExpression(expr, data, field, flagger, nodata=np.nan):
     local_env = {
         **initGlobalMap(),
         **initLocalMap(data, field, flagger, nodata)
     }
-    code = compileExpression(expr, data, flagger, local_env)
+    varmap = set(data.columns.tolist() + flagger.getFlags().columns.tolist())
+    tree = parseExpression(expr)
+    dsl_transformer = DslTransformer(local_env, varmap)
+    transformed_tree = MetaTransformer(dsl_transformer, flagger.signature).visit(tree)
+    return local_env, compileTree(transformed_tree)
+
+
+def evalExpression(expr, data, field, flagger, nodata=np.nan):
+
+    local_env, code = compileExpression(expr, data, field, flagger, nodata)
     return evalCode(code, FUNC_MAP, local_env)

@@ -38,7 +38,7 @@ def checkConfig(config_df, data, flagger, nodata):
             if not expr:
                 _raise(config_row, SyntaxError, f"field '{col}' may not be empty")
             try:
-                compileExpression(expr, data, flagger, nodata)
+                compileExpression(expr, data, var_name, flagger, nodata)
             except (TypeError, NameError, SyntaxError) as exc:
                 _raise(
                     config_row,
@@ -85,10 +85,34 @@ def prepareConfig(config_df, data):
         }
     )
 
-    dtype = np.datetime64 if isinstance(data.index, pd.DatetimeIndex) else int
-
+    # dtype = np.datetime64 if isinstance(data.index, pd.DatetimeIndex) else int
     # config_df[F.START] = config_df[F.START].astype(dtype)
     # config_df[F.END] = config_df[F.END].astype(dtype)
+
+
+    #-------------------------
+    import re
+    new = []
+    for idx, row in config_df.iterrows():
+        varname = row[F.VARNAME]
+        if varname and not pd.isnull(varname) and varname not in data:
+            if varname == "*":
+                varname == ".*"
+            try:
+                variables = data.columns[data.columns.str.match(varname)]
+                if variables.empty:
+                    variables = [varname]
+                for var in variables:
+                    row = row.copy()
+                    row[F.VARNAME] = var
+                    new.append(row)
+            except re.error:
+                pass
+        else:
+            new.append(row)
+    config_df = pd.DataFrame(new).reset_index(drop=True)
+    #-------------------------
+
 
     return config_df
 
