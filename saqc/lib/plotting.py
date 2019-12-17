@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
+import numpy as np
 import pandas as pd
 
-from saqc.lib.tools import isHarmonic, retrieveTrustworthyOriginal
 from saqc.flagger import BaseFlagger
 
 __plotvars = []
@@ -117,11 +118,14 @@ def _plot(
 def _plotByQualityFlag(data, varname, flagger, flagmask, ax, plot_nans):
     ax.set_ylabel(varname)
 
-    data = data[varname]
+    data = data[varname].dropna()
+    flagger = flagger.getFlagger(varname, loc=data.index)
 
     # base plot: show all(!) data
-    ax.plot(data, "-", color="silver", label="data")
-    # import ipdb; ipdb.set_trace()
+    ax.plot(
+        data.index, np.ma.array(data.values, mask=flagger.isFlagged(varname).values),
+        "-", color="silver", label="data"
+    )
 
     # ANY OLD FLAG
     # plot all(!) data that are already flagged in black
