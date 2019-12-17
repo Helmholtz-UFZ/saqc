@@ -13,8 +13,6 @@ from saqc.core.config import Params
 from saqc.funcs.register import FUNC_MAP
 
 
-def _dslInner(flagger, func, data):
-    return func(data.mask(flagger.isFlagged(data.name)))
 
 
 def _dslIsFlagged(flagger, data, flag=None):
@@ -22,9 +20,8 @@ def _dslIsFlagged(flagger, data, flag=None):
 
 
 def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
-    partialInner = partial(_dslInner, flagger)
     return {
-        "data": data,
+        "data": data.mask(flagger.isFlagged()),
         "field": field,
         "this": field,
         "flagger": flagger,
@@ -37,13 +34,13 @@ def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: f
 
         "ismissing": lambda data: ((data == nodata) | pd.isnull(data)),
         "isflagged": partial(_dslIsFlagged, flagger),
-        "abs": partial(partialInner, np.abs),
-        "max": partial(partialInner, np.nanmax),
-        "min": partial(partialInner, np.nanmin),
-        "mean": partial(partialInner, np.nanmean),
-        "sum": partial(partialInner, np.nansum),
-        "std": partial(partialInner, np.nanstd),
-        "len": partial(partialInner, len),
+        "abs": np.abs,
+        "max": np.nanmax,
+        "min": np.nanmin,
+        "mean": np.nanmean,
+        "sum": np.nansum,
+        "std": np.nanstd,
+        "len": len,
     }
 
 
