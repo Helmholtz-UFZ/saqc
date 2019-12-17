@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import numbers
-from typing import Sequence, Union
+from typing import Sequence, Union, Any
 
 import numpy as np
 import pandas as pd
 import numba as nb
 
-from saqc.lib.types import T
+# from saqc.flagger import BaseFlagger
+from saqc.lib.types import T, PandasLike
 
 STRING_2_FUNC = {
     'sum':      np.sum,
@@ -111,11 +112,11 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
         start_date = dates[start_idx]
 
 
-def inferFrequency(data):
+def inferFrequency(data: PandasLike) -> pd.DateOffset:
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
-def combineDataFrames(left, right, fill_value=np.nan):
+def combineDataFrames(left: pd.DataFrame, right: pd.DataFrame, fill_value: float=np.nan) -> pd.DataFrame:
     """
     Combine the given DataFrames 'left' and 'right' such that, the
     output is union of the indices and the columns of both. In case
@@ -133,7 +134,7 @@ def combineDataFrames(left, right, fill_value=np.nan):
     return combined
 
 
-def retrieveTrustworthyOriginal(data, field, flagger=None, level=None):
+def retrieveTrustworthyOriginal(data: pd.DataFrame, field: str, flagger=None, level: Any=None) -> pd.DataFrame:
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
     differenciating between missng value - nans und fillvalue nans is impossible.
 
@@ -162,7 +163,6 @@ def retrieveTrustworthyOriginal(data, field, flagger=None, level=None):
 
     """
     dataseries = data[field]
-    # import ipdb; ipdb.set_trace()
 
     if flagger is not None:
         mask = flagger.isFlagged(field, flag=level or flagger.GOOD, comparator="<=")
@@ -289,7 +289,7 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
         return mask
 
 
-def assertDataFrame(df, argname="arg", allow_multiindex=True):
+def assertDataFrame(df: Any, argname: str = "arg", allow_multiindex: bool = True) -> None:
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
     if not allow_multiindex:
@@ -298,12 +298,12 @@ def assertDataFrame(df, argname="arg", allow_multiindex=True):
         raise TypeError(f"{argname} must have unique columns")
 
 
-def assertSeries(df, argname="arg"):
-    if not isinstance(df, pd.Series):
-        raise TypeError(f"{argname} must be of type pd.Series, {type(df)} was given")
+def assertSeries(srs: Any, argname: str = "arg") -> None:
+    if not isinstance(srs, pd.Series):
+        raise TypeError(f"{argname} must be of type pd.Series, {type(srs)} was given")
 
 
-def assertPandas(pdlike, argname="arg", allow_multiindex=True):
+def assertPandas(pdlike: PandasLike, argname: str = "arg", allow_multiindex: bool = True) -> None:
     if not isinstance(pdlike, pd.Series) and not isinstance(pdlike, pd.DataFrame):
         raise TypeError(
             f"{argname} must be of type pd.DataFrame or pd.Series, {type(pdlike)} was given"
@@ -312,7 +312,7 @@ def assertPandas(pdlike, argname="arg", allow_multiindex=True):
         assertSingleColumns(pdlike, argname)
 
 
-def assertMultiColumns(dfmi, argname=""):
+def assertMultiColumns(dfmi: pd.DataFrame, argname: str = "") -> None:
     assertDataFrame(dfmi, argname, allow_multiindex=True)
     if not isinstance(dfmi.columns, pd.MultiIndex):
         raise TypeError(
@@ -321,7 +321,7 @@ def assertMultiColumns(dfmi, argname=""):
         )
 
 
-def assertSingleColumns(df, argname=""):
+def assertSingleColumns(df: PandasLike, argname: str = "") -> None:
     if isinstance(df, pd.DataFrame) and isinstance(df.columns, pd.MultiIndex):
         raise TypeError(
             f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns"
