@@ -47,6 +47,9 @@ def initLocalMap(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: f
         "this": field,
         "flagger": flagger,
         "NODATA": nodata,
+        "GOOD": flagger.GOOD,
+        "BAD": flagger.BAD,
+        "UNFLAGGED": flagger.UNFLAGGED,
         "ismissing": lambda data, field, flagger: ((data == nodata) | pd.isnull(data)),
     }
 
