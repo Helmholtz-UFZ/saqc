@@ -576,10 +576,7 @@ def _reshapeFlags(
 
         # if you want to keep previous comments - only newly generated missing flags get commented:
         flags_series = flags.squeeze()
-        # block flagging/backtracking of chunk_starts/chunk_ends
-        if block_flags is not None:
-            flags_series[block_flags] = np.nan
-        # TODO: - here nan values get casted to missing_flag!!!-> thats  why interpol chunks wont be properly nan-marked!!
+
         flagger_new = flagger.initFlags(flags=flags).setFlags(
             field, loc=flags_series.isna(), flag=missing_flag, force=True, **kwargs
         )
@@ -650,6 +647,12 @@ def _reshapeFlags(
                 method, methods
             )
         )
+
+    # block flagging/backtracking of chunk_starts/chunk_ends
+    if block_flags is not None:
+        flagger_new = flagger_new.setFlags(field, loc=block_flags,
+                                           flag=pd.Series(np.nan, index=block_flags).astype(flagger_new.dtype),
+                                           force=True)
     return flagger_new
 
 

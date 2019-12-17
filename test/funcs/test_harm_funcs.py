@@ -36,7 +36,7 @@ INTERPOLATIONS2 = ["fagg", "time", "polynomial"]
 FREQS = ["15min", "30min"]
 
 
-#@pytest.fixture
+@pytest.fixture
 def data():
     index = pd.date_range(
         start="1.1.2011 00:00:00", end="1.1.2011 01:00:00", freq="15min"
