@@ -138,10 +138,13 @@ Remove all previously set flags.
 ## force
 
 ```
-force()
+force(flag)
 ```
+| parameter | data type                | default value | description   |
+| --------- | -----------              | ----          | -----------   |
+| flag      | float/GOOD/BAD/UNFLAGGED | GOOD          | flag to force |
 
-Force flags to a flag-value.
+Force flags to the given flag value.
 
 ## spikes_basic
 ```

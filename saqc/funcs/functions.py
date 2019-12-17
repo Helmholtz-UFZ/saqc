@@ -107,8 +107,8 @@ def clearFlags(data, field, flagger, **kwargs):
 
 
 @register("force")
-def forceFlags(data, field, flagger, **kwargs):
-    flagger = flagger.clearFlags(field).setFlags(field, **kwargs)
+def forceFlags(data, field, flagger, flag, **kwargs):
+    flagger = flagger.clearFlags(field).setFlags(field, flag=flag, **kwargs)
     return data, flagger
 
 
