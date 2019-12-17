@@ -133,14 +133,14 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
                     raise e
                 continue
 
-            plotHook(
-                data_chunk_result,
-                flagger_chunk,
-                flagger_chunk_result,
-                varname,
-                configrow[Fields.PLOT],
-                func,
-            )
+            if configrow[Fields.PLOT]:
+                plotHook(
+                    data_chunk_result,
+                    flagger_chunk,
+                    flagger_chunk_result,
+                    varname,
+                    func,
+                )
 
             # NOTE:
             # time slicing support is currently disabled
