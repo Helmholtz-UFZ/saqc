@@ -1,6 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
+import re
+
 import numpy as np
 import pandas as pd
 
@@ -89,15 +92,18 @@ def prepareConfig(config_df, data):
     # config_df[F.START] = config_df[F.START].astype(dtype)
     # config_df[F.END] = config_df[F.END].astype(dtype)
 
+    config_df = _expandVarnameWildcards(config_df, data)
 
-    #-------------------------
-    import re
+    return config_df
+
+
+def _expandVarnameWildcards(config_df, data):
     new = []
     for idx, row in config_df.iterrows():
         varname = row[F.VARNAME]
         if varname and not pd.isnull(varname) and varname not in data:
             if varname == "*":
-                varname == ".*"
+                varname = ".*"
             try:
                 variables = data.columns[data.columns.str.match(varname)]
                 if variables.empty:
@@ -110,11 +116,7 @@ def prepareConfig(config_df, data):
                 pass
         else:
             new.append(row)
-    config_df = pd.DataFrame(new).reset_index(drop=True)
-    #-------------------------
-
-
-    return config_df
+    return pd.DataFrame(new).reset_index(drop=True)
 
 
 def readConfig(fname):
