@@ -97,7 +97,7 @@ class BaseFlagger(ABC):
         self, field: str = None, loc: LocT = None, iloc: IlocT = None
     ) -> PandasT:
         """
-        return a copy of potentially trimmed down 'self._flags' DataFrame
+        return a copy of a potentially trimmed down 'self._flags' DataFrame
         """
         assertScalar("field", field, optional=True)
         field = field or slice(None)

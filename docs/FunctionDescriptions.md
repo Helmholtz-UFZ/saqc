@@ -107,14 +107,14 @@ be altered to any other value by passing this new value to the parameter `nodata
 sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 ```
 
-| parameter  | data type    | default value | description |
-| ---------  | -----------  | ----          | ----------- |
-| min        | float        |               | Upper bound for valid values. ($`<`$) |
-| max        | float        |               | lower bound for valid values. ($`\geq`$)|
-| startmonth | integer      | `1`           | interval start month          |
-| endmonth   | integer      | `12`          | interval end month            |
-| startday   | integer      | `1`           | interval start day            |            
-| endday     | integer      | `31`          | interval end day              |             
+| parameter  | data type   | default value | description                              |
+| ---------  | ----------- | ----          | -----------                              |
+| min        | float       |               | Upper bound for valid values. ($`<`$)    |
+| max        | float       |               | lower bound for valid values. ($`\geq`$) |
+| startmonth | integer     | `1`           | interval start month                     |
+| endmonth   | integer     | `12`          | interval end month                       |
+| startday   | integer     | `1`           | interval start day                       |
+| endday     | integer     | `31`          | interval end day                         |
 
 The function do the same as `range` do 
 (flags all data, that exceed the interval $`[`$`min`, `max`$`)`$), 
