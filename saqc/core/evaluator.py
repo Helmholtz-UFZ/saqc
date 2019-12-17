@@ -3,11 +3,12 @@
 
 import ast
 from functools import partial
-from typing import Union
+from typing import Union, Dict, Any
 
 import numpy as np
 import pandas as pd
 
+from saqc.flagger.baseflagger import BaseFlagger
 from saqc.core.config import Params
 from saqc.funcs.register import FUNC_MAP
 
@@ -25,7 +26,7 @@ def _dslIsFlagged(data, field, flagger):
     return flagger.isFlagged(field)
 
 
-def initGlobalMap():
+def initGlobalMap() -> Dict[str, Any]:
     out = {
         "abs": partial(_dslInner, np.abs),
         "max": partial(_dslInner, np.nanmax),
@@ -39,7 +40,7 @@ def initGlobalMap():
     }
     return out
 
-def initLocalMap(data, field, flagger, nodata):
+def initLocalMap(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
     return {
         "data": data,
         "field": field,
