@@ -125,8 +125,7 @@ def flagIsolated(
 ):
 
     drop_mask = pd.Series(data=False, index=data.index)
-    # todo susp/BAD: make same case
-    if drop_flags == "suspicious":
+    if drop_flags == "SUSPICIOUS":
         drop_mask |= ~(flagger.isFlagged(field, flag=flagger.GOOD, comparator="<="))
     elif drop_flags == "BAD":
         drop_mask |= flagger.isFlagged(field, flag=flagger.BAD, comparator="==")

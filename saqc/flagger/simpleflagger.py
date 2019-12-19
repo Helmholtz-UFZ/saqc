@@ -1,10 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-TODO: remove
-"""
-
 from saqc.flagger.categoricalflagger import CategoricalFlagger
 
 
