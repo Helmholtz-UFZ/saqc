@@ -33,20 +33,26 @@ def plotHook(data: pd.DataFrame, flagger_old: BaseFlagger, flagger_new: BaseFlag
     if isinstance(data, pd.Series):
         data = data.to_frame()
 
-    flagger_old = flagger_old.getFlagger(varname, loc=data.index)
-    flagger_new = flagger_new.getFlagger(varname, loc=data.index)
+    # harmonized data will break here, on comparison from the old timestamps with the new ones.
+    # but we do not need to find 'changed data' with harmonized data so we are fine.
+    try:
+        flagger_old = flagger_old.getFlagger(varname, loc=data.index)
+    except ValueError:
+        mask = True
+    else:
+        flagger_new = flagger_new.getFlagger(varname, loc=data.index)
 
-    # cannot use getFlags here, because if a flag was set (e.g. with force) the
-    # flag may be the same, but any additional row (e.g. comment-field) would differ
-    flags_old = flagger_old._flags[varname]
-    flags_new = flagger_new._flags[varname]
-    if len(flags_old) != len(flags_new):
-        # NOTE:
-        # we are just getting the result of an
-        # harmonization, nothing to see here
-        return
+        # cannot use getFlags here, because if a flag was set (e.g. with force) the
+        # flag may be the same, but any additional row (e.g. comment-field) would differ
+        flags_old = flagger_old._flags[varname]
+        flags_new = flagger_new._flags[varname]
+        if len(flags_old) != len(flags_new):
+            # NOTE:
+            # we are just getting the result of an
+            # harmonization, nothing to see here
+            return
 
-    mask = (flags_old != flags_new)
+        mask = (flags_old != flags_new)
 
     __plotvars.append(varname)
     _plot(data, flagger_new, mask, varname, title=flag_test, plot_nans=plot_nans)
@@ -118,7 +124,10 @@ def _plot(
 def _plotByQualityFlag(data, varname, flagger, flagmask, ax, plot_nans):
     ax.set_ylabel(varname)
 
-    data = data[varname].dropna()
+    data = data[varname]
+    if not plot_nans:
+        data = data.dropna()
+
     flagger = flagger.getFlagger(varname, loc=data.index)
 
     # base plot: show all(!) data
