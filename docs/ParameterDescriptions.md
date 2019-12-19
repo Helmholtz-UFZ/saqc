@@ -29,7 +29,7 @@ How these aliases will be translated into 'real' flags (output of SaQC) dependes
 and might range from numerical values to string concstants
 
 ### Numerical Constants
-| Alias  | Description  |
-| ----   | ----         |
-| NAN    | Not a number |
-| NODATA | Missing data |
+| Alias    | Description  |
+| ----     | ----         |
+| `NAN`    | Not a number |
+| `NODATA` | Missing data |
