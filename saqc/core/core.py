@@ -60,16 +60,15 @@ def _checkInput(data, flags, flagger):
     # NOTE: do not test columns as they not necessarily must be the same
 
 
-def _handleErrors(err, configrow, test, policy):
+def _handleErrors(exc, configrow, test, policy):
     line = configrow[Fields.LINENUMBER]
-    msg = f" config, line {line}, test: `{test}` failed with `{type(err).__name__}: {err}`"
+    msg = f"config, line {line}, test: '{test}' failed with:\n{type(exc).__name__}: {exc}"
     if policy == "ignore":
         logging.debug(msg)
-        return False
     elif policy == "warn":
         logging.warning(msg)
-        return False
-    return True
+    else:
+        raise Exception(msg)
 
 
 def _setup():
@@ -148,8 +147,7 @@ def runner(
                     nodata=nodata,
                 )
             except Exception as e:
-                if _handleErrors(e, configrow, func, error_policy):
-                    raise e
+                _handleErrors(e, configrow, func, error_policy)
                 continue
 
             if configrow[Fields.PLOT]:
