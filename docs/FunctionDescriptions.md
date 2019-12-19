@@ -47,13 +47,13 @@ Main documentation of the implemented functions, their purpose and parameters an
 ```
 range(min, max)
 ```
-| parameter | data type | default value | description |
-| --------- | --------- | ------------- | ----------- |
-| min       | float     |               | Upper bound for valid values. ($`<`$) |
-| max       | float     |               | lower bound for valid values. ($`>`$)|
+| parameter | data type | default value | description                  |
+| --------- | --------- | ------------- | -----------                  |
+| min       | float     |               | upper bound for valid values |
+| max       | float     |               | lower bound for valid values |
 
 
-The function flags all the values, that exceed the closed interval $`[`$`min`, `max`$`]`$.
+The function flags all values, that exceed the closed interval $`[`$`min`, `max`$`]`$.
 
 ### seasonalRange
 
@@ -61,14 +61,14 @@ The function flags all the values, that exceed the closed interval $`[`$`min`, `
 sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 ```
 
-| parameter  | data type   | default value | description                              |
-| ---------  | ----------- | ----          | -----------                              |
-| min        | float       |               | Upper bound for valid values. ($`<`$)    |
-| max        | float       |               | lower bound for valid values. ($`>`$) |
-| startmonth | integer     | `1`           | interval start month                     |
-| endmonth   | integer     | `12`          | interval end month                       |
-| startday   | integer     | `1`           | interval start day                       |
-| endday     | integer     | `31`          | interval end day                         |
+| parameter  | data type   | default value | description                  |
+| ---------  | ----------- | ----          | -----------                  |
+| min        | float       |               | upper bound for valid values |
+| max        | float       |               | lower bound for valid values |
+| startmonth | integer     | `1`           | interval start month         |
+| endmonth   | integer     | `12`          | interval end month           |
+| startday   | integer     | `1`           | interval start day           |
+| endday     | integer     | `31`          | interval end day             |
 
 The function does the same as `range` 
 (flags all data, that exceed the interval $`[`$`min`, `max`$`]`$), 
@@ -85,37 +85,33 @@ Note: Only works for datetime indexed data
 ### isolated
 
 ```
-isolated(isolation_range, max_isolated_group_size=1, continuation_range='1min', 
-         drop_flags=None)
+isolated(window, group_size=1, continuation_range='1min') 
+
 ```
-| parameter               | data type       | default value | description |
-| ---------               | ---------       | ------------- | ----------- |
-| isolation_range         | string          |               | Offset string. The range, within there are no valid values allowed for a valuegroup to get flagged isolated. See condition (1) and (2).|
-| max_isolated_group_size | integer         | `1`           | The upper bound for the size of a value group to be considered an isolated group. See condition (3).|
-| continuation_range      | string          | `"1min"`      | Offset string. The upper bound for the temporal extension of a value group to be considered an isolated group. See condition (4). Only relevant if `max_isolated_group_size` > 1.|
-| drop_flags              | list or Nonetype| `None`        | A list of flags, that are to be regarded as signifying invalid values. See condition (1) and (2).|
+| parameter          | data type                                                     | default value | description                                                                                                                                                          |
+| ---------          | ---------                                                     | ------------- | -----------                                                                                                                                                          |
+| window             | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The range, within there are no valid values allowed for a valuegroup to get flagged isolated. See condition (1) and (2).                                             |
+| group_size         | integer                                                       | `1`           | The upper bound for the size of a value group to be considered an isolated group. See condition (3).                                                                 |
+| continuation_range | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"1min"`      | The upper bound for the temporal extension of a value group to be considered an isolated group. See condition (4). Only relevant if `group_size` > 1. |
 
 
 The function flags isolated values / value groups. 
 Isolated values are values / value groups,
-that, in a range of `isolation_range`,
-are surrounded either by invalid values only, or by no values.
+that, in a range of `window`,
+are surrounded either by already flagged or missing values only.
 
 The function defaults to flag isolated single values only. But the parameters 
 allow for detections of more complex isolation definitions, including groups 
 of isolated values.
 
-A continuous group of values 
-$`x_{k}, x_{k+1},...,x_{k+n}`$ of the timeseries of meassurements $`x`$, 
-is considered to be "isolated", if:
+A continuous group of timeseries values 
+$`x_{k}, x_{k+1},...,x_{k+n}`$ is considered to be "isolated", if:
 
-1. There are no values, preceeding $`x_{k}`$ within `isolation_range` or all the 
-   preceeding values within this range are flagged with a flag listed in 
-   `drop_list`.
-2. There are no values, succeeding $`x_{k+n}`$, within `isolation_range`, or all the 
-   succeeding values within this range are flagged with a flag listed in 
-   `drop_list`.
-3. $`n \leq `$ `max_isolated_group_size`
+1. There are no values, preceeding $`x_{k}`$ within `window` or all the 
+   preceeding values within this range are flagged
+2. There are no values, succeeding $`x_{k+n}`$, within `window`, or all the 
+   succeeding values within this range are flagged
+3. $`n \leq `$ `group_size`
 4. $` |y_{k} - y_{n+k}| < `$ `continuation_range`, with $`y `$, denoting the series
    of timestamps associated with $`x`$. 
 

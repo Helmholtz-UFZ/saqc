@@ -117,29 +117,18 @@ def flagIsolated(
     data,
     field,
     flagger,
-    isolation_range,
-    max_isolated_group_size=1,
+    window,
+    group_size=1,
     continuation_range="10min",
-    drop_flags=None,
     **kwargs,
 ):
 
-    drop_mask = pd.Series(data=False, index=data.index)
-    if drop_flags == "SUSPICIOUS":
-        drop_mask |= ~(flagger.isFlagged(field, flag=flagger.GOOD, comparator="<="))
-    elif drop_flags == "BAD":
-        drop_mask |= flagger.isFlagged(field, flag=flagger.BAD, comparator="==")
-    elif isinstance(drop_flags, list):
-        for to_drop in drop_flags:
-            drop_mask |= flagger.isFlagged(field, flag=to_drop, comparator="==")
+    dat_col = data[field].dropna()
 
-    dat_col = data[field][~drop_mask]
-    dat_col.dropna(inplace=True)
+    gap_check = dat_col.rolling(window).count()
+    gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(window)) :]
 
-    gap_check = dat_col.rolling(isolation_range).count()
-    gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(isolation_range)) :]
-
-    if max_isolated_group_size == 1:
+    if group_size == 1:
         # isolated single values are much easier to identify:
         # exclude series initials:
         # reverse rolling trick:
@@ -155,7 +144,7 @@ def flagIsolated(
             gap_check[::-1]
             .rolling(2)
             .apply(
-                lambda x: int((x[0] == 1) & (x[1] <= max_isolated_group_size)),
+                lambda x: int((x[0] == 1) & (x[1] <= group_size)),
                 raw=False,
             )
         )
@@ -163,7 +152,7 @@ def flagIsolated(
         isolated_indices = gap_check[gap_check].index
         # check if the isolated values groups are sufficiently centered:
         isolated_indices = isolated_indices[
-            continuation_check[isolated_indices] <= max_isolated_group_size
+            continuation_check[isolated_indices] <= group_size
         ]
         # propagate True value onto entire isolated group
         # NOTE:
