@@ -296,8 +296,8 @@ is considered a spike, if:
     * $` |\frac{x_k}{x_{k-1}}| < 1 - `$ `raise_factor`
 2. The quotient of the datas second derivate $`x''`$, at the preceeding
    and subsequent timestamps is close enough to 1:
-    * $ `|\frac{x''_{k-1}}{x''_{k+1}} | > 1 - `$ `dev_cont_factor`, and
-    * $ `|\frac{x''_{k-1}}{x''_{k+1}} | < 1 + `$ `dev_cont_factor`   
+    * $` |\frac{x''_{k-1}}{x''_{k+1}} | > 1 - `$ `dev_cont_factor`, and
+    * $` |\frac{x''_{k-1}}{x''_{k+1}} | < 1 + `$ `dev_cont_factor`   
 3. The dataset, $`X_k`$, surrounding $`x_{k}`$, within `noise_window_range` range,
    but excluding $`x_{k}`$, is not too noisy. Wheras the noisyness gets measured
    by `noise_statistic`:
