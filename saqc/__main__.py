@@ -11,7 +11,7 @@ from saqc.flagger import CategoricalFlagger
 
 
 FLAGGERS = {
-    "number": CategoricalFlagger([-1, 0, 1]),
+    "numeric": CategoricalFlagger([-1, 0, 1]),
     "category": CategoricalFlagger(["NIL", "OK", "BAD"])
 }
 
@@ -19,7 +19,7 @@ FLAGGERS = {
 @click.command()
 @click.option("-c", "--config", type=click.Path(exists=True), required=True, help="path to the configuration file")
 @click.option("-d", "--data", type=click.Path(exists=True), required=True, help="path to the data file")
-@click.option("-o", "--outfile", type=click.Path(), help="path to the output file")
+@click.option("-o", "--outfile", type=click.Path(exists=False), help="path to the output file")
 @click.option("--flagger", default="category", type=click.Choice(FLAGGERS.keys()), help="the flagging scheme to use")
 @click.option("--nodata", default=np.nan, help="nodata value")
 @click.option("--fail/--no-fail", default=True, help="whether to stop the program run on errors")
@@ -31,7 +31,7 @@ def main(config, data, flagger, outfile, nodata, fail):
         parse_dates=True,
     )
 
-    data, flagger = runner(
+    data_result, flagger_result = runner(
         config_file=config,
         flagger=FLAGGERS[flagger],
         data=data,
@@ -39,8 +39,15 @@ def main(config, data, flagger, outfile, nodata, fail):
         error_policy="raise" if fail else "warn"
     )
 
-    # TODO: write file
-    flags = flagger.getFlags()
+    if outfile:
+        flags = flagger_result.getFlags()
+        flags_out = flags.where(
+            (flags.isnull() | flagger_result.isFlagged()),
+            flagger_result.GOOD
+        )
+        cols_out = sum([[c, c + "_flags"] for c in flags_out], [])
+        data_out = data_result.join(flags_out, rsuffix="_flags")
+        data_out[cols_out].to_csv(outfile, header=True, index=True)
 
 
 if __name__ == "__main__":
