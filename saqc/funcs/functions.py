@@ -123,7 +123,7 @@ def flagIsolated(
     **kwargs,
 ):
 
-    dat_col = data[field].dropna()
+    dat_col = data.loc[~flagger.isFlagged(field), field].dropna()
 
     gap_check = dat_col.rolling(window).count()
     gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(window)) :]
