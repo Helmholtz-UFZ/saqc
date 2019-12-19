@@ -13,15 +13,13 @@ from saqc.core.config import Params
 from saqc.funcs.register import FUNC_MAP
 
 
-
-
 def _dslIsFlagged(flagger, data, flag=None):
     return flagger.isFlagged(data.name, flag=flag)
 
 
 def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
     return {
-        "data": data.mask(flagger.isFlagged()),
+        "data": data,
         "field": field,
         "this": field,
         "flagger": flagger,
@@ -186,5 +184,14 @@ def compileExpression(expr, data, field, flagger, nodata=np.nan):
 
 
 def evalExpression(expr, data, field, flagger, nodata=np.nan):
-    local_env, code = compileExpression(expr, data, field, flagger, nodata)
-    return evalCode(code, FUNC_MAP, local_env)
+    # NOTE:
+    # mask the already flagged value to make all the functions
+    # called on the way through the evaluator ignore flagged values
+    mask = flagger.isFlagged()
+    data_in = data.mask(mask)
+    local_env, code = compileExpression(expr, data_in, field, flagger, nodata)
+    data_result, flagger_result = evalCode(code, FUNC_MAP, local_env)
+    # NOTE:
+    # reinject the original values, as we don't want to throw away values
+    data_result[mask] = data[mask]
+    return data_result, flagger_result
