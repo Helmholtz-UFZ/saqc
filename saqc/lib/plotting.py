@@ -123,7 +123,9 @@ def _plotByQualityFlag(data, varname, flagger, flagmask, ax, plot_nans):
 
     # base plot: show all(!) data
     ax.plot(
-        data.index, np.ma.array(data.values, mask=flagger.isFlagged(varname).values),
+        data,
+        # NOTE: no lines to flagged points
+        # data.index, np.ma.array(data.values, mask=flagger.isFlagged(varname).values),
         "-", color="silver", label="data"
     )
 

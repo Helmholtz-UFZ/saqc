@@ -151,7 +151,6 @@ def runner(
                 if _handleErrors(e, configrow, func, error_policy):
                     raise e
                 continue
-            # import ipdb; ipdb.set_trace()
 
             if configrow[Fields.PLOT]:
                 plotHook(
