@@ -60,12 +60,32 @@ def _checkInput(data, flags, flagger):
     # NOTE: do not test columns as they not necessarily must be the same
 
 
+def _handleErrors(err, configrow, test, policy):
+    line = configrow[Fields.LINENUMBER]
+    msg = f" config, line {line}, test: `{test}` failed with `{type(err).__name__}: {err}`"
+    if policy == "ignore":
+        logging.debug(msg)
+        return False
+    elif policy == "warn":
+        logging.warning(msg)
+        return False
+    return True
+
+
 def _setup():
     pd.set_option("mode.chained_assignment", "warn")
     np.seterr(invalid="ignore")
 
 
-def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
+def runner(
+    config_file: str,
+    flagger: BaseFlagger,
+    data: pd.DataFrame,
+    flags: pd.DataFrame = None,
+    nodata: float = np.nan,
+    error_policy: str = "raise",
+) -> (pd.DataFrame, BaseFlagger):
+
     _setup()
     _checkInput(data, flags, flagger)
     config = prepareConfig(readConfig(config_file), data)
@@ -84,7 +104,6 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
     # this checks comes late, but the compilation of
     # user-test needs fully prepared flags
     checkConfig(config, data, flagger, nodata)
-
 
     # NOTE:
     # the outer loop runs over the flag tests, the inner one over the
@@ -132,6 +151,7 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
                 if _handleErrors(e, configrow, func, error_policy):
                     raise e
                 continue
+            # import ipdb; ipdb.set_trace()
 
             if configrow[Fields.PLOT]:
                 plotHook(
@@ -149,19 +169,7 @@ def runner(config_file, flagger, data, flags=None, nodata=np.nan, error_policy="
             flagger = flagger_chunk_result
             data = data_chunk_result
 
-
     plotAllHook(data, flagger)
 
     return data, flagger
 
-
-def _handleErrors(err, configrow, test, policy):
-    line = configrow[Fields.LINENUMBER]
-    msg = f" config, line {line}, test: `{test}` failed with `{type(err).__name__}: {err}`"
-    if policy == "ignore":
-        logging.debug(msg)
-        return False
-    elif policy == "warn":
-        logging.warning(msg)
-        return False
-    return True
