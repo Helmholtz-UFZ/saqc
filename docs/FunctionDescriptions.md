@@ -50,7 +50,7 @@ range(min, max)
 | parameter | data type | default value | description |
 | --------- | --------- | ------------- | ----------- |
 | min       | float     |               | Upper bound for valid values. ($`<`$) |
-| max       | float     |               | lower bound for valid values. ($`\geq`$)|
+| max       | float     |               | lower bound for valid values. ($`>`$)|
 
 
 The function flags all the values, that exceed the closed interval $`[`$`min`, `max`$`]`$.
@@ -64,14 +64,14 @@ sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 | parameter  | data type   | default value | description                              |
 | ---------  | ----------- | ----          | -----------                              |
 | min        | float       |               | Upper bound for valid values. ($`<`$)    |
-| max        | float       |               | lower bound for valid values. ($`\geq`$) |
+| max        | float       |               | lower bound for valid values. ($`>`$) |
 | startmonth | integer     | `1`           | interval start month                     |
 | endmonth   | integer     | `12`          | interval end month                       |
 | startday   | integer     | `1`           | interval start day                       |
 | endday     | integer     | `31`          | interval end day                         |
 
-The function do the same as `range` do 
-(flags all data, that exceed the interval $`[`$`min`, `max`$`)`$), 
+The function does the same as `range` 
+(flags all data, that exceed the interval $`[`$`min`, `max`$`]`$), 
 but only, if the timestamp of the data-point lies in a time interval defined by day and month only. 
 The year is **not** used by the interval calculation. 
 The left interval boundary is defined by `startmonth` and `startday`, the right by `endmonth` and `endday`. 
@@ -107,7 +107,7 @@ of isolated values.
 
 A continuous group of values 
 $`x_{k}, x_{k+1},...,x_{k+n}`$ of the timeseries of meassurements $`x`$, 
-is considered "isolated", if:
+is considered to be "isolated", if:
 
 1. There are no values, preceeding $`x_{k}`$ within `isolation_range` or all the 
    preceeding values within this range are flagged with a flag listed in 
@@ -128,12 +128,12 @@ missing(nodata=NaN)
 
 | parameter | data type  | default value  | description |
 | --------- | ---------- | -------------- | ----------- |
-| nodata    | any        | `NaN`          | Value indicating missing values in the passed data. |
+| nodata    | any        | `NAN`          | Value indicating missing values in the passed data. |
 
 
 The function flags those values in the the passed data series, that are
-associated with "missing" data. The missing data indicator (default: `NaN`), can
-be altered to any other value by passing this new value to the parameter `nodata`.
+associated with "missing" data. The missing data indicator (default: `NAN`), can
+be altered to any other value by passing this value to the parameter `nodata`.
 
 
 ### clear
@@ -204,14 +204,14 @@ spikes_simpleMad(winsz="1h", z=3.5)
 
 
 The *modified Z-score* [1] is used to detect outlier. 
-All values are flagged as outlier, if in any slice of thw sliding window, a value fulfill:
+All values are flagged as outlier, if in any slice of the sliding window, a value fulfills:
 ```math
  0.6745 * |x - M| > mad * z > 0
 ```
-with $` x, M, mad, z `$: window data, window median, window median absolute deviation, `z`.
-The window is continued by one frequency step.
+with $`x, M, mad, z`$: window data, window median, window median absolute deviation, `z`.
+The window is moved by one frequency step.
 
-Note: This function should only applied on normalised data.
+Note: This function should only be applied on normalized data.
  
 See also:
 [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
@@ -235,15 +235,15 @@ spikes_slidingZscore(winsz="1h", dx="1h", count=1, deg=1, z=3.5, method="modZ")
 
 Parameter notes: 
  - `winsz` and `dx` must be of same type, mixing of offset and integer is not supported and will fail.
- - if offset-strings only work with datetime indexed data
+ - offset-strings only work with datetime indexed data
 
 The algorithm works as follows:
   1.  a window of size `winsz` is cut from the data
   2.  normalisation - (the data is fit by a polynomial of the given degree `deg`, which is subtracted from the data)
   3.  the outlier detection `method` is applied on the residual, and possible outlier are marked
-  4.  the window (on the data) is continued by `dx` to the next data-slot
+  4.  the window (on the data) is moved by `dx`
   5.  start over from 1. until the end of data is reached
-  6.  all potential outlier, that are detected `count`-many times, are flagged as outlier 
+  6.  all potential outliers, that are detected `count`-many times, are flagged as outlier 
 
 The possible outlier detection methods are *zscore* and *modZ*. 
 In the following description, the residual (calculated from a slice by the sliding window) is referred as *data*.
@@ -252,7 +252,7 @@ The **zscore** (Z-score) [1] mark every value as possible outlier, which fulfill
 ```math
  |r - m| > s * z
 ```
-with $` r, m, s, z `$: data, data mean, data standard deviation, `z`.
+with $`r, m, s, z`$: data, data mean, data standard deviation, `z`.
 
 The **modZ** (modified Z-score) [1] mark every value as possible outlier, which fulfill:
 ```math
