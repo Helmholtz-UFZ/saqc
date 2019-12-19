@@ -56,7 +56,7 @@ isolated(isolation_range, max_isolated_group_size=1, continuation_range='1min',
 | ---------               | ---------       | ------------- | ----------- |
 | isolation_range         | string          |               | Offset string. The range, within there are no valid values allowed for a valuegroup to get flagged isolated. See condition (1) and (2).|
 | max_isolated_group_size | integer         | `1`           | The upper bound for the size of a value group to be considered an isolated group. See condition (3).|
-| continuation_range      | string          | `"1min"`      | Offset string. The upper bound for the temporal extension of a value group to be considered an isolated group. See condition (4). Only relevant if `max_islated_group_size` > 1.|
+| continuation_range      | string          | `"1min"`      | Offset string. The upper bound for the temporal extension of a value group to be considered an isolated group. See condition (4). Only relevant if `max_isolated_group_size` > 1.|
 | drop_flags              | list or Nonetype| `None`        | A list of flags, that are to be regarded as signifying invalid values. See condition (1) and (2).|
 
 
@@ -122,10 +122,10 @@ but only, if the timestamp of the data-point lies in a time interval defined by 
 The year is **not** used by the interval calculation. 
 The left interval boundary is defined by `startmonth` and `startday`, the right by `endmonth` and `endday`. 
 Both boundaries are inclusive. 
-If the left side lies in time, after the right side, the interval is extended over the change of year 
+If the left side occurs later in the year than the right side, the interval is extended over the change of year 
 (e.g. an interval of [01/12, 01/03], will flag values in december, january and february).
 
-Note: Only work for datetime indexed data
+Note: Only works for datetime indexed data
 
 ## clear
 

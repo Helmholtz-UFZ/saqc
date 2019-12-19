@@ -17,6 +17,7 @@ _colors = {
     "suspicious": "gold"
 }
 
+_figsize = (10,4)
 
 def plotAllHook(data, flagger, plot_nans=False):
     if len(__plotvars) > 1:
@@ -101,12 +102,12 @@ def _plot(
 
     plots = len(varnames)
     if plots > 1:
-        fig, axes = plt.subplots(plots, 1, sharex=True)
+        fig, axes = plt.subplots(plots, 1, sharex=True,figsize=_figsize)
         axes[0].set_title(title)
         for i, v in enumerate(varnames):
             _plotByQualityFlag(data, v, flagger, flagmask, axes[i], plot_nans)
     else:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=_figsize)
         plt.title(title)
         _plotByQualityFlag(data, varnames.pop(), flagger, flagmask, ax, plot_nans)
 
