@@ -239,7 +239,7 @@ def _outsortCrap(
     return data[~drop_mask], flagger_out
 
 
-def _makeGrid(t0, t1, freq):
+def _makeGrid(t0, t1, freq, name=None):
     """
     Returns a frequency grid, covering the date range of 'data'.
     :param data:    pd.Series. ['data']
@@ -249,7 +249,7 @@ def _makeGrid(t0, t1, freq):
 
     harm_start = t0.floor(freq=freq)
     harm_end = t1.ceil(freq=freq)
-    return pd.date_range(start=harm_start, end=harm_end, freq=freq)
+    return pd.date_range(start=harm_start, end=harm_end, freq=freq, name=name)
 
 
 def _insertGrid(data, freq):
@@ -262,7 +262,7 @@ def _insertGrid(data, freq):
     """
 
     return data.reindex(
-        data.index.join(_makeGrid(data.index[0], data.index[-1], freq), how="outer")
+        data.index.join(_makeGrid(data.index[0], data.index[-1], freq, name=data.index.name), how="outer")
     )
 
 
@@ -350,9 +350,9 @@ def _interpolateGrid(
         "akima",
     ]
     data = data.copy()
-    ref_index = _makeGrid(data.index[0], data.index[-1], freq)
+    ref_index = _makeGrid(data.index[0], data.index[-1], freq, name=data.index.name)
     if total_range is not None:
-        total_index = _makeGrid(total_range[0], total_range[1], freq)
+        total_index = _makeGrid(total_range[0], total_range[1], freq, name=data.index.name)
 
     # Aggregations:
     if method in aggregations:
@@ -807,8 +807,6 @@ def _toMerged(
         flags = pd.merge(
             flags, flags_to_insert, how="outer", left_index=True, right_index=True
         )
-        # exclusion of the following line makes sure, only newly inserted values
-        #flags.fillna(flagger.UNFLAGGED, inplace=True)
 
         # internally harmonization memorizes its own manipulation by inserting nan flags -
         # those we will now assign the flagger.bad flag by the "missingTest":
