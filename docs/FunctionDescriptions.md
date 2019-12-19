@@ -279,34 +279,34 @@ spikes_spektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
 | noise_window_range | string             | `"12h"`       | Any offset string. Determines the range of the time window of the "surrounding" data of a potential spike. See condition (3).                                                                                                                                                                                                                                                                                       |
 | noise_statistic    | string             | `"CoVar"`     | Operator to calculate noisyness of data, surrounding potential spikes. Either `"Covar"` (=Coefficient od Variation) or `"rvar"` (=relative Variance).                                                                                                                                                                                                                                                               |
 | smooth_poly_order  | integer            | `2`           | Order of the polynomial fit, applied with savitsky-Golay-filter.                                                                                                                                                                                                                                                                                                                                                                 |
-| filter_window_size | Nonetype or string | `None`        | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase. |
+| filter_window_size | string             | `None`        | Any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If `None` (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If unsure, do not change that value. |
 
 
 The function detects and flags spikes in input data series by evaluating the
 the timeseries' derivatives and applying some conditions to them.
 
-NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
-equadistant frequencie grid.
+NOTE, that the datast-to-be flagged is supposed to be harmonized to a timeseries with an
+equadistant frequency grid.
 
-A datapoint $`x_k `$ of a dataseries $`x`$,
+A datapoint $`x_k`$ of a dataseries $`x`$,
 is considered a spike, if:
 
 1. The quotient to its preceeding datapoint exceeds a certain bound:
-    * $`|\frac{x_k}{x_{k-1}}| > 1 +`$ `raise_factor`, or:
-    * $`|\frac{x_k}{x_{k-1}}| < 1 -`$ `raise_factor`
+    * $` |\frac{x_k}{x_{k-1}}| > 1 + `$ `raise_factor`, or
+    * $` |\frac{x_k}{x_{k-1}}| < 1 - `$ `raise_factor`
 2. The quotient of the datas second derivate $`x''`$, at the preceeding
    and subsequent timestamps is close enough to 1:
-    * $`|\frac{x''_{k-1}}{x''_{k+1}} | > 1 -`$ `dev_cont_factor`, and
-    * $`|\frac{x''_{k-1}}{x''_{k+1}} | < 1 +`$ `dev_cont_factor`   
+    * $ `|\frac{x''_{k-1}}{x''_{k+1}} | > 1 - `$ `dev_cont_factor`, and
+    * $ `|\frac{x''_{k-1}}{x''_{k+1}} | < 1 + `$ `dev_cont_factor`   
 3. The dataset, $`X_k`$, surrounding $`x_{k}`$, within `noise_window_range` range,
    but excluding $`x_{k}`$, is not too noisy. Wheras the noisyness gets measured
    by `noise_statistic`:
     * `noise_statistic`$`(X_k) <`$ `noise_barrier`
 
-NOTE, that the derivative is calculated after applying a savitsky-golay filter
+NOTE, that the derivative is calculated after applying a Savitsky-Golay filter
 to $`x`$.
 
-This Function is a generalization of the Spectrum based Spike flagging
+This function is a generalization of the Spectrum based Spike flagging
 mechanism as presented in:
 
 Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
