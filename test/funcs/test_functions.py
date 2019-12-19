@@ -58,7 +58,7 @@ def test_range(data, field, flagger):
     flagger = flagger.initFlags(data)
     data, flagger = flagRange(data, field, flagger, min=min, max=max)
     flagged = flagger.isFlagged(field)
-    expected = (data[field] < min) | (data[field] >= max)
+    expected = (data[field] < min) | (data[field] > max)
     assert np.all(flagged == expected)
 
 

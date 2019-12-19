@@ -53,7 +53,7 @@ def flagNextAfterFlag(data, field, flagger, n, func, **kwargs):
 @register("range")
 def flagRange(data, field, flagger, min, max, **kwargs):
     datacol = data[field].values
-    mask = (datacol < min) | (datacol >= max)
+    mask = (datacol < min) | (datacol > max)
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 

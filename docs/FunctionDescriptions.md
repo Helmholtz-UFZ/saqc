@@ -44,7 +44,7 @@ range(min, max)
 | max       | float     |               | lower bound for valid values. ($`\geq`$)|
 
 
-The function flags all the values, that exceed the right open interval $`[`$`min`, `max`$`)`$.
+The function flags all the values, that exceed the closed interval $`[`$`min`, `max`$`]`$.
 
 ## isolated
 
