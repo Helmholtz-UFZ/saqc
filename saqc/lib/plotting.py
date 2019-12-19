@@ -154,7 +154,8 @@ def _plotByQualityFlag(data, varname, flagger, flagmask, ax, plot_nans):
 
     for flag, color in plots:
         flagged = flagger.isFlagged(varname, flag=flag, comparator='==')
-        ax.plot(data[flagged], '.', color=color, label=f"flag: {flag}")
+        if not data[flagged].empty:
+            ax.plot(data[flagged], '.', color=color, label=f"flag: {flag}")
         if plot_nans:
             _plotNans(data[flagged], color, ax)
 
@@ -162,7 +163,8 @@ def _plotByQualityFlag(data, varname, flagger, flagmask, ax, plot_nans):
     color = _colors['suspicious']
     flagged = flagger.isFlagged(varname, flag=flagger.GOOD, comparator='>')
     flagged &= flagger.isFlagged(varname, flag=flagger.BAD, comparator='<')
-    ax.plot(data[flagged], '.', color=color, label=f"{flagger.GOOD} < flag < {flagger.BAD}")
+    if not data[flagged].empty:
+        ax.plot(data[flagged], '.', color=color, label=f"{flagger.GOOD} < flag < {flagger.BAD}")
     if plot_nans:
         _plotNans(data[flagged], color, ax)
 
