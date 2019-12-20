@@ -1,9 +1,12 @@
 # System for automated Quality Control (SaQC)
 
-Quality Control of numerical data is an profoundly knowledge and experience based activity. Finding a robust setup is usually a time consuming and dynamic endeavor, even for an experienced
-data expert.
+Quality Control of numerical data is an profoundly knowledge and experience
+based activity. Finding a robust setup is usually a time consuming and dynamic
+endeavor, even for an experienced data expert.
 
-SaQC addresses the iterative and explorative characteristics of quality control with its extensive setup and configuration possibilities and a python based extension language. To make the system flexible, many aspects of the quality
+SaQC addresses the iterative and explorative characteristics of quality control
+with its extensive setup and configuration possibilities and a python based
+extension language. To make the system flexible, many aspects of the quality
 checking process, like
 
 + test parametrization
@@ -12,38 +15,61 @@ checking process, like
 
 are easily configurable with plain text files.
 
-Below its userinterface, SaQC is, thus, highly customizable and extensible. Well defined interfaces allow the extension with new quality check routines. Additionally, many core components, like the flagging scheme, are replaceable.
+Below its userinterface, SaQC is, thus, highly customizable and extensible.
+Well defined interfaces allow the extension with new quality check routines.
+Additionally, many core components, like the flagging scheme, are replaceable.
 
 ---
 
 ## Why?
-When it comes to the implementation of data workflows in the environmental sciences, our daily work in (research) data management revealed a significant knowledege gap between the people
-collecting often large amounts of (environmental) data, usually by sensors in the field, and the persons responsible for the processing and the quality asssurence of these datasets. While the former usually have 
-a good understanding of the underlying measurement principles, potential noise sources overlaying the actual signal and the expected characteristics of the dataset, the latter are mostly software developers with a good 
-knowledge on how to implement a data flow. The main objective of SaQC is therefore to bridge this gap by allowing both parties to concentrate on their strengths: the data collector/owner should be able to express her 
-ideas in an easy an succint way, supported by a good set of preimplemented and ready-to-use algorithms and the programmer to actually take care of things like an efficient implementation.
+When it comes to the implementation of data workflows in the environmental
+sciences, our experience in (research) data management revealed a significant
+knowledege gap between the people collecting often large amounts of
+(environmental) data, and the persons responsible for the processing and the
+quality asssurence of these datasets.
+While the former usually have a good understanding of the underlying measurement
+principles, potential noise sources overlaying the actual signal and the
+expected characteristics of the dataset, the latter are mostly software
+developers with a good knowledge on how to implement data flows.
+
+The main objective of SaQC is therefore to bridge this gap by allowing both
+parties to concentrate on their strengths: the data collector/owner should be
+able to express her ideas in an easy and succint way while the actual 
+implementation of the data processing and quality checking is left to the 
+respective experts.
 
 
 ## How?
-The most import aspects of SaQC, like the general configuration of the system, are text-based.
-All the magic takes place in a semicolon-separated table file listing the variables within the dataset
-to inspect, quality control and/or modify. While a good (but still growing) number of predifined
-and heighly configurable [functions](docs/FunctionDescriptions.md) are included and ready to use,
-SaQC additionally ships with a python based extension language. The, let's calll it slightly exxagerated,
-domain specific language (DSL), allows to define (more or less simple) tests to be written directly within in
-the configuration in order to leverage specific physical and technical relations within the dataset.
-For a more specific round trip to some of the possibilities please refer to our [HowTo](docs/GettingStarted.md).
+The most import aspect of SaQC, the general configuration of the system,
+is text-based. All the magic takes place in a semicolon-separated table file
+listing the variables within the dataset to inspect, quality control and/or
+modify. 
+
+While a good (but still growing) number of predifined and heighly configurable
+[functions](docs/FunctionDescriptions.md) are included and ready to use, SaQC
+additionally ships with a python based extension language. The, let's call it
+slightly exxagerated, domain specific language (DSL), allows to define (more
+or less simple) tests to be written directly within in the configuration. The 
+idea is, that many more complex datasets carry inherent physical and 
+technical relationsships (like "if the variables indicating the health of 
+an active cooling solution drops, the values of variable 'y' are useless"), that
+are way easier to express in text than in code. 
+
+For a more specific round trip to some of SaQC's possibilities, please refer to
+our [HowTo](docs/GettingStarted.md).
 
 ## Installation
 
 ### pip
-SaQC is available on the Python Package Index ([PyPI](https://pypi.org/)) and can be installed using [pip](https://pip.pypa.io/en/stable/):
+SaQC is available on the Python Package Index ([PyPI](https://pypi.org/)) and
+can be installed using [pip](https://pip.pypa.io/en/stable/):
 ```sh
 python -m pip install saqc
 ```
 
 ### Manual installation
-The latest development version is directly available from the [gitlab](https://git.ufz.de/rdm-software/saqc) server of the
+The latest development version is directly available from the
+[gitlab](https://git.ufz.de/rdm-software/saqc) server of the
 [Helmholtz Center for Environmental Research](https://www.ufz.de/index.php?en=33573). 
    
    
@@ -54,7 +80,8 @@ SaQC provides a basic CLI
 ### Integration into the 
 
 ### User Defined Test
-User defined tests allow to specify simple quality checks directly within the configuration.
+User defined tests allow to specify simple quality checks directly within the
+configuration.
 #### Specification
 - Test name: `generic`
 - The parameter 'func' followed by an expression needs to be given
