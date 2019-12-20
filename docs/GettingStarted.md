@@ -80,7 +80,7 @@ So, what do we see here?
 
 * The plot shows the data as well as the quality flags that were set by the tests for the variable *SM2*, as defined in the config-file
 * Here, first the *range*-test that flags all values outside the range [10,60] was executed and after that, the *spikes_simpleMad*-test to identify spikes in the data
-* The plot shows the flags that were set to "BAD" by *spikes_simpleMad* as red dots, while the flags that were set by all preceeding tests, in this case only *range*, are shown in black. This is because the plotting option was set to *True* only for that specific test.
+*  In the config, we set the plotting option to *True* for *spikes_simpleMad*, only. Thus, the plot aggregates all preceeding tests (here: *range*) to black points and highlights the flags of the selected test as red points.
 
 ### 3.2 Configure SaQC
 
@@ -101,7 +101,7 @@ You can also define multiple tests for multiple variables in your data. These ar
 
 	varname;test;plot
 	SM1;range(min=10, max=60);False
-	SM2;range(min=-20, max=60);False
+	SM2;range(min=10, max=60);False
 	SM1;spikes_simpleMad(winsz="15d", z=3.5);True
 	SM2;spikes_simpleMad(winsz="30d", z=3.5);True
 
