@@ -4,17 +4,17 @@ This "getting started" assumes that you have Python of version 3.6 (or lower) in
 
 ## Contents
 
-1. [Set up your environment](1-set-up-your-environment)
-2. [Get SaQC](#2. Get SaQC)
-3. [Training tour](#3. Training tour) 
-	* [3.1 Get toy data and configuration](#3.1 Get toy data and configuration)
-	* [3.2 Run SaQC](#3.2 Run SaQC)
-	* [3.3 Configure SaQC](#3.3 Configure SaQC)
-	* [3.4 Explore the functionality:](#3.4 Explore the functionality)
-		* [Change test parameters](#Change test parameters)
-		* [Process multiple variables](#Process multiple variables)
-		* [Data harmonization and custom functions](#Data harmonization and custom functions)
-		* [Save outputs to file](#Save outputs to file)
+1. [Set up your environment](#1-set-up-your-environment)
+2. [Get SaQC](#2-get-saqc)
+3. [Training tour](#3-training-tour) 
+	* [3.1 Get toy data and configuration](#get-toy-data-and-configuration)
+	* [3.2 Run SaQC](#run-saqc)
+	* [3.3 Configure SaQC](#configure-saqc)
+	    * [Change test parameters](#change-test-parameters)
+	* [3.4 Explore the functionality](#explore-the-functionality)
+		* [Process multiple variables](#process-multiple-variables)
+		* [Data harmonization and custom functions](#data-harmonization-and-custom-functions)
+		* [Save outputs to file](#save-outputs-to-file)
 
 
 
@@ -49,7 +49,7 @@ or download it directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc
 
 The following passage guides you through the essentials of the usage of SaQC via a toy dataset and a toy configuration.
 
-### 3.1 Get toy data and configuration
+### Get toy data and configuration
 
 If you take a look into the folder *saqc/ressources/data* you will find a toy dataset *data.csv* which contains the following:
 
@@ -75,7 +75,7 @@ These lines illustrate how different quality control tests can be specified for 
 
 In this case, we define a range-test that flags all values outside the range [10,60] and a test to detect spikes using the MAD-method. You can find an overview of all available quality control tests in the [documentation](FunctionDescriptions.md). Note that the tests are _executed in the order that you define in the configuration file_. The quality flags that are set during one test are always passed on to the subsequent one.
 
-### 3.2 Run SaQC
+### Run SaQC
 
 Remember to have your virtual environment activated:
 
@@ -99,7 +99,7 @@ So, what do we see here?
 * Following our definition in the config-file, first the *range*-test that flags all values outside the range [10,60] was executed and after that, the *spikes_simpleMad*-test to identify spikes in the data
 *  In the config, we set the plotting option to *True* for *spikes_simpleMad*, only. Thus, the plot aggregates all preceeding tests (here: *range*) to black points and highlights the flags of the selected test as red points.
 
-### 3.3 Configure SaQC
+### Configure SaQC
 
 #### Change test parameters
 Now you can start to change the settings in the config-file and investigate the effect that has on how many datapoints are flagged as "BAD". When using your own data, this is your way to configure the tests according to your needs. For example, you could modify your *myconfig.csv* and change the parameters of the range-test:
@@ -113,7 +113,7 @@ Rerunning SaQC as above produces the following plot:
 
 You can see that the changes that we made to the parameters of the range test take effect so that only the values >60 are flagged by it (black points). This, in turn, leaves more erroneous data that is then identified by the proceeding spike-test (red points).
 
-### 3.4 Explore the functionality
+### Explore the functionality
 #### Process multiple variables
 You can also define multiple tests for multiple variables in your data. These are then executed sequentially and can be plotted seperately. E.g. you could do something like this:
 
@@ -128,6 +128,7 @@ which gives you separate plots for each line where the plotting option is set to
 SM1         |  SM2
 :-------------------------:|:-------------------------:
 ![](images/example_plot_31.png)  |  ![](images/example_plot_32.png)
+
 ![](images/example_plot_33.png)
 
 #### Data harmonization and custom functions
