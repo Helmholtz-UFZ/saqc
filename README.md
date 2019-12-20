@@ -16,7 +16,7 @@ Below its userinterface, though, SaQC is highly customizable and extensible.
 A modular structure and well-defined interfaces allow the extension with new quality check routines.
 Additionally, many core components, like the flagging scheme, are exchangeable.
 
-![Example config](docs/images/readme_image.pdf "Example config") 
+![SaQC Workflow](docs/images/readme_image.pdf "SaQC Workflow") 
 
 ## Why?
 When implementating data workflows in environmental
