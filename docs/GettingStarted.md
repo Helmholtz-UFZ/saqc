@@ -4,7 +4,7 @@ This "getting started" assumes that you have Python of version 3.6 (or lower) in
 
 ## Contents
 
-1. [Set up your environment](#1. Set up your environment)
+1. [Set up your environment](1-set-up-your-environment)
 2. [Get SaQC](#2. Get SaQC)
 3. [Training tour](#3. Training tour) 
 	* [3.1 Get toy data and configuration](#3.1 Get toy data and configuration)
