@@ -100,7 +100,7 @@ class DslTransformer(ast.NodeTransformer):
         return super().generic_visit(node)
 
 
-class MetaTransformer(ast.NodeTransformer):
+class ConfigTransformer(ast.NodeTransformer):
 
     SUPPORTED_NODES = (
         ast.Call, ast.Num, ast.Str, ast.keyword,
@@ -114,8 +114,9 @@ class MetaTransformer(ast.NodeTransformer):
         ast.UnaryOp, ast.USub, ast.Name
     )
 
-    def __init__(self, dsl_transformer, pass_parameter):
+    def __init__(self, dsl_transformer, environment, pass_parameter):
         self.dsl_transformer = dsl_transformer
+        self.environment = environment
         self.pass_parameter = pass_parameter
         self.func_name = None
 
@@ -153,6 +154,13 @@ class MetaTransformer(ast.NodeTransformer):
                 f"invalid argument type '{type(value)}'"
             )
 
+        if isinstance(value, ast.Name) and value.id not in self.environment:
+            raise NameError(
+                f"unknown variable: {value.id}"
+            )
+
+
+
         return self.generic_visit(node)
 
     def generic_visit(self, node):
@@ -179,7 +187,7 @@ def compileExpression(expr, data, field, flagger, nodata=np.nan):
     varmap = set(data.columns.tolist() + flagger.getFlags().columns.tolist())
     tree = parseExpression(expr)
     dsl_transformer = DslTransformer(local_env, varmap)
-    transformed_tree = MetaTransformer(dsl_transformer, flagger.signature).visit(tree)
+    transformed_tree = ConfigTransformer(dsl_transformer, local_env, flagger.signature).visit(tree)
     return local_env, compileTree(transformed_tree)
 
 
