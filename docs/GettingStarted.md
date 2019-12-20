@@ -135,23 +135,22 @@ SM1         |  SM2
 
 SaQC includes functionality to harmonize the timestamps of one or more data series. Also, you can write your own tests using a python-based extension language. This would look like this:
 
-´´´´
-varname;test;plot
-SM2;harmonize_shift2Grid(freq="15Min");False
-SM2;generic(func=(SM2 < 30));True
-´´´
+	varname;test;plot
+	SM2;harmonize_shift2Grid(freq="15Min");False
+	SM2;generic(func=(SM2 < 30));True
 
-The above executes an internal framework that harmonizes the timestamps of SM2 to a 15min-grid. As can be seen in the data below, the timestamps are set to 15min-intervals based on SM2, as defined in the config.
-Note that this might result in missing values in other variables. Further information about this routine can be found in the [function definition](docs/FunctionDescriptions.md).
-```
-Date,SM1,SM1_flags,SM2,SM2_flags
-2016-04-01 00:00:00,,,29.3157,OK
-2016-04-01 00:05:48,32.685,OK,,
-2016-04-01 00:15:00,,,29.3157,OK
-2016-04-01 00:20:42,32.7428,OK,,
-...
-```
+The above executes an internal framework that harmonizes the timestamps of SM2 to a 15min-grid (see data below). Note that this might result in missing values in other variables. Further information about this routine can be found in the [function definition](docs/FunctionDescriptions.md).
+
+	Date,SM1,SM1_flags,SM2,SM2_flags
+	2016-04-01 00:00:00,,,29.3157,OK
+	2016-04-01 00:05:48,32.685,OK,,
+	2016-04-01 00:15:00,,,29.3157,OK
+	2016-04-01 00:20:42,32.7428,OK,,
+	...
+
 Also, all values where SM2 is below 30 are flagged via the custom function (see plot below). You can learn more about the syntax of these custom functions [here](docs/GenericTests.md).
+
+![Example custom function](images/example_plot_4.png "Example custom function")
 
 #### Save outputs to file
 If you want the final results to be saved to a csv-file, you can do so by the use of the *-o* option:

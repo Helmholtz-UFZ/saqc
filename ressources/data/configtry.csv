@@ -1,0 +1,3 @@
+varname;test;plot
+SM2;harmonize_shift2Grid(freq="15Min");False
+SM2;generic(func=(SM2 < 30));True
