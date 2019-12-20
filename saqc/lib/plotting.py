@@ -20,7 +20,7 @@ _colors = {
 _figsize = (10,4)
 
 def plotAllHook(data, flagger, plot_nans=False):
-    if len(__plotvars) > 1:
+    if __plotvars:
         _plot(data, flagger, True, __plotvars, plot_nans=plot_nans)
 
 
