@@ -16,33 +16,20 @@ from saqc.lib.tools import (
 # todo: maybe generalize flag_constant to work on non harmonized data as well.
 
 @register("constant")
-def flagConstant(data, field, flagger, eps, length, thmin=None, **kwargs):
-    datacol = data[field]
+def flagConstant(data, field, flagger, eps, window, **kwargs):
 
-    length = (
-        (pd.to_timedelta(length) - data.index.freq).to_timedelta64().astype(np.int64)
-    )
+    window = pd.tseries.frequencies.to_offset(window)
+    def _func(ts):
+        if np.all(ts) and (ts.index[-1] - ts.index[0]) >= window:
+            return ts
+        return ts & False
 
-    values = datacol.mask((datacol < thmin) | datacol.isnull()).values.astype(np.int64)
+    diffs = data[field].diff().abs() <= eps
+    mask = diffs.groupby(diffs).apply(_func)
+    # NOTE: the first value of a constant period is missed by the groupby
+    mask[np.where(mask)[0] - 1] = True
 
-    dates = datacol.index.values.astype(np.int64)
-
-    mask = np.isfinite(values)
-
-    for start_idx, end_idx in slidingWindowIndices(datacol.index, length):
-        mask_chunk = mask[start_idx:end_idx]
-        values_chunk = values[start_idx:end_idx][mask_chunk]
-        dates_chunk = dates[start_idx:end_idx][mask_chunk]
-
-        # we might have removed dates from the start/end of the
-        # chunk resulting in a period shorter than 'length'
-        # print (start_idx, end_idx)
-        if valueRange(dates_chunk) < length:
-            continue
-        if valueRange(values_chunk) < eps:
-            flagger = flagger.setFlags(field, loc=slice(start_idx, end_idx), **kwargs)
-
-    data[field] = datacol
+    flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
 

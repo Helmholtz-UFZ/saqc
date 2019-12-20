@@ -20,6 +20,19 @@ def data():
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_flagConstants(data, flagger):
+    data.iloc[5:25] = 200
+    expected = np.arange(5, 25)
+    field, *_ = data.columns
+    flagger = flagger.initFlags(data)
+    data, flagger_result = flagConstant(
+        data, field, flagger, window="15Min", eps=.1,
+    )
+    flags = flagger_result.getFlags(field)
+    assert np.all(flags[expected] == flagger.BAD)
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagConstants_varianceBased(data, flagger):
     data.iloc[5:25] = 200
     expected = np.arange(5, 25)
@@ -28,16 +41,7 @@ def test_flagConstants_varianceBased(data, flagger):
     data, flagger_result1 = flagConstant_varianceBased(
         data, field, flagger, plateau_window_min="1h"
     )
-    #data, flagger_result2 = flagConstant(
-    #    data, field, flagger, eps=0.1, length='1h'
-    #)
 
     flag_result1 = flagger_result1.getFlags(field)
     test_sum = (flag_result1[expected] == flagger.BAD).sum()
     assert test_sum == len(expected)
-
-    #flag_result2 = flagger_result2.getFlags(field)
-    #test_sum = (flag_result2[expected] == flagger.BAD).sum()
-    #assert test_sum == len(expected)
-
-

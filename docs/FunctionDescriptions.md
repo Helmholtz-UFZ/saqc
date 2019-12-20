@@ -314,14 +314,13 @@ doi:10.2136/vzj2012.0097.
 ### constant
 
 ```
-constant(eps, length, thmin=None)
+constant(window, eps=0)
 ```
 
-| parameter          | data type | default value | description |
-| ------             | ------    | ------        | ----        |
-| eps                |           |               |             |
-| length             |           |               |             |
-| thmin              |           | `None`        |             |
+| parameter | data type                                                             | default value | description |
+| ------    | ------                                                                | ------        | ----        |
+| window    | [offset string](docs/ParameterDescriptions.md#offset-strings)/integer |               |             |
+| eps       | float                                                                 | 0             |             |
 
 
 ### constants_varianceBased
