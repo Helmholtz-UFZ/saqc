@@ -76,7 +76,7 @@ def _setup():
     np.seterr(invalid="ignore")
 
 
-def runner(
+def run(
     config_file: str,
     flagger: BaseFlagger,
     data: pd.DataFrame,

@@ -6,7 +6,7 @@ import click
 import numpy as np
 import pandas as pd
 
-from saqc.core import runner
+from saqc.core import run
 from saqc.flagger import CategoricalFlagger
 
 
@@ -31,7 +31,7 @@ def main(config, data, flagger, outfile, nodata, fail):
         parse_dates=True,
     )
 
-    data_result, flagger_result = runner(
+    data_result, flagger_result = run(
         config_file=config,
         flagger=FLAGGERS[flagger],
         data=data,

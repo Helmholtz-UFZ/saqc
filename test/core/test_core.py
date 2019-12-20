@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from saqc.funcs import register, flagRange
-from saqc.core.core import runner
+from saqc.core.core import run
 from saqc.core.config import Fields as F
 from saqc.lib.plotting import _plot
 from test.common import initData, initMetaDict, TESTFLAGGER
@@ -59,7 +59,7 @@ def test_temporalPartitioning(data, flagger, flags):
         {F.VARNAME: var3, F.TESTS: "flagAll()", F.START: split_date},
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
-    pdata, pflagger = runner(meta_file, flagger, data, flags=flags)
+    pdata, pflagger = run(meta_file, flagger, data, flags=flags)
 
     fields = [F.VARNAME, F.START, F.END]
     for _, row in meta_frame.iterrows():
@@ -86,7 +86,7 @@ def test_positionalPartitioning(data, flagger, flags):
     ]
     meta_file, meta_frame = initMetaDict(metadict, data)
 
-    pdata, pflagger = runner(meta_file, flagger, data, flags=flags)
+    pdata, pflagger = run(meta_file, flagger, data, flags=flags)
 
     fields = [F.VARNAME, F.START, F.END]
     for _, row in meta_frame.iterrows():
@@ -110,7 +110,7 @@ def test_missingConfig(data, flagger, flags):
     metadict = [{F.VARNAME: var1, F.TESTS: "flagAll()"}]
     metafobj, meta = initMetaDict(metadict, data)
 
-    pdata, pflagger = runner(metafobj, flagger, data, flags=flags)
+    pdata, pflagger = run(metafobj, flagger, data, flags=flags)
 
     assert var1 in pdata and var2 not in pflagger.getFlags()
 
@@ -136,7 +136,7 @@ def test_errorHandling(data, flagger):
     for policy in tests:
         # NOTE: should not fail, that's all we are testing here
         metafobj, _ = initMetaDict(metadict, data)
-        runner(metafobj, flagger, data, error_policy=policy)
+        run(metafobj, flagger, data, error_policy=policy)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -150,7 +150,7 @@ def test_duplicatedVariable(flagger):
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
-    pdata, pflagger = runner(metafobj, flagger, data)
+    pdata, pflagger = run(metafobj, flagger, data)
     pflags = pflagger.getFlags()
 
     if isinstance(pflags.columns, pd.MultiIndex):
@@ -175,7 +175,7 @@ def test_assignVariable(flagger):
     ]
     metafobj, meta = initMetaDict(metadict, data)
 
-    pdata, pflagger = runner(metafobj, flagger, data)
+    pdata, pflagger = run(metafobj, flagger, data)
     pflags = pflagger.getFlags()
 
     if isinstance(pflags.columns, pd.MultiIndex):
@@ -202,7 +202,7 @@ def test_dtypes(data, flagger, flags):
         {F.VARNAME: var2, F.TESTS: "flagAll()"},
     ]
     metafobj, meta = initMetaDict(metadict, data)
-    pdata, pflagger = runner(metafobj, flagger, data, flags=flags)
+    pdata, pflagger = run(metafobj, flagger, data, flags=flags)
     pflags = pflagger.getFlags()
     assert dict(flags.dtypes) == dict(pflags.dtypes)
 

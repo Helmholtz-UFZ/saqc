@@ -1,5 +1,5 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from saqc.core.core import runner
+from saqc.core.core import run
 from saqc.flagger import *

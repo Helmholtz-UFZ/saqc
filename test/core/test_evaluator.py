@@ -10,7 +10,7 @@ from saqc.core.evaluator import (
     parseExpression,
     initLocalEnv,
     DslTransformer,
-    MetaTransformer,
+    ConfigTransformer,
 )
 
 from test.common import TESTFLAGGER, dummyRegisterFunc, initData
@@ -22,7 +22,7 @@ def compileExpression(expr, flagger, nodata=np.nan):
     tree = parseExpression(expr)
     env = initLocalEnv(data, field, flagger.initFlags(data), nodata)
     dsl_transformer = DslTransformer(env, {})
-    transformed_tree = MetaTransformer(dsl_transformer, flagger.signature).visit(tree)
+    transformed_tree = ConfigTransformer(dsl_transformer, env, flagger.signature).visit(tree)
     code = compileTree(transformed_tree)
     return code
 
