@@ -54,7 +54,7 @@ class DslTransformer(ast.NodeTransformer):
         ast.Mult, ast.Div,
         ast.Pow,
         ast.USub,
-        ast.NotEq,
+        ast.Eq, ast.NotEq,
         ast.Gt, ast.Lt,
         ast.GtE, ast.LtE,
         ast.Invert,

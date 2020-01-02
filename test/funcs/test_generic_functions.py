@@ -63,7 +63,7 @@ def test_missingIdentifier(data, flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_comparisons(data, flagger):
+def test_comparisonOperators(data, flagger):
     flagger = flagger.initFlags(data)
     var1, var2, *_ = data.columns
     this = var1
@@ -73,6 +73,8 @@ def test_comparisons(data, flagger):
         (f"10 >= {var2}", 10 >= data[var2]),
         (f"{var2} < 100", data[var2] < 100),
         (f"this <= {var2}", data[this] <= data[var2]),
+        (f"{var1} == {var2}", data[this] == data[var2]),
+        (f"{var1} != {var2}", data[this] != data[var2]),
     ]
 
     # check within the usually enclosing scope
