@@ -1,41 +1,124 @@
-### User Defined Test
-User defined tests allow to specify simple quality checks directly within the
-configuration.
-#### Specification
-- Test name: `generic`
-- The parameter 'func' followed by an expression needs to be given
-- Example: generic, `{func: (thisvar > 0) & ismissing(othervar)}`
-#### Restrictions
-- only the operators and functions listed below are available
-- all checks need to be conditional expression and have to return an array of boolean values, 
-  all other expressions are rejected. This limitation is enforced to somewhat narrow the 
-  scope of the system and therefore the potential to mess things up and might as well be 
-  removed in the future.
-#### Syntax
-- standard Python syntax
-- all variables within the configuration file can be used
-#### Supported Operators
-- all arithmetic operators
-- all comparison operators
-- bitwise operators: and, or, xor, complement (`&`, `|`, `^`, `~`)
-#### Supported functions
+# Generic Functions
+Generic Functions provide a possibility to implement simple quality checks
+directly within the configuration using a simple, Python based extension 
+language.
 
-| function name | description                                                      |
-|---------------|------------------------------------------------------------------|
-| `abs`         | absolute values of a variable                                    |
-| `max`         | maximum value of a variable                                      |
-| `min`         | minimum value of a variable                                      |
-| `mean`        | mean value of a variable                                         |
-| `sum`         | sum of a variable                                                |
-| `std`         | standard deviation of a variable                                 |
-| `len`         | the number of values of variable                                 |
-| `ismissing`   | check for missing values (nan and a possibly user defined value) |
+## Specification
+Generic funtions are used in the same manner as their
+[non-generic counterparts](docs/FunctionDescriptions.md). The basic 
+signature looks like that:
+```sh
+generic(func=<expression>, flag=<flagging_constant>)
+```
+where `<expression>` is composed of the [supported constructs](#supported-constructs)
+and `<flag_constant>` is either one of the predefined
+[flagging constants](docs/ParameterDescriptions.md#flagging-constants) or any value supported
+by the flagger in use.
 
-#### Referencing Semantics
-If another variable is reference within an generic test, the flags from that variable are
-propagated to the checked variable.
+## Examples
 
-For example:
-Let `var1` and `var2` be two variables of a given dataset and `func: var1 > mean(var1)` 
-the condition wheter to flag `var2`. The result of the check can be described
-as `isflagged(var1) & istrue(func())`.
+### Simple comparisons
+
+#### Task
+Flag all values of variable `x` when variable `y` falls below a certain threashold
+
+#### Configuration file
+
+| varname | test                  |
+|---------|-----------------------|
+| `x`     | `generic(func=y < 0)` |
+
+### Calculations
+
+#### Task
+Flag all values of variable `x` that exceed 3 standard deviations of variable `y`
+
+#### Configuration file
+
+| varname | test                              |
+|---------|-----------------------------------|
+| `x`     | `generic(func=this > std(y) * 3)` |
+
+### Special functions
+
+#### Task
+Flag variable `x` where variable `y` is flagged and variable `x` has missing values
+
+#### Configuration file
+
+| varname | test                                              |
+|---------|---------------------------------------------------|
+| `x`     | `generic(func=this > isflagged(y) & ismissing(z)` |
+
+
+## Variable References
+All variables of the processed dataset are available within generic functions, so 
+arbitrary cross references are possible. The variable of intereset 
+is furthermore available with the special reference `this`, so the second 
+[example](#calculations) could be rewritten as: 
+
+| varname | test                           |
+|---------|--------------------------------|
+| `x`     | `generic(func=x > std(y) * 3)` |
+
+When referencing other variables, their flags will be respected during evaluation
+of the generic expression. So, in the example above only previously
+unflagged values of `x` and `y` are used within the expression `x > std(y)*3`. 
+
+
+## Supported constructs
+
+### Operators
+
+#### Comparsions
+
+The following comparison operators are available:
+| Operator | Description                                                                                        |
+|----------|----------------------------------------------------------------------------------------------------|
+| `==`     | `True` if the values of the operands are equal                                                     |
+| `!=`     | `True` if the values of the operands are not equal                                                 |
+| `>`      | `True` if the values of the left operand are greater than the values of the right operand          |
+| `<`      | `True` if the values of the left operand are smaller than the values of the right operand          |
+| `>=`     | `True` if the values of the left operand are greater or equal than the values of the right operand |
+| `<=`     | `True` if the values of the left operand are smaller or equal than the values of the right operand |
+
+#### Arithmetics
+The following arithmetic operators are supported:
+| Operator | Description    |
+|----------|----------------|
+| `+`      | addition       |
+| `-`      | substraction   |
+| `*`      | multiplication |
+| `/`      | division       |
+| `**`     | exponantion    |
+| `%`      | modulus        |
+
+#### Bitwise
+The bitwise operators also act as logical operators in comparison chains 
+| Operator | Description       |
+|----------|-------------------|
+| `&`      | binary and        |
+| &vert;   | binary or         |
+| `^`      | binary xor        |
+| `~`      | binary complement |
+
+### Functions
+
+All functions expect a [variable reference](#variable-references)
+as the only non-keyword argument (see [here](#special-functions))
+
+| Name        | Description                       |
+|-------------|-----------------------------------|
+| `abs`       | absolute values of a variable     |
+| `max`       | maximum value of a variable       |
+| `min`       | minimum value of a variable       |
+| `mean`      | mean value of a variable          |
+| `sum`       | sum of a variable                 |
+| `std`       | standard deviation of a variable  |
+| `len`       | the number of values for variable |
+| `ismissing` | check for missing values          |
+| `isflagged` | check for flags                   |
+
+### Constants
+Generic functions support the same constants as normal functions, a detailed 
+list is available [here](docs/ParameterDescriptions.md#constants).
