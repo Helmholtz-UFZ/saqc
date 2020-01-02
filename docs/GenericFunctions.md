@@ -8,7 +8,7 @@ Generic funtions are used in the same manner as their
 [non-generic counterparts](docs/FunctionDescriptions.md). The basic 
 signature looks like that:
 ```sh
-generic(func=<expression>, flag=<flagging_constant>)
+flagGeneric(func=<expression>, flag=<flagging_constant>)
 ```
 where `<expression>` is composed of the [supported constructs](#supported-constructs)
 and `<flag_constant>` is either one of the predefined
@@ -24,9 +24,9 @@ Flag all values of variable `x` when variable `y` falls below a certain threasho
 
 #### Configuration file
 
-| varname | test                  |
-|---------|-----------------------|
-| `x`     | `generic(func=y < 0)` |
+| varname | test                      |
+|---------|---------------------------|
+| `x`     | `flagGeneric(func=y < 0)` |
 
 ### Calculations
 
@@ -35,9 +35,9 @@ Flag all values of variable `x` that exceed 3 standard deviations of variable `y
 
 #### Configuration file
 
-| varname | test                              |
-|---------|-----------------------------------|
-| `x`     | `generic(func=this > std(y) * 3)` |
+| varname | test                                  |
+|---------|---------------------------------------|
+| `x`     | `flagGeneric(func=this > std(y) * 3)` |
 
 ### Special functions
 
@@ -46,9 +46,9 @@ Flag variable `x` where variable `y` is flagged and variable `x` has missing val
 
 #### Configuration file
 
-| varname | test                                              |
-|---------|---------------------------------------------------|
-| `x`     | `generic(func=this > isflagged(y) & ismissing(z)` |
+| varname | test                                                  |
+|---------|-------------------------------------------------------|
+| `x`     | `flagGeneric(func=this > isflagged(y) & ismissing(z)` |
 
 
 ## Variable References
@@ -57,9 +57,9 @@ arbitrary cross references are possible. The variable of intereset
 is furthermore available with the special reference `this`, so the second 
 [example](#calculations) could be rewritten as: 
 
-| varname | test                           |
-|---------|--------------------------------|
-| `x`     | `generic(func=x > std(y) * 3)` |
+| varname | test                               |
+|---------|------------------------------------|
+| `x`     | `flagGeneric(func=x > std(y) * 3)` |
 
 When referencing other variables, their flags will be respected during evaluation
 of the generic expression. So, in the example above only previously

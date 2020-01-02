@@ -142,7 +142,7 @@ class ConfigTransformer(ast.NodeTransformer):
 
     def visit_keyword(self, node):
         key, value = node.arg, node.value
-        if self.func_name == Params.GENERIC and key == Params.FUNC:
+        if self.func_name == Params.FLAG_GENERIC and key == Params.FUNC:
             node = ast.keyword(arg=key, value=self.dsl_transformer.visit(value))
             return node
 
@@ -158,8 +158,6 @@ class ConfigTransformer(ast.NodeTransformer):
             raise NameError(
                 f"unknown variable: {value.id}"
             )
-
-
 
         return self.generic_visit(node)
 
@@ -200,6 +198,6 @@ def evalExpression(expr, data, field, flagger, nodata=np.nan):
     local_env, code = compileExpression(expr, data_in, field, flagger, nodata)
     data_result, flagger_result = evalCode(code, FUNC_MAP, local_env)
     # NOTE:
-    # reinject the original values, as we don't want to throw away values
+    # reinject the original values, as we don't want to loose them
     data_result[mask] = data[mask]
     return data_result, flagger_result

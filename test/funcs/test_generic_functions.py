@@ -41,7 +41,7 @@ def test_flagPropagation(data, flagger):
     var2_flags = flagger.isFlagged(var2)
     var2_data = data[var2].mask(var2_flags)
     data, flagger_result = evalExpression(
-        "generic(func=var2 < mean(var2))", data, this, flagger, np.nan
+        "flagGeneric(func=var2 < mean(var2))", data, this, flagger, np.nan
     )
 
     expected = var2_flags | (var2_data < var2_data.mean())
@@ -54,8 +54,8 @@ def test_missingIdentifier(data, flagger):
 
     flagger = flagger.initFlags(data)
     tests = [
-        "generic(func=fff(var2) < 5)",
-        "generic(func=var3 != NODATA)"
+        "flagGeneric(func=fff(var2) < 5)",
+        "flagGeneric(func=var3 != NODATA)"
     ]
     for expr in tests:
         with pytest.raises(NameError):
@@ -80,10 +80,35 @@ def test_comparisonOperators(data, flagger):
     # check within the usually enclosing scope
     for expr, mask in tests:
         _, result_flagger = evalExpression(
-            f"generic(func={expr})", data, this, flagger, np.nan
+            f"flagGeneric(func={expr})", data, this, flagger, np.nan
         )
         expected_flagger = flagger.setFlags(this, loc=mask, test="generic")
         assert np.all(result_flagger.isFlagged() == expected_flagger.isFlagged())
+
+
+# @pytest.mark.parametrize("flagger", TESTFLAGGER)
+# def test_arithmeticOperators(data, flagger):
+#     flagger = flagger.initFlags(data)
+#     var1, *_ = data.columns
+#     this = var1
+
+#     tests = [
+#         ("this + 100", data[this] + 100),
+#         ("this - 100", data[this] - 100),
+#         ("this * 100", data[this] * 100),
+#         ("this / 100", data[this] / 100),
+#         ("this // 2", data[this] // 2),
+#         ("this % 2", data[this] % 2),
+#         ("this ** 2", data[this] ** 2),
+#     ]
+
+#     # check within the usually enclosing scope
+#     for expr, mask in tests:
+#         _, result_flagger = evalExpression(
+#             f"flagGeneric(func={expr})", data, this, flagger, np.nan
+#         )
+#         # expected_flagger = flagger.setFlags(this, loc=mask, test="generic")
+#         # assert np.all(result_flagger.isFlagged() == expected_flagger.isFlagged())
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -155,13 +180,13 @@ def test_bitOps(data, flagger, nodata):
     flagger = flagger.initFlags(data)
 
     tests = [
-        (f"generic(func=~(this > mean(this)))", ~(data[this] > np.nanmean(data[this]))),
+        (f"flagGeneric(func=~(this > mean(this)))", ~(data[this] > np.nanmean(data[this]))),
         (
-            f"generic(func=(this <= 0) | (0 < {var1}))",
+            f"flagGeneric(func=(this <= 0) | (0 < {var1}))",
             (data[this] <= 0) | (0 < data[var1]),
         ),
         (
-            f"generic(func=({var2} >= 0) & (0 > this))",
+            f"flagGeneric(func=({var2} >= 0) & (0 > this))",
             (data[var2] >= 0) & (0 > data[this]),
         ),
     ]

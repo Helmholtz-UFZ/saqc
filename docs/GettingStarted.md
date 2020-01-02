@@ -179,7 +179,7 @@ series. Also, you can write your own tests using a python-based
 
 	varname;test;plot
 	SM2;harmonize_shift2Grid(freq="15Min");False
-	SM2;generic(func=(SM2 < 30));True
+	SM2;flagGeneric(func=(SM2 < 30));True
 
 The above executes an internal framework that harmonizes the timestamps of SM2
 to a 15min-grid (see data below). Further information about this routine can be

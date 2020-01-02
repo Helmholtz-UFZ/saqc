@@ -9,7 +9,7 @@ from saqc.lib.tools import sesonalMask, flagWindow
 from saqc.funcs.register import register
 
 
-@register("generic")
+@register("flagGeneric")
 def flagGeneric(data, field, flagger, func, **kwargs):
     # NOTE:
     # - The naming of the func parameter is pretty confusing
