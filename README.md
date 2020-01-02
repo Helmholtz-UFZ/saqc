@@ -69,6 +69,23 @@ resolvable with:
 python -m pip install -r requirements.txt
 ```
    
+### Python version
+The minimum Python version required is 3.6 and SaQC is directly compatible with
+Python versions 3.6 and 3.7. If you are already on Python 3.8 however, the
+installation process is currently a bit more involved than the description above
+suggests.
+
+One of SaQC's dependencies, [llvmlite](http://llvmlite.pydata.org/en/latest/),
+is not yet avaliably as a binary wheel on [PyPI](https://pypi.org/).
+In order to make SaQC work, you need to first install [llvm](https://llvm.org/)
+on your system. In many cases, a package manager install should do the trick, 
+if your distribution provides llvm versions > 8 (e.g.
+[Arch Linux](https://www.archlinux.org/)) however, it is necessary to
+[download](http://releases.llvm.org/download.html) and
+[install](https://releases.llvm.org/8.0.0/docs/CMake.html) one of the llvm
+versions 7.0.x, 7.1.x, 8.0.x manually.
+
+   
 ## Usage
 ### Command line interface (CLI)
 SaQC provides a basic CLI to get you started. As soon as tha basic inputs, 
