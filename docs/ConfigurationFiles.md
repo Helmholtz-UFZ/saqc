@@ -20,10 +20,10 @@ configuration headers have a look [here](saqc/core/config.py).
 | plot    | boolean (`True`/`False`)                     | plot the test's result | yes      |
 
 
-### Test function notations
+### Test function notation
 The notation of test functions follows the function call notation of Python and
 many other programming languages and looks like this:
-```python
+```
 range(min=0, max=100)
 ```
 Here the function `range` is called and the values `0` and `100` are passed
@@ -73,7 +73,7 @@ Some of the most basic tests (e.g. checks for missing values or range tests) but
 also the more elaborated functions available (e.g. aggregation or interpolation
 functions) are very likely to be used on all or at least several variables of
 the processed dataset. As it becomes quite cumbersome to list all these
-variables seperately, only to than call the same functions with the same
+variables seperately, only to call the same functions with the same
 parameters over and over again, SaQC supports wildcards and regular expressions
 within the `varname` column.
 
@@ -84,7 +84,7 @@ within the `varname` column.
 
 
 #### Bring it to a file
-As mentioned above SaQC expectd the configuration to be a table-like,
+As mentioned above SaQC, expectd the configuration to be a table-like,
 semicolon-separated text file. So the configuration from the
 [plotting-example](#plotting) above needs to be written as:
 
