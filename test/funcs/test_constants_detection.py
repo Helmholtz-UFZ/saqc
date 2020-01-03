@@ -21,7 +21,8 @@ def data():
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagConstants(data, flagger):
-    data.iloc[5:25] = 200
+    idx = np.array([5, 6, 7, 8, 9, 10, 18, 19, 20, 21])
+    data.iloc[idx] = 200
     expected = np.arange(5, 25)
     field, *_ = data.columns
     flagger = flagger.initFlags(data)

@@ -12,23 +12,45 @@ from saqc.lib.tools import (
     retrieveTrustworthyOriginal
 )
 
-# todo: flagConstant does not flag the constant plateau data from test_constants properly
-# todo: maybe generalize flag_constant to work on non harmonized data as well.
+# # TODO: maybe generalize flag_constant to work on non harmonized data as well.
+# @register("constant")
+# def flagConstant(data, field, flagger, eps, window, **kwargs):
 
+#     window = pd.tseries.frequencies.to_offset(window)
+#     def _func(ts):
+#         if np.all(ts) and (ts.index[-1] - ts.index[0]) >= window:
+#             return ts
+#         return ts & False
+
+#     diffs = data[field].diff().abs().le(eps)
+#     mask = diffs.groupby(diffs).apply(_func)
+#     # import ipdb; ipdb.set_trace()
+#     # NOTE: the first value of a constant period is missed by the groupby
+#     mask[np.where(mask)[0] - 1] = True
+
+#     flagger = flagger.setFlags(field, mask, **kwargs)
+#     return data, flagger
+
+# TODO: maybe generalize flag_constant to work on non harmonized data as well.
 @register("constant")
 def flagConstant(data, field, flagger, eps, window, **kwargs):
 
     window = pd.tseries.frequencies.to_offset(window)
-    def _func(ts):
-        if np.all(ts) and (ts.index[-1] - ts.index[0]) >= window:
-            return ts
-        return ts & False
 
-    diffs = data[field].diff().abs() <= eps
-    mask = diffs.groupby(diffs).apply(_func)
-    # NOTE: the first value of a constant period is missed by the groupby
+    def _func(grp):
+        out = grp.astype(bool)
+        if grp.index[-1] - grp.index[0] >= window:
+            values = np.sort(grp.values)
+            if values[-1] - values[0] <= eps:
+                out |= True
+        return out
+
+    col = data[field]
+    mask = col.diff().le(eps)
+    # NOTE: we want to mark both values when the diff is below eps
     mask[np.where(mask)[0] - 1] = True
 
+    flagger_mask = (~mask).cumsum().to_frame().groupby(field).apply(_func)
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
