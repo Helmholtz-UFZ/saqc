@@ -115,6 +115,7 @@ unflagged values of `x` and `y` are used within the expression `x > std(y)*3`.
 #### Comparison
 
 The following comparison operators are available:
+
 | Operator | Description                                                                                        |
 |----------|----------------------------------------------------------------------------------------------------|
 | `==`     | `True` if the values of the operands are equal                                                     |
@@ -126,6 +127,7 @@ The following comparison operators are available:
 
 #### Arithmetic
 The following arithmetic operators are supported:
+
 | Operator | Description    |
 |----------|----------------|
 | `+`      | addition       |
@@ -136,7 +138,8 @@ The following arithmetic operators are supported:
 | `%`      | modulus        |
 
 #### Bitwise
-The bitwise operators also act as logical operators in comparison chains 
+The bitwise operators also act as logical operators in comparison chains
+
 | Operator | Description       |
 |----------|-------------------|
 | `&`      | binary and        |
