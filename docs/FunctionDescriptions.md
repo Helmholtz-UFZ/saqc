@@ -1,6 +1,7 @@
 # Implemented QC functions
 
-Main documentation of the implemented functions, their purpose and parameters and their description.
+Main documentation of the implemented functions, their purpose and parametrization.
+
 
 ## Index
 
@@ -53,7 +54,8 @@ range(min, max)
 | max       | float     |               | lower bound for valid values |
 
 
-The function flags all values, that exceed the closed interval $`[`$`min`, `max`$`]`$.
+The function flags all values outside the closed interval
+$`[`$`min`, `max`$`]`$.
 
 ### seasonalRange
 
@@ -70,16 +72,16 @@ sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 | startday   | integer     | `1`           | interval start day           |
 | endday     | integer     | `31`          | interval end day             |
 
-The function does the same as `range` 
-(flags all data, that exceed the interval $`[`$`min`, `max`$`]`$), 
-but only, if the timestamp of the data-point lies in a time interval defined by day and month only. 
-The year is **not** used by the interval calculation. 
-The left interval boundary is defined by `startmonth` and `startday`, the right by `endmonth` and `endday`. 
-Both boundaries are inclusive. 
-If the left side occurs later in the year than the right side, the interval is extended over the change of year 
-(e.g. an interval of [01/12, 01/03], will flag values in december, january and february).
+The function does the same as `range` but only, if the timestamp of the
+data-point lies in a time interval defined by day and month only. 
+The year is **not** used by the interval calculation. The left interval
+boundary is defined by `startmonth` and `startday`, the right by `endmonth`
+and `endday`. Both boundaries are inclusive. If the left side occurs later
+in the year than the right side, the interval is extended over the change of
+year (e.g. an interval of [01/12, 01/03], will flag values in December,
+January and February).
 
-Note: Only works for datetime indexed data
+Note: Only works for time-series-like datasets.
 
 
 ### isolated
@@ -447,13 +449,13 @@ In detail, the process includes:
 ```
 harmonize_aggregate2Grid(freq, agg_func, agg_method='nearest_agg', flag_agg_func="max", drop_flags=None)
 ```
-| parameter     | data type         | default value     | description |
-| ---------     | ---------         | -------------     | ----------- |
-| freq          | string            |                   | Offset string. Determining the sampling rate of the frequency grid, the data shall be aggregated to.  |
-| agg_func      | string              |                   | String, signifying a function used for data aggregation. See a table of keywords [here](#aggregations).|
-| agg_method    | string            | `nearest_agg`     | Method, determining the range of data and flags aggregation. See a list of methods below. |
-| flag_agg_func | string            | `"max"`           |  String, signifying a function used for flags aggregation. See a table of keywords [here](#aggregations).|   
-| drop_flags    | list or Nonetype  | `None`              | Flags to be excluded from harmonization. See description of step 2 below. |
+| parameter     | data type        | default value | description                                                                                              |
+| ---------     | ---------        | ------------- | -----------                                                                                              |
+| freq          | string           |               | Offset string. Determining the sampling rate of the frequency grid, the data shall be aggregated to.     |
+| agg_func      | string           |               | String, signifying a function used for data aggregation. See a table of keywords [here](#aggregations).  |
+| agg_method    | string           | `nearest_agg` | Method, determining the range of data and flags aggregation. See a list of methods below.                |
+| flag_agg_func | string           | `"max"`       | String, signifying a function used for flags aggregation. See a table of keywords [here](#aggregations). |
+| drop_flags    | list or Nonetype | `None`        | Flags to be excluded from harmonization. See description of step 2 below.                                |
 
 
 The function aggregates the data-to-be-flagged, to match an equidistant 
