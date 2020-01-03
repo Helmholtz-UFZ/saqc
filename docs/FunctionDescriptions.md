@@ -113,13 +113,10 @@ missing(nodata=NaN)
 
 | parameter | data type  | default value  | description |
 | --------- | ---------- | -------------- | ----------- |
-| nodata    | any        | `NAN`          | Value indicating missing values in the passed data. |
+| nodata    | any        | `NAN`          | Value associated with missing data |
 
 
-The function flags those values in the the passed data series, that are
-associated with "missing" data. The missing data indicator (default: `NAN`), can
-be altered to any other value by passing this value to the parameter `nodata`.
-
+The function flags all values indicating missing data.
 
 ### clear
 
@@ -127,7 +124,7 @@ be altered to any other value by passing this value to the parameter `nodata`.
 clear()
 ```
 
-Remove all previously set flags.
+The funcion removes all previously set flags.
 
 ### force
 
@@ -136,9 +133,9 @@ force(flag)
 ```
 | parameter | data type                | default value | description   |
 | --------- | -----------              | ----          | -----------   |
-| flag      | float/GOOD/BAD/UNFLAGGED | GOOD          | flag to force |
+| flag      | float/[flagging constant](docs/ParameterDescriptions.md#flagging-constants) | GOOD          | flag to force |
 
-Force flags to the given flag value.
+The functions sets the given flag, ignoring previous flag values.
 
 ## Spike Detection
 
@@ -149,9 +146,9 @@ spikes_basic(thresh, tolerance, window_size)
 
 | parameter   | data type | default value | description                                                                                  |
 | ------      | ------    | ------        | ----                                                                                         |
-| thresh      | float     |               | Minimum jump margin for spikes. See condition (1).                                           |
-| tolerance   | float     |               | Range of area, containing all "valid return values". See condition (2).                       |
-| window_size | string    |               | An offset string, denoting the maximum length of "spikish" value courses. See condition (3). |
+| thresh      | float     |               | Minimum difference between to values, to consider the latter one as a spike, see condition (1)                                           |
+| tolerance   | float     |               | Maximum difference between pre-spike and post-spike values Range of area, see condition (2)                       |
+| window | [offset string](docs/ParameterDescriptions.md#offset-strings)    |               | Maximum length of "spikish" value courses, see condition (3) |
 
 A basic outlier test, that is designed to work for harmonized, as well as raw
 (not-harmonized) data.
@@ -163,13 +160,13 @@ are considered spikes, if:
 
 2. $`|x_{n-1} - x_{n+k+1}| < `$ `tolerance`
 
-3. $` |y_{n-1} - y_{n+k+1}| < `$ `window_size`, with $`y `$, denoting the series
+3. $` |y_{n-1} - y_{n+k+1}| < `$ `window`, with $`y `$, denoting the series
    of timestamps associated with $`x `$.
 
 By this definition, spikes are values, that, after a jump of margin `thresh`(1),
-are keeping that new value level they jumped to, for a timespan smaller than
-`window_size` (3), and do then return to the initial value level -
-within a tolerance margin of `tolerance` (2).  
+are keeping that new value level, for a timespan smaller than
+`window` (3), and then return to the initial value level -
+within a tolerance of `tolerance` (2).  
 
 Note, that this characterization of a "spike", not only includes one-value
 outliers, but also plateau-ish value courses.
