@@ -146,11 +146,11 @@ The functions sets the given flag, ignoring previous flag values.
 spikes_basic(thresh, tolerance, window_size)
 ```
 
-| parameter   | data type | default value | description                                                                                  |
-| ------      | ------    | ------        | ----                                                                                         |
-| thresh      | float     |               | Minimum difference between to values, to consider the latter one as a spike, see condition (1)                                           |
-| tolerance   | float     |               | Maximum difference between pre-spike and post-spike values Range of area, see condition (2)                       |
-| window | [offset string](docs/ParameterDescriptions.md#offset-strings)    |               | Maximum length of "spikish" value courses, see condition (3) |
+| parameter | data type                                                     | default value | description                                                                                    |
+|-----------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------|
+| thresh    | float                                                         |               | Minimum difference between to values, to consider the latter one as a spike, see condition (1) |
+| tolerance | float                                                         |               | Maximum difference between pre-spike and post-spike values Range of area, see condition (2)    |
+| window    | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Maximum length of "spikish" value courses, see condition (3)                                   |
 
 A basic outlier test, that is designed to work for harmonized, as well as raw
 (not-harmonized) data.
@@ -175,25 +175,31 @@ outliers, but also plateau-ish value courses.
 
 ### spikes_simpleMad
 
-Flag outlier by simple median absolute deviation test.
 
 ```
-spikes_simpleMad(winsz="1h", z=3.5)
+spikes_simpleMad(window="1h", z=3.5)
 ```
 
-| parameter | data type            | default value | description                                                          |
-| --------- | -----------          | ----          | -----------                                                          |
-| winsz     | offset-string or int | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
-| z         | float                | `3.5`         | z-parameter the modified Z-score                                     |
+| parameter | data type                                                         | default value | description                                                          |
+|-----------|-------------------------------------------------------------------|---------------|----------------------------------------------------------------------|
+| window    | int/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
+| z         | float                                                             | `3.5`         | z-parameter of the modified Z-score                                  |
 
+This functions flags outliers by simple median absolute deviation test.
+The *modified Z-score* [1] is used to detect outliers. Values are flagged if
+they fulfill the following condition within a sliding window:
 
-The *modified Z-score* [1] is used to detect outlier. 
-All values are flagged as outlier, if in any slice of the sliding window, a value fulfills:
 ```math
  0.6745 * |x - M| > mad * z > 0
 ```
-with $`x, M, mad, z`$: window data, window median, window median absolute deviation, `z`.
-The window is moved by one frequency step.
+with:
+
+| $`x`$   | window data                      |
+| $`M`$   | window median                    |
+| $`mad`$ | window median absolute deviation |
+| $`z`$   | z-parameter                      |
+
+The window is moved by one time stamp at a time.
 
 Note: This function should only be applied on normalized data.
  
