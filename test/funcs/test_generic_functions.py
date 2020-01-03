@@ -86,35 +86,34 @@ def test_comparisonOperators(data, flagger):
         assert np.all(result_flagger.isFlagged() == expected_flagger.isFlagged())
 
 
-# @pytest.mark.parametrize("flagger", TESTFLAGGER)
-# def test_arithmeticOperators(data, flagger):
-#     flagger = flagger.initFlags(data)
-#     var1, *_ = data.columns
-#     this = var1
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_arithmeticOperators(data, flagger):
+    flagger = flagger.initFlags(data)
+    var1, *_ = data.columns
+    this = data[var1]
 
-#     tests = [
-#         ("this + 100", data[this] + 100),
-#         ("this - 100", data[this] - 100),
-#         ("this * 100", data[this] * 100),
-#         ("this / 100", data[this] / 100),
-#         ("this // 2", data[this] // 2),
-#         ("this % 2", data[this] % 2),
-#         ("this ** 2", data[this] ** 2),
-#     ]
+    tests = [
+        ("this + 100 > 110", this + 100 > 110),
+        ("this - 100 > 0", this - 100 > 0),
+        ("this * 100 > 200", this * 100 > 200),
+        ("this / 100 > .1", this / 100 > .1),
+        ("this % 2 == 1", this % 2 == 1),
+        ("this ** 2 == 0", this ** 2 == 0),
+    ]
 
-#     # check within the usually enclosing scope
-#     for expr, mask in tests:
-#         _, result_flagger = evalExpression(
-#             f"flagGeneric(func={expr})", data, this, flagger, np.nan
-#         )
-#         # expected_flagger = flagger.setFlags(this, loc=mask, test="generic")
-#         # assert np.all(result_flagger.isFlagged() == expected_flagger.isFlagged())
+    # check within the usually enclosing scope
+    for expr, mask in tests:
+        _, result_flagger = evalExpression(
+            f"flagGeneric(func={expr})", data, var1, flagger, np.nan
+        )
+        expected_flagger = flagger.setFlags(var1, loc=mask, test="generic")
+        assert np.all(result_flagger.isFlagged() == expected_flagger.isFlagged())
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_nonReduncingBuiltins(data, flagger):
     flagger = flagger.initFlags(data)
-    var1, var2, *_ = data.columns
+    var1, *_ = data.columns
     this = var1
 
     tests = [
@@ -154,7 +153,7 @@ def test_ismissing(data, flagger, nodata):
 
     data.iloc[: len(data) // 2, 0] = np.nan
     data.iloc[(len(data) // 2) + 1 :, 0] = -9999
-    var1, var2, *_ = data.columns
+    var1, *_ = data.columns
 
     flagger = flagger.initFlags(data)
 
