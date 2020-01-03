@@ -180,24 +180,21 @@ outliers, but also plateau-ish value courses.
 spikes_simpleMad(window="1h", z=3.5)
 ```
 
-| parameter | data type                                                         | default value | description                                                          |
-|-----------|-------------------------------------------------------------------|---------------|----------------------------------------------------------------------|
-| window    | int/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
-| z         | float                                                             | `3.5`         | z-parameter of the modified Z-score                                  |
+| parameter | data type                                                             | default value | description                                                          |
+|-----------|-----------------------------------------------------------------------|---------------|----------------------------------------------------------------------|
+| window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
+| z         | float                                                                 | `3.5`         | z-parameter of the modified Z-score                                  |
 
 This functions flags outliers by simple median absolute deviation test.
 The *modified Z-score* [1] is used to detect outliers. Values are flagged if
 they fulfill the following condition within a sliding window:
 
 ```math
- 0.6745 * |x - M| > mad * z > 0
+ 0.6745 * |x - m| > mad * z > 0
 ```
-with:
 
-| $`x`$   | window data                      |
-| $`M`$   | window median                    |
-| $`mad`$ | window median absolute deviation |
-| $`z`$   | z-parameter                      |
+where $`x`$ denotes the window data, $`m`$ the window median, $`mad`$ the median absolute deviation and $`z`$ the
+$`z`$-parameter of the modified Z-Score.
 
 The window is moved by one time stamp at a time.
 
@@ -214,41 +211,46 @@ Detect outlier/spikes by a given method in a sliding window.
 spikes_slidingZscore(winsz="1h", dx="1h", count=1, deg=1, z=3.5, method="modZ")
 ```
 
-| parameter | data type             | default value | description                                                     |
-| --------- | -----------           | ----          | -----------                                                     |
-| winsz     | offset-string/integer | `"1h"`        | size of the sliding window, the *method* is applied on          |
-| dx        | offset-string/integer | `"1h"`        | the step size the sliding window is continued after calculation |
-| count     | integer               | `1`           | the minimal count, a possible outlier needs, to be flagged      |
-| deg       | integer               | `1"`          | the degree of the polynomial fit, to calculate the residual     |
-| z         | float                 | `3.5`         | z-parameter for the *method* (see description)                  |
-| method    | string                | `"modZ"`      | the method outlier are detected with                            |
+| parameter | data type                                                             | default value | description                                                 |
+|-----------|-----------------------------------------------------------------------|---------------|-------------------------------------------------------------|
+| window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | size of the sliding window                                  |
+| dx        | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | offset between two consecutive windows                      |
+| count     | integer                                                               | `1`           | the minimal count, a possible outlier needs, to be flagged  |
+| deg       | integer                                                               | `1"`          | the degree of the polynomial fit, to calculate the residual |
+| z         | float                                                                 | `3.5`         | z-parameter for the *method* (see description)              |
+| method    | string                                                                | `"modZ"`      | the method outlier are detected with                        |
 
-Parameter notes: 
- - `winsz` and `dx` must be of same type, mixing of offset and integer is not supported and will fail.
- - offset-strings only work with datetime indexed data
+NOTE:
+ - `window` and `dx` must be of same type, mixing of offset and integer is not supported and will fail
+ - offset-strings only work with time-series-like data
 
 The algorithm works as follows:
-  1.  a window of size `winsz` is cut from the data
-  2.  normalisation - (the data is fit by a polynomial of the given degree `deg`, which is subtracted from the data)
-  3.  the outlier detection `method` is applied on the residual, and possible outlier are marked
+  1.  a window of size `window` is cut from the data
+  2.  normalization - the data is fit by a polynomial of the given degree `deg`, which is subtracted from the data
+  3.  the outlier detection `method` is applied on the residual, possible outlier are marked
   4.  the window (on the data) is moved by `dx`
   5.  start over from 1. until the end of data is reached
   6.  all potential outliers, that are detected `count`-many times, are flagged as outlier 
 
 The possible outlier detection methods are *zscore* and *modZ*. 
-In the following description, the residual (calculated from a slice by the sliding window) is referred as *data*.
+In the following description, the residual (calculated from a slice by the sliding window)
+is referred as *data*.
 
-The **zscore** (Z-score) [1] mark every value as possible outlier, which fulfill:
+The **zscore** (Z-score) [1] marks every value as possible outlier, which fulfill:
+
 ```math
  |r - m| > s * z
 ```
-with $`r, m, s, z`$: data, data mean, data standard deviation, `z`.
+where $`r`$ denotes the residual, $`m`$ the residual mean, $`s`$ the residual standard deviation,
+and $`z`$ the $`z`$-parameter.
 
-The **modZ** (modified Z-score) [1] mark every value as possible outlier, which fulfill:
+The **modZ** (modified Z-score) [1] marks every value as possible outlier, which fulfill:
+
 ```math
- 0.6745 * |r - M| > mad * z > 0
+ 0.6745 * |r - m| > mad * z > 0
 ```
-with $` r, M, mad, z `$: data, data median, data median absolute deviation, `z`.
+where $`r`$ denotes the residual, $`m`$ the residual mean, $`mad`$ the residual median absolute
+deviation, and $`z`$ the $`z`$-parameter.
 
 See also:
 [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
