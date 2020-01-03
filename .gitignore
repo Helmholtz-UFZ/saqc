@@ -1,6 +1,5 @@
 **/__pycache__
 *.pyc
-.idea/
-testspace/
-venv/
-.DS_Store
+test*/
+venv*/
+**/.*
