@@ -100,9 +100,9 @@ large data gaps. A gap is defined as group of missing and/or flagged values.
 A continuous group of values
 $`x_{k}, x_{k+1},...,x_{k+n}`$ with timestamps $`t_{k}, t_{k+1}, ..., t_{k+n}`$
 is considered to be isolated, if:
-1. $` t_{k+n} - t_{k} <= `$ `group_window`
-2. None of the values $` x_i, ..., x_{k-1} `$, with $`t_{k-1} - t_{i} >= `$ `gap_window` is valid and unflagged
-3. None of the values $` x_{k+n+1}, ..., x_{j} `$, with $`t_{k+n+1} - t_{j} >= `$ `gap_window` is valid and unflagged
+1. $` t_{k+n} - t_{k} \le `$ `group_window`
+2. None of the values $` x_i, ..., x_{k-1} `$, with $`t_{k-1} - t_{i} \ge `$ `gap_window` is valid and unflagged
+3. None of the values $` x_{k+n+1}, ..., x_{j} `$, with $`t_{j} - t_{k+n+1} \ge `$ `gap_window` is valid and unflagged
 
 
 ### missing
