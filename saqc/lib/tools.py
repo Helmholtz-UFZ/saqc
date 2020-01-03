@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numbers
-from typing import Sequence, Union, Any
+from typing import Sequence, Union, Any, Iterator
 
 import numpy as np
 import pandas as pd
@@ -346,3 +346,35 @@ def funcInput_2_func(func):
         return STRING_2_FUNC[func]
     else:
         raise ValueError("Function input not a callable nor a known key to internal the func dictionary.")
+
+
+@nb.jit(nopython=True, cache=True)
+def otherIndex(values: np.ndarray, start: int = 0) -> int:
+    """
+    returns the index of the first non value not equal to values[0]
+    -> values[start:i] are all identical
+    """
+    val = values[start]
+    for i in range(start, len(values)):
+        if values[i] != val:
+            return i
+    return -1
+
+
+def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
+
+    """
+    group consecutive values into distinct pd.Series
+    """
+    index = series.index
+    values = series.values
+    target = values[0]
+
+    start = 0
+    while True:
+        stop = otherIndex(values, start)
+        if stop == -1:
+            break
+        yield pd.Series(data=values[start:stop], index=index[start:stop])
+        start = stop
+

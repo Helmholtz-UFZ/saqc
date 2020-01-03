@@ -88,32 +88,21 @@ Note: Only works for datetime indexed data
 isolated(window, group_size=1, continuation_range='1min') 
 
 ```
-| parameter          | data type                                                     | default value | description                                                                                                                                                          |
-| ---------          | ---------                                                     | ------------- | -----------                                                                                                                                                          |
-| window             | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The range, within there are no valid values allowed for a valuegroup to get flagged isolated. See condition (1) and (2).                                             |
-| group_size         | integer                                                       | `1`           | The upper bound for the size of a value group to be considered an isolated group. See condition (3).                                                                 |
-| continuation_range | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"1min"`      | The upper bound for the temporal extension of a value group to be considered an isolated group. See condition (4). Only relevant if `group_size` > 1. |
 
+| parameter    | data type                                                     | default value | description                                                            |
+|--------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------|
+| group_window | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Maximum size of an isolated group, see condition (1).                  |
+| gap_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Minimum size of the gap separating isolated, see condition (2) and (3) |
 
-The function flags isolated values / value groups. 
-Isolated values are values / value groups,
-that, in a range of `window`,
-are surrounded either by already flagged or missing values only.
+The function flags arbitrary large groups of values, if they are surrounded by sufficiently
+large data gaps. A gap is defined as group of missing and/or flagged values.
 
-The function defaults to flag isolated single values only. But the parameters 
-allow for detections of more complex isolation definitions, including groups 
-of isolated values.
-
-A continuous group of timeseries values 
-$`x_{k}, x_{k+1},...,x_{k+n}`$ is considered to be "isolated", if:
-
-1. There are no values, preceeding $`x_{k}`$ within `window` or all the 
-   preceeding values within this range are flagged
-2. There are no values, succeeding $`x_{k+n}`$, within `window`, or all the 
-   succeeding values within this range are flagged
-3. $`n \leq `$ `group_size`
-4. $` |y_{k} - y_{n+k}| < `$ `continuation_range`, with $`y `$, denoting the series
-   of timestamps associated with $`x`$. 
+A continuous group of values
+$`x_{k}, x_{k+1},...,x_{k+n}`$ with timestamps $`t_{k}, t_{k+1}, ..., t_{k+n}`$
+is considered to be isolated, if:
+1. $` t_{k+n} - t_{k} <= `$ `group_window`
+2. None of the values $` x_i, ..., x_{k-1} `$, with $`t_{k-1} - t_{i} >= `$ `gap_window` is valid and unflagged
+3. None of the values $` x_{k+n+1}, ..., x_{j} `$, with $`t_{k+n+1} - t_{j} >= `$ `gap_window` is valid and unflagged
 
 
 ### missing

@@ -4,7 +4,7 @@
 import numpy as np
 import pandas as pd
 
-from saqc.lib.tools import sesonalMask, flagWindow
+from saqc.lib.tools import sesonalMask, flagWindow, groupConsecutives
 
 from saqc.funcs.register import register
 
@@ -117,57 +117,29 @@ def flagIsolated(
     data,
     field,
     flagger,
-    window,
-    group_size=1,
-    continuation_range="10min",
+    gap_window,
+    group_window,
     **kwargs,
 ):
 
-    dat_col = data.loc[~flagger.isFlagged(field), field].dropna()
+    gap_window = pd.tseries.frequencies.to_offset(gap_window)
+    group_window = pd.tseries.frequencies.to_offset(group_window)
 
-    gap_check = dat_col.rolling(window).count()
-    gap_check = gap_check[(gap_check.index[0] + pd.Timedelta(window)) :]
+    col = data[field].mask(flagger.isFlagged(field))
+    mask = col.isnull()
 
-    if group_size == 1:
-        # isolated single values are much easier to identify:
-        # exclude series initials:
-        # reverse rolling trick:
-        isolated_indices = gap_check[
-            (gap_check[::-1].rolling(2).sum() == 2)[::-1].values
-        ].index
+    flags = pd.Series(data=0, index=col.index, dtype=bool)
+    for srs in groupConsecutives(mask):
+        if np.all(~srs):
+            start = srs.index[0]
+            stop = srs.index[-1]
+            if stop - start <= group_window:
+                left = mask[start-gap_window:start].iloc[:-1]
+                if left.count() and left.all():
+                    right = mask[stop:stop+gap_window].iloc[1:]
+                    if right.count() and right.all():
+                        flags[start:stop] = True
 
-    else:
-        # check, which groups are centered enough for being isolated
-        continuation_check = gap_check.rolling(continuation_range).count()
-        # check which values are sparsely enough surrounded
-        gap_check = (
-            gap_check[::-1]
-            .rolling(2)
-            .apply(
-                lambda x: int((x[0] == 1) & (x[1] <= group_size)),
-                raw=False,
-            )
-        )
-        gap_check = gap_check[::-1] == 1
-        isolated_indices = gap_check[gap_check].index
-        # check if the isolated values groups are sufficiently centered:
-        isolated_indices = isolated_indices[
-            continuation_check[isolated_indices] <= group_size
-        ]
-        # propagate True value onto entire isolated group
-        # NOTE:
-        # will not work with bfill method, because its not sure the frequency
-        # grid is actually equidistant - so here comes the rolling reverse
-        # trick for offset defined windows again
-        gap_check[:] = np.nan
-        gap_check.loc[isolated_indices] = True
-        original_index = gap_check.index
-        gap_check = gap_check[::-1]
-        pseudo_increasing_index = gap_check.index[0] - gap_check.index
-        gap_check.index = pseudo_increasing_index
-        gap_check = gap_check.rolling(continuation_range).count().notna()[::-1]
-        isolated_indices = original_index[gap_check.values]
-
-    flagger = flagger.setFlags(field, isolated_indices, **kwargs)
+    flagger = flagger.setFlags(field, flags, **kwargs)
 
     return data, flagger
