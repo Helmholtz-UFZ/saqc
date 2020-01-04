@@ -57,6 +57,7 @@ spikes_simpleMad(window="1h", z=3.5)
 | z         | float                                   | `3.5`         | z-parameter of the modified Z-score                                  |
 
 This functions flags outliers using the simple median absolute deviation test.
+
 Values are flagged if they fulfill the following condition within a sliding window:
 
 ```math
