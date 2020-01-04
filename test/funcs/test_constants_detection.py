@@ -23,7 +23,7 @@ def data():
 def test_flagConstants(data, flagger):
     idx = np.array([5, 6, 7, 8, 9, 10, 18, 19, 20, 21])
     data.iloc[idx] = 200
-    expected = np.arange(5, 25)
+    expected = np.arange(5, 22)
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
     data, flagger_result = flagConstant(

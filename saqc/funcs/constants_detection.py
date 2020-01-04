@@ -9,49 +9,28 @@ from saqc.lib.statistic_functions import varQC
 from saqc.lib.tools import (
     valueRange,
     slidingWindowIndices,
-    retrieveTrustworthyOriginal
+    retrieveTrustworthyOriginal,
+    groupConsecutives
 )
 
-# # TODO: maybe generalize flag_constant to work on non harmonized data as well.
-# @register("constant")
-# def flagConstant(data, field, flagger, eps, window, **kwargs):
 
-#     window = pd.tseries.frequencies.to_offset(window)
-#     def _func(ts):
-#         if np.all(ts) and (ts.index[-1] - ts.index[0]) >= window:
-#             return ts
-#         return ts & False
-
-#     diffs = data[field].diff().abs().le(eps)
-#     mask = diffs.groupby(diffs).apply(_func)
-#     # import ipdb; ipdb.set_trace()
-#     # NOTE: the first value of a constant period is missed by the groupby
-#     mask[np.where(mask)[0] - 1] = True
-
-#     flagger = flagger.setFlags(field, mask, **kwargs)
-#     return data, flagger
-
-# TODO: maybe generalize flag_constant to work on non harmonized data as well.
 @register("constant")
 def flagConstant(data, field, flagger, eps, window, **kwargs):
 
     window = pd.tseries.frequencies.to_offset(window)
 
-    def _func(grp):
-        out = grp.astype(bool)
-        if grp.index[-1] - grp.index[0] >= window:
-            values = np.sort(grp.values)
-            if values[-1] - values[0] <= eps:
-                out |= True
-        return out
-
     col = data[field]
-    mask = col.diff().le(eps)
-    # NOTE: we want to mark both values when the diff is below eps
-    mask[np.where(mask)[0] - 1] = True
+    index = col.index
+    flagger_mask = pd.Series(data=np.zeros_like(col), index=index, name=field, dtype=bool)
 
-    flagger_mask = (~mask).cumsum().to_frame().groupby(field).apply(_func)
-    flagger = flagger.setFlags(field, mask, **kwargs)
+    for srs in groupConsecutives(col.diff().abs().le(eps)):
+        if np.all(srs):
+            start = index[index.get_loc(srs.index[0]) - 1]
+            stop = srs.index[-1]
+            if stop - start >= window:
+                flagger_mask[start:stop] = True
+
+    flagger = flagger.setFlags(field, flagger_mask, **kwargs)
     return data, flagger
 
 
