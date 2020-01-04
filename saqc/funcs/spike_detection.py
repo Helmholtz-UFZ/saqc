@@ -84,7 +84,8 @@ def flagSpikes_slidingZscore(
         )
 
     # prepare the method
-    if method == "modZ":
+    method = method.lower()
+    if method == "modz":
 
         def _calc(residual):
             diff = np.abs(residual - np.median(residual))
