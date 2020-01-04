@@ -20,7 +20,7 @@ from saqc.lib.tools import (
 
 @register("spikes_slidingZscore")
 def flagSpikes_slidingZscore(
-    data, field, flagger, winsz, dx, count=1, deg=1, z=3.5, method="modZ", **kwargs
+    data, field, flagger, window, offset, count=1, deg=1, z=3.5, method="modZ", **kwargs
 ):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
@@ -50,17 +50,17 @@ def flagSpikes_slidingZscore(
     """
 
     use_offset = False
-    dx_s = dx
-    winsz_s = winsz
+    dx_s = offset
+    winsz_s = window
     # check param consistency
-    if isinstance(winsz, str) or isinstance(dx, str):
-        if isinstance(winsz, str) and isinstance(dx, str):
+    if isinstance(window, str) or isinstance(offset, str):
+        if isinstance(window, str) and isinstance(offset, str):
             use_offset = True
-            dx_s = offset2seconds(dx)
-            winsz_s = offset2seconds(winsz)
+            dx_s = offset2seconds(offset)
+            winsz_s = offset2seconds(window)
         else:
             raise TypeError(
-                f"`winsz` and `dx` must both be an offset or both be numeric, {winsz} and {dx} was passed"
+                f"`winsz` and `dx` must both be an offset or both be numeric, {window} and {offset} was passed"
             )
 
     # check params
@@ -116,7 +116,7 @@ def flagSpikes_slidingZscore(
             for i in range(0, len(arr) - wsz + 1, step):
                 yield i, i + wsz
 
-    for start, end in _loopfun(d.index, winsz, dx):
+    for start, end in _loopfun(d.index, window, offset):
         # mask points that have been already discarded
         mask = counters[start:end] > 0
         indices = all_indices[all_indices[start:end][mask]]
@@ -144,7 +144,7 @@ def flagSpikes_slidingZscore(
 
 
 @register("spikes_simpleMad")
-def flagSpikes_simpleMad(data, field, flagger, winsz, z=3.5, **kwargs):
+def flagSpikes_simpleMad(data, field, flagger, window, z=3.5, **kwargs):
     """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
 
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
@@ -160,9 +160,9 @@ def flagSpikes_simpleMad(data, field, flagger, winsz, z=3.5, **kwargs):
     :param z:           Float. The value the Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
     """
     d = data[field].copy().mask(flagger.isFlagged(field))
-    median = d.rolling(window=winsz, closed="both").median()
+    median = d.rolling(window=window, closed="both").median()
     diff = (d - median).abs()
-    mad = diff.rolling(window=winsz, closed="both").median()
+    mad = diff.rolling(window=window, closed="both").median()
     mask = (mad > 0) & (0.6745 * diff > z * mad)
     # NOTE:
     # In pandas <= 0.25.3, the window size is not fixed if the
@@ -173,16 +173,16 @@ def flagSpikes_simpleMad(data, field, flagger, winsz, z=3.5, **kwargs):
     # unfortunate, as the size of calculation base might differ
     # heavily. So don't flag something until, the window reaches
     # its target size
-    if not isinstance(winsz, int):
+    if not isinstance(window, int):
         index = mask.index
-        mask.loc[index < index[0] + pd.to_timedelta(winsz)] = False
+        mask.loc[index < index[0] + pd.to_timedelta(window)] = False
 
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
 
 @register("spikes_basic")
-def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window_size="15min", **kwargs):
+def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window="15min", **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -219,7 +219,7 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window_size="1
     pre_jumps = pre_jumps[pre_jumps]
     # get all the entries preceeding a significant jump and its successors within "length" range
     to_roll = pre_jumps.reindex(
-        dataseries.index, method="ffill", tolerance=window_size, fill_value=False
+        dataseries.index, method="ffill", tolerance=window, fill_value=False
     ).dropna()
 
     # define spike testing function to roll with:
@@ -248,7 +248,7 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window_size="1
 
     # now lets roll:
     to_roll = (
-        to_roll.rolling(window_size, closed="both")
+        to_roll.rolling(window, closed="both")
         .apply(spike_tester, args=(pre_jump_reversed_index, thresh, tolerance), raw=False)
         .astype(int)
     )
@@ -275,10 +275,10 @@ def flagSpikes_spektrumBased(
     raise_factor=0.15,
     dev_cont_factor=0.2,
     noise_barrier=1,
-    noise_window_range="12h",
+    noise_window="12h",
     noise_statistic="CoVar",
     smooth_poly_order=2,
-    filter_window_size=None,
+    filter_window=None,
     **kwargs,
 ):
     """
@@ -357,10 +357,10 @@ def flagSpikes_spektrumBased(
     if noise_statistic == "rVar":
         noise_func = pd.Series.std
 
-    if filter_window_size is None:
-        filter_window_size = 3*pd.Timedelta(data_rate)
+    if filter_window is None:
+        filter_window = 3*pd.Timedelta(data_rate)
     else:
-        filter_window_size = pd.Timedelta(filter_window_size)
+        filter_window = pd.Timedelta(filter_window)
 
     quotient_series = dataseries / dataseries.shift(+1)
     spikes = (quotient_series > (1 + raise_factor)) | (
@@ -374,7 +374,7 @@ def flagSpikes_spektrumBased(
 
     # calculate some values, repeatedly needed in the course of the loop:
 
-    filter_window_seconds = filter_window_size.seconds
+    filter_window_seconds = filter_window.seconds
     smoothing_periods = int(np.ceil((filter_window_seconds / data_rate.n)))
     lower_dev_bound = 1 - dev_cont_factor
     upper_dev_bound = 1 + dev_cont_factor
@@ -383,8 +383,8 @@ def flagSpikes_spektrumBased(
         smoothing_periods += 1
 
     for spike in spikes.index:
-        start_slice = spike - filter_window_size
-        end_slice = spike + filter_window_size
+        start_slice = spike - filter_window
+        end_slice = spike + filter_window
 
         scnd_derivate = savgol_filter(
             dataseries[start_slice:end_slice],
@@ -400,8 +400,8 @@ def flagSpikes_spektrumBased(
 
         if lower_dev_bound < test_ratio_1 < upper_dev_bound:
             # apply noise condition:
-            start_slice = spike - pd.Timedelta(noise_window_range)
-            end_slice = spike + pd.Timedelta(noise_window_range)
+            start_slice = spike - pd.Timedelta(noise_window)
+            end_slice = spike + pd.Timedelta(noise_window)
             test_slice = dataseries[start_slice:end_slice].drop(spike)
             test_ratio_2 = np.abs(noise_func(test_slice) / test_slice.mean())
             # not a spike, we want to flag, if condition not satisfied:

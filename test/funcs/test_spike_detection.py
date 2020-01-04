@@ -59,9 +59,9 @@ def test_slidingOutlier(spiky_data, flagger, method):
     flagger = flagger.initFlags(data)
 
     tests = [
-        flagSpikes_slidingZscore(data, field, flagger, winsz=300, dx=50, method=method),
+        flagSpikes_slidingZscore(data, field, flagger, window=300, offset=50, method=method),
         flagSpikes_slidingZscore(
-            data, field, flagger, winsz="1500min", dx="250min", method=method
+            data, field, flagger, window="1500min", offset="250min", method=method
         ),
     ]
 
@@ -82,4 +82,3 @@ def test_flagSpikes_Basic(spiky_data, flagger):
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
-

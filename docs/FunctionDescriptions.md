@@ -205,30 +205,31 @@ See also:
 
 ### spikes_slidingZscore
 
-Detect outlier/spikes by a given method in a sliding window.
 
 ```
-spikes_slidingZscore(winsz="1h", dx="1h", count=1, deg=1, z=3.5, method="modZ")
+spikes_slidingZscore(window="1h", offset="1h", count=1, deg=1, z=3.5, method="modZ")
 ```
 
 | parameter | data type                                                             | default value | description                                                 |
 |-----------|-----------------------------------------------------------------------|---------------|-------------------------------------------------------------|
 | window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | size of the sliding window                                  |
-| dx        | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | offset between two consecutive windows                      |
+| offset    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | offset between two consecutive windows                      |
 | count     | integer                                                               | `1`           | the minimal count, a possible outlier needs, to be flagged  |
 | deg       | integer                                                               | `1"`          | the degree of the polynomial fit, to calculate the residual |
 | z         | float                                                                 | `3.5`         | z-parameter for the *method* (see description)              |
 | method    | string                                                                | `"modZ"`      | the method outlier are detected with                        |
 
+Detect outlier/spikes using a given method within sliding windows.
+
 NOTE:
- - `window` and `dx` must be of same type, mixing of offset and integer is not supported and will fail
+ - `window` and `offset` must be of same type, mixing of offset and integer is not supported and will fail
  - offset-strings only work with time-series-like data
 
 The algorithm works as follows:
   1.  a window of size `window` is cut from the data
   2.  normalization - the data is fit by a polynomial of the given degree `deg`, which is subtracted from the data
   3.  the outlier detection `method` is applied on the residual, possible outlier are marked
-  4.  the window (on the data) is moved by `dx`
+  4.  the window (on the data) is moved by `offset`
   5.  start over from 1. until the end of data is reached
   6.  all potential outliers, that are detected `count`-many times, are flagged as outlier 
 
@@ -263,22 +264,19 @@ spikes_spektrumBased(raise_factor=0.15, dev_cont_factor=0.2,
                      smooth_poly_order=2, filter_window_size=None)
 ```
 
-| parameter          | data type          | default value | description                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ------             | ------             | ------        | ----                                                                                                                                                                                                                                                                                                                                                                                                               |
-| raise_factor       | float              | `0.15`        | Minimum margin of value change, a datapoint has to represent, to become a candidate for a spike. See condition (1).                                                                                                                                                                                                                                                                                                                        |
-| dev_cont_factor    | float              | `0.2`         | See condition (2).                                                                                                                                                                                                                                                                                                                                                                                                 |
-| noise_barrier      | float              | `1`           | Upper bound for noisyness of data surrounding potential spikes. See condition (3).                                                                                                                                                                                                                                                                                                                                 |
-| noise_window_range | string             | `"12h"`       | Any offset string. Determines the range of the time window of the "surrounding" data of a potential spike. See condition (3).                                                                                                                                                                                                                                                                                       |
-| noise_statistic    | string             | `"CoVar"`     | Operator to calculate noisyness of data, surrounding potential spikes. Either `"Covar"` (=Coefficient od Variation) or `"rvar"` (=relative Variance).                                                                                                                                                                                                                                                               |
-| smooth_poly_order  | integer            | `2`           | Order of the polynomial fit, applied with savitsky-Golay-filter.                                                                                                                                                                                                                                                                                                                                                                 |
-| filter_window_size | string             | `None`        | Any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If `None` (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If unsure, do not change that value. |
+| parameter         | data type                                                     | default value | description                                                                                                                                                                                                                  |
+|-------------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| raise_factor      | float                                                         | `0.15`        | Minimum margin of value change, a datapoint has to represent, to become a candidate for a spike. See condition (1).                                                                                                          |
+| dev_cont_factor   | float                                                         | `0.2`         | See condition (2).                                                                                                                                                                                                           |
+| noise_barrier     | float                                                         | `1`           | Upper bound for noisyness of data surrounding potential spikes. See condition (3).                                                                                                                                           |
+| noise_window      | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | offset string. Determines the range of the time window of the "surrounding" data of a potential spike. See condition (3).                                                                                                    |
+| noise_statistic   | string                                                        | `"CoVar"`     | Operator to calculate noisyness of data, surrounding potential spikes. Either `"Covar"` (=Coefficient of Variation) or `"rvar"` (=relative Variance).                                                                        |
+| smooth_poly_order | integer                                                       | `2`           | Order of the polynomial fit, applied with Savitsky-Golay-filter.                                                                                                                                                             |
+| filter_window     | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | Controls the range of the smoothing window applied with the Savitsky-Golay filter. If `None` (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If unsure, do not change that value. |
 
 
 The function detects and flags spikes in input data series by evaluating the
-the timeseries' derivatives and applying some conditions to them.
-
-NOTE, that the datast-to-be flagged is supposed to be harmonized to a timeseries with an
-equadistant frequency grid.
+timeseries' derivatives and applying some conditions to them.
 
 A datapoint $`x_k`$ of a dataseries $`x`$,
 is considered a spike, if:
@@ -286,20 +284,22 @@ is considered a spike, if:
 1. The quotient to its preceeding datapoint exceeds a certain bound:
     * $` |\frac{x_k}{x_{k-1}}| > 1 + `$ `raise_factor`, or
     * $` |\frac{x_k}{x_{k-1}}| < 1 - `$ `raise_factor`
-2. The quotient of the datas second derivate $`x''`$, at the preceeding
+2. The quotient of the data's second derivative $`x''`$, at the preceeding
    and subsequent timestamps is close enough to 1:
     * $` |\frac{x''_{k-1}}{x''_{k+1}} | > 1 - `$ `dev_cont_factor`, and
     * $` |\frac{x''_{k-1}}{x''_{k+1}} | < 1 + `$ `dev_cont_factor`   
-3. The dataset, $`X_k`$, surrounding $`x_{k}`$, within `noise_window_range` range,
-   but excluding $`x_{k}`$, is not too noisy. Wheras the noisyness gets measured
+3. The dataset, $`X_k`$, surrounding $`x_{k}`$, within `noise_window` range,
+   but excluding $`x_{k}`$, is not too noisy. Whereas the noisyness gets measured
    by `noise_statistic`:
     * `noise_statistic`$`(X_k) <`$ `noise_barrier`
 
-NOTE, that the derivative is calculated after applying a Savitsky-Golay filter
-to $`x`$.
+NOTE:
+- The dataset is supposed to be harmonized to a timeseries with an equidistant frequency grid
+- The derivative is calculated after applying a Savitsky-Golay filter to $`x`$
+
 
 This function is a generalization of the Spectrum based Spike flagging
-mechanism as presented in:
+mechanism presented in:
 
 Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
 Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
