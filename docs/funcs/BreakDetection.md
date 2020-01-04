@@ -24,25 +24,32 @@ breaks_spektrumBased(thresh_rel=0.1, thresh_abs=0.01,
 | smooth_window         | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | Size of the smoothing window of the Savitsky-Golay filter. The default value `None` results in a window of two times the sampling rate (i.e. three values) |
 | smooth_poly_deg       | integer                                                       | `2`           | Degree of the polynomial used for smoothing with the Savitsky-Golay filter                                                                                 |
 
-
 The function flags breaks (jumps/drops) by evaluating the derivatives of a time series.
 
 A value $`x_k`$ of a time series $`x_t`$ with timestamps $`t_i`$, is considered to be a break, if:
 
 1. $`x_k`$ represents a sufficiently large relative jump:
-    * $`|\frac{x_k - x_{k-1}}{x_k}| >`$ `thresh_rel`
+
+   $`|\frac{x_k - x_{k-1}}{x_k}| >`$ `thresh_rel`
+
 2. $`x_k`$ represents a sufficient absolute jump:
-    * $`|x_k - x_{k-1}| >`$ `thresh_abs`
-3. The dataset $`X = x_i, ..., x_{k-1}, x_{k+1}, ..., x_j`$, with  
-   $`|t_{k-1} - t_i| = |t_j - t_{k+1}| =`$ `first_der_window` fulfills the following condition:
+
+   $`|x_k - x_{k-1}| >`$ `thresh_abs`
+
+3. The dataset $`X = x_i, ..., x_{k-1}, x_{k+1}, ..., x_j`$, with $`|t_{k-1} - t_i| = |t_j - t_{k+1}| =`$ `first_der_window`
+   fulfills the following condition:
    
-   $`|x'_k| >`$ `first_der_factor` $` \times \bar{X} `$
+   $`|x'_k| >`$ `first_der_factor` $` \cdot \bar{X} `$
    
    where $`\bar{X}`$ denotes the arithmetic mean of $`X`$.
+
 4. The ratio (last/this) of the second derivatives is close to 1:
-    * $` 1 -`$ `scnd_der_ratio_range` $`< |\frac{x''_{k-1}}{x_{k''}}| < 1 + `$`scnd_der_ratio_range`
+
+   $` 1 -`$ `scnd_der_ratio_range` $`< |\frac{x''_{k-1}}{x_{k''}}| < 1 + `$`scnd_der_ratio_range`
+
 5. The ratio (this/next) of the second derivatives is sufficiently height:
-    * $`|\frac{x''_{k}}{x''_{k+1}}| > `$`scnd_der_ratio_thresh`
+
+   $`|\frac{x''_{k}}{x''_{k+1}}| > `$`scnd_der_ratio_thresh`
 
 NOTE:
 - Only works for time series
