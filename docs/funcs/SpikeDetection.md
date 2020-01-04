@@ -108,23 +108,22 @@ The algorithm works as follows:
 ### Outlier Detection Methods
 Currently two outlier detection methods are implemented:
 
-1. **zscore** (Z-score):
-  Marks every value as a possible outlier, which fulfills the follwing condition:
-  ```math
-   |r - m| > s * z
-  ```
-  where $`r`$ denotes the residual, $`m`$ the residual mean, $`s`$ the residual
-  standard deviation, and $`z`$ the $`z`$-parameter.
+1. `zscore`: The Z-score marks every value as a possible outlier, which fulfills the follwing condition:
 
-2. **modZ** (modified Z-score):
-  Marks every value as a possible outlier, which fulfills the follwing condition:
+   ```math
+    |r - m| > s * z
+   ```
+   where $`r`$ denotes the residual, $`m`$ the residual mean, $`s`$ the residual
+   standard deviation, and $`z`$ the $`z`$-parameter.
 
-  ```math
-   0.6745 * |r - m| > mad * z > 0
-  ```
+2. "modZ": The modified Z-score Marks every value as a possible outlier, which fulfills the follwing condition:
 
-  where $`r`$ denotes the residual, $`m`$ the residual mean, $`mad`$ the residual median absolute
-  deviation, and $`z`$ the $`z`$-parameter.
+   ```math
+    0.6745 * |r - m| > mad * z > 0
+   ```
+
+   where $`r`$ denotes the residual, $`m`$ the residual mean, $`mad`$ the residual median absolute
+   deviation, and $`z`$ the $`z`$-parameter.
 
 ### References
 [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
@@ -167,12 +166,6 @@ is considered a spike, if:
    by `noise_func`:
     * `noise_func`$`(X_k) <`$ `noise_thresh`
 
-### Noise Detection Functions
-Currently two different noise detection functions are implemented:
-- `"CoVar"`: Coefficient of Variation
-- `"rVar"`: relative Variance
-
-
 NOTE:
 - The dataset is supposed to be harmonized to a timeseries with an equidistant frequency grid
 - The derivative is calculated after applying a Savitsky-Golay filter to $`x`$
@@ -180,10 +173,15 @@ NOTE:
   This function is a generalization of the Spectrum based Spike flagging
   mechanism presented in [1]
 
-References:
-  [1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
-      Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
-      doi:10.2136/vzj2012.0097.
+### Noise Detection Functions
+Currently two different noise detection functions are implemented:
+- `"CoVar"`: Coefficient of Variation
+- `"rVar"`: relative Variance
 
+
+### References
+[1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
+    Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
+    doi:10.2136/vzj2012.0097.
 
 [offset-strings]: docs/ParameterDescriptions.md#offset-strings
