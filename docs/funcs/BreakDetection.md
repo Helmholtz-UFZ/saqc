@@ -15,9 +15,9 @@ breaks_spektrumBased(thresh_rel=0.1, thresh_abs=0.01,
 | parameter               | data type                                                     | default value | description                                                                                                                                                           |
 |-------------------------|---------------------------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | thresh_rel              | float                                                         | `0.1`         | Minimum relative difference between two values to consider the latter as break candidate. See condition (1)                                                           |
-| thresh_abs              | float                                                         | `0.01`        | Minimum relative difference between two values to consider the latter as break candidate. See condition (2)                                                           |
+| thresh_abs              | float                                                         | `0.01`        | Minimum abosulte difference between two values to consider the latter as break candidate. See condition (2)                                                           |
 | first_der_factor        | float                                                         | `10`          | Factor of the first derivates "arithmetic middle bound". See condition (3).                                                                                           |
-| first_der_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | Determining the size of the window, covering all the values included in the the arithmetic middle calculation of condition (3).                                       |
+| first_der_window        | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | Determining the size of the window, covering all the values included in the the arithmetic middle calculation of condition (3)                                       |
 | scnd_der_ratio_margin_1 | float                                                         | `0.05`        | Range of the area, covering all the values of the second derivatives quotient, that are regarded "sufficiently close to 1" for signifying a break. See condition (5). |
 | scnd_der_ratio_margin_2 | float                                                         | `10.0`        | Lower bound for the break succeeding second derivatives quotients. See condition (5).                                                                                 |
 | smooth                  | bool                                                          | `True`        | Smooth the timeseries before differenciation using the Savitsky-Golay filter                                                                                          |
@@ -27,7 +27,7 @@ breaks_spektrumBased(thresh_rel=0.1, thresh_abs=0.01,
 
 The function flags breaks (jumps/drops) by evaluating the derivatives of a time series.
 
-A value $`x_k`$ of a data series $`x`$, is flagged a break, if:
+A value $`x_k`$ of a data series $`x`$, is considered to be a break, if:
 
 1. $`x_k`$ represents a sufficiently large relative jump:
     * $`|\frac{x_k - x_{k-1}}{x_k}| >`$ `thresh_rel`
@@ -35,9 +35,9 @@ A value $`x_k`$ of a data series $`x`$, is flagged a break, if:
     * $`|x_k - x_{k-1}| >`$ `thresh_abs`
 3. Let $`X_k`$ be the set of all values that lie within a `first_der_window` range around $`x_k`$. Then, for its arithmetic mean $`\bar{X_k}`$, following equation has to hold:
     * $`|x'_k| >`$ `first_der_factor` $` \times \bar{X_k} `$
-4. The second derivations quatients are "sufficiently equalling 1":
+4. The quotient of the second derivatives is close to 1:
     * $` 1 -`$ `scnd_der_ratio_margin_1` $`< |\frac{x''_{k-1}}{x_{k''}}| < 1 + `$`scnd_der_ratio_margin_1`
-5. The the succeeding second derivatives values quotient has to be sufficiently high:
+5. The quotient of the seconde derivatives is sufficiently hight:
     * $`|\frac{x''_{k}}{x''_{k+1}}| > `$`scnd_der_ratio_margin_2`
 
 NOTE:
