@@ -15,15 +15,15 @@ def flagBreaks_spektrumBased(
     data,
     field,
     flagger,
-    rel_change_min=0.1,
-    abs_change_min=0.01,
+    thresh_rel=0.1,
+    thresh_abs=0.01,
     first_der_factor=10,
     first_der_window_range="12h",
     scnd_der_ratio_margin_1=0.05,
     scnd_der_ratio_margin_2=10,
     smooth_poly_order=2,
     diff_method="savgol",
-    filter_window_size=None,
+    filter_window=None,
     **kwargs
 ):
 
@@ -36,7 +36,7 @@ def flagBreaks_spektrumBased(
     A measurement y_t is flagged a, break, if:
 
     (1) y_t is changing relatively to its preceeding value by at least (100*rel_change_rate_min) percent
-    (2) y_(t-1) is difffering from its preceeding value, by a margin of at least "abs_change_min"
+    (2) y_(t-1) is difffering from its preceeding value, by a margin of at least "thresh_abs"
     (3) Absolute first derivative |(y_t)'| has to be at least "first_der_factor" times as big as the arithmetic middle
         over all the first derivative values within a 2 times "first_der_window_size" hours window, centered at t.
     (4) The ratio of the second derivatives at t and t+1 has to be "aproximately" 1.
@@ -68,12 +68,12 @@ def flagBreaks_spektrumBased(
        :param diff_method:                 String. Method for obtaining dataseries' derivatives.
                                            'raw': Just take series step differences (default)
                                            'savgol': Smooth data with a Savitzky Golay Filter before differentiating.
-       :param filter_window_size:          Offset string. Size of the filter window, used to calculate the derivatives.
+       :param filter_window:               Offset string. Size of the filter window, used to calculate the derivatives.
                                            (relevant only, if: diff_method='savgol')
        :param smooth_poly_order:           Integer. Polynomial order, used for smoothing with savitzk golay filter.
                                            (relevant only, if: diff_method='savgol')
-       :param rel_change_min          Float in [0,1]. See (1) of function descritpion above to learn more
-       :param abs_change_min               Float > 0. See (2) of function descritpion above to learn more.
+       :param thresh_rel          Float in [0,1]. See (1) of function descritpion above to learn more
+       :param thresh_abs               Float > 0. See (2) of function descritpion above to learn more.
        :param first_der_factor             Float > 0. See (3) of function descritpion above to learn more.
        :param first_der_window_range        Offset_String. See (3) of function description to learn more.
        :param scnd_der_ratio_margin_1      Float in [0,1]. See (4) of function descritpion above to learn more.
@@ -83,20 +83,20 @@ def flagBreaks_spektrumBased(
     # retrieve data series input at its original sampling rate
     dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
-    if filter_window_size is None:
-        filter_window_size = 3 * pd.Timedelta(data_rate)
+    if filter_window is None:
+        filter_window = 3 * pd.Timedelta(data_rate)
     else:
-        filter_window_size = pd.Timedelta(filter_window_size)
+        filter_window = pd.Timedelta(filter_window)
 
     # relative - change - break criteria testing:
     abs_change = np.abs(dataseries.shift(+1) - dataseries)
-    breaks = (abs_change > abs_change_min) & (
-            abs_change / dataseries > rel_change_min
+    breaks = (abs_change > thresh_abs) & (
+            abs_change / dataseries > thresh_rel
     )
     breaks = breaks[breaks == True]
 
     # First derivative criterion
-    smoothing_periods = int(np.ceil((filter_window_size.seconds / data_rate.n)))
+    smoothing_periods = int(np.ceil((filter_window.seconds / data_rate.n)))
     if smoothing_periods % 2 == 0:
         smoothing_periods += 1
 
