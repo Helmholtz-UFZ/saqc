@@ -20,28 +20,28 @@ from saqc.lib.tools import (
 
 @register("spikes_slidingZscore")
 def flagSpikes_slidingZscore(
-    data, field, flagger, window, offset, count=1, deg=1, z=3.5, method="modZ", **kwargs
+    data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs
 ):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
 
     The steps are:
-    1.  a window of size `winsz` is cut from the data
-    2.  the data is fit by a polynomial of the given degree `deg`
+    1.  a window of size `window` is cut from the data
+    2.  the data is fit by a polynomial of the given degree `polydeg`
     3.  the outlier `method` detect potential outlier
-    4.  the window is continued by `dx` to the next data-slot.
+    4.  the window is continued by `offset` to the next data-slot.
     5.  processing continue at 1. until end of data.
     6.  all potential outlier, that are detected `count`-many times, are promoted to real outlier and flagged by the `flagger`
 
     :param data:        pandas dataframe. holding the data
     :param field:       fieldname in `data`, which holds the relevant infos
     :param flagger:     flagger.
-    :param winsz:       int or time-offset string (see [2]). The size of the window the outlier detection is run in. default: 1h
-    :param dx:          int or time-offset string (see [2]). Stepsize the window is set further. default: 1h
+    :param window:      int or time-offset string (see [2]). The size of the window the outlier detection is run in. default: 1h
+    :param offset:      int or time-offset string (see [2]). Stepsize the window is set further. default: 1h
     :param method:      str. `modZ`  or `zscore`. see [1] at section `Z-Scores and Modified Z-Scores`
     :param count:       int. this many times, a datapoint needs to be detected in different windows, to be finally
                         flagged as outlier
-    :param deg:         int. The degree for the polynomial fit, to calculate the residuum
+    :param polydeg:     The degree for the polynomial fit, to calculate the residuum
     :param z:           float. the value the (mod.) Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
 
     Links:
@@ -60,12 +60,12 @@ def flagSpikes_slidingZscore(
             winsz_s = offset2seconds(window)
         else:
             raise TypeError(
-                f"`winsz` and `dx` must both be an offset or both be numeric, {window} and {offset} was passed"
+                f"`window` and `offset` must both be an offset or both be numeric, {window} and {offset} was passed"
             )
 
     # check params
-    if deg < 0:
-        raise ValueError("deg must be positive")
+    if polydeg < 0:
+        raise ValueError("polydeg must be positive")
     if z < 0:
         raise ValueError("z must be positive")
     if count <= 0:
@@ -75,12 +75,12 @@ def flagSpikes_slidingZscore(
         pass
     elif dx_s >= winsz_s and count > 1:
         ValueError(
-            "If stepsize `dx` is bigger that the window-size, every value is seen just once, so use count=1"
+            "If stepsize `offset` is bigger that the window-size, every value is seen just once, so use count=1"
         )
     elif count > winsz_s // dx_s:
         raise ValueError(
-            f"Adjust `dx`, `stepsize` or `winsz`. A single data point is "
-            f"seen `floor(winsz / dx) = {winsz_s // dx_s}` times, but count is set to {count}"
+            f"Adjust `offset`, `stepsize` or `window`. A single data point is "
+            f"seen `floor(window / offset) = {winsz_s // dx_s}` times, but count is set to {count}"
         )
 
     # prepare the method
@@ -127,7 +127,7 @@ def flagSpikes_slidingZscore(
             continue
 
         # get residual
-        coef = poly.polyfit(xchunk, ychunk, deg)
+        coef = poly.polyfit(xchunk, ychunk, polydeg)
         model = poly.polyval(xchunk, coef)
         residual = ychunk - model
 
@@ -273,11 +273,11 @@ def flagSpikes_spektrumBased(
     field,
     flagger,
     raise_factor=0.15,
-    dev_cont_factor=0.2,
-    noise_barrier=1,
+    deriv_factor=0.2,
+    noise_thresh=1,
     noise_window="12h",
-    noise_statistic="CoVar",
-    smooth_poly_order=2,
+    noise_func="CoVar",
+    ploy_deg=2,
     filter_window=None,
     **kwargs,
 ):
@@ -293,9 +293,9 @@ def flagSpikes_spektrumBased(
     (1) the quotient to its preceeding datapoint exceeds a certain bound
     (controlled by param "raise_factor")
     (2) the quotient of the datas second derivate at the preceeding and subsequent timestamps is close enough to 1.
-    (controlled by param "dev_cont_factor")
+    (controlled by param "deriv_factor")
     (3) the surrounding data is not too noisy. (Coefficient of Variation[+/- noise_window] < 1)
-    (controlled by param "noise_barrier")
+    (controlled by param "noise_thresh")
 
     Some things you should be conscious about when applying this test:
 
@@ -309,53 +309,50 @@ def flagSpikes_spektrumBased(
        but can be switched to coefficient of variance, by assignment to parameter "noise statistic".
 
 
-
-
-       :param data:                        The pandas dataframe holding the data-to-be flagged.
-                                           Data must be indexed by a datetime series and be harmonized onto a
-                                           time raster with seconds precision.
-       :param field:                       Fieldname of the Soil moisture measurements field in data.
-       :param flagger:                     A flagger - object. (saqc.flagger.X)
-       :param filter_window_size:          Offset string. Size of the filter window, used to calculate the derivatives.
-                                           (relevant only, if: diff_method='savgol')
-       :param smooth_poly_order:           Integer. Polynomial order, used for smoothing with savitzk golay filter.
-                                           (relevant only, if: diff_method='savgol')
-       :param raise_factor:                A float, determinating the bound, the quotient of two consecutive values
-                                           has to exceed, to be regarded as potentially spike. A value of 0.x will
-                                           trigger the spike test for value y_t, if:
-                                           (y_t)/(y_t-1) > 1 + x or:
-                                           (y_t)/(y_t-1) < 1 - x.
-       :param dev_cont_factor:             A float, determining the interval, the quotient of the datas second derivate
-                                           around a potential spike has to be part of, to trigger spike flagging for
-                                           this value. A datapoint y_t will pass this spike condition if,
-                                           for dev_cont_factor = 0.x, and the second derivative y'' of y, the condition:
-                                           1 - x < abs((y''_t-1)/(y''_t+1)) < 1 + x
-                                           holds
-       :param noise_barrier:               A float, determining the bound, the data noisy-ness around a potential spike
-                                           must not exceed, in order to guarantee a justifyed judgement:
-                                           Therefor the coefficient selected by parameter noise_statistic (COVA),
-                                           of all values within t +/- param "noise_window",
-                                           but excluding the point y_t itself, is evaluated and tested
-                                           for: COVA < noise_barrier.
-       :param noise_window_range:           Offset string, determining the size of the window, the coefficient of
-                                           variation is calculated of, to determine data noisy-ness around a potential
-                                           spike.
-                                           The potential spike y_t will be centered in a window of expansion:
-                                           [y_t - noise_window_size, y_t + noise_window_size].
-       :param noise_statistic:             STRING. Determines, wheather to use
-                                           "relative variance" or "coefficient of variation" to check against the noise
-                                           barrier.
-                                           'CoVar' -> "Coefficient of variation"
-                                           'rVar'  -> "relative Variance"
+       :param data:                 The pandas dataframe holding the data-to-be flagged.
+                                    Data must be indexed by a datetime series and be harmonized onto a
+                                    time raster with seconds precision.
+       :param field:                Fieldname of the Soil moisture measurements field in data.
+       :param flagger:              A flagger - object. (saqc.flagger.X)
+       :param filter_window:        Offset string. Size of the filter window, used to calculate the derivatives.
+                                    (relevant only, if: diff_method='savgol')
+       :param ploy_deg:             Integer. Polynomial order, used for smoothing with savitzk golay filter.
+                                    (relevant only, if: diff_method='savgol')
+       :param raise_factor:         A float, determinating the bound, the quotient of two consecutive values
+                                    has to exceed, to be regarded as potentially spike. A value of 0.x will
+                                    trigger the spike test for value y_t, if:
+                                    (y_t)/(y_t-1) > 1 + x or:
+                                    (y_t)/(y_t-1) < 1 - x.
+       :param deriv_factor:         A float, determining the interval, the quotient of the datas second derivate
+                                    around a potential spike has to be part of, to trigger spike flagging for
+                                    this value. A datapoint y_t will pass this spike condition if,
+                                    for deriv_factor = 0.x, and the second derivative y'' of y, the condition:
+                                    1 - x < abs((y''_t-1)/(y''_t+1)) < 1 + x
+                                    holds
+       :param noise_thresh:         A float, determining the bound, the data noisy-ness around a potential spike
+                                    must not exceed, in order to guarantee a justifyed judgement:
+                                    Therefor the coefficient selected by parameter noise_func (COVA),
+                                    of all values within t +/- param "noise_window",
+                                    but excluding the point y_t itself, is evaluated and tested
+                                    for: COVA < noise_thresh.
+       :param noise_window:         Offset string, determining the size of the window, the coefficient of
+                                    variation is calculated of, to determine data noisy-ness around a potential
+                                    spike.
+                                    The potential spike y_t will be centered in a window of expansion:
+                                    [y_t - noise_window_size, y_t + noise_window_size].
+       :param noise_func:           String. Determines, wheather to use
+                                    "relative variance" or "coefficient of variation" to check against the noise
+                                    barrier.
+                                    'CoVar' -> "Coefficient of variation"
+                                    'rVar'  -> "relative Variance"
     """
 
     dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
-
-    # retrieve noise statistic
-    if noise_statistic == "CoVar":
-        noise_func = pd.Series.var
-    if noise_statistic == "rVar":
-        noise_func = pd.Series.std
+    noise_func_map = {
+        "covar": pd.Series.var,
+        "rvar": pd.Series.std
+    }
+    noise_func = noise_func_map[noise_func.lower()]
 
     if filter_window is None:
         filter_window = 3*pd.Timedelta(data_rate)
@@ -376,8 +373,8 @@ def flagSpikes_spektrumBased(
 
     filter_window_seconds = filter_window.seconds
     smoothing_periods = int(np.ceil((filter_window_seconds / data_rate.n)))
-    lower_dev_bound = 1 - dev_cont_factor
-    upper_dev_bound = 1 + dev_cont_factor
+    lower_dev_bound = 1 - deriv_factor
+    upper_dev_bound = 1 + deriv_factor
 
     if smoothing_periods % 2 == 0:
         smoothing_periods += 1
@@ -389,7 +386,7 @@ def flagSpikes_spektrumBased(
         scnd_derivate = savgol_filter(
             dataseries[start_slice:end_slice],
             window_length=smoothing_periods,
-            polyorder=smooth_poly_order,
+            polyorder=ploy_deg,
             deriv=2,
         )
 
@@ -405,7 +402,7 @@ def flagSpikes_spektrumBased(
             test_slice = dataseries[start_slice:end_slice].drop(spike)
             test_ratio_2 = np.abs(noise_func(test_slice) / test_slice.mean())
             # not a spike, we want to flag, if condition not satisfied:
-            if test_ratio_2 > noise_barrier:
+            if test_ratio_2 > noise_thresh:
                 spikes[spike] = False
 
         # not a spike, we want to flag, if condition not satisfied
