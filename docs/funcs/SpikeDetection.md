@@ -25,15 +25,14 @@ spikes_basic(thresh, tolerance, window_size)
 A basic outlier test, that is designed to work for harmonized, as well as raw
 (not-harmonized) data.
 
-The values $`x_{n}, x_{n+1}, .... , x_{n+k} `$ of a timeseries $`x`$,
-are considered spikes, if:
+The values $`x_{n}, x_{n+1}, .... , x_{n+k} `$ of a timeseries $`x_t`$ with 
+timestamps $`t_i`$ are considered spikes, if:
 
-1. $`|x_{n-1} - x_{n + s}| > `$ `thresh`, $` s \in \{0,1,2,...,k\} `$
+1. $`|x_{n-1} - x_{n+s}| > `$ `thresh`, $` s \in \{0,1,2,...,k\} `$
 
 2. $`|x_{n-1} - x_{n+k+1}| < `$ `tolerance`
 
-3. $` |y_{n-1} - y_{n+k+1}| < `$ `window`, with $`y `$, denoting the series
-   of timestamps associated with $`x `$.
+3. $` |t_{n-1} - t_{n+k+1}| < `$ `window`
 
 By this definition, spikes are values, that, after a jump of margin `thresh`(1),
 are keeping that new value level, for a timespan smaller than
@@ -152,8 +151,9 @@ spikes_spektrumBased(raise_factor=0.15, deriv_factor=0.2,
 The function flags spikes by evaluating the timeseries' derivatives
 and applying various conditions to them.
 
-A datapoint $`x_k`$ of a dataseries $`x`$,
-is considered a spike, if:
+The value $`x_{k}`$ of a timeseries $`x_t`$ with 
+timestamps $`t_i`$ is considered a spikes, if:
+
 
 1. The quotient to its preceeding datapoint exceeds a certain bound:
     * $` |\frac{x_k}{x_{k-1}}| > 1 + `$ `raise_factor`, or
@@ -162,11 +162,11 @@ is considered a spike, if:
    and subsequent timestamps is close enough to 1:
     * $` |\frac{x''_{k-1}}{x''_{k+1}} | > 1 - `$ `deriv_factor`, and
     * $` |\frac{x''_{k-1}}{x''_{k+1}} | < 1 + `$ `deriv_factor`
-3. The dataset, $`X_k`$, surrounding $`x_{k}`$, within `noise_window` range,
-   but excluding $`x_{k}`$, is not too noisy. Whereas the noisyness gets measured
-   by `noise_func`:
-    * `noise_func`$`(X_k) <`$ `noise_thresh`
-
+3. The dataset $`X = x_i, ..., x_{k-1}, x_{k+1}, ..., x_j`$, with 
+   $`|t_{k-1} - t_i| = |t_j - t_{k+1}| =`$ `noise_window` fullfills the 
+   following condition: 
+   `noise_func`$`(X) <`$ `noise_thresh`
+   
 NOTE:
 - The dataset is supposed to be harmonized to a timeseries with an equidistant frequency grid
 - The derivative is calculated after applying a Savitsky-Golay filter to $`x`$
