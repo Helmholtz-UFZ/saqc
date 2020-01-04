@@ -16,11 +16,11 @@ A collection of quality check routines to find spikes.
 spikes_basic(thresh, tolerance, window_size)
 ```
 
-| parameter | data type                       | default value | description                                                                                    |
-|-----------|---------------------------------|---------------|------------------------------------------------------------------------------------------------|
-| thresh    | float                           |               | Minimum difference between to values, to consider the latter one as a spike. See condition (1) |
-| tolerance | float                           |               | Maximum difference between pre-spike and post-spike values. See condition (2)                  |
-| window    | [offset string](offset-strings) |               | Maximum length of "spikish" value courses. See condition (3)                                   |
+| parameter | data type                                                     | default value | description                                                                                    |
+|-----------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------|
+| thresh    | float                                                         |               | Minimum difference between to values, to consider the latter one as a spike. See condition (1) |
+| tolerance | float                                                         |               | Maximum difference between pre-spike and post-spike values. See condition (2)                  |
+| window    | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Maximum length of "spikish" value courses. See condition (3)                                   |
 
 A basic outlier test, that is designed to work for harmonized, as well as raw
 (not-harmonized) data.
@@ -51,10 +51,10 @@ outliers, but also plateau-ish value courses.
 spikes_simpleMad(window="1h", z=3.5)
 ```
 
-| parameter | data type                               | default value | description                                                          |
-|-----------|-----------------------------------------|---------------|----------------------------------------------------------------------|
-| window    | integer/[offset string](offset-strings) | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
-| z         | float                                   | `3.5`         | z-parameter of the modified Z-score                                  |
+| parameter | data type                                                             | default value | description                                                          |
+|-----------|-----------------------------------------------------------------------|---------------|----------------------------------------------------------------------|
+| window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
+| z         | float                                                                 | `3.5`         | z-parameter of the modified Z-score                                  |
 
 This functions flags outliers using the simple median absolute deviation test.
 Values are flagged if they fulfill the following condition within a sliding window:
@@ -81,14 +81,14 @@ References:
 spikes_slidingZscore(window="1h", offset="1h", count=1, poly_deg=1, z=3.5, method="modZ")
 ```
 
-| parameter | data type                               | default value | description                                                 |
-|-----------|-----------------------------------------|---------------|-------------------------------------------------------------|
-| window    | integer/[offset string](offset-strings) | `"1h"`        | size of the sliding window                                  |
-| offset    | integer/[offset string](offset-strings) | `"1h"`        | offset between two consecutive windows                      |
-| count     | integer                                 | `1`           | the minimal count a possible outlier needs, to be flagged   |
-| polydeg   | integer                                 | `1"`          | the degree of the polynomial fit, to calculate the residual |
-| z         | float                                   | `3.5`         | z-parameter for the *method* (see description)              |
-| method    | [string](#outlier-detection-methods)    | `"modZ"`      | the method to detect outliers                               |
+| parameter | data type                                                             | default value | description                                                 |
+|-----------|-----------------------------------------------------------------------|---------------|-------------------------------------------------------------|
+| window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | size of the sliding window                                  |
+| offset    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | offset between two consecutive windows                      |
+| count     | integer                                                               | `1`           | the minimal count a possible outlier needs, to be flagged   |
+| polydeg   | integer                                                               | `1"`          | the degree of the polynomial fit, to calculate the residual |
+| z         | float                                                                 | `3.5`         | z-parameter for the *method* (see description)              |
+| method    | [string](#outlier-detection-methods)                                  | `"modZ"`      | the method to detect outliers                               |
 
 This functions flags spikes using the given method within sliding windows.
 
@@ -137,15 +137,15 @@ spikes_spektrumBased(raise_factor=0.15, deriv_factor=0.2,
                      ploy_deg=2, filter_window=None)
 ```
 
-| parameter     | data type                            | default value | description                                                                                                                                                                                                                |
-|---------------|--------------------------------------|---------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| raise_factor  | float                                | `0.15`        | Minimum relative value difference between two values to consider the latter as a spike candidate. See condition (1)                                                                                                        |
-| deriv_factor  | float                                | `0.2`         | See condition (2)                                                                                                                                                                                                          |
-| noise_thresh  | float                                | `1`           | Upper threshhold for noisyness of data surrounding potential spikes. See condition (3)                                                                                                                                     |
-| noise_window  | [offset string](offset-strings)      | `"12h"`       | Determines the range of the time window of the "surrounding" data of a potential spike. See condition (3)                                                                                                                  |
-| noise_func    | [string](#noise-detection-functions) | `"CoVar"`     | Function to calculate noisyness of data, surrounding potential spikes                                                                                                                                                      |
-| ploy_deg      | integer                              | `2`           | Order of the polynomial fit, applied with Savitsky-Golay-filter                                                                                                                                                            |
-| filter_window | [offset string](offset-strings)      | `None`        | Controls the range of the smoothing window applied with the Savitsky-Golay filter. If `None` (default), the window size will be two times the sampling rate (thus, covering 3 values). If unsure, do not change that value |
+| parameter     | data type                                                     | default value | description                                                                                                                                                                                                                |
+|---------------|---------------------------------------------------------------|---------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| raise_factor  | float                                                         | `0.15`        | Minimum relative value difference between two values to consider the latter as a spike candidate. See condition (1)                                                                                                        |
+| deriv_factor  | float                                                         | `0.2`         | See condition (2)                                                                                                                                                                                                          |
+| noise_thresh  | float                                                         | `1`           | Upper threshhold for noisyness of data surrounding potential spikes. See condition (3)                                                                                                                                     |
+| noise_window  | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | Determines the range of the time window of the "surrounding" data of a potential spike. See condition (3)                                                                                                                  |
+| noise_func    | [string](#noise-detection-functions)                          | `"CoVar"`     | Function to calculate noisyness of data, surrounding potential spikes                                                                                                                                                      |
+| ploy_deg      | integer                                                       | `2`           | Order of the polynomial fit, applied with Savitsky-Golay-filter                                                                                                                                                            |
+| filter_window | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | Controls the range of the smoothing window applied with the Savitsky-Golay filter. If `None` (default), the window size will be two times the sampling rate (thus, covering 3 values). If unsure, do not change that value |
 
 
 The function flags spikes by evaluating the timeseries' derivatives
@@ -183,5 +183,3 @@ Currently two different noise detection functions are implemented:
 [1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
     Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
     doi:10.2136/vzj2012.0097.
-
-[offset-strings]: docs/ParameterDescriptions.md#offset-strings
