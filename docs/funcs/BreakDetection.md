@@ -14,13 +14,13 @@ breaks_spektrumBased(thresh_rel=0.1, thresh_abs=0.01,
 
 | parameter             | data type                                                     | default value | description                                                                                                                                                           |
 |-----------------------|---------------------------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| thresh_rel            | float                                                         | `0.1`         | Minimum relative difference between two values to consider the latter as break candidate. See condition (1)                                                           |
-| thresh_abs            | float                                                         | `0.01`        | Minimum abosulte difference between two values to consider the latter as break candidate. See condition (2)                                                           |
-| first_der_factor      | float                                                         | `10`          | Multiplication factor for arithmetic mean of the first derivates surrounding a break candidate. See condition (3).                          |
+| thresh_rel            | float                                                         | `0.1`         | Minimum relative difference between two values to consider the latter as a break candidate. See condition (1)                                                         |
+| thresh_abs            | float                                                         | `0.01`        | Minimum absolute difference between two values to consider the latter as a break candidate. See condition (2)                                                         |
+| first_der_factor      | float                                                         | `10`          | Multiplication factor for arithmetic mean of the first derivatives surrounding a break candidate. See condition (3).                          |
 | first_der_window      | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | Window around a break candidate for which the arithmetic mean is calculated. See condition (3)                                                          |
 | scnd_der_ratio_range  | float                                                         | `0.05`        | Range of the area, covering all the values of the second derivatives quotient, that are regarded "sufficiently close to 1" for signifying a break. See condition (5). |
-| scnd_der_ratio_thresh | float                                                         | `10.0`        | Threshold for the ratio od the second derivatives succeeding a break. See condition (5).                                                                              |
-| smooth                | bool                                                          | `True`        | Smooth the timeseries before differenciation using the Savitsky-Golay filter                                                                                          |
+| scnd_der_ratio_thresh | float                                                         | `10.0`        | Threshold for the ratio of the second derivatives succeeding a break. See condition (5).                                                                              |
+| smooth                | bool                                                          | `True`        | Smooth the time series before differentiation using the Savitsky-Golay filter                                                                                          |
 | smooth_window         | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | Size of the smoothing window of the Savitsky-Golay filter. The default value `None` results in a window of two times the sampling rate (i.e. three values)            |
 | smooth_poly_deg       | integer                                                       | `2`           | Degree of the polynomial used for smoothing with the Savitsky-Golay filter                                                                                            |
 
@@ -41,7 +41,7 @@ A value $`x_k`$ of a time series $`x_t`$ with timestamps $`t_i`$, is considered 
    where $`\bar{X}`$ denotes the arithmetic mean of $`X`$.
 4. The ratio (last/this) of the second derivatives is close to 1:
     * $` 1 -`$ `scnd_der_ratio_range` $`< |\frac{x''_{k-1}}{x_{k''}}| < 1 + `$`scnd_der_ratio_range`
-5. The ratio (this/next) of the second derivatives is sufficiently hight:
+5. The ratio (this/next) of the second derivatives is sufficiently height:
     * $`|\frac{x''_{k}}{x''_{k+1}}| > `$`scnd_der_ratio_thresh`
 
 NOTE:
