@@ -278,8 +278,8 @@ def flagSpikes_spektrumBased(
     noise_thresh=1,
     noise_window="12h",
     noise_func="CoVar",
-    ploy_deg=2,
-    filter_window=None,
+    smooth_ploy_deg=2,
+    smooth_window=None,
     **kwargs,
 ):
     """
@@ -315,9 +315,9 @@ def flagSpikes_spektrumBased(
                                     time raster with seconds precision.
        :param field:                Fieldname of the Soil moisture measurements field in data.
        :param flagger:              A flagger - object. (saqc.flagger.X)
-       :param filter_window:        Offset string. Size of the filter window, used to calculate the derivatives.
+       :param smooth_window:        Offset string. Size of the filter window, used to calculate the derivatives.
                                     (relevant only, if: diff_method='savgol')
-       :param ploy_deg:             Integer. Polynomial order, used for smoothing with savitzk golay filter.
+       :param smooth_poly_deg:      Integer. Polynomial order, used for smoothing with savitzk golay filter.
                                     (relevant only, if: diff_method='savgol')
        :param raise_factor:         A float, determinating the bound, the quotient of two consecutive values
                                     has to exceed, to be regarded as potentially spike. A value of 0.x will
@@ -355,10 +355,10 @@ def flagSpikes_spektrumBased(
     }
     noise_func = noise_func_map[noise_func.lower()]
 
-    if filter_window is None:
-        filter_window = 3*pd.Timedelta(data_rate)
+    if smooth_window is None:
+        smooth_window = 3*pd.Timedelta(data_rate)
     else:
-        filter_window = pd.Timedelta(filter_window)
+        smooth_window = pd.Timedelta(smooth_window)
 
     quotient_series = dataseries / dataseries.shift(+1)
     spikes = (quotient_series > (1 + raise_factor)) | (
@@ -372,7 +372,7 @@ def flagSpikes_spektrumBased(
 
     # calculate some values, repeatedly needed in the course of the loop:
 
-    filter_window_seconds = filter_window.seconds
+    filter_window_seconds = smooth_window.seconds
     smoothing_periods = int(np.ceil((filter_window_seconds / data_rate.n)))
     lower_dev_bound = 1 - deriv_factor
     upper_dev_bound = 1 + deriv_factor
@@ -381,13 +381,13 @@ def flagSpikes_spektrumBased(
         smoothing_periods += 1
 
     for spike in spikes.index:
-        start_slice = spike - filter_window
-        end_slice = spike + filter_window
+        start_slice = spike - smooth_window
+        end_slice = spike + smooth_window
 
         scnd_derivate = savgol_filter(
             dataseries[start_slice:end_slice],
             window_length=smoothing_periods,
-            polyorder=ploy_deg,
+            polyorder=smooth_ploy_deg,
             deriv=2,
         )
 

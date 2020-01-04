@@ -6,23 +6,23 @@
 ## breaks_spektrumBased
 
 ```                            
-breaks_spektrumBased(thresh_rel=0.1, thresh_abs=0.01, first_der_factor=10,
-                     first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
-                     scnd_der_ratio_margin_2=10, smooth_poly_order=2,
-                     smooth_func="raw", smooth_window="3h")
+breaks_spektrumBased(thresh_rel=0.1, thresh_abs=0.01,
+                     first_der_factor=10, first_der_window_size="12h",
+                     scnd_der_ratio_margin_1=0.05, scnd_der_ratio_margin_2=10,
+                     smooth=True, smooth_window="3h", smooth_poly_deg=2,)
 ```
 
-| parameter               | data type                                                     | default value | description                                                                                                                                                                                                  |
-| ------                  | ------                                                        | ------        | ----                                                                                                                                                                                                         |
-| thresh_rel              | float                                                         | `0.1`         | Minimum relative difference between two values to consider the latter as break candidate. See condition (1)                                                                                                  |
-| thresh_abs              | float                                                         | `0.01`        | Minimum relative difference between two values to consider the latter as break candidate. See condition (2)                                                                                                  |
-| first_der_factor        | float                                                         | `10`          | Factor of the first derivates "arithmetic middle bound". See condition (3).                                                                                                                            |
-| first_der_window_size   | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | Determining the size of the window, covering all the values included in the the arithmetic middle calculation of condition (3).                                                                              |
-| scnd_der_ratio_margin_1 | float                                                         | `0.05`        | Range of the area, covering all the values of the second derivatives quotient, that are regarded "sufficiently close to 1" for signifying a break. See condition (5).                                        |
-| scnd_der_ratio_margin_2 | float                                                         | `10.0`        | Lower bound for the break succeeding second derivatives quotients. See condition (5).                                                                                                                        |
-| smooth_poly_order       | integer                                                       | `2`           | When calculating derivatives from smoothed timeseries (smooth_func="savgol"), this value gives the order of the fitting polynomial calculated in the smoothing process.                                      |
-| smooth_func             | string                                                        | `"savgol"`    | Options: <br/> - `"savgol"`  <br/> - `"raw"` <br/><br/> Select "raw", to skip smoothing before differenciation.                                                                                              |
-| smooth_window           | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | Size of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate (thus, covering 3 values). If unsure, keep the default |
+| parameter               | data type                                                     | default value | description                                                                                                                                                           |
+|-------------------------|---------------------------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| thresh_rel              | float                                                         | `0.1`         | Minimum relative difference between two values to consider the latter as break candidate. See condition (1)                                                           |
+| thresh_abs              | float                                                         | `0.01`        | Minimum relative difference between two values to consider the latter as break candidate. See condition (2)                                                           |
+| first_der_factor        | float                                                         | `10`          | Factor of the first derivates "arithmetic middle bound". See condition (3).                                                                                           |
+| first_der_window_size   | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | Determining the size of the window, covering all the values included in the the arithmetic middle calculation of condition (3).                                       |
+| scnd_der_ratio_margin_1 | float                                                         | `0.05`        | Range of the area, covering all the values of the second derivatives quotient, that are regarded "sufficiently close to 1" for signifying a break. See condition (5). |
+| scnd_der_ratio_margin_2 | float                                                         | `10.0`        | Lower bound for the break succeeding second derivatives quotients. See condition (5).                                                                                 |
+| smooth                  | bool                                                          | `True`        | Smooth the timeseries before differenciation using the Savitsky-Golay filter                                                                                          |
+| smooth_window           | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | Size of the smoothing window of the Savitsky-Golay filter. The default value `None` results in a window of two times the sampling rate (i.e. three values)            |
+| smooth_poly_deg         | integer                                                       | `2`           | Degree of the polynomial used for smoothing with the Savitsky-Golay filter                                                                                            |
 
 
 The function flags breaks (jumps/drops) by evaluating the derivatives of a time series.

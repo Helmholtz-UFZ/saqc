@@ -28,7 +28,7 @@ def spiky_data():
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_flagSpikes_SpektrumBased(spiky_data, flagger):
+def test_flagSpikesSpektrumBased(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
@@ -72,7 +72,7 @@ def test_slidingOutlier(spiky_data, flagger, method):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_flagSpikes_Basic(spiky_data, flagger):
+def test_flagSpikesBasic(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
     flagger = flagger.initFlags(data)

@@ -21,9 +21,9 @@ def flagBreaks_spektrumBased(
     first_der_window_range="12h",
     scnd_der_ratio_margin_1=0.05,
     scnd_der_ratio_margin_2=10,
-    smooth_poly_order=2,
-    smooth_func="savgol",
+    smooth=True,
     smooth_window=None,
+    smooth_poly_deg=2,
     **kwargs
 ):
 
@@ -51,7 +51,7 @@ def flagBreaks_spektrumBased(
     constructed breaks.
     Especially condition [4] and [5]! This is because smoothing distributes the harshness of the break over the
     smoothing window. Since just taking the differences as derivatives did work well for my empirical data set,
-    the parameter "smooth_func" defaults to "raw". That means, that derivatives will be obtained by just using the
+    the parameter "smooth" defaults to "raw". That means, that derivatives will be obtained by just using the
     differences series.
     You are free of course, to change this parameter to "savgol" and play around with the associated filter options.
     (see parameter description below)
@@ -65,12 +65,12 @@ def flagBreaks_spektrumBased(
        :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
        :param field:                       Fieldname of the Soil moisture measurements field in data.
        :param flagger:                     A flagger - object. (saqc.flagger.X)
-       :param smooth_func:                 String. Method for obtaining dataseries' derivatives.
-                                           'raw': Just take series step differences (default)
-                                           'savgol': Smooth data with a Savitzky Golay Filter before differentiating.
+       :param smooth:                      Bool. Method for obtaining dataseries' derivatives.
+                                           False: Just take series step differences (default)
+                                           True: Smooth data with a Savitzky Golay Filter before differentiating.
        :param smooth_window:               Offset string. Size of the filter window, used to calculate the derivatives.
-                                           (relevant only, if: smooth_func='savgol')
-       :param smooth_poly_order:           Integer. Polynomial order, used for smoothing with savitzk golay filter.
+                                           (relevant only, if: smooth is True)
+       :param smooth_poly_deg:             Integer. Polynomial order, used for smoothing with savitzk golay filter.
                                            (relevant only, if: smooth_func='savgol')
        :param thresh_rel                   Float in [0,1]. See (1) of function descritpion above to learn more
        :param thresh_abs                   Float > 0. See (2) of function descritpion above to learn more.
@@ -111,17 +111,17 @@ def flagBreaks_spektrumBased(
         data_slice = dataseries[slice_start:slice_end]
 
         # obtain first derivative:
-        if smooth_func == "savgol":
+        if smooth is True:
             first_deri_series = pd.Series(
                 data=savgol_filter(
                     data_slice,
                     window_length=smoothing_periods,
-                    polyorder=smooth_poly_order,
+                    polyorder=smooth_poly_deg,
                     deriv=1,
                 ),
                 index=data_slice.index,
             )
-        if smooth_func == "raw":
+        else:
             first_deri_series = data_slice.diff()
 
         # condition constructing and testing:
@@ -140,17 +140,17 @@ def flagBreaks_spektrumBased(
             data_slice = data_slice[slice_start:slice_end]
 
             # obtain second derivative:
-            if smooth_func == "savgol":
+            if smooth is True:
                 second_deri_series = pd.Series(
                     data=savgol_filter(
                         data_slice,
                         window_length=smoothing_periods,
-                        polyorder=smooth_poly_order,
+                        polyorder=smooth_poly_deg,
                         deriv=2,
                     ),
                     index=data_slice.index,
                 )
-            if smooth_func == "raw":
+            else:
                 second_deri_series = data_slice.diff().diff()
 
             # criterion evaluation:

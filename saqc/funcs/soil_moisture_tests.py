@@ -11,19 +11,20 @@ from saqc.funcs.break_detection import flagBreaks_spektrumBased
 from saqc.funcs.spike_detection import flagSpikes_spektrumBased
 from saqc.funcs.constants_detection import flagConstantVarianceBased
 from saqc.funcs.register import register
-from saqc.lib.tools import (
-    retrieveTrustworthyOriginal
-)
+from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
 @register("soilMoisture_spikes")
-def flagSoilMoistureSpikes(
+def flagSoilmoistureSpikes(
     data,
-  smooth_func,
-    raise_ffismooth_window1,
+    field,
+    flagger,
+    filter_window_size="3h",
+    raise_factor=0.15,
+    dev_cont_factor=0.2,
+    noise_barrier=1,
     noise_window_size="12h",
-    noise_statistic="CoVar",
-    filter_window_size=None,
+    noise_statistic="covar",
     **kwargs
 ):
 
@@ -38,12 +39,12 @@ def flagSoilMoistureSpikes(
         data,
         field,
         flagger,
-        filter_window_size=filter_window_size,
+        smooth_window=filter_window_size,
         raise_factor=raise_factor,
-        dev_cont_factor=dev_cont_factor,
-        noise_barrier=noise_barrier,
-        noise_window_range=noise_window_size,
-        noise_statistic=noise_statistic,
+        deriv_factor=dev_cont_factor,
+        noise_thresh=noise_barrier,
+        noise_window=noise_window_size,
+        noise_func=noise_statistic,
         **kwargs
     )
 
@@ -76,15 +77,15 @@ def flagSoilMoistureBreaks(
         data,
         field,
         flagger,
-        diff_method=diff_method,
-        filter_window_size=filter_window_size,
-        rel_change_min=rel_change_rate_min,
-        abs_change_min=abs_change_min,
+        smooth=diff_method,
+        smooth_window=filter_window_size,
+        thresh_rel=rel_change_rate_min,
+        thresh_abs=abs_change_min,
         first_der_factor=first_der_factor,
         first_der_window_range=first_der_window_size,
         scnd_der_ratio_margin_1=scnd_der_ratio_margin_1,
         scnd_der_ratio_margin_2=scnd_der_ratio_margin_2,
-        smooth_poly_order=smooth_poly_order,
+        smooth_poly_deg=smooth_poly_order,
         **kwargs
     )
 
@@ -284,9 +285,13 @@ def flagSoilMoistureByConstantsDetection(
     """
 
     # get plateaus:
-    _, comp_flagger = flagConstantVarianceBased(data, field, flagger, window=plateau_window_min,
-                                                 thresh=plateau_var_limit, max_missing=var_total_nans,
-                                                 max_consec_missing=var_consec_nans)
+    _, comp_flagger = flagConstantVarianceBased(
+        data, field, flagger,
+        window=plateau_window_min,
+        thresh=plateau_var_limit,
+        max_missing=var_total_nans,
+        max_consec_missing=var_consec_nans
+    )
 
     new_plateaus = (comp_flagger.getFlags(field)).eq(flagger.getFlags(field))
     # get dataseries at its sampling freq:
