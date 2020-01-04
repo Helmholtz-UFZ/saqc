@@ -133,7 +133,7 @@ Currently two outlier detection methods are implemented:
 
 ```
 spikes_spektrumBased(raise_factor=0.15, deriv_factor=0.2,
-                     noise_thresh=1, noise_window="12h", noise_func="CoVar",
+                     noise_func="CoVar", noise_window="12h", noise_thresh=1, 
                      smooth_window=None, smooth_poly_deg=2)
 ```
 
@@ -141,9 +141,9 @@ spikes_spektrumBased(raise_factor=0.15, deriv_factor=0.2,
 |-----------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | raise_factor    | float                                                         | `0.15`        | Minimum relative value difference between two values to consider the latter as a spike candidate. See condition (1)                                        |
 | deriv_factor    | float                                                         | `0.2`         | See condition (2)                                                                                                                                          |
-| noise_thresh    | float                                                         | `1`           | Upper threshold for noisiness of data surrounding potential spikes. See condition (3)                                                                      |
+| noise_func      | [string](#noise-detection-functions)                          | `"CoVar"`     | Function to calculate noisiness of the data surrounding potential spikes                                                                                  |
 | noise_window    | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | Determines the range of the time window of the "surrounding" data of a potential spike. See condition (3)                                                  |
-| noise_func      | [string](#noise-detection-functions)                          | `"CoVar"`     | Function to calculate noisiness of data, surrounding potential spikes                                                                                      |
+| noise_thresh    | float                                                         | `1`           | Upper threshold for noisiness of data surrounding potential spikes. See condition (3)                                                                      |
 | smooth_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | Size of the smoothing window of the Savitsky-Golay filter. The default value `None` results in a window of two times the sampling rate (i.e. three values) |
 | smooth_poly_deg | integer                                                       | `2`           | Degree of the polynomial used for fitting with the Savitsky-Golay filter                                                                                   |
 
