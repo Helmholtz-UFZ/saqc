@@ -16,9 +16,9 @@ Index of the main documentation of the implemented functions, their purpose and 
   - [spikes_simpleMad](docs/funcs/SpikeDetection.md#spikes_simplemad)
   - [spikes_slidingZscore](docs/funcs/SpikeDetection.md#spikes_slidingzscore)
   - [spikes_spektrumBased](docs/funcs/SpikeDetection.md#spikes_spektrumbased)
-- [Constant Detection](#constant-detection)
-  - [constant](#constant)
-  - [constants_varianceBased](#constants_variancebased)
+- [Constant Detection](docs/funcs/ConstantDetection.md)
+  - [constant](docs/funcs/ConstantDetection.md#constant)
+  - [constants_varianceBased](docs/funcs/ConstantDetection.md#constants_variancebased)
 - [Break Detection](#break-detection)
   - [breaks_spektrumBased](#breaks_spektrumbased)
 - [Time Series Harmonization](#time-series-harmonization)
@@ -39,48 +39,6 @@ Index of the main documentation of the implemented functions, their purpose and 
 - [Machine Learning](#machine-learning)
   - [machinelearning](#machinelearning)
 
-
-## Constant Detection
-
-### constant
-
-```
-constant(window, eps=0)
-```
-
-| parameter | data type                                                             | default value | description |
-| ------    | ------                                                                | ------        | ----        |
-| window    | [offset string](docs/ParameterDescriptions.md#offset-strings)/integer |               |             |
-| eps       | float                                                                 | 0             |             |
-
-
-### constants_varianceBased
-
-```
-constants_varianceBased(plateau_window_min="12h", plateau_var_limit=0.0005,
-                        var_total_nans=Inf, var_consec_nans=Inf)
-```
-
-| parameter          | data type | default value | description |
-| ------             | ------    | ------        | ----        |
-| plateau_window_min | string    |               | Options <br/> - any offset string <br/> <br/> Minimum barrier for the duration, values have to be continouos to be plateau canditaes. See condition (1). |
-| plateau_var_limit  | float     | `0.0005`      | Barrier, the variance of a group of values must not exceed to be flagged a plateau. See condition (2). |
-| var_total_nans     | integer   | `Inf`         | Maximum number of nan values allowed, for a calculated variance to be valid. (Default skips the condition.) |
-| var_consec_nans    | integer   | `Inf`         | Maximum number of consecutive nan values allowed, for a calculated variance to be valid. (Default skips the condition.) |
-
-
-Function flags plateaus/series of constant values. Any set of consecutive values
-$`x_k,..., x_{k+n}`$ of a timeseries $`x`$ is flagged, if:
-
-1. $`n > `$`plateau_window_min`
-2. $`\sigma(x_k,..., x_{k+n})`$ < `plateau_var_limit`
-
-NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
-equadistant frequency grid.
-
-NOTE, that when `var_total_nans` or `var_consec_nans` are set to a value < `Inf`
-, plateaus that can not be calculated the variance of, due to missing values,
-will never be flagged. (Test not applicable rule.)
 
 
 ## Break Detection

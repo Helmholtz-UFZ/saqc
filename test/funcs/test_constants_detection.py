@@ -4,7 +4,7 @@
 import pytest
 import numpy as np
 
-from saqc.funcs.constants_detection import flagConstant_varianceBased, flagConstant
+from saqc.funcs.constants_detection import flagConstantVarianceBased, flagConstant
 from saqc.funcs.soil_moisture_tests import flagSoilMoistureByConstantsDetection
 
 from test.common import TESTFLAGGER, initData
@@ -27,20 +27,20 @@ def test_flagConstants(data, flagger):
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
     data, flagger_result = flagConstant(
-        data, field, flagger, window="15Min", eps=.1,
+        data, field, flagger, window="15Min", thresh=.1,
     )
     flags = flagger_result.getFlags(field)
     assert np.all(flags[expected] == flagger.BAD)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_flagConstants_varianceBased(data, flagger):
+def test_flagConstantsVarianceBased(data, flagger):
     data.iloc[5:25] = 200
     expected = np.arange(5, 25)
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
-    data, flagger_result1 = flagConstant_varianceBased(
-        data, field, flagger, plateau_window_min="1h"
+    data, flagger_result1 = flagConstantVarianceBased(
+        data, field, flagger, window="1h"
     )
 
     flag_result1 = flagger_result1.getFlags(field)

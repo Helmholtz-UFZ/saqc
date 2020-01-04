@@ -9,7 +9,7 @@ from scipy.signal import savgol_filter
 
 from saqc.funcs.break_detection import flagBreaks_spektrumBased
 from saqc.funcs.spike_detection import flagSpikes_spektrumBased
-from saqc.funcs.constants_detection import flagConstant_varianceBased
+from saqc.funcs.constants_detection import flagConstantVarianceBased
 from saqc.funcs.register import register
 from saqc.lib.tools import (
     retrieveTrustworthyOriginal
@@ -287,9 +287,9 @@ def flagSoilMoistureByConstantsDetection(
     """
 
     # get plateaus:
-    _, comp_flagger = flagConstant_varianceBased(data, field, flagger, plateau_window_min=plateau_window_min,
-                                                    plateau_var_limit=plateau_var_limit, var_total_nans=var_total_nans,
-                                                    var_consec_nans=var_consec_nans)
+    _, comp_flagger = flagConstantVarianceBased(data, field, flagger, window=plateau_window_min,
+                                                 thresh=plateau_var_limit, max_missing=var_total_nans,
+                                                 max_consec_missing=var_consec_nans)
 
     new_plateaus = (comp_flagger.getFlags(field)).eq(flagger.getFlags(field))
     # get dataseries at its sampling freq:
