@@ -19,8 +19,8 @@ def flagBreaks_spektrumBased(
     thresh_abs=0.01,
     first_der_factor=10,
     first_der_window="12h",
-    scnd_der_ratio_margin_1=0.05,
-    scnd_der_ratio_margin_2=10,
+    scnd_der_ratio_range=0.05,
+    scnd_der_ratio_thresh=10,
     smooth=True,
     smooth_window=None,
     smooth_poly_deg=2,
@@ -155,14 +155,14 @@ def flagBreaks_spektrumBased(
 
             # criterion evaluation:
             first_second = (
-                (1 - scnd_der_ratio_margin_1)
+                (1 - scnd_der_ratio_range)
                 < abs(
                     (
                         second_deri_series.shift(+1)[brake]
                         / second_deri_series[brake]
                     )
                 )
-                < 1 + scnd_der_ratio_margin_1
+                < 1 + scnd_der_ratio_range
             )
 
             second_second = (
@@ -170,7 +170,7 @@ def flagBreaks_spektrumBased(
                     second_deri_series[brake]
                     / second_deri_series.shift(-1)[brake]
                 )
-                > scnd_der_ratio_margin_2
+                > scnd_der_ratio_thresh
             )
 
             if (~first_second) | (~second_second):

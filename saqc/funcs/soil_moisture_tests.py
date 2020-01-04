@@ -82,9 +82,9 @@ def flagSoilMoistureBreaks(
         thresh_rel=rel_change_rate_min,
         thresh_abs=abs_change_min,
         first_der_factor=first_der_factor,
-        first_der_window_range=first_der_window_size,
-        scnd_der_ratio_margin_1=scnd_der_ratio_margin_1,
-        scnd_der_ratio_margin_2=scnd_der_ratio_margin_2,
+        first_der_window=first_der_window_size,
+        scnd_der_ratio_range=scnd_der_ratio_margin_1,
+        scnd_der_ratio_thresh=scnd_der_ratio_margin_2,
         smooth_poly_deg=smooth_poly_order,
         **kwargs
     )
