@@ -108,7 +108,7 @@ The algorithm works as follows:
 ### Outlier Detection Methods
 Currently two outlier detection methods are implemented:
 
-1. `zscore`: The Z-score marks every value as a possible outlier, which fulfills the follwing condition:
+1. `"zscore"`: The Z-score marks every value as a possible outlier, which fulfills the follwing condition:
 
    ```math
     |r - m| > s * z
@@ -116,7 +116,7 @@ Currently two outlier detection methods are implemented:
    where $`r`$ denotes the residual, $`m`$ the residual mean, $`s`$ the residual
    standard deviation, and $`z`$ the $`z`$-parameter.
 
-2. "modZ": The modified Z-score Marks every value as a possible outlier, which fulfills the follwing condition:
+2. `"modZ"`: The modified Z-score Marks every value as a possible outlier, which fulfills the follwing condition:
 
    ```math
     0.6745 * |r - m| > mad * z > 0
