@@ -278,8 +278,8 @@ def flagSpikes_spektrumBased(
     noise_thresh=1,
     noise_window="12h",
     noise_func="CoVar",
-    smooth_ploy_deg=2,
     smooth_window=None,
+    smooth_ploy_deg=2,
     **kwargs,
 ):
     """
