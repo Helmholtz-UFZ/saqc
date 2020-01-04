@@ -82,7 +82,7 @@ def flagConstantVarianceBased(
         window=window, min_periods=min_periods
     ).apply(
         lambda x: True
-        if varQC(x, max_missing, max_consec_missing) < thresh
+        if varQC(x, max_missing, max_consec_missing) <= thresh
         else np.nan,
         raw=False,
     )
