@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 
-from saqc.funcs.break_detection import flagBreaks_spektrumBased
+from saqc.funcs.break_detection import flagBreaksSpektrumBased
 from saqc.funcs.spike_detection import flagSpikes_spektrumBased
 from saqc.funcs.constants_detection import flagConstantVarianceBased
 from saqc.funcs.register import register
@@ -73,7 +73,7 @@ def flagSoilMoistureBreaks(
     Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
     """
-    return flagBreaks_spektrumBased(
+    return flagBreaksSpektrumBased(
         data,
         field,
         flagger,

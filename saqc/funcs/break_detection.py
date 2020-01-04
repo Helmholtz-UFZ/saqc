@@ -11,7 +11,7 @@ from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
 @register("breaks_spektrumBased")
-def flagBreaks_spektrumBased(
+def flagBreaksSpektrumBased(
     data,
     field,
     flagger,
