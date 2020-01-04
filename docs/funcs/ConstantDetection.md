@@ -20,10 +20,11 @@ constant(window, thresh=0)
 | thresh    | float                                                                 |             0 | Maximum difference between values to still consider them constant. See condition (2)                 |
 
 This functions flags plateaus/series of constant values of length `window` if
-their difference is smaller than `thresh`. I.e a set of consecutive values
-$`x_n, ..., x_{n+k}`$ of a time series $`x_t`$ is considered to be constant,
-if:
-1. $`n \ge `$ `window`
+their difference is smaller than `thresh`.
+
+A set of consecutive values $`x_n, ..., x_{n+k}`$ of a time series $`x_t`$
+is considered to be constant, if:
+1. $`k \ge `$ `window`
 2. $`|x_n - x_{n+s}| \le `$ `thresh`, $`s \in {1,2, ..., k}`$
 
 
@@ -43,10 +44,10 @@ constants_varianceBased(window="12h", thresh=0.0005,
 
 
 This function flags plateaus/series of constant values. Any set of consecutive values
-$`x_k,..., x_{k+n}`$ of a timeseries $`x_t`$ is flagged, if:
+$`x_n,..., x_{n+k}`$ of a timeseries $`x_t`$ is flagged, if:
 
-1. $`n > `$`window`
-2. $`\sigma(x_k,..., x_{k+n})`$ < `thresh`
+1. $`k \ge `$`window`
+2. $`\sigma(x_n,..., x_{n+k}) \le`$ `thresh`
 
 NOTE:
 - Only works for time series
