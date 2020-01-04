@@ -27,25 +27,27 @@ breaks_spektrumBased(thresh_rel=0.1, thresh_abs=0.01,
 
 The function flags breaks (jumps/drops) by evaluating the derivatives of a time series.
 
-A value $`x_k`$ of a data series $`x`$, is considered to be a break, if:
+A value $`x_k`$ of a time series $`x_t`$ with timestamps $`t_i`$, is considered to be a break, if:
 
 1. $`x_k`$ represents a sufficiently large relative jump:
     * $`|\frac{x_k - x_{k-1}}{x_k}| >`$ `thresh_rel`
-2. $`x_k`$ represents a sufficient absolute jump in the course of data values:
+2. $`x_k`$ represents a sufficient absolute jump:
     * $`|x_k - x_{k-1}| >`$ `thresh_abs`
-3. Let $`X_k`$ be the set of all values that lie within a `first_der_window` range around $`x_k`$. Then, for its arithmetic mean $`\bar{X_k}`$, following equation has to hold:
-    * $`|x'_k| >`$ `first_der_factor` $` \times \bar{X_k} `$
-4. The quotient of the second derivatives is close to 1:
+3. The dataset $`X = x_i, ..., x_{k-1}, x_{k+1}, ..., x_j`$, with  
+   $`|t_{k-1} - t_i| = |t_j - t_{k+1}| =`$ `first_der_window` fulfills the following condition:
+   
+   $`|x'_k| >`$ `first_der_factor` $` \times \bar{X} `$
+   
+   where $`\bar{X}`$ denotes the arithmetic mean of $`X`$.
+4. The ratio (last/this) of the second derivatives is close to 1:
     * $` 1 -`$ `scnd_der_ratio_margin_1` $`< |\frac{x''_{k-1}}{x_{k''}}| < 1 + `$`scnd_der_ratio_margin_1`
-5. The quotient of the seconde derivatives is sufficiently hight:
+5. The ratio (this/next) of the second derivatives is sufficiently hight:
     * $`|\frac{x''_{k}}{x''_{k+1}}| > `$`scnd_der_ratio_margin_2`
 
 NOTE:
 - Only works for time series
 - The time series is expected to be harmonized to an
   [equidistant frequency grid](docs/funcs/TimeSeriesHarmonization.md)
-- The derivatives are calculated after applying a savitsky-golay filter
-  to $`x`$.
 
 
 This Function is a generalization of the spectrum based spike flagging
