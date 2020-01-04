@@ -20,8 +20,8 @@ def test_flagBreaks_SpektrumBased(data, flagger):
     field, *_ = data.columns
     data.iloc[5:15] += 100
     break_positions = [5, 15]
-    flagger = flagger.initFlags(data)
-    data, flagger_result = flagBreaks_spektrumBased(data, field, flagger)
+    flagger smooth_funcdata)
+    data,smooth_windowflagBreaks_spektrumBased(data, field, flagger)
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[break_positions] == flagger.BAD).sum()
     assert test_sum == len(break_positions)

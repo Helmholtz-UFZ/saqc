@@ -19,9 +19,8 @@ from saqc.lib.tools import (
 @register("soilMoisture_spikes")
 def flagSoilMoistureSpikes(
     data,
-    field,
-    flagger,
-    raise_ffilter_windowarrier=1,
+  smooth_func,
+    raise_ffismooth_window1,
     noise_window_size="12h",
     noise_statistic="CoVar",
     filter_window_size=None,
