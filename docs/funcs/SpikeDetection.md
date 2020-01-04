@@ -20,12 +20,12 @@ spikes_basic(thresh, tolerance, window_size)
 |-----------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------|
 | thresh    | float                                                         |               | Minimum difference between to values, to consider the latter one as a spike. See condition (1) |
 | tolerance | float                                                         |               | Maximum difference between pre-spike and post-spike values. See condition (2)                  |
-| window    | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Maximum length of "spikish" value courses. See condition (3)                                   |
+| window    | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Maximum length of "spiky" value courses. See condition (3)                                  |
 
 A basic outlier test, that is designed to work for harmonized, as well as raw
 (not-harmonized) data.
 
-The values $`x_{n}, x_{n+1}, .... , x_{n+k} `$ of a timeseries $`x_t`$ with 
+The values $`x_{n}, x_{n+1}, .... , x_{n+k} `$ of a time series $`x_t`$ with 
 timestamps $`t_i`$ are considered spikes, if:
 
 1. $`|x_{n-1} - x_{n+s}| > `$ `thresh`, $` s \in \{0,1,2,...,k\} `$
@@ -35,7 +35,7 @@ timestamps $`t_i`$ are considered spikes, if:
 3. $` |t_{n-1} - t_{n+k+1}| < `$ `window`
 
 By this definition, spikes are values, that, after a jump of margin `thresh`(1),
-are keeping that new value level, for a timespan smaller than
+are keeping that new value level, for a time span smaller than
 `window` (3), and then return to the initial value level -
 within a tolerance of `tolerance` (2).
 
@@ -108,7 +108,7 @@ The algorithm works as follows:
 ### Outlier Detection Methods
 Currently two outlier detection methods are implemented:
 
-1. `"zscore"`: The Z-score marks every value as a possible outlier, which fulfills the follwing condition:
+1. `"zscore"`: The Z-score marks every value as a possible outlier, which fulfills the following condition:
 
    ```math
     |r - m| > s * z
@@ -116,7 +116,7 @@ Currently two outlier detection methods are implemented:
    where $`r`$ denotes the residual, $`m`$ the residual mean, $`s`$ the residual
    standard deviation, and $`z`$ the $`z`$-parameter.
 
-2. `"modZ"`: The modified Z-score Marks every value as a possible outlier, which fulfills the follwing condition:
+2. `"modZ"`: The modified Z-score Marks every value as a possible outlier, which fulfills the following condition:
 
    ```math
     0.6745 * |r - m| > mad * z > 0
@@ -141,34 +141,34 @@ spikes_spektrumBased(raise_factor=0.15, deriv_factor=0.2,
 |---------------|---------------------------------------------------------------|---------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | raise_factor  | float                                                         | `0.15`        | Minimum relative value difference between two values to consider the latter as a spike candidate. See condition (1)                                                                                                        |
 | deriv_factor  | float                                                         | `0.2`         | See condition (2)                                                                                                                                                                                                          |
-| noise_thresh  | float                                                         | `1`           | Upper threshhold for noisyness of data surrounding potential spikes. See condition (3)                                                                                                                                     |
+| noise_thresh  | float                                                         | `1`           | Upper threshold for noisiness of data surrounding potential spikes. See condition (3)                                                                                                                                     |
 | noise_window  | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | Determines the range of the time window of the "surrounding" data of a potential spike. See condition (3)                                                                                                                  |
-| noise_func    | [string](#noise-detection-functions)                          | `"CoVar"`     | Function to calculate noisyness of data, surrounding potential spikes                                                                                                                                                      |
+| noise_func    | [string](#noise-detection-functions)                          | `"CoVar"`     | Function to calculate noisiness of data, surrounding potential spikes                                                                                                                                                      |
 | ploy_deg      | integer                                                       | `2`           | Order of the polynomial fit, applied with Savitsky-Golay-filter                                                                                                                                                            |
 | filter_window | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | Controls the range of the smoothing window applied with the Savitsky-Golay filter. If `None` (default), the window size will be two times the sampling rate (thus, covering 3 values). If unsure, do not change that value |
 
 
-The function flags spikes by evaluating the timeseries' derivatives
+The function flags spikes by evaluating the time series' derivatives
 and applying various conditions to them.
 
-The value $`x_{k}`$ of a timeseries $`x_t`$ with 
+The value $`x_{k}`$ of a time series $`x_t`$ with 
 timestamps $`t_i`$ is considered a spikes, if:
 
 
-1. The quotient to its preceeding datapoint exceeds a certain bound:
+1. The quotient to its preceding data point exceeds a certain bound:
     * $` |\frac{x_k}{x_{k-1}}| > 1 + `$ `raise_factor`, or
     * $` |\frac{x_k}{x_{k-1}}| < 1 - `$ `raise_factor`
-2. The quotient of the data's second derivative $`x''`$, at the preceeding
+2. The quotient of the second derivative $`x''`$, at the preceding
    and subsequent timestamps is close enough to 1:
     * $` |\frac{x''_{k-1}}{x''_{k+1}} | > 1 - `$ `deriv_factor`, and
     * $` |\frac{x''_{k-1}}{x''_{k+1}} | < 1 + `$ `deriv_factor`
 3. The dataset $`X = x_i, ..., x_{k-1}, x_{k+1}, ..., x_j`$, with 
-   $`|t_{k-1} - t_i| = |t_j - t_{k+1}| =`$ `noise_window` fullfills the 
+   $`|t_{k-1} - t_i| = |t_j - t_{k+1}| =`$ `noise_window` fulfills the 
    following condition: 
    `noise_func`$`(X) <`$ `noise_thresh`
    
 NOTE:
-- The dataset is supposed to be harmonized to a timeseries with an equidistant frequency grid
+- The dataset is supposed to be harmonized to a time series with an equidistant frequency grid
 - The derivative is calculated after applying a Savitsky-Golay filter to $`x`$
 
   This function is a generalization of the Spectrum based Spike flagging
