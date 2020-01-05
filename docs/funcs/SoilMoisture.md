@@ -193,6 +193,7 @@ is flagged, if:
 3. The total amount of precipitation within the last 24 hours does not exceed
    a certain threshold, i.e. with $`j = `$ "24h" /  $`f`$ the following 
    condition is fulfilled:
+
    $` y_{k-j} + y_{k-j+1} + ... + y_{k} \le `$ `sensor_depth` $`\cdot`$ `sensor_accuracy` $`\cdot`$ `soil_porosity`
    
 
