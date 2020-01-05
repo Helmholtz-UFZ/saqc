@@ -3,7 +3,7 @@ All the [pandas offset aliases](https://pandas.pydata.org/pandas-docs/stable/use
 
 | Alias                   | Description  |
 | -----                   | -----------  |
-| `"S"`, "s"              | second       |
+| `"S"`, `"s"`              | second       |
 | `"T"`, `"Min"`, `"min"` | minute       |
 | `"H"`, `"h"`            | hour         |
 | `"D"`, `"d"`            | calendar day |
