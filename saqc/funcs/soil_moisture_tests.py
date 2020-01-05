@@ -150,13 +150,13 @@ def flagSoilMoistureByPrecipitationEvents(
     data,
     field,
     flagger,
-    prec_reference,
-    sensor_meas_depth=0,
+    prec_variable,
+    raise_window=None,
+    sensor_depth=0,
     sensor_accuracy=0,
     soil_porosity=0,
     std_factor=2,
-    std_factor_range="24h",
-    raise_reference=None,
+    std_window="24h",
     ignore_missing=False,
     **kwargs
 ):
@@ -178,9 +178,9 @@ def flagSoilMoistureByPrecipitationEvents(
 
     A data point y_t is flagged an invalid soil moisture raise, if:
 
-    (1) y_t > y_(t-raise_reference)
+    (1) y_t > y_(t-raise_window)
     (2) y_t - y_(t-"std_factor_range") > "std_factor" * std(y_(t-"std_factor_range"),...,y_t)
-    (3) sum(prec(t-24h),...,prec(t)) > sensor_meas_depth * sensor_accuracy * soil_porosity
+    (3) sum(prec(t-24h),...,prec(t)) > sensor_depth * sensor_accuracy * soil_porosity
 
     NOTE1: np.nan entries in the input precipitation series will be regarded as susipicious and the test will be
     omited for every 24h interval including a np.nan entrie in the original precipitation sampling rate.
@@ -194,8 +194,8 @@ def flagSoilMoistureByPrecipitationEvents(
                                         time raster with seconds precision.
     :param field:                       Fieldname of the Soil moisture measurements field in data.
     :param flagger:                     A flagger - object. (saqc.flagger.X)
-    :param prec_reference:              Fieldname of the precipitation meassurements column in data.
-    :param sensor_meas_depth:           Measurement depth of the soil moisture sensor, [m].
+    :param prec_variable:               Fieldname of the precipitation meassurements column in data.
+    :param sensor_depth:                Measurement depth of the soil moisture sensor, [m].
     :param sensor_accuracy:             Accuracy of the soil moisture sensor, [-].
     :param soil_porosity:               Porosity of moisture sensors surrounding soil, [-].
     :param std_factor:                  The value determines by which rule it is decided, weather a raise in soil
@@ -204,9 +204,9 @@ def flagSoilMoistureByPrecipitationEvents(
                                         with the last 24 hours standart deviation.
     :param std_factor_range:            Offset String. Denotes the range over witch the standart deviation is obtained,
                                         to test condition [2]. (Should be a multiple of the sampling rate)
-    :param raise_reference:             Offset String. Denotes the distance to the datapoint, relatively to witch
+    :param raise_window:                Offset String. Denotes the distance to the datapoint, relatively to witch
                                         it is decided if the current datapoint is a raise or not. Equation [1].
-                                        It defaults to None. When None is passed, raise_reference is just the sample
+                                        It defaults to None. When None is passed, raise_window is just the sample
                                         rate of the data. Any raise reference must be a multiple of the (intended)
                                         sample rate and below std_factor_range.
     :param ignore_missing:
@@ -216,7 +216,7 @@ def flagSoilMoistureByPrecipitationEvents(
     dataseries, moist_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     # data not hamronized:
-    refseries = data[prec_reference].dropna()
+    refseries = data[prec_variable].dropna()
     # abort processing if any of the measurement series has no valid entries!
     if moist_rate is np.nan:
         return data, flagger
@@ -227,25 +227,25 @@ def flagSoilMoistureByPrecipitationEvents(
     # get 24 h prec. monitor
     prec_count = refseries.rolling(window="1D").sum()
     # exclude data not signifying a raise::
-    if raise_reference is None:
-        raise_reference = 1
+    if raise_window is None:
+        raise_window = 1
     else:
-        raise_reference = int(np.ceil(pd.Timedelta(raise_reference)/moist_rate))
+        raise_window = int(np.ceil(pd.Timedelta(raise_window)/moist_rate))
 
     # first raise condition:
-    raise_mask = dataseries > dataseries.shift(raise_reference)
+    raise_mask = dataseries > dataseries.shift(raise_window)
 
     # second raise condition:
-    std_factor_range = int(np.ceil(pd.Timedelta(std_factor_range)/moist_rate))
+    std_window = int(np.ceil(pd.Timedelta(std_window)/moist_rate))
     if ignore_missing:
-        std_mask = dataseries.dropna().rolling(std_factor_range).std() < (
-                (dataseries - dataseries.shift(std_factor_range)) / std_factor)
+        std_mask = dataseries.dropna().rolling(std_window).std() < (
+                (dataseries - dataseries.shift(std_window)) / std_factor)
     else:
-        std_mask = dataseries.rolling(std_factor_range).std() < (
-                    (dataseries - dataseries.shift(std_factor_range)) / std_factor)
+        std_mask = dataseries.rolling(std_window).std() < (
+                    (dataseries - dataseries.shift(std_window)) / std_factor)
 
     dataseries = dataseries[raise_mask & std_mask]
-    invalid_indices = (prec_count[dataseries.index] <= sensor_meas_depth*sensor_accuracy*soil_porosity)
+    invalid_indices = (prec_count[dataseries.index] <= sensor_depth*sensor_accuracy*soil_porosity)
     invalid_indices = invalid_indices[invalid_indices]
 
     # set Flags

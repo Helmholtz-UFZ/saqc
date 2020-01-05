@@ -31,7 +31,7 @@ def test_flagSoilMoistureBySoilFrost(flagger):
         data, "soil_moisture", flagger, "soil_temperature"
     )
     flag_assertion = np.arange(19, 37)
-    flag_result = flagger_result.getFlags("soil_moisture")  # .iloc[:, 0]
+    flag_result = flagger_result.getFlags("soil_moisture")
     assert (flag_result[flag_assertion] == flagger.BAD).all()
 
 
