@@ -32,7 +32,7 @@ This process includes:
 1. All missing values in the data set get [flagged](docs/funcs/Miscellaneous-md#missing). 
    These values will be excluded from the shifting process.
 2. Depending on the `method`, the data points and the associated
-   flags will be assigned to a timestamp in the taget grid
+   flags will be assigned to a timestamp in the target grid
    
 NOTE:
 - The data will be projected to an regular grid ranging from 
@@ -65,7 +65,7 @@ This process includes:
    These values will be excluded from the aggregation process
 2. Values and flags will be aggregated by `value_func` and `flag_func` respectively
 3. Depending on the `method`, the aggregation results will be assigned to a timestamp
-   in the taget grid
+   in the target grid
 
 NOTE:
 - The data will be projected to an regular grid ranging from 
@@ -162,7 +162,7 @@ harmonize_downsample(sample_freq, agg_freq,
 The function downsamples a time series from its `sample_freq` to the lower
 sampling rate `agg_freq`, by aggregation with `agg_func`.
 
-If a `sample_func` is given, the data will be aggragated to `sample_freq`
+If a `sample_func` is given, the data will be aggregated to `sample_freq`
 before downsampling.
 
 NOTE:
@@ -184,11 +184,11 @@ harmonize(freq, inter_method, reshape_method, inter_agg="mean", inter_order=1,
 | inter_method          | [shift](#shift-methods)/[aggregation](#aggregation-methods)/[interpolation](#interpolation-methods) method string |               | Method used to project values to the target grid                                                                                                                                                                                              |
 | reshape_method        | [shift](#shift-methods)/[aggregation](#aggregation-methods) method string                                         |               | Method used to project flags to the target grid                                                                                                                                                                                               |
 | inter_agg             | [aggregation function string](#aggregation-functions)                                                             | `"mean"`      | Function used for aggregation, if an `inter_method` is given                                                                                                                                                                                  |
-| inter_order           | int                                                                                                               | `1`           | The order of interpolation applied, if an an `inter_method` is given                                                                                                                                                                          |
-| inter_downcast        | boolean                                                                                                           | `False`       | `True`: Decrease interpolation order if data chunks that are too short to be interpolated with order `inter_order`. <br/> `False`: Project those data chunks to `NAN`. <br/> Option only relevant if `inter_method` supports an `inter_order` |
+| inter_order           | int                                                                                                               | `1`           | The order of interpolation applied, if an `inter_method` is given                                                                                                                                                                             |
+| inter_downcast        | bool                                                                                                              | `False`       | `True`: Decrease interpolation order if data chunks that are too short to be interpolated with order `inter_order`. <br/> `False`: Project those data chunks to `NAN`. <br/> Option only relevant if `inter_method` supports an `inter_order` |
 | reshape_agg           | [aggregation function string](#aggregation-functions)                                                             | `"max"`       | Function used for the aggregation of flags. By default (`"max"`) the worst/highest flag is assigned                                                                                                                                           |
 | reshape_missing_flag  | string                                                                                                            | `None`        | Valid flag value, that will be used for empty harmonization intervals. By default (`None`) such intervals are set to `BAD`                                                                                                                    |
-| reshape_shift_comment | boolean                                                                                                           | `True`        | `True`: Shifted flags will be reset, other fields associated with a flag might get lost. <br/> `False`: Shifted flags will not be reset. <br/> <br/> Only relevant for multi-column flagger and a given `inter_method`                        |
+| reshape_shift_comment | bool                                                                                                              | `True`        | `True`: Shifted flags will be reset, other fields associated with a flag might get lost. <br/> `False`: Shifted flags will not be reset. <br/> <br/> Only relevant for multi-column flagger and a given `inter_method`                        |
 | data_missing_value    | Any                                                                                                               | `np.nan`      | The value, indicating missing data                                                                                                                                                                                                            |
 
 
@@ -224,53 +224,55 @@ NOTE:
 deharmonize(co_flagging)
 ```
 
-| parameter   | data type | default value | description                                                                                                                                                                                                                                                                                                                                                           |
-|-------------|-----------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| co_flagging | boolean   |               | `False`: depending on the harmonization method applied, only overwrite ultimately preceeding, first succeeding or nearest flag to a harmonized flag. <br/> `True`: Depending on the harmonization method applied, overwrite all the values covered by the succeeding or preceeding sampling intervall, or, all the values in the range of a harmonic flags timestamp. |
+| parameter   | data type | default value | description                                                    |
+|-------------|-----------|---------------|----------------------------------------------------------------|
+| co_flagging | boolean   |               | Control the bahviour of the flag reprojection, see description |
 
 
-After having calculated flags on an equidistant frequency grid, generated by
-a call to a harmonization function, you may want to project
-that new flags on to the original data index, or just restore the
-original data shape. Then a call to `deharmonize` will do exactly that.
+This functions projects harmonized datasets back to there original time stamps
+and thereby restores the original data shape.
 
-`deharmonize` will check for harmonization information for the variable it is
-applied on (automatically generated by any call to a harmonization function of that variable)
-and than:
+A combination of calls to one of the `harmonize*` functions and `deharmonize`,
+allows to leverage information from data sets with differing timestamps/frequencies
+and bring the generated information back to the original dataset.
 
-1. Overwrite the harmonized data series with the original dataseries and its timestamps.
-2. Project the calculated flags onto the original index, by inverting the
-  flag projection method used for harmonization, meaning, that:
-    * if the flags got shifted or aggregated forward, either the flag associated with the ultimatly preceeding
-      original timestamp, to the harmonized flag (`co_flagging`=`False`),
-      or all the flags, coverd by the harmonized flags preceeding sampling intervall (`co_flagging`=`True`)
-      get overwritten with the harmonized flag - if they are "better" than this harmonized flag.
-      (According to the flagging order of the current flagger.)
-    * if the flags got shifted or aggregated backwards, either the flag associated with the first succeeding
-      original timestamp, to the harmonized flag (`co_flagging`=`False`),
-      or all the flags, coverd by the harmonized flags succeeding sampling intervall (`co_flagging`=`True`)
-      get overwritten with the harmonized flag - if they are "better" than this harmonized flag.
-      (According to the flagging order of the current flagger.)
-    * if the flags got shifted or aggregated to the nearest harmonic index,
-      either the flag associated with the flag, nearest, to the harmonized flag (`co_flagging`=`False`),
-      or all the flags, covered by the harmonized flags range (`co_flagging`=`True`)
-      get overwritten with the harmonized flag - if they are "better" than this harmonized flag.
-      (According to the flagging order of the current flagger.)
+`deharmonize` will implicitly revert the methods and functions applied during
+harmonization. I.e.:
+- The harmonized time series will be dropped in favor of the original one
+- Flags are projected to the original time stamps if the are 'worse'/higher
+  than the original. The direction of this projection is invert to the
+  shift/aggregation direction in `harmonize*`, i.e. a forward shift in
+  `harmonize*` will result in a backward shift in `deharmonize` and vice
+   versa.
+- The projection behavior is controlled by the value of `co_flagging`:
+  + `False`: Project a flag from the harmonized time series to a single 
+     flag in the deharmonized data set
+  + `True`: Project a flag in the harmonized time series to all flags 
+     in the respective projection interval.
+     
+  Let's say during harmonization a dataset was aggregated to a lower 
+  frequency (e.g. a time series with a frequency of 10 minutes was 
+  resampled to one with a frequency of 1 hour) and needs to be deharmonized.
+  If `co_flagging` is `True`, the flags from the harmonized dataset 
+  will be projected to all the six values within the aggregation period,
+  if `co_flagging` is False, only the next/last/nearest value in the 
+  deharmonized dataset will inherit the flag from the harmonized 
+  time series.
+  
 
-
-## Paramater Descriptions
+## Parameter Descriptions
 
 ### Aggregation Functions
 
-| keyword    | description                    |
-|------------|--------------------------------|
-| `"sum"`    | sum of the values              |
-| `"mean"`   | arithmetioc mean of the values |
-| `"min"`    | minimum value                  |
-| `"max"`    | maximum value                  |
-| `"median"` | median of the values           |
-| `"first"`  | first value                    |
-| `"last"`   | last value                     |
+| keyword    | description                   |
+|------------|-------------------------------|
+| `"sum"`    | sum of the values             |
+| `"mean"`   | arithmetic mean of the values |
+| `"min"`    | minimum value                 |
+| `"max"`    | maximum value                 |
+| `"median"` | median of the values          |
+| `"first"`  | first value                   |
+| `"last"`   | last value                    |
 
 ### Aggregation Methods
 
