@@ -128,29 +128,27 @@ This Function is based on [1] and all default parameter values are taken from th
 ## soilMoisture_byFrost
 
 ```
-soilMoisture_byFrost(soil_temp_variable, tolerated_deviation="1h", frost_level=0)
+soilMoisture_byFrost(soil_temp_variable, window="1h", frost_thresh=0)
 ```
 
-| parameter           | data type                                                     | default value | description                                                |
-|---------------------|---------------------------------------------------------------|---------------|------------------------------------------------------------|
-| soil_temp_variable  | string                                                        |               | Name of the soil temperature variable given in the dataset |
-| tolerated_deviation | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | Window around a value checked for frost events             |
-| frost_level         | float                                                         | `0`           | Soil temperature to consider as frost                      |
+| parameter          | data type                                                     | default value | description                                                   |
+|--------------------|---------------------------------------------------------------|---------------|---------------------------------------------------------------|
+| soil_temp_variable | string                                                        |               | Name of the soil temperature variable given in the dataset    |
+| window             | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | Window around a value checked for frost events                |
+| frost_thresh       | float                                                         | `0`           | Soil temperature below `frost_thresh` are considered as frost |
 
 
-The function flags Soil moisture measurements by evaluating the soil-frost-level
-in the moment of measurement (+/- `tolerated deviation`).
-Soil temperatures below "frost_level" are regarded as denoting frozen soil
-state and result in the checked soil moisture value to get flagged.
+This function flags soil moisture values if the soil temperature
+(given in `soil_temp_variable`) drops below `frost_thresh`
+within a periode of +/- `window`.
 
-This Function is an implementation of the soil temperature based Soil Moisture
-flagging, as presented in:
+This Function is an implementation of the soil temperature based flagging
+as presented in [1] and all default parameter values are taken from this
+publication.
 
-Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture Data
-from the international Soil Moisture Network. 2013. Vadoze Zone J.
-doi:10.2136/vzj2012.0097.
-
-All parameters default to the values, suggested in this publication.
+[1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture Data
+    from the international Soil Moisture Network. 2013. Vadoze Zone J.
+    doi:10.2136/vzj2012.0097.
 
 
 ## soilMoisture_byPrecipitation

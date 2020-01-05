@@ -96,8 +96,8 @@ def flagSoilMoistureBySoilFrost(
     field,
     flagger,
     soil_temp_variable,
-    tolerated_deviation="1h",
-    frost_level=0,
+    window="1h",
+    frost_thresh=0,
     **kwargs
 ):
 
@@ -138,8 +138,8 @@ def flagSoilMoistureBySoilFrost(
     if refseries.empty:
         return data, flagger
 
-    refseries = refseries.reindex(data[field].dropna().index, method="nearest", tolerance=tolerated_deviation)
-    refseries = refseries[refseries < frost_level].index
+    refseries = refseries.reindex(data[field].dropna().index, method="nearest", tolerance=window)
+    refseries = refseries[refseries < frost_thresh].index
 
     flagger = flagger.setFlags(field, refseries, **kwargs)
     return data, flagger
