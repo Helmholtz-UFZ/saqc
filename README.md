@@ -43,7 +43,7 @@ quality control and/or modify them.
 ![Example config](docs/images/screenshot_config.png "Example config") 
 
 While a good (but still growing) number of predefined and highly configurable
-[functions](docs/FunctionDescriptions.md) are included and ready to use, SaQC
+[functions](docs/FunctionIndex.md) are included and ready to use, SaQC
 additionally ships with a python based
 [extension language](docs/GenericFunctions.md). 
 

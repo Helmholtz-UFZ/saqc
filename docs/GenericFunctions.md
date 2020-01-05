@@ -14,7 +14,7 @@ challenging to translate them into general purpose source code.
 
 ## Specification
 Generic functions are used in the same manner as their
-[non-generic counterparts](docs/FunctionDescriptions.md). The basic 
+[non-generic counterparts](docs/FunctionIndex.md). The basic 
 signature looks like that:
 ```sh
 flagGeneric(func=<expression>, flag=<flagging_constant>)

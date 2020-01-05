@@ -91,7 +91,7 @@ different variables by following the pattern:
 In this case, we define a range-test that flags all values outside the range
 [10,60] and a test to detect spikes using the MAD-method. You can find an
 overview of all available quality control tests in the
-[documentation](FunctionDescriptions.md). Note that the tests are
+[documentation](FunctionIndex.md). Note that the tests are
 _executed in the order that you define in the configuration file_. The quality
 flags that are set during one test are always passed on to the subsequent one.
 
@@ -183,7 +183,7 @@ series. Also, you can write your own tests using a python-based
 
 The above executes an internal framework that harmonizes the timestamps of SM2
 to a 15min-grid (see data below). Further information about this routine can be
-found in the [function definition](docs/FunctionDescriptions.md).
+found in the [function definition](docs/FunctionIndex.md).
 
 	Date,SM1,SM1_flags,SM2,SM2_flags
 	2016-04-01 00:00:00,,,29.3157,OK

@@ -1,6 +1,6 @@
 # Customizations
 SaQC comes with a continuously growing number of pre-implemented
-[quality check and processing routines](docs/FunctionDescriptions.md) and 
+[quality check and processing routines](docs/FunctionIndex.md) and 
 flagging schemes. 
 For any sufficiently large use case however, chances are high, that the 
 functions provided won't fulfill all your needs and requirements.
