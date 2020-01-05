@@ -15,22 +15,25 @@ A collection of soil moisture specific quality check routines.
 ## soilMoisture_spikes
 
 ```
-soilMoisture_spikes(smooth_window="3h", raise_factor=0.15, deriv_factor=0.2,
-                    noise_thresh=1, noise_window="12h", noise_func="CoVar")
+soilMoisture_spikes(raise_factor=0.15, deriv_factor=0.2,
+                    noise_func="CoVar", noise_window="12h", noise_thresh=1,
+                    smooth_window="3h")
 ```
 
-| parameter     | data type | default value | description |
-| ------        | ------    | ------        | ----        |
-| raise_factor  | float     | `0.15`        |             |
-| deriv_factor  | float     | `0.2`         |             |
-| smooth_window | string    | `"3h"`        |             |
-| noise_thresh  | integer   | `1`           |             |
-| noise_window  | string    | `"12h"`       |             |
-| noise_func    | string    | `"CoVar"`     |             |
+| parameter     | default value |
+|---------------|---------------|
+| raise_factor  | `0.15`        |
+| deriv_factor  | `0.2`         |
+| noise_thresh  | `1`           |
+| noise_window  | `"12h"`       |
+| noise_func    | `"CoVar"`     |
+| smooth_window | `"3h"`        |
 
 
-The Function is a wrapper around [`flagSpikes_spektrumBased`](docs/funcs/SpikeDetection.md#spikes_spektrumbased),
-with a set of default parameters referring to [1].
+The Function is a wrapper around `flagSpikes_spektrumBased`
+with a set of default parameters referring to [1]. For a complete description of 
+the algorithm and the available parameters please refer to the documentation of 
+[flagSpikes_spektrumBased](docs/funcs/SpikeDetection.md#spikes_spektrumbased)
 
 [1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
     Data from the international Soil Moisture Network. 2013.

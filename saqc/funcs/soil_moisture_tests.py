@@ -19,12 +19,12 @@ def flagSoilmoistureSpikes(
     data,
     field,
     flagger,
-    filter_window_size="3h",
     raise_factor=0.15,
-    dev_cont_factor=0.2,
-    noise_barrier=1,
-    noise_window_size="12h",
-    noise_statistic="covar",
+    deriv_factor=0.2,
+    noise_func="CoVar",
+    noise_window="12h",
+    noise_thresh=1,
+    smooth_window="3h",
     **kwargs
 ):
 
@@ -39,12 +39,12 @@ def flagSoilmoistureSpikes(
         data,
         field,
         flagger,
-        smooth_window=filter_window_size,
         raise_factor=raise_factor,
-        deriv_factor=dev_cont_factor,
-        noise_func=noise_statistic,
-        noise_window=noise_window_size,
-        noise_thresh=noise_barrier,
+        deriv_factor=deriv_factor,
+        noise_func=noise_func,
+        noise_window=noise_window,
+        noise_thresh=noise_thresh,
+        smooth_window=smooth_window,
         **kwargs
     )
 
