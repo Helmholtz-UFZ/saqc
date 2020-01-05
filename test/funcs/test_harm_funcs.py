@@ -337,7 +337,7 @@ def test_wrapper(data, flagger):
     flagger = flagger.initFlags(data)
     downsample(data, field, flagger, '15min', '30min', agg_func="sum", sample_func="mean")
     linear2Grid(data, field, flagger, freq, method='nagg', func="max", drop_flags=None)
-    aggregate2Grid(data, field, flagger, freq, func_values="sum",
-                   func_flags="max", method='nagg', drop_flags=None)
+    aggregate2Grid(data, field, flagger, freq, value_func="sum",
+                   flag_func="max", method='nagg', drop_flags=None)
     shift2Grid(data, field, flagger, freq, method='nshift', drop_flags=None)
 

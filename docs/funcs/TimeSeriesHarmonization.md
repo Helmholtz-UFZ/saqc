@@ -46,14 +46,14 @@ NOTE:
 ## harmonize_aggregate2grid
 
 ```
-harmonize_aggregate2Grid(freq, func_values, func_flags="max", method='nagg')
+harmonize_aggregate2Grid(freq, value_func, flag_func="max", method='nagg')
 ```
-| parameter   | data type                                                     | default value | description                                     |
-|-------------|---------------------------------------------------------------|---------------|-------------------------------------------------|
-| freq        | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Frequency of the target grid                    |
-| func_values | [function string](#aggregation-functions)                     |               | Function used for data aggregation              |
-| func_flags  | [function string](#aggregation-functions)                     | `"max"`       | Function used for flags aggregation             |
-| method      | [method string](#aggregation-methods)                         | `"nagg"`      | Method used to assign values to the target grid |
+| parameter  | data type                                                     | default value | description                                     |
+|------------|---------------------------------------------------------------|---------------|-------------------------------------------------|
+| freq       | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Frequency of the target grid                    |
+| value_func | [function string](#aggregation-functions)                     |               | Function used for data aggregation              |
+| flag_func  | [function string](#aggregation-functions)                     | `"max"`       | Function used for flags aggregation             |
+| method     | [method string](#aggregation-methods)                         | `"nagg"`      | Method used to assign values to the target grid |
 
 
 The function "harmonizes" a time series to an equidistant frequency grid
@@ -63,7 +63,7 @@ This process includes:
 
 1. All missing values in the data set get [flagged](docs/funcs/Miscellaneous-md#missing). 
    These values will be excluded from the aggregation process
-2. Values and flags will be aggregated by `func_values` and `func_flags` respectively
+2. Values and flags will be aggregated by `value_func` and `flag_func` respectively
 3. Depending on the `method`, the aggregation results will be assigned to a timestamp
    in the taget grid
 
