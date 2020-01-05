@@ -408,12 +408,14 @@ def _interpolateGrid(
             data = data.asfreq(freq, fill_value=np.nan)
 
     else:
-        methods = ", ".join(shifts + ["\n"] + aggregations + ["\n"] + interpolations)
-        raise ValueError(
-            "Passed interpolation method keyword:'{}', is unknown. Please select from: \n '{}'.".format(
-                method, methods
-            )
+        methods = "\n".join(
+            [", ".join(shifts),
+             ", ".join(aggregations),
+             ", ".join(interpolations)]
         )
+        raise ValueError(
+            f"Unknown interpolation method: '{method}', please select from:\n{methods}")
+
     if total_range is not None:
         data = data.reindex(total_index)
 
@@ -829,7 +831,7 @@ def shift2Grid(data, field, flagger, freq, method='nshift', drop_flags=None, **k
 
 
 @register('harmonize_aggregate2Grid')
-def aggregate2Grid(data, field, flagger, freq, func_values, func_flags="max", method='nagg', drop_flags=None, **kwargs):
+def aggregate2Grid(data, field, flagger, freq, value_func, flag_func="max", method='nagg', drop_flags=None, **kwargs):
     return harmonize(
         data,
         field,
@@ -837,8 +839,8 @@ def aggregate2Grid(data, field, flagger, freq, func_values, func_flags="max", me
         freq,
         inter_method=method,
         reshape_method=method,
-        inter_agg=func_values,
-        reshape_agg=func_flags,
+        inter_agg=value_func,
+        reshape_agg=flag_func,
         drop_flags=drop_flags,
         **kwargs)
 
