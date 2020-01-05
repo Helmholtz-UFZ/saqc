@@ -43,27 +43,29 @@ the algorithm and the available parameters please refer to the documentation of
 ## soilMoisture_breaks
 
 ```
-soilMoisture_breaks(diff_method="raw", filter_window_size="3h",
-                   rel_change_rate_min=0.1, abs_change_min=0.01, first_der_factor=10,
-                   first_der_window_size="12h", scnd_der_ratio_margin_1=0.05,
-                   scnd_der_ratio_margin_2=10, smooth_poly_order=2)
+soilMoisture_breaks(thresh_rel=0.1, thresh_abs=0.01,
+                    first_der_factor=10, first_der_window="12h",
+                    scnd_der_ratio_range=0.05, scnd_der_ratio_thresh=10,
+                    smooth=False, smooth_window="3h", smooth_poly_deg=2)
 ```
 
-| parameter               | data type | default value | description |
-| ------                  | ------    | ------        | ----        |
-| diff_method             | string    | `"raw"`       |             |
-| filter_window_size      | string    | `"3h"`        |             |
-| rel_change_rate_min     | float     | `0.1`         |             |
-| abs_change_min          | float     | `0.01`        |             |
-| first_der_factor        | integer   | `10`          |             |
-| first_der_window_size   | string    | `"12h"`       |             |
-| scnd_der_ratio_margin_1 | float     | `0.05`        |             |
-| scnd_der_ratio_margin_2 | float     | `10.0`        |             |
-| smooth_poly_order       | integer   | `2`           |             |
+| parameter             | default value |
+|-----------------------|---------------|
+| thresh_rel            | `0.1`         |
+| thresh_abs            | `0.01`        |
+| first_der_factor      | `10`          |
+| first_der_window      | `"12h"`       |
+| scnd_der_ratio_range  | `0.05`        |
+| scnd_der_ratio_thresh | `10.0`        |
+| smooth                | `False`       |
+| smooth_window         | `"3h"`        |
+| smooth_poly_deg       | `2`           |
 
 
-The Function is a wrapper around [breaks_spektrumBased](docs/funcs/BreakDetection.md#breaks_spektrumbased),
-with a set of default parameters referring to [1].
+The Function is a wrapper around `breaks_spektrumBased`
+with a set of default parameters referring to [1]. For a complete description of 
+the algorithm and the available parameters please refer to the documentation of 
+[breaks_spektrumBased](docs/funcs/BreakDetection.md#breaks_spektrumbased).
 
 [1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
     Data from the international Soil Moisture Network. 2013.
@@ -74,9 +76,9 @@ with a set of default parameters referring to [1].
 
 ```
 soilMoisture_plateaus(plateau_window_min="12h", plateau_var_limit=0.0005,
-                      rainfall_window_range="12h", var_total_nans=np.inf, 
-                      var_consec_nans=np.inf, derivative_max_lb=0.0025, 
-                      derivative_min_ub=0, data_max_tolerance=0.95, 
+                      rainfall_window_range="12h", var_total_nans=np.inf,
+                      var_consec_nans=np.inf, derivative_max_lb=0.0025,
+                      derivative_min_ub=0, data_max_tolerance=0.95,
                       filter_window_size=None, smooth_poly_order=2)
 ```
 
@@ -98,10 +100,10 @@ soilMoisture_plateaus(plateau_window_min="12h", plateau_var_limit=0.0005,
 NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
 equadistant frequency grid.
 
-The function represents a stricter version of the `constant_varianceBased` 
-test from the constants detection library. The added constraints for values to 
-be flagged (3)-(5), are designed to match the special case of constant value courses of 
-soil moisture meassurements and basically check the derivative for being 
+The function represents a stricter version of the `constant_varianceBased`
+test from the constants detection library. The added constraints for values to
+be flagged (3)-(5), are designed to match the special case of constant value courses of
+soil moisture meassurements and basically check the derivative for being
 determined by preceeding rainfall events ((3) and (4)), as well as the plateau
 for being sufficiently high in value (5).
 
@@ -110,7 +112,7 @@ $`x_k,..., x_{k+n}`$, of a timeseries $`x`$ is flagged, if:
 
 1. $`n > `$`plateau_window_min`
 2. $`\sigma(x_k, x_{k+1},..., x_{k+n}) < `$`plateau_var_limit`
-3. $`\max(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \geq`$ `derivative_max_lb`, with $`s`$ denoting periods per `rainfall_range`  
+3. $`\max(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \geq`$ `derivative_max_lb`, with $`s`$ denoting periods per `rainfall_range`
 4. $`\min(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \leq`$ `derivative_min_ub`, with $`s`$ denoting periods per `rainfall_range`
 5. $`\mu(x_k, x_{k+1},..., x_{k+n}) < \max(x) \times`$`plateau_var_limit`
 
@@ -199,4 +201,3 @@ from the international Soil Moisture Network. 2013. Vadoze Zone J.
 doi:10.2136/vzj2012.0097.
 
 All parameters default to the values, suggested in this publication.
-
