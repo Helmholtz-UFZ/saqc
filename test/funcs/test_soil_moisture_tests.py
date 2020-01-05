@@ -8,7 +8,7 @@ import pandas as pd
 from saqc.funcs.soil_moisture_tests import (
     flagSoilMoistureBySoilFrost,
     flagSoilMoistureByPrecipitationEvents,
-    flagSoilMoistureByConstantsDetection
+    flagSoilMoistureConstant
 )
 
 from test.common import TESTFLAGGER, initData
@@ -68,7 +68,7 @@ def test_flagSoilMoistureByConstantsDetection(flagger):
     data.iloc[100:120] = data.max()[0]
     field = data.columns[0]
     flagger = flagger.initFlags(data)
-    data, flagger = flagSoilMoistureByConstantsDetection(data, field, flagger, plateau_window_min='1h',
+    data, flagger = flagSoilMoistureConstant(data, field, flagger, plateau_window_min='1h',
                                                          rainfall_window_range='1h')
 
     assert ~(flagger.isFlagged()[5:25]).all()[0]

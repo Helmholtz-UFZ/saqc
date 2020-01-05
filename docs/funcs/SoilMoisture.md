@@ -7,7 +7,7 @@ A collection of soil moisture specific quality check routines.
 
 - [soilMoisture_spikes](#soilmoisture_spikes)
 - [soilMoisture_breaks](#soilmoisture_breaks)
-- [soilMoisture_plateaus](#soilmoisture_plateaus)
+- [soilMoisture_constant](#soilmoisture_constant)
 - [soilMoisture_byFrost](#soilmoisture_byfrost)
 - [soilMoisture_byPrecipitation](#soilmoisture_byprecipitation)
 
@@ -72,10 +72,10 @@ the algorithm and the available parameters please refer to the documentation of
     Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
 
-## soilMoisture_plateaus
+## soilMoisture_constant
 
 ```
-soilMoisture_plateaus(plateau_window_min="12h", plateau_var_limit=0.0005,
+soilMoisture_constant(plateau_window_min="12h", plateau_var_limit=0.0005,
                       rainfall_window_range="12h", var_total_nans=np.inf,
                       var_consec_nans=np.inf, derivative_max_lb=0.0025,
                       derivative_min_ub=0, data_max_tolerance=0.95,

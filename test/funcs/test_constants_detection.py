@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 from saqc.funcs.constants_detection import flagConstantVarianceBased, flagConstant
-from saqc.funcs.soil_moisture_tests import flagSoilMoistureByConstantsDetection
+from saqc.funcs.soil_moisture_tests import flagSoilMoistureConstant
 
 from test.common import TESTFLAGGER, initData
 

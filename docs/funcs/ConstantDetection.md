@@ -36,7 +36,7 @@ constants_varianceBased(window="12h", thresh=0.0005,
 ```
 
 | parameter          | data type                                                     | default value | description                                                                                            |
-| ------             | ------                                                        | ------        | ----                                                                                                   |
+|--------------------|---------------------------------------------------------------|---------------|--------------------------------------------------------------------------------------------------------|
 | window             | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Minimum duration during which values need to identical to become plateau candidates. See condition (1) |
 | thresh             | float                                                         | `0.0005`      | Maximum variance of a group of values to still consider them constant. See condition (2)               |
 | max_missing        | integer                                                       | `None`        | Maximum number of missing values allowed in `window`, by default this condition is ignored             |

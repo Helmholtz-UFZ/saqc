@@ -254,7 +254,7 @@ def flagSoilMoistureByPrecipitationEvents(
 
 
 @register("soilMoisture_constant")
-def flagSoilMoistureByConstantsDetection(
+def flagSoilMoistureConstant(
     data,
     field,
     flagger,
