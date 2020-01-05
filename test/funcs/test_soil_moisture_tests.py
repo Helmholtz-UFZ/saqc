@@ -35,7 +35,6 @@ def test_flagSoilMoistureBySoilFrost(flagger):
     assert (flag_result[flag_assertion] == flagger.BAD).all()
 
 
-
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagSoilMoisturePrecipitationEvents(flagger):
     index = pd.date_range(
@@ -74,7 +73,3 @@ def test_flagSoilMoistureByConstantsDetection(flagger):
 
     assert ~(flagger.isFlagged()[5:25]).all()[0]
     assert (flagger.isFlagged()[100:120]).all()[0]
-
-if __name__ == "__main__":
-    flagger = TESTFLAGGER[2]
-    test_flagSoilMoistureByConstantsDetection(flagger)
