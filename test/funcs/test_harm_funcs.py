@@ -340,4 +340,5 @@ def test_wrapper(data, flagger):
     aggregate2Grid(data, field, flagger, freq, value_func="sum",
                    flag_func="max", method='nagg', drop_flags=None)
     shift2Grid(data, field, flagger, freq, method='nshift', drop_flags=None)
+    interpolate2Grid(data, field, flagger, freq, method="splie")
 
