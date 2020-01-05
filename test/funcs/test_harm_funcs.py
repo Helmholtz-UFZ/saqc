@@ -23,13 +23,13 @@ from saqc.funcs.harm_functions import (
 )
 
 
-RESHAPERS = ["nearest_shift", "fshift", "bshift"]
+RESHAPERS = ["nshift", "fshift", "bshift"]
 
 COFLAGGING = [False, True]
 
 SETSHIFTCOMMENT = [False, True]
 
-INTERPOLATIONS = ["fshift", "bshift", "nearest_shift", "nearest_agg", "bagg"]
+INTERPOLATIONS = ["fshift", "bshift", "nshift", "nagg", "bagg"]
 
 INTERPOLATIONS2 = ["fagg", "time", "polynomial"]
 
@@ -102,7 +102,7 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
     flagger = flagger.setFlags("data", loc=data.index[3:4])
     data, flagger = deharmonize(data, "data", flagger, co_flagging=co_flagging)
 
-    if reshaper is "nearest_shift":
+    if reshaper is "nshift":
         if co_flagging is True:
             assert flagger.isFlagged(loc=data.index[3:7]).squeeze().all()
             assert (~flagger.isFlagged(loc=data.index[0:3]).squeeze()).all()
@@ -186,7 +186,7 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
             assert data.equals(
                 pd.DataFrame({"data": [-50.0, -37.5, 12.5, 50.0]}, index=test_index)
             )
-    if interpolation is "nearest_shift":
+    if interpolation is "nshift":
         if freq == "15min":
             assert data.equals(
                 pd.DataFrame(
@@ -197,7 +197,7 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
             assert data.equals(
                 pd.DataFrame({"data": [np.nan, -37.5, 12.5, 50.0]}, index=test_index)
             )
-    if interpolation is "nearest_agg":
+    if interpolation is "nagg":
         if freq == "15min":
             assert data.equals(
                 pd.DataFrame(
@@ -250,7 +250,7 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
         flagger,
         freq,
         "time",
-        "nearest_shift",
+        "nshift",
         reshape_shift_comment=shift_comment,
     )
 
@@ -336,16 +336,8 @@ def test_wrapper(data, flagger):
     freq = '15min'
     flagger = flagger.initFlags(data)
     downsample(data, field, flagger, '15min', '30min', agg_func="sum", sample_func="mean")
-    linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func="max",
-                               drop_flags=None)
-    aggregate2Grid(data, field, flagger, freq, agg_func="sum", agg_method='nearest_agg',
-                                  flag_agg_func="max", drop_flags=None)
-    shift2Grid(data, field, flagger, freq, shift_method='nearest_shift', drop_flags=None)
+    linear2Grid(data, field, flagger, freq, method='nagg', func="max", drop_flags=None)
+    aggregate2Grid(data, field, flagger, freq, func_values="sum",
+                   func_flags="max", method='nagg', drop_flags=None)
+    shift2Grid(data, field, flagger, freq, method='nshift', drop_flags=None)
 
-if __name__ == "__main__":
-    dat = data()
-    dat2 = dat.shift(1, '91min')
-    dat = dat.append(dat2)
-    dat = dat.drop(dat.index[8])
-    flagger = TESTFLAGGER[2]
-    test_wrapper(dat, flagger)

@@ -328,7 +328,7 @@ def assertSingleColumns(df: PandasLike, argname: str = "") -> None:
         )
 
 
-def funcInput_2_func(func):
+def getFuncFromInput(func):
     """
     Aggregation functions passed by the user, are selected by looking them up in the STRING_2_DICT dictionary -
     But since there are wrappers, that dynamically generate aggregation functions and pass those on ,the parameter

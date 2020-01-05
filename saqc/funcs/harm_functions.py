@@ -7,7 +7,7 @@ import logging
 
 from saqc.funcs.functions import flagMissing
 from saqc.funcs.register import register
-from saqc.lib.tools import toSequence, funcInput_2_func
+from saqc.lib.tools import toSequence, getFuncFromInput
 
 
 
@@ -23,13 +23,13 @@ class Heap:
 HARM_2_DEHARM = {
     "fshift": "invert_fshift",
     "bshift": "invert_bshift",
-    "nearest_shift": "invert_nearest",
+    "nshift": "invert_nearest",
     "fagg": "invert_fshift",
     "bagg": "invert_bshift",
-    "nearest_agg": "invert_nearest",
+    "nagg": "invert_nearest",
     "fagg_no_deharm": "regain",
     "bagg_no_deharm": "regain",
-    "nearest_agg_no_deharm": "regain"
+    "nagg_no_deharm": "regain"
 }
 
 
@@ -56,8 +56,8 @@ def harmWrapper(heap={}):
     ):
 
         # get funcs from strings:
-        inter_agg = funcInput_2_func(inter_agg)
-        reshape_agg = funcInput_2_func(reshape_agg)
+        inter_agg = getFuncFromInput(inter_agg)
+        reshape_agg = getFuncFromInput(reshape_agg)
 
         # for some tingle tangle reasons, resolving the harmonization will not be sound, if not all missing/np.nan
         # values get flagged initially:
@@ -292,7 +292,7 @@ def _interpolateGrid(
 
     Be careful with pd.Series.interpolate's 'nearest' and 'pad':
     To just fill grid points forward/backward or from the nearest point - and
-    assign grid points, that refer to missing data, a nan value, the use of "fshift", "bshift" and "nearest_shift" is
+    assign grid points, that refer to missing data, a nan value, the use of "fshift", "bshift" and "nshift" is
     recommended, to ensure the result expected. (The methods diverge in some special cases).
 
     To make an index-aware linear interpolation, "times" has to be passed - NOT 'linear'.
@@ -303,11 +303,11 @@ def _interpolateGrid(
                     the preceeding sampling interval.
     'bshift'        -  every grid point gets assigned its first succeeding value - if there is one available in the
                     succeeding sampling interval.
-    'nearest_shift' -  every grid point gets assigned the nearest value in its range ( range = +/-(freq/2) ).
+    'nshift' -  every grid point gets assigned the nearest value in its range ( range = +/-(freq/2) ).
 
     3. AGGREGATIONS
 
-    'nearest_agg'   - all values in the range (+/- freq/2) of a grid point get aggregated with agg_method and assigned
+    'nagg'   - all values in the range (+/- freq/2) of a grid point get aggregated with agg_method and assigned
                     to it.
     'bagg'          - all values in a sampling interval get aggregated with agg_method and the result gets assigned to
                     the last grid point
@@ -330,8 +330,8 @@ def _interpolateGrid(
     """
 
     chunk_bounds = None
-    aggregations = ["nearest_agg", "bagg", "fagg"]
-    shifts = ["fshift", "bshift", "nearest_shift"]
+    aggregations = ["nagg", "bagg", "fagg"]
+    shifts = ["fshift", "bshift", "nshift"]
     interpolations = [
         "linear",
         "time",
@@ -356,7 +356,7 @@ def _interpolateGrid(
 
     # Aggregations:
     if method in aggregations:
-        if method == "nearest_agg":
+        if method == "nagg":
             # all values within a grid points range (+/- freq/2, closed to the left) get aggregated with 'agg method'
             # some timestamp acrobatics to feed the base keyword properly
             seconds_total = pd.Timedelta(freq).total_seconds()
@@ -386,7 +386,7 @@ def _interpolateGrid(
         elif method == "bshift":
             direction = "bfill"
             tolerance = pd.Timedelta(freq)
-        # if method = nearest_shift
+        # if method = nshift
         else:
             direction = "nearest"
             tolerance = pd.Timedelta(freq) / 2
@@ -528,12 +528,12 @@ def _reshapeFlags(
     'fagg'/'bagg'       - All flags, referring to a sampling intervals measurements get aggregated forward/backward
                         with the agg_method selected.
 
-    'nearest_shift'     - every grid point gets assigned the nearest flag in its range
+    'nshift'     - every grid point gets assigned the nearest flag in its range
                         ( range = grid_point +/-(freq/2) ).Extra flag fields like comment,
                         just get shifted along with the flag. Only inserted flags for empty intervals will take the
                         **kwargs argument.
 
-    'nearest_agg'         - every grid point gets assigned the aggregation (by agg_method), of all the flags in its range.
+    'nagg'         - every grid point gets assigned the aggregation (by agg_method), of all the flags in its range.
 
     :param flagger:     saqc.flagger. The flagger, the passed flags frame refer to.
     :param method:      String. Default = 'fshift'. A methods keyword. (see func doc above)
@@ -554,8 +554,8 @@ def _reshapeFlags(
     """
 
     missing_flag = missing_flag or flagger.BAD
-    aggregations = ["nearest_agg", "bagg", "fagg", "nearest_agg_no_deharm", "bagg_no_deharm", "fagg_no_deharm"]
-    shifts = ["fshift", "bshift", "nearest_shift"]
+    aggregations = ["nagg", "bagg", "fagg", "nagg_no_deharm", "bagg_no_deharm", "fagg_no_deharm"]
+    shifts = ["fshift", "bshift", "nshift"]
 
     freq = ref_index.freqstr
 
@@ -568,7 +568,7 @@ def _reshapeFlags(
         elif method == "bshift":
             direction = "bfill"
             tolerance = pd.Timedelta(freq)
-        # varset for nearest_shift
+        # varset for nshift
         else:
             direction = "nearest"
             tolerance = pd.Timedelta(freq) / 2
@@ -601,7 +601,7 @@ def _reshapeFlags(
             label = "left"
             base = 0
             freq_string = freq
-        # var sets for 'nearest_agg':
+        # var sets for 'nagg':
         else:
             closed = "left"
             label = "left"
@@ -628,7 +628,7 @@ def _reshapeFlags(
             .astype(flagger.dtype)
         )
 
-        if method == "nearest_agg":
+        if method == "nagg":
             flags = flags.shift(periods=-shift_correcture, freq=pd.Timedelta(freq) / 2)
 
         # some consistency clean up to ensure new flags frame matching new data frames size:
@@ -816,71 +816,74 @@ def _toMerged(
 
 
 @register('harmonize_shift2Grid')
-def shift2Grid(data, field, flagger, freq, shift_method='nearest_shift', drop_flags=None, **kwargs):
+def shift2Grid(data, field, flagger, freq, method='nshift', drop_flags=None, **kwargs):
     return harmonize(
         data,
         field,
         flagger,
         freq,
-        inter_method=shift_method,
-        reshape_method=shift_method,
+        inter_method=method,
+        reshape_method=method,
         drop_flags=drop_flags,
         **kwargs)
 
 
 @register('harmonize_aggregate2Grid')
-def aggregate2Grid(data, field, flagger, freq, agg_func, agg_method='nearest_agg', flag_agg_func="max", drop_flags=None, **kwargs):
+def aggregate2Grid(data, field, flagger, freq, func_values, func_flags="max", method='nagg', drop_flags=None, **kwargs):
     return harmonize(
         data,
         field,
         flagger,
         freq,
-        inter_method=agg_method,
-        reshape_method=agg_method,
-        inter_agg=agg_func,
-        reshape_agg=flag_agg_func,
+        inter_method=method,
+        reshape_method=method,
+        inter_agg=func_values,
+        reshape_agg=func_flags,
         drop_flags=drop_flags,
         **kwargs)
 
 
 @register('harmonize_linear2Grid')
-def linear2Grid(data, field, flagger, freq, flag_assignment_method='nearest_agg', flag_agg_func="max", drop_flags=None, **kwargs):
+def linear2Grid(data, field, flagger, freq, method='nagg', func="max", drop_flags=None, **kwargs):
     return harmonize(
         data,
         field,
         flagger,
         freq,
         inter_method='time',
-        reshape_method=flag_assignment_method,
-        reshape_agg=flag_agg_func,
+        reshape_method=method,
+        reshape_agg=func,
         drop_flags=drop_flags,
         **kwargs)
 
 
 @register('harmonize_interpolate2Grid')
-def interpolate2Grid(data, field, flagger, freq, interpolation_method, interpolation_order=1,
-                     flag_assignment_method='nearest_agg', flag_agg_func="max", drop_flags=None, **kwargs):
+def interpolate2Grid(data, field, flagger, freq, method, order=1,
+                     flag_method='nagg', flag_func="max", drop_flags=None, **kwargs):
     return harmonize(
         data,
         field,
         flagger,
         freq,
-        inter_method=interpolation_method,
-        inter_order=interpolation_order,
-        reshape_method=flag_assignment_method,
-        reshape_agg=flag_agg_func,
+        inter_method=method,
+        inter_order=order,
+        reshape_method=flag_method,
+        reshape_agg=flag_func,
         drop_flags=drop_flags,
         **kwargs)
 
 
 @register('harmonize_downsample')
 def downsample(data, field, flagger, sample_freq, agg_freq, sample_func="mean", agg_func="mean",
-               invalid_flags=None, max_invalid=np.inf, **kwargs):
+               invalid_flags=None, max_invalid=None, **kwargs):
 
-    agg_func = funcInput_2_func(agg_func)
+    agg_func = getFuncFromInput(agg_func)
+
+    if max_invalid is None:
+        max_invalid = np.inf
 
     if sample_func is not None:
-        sample_func = funcInput_2_func(sample_func)
+        sample_func = getFuncFromInput(sample_func)
 
     # define the "fastest possible" aggregator
     if sample_func is None:
