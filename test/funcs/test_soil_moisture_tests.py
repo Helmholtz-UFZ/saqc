@@ -59,7 +59,7 @@ def test_flagSoilMoisturePrecipitationEvents(flagger):
     assert test_sum == len(flag_assertion)
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_flagSoilMoistureByConstantsDetection(flagger):
+def test_flagSoilMoistureConstants(flagger):
 
     data = initData(
         1, start_date="2011-01-01 00:00:00", end_date="2011-01-02 00:00:00", freq="5min"
@@ -68,8 +68,8 @@ def test_flagSoilMoistureByConstantsDetection(flagger):
     data.iloc[100:120] = data.max()[0]
     field = data.columns[0]
     flagger = flagger.initFlags(data)
-    data, flagger = flagSoilMoistureConstant(data, field, flagger, plateau_window_min='1h',
-                                                         rainfall_window_range='1h')
+    data, flagger = flagSoilMoistureConstant(
+        data, field, flagger, window='1h', precipitation_window='1h')
 
     assert ~(flagger.isFlagged()[5:25]).all()[0]
     assert (flagger.isFlagged()[100:120]).all()[0]

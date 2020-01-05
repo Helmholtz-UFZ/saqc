@@ -95,7 +95,7 @@ def flagSoilMoistureBySoilFrost(
     data,
     field,
     flagger,
-    soil_temp_reference,
+    soil_temp_variable,
     tolerated_deviation="1h",
     frost_level=0,
     **kwargs
@@ -126,10 +126,10 @@ def flagSoilMoistureBySoilFrost(
     """
 
     # retrieve reference series
-    refseries = data[soil_temp_reference].copy()
+    refseries = data[soil_temp_variable].copy()
     ref_use = flagger.isFlagged(
-        soil_temp_reference, flag=flagger.GOOD, comparator="=="
-    ) | flagger.isFlagged(soil_temp_reference, flag=flagger.UNFLAGGED, comparator="==")
+        soil_temp_variable, flag=flagger.GOOD, comparator="=="
+    ) | flagger.isFlagged(soil_temp_variable, flag=flagger.UNFLAGGED, comparator="==")
     # drop flagged values:
     refseries = refseries[ref_use.values]
     # drop nan values from reference series, since those are values you dont want to refer to.
@@ -258,16 +258,16 @@ def flagSoilMoistureConstant(
     data,
     field,
     flagger,
-    plateau_window_min="12h",
-    plateau_var_limit=0.0005,
-    rainfall_window_range="12h",
-    filter_window_size=None,
-    var_total_nans=np.inf,
-    var_consec_nans=np.inf,
-    derivative_maximum_lb=0.0025,
-    derivative_minimum_ub=0,
-    data_max_tolerance=0.95,
-    smooth_poly_order=2,
+    window="12h",
+    thresh=0.0005,
+    precipitation_window="12h",
+    tolerance=0.95,
+    deriv_max=0.0025,
+    deriv_min=0,
+    max_missing=None,
+    max_consec_missing=None,
+    smooth_window=None,
+    smooth_poly_deg=2,
     **kwargs
 ):
 
@@ -287,10 +287,10 @@ def flagSoilMoistureConstant(
     # get plateaus:
     _, comp_flagger = flagConstantVarianceBased(
         data, field, flagger,
-        window=plateau_window_min,
-        thresh=plateau_var_limit,
-        max_missing=var_total_nans,
-        max_consec_missing=var_consec_nans
+        window=window,
+        thresh=thresh,
+        max_missing=max_missing,
+        max_consec_missing=max_consec_missing
     )
 
     new_plateaus = (comp_flagger.getFlags(field)).eq(flagger.getFlags(field))
@@ -300,9 +300,9 @@ def flagSoilMoistureConstant(
     new_plateaus.resample(pd.Timedelta(moist_rate)).asfreq()
     # cut out test_slices for min/max derivatives condition check:
     # offset 2 periods:
-    rainfall_window_range = int(np.ceil(pd.Timedelta(rainfall_window_range) / moist_rate))
-    plateau_window_min = int(np.ceil(pd.Timedelta(plateau_window_min) / moist_rate))
-    period_diff = rainfall_window_range - plateau_window_min
+    precipitation_window = int(np.ceil(pd.Timedelta(precipitation_window) / moist_rate))
+    window = int(np.ceil(pd.Timedelta(window) / moist_rate))
+    period_diff = precipitation_window - window
     # we cast plateua series to int - because replace has problems with replacing bools by "method".
     new_plateaus = new_plateaus.astype(int)
     # get plateau groups:
@@ -311,30 +311,30 @@ def flagSoilMoistureConstant(
     group_counter.name = 'group_counter'
     plateau_groups = pd.merge(group_counter, dataseries, left_index=True, right_index=True, how='inner')
     # test mean-condition on plateau groups:
-    test_barrier = data_max_tolerance*dataseries.max()
+    test_barrier = tolerance*dataseries.max()
     plateau_group_drops = plateau_groups.groupby('group_counter').filter(lambda x: x[field].mean() <= test_barrier)
     # discard values that didnt pass the test from plateau candidate series:
     new_plateaus[plateau_group_drops.index] = 1
 
     # we extend the plateaus to cover condition testing sets
     # 1: extend backwards (with a technical "one" added):
-    cond1_sets = new_plateaus.replace(1, method='bfill', limit=(rainfall_window_range + plateau_window_min))
+    cond1_sets = new_plateaus.replace(1, method='bfill', limit=(precipitation_window + window))
     # 2. extend forwards:
     if period_diff > 0:
         cond1_sets = cond1_sets.replace(1, method='ffill', limit=period_diff)
 
     # get first derivative
-    if filter_window_size is None:
-        filter_window_size = 3 * pd.Timedelta(moist_rate)
+    if smooth_window is None:
+        smooth_window = 3 * pd.Timedelta(moist_rate)
     else:
-        filter_window_size = pd.Timedelta(filter_window_size)
+        smooth_window = pd.Timedelta(smooth_window)
     first_derivative = dataseries.diff()
-    filter_window_seconds = filter_window_size.seconds
+    filter_window_seconds = smooth_window.seconds
     smoothing_periods = int(np.ceil((filter_window_seconds / moist_rate.n)))
     first_derivate = savgol_filter(
         dataseries,
         window_length=smoothing_periods,
-        polyorder=smooth_poly_order,
+        polyorder=smooth_poly_deg,
         deriv=1,
     )
     first_derivate = pd.Series(data=first_derivate, index=dataseries.index, name=dataseries.name)
@@ -345,7 +345,7 @@ def flagSoilMoistureConstant(
     group_frame = pd.merge(group_counter, first_derivate, left_index=True, right_index=True, how='inner')
     group_frame = group_frame.groupby('group_counter')
     condition_passed = group_frame.filter(
-        lambda x: (x[field].max() >= derivative_maximum_lb) & (x[field].min() <= derivative_minimum_ub))
+        lambda x: (x[field].max() >= deriv_max) & (x[field].min() <= deriv_min))
 
     flagger = flagger.setFlags(field, loc=condition_passed.index, **kwargs)
 

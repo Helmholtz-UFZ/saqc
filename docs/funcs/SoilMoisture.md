@@ -75,68 +75,67 @@ the algorithm and the available parameters please refer to the documentation of
 ## soilMoisture_constant
 
 ```
-soilMoisture_constant(plateau_window_min="12h", plateau_var_limit=0.0005,
-                      rainfall_window_range="12h", var_total_nans=np.inf,
-                      var_consec_nans=np.inf, derivative_max_lb=0.0025,
-                      derivative_min_ub=0, data_max_tolerance=0.95,
-                      filter_window_size=None, smooth_poly_order=2)
+soilMoisture_constant(window="12h", thresh=0.0005,
+                      precipitation_window="12h",
+                      tolerance=0.95,
+                      deriv_max=0.0025, deriv_min=0,
+                      max_missing=None, max_consec_missing=None,
+                      smooth_window=None, smooth_poly_deg=2)
 ```
 
-| parameter          | data type    | default value | description |
-| ------             | ------       | ------        | ----        |
-| plateau_window_min | string       | `"12h"`       | Options <br/> - any offset string <br/> <br/> Minimum barrier for the duration, values have to be continouos to be plateau canditaes. See condition (1).|
-| plateau_var_limit  | float        | `0.0005`      | Barrier, the variance of a group of values must not exceed to be flagged a plateau. See condition (2). |
-| rainfall_range     | string       | `"12h"`       | An Offset string. See condition (3) and (4) |
-| var_total_nans     | int or 'inf' | `np.inf`      | Maximum number of nan values allowed, for a calculated variance to be valid. (Default skips the condition.) |
-| var_consec_nans    | int or 'inf' | `np.inf`      | Maximum number of consecutive nan values allowed, for a calculated variance to be valid. (Default skips the condition.) |
-| derivative_max_lb  | float        | `0.0025`      | Lower bound for the second derivatives maximum in `rainfall_range` range. See condition (3)|
-| derivative_min_ub  | float        | `0`           | Upper bound for the second derivatives minimum in `rainfall_range` range. See condition (4)|
-| data_max_tolerance | flaot        | `0.95`        | Factor for data max barrier of condition (5).|
-| filter_window_size | Nonetype or string   | `None` | Options: <br/> - `None` <br/> - any offset string <br/><br/> Controlls the range of the smoothing window applied with the Savitsky-Golay filter. If None is passed (default), the window size will be two times the sampling rate. (Thus, covering 3 values.) If you are not very well knowing what you are doing - do not change that value. Broader window sizes caused unexpected results during testing phase.|
-| smooth_poly_order  | int          | `2` | Order of the polynomial used for fitting while smoothing. |
+| parameter            | data type                                                     | default value | description                                                                                                                                                |
+|----------------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| window               | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Minimum duration during which values need to identical to become plateau candidates. See condition (1)                                                     |
+| thresh               | float                                                         | `0.0005`      | Maximum variance of a group of values to still consider them constant. See condition (2)                                                                   |
+| precipitation_window | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | See condition (3) and (4)                                                                                                                                  |
+| tolerance            | flaot                                                         | `0.95`        | Tolerance factor, see condition (5)                                                                                                                        |
+| deriv_min            | float                                                         | `0.0025`      | See condition (3)                                                                                                                                          |
+| deriv_max            | float                                                         | `0`           | See condition (4)                                                                                                                                          |
+| max_missing          | integer                                                       | `None`        | Maximum number of missing values allowed in `window`, by default this condition is ignored                                                                 |
+| max_consec_missing   | integer                                                       | `None`        | Maximum number of consecutive missing values allowed in `window`, by default this condition is ignored                                                     |
+| smooth_window        | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | Size of the smoothing window of the Savitsky-Golay filter. The default value `None` results in a window of two times the sampling rate (i.e. three values) |
+| smooth_poly_deg      | integer                                                       | `2`           | Degree of the polynomial used for smoothing with the Savitsky-Golay filter                                                                                 |
 
 
+This function flags plateaus/series of constant values in soil moisture data.
 
-NOTE, that the dataseries-to-be flagged is supposed to be harmonized to an
-equadistant frequency grid.
-
-The function represents a stricter version of the `constant_varianceBased`
-test from the constants detection library. The added constraints for values to
-be flagged (3)-(5), are designed to match the special case of constant value courses of
-soil moisture meassurements and basically check the derivative for being
-determined by preceeding rainfall events ((3) and (4)), as well as the plateau
-for being sufficiently high in value (5).
+The function represents a stricter version of
+[constant_varianceBased](docs/funcs/ConstantDetection.md#constants_variancebased).
+The additional constraints (3)-(5), are designed to match the special cases of constant
+values in soil moisture meassurements and basically for preceeding precipitation events
+(conditions (3) and (4)) and certain plateau level (condition (5)).
 
 Any set of consecutive values
 $`x_k,..., x_{k+n}`$, of a timeseries $`x`$ is flagged, if:
 
-1. $`n > `$`plateau_window_min`
-2. $`\sigma(x_k, x_{k+1},..., x_{k+n}) < `$`plateau_var_limit`
-3. $`\max(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \geq`$ `derivative_max_lb`, with $`s`$ denoting periods per `rainfall_range`
-4. $`\min(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \leq`$ `derivative_min_ub`, with $`s`$ denoting periods per `rainfall_range`
-5. $`\mu(x_k, x_{k+1},..., x_{k+n}) < \max(x) \times`$`plateau_var_limit`
+1. $`n > `$`window`
+2. $`\sigma(x_k, x_{k+1},..., x_{k+n}) < `$`thresh`
+3. $`\max(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \geq`$ `deriv_min`, with $`s`$ denoting periods per `precipitation_window`
+4. $`\min(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \leq`$ `deriv_max`, with $`s`$ denoting periods per `precipitation_window`
+5. $`\mu(x_k, x_{k+1},..., x_{k+n}) \le \max(x) \cdot`$ `tolerance`
 
-This Function is an implementation of the soil temperature based Soil Moisture
-flagging, as presented in:
+NOTE:
+- The time series is expected to be harmonized to an
+  [equidistant frequency grid](docs/funcs/TimeSeriesHarmonization.md)
 
-Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture Data
-from the international Soil Moisture Network. 2013. Vadoze Zone J.
-doi:10.2136/vzj2012.0097.
+This Function is based on [1] and all default parameter values are taken from this publication.
 
-All parameters default to the values, suggested in this publication.
+[1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture Data
+    from the international Soil Moisture Network. 2013. Vadoze Zone J.
+    doi:10.2136/vzj2012.0097.
 
 
 ## soilMoisture_byFrost
 
 ```
-soilMoisture_byFrost(soil_temp_reference, tolerated_deviation="1h", frost_level=0)
+soilMoisture_byFrost(soil_temp_variable, tolerated_deviation="1h", frost_level=0)
 ```
 
-| parameter           | data type | default value | description |
-| ------              | ------    | ------        | ----        |
-| soil_temp_reference | string    |               |  A string, denoting the fields name in data, that holds the data series of soil temperature values, the to-be-flagged values shall be checked against.|
-| tolerated_deviation | string    | `"1h"`        |  An offset string, denoting the maximal temporal deviation, the soil frost states timestamp is allowed to have, relative to the data point to be flagged.|
-| frost_level         | integer   | `0`           |  Value level, the flagger shall check against, when evaluating soil frost level. |
+| parameter           | data type                                                     | default value | description                                                |
+|---------------------|---------------------------------------------------------------|---------------|------------------------------------------------------------|
+| soil_temp_variable  | string                                                        |               | Name of the soil temperature variable given in the dataset |
+| tolerated_deviation | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | Window around a value checked for frost events             |
+| frost_level         | float                                                         | `0`           | Soil temperature to consider as frost                      |
 
 
 The function flags Soil moisture measurements by evaluating the soil-frost-level
