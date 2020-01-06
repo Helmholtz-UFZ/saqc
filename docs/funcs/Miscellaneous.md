@@ -63,7 +63,7 @@ isolated(window, group_size=1, continuation_range='1min')
 | parameter    | data type                                                     | default value | description                                                            |
 |--------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------|
 | group_window | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Maximum size of an isolated group, see condition (1).                  |
-| gap_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Minimum size of the gap separating isolated, see condition (2) and (3) |
+| gap_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Minimum size of the gap before/after a group of values to consider them isolated, see condition (2) and (3) |
 
 The function flags arbitrary large groups of values, if they are surrounded by sufficiently
 large data gaps. A gap is defined as group of missing and/or flagged values.
@@ -72,8 +72,8 @@ A continuous group of values
 $`x_{k}, x_{k+1},...,x_{k+n}`$ with timestamps $`t_{k}, t_{k+1}, ..., t_{k+n}`$
 is considered to be isolated, if:
 1. $` t_{k+n} - t_{k} \le `$ `group_window`
-2. None of the values $` x_i, ..., x_{k-1} `$, with $`t_{k-1} - t_{i} \ge `$ `gap_window` is valid and unflagged
-3. None of the values $` x_{k+n+1}, ..., x_{j} `$, with $`t_{j} - t_{k+n+1} \ge `$ `gap_window` is valid and unflagged
+2. None of the values $` x_i, ..., x_{k-1} `$, with $`t_{k-1} - t_{i} \ge `$ `gap_window` is valid or unflagged
+3. None of the values $` x_{k+n+1}, ..., x_{j} `$, with $`t_{j} - t_{k+n+1} \ge `$ `gap_window` is valid or unflagged
 
 
 ## missing
