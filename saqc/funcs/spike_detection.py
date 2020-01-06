@@ -19,9 +19,7 @@ from saqc.lib.tools import (
 
 
 @register("spikes_slidingZscore")
-def flagSpikes_slidingZscore(
-    data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs
-):
+def flagSpikes_slidingZscore(data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
 
@@ -74,9 +72,7 @@ def flagSpikes_slidingZscore(
     if dx_s >= winsz_s and count == 1:
         pass
     elif dx_s >= winsz_s and count > 1:
-        ValueError(
-            "If stepsize `offset` is bigger that the window-size, every value is seen just once, so use count=1"
-        )
+        ValueError("If stepsize `offset` is bigger that the window-size, every value is seen just once, so use count=1")
     elif count > winsz_s // dx_s:
         raise ValueError(
             f"Adjust `offset`, `stepsize` or `window`. A single data point is "
@@ -219,9 +215,7 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window="15min"
     pre_jumps = dataseries.diff(periods=-1).abs() > thresh
     pre_jumps = pre_jumps[pre_jumps]
     # get all the entries preceeding a significant jump and its successors within "length" range
-    to_roll = pre_jumps.reindex(
-        dataseries.index, method="ffill", tolerance=window, fill_value=False
-    ).dropna()
+    to_roll = pre_jumps.reindex(dataseries.index, method="ffill", tolerance=window, fill_value=False).dropna()
 
     # define spike testing function to roll with:
     def spike_tester(chunk, pre_jumps_index, thresh, tol):
@@ -349,21 +343,16 @@ def flagSpikes_spektrumBased(
     """
 
     dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
-    noise_func_map = {
-        "covar": pd.Series.var,
-        "rvar": pd.Series.std
-    }
+    noise_func_map = {"covar": pd.Series.var, "rvar": pd.Series.std}
     noise_func = noise_func_map[noise_func.lower()]
 
     if smooth_window is None:
-        smooth_window = 3*pd.Timedelta(data_rate)
+        smooth_window = 3 * pd.Timedelta(data_rate)
     else:
         smooth_window = pd.Timedelta(smooth_window)
 
     quotient_series = dataseries / dataseries.shift(+1)
-    spikes = (quotient_series > (1 + raise_factor)) | (
-        quotient_series < (1 - raise_factor)
-    )
+    spikes = (quotient_series > (1 + raise_factor)) | (quotient_series < (1 - raise_factor))
     spikes = spikes[spikes == True]
 
     # loop through spikes: (loop may sound ugly - but since the number of spikes is supposed to not exceed the
@@ -385,16 +374,11 @@ def flagSpikes_spektrumBased(
         end_slice = spike + smooth_window
 
         scnd_derivate = savgol_filter(
-            dataseries[start_slice:end_slice],
-            window_length=smoothing_periods,
-            polyorder=smooth_ploy_deg,
-            deriv=2,
+            dataseries[start_slice:end_slice], window_length=smoothing_periods, polyorder=smooth_ploy_deg, deriv=2,
         )
 
         length = scnd_derivate.size
-        test_ratio_1 = np.abs(
-            scnd_derivate[int(((length + 1) / 2) - 2)] / scnd_derivate[int(((length + 1) / 2))]
-        )
+        test_ratio_1 = np.abs(scnd_derivate[int(((length + 1) / 2) - 2)] / scnd_derivate[int(((length + 1) / 2))])
 
         if lower_dev_bound < test_ratio_1 < upper_dev_bound:
             # apply noise condition:

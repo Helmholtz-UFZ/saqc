@@ -35,18 +35,14 @@ def flagGeneric(data, field, flagger, func, **kwargs):
 @register("flagWindowAfterFlag")
 def flagWindowAfterFlag(data, field, flagger, window, func, **kwargs):
     data, flagger_new = func
-    flagger_repeated = flagWindow(
-        flagger, flagger_new, field, direction="fw", window=window, **kwargs
-    )
+    flagger_repeated = flagWindow(flagger, flagger_new, field, direction="fw", window=window, **kwargs)
     return data, flagger_repeated
 
 
 @register("flagNextAfterFlag")
 def flagNextAfterFlag(data, field, flagger, n, func, **kwargs):
     data, flagger_new = func
-    flagger_repeated = flagWindow(
-        flagger, flagger_new, field, direction="fw", window=n, **kwargs
-    )
+    flagger_repeated = flagWindow(flagger, flagger_new, field, direction="fw", window=n, **kwargs)
     return data, flagger_repeated
 
 
@@ -72,16 +68,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
 
 @register("sesonalRange")
 def flagSesonalRange(
-    data,
-    field,
-    flagger,
-    min,
-    max,
-    startmonth=1,
-    endmonth=12,
-    startday=1,
-    endday=31,
-    **kwargs,
+    data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
 ):
     smask = sesonalMask(data.index, startmonth, startday, endmonth, endday)
 
@@ -89,9 +76,7 @@ def flagSesonalRange(
     if d.empty:
         return data, flagger
 
-    _, flagger_range = flagRange(
-        d, field, flagger.getFlagger(loc=d.index), min=min, max=max, **kwargs
-    )
+    _, flagger_range = flagRange(d, field, flagger.getFlagger(loc=d.index), min=min, max=max, **kwargs)
 
     if not flagger_range.isFlagged(field).any():
         return data, flagger
@@ -114,12 +99,7 @@ def forceFlags(data, field, flagger, flag, **kwargs):
 
 @register("isolated")
 def flagIsolated(
-    data,
-    field,
-    flagger,
-    gap_window,
-    group_window,
-    **kwargs,
+    data, field, flagger, gap_window, group_window, **kwargs,
 ):
 
     gap_window = pd.tseries.frequencies.to_offset(gap_window)
@@ -134,9 +114,9 @@ def flagIsolated(
             start = srs.index[0]
             stop = srs.index[-1]
             if stop - start <= group_window:
-                left = mask[start-gap_window:start].iloc[:-1]
+                left = mask[start - gap_window : start].iloc[:-1]
                 if left.count() and left.all():
-                    right = mask[stop:stop+gap_window].iloc[1:]
+                    right = mask[stop : stop + gap_window].iloc[1:]
                     if right.count() and right.all():
                         flags[start:stop] = True
 

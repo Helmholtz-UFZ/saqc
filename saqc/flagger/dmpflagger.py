@@ -35,10 +35,7 @@ class DmpFlagger(CategoricalFlagger):
         super().__init__(FLAGS)
         self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
         version = subprocess.run(
-            "git describe --tags --always --dirty",
-            shell=True,
-            check=False,
-            stdout=subprocess.PIPE,
+            "git describe --tags --always --dirty", shell=True, check=False, stdout=subprocess.PIPE,
         ).stdout
         self.project_version = version.decode().strip()
         self.signature = ("flag", "comment", "cause", "force")
@@ -52,16 +49,12 @@ class DmpFlagger(CategoricalFlagger):
         """
 
         if data is not None:
-            flags = pd.DataFrame(
-                data=self.UNFLAGGED,
-                columns=self._getColumnIndex(data.columns),
-                index=data.index,
-            )
+            flags = pd.DataFrame(data=self.UNFLAGGED, columns=self._getColumnIndex(data.columns), index=data.index,)
         elif flags is not None:
             if not isinstance(flags.columns, pd.MultiIndex):
-                flags = flags.T.set_index(
-                    keys=self._getColumnIndex(flags.columns, [FlagFields.FLAG])
-                ).T.reindex(columns=self._getColumnIndex(flags.columns))
+                flags = flags.T.set_index(keys=self._getColumnIndex(flags.columns, [FlagFields.FLAG])).T.reindex(
+                    columns=self._getColumnIndex(flags.columns)
+                )
         else:
             raise TypeError("either 'data' or 'flags' are required")
 
@@ -70,9 +63,7 @@ class DmpFlagger(CategoricalFlagger):
     def getFlagger(self, field=None, loc=None, iloc=None):
         # NOTE: we need to preserve all indexing levels
         assertScalar("field", field, optional=True)
-        variables = (self._flags.columns
-                     .get_level_values(ColumnLevels.VARIABLES)
-                     .drop_duplicates())
+        variables = self._flags.columns.get_level_values(ColumnLevels.VARIABLES).drop_duplicates()
         cols = toSequence(field, variables)
         out = super().getFlagger(field, loc, iloc)
         out._flags.columns = self._getColumnIndex(cols)
@@ -85,28 +76,12 @@ class DmpFlagger(CategoricalFlagger):
         flags = self._flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1).copy()
         return super()._assureDtype(flags.loc[mask, field])
 
-    def setFlags(
-        self,
-        field,
-        loc=None,
-        iloc=None,
-        flag=None,
-        force=False,
-        comment="",
-        cause="",
-        **kwargs
-    ):
+    def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, comment="", cause="", **kwargs):
         assertScalar("field", field, optional=True)
 
         flag = self.BAD if flag is None else self._checkFlag(flag)
 
-        comment = json.dumps(
-            {
-                "comment": comment,
-                "commit": self.project_version,
-                "test": kwargs.get("func_name", ""),
-            }
-        )
+        comment = json.dumps({"comment": comment, "commit": self.project_version, "test": kwargs.get("func_name", ""),})
 
         this = self.getFlags(field=field)
         other = self._broadcastFlags(field=field, flag=flag)
@@ -123,9 +98,7 @@ class DmpFlagger(CategoricalFlagger):
     ) -> pd.MultiIndex:
         cols = toSequence(cols)
         fields = toSequence(fields, self.flags_fields)
-        return pd.MultiIndex.from_product(
-            [cols, fields], names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS]
-        )
+        return pd.MultiIndex.from_product([cols, fields], names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
 
     def _assureDtype(self, flags):
         # NOTE: building up new DataFrames is significantly

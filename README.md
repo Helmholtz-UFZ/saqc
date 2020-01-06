@@ -84,7 +84,7 @@ SaQC provides a basic CLI to get you started. As soon as the basic inputs,
 a dataset and the [configuration file](saqc/docs/ConfigurationFiles.md) are
 prepared, running SaQC is as simple as:
 ```sh
-python -m saqc \
+saqc \
     --config path_to_configuration.txt \
     --data path_to_data.csv \
     --outfile path_to_output.csv

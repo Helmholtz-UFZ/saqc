@@ -12,14 +12,15 @@ import numba as nb
 from saqc.lib.types import T, PandasLike
 
 STRING_2_FUNC = {
-    'sum':      np.sum,
-    'mean':     np.mean,
-    'median':   np.median,
-    'min':      np.min,
-    'max':      np.max,
-    'first':    pd.Series(np.nan, index=pd.DatetimeIndex([])).resample('0min').first,
-    'last':     pd.Series(np.nan, index=pd.DatetimeIndex([])).resample('0min').last
+    "sum": np.sum,
+    "mean": np.mean,
+    "median": np.median,
+    "min": np.min,
+    "max": np.max,
+    "first": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").first,
+    "last": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").last,
 }
+
 
 def assertScalar(name, value, optional=False):
     if (not np.isscalar(value)) and (value is not None) and (optional is True):
@@ -28,9 +29,7 @@ def assertScalar(name, value, optional=False):
         raise ValueError(f"'{name}' needs to be a scalar")
 
 
-def toSequence(
-    value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = None
-) -> Sequence[T]:
+def toSequence(value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = None) -> Sequence[T]:
     if value is None:
         value = default
     if np.isscalar(value):
@@ -116,7 +115,7 @@ def inferFrequency(data: PandasLike) -> pd.DateOffset:
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
-def combineDataFrames(left: pd.DataFrame, right: pd.DataFrame, fill_value: float=np.nan) -> pd.DataFrame:
+def combineDataFrames(left: pd.DataFrame, right: pd.DataFrame, fill_value: float = np.nan) -> pd.DataFrame:
     """
     Combine the given DataFrames 'left' and 'right' such that, the
     output is union of the indices and the columns of both. In case
@@ -125,7 +124,7 @@ def combineDataFrames(left: pd.DataFrame, right: pd.DataFrame, fill_value: float
     combined = left.reindex(
         index=left.index.union(right.index),
         columns=left.columns.union(right.columns, sort=False),
-        fill_value=fill_value
+        fill_value=fill_value,
     )
 
     for key, values in right.iteritems():
@@ -134,7 +133,7 @@ def combineDataFrames(left: pd.DataFrame, right: pd.DataFrame, fill_value: float
     return combined
 
 
-def retrieveTrustworthyOriginal(data: pd.DataFrame, field: str, flagger=None, level: Any=None) -> pd.DataFrame:
+def retrieveTrustworthyOriginal(data: pd.DataFrame, field: str, flagger=None, level: Any = None) -> pd.DataFrame:
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
     differenciating between missng value - nans und fillvalue nans is impossible.
 
@@ -178,7 +177,7 @@ def retrieveTrustworthyOriginal(data: pd.DataFrame, field: str, flagger=None, le
     # estimate original data sampling frequencie
     # (the original series sampling rate may not match data-input sample rate):
     seconds_rate = dataseries.index.to_series().diff().min().seconds
-    data_rate = pd.tseries.frequencies.to_offset(str(seconds_rate) + 's')
+    data_rate = pd.tseries.frequencies.to_offset(str(seconds_rate) + "s")
 
     return dataseries.asfreq(data_rate), data_rate
 
@@ -192,9 +191,7 @@ def offset2seconds(offset):
     return pd.Timedelta.total_seconds(pd.Timedelta(offset))
 
 
-def flagWindow(
-    flagger_old, flagger_new, field, direction="fw", window=0, **kwargs
-) -> pd.Series:
+def flagWindow(flagger_old, flagger_new, field, direction="fw", window=0, **kwargs) -> pd.Series:
 
     if window == 0 or window == "":
         return flagger_new
@@ -305,9 +302,7 @@ def assertSeries(srs: Any, argname: str = "arg") -> None:
 
 def assertPandas(pdlike: PandasLike, argname: str = "arg", allow_multiindex: bool = True) -> None:
     if not isinstance(pdlike, pd.Series) and not isinstance(pdlike, pd.DataFrame):
-        raise TypeError(
-            f"{argname} must be of type pd.DataFrame or pd.Series, {type(pdlike)} was given"
-        )
+        raise TypeError(f"{argname} must be of type pd.DataFrame or pd.Series, {type(pdlike)} was given")
     if not allow_multiindex:
         assertSingleColumns(pdlike, argname)
 
@@ -323,9 +318,7 @@ def assertMultiColumns(dfmi: pd.DataFrame, argname: str = "") -> None:
 
 def assertSingleColumns(df: PandasLike, argname: str = "") -> None:
     if isinstance(df, pd.DataFrame) and isinstance(df.columns, pd.MultiIndex):
-        raise TypeError(
-            f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns"
-        )
+        raise TypeError(f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns")
 
 
 def getFuncFromInput(func):
@@ -377,4 +370,3 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
             break
         yield pd.Series(data=values[start:stop], index=index[start:stop])
         start = stop
-

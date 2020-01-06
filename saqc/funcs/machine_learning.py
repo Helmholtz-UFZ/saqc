@@ -19,25 +19,13 @@ def _refCalc(reference, window_values):
         outdata[name + "_Dt_1"].rolling(window_values, center=False).mean()
     )  # mean gradient t to t-window
     outdata[name + "_Dt" + str(window_values)] = (
-        outdata[name + "_Dt_1"]
-        .iloc[::-1]
-        .rolling(window_values, center=False)
-        .mean()[::-1]
+        outdata[name + "_Dt_1"].iloc[::-1].rolling(window_values, center=False).mean()[::-1]
     )  # mean gradient t to t+window
     return outdata
 
 
 @register("machinelearning")
-def flagML(
-    data,
-    field,
-    flagger,
-    references,
-    window_values: int,
-    window_flags: int,
-    path: str,
-    **kwargs
-):
+def flagML(data, field, flagger, references, window_values: int, window_flags: int, path: str, **kwargs):
 
     """This Function uses pre-trained machine-learning model objects for flagging of a specific variable. The model is supposed to be trained using the script provided in "ressources/machine_learning/train_machine_learning.py".
     For flagging, Inputs to the model are the timeseries of the respective target at one specific sensors, the automatic flags that were assigned by SaQC as well as multiple reference series.
@@ -52,7 +40,6 @@ def flagML(
     :param window_flags:                An integer, denoting the window size that is used to count the surrounding automatic flags that have been set before
     :param path:                        A string giving the path to the respective model object, i.e. its name and the respective value of the grouping variable. e.g. "models/model_0.2.pkl"
     """
-
 
     # Function for moving window calculations
     # Create custom df for easier processing
@@ -75,9 +62,7 @@ def flagML(
 
     # Add context information for field+references
     for i in [field] + references:
-        df = pd.concat(
-            [df, _refCalc(reference=df[i], window_values=window_values)], axis=1
-        )
+        df = pd.concat([df, _refCalc(reference=df[i], window_values=window_values)], axis=1)
 
     # remove rows that contain NAs (new ones occured during predictor calculation)
     df = df.dropna(axis=0, how="any")

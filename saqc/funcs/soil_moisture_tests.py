@@ -91,15 +91,7 @@ def flagSoilMoistureBreaks(
 
 
 @register("soilMoisture_frost")
-def flagSoilMoistureBySoilFrost(
-    data,
-    field,
-    flagger,
-    soil_temp_variable,
-    window="1h",
-    frost_thresh=0,
-    **kwargs
-):
+def flagSoilMoistureBySoilFrost(data, field, flagger, soil_temp_variable, window="1h", frost_thresh=0, **kwargs):
 
     """This Function is an implementation of the soil temperature based Soil Moisture flagging, as presented in:
 
@@ -127,9 +119,9 @@ def flagSoilMoistureBySoilFrost(
 
     # retrieve reference series
     refseries = data[soil_temp_variable].copy()
-    ref_use = flagger.isFlagged(
-        soil_temp_variable, flag=flagger.GOOD, comparator="=="
-    ) | flagger.isFlagged(soil_temp_variable, flag=flagger.UNFLAGGED, comparator="==")
+    ref_use = flagger.isFlagged(soil_temp_variable, flag=flagger.GOOD, comparator="==") | flagger.isFlagged(
+        soil_temp_variable, flag=flagger.UNFLAGGED, comparator="=="
+    )
     # drop flagged values:
     refseries = refseries[ref_use.values]
     # drop nan values from reference series, since those are values you dont want to refer to.
@@ -212,7 +204,6 @@ def flagSoilMoistureByPrecipitationEvents(
     :param ignore_missing:
     """
 
-
     dataseries, moist_rate = retrieveTrustworthyOriginal(data, field, flagger)
 
     # data not hamronized:
@@ -223,29 +214,29 @@ def flagSoilMoistureByPrecipitationEvents(
     if refseries.empty:
         return data, flagger
 
-    refseries = refseries.reindex(refseries.index.join(dataseries.index, how='outer'))
+    refseries = refseries.reindex(refseries.index.join(dataseries.index, how="outer"))
     # get 24 h prec. monitor
     prec_count = refseries.rolling(window="1D").sum()
     # exclude data not signifying a raise::
     if raise_window is None:
         raise_window = 1
     else:
-        raise_window = int(np.ceil(pd.Timedelta(raise_window)/moist_rate))
+        raise_window = int(np.ceil(pd.Timedelta(raise_window) / moist_rate))
 
     # first raise condition:
     raise_mask = dataseries > dataseries.shift(raise_window)
 
     # second raise condition:
-    std_window = int(np.ceil(pd.Timedelta(std_window)/moist_rate))
+    std_window = int(np.ceil(pd.Timedelta(std_window) / moist_rate))
     if ignore_missing:
         std_mask = dataseries.dropna().rolling(std_window).std() < (
-                (dataseries - dataseries.shift(std_window)) / std_factor)
+            (dataseries - dataseries.shift(std_window)) / std_factor
+        )
     else:
-        std_mask = dataseries.rolling(std_window).std() < (
-                    (dataseries - dataseries.shift(std_window)) / std_factor)
+        std_mask = dataseries.rolling(std_window).std() < ((dataseries - dataseries.shift(std_window)) / std_factor)
 
     dataseries = dataseries[raise_mask & std_mask]
-    invalid_indices = (prec_count[dataseries.index] <= sensor_depth*sensor_accuracy*soil_porosity)
+    invalid_indices = prec_count[dataseries.index] <= sensor_depth * sensor_accuracy * soil_porosity
     invalid_indices = invalid_indices[invalid_indices]
 
     # set Flags
@@ -286,11 +277,13 @@ def flagSoilMoistureConstant(
 
     # get plateaus:
     _, comp_flagger = flagConstantVarianceBased(
-        data, field, flagger,
+        data,
+        field,
+        flagger,
         window=window,
         thresh=thresh,
         max_missing=max_missing,
-        max_consec_missing=max_consec_missing
+        max_consec_missing=max_consec_missing,
     )
 
     new_plateaus = (comp_flagger.getFlags(field)).eq(flagger.getFlags(field))
@@ -308,20 +301,20 @@ def flagSoilMoistureConstant(
     # get plateau groups:
     group_counter = new_plateaus.cumsum()
     group_counter = group_counter[group_counter.diff() == 0]
-    group_counter.name = 'group_counter'
-    plateau_groups = pd.merge(group_counter, dataseries, left_index=True, right_index=True, how='inner')
+    group_counter.name = "group_counter"
+    plateau_groups = pd.merge(group_counter, dataseries, left_index=True, right_index=True, how="inner")
     # test mean-condition on plateau groups:
-    test_barrier = tolerance*dataseries.max()
-    plateau_group_drops = plateau_groups.groupby('group_counter').filter(lambda x: x[field].mean() <= test_barrier)
+    test_barrier = tolerance * dataseries.max()
+    plateau_group_drops = plateau_groups.groupby("group_counter").filter(lambda x: x[field].mean() <= test_barrier)
     # discard values that didnt pass the test from plateau candidate series:
     new_plateaus[plateau_group_drops.index] = 1
 
     # we extend the plateaus to cover condition testing sets
     # 1: extend backwards (with a technical "one" added):
-    cond1_sets = new_plateaus.replace(1, method='bfill', limit=(precipitation_window + window))
+    cond1_sets = new_plateaus.replace(1, method="bfill", limit=(precipitation_window + window))
     # 2. extend forwards:
     if period_diff > 0:
-        cond1_sets = cond1_sets.replace(1, method='ffill', limit=period_diff)
+        cond1_sets = cond1_sets.replace(1, method="ffill", limit=period_diff)
 
     # get first derivative
     if smooth_window is None:
@@ -331,21 +324,15 @@ def flagSoilMoistureConstant(
     first_derivative = dataseries.diff()
     filter_window_seconds = smooth_window.seconds
     smoothing_periods = int(np.ceil((filter_window_seconds / moist_rate.n)))
-    first_derivate = savgol_filter(
-        dataseries,
-        window_length=smoothing_periods,
-        polyorder=smooth_poly_deg,
-        deriv=1,
-    )
+    first_derivate = savgol_filter(dataseries, window_length=smoothing_periods, polyorder=smooth_poly_deg, deriv=1,)
     first_derivate = pd.Series(data=first_derivate, index=dataseries.index, name=dataseries.name)
     # cumsumming to seperate continous plateau groups from each other:
     group_counter = cond1_sets.cumsum()
     group_counter = group_counter[group_counter.diff() == 0]
-    group_counter.name = 'group_counter'
-    group_frame = pd.merge(group_counter, first_derivate, left_index=True, right_index=True, how='inner')
-    group_frame = group_frame.groupby('group_counter')
-    condition_passed = group_frame.filter(
-        lambda x: (x[field].max() >= deriv_max) & (x[field].min() <= deriv_min))
+    group_counter.name = "group_counter"
+    group_frame = pd.merge(group_counter, first_derivate, left_index=True, right_index=True, how="inner")
+    group_frame = group_frame.groupby("group_counter")
+    condition_passed = group_frame.filter(lambda x: (x[field].max() >= deriv_max) & (x[field].min() <= deriv_min))
 
     flagger = flagger.setFlags(field, loc=condition_passed.index, **kwargs)
 
