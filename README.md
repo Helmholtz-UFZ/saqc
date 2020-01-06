@@ -74,14 +74,8 @@ python -m pip install -r requirements.txt
 ### Python version
 The minimum Python version required is 3.6 and SaQC is directly compatible with
 Python versions 3.6 and 3.7. If you are already on Python 3.8 however, the
-installation process is currently a bit more involved and includes the
-installation of [llvm](https://llvm.org/). 
-In many cases, a package manager install should do the trick, but if your
-distribution provides llvm versions below 7.0.x or higher greater 8.0.x it
-is necessary to [download](http://releases.llvm.org/download.html) and
-[install](https://releases.llvm.org/8.0.0/docs/CMake.html) llvm manually. 
-While the build is basically atomized, it is a rather lengthy process, that
-needs a substantial amount of RAM and disk space.
+installation process is currently a bit more involved as still not all dependencies
+are available as binary wheels.
 
    
 ## Usage
