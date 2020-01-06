@@ -80,7 +80,7 @@ and paste the following lines into it:
 	
 	varname;test;plot
 	SM2;range(min=10, max=60);False
-	SM2;spikes_simpleMad(winsz="30d", z=3.5);True
+	SM2;spikes_simpleMad(window="30d", z=3.5);True
 
 These lines illustrate how different quality control tests can be specified for
 different variables by following the pattern:
@@ -110,7 +110,7 @@ cd saqc
 From here, you can run saqc and tell it to run the tests from the toy
 config-file on the toy dataset via the `-c` and `-d` options:
 ```sh
-python -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
+saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
 ```
 
 Which will output this plot:
@@ -139,7 +139,7 @@ range-test:
 	
 	varname;test;plot
 	SM2;range(min=-20, max=60);False
-	SM2;spikes_simpleMad(winsz="30d", z=3.5);True
+	SM2;spikes_simpleMad(window="30d", z=3.5);True
 Rerunning SaQC as above produces the following plot:
 
 ![Changing the config](images/example_plot_2.png "Changing the config")
@@ -158,8 +158,8 @@ something like this:
 	varname;test;plot
 	SM1;range(min=10, max=60);False
 	SM2;range(min=10, max=60);False
-	SM1;spikes_simpleMad(winsz="15d", z=3.5);True
-	SM2;spikes_simpleMad(winsz="30d", z=3.5);True
+	SM1;spikes_simpleMad(window="15d", z=3.5);True
+	SM2;spikes_simpleMad(window="30d", z=3.5);True
 
 which gives you separate plots for each line where the plotting option is set to
 `True` as well as one summary "data plot" that depicts the joint flags from all
@@ -203,7 +203,7 @@ If you want the final results to be saved to a csv-file, you can do so by the
 use of the `-o` option:
 
 ```sh
-python -m saqc -c ressources/data/config.csv -d ressources/data/data.csv -o ressources/data/out.csv 
+saqc -c ressources/data/config.csv -d ressources/data/data.csv -o ressources/data/out.csv 
 ```
 
 Which saves a dataframe that contains both the original data and the quality

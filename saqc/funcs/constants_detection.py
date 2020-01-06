@@ -6,12 +6,7 @@ import pandas as pd
 
 from saqc.funcs.register import register
 from saqc.lib.statistic_functions import varQC
-from saqc.lib.tools import (
-    valueRange,
-    slidingWindowIndices,
-    retrieveTrustworthyOriginal,
-    groupConsecutives
-)
+from saqc.lib.tools import valueRange, slidingWindowIndices, retrieveTrustworthyOriginal, groupConsecutives
 
 
 @register("constant")
@@ -36,14 +31,7 @@ def flagConstant(data, field, flagger, thresh, window, **kwargs):
 
 @register("constant_varianceBased")
 def flagConstantVarianceBased(
-    data,
-    field,
-    flagger,
-    window="12h",
-    thresh=0.0005,
-    max_missing=None,
-    max_consec_missing=None,
-    **kwargs
+    data, field, flagger, window="12h", thresh=0.0005, max_missing=None, max_consec_missing=None, **kwargs
 ):
 
     """
@@ -78,20 +66,15 @@ def flagConstantVarianceBased(
 
     min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(data_rate)))
 
-    plateaus = dataseries.rolling(
-        window=window, min_periods=min_periods
-    ).apply(
-        lambda x: True
-        if varQC(x, max_missing, max_consec_missing) <= thresh
-        else np.nan,
-        raw=False,
+    plateaus = dataseries.rolling(window=window, min_periods=min_periods).apply(
+        lambda x: True if varQC(x, max_missing, max_consec_missing) <= thresh else np.nan, raw=False,
     )
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
         return data, flagger
 
-    plateaus.fillna(method="bfill", limit=min_periods-1, inplace=True)
+    plateaus.fillna(method="bfill", limit=min_periods - 1, inplace=True)
 
     # result:
     plateaus = (plateaus[plateaus == 1.0]).index

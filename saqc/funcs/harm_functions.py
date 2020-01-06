@@ -10,7 +10,6 @@ from saqc.funcs.register import register
 from saqc.lib.tools import toSequence, getFuncFromInput
 
 
-
 class Heap:
     INDEX = "initial_ts"
     DATA = "original_data"
@@ -29,7 +28,7 @@ HARM_2_DEHARM = {
     "nagg": "invert_nearest",
     "fagg_no_deharm": "regain",
     "bagg_no_deharm": "regain",
-    "nagg_no_deharm": "regain"
+    "nagg_no_deharm": "regain",
 }
 
 
@@ -52,7 +51,7 @@ def harmWrapper(heap={}):
         reshape_shift_comment=False,
         drop_flags=None,
         data_missing_value=np.nan,
-        **kwargs
+        **kwargs,
     ):
 
         # get funcs from strings:
@@ -61,9 +60,7 @@ def harmWrapper(heap={}):
 
         # for some tingle tangle reasons, resolving the harmonization will not be sound, if not all missing/np.nan
         # values get flagged initially:
-        data, flagger = flagMissing(
-            data, field, flagger, nodata=data_missing_value, **kwargs
-        )
+        data, flagger = flagMissing(data, field, flagger, nodata=data_missing_value, **kwargs)
         # and dropped for harmonization:
         if drop_flags is not None:
             if flagger.BAD not in drop_flags:
@@ -87,9 +84,7 @@ def harmWrapper(heap={}):
             heap.update({Heap.INDEX: dat_col.index})
 
         # now we can manipulate it without loosing information gathered before harmonization
-        dat_col, flagger_merged_clean = _outsortCrap(
-            dat_col, field, flagger_merged, drop_flags=drop_flags,
-        )
+        dat_col, flagger_merged_clean = _outsortCrap(dat_col, field, flagger_merged, drop_flags=drop_flags,)
 
         # interpolation! (yeah)
         dat_col, chunk_bounds = _interpolateGrid(
@@ -112,17 +107,13 @@ def harmWrapper(heap={}):
             missing_flag=reshape_missing_flag,
             set_shift_comment=reshape_shift_comment,
             block_flags=chunk_bounds,
-            **kwargs
+            **kwargs,
         )
 
         # finally we happily blow up the data and flags frame again,
         # to release them on their ongoing journey through saqc.
         data, flagger_out = _toMerged(
-            data,
-            flagger,
-            field,
-            data_to_insert=dat_col,
-            flagger_to_insert=flagger_merged_clean_reshaped,
+            data, flagger, field, data_to_insert=dat_col, flagger_to_insert=flagger_merged_clean_reshaped,
         )
 
         return data, flagger_out
@@ -146,11 +137,7 @@ def harmWrapper(heap={}):
 
         # reconstruct the drops that were performed before harmonization
         drops, flagger_original_clean = _outsortCrap(
-            dat_col,
-            field,
-            harm_info[Heap.FLAGGER],
-            drop_flags=harm_info[Heap.DROP],
-            return_drops=True,
+            dat_col, field, harm_info[Heap.FLAGGER], drop_flags=harm_info[Heap.DROP], return_drops=True,
         )
 
         # with reconstructed pre-harmonization flags-frame -> perform the projection of the flags calculated for
@@ -179,14 +166,7 @@ def harmWrapper(heap={}):
         dat_col = harm_info[Heap.DATA].reindex(flags_col.index, fill_value=np.nan)
         dat_col.name = field
         # transform the result into the form, data travels through saqc:
-        data, flagger_out = _toMerged(
-            data,
-            flagger,
-            field,
-            dat_col,
-            flagger_back_full,
-            target_index=heap[Heap.INDEX],
-        )
+        data, flagger_out = _toMerged(data, flagger, field, dat_col, flagger_back_full, target_index=heap[Heap.INDEX],)
         # clear heap if nessecary:
         if len(heap) == 1 and Heap.INDEX in heap:
             del heap[Heap.INDEX]
@@ -229,9 +209,7 @@ def _outsortCrap(
 
     drop_flags = toSequence(drop_flags, default=flagger.BAD)
     for drop_flag in drop_flags:
-        drop_mask = drop_mask | flagger.isFlagged(
-            field, flag=drop_flag, comparator="=="
-        )
+        drop_mask = drop_mask | flagger.isFlagged(field, flag=drop_flag, comparator="==")
 
     flagger_out = flagger.getFlagger(loc=~drop_mask)
     if return_drops:
@@ -267,13 +245,7 @@ def _insertGrid(data, freq):
 
 
 def _interpolateGrid(
-    data,
-    freq,
-    method,
-    order=1,
-    agg_method=sum,
-    total_range=None,
-    downcast_interpolation=False,
+    data, freq, method, order=1, agg_method=sum, total_range=None, downcast_interpolation=False,
 ):
     """The function calculates grid point values for a passed pd.Series (['data']) by applying
     the selected interpolation/fill method. (passed to key word 'method'). The interpolation will apply for grid points
@@ -362,9 +334,9 @@ def _interpolateGrid(
             seconds_total = pd.Timedelta(freq).total_seconds()
             seconds_string = str(int(seconds_total)) + "s"
             # calculate the series of aggregated values
-            data = data.resample(
-                seconds_string, base=seconds_total / 2, loffset=pd.Timedelta(freq) / 2
-            ).apply(agg_method)
+            data = data.resample(seconds_string, base=seconds_total / 2, loffset=pd.Timedelta(freq) / 2).apply(
+                agg_method
+            )
 
         elif method == "bagg":
             # all values in a sampling interval get aggregated with agg_method and assigned to the last grid point
@@ -398,23 +370,14 @@ def _interpolateGrid(
 
         data = _insertGrid(data, freq)
         data, chunk_bounds = _interpolate(
-            data,
-            method,
-            order=order,
-            inter_limit=2,
-            downcast_interpolation=downcast_interpolation,
+            data, method, order=order, inter_limit=2, downcast_interpolation=downcast_interpolation,
         )
         if total_range is None:
             data = data.asfreq(freq, fill_value=np.nan)
 
     else:
-        methods = "\n".join(
-            [", ".join(shifts),
-             ", ".join(aggregations),
-             ", ".join(interpolations)]
-        )
-        raise ValueError(
-            f"Unknown interpolation method: '{method}', please select from:\n{methods}")
+        methods = "\n".join([", ".join(shifts), ", ".join(aggregations), ", ".join(interpolations)])
+        raise ValueError(f"Unknown interpolation method: '{method}', please select from:\n{methods}")
 
     if total_range is not None:
         data = data.reindex(total_index)
@@ -442,26 +405,19 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
     :return:
     """
 
-    gap_mask = (
-        data.rolling(inter_limit, min_periods=0).apply(
-            lambda x: np.sum(np.isnan(x)), raw=True
-        )
-    ) != inter_limit
+    gap_mask = (data.rolling(inter_limit, min_periods=0).apply(lambda x: np.sum(np.isnan(x)), raw=True)) != inter_limit
 
     if inter_limit == 2:
         gap_mask = gap_mask & gap_mask.shift(-1, fill_value=True)
     else:
         gap_mask = (
-            gap_mask.replace(True, np.nan)
-            .fillna(method="bfill", limit=inter_limit)
-            .replace(np.nan, True)
-            .astype(bool)
+            gap_mask.replace(True, np.nan).fillna(method="bfill", limit=inter_limit).replace(np.nan, True).astype(bool)
         )
     # start end ending points of interpolation chunks have to be memorized to block their flagging:
     chunk_switches = gap_mask.astype(int).diff()
     chunk_starts = chunk_switches[chunk_switches == -1].index
     chunk_ends = chunk_switches[(chunk_switches.shift(-1) == 1)].index
-    chunk_bounds = chunk_starts.join(chunk_ends, how='outer', sort=True)
+    chunk_bounds = chunk_starts.join(chunk_ends, how="outer", sort=True)
 
     data = data[gap_mask]
 
@@ -510,7 +466,7 @@ def _reshapeFlags(
     missing_flag=None,
     set_shift_comment=True,
     block_flags=None,
-    **kwargs
+    **kwargs,
 ):
     """To continue processing flags after harmonization/interpolation, old pre-harm flags have to be distributed onto
     new grid.
@@ -575,9 +531,7 @@ def _reshapeFlags(
             direction = "nearest"
             tolerance = pd.Timedelta(freq) / 2
 
-        flags = flagger.getFlags().reindex(
-            ref_index, tolerance=tolerance, method=direction, fill_value=np.nan
-        )
+        flags = flagger.getFlags().reindex(ref_index, tolerance=tolerance, method=direction, fill_value=np.nan)
 
         # if you want to keep previous comments - only newly generated missing flags get commented:
         flags_series = flags.squeeze()
@@ -587,9 +541,7 @@ def _reshapeFlags(
         )
 
         if set_shift_comment:
-            flagger_new = flagger_new.setFlags(
-                field, flag=flags_series, force=True, **kwargs
-            )
+            flagger_new = flagger_new.setFlags(field, flag=flags_series, force=True, **kwargs)
 
     elif method in aggregations:
         # prepare resampling keywords
@@ -611,10 +563,7 @@ def _reshapeFlags(
             base = seconds_total / 2
             freq_string = str(int(seconds_total)) + "s"
             i_start = flagger.getFlags().index[0]
-            if (
-                abs(i_start - i_start.ceil(freq))
-                <= pd.Timedelta(freq) / 2
-            ):
+            if abs(i_start - i_start.ceil(freq)) <= pd.Timedelta(freq) / 2:
                 shift_correcture = -1
             else:
                 shift_correcture = +1
@@ -648,22 +597,18 @@ def _reshapeFlags(
     else:
         methods = ", ".join(shifts + ["\n"] + aggregations)
         raise ValueError(
-            "Passed reshaping method keyword:'{}', is unknown. Please select from: \n '{}'.".format(
-                method, methods
-            )
+            "Passed reshaping method keyword:'{}', is unknown. Please select from: \n '{}'.".format(method, methods)
         )
 
     # block flagging/backtracking of chunk_starts/chunk_ends
     if block_flags is not None:
-        flagger_new = flagger_new.setFlags(field, loc=block_flags,
-                                           flag=pd.Series(np.nan, index=block_flags).astype(flagger_new.dtype),
-                                           force=True)
+        flagger_new = flagger_new.setFlags(
+            field, loc=block_flags, flag=pd.Series(np.nan, index=block_flags).astype(flagger_new.dtype), force=True
+        )
     return flagger_new
 
 
-def _backtrackFlags(
-    flagger_post, flagger_pre, freq, track_method="invert_fshift", co_flagging=False
-):
+def _backtrackFlags(flagger_post, flagger_pre, freq, track_method="invert_fshift", co_flagging=False):
 
     # in the case of "real" up/downsampling - evaluating the harm flags against the original flags makes no sence!
     if track_method in ["regain"]:
@@ -673,10 +618,7 @@ def _backtrackFlags(
     flags_post = flagger_post.getFlags()
     flags_pre = flagger_pre.getFlags()
     flags_header = flags_post.columns
-    if (
-        track_method in ["invert_fshift", "invert_bshift", "invert_nearest"]
-        and co_flagging is True
-    ):
+    if track_method in ["invert_fshift", "invert_bshift", "invert_nearest"] and co_flagging is True:
         if track_method == "invert_fshift":
             method = "bfill"
             tolerance = pd.Timedelta(freq)
@@ -689,19 +631,14 @@ def _backtrackFlags(
             method = "nearest"
             tolerance = pd.Timedelta(freq) / 2
 
-        flags_post = flags_post.reindex(
-            flags_pre.index, method=method, tolerance=tolerance
-        )
+        flags_post = flags_post.reindex(flags_pre.index, method=method, tolerance=tolerance)
         replacement_mask = flags_post.squeeze() > flags_pre.squeeze()
         # there is a mysterious problem when assigning 1-d-dataframes - so we squeeze:
         flags_pre = flags_pre.squeeze(axis=1)
         flags_post = flags_post.squeeze(axis=1)
         flags_pre.loc[replacement_mask] = flags_post.loc[replacement_mask]
 
-    if (
-        track_method in ["invert_fshift", "invert_bshift", "invert_nearest"]
-        and co_flagging is False
-    ):
+    if track_method in ["invert_fshift", "invert_bshift", "invert_nearest"] and co_flagging is False:
         if track_method == "invert_fshift":
             method = "backward"
             tolerance = pd.Timedelta(freq)
@@ -715,9 +652,7 @@ def _backtrackFlags(
 
         flags_post = pd.merge_asof(
             flags_post,
-            pd.DataFrame(
-                flags_pre.index.values, index=flags_pre.index, columns=["pre_index"]
-            ),
+            pd.DataFrame(flags_pre.index.values, index=flags_pre.index, columns=["pre_index"]),
             left_index=True,
             right_index=True,
             tolerance=tolerance,
@@ -730,15 +665,11 @@ def _backtrackFlags(
         # restore flag shape
         flags_post.columns = flags_header
 
-        replacement_mask = (
-            flags_post.squeeze() > flags_pre.loc[flags_post.index, :].squeeze()
-        )
+        replacement_mask = flags_post.squeeze() > flags_pre.loc[flags_post.index, :].squeeze()
         # there is a mysterious problem when assigning 1-d-dataframes - so we squeeze:
         flags_pre = flags_pre.squeeze(axis=1)
         flags_post = flags_post.squeeze(axis=1)
-        flags_pre.loc[replacement_mask[replacement_mask].index] = flags_post.loc[
-            replacement_mask
-        ]
+        flags_pre.loc[replacement_mask[replacement_mask].index] = flags_post.loc[replacement_mask]
 
     # sticking to the nomenklatura of always-DF for flags:
     if isinstance(flags_pre, pd.Series):
@@ -753,9 +684,7 @@ def _fromMerged(data, flagger, fieldname):
     return data.loc[mask, fieldname], flagger.getFlagger(field=fieldname, loc=mask)
 
 
-def _toMerged(
-    data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None
-):
+def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None):
 
     data = data.copy()
     flags = flagger.getFlags()
@@ -784,12 +713,8 @@ def _toMerged(
     # if we are not "de-harmonizing":
     if target_index is None:
         # erase nan rows in the data, that became redundant because of harmonization and merge with data-to-insert:
-        data = pd.merge(
-            data[mask], data_to_insert, how="outer", left_index=True, right_index=True
-        )
-        flags = pd.merge(
-            flags[mask], flags_to_insert, how="outer", left_index=True, right_index=True
-        )
+        data = pd.merge(data[mask], data_to_insert, how="outer", left_index=True, right_index=True)
+        flags = pd.merge(flags[mask], flags_to_insert, how="outer", left_index=True, right_index=True)
         return data, flagger.initFlags(flags=flags)
 
     else:
@@ -803,35 +728,23 @@ def _toMerged(
         new_index = data[mask].index.join(target_index, how="outer")
         data = data.reindex(new_index)
         flags = flags.reindex(new_index, fill_value=flagger.UNFLAGGED)
-        data = pd.merge(
-            data, data_to_insert, how="outer", left_index=True, right_index=True
-        )
-        flags = pd.merge(
-            flags, flags_to_insert, how="outer", left_index=True, right_index=True
-        )
+        data = pd.merge(data, data_to_insert, how="outer", left_index=True, right_index=True)
+        flags = pd.merge(flags, flags_to_insert, how="outer", left_index=True, right_index=True)
 
         # internally harmonization memorizes its own manipulation by inserting nan flags -
         # those we will now assign the flagger.bad flag by the "missingTest":
-        return flagMissing(
-            data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan
-        )
+        return flagMissing(data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan)
 
 
-@register('harmonize_shift2Grid')
-def shift2Grid(data, field, flagger, freq, method='nshift', drop_flags=None, **kwargs):
+@register("harmonize_shift2Grid")
+def shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, **kwargs):
     return harmonize(
-        data,
-        field,
-        flagger,
-        freq,
-        inter_method=method,
-        reshape_method=method,
-        drop_flags=drop_flags,
-        **kwargs)
+        data, field, flagger, freq, inter_method=method, reshape_method=method, drop_flags=drop_flags, **kwargs
+    )
 
 
-@register('harmonize_aggregate2Grid')
-def aggregate2Grid(data, field, flagger, freq, value_func, flag_func="max", method='nagg', drop_flags=None, **kwargs):
+@register("harmonize_aggregate2Grid")
+def aggregate2Grid(data, field, flagger, freq, value_func, flag_func="max", method="nagg", drop_flags=None, **kwargs):
     return harmonize(
         data,
         field,
@@ -842,26 +755,29 @@ def aggregate2Grid(data, field, flagger, freq, value_func, flag_func="max", meth
         inter_agg=value_func,
         reshape_agg=flag_func,
         drop_flags=drop_flags,
-        **kwargs)
+        **kwargs,
+    )
 
 
-@register('harmonize_linear2Grid')
-def linear2Grid(data, field, flagger, freq, method='nagg', func="max", drop_flags=None, **kwargs):
+@register("harmonize_linear2Grid")
+def linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flags=None, **kwargs):
     return harmonize(
         data,
         field,
         flagger,
         freq,
-        inter_method='time',
+        inter_method="time",
         reshape_method=method,
         reshape_agg=func,
         drop_flags=drop_flags,
-        **kwargs)
+        **kwargs,
+    )
 
 
-@register('harmonize_interpolate2Grid')
-def interpolate2Grid(data, field, flagger, freq, method, order=1,
-                     flag_method='nagg', flag_func="max", drop_flags=None, **kwargs):
+@register("harmonize_interpolate2Grid")
+def interpolate2Grid(
+    data, field, flagger, freq, method, order=1, flag_method="nagg", flag_func="max", drop_flags=None, **kwargs
+):
     return harmonize(
         data,
         field,
@@ -872,12 +788,23 @@ def interpolate2Grid(data, field, flagger, freq, method, order=1,
         reshape_method=flag_method,
         reshape_agg=flag_func,
         drop_flags=drop_flags,
-        **kwargs)
+        **kwargs,
+    )
 
 
-@register('harmonize_downsample')
-def downsample(data, field, flagger, sample_freq, agg_freq, sample_func="mean", agg_func="mean",
-               invalid_flags=None, max_invalid=None, **kwargs):
+@register("harmonize_downsample")
+def downsample(
+    data,
+    field,
+    flagger,
+    sample_freq,
+    agg_freq,
+    sample_func="mean",
+    agg_func="mean",
+    invalid_flags=None,
+    max_invalid=None,
+    **kwargs,
+):
 
     agg_func = getFuncFromInput(agg_func)
 
@@ -896,17 +823,20 @@ def downsample(data, field, flagger, sample_freq, agg_freq, sample_func="mean", 
                     return agg_func(x)
                 else:
                     return np.nan
+
         else:
 
             def aggregator(x):
                 return agg_func(x)
+
     else:
 
-        dummy_resampler = pd.Series(np.nan, index=[pd.Timedelta('1min')]).resample('1min')
+        dummy_resampler = pd.Series(np.nan, index=[pd.Timedelta("1min")]).resample("1min")
         if hasattr(dummy_resampler, sample_func.__name__):
 
             sample_func_name = sample_func.__name__
             if max_invalid < np.inf:
+
                 def aggregator(x):
                     y = getattr(x.resample(sample_freq), sample_func_name)()
                     if y.isna().sum() < max_invalid:
@@ -915,18 +845,22 @@ def downsample(data, field, flagger, sample_freq, agg_freq, sample_func="mean", 
                         return np.nan
 
             else:
+
                 def aggregator(x):
                     return agg_func(getattr(x.resample(sample_freq), sample_func_name)())
 
         else:
             if max_invalid < np.inf:
+
                 def aggregator(x):
                     y = x.resample(sample_freq).apply(sample_func)
                     if y.isna().sum() < max_invalid:
                         return agg_func(y)
                     else:
                         return np.nan
+
             else:
+
                 def aggregator(x):
                     return agg_func(x.resample(sample_freq).apply(sample_func))
 
@@ -935,9 +869,10 @@ def downsample(data, field, flagger, sample_freq, agg_freq, sample_func="mean", 
         field,
         flagger,
         agg_freq,
-        inter_method='bagg',
-        reshape_method='bagg_no_deharm',
+        inter_method="bagg",
+        reshape_method="bagg_no_deharm",
         inter_agg=aggregator,
         reshape_agg="max",
         drop_flags=invalid_flags,
-        **kwargs)
+        **kwargs,
+    )

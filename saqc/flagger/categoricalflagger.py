@@ -30,9 +30,7 @@ class CategoricalFlagger(BaseFlagger):
         not needed here, move out
         """
         if isinstance(flag, pd.Series):
-            return (
-                isinstance(flag.dtype, pd.CategoricalDtype) and flag.dtype == self.dtype
-            )
+            return isinstance(flag.dtype, pd.CategoricalDtype) and flag.dtype == self.dtype
         return flag in self.dtype.categories
 
     @property

@@ -41,9 +41,7 @@ def _checkInput(data, flags, flagger):
 
     if not isinstance(flagger, BaseFlagger):
         flaggerlist = [CategoricalFlagger, SimpleFlagger, DmpFlagger]
-        raise TypeError(
-            f"flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}"
-        )
+        raise TypeError(f"flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}")
 
     if flags is None:
         return
@@ -140,11 +138,7 @@ def run(
             try:
                 # actually run the tests
                 data_chunk_result, flagger_chunk_result = evalExpression(
-                    func,
-                    data=data_chunk,
-                    field=varname,
-                    flagger=flagger_chunk,
-                    nodata=nodata,
+                    func, data=data_chunk, field=varname, flagger=flagger_chunk, nodata=nodata,
                 )
             except Exception as e:
                 _handleErrors(e, configrow, func, error_policy)
@@ -152,11 +146,7 @@ def run(
 
             if configrow[Fields.PLOT]:
                 plotHook(
-                    data_chunk_result,
-                    flagger_chunk,
-                    flagger_chunk_result,
-                    varname,
-                    func,
+                    data_chunk_result, flagger_chunk, flagger_chunk_result, varname, func,
                 )
 
             # NOTE:
@@ -169,4 +159,3 @@ def run(
     plotAllHook(data, flagger)
 
     return data, flagger
-

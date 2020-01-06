@@ -25,16 +25,12 @@ def checkConfig(config_df, data, flagger, nodata):
 
         var_name = config_row[F.VARNAME]
         if pd.isnull(config_row[F.VARNAME]) or not var_name:
-            _raise(
-                config_row, SyntaxError, f"non-optional column '{F.VARNAME}' is missing or empty"
-            )
+            _raise(config_row, SyntaxError, f"non-optional column '{F.VARNAME}' is missing or empty")
 
         test_fields = config_row.filter(regex=F.TESTS).dropna()
         if test_fields.empty:
             _raise(
-                config_row,
-                SyntaxError,
-                f"at least one test needs to be given for variable",
+                config_row, SyntaxError, f"at least one test needs to be given for variable",
             )
 
         for col, expr in test_fields.iteritems():
@@ -44,10 +40,7 @@ def checkConfig(config_df, data, flagger, nodata):
                 compileExpression(expr, data, var_name, flagger, nodata)
             except (TypeError, NameError, SyntaxError) as exc:
                 _raise(
-                    config_row,
-                    type(exc),
-                    exc.args[0] + f" (failing statement: '{expr}')",
-                    col,
+                    config_row, type(exc), exc.args[0] + f" (failing statement: '{expr}')", col,
                 )
     return config_df
 
@@ -80,12 +73,7 @@ def prepareConfig(config_df, data):
 
     # fill nans with default values
     config_df = config_df.fillna(
-        {
-            F.VARNAME: np.nan,
-            F.START: data.index.min(),
-            F.END: data.index.max(),
-            F.PLOT: False,
-        }
+        {F.VARNAME: np.nan, F.START: data.index.min(), F.END: data.index.max(), F.PLOT: False,}
     )
 
     # dtype = np.datetime64 if isinstance(data.index, pd.DatetimeIndex) else int

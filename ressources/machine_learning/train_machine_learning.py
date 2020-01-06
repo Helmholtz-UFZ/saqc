@@ -7,11 +7,12 @@ import joblib  # for saving of model objects
 import os
 import time
 import datetime
+
 ###--------------------
 ### EXAMPLE PARAMETRIZATION:
 ###--------------------
 
-#pd.options.mode.chained_assignment = None  # default='warn'
+# pd.options.mode.chained_assignment = None  # default='warn'
 # data = pd.read_feather("data/sm/02_data.feather")
 # data = data.reset_index()#data.index has to be reset as I use row nos only for indexing
 #
@@ -84,10 +85,7 @@ def trainML(
             outdata[name + "_Dt_1"].rolling(window_values, center=False).mean()
         )  # mean gradient t to t-window
         outdata[name + "_Dt" + str(window_values)] = (
-            outdata[name + "_Dt_1"]
-            .iloc[::-1]
-            .rolling(window_values, center=False)
-            .mean()[::-1]
+            outdata[name + "_Dt_1"].iloc[::-1].rolling(window_values, center=False).mean()[::-1]
         )  # mean gradient t to t+window
         return outdata
 
@@ -109,29 +107,19 @@ def trainML(
         )  # draw random sample
         sensordf.TeTr[index_test] = "Te"  # assign test samples
 
-        sensordf["flag_bin_t_1"] = sensordf["flag_bin"] - sensordf["flag_bin"].shift(
-            1
-        )  # Flag at t-1
-        sensordf["flag_bin_t1"] = sensordf["flag_bin"] - sensordf["flag_bin"].shift(
-            -1
-        )  # Flag at t+1
+        sensordf["flag_bin_t_1"] = sensordf["flag_bin"] - sensordf["flag_bin"].shift(1)  # Flag at t-1
+        sensordf["flag_bin_t1"] = sensordf["flag_bin"] - sensordf["flag_bin"].shift(-1)  # Flag at t+1
         sensordf["flag_bin_t_" + str(window_flags)] = (
             sensordf["flag_bin"].rolling(window_flags + 1, center=False).sum()
         )  # n Flags in interval t to t-window_flags
         sensordf["flag_bin_t" + str(window_flags)] = (
-            sensordf["flag_bin"]
-            .iloc[::-1]
-            .rolling(window_flags + 1, center=False)
-            .sum()[::-1]
+            sensordf["flag_bin"].iloc[::-1].rolling(window_flags + 1, center=False).sum()[::-1]
         )  # n Flags in interval t to t+window_flags
         # forward-orientation not possible, so right-orientation on reversed data an reverse result
 
         # Add context information for field+references
         for i in [field] + references:
-            sensordf = pd.concat(
-                [sensordf, _refCalc(reference=sensordf[i], window_values=window_values)],
-                axis=1,
-            )
+            sensordf = pd.concat([sensordf, _refCalc(reference=sensordf[i], window_values=window_values)], axis=1,)
 
         # write back into new dataframe
         traindata = traindata.append(sensordf)
@@ -148,7 +136,7 @@ def trainML(
     # make column in "traindata" to store predictions
     traindata = traindata.assign(PredMan=0)
     outinfo_df = []
-    resultfile = open(os.path.join(os.getcwd(),path, modelname + "_resultfile.txt"), "w")
+    resultfile = open(os.path.join(os.getcwd(), path, modelname + "_resultfile.txt"), "w")
     starttime = time.time()
     # For each category of groupvar, fit a separate model
 
@@ -158,26 +146,14 @@ def trainML(
         print("TRAINING MODEL...")
         # drop unneeded columns
         groupdata = traindata[traindata[group_field] == groupvar].drop(
-            columns=[
-                "Time",
-                "RowIndex",
-                "Flag",
-                "flag_bin",
-                "PredMan",
-                group_field,
-                sensor_field,
-            ]
+            columns=["Time", "RowIndex", "Flag", "flag_bin", "PredMan", group_field, sensor_field,]
         )
-        forest = RandomForestClassifier(
-            n_estimators=500, random_state=randomseed, oob_score=True, n_jobs=-1
-        )
+        forest = RandomForestClassifier(n_estimators=500, random_state=randomseed, oob_score=True, n_jobs=-1)
         X_tr = groupdata.drop(columns=["TeTr", "FlagMan"])[groupdata.TeTr == "Tr"]
         Y_tr = groupdata.FlagMan[groupdata.TeTr == "Tr"]
         forest.fit(y=Y_tr, X=X_tr)
         # save model object
-        joblib.dump(
-            forest, os.path.join(path, modelname + "_" + str(groupvar) + ".pkl")
-        )
+        joblib.dump(forest, os.path.join(path, modelname + "_" + str(groupvar) + ".pkl"))
         # retrieve training predictions
         print("PREDICTING...")
         preds_tr = (
@@ -205,23 +181,16 @@ def trainML(
         ]
         resultfile.write("TRAINING RECALL:" + "\n")
         resultfile.write(
-            str(recall_score(groupdata.FlagMan[groupdata.TeTr == "Tr"], preds_tr))
-            + "\n"
+            str(recall_score(groupdata.FlagMan[groupdata.TeTr == "Tr"], preds_tr)) + "\n"
         )  # Training error (Out-of-Bag)
         resultfile.write("TEST RECALL:" + "\n")
         resultfile.write(
-            str(recall_score(groupdata.FlagMan[groupdata.TeTr == "Te"], preds_te))
-            + "\n"
-            + "\n"
+            str(recall_score(groupdata.FlagMan[groupdata.TeTr == "Te"], preds_te)) + "\n" + "\n"
         )  # Test error
         outinfo_df.append(outinfo)
         # save back to dataframe
-        traindata.PredMan[
-            (traindata.TeTr == "Tr") & (traindata[group_field] == groupvar)
-        ] = preds_tr
-        traindata.PredMan[
-            (traindata.TeTr == "Te") & (traindata[group_field] == groupvar)
-        ] = preds_te
+        traindata.PredMan[(traindata.TeTr == "Tr") & (traindata[group_field] == groupvar)] = preds_tr
+        traindata.PredMan[(traindata.TeTr == "Te") & (traindata[group_field] == groupvar)] = preds_te
 
     endtime = time.time()
     print("TIME ELAPSED: " + str(datetime.timedelta(seconds=endtime - starttime)) + " hours")
@@ -247,21 +216,10 @@ def trainML(
 
     # write results back into original "data" dataframe
     data = data.assign(PredMan=np.nan)
-    data.PredMan[
-        traindata.RowIndex
-    ] = traindata.PredMan  # based on RowIndex as NAs were created in traindata
+    data.PredMan[traindata.RowIndex] = traindata.PredMan  # based on RowIndex as NAs were created in traindata
     data.to_feather(os.path.join(path, modelname + "_data_preds.feather"))
 
 
 trainML(
-    data,
-    field,
-    references,
-    sensor_field,
-    group_field,
-    window_values,
-    window_flags,
-    path,
-    modelname,
-    0.3,
+    data, field, references, sensor_field, group_field, window_values, window_flags, path, modelname, 0.3,
 )

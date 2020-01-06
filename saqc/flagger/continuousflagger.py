@@ -16,27 +16,10 @@ class ContinuousFlagger(BaseFlagger):
         self._unflagged_flag = unflagged
         self.signature = ("flag", "factor", "modify")
 
-    def setFlags(
-        self,
-        field,
-        loc=None,
-        iloc=None,
-        flag=None,
-        force=False,
-        factor=1,
-        modify=False,
-        **kwargs
-    ):
+    def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, factor=1, modify=False, **kwargs):
         # NOTE: incomplete, as the option to
         #       update flags is temporarily gone
-        return super().setFlags(
-            field=field,
-            loc=loc,
-            iloc=iloc,
-            flag=self._checkFlag(flag),
-            force=force,
-            **kwargs
-        )
+        return super().setFlags(field=field, loc=loc, iloc=iloc, flag=self._checkFlag(flag), force=force, **kwargs)
 
     # NOTE:
     # we should probably override _assureDtype here

@@ -10,10 +10,7 @@ from saqc.core import run
 from saqc.flagger import CategoricalFlagger
 
 
-FLAGGERS = {
-    "numeric": CategoricalFlagger([-1, 0, 1]),
-    "category": CategoricalFlagger(["NIL", "OK", "BAD"])
-}
+FLAGGERS = {"numeric": CategoricalFlagger([-1, 0, 1]), "category": CategoricalFlagger(["NIL", "OK", "BAD"])}
 
 
 @click.command()
@@ -25,26 +22,19 @@ FLAGGERS = {
 @click.option("--fail/--no-fail", default=True, help="whether to stop the program run on errors")
 def main(config, data, flagger, outfile, nodata, fail):
 
-    data = pd.read_csv(
-        data,
-        index_col=0,
-        parse_dates=True,
-    )
+    data = pd.read_csv(data, index_col=0, parse_dates=True,)
 
     data_result, flagger_result = run(
         config_file=config,
         flagger=FLAGGERS[flagger],
         data=data,
         nodata=nodata,
-        error_policy="raise" if fail else "warn"
+        error_policy="raise" if fail else "warn",
     )
 
     if outfile:
         flags = flagger_result.getFlags()
-        flags_out = flags.where(
-            (flags.isnull() | flagger_result.isFlagged()),
-            flagger_result.GOOD
-        )
+        flags_out = flags.where((flags.isnull() | flagger_result.isFlagged()), flagger_result.GOOD)
         cols_out = sum([[c, c + "_flags"] for c in flags_out], [])
         data_out = data_result.join(flags_out, rsuffix="_flags")
         data_out[cols_out].to_csv(outfile, header=True, index=True)

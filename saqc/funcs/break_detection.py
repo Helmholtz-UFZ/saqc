@@ -90,9 +90,7 @@ def flagBreaksSpektrumBased(
 
     # relative - change - break criteria testing:
     abs_change = np.abs(dataseries.shift(+1) - dataseries)
-    breaks = (abs_change > thresh_abs) & (
-            abs_change / dataseries > thresh_rel
-    )
+    breaks = (abs_change > thresh_abs) & (abs_change / dataseries > thresh_rel)
     breaks = breaks[breaks == True]
 
     # First derivative criterion
@@ -102,34 +100,21 @@ def flagBreaksSpektrumBased(
 
     for brake in breaks.index:
         # slice out slice-to-be-filtered (with some safety extension of 12 times the data rate)
-        slice_start = (
-                brake - pd.Timedelta(first_der_window) - smoothing_periods * pd.Timedelta(data_rate)
-        )
-        slice_end = (
-                brake + pd.Timedelta(first_der_window) + smoothing_periods * pd.Timedelta(data_rate)
-        )
+        slice_start = brake - pd.Timedelta(first_der_window) - smoothing_periods * pd.Timedelta(data_rate)
+        slice_end = brake + pd.Timedelta(first_der_window) + smoothing_periods * pd.Timedelta(data_rate)
         data_slice = dataseries[slice_start:slice_end]
 
         # obtain first derivative:
         if smooth is True:
             first_deri_series = pd.Series(
-                data=savgol_filter(
-                    data_slice,
-                    window_length=smoothing_periods,
-                    polyorder=smooth_poly_deg,
-                    deriv=1,
-                ),
+                data=savgol_filter(data_slice, window_length=smoothing_periods, polyorder=smooth_poly_deg, deriv=1,),
                 index=data_slice.index,
             )
         else:
             first_deri_series = data_slice.diff()
 
         # condition constructing and testing:
-        test_slice = first_deri_series[
-            brake
-            - pd.Timedelta(first_der_window): brake
-                                                    + pd.Timedelta(first_der_window)
-        ]
+        test_slice = first_deri_series[brake - pd.Timedelta(first_der_window) : brake + pd.Timedelta(first_der_window)]
 
         test_sum = abs((test_slice.sum() * first_der_factor) / test_slice.size)
 
@@ -143,10 +128,7 @@ def flagBreaksSpektrumBased(
             if smooth is True:
                 second_deri_series = pd.Series(
                     data=savgol_filter(
-                        data_slice,
-                        window_length=smoothing_periods,
-                        polyorder=smooth_poly_deg,
-                        deriv=2,
+                        data_slice, window_length=smoothing_periods, polyorder=smooth_poly_deg, deriv=2,
                     ),
                     index=data_slice.index,
                 )
@@ -156,22 +138,11 @@ def flagBreaksSpektrumBased(
             # criterion evaluation:
             first_second = (
                 (1 - scnd_der_ratio_range)
-                < abs(
-                    (
-                        second_deri_series.shift(+1)[brake]
-                        / second_deri_series[brake]
-                    )
-                )
+                < abs((second_deri_series.shift(+1)[brake] / second_deri_series[brake]))
                 < 1 + scnd_der_ratio_range
             )
 
-            second_second = (
-                abs(
-                    second_deri_series[brake]
-                    / second_deri_series.shift(-1)[brake]
-                )
-                > scnd_der_ratio_thresh
-            )
+            second_second = abs(second_deri_series[brake] / second_deri_series.shift(-1)[brake]) > scnd_der_ratio_thresh
 
             if (~first_second) | (~second_second):
                 breaks[brake] = False

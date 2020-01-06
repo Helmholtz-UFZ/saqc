@@ -10,21 +10,24 @@ from saqc.flagger import BaseFlagger
 
 __plotvars = []
 
-_colors = {
-    "unflagged": "silver",
-    "good": "seagreen",
-    "bad": "firebrick",
-    "suspicious": "gold"
-}
+_colors = {"unflagged": "silver", "good": "seagreen", "bad": "firebrick", "suspicious": "gold"}
 
-_figsize = (10,4)
+_figsize = (10, 4)
+
 
 def plotAllHook(data, flagger, plot_nans=False):
     if __plotvars:
         _plot(data, flagger, True, __plotvars, plot_nans=plot_nans)
 
 
-def plotHook(data: pd.DataFrame, flagger_old: BaseFlagger, flagger_new: BaseFlagger, varname: str, flag_test: str, plot_nans: bool = False):
+def plotHook(
+    data: pd.DataFrame,
+    flagger_old: BaseFlagger,
+    flagger_new: BaseFlagger,
+    varname: str,
+    flag_test: str,
+    plot_nans: bool = False,
+):
 
     # NOTE:
     # data might have been harmonized (recognizable by
@@ -53,20 +56,14 @@ def plotHook(data: pd.DataFrame, flagger_old: BaseFlagger, flagger_new: BaseFlag
             # harmonization, nothing to see here
             return
 
-        mask = (flags_old != flags_new)
+        mask = flags_old != flags_new
 
     __plotvars.append(varname)
     _plot(data, flagger_new, mask, varname, title=flag_test, plot_nans=plot_nans)
 
 
 def _plot(
-    data,
-    flagger,
-    flagmask,
-    varname,
-    interactive_backend=True,
-    title="Data Plot",
-    plot_nans=True,
+    data, flagger, flagmask, varname, interactive_backend=True, title="Data Plot", plot_nans=True,
 ):
 
     # todo: try catch warn (once) return
@@ -74,6 +71,7 @@ def _plot(
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     from pandas.plotting import register_matplotlib_converters
+
     # needed for datetime conversion
     register_matplotlib_converters()
 
@@ -102,7 +100,7 @@ def _plot(
 
     plots = len(varnames)
     if plots > 1:
-        fig, axes = plt.subplots(plots, 1, sharex=True,figsize=_figsize)
+        fig, axes = plt.subplots(plots, 1, sharex=True, figsize=_figsize)
         axes[0].set_title(title)
         for i, v in enumerate(varnames):
             _plotByQualityFlag(data, v, flagger, flagmask, axes[i], plot_nans)
@@ -136,17 +134,19 @@ def _plotByQualityFlag(data, varname, flagger, flagmask, ax, plot_nans):
         data,
         # NOTE: no lines to flagged points
         # data.index, np.ma.array(data.values, mask=flagger.isFlagged(varname).values),
-        "-", color="silver", label="data"
+        "-",
+        color="silver",
+        label="data",
     )
 
     # ANY OLD FLAG
     # plot all(!) data that are already flagged in black
-    flagged = flagger.isFlagged(varname, flag=flagger.GOOD, comparator='>=')
+    flagged = flagger.isFlagged(varname, flag=flagger.GOOD, comparator=">=")
     oldflags = flagged & ~flagmask
 
     ax.plot(data[oldflags], ".", color="black", label="flagged by other test")
     if plot_nans:
-        _plotNans(data[oldflags], 'black', ax)
+        _plotNans(data[oldflags], "black", ax)
 
     # now we just want to show data that was flagged
     if flagmask is not True:
@@ -156,25 +156,21 @@ def _plotByQualityFlag(data, varname, flagger, flagmask, ax, plot_nans):
     if data.empty:
         return
 
-    plots = [
-        (flagger.UNFLAGGED, _colors["unflagged"]),
-        (flagger.GOOD, _colors['good']),
-        (flagger.BAD, _colors['bad'])
-    ]
+    plots = [(flagger.UNFLAGGED, _colors["unflagged"]), (flagger.GOOD, _colors["good"]), (flagger.BAD, _colors["bad"])]
 
     for flag, color in plots:
-        flagged = flagger.isFlagged(varname, flag=flag, comparator='==')
+        flagged = flagger.isFlagged(varname, flag=flag, comparator="==")
         if not data[flagged].empty:
-            ax.plot(data[flagged], '.', color=color, label=f"flag: {flag}")
+            ax.plot(data[flagged], ".", color=color, label=f"flag: {flag}")
         if plot_nans:
             _plotNans(data[flagged], color, ax)
 
     # plot SUSPICIOS
-    color = _colors['suspicious']
-    flagged = flagger.isFlagged(varname, flag=flagger.GOOD, comparator='>')
-    flagged &= flagger.isFlagged(varname, flag=flagger.BAD, comparator='<')
+    color = _colors["suspicious"]
+    flagged = flagger.isFlagged(varname, flag=flagger.GOOD, comparator=">")
+    flagged &= flagger.isFlagged(varname, flag=flagger.BAD, comparator="<")
     if not data[flagged].empty:
-        ax.plot(data[flagged], '.', color=color, label=f"{flagger.GOOD} < flag < {flagger.BAD}")
+        ax.plot(data[flagged], ".", color=color, label=f"{flagger.GOOD} < flag < {flagger.BAD}")
     if plot_nans:
         _plotNans(data[flagged], color, ax)
 

@@ -23,13 +23,11 @@ def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: f
         "field": field,
         "this": field,
         "flagger": flagger,
-
         "NAN": np.nan,
         "NODATA": nodata,
         "GOOD": flagger.GOOD,
         "BAD": flagger.BAD,
         "UNFLAGGED": flagger.UNFLAGGED,
-
         "ismissing": lambda data: ((data == nodata) | pd.isnull(data)),
         "isflagged": partial(_dslIsFlagged, flagger),
         "abs": np.abs,
@@ -46,17 +44,25 @@ class DslTransformer(ast.NodeTransformer):
 
     SUPPORTED = (
         ast.Expression,
-        ast.UnaryOp, ast.BinOp,
-        ast.BitOr, ast.BitAnd,
+        ast.UnaryOp,
+        ast.BinOp,
+        ast.BitOr,
+        ast.BitAnd,
         ast.Num,
         ast.Compare,
-        ast.Add, ast.Sub,
-        ast.Mult, ast.Div,
-        ast.Pow, ast.Mod,
+        ast.Add,
+        ast.Sub,
+        ast.Mult,
+        ast.Div,
+        ast.Pow,
+        ast.Mod,
         ast.USub,
-        ast.Eq, ast.NotEq,
-        ast.Gt, ast.Lt,
-        ast.GtE, ast.LtE,
+        ast.Eq,
+        ast.NotEq,
+        ast.Gt,
+        ast.Lt,
+        ast.GtE,
+        ast.LtE,
         ast.Invert,
         ast.Name,
     )
@@ -65,17 +71,12 @@ class DslTransformer(ast.NodeTransformer):
         self.environment = environment
         self.variables = variables
 
-
     def visit_Call(self, node):
         func_name = node.func.id
         if func_name not in self.environment:
             raise NameError(f"unspported function: '{func_name}'")
 
-        return ast.Call(
-            func=node.func,
-            args=[self.visit(arg) for arg in node.args],
-            keywords=[],
-        )
+        return ast.Call(func=node.func, args=[self.visit(arg) for arg in node.args], keywords=[],)
 
     def visit_Name(self, node):
         name = node.id
@@ -85,9 +86,7 @@ class DslTransformer(ast.NodeTransformer):
         if name in self.variables:
             value = ast.Constant(value=name)
             return ast.Subscript(
-                value=ast.Name(id="data", ctx=ast.Load()),
-                slice=ast.Index(value=value),
-                ctx=ast.Load(),
+                value=ast.Name(id="data", ctx=ast.Load()), slice=ast.Index(value=value), ctx=ast.Load(),
             )
         if name in self.environment:
             return ast.Constant(value=name)
@@ -103,16 +102,21 @@ class DslTransformer(ast.NodeTransformer):
 class ConfigTransformer(ast.NodeTransformer):
 
     SUPPORTED_NODES = (
-        ast.Call, ast.Num, ast.Str, ast.keyword,
-        ast.NameConstant, ast.UnaryOp, ast.Name,
-        ast.Load, ast.Expression, ast.Subscript,
-        ast.Index, ast.USub
+        ast.Call,
+        ast.Num,
+        ast.Str,
+        ast.keyword,
+        ast.NameConstant,
+        ast.UnaryOp,
+        ast.Name,
+        ast.Load,
+        ast.Expression,
+        ast.Subscript,
+        ast.Index,
+        ast.USub,
     )
 
-    SUPPORTED_ARGUMENTS = (
-        ast.Str, ast.Num, ast.NameConstant, ast.Call,
-        ast.UnaryOp, ast.USub, ast.Name
-    )
+    SUPPORTED_ARGUMENTS = (ast.Str, ast.Num, ast.NameConstant, ast.Call, ast.UnaryOp, ast.USub, ast.Name)
 
     def __init__(self, dsl_transformer, environment, pass_parameter):
         self.dsl_transformer = dsl_transformer
@@ -134,9 +138,7 @@ class ConfigTransformer(ast.NodeTransformer):
             ast.Name(id="flagger", ctx=ast.Load()),
         ]
 
-        node = ast.Call(
-            func=node.func, args=new_args + node.args, keywords=node.keywords
-        )
+        node = ast.Call(func=node.func, args=new_args + node.args, keywords=node.keywords)
 
         return self.generic_visit(node)
 
@@ -150,14 +152,10 @@ class ConfigTransformer(ast.NodeTransformer):
             raise TypeError(f"unknown function parameter '{node.arg}'")
 
         if not isinstance(value, self.SUPPORTED_ARGUMENTS):
-            raise TypeError(
-                f"invalid argument type '{type(value)}'"
-            )
+            raise TypeError(f"invalid argument type '{type(value)}'")
 
         if isinstance(value, ast.Name) and value.id not in self.environment:
-            raise NameError(
-                f"unknown variable: {value.id}"
-            )
+            raise NameError(f"unknown variable: {value.id}")
 
         return self.generic_visit(node)
 
