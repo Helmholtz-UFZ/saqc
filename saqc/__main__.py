@@ -31,6 +31,7 @@ def main(config, data, flagger, outfile, nodata, fail):
         nodata=nodata,
         error_policy="raise" if fail else "warn",
     )
+    [cols_out].to_csv(outfile, header=True, index=True)
 
     if outfile:
         flags = flagger_result.getFlags()
