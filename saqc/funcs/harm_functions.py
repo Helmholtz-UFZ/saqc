@@ -563,10 +563,10 @@ def _reshapeFlags(
             base = seconds_total / 2
             freq_string = str(int(seconds_total)) + "s"
             i_start = flagger.getFlags().index[0]
-            if abs(i_start - i_start.ceil(freq)) <= pd.Timedelta(freq) / 2:
-                shift_correcture = -1
+            if abs(i_start - i_start.floor(freq)) <= pd.Timedelta(freq) / 2:
+                shift_correcture = 1
             else:
-                shift_correcture = +1
+                shift_correcture = -1
 
         # resampling the flags series with aggregation method
         flags = (
@@ -580,7 +580,7 @@ def _reshapeFlags(
         )
 
         if method == "nagg":
-            flags = flags.shift(periods=-shift_correcture, freq=pd.Timedelta(freq) / 2)
+            flags = flags.shift(periods=shift_correcture, freq=pd.Timedelta(freq) / 2)
 
         # some consistency clean up to ensure new flags frame matching new data frames size:
         if ref_index[0] != flags.index[0]:
