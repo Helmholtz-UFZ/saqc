@@ -214,6 +214,8 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window="15min"
     # get all the entries preceding a significant jump
     pre_jumps = dataseries.diff(periods=-1).abs() > thresh
     pre_jumps = pre_jumps[pre_jumps]
+    if pre_jumps.empty:
+        return data, flagger
     # get all the entries preceeding a significant jump and its successors within "length" range
     to_roll = pre_jumps.reindex(dataseries.index, method="ffill", tolerance=window, fill_value=False).dropna()
 
