@@ -11,21 +11,31 @@ from saqc.lib.tools import valueRange, slidingWindowIndices, retrieveTrustworthy
 
 @register("constant")
 def flagConstant(data, field, flagger, thresh, window, **kwargs):
+    """
+    Flag values are (semi-)constant.
 
-    window = pd.tseries.frequencies.to_offset(window)
+    :param data: dataframe
+    :param field: column in data
+    :param flagger: saqc flagger obj
+    :param thresh: the difference between two values must be below that
+    :param window: sliding window
+    """
+    d = data[field]
 
-    col = data[field]
-    index = col.index
-    flagger_mask = pd.Series(data=np.zeros_like(col), index=index, name=field, dtype=bool)
+    # find all constant values in forward search
+    r = d.rolling(window=window)
+    mask = (r.max() - r.min()) <= thresh
 
-    for srs in groupConsecutives(col.diff().abs().le(thresh)):
-        if np.all(srs):
-            start = index[index.get_loc(srs.index[0]) - 1]
-            stop = srs.index[-1]
-            if stop - start >= window:
-                flagger_mask[start:stop] = True
+    # backward rolling for offset windows hack
+    bw = mask[::-1].copy()
+    bw.index = bw.index.max() - bw.index
 
-    flagger = flagger.setFlags(field, flagger_mask, **kwargs)
+    # propagate the mask(!), backwards
+    bwmask = bw.rolling(window=window).sum() > 0
+
+    mask |= bwmask[::-1].values
+
+    flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
 
