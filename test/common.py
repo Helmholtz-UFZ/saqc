@@ -7,7 +7,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from saqc.core.core import prepareConfig, readConfig
+from saqc.core.core import readConfig
 from saqc.flagger import (
     ContinuousFlagger,
     CategoricalFlagger,
@@ -44,10 +44,10 @@ def initMetaString(metastring, data):
     cleaned = re.sub(
         r"\s*,\s*", r",", re.sub(r"\|", r";", re.sub(r"\n[ \t]+", r"\n", metastring))
     )
-    fobj = io.StringIO(cleaned)
-    meta = prepareConfig(readConfig(fobj), data)
+    fobj = io.StringIO(cleaned.strip())
+    config = readConfig(fobj, data)
     fobj.seek(0)
-    return fobj, meta
+    return fobj, config
 
 
 def _getKeys(metadict):
@@ -61,8 +61,9 @@ def _getKeys(metadict):
 
 def initMetaDict(config_dict, data):
     df = pd.DataFrame(config_dict)[_getKeys(config_dict)]
-    meta = prepareConfig(df, data)
     fobj = io.StringIO()
-    meta.to_csv(fobj, index=False, sep=";")
+    df.fillna("").to_csv(fobj, index=False, sep=";")
     fobj.seek(0)
-    return fobj, meta
+    config = readConfig(fobj, data)
+    fobj.seek(0)
+    return fobj, config
