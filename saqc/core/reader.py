@@ -24,7 +24,7 @@ CONFIG_TYPES = {
     F.START: pd.to_datetime,
     F.END: pd.to_datetime,
     F.TESTS: str,
-    F.PLOT: lambda v: str(v).lower() != "false",
+    F.PLOT: lambda v: str(v).lower() == "true",
     F.LINENUMBER: int,
 }
 
@@ -60,11 +60,19 @@ def _castRow(row: Dict[str, str]) -> Dict[str, Any]:
     cast values to the data type given in 'types'
     """
     out = {}
-    for k, v in row.items():
+    keys = pd.Index(row.keys())
+    for k, func in CONFIG_TYPES.items():
         try:
-            out[k] = CONFIG_TYPES[k](v)
-        except:
-            _raise(row, ValueError, f"invalid value: v")
+            key = keys[keys.str.match(k)][0]
+        except IndexError:
+            continue
+        value = row[key]
+        # NOTE:
+        # this check and the raise should be moved to checkConfig
+        try:
+            out[key] = func(value)
+        except ValueError:
+            _raise(row, ValueError, f"invalid value: '{value}'")
     return out
 
 
