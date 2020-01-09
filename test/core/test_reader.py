@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import numpy as np
 
 from saqc.core.reader import checkConfig
 from saqc.core.config import Fields as F
@@ -38,6 +39,37 @@ def test_configPreparation(data):
         result = dict(zip(meta_frame.columns, meta_frame.iloc[0]))
         expected = {**defaults, **test}
         assert result == expected
+
+
+def test_variableWildcards(data):
+
+    tests = [
+        ("*", ".*"),
+        (".*", ".*"),
+        ("var(1|2)", "var(1|2)"),
+        ("(.*3)", "(.*3)")
+    ]
+
+    for config_wc, expected_wc in tests:
+        _, config = initMetaDict(
+            [{F.VARNAME: config_wc, F.TESTS: "flagAll()"}],
+            data
+        )
+        expected = data.columns[data.columns.str.match(expected_wc)]
+        assert np.all(config[F.VARNAME] == expected)
+
+
+def test_inlineComments(data):
+    """
+    adresses issue #3
+    """
+    config = f"""
+    {F.VARNAME}|{F.TESTS}|{F.PLOT}
+    pre2|flagAll() # test|False # test
+    """
+    _, meta_frame = initMetaString(config, data)
+    assert meta_frame.loc[0, F.PLOT] == False
+    assert meta_frame.loc[0, F.TESTS] == "flagAll()"
 
 
 def test_configReaderLineNumbers(data):

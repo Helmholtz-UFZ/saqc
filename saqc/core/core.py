@@ -5,7 +5,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from saqc.core.reader import readConfig, prepareConfig, checkConfig
+from saqc.core.reader import readConfig, checkConfig
 from saqc.core.config import Fields
 from saqc.core.evaluator import evalExpression
 from saqc.lib.plotting import plotHook, plotAllHook
@@ -85,7 +85,7 @@ def run(
 
     _setup()
     _checkInput(data, flags, flagger)
-    config = prepareConfig(readConfig(config_file), data)
+    config = readConfig(config_file, data)
 
     # split config into the test and some 'meta' data
     tests = config.filter(regex=Fields.TESTS)
