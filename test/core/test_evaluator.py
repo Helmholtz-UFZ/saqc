@@ -59,8 +59,6 @@ def test_typeError(flagger):
             compileExpression(expr, flagger)
 
 
-
-
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_supportedArguments(flagger):
 

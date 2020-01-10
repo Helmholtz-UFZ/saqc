@@ -70,6 +70,12 @@ class DslTransformer(ast.NodeTransformer):
     def __init__(self, environment, variables):
         self.environment = environment
         self.variables = variables
+        self.arguments = set()
+
+    def transform(self, node):
+        # NOTE: should be done in __init__
+        self.arguments = set()
+        return self.visit(node)
 
     def visit_Call(self, node):
         func_name = node.func.id
@@ -82,6 +88,7 @@ class DslTransformer(ast.NodeTransformer):
         name = node.id
         if name == "this":
             name = self.environment["field"]
+        self.arguments.add(name)
 
         if name in self.variables:
             value = ast.Constant(value=name)
@@ -145,8 +152,14 @@ class ConfigTransformer(ast.NodeTransformer):
     def visit_keyword(self, node):
         key, value = node.arg, node.value
         if self.func_name == Params.FLAG_GENERIC and key == Params.FUNC:
-            node = ast.keyword(arg=key, value=self.dsl_transformer.visit(value))
-            return node
+            dsl_func = ast.keyword(
+                arg=key, value=self.dsl_transformer.transform(value))
+            args = ast.keyword(
+                arg=Params.GENERIC_ARGS,
+                value=ast.List(
+                    elts=[ast.Str(s=v) for v in self.dsl_transformer.arguments],
+                    ctx=ast.Load()))
+            return [dsl_func, args]
 
         if key not in FUNC_MAP[self.func_name].signature + self.pass_parameter:
             raise TypeError(f"unknown function parameter '{node.arg}'")
