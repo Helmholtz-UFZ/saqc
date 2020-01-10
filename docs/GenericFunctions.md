@@ -57,7 +57,7 @@ Flag variable `x` where variable `y` is flagged and variable `x` has missing val
 
 | varname | test                                                |
 |---------|-----------------------------------------------------|
-| x       | flagGeneric(func=this > isflagged(y) & ismissing(z) |
+| x       | flagGeneric(func=isflagged(y) & ismissing(z)) |
 
 
 ### A real world example
@@ -80,7 +80,7 @@ We can directly implement the condition as follows:
 
 | varname | test                                         |
 |---------|----------------------------------------------|
-| meas    | flagGeneric(func=(fan == 0)  (volt < 12.0)) |
+| meas    | flagGeneric(func=(fan == 0) \|  (volt < 12.0)) |
 
 But we could also quality check our independent variables first
 and than leverage this information later on:
@@ -90,7 +90,7 @@ and than leverage this information later on:
 | *       | missing()                                               |
 | fan     | flagGeneric(func=this == 0)                             |
 | volt    | flagGeneric(func=this < 12.0)                           |
-| meas    | flagGeneric(func=isflagged(fan) &vert; isflagged(volt)) |
+| meas    | flagGeneric(func=isflagged(fan) \| isflagged(volt)) |
 
 
 ## Variable References
@@ -143,7 +143,7 @@ The bitwise operators also act as logical operators in comparison chains
 | Operator | Description       |
 |----------|-------------------|
 | `&`      | binary and        |
-| &vert;   | binary or         |
+| `\|`     | binary or         |
 | `^`      | binary xor        |
 | `~`      | binary complement |
 
