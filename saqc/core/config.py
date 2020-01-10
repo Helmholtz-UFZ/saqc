@@ -6,7 +6,7 @@ class Fields:
     VARNAME = "varname"
     START = "start_date"
     END = "end_date"
-    TESTS = "test*"
+    TESTS = "test"
     PLOT = "plot"
     LINENUMBER = "line"
 

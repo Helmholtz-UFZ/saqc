@@ -22,9 +22,9 @@ def flagConstant(data, field, flagger, thresh, window, **kwargs):
     """
     d = data[field]
 
-    # find all constant values in forward search
+    # find all constant values in a row with a forward search
     r = d.rolling(window=window)
-    mask = (r.max() - r.min()) <= thresh
+    mask = (r.max() - r.min() <= thresh) & (r.count() > 1)
 
     # backward rolling for offset windows hack
     bw = mask[::-1].copy()
