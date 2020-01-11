@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 
 from test.common import initData, TESTFLAGGER, TESTNODATA
+from saqc.core.core import run
+from saqc.core.config import Fields as F
+
+from test.common import initData, TESTFLAGGER, TESTNODATA, initMetaDict
 
 from saqc.core.evaluator import (
     DslTransformer,
@@ -208,6 +212,25 @@ def test_isflagged(data, flagger):
 
     flagged = flagger.isFlagged(var1)
     assert (flagged == idx).all
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_invertIsFlagged(data, flagger):
+
+    flagger = flagger.initFlags(data)
+    var1, var2, *_ = data.columns
+
+    # flagger = flagger.setFlags(var1, iloc=slice(None, None, 2))
+    flagger = flagger.setFlags(var2, iloc=slice(None, None, 2))
+
+    _, flagger_result = evalExpression(
+        f"flagGeneric(func=~isflagged({var2}))",
+        data, var1, flagger, np.nan
+    )
+    flags_result = flagger_result.isFlagged(var1)
+    flags = flagger.isFlagged(var2)
+    # import pdb; pdb.set_trace()
+    assert np.all(flags_result != flags)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
