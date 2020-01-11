@@ -68,7 +68,7 @@ class DslChecker(ast.NodeVisitor):
         ast.Invert,
         ast.Name,
         ast.Load,
-        ast.Call
+        ast.Call,
     )
 
     def __init__(self, environment):
@@ -82,9 +82,7 @@ class DslChecker(ast.NodeVisitor):
 
     def visit_Name(self, node):
         name = node.id
-        if (name != "this" and
-            name not in self.environment and
-            name not in self.environment["variables"]):
+        if name != "this" and name not in self.environment and name not in self.environment["variables"]:
             raise NameError(f"unknown variable: '{name}'")
         self.generic_visit(node)
 
@@ -152,7 +150,6 @@ class ConfigChecker(ast.NodeVisitor):
 
 
 class DslTransformer(ast.NodeTransformer):
-
     def __init__(self, environment: Dict[str, Any]):
         self.environment = environment
         self.arguments = set()
@@ -165,11 +162,7 @@ class DslTransformer(ast.NodeTransformer):
 
     def visit_Call(self, node):
         self.func_name = node.func.id
-        return ast.Call(
-            func=node.func,
-            args=[self.visit(arg) for arg in node.args],
-            keywords=[]
-        )
+        return ast.Call(func=node.func, args=[self.visit(arg) for arg in node.args], keywords=[])
 
     def visit_Name(self, node):
         name = node.id
@@ -197,8 +190,6 @@ class DslTransformer(ast.NodeTransformer):
 
 
 class ConfigTransformer(ast.NodeTransformer):
-
-
     def __init__(self, environment):
         self.environment = environment
         self.func_name = None
@@ -230,9 +221,8 @@ class ConfigTransformer(ast.NodeTransformer):
             # need this to propagate the flags from the independent variables
             args = ast.keyword(
                 arg=Params.GENERIC_ARGS,
-                value=ast.List(
-                    elts=[ast.Str(s=v) for v in dsl_transformer.arguments],
-                    ctx=ast.Load()))
+                value=ast.List(elts=[ast.Str(s=v) for v in dsl_transformer.arguments], ctx=ast.Load()),
+            )
             return [dsl_func, args]
 
         return self.generic_visit(node)

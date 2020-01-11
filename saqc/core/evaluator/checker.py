@@ -6,6 +6,7 @@ import ast
 from saqc.funcs.register import FUNC_MAP
 from saqc.core.config import Params
 
+
 class DslChecker(ast.NodeVisitor):
 
     SUPPORTED = (
@@ -32,7 +33,7 @@ class DslChecker(ast.NodeVisitor):
         ast.Invert,
         ast.Name,
         ast.Load,
-        ast.Call
+        ast.Call,
     )
 
     def __init__(self, environment):
@@ -46,9 +47,7 @@ class DslChecker(ast.NodeVisitor):
 
     def visit_Name(self, node):
         name = node.id
-        if (name != "this" and
-            name not in self.environment and
-            name not in self.environment["variables"]):
+        if name != "this" and name not in self.environment and name not in self.environment["variables"]:
             raise NameError(f"unknown variable: '{name}'")
         self.generic_visit(node)
 
@@ -113,4 +112,3 @@ class ConfigChecker(ast.NodeVisitor):
         if not isinstance(node, self.SUPPORTED_NODES):
             raise TypeError(f"invalid node: '{node}'")
         return super().generic_visit(node)
-

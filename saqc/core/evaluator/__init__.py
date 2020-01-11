@@ -10,15 +10,9 @@ from saqc.core.evaluator.evaluator import (
     DslTransformer,
     ConfigChecker,
     ConfigTransformer,
-    evalCode
+    evalCode,
 )
 
-from saqc.core.evaluator.checker import (
-    DslChecker,
-    ConfigChecker
-)
+from saqc.core.evaluator.checker import DslChecker, ConfigChecker
 
-from saqc.core.evaluator.transformer import (
-    DslTransformer,
-    ConfigTransformer
-)
+from saqc.core.evaluator.transformer import DslTransformer, ConfigTransformer

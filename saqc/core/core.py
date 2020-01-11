@@ -88,7 +88,7 @@ def run(
     config = readConfig(config_file, data)
 
     # split config into the test and some 'meta' data
-    tests = config.filter(regex=Fields.TESTS + '*')
+    tests = config.filter(regex=Fields.TESTS + "*")
     meta = config[config.columns.difference(tests.columns)]
 
     # prepapre the flags
