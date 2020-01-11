@@ -3,7 +3,7 @@
 
 import ast
 from functools import partial
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, Set
 
 import numpy as np
 import pandas as pd
@@ -18,6 +18,7 @@ def _dslIsFlagged(flagger, data, flag=None):
 
 
 def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
+
     return {
         "data": data,
         "field": field,
@@ -67,28 +68,43 @@ class DslTransformer(ast.NodeTransformer):
         ast.Name,
     )
 
-    def __init__(self, environment, variables):
+
+    def __init__(self, environment: Dict[str, Any], variables: Set[str]):
         self.environment = environment
         self.variables = variables
         self.arguments = set()
+        self.invert = False
+        self.func_name = None
 
     def transform(self, node):
         # NOTE: should be done in __init__
         self.arguments = set()
         return self.visit(node)
 
+    def visit_Invert(self, node):
+        self.invert = True
+        return node
+
     def visit_Call(self, node):
         func_name = node.func.id
         if func_name not in self.environment:
             raise NameError(f"unspported function: '{func_name}'")
-
+        self.func_name = func_name
         return ast.Call(func=node.func, args=[self.visit(arg) for arg in node.args], keywords=[],)
 
     def visit_Name(self, node):
         name = node.id
         if name == "this":
             name = self.environment["field"]
-        self.arguments.add(name)
+
+        # NOTE:
+        # we need a way to prevent some variables
+        # from ending up in `flagGeneric`, see the
+        # problem with np.all(~isflagged(x)) is True
+        if self.func_name == "isflagged" and self.invert:
+            self.invert = False
+        else:
+            self.arguments.add(name)
 
         if name in self.variables:
             value = ast.Constant(value=name)
@@ -151,9 +167,14 @@ class ConfigTransformer(ast.NodeTransformer):
 
     def visit_keyword(self, node):
         key, value = node.arg, node.value
+
         if self.func_name == Params.FLAG_GENERIC and key == Params.FUNC:
             dsl_func = ast.keyword(
                 arg=key, value=self.dsl_transformer.transform(value))
+            # NOTE:
+            # Inject the additional `func_arguments` argument `flagGeneric`
+            # expects, to keep track of all the touched variables. We
+            # need this to propagate the flags from the independent variables
             args = ast.keyword(
                 arg=Params.GENERIC_ARGS,
                 value=ast.List(

@@ -220,7 +220,6 @@ def test_invertIsFlagged(data, flagger):
     flagger = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
-    # flagger = flagger.setFlags(var1, iloc=slice(None, None, 2))
     flagger = flagger.setFlags(var2, iloc=slice(None, None, 2))
 
     _, flagger_result = evalExpression(
@@ -229,7 +228,6 @@ def test_invertIsFlagged(data, flagger):
     )
     flags_result = flagger_result.isFlagged(var1)
     flags = flagger.isFlagged(var2)
-    # import pdb; pdb.set_trace()
     assert np.all(flags_result != flags)
 
 
