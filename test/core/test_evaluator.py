@@ -10,6 +10,7 @@ from saqc.core.evaluator import (
     parseExpression,
     initLocalEnv,
     DslTransformer,
+    ConfigChecker,
     ConfigTransformer,
 )
 
@@ -21,8 +22,8 @@ def compileExpression(expr, flagger, nodata=np.nan):
     field = data.columns[0]
     tree = parseExpression(expr)
     env = initLocalEnv(data, field, flagger.initFlags(data), nodata)
-    dsl_transformer = DslTransformer(env, {})
-    transformed_tree = ConfigTransformer(dsl_transformer, env, flagger.signature).visit(tree)
+    ConfigChecker(env, flagger.signature).visit(tree)
+    transformed_tree = ConfigTransformer(env).visit(tree)
     code = compileTree(transformed_tree)
     return code
 

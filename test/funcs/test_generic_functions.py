@@ -24,8 +24,7 @@ from saqc.core.evaluator import (
 def _evalDslExpression(expr, data, field, flagger, nodata=np.nan):
     env = initLocalEnv(data, field, flagger, nodata)
     tree = parseExpression(expr)
-    dsl_transformer = DslTransformer(env, data.columns)
-    transformed_tree = dsl_transformer.transform(tree)
+    transformed_tree = DslTransformer(env).visit(tree)
     code = compileTree(transformed_tree)
     return evalCode(code, local_env=env)
 

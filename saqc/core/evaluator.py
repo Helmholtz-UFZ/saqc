@@ -38,10 +38,11 @@ def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: f
         "sum": np.nansum,
         "std": np.nanstd,
         "len": len,
+        "variables": set(data.columns.tolist() + flagger.getFlags().columns.tolist()),
     }
 
 
-class DslTransformer(ast.NodeTransformer):
+class DslChecker(ast.NodeVisitor):
 
     SUPPORTED = (
         ast.Expression,
@@ -66,55 +67,26 @@ class DslTransformer(ast.NodeTransformer):
         ast.LtE,
         ast.Invert,
         ast.Name,
+        ast.Load,
+        ast.Call
     )
 
-
-    def __init__(self, environment: Dict[str, Any], variables: Set[str]):
+    def __init__(self, environment):
         self.environment = environment
-        self.variables = variables
-        self.arguments = set()
-        self.invert = False
-        self.func_name = None
-
-    def transform(self, node):
-        # NOTE: should be done in __init__
-        self.arguments = set()
-        return self.visit(node)
-
-    def visit_Invert(self, node):
-        self.invert = True
-        return node
 
     def visit_Call(self, node):
         func_name = node.func.id
         if func_name not in self.environment:
             raise NameError(f"unspported function: '{func_name}'")
-        self.func_name = func_name
-        return ast.Call(func=node.func, args=[self.visit(arg) for arg in node.args], keywords=[],)
+        self.generic_visit(node)
 
     def visit_Name(self, node):
         name = node.id
-        if name == "this":
-            name = self.environment["field"]
-
-        # NOTE:
-        # we need a way to prevent some variables
-        # from ending up in `flagGeneric`, see the
-        # problem with np.all(~isflagged(x)) is True
-        if self.func_name == "isflagged" and self.invert:
-            self.invert = False
-        else:
-            self.arguments.add(name)
-
-        if name in self.variables:
-            value = ast.Constant(value=name)
-            return ast.Subscript(
-                value=ast.Name(id="data", ctx=ast.Load()), slice=ast.Index(value=value), ctx=ast.Load(),
-            )
-        if name in self.environment:
-            return ast.Constant(value=name)
-
-        raise NameError(f"unknown variable: '{name}'")
+        if (name != "this" and
+            name not in self.environment and
+            name not in self.environment["variables"]):
+            raise NameError(f"unknown variable: '{name}'")
+        self.generic_visit(node)
 
     def generic_visit(self, node):
         if not isinstance(node, self.SUPPORTED):
@@ -122,7 +94,7 @@ class DslTransformer(ast.NodeTransformer):
         return super().generic_visit(node)
 
 
-class ConfigTransformer(ast.NodeTransformer):
+class ConfigChecker(ast.NodeVisitor):
 
     SUPPORTED_NODES = (
         ast.Call,
@@ -141,46 +113,26 @@ class ConfigTransformer(ast.NodeTransformer):
 
     SUPPORTED_ARGUMENTS = (ast.Str, ast.Num, ast.NameConstant, ast.Call, ast.UnaryOp, ast.USub, ast.Name)
 
-    def __init__(self, dsl_transformer, environment, pass_parameter):
-        self.dsl_transformer = dsl_transformer
-        self.environment = environment
+    def __init__(self, environment, pass_parameter):
         self.pass_parameter = pass_parameter
+        self.environment = environment
         self.func_name = None
 
     def visit_Call(self, node):
+
         func_name = node.func.id
         if func_name not in FUNC_MAP:
             raise NameError(f"unknown test function: '{func_name}'")
         if node.args:
             raise TypeError("only keyword arguments are supported")
         self.func_name = func_name
-
-        new_args = [
-            ast.Name(id="data", ctx=ast.Load()),
-            ast.Name(id="field", ctx=ast.Load()),
-            ast.Name(id="flagger", ctx=ast.Load()),
-        ]
-
-        node = ast.Call(func=node.func, args=new_args + node.args, keywords=node.keywords)
-
         return self.generic_visit(node)
 
     def visit_keyword(self, node):
         key, value = node.arg, node.value
-
         if self.func_name == Params.FLAG_GENERIC and key == Params.FUNC:
-            dsl_func = ast.keyword(
-                arg=key, value=self.dsl_transformer.transform(value))
-            # NOTE:
-            # Inject the additional `func_arguments` argument `flagGeneric`
-            # expects, to keep track of all the touched variables. We
-            # need this to propagate the flags from the independent variables
-            args = ast.keyword(
-                arg=Params.GENERIC_ARGS,
-                value=ast.List(
-                    elts=[ast.Str(s=v) for v in self.dsl_transformer.arguments],
-                    ctx=ast.Load()))
-            return [dsl_func, args]
+            DslChecker(self.environment).visit(value)
+            return
 
         if key not in FUNC_MAP[self.func_name].signature + self.pass_parameter:
             raise TypeError(f"unknown function parameter '{node.arg}'")
@@ -197,6 +149,93 @@ class ConfigTransformer(ast.NodeTransformer):
         if not isinstance(node, self.SUPPORTED_NODES):
             raise TypeError(f"invalid node: '{node}'")
         return super().generic_visit(node)
+
+
+class DslTransformer(ast.NodeTransformer):
+
+    def __init__(self, environment: Dict[str, Any]):
+        self.environment = environment
+        self.arguments = set()
+        self.invert = False
+        self.func_name = None
+
+    def visit_Invert(self, node):
+        self.invert = True
+        return node
+
+    def visit_Call(self, node):
+        self.func_name = node.func.id
+        return ast.Call(
+            func=node.func,
+            args=[self.visit(arg) for arg in node.args],
+            keywords=[]
+        )
+
+    def visit_Name(self, node):
+        name = node.id
+        if name == "this":
+            name = self.environment["field"]
+
+        # NOTE:
+        # we need a way to prevent some variables
+        # from ending up in `flagGeneric`, see the
+        # problem with np.all(~isflagged(x)) is True
+        if self.func_name == "isflagged" and self.invert:
+            self.invert = False
+        else:
+            self.arguments.add(name)
+
+        if name in self.environment["variables"]:
+            value = ast.Constant(value=name)
+            node = ast.Subscript(
+                value=ast.Name(id="data", ctx=ast.Load()), slice=ast.Index(value=value), ctx=ast.Load(),
+            )
+        elif name in self.environment:
+            node = ast.Constant(value=name)
+
+        return node
+
+
+class ConfigTransformer(ast.NodeTransformer):
+
+
+    def __init__(self, environment):
+        self.environment = environment
+        self.func_name = None
+
+    def visit_Call(self, node):
+        func_name = node.func.id
+        self.func_name = func_name
+
+        new_args = [
+            ast.Name(id="data", ctx=ast.Load()),
+            ast.Name(id="field", ctx=ast.Load()),
+            ast.Name(id="flagger", ctx=ast.Load()),
+        ]
+
+        node = ast.Call(func=node.func, args=new_args + node.args, keywords=node.keywords)
+
+        return self.generic_visit(node)
+
+    def visit_keyword(self, node):
+        key, value = node.arg, node.value
+
+        if self.func_name == Params.FLAG_GENERIC and key == Params.FUNC:
+            dsl_transformer = DslTransformer(self.environment)
+            value = dsl_transformer.visit(value)
+            dsl_func = ast.keyword(arg=key, value=value)
+            # NOTE:
+            # Inject the additional `func_arguments` argument `flagGeneric`
+            # expects, to keep track of all the touched variables. We
+            # need this to propagate the flags from the independent variables
+            args = ast.keyword(
+                arg=Params.GENERIC_ARGS,
+                value=ast.List(
+                    elts=[ast.Str(s=v) for v in dsl_transformer.arguments],
+                    ctx=ast.Load()))
+            return [dsl_func, args]
+
+        return self.generic_visit(node)
 
 
 def parseExpression(expr: str) -> ast.AST:
@@ -216,8 +255,8 @@ def compileExpression(expr, data, field, flagger, nodata=np.nan):
     local_env = initLocalEnv(data, field, flagger, nodata)
     varmap = set(data.columns.tolist() + flagger.getFlags().columns.tolist())
     tree = parseExpression(expr)
-    dsl_transformer = DslTransformer(local_env, varmap)
-    transformed_tree = ConfigTransformer(dsl_transformer, local_env, flagger.signature).visit(tree)
+    ConfigChecker(local_env, flagger.signature).visit(tree)
+    transformed_tree = ConfigTransformer(local_env).visit(tree)
     return local_env, compileTree(transformed_tree)
 
 
