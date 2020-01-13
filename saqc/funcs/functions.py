@@ -123,3 +123,9 @@ def flagIsolated(
     flagger = flagger.setFlags(field, flags, **kwargs)
 
     return data, flagger
+
+
+@register("dummy")
+def flagDummyFunction(data, field, flagger, **kwargs):
+    return data, flagger
+
