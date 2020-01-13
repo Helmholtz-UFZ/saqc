@@ -29,19 +29,22 @@ def plotHook(
     plot_nans: bool = False,
 ):
 
-    # NOTE:
-    # data might have been harmonized (recognizable by
-    # NaNs in flags DataFrame) -> throw them out
-    flags_valid = flagger_new.getFlags(varname).dropna()
-    data = data.loc[flags_valid.index, varname]
+    # if data was harmonized, nans may occur in flags
+    harm_nans = flagger_new.getFlags(varname).isna() | flagger_old.getFlags(varname).isna()
+
+    # clean data from harmonisation nans
+    if harm_nans.any():
+        data = data.loc[~harm_nans, varname]
+
     if isinstance(data, pd.Series):
         data = data.to_frame()
 
-    # harmonized data will break here, on comparison from the old timestamps with the new ones.
-    # but we do not need to find 'changed data' with harmonized data so we are fine.
+    # clean flags from harmonisation nans
     try:
         flagger_old = flagger_old.getFlagger(varname, loc=data.index)
     except ValueError:
+        # this might fail if someone want to plot the harmonisation itself,
+        # but then we just plot the 'new' flags, ignoring the diff to the old ones
         mask = True
     else:
         flagger_new = flagger_new.getFlagger(varname, loc=data.index)
@@ -123,9 +126,13 @@ def _plot(
 def _plotByQualityFlag(data, varname, flagger, flagmask, ax, plot_nans):
     ax.set_ylabel(varname)
 
+    if flagmask is True:
+        flagmask = pd.Series(data=np.ones(len(data), dtype=bool), index=data.index)
+
     data = data[varname]
     if not plot_nans:
         data = data.dropna()
+        flagmask = flagmask.loc[data.index]
 
     flagger = flagger.getFlagger(varname, loc=data.index)
 
@@ -149,9 +156,8 @@ def _plotByQualityFlag(data, varname, flagger, flagmask, ax, plot_nans):
         _plotNans(data[oldflags], "black", ax)
 
     # now we just want to show data that was flagged
-    if flagmask is not True:
-        data = data.loc[flagmask[flagmask].index]
-        flagger = flagger.getFlagger(varname, loc=data.index)
+    data = data.loc[flagmask[flagmask].index]
+    flagger = flagger.getFlagger(varname, loc=data.index)
 
     if data.empty:
         return
