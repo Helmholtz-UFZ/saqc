@@ -243,7 +243,6 @@ def evalCode(code, global_env=None, local_env=None):
 
 def compileExpression(expr, data, field, flagger, nodata=np.nan):
     local_env = initLocalEnv(data, field, flagger, nodata)
-    varmap = set(data.columns.tolist() + flagger.getFlags().columns.tolist())
     tree = parseExpression(expr)
     ConfigChecker(local_env, flagger.signature).visit(tree)
     transformed_tree = ConfigTransformer(local_env).visit(tree)
