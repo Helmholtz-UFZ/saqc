@@ -221,13 +221,23 @@ def test_invertIsFlagged(data, flagger):
 
     flagger = flagger.setFlags(var2, iloc=slice(None, None, 2))
 
+    # _, flagger_result = evalExpression(
+    #     f"flagGeneric(func=~isflagged({var2}))",
+    #     data, var1, flagger, np.nan
+    # )
+    # flags_result = flagger_result.isFlagged(var1)
+    # flags = flagger.isFlagged(var2)
+    # assert np.all(flags_result != flags)
+
+
     _, flagger_result = evalExpression(
-        f"flagGeneric(func=~isflagged({var2}))",
+        f"flagGeneric(func=(~({var2}>999)) & (~isflagged({var2})))",
         data, var1, flagger, np.nan
     )
+    flags_expected = ~((data[var2] > 999) & flagger.isFlagged(var2)) & (~flagger.isFlagged(var2))
     flags_result = flagger_result.isFlagged(var1)
-    flags = flagger.isFlagged(var2)
-    assert np.all(flags_result != flags)
+    import pdb; pdb.set_trace()
+    assert np.all(flags_result != flags_expected)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
