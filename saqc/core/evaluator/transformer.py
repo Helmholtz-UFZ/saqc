@@ -10,30 +10,14 @@ class DslTransformer(ast.NodeTransformer):
     def __init__(self, environment: Dict[str, Any]):
         self.environment = environment
         self.arguments = set()
-        self.invert = False
-        self.func_name = None
-
-    def visit_Invert(self, node):
-        self.invert = True
-        return node
 
     def visit_Call(self, node):
-        self.func_name = node.func.id
         return ast.Call(func=node.func, args=[self.visit(arg) for arg in node.args], keywords=[])
 
     def visit_Name(self, node):
         name = node.id
         if name == "this":
             name = self.environment["field"]
-
-        # NOTE:
-        # we need a way to prevent some variables
-        # from ending up in `flagGeneric`, see the
-        # problem with np.all(~isflagged(x)) is True
-        if self.func_name == "isflagged" and self.invert:
-            self.invert = False
-        else:
-            self.arguments.add(name)
 
         if name in self.environment["variables"]:
             value = ast.Constant(value=name)
@@ -43,6 +27,7 @@ class DslTransformer(ast.NodeTransformer):
         elif name in self.environment:
             node = ast.Constant(value=name)
 
+        self.arguments.add(name)
         return node
 
 
@@ -52,15 +37,13 @@ class ConfigTransformer(ast.NodeTransformer):
         self.func_name = None
 
     def visit_Call(self, node):
-        func_name = node.func.id
-        self.func_name = func_name
+        self.func_name = node.func.id
 
         new_args = [
             ast.Name(id="data", ctx=ast.Load()),
             ast.Name(id="field", ctx=ast.Load()),
             ast.Name(id="flagger", ctx=ast.Load()),
         ]
-
         node = ast.Call(func=node.func, args=new_args + node.args, keywords=node.keywords)
 
         return self.generic_visit(node)

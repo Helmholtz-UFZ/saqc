@@ -18,8 +18,6 @@ def flagGeneric(data, field, flagger, func, func_arguments, **kwargs):
     #   from one single columns, so we need to preserve this columns
     #   properties
     mask = func.squeeze()
-    for arg in func_arguments:
-        mask |= flagger.isFlagged(arg)
     if np.isscalar(mask):
         raise TypeError(f"generic expression does not return an array")
     if not np.issubdtype(mask.dtype, np.bool_):
