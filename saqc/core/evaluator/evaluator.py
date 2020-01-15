@@ -18,9 +18,6 @@ from saqc.core.evaluator.transformer import ConfigTransformer
 def _dslIsFlagged(flagger, data, flag=None):
     return flagger.isFlagged(data.name, flag=flag)
 
-def _dslAggregateFunc(func, flagger, data):
-    flags = flagger.isFlagged(data.name)
-    return func(data.mask(flags))
 
 def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
 
@@ -39,9 +36,9 @@ def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: f
         "abs": np.abs,
         "max": np.nanmax,
         "min": np.nanmin,
-        "mean": partial(_dslAggregateFunc, np.nanmean, flagger),
-        "sum": partial(_dslAggregateFunc, np.nansum, flagger),
-        "std": partial(_dslAggregateFunc, np.nanstd, flagger),
+        "mean": np.nanmean,
+        "sum": np.nansum,
+        "std": np.nanstd,
         "len": len,
         "variables": set(data.columns.tolist() + flagger.getFlags().columns.tolist()),
     }
@@ -69,14 +66,12 @@ def compileExpression(expr, data, field, flagger, nodata=np.nan):
 
 
 def evalExpression(expr, data, field, flagger, nodata=np.nan):
-    # NOTE:
     # mask the already flagged value to make all the functions
     # called on the way through the evaluator ignore flagged values
-    # mask = flagger.isFlagged()
-    # data_in = data.mask(mask)
-    local_env, code = compileExpression(expr, data, field, flagger, nodata)
+    mask = flagger.isFlagged()
+    data_in = data.mask(mask)
+    local_env, code = compileExpression(expr, data_in, field, flagger, nodata)
     data_result, flagger_result = evalCode(code, FUNC_MAP, local_env)
-    # NOTE:
     # reinject the original values, as we don't want to loose them
-    # data_result[mask] = data[mask]
+    data_result[mask] = data[mask]
     return data_result, flagger_result
