@@ -125,7 +125,7 @@ def checkConfig(config_df: pd.DataFrame, data: pd.DataFrame, flagger: BaseFlagge
         if pd.isnull(config_row[F.VARNAME]) or not var_name:
             _raise(config_row, SyntaxError, f"non-optional column '{F.VARNAME}' is missing or empty")
 
-        test_fields = config_row.filter(regex=F.TESTS + "*").dropna()
+        test_fields = config_row.filter(regex=F.TESTS).dropna()
         if test_fields.empty:
             _raise(
                 config_row, SyntaxError, f"at least one test needs to be given for variable",
