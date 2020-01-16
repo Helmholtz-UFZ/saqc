@@ -12,11 +12,8 @@ from saqc.funcs.register import register
 @register("flagGeneric")
 def flagGeneric(data, field, flagger, func, func_arguments, **kwargs):
     # NOTE:
-    # - The naming of the func parameter is pretty confusing
-    #   as it actually holds the result of a generic expression
-    # - if the result series carries a name, it was explicitly created
-    #   from one single columns, so we need to preserve this columns
-    #   properties
+    # The naming of the func parameter is pretty confusing
+    # as it actually holds the result of a generic expression
     mask = func.squeeze()
     if np.isscalar(mask):
         raise TypeError(f"generic expression does not return an array")
