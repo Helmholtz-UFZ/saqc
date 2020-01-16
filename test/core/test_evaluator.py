@@ -14,7 +14,7 @@ from saqc.core.evaluator import (
     ConfigTransformer,
 )
 
-from test.common import TESTFLAGGER, dummyRegisterFunc, initData
+from test.common import TESTFLAGGER, initData
 
 
 def compileExpression(expr, flagger, nodata=np.nan):
@@ -44,15 +44,12 @@ def test_syntaxError(flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_typeError(flagger):
 
-    register("func")(dummyRegisterFunc)
-    register("otherFunc")(dummyRegisterFunc)
-
     exprs = [
         # "func",
-        "func(kwarg=[1, 2, 3])",
-        "func(x=5)",
-        "func(otherFunc())",
-        "func(kwarg=otherFunc(this))",
+        "dummy(kwarg=[1, 2, 3])",
+        "dummy(x=5)",
+        "dummy(dummy())",
+        "dummy(kwarg=dummy(this))",
     ]
 
     for expr in exprs:
@@ -63,9 +60,9 @@ def test_typeError(flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_supportedArguments(flagger):
 
-
-    register("func")(dummyRegisterFunc)
-    register("otherFunc")(dummyRegisterFunc)
+    @register("func")
+    def dummyRegisterFunc(data, field, flagger, kwarg, **kwargs):
+        return data, flagger
 
     exprs = [
         "func(kwarg='str')",
@@ -73,7 +70,7 @@ def test_supportedArguments(flagger):
         "func(kwarg=5.5)",
         "func(kwarg=-5)",
         "func(kwarg=True)",
-        "func(kwarg=otherFunc())",
+        "func(kwarg=func())",
     ]
     for expr in exprs:
         compileExpression(expr, flagger)

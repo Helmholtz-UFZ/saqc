@@ -27,10 +27,6 @@ TESTFLAGGER = (
 )
 
 
-def dummyRegisterFunc(data, field, flagger, kwarg, **kwargs):
-    return data, flagger
-
-
 def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):
     dates = pd.date_range(start=start_date, end=end_date, freq=freq)
     data = {}
