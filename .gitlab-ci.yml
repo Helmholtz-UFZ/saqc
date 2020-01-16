@@ -16,7 +16,7 @@ test:python36:
     - pip install --upgrade pip
     - pip install -r requirements.txt
     - python -m pytest test
-    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv
+    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv
 
 
 test:python37:
@@ -26,7 +26,7 @@ test:python37:
     - pip install --upgrade pip
     - pip install -r requirements.txt
     - python -m pytest test
-    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv
+    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv
 
 
 # test:python38:
