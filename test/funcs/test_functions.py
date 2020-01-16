@@ -14,7 +14,7 @@ from saqc.funcs.functions import (
     flagIsolated,
 )
 from saqc.flagger.dmpflagger import DmpFlagger
-from test.common import initData, TESTFLAGGER, initMetaDict
+from test.common import initData, TESTFLAGGER
 
 
 @pytest.fixture

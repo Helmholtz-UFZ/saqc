@@ -13,4 +13,5 @@ class Fields:
 
 class Params:
     FLAG_GENERIC = "flagGeneric"
+    GENERIC_ARGS = "func_arguments"
     FUNC = "func"

@@ -10,20 +10,14 @@ from saqc.funcs.register import register
 
 
 @register("flagGeneric")
-def flagGeneric(data, field, flagger, func, **kwargs):
+def flagGeneric(data, field, flagger, func, func_arguments, **kwargs):
     # NOTE:
     # - The naming of the func parameter is pretty confusing
     #   as it actually holds the result of a generic expression
     # - if the result series carries a name, it was explicitly created
     #   from one single columns, so we need to preserve this columns
     #   properties
-    # - the check if func.name is in data.columns is necessary as
-    #   DmpFlagger.isFlagged does not preserve the name of the column
-    #   it was executed on -> would be nice to overcome this restriction
-    flags_field = func.name if func.name in data.columns else field
     mask = func.squeeze()
-    if flags_field in flagger.getFlags():
-        mask |= flagger.isFlagged(flags_field)
     if np.isscalar(mask):
         raise TypeError(f"generic expression does not return an array")
     if not np.issubdtype(mask.dtype, np.bool_):
