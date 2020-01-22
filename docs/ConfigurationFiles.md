@@ -68,20 +68,19 @@ yield 'publication-ready' results
 | `x`     | `constant(window="3h")`  | True  |
 | `y`     | `range(min=-10, max=40)` |       |
 
-### Wildcards
+### Regular Expressions
 Some of the most basic tests (e.g. checks for missing values or range tests) but
 also the more elaborated functions available (e.g. aggregation or interpolation
 functions) are very likely to be used on all or at least several variables of
 the processed dataset. As it becomes quite cumbersome to list all these
 variables seperately, only to call the same functions with the same
-parameters over and over again, SaQC supports wildcards and regular expressions
+parameters over and over again, SaQC supports regular expressions
 within the `varname` column.
 
 | varname      | test                                 |
 |--------------|--------------------------------------|
-| *            | `harmonize_shift2Grid(freq="15Min")` |
+| .*           | `harmonize_shift2Grid(freq="15Min")` |
 | (x &vert; y) | `missing()`                          |
-
 
 #### Bring it to a file
 As mentioned above SaQC, expectd the configuration to be a table-like,

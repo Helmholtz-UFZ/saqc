@@ -81,8 +81,6 @@ def _expandVarnameWildcards(config: ConfigList, data: pd.DataFrame) -> ConfigLis
     for row in config:
         varname = row[F.VARNAME]
         if varname and varname not in data:
-            if varname == "*":
-                varname = ".*"
             expansion = data.columns[data.columns.str.match(varname)]
             if not len(expansion):
                 expansion = [varname]

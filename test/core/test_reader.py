@@ -41,10 +41,9 @@ def test_configPreparation(data):
         assert result == expected
 
 
-def test_variableWildcards(data):
+def test_variableRegex(data):
 
     tests = [
-        ("*", ".*"),
         (".*", ".*"),
         ("var(1|2)", "var(1|2)"),
         ("(.*3)", "(.*3)")
