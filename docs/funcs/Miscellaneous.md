@@ -110,3 +110,12 @@ force(flag)
 
 The functions overwrites all previous set flags with the given flag.
 
+
+## dummy
+
+```
+dummy()
+```
+
+The funcion does nothing.
+
