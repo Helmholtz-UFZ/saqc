@@ -64,8 +64,8 @@ isolated(window, gap_window, group_window)
 
 | parameter    | data type                                                     | default value | description                                                            |
 |--------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------|
-| gap_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The minimum size of the gap before and after a group of valid values, to consider the group as isolated, see condition (2) and (3) |
-| group_window | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The maximum size of an isolated group, see condition (1).                  |
+| gap_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The minimum size of the gap before and after a group of valid values, which makes this group considered as isolated. See condition (2) and (3) |
+| group_window | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The maximum size of an isolated group of valid data. See condition (1).                  |
 
 The function flags arbitrary large groups of values, if they are surrounded by sufficiently
 large data gaps. A gap is defined as group of missing and/or flagged values.
