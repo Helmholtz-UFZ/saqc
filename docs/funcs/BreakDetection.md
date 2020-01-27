@@ -6,10 +6,11 @@
 ## breaks_spektrumBased
 
 ```                            
-breaks_spektrumBased(thresh_rel=0.1, thresh_abs=0.01,
-                     first_der_factor=10, first_der_window="12h",
-                     scnd_der_ratio_range=0.05, scnd_der_ratio_thresh=10,
-                     smooth=True, smooth_window="3h", smooth_poly_deg=2,)
+breaks_spektrumBased( thresh_rel=0.1, thresh_abs=0.01, 
+                      first_der_factor=10, first_der_window="12h", 
+                      scnd_der_ratio_range=0.05, scnd_der_ratio_thresh=10, 
+                      smooth=True, smooth_window=None, smooth_poly_deg=2)
+
 ```
 
 | parameter             | data type                                                     | default value | description                                                                                                                                                |
