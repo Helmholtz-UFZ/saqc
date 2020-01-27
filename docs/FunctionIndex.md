@@ -11,6 +11,7 @@ Index of the main documentation of the implemented functions, their purpose and 
   - [missing](docs/funcs/Miscellaneous.md#missing)
   - [clear](docs/funcs/Miscellaneous.md#clear)
   - [force](docs/funcs/Miscellaneous.md#force)
+  - [dummy](docs/funcs/Miscellaneous.md#dummy)
 - [Spike Detection](docs/funcs/SpikeDetection.md)
   - [spikes_basic](docs/funcs/SpikeDetection.md#spikes_basic)
   - [spikes_simpleMad](docs/funcs/SpikeDetection.md#spikes_simplemad)
