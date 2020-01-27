@@ -19,8 +19,8 @@ range(min, max)
 ```
 | parameter | data type | default value | description                  |
 | --------- | --------- | ------------- | -----------                  |
-| min       | float     |               | upper bound for valid values |
-| max       | float     |               | lower bound for valid values |
+| min       | float     |               | The upper bound for valid values |
+| max       | float     |               | The lower bound for valid values |
 
 
 The function flags all values outside the closed interval
@@ -34,17 +34,19 @@ sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 
 | parameter  | data type   | default value | description                  |
 | ---------  | ----------- | ----          | -----------                  |
-| min        | float       |               | upper bound for valid values |
-| max        | float       |               | lower bound for valid values |
-| startmonth | integer     | `1`           | interval start month         |
-| endmonth   | integer     | `12`          | interval end month           |
-| startday   | integer     | `1`           | interval start day           |
-| endday     | integer     | `31`          | interval end day             |
+| min        | float       |               | The upper bound for valid values |
+| max        | float       |               | The lower bound for valid values |
+| startmonth | integer     | `1`           | The interval start month         |
+| endmonth   | integer     | `12`          | The interval end month           |
+| startday   | integer     | `1`           | The interval start day           |
+| endday     | integer     | `31`          | The interval end day             |
 
-The function does the same as `range` but only, if the timestamp of the
-data-point lies in a time interval defined by day and month only. 
-The year is **not** used by the interval calculation. The left interval
-boundary is defined by `startmonth` and `startday`, the right by `endmonth`
+The function does the same as `range`, but only if the timestamp of the
+data-point lies in a defined interval, which is build from days and months only. 
+In particular, the *year* is not considered in the Interval. 
+
+The left 
+boundary is defined by `startmonth` and `startday`, the right boundary by `endmonth`
 and `endday`. Both boundaries are inclusive. If the left side occurs later
 in the year than the right side, the interval is extended over the change of
 year (e.g. an interval of [01/12, 01/03], will flag values in December,
@@ -56,14 +58,14 @@ NOTE: Only works for time-series-like datasets.
 ## isolated
 
 ```
-isolated(window, group_size=1, continuation_range='1min') 
+isolated(window, gap_window, group_window) 
 
 ```
 
 | parameter    | data type                                                     | default value | description                                                            |
 |--------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------|
-| group_window | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Maximum size of an isolated group, see condition (1).                  |
-| gap_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Minimum size of the gap before/after a group of values to consider them isolated, see condition (2) and (3) |
+| gap_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The minimum size of the gap before and after a group of valid values, to consider the group as isolated, see condition (2) and (3) |
+| group_window | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The maximum size of an isolated group, see condition (1).                  |
 
 The function flags arbitrary large groups of values, if they are surrounded by sufficiently
 large data gaps. A gap is defined as group of missing and/or flagged values.
@@ -84,7 +86,7 @@ missing(nodata=NaN)
 
 | parameter | data type  | default value  | description |
 | --------- | ---------- | -------------- | ----------- |
-| nodata    | any        | `NAN`          | Value associated with missing data |
+| nodata    | any        | `NAN`          | A value that defines missing data |
 
 
 The function flags all values indicating missing data.
@@ -104,7 +106,7 @@ force(flag)
 ```
 | parameter | data type                | default value | description   |
 | --------- | -----------              | ----          | -----------   |
-| flag      | float/[flagging constant](docs/ParameterDescriptions.md#flagging-constants) | GOOD          | flag to force |
+| flag      | float/[flagging constant](docs/ParameterDescriptions.md#flagging-constants) | GOOD     | The flag that is set unconditionally |
 
-The functions sets the given flag, ignoring previous flag values.
+The functions overwrites all previous set flags with the given flag.
 
