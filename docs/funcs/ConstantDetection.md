@@ -16,8 +16,8 @@ constant(window, thresh=0)
 
 | parameter | data type                                                             | default value | description                                                                                          |
 |-----------|-----------------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------|
-| window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) |               | Minimum count or a duration values need to identical to become plateau candidates. See condition (1) |
-| thresh    | float                                                                 |             0 | Maximum difference between values to still consider them constant. See condition (2)                 |
+| window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) |               | The minimum count or duration in which the values must be constant to be considered as plateau candidates. See condition (1) |
+| thresh    | float                                                                 |             0 | The maximum difference between values to still considered as constant. See condition (2)                 |
 
 This functions flags plateaus/series of constant values of length `window` if
 their difference is smaller than `thresh`.
@@ -32,15 +32,15 @@ is considered to be constant, if:
 
 ```
 constants_varianceBased(window="12h", thresh=0.0005,
-                        max_missing=Inf, max_consec_missing=Inf)
+                        max_missing=None, max_consec_missing=None)
 ```
 
 | parameter          | data type                                                     | default value | description                                                                                            |
 |--------------------|---------------------------------------------------------------|---------------|--------------------------------------------------------------------------------------------------------|
-| window             | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Minimum duration during which values need to identical to become plateau candidates. See condition (1) |
-| thresh             | float                                                         | `0.0005`      | Maximum variance of a group of values to still consider them constant. See condition (2)               |
-| max_missing        | integer                                                       | `None`        | Maximum number of missing values allowed in `window`, by default this condition is ignored             |
-| max_consec_missing | integer                                                       | `None`        | Maximum number of consecutive missing values allowed in `window`, by default this condition is ignored |
+| window             | [offset string](docs/ParameterDescriptions.md#offset-strings) | `12h`         | The minimum duration in which the values must be constant to be considered as plateau candidates. See condition (1) |
+| thresh             | float                                                         | `0.0005`      | The maximum variance of a group of values, to still consider them as constant. See condition (2)               |
+| max_missing        | integer                                                       | `None`        | The maximum count of missing values that are allowed in the `window`. If not set, this condition is ignored and infinity missing values are allowed.|
+| max_consec_missing | integer                                                       | `None`        | The maximum count of *consecutive* missing values, that are allowed in the `window`. If not set, this condition is ignored and infinity consecutive missing values are allowed. |
 
 
 This function flags plateaus/series of constant values. Any set of consecutive values
