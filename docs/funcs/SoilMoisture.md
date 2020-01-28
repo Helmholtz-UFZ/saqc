@@ -24,9 +24,9 @@ soilMoisture_spikes(raise_factor=0.15, deriv_factor=0.2,
 |---------------|---------------|
 | raise_factor  | `0.15`        |
 | deriv_factor  | `0.2`         |
-| noise_thresh  | `1`           |
-| noise_window  | `"12h"`       |
 | noise_func    | `"CoVar"`     |
+| noise_window  | `"12h"`       |
+| noise_thresh  | `1`           |
 | smooth_window | `"3h"`        |
 
 
@@ -85,12 +85,12 @@ soilMoisture_constant(window="12h", thresh=0.0005,
 
 | parameter            | data type                                                     | default value | description                                                                                                                                                |
 |----------------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| window               | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | Minimum duration during which values need to identical to become plateau candidates. See condition (1)                                                     |
+| window               | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | Minimum duration during which values need to identical to become plateau candidates. See condition (1)                                                     |
 | thresh               | float                                                         | `0.0005`      | Maximum variance of a group of values to still consider them constant. See condition (2)                                                                   |
 | precipitation_window | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       | See condition (3) and (4)                                                                                                                                  |
 | tolerance            | float                                                         | `0.95`        | Tolerance factor, see condition (5)                                                                                                                        |
-| deriv_min            | float                                                         | `0.0025`      | See condition (3)                                                                                                                                          |
 | deriv_max            | float                                                         | `0`           | See condition (4)                                                                                                                                          |
+| deriv_min            | float                                                         | `0.0025`      | See condition (3)                                                                                                                                          |
 | max_missing          | integer                                                       | `None`        | Maximum number of missing values allowed in `window`, by default this condition is ignored                                                                 |
 | max_consec_missing   | integer                                                       | `None`        | Maximum number of consecutive missing values allowed in `window`, by default this condition is ignored                                                     |
 | smooth_window        | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | Size of the smoothing window of the Savitsky-Golay filter. The default value `None` results in a window of two times the sampling rate (i.e. three values) |
@@ -154,9 +154,10 @@ publication.
 ## soilMoisture_byPrecipitation
 
 ```
-soilMoisture_byPrecipitation(prec_variable, sensor_depth=0,
+soilMoisture_byPrecipitation(prec_variable, 
                              raise_window=None,
-                             sensor_accuracy=0, soil_porosity=0,
+                             sensor_depth=0, sensor_accuracy=0, 
+                             soil_porosity=0,
                              std_factor=2, std_window="24h"
                              ignore_missing=False)
 ```
@@ -169,7 +170,7 @@ soilMoisture_byPrecipitation(prec_variable, sensor_depth=0,
 | sensor_accuracy | float                                                         | `0`           | Soil moisture sensor accuracy in $`\frac{m^3}{m^{-3}}`$                   |
 | soil_porosity   | float                                                         | `0`           | Porosity of the soil surrounding the soil moisture sensor                 |
 | std_factor      | integer                                                       | `2`           | See condition (2)                                                         |
-| std_window      | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | See condition (2)                                                         |
+| std_window      | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"24h"`        | See condition (2)                                                         |
 | ignore_missing  | bool                                                          | `False`       | Whether to check values even if there is invalid data within `std_window` |
 
 
