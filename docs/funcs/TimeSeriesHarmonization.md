@@ -175,7 +175,7 @@ NOTE:
 ```
 harmonize(freq, inter_method, reshape_method, inter_agg="mean", inter_order=1,
           inter_downcast=False, reshape_agg="max", reshape_missing_flag=None,
-          reshape_shift_comment=True, data_missing_value=np.nan)
+          reshape_shift_comment=False, data_missing_value=np.nan)
 ```
 
 | parameter             | data type                                                                                                         | default value | description                                                                                                                                                                                                                                   |
@@ -188,7 +188,7 @@ harmonize(freq, inter_method, reshape_method, inter_agg="mean", inter_order=1,
 | inter_downcast        | bool                                                                                                              | `False`       | `True`: Decrease interpolation order if data chunks that are too short to be interpolated with order `inter_order`. <br/> `False`: Project those data chunks to `NAN`. <br/> Option only relevant if `inter_method` supports an `inter_order` |
 | reshape_agg           | [aggregation function string](#aggregation-functions)                                                             | `"max"`       | Function used for the aggregation of flags. By default (`"max"`) the worst/highest flag is assigned                                                                                                                                           |
 | reshape_missing_flag  | string                                                                                                            | `None`        | Valid flag value, that will be used for empty harmonization intervals. By default (`None`) such intervals are set to `BAD`                                                                                                                    |
-| reshape_shift_comment | bool                                                                                                              | `True`        | `True`: Shifted flags will be reset, other fields associated with a flag might get lost. <br/> `False`: Shifted flags will not be reset. <br/> <br/> Only relevant for multi-column flagger and a given `inter_method`                        |
+| reshape_shift_comment | bool                                                                                                              | `False`        | `True`: Shifted flags will be reset, other fields associated with a flag might get lost. <br/> `False`: Shifted flags will not be reset. <br/> <br/> Only relevant for multi-column flagger and a given `inter_method`                        |
 | data_missing_value    | Any                                                                                                               | `np.nan`      | The value, indicating missing data                                                                                                                                                                                                            |
 
 
