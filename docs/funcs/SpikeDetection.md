@@ -13,7 +13,7 @@ A collection of quality check routines to find spikes.
 ## spikes_basic
 
 ```
-spikes_basic(thresh, tolerance, window_size)
+spikes_basic(thresh, tolerance, window)
 ```
 
 | parameter | data type                                                     | default value | description                                                                                    |
@@ -47,12 +47,12 @@ outliers, but also plateau-ish value courses.
 ## spikes_simpleMad
 
 ```
-spikes_simpleMad(window="1h", z=3.5)
+spikes_simpleMad(window, z=3.5)
 ```
 
 | parameter | data type                                                             | default value | description                                                          |
 |-----------|-----------------------------------------------------------------------|---------------|----------------------------------------------------------------------|
-| window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | size of the sliding window, where the modified Z-score is applied on |
+| window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) |         | size of the sliding window, where the modified Z-score is applied on |
 | z         | float                                                                 | `3.5`         | z-parameter of the modified Z-score                                  |
 
 This functions flags outliers using the simple median absolute deviation test.
@@ -78,13 +78,13 @@ References:
 ## spikes_slidingZscore
 
 ```
-spikes_slidingZscore(window="1h", offset="1h", count=1, polydeg=1, z=3.5, method="modZ")
+spikes_slidingZscore(window, offset, count=1, polydeg=1, z=3.5, method="modZ")
 ```
 
 | parameter | data type                                                             | default value | description                                                 |
 |-----------|-----------------------------------------------------------------------|---------------|-------------------------------------------------------------|
-| window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | size of the sliding window                                  |
-| offset    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) | `"1h"`        | offset between two consecutive windows                      |
+| window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) |               | size of the sliding window                                  |
+| offset    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) |               | offset between two consecutive windows                      |
 | count     | integer                                                               | `1`           | the minimal count a possible outlier needs, to be flagged   |
 | polydeg   | integer                                                               | `1"`          | the degree of the polynomial fit, to calculate the residual |
 | z         | float                                                                 | `3.5`         | z-parameter for the *method* (see description)              |
