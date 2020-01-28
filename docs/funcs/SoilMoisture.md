@@ -17,7 +17,7 @@ A collection of soil moisture specific quality check routines.
 ```
 soilMoisture_spikes(raise_factor=0.15, deriv_factor=0.2,
                     noise_func="CoVar", noise_window="12h", noise_thresh=1,
-                    smooth_window="3h")
+                    smooth_window="3h", smooth_poly_deg=2)
 ```
 
 | parameter     | data type                                                     | default value |
