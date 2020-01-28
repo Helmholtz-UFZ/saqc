@@ -20,15 +20,15 @@ soilMoisture_spikes(raise_factor=0.15, deriv_factor=0.2,
                     smooth_window="3h")
 ```
 
-| parameter     | default value |
-|---------------|---------------|
-| raise_factor  | `0.15`        |
-| deriv_factor  | `0.2`         |
-| noise_func    | `"CoVar"`     |
-| noise_window  | `"12h"`       |
-| noise_thresh  | `1`           |
-| smooth_window | `"3h"`        |
-
+| parameter     | data type                                                     | default value |
+|---------------|---------------------------------------------------------------|---------------|
+| raise_factor  | float                                                         | `0.15`        |
+| deriv_factor  | float                                                         | `0.2`         |
+| noise_func    | [string](#noise-detection-functions)                          | `"CoVar"`     |
+| noise_window  | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       |
+| noise_thresh  | float                                                         | `1`           |
+| smooth_window | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"3h"`        |
+| smooth_poly_deg | integer                                                     | `2`           | 
 
 The Function is a wrapper around `flagSpikes_spektrumBased`
 with a set of default parameters referring to [1]. For a complete description of 
@@ -49,17 +49,17 @@ soilMoisture_breaks(thresh_rel=0.1, thresh_abs=0.01,
                     smooth=False, smooth_window="3h", smooth_poly_deg=2)
 ```
 
-| parameter             | default value |
-|-----------------------|---------------|
-| thresh_rel            | `0.1`         |
-| thresh_abs            | `0.01`        |
-| first_der_factor      | `10`          |
-| first_der_window      | `"12h"`       |
-| scnd_der_ratio_range  | `0.05`        |
-| scnd_der_ratio_thresh | `10.0`        |
-| smooth                | `False`       |
-| smooth_window         | `"3h"`        |
-| smooth_poly_deg       | `2`           |
+| parameter             | data type                                                     | default value |
+|-----------------------|---------------------------------------------------------------|---------------|
+| thresh_rel            | float                                                         | `0.1`         |
+| thresh_abs            | float                                                         | `0.01`        |
+| first_der_factor      | float                                                         | `10`          |
+| first_der_window      | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       |
+| scnd_der_ratio_range  | float                                                         | `0.05`        |
+| scnd_der_ratio_thresh | float                                                         | `10.0`        |
+| smooth                | bool                                                          | `False`       |
+| smooth_window         | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"3h"`        |
+| smooth_poly_deg       | integer                                                       | `2`           |
 
 
 The Function is a wrapper around `breaks_spektrumBased`

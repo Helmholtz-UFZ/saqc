@@ -25,6 +25,7 @@ def flagSoilmoistureSpikes(
     noise_window="12h",
     noise_thresh=1,
     smooth_window="3h",
+    smooth_poly_deg=2,
     **kwargs
 ):
 
@@ -45,6 +46,7 @@ def flagSoilmoistureSpikes(
         noise_window=noise_window,
         noise_thresh=noise_thresh,
         smooth_window=smooth_window,
+        smooth_poly_deg=smooth_poly_deg,
         **kwargs
     )
 

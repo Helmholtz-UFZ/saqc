@@ -275,7 +275,7 @@ def flagSpikes_spektrumBased(
     noise_window="12h",
     noise_thresh=1,
     smooth_window=None,
-    smooth_ploy_deg=2,
+    smooth_poly_deg=2,
     **kwargs,
 ):
     """
@@ -376,7 +376,7 @@ def flagSpikes_spektrumBased(
         end_slice = spike + smooth_window
 
         scnd_derivate = savgol_filter(
-            dataseries[start_slice:end_slice], window_length=smoothing_periods, polyorder=smooth_ploy_deg, deriv=2,
+            dataseries[start_slice:end_slice], window_length=smoothing_periods, polyorder=smooth_poly_deg, deriv=2,
         )
 
         length = scnd_derivate.size
