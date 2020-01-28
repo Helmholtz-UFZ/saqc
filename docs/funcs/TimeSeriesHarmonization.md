@@ -221,12 +221,12 @@ NOTE:
 ## deharmonize
 
 ```
-deharmonize(co_flagging)
+deharmonize(co_flagging=False)
 ```
 
 | parameter   | data type | default value | description                                                    |
 |-------------|-----------|---------------|----------------------------------------------------------------|
-| co_flagging | boolean   |               | Control the bahviour of the flag reprojection, see description |
+| co_flagging | boolean   | `False`       | Control the bahviour of the flag reprojection, see description |
 
 
 This functions projects harmonized datasets back to there original time stamps
