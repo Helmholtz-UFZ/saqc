@@ -119,7 +119,7 @@ def trainML(
 
         # Add context information for field+references
         for i in [field] + references:
-            sensordf = pd.concat([sensordf, _refCalc(reference=sensordf[i], window_values=window_values)], axis=1,)
+            sensordf = pd.concat([sensordf, _refCalc(reference=sensordf[i], window_values=window_values),], axis=1,)
 
         # write back into new dataframe
         traindata = traindata.append(sensordf)

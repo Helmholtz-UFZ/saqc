@@ -60,7 +60,7 @@ class ConfigTransformer(ast.NodeTransformer):
             # need this to propagate the flags from the independent variables
             args = ast.keyword(
                 arg=Params.GENERIC_ARGS,
-                value=ast.List(elts=[ast.Str(s=v) for v in dsl_transformer.arguments], ctx=ast.Load()),
+                value=ast.List(elts=[ast.Str(s=v) for v in dsl_transformer.arguments], ctx=ast.Load(),),
             )
             return [dsl_func, args]
 

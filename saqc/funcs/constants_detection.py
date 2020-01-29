@@ -6,7 +6,12 @@ import pandas as pd
 
 from saqc.funcs.register import register
 from saqc.lib.statistic_functions import varQC
-from saqc.lib.tools import valueRange, slidingWindowIndices, retrieveTrustworthyOriginal, groupConsecutives
+from saqc.lib.tools import (
+    valueRange,
+    slidingWindowIndices,
+    retrieveTrustworthyOriginal,
+    groupConsecutives,
+)
 
 
 @register("constant")

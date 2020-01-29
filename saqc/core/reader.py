@@ -93,7 +93,12 @@ def _expandVarnameWildcards(config: ConfigList, data: pd.DataFrame) -> ConfigLis
 
 def readConfig(fname: str, data: pd.DataFrame, sep: str = ";", comment: str = "#") -> pd.DataFrame:
 
-    defaults = {F.VARNAME: "", F.START: data.index.min(), F.END: data.index.max(), F.PLOT: False}
+    defaults = {
+        F.VARNAME: "",
+        F.START: data.index.min(),
+        F.END: data.index.max(),
+        F.PLOT: False,
+    }
 
     with _open(fname) as f:
         content = f.readlines()
@@ -121,7 +126,9 @@ def checkConfig(config_df: pd.DataFrame, data: pd.DataFrame, flagger: BaseFlagge
 
         var_name = config_row[F.VARNAME]
         if pd.isnull(config_row[F.VARNAME]) or not var_name:
-            _raise(config_row, SyntaxError, f"non-optional column '{F.VARNAME}' is missing or empty")
+            _raise(
+                config_row, SyntaxError, f"non-optional column '{F.VARNAME}' is missing or empty",
+            )
 
         test_fields = config_row.filter(regex=F.TESTS).dropna()
         if test_fields.empty:

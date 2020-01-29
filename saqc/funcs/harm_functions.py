@@ -240,7 +240,7 @@ def _insertGrid(data, freq):
     """
 
     return data.reindex(
-        data.index.join(_makeGrid(data.index[0], data.index[-1], freq, name=data.index.name), how="outer")
+        data.index.join(_makeGrid(data.index[0], data.index[-1], freq, name=data.index.name), how="outer",)
     )
 
 
@@ -512,7 +512,14 @@ def _reshapeFlags(
     """
 
     missing_flag = missing_flag or flagger.BAD
-    aggregations = ["nagg", "bagg", "fagg", "nagg_no_deharm", "bagg_no_deharm", "fagg_no_deharm"]
+    aggregations = [
+        "nagg",
+        "bagg",
+        "fagg",
+        "nagg_no_deharm",
+        "bagg_no_deharm",
+        "fagg_no_deharm",
+    ]
     shifts = ["fshift", "bshift", "nshift"]
 
     freq = ref_index.freqstr
@@ -603,7 +610,7 @@ def _reshapeFlags(
     # block flagging/backtracking of chunk_starts/chunk_ends
     if block_flags is not None:
         flagger_new = flagger_new.setFlags(
-            field, loc=block_flags, flag=pd.Series(np.nan, index=block_flags).astype(flagger_new.dtype), force=True
+            field, loc=block_flags, flag=pd.Series(np.nan, index=block_flags).astype(flagger_new.dtype), force=True,
         )
     return flagger_new
 
@@ -739,12 +746,14 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
 @register("harmonize_shift2Grid")
 def shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, **kwargs):
     return harmonize(
-        data, field, flagger, freq, inter_method=method, reshape_method=method, drop_flags=drop_flags, **kwargs
+        data, field, flagger, freq, inter_method=method, reshape_method=method, drop_flags=drop_flags, **kwargs,
     )
 
 
 @register("harmonize_aggregate2Grid")
-def aggregate2Grid(data, field, flagger, freq, value_func, flag_func="max", method="nagg", drop_flags=None, **kwargs):
+def aggregate2Grid(
+    data, field, flagger, freq, value_func, flag_func="max", method="nagg", drop_flags=None, **kwargs,
+):
     return harmonize(
         data,
         field,
@@ -776,7 +785,7 @@ def linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flag
 
 @register("harmonize_interpolate2Grid")
 def interpolate2Grid(
-    data, field, flagger, freq, method, order=1, flag_method="nagg", flag_func="max", drop_flags=None, **kwargs
+    data, field, flagger, freq, method, order=1, flag_method="nagg", flag_func="max", drop_flags=None, **kwargs,
 ):
     return harmonize(
         data,

@@ -19,7 +19,9 @@ from saqc.lib.tools import (
 
 
 @register("spikes_slidingZscore")
-def flagSpikes_slidingZscore(data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs):
+def flagSpikes_slidingZscore(
+    data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs,
+):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
 

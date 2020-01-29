@@ -74,7 +74,15 @@ class ConfigChecker(ast.NodeVisitor):
         ast.USub,
     )
 
-    SUPPORTED_ARGUMENTS = (ast.Str, ast.Num, ast.NameConstant, ast.Call, ast.UnaryOp, ast.USub, ast.Name)
+    SUPPORTED_ARGUMENTS = (
+        ast.Str,
+        ast.Num,
+        ast.NameConstant,
+        ast.Call,
+        ast.UnaryOp,
+        ast.USub,
+        ast.Name,
+    )
 
     def __init__(self, environment, pass_parameter):
         self.pass_parameter = pass_parameter

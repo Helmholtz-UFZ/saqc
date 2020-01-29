@@ -6,10 +6,10 @@ with open("README.md", "r") as fh:
 
 setup(
     name="saqc",
-    version="1.0.0",
+    version="1.1.0",
     author="Bert Palm, David Schaefer, Peter Luenenschloss, Lennard Schmidt",
     author_email="david.schaefer@ufz.de",
-    description="Data quality checking and processing framework",
+    description="Data quality checking and processing tool/framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://git.ufz.de/rdm-software/saqc",
