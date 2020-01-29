@@ -106,9 +106,9 @@ def flagIsolated(
             stop = srs.index[-1]
             if stop - start <= group_window:
                 left = mask[start - gap_window : start].iloc[:-1]
-                if left.count() and left.all():
+                if left.all():
                     right = mask[stop : stop + gap_window].iloc[1:]
-                    if right.count() and right.all():
+                    if right.all():
                         flags[start:stop] = True
 
     flagger = flagger.setFlags(field, flags, **kwargs)
@@ -119,4 +119,3 @@ def flagIsolated(
 @register("dummy")
 def flagDummyFunction(data, field, flagger, **kwargs):
     return data, flagger
-
