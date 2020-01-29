@@ -15,8 +15,10 @@ from saqc.core.evaluator.checker import ConfigChecker
 from saqc.core.evaluator.transformer import ConfigTransformer
 
 
-def _dslIsFlagged(flagger, data, flag=None):
-    return flagger.isFlagged(data.name, flag=flag)
+def _dslIsFlagged(flagger, data, flag=None, comparator=None):
+    if comparator is None:
+        return flagger.isFlagged(data.name, flag=flag)
+    return flagger.isFlagged(data.name, flag=flag, comparator=comparator)
 
 
 def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:

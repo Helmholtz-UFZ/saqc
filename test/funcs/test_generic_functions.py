@@ -243,7 +243,14 @@ def test_isflaggedArgument(data, flagger):
         var1, iloc=slice(None, None, 2), flag=flagger.BAD
     )
 
-    idx = _evalDslExpression(f"isflagged({var1}, {flagger.BAD})", data, var2, flagger)
+    tests = [
+        (_evalDslExpression(f"isflagged({var1}, BAD)", data, var2, flagger),
+         flagger.isFlagged(var1, flag=flagger.BAD)
+        ),
+        (_evalDslExpression(f"isflagged({var1}, UNFLAGGED, '==')", data, var2, flagger),
+         flagger.isFlagged(var1, flag=flagger.UNFLAGGED, comparator="==")),
+    ]
 
-    flagged = flagger.isFlagged(var1, flag=flagger.BAD)
-    assert (flagged == idx).all()
+    for result, expected in tests:
+        assert np.all(result == expected)
+
