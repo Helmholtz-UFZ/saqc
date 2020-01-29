@@ -71,7 +71,8 @@ def evalExpression(expr, data, field, flagger, nodata=np.nan):
     # mask the already flagged value to make all the functions
     # called on the way through the evaluator ignore flagged values
     mask = flagger.isFlagged()
-    data_in = data.mask(mask)
+    data_in = data.copy()
+    data_in[mask] = np.nan
     local_env, code = compileExpression(expr, data_in, field, flagger, nodata)
     data_result, flagger_result = evalCode(code, FUNC_MAP, local_env)
     # reinject the original values, as we don't want to loose them
