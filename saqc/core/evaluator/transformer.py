@@ -16,6 +16,7 @@ class DslTransformer(ast.NodeTransformer):
 
     def visit_Name(self, node):
         name = node.id
+
         if name == "this":
             name = self.environment["field"]
 
@@ -24,8 +25,6 @@ class DslTransformer(ast.NodeTransformer):
             node = ast.Subscript(
                 value=ast.Name(id="data", ctx=ast.Load()), slice=ast.Index(value=value), ctx=ast.Load(),
             )
-        elif name in self.environment:
-            node = ast.Constant(value=name)
 
         self.arguments.add(name)
         return node

@@ -124,6 +124,7 @@ class BaseFlagger(ABC):
     ) -> PandasT:
         assertScalar("field", field, optional=True)
         assertScalar("flag", flag, optional=True)
+        self._checkFlag(flag)
         flag = self.GOOD if flag is None else flag
         flags = self.getFlags(field, loc, iloc, **kwargs)
         cp = COMPARATOR_MAP[comparator]
@@ -155,7 +156,7 @@ class BaseFlagger(ABC):
 
     def _checkFlag(self, flag):
         if flag is not None and not self._isDtype(flag):
-            raise TypeError(f"flag '{flag}' needs to be of type '{self.dtype}'")
+            raise TypeError(f"invalid flag value '{flag}' for flagger 'self.__class__'")
         return flag
 
     def _assureDtype(self, flags):
