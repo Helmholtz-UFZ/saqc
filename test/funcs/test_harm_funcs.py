@@ -342,3 +342,13 @@ def test_wrapper(data, flagger):
     shift2Grid(data, field, flagger, freq, method='nshift', drop_flags=None)
     interpolate2Grid(data, field, flagger, freq, method="spline")
 
+if __name__ == "__main__":
+    dat = pd.read_csv('/home/luenensc/PyPojects/testSpace/current_single_raw.csv')
+    dat.set_index('TIMESTAMP_MEASUREMENT', inplace=True)
+    dat.set_index(pd.DatetimeIndex(dat.index), inplace=True)
+    field = dat.columns[0]
+    flagger = TESTFLAGGER[0]
+    freq = '1min'
+    flagger = flagger.initFlags(dat)
+    data, flagger = aggregate2Grid(dat, field, flagger, freq, value_func="sum",
+                   flag_func="max")

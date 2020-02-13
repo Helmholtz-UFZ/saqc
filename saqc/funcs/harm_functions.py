@@ -522,7 +522,7 @@ def _reshapeFlags(
     ]
     shifts = ["fshift", "bshift", "nshift"]
 
-    freq = ref_index.freqstr
+    freq = ref_index.freq
 
     if method in shifts:
         # forward/backward projection of every intervals last/first flag - rest will be dropped
