@@ -27,13 +27,13 @@ def flagSpikes_limitRaise(
 
     # NOTE1: this implementation accounts for the case of "pseudo" spikes that result from checking against outliers
     # NOTE2: the test is designed to work on raw data as well as on regularized
-    def raise_check(x):
-        test_sum = x.iloc[-1] - x.iloc[0:-2]
-        if ~x.empty:
-            arg_max = np.argmax(np.abs(test_sum))
+    def raise_check(x, thresh):
+        test_set = x.iloc[-1] - x.iloc[0:-2]
+        if not test_set.empty:
+            arg_max = np.argmax(np.abs(test_set))
         else:
             return 0
-        max_val = test_sum[arg_max]
+        max_val = test_set[arg_max]
         if np.abs(max_val) > thresh:
             return max_val
         else:
