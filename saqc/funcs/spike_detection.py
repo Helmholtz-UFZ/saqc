@@ -18,6 +18,30 @@ from saqc.lib.tools import (
 )
 
 
+@register("spikes_limitRaise")
+def flagSpikes_limitRaise(
+    data, field, flagger, thresh, window
+):
+    """ flag a value if it deviates from any of its preceeding values within "window" range, in a margin higher than
+    thresh  """
+
+    # NOTE1: this implementation accounts for the case of "pseudo" spikes that result from checking against outliers
+    # NOTE2: the test is designed to work on raw data as well as on regularized
+    def raise_check(x):
+        test_sum = x.iloc[-1] - x.iloc[0:-2]
+        if ~x.empty:
+            arg_max = np.argmax(np.abs(test_sum))
+        else:
+            return 0
+        max_val = test_sum[arg_max]
+        if np.abs(max_val) > thresh:
+            return max_val
+        else:
+            return 0
+
+    dataseries = data[field].dropna()
+    dataseries.rolling(window).apply(raise_check)
+
 @register("spikes_slidingZscore")
 def flagSpikes_slidingZscore(
     data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs,
