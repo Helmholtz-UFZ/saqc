@@ -18,7 +18,7 @@ def _collectVariables(meta, data):
     find every relevant variable
     """
     # NOTE: get to know every variable from meta
-    variables = []
+    variables = list(data.columns)
     for idx, configrow in meta.iterrows():
         varname = configrow[Fields.VARNAME]
         # assign = configrow[Fields.ASSIGN]

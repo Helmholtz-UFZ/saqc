@@ -99,23 +99,6 @@ def test_positionalPartitioning(data, flagger, flags):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-@pytest.mark.parametrize("optional", OPTIONAL)
-def test_missingConfig(data, flagger, flags):
-    """
-    Test if variables available in the dataset but not the config
-    are handled correctly, i.e. are ignored
-    """
-    var1, var2, *_ = data.columns
-
-    metadict = [{F.VARNAME: var1, F.TESTS: "flagAll()"}]
-    metafobj, meta = initMetaDict(metadict, data)
-
-    pdata, pflagger = run(metafobj, flagger, data, flags=flags)
-
-    assert var1 in pdata and var2 not in pflagger.getFlags()
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_errorHandling(data, flagger):
 
     @register("raisingFunc")
