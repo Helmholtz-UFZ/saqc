@@ -15,10 +15,10 @@ from saqc.core.evaluator.checker import ConfigChecker
 from saqc.core.evaluator.transformer import ConfigTransformer
 
 
-def _dslIsFlagged(flagger, data, flag=None, comparator=None):
+def _dslIsFlagged(flagger, field, flag=None, comparator=None):
     if comparator is None:
-        return flagger.isFlagged(data.name, flag=flag)
-    return flagger.isFlagged(data.name, flag=flag, comparator=comparator)
+        return flagger.isFlagged(field, flag=flag)
+    return flagger.isFlagged(field, flag=flag, comparator=comparator)
 
 
 def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
@@ -26,7 +26,6 @@ def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: f
     return {
         "data": data,
         "field": field,
-        "this": field,
         "flagger": flagger,
         "NAN": np.nan,
         "NODATA": nodata,
@@ -42,7 +41,11 @@ def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: f
         "sum": np.nansum,
         "std": np.nanstd,
         "len": len,
-        "variables": set(data.columns.tolist() + flagger.getFlags().columns.tolist()),
+        # NOTE:
+        # the following pairs are only needed for the tree transformation
+        "nolookup": set(["isflagged"]), # no variable lookup for flagger based functions,
+        "variables": set(flagger.getFlags().columns.tolist()),
+        "this": field,
     }
 
 

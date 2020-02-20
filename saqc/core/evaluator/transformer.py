@@ -2,17 +2,31 @@
 # -*- coding: utf-8 -*-
 
 import ast
-from saqc.core.config import Params
+
 from typing import Dict, Any
+from contextlib import contextmanager
+
+from saqc.core.config import Params
 
 
 class DslTransformer(ast.NodeTransformer):
     def __init__(self, environment: Dict[str, Any]):
         self.environment = environment
         self.arguments = set()
+        self.lookup = True
+
+    @contextmanager
+    def doLookup(self, value):
+        self.lookup = value
+        yield
+        self.lookup = True
 
     def visit_Call(self, node):
-        return ast.Call(func=node.func, args=[self.visit(arg) for arg in node.args], keywords=[])
+        with self.doLookup(node.func.id not in self.environment["nolookup"]):
+            node = self.generic_visit(
+                ast.Call(func=node.func, args=node.args, keywords=[])
+            )
+        return node
 
     def visit_Name(self, node):
         name = node.id
@@ -21,10 +35,13 @@ class DslTransformer(ast.NodeTransformer):
             name = self.environment["field"]
 
         if name in self.environment["variables"]:
-            value = ast.Constant(value=name)
-            node = ast.Subscript(
-                value=ast.Name(id="data", ctx=ast.Load()), slice=ast.Index(value=value), ctx=ast.Load(),
-            )
+            if self.lookup:
+                value = ast.Constant(value=name)
+                node = ast.Subscript(
+                    value=ast.Name(id="data", ctx=ast.Load()), slice=ast.Index(value=value), ctx=ast.Load(),
+                )
+            else:
+                node = ast.Str(s=name)
 
         self.arguments.add(name)
         return node
