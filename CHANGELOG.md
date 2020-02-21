@@ -8,9 +8,15 @@
 ## Bugfixes
 - Fixed missing constant lookup in the evaluator
 - Preserve untouched/checked variables and don't remove them from the data input
+ 
+## Refactorings
+--
 
 # 1.2
 
 ## Features
 
 ## Bugfixes
+
+## Refactorings
+- configuration reader rework
