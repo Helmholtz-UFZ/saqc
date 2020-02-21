@@ -10,7 +10,7 @@ from saqc.funcs.register import register
 
 
 @register("flagGeneric")
-def flagGeneric(data, field, flagger, func, func_arguments, **kwargs):
+def flagGeneric(data, field, flagger, func, **kwargs):
     # NOTE:
     # The naming of the func parameter is pretty confusing
     # as it actually holds the result of a generic expression

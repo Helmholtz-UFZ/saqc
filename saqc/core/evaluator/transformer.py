@@ -85,15 +85,6 @@ class ConfigTransformer(ast.NodeTransformer):
         if self.func_name == Params.FLAG_GENERIC and key == Params.FUNC:
             dsl_transformer = DslTransformer(self.environment)
             value = dsl_transformer.visit(value)
-            dsl_func = ast.keyword(arg=key, value=value)
-            # NOTE:
-            # Inject the additional `func_arguments` argument `flagGeneric`
-            # expects, to keep track of all the touched variables. We
-            # need this to propagate the flags from the independent variables
-            args = ast.keyword(
-                arg=Params.GENERIC_ARGS,
-                value=ast.List(elts=[ast.Str(s=v) for v in dsl_transformer.arguments], ctx=ast.Load(),),
-            )
-            return [dsl_func, args]
+            return ast.keyword(arg=key, value=value)
 
         return self.generic_visit(node)
