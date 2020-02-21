@@ -18,7 +18,7 @@ setup(
         "numpy",
         "pandas",
         "scipy",
-        "scikit-learn==0.21.2",
+        "scikit-learn",
         "numba",
         "matplotlib",
         "click",
