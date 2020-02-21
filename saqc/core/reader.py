@@ -3,12 +3,11 @@
 
 
 import re
-
-from typing import Dict, List, Any, Union
+from csv import reader
+from typing import Dict, List, Any, Union, Iterable, Iterator, Tuple
 from contextlib import contextmanager
 from io import StringIO, TextIOWrapper
 
-import numpy as np
 import pandas as pd
 
 from saqc.core.config import Fields as F
@@ -16,7 +15,9 @@ from saqc.core.evaluator import compileExpression
 from saqc.flagger import BaseFlagger
 
 
-ConfigList = List[Dict[str, Any]]
+# typing declarations
+Config = Iterable[Dict[str, Any]]
+Filename = Union[StringIO, str]
 
 
 CONFIG_TYPES = {
@@ -39,7 +40,7 @@ def _raise(config_row, exc, msg, field=None):
 
 
 @contextmanager
-def _open(fname: str) -> Union[StringIO, TextIOWrapper]:
+def _open(fname: Filename) -> Union[StringIO, TextIOWrapper]:
     if isinstance(fname, StringIO):
         yield fname
     else:
@@ -48,35 +49,26 @@ def _open(fname: str) -> Union[StringIO, TextIOWrapper]:
         f.close()
 
 
-def _parseRow(row: str, sep: str, comment: str) -> List[str]:
-    """
-    remove in column comments, mainly needed to allow end line comments
-    """
-    return [c.split(comment)[0].strip() for c in row.split(sep)]
+def _matchKey(keys: Iterable[str], fuzzy_key: str) -> str:
+    for key in keys:
+        if re.match(fuzzy_key, key):
+            return key
 
 
-def _castRow(row: Dict[str, str]) -> Dict[str, Any]:
-    """
-    cast values to the data type given in 'types'
-    """
+def _castRow(row: Dict[str, Any]):
     out = {}
-    keys = pd.Index(row.keys())
     for k, func in CONFIG_TYPES.items():
-        try:
-            key = keys[keys.str.match(k)][0]
-        except IndexError:
-            continue
-        value = row[key]
-        # NOTE:
-        # this check and the raise should be moved to checkConfig
-        try:
-            out[key] = func(value)
-        except ValueError:
-            _raise(row, ValueError, f"invalid value: '{value}'")
+        key = _matchKey(row.keys(), k)
+        if key:
+            value = row[key]
+            try:
+                out[key] = func(value)
+            except ValueError:
+                _raise(row, ValueError, f"invalid value: '{value}'")
     return out
 
 
-def _expandVarnameWildcards(config: ConfigList, data: pd.DataFrame) -> ConfigList:
+def _expandVarnameWildcards(config: Config, data: pd.DataFrame) -> Config:
     new = []
     for row in config:
         varname = row[F.VARNAME]
@@ -91,37 +83,34 @@ def _expandVarnameWildcards(config: ConfigList, data: pd.DataFrame) -> ConfigLis
     return new
 
 
-def readConfig(fname: str, data: pd.DataFrame, sep: str = ";", comment: str = "#") -> pd.DataFrame:
+def _clearRows(rows: Iterable[List[str]], comment: str = "#") -> Iterator[Tuple[str, List[Any]]]:
+    for i, row in enumerate(rows):
+        if not row[0].lstrip().startswith(comment):
+            row = [c.split(comment)[0].strip() for c in row]
+            yield i, row
 
-    defaults = {
-        F.VARNAME: "",
-        F.START: data.index.min(),
-        F.END: data.index.max(),
-        F.PLOT: False,
-    }
+
+def readConfig(fname: Filename, data: pd.DataFrame, sep: str = ";", comment: str = "#") -> pd.DataFrame:
+    defaults = {F.VARNAME: "", F.START: data.index.min(), F.END: data.index.max(), F.PLOT: False}
 
     with _open(fname) as f:
-        content = f.readlines()
+        rdr = reader(f, delimiter=";")
 
-    header: List = None
-    config: ConfigList = []
-    for i, line in enumerate(content):
-        line = line.strip()
-        if line.startswith(comment) or not line:
-            continue
-        row = _parseRow(line, sep, comment)
-        if header is None:
-            header = row
-            continue
-        values = dict(zip(header, row))
-        values = {**defaults, **values, F.LINENUMBER: i + 1}
-        config.append(_castRow(values))
+        rows = _clearRows(rdr)
+        _, header = next(rows)
+
+        config = []
+        for n, row in rows:
+            row = dict(zip(header, row))
+            row = _castRow({**defaults, **row, F.LINENUMBER: n + 1})
+            config.append(row)
 
     expanded = _expandVarnameWildcards(config, data)
     return pd.DataFrame(expanded)
 
 
 def checkConfig(config_df: pd.DataFrame, data: pd.DataFrame, flagger: BaseFlagger, nodata: float) -> pd.DataFrame:
+
     for _, config_row in config_df.iterrows():
 
         var_name = config_row[F.VARNAME]
