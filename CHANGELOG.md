@@ -15,6 +15,7 @@
 # 1.2
 
 ## Features
+- Python 3.8 support
 
 ## Bugfixes
 
