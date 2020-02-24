@@ -8,11 +8,13 @@ import pandas as pd
 
 from saqc.core import run
 from saqc.flagger import CategoricalFlagger
+from saqc.flagger.dmpflagger import DmpFlagger, FlagFields
 
 
 FLAGGERS = {
     "numeric": CategoricalFlagger([-1, 0, 1]),
     "category": CategoricalFlagger(["NIL", "OK", "BAD"]),
+    "dmp": DmpFlagger()
 }
 
 
@@ -44,9 +46,20 @@ def main(config, data, flagger, outfile, nodata, fail):
     if outfile:
         flags = flagger_result.getFlags()
         flags_out = flags.where((flags.isnull() | flagger_result.isFlagged()), flagger_result.GOOD)
-        cols_out = sum([[c, c + "_flags"] for c in flags_out], [])
-        data_out = data_result.join(flags_out, rsuffix="_flags")
-        data_out[cols_out].to_csv(outfile, header=True, index=True)
+
+        if isinstance(flagger_result, DmpFlagger):
+            flags = flagger_result._flags
+            flags.loc[flags_out.index, (slice(None), FlagFields.FLAG)] = flags_out.values
+            flags_out = flags
+
+        if not isinstance(flags_out.columns, pd.MultiIndex):
+            flags_out.columns = pd.MultiIndex.from_product([flags.columns, ["flag"]])
+
+        data_result.columns = pd.MultiIndex.from_product([data_result.columns, ["data"]])
+
+        # flags_out.columns = flags_out.columns.map("_".join)
+        data_out = data_result.join(flags_out)
+        data_out.sort_index(axis="columns").to_csv(outfile, header=True, index=True, na_rep="")
 
 
 if __name__ == "__main__":

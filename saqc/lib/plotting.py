@@ -65,6 +65,8 @@ def plotHook(
             return
 
         mask = flags_old != flags_new
+        if isinstance(mask, pd.DataFrame):
+            mask = mask.any(axis=1)
 
     __plotvars.append(varname)
     _plot(data, flagger_new, mask, varname, title=flag_test, plot_nans=plot_nans)
