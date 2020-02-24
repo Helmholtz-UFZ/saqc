@@ -49,12 +49,14 @@ class DmpFlagger(CategoricalFlagger):
         """
 
         if data is not None:
-            flags = pd.DataFrame(data=self.UNFLAGGED, columns=self._getColumnIndex(data.columns), index=data.index,)
+            flags = pd.DataFrame(data="", columns=self._getColumnIndex(data.columns), index=data.index,)
+            flags.loc[:, self._getColumnIndex(data.columns, [FlagFields.FLAG])] = self.UNFLAGGED
         elif flags is not None:
             if not isinstance(flags.columns, pd.MultiIndex):
-                flags = flags.T.set_index(keys=self._getColumnIndex(flags.columns, [FlagFields.FLAG])).T.reindex(
-                    columns=self._getColumnIndex(flags.columns)
-                )
+                cols = flags.columns
+                flags = flags.copy()
+                flags.columns = self._getColumnIndex(cols, [FlagFields.FLAG])
+                flags = flags.reindex(columns=self._getColumnIndex(cols), fill_value="")
         else:
             raise TypeError("either 'data' or 'flags' are required")
 
