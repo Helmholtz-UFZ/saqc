@@ -343,18 +343,16 @@ def test_wrapper(data, flagger):
     interpolate2Grid(data, field, flagger, freq, method="spline")
 
 if __name__ == "__main__":
-    dat = pd.read_csv('/home/luenensc/PyPojects/testSpace/current_single_raw.csv')
-    dat.set_index('TIMESTAMP_MEASUREMENT', inplace=True)
-    dat.set_index(pd.DatetimeIndex(dat.index), inplace=True)
+    #dat = pd.read_csv('/home/luenensc/PyPojects/testSpace/current_single_raw.csv')
+    #dat.set_index('TIMESTAMP_MEASUREMENT', inplace=True)
+    #dat.set_index(pd.DatetimeIndex(dat.index), inplace=True)
+    index = pd.date_range('2000-1-1T00:00:00', periods=10, freq='15min')
+    index=index.drop(index[3])
+    dat = pd.DataFrame(data={'testdata': np.arange(0, len(index))}, index=index)
     field = dat.columns[0]
     flagger = TESTFLAGGER[0]
-    freq = '1D'
+    freq = '15min'
     flagger = flagger.initFlags(dat)
-    data, flagger = aggregate2Grid(dat, field, flagger, freq, value_func="sum",
-                   flag_func="max")
-    data, flagger = aggregate2Grid(data, dat.columns[1], flagger, freq, value_func="sum",
-                                   flag_func="max")
-    data, flagger = aggregate2Grid(data, dat.columns[2], flagger, freq, value_func="sum",
-                                   flag_func="max")
+    data, flagger = linear2Grid(dat, field, flagger, freq)
 
     print('bugstop')
