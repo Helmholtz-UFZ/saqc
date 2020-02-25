@@ -16,8 +16,13 @@
 
 ## Features
 - Python 3.8 support
+- exe: added the dmp flagger option
+- exe: use nodata argument as nodata-representation in output
 
 ## Bugfixes
+- pass the harmonization function names to the flagger
+- variables not listed in the varname column of the configuration file
+  were not available in generic tests
 
 ## Refactorings
 - configuration reader rework
