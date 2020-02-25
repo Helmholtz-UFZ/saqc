@@ -59,7 +59,7 @@ def main(config, data, flagger, outfile, nodata, fail):
 
         # flags_out.columns = flags_out.columns.map("_".join)
         data_out = data_result.join(flags_out)
-        data_out.sort_index(axis="columns").to_csv(outfile, header=True, index=True, na_rep="")
+        data_out.sort_index(axis="columns").to_csv(outfile, header=True, index=True, na_rep=nodata)
 
 
 if __name__ == "__main__":
