@@ -348,7 +348,13 @@ if __name__ == "__main__":
     dat.set_index(pd.DatetimeIndex(dat.index), inplace=True)
     field = dat.columns[0]
     flagger = TESTFLAGGER[0]
-    freq = '1min'
+    freq = '1D'
     flagger = flagger.initFlags(dat)
     data, flagger = aggregate2Grid(dat, field, flagger, freq, value_func="sum",
                    flag_func="max")
+    data, flagger = aggregate2Grid(data, dat.columns[1], flagger, freq, value_func="sum",
+                                   flag_func="max")
+    data, flagger = aggregate2Grid(data, dat.columns[2], flagger, freq, value_func="sum",
+                                   flag_func="max")
+
+    print('bugstop')
