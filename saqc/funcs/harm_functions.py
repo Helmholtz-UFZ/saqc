@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import pdb
 import pandas as pd
 import numpy as np
 import logging
@@ -368,10 +369,22 @@ def _interpolateGrid(
     # Interpolations:
     elif method in interpolations:
 
+        # account for annoying case of subsequent frequency alligned values, differing exactly by the margin
+        # 2*freq:
+        spec_case_mask = data.asfreq(freq).dropna().index.to_series()
+        spec_case_mask = (spec_case_mask - spec_case_mask.shift(1)) == 2 * pd.Timedelta(freq)
+        spec_case_mask = spec_case_mask[spec_case_mask]
+        if not spec_case_mask.empty:
+            spec_case_mask = spec_case_mask.tshift(-1, freq)
+
         data = _insertGrid(data, freq)
         data, chunk_bounds = _interpolate(
             data, method, order=order, inter_limit=2, downcast_interpolation=downcast_interpolation,
         )
+
+        # exclude falsely interpolated values:
+        data[spec_case_mask.index] = np.nan
+
         if total_range is None:
             data = data.asfreq(freq, fill_value=np.nan)
 
@@ -522,7 +535,7 @@ def _reshapeFlags(
     ]
     shifts = ["fshift", "bshift", "nshift"]
 
-    freq = ref_index.freqstr
+    freq = ref_index.freq
 
     if method in shifts:
         # forward/backward projection of every intervals last/first flag - rest will be dropped
@@ -688,7 +701,7 @@ def _backtrackFlags(flagger_post, flagger_pre, freq, track_method="invert_fshift
 def _fromMerged(data, flagger, fieldname):
     # we need a not-na mask for the flags data to be retrieved:
     mask = flagger.getFlags(fieldname).notna()
-    return data.loc[mask, fieldname], flagger.getFlagger(field=fieldname, loc=mask)
+    return data.loc[mask[mask].index, fieldname], flagger.getFlagger(field=fieldname, loc=mask)
 
 
 def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None, **kwargs):
