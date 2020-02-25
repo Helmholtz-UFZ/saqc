@@ -113,7 +113,7 @@ def harmWrapper(heap={}):
         # finally we happily blow up the data and flags frame again,
         # to release them on their ongoing journey through saqc.
         data, flagger_out = _toMerged(
-            data, flagger, field, data_to_insert=dat_col, flagger_to_insert=flagger_merged_clean_reshaped,
+            data, flagger, field, data_to_insert=dat_col, flagger_to_insert=flagger_merged_clean_reshaped, **kwargs
         )
 
         return data, flagger_out
@@ -166,7 +166,7 @@ def harmWrapper(heap={}):
         dat_col = harm_info[Heap.DATA].reindex(flags_col.index, fill_value=np.nan)
         dat_col.name = field
         # transform the result into the form, data travels through saqc:
-        data, flagger_out = _toMerged(data, flagger, field, dat_col, flagger_back_full, target_index=heap[Heap.INDEX],)
+        data, flagger_out = _toMerged(data, flagger, field, dat_col, flagger_back_full, target_index=heap[Heap.INDEX], **kwargs)
         # clear heap if nessecary:
         if len(heap) == 1 and Heap.INDEX in heap:
             del heap[Heap.INDEX]
@@ -691,11 +691,11 @@ def _fromMerged(data, flagger, fieldname):
     return data.loc[mask, fieldname], flagger.getFlagger(field=fieldname, loc=mask)
 
 
-def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None):
+def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None, **kwargs):
 
     data = data.copy()
-    flags = flagger.getFlags()
-    flags_to_insert = flagger_to_insert.getFlags()
+    flags = flagger._flags
+    flags_to_insert = flagger_to_insert._flags
 
     if isinstance(data, pd.Series):
         data = data.to_frame()
@@ -740,7 +740,7 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
 
         # internally harmonization memorizes its own manipulation by inserting nan flags -
         # those we will now assign the flagger.bad flag by the "missingTest":
-        return flagMissing(data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan)
+        return flagMissing(data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan, **kwargs)
 
 
 @register("harmonize_shift2Grid")
