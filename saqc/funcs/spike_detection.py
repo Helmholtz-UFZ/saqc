@@ -5,10 +5,12 @@ import logging
 
 import numpy as np
 import pandas as pd
+import operator as op
 from scipy.signal import savgol_filter
 from scipy.stats import zscore
 from saqc.funcs.register import register
 import numpy.polynomial.polynomial as poly
+import numba
 
 from saqc.lib.tools import (
     inferFrequency,
@@ -20,27 +22,52 @@ from saqc.lib.tools import (
 
 @register("spikes_limitRaise")
 def flagSpikes_limitRaise(
-    data, field, flagger, thresh, window
+    data, field, flagger, thresh, raise_window, intended_freq, rolling_mean_window=None, mean_raise_factor=2, **kwargs
 ):
     """ flag a value if it deviates from any of its preceeding values within "window" range, in a margin higher than
     thresh  """
 
     # NOTE1: this implementation accounts for the case of "pseudo" spikes that result from checking against outliers
     # NOTE2: the test is designed to work on raw data as well as on regularized
-    def raise_check(x, thresh):
-        test_set = x.iloc[-1] - x.iloc[0:-2]
-        if not test_set.empty:
-            arg_max = np.argmax(np.abs(test_set))
-        else:
-            return 0
-        max_val = test_set[arg_max]
-        if np.abs(max_val) > thresh:
-            return max_val
-        else:
-            return 0
+
 
     dataseries = data[field].dropna()
-    dataseries.rolling(window).apply(raise_check)
+    raise_window = pd.Timedelta(raise_window)
+    intended_freq = pd.Timedelta(intended_freq)
+
+    if rolling_mean_window is None:
+        rolling_mean_window = raise_window
+
+    if thresh > 0:
+        comp = op.ge
+        mi_ma = np.max
+    else:
+        comp = op.le
+        mi_ma = np.min
+
+    @numba.jit(nopython=True)
+    def raise_check(x, thresh):
+
+        test_set = x[-1] - x[0:-1]
+        mi_ma_val = mi_ma(test_set)
+        if comp(mi_ma_val, thresh):
+            return mi_ma_val
+        else:
+            return np.nan
+
+    raise_series = dataseries.rolling(raise_window, min_periods=2).apply(raise_check, args=(thresh,), raw=True,
+                                                                         engine="numba")
+    # weights preparation:
+    weights = np.diff(dataseries.index.to_numpy()) / (intended_freq.to_numpy())
+    weights[weights > 1] = 1
+    weighted_data = data.drop(data.index[0]).mul(weights)
+    weighted_rolling_mean = weighted_data.rolling(rolling_mean_window).mean()
+    # exclude fake raiser:
+    to_flag = data.drop(data.index[0]) > weighted_rolling_mean * mean_raise_factor
+    to_flag = to_flag[to_flag]
+    flagger = flagger.setFlags(field, to_flag.index, **kwargs)
+    return data, flagger
+
 
 @register("spikes_slidingZscore")
 def flagSpikes_slidingZscore(
