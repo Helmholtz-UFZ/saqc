@@ -4,6 +4,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+import dios.dios as dios
 
 from saqc.core.reader import readConfig, checkConfig
 from saqc.core.config import Fields
@@ -30,14 +31,15 @@ def _collectVariables(meta, data):
 
 
 def _checkInput(data, flags, flagger):
-    if not isinstance(data, pd.DataFrame):
-        raise TypeError("data must be of type pd.DataFrame")
+    # fixme: also allow dataframe
+    if not isinstance(data, dios.DictOfSeries):
+        raise TypeError("data must be of type dios.DictOfSeries")
 
-    if isinstance(data.index, pd.MultiIndex):
-        raise TypeError("the index of data is not allowed to be a multiindex")
+    # if isinstance(data.index, pd.MultiIndex):
+    #     raise TypeError("the index of data is not allowed to be a multiindex")
 
-    if isinstance(data.columns, pd.MultiIndex):
-        raise TypeError("the columns of data is not allowed to be a multiindex")
+    # if isinstance(data.columns, pd.MultiIndex):
+    #     raise TypeError("the columns of data is not allowed to be a multiindex")
 
     if not isinstance(flagger, BaseFlagger):
         flaggerlist = [CategoricalFlagger, SimpleFlagger, DmpFlagger]
@@ -46,14 +48,15 @@ def _checkInput(data, flags, flagger):
     if flags is None:
         return
 
-    if not isinstance(flags, pd.DataFrame):
-        raise TypeError("flags must be of type pd.DataFrame")
+    if not isinstance(flags, dios.DictOfSeries):
+        raise TypeError("flags must be of type dios.DictOfSeries")
 
-    if isinstance(data.index, pd.MultiIndex):
-        raise TypeError("the index of data is not allowed to be a multiindex")
+    # if isinstance(data.index, pd.MultiIndex):
+    #     raise TypeError("the index of data is not allowed to be a multiindex")
 
-    if len(data) != len(flags):
-        raise ValueError("the index of flags and data has not the same length")
+    # fixme: iter over common columns and check len
+    # if len(data) != len(flags):
+    #     raise ValueError("the index of flags and data has not the same length")
 
     # NOTE: do not test columns as they not necessarily must be the same
 
@@ -77,11 +80,11 @@ def _setup():
 def run(
     config_file: str,
     flagger: BaseFlagger,
-    data: pd.DataFrame,
-    flags: pd.DataFrame = None,
+    data: dios.DictOfSeries,
+    flags: dios.DictOfSeries = None,
     nodata: float = np.nan,
     error_policy: str = "raise",
-) -> (pd.DataFrame, BaseFlagger):
+) -> (dios.DictOfSeries, BaseFlagger):
 
     _setup()
     _checkInput(data, flags, flagger)
@@ -93,7 +96,7 @@ def run(
 
     # prepapre the flags
     flag_cols = _collectVariables(meta, data)
-    flagger = flagger.initFlags(data=pd.DataFrame(index=data.index, columns=flag_cols))
+    flagger = flagger.initFlags(data=dios.DictOfSeries(index=data.index, columns=flag_cols))
     if flags is not None:
         flagger = flagger.setFlagger(flagger.initFlags(flags=flags))
 

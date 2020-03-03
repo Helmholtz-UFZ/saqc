@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from io import StringIO, TextIOWrapper
 
 import pandas as pd
+import dios.dios as dios
 
 from saqc.core.config import Fields as F
 from saqc.core.evaluator import compileExpression
@@ -68,7 +69,7 @@ def _castRow(row: Dict[str, Any]):
     return out
 
 
-def _expandVarnameWildcards(config: Config, data: pd.DataFrame) -> Config:
+def _expandVarnameWildcards(config: Config, data: dios.DictOfSeries) -> Config:
     new = []
     for row in config:
         varname = row[F.VARNAME]
@@ -90,8 +91,9 @@ def _clearRows(rows: Iterable[List[str]], comment: str = "#") -> Iterator[Tuple[
             yield i, row
 
 
-def readConfig(fname: Filename, data: pd.DataFrame, sep: str = ";", comment: str = "#") -> pd.DataFrame:
-    defaults = {F.VARNAME: "", F.START: data.index.min(), F.END: data.index.max(), F.PLOT: False}
+def readConfig(fname: Filename, data: dios.DictOfSeries, sep: str = ";", comment: str = "#") -> dios.DictOfSeries:
+    # fixme: default dates should come from index.min()/.max() per Series
+    defaults = {F.VARNAME: "", F.START: '1970-01-01 00:00:00', F.END: '2025-01-01 00:00:00', F.PLOT: False}
 
     with _open(fname) as f:
         rdr = reader(f, delimiter=";")
@@ -106,10 +108,10 @@ def readConfig(fname: Filename, data: pd.DataFrame, sep: str = ";", comment: str
             config.append(row)
 
     expanded = _expandVarnameWildcards(config, data)
-    return pd.DataFrame(expanded)
+    return dios.DictOfSeries(expanded)
 
 
-def checkConfig(config_df: pd.DataFrame, data: pd.DataFrame, flagger: BaseFlagger, nodata: float) -> pd.DataFrame:
+def checkConfig(config_df: pd.DataFrame, data: dios.DictOfSeries, flagger: BaseFlagger, nodata: float) -> pd.DataFrame:
 
     for _, config_row in config_df.iterrows():
 

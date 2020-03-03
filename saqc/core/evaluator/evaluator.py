@@ -6,7 +6,8 @@ from functools import partial
 from typing import Any, Dict
 
 import numpy as np
-import pandas as pd
+# import pandas as pd
+import dios.dios as dios
 
 from saqc.flagger.baseflagger import BaseFlagger
 from saqc.core.config import Params
@@ -21,7 +22,7 @@ def _dslIsFlagged(flagger, field, flag=None, comparator=None):
     return flagger.isFlagged(field, flag=flag, comparator=comparator)
 
 
-def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
+def initLocalEnv(data: dios.DictOfSeries, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
 
     return {
         "data": data,
@@ -32,7 +33,8 @@ def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: f
         "GOOD": flagger.GOOD,
         "BAD": flagger.BAD,
         "UNFLAGGED": flagger.UNFLAGGED,
-        "ismissing": lambda data: ((data == nodata) | pd.isnull(data)),
+        # "ismissing": lambda data: ((data == nodata) | pd.isnull(data)), fixme ismissing
+        "ismissing": lambda data: data == nodata,
         "isflagged": partial(_dslIsFlagged, flagger),
         "abs": np.abs,
         "max": np.nanmax,
@@ -74,6 +76,7 @@ def evalExpression(expr, data, field, flagger, nodata=np.nan):
     # mask the already flagged value to make all the functions
     # called on the way through the evaluator ignore flagged values
     mask = flagger.isFlagged()
+    # fixme: use data_in = data_in[mask] and data.aloc[:] = data_result
     data_in = data.copy()
     data_in[mask] = np.nan
     local_env, code = compileExpression(expr, data_in, field, flagger, nodata)

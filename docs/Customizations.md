@@ -32,7 +32,7 @@ def yourTestFunction(
    flagger: saqc.flagger.BaseFlagger,
    *args: Any,
    **kwargs: Any
-   ) -> (pd.DataFrame, saqc.flagger.BaseFlagger)
+   ) -> (dios.DictOfSeries, saqc.flagger.BaseFlagger)
 ```
 
 #### Argument Descriptions

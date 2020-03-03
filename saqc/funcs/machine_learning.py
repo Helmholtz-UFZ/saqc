@@ -9,7 +9,7 @@ import joblib
 
 def _refCalc(reference, window_values):
     # Helper function for calculation of moving window values
-    outdata = pd.DataFrame()
+    outdata = dios.DictOfSeries()
     name = reference.name
     # derive gradients from reference series
     outdata[name + "_Dt_1"] = reference - reference.shift(1)  # gradient t vs. t-1

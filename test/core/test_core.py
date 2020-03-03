@@ -4,6 +4,7 @@
 import pytest
 import numpy as np
 import pandas as pd
+import dios.dios as dios
 
 from saqc.funcs import register, flagRange
 from saqc.core.core import run

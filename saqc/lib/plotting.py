@@ -5,6 +5,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+import dios.dios as dios
 
 from saqc.flagger import BaseFlagger
 
@@ -26,7 +27,7 @@ def plotAllHook(data, flagger, plot_nans=False):
 
 
 def plotHook(
-    data: pd.DataFrame,
+    data: dios.DictOfSeries,
     flagger_old: BaseFlagger,
     flagger_new: BaseFlagger,
     varname: str,
@@ -65,7 +66,7 @@ def plotHook(
             return
 
         mask = flags_old != flags_new
-        if isinstance(mask, pd.DataFrame):
+        if isinstance(mask, dios.DictOfSeries):
             mask = mask.any(axis=1)
 
     __plotvars.append(varname)

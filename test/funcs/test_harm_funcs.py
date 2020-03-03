@@ -167,57 +167,57 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
     if interpolation == "fshift":
         if freq == "15min":
             assert data.equals(
-                pd.DataFrame(
+                dios.DictOfSeries(
                     {"data": [np.nan, -37.5, -25.0, 0.0, 37.5, 50.0]}, index=test_index
                 )
             )
         if freq == "30min":
             assert data.equals(
-                pd.DataFrame({"data": [np.nan, -37.5, 0.0, 50.0]}, index=test_index)
+                dios.DictOfSeries({"data": [np.nan, -37.5, 0.0, 50.0]}, index=test_index)
             )
     if interpolation == "bshift":
         if freq == "15min":
             assert data.equals(
-                pd.DataFrame(
+                dios.DictOfSeries(
                     {"data": [-50.0, -37.5, -25.0, 12.5, 37.5, 50.0]}, index=test_index
                 )
             )
         if freq == "30min":
             assert data.equals(
-                pd.DataFrame({"data": [-50.0, -37.5, 12.5, 50.0]}, index=test_index)
+                dios.DictOfSeries({"data": [-50.0, -37.5, 12.5, 50.0]}, index=test_index)
             )
     if interpolation == "nshift":
         if freq == "15min":
             assert data.equals(
-                pd.DataFrame(
+                dios.DictOfSeries(
                     {"data": [np.nan, -37.5, -25.0, 12.5, 37.5, 50.0]}, index=test_index
                 )
             )
         if freq == "30min":
             assert data.equals(
-                pd.DataFrame({"data": [np.nan, -37.5, 12.5, 50.0]}, index=test_index)
+                dios.DictOfSeries({"data": [np.nan, -37.5, 12.5, 50.0]}, index=test_index)
             )
     if interpolation == "nagg":
         if freq == "15min":
             assert data.equals(
-                pd.DataFrame(
+                dios.DictOfSeries(
                     {"data": [np.nan, -87.5, -25.0, 0.0, 37.5, 50.0]}, index=test_index
                 )
             )
         if freq == "30min":
             assert data.equals(
-                pd.DataFrame({"data": [np.nan, -87.5, -25.0, 87.5]}, index=test_index)
+                dios.DictOfSeries({"data": [np.nan, -87.5, -25.0, 87.5]}, index=test_index)
             )
     if interpolation == "bagg":
         if freq == "15min":
             assert data.equals(
-                pd.DataFrame(
+                dios.DictOfSeries(
                     {"data": [-50.0, -37.5, -37.5, 12.5, 37.5, 50.0]}, index=test_index
                 )
             )
         if freq == "30min":
             assert data.equals(
-                pd.DataFrame({"data": [-50.0, -75.0, 50.0, 50.0]}, index=test_index)
+                dios.DictOfSeries({"data": [-50.0, -75.0, 50.0, 50.0]}, index=test_index)
             )
 
     data, flagger = deharmonize(data, "data", flagger, co_flagging=True)

@@ -9,11 +9,13 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype
 
+import dios.dios as dios
+
 from test.common import TESTFLAGGER
 
 
 def _getDataset(rows, cols):
-    df = pd.DataFrame()
+    df = dios.DictOfSeries()
     for c in range(cols):
         df[f"var{c}"] = np.linspace(0 + 100 * c, rows, rows)
     vals = pd.date_range(start="2011-01-01", end="2011-01-10", periods=rows)
@@ -108,7 +110,7 @@ def test_setFlaggerIndexDiff(data, flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_initFlags(data, flagger):
     flags = flagger.initFlags(data).getFlags()
-    assert isinstance(flags, pd.DataFrame)
+    assert isinstance(flags, dios.DictOfSeries)
     assert len(flags.index) == len(data.index)
     assert len(flags.columns) >= len(data.columns)
 
@@ -121,7 +123,7 @@ def test_getFlags(data, flagger):
 
     # df
     flags0 = flagger.getFlags()
-    assert isinstance(flags0, pd.DataFrame)
+    assert isinstance(flags0, dios.DictOfSeries)
     assert flags0.shape == data.shape
     assert (flags0.columns == data.columns).all()
 
@@ -169,7 +171,7 @@ def test_isFlaggedDataFrame(data, flagger):
     ]
     for flags, expected in df_tests:
         assert np.all(flags[field] == expected)
-        assert isinstance(flags, pd.DataFrame)
+        assert isinstance(flags, dios.DictOfSeries)
         assert flags.shape == data.shape
         assert (flags.columns == data.columns).all()
         for dt in flags.dtypes:

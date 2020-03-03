@@ -7,9 +7,10 @@ from collections import OrderedDict
 from typing import Union, Sequence
 
 import pandas as pd
+import dios.dios as dios
 
 from saqc.flagger.categoricalflagger import CategoricalFlagger
-from saqc.lib.tools import assertDataFrame, toSequence, assertScalar
+from saqc.lib.tools import assertDictOfSeries, toSequence, assertScalar
 
 
 class Keywords:
@@ -32,6 +33,9 @@ FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 class DmpFlagger(CategoricalFlagger):
     def __init__(self):
+        # fixme: DmpFlagger
+        raise NotImplementedError
+
         super().__init__(FLAGS)
         self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
         version = subprocess.run(
@@ -41,7 +45,7 @@ class DmpFlagger(CategoricalFlagger):
         self.signature = ("flag", "comment", "cause", "force")
         self._flags = None
 
-    def initFlags(self, data: pd.DataFrame = None, flags: pd.DataFrame = None):
+    def initFlags(self, data: dios.DictOfSeries = None, flags: dios.DictOfSeries = None):
         """
         initialize a flagger based on the given 'data' or 'flags'
         if 'data' is not None: return a flagger with flagger.UNFALGGED values
@@ -49,7 +53,7 @@ class DmpFlagger(CategoricalFlagger):
         """
 
         if data is not None:
-            flags = pd.DataFrame(data="", columns=self._getColumnIndex(data.columns), index=data.index,)
+            flags = dios.DictOfSeries(data="", columns=self._getColumnIndex(data.columns), index=data.index,)
             flags.loc[:, self._getColumnIndex(data.columns, [FlagFields.FLAG])] = self.UNFLAGGED
         elif flags is not None:
             if not isinstance(flags.columns, pd.MultiIndex):
@@ -113,4 +117,4 @@ class DmpFlagger(CategoricalFlagger):
             else:
                 col_data = col_data.astype(str)
             tmp[(var, flag_field)] = col_data
-        return pd.DataFrame(tmp, columns=flags.columns, index=flags.index)
+        return dios.DictOfSeries(tmp, columns=flags.columns, index=flags.index)

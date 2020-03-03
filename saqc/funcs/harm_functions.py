@@ -159,7 +159,7 @@ def harmWrapper(heap={}):
         drops = drops.squeeze(axis=1)
         flags_col.loc[drops.index] = drops
 
-        # but to stick with the policy of always having flags as pd.DataFrames we blow up the flags col again:
+        # but to stick with the policy of always having flags as dios.DictOfSeriess we blow up the flags col again:
         if isinstance(flags_col, pd.Series):
             flags_col = flags_col.to_frame()
         flagger_back_full = flagger.initFlags(flags=flags_col)
@@ -287,7 +287,7 @@ def _interpolateGrid(
     'fagg'          - all values in a sampling interval get aggregated with agg_method and the result gets assigned to
                     the next grid point
 
-    :param data:        pd.DataFrame. ['data'].
+    :param data:        dios.DictOfSeries. ['data'].
     :param freq:        Offset String. the grid frequency.
     :param method:      String. Method you want to interpolate with. See function doc above.
     :param order:       Integer. Default = 1. If an interpolation method is selected that needs
@@ -299,7 +299,7 @@ def _interpolateGrid(
                         The total range of all the data in the Dataframe that is currently processed. If not
                         None, the resulting harmonization grid of the current data column will range over the total
                         Data-range. This ensures not having nan-entries in the flags dataframe after harmonization.
-    :return:            pd.DataFrame. ['data'].
+    :return:            dios.DictOfSeries. ['data'].
     """
 
     chunk_bounds = None
@@ -521,7 +521,7 @@ def _reshapeFlags(
     :block_flags:       DatetimeIndex. A DatetimeIndex containing labels that will get the "nan-flag" assigned.
                         This option mainly is introduced to account for the backtracking inconsistencies at the end
                         and beginning of interpolation chunks.
-    :return: flags:     pd.Series/pd.DataFrame. The reshaped pandas like Flags object, referring to the harmonized data.
+    :return: flags:     pd.Series/dios.DictOfSeries. The reshaped pandas like Flags object, referring to the harmonized data.
     """
 
     missing_flag = missing_flag or flagger.BAD
@@ -672,7 +672,7 @@ def _backtrackFlags(flagger_post, flagger_pre, freq, track_method="invert_fshift
 
         flags_post = pd.merge_asof(
             flags_post,
-            pd.DataFrame(flags_pre.index.values, index=flags_pre.index, columns=["pre_index"]),
+            dios.DictOfSeries(flags_pre.index.values, index=flags_pre.index, columns=["pre_index"]),
             left_index=True,
             right_index=True,
             tolerance=tolerance,

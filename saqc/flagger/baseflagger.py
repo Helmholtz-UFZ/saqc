@@ -9,8 +9,9 @@ from typing import TypeVar, Union, Any
 
 import numpy as np
 import pandas as pd
+import dios.dios as dios
 
-from saqc.lib.tools import toSequence, assertScalar, assertDataFrame
+from saqc.lib.tools import toSequence, assertScalar, assertDictOfSeries
 
 
 COMPARATOR_MAP = {
@@ -24,7 +25,8 @@ COMPARATOR_MAP = {
 
 
 BaseFlaggerT = TypeVar("BaseFlaggerT")
-PandasT = Union[pd.Series, pd.DataFrame]
+# fixme: does DictOfSeries is pd-like ?
+PandasT = Union[pd.Series, dios.DictOfSeries]
 # TODO: get some real types here (could be tricky...)
 LocT = Any
 IlocT = Any
@@ -39,9 +41,9 @@ class BaseFlagger(ABC):
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
         self.signature = ("flag",)
-        self._flags: pd.DataFrame
+        self._flags: dios.DictOfSeries
 
-    def initFlags(self, data: pd.DataFrame = None, flags: pd.DataFrame = None) -> BaseFlaggerT:
+    def initFlags(self, data: dios.DictOfSeries = None, flags: dios.DictOfSeries = None) -> BaseFlaggerT:
         """
         initialize a flagger based on the given 'data' or 'flags'
         if 'data' is not None: return a flagger with flagger.UNFALGGED values
@@ -51,7 +53,8 @@ class BaseFlagger(ABC):
         if data is None and flags is None:
             raise TypeError("either 'data' or 'flags' are required")
         if data is not None:
-            flags = pd.DataFrame(data=self.UNFLAGGED, index=data.index, columns=data.columns)
+            flags = data.copy()
+            flags[:] = self.UNFLAGGED
         return self._copy(self._assureDtype(flags))
 
     def setFlagger(self, other: BaseFlaggerT):
@@ -94,6 +97,7 @@ class BaseFlagger(ABC):
         assertScalar("field", field, optional=True)
         field = field or slice(None)
         flags = self._flags.copy()
+        flags.loc[loc, field]
         mask = self._locatorMask(field, loc, iloc)
         return flags.loc[mask, field]
 
@@ -128,10 +132,12 @@ class BaseFlagger(ABC):
         flag = self.GOOD if flag is None else flag
         flags = self.getFlags(field, loc, iloc, **kwargs)
         cp = COMPARATOR_MAP[comparator]
-        flagged = pd.notna(flags) & cp(flags, flag)
+        # fixme: notna ?
+        notna = flags.notna() if isinstance(flags, pd.Series) else flags.apply(pd.notna)
+        flagged = notna & cp(flags, flag)
         return flagged
 
-    def _copy(self, flags: pd.DataFrame = None) -> BaseFlaggerT:
+    def _copy(self, flags: dios.DictOfSeries = None) -> BaseFlaggerT:
         out = deepcopy(self)
         if flags is not None:
             out._flags = flags
@@ -167,7 +173,7 @@ class BaseFlagger(ABC):
         tmp = OrderedDict()
         for c in flags.columns:
             tmp[c] = flags[c].astype(self.dtype)
-        return pd.DataFrame(tmp)
+        return dios.DictOfSeries(tmp)
 
     @abstractmethod
     def _isDtype(self, flag) -> bool:

@@ -19,7 +19,7 @@ def test_flagSoilMoistureBySoilFrost(flagger):
     index = pd.date_range(
         start="2011-01-01 00:00:00", end="2011-01-01 03:00:00", freq="5min"
     )
-    data = pd.DataFrame(
+    data = dios.DictOfSeries(
         {
             "soil_moisture": np.linspace(0, 1, index.size),
             "soil_temperature": np.linspace(1, -1, index.size),
@@ -40,7 +40,7 @@ def test_flagSoilMoisturePrecipitationEvents(flagger):
     index = pd.date_range(
         start="2011-01-01 00:00:00", end="2011-01-04 00:00:00", freq="15min"
     )
-    data = pd.DataFrame(
+    data = dios.DictOfSeries(
         {
             "soil_moisture": np.linspace(0, 1, index.size),
             "precipitation": np.linspace(1, 1, index.size),

@@ -18,7 +18,7 @@ from test.common import TESTFLAGGER
 @pytest.fixture(scope="module")
 def spiky_data():
     index = pd.date_range(start="2011-01-01", end="2011-01-05", freq="5min")
-    spiky_series = pd.DataFrame(
+    spiky_series = dios.DictOfSeries(
         dict(spiky_data=np.linspace(1, 2, index.size)), index=index
     )
     spiky_series.iloc[100] = 100
