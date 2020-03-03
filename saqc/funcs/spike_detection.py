@@ -22,7 +22,7 @@ from saqc.lib.tools import (
 
 @register("spikes_limitRaise")
 def flagSpikes_limitRaise(
-    data, field, flagger, thresh, raise_window, intended_freq, rolling_mean_window=None, mean_raise_factor=2, **kwargs
+    data, field, flagger, thresh, raise_window, intended_freq, average_window=None, mean_raise_factor=2, **kwargs
 ):
     """ flag a value if it deviates from any of its preceeding values within "window" range, in a margin higher than
     thresh  """
@@ -30,13 +30,15 @@ def flagSpikes_limitRaise(
     # NOTE1: this implementation accounts for the case of "pseudo" spikes that result from checking against outliers
     # NOTE2: the test is designed to work on raw data as well as on regularized
 
-
     dataseries = data[field].dropna()
     raise_window = pd.Timedelta(raise_window)
     intended_freq = pd.Timedelta(intended_freq)
 
-    if rolling_mean_window is None:
-        rolling_mean_window = raise_window
+    raise_window = pd.Timedelta(raise_window)
+    if average_window is None:
+        average_window = 1.5 * pd.Timedelta(raise_window)
+
+    intended_freq = pd.Timedelta(intended_freq)
 
     if thresh > 0:
         comp = op.ge
@@ -55,16 +57,24 @@ def flagSpikes_limitRaise(
         else:
             return np.nan
 
+    @numba.jit(nopython=True)
+    def custom_rolling_mean(x):
+        return np.mean(x[:-1])
+
     raise_series = dataseries.rolling(raise_window, min_periods=2).apply(raise_check, args=(thresh,), raw=True,
-                                                                         engine="numba")
-    # weights preparation:
-    weights = np.diff(dataseries.index.to_numpy()) / (intended_freq.to_numpy())
-    weights[weights > 1] = 1
-    weighted_data = data.drop(data.index[0]).mul(weights)
-    weighted_rolling_mean = weighted_data.rolling(rolling_mean_window).mean()
-    # exclude fake raiser:
-    to_flag = data.drop(data.index[0]) > weighted_rolling_mean * mean_raise_factor
-    to_flag = to_flag[to_flag]
+                                                                   engine="numba")
+
+    weights = pd.Series(dataseries.index).diff(periods=2).shift(-1).dt.total_seconds() / intended_freq.total_seconds() / 2
+    weights.iloc[0] = 0.5 + (dataseries.index[1] - dataseries.index[0]).total_seconds() / (intended_freq.total_seconds() * 2)
+    weights.iloc[-1] = 0.5 + (dataseries.index[-1] - dataseries.index[-2]).total_seconds() / (intended_freq.total_seconds() * 2)
+
+    weights[weights > 1.5] = 1.5
+    weighted_data = dataseries.mul(weights.values)
+    weighted_rolling_mean = weighted_data.rolling(average_window, min_periods=2, closed='both').apply(
+        custom_rolling_mean, raw=True,
+        engine="numba")
+    to_flag = comp(dataseries, weighted_rolling_mean + (raise_series / mean_raise_factor))
+    to_flag &= raise_series.notna()
     flagger = flagger.setFlags(field, to_flag.index, **kwargs)
     return data, flagger
 
