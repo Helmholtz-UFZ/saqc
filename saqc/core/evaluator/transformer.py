@@ -8,10 +8,10 @@ from contextlib import contextmanager
 
 from saqc.core.config import Params
 
+
 class DslTransformer(ast.NodeTransformer):
     def __init__(self, environment: Dict[str, Any]):
         self.environment = environment
-        self.arguments = set()
 
     def visit_Call(self, node):
         new_args = node.args
@@ -47,9 +47,10 @@ class DslTransformer(ast.NodeTransformer):
         name = node.id
 
         if name == "this":
-            name = self.environment["field"]
+            name = self.environment["this"]
 
         if name in self.environment["data"]:
+            # determine further tree-transformation path by target
             if getattr(node, "lookup", True):
                 value = ast.Constant(value=name)
                 node = ast.Subscript(
@@ -58,7 +59,6 @@ class DslTransformer(ast.NodeTransformer):
             else:
                 node = ast.Constant(value=name)
 
-        self.arguments.add(name)
         return node
 
 
