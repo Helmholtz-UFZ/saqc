@@ -79,11 +79,13 @@ def test_configReaderLineNumbers(data):
     pre2|flagAll()
     SM|flagAll()
     #SM|flagAll()
+    # SM1|flagAll()
+
     SM1|flagAll()
     """
     meta_fname, meta_frame = initMetaString(config, data)
     result = meta_frame[F.LINENUMBER].tolist()
-    expected = [3, 4, 5, 7]
+    expected = [3, 4, 5, 9]
     assert result == expected
 
 
