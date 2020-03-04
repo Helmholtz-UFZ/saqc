@@ -36,7 +36,7 @@ FlagT = Any
 class BaseFlagger(ABC):
     @abstractmethod
     def __init__(self, dtype):
-        # NOTE: the type of the _flags DataFrame
+        # NOTE: the type of the _flags DictOfSeries
         self.dtype = dtype
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
@@ -55,7 +55,9 @@ class BaseFlagger(ABC):
         if data is not None:
             flags = data.copy()
             flags[:] = self.UNFLAGGED
-        return self._copy(self._assureDtype(flags))
+
+        # self._flags ist set implicit by _copy()
+        return self._copy(flags.astype(self.dtype))
 
     def setFlagger(self, other: BaseFlaggerT):
         """
@@ -166,14 +168,8 @@ class BaseFlagger(ABC):
         return flag
 
     def _assureDtype(self, flags):
-        # NOTE: building up new DataFrames is significantly
-        #       faster than assigning into existing ones
-        if isinstance(flags, pd.Series):
-            return flags.astype(self.dtype)
-        tmp = OrderedDict()
-        for c in flags.columns:
-            tmp[c] = flags[c].astype(self.dtype)
-        return dios.DictOfSeries(tmp)
+        # works with pd.Series and dios.DictOfSeries
+        return flags.astype(self.dtype)
 
     @abstractmethod
     def _isDtype(self, flag) -> bool:
