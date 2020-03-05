@@ -59,7 +59,7 @@ def test_range(data, field, flagger):
     data, flagger = flagRange(data, field, flagger, min=min, max=max)
     flagged = flagger.isFlagged(field)
     expected = (data[field] < min) | (data[field] > max)
-    assert np.all(flagged == expected)
+    assert (flagged == expected).all()
 
 
 # @pytest.mark.parametrize('flagger', TESTFLAGGER)

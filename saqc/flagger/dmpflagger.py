@@ -64,7 +64,7 @@ class DmpFlagger(CategoricalFlagger):
         else:
             raise TypeError("either 'data' or 'flags' are required")
 
-        return self._copy(self._assureDtype(flags))
+        return self.copy(self._assureDtype(flags))
 
     def getFlagger(self, field=None, loc=None, iloc=None):
         # NOTE: we need to preserve all indexing levels

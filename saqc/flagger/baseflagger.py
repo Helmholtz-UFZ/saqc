@@ -56,8 +56,8 @@ class BaseFlagger(ABC):
             flags = data.copy()
             flags[:] = self.UNFLAGGED
 
-        # self._flags ist set implicit by _copy()
-        return self._copy(flags.astype(self.dtype))
+        # self._flags ist set implicit by copy()
+        return self.copy(flags.astype(self.dtype))
 
     def setFlagger(self, other: BaseFlaggerT):
         """
@@ -70,110 +70,69 @@ class BaseFlagger(ABC):
         this = self._flags
         other = other._flags
 
-        flags = this.reindex(
-            index=this.index.union(other.index),
-            columns=this.columns.union(other.columns, sort=False),
-            fill_value=self.UNFLAGGED,
-        )
+        new = this.copy_empty(columns=False)
+        cols = this.columns.intersection(other.columns)
+        for c in cols:
+            l, r = this[c], other[c]
+            l = l.align(r, join='outer')[0]
+            l.loc[r.index] = r
+            new[c] = l
 
-        for key, values in other.iteritems():
-            flags.loc[other.index, key] = values
+        newcols = this.columns.symmetric_difference(other.columns)
+        for c in newcols:
+            new[c] = other[c].copy()
 
-        return self._copy(self._assureDtype(flags))
+        return self.copy(new)
 
-    def getFlagger(self, field: str = None, loc: LocT = None, iloc: IlocT = None) -> BaseFlaggerT:
+    def getFlagger(self, field: str = None, loc: LocT = None) -> BaseFlaggerT:
+        """ Return a potentially trimmed down copy of self. """
+        return self.copy(self.getFlags(field=field, loc=loc))
+
+    def getFlags(self, field: str = None, loc: LocT = None) -> PandasT:
+        """ Return a potentially, to `loc`, trimmed down copy of flags. """
+        # NOTE: maybe add loc=BoolDios, field=None (if field not None -> err?)
+        loc = loc if loc is not None else slice(None)
+        field = slice(None) if field is None else field
+        return self._flags.aloc[loc, field]
+
+    def setFlags(self, field: str, loc: LocT = None, flag: FlagT = None, force: bool = False, **kwargs) -> BaseFlaggerT:
+        """Overwrite existing flags at loc.
+
+        If `force=False` (default) only flags with a lower priority are overwritten,
+        otherwise, if `force=True`, flags are overwritten unconditionally.
         """
-        return a potentially trimmed down copy of self
-        """
-        assertScalar("field", field, optional=True)
-        mask = self._locatorMask(field=slice(None), loc=loc, iloc=iloc)
-        flags = self._flags.loc[mask, field or slice(None)]
-        if isinstance(flags, pd.Series):
-            flags = flags.to_frame()
-        return self._copy(flags)
 
-    def getFlags(self, field: str = None, loc: LocT = None, iloc: IlocT = None) -> PandasT:
-        """
-        return a copy of a potentially trimmed down 'self._flags' DataFrame
-        """
-        assertScalar("field", field, optional=True)
-        field = field or slice(None)
-        flags = self._flags.copy()
-        flags.loc[loc, field]
-        mask = self._locatorMask(field, loc, iloc)
-        return flags.loc[mask, field]
-
-    def setFlags(
-        self, field: str, loc: LocT = None, iloc: IlocT = None, flag: FlagT = None, force: bool = False, **kwargs,
-    ) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
+        flag = self.BAD if flag is None else flag
 
-        flag = self.BAD if flag is None else self._checkFlag(flag)
-
-        this = self.getFlags(field=field)
-        other = self._broadcastFlags(field=field, flag=flag)
-
-        mask = self._locatorMask(field, loc, iloc)
-        if not force:
-            mask &= (this < other).values
+        # trim flags to loc
+        this = self.getFlags(field=field, loc=loc)
+        mask = slice(None) if force else this < flag
 
         out = deepcopy(self)
-        out._flags.loc[mask, field] = other[mask]
+        out._flags.aloc[mask] = flag
         return out
 
-    def clearFlags(self, field: str, loc: LocT = None, iloc: IlocT = None, **kwargs) -> BaseFlaggerT:
+    def clearFlags(self, field: str, loc: LocT = None, **kwargs) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
-        return self.setFlags(field=field, loc=loc, iloc=iloc, flag=self.UNFLAGGED, force=True, **kwargs)
+        return self.setFlags(field=field, loc=loc, flag=self.UNFLAGGED, force=True, **kwargs)
 
-    def isFlagged(
-        self, field=None, loc: LocT = None, iloc: IlocT = None, flag: FlagT = None, comparator: str = ">", **kwargs,
-    ) -> PandasT:
-        assertScalar("field", field, optional=True)
+    def isFlagged(self, field=None, loc: LocT = None, flag: FlagT = None, comparator: str = ">", **kwargs) -> PandasT:
         assertScalar("flag", flag, optional=True)
-        self._checkFlag(flag)
         flag = self.GOOD if flag is None else flag
-        flags = self.getFlags(field, loc, iloc, **kwargs)
+        flags = self.getFlags(field, loc, **kwargs)
         cp = COMPARATOR_MAP[comparator]
-        # fixme: notna ?
+
+        # prevent nans to become True, like in: np.nan != 0 -> True,
         notna = flags.notna() if isinstance(flags, pd.Series) else flags.apply(pd.notna)
         flagged = notna & cp(flags, flag)
         return flagged
 
-    def _copy(self, flags: dios.DictOfSeries = None) -> BaseFlaggerT:
+    def copy(self, flags: dios.DictOfSeries = None) -> BaseFlaggerT:
         out = deepcopy(self)
         if flags is not None:
             out._flags = flags
         return out
-
-    def _locatorMask(self, field: str = None, loc: LocT = None, iloc: IlocT = None) -> PandasT:
-        field = field or slice(None)
-        locator = [l for l in (loc, iloc, slice(None)) if l is not None][0]
-        index = self._flags.index
-        mask = pd.Series(data=np.zeros(len(index), dtype=bool), index=index)
-        mask[locator] = True
-        return mask
-
-    def _broadcastFlags(self, field: str, flag: FlagT) -> pd.Series:
-
-        this = self.getFlags(field)
-
-        if np.isscalar(flag):
-            flag = np.full_like(this, flag)
-
-        return pd.Series(data=flag, index=this.index, name=field, dtype=self.dtype)
-
-    def _checkFlag(self, flag):
-        if flag is not None and not self._isDtype(flag):
-            raise TypeError(f"invalid flag value '{flag}' for flagger 'self.__class__'")
-        return flag
-
-    def _assureDtype(self, flags):
-        # works with pd.Series and dios.DictOfSeries
-        return flags.astype(self.dtype)
-
-    @abstractmethod
-    def _isDtype(self, flag) -> bool:
-        pass
 
     @property
     @abstractmethod

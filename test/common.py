@@ -24,7 +24,7 @@ TESTFLAGGER = (
     CategoricalFlagger(["NIL", "GOOD", "BAD"]),
     SimpleFlagger(),
     # DmpFlagger(),
-    ContinuousFlagger(),
+    # ContinuousFlagger(),
 )
 
 
