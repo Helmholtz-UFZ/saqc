@@ -52,9 +52,13 @@ class BaseFlagger(ABC):
 
         if data is None and flags is None:
             raise TypeError("either 'data' or 'flags' are required")
+
         if data is not None:
+            assert isinstance(data, dios.DictOfSeries)
             flags = data.copy()
             flags[:] = self.UNFLAGGED
+        else:
+            assert isinstance(flags, dios.DictOfSeries)
 
         # self._flags ist set implicit by copy()
         return self.copy(flags.astype(self.dtype))
@@ -93,7 +97,7 @@ class BaseFlagger(ABC):
         # NOTE: maybe add loc=BoolDios, field=None (if field not None -> err?)
         loc = loc if loc is not None else slice(None)
         field = slice(None) if field is None else field
-        return self._flags.aloc[loc, field]
+        return self._flags.aloc[loc, field].copy()
 
     def setFlags(self, field: str, loc: LocT = None, flag: FlagT = None, force: bool = False, **kwargs) -> BaseFlaggerT:
         """Overwrite existing flags at loc.
@@ -107,10 +111,10 @@ class BaseFlagger(ABC):
 
         # trim flags to loc
         this = self.getFlags(field=field, loc=loc)
-        mask = slice(None) if force else this < flag
+        mask = this.index if force else this < flag
 
         out = deepcopy(self)
-        out._flags.aloc[mask] = flag
+        out._flags.aloc[mask, field] = flag
         return out
 
     def clearFlags(self, field: str, loc: LocT = None, **kwargs) -> BaseFlaggerT:
