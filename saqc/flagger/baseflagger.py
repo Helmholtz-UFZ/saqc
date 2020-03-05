@@ -70,7 +70,7 @@ class BaseFlagger(ABC):
         this = self._flags
         other = other._flags
 
-        new = this.copy_empty(columns=False)
+        new = this.copy()
         cols = this.columns.intersection(other.columns)
         for c in cols:
             l, r = this[c], other[c]
@@ -78,7 +78,7 @@ class BaseFlagger(ABC):
             l.loc[r.index] = r
             new[c] = l
 
-        newcols = this.columns.symmetric_difference(other.columns)
+        newcols = other.columns.difference(new.columns)
         for c in newcols:
             new[c] = other[c].copy()
 
