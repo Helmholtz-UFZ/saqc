@@ -124,7 +124,7 @@ class BaseFlagger(ABC):
     def isFlagged(self, field=None, loc: LocT = None, flag: FlagT = None, comparator: str = ">", **kwargs) -> PandasT:
         assertScalar("flag", flag, optional=True)
         flag = self.GOOD if flag is None else flag
-        flags = self.getFlags(field, loc, **kwargs)
+        flags = self.getFlags(field, loc)
         cp = COMPARATOR_MAP[comparator]
 
         # prevent nans to become True, like in: np.nan != 0 -> True,
