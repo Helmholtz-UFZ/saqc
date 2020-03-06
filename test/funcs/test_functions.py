@@ -72,7 +72,7 @@ def test_flagSesonalRange(data, field, flagger):
     # prepare
     data.loc[::2] = 0
     data.loc[1::2] = 50
-    nyears = len(data.index.year.unique())
+    nyears = len(data[field].index.year.unique())
 
     tests = [
         (
@@ -113,8 +113,8 @@ def test_clearFlags(data, field, flagger):
     flags_set = flagger.setFlags(field, flag=flagger.BAD).getFlags()
     _, flagger = clearFlags(data, field, flagger)
     flags_cleared = flagger.getFlags()
-    assert np.all(flags_orig != flags_set)
-    assert np.all(flags_orig == flags_cleared)
+    assert (flags_orig != flags_set).all(None)
+    assert (flags_orig == flags_cleared).all(None)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

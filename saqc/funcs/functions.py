@@ -39,6 +39,7 @@ def flagNextAfterFlag(data, field, flagger, n, func, **kwargs):
 
 @register("range")
 def flagRange(data, field, flagger, min, max, **kwargs):
+    # using .values is very much faster
     datacol = data[field].values
     mask = (datacol < min) | (datacol > max)
     flagger = flagger.setFlags(field, mask, **kwargs)
@@ -61,13 +62,13 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
 def flagSesonalRange(
     data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
 ):
-    smask = sesonalMask(data.index, startmonth, startday, endmonth, endday)
+    smask = sesonalMask(data[field].index, startmonth, startday, endmonth, endday)
 
     d = data.loc[smask, [field]]
     if d.empty:
         return data, flagger
 
-    _, flagger_range = flagRange(d, field, flagger.getFlagger(loc=d.index), min=min, max=max, **kwargs)
+    _, flagger_range = flagRange(d, field, flagger.getFlagger(loc=d[field].index), min=min, max=max, **kwargs)
 
     if not flagger_range.isFlagged(field).any():
         return data, flagger

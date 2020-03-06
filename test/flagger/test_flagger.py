@@ -11,27 +11,25 @@ from pandas.api.types import is_bool_dtype
 
 import dios.dios as dios
 
-from test.common import TESTFLAGGER
+from test.common import TESTFLAGGER, initData
 
 
 def _getDataset(rows, cols):
-    df = dios.DictOfSeries()
-    dtidx = pd.date_range(start="2011-01-01", end="2011-01-10", periods=rows)
-    for c in range(cols):
-        df[f"var{c}"] = pd.Series(data=np.linspace(0 + 100 * c, rows, rows), index=dtidx)
-    return df
+    return initData(cols=cols, rows=rows,
+                    start_date="2011-01-01",
+                    end_date="2011-01-10")
 
 
 DATASETS = [
     _getDataset(0, 1),
     _getDataset(1, 1),
     _getDataset(100, 1),
-    _getDataset(1000, 1),
+    # _getDataset(1000, 1),
     _getDataset(0, 4),
     _getDataset(1, 4),
-    _getDataset(100, 4),
-    _getDataset(1000, 4),
-    _getDataset(10000, 40),
+    # _getDataset(100, 4),
+    # _getDataset(1000, 4),
+    # _getDataset(10000, 40),
     _getDataset(20, 4),
 ]
 
