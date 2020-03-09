@@ -35,7 +35,8 @@ def flagSpikes_limitRaise(
     dataseries = data[field].dropna()
     raise_window = pd.Timedelta(raise_window)
     intended_freq = pd.Timedelta(intended_freq)
-    min_slope = np.abs(min_slope)
+    if min_slope is not None:
+        min_slope = np.abs(min_slope)
 
     if average_window is None:
         average_window = 1.5 * pd.Timedelta(raise_window)
