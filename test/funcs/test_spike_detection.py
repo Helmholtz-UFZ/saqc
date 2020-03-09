@@ -10,6 +10,7 @@ from saqc.funcs.spike_detection import (
     flagSpikes_simpleMad,
     flagSpikes_slidingZscore,
     flagSpikes_basic,
+    flagSpikes_limitRaise
 )
 
 from test.common import TESTFLAGGER
@@ -84,3 +85,23 @@ def test_flagSpikesBasic(spiky_data, flagger):
     assert test_sum == len(spiky_data[1])
 
 
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+#@pytest.mark.parametrize("data_fix", [course_1, course_2])
+def test_flagSpikesLimitRaise(course_1, flagger):
+    data, characteristics = course_1()
+    field, *_ = data.columns
+    flagger = flagger.initFlags(data)
+    _, flagger_result = flagSpikes_limitRaise(
+        data, field, flagger, thresh=2, intended_freq='10min', raise_window='20min', numba_boost=False
+    )
+    assert flagger_result.isFlagged(field)[characteristics['raise']].all()
+    assert not flagger_result.isFlagged(field)[characteristics['return']].any()
+    assert not flagger_result.isFlagged(field)[characteristics['drop']].any()
+
+
+if __name__ == "__main__":
+    import conftest
+    flagger = TESTFLAGGER[1]
+    test_flagSpikesLimitRaise(conftest.course_2,flagger)
+
+    print('stop')

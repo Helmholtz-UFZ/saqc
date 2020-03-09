@@ -23,7 +23,7 @@ from saqc.lib.tools import (
 @register("spikes_limitRaise")
 def flagSpikes_limitRaise(
     data, field, flagger, thresh, raise_window, intended_freq, average_window=None, mean_raise_factor=2, min_slope=None,
-        min_slope_weight=0.8, **kwargs
+        min_slope_weight=0.8, numba_boost=True, **kwargs
 ):
     """ flag a value if it deviates from any of its preceeding values within "window" range, in a margin higher than
     thresh  """
@@ -49,8 +49,6 @@ def flagSpikes_limitRaise(
         comp = op.le
         mi_ma = np.min
 
-    # jit funcs to roll with:
-    @numba.jit(nopython=True)
     def raise_check(x, thresh):
 
         test_set = x[-1] - x[0:-1]
@@ -60,13 +58,17 @@ def flagSpikes_limitRaise(
         else:
             return np.nan
 
-    @numba.jit(nopython=True)
     def custom_rolling_mean(x):
         return np.mean(x[:-1])
 
     # get invalid-raise/drop mask:
-    raise_series = dataseries.rolling(raise_window, min_periods=2).apply(raise_check, args=(thresh,), raw=True,
-                                                                   engine="numba")
+    raise_series = dataseries.rolling(raise_window, min_periods=2)
+
+    if numba_boost:
+        raise_check = numba.jit(raise_check, nopython=True)
+        raise_series = raise_series.apply(raise_check, args=(thresh,), raw=True, engine="numba")
+    else:
+        raise_series = raise_series.apply(raise_check, args=(thresh,), raw=True)
 
     if raise_series.isna().all():
         return data, flagger
@@ -93,14 +95,17 @@ def flagSpikes_limitRaise(
     weighted_data = dataseries.mul(weights.values)
 
     # rolling weighted mean calculation
-    weighted_rolling_mean = weighted_data.rolling(average_window, min_periods=2, closed='both').apply(
-        custom_rolling_mean, raw=True,
-        engine="numba")
+    weighted_rolling_mean = weighted_data.rolling(average_window, min_periods=2, closed='both')
+    if numba_boost:
+        custom_rolling_mean = numba.jit(custom_rolling_mean, nopython=True)
+        weighted_rolling_mean = weighted_rolling_mean.apply(custom_rolling_mean, raw=True, engine="numba")
+    else:
+        weighted_rolling_mean = weighted_rolling_mean.apply(custom_rolling_mean, raw=True)
 
     # check means against critical raise value:
     to_flag = comp(dataseries, weighted_rolling_mean + (raise_series / mean_raise_factor))
     to_flag &= raise_series.notna()
-    flagger = flagger.setFlags(field, to_flag.index, **kwargs)
+    flagger = flagger.setFlags(field, to_flag[to_flag].index, **kwargs)
 
     return data, flagger
 
