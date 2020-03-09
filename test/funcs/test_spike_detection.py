@@ -82,3 +82,5 @@ def test_flagSpikesBasic(spiky_data, flagger):
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
+
+
