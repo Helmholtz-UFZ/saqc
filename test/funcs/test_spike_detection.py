@@ -86,9 +86,12 @@ def test_flagSpikesBasic(spiky_data, flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-#@pytest.mark.parametrize("data_fix", [course_1, course_2])
-def test_flagSpikesLimitRaise(course_1, flagger):
-    data, characteristics = course_1()
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture('course_1'),
+                                 pytest.lazy_fixture('course_2'),
+                                 pytest.lazy_fixture('course_3'),
+                                 pytest.lazy_fixture('course_4')])
+def test_flagSpikesLimitRaise(dat, flagger):
+    data, characteristics = dat()
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
     _, flagger_result = flagSpikes_limitRaise(
