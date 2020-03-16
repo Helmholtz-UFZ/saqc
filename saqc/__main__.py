@@ -14,7 +14,7 @@ from saqc.flagger.dmpflagger import DmpFlagger, FlagFields
 FLAGGERS = {
     "numeric": CategoricalFlagger([-1, 0, 1]),
     "category": CategoricalFlagger(["NIL", "OK", "BAD"]),
-    "dmp": DmpFlagger()
+    "dmp": DmpFlagger(),
 }
 
 

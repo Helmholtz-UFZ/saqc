@@ -30,3 +30,7 @@
 
 ## Refactorings
 - configuration reader rework
+
+# 1.3
+
+coming soon...

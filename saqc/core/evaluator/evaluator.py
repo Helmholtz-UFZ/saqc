@@ -43,7 +43,7 @@ def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: f
         "len": len,
         # NOTE:
         # the following pairs are only needed for the tree transformation
-        "nolookup": set(["isflagged"]), # no variable lookup for flagger based functions,
+        "nolookup": set(["isflagged"]),  # no variable lookup for flagger based functions,
         "variables": set(flagger.getFlags().columns.tolist()),
         "this": field,
     }

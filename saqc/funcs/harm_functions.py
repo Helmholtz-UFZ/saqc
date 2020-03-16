@@ -167,7 +167,9 @@ def harmWrapper(heap={}):
         dat_col = harm_info[Heap.DATA].reindex(flags_col.index, fill_value=np.nan)
         dat_col.name = field
         # transform the result into the form, data travels through saqc:
-        data, flagger_out = _toMerged(data, flagger, field, dat_col, flagger_back_full, target_index=heap[Heap.INDEX], **kwargs)
+        data, flagger_out = _toMerged(
+            data, flagger, field, dat_col, flagger_back_full, target_index=heap[Heap.INDEX], **kwargs
+        )
         # clear heap if nessecary:
         if len(heap) == 1 and Heap.INDEX in heap:
             del heap[Heap.INDEX]
