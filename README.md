@@ -88,10 +88,7 @@ conda activate saqc
 ```
    
 ### Python version
-The minimum Python version required is 3.6 and SaQC is directly compatible with
-Python versions 3.6 and 3.7. If you are already on Python 3.8 however, the
-installation process is currently a bit more involved as still not all dependencies
-are available as binary wheels.
+The minimum Python version required is 3.6.
 
    
 ## Usage

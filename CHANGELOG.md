@@ -22,6 +22,7 @@
 - exe: added the dmp flagger option
 - exe: use nodata argument as nodata-representation in output
 - flagging functions: implemented flagging function aiming to flag invalid value raises in a given time range
+- anaconda support
 
 ## Bugfixes
 - pass the harmonization function names to the flagger
