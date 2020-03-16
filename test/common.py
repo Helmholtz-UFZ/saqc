@@ -55,6 +55,13 @@ def _getKeys(metadict):
     return keys
 
 
+def writeIO(content):
+    f = io.StringIO()
+    f.write(content)
+    f.seek(0)
+    return f
+
+
 def initMetaDict(config_dict, data):
     df = pd.DataFrame(config_dict)[_getKeys(config_dict)]
     fobj = io.StringIO()

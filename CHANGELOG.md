@@ -37,3 +37,10 @@
 # 1.3
 
 coming soon...
+
+## Features
+
+## Bugfixes
+- configuration: certain whitespace patterns broke the configuration parsing
+
+## Refactorings
