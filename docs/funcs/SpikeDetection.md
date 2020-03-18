@@ -8,6 +8,7 @@ A collection of quality check routines to find spikes.
 - [spikes_simpleMad](#spikes_simplemad)
 - [spikes_slidingZscore](#spikes_slidingzscore)
 - [spikes_spektrumBased](#spikes_spektrumbased)
+- [spikes_limitRaise](#spikes_limitraise)
 
 
 ## spikes_basic
@@ -184,3 +185,57 @@ Currently two different noise detection functions are implemented:
 [1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
     Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
     doi:10.2136/vzj2012.0097.
+    
+## spikes_limitRaise
+
+
+```
+spikes_limitRaise(thresh, raise_window, intended_freq, average_window=None, 
+                  mean_raise_factor=2, min_slope=None, min_slope_weight=0.8, 
+                  numba_boost=True)
+```
+
+| parameter         | data type                                                     | default value | description                                                                                                                                                |
+|-------------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| thresh            | float                                                         |               | The threshold, for the total rise (`thresh` $` > 0 `$ ), or total drop (`thresh` $` < 0 `$ ), that value courses must not exceed within a timespan of length `raise_window`                                      |
+| raise_window      | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The timespan, the rise/drop thresholding refers to. Window is inclusively defined. |
+| intended_freq     | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The frequency, timeseries to-be-flagged is supposed to be sampled at. Window is inclusively defined. |
+| average_window    | [offset string](docs/ParameterDescriptions.md#offset-strings) | `None`        | See condition (2) below. Window is inclusively defined. The window defaults to 1.5 times the size of `raise_window`  |
+| mean_raise_factor | float                                                         | `2`           | See condition (2) below.  |
+| min_slope         | float                                                         | `None`        | See condition (3) |
+| min_slope_weight  | integer                                                       | `0.8`         | See condition (3)  |
+
+The function flags rises and drops in value courses, that exceed the threshold 
+given by `thresh` within a timespan shorter than, or equalling the time window 
+given by `raise_window`. 
+
+Weather rises or drops are flagged, is controlled by the signum of `thresh`. 
+(positive->rises, negative->drops)
+
+The parameter variety of the function is owned to the intriguing
+case of values, that "return" from outlierish or anomalious value levels and 
+thus exceed the threshold, while actually being usual values. 
+
+The value $`x_{k}`$ of a time series $`x`$ with associated 
+timestamps $`t_i`$, is flagged a rise, if:
+
+1. There is any value $`x_{s}`$, preceeding $`x_{k}`$ within `raise_window` range, so that:
+    * $` M = |x_k - x_s | > `$  `thresh` $` > 0`$ 
+2. The weighted average $`\mu^*`$ of the values, preceeding $`x_{k}`$ within `average_window` range indicates, that $`x_{k}`$ doesnt return from an outliererish value course, meaning that:  
+    * $` x_k > \mu^* + ( M `$ / `mean_raise_factor` $`)`$  
+3. Additionally, if `min_slope` is not `None`, $`x_{k}`$ is checked for being sufficiently divergent from its very predecessor $`x_{k-1}`$, meaning that, it is additionally checked if: 
+    * $`x_k - x_{k-1} > `$ `min_slope` 
+    * $`t_k - t_{k-1} > `$ `min_slope_weight`*`intended_freq`
+
+The weighted average $`\mu^*`$ was calculated with weights $`w_{i}`$, defined by: 
+* $`w_{i} = (t_i - t_{i-1})`$ / `intended_freq`, if $`(t_i - t_{i-1})`$ < `intended_freq` and $`w_i =1`$ otherwise. 
+
+The application of time gap weights and a slope weights are to account for the case of not harmonized timeseries.
+
+NOTE:
+- The dataset is NOT supposed to be harmonized to a time series with an 
+  equidistant frequency grid
+
+
+
+
