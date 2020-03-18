@@ -41,20 +41,15 @@ def flagSpikes_limitRaise(
     if average_window is None:
         average_window = 1.5 * pd.Timedelta(raise_window)
 
-    # decide if flagging raises or drops?
-    if thresh > 0:
-        comp = op.ge
-        mi_ma = np.max
-    else:
-        comp = op.le
-        mi_ma = np.min
+    if thresh < 0:
+        dataseries *= -1
+        thresh *= -1
 
     def raise_check(x, thresh):
-
         test_set = x[-1] - x[0:-1]
-        mi_ma_val = mi_ma(test_set)
-        if comp(mi_ma_val, thresh):
-            return mi_ma_val
+        max_val = np.max(test_set)
+        if max_val >= thresh:
+            return max_val
         else:
             return np.nan
 
@@ -103,7 +98,7 @@ def flagSpikes_limitRaise(
         weighted_rolling_mean = weighted_rolling_mean.apply(custom_rolling_mean, raw=True)
 
     # check means against critical raise value:
-    to_flag = comp(dataseries, weighted_rolling_mean + (raise_series / mean_raise_factor))
+    to_flag = dataseries >= weighted_rolling_mean + (raise_series / mean_raise_factor)
     to_flag &= raise_series.notna()
     flagger = flagger.setFlags(field, to_flag[to_flag].index, **kwargs)
 
