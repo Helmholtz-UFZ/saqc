@@ -4,9 +4,17 @@
 import pytest
 import numpy as np
 
+import saqc
 from saqc.core.reader import checkConfig
 from saqc.core.config import Fields as F
-from test.common import initData, initMetaDict, initMetaString, TESTFLAGGER, TESTNODATA
+from test.common import (
+    initData,
+    initMetaDict,
+    initMetaString,
+    TESTFLAGGER,
+    TESTNODATA,
+    writeIO
+)
 
 
 @pytest.fixture
@@ -74,18 +82,36 @@ def test_inlineComments(data):
 def test_configReaderLineNumbers(data):
     config = f"""
     {F.VARNAME}|{F.TESTS}
-    #temp1|flagAll()
-    pre1|flagAll()
-    pre2|flagAll()
-    SM|flagAll()
-    #SM|flagAll()
-    SM1|flagAll()
+    #temp1|dummy()
+    pre1|dummy()
+    pre2|dummy()
+    SM|dummy()
+    #SM|dummy()
+    # SM1|dummy()
+
+    SM1|dummy()
     """
     meta_fname, meta_frame = initMetaString(config, data)
     result = meta_frame[F.LINENUMBER].tolist()
-    expected = [3, 4, 5, 7]
+    expected = [3, 4, 5, 9]
     assert result == expected
 
+def test_configFile(data):
+
+    # check that the reader accepts different whitespace patterns
+
+    config = f"""
+    {F.VARNAME} ; {F.TESTS}
+    #temp1      ; dummy()
+    pre1; dummy()
+    pre2        ;dummy()
+    SM          ; dummy()
+    #SM         ; dummy()
+    # SM1       ; dummy()
+
+    SM1;dummy()
+    """
+    saqc.run(writeIO(config), TESTFLAGGER[0], data)
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("nodata", TESTNODATA)
@@ -100,7 +126,6 @@ def test_configChecks(data, flagger, nodata, caplog):
         ({F.VARNAME: var3, F.TESTS: "flagNothing()"}, NameError),
         ({F.VARNAME: "", F.TESTS: "range(min=3)"}, SyntaxError),
         ({F.VARNAME: var1, F.TESTS: ""}, SyntaxError),
-        ({F.VARNAME: ""}, SyntaxError),
         ({F.TESTS: "range(min=3)"}, SyntaxError),
     ]
 

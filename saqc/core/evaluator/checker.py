@@ -47,7 +47,7 @@ class DslChecker(ast.NodeVisitor):
 
     def visit_Name(self, node):
         name = node.id
-        if name != "this" and name not in self.environment and name not in self.environment["variables"]:
+        if name not in self.environment and name not in self.environment["variables"]:
             raise NameError(f"unknown variable: '{name}'")
         self.generic_visit(node)
 

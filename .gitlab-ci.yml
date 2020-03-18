@@ -31,10 +31,11 @@ test:python37:
     - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv
 
 
-# test:python38:
-#   script:
-#     - pyenv install 3.8.0
-#     - pyenv shell 3.8.0
-#     - pip install --upgrade pip
-#     - pip install -r requirements.txt
-#     - python -m pytest test
+test:python38:
+  script:
+    - pyenv install 3.8.0
+    - pyenv shell 3.8.0
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - python -m pytest test
+    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv

@@ -102,7 +102,7 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
     flagger = flagger.setFlags("data", loc=data.index[3:4])
     data, flagger = deharmonize(data, "data", flagger, co_flagging=co_flagging)
 
-    if reshaper is "nshift":
+    if reshaper == "nshift":
         if co_flagging is True:
             assert flagger.isFlagged(loc=data.index[3:7]).squeeze().all()
             assert (~flagger.isFlagged(loc=data.index[0:3]).squeeze()).all()
@@ -112,7 +112,7 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
                 flagger.isFlagged().squeeze()
                 == [False, False, False, False, True, False, True, False, False]
             ).all()
-    if reshaper is "bshift":
+    if reshaper == "bshift":
         if co_flagging is True:
             assert flagger.isFlagged(loc=data.index[5:7]).squeeze().all()
             assert (~flagger.isFlagged(loc=data.index[0:5]).squeeze()).all()
@@ -122,7 +122,7 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
                 flagger.isFlagged().squeeze()
                 == [False, False, False, False, False, True, True, False, False]
             ).all()
-    if reshaper is "fshift":
+    if reshaper == "fshift":
         if co_flagging is True:
             assert flagger.isFlagged(loc=data.index[3:5]).squeeze().all()
             assert flagger.isFlagged(loc=data.index[6:7]).squeeze().all()
@@ -164,7 +164,7 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
         inter_agg="sum",
     )
 
-    if interpolation is "fshift":
+    if interpolation == "fshift":
         if freq == "15min":
             assert data.equals(
                 pd.DataFrame(
@@ -175,7 +175,7 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
             assert data.equals(
                 pd.DataFrame({"data": [np.nan, -37.5, 0.0, 50.0]}, index=test_index)
             )
-    if interpolation is "bshift":
+    if interpolation == "bshift":
         if freq == "15min":
             assert data.equals(
                 pd.DataFrame(
@@ -186,7 +186,7 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
             assert data.equals(
                 pd.DataFrame({"data": [-50.0, -37.5, 12.5, 50.0]}, index=test_index)
             )
-    if interpolation is "nshift":
+    if interpolation == "nshift":
         if freq == "15min":
             assert data.equals(
                 pd.DataFrame(
@@ -197,7 +197,7 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
             assert data.equals(
                 pd.DataFrame({"data": [np.nan, -37.5, 12.5, 50.0]}, index=test_index)
             )
-    if interpolation is "nagg":
+    if interpolation == "nagg":
         if freq == "15min":
             assert data.equals(
                 pd.DataFrame(
@@ -208,7 +208,7 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
             assert data.equals(
                 pd.DataFrame({"data": [np.nan, -87.5, -25.0, 87.5]}, index=test_index)
             )
-    if interpolation is "bagg":
+    if interpolation == "bagg":
         if freq == "15min":
             assert data.equals(
                 pd.DataFrame(

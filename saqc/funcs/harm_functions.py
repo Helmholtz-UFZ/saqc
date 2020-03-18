@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import pdb
 import pandas as pd
 import numpy as np
 import logging
@@ -113,7 +114,7 @@ def harmWrapper(heap={}):
         # finally we happily blow up the data and flags frame again,
         # to release them on their ongoing journey through saqc.
         data, flagger_out = _toMerged(
-            data, flagger, field, data_to_insert=dat_col, flagger_to_insert=flagger_merged_clean_reshaped,
+            data, flagger, field, data_to_insert=dat_col, flagger_to_insert=flagger_merged_clean_reshaped, **kwargs
         )
 
         return data, flagger_out
@@ -166,7 +167,9 @@ def harmWrapper(heap={}):
         dat_col = harm_info[Heap.DATA].reindex(flags_col.index, fill_value=np.nan)
         dat_col.name = field
         # transform the result into the form, data travels through saqc:
-        data, flagger_out = _toMerged(data, flagger, field, dat_col, flagger_back_full, target_index=heap[Heap.INDEX],)
+        data, flagger_out = _toMerged(
+            data, flagger, field, dat_col, flagger_back_full, target_index=heap[Heap.INDEX], **kwargs
+        )
         # clear heap if nessecary:
         if len(heap) == 1 and Heap.INDEX in heap:
             del heap[Heap.INDEX]
@@ -368,10 +371,22 @@ def _interpolateGrid(
     # Interpolations:
     elif method in interpolations:
 
+        # account for annoying case of subsequent frequency alligned values, differing exactly by the margin
+        # 2*freq:
+        spec_case_mask = data.asfreq(freq).dropna().index.to_series()
+        spec_case_mask = (spec_case_mask - spec_case_mask.shift(1)) == 2 * pd.Timedelta(freq)
+        spec_case_mask = spec_case_mask[spec_case_mask]
+        if not spec_case_mask.empty:
+            spec_case_mask = spec_case_mask.tshift(-1, freq)
+
         data = _insertGrid(data, freq)
         data, chunk_bounds = _interpolate(
             data, method, order=order, inter_limit=2, downcast_interpolation=downcast_interpolation,
         )
+
+        # exclude falsely interpolated values:
+        data[spec_case_mask.index] = np.nan
+
         if total_range is None:
             data = data.asfreq(freq, fill_value=np.nan)
 
@@ -522,7 +537,7 @@ def _reshapeFlags(
     ]
     shifts = ["fshift", "bshift", "nshift"]
 
-    freq = ref_index.freqstr
+    freq = ref_index.freq
 
     if method in shifts:
         # forward/backward projection of every intervals last/first flag - rest will be dropped
@@ -688,14 +703,14 @@ def _backtrackFlags(flagger_post, flagger_pre, freq, track_method="invert_fshift
 def _fromMerged(data, flagger, fieldname):
     # we need a not-na mask for the flags data to be retrieved:
     mask = flagger.getFlags(fieldname).notna()
-    return data.loc[mask, fieldname], flagger.getFlagger(field=fieldname, loc=mask)
+    return data.loc[mask[mask].index, fieldname], flagger.getFlagger(field=fieldname, loc=mask)
 
 
-def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None):
+def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None, **kwargs):
 
     data = data.copy()
-    flags = flagger.getFlags()
-    flags_to_insert = flagger_to_insert.getFlags()
+    flags = flagger._flags
+    flags_to_insert = flagger_to_insert._flags
 
     if isinstance(data, pd.Series):
         data = data.to_frame()
@@ -740,7 +755,7 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
 
         # internally harmonization memorizes its own manipulation by inserting nan flags -
         # those we will now assign the flagger.bad flag by the "missingTest":
-        return flagMissing(data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan)
+        return flagMissing(data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan, **kwargs)
 
 
 @register("harmonize_shift2Grid")
