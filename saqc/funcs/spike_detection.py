@@ -25,11 +25,13 @@ def flagSpikes_limitRaise(
     data, field, flagger, thresh, raise_window, intended_freq, average_window=None, mean_raise_factor=2, min_slope=None,
         min_slope_weight=0.8, numba_boost=True, **kwargs
 ):
-    """ flag a value if it deviates from any of its preceeding values within "window" range, in a margin higher than
-    thresh  """
 
     # NOTE1: this implementation accounts for the case of "pseudo" spikes that result from checking against outliers
     # NOTE2: the test is designed to work on raw data as well as on regularized
+    #
+    # See saqc documentation at:
+    # https://git.ufz.de/rdm-software/saqc/blob/develop/docs/funcs/SpikeDetection.md
+    # for more details
 
     # prepare input args
     dataseries = data[field].dropna()

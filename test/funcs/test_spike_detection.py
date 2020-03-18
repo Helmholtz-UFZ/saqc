@@ -101,10 +101,3 @@ def test_flagSpikesLimitRaise(dat, flagger):
     assert not flagger_result.isFlagged(field)[characteristics['return']].any()
     assert not flagger_result.isFlagged(field)[characteristics['drop']].any()
 
-
-if __name__ == "__main__":
-    import conftest
-    flagger = TESTFLAGGER[1]
-    test_flagSpikesLimitRaise(conftest.course_2,flagger)
-
-    print('stop')
