@@ -42,5 +42,6 @@ coming soon...
 
 ## Bugfixes
 - configuration: certain whitespace patterns broke the configuration parsing
+- reader: variables only abailable within the flagger were not transformed correctly
 
 ## Refactorings

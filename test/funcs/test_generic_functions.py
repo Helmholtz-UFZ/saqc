@@ -9,7 +9,7 @@ from test.common import initData, TESTFLAGGER, TESTNODATA
 from saqc.core.core import run
 from saqc.core.config import Fields as F
 
-from test.common import initData, TESTFLAGGER, TESTNODATA, initMetaDict
+from test.common import initData, TESTFLAGGER, TESTNODATA, initMetaDict, initMetaString
 
 from saqc.core.evaluator import (
     DslTransformer,
