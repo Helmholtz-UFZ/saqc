@@ -13,7 +13,6 @@ import dios.dios as dios
 
 from saqc.lib.tools import toSequence, assertScalar, assertDictOfSeries
 
-
 COMPARATOR_MAP = {
     "!=": op.ne,
     "==": op.eq,
@@ -22,7 +21,6 @@ COMPARATOR_MAP = {
     "<=": op.le,
     "<": op.lt,
 }
-
 
 BaseFlaggerT = TypeVar("BaseFlaggerT")
 # fixme: does DictOfSeries is pd-like ?
@@ -41,7 +39,7 @@ class BaseFlagger(ABC):
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
         self.signature = ("flag",)
-        self._flags = dios.DictOfSeries()
+        self._flags: dios.DictOfSeries = dios.DictOfSeries()
 
     def initFlags(self, data: dios.DictOfSeries = None, flags: dios.DictOfSeries = None) -> BaseFlaggerT:
         """
@@ -137,7 +135,6 @@ class BaseFlagger(ABC):
             # trim flags to loc, we always get a pd.Series returned
             this = self.getFlags(field=field, loc=loc)
             row_indexer = this < flag
-            row_indexer = row_indexer[row_indexer]
 
         out = deepcopy(self)
         out._flags.aloc[row_indexer, field] = flag
@@ -153,9 +150,9 @@ class BaseFlagger(ABC):
         flags = self.getFlags(field, loc, **kwargs)
         cp = COMPARATOR_MAP[comparator]
 
-        # prevent nans to become True, like in: np.nan != 0 -> True,
-        notna = flags.notna() if isinstance(flags, pd.Series) else flags.apply(pd.notna)
-        flagged = notna & cp(flags, flag)
+        # use notna() to prevent nans to become True,
+        # like in: np.nan != 0 -> True
+        flagged = flags.notna() & cp(flags, flag)
         return flagged
 
     def copy(self, flags: dios.DictOfSeries = None) -> BaseFlaggerT:
