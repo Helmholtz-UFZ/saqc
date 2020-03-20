@@ -32,7 +32,7 @@ def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq=None, 
     if rows is None:
         freq = freq or '1h'
 
-    di = dios.DictOfSeries(itype=dios.DatetimeItype)
+    di = dios.DictOfSeries(itype=dios.DtItype)
     dates = pd.date_range(start=start_date, end=end_date, freq=freq, periods=rows)
     dummy = np.arange(len(dates))
 
