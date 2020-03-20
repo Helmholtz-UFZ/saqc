@@ -41,7 +41,7 @@ class BaseFlagger(ABC):
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
         self.signature = ("flag",)
-        self._flags: dios.DictOfSeries
+        self._flags = dios.DictOfSeries()
 
     def initFlags(self, data: dios.DictOfSeries = None, flags: dios.DictOfSeries = None) -> BaseFlaggerT:
         """
@@ -74,6 +74,8 @@ class BaseFlagger(ABC):
         this = self._flags
         other = other._flags
 
+        # use dios.merge() as soon as it implemented
+        # see https://git.ufz.de/rdm/dios/issues/15
         new = this.copy()
         cols = this.columns.intersection(other.columns)
         for c in cols:
@@ -93,11 +95,31 @@ class BaseFlagger(ABC):
         return self.copy(self.getFlags(field=field, loc=loc))
 
     def getFlags(self, field: str = None, loc: LocT = None) -> PandasT:
-        """ Return a potentially, to `loc`, trimmed down copy of flags. """
-        # NOTE: maybe add loc=BoolDios, field=None (if field not None -> err?)
-        loc = loc if loc is not None else slice(None)
-        field = slice(None) if field is None else field
-        return self._flags.aloc[loc, field].copy()
+        """ Return a potentially, to `loc`, trimmed down version of flags.
+
+        Return
+        ------
+        a pd.Series if field is a string or a Dios if not
+
+        Note
+        ----
+            This is more or less a __getitem__(key)-like function, where
+            self._flags is accessed and key is a single key or a tuple.
+            Either key is [loc] or [loc,field]. loc also can be a 2D-key,
+            aka. a booldios"""
+
+        # loc should be a valid 2D-indexer and
+        # then field must be None. Otherwise aloc
+        # will fail and throw the correct Error.
+        if isinstance(loc, dios.DictOfSeries) and field is None:
+            indexer = loc
+
+        else:
+            loc = slice(None) if loc is None else loc
+            field = slice(None) if field is None else self._check_field(field)
+            indexer = (loc, field)
+
+        return self._flags.aloc[indexer]
 
     def setFlags(self, field: str, loc: LocT = None, flag: FlagT = None, force: bool = False, **kwargs) -> BaseFlaggerT:
         """Overwrite existing flags at loc.
@@ -109,12 +131,16 @@ class BaseFlagger(ABC):
         assertScalar("field", field, optional=False)
         flag = self.BAD if flag is None else flag
 
-        # trim flags to loc
-        this = self.getFlags(field=field, loc=loc)
-        mask = this.index if force else this < flag
+        if force:
+            row_indexer = loc
+        else:
+            # trim flags to loc, we always get a pd.Series returned
+            this = self.getFlags(field=field, loc=loc)
+            row_indexer = this < flag
+            row_indexer = row_indexer[row_indexer]
 
         out = deepcopy(self)
-        out._flags.aloc[mask, field] = flag
+        out._flags.aloc[row_indexer, field] = flag
         return out
 
     def clearFlags(self, field: str, loc: LocT = None, **kwargs) -> BaseFlaggerT:
@@ -124,7 +150,7 @@ class BaseFlagger(ABC):
     def isFlagged(self, field=None, loc: LocT = None, flag: FlagT = None, comparator: str = ">", **kwargs) -> PandasT:
         assertScalar("flag", flag, optional=True)
         flag = self.GOOD if flag is None else flag
-        flags = self.getFlags(field, loc)
+        flags = self.getFlags(field, loc, **kwargs)
         cp = COMPARATOR_MAP[comparator]
 
         # prevent nans to become True, like in: np.nan != 0 -> True,
@@ -137,6 +163,29 @@ class BaseFlagger(ABC):
         if flags is not None:
             out._flags = flags
         return out
+
+    def _check_field(self, field):
+        """ Check if (all) field(s) in self._flags. """
+
+        # wait for outcome of
+        # https://git.ufz.de/rdm-software/saqc/issues/46
+        failed = []
+        if isinstance(field, str):
+            if field not in self._flags:
+                failed += [field]
+        else:
+            try:
+                for f in field:
+                    if f not in self._flags:
+                        failed += [f]
+            # not iterable, probably a slice or
+            # any indexer we dont have to check
+            except TypeError:
+                pass
+
+        if failed:
+            raise ValueError(f"key(s) missing in flags: {failed}")
+        return field
 
     @property
     @abstractmethod
