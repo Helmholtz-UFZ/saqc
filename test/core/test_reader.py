@@ -7,7 +7,7 @@ import numpy as np
 import saqc
 from saqc.core.reader import checkConfig
 from saqc.core.config import Fields as F
-from test.common import initData, initMetaDict, initMetaString, TESTFLAGGER, TESTNODATA
+from test.common import initData, initMetaDict, initMetaString, TESTFLAGGER, TESTNODATA, writeIO
 import dios.dios as dios
 
 
