@@ -96,7 +96,7 @@ def run(
 
     # prepapre the flags
     flag_cols = _collectVariables(meta, data)
-    flagger = flagger.initFlags(data=dios.DictOfSeries(index=data.index, columns=flag_cols))
+    flagger = flagger.initFlags(dios.DictOfSeries(data=data, columns=flag_cols))
     if flags is not None:
         flagger = flagger.setFlagger(flagger.initFlags(flags=flags))
 
@@ -132,11 +132,12 @@ def run(
             # NOTE:
             # time slicing support is currently disabled
             # prepare the data for the tests
-            # data_chunk = data.loc[start_date:end_date]
-            data_chunk = data
+            # dtslice = slice(start_date, end_date)
+            dtslice = slice(None)
+            data_chunk = data.loc[dtslice]
             if data_chunk.empty:
                 continue
-            flagger_chunk = flagger.getFlagger(loc=data_chunk.index)
+            flagger_chunk = flagger.getFlagger(loc=dtslice)
 
             try:
                 # actually run the tests

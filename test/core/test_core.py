@@ -162,13 +162,8 @@ def test_assignVariable(flagger):
     pdata, pflagger = run(metafobj, flagger, data)
     pflags = pflagger.getFlags()
 
-    if isinstance(pflags.columns, pd.MultiIndex):
-        cols = pflags.columns.get_level_values(0).drop_duplicates()
-        assert (cols == [var1, var2]).all()
-        assert pflagger.isFlagged(var2).any()
-    else:
-        assert (pflags.columns == [var1, var2]).all()
-        assert pflagger.isFlagged(var2).any()
+    assert (pflags.columns == [var1, var2]).all()
+    assert pflagger.isFlagged(var2).empty
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

@@ -4,6 +4,7 @@
 import pytest
 import numpy as np
 import pandas as pd
+import dios.dios as dios
 
 from saqc.funcs.spike_detection import (
     flagSpikes_spektrumBased,
@@ -18,13 +19,12 @@ from test.common import TESTFLAGGER
 @pytest.fixture(scope="module")
 def spiky_data():
     index = pd.date_range(start="2011-01-01", end="2011-01-05", freq="5min")
-    spiky_series = dios.DictOfSeries(
-        dict(spiky_data=np.linspace(1, 2, index.size)), index=index
-    )
-    spiky_series.iloc[100] = 100
-    spiky_series.iloc[1000] = -100
+    s = pd.Series(np.linspace(1, 2, index.size), index=index)
+    spiky_data = dios.DictOfSeries()
+    spiky_data.iloc[100] = 100
+    spiky_data.iloc[1000] = -100
     flag_assertion = [100, 1000]
-    return spiky_series, flag_assertion
+    return spiky_data, flag_assertion
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

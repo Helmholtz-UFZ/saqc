@@ -4,6 +4,7 @@
 import pytest
 import numpy as np
 import pandas as pd
+import dios.dios as dios
 
 from saqc.funcs.soil_moisture_tests import (
     flagSoilMoistureBySoilFrost,
@@ -16,16 +17,12 @@ from test.common import TESTFLAGGER, initData
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagSoilMoistureBySoilFrost(flagger):
-    index = pd.date_range(
-        start="2011-01-01 00:00:00", end="2011-01-01 03:00:00", freq="5min"
-    )
-    data = dios.DictOfSeries(
-        {
-            "soil_moisture": np.linspace(0, 1, index.size),
-            "soil_temperature": np.linspace(1, -1, index.size),
-        },
-        index=index,
-    )
+    index = pd.date_range(start="2011-01-01 00:00:00", end="2011-01-01 03:00:00", freq="5min")
+
+    sm = pd.Series(data=np.linspace(0, +1, index.size), index=index)
+    st = pd.Series(data=np.linspace(1, -1, index.size), index=index)
+    data = dios.DictOfSeries([sm, st], columns=["soil_moisture", "soil_temperature"])
+
     flagger = flagger.initFlags(data)
     data, flagger_result = flagSoilMoistureBySoilFrost(
         data, "soil_moisture", flagger, "soil_temperature"
@@ -40,32 +37,30 @@ def test_flagSoilMoisturePrecipitationEvents(flagger):
     index = pd.date_range(
         start="2011-01-01 00:00:00", end="2011-01-04 00:00:00", freq="15min"
     )
-    data = dios.DictOfSeries(
-        {
-            "soil_moisture": np.linspace(0, 1, index.size),
-            "precipitation": np.linspace(1, 1, index.size),
-        },
-        index=index,
-    )
-    data["precipitation"]["2011-01-03"] = 0
-    data["precipitation"]["2011-01-04"] = 0
+
+    sm = pd.Series(data=np.linspace(0, 1, index.size), index=index)
+    pr = pd.Series(data=np.linspace(1, 1, index.size), index=index)
+    data = dios.DictOfSeries([sm, pr], columns=["soil_moisture", "precipitation"])
+
+    data.loc["2011-01-03", "precipitation"] = 0
+    data.loc["2011-01-04", "precipitation"] = 0
+
     flagger = flagger.initFlags(data)
     data, flag_result = flagSoilMoistureByPrecipitationEvents(
         data, "soil_moisture", flagger, "precipitation"
     )
+
     flag_assertion = [288, 287]
     flag_result = flag_result.getFlags("soil_moisture")
     test_sum = (flag_result[flag_assertion] == flagger.BAD).sum()
     assert test_sum == len(flag_assertion)
 
+
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagSoilMoistureConstants(flagger):
-
-    data = initData(
-        1, start_date="2011-01-01 00:00:00", end_date="2011-01-02 00:00:00", freq="5min"
-    )
+    data = initData(1, start_date="2011-01-01 00:00:00", end_date="2011-01-02 00:00:00", freq="5min")
     data.iloc[5:25] = 0
-    data.iloc[100:120] = data.max()[0]
+    data.iloc[100:120] = data.apply(max)[0]
     field = data.columns[0]
     flagger = flagger.initFlags(data)
     data, flagger = flagSoilMoistureConstant(

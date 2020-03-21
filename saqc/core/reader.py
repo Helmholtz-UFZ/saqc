@@ -91,7 +91,7 @@ def _clearRows(rows: Iterable[List[str]], comment: str = "#") -> Iterator[Tuple[
             yield i, row
 
 
-def readConfig(fname: Filename, data: dios.DictOfSeries, sep: str = ";", comment: str = "#") -> dios.DictOfSeries:
+def readConfig(fname: Filename, data: dios.DictOfSeries, sep: str = ";", comment: str = "#") -> pd.DataFrame:
     # fixme: default dates should come from index.min()/.max() per Series
     defaults = {F.VARNAME: "", F.START: '1970-01-01 00:00:00', F.END: '2025-01-01 00:00:00', F.PLOT: False}
 
@@ -108,7 +108,7 @@ def readConfig(fname: Filename, data: dios.DictOfSeries, sep: str = ";", comment
             config.append(row)
 
     expanded = _expandVarnameWildcards(config, data)
-    return dios.DictOfSeries(expanded)
+    return pd.DataFrame(expanded)
 
 
 def checkConfig(config_df: pd.DataFrame, data: dios.DictOfSeries, flagger: BaseFlagger, nodata: float) -> pd.DataFrame:

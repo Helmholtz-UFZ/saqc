@@ -6,6 +6,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
+from dios import dios
 from test.common import TESTFLAGGER
 
 from saqc.funcs.harm_functions import (
@@ -50,7 +51,7 @@ def data():
     dat = pd.Series(np.linspace(-50, 50, index.size), index=index, name="data")
     # good to have some nan
     dat[-3] = np.nan
-    data = dat.to_frame()
+    data = dios.DictOfSeries(dat)
     return data
 
 

@@ -86,7 +86,7 @@ def test_comparisonOperators(data, flagger):
             f"flagGeneric(func={expr})", data, this, flagger, np.nan
         )
         expected_flagger = flagger.setFlags(this, loc=mask, test="generic")
-        assert np.all(result_flagger.isFlagged() == expected_flagger.isFlagged())
+        assert (result_flagger.isFlagged() == expected_flagger.isFlagged()).all(None)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -110,7 +110,7 @@ def test_arithmeticOperators(data, flagger):
             f"flagGeneric(func={expr})", data, var1, flagger, np.nan
         )
         expected_flagger = flagger.setFlags(var1, loc=mask, test="generic")
-        assert np.all(result_flagger.isFlagged() == expected_flagger.isFlagged())
+        assert (result_flagger.isFlagged() == expected_flagger.isFlagged()).all(None)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -154,17 +154,17 @@ def test_reduncingBuiltins(data, flagger, nodata):
 @pytest.mark.parametrize("nodata", TESTNODATA)
 def test_ismissing(data, flagger, nodata):
 
-    data.iloc[: len(data) // 2, 0] = np.nan
-    data.iloc[(len(data) // 2) + 1 :, 0] = -9999
+    data.iloc[: data.lengths[0] // 2, 0] = np.nan
+    data.iloc[(data.lengths[0] // 2) + 1 :, 0] = -9999
     var1, *_ = data.columns
 
     flagger = flagger.initFlags(data)
 
     tests = [
-        (f"ismissing({var1})", lambda data: (pd.isnull(data) | (data == nodata)).all()),
+        (f"ismissing({var1})", lambda data: (data.isna() | (data == nodata)).all()),
         (
             f"~ismissing({var1})",
-            lambda data: (pd.notnull(data) & (data != nodata)).all(),
+            lambda data: (data.notna() & (data != nodata)).all(),
         ),
     ]
 
@@ -231,7 +231,7 @@ def test_invertIsFlagged(data, flagger):
             f"flagGeneric(func={expr})", data, var1, flagger, np.nan
         )
         flags_result = flagger_result.isFlagged(var1)
-        assert np.all(flags_result == flags_expected)
+        assert (flags_result == flags_expected).all(None)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -252,5 +252,5 @@ def test_isflaggedArgument(data, flagger):
     ]
 
     for result, expected in tests:
-        assert np.all(result == expected)
+        assert (result == expected).all(None)
 

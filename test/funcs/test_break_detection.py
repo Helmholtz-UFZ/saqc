@@ -18,6 +18,9 @@ def data():
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagBreaks_SpektrumBased(data, flagger):
     field, *_ = data.columns
+    # chunk = data.iloc[5:15]
+    # chunk += 100
+    # data.iloc[5:15] = chunk
     data.iloc[5:15] += 100
     break_positions = [5, 15]
     flagger = flagger.initFlags(data)

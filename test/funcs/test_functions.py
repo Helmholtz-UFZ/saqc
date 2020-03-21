@@ -70,8 +70,8 @@ def test_range(data, field, flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagSesonalRange(data, field, flagger):
     # prepare
-    data.loc[::2] = 0
-    data.loc[1::2] = 50
+    data.iloc[::2] = 0
+    data.iloc[1::2] = 50
     nyears = len(data[field].index.year.unique())
 
     tests = [

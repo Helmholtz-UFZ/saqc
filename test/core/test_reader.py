@@ -7,16 +7,17 @@ import numpy as np
 from saqc.core.reader import checkConfig
 from saqc.core.config import Fields as F
 from test.common import initData, initMetaDict, initMetaString, TESTFLAGGER, TESTNODATA
+import dios.dios as dios
 
 
 @pytest.fixture
-def data():
+def data() -> dios.DictOfSeries:
     return initData(3)
 
 
 def test_configPreparation(data):
     var1, var2, var3, *_ = data.columns
-    date = data.index[len(data.index) // 2]
+    date = data.indexes[0][data.lengths[0] // 2]
 
     # NOTE:
     # time slicing support is currently disabled
@@ -28,8 +29,8 @@ def test_configPreparation(data):
     ]
 
     defaults = {
-        F.START: data.index.min(),
-        F.END: data.index.max(),
+        F.START: data.indexes[0].min(),
+        F.END: data.indexes[0].max(),
         F.PLOT: False,
         F.LINENUMBER: 2,
     }
