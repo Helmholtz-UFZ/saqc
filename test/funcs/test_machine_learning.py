@@ -11,7 +11,7 @@ from test.common import TESTFLAGGER
 def test_flagML(flagger):
     ### CREATE MWE DATA
     data = pd.read_feather("ressources/machine_learning/data/soil_moisture_mwe.feather")
-    data = data.set_index(pd.DatetimeIndex(data.Time))
+    data = data.set_index(pd.DatetimeIndex(data.Time)).to_dios()
     flags_raw = data[["SM1_Flag", "SM2_Flag", "SM3_Flag"]]
     flags_raw.columns = ["SM1", "SM2", "SM3"]
 

@@ -1,11 +1,11 @@
+
+import dios
+import joblib
 import pandas as pd
 import numpy as np
-from saqc.funcs.register import register
-
-# NEW
 from sklearn.ensemble import RandomForestClassifier
-import joblib
 
+from saqc.funcs.register import register
 
 def _refCalc(reference, window_values):
     # Helper function for calculation of moving window values
@@ -61,8 +61,16 @@ def flagML(data, field, flagger, references, window_values: int, window_flags: i
     # forward-orientation not possible, so right-orientation on reversed data an reverse result
 
     # Add context information for field+references
+    df = df.to_df()
     for i in [field] + references:
-        df = pd.concat([df, _refCalc(reference=df[i], window_values=window_values)], axis=1)
+        ref = _refCalc(reference=df[i], window_values=window_values).to_df()
+        df = pd.concat([df, ref], axis=1)
+
+    # TODO:
+    # replace the above version with its DictOfSeries -> DataFrame
+    # conversions as soon as merging/joining is available in dios
+    # for i in [field] + references:
+    #     df = pd.concat([df, _refCalc(reference=df[i], window_values=window_values)], axis=1)
 
     # remove rows that contain NAs (new ones occured during predictor calculation)
     df = df.dropna(axis=0, how="any")
