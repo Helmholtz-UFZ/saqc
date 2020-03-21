@@ -24,19 +24,25 @@ def test_configPreparation(data):
     # time slicing support is currently disabled
     tests = [
         # {F.VARNAME: var1, F.START: date, F.TESTS: "flagAll()", F.PLOT: True},
-        {F.VARNAME: var2, F.TESTS: "flagAll()", F.PLOT: False},
         # {F.VARNAME: var3, F.END: date, F.TESTS: "flagAll()"},
+
+        {F.VARNAME: var2, F.TESTS: "flagAll()", F.PLOT: False},
         {F.VARNAME: var3, F.TESTS: "flagAll()",},
     ]
 
-    defaults = {
-        F.START: data.indexes[0].min(),
-        F.END: data.indexes[0].max(),
-        F.PLOT: False,
-        F.LINENUMBER: 2,
-    }
 
     for i, test in enumerate(tests):
+
+        index = data[test[F.VARNAME]].index
+        start_date, end_date = index.min(), index.max()
+
+        defaults = {
+            F.START: start_date,
+            F.END: end_date,
+            F.PLOT: False,
+            F.LINENUMBER: 2,
+        }
+
         _, meta_frame = initMetaDict([test], data)
         result = dict(zip(meta_frame.columns, meta_frame.iloc[0]))
         expected = {**defaults, **test}

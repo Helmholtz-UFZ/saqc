@@ -93,8 +93,13 @@ def _clearRows(rows: Iterable[List[str]], comment: str = "#") -> Iterator[Tuple[
 
 
 def readConfig(fname: Filename, data: dios.DictOfSeries, sep: str = ";", comment: str = "#") -> pd.DataFrame:
-    # fixme: default dates should come from index.min()/.max() per Series
-    defaults = {F.VARNAME: "", F.START: '1970-01-01 00:00:00', F.END: '2025-01-01 00:00:00', F.PLOT: False}
+
+    defaults = {
+        F.VARNAME: "",
+        F.START: min(map(min, data.indexes)),
+        F.END: max(map(max, data.indexes)),
+        F.PLOT: False
+    }
 
     with _open(fname) as f:
         rdr = reader(f, delimiter=";")
@@ -104,8 +109,11 @@ def readConfig(fname: Filename, data: dios.DictOfSeries, sep: str = ";", comment
 
         config = []
         for n, row in rows:
-            row = dict(zip(header, row))
-            row = _castRow({**defaults, **row, F.LINENUMBER: n + 1})
+            row = {**defaults, **dict(zip(header, row)), F.LINENUMBER: n + 1}
+            if row[F.VARNAME] in data:
+                index = data[row[F.VARNAME]].index
+                row = {**row, **{F.START: index.min(), F.END: index.max()}}
+            row = _castRow(row)
             config.append(row)
 
     expanded = _expandVarnameWildcards(config, data)
