@@ -75,12 +75,13 @@ functions) are very likely to be used on all or at least several variables of
 the processed dataset. As it becomes quite cumbersome to list all these
 variables seperately, only to call the same functions with the same
 parameters over and over again, SaQC supports regular expressions
-within the `varname` column.
+within the `varname` column. Please not that a `varname` needs to be quoted 
+(with `'` or `"`) in order to be interpreted as a regular expression.
 
 | varname      | test                                 |
 |--------------|--------------------------------------|
-| .*           | `harmonize_shift2Grid(freq="15Min")` |
-| (x &vert; y) | `missing()`                          |
+| `'.*'`       | `harmonize_shift2Grid(freq="15Min")` |
+| `'(x \| y)'` | `missing()`                          |
 
 #### Bring it to a file
 As mentioned above SaQC, expectd the configuration to be a table-like,
@@ -89,8 +90,8 @@ semicolon-separated text file. So the configuration from the
 
 ```
 varname;test;plot
-x;`missing()`;
-x;`range(min=0, max=100)`;False
-x;`constant(window="3h")`;True
-y;`range(min=-10, max=40)`;
+x;missing();
+x;range(min=0, max=100);False
+x;constant(window="3h");True
+y;range(min=-10, max=40);
 ```
