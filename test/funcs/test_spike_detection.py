@@ -84,6 +84,7 @@ def test_flagSpikesBasic(spiky_data, flagger):
     assert test_sum == len(spiky_data[1])
 
 
+# see test/functs/conftest.py for the 'course_N'
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture('course_1'),
                                  pytest.lazy_fixture('course_2'),
@@ -96,7 +97,8 @@ def test_flagSpikesLimitRaise(dat, flagger):
     _, flagger_result = flagSpikes_limitRaise(
         data, field, flagger, thresh=2, intended_freq='10min', raise_window='20min', numba_boost=False
     )
-    assert flagger_result.isFlagged(field)[characteristics['raise']].all()
-    assert not flagger_result.isFlagged(field)[characteristics['return']].any()
-    assert not flagger_result.isFlagged(field)[characteristics['drop']].any()
+    isflagged = flagger_result.isFlagged(field)
+    assert isflagged[characteristics['raise']].all()
+    assert not isflagged[characteristics['return']].any()
+    assert not isflagged[characteristics['drop']].any()
 
