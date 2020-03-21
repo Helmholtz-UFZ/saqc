@@ -7,14 +7,7 @@ import numpy as np
 import saqc
 from saqc.core.reader import checkConfig
 from saqc.core.config import Fields as F
-from test.common import (
-    initData,
-    initMetaDict,
-    initMetaString,
-    TESTFLAGGER,
-    TESTNODATA,
-    writeIO
-)
+from test.common import initData, initMetaDict, initMetaString, TESTFLAGGER, TESTNODATA, writeIO
 
 
 @pytest.fixture
@@ -52,17 +45,15 @@ def test_configPreparation(data):
 def test_variableRegex(data):
 
     tests = [
-        (".*", ".*"),
-        ("var(1|2)", "var(1|2)"),
-        ("(.*3)", "(.*3)")
+        ("'.*'", data.columns),
+        ("'var(1|2)'", [c for c in data.columns if c[-1] in ("1", "2")]),
+        ("'var[12]'", [c for c in data.columns if c[-1] in ("1", "2")]),
+        ("var[12]", ["var[12]"]),  # not quoted -> not a regex
+        ('"(.*3)"', [c for c in data.columns if c[-1] == "3"]),
     ]
 
-    for config_wc, expected_wc in tests:
-        _, config = initMetaDict(
-            [{F.VARNAME: config_wc, F.TESTS: "flagAll()"}],
-            data
-        )
-        expected = data.columns[data.columns.str.match(expected_wc)]
+    for config_wc, expected in tests:
+        _, config = initMetaDict([{F.VARNAME: config_wc, F.TESTS: "flagAll()"}], data)
         assert np.all(config[F.VARNAME] == expected)
 
 
@@ -96,6 +87,7 @@ def test_configReaderLineNumbers(data):
     expected = [3, 4, 5, 9]
     assert result == expected
 
+
 def test_configFile(data):
 
     # check that the reader accepts different whitespace patterns
@@ -112,6 +104,7 @@ def test_configFile(data):
     SM1;dummy()
     """
     saqc.run(writeIO(config), TESTFLAGGER[0], data)
+
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("nodata", TESTNODATA)

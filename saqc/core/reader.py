@@ -69,13 +69,15 @@ def _castRow(row: Dict[str, Any]):
 
 
 def _expandVarnameWildcards(config: Config, data: pd.DataFrame) -> Config:
+    def isQuoted(string):
+        return bool(re.search(r"'.*'|\".*\"", string))
+
     new = []
     for row in config:
         varname = row[F.VARNAME]
-        if varname and varname not in data:
-            expansion = data.columns[data.columns.str.match(varname)]
-            if not len(expansion):
-                expansion = [varname]
+        if varname and isQuoted(varname):
+            pattern = varname[1:-1]
+            expansion = data.columns[data.columns.str.match(pattern)]
             for var in expansion:
                 new.append({**row, F.VARNAME: var})
         else:

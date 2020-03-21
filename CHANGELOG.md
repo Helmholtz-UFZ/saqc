@@ -11,9 +11,11 @@
 - Preserve untouched/checked variables and don't remove them from the data input
 
  
-
 ## Refactorings
 --
+
+## Breaking Changes
+-- 
 
 # 1.2
 
@@ -34,6 +36,9 @@
 ## Refactorings
 - configuration reader rework
 
+## Breaking Changes
+-- 
+
 # 1.3
 
 coming soon...
@@ -42,6 +47,10 @@ coming soon...
 
 ## Bugfixes
 - configuration: certain whitespace patterns broke the configuration parsing
-- reader: variables only abailable within the flagger were not transformed correctly
+- reader: variables only available within the flagger were not transformed correctly
 
 ## Refactorings
+--
+
+## Breaking Changes
+- configuration: only quoted variable names are handled as regular expressions
