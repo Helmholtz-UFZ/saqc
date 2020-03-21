@@ -162,10 +162,7 @@ def test_ismissing(data, flagger, nodata):
 
     tests = [
         (f"ismissing({var1})", lambda data: (data.isna() | (data == nodata)).all()),
-        (
-            f"~ismissing({var1})",
-            lambda data: (data.notna() & (data != nodata)).all(),
-        ),
+        (f"~ismissing({var1})", lambda data: ~(data.isna() | (data == nodata)).all(),),
     ]
 
     for expr, checkFunc in tests:
