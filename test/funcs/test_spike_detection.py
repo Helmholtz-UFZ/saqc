@@ -19,12 +19,11 @@ from test.common import TESTFLAGGER
 @pytest.fixture(scope="module")
 def spiky_data():
     index = pd.date_range(start="2011-01-01", end="2011-01-05", freq="5min")
-    s = pd.Series(np.linspace(1, 2, index.size), index=index)
-    spiky_data = dios.DictOfSeries()
-    spiky_data.iloc[100] = 100
-    spiky_data.iloc[1000] = -100
+    s = pd.Series(np.linspace(1, 2, index.size), index=index, name="spiky_data")
+    s.iloc[100] = 100
+    s.iloc[1000] = -100
     flag_assertion = [100, 1000]
-    return spiky_data, flag_assertion
+    return dios.DictOfSeries(s), flag_assertion
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

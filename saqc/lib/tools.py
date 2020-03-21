@@ -80,11 +80,13 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
     """
 
     # fixme slidingWindowIndices
-    raise NotImplementedError
 
     # lets work on numpy data structures for performance reasons
-    if isinstance(dates, (dios.DictOfSeries, pd.Series)):
+    if isinstance(dates, (pd.DataFrame, pd.Series)):
         dates = dates.index
+    elif isinstance(dates, dios.DictOfSeries):
+        raise NotImplementedError("This currently is not implemented for DictOfSeries")
+
     dates = np.array(dates, dtype=np.int64)
 
     if np.any(np.diff(dates) <= 0):
