@@ -5,6 +5,7 @@
 - flagIsolated now respects time gaps in addition to value numbers
 - Make the comparator argument to isflagged available from the config
 
+
 ## Bugfixes
 - Fixed missing constant lookup in the evaluator
 - Preserve untouched/checked variables and don't remove them from the data input
@@ -20,6 +21,8 @@
 - Python 3.8 support
 - exe: added the dmp flagger option
 - exe: use nodata argument as nodata-representation in output
+- flagging functions: implemented flagging function aiming to flag invalid value raises in a given time range
+- anaconda support
 
 ## Bugfixes
 - pass the harmonization function names to the flagger
@@ -30,3 +33,15 @@
 
 ## Refactorings
 - configuration reader rework
+
+# 1.3
+
+coming soon...
+
+## Features
+
+## Bugfixes
+- configuration: certain whitespace patterns broke the configuration parsing
+- reader: variables only abailable within the flagger were not transformed correctly
+
+## Refactorings

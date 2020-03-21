@@ -5,10 +5,12 @@ import logging
 
 import numpy as np
 import pandas as pd
+import operator as op
 from scipy.signal import savgol_filter
 from scipy.stats import zscore
 from saqc.funcs.register import register
 import numpy.polynomial.polynomial as poly
+import numba
 
 from saqc.lib.tools import (
     inferFrequency,
@@ -16,6 +18,93 @@ from saqc.lib.tools import (
     offset2seconds,
     slidingWindowIndices,
 )
+
+
+@register("spikes_limitRaise")
+def flagSpikes_limitRaise(
+    data, field, flagger, thresh, raise_window, intended_freq, average_window=None, mean_raise_factor=2, min_slope=None,
+        min_slope_weight=0.8, numba_boost=True, **kwargs
+):
+
+    # NOTE1: this implementation accounts for the case of "pseudo" spikes that result from checking against outliers
+    # NOTE2: the test is designed to work on raw data as well as on regularized
+    #
+    # See saqc documentation at:
+    # https://git.ufz.de/rdm-software/saqc/blob/develop/docs/funcs/SpikeDetection.md
+    # for more details
+
+    # prepare input args
+    dataseries = data[field].dropna()
+    raise_window = pd.Timedelta(raise_window)
+    intended_freq = pd.Timedelta(intended_freq)
+    if min_slope is not None:
+        min_slope = np.abs(min_slope)
+
+    if average_window is None:
+        average_window = 1.5 * pd.Timedelta(raise_window)
+
+    if thresh < 0:
+        dataseries *= -1
+        thresh *= -1
+
+    def raise_check(x, thresh):
+        test_set = x[-1] - x[0:-1]
+        max_val = np.max(test_set)
+        if max_val >= thresh:
+            return max_val
+        else:
+            return np.nan
+
+    def custom_rolling_mean(x):
+        return np.mean(x[:-1])
+
+    # get invalid-raise/drop mask:
+    raise_series = dataseries.rolling(raise_window, min_periods=2)
+
+    if numba_boost:
+        raise_check = numba.jit(raise_check, nopython=True)
+        raise_series = raise_series.apply(raise_check, args=(thresh,), raw=True, engine="numba")
+    else:
+        raise_series = raise_series.apply(raise_check, args=(thresh,), raw=True)
+
+    if raise_series.isna().all():
+        return data, flagger
+
+    # "unflag" values of unsifficient deviation to there predecessors
+    if min_slope is not None:
+        w_mask = (pd.Series(dataseries.index).diff().dt.total_seconds() / intended_freq.total_seconds()) > \
+                 min_slope_weight
+        slope_mask = np.abs(dataseries.diff()) < min_slope
+        to_unflag = raise_series.notna() & w_mask.values & slope_mask
+        raise_series[to_unflag] = np.nan
+
+    # calculate and apply the weighted mean weights (pseudo-harmonization):
+    weights = pd.Series(dataseries.index).diff(periods=2).shift(
+        -1).dt.total_seconds() / intended_freq.total_seconds() / 2
+
+    weights.iloc[0] = 0.5 + (dataseries.index[1] - dataseries.index[0]).total_seconds() / (
+                intended_freq.total_seconds() * 2)
+
+    weights.iloc[-1] = 0.5 + (dataseries.index[-1] - dataseries.index[-2]).total_seconds() / (
+                intended_freq.total_seconds() * 2)
+
+    weights[weights > 1.5] = 1.5
+    weighted_data = dataseries.mul(weights.values)
+
+    # rolling weighted mean calculation
+    weighted_rolling_mean = weighted_data.rolling(average_window, min_periods=2, closed='both')
+    if numba_boost:
+        custom_rolling_mean = numba.jit(custom_rolling_mean, nopython=True)
+        weighted_rolling_mean = weighted_rolling_mean.apply(custom_rolling_mean, raw=True, engine="numba")
+    else:
+        weighted_rolling_mean = weighted_rolling_mean.apply(custom_rolling_mean, raw=True)
+
+    # check means against critical raise value:
+    to_flag = dataseries >= weighted_rolling_mean + (raise_series / mean_raise_factor)
+    to_flag &= raise_series.notna()
+    flagger = flagger.setFlags(field, to_flag[to_flag].index, **kwargs)
+
+    return data, flagger
 
 
 @register("spikes_slidingZscore")

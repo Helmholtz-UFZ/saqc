@@ -1,0 +1,15 @@
+name: saqc
+channels:
+  - defaults
+dependencies:
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - numba
+  - click
+  - scikit-learn
+  - pyarrow
+  - pip
+  - pip:
+    - python-intervals

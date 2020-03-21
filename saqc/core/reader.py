@@ -86,7 +86,8 @@ def _expandVarnameWildcards(config: Config, data: dios.DictOfSeries) -> Config:
 
 def _clearRows(rows: Iterable[List[str]], comment: str = "#") -> Iterator[Tuple[str, List[Any]]]:
     for i, row in enumerate(rows):
-        if row and not row[0].lstrip().startswith(comment):
+        row = [c.strip() for c in row]
+        if any(row) and not row[0].lstrip().startswith(comment):
             row = [c.split(comment)[0].strip() for c in row]
             yield i, row
 

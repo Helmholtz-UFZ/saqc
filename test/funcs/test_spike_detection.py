@@ -11,6 +11,7 @@ from saqc.funcs.spike_detection import (
     flagSpikes_simpleMad,
     flagSpikes_slidingZscore,
     flagSpikes_basic,
+    flagSpikes_limitRaise
 )
 
 from test.common import TESTFLAGGER
@@ -81,3 +82,21 @@ def test_flagSpikesBasic(spiky_data, flagger):
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture('course_1'),
+                                 pytest.lazy_fixture('course_2'),
+                                 pytest.lazy_fixture('course_3'),
+                                 pytest.lazy_fixture('course_4')])
+def test_flagSpikesLimitRaise(dat, flagger):
+    data, characteristics = dat()
+    field, *_ = data.columns
+    flagger = flagger.initFlags(data)
+    _, flagger_result = flagSpikes_limitRaise(
+        data, field, flagger, thresh=2, intended_freq='10min', raise_window='20min', numba_boost=False
+    )
+    assert flagger_result.isFlagged(field)[characteristics['raise']].all()
+    assert not flagger_result.isFlagged(field)[characteristics['return']].any()
+    assert not flagger_result.isFlagged(field)[characteristics['drop']].any()
+

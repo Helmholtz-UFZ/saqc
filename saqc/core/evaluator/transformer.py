@@ -49,7 +49,7 @@ class DslTransformer(ast.NodeTransformer):
         if name == "this":
             name = self.environment["this"]
 
-        if name in self.environment["data"]:
+        if name in self.environment["variables"]:
             # determine further tree-transformation path by target
             if getattr(node, "lookup", True):
                 value = ast.Constant(value=name)

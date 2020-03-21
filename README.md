@@ -61,21 +61,34 @@ python -m pip install saqc
 ```
 
 ### Manual installation
+
 The latest development version is directly available from the
 [gitlab](https://git.ufz.de/rdm-software/saqc) server of the
 [Helmholtz Center for Environmental Research](https://www.ufz.de/index.php?en=33573). 
-All the dependencies are listed [here](saqc/requirements.txt) and are 
+
+#### pip
+
+All the dependencies are listed in [requirements.txt](saqc/requirements.txt) and are 
 resolvable with:
 
 ```sh
 python -m pip install -r requirements.txt
 ```
    
+#### anaconda
+
+To create an anaconda environment including all the necessary dependencies run
+```sh
+conda env create -f environment.yml
+```
+
+and activate the freshly build environment
+```sh
+conda activate saqc
+```
+   
 ### Python version
-The minimum Python version required is 3.6 and SaQC is directly compatible with
-Python versions 3.6 and 3.7. If you are already on Python 3.8 however, the
-installation process is currently a bit more involved as still not all dependencies
-are available as binary wheels.
+The minimum Python version required is 3.6.
 
    
 ## Usage
