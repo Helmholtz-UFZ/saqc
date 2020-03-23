@@ -80,7 +80,7 @@ def multi_data():
     # merge
     data = pd.merge(data, dat2, how="outer", left_index=True, right_index=True)
     data = pd.merge(data, dat3, how="outer", left_index=True, right_index=True)
-    return data
+    return dios.DictOfSeries(data)
 
 
 @pytest.mark.parametrize("method", INTERPOLATIONS2)
@@ -132,25 +132,20 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
 
     assert len(data.columns) == 1
     field = data.columns[0]
-    d = data[field]
 
     # harmonize data:
     data, flagger = harmonize(data, "data", flagger, freq, "time", reshaper)
 
     # flag something bad
-    flagger = flagger.setFlags("data", loc=d.index[3:4])
+    flagger = flagger.setFlags("data", loc=data[field].index[3:4])
     data, flagger = deharmonize(data, "data", flagger, co_flagging=co_flagging)
+    d = data[field]
 
     if reshaper == "nshift":
         if co_flagging is True:
-            assert flagger.isFlagged(field, loc=d.index[3:7]).all()
-            # all False
-            # FIXME
-            # assert (~flagger.isFlagged(field, loc=d.index[0:3])).all()
-            assert not flagger.isFlagged(field, loc=d.index[0:3]).any()
-            # all False
-            # assert (~flagger.isFlagged(field, loc=d.index[7:])).all()
-            assert not flagger.isFlagged(field, loc=d.index[7:]).any()
+            assert flagger.isFlagged(loc=d.index[3:7]).squeeze().all()
+            assert (~flagger.isFlagged(loc=d.index[0:3]).squeeze()).all()
+            assert (~flagger.isFlagged(loc=d.index[7:]).squeeze()).all()
         if co_flagging is False:
             assert (
                     flagger.isFlagged().squeeze()
@@ -158,9 +153,9 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
             ).all()
     if reshaper == "bshift":
         if co_flagging is True:
-            assert flagger.isFlagged(loc=data.index[5:7]).squeeze().all()
-            assert (~flagger.isFlagged(loc=data.index[0:5]).squeeze()).all()
-            assert (~flagger.isFlagged(loc=data.index[7:]).squeeze()).all()
+            assert flagger.isFlagged(loc=d.index[5:7]).squeeze().all()
+            assert (~flagger.isFlagged(loc=d.index[0:5]).squeeze()).all()
+            assert (~flagger.isFlagged(loc=d.index[7:]).squeeze()).all()
         if co_flagging is False:
             assert (
                     flagger.isFlagged().squeeze()
@@ -168,10 +163,10 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
             ).all()
     if reshaper == "fshift":
         if co_flagging is True:
-            assert flagger.isFlagged(loc=data.index[3:5]).squeeze().all()
-            assert flagger.isFlagged(loc=data.index[6:7]).squeeze().all()
-            assert (~flagger.isFlagged(loc=data.index[0:3]).squeeze()).all()
-            assert (~flagger.isFlagged(loc=data.index[7:]).squeeze()).all()
+            assert flagger.isFlagged(loc=d.index[3:5]).squeeze().all()
+            assert flagger.isFlagged(loc=d.index[6:7]).squeeze().all()
+            assert (~flagger.isFlagged(loc=d.index[0:3]).squeeze()).all()
+            assert (~flagger.isFlagged(loc=d.index[7:]).squeeze()).all()
         if co_flagging is False:
             assert (
                     flagger.isFlagged().squeeze()
@@ -179,9 +174,9 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
             ).all()
 
     flags = flagger.getFlags()
-    assert pre_data.equals(data)
-    assert len(data) == len(flags)
-    assert (pre_flags.index == flags.index).all()
+    assert pre_data[field].equals(data[field])
+    assert len(data[field]) == len(flags[field])
+    assert (pre_flags[field].index == flags[field].index).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -194,8 +189,11 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
     pre_data = data.copy()
     pre_flags = flags.copy()
 
-    harm_start = data.index[0].floor(freq=freq)
-    harm_end = data.index[-1].ceil(freq=freq)
+    assert len(data.columns) == 1
+    field = data.columns[0]
+
+    harm_start = data[field].index[0].floor(freq=freq)
+    harm_end = data[field].index[-1].ceil(freq=freq)
     test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
     data, flagger = harmonize(
         data,
@@ -210,68 +208,48 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
 
     if interpolation == "fshift":
         if freq == "15min":
-            assert data.equals(
-                dios.DictOfSeries(
-                    {"data": [np.nan, -37.5, -25.0, 0.0, 37.5, 50.0]}, index=test_index
-                )
-            )
+            exp = pd.Series([np.nan, -37.5, -25.0, 0.0, 37.5, 50.0], index=test_index)
+            assert data[field].equals(exp)
         if freq == "30min":
-            assert data.equals(
-                dios.DictOfSeries({"data": [np.nan, -37.5, 0.0, 50.0]}, index=test_index)
-            )
+            exp = pd.Series([np.nan, -37.5, 0.0, 50.0], index=test_index)
+            assert data[field].equals(exp)
     if interpolation == "bshift":
         if freq == "15min":
-            assert data.equals(
-                dios.DictOfSeries(
-                    {"data": [-50.0, -37.5, -25.0, 12.5, 37.5, 50.0]}, index=test_index
-                )
-            )
+            exp = pd.Series([-50.0, -37.5, -25.0, 12.5, 37.5, 50.0], index=test_index)
+            assert data[field].equals(exp)
         if freq == "30min":
-            assert data.equals(
-                dios.DictOfSeries({"data": [-50.0, -37.5, 12.5, 50.0]}, index=test_index)
-            )
+            exp = pd.Series([-50.0, -37.5, 12.5, 50.0], index=test_index)
+            assert data[field].equals(exp)
     if interpolation == "nshift":
         if freq == "15min":
-            assert data.equals(
-                dios.DictOfSeries(
-                    {"data": [np.nan, -37.5, -25.0, 12.5, 37.5, 50.0]}, index=test_index
-                )
-            )
+            exp = pd.Series([np.nan, -37.5, -25.0, 12.5, 37.5, 50.0], index=test_index)
+            assert data[field].equals(exp)
         if freq == "30min":
-            assert data.equals(
-                dios.DictOfSeries({"data": [np.nan, -37.5, 12.5, 50.0]}, index=test_index)
-            )
+            exp = pd.Series([np.nan, -37.5, 12.5, 50.0], index=test_index)
+            assert data[field].equals(exp)
     if interpolation == "nagg":
         if freq == "15min":
-            assert data.equals(
-                dios.DictOfSeries(
-                    {"data": [np.nan, -87.5, -25.0, 0.0, 37.5, 50.0]}, index=test_index
-                )
-            )
+            exp = pd.Series([np.nan, -87.5, -25.0, 0.0, 37.5, 50.0], index=test_index)
+            assert data[field].equals(exp)
         if freq == "30min":
-            assert data.equals(
-                dios.DictOfSeries({"data": [np.nan, -87.5, -25.0, 87.5]}, index=test_index)
-            )
+            exp = pd.Series([np.nan, -87.5, -25.0, 87.5], index=test_index)
+            assert data[field].equals(exp)
     if interpolation == "bagg":
         if freq == "15min":
-            assert data.equals(
-                dios.DictOfSeries(
-                    {"data": [-50.0, -37.5, -37.5, 12.5, 37.5, 50.0]}, index=test_index
-                )
-            )
+            exp = pd.Series([-50.0, -37.5, -37.5, 12.5, 37.5, 50.0], index=test_index)
+            assert data[field].equals(exp)
         if freq == "30min":
-            assert data.equals(
-                dios.DictOfSeries({"data": [-50.0, -75.0, 50.0, 50.0]}, index=test_index)
-            )
+            exp = pd.Series([-50.0, -75.0, 50.0, 50.0], index=test_index)
+            assert data[field].equals(exp)
 
     data, flagger = deharmonize(data, "data", flagger, co_flagging=True)
 
     # data, flagger = deharmonize(data, "data", flagger, co_flagging=True)
     flags = flagger.getFlags()
 
-    assert pre_data.equals(data)
-    assert len(data) == len(flags)
-    assert (pre_flags.index == flags.index).all()
+    assert pre_data[field].equals(data[field])
+    assert len(data[field]) == len(flags[field])
+    assert (pre_flags[field].index == flags[field].index).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -284,9 +262,6 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
     pre_flags = flags.copy()
     freq = "15min"
 
-    harm_start = multi_data.index[0].floor(freq=freq)
-    harm_end = multi_data.index[-1].ceil(freq=freq)
-    test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
     # harm:
     multi_data, flagger = harmonize(
         multi_data,
@@ -319,6 +294,12 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
         "fshift",
         reshape_shift_comment=shift_comment,
     )
+
+
+    harm_starts = multi_data.index[0].floor(freq=freq)
+    harm_starts = multi_data.indexes[0].floor(freq=freq)
+    harm_end = multi_data.index[-1].ceil(freq=freq)
+    test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
     assert multi_data.index.equals(test_index)
     assert pd.Timedelta(pd.infer_freq(multi_data.index)) == pd.Timedelta(freq)
 
