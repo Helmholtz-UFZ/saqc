@@ -201,8 +201,8 @@ def test_isflagged(data, flagger):
     flagger = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
-    flagger = flagger.setFlags(var1, iloc=slice(None, None, 2))
-    flagger = flagger.setFlags(var2, iloc=slice(None, None, 2))
+    flagger = flagger.setFlags(var1, loc=slice(None, None, 2))
+    flagger = flagger.setFlags(var2, loc=slice(None, None, 2))
 
     idx = _evalDslExpression(f"isflagged({var1})", data, var2, flagger)
 
@@ -216,7 +216,7 @@ def test_invertIsFlagged(data, flagger):
     flagger = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
-    flagger = flagger.setFlags(var2, iloc=slice(None, None, 2))
+    flagger = flagger.setFlags(var2, loc=slice(None, None, 2))
 
     tests = [
         (f"~isflagged({var2})", ~flagger.isFlagged(var2)),
@@ -237,7 +237,7 @@ def test_isflaggedArgument(data, flagger):
     var1, var2, *_ = data.columns
 
     flagger = flagger.initFlags(data).setFlags(
-        var1, iloc=slice(None, None, 2), flag=flagger.BAD
+        var1, loc=slice(None, None, 2), flag=flagger.BAD
     )
 
     tests = [
