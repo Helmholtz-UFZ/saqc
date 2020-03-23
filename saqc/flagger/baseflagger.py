@@ -90,7 +90,9 @@ class BaseFlagger(ABC):
 
     def getFlagger(self, field: str = None, loc: LocT = None) -> BaseFlaggerT:
         """ Return a potentially trimmed down copy of self. """
-        return self.copy(self.getFlags(field=field, loc=loc))
+        flags = self.getFlags(field=field, loc=loc)
+        flags = dios.to_dios(flags)
+        return self.copy(flags)
 
     def getFlags(self, field: str = None, loc: LocT = None) -> PandasT:
         """ Return a potentially, to `loc`, trimmed down version of flags.
@@ -156,6 +158,7 @@ class BaseFlagger(ABC):
         return flagged
 
     def copy(self, flags: dios.DictOfSeries = None) -> BaseFlaggerT:
+        assert isinstance(flags, dios.DictOfSeries)
         out = deepcopy(self)
         if flags is not None:
             out._flags = flags

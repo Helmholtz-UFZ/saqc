@@ -703,7 +703,7 @@ def _backtrackFlags(flagger_post, flagger_pre, freq, track_method="invert_fshift
 def _fromMerged(data, flagger, fieldname):
     # we need a not-na mask for the flags data to be retrieved:
     mask = flagger.getFlags(fieldname).notna()
-    return data.loc[mask[mask].index, fieldname], flagger.getFlagger(field=fieldname, loc=mask)
+    return data.loc[mask[mask].index, fieldname], flagger.getFlagger(field=fieldname, loc=mask) # fixme
 
 
 def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None, **kwargs):
