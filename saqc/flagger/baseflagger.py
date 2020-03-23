@@ -127,6 +127,7 @@ class BaseFlagger(ABC):
         If `force=False` (default) only flags with a lower priority are overwritten,
         otherwise, if `force=True`, flags are overwritten unconditionally.
         """
+        assert "iloc" not in kwargs, "deprecated keyword, iloc"
 
         assertScalar("field", field, optional=False)
         flag = self.BAD if flag is None else flag
@@ -144,12 +145,16 @@ class BaseFlagger(ABC):
 
     def clearFlags(self, field: str, loc: LocT = None, **kwargs) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
+        if "force" in kwargs:
+            raise ValueError("Keyword 'force' is not allowed here.")
+        if "flag" in kwargs:
+            raise ValueError("Keyword 'flag' is not allowed here.")
         return self.setFlags(field=field, loc=loc, flag=self.UNFLAGGED, force=True, **kwargs)
 
-    def isFlagged(self, field=None, loc: LocT = None, flag: FlagT = None, comparator: str = ">", **kwargs) -> PandasT:
+    def isFlagged(self, field=None, loc: LocT = None, flag: FlagT = None, comparator: str = ">") -> PandasT:
         assertScalar("flag", flag, optional=True)
         flag = self.GOOD if flag is None else flag
-        flags = self.getFlags(field, loc, **kwargs)
+        flags = self.getFlags(field, loc)
         cp = COMPARATOR_MAP[comparator]
 
         # use notna() to prevent nans to become True,

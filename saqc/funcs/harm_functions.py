@@ -5,6 +5,7 @@ import pdb
 import pandas as pd
 import numpy as np
 import logging
+import dios
 
 from saqc.funcs.functions import flagMissing
 from saqc.funcs.register import register
@@ -113,9 +114,9 @@ def harmWrapper(heap={}):
 
         # finally we happily blow up the data and flags frame again,
         # to release them on their ongoing journey through saqc.
-        data, flagger_out = _toMerged(
-            data, flagger, field, data_to_insert=dat_col, flagger_to_insert=flagger_merged_clean_reshaped, **kwargs
-        )
+        data, flagger_out = _toMerged(data, flagger, field,
+                                      data_to_insert=dat_col,
+                                      flagger_to_insert=flagger_merged_clean_reshaped, **kwargs)
 
         return data, flagger_out
 
@@ -194,6 +195,8 @@ def _outsortCrap(
     Depending on passed key word options the function will remove nan entries and as-suspicious-flagged values from
     the data and the flags passed. In deharmonization the function is used to reconstruct original flags field shape.
 
+    FIXME: parameter
+
     :param data:            pd.Series. ['data'].
     :param flagger:         saqc.flagger.
     :param drop_suspicious: Boolean. Default = True. If True, only values that are flagged GOOD or UNFLAGGED get
@@ -207,6 +210,7 @@ def _outsortCrap(
                             dropped.
                             If return_drops=True. Returns the dropped flags.
     """
+    assert isinstance(data, pd.Series), "data must be pd.Series"
 
     drop_mask = pd.Series(data=False, index=data.index)
 
@@ -216,7 +220,7 @@ def _outsortCrap(
 
     flagger_out = flagger.getFlagger(loc=~drop_mask)
     if return_drops:
-        return flagger.getFlags(loc=drop_mask), flagger_out
+        return flagger.getFlags(field=field, loc=drop_mask), flagger_out
     return data[~drop_mask], flagger_out
 
 
@@ -553,14 +557,15 @@ def _reshapeFlags(
             direction = "nearest"
             tolerance = pd.Timedelta(freq) / 2
 
-        flags = flagger.getFlags().reindex(ref_index, tolerance=tolerance, method=direction, fill_value=np.nan)
+        # if you want to keep previous comments
+        # only newly generated missing flags get commented:
 
-        # if you want to keep previous comments - only newly generated missing flags get commented:
-        flags_series = flags.squeeze()
+        f = flagger.getFlags(field)
+        flags_series = f.reindex(ref_index, tolerance=tolerance, method=direction, fill_value=np.nan)
+        flags = flagger.getFlags(loc=flags_series)
 
-        flagger_new = flagger.initFlags(flags=flags).setFlags(
-            field, loc=flags_series.isna(), flag=missing_flag, force=True, **kwargs
-        )
+        flagger_new = flagger.initFlags(flags=flags)
+        flagger_new.setFlags(field, loc=flags_series.isna(), flag=missing_flag, force=True, **kwargs)
 
         if set_shift_comment:
             flagger_new = flagger_new.setFlags(field, flag=flags_series, force=True, **kwargs)
@@ -701,9 +706,10 @@ def _backtrackFlags(flagger_post, flagger_pre, freq, track_method="invert_fshift
 
 
 def _fromMerged(data, flagger, fieldname):
-    # we need a not-na mask for the flags data to be retrieved:
-    mask = flagger.getFlags(fieldname).notna()
-    return data.loc[mask[mask].index, fieldname], flagger.getFlagger(field=fieldname, loc=mask) # fixme
+    """kill nans that came from an cross harmonisation"""
+    data_series = data[fieldname].notna()
+    flagger = flagger.getFlagger(field=fieldname, loc=data_series)
+    return data_series, flagger
 
 
 def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None, **kwargs):
@@ -712,16 +718,18 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
     flags = flagger._flags
     flags_to_insert = flagger_to_insert._flags
 
-    if isinstance(data, pd.Series):
-        data = data.to_frame()
+    # this should never happen, but if this could happen in general,
+    # the caller have to ensure, that we get a dios
+    assert not isinstance(data, pd.Series)
 
-    data.drop(fieldname, axis="columns", errors="ignore", inplace=True)
-    flags.drop(fieldname, axis="columns", errors="ignore", inplace=True)
+    data = data[data.columns.difference([fieldname])]
+    flags = flags[data.columns.difference([fieldname])]
 
     # first case: there is no data, the data-to-insert would have
     # to be merged with, and also are we not deharmonizing:
-    if (data.empty) and (target_index is None):
-        return data_to_insert.to_frame(name=fieldname), flagger_to_insert
+    if data.empty and target_index is None:
+        data_to_insert.name = fieldname
+        return dios.DictOfSeries(data_to_insert), flagger_to_insert
 
     # if thats not the case: generate the drop mask for the remaining data:
     mask = data.isna().all(axis=1)
