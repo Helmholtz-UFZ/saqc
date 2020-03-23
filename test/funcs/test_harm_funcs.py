@@ -313,22 +313,23 @@ def test_gridInterpolation(data, method):
 def test_outsortCrap(data, flagger):
 
     field = data.columns[0]
+    s = data[field]
     flagger = flagger.initFlags(data)
-    flagger = flagger.setFlags(field, iloc=slice(5, 7))
 
-    drop_index = data.index[5:7]
-    d, _ = _outsortCrap(data, field, flagger, drop_flags=flagger.BAD)
-    assert drop_index.difference(d.index).equals(drop_index)
+    drop_index = s.index[5:7]
+    flagger = flagger.setFlags(field, loc=drop_index)
+    res, _ = _outsortCrap(s, field, flagger, drop_flags=flagger.BAD)
+    assert drop_index.difference(res.index).equals(drop_index)
 
-    flagger = flagger.setFlags(field, iloc=slice(0, 1), flag=flagger.GOOD)
-    drop_index = drop_index.insert(-1, data.index[0])
-    d, _ = _outsortCrap(data, field, flagger, drop_flags=[flagger.BAD, flagger.GOOD],)
-    assert drop_index.sort_values().difference(d.index).equals(drop_index.sort_values())
+    flagger = flagger.setFlags(field, loc=s.iloc[0:1], flag=flagger.GOOD)
+    drop_index = drop_index.insert(-1, s.index[0])
+    to_drop = [flagger.BAD, flagger.GOOD]
+    res, _ = _outsortCrap(s, field, flagger, drop_flags=to_drop)
+    assert drop_index.sort_values().difference(res.index).equals(drop_index.sort_values())
 
-    f_drop, _ = _outsortCrap(
-        data, field, flagger, drop_flags=[flagger.BAD, flagger.GOOD], return_drops=True,
-    )
-    assert f_drop.index.sort_values().equals(drop_index.sort_values())
+    res, _ = _outsortCrap(s, field, flagger, drop_flags=to_drop, return_drops=True)
+    assert res.index.sort_values().equals(drop_index.sort_values())
+
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_wrapper(data, flagger):
