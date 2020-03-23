@@ -70,6 +70,7 @@ def harmWrapper(heap={}):
 
         # before sending the current flags and data frame to the future (for backtracking reasons), we clear it
         # from merge-nans that just resulted from harmonization of other variables!
+        # fixme: this is no longer needed, is it?
         dat_col, flagger_merged = _fromMerged(data, flagger, field)
 
         # now we send the flags frame in its current shape to the future:
@@ -81,7 +82,10 @@ def harmWrapper(heap={}):
             Heap.DROP: drop_flags,
         }
 
-        # furthermore we need to memorize the initial timestamp to ensure output format will equal input format.
+        # fixme with harmo-rework: now that every series have its
+        #  own index, we must store it, for each !
+        # furthermore we need to memorize the initial timestamps
+        # to ensure output format will equal input format.
         if Heap.INDEX not in heap.keys():
             heap.update({Heap.INDEX: dat_col.index})
 
@@ -195,7 +199,7 @@ def _outsortCrap(
     Depending on passed key word options the function will remove nan entries and as-suspicious-flagged values from
     the data and the flags passed. In deharmonization the function is used to reconstruct original flags field shape.
 
-    FIXME: parameter
+    FIXME: documentation deprecated
 
     :param data:            pd.Series. ['data'].
     :param flagger:         saqc.flagger.
@@ -589,7 +593,7 @@ def _reshapeFlags(
             seconds_total = pd.Timedelta(freq).total_seconds()
             base = seconds_total / 2
             freq_string = str(int(seconds_total)) + "s"
-            i_start = flagger.getFlags().index[0]
+            i_start = flagger.getFlags(field).index[0]
             if abs(i_start - i_start.floor(freq)) <= pd.Timedelta(freq) / 2:
                 shift_correcture = 1
             else:
@@ -597,9 +601,7 @@ def _reshapeFlags(
 
         # resampling the flags series with aggregation method
         flags = (
-            flagger.getFlags()
-            # NOTE: otherwise the datetime index will get lost
-            .squeeze()
+            flagger.getFlags(field)
             .resample(freq_string, closed=closed, label=label, base=base)
             # NOTE: breaks for non categorical flaggers
             .apply(lambda x: agg_method(x) if not x.empty else missing_flag)
@@ -619,7 +621,8 @@ def _reshapeFlags(
         if block_flags is not None:
             flags[block_flags] = np.nan
 
-        flagger_new = flagger.initFlags(flags=flags.to_frame(name=field))
+        flags.name = field
+        flagger_new = flagger.initFlags(flags=dios.to_dios(flags))
 
     else:
         methods = ", ".join(shifts + ["\n"] + aggregations)
@@ -629,9 +632,8 @@ def _reshapeFlags(
 
     # block flagging/backtracking of chunk_starts/chunk_ends
     if block_flags is not None:
-        flagger_new = flagger_new.setFlags(
-            field, loc=block_flags, flag=pd.Series(np.nan, index=block_flags).astype(flagger_new.dtype), force=True,
-        )
+        flags_to_force = pd.Series(np.nan, index=block_flags).astype(flagger_new.dtype)
+        flagger_new = flagger_new.setFlags(field, loc=block_flags, flag=flags_to_force, force=True,)
     return flagger_new
 
 
@@ -706,7 +708,7 @@ def _backtrackFlags(flagger_post, flagger_pre, freq, track_method="invert_fshift
 
 
 def _fromMerged(data, flagger, fieldname):
-    """kill nans that came from an cross harmonisation"""
+    """kill nans that came from an other harmonisation"""
     data_series = data[fieldname].notna()
     flagger = flagger.getFlagger(field=fieldname, loc=data_series)
     return data_series, flagger
@@ -722,8 +724,9 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
     # the caller have to ensure, that we get a dios
     assert not isinstance(data, pd.Series)
 
-    data = data[data.columns.difference([fieldname])]
-    flags = flags[data.columns.difference([fieldname])]
+    newcols = data.columns.difference([fieldname])
+    data = data[newcols]
+    flags = flags[newcols]
 
     # first case: there is no data, the data-to-insert would have
     # to be merged with, and also are we not deharmonizing:
@@ -732,10 +735,18 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
         return dios.DictOfSeries(data_to_insert), flagger_to_insert
 
     # if thats not the case: generate the drop mask for the remaining data:
-    mask = data.isna().all(axis=1)
+
+    # the following is not implemented in dios, but as soon as it is done,
+    # we should use it. wait for #21 see: https://git.ufz.de/rdm/dios/issues/21
+    # mask = data.isna().all(axis=1)
+    # workaround:
+    nans = data.isna()
+    common_nans_index = nans[nans].index_of('shared')
+
     # we only want to drop lines, that do not have to be re-inserted in the merge:
-    drops = mask[mask].index.difference(data_to_insert.index)
+    drops = common_nans_index.difference(data_to_insert.index)
     # clear mask, but keep index
+    mask = data.copy()
     mask[:] = True
     # final mask:
     mask[drops] = False
