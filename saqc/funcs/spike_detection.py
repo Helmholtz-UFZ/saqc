@@ -5,12 +5,16 @@ import logging
 
 import numpy as np
 import pandas as pd
-import operator as op
+
 from scipy.signal import savgol_filter
 from scipy.stats import zscore
+from scipy.optimize import curve_fit
+from sklearn.neighbors import NearestNeighbors
 from saqc.funcs.register import register
 import numpy.polynomial.polynomial as poly
 import numba
+
+import matplotlib.pyplot as plt
 
 from saqc.lib.tools import (
     inferFrequency,
@@ -18,6 +22,65 @@ from saqc.lib.tools import (
     offset2seconds,
     slidingWindowIndices,
 )
+
+@register("spikes_oddWater")
+def flagSpikes_oddWater(data, field, flagger, fields, alpha, bin_frac, n_neighbors):
+    # NOTE: unoptimized test version (there es redundance in the thresholding loop)
+
+    def trafo(x):
+        return np.log(x / x.shift(1))
+
+    # data fransformation/extraction
+    val_frame = trafo(data[fields[0]])
+    for var in fields[1:]:
+        val_frame = pd.merge(val_frame, trafo(data[var]),
+                             how='outer',
+                             left_index=True,
+                             right_index=True
+                             )
+    data_len = val_frame.index.size
+    val_frame.dropna(inplace=True)
+    # KNN calculation
+    nbrs = NearestNeighbors(n_neighbors=n_neighbors+1, algorithm='ball_tree').fit(val_frame.values)
+    dist, ind = nbrs.kneighbors()
+    resids = dist.sum(axis=1)
+    # sorting
+    sorted_i = resids.argsort()
+    resids = resids[sorted_i]
+    # initialize test group seperator for algorithm iteration
+    # - start with the lower 50 percent:
+    iter_index = int(np.floor(resids.size / 2))
+    # initialize condition variables:
+    crit_val = np.inf
+    test_val = 0
+    # define exponential distribution:
+    def fit_function(x, lambd):
+        return lambd*np.exp(-lambd*x)
+
+    # GO!
+    while (test_val < crit_val) & (iter_index < resids.size):
+        bins = np.linspace(resids[0], resids[-1], int(np.ceil(data_len / bin_frac)))
+        data_hist, bins = np.histogram(resids[:iter_index], bins=bins)
+        hist_max_arg = np.argmax(data_hist)
+        upper_tail_index = hist_max_arg + 1
+        upper_hist_tail = data_hist[upper_tail_index:]
+        upper_bins = bins[upper_tail_index:]
+        binscenters = np.array([0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)])
+        upper_binscenters = binscenters[upper_tail_index:]
+
+        lambdA, _ = curve_fit(fit_function, xdata=upper_binscenters, ydata=upper_hist_tail, p0=[data_hist.max()])
+        crit_val = - np.log(alpha) / lambdA
+        test_val = resids[iter_index]
+        print(" critical value:{}\n test value:{}\n index:{}\n lambda:{}".format(str(crit_val), str(test_val),
+                                                                                 str(iter_index), str(lambdA)))
+        iter_index += 1
+
+    # plots for implementation phase:
+    xspace = np.linspace(1, upper_bins[-1] + 1, 100000)
+    plt.bar(upper_binscenters, upper_hist_tail, width=upper_bins[1] - upper_bins[0], color='navy',
+            label=r'Histogram entries')
+    plt.plot(xspace, fit_function(xspace, *lambdA), color='darkorange', linewidth=2.5, label=r'Fitted function')
+    plt.show()
 
 
 @register("spikes_limitRaise")
