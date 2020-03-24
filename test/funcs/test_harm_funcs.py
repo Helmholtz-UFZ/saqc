@@ -295,22 +295,23 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
         reshape_shift_comment=shift_comment,
     )
 
+    for c in multi_data.columns:
+        harm_start = multi_data[c].index[0].floor(freq=freq)
+        harm_end = multi_data[c].index[-1].ceil(freq=freq)
+        test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
 
-    harm_starts = multi_data.index[0].floor(freq=freq)
-    harm_starts = multi_data.indexes[0].floor(freq=freq)
-    harm_end = multi_data.index[-1].ceil(freq=freq)
-    test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
-    assert multi_data.index.equals(test_index)
-    assert pd.Timedelta(pd.infer_freq(multi_data.index)) == pd.Timedelta(freq)
+        assert multi_data[c].index.equals(test_index)
+        assert pd.Timedelta(pd.infer_freq(multi_data[c].index)) == pd.Timedelta(freq)
 
     multi_data, flagger = deharmonize(multi_data, "data3", flagger, co_flagging=False)
     multi_data, flagger = deharmonize(multi_data, "data2", flagger, co_flagging=True)
     multi_data, flagger = deharmonize(multi_data, "data", flagger, co_flagging=True)
 
-    flags = flagger.getFlags()
-    assert pre_data.equals(multi_data[pre_data.columns.to_list()])
-    assert len(multi_data) == len(flags)
-    assert (pre_flags.index == flags.index).all()
+    for c in multi_data.columns:
+        flags = flagger.getFlags()
+        assert pre_data[c].equals(multi_data[pre_data.columns.to_list()][c])
+        assert len(multi_data[c]) == len(flags[c])
+        assert (pre_flags[c].index == flags[c].index).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
