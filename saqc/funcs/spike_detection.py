@@ -24,7 +24,8 @@ from saqc.lib.tools import (
 )
 
 @register("spikes_oddWater")
-def flagSpikes_oddWater(data, field, flagger, fields, alpha, bin_frac, n_neighbors):
+def flagSpikes_oddWater(data, field, flagger, fields, alpha=0.005, bin_frac=50, n_neighbors=10, **kwargs):
+
     # NOTE: unoptimized test version (there es redundance in the thresholding loop)
 
     def trafo(x):
@@ -53,12 +54,14 @@ def flagSpikes_oddWater(data, field, flagger, fields, alpha, bin_frac, n_neighbo
     # initialize condition variables:
     crit_val = np.inf
     test_val = 0
-    # define exponential distribution:
+    # define exponential dist density function:
     def fit_function(x, lambd):
         return lambd*np.exp(-lambd*x)
 
     # GO!
+    # TODO: last value always gets flagged because of scnd. while condition
     while (test_val < crit_val) & (iter_index < resids.size):
+        iter_index += 1
         bins = np.linspace(resids[0], resids[-1], int(np.ceil(data_len / bin_frac)))
         data_hist, bins = np.histogram(resids[:iter_index], bins=bins)
         hist_max_arg = np.argmax(data_hist)
@@ -73,14 +76,22 @@ def flagSpikes_oddWater(data, field, flagger, fields, alpha, bin_frac, n_neighbo
         test_val = resids[iter_index]
         print(" critical value:{}\n test value:{}\n index:{}\n lambda:{}".format(str(crit_val), str(test_val),
                                                                                  str(iter_index), str(lambdA)))
-        iter_index += 1
 
-    # plots for implementation phase:
+    # plots in use whilst implementation phase:
+    # ----------------------------
     xspace = np.linspace(1, upper_bins[-1] + 1, 100000)
     plt.bar(upper_binscenters, upper_hist_tail, width=upper_bins[1] - upper_bins[0], color='navy',
             label=r'Histogram entries')
     plt.plot(xspace, fit_function(xspace, *lambdA), color='darkorange', linewidth=2.5, label=r'Fitted function')
     plt.show()
+    # ----------------------------
+
+    to_flag_index = val_frame.index[sorted_i[iter_index:]]
+    for var in fields:
+        flagger = flagger.setFlags(var, to_flag_index, **kwargs)
+
+    return data, flagger
+
 
 
 @register("spikes_limitRaise")
@@ -133,7 +144,7 @@ def flagSpikes_limitRaise(
     if raise_series.isna().all():
         return data, flagger
 
-    # "unflag" values of unsifficient deviation to there predecessors
+    # "unflag" values of unsifficient deviation to theire predecessors
     if min_slope is not None:
         w_mask = (pd.Series(dataseries.index).diff().dt.total_seconds() / intended_freq.total_seconds()) > \
                  min_slope_weight
