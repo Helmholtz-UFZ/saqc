@@ -21,15 +21,19 @@ from saqc.lib.tools import (
     retrieveTrustworthyOriginal,
     offset2seconds,
     slidingWindowIndices,
+    findIndex
 )
 
 @register("spikes_oddWater")
-def flagSpikes_oddWater(data, field, flagger, fields, alpha=0.005, bin_frac=50, n_neighbors=10, **kwargs):
+def flagSpikes_oddWater(data, field, flagger, fields, alpha=0.005, bin_frac=10, n_neighbors=2, **kwargs):
 
-    # NOTE: unoptimized test version (there es redundance in the thresholding loop)
+    # TODO: unoptimized test version
+    #  - there is redundance in the thresholding loop, since histogram is calculated every iteration
+    #  - only the histogram of the lower 50 persents upper tail is needed actually
+    # every iteration)
 
     def trafo(x):
-        return np.log(x / x.shift(1))
+        return x #np.log(x / x.shift(1))
 
     # data fransformation/extraction
     val_frame = trafo(data[fields[0]])
@@ -58,20 +62,24 @@ def flagSpikes_oddWater(data, field, flagger, fields, alpha=0.005, bin_frac=50, 
     def fit_function(x, lambd):
         return lambd*np.exp(-lambd*x)
 
+    # sample resids distribution
+    binz = np.linspace(resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac)))
     # GO!
-    # TODO: last value always gets flagged because of scnd. while condition
-    while (test_val < crit_val) & (iter_index < resids.size):
+    # TODO: upper tail contains zero bins!
+    while (test_val < crit_val) & (iter_index < resids.size-1):
+        # histogram calculation
         iter_index += 1
-        bins = np.linspace(resids[0], resids[-1], int(np.ceil(data_len / bin_frac)))
-        data_hist, bins = np.histogram(resids[:iter_index], bins=bins)
-        hist_max_arg = np.argmax(data_hist)
-        upper_tail_index = hist_max_arg + 1
+        iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
+        data_hist, bins = np.histogram(resids[:iter_index], bins=binz[:iter_max_bin_index + 1])
+        # upper tail seperation
+        upper_tail_index = int(np.floor(0.5*data_hist.argmax() + 0.5*data_hist.size))
         upper_hist_tail = data_hist[upper_tail_index:]
         upper_bins = bins[upper_tail_index:]
         binscenters = np.array([0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)])
         upper_binscenters = binscenters[upper_tail_index:]
-
-        lambdA, _ = curve_fit(fit_function, xdata=upper_binscenters, ydata=upper_hist_tail, p0=[data_hist.max()])
+        # fitting
+        lambdA, _ = curve_fit(fit_function, xdata=upper_binscenters, ydata=upper_hist_tail,
+                              p0=[-np.log(alpha/resids[iter_index])])
         crit_val = - np.log(alpha) / lambdA
         test_val = resids[iter_index]
         print(" critical value:{}\n test value:{}\n index:{}\n lambda:{}".format(str(crit_val), str(test_val),
