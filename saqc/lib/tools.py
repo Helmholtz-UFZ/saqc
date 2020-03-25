@@ -28,15 +28,18 @@ OP_MODULES = {'pd': pd,
               }
 
 
-def eval_func_string(func_string):
+def evalFuncString(func_string):
     if not isinstance(func_string, str):
         return func_string
     module_dot = func_string.find(".")
     if module_dot > 0:
         module = func_string[:module_dot]
         if module in OP_MODULES:
-            op_dot = func_string.rfind(".")
-            return getattr(OP_MODULES[module], func_string[op_dot+1:])
+            decomp = func_string.split('.')
+            func = OP_MODULES[decomp[0]]
+            for k in range(1, len(decomp)):
+                func = getattr(func, decomp[k])
+            return func
         else:
             availability_list = ['"' + k + '"' +  " (= " + str(s.__name__) + ")" for k,s in (OP_MODULES.items())]
             availability_list = " \n".join(availability_list)
@@ -63,7 +66,7 @@ def eval_func_string(func_string):
 
 def compose_function(functions):
     functions = toSequence(functions)
-    functions = [eval_func_string(f) for f in functions]
+    functions = [evalFuncString(f) for f in functions]
     if len(functions) == 1:
         return functions[0]
     else:
@@ -388,7 +391,7 @@ def getFuncFromInput(func):
         else:
             raise ValueError("The function you passed is suspicious!")
     else:
-        return eval_func_string(func)
+        return evalFuncString(func)
 
 
 @nb.jit(nopython=True, cache=True)
