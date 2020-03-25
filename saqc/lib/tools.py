@@ -19,7 +19,12 @@ SAQC_OPERATORS = {
     "max": np.max,
     "first": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").first,
     "last": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").last,
-    "delta_t": ts_ops.deltaT
+    "delta_t": ts_ops.deltaT,
+    "id": ts_ops.identity,
+    "diff": ts_ops.difference,
+    "relDiff": ts_ops.relativeDifference,
+    "deriv": ts_ops.derivative,
+    "roc": ts_ops.rateOfChange
 }
 
 
@@ -65,6 +70,8 @@ def evalFuncString(func_string):
 
 
 def composeFunction(functions):
+    if callable(functions):
+        return functions
     functions = toSequence(functions)
     functions = [evalFuncString(f) for f in functions]
     if len(functions) == 1:

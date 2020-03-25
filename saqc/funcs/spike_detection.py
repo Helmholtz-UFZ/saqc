@@ -17,15 +17,15 @@ import numba
 import matplotlib.pyplot as plt
 
 from saqc.lib.tools import (
-    inferFrequency,
     retrieveTrustworthyOriginal,
     offset2seconds,
     slidingWindowIndices,
-    findIndex
+    findIndex,
+    composeFunction
 )
 
 @register("spikes_oddWater")
-def flagSpikes_oddWater(data, field, flagger, fields, alpha=0.005, bin_frac=10, n_neighbors=2, **kwargs):
+def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.005, bin_frac=10, n_neighbors=2, **kwargs):
 
     # TODO: unoptimized test version
     #  - there is redundance in the thresholding loop, since histogram is calculated every iteration
@@ -33,9 +33,7 @@ def flagSpikes_oddWater(data, field, flagger, fields, alpha=0.005, bin_frac=10, 
     #  - only the histogram of the lower 50 persents upper tail is needed actually
     #    (every iteration)
 
-    def trafo(x):
-        return x #np.log(x / x.shift(1))
-
+    trafo = composeFunction(trafo.split(','))
     # data fransformation/extraction
     val_frame = trafo(data[fields[0]])
     for var in fields[1:]:

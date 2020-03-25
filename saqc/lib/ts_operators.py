@@ -22,13 +22,16 @@ def _isValid(data, max_nan_total, max_nan_consec):
         return False
 
 # ts_transformations
+def identity(ts):
+    return ts
+
 
 def difference(ts):
     return pd.Series.diff(ts)
 
 
 def derivative(ts, unit='1min'):
-    return ts/delta_t(ts, unit=unit)
+    return ts/(deltaT(ts, unit=unit))
 
 
 def deltaT(ts, unit='1min'):
