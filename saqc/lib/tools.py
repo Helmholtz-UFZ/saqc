@@ -7,11 +7,11 @@ from typing import Sequence, Union, Any, Iterator
 import numpy as np
 import pandas as pd
 import numba as nb
-
+import saqc.lib.ts_operators as ts_ops
 # from saqc.flagger import BaseFlagger
 from saqc.lib.types import T, PandasLike
 
-STRING_2_FUNC = {
+SAQC_OPERATORS = {
     "sum": np.sum,
     "mean": np.mean,
     "median": np.median,
@@ -19,7 +19,59 @@ STRING_2_FUNC = {
     "max": np.max,
     "first": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").first,
     "last": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").last,
+    "delta_t": ts_ops.delta_t
 }
+
+
+OP_MODULES = {'pd': pd,
+              'np': np
+              }
+
+
+def eval_func_string(func_string):
+    if not isinstance(func_string, str):
+        return func_string
+    module_dot = func_string.find(".")
+    if module_dot > 0:
+        module = func_string[:module_dot]
+        if module in OP_MODULES:
+            op_dot = func_string.rfind(".")
+            return getattr(OP_MODULES[module], func_string[op_dot+1:])
+        else:
+            availability_list = ['"' + k + '"' +  " (= " + str(s.__name__) + ")" for k,s in (OP_MODULES.items())]
+            availability_list = " \n".join(availability_list)
+            raise ValueError('The external-module alias "{}" is not known to the internal operators dispatcher.'
+                             '\n'
+                             'Please select from:'
+                             '\n'
+                             '{}'
+                             '\n'.format(module, availability_list))
+
+    else:
+        if func_string in SAQC_OPERATORS:
+            return SAQC_OPERATORS[func_string]
+        else:
+            availability_list = ['"' + k + '"' + " (= " + str(s.__name__) + ")" for k, s in (SAQC_OPERATORS.items())]
+            availability_list = " \n".join(availability_list)
+            raise ValueError('The Operator alias "{}" is not known to the internal operators dispatcher.'
+                             '\n'
+                             'Please select from:'
+                             '\n'
+                             '{}'
+                             '\n'.format(func_string, availability_list))
+
+
+def compose_function(functions):
+    functions = toSequence(functions)
+    functions = [eval_func_string(f) for f in functions]
+    if len(functions) == 1:
+        return functions[0]
+    else:
+        def composed(ts):
+            for func in reversed(functions):
+                ts = func(ts)
+            return ts
+        return composed
 
 
 def assertScalar(name, value, optional=False):
@@ -335,10 +387,8 @@ def getFuncFromInput(func):
             return func
         else:
             raise ValueError("The function you passed is suspicious!")
-    elif func in STRING_2_FUNC.keys():
-        return STRING_2_FUNC[func]
     else:
-        raise ValueError("Function input not a callable nor a known key to internal the func dictionary.")
+        return eval_func_string(func)
 
 
 @nb.jit(nopython=True, cache=True)

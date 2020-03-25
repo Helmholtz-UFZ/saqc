@@ -29,8 +29,9 @@ def flagSpikes_oddWater(data, field, flagger, fields, alpha=0.005, bin_frac=10, 
 
     # TODO: unoptimized test version
     #  - there is redundance in the thresholding loop, since histogram is calculated every iteration
+    #    (just add every iterations new point to the last bin or add new bin to histogram)
     #  - only the histogram of the lower 50 persents upper tail is needed actually
-    # every iteration)
+    #    (every iteration)
 
     def trafo(x):
         return x #np.log(x / x.shift(1))
@@ -94,6 +95,7 @@ def flagSpikes_oddWater(data, field, flagger, fields, alpha=0.005, bin_frac=10, 
     plt.show()
     # ----------------------------
 
+    # flag them!
     to_flag_index = val_frame.index[sorted_i[iter_index:]]
     for var in fields:
         flagger = flagger.setFlags(var, to_flag_index, **kwargs)
