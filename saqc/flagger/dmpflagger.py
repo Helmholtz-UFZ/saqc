@@ -10,6 +10,7 @@ import pandas as pd
 import dios.dios as dios
 
 from saqc.flagger.categoricalflagger import CategoricalFlagger
+from saqc.flagger.baseflagger import diosT
 from saqc.lib.tools import assertDictOfSeries, toSequence, assertScalar
 
 
@@ -33,9 +34,6 @@ FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 class DmpFlagger(CategoricalFlagger):
     def __init__(self):
-        # fixme: DmpFlagger
-        raise NotImplementedError
-
         super().__init__(FLAGS)
         self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
         version = subprocess.run(
@@ -44,6 +42,21 @@ class DmpFlagger(CategoricalFlagger):
         self.project_version = version.decode().strip()
         self.signature = ("flag", "comment", "cause", "force")
         self._flags = None
+        self._causes = None
+        self._comments = None
+
+    # defined in BaseFlagger
+    # @property
+    # def flags(self):
+    #     return self._flags
+
+    @property
+    def causes(self):
+        return self._causes
+
+    @property
+    def comments(self):
+        return self._comments
 
     def initFlags(self, data: dios.DictOfSeries = None, flags: dios.DictOfSeries = None):
         """
@@ -52,69 +65,40 @@ class DmpFlagger(CategoricalFlagger):
         if 'flags' is not None: return a flagger with the given flags
         """
 
-        if data is not None:
-            flags = dios.DictOfSeries(data="", columns=self._getColumnIndex(data.columns), index=data.index,)
-            flags.loc[:, self._getColumnIndex(data.columns, [FlagFields.FLAG])] = self.UNFLAGGED
-        elif flags is not None:
-            if not isinstance(flags.columns, pd.MultiIndex):
-                cols = flags.columns
-                flags = flags.copy()
-                flags.columns = self._getColumnIndex(cols, [FlagFields.FLAG])
-                flags = flags.reindex(columns=self._getColumnIndex(cols), fill_value="")
+        # implicit set self._flags, and make deepcopy of self aka. DmpFlagger
+        newflagger = super().initFlags(data=data, flags=flags)
+        newflagger._causes = newflagger.flags.astype(str)
+        newflagger._comments = newflagger.flags.astype(str)
+        newflagger.causes[:], newflagger.comments[:] = "", ""
+        return newflagger
+
+    def getFlagger(self, field=None, loc=None):
+        newflagger = super().getFlagger(field=field, loc=loc)
+        flags = newflagger.flags
+        newflagger._causes = self._causes.aloc[flags, ...]
+        newflagger._comments = self._comments.aloc[flags, ...]
+        return newflagger
+
+    def getFlags(self, field=None, loc=None):
+        return super().getFlags(field=field, loc=loc)
+
+    def setFlags(self, field, loc=None, flag=None, force=False, comment="", cause="", **kwargs):
+        assert "iloc" not in kwargs, "deprecated keyword, iloc"
+        assertScalar("field", field, optional=False)
+
+        flag = self.BAD if flag is None else flag
+        comment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
+
+        if force:
+            row_indexer = loc
         else:
-            raise TypeError("either 'data' or 'flags' are required")
-
-        return self.copy(self._assureDtype(flags))
-
-    def getFlagger(self, field=None, loc=None, iloc=None):
-        # NOTE: we need to preserve all indexing levels
-        assertScalar("field", field, optional=True)
-        variables = self._flags.columns.get_level_values(ColumnLevels.VARIABLES).drop_duplicates()
-        cols = toSequence(field, variables)
-        out = super().getFlagger(field, loc, iloc)
-        out._flags.columns = self._getColumnIndex(cols)
-        return out
-
-    def getFlags(self, field=None, loc=None, iloc=None):
-        assertScalar("field", field, optional=True)
-        field = field or slice(None)
-        mask = self._locatorMask(field, loc, iloc)
-        flags = self._flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1).copy()
-        return super()._assureDtype(flags.loc[mask, field])
-
-    def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, comment="", cause="", **kwargs):
-        assertScalar("field", field, optional=True)
-
-        flag = self.BAD if flag is None else self._checkFlag(flag)
-
-        comment = json.dumps({"comment": comment, "commit": self.project_version, "test": kwargs.get("func_name", ""),})
-
-        this = self.getFlags(field=field)
-        other = self._broadcastFlags(field=field, flag=flag)
-        mask = self._locatorMask(field, loc, iloc)
-        if not force:
-            mask &= (this < other).values
+            # trim flags to loc, we always get a pd.Series returned
+            this = self.getFlags(field=field, loc=loc)
+            row_indexer = this < flag
 
         out = deepcopy(self)
-        out._flags.loc[mask, field] = other[mask], cause, comment
+        out._flags.aloc[row_indexer, field] = flag
+        out._causes.aloc[row_indexer, field] = cause
+        out._comments.aloc[row_indexer, field] = comment
         return out
 
-    def _getColumnIndex(
-        self, cols: Union[str, Sequence[str]], fields: Union[str, Sequence[str]] = None
-    ) -> pd.MultiIndex:
-        cols = toSequence(cols)
-        fields = toSequence(fields, self.flags_fields)
-        return pd.MultiIndex.from_product([cols, fields], names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
-
-    def _assureDtype(self, flags):
-        # NOTE: building up new DataFrames is significantly
-        #       faster than assigning into existing ones
-        tmp = OrderedDict()
-        for (var, flag_field) in flags.columns:
-            col_data = flags[(var, flag_field)]
-            if flag_field == FlagFields.FLAG:
-                col_data = col_data.astype(self.dtype)
-            else:
-                col_data = col_data.astype(str)
-            tmp[(var, flag_field)] = col_data
-        return dios.DictOfSeries(tmp, columns=flags.columns, index=flags.index)

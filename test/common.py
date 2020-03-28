@@ -23,7 +23,7 @@ TESTNODATA = (np.nan, -9999)
 TESTFLAGGER = (
     CategoricalFlagger(["NIL", "GOOD", "BAD"]),
     SimpleFlagger(),
-    # DmpFlagger(),
+    DmpFlagger(),
     # ContinuousFlagger(),
 )
 
