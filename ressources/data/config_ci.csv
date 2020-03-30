@@ -4,3 +4,4 @@ SM1;range(min=10, max=60);False
 SM2;missing(nodata=NAN);False
 SM2;range(min=10, max=60);False
 SM2;spikes_simpleMad(window="30d", z=3.5);False
+Dummy;flagGeneric(func=isflagged(SM1) & isflagged(SM2) & (SM1 > 0))

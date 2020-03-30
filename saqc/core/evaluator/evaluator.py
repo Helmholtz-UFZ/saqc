@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import ast
+import logging
+
 from functools import partial
 from typing import Any, Dict
 
+import astor
 import numpy as np
 import pandas as pd
 
@@ -13,6 +16,9 @@ from saqc.core.config import Params
 from saqc.funcs.register import FUNC_MAP
 from saqc.core.evaluator.checker import ConfigChecker
 from saqc.core.evaluator.transformer import ConfigTransformer
+
+
+logger = logging.getLogger("SaQC")
 
 
 def _dslIsFlagged(flagger, field, flag=None, comparator=None):
@@ -67,6 +73,8 @@ def compileExpression(expr, data, field, flagger, nodata=np.nan):
     tree = parseExpression(expr)
     ConfigChecker(local_env, flagger.signature).visit(tree)
     transformed_tree = ConfigTransformer(local_env).visit(tree)
+    src = astor.to_source(transformed_tree).strip()
+    logger.debug(f"calling transformed function:\n{src}")
     return local_env, compileTree(transformed_tree)
 
 
