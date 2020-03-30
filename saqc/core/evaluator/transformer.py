@@ -82,7 +82,7 @@ class ConfigTransformer(ast.NodeTransformer):
     def visit_keyword(self, node):
         key, value = node.arg, node.value
 
-        if self.func_name == Params.FLAG_GENERIC and key == Params.FUNC:
+        if self.func_name in (Params.FLAG_GENERIC, Params.PROC_GENERIC) and key == Params.FUNC:
             dsl_transformer = DslTransformer(self.environment)
             value = dsl_transformer.visit(value)
             return ast.keyword(arg=key, value=value)

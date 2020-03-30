@@ -101,7 +101,7 @@ class ConfigChecker(ast.NodeVisitor):
 
     def visit_keyword(self, node):
         key, value = node.arg, node.value
-        if self.func_name == Params.FLAG_GENERIC and key == Params.FUNC:
+        if self.func_name in (Params.FLAG_GENERIC, Params.PROC_GENERIC) and key == Params.FUNC:
             DslChecker(self.environment).visit(value)
             return
 
