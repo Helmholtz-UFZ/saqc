@@ -15,7 +15,9 @@ import numpy.polynomial.polynomial as poly
 import numba
 
 import matplotlib.pyplot as plt
-
+from saqc.lib.ts_operators import (
+    nBallClustering
+)
 from saqc.lib.tools import (
     retrieveTrustworthyOriginal,
     offset2seconds,
@@ -26,7 +28,7 @@ from saqc.lib.tools import (
 
 @register("spikes_oddWater")
 def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bin_frac=10, n_neighbors=2,
-                        iter_start=None, **kwargs):
+                        iter_start=None, cluster=None, **kwargs):
 
     # TODO: unoptimized test version
     #  - there is redundance in the thresholding loop, since histogram is calculated every iteration
@@ -43,8 +45,18 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
                              left_index=True,
                              right_index=True
                              )
-    data_len = val_frame.index.size
-    val_frame.dropna(inplace=True)
+    # apply clustering:
+    if cluster:
+        val_frame.dropna(inplace=True)
+        if cluster is True:
+            clusters, members = nBallClustering(val_frame.values)
+        else:
+            clusters, members = nBallClustering(val_frame.values, ball_radius=cluster)
+        #val_frame = pd.DataFrameclusters
+    else:
+        data_len = val_frame.index.size
+        val_frame.dropna(inplace=True)
+
     # KNN calculation
     nbrs = NearestNeighbors(n_neighbors=n_neighbors+1, algorithm='ball_tree').fit(val_frame.values)
     dist, ind = nbrs.kneighbors()

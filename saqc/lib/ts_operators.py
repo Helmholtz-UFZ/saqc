@@ -78,8 +78,8 @@ def nBallClustering(X, ball_radius=None):
             exemplars.append(X[index])
             members.append([index])
         index += 1
-
-    return exemplars, members
+    ex_indices = [x[0] for x in members]
+    return exemplars, members, ex_indices
 
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
