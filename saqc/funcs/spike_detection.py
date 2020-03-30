@@ -25,7 +25,8 @@ from saqc.lib.tools import (
 )
 
 @register("spikes_oddWater")
-def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.005, bin_frac=10, n_neighbors=2, **kwargs):
+def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.005, bin_frac=10, n_neighbors=2,
+                        iter_start=None, **kwargs):
 
     # TODO: unoptimized test version
     #  - there is redundance in the thresholding loop, since histogram is calculated every iteration
@@ -52,8 +53,13 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.005, b
     sorted_i = resids.argsort()
     resids = resids[sorted_i]
     # initialize test group seperator for algorithm iteration
-    # - start with the lower 50 percent:
-    iter_index = int(np.floor(resids.size / 2))
+    if iter_start is None:
+        # default: start with the lower 50 percent:
+        iter_index = int(np.floor(resids.size * 0.5))
+    elif iter_start > 1:
+        iter_index = iter_start
+    else:
+        iter_index = int(np.floor(resids.size * iter_start))
     # initialize condition variables:
     crit_val = np.inf
     test_val = 0
