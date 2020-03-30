@@ -3,6 +3,7 @@
 
 
 import re
+import logging
 from csv import reader
 from typing import Dict, List, Any, Union, Iterable, Iterator, Tuple
 from contextlib import contextmanager
@@ -13,6 +14,9 @@ import pandas as pd
 from saqc.core.config import Fields as F
 from saqc.core.evaluator import compileExpression
 from saqc.flagger import BaseFlagger
+
+
+logger = logging.getLogger("SaQC")
 
 
 # typing declarations
@@ -78,6 +82,8 @@ def _expandVarnameWildcards(config: Config, data: pd.DataFrame) -> Config:
         if varname and isQuoted(varname):
             pattern = varname[1:-1]
             expansion = data.columns[data.columns.str.match(pattern)]
+            if not len(expansion):
+                logger.warning(f"no match for regular expression '{pattern}'")
             for var in expansion:
                 new.append({**row, F.VARNAME: var})
         else:

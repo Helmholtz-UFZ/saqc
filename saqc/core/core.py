@@ -13,6 +13,9 @@ from saqc.lib.tools import combineDataFrames
 from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 
 
+logger = logging.getLogger("SaQC")
+
+
 def _collectVariables(meta, data):
     """
     find every relevant variable
@@ -62,16 +65,23 @@ def _handleErrors(exc, configrow, test, policy):
     line = configrow[Fields.LINENUMBER]
     msg = f"config, line {line}, test: '{test}' failed with:\n{type(exc).__name__}: {exc}"
     if policy == "ignore":
-        logging.debug(msg)
+        logger.debug(msg)
     elif policy == "warn":
-        logging.warning(msg)
+        logger.warning(msg)
     else:
         raise Exception(msg)
 
 
-def _setup():
+def _setup(loglevel):
     pd.set_option("mode.chained_assignment", "warn")
     np.seterr(invalid="ignore")
+
+    # logging setting
+    logger.setLevel(loglevel)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("[%(asctime)s][%(name)s][%(levelname)s]: %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 
 def run(
@@ -80,10 +90,11 @@ def run(
     data: pd.DataFrame,
     flags: pd.DataFrame = None,
     nodata: float = np.nan,
+    log_level: str = "INFO",
     error_policy: str = "raise",
 ) -> (pd.DataFrame, BaseFlagger):
 
-    _setup()
+    _setup(log_level)
     _checkInput(data, flags, flagger)
     config = readConfig(config_file, data)
 
