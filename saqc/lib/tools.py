@@ -24,7 +24,9 @@ SAQC_OPERATORS = {
     "diff": ts_ops.difference,
     "relDiff": ts_ops.relativeDifference,
     "deriv": ts_ops.derivative,
-    "roc": ts_ops.rateOfChange
+    "roc": ts_ops.rateOfChange,
+    "scale": ts_ops.scale,
+    "normScale": ts_ops.normScale
 }
 
 

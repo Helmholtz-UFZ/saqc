@@ -25,7 +25,7 @@ from saqc.lib.tools import (
 )
 
 @register("spikes_oddWater")
-def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.005, bin_frac=10, n_neighbors=2,
+def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bin_frac=10, n_neighbors=2,
                         iter_start=None, **kwargs):
 
     # TODO: unoptimized test version
@@ -89,15 +89,6 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.005, b
         test_val = resids[iter_index]
         print(" critical value:{}\n test value:{}\n index:{}\n lambda:{}".format(str(crit_val), str(test_val),
                                                                                  str(iter_index), str(lambdA)))
-
-    # plots in use whilst implementation phase:
-    # ----------------------------
-    xspace = np.linspace(1, upper_bins[-1] + 1, 100000)
-    plt.bar(upper_binscenters, upper_hist_tail, width=upper_bins[1] - upper_bins[0], color='navy',
-            label=r'Histogram entries')
-    plt.plot(xspace, fit_function(xspace, *lambdA), color='darkorange', linewidth=2.5, label=r'Fitted function')
-    plt.show()
-    # ----------------------------
 
     # flag them!
     to_flag_index = val_frame.index[sorted_i[iter_index:]]

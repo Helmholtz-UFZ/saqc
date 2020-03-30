@@ -46,6 +46,19 @@ def relativeDifference(ts):
     return ts - 0.5*(ts.shift(+1) + ts.shift(-1))
 
 
+def scale(ts, target_range=1, projection_point=None):
+    if not projection_point:
+        projection_point = ts.abs().max()
+    return (ts / projection_point) * target_range
+
+
+def normScale(ts):
+    ts_min = ts.min()
+    return (ts - ts_min) / (ts.max() - ts_min)
+
+def nBallClustering(X, ball_radius=None):
+
+
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     """Pandas built in function for statistical moments have quite poor nan- control, so here comes a wrapper that
