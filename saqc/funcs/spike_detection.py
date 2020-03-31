@@ -33,8 +33,6 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
     # TODO: unoptimized test version
     #  - there is redundance in the thresholding loop, since histogram is calculated every iteration
     #    (just add every iterations new point to the last bin or add new bin to histogram)
-    #  - only the histogram of the lower 50 persents upper tail is needed actually
-    #    (every iteration)
 
     trafo = composeFunction(trafo.split(','))
     # data fransformation/extraction
@@ -71,9 +69,10 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
 
     # initialise sampling bins
     binz = np.linspace(resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac)))
+    binzenters = np.array([0.5 * (binz[i] + binz[i + 1]) for i in range(len(binz) - 1)])
     # inititialize full histogram:
     full_hist, binz = np.histogram(resids, bins=binz)
-    # check if start index is sufficiently high (beyond histogram maximum at least):
+    # check if start index is sufficiently high (pointing at resids value beyond histogram maximum at least):
     hist_argmax = full_hist.argmax()
     if hist_argmax >= findIndex(binz, resids[iter_index-1], 0):
         raise ValueError("Either the data histogram is too strangely shaped for oddWater OD detection - "
@@ -85,15 +84,15 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
         iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
         upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
         resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
-        upper_tail_hist, bins = np.histogram(resids[resids_tail_index:iter_index], bins=binz[upper_tail_index:iter_max_bin_index + 1])
-        upper_binscenters = np.array([0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)])
+        upper_tail_hist, bins = np.histogram(resids[resids_tail_index:iter_index],
+                                             bins=binz[upper_tail_index:iter_max_bin_index + 1])
         # fitting
-        lambdA, _ = curve_fit(fit_function, xdata=upper_binscenters, ydata=upper_tail_hist,
+        lambdA, _ = curve_fit(fit_function, xdata=binzenters[upper_tail_index:iter_max_bin_index],
+                              ydata=upper_tail_hist,
                               p0=[-np.log(alpha/resids[iter_index])])
         crit_val = neg_log_alpha / lambdA
         test_val = resids[iter_index]
-        print(" critical value:{}\n test value:{}\n index:{}\n lambda:{}".format(str(crit_val), str(test_val),
-                                                                                 str(iter_index), str(lambdA)))
+
 
     # flag them!
     to_flag_index = val_frame.index[sorted_i[iter_index:]]
