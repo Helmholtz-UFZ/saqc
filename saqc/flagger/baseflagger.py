@@ -43,7 +43,7 @@ class BaseFlagger(ABC):
 
     @property
     def flags(self):
-        return self._flags
+        return self._flags.copy()
 
     def initFlags(self, data: diosT = None, flags: diosT = None) -> BaseFlaggerT:
         """
