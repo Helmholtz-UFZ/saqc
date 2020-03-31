@@ -10,7 +10,8 @@ from saqc.funcs.spike_detection import (
     flagSpikes_simpleMad,
     flagSpikes_slidingZscore,
     flagSpikes_basic,
-    flagSpikes_limitRaise
+    flagSpikes_limitRaise,
+    flagSpikes_oddWater
 )
 
 from test.common import TESTFLAGGER
@@ -101,3 +102,18 @@ def test_flagSpikesLimitRaise(dat, flagger):
     assert not flagger_result.isFlagged(field)[characteristics['return']].any()
     assert not flagger_result.isFlagged(field)[characteristics['drop']].any()
 
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture('course_3')])
+
+def test_flagSpikesOddWater(dat, flagger):
+    data1, characteristics = dat(periods=1000, initial_level=5, final_level=15, out_val=50)
+    data2, characteristics = dat(periods=1000, initial_level=20, final_level=1, out_val=30)
+    field = 'dummy'
+    fields = ['data1', 'data2']
+    data = pd.DataFrame({'data1': data1.squeeze(), 'data2': data2.squeeze()}, index=data1.index)
+    flagger = flagger.initFlags(data)
+    _, flagger_result = flagSpikes_oddWater(
+        data, field, flagger, fields=fields, bin_frac=50, trafo='np.log',
+        iter_start=0.95, n_neighbors=10
+    )
+    assert flagger_result.isFlagged(fields[0])[characteristics['raise']].all()

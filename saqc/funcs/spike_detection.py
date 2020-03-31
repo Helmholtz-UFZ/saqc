@@ -25,7 +25,6 @@ from saqc.lib.tools import (
 def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bin_frac=10, n_neighbors=2,
                         iter_start=0.5, cluster=None, **kwargs):
 
-
     trafo = composeFunction(trafo.split(','))
     # data fransformation/extraction
     val_frame = trafo(data[fields[0]])
