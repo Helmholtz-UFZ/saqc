@@ -11,6 +11,9 @@ from saqc.funcs.register import register
 from saqc.lib.tools import toSequence, getFuncFromInput
 
 
+logger = logging.getLogger("SaQC")
+
+
 class Heap:
     INDEX = "initial_ts"
     DATA = "original_data"
@@ -123,7 +126,7 @@ def harmWrapper(heap={}):
 
         # Check if there is backtracking information available for actual harmonization resolving
         if field not in heap:
-            logging.warning(
+            logger.warning(
                 'No backtracking data for resolving harmonization of "{}". Reverse projection of flags gets'
                 " skipped!".format(field)
             )
@@ -450,7 +453,7 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
                 try:
                     return x.interpolate(method=wrap_method, order=int(wrap_order))
                 except (NotImplementedError, ValueError):
-                    logging.warning(
+                    logger.warning(
                         "Interpolation with method {} is not supported at order {}. "
                         "Interpolation will be performed with order {}".format(
                             method, str(wrap_order), str(wrap_order - 1)

@@ -8,6 +8,9 @@ import pandas as pd
 
 from saqc.flagger import BaseFlagger
 
+
+logger = logging.getLogger("SaQC")
+
 __plotvars = []
 
 _colors = {
@@ -103,7 +106,7 @@ def _plot(
         if var in data.columns:
             tmp.append(var)
         else:
-            logging.warning(f"Cannot plot column '{var}', because it is not present in data.")
+            logger.warning(f"Cannot plot column '{var}', because it is not present in data.")
     if not tmp:
         return
     varnames = tmp

@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import ast
+import logging
+
 from functools import partial
 from typing import Any, Dict
 
+import astor
 import numpy as np
 import pandas as pd
 
@@ -13,6 +16,9 @@ from saqc.core.config import Params
 from saqc.funcs.register import FUNC_MAP
 from saqc.core.evaluator.checker import ConfigChecker
 from saqc.core.evaluator.transformer import ConfigTransformer
+
+
+logger = logging.getLogger("SaQC")
 
 
 def _dslIsFlagged(flagger, field, flag=None, comparator=None):
@@ -24,28 +30,38 @@ def _dslIsFlagged(flagger, field, flag=None, comparator=None):
 def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
 
     return {
+        # general
         "data": data,
         "field": field,
         "flagger": flagger,
+        "this": field,
+        # transformation only
+        "variables": set(flagger.getFlags().columns.tolist()),
+        "nolookup": set(["isflagged"]),  # no variable lookup for flagger based functions,
+        # missing values/data
         "NAN": np.nan,
         "NODATA": nodata,
+        # flags
         "GOOD": flagger.GOOD,
         "BAD": flagger.BAD,
         "UNFLAGGED": flagger.UNFLAGGED,
+        # special functions
         "ismissing": lambda data: ((data == nodata) | pd.isnull(data)),
         "isflagged": partial(_dslIsFlagged, flagger),
+        # math
         "abs": np.abs,
+        "exp": np.exp,
+        "log": np.log,
+        "sqrt": np.sqrt,
+        "sin": np.sin,
+        "cos": np.cos,
+        "tan": np.tan,
         "max": np.nanmax,
         "min": np.nanmin,
         "mean": np.nanmean,
         "sum": np.nansum,
         "std": np.nanstd,
-        "len": len,
-        # NOTE:
-        # the following pairs are only needed for the tree transformation
-        "nolookup": set(["isflagged"]),  # no variable lookup for flagger based functions,
-        "variables": set(flagger.getFlags().columns.tolist()),
-        "this": field,
+        "len": lambda data: np.array(len(data)),
     }
 
 
@@ -67,6 +83,8 @@ def compileExpression(expr, data, field, flagger, nodata=np.nan):
     tree = parseExpression(expr)
     ConfigChecker(local_env, flagger.signature).visit(tree)
     transformed_tree = ConfigTransformer(local_env).visit(tree)
+    src = astor.to_source(transformed_tree).strip()
+    logger.debug(f"calling transformed function:\n{src}")
     return local_env, compileTree(transformed_tree)
 
 

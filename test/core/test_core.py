@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import logging
+
 import pytest
 import numpy as np
 import pandas as pd
@@ -10,6 +12,11 @@ from saqc.core.core import run
 from saqc.core.config import Fields as F
 from saqc.lib.plotting import _plot
 from test.common import initData, initMetaDict, TESTFLAGGER
+
+
+# no logging output needed here
+# -> can this be configured on the test runner level?
+logging.disable(logging.CRITICAL)
 
 
 OPTIONAL = [False, True]

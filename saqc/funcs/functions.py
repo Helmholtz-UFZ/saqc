@@ -9,6 +9,14 @@ from saqc.lib.tools import sesonalMask, flagWindow, groupConsecutives
 from saqc.funcs.register import register
 
 
+@register("procGeneric")
+def procGeneric(data, field, flagger, func, **kwargs):
+    # TODO:
+    # - add new fields to te flagger
+    data[field] = func.squeeze()
+    return data, flagger
+
+
 @register("flagGeneric")
 def flagGeneric(data, field, flagger, func, **kwargs):
     # NOTE:
