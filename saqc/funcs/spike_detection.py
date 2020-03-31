@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
 
 import numpy as np
 import pandas as pd
@@ -14,10 +13,6 @@ from saqc.funcs.register import register
 import numpy.polynomial.polynomial as poly
 import numba
 
-import matplotlib.pyplot as plt
-from saqc.lib.ts_operators import (
-    nBallClustering
-)
 from saqc.lib.tools import (
     retrieveTrustworthyOriginal,
     offset2seconds,
@@ -30,13 +25,11 @@ from saqc.lib.tools import (
 def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bin_frac=10, n_neighbors=2,
                         iter_start=0.5, cluster=None, **kwargs):
 
-    # TODO: unoptimized test version
-    #  - there is redundance in the thresholding loop, since histogram is calculated every iteration
-    #    (just add every iterations new point to the last bin or add new bin to histogram)
 
     trafo = composeFunction(trafo.split(','))
     # data fransformation/extraction
     val_frame = trafo(data[fields[0]])
+
     for var in fields[1:]:
         val_frame = pd.merge(val_frame, trafo(data[var]),
                              how='outer',
@@ -54,6 +47,7 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
     # sorting
     sorted_i = resids.argsort()
     resids = resids[sorted_i]
+
     # initialize test group seperator for algorithm iteration
     if iter_start > 1:
         iter_index = iter_start
@@ -63,6 +57,7 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
     crit_val = np.inf
     test_val = 0
     neg_log_alpha = - np.log(alpha)
+
     # define exponential dist density function:
     def fit_function(x, lambd):
         return lambd*np.exp(-lambd*x)
@@ -74,6 +69,7 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
     full_hist, binz = np.histogram(resids, bins=binz)
     # check if start index is sufficiently high (pointing at resids value beyond histogram maximum at least):
     hist_argmax = full_hist.argmax()
+
     if hist_argmax >= findIndex(binz, resids[iter_index-1], 0):
         raise ValueError("Either the data histogram is too strangely shaped for oddWater OD detection - "
                          "or a too low value for iter_start was passed (iter_start better be greater 0.5)")
@@ -83,6 +79,7 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
     resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
     upper_tail_hist, bins = np.histogram(resids[resids_tail_index:iter_index],
                                          bins=binz[upper_tail_index:iter_max_bin_index + 1])
+
     while (test_val < crit_val) & (iter_index < resids.size-1):
         iter_index += 1
         new_iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
@@ -106,7 +103,6 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
         print("lambda = {}".format(str(lambdA)))
         crit_val = neg_log_alpha / lambdA
         test_val = resids[iter_index]
-
 
     # flag them!
     to_flag_index = val_frame.index[sorted_i[iter_index:]]
