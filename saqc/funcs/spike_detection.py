@@ -78,18 +78,32 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
         raise ValueError("Either the data histogram is too strangely shaped for oddWater OD detection - "
                          "or a too low value for iter_start was passed (iter_start better be greater 0.5)")
     # GO!
+    iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
+    upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
+    resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
+    upper_tail_hist, bins = np.histogram(resids[resids_tail_index:iter_index],
+                                         bins=binz[upper_tail_index:iter_max_bin_index + 1])
     while (test_val < crit_val) & (iter_index < resids.size-1):
-        # histogram calculation
         iter_index += 1
-        iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
-        upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
-        resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
-        upper_tail_hist, bins = np.histogram(resids[resids_tail_index:iter_index],
-                                             bins=binz[upper_tail_index:iter_max_bin_index + 1])
+        new_iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
+
+        # following if/else block "manually" expands the data histogram and circumvents calculation of the complete
+        # histogram in any new iteration.
+        if new_iter_max_bin_index == iter_max_bin_index:
+            upper_tail_hist[-1] += 1
+        else:
+            upper_tail_hist = np.append(upper_tail_hist, np.zeros([new_iter_max_bin_index-iter_max_bin_index]))
+            upper_tail_hist[-1] += 1
+            iter_max_bin_index = new_iter_max_bin_index
+            upper_tail_index_new = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
+            upper_tail_hist = upper_tail_hist[upper_tail_index_new-upper_tail_index:]
+            upper_tail_index = upper_tail_index_new
+
         # fitting
         lambdA, _ = curve_fit(fit_function, xdata=binzenters[upper_tail_index:iter_max_bin_index],
                               ydata=upper_tail_hist,
                               p0=[-np.log(alpha/resids[iter_index])])
+        print("lambda = {}".format(str(lambdA)))
         crit_val = neg_log_alpha / lambdA
         test_val = resids[iter_index]
 
