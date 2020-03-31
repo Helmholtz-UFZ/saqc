@@ -28,7 +28,7 @@ from saqc.lib.tools import (
 
 @register("spikes_oddWater")
 def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bin_frac=10, n_neighbors=2,
-                        iter_start=None, cluster=None, **kwargs):
+                        iter_start=0.5, cluster=None, **kwargs):
 
     # TODO: unoptimized test version
     #  - there is redundance in the thresholding loop, since histogram is calculated every iteration
@@ -45,17 +45,9 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
                              left_index=True,
                              right_index=True
                              )
-    # apply clustering:
-    if cluster:
-        val_frame.dropna(inplace=True)
-        if cluster is True:
-            clusters, members = nBallClustering(val_frame.values)
-        else:
-            clusters, members = nBallClustering(val_frame.values, ball_radius=cluster)
-        #val_frame = pd.DataFrameclusters
-    else:
-        data_len = val_frame.index.size
-        val_frame.dropna(inplace=True)
+
+    data_len = val_frame.index.size
+    val_frame.dropna(inplace=True)
 
     # KNN calculation
     nbrs = NearestNeighbors(n_neighbors=n_neighbors+1, algorithm='ball_tree').fit(val_frame.values)
@@ -65,39 +57,40 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bi
     sorted_i = resids.argsort()
     resids = resids[sorted_i]
     # initialize test group seperator for algorithm iteration
-    if iter_start is None:
-        # default: start with the lower 50 percent:
-        iter_index = int(np.floor(resids.size * 0.5))
-    elif iter_start > 1:
+    if iter_start > 1:
         iter_index = iter_start
     else:
         iter_index = int(np.floor(resids.size * iter_start))
     # initialize condition variables:
     crit_val = np.inf
     test_val = 0
+    neg_log_alpha = - np.log(alpha)
     # define exponential dist density function:
     def fit_function(x, lambd):
         return lambd*np.exp(-lambd*x)
 
-    # sample resids distribution
+    # initialise sampling bins
     binz = np.linspace(resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac)))
+    # inititialize full histogram:
+    full_hist, binz = np.histogram(resids, bins=binz)
+    # check if start index is sufficiently high (beyond histogram maximum at least):
+    hist_argmax = full_hist.argmax()
+    if hist_argmax >= findIndex(binz, resids[iter_index-1], 0):
+        raise ValueError("Either the data histogram is too strangely shaped for oddWater OD detection - "
+                         "or a too low value for iter_start was passed (iter_start better be greater 0.5)")
     # GO!
-    # TODO: upper tail contains zero bins!
     while (test_val < crit_val) & (iter_index < resids.size-1):
         # histogram calculation
         iter_index += 1
         iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
-        data_hist, bins = np.histogram(resids[:iter_index], bins=binz[:iter_max_bin_index + 1])
-        # upper tail seperation
-        upper_tail_index = int(np.floor(0.5*data_hist.argmax() + 0.5*data_hist.size))
-        upper_hist_tail = data_hist[upper_tail_index:]
-        upper_bins = bins[upper_tail_index:]
-        binscenters = np.array([0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)])
-        upper_binscenters = binscenters[upper_tail_index:]
+        upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
+        resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
+        upper_tail_hist, bins = np.histogram(resids[resids_tail_index:iter_index], bins=binz[upper_tail_index:iter_max_bin_index + 1])
+        upper_binscenters = np.array([0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)])
         # fitting
-        lambdA, _ = curve_fit(fit_function, xdata=upper_binscenters, ydata=upper_hist_tail,
+        lambdA, _ = curve_fit(fit_function, xdata=upper_binscenters, ydata=upper_tail_hist,
                               p0=[-np.log(alpha/resids[iter_index])])
-        crit_val = - np.log(alpha) / lambdA
+        crit_val = neg_log_alpha / lambdA
         test_val = resids[iter_index]
         print(" critical value:{}\n test value:{}\n index:{}\n lambda:{}".format(str(crit_val), str(test_val),
                                                                                  str(iter_index), str(lambdA)))
