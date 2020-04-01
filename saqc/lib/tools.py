@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import numba as nb
 import saqc.lib.ts_operators as ts_ops
+import scipy
 from functools import reduce, partial
 from saqc.lib.types import T, PandasLike
 
@@ -35,7 +36,8 @@ SAQC_OPERATORS = {
 
 
 OP_MODULES = {'pd': pd,
-              'np': np
+              'np': np,
+              'scipy': scipy
               }
 
 
@@ -43,36 +45,25 @@ def evalFuncString(func_string):
     if not isinstance(func_string, str):
         return func_string
     module_dot = func_string.find(".")
-    if module_dot > 0:
+    first, *rest = func_string.split(".")
+    if rest:
         module = func_string[:module_dot]
-        if module in OP_MODULES:
-            decomp = func_string.split('.')
-            func = OP_MODULES[decomp[0]]
-            for k in range(1, len(decomp)):
-                func = getattr(func, decomp[k])
-            return func
-        else:
-            availability_list = ['"' + k + '"' +  " (= " + str(s.__name__) + ")" for k,s in (OP_MODULES.items())]
+        try:
+            return reduce(lambda m, f: getattr(m, f), rest, OP_MODULES[first])
+        except KeyError:
+            availability_list = [f"'{k}' (= {s.__name__})" for k, s in OP_MODULES.items()]
             availability_list = " \n".join(availability_list)
-            raise ValueError('The external-module alias "{}" is not known to the internal operators dispatcher.'
-                             '\n'
-                             'Please select from:'
-                             '\n'
-                             '{}'
-                             '\n'.format(module, availability_list))
+            raise ValueError(f'The external-module alias "{module}" is not known to the internal operators dispatcher. '
+                             f'\n Please select from: \n{availability_list}')
 
     else:
         if func_string in SAQC_OPERATORS:
             return SAQC_OPERATORS[func_string]
         else:
-            availability_list = ['"' + k + '"' + " (= " + str(s.__name__) + ")" for k, s in (SAQC_OPERATORS.items())]
+            availability_list = [f"'{k}' (= {s.__name__})" for k, s in SAQC_OPERATORS.items()]
             availability_list = " \n".join(availability_list)
-            raise ValueError('The Operator alias "{}" is not known to the internal operators dispatcher.'
-                             '\n'
-                             'Please select from:'
-                             '\n'
-                             '{}'
-                             '\n'.format(func_string, availability_list))
+            raise ValueError(f'The external-module alias "{func_string}" is not known to the internal operators '
+                             f'dispatcher. \n Please select from: \n{availability_list}')
 
 
 def composeFunction(functions):
