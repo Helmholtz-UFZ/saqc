@@ -59,25 +59,22 @@ def normScale(ts):
     return (ts - ts_min) / (ts.max() - ts_min)
 
 
-def nBallClustering(X, ball_radius=None):
-    x_len = X.shape[0]
-    x_cols = X.shape[1]
+def nBallClustering(in_arr, ball_radius=None):
+    x_len = in_arr.shape[0]
+    x_cols = in_arr.shape[1]
 
     if not ball_radius:
         ball_radius = 0.1 / np.log(x_len)**(1/x_cols)
-    exemplars = [X[0, :]]
+    exemplars = [in_arr[0, :]]
     members = [[]]
-    iterator = np.nditer(X, flags=['f_index'], order='C')
-    index = 0
-    for point in X:
+    for index, point in in_arr:
         dists = np.linalg.norm(point - np.array(exemplars), axis=1)
         min_index = dists.argmin()
         if dists[min_index] < ball_radius:
             members[min_index].append(index)
         else:
-            exemplars.append(X[index])
+            exemplars.append(in_arr[index])
             members.append([index])
-        index += 1
     ex_indices = [x[0] for x in members]
     return exemplars, members, ex_indices
 

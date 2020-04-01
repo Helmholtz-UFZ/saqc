@@ -8,11 +8,15 @@ import numpy as np
 import pandas as pd
 import numba as nb
 import saqc.lib.ts_operators as ts_ops
-# from saqc.flagger import BaseFlagger
+from functools import reduce, partial
 from saqc.lib.types import T, PandasLike
 
 SAQC_OPERATORS = {
+    "exp": np.exp,
+    "log": np.log,
     "sum": np.sum,
+    "var": np.var,
+    "std": np.std,
     "mean": np.mean,
     "median": np.median,
     "min": np.min,
@@ -76,14 +80,11 @@ def composeFunction(functions):
         return functions
     functions = toSequence(functions)
     functions = [evalFuncString(f) for f in functions]
-    if len(functions) == 1:
-        return functions[0]
-    else:
-        def composed(ts):
-            for func in reversed(functions):
-                ts = func(ts)
-            return ts
-        return composed
+
+    def composed(ts, funcs=functions):
+        return reduce(lambda x, f: f(x), reversed(funcs), ts)
+
+    return partial(composed, funcs=functions)
 
 
 def assertScalar(name, value, optional=False):
