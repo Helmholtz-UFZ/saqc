@@ -1,21 +1,115 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 import numpy as np
 import pandas as pd
-import operator as op
+
 from scipy.signal import savgol_filter
 from scipy.stats import zscore
+from scipy.optimize import curve_fit
+from sklearn.neighbors import NearestNeighbors
 from saqc.funcs.register import register
 import numpy.polynomial.polynomial as poly
 import numba
 
 from saqc.lib.tools import (
-    inferFrequency,
     retrieveTrustworthyOriginal,
     offset2seconds,
     slidingWindowIndices,
+    findIndex,
+    composeFunction
 )
+
+@register("spikes_oddWater")
+def flagSpikes_oddWater(data, field, flagger, fields, trafo='id', alpha=0.05, bin_frac=10, n_neighbors=2,
+                        iter_start=0.5, cluster=None, **kwargs):
+
+    trafo = composeFunction(trafo.split(','))
+    # data fransformation/extraction
+    val_frame = trafo(data[fields[0]])
+
+    for var in fields[1:]:
+        val_frame = pd.merge(val_frame, trafo(data[var]),
+                             how='outer',
+                             left_index=True,
+                             right_index=True
+                             )
+
+    data_len = val_frame.index.size
+    val_frame.dropna(inplace=True)
+
+    # KNN calculation
+    nbrs = NearestNeighbors(n_neighbors=n_neighbors+1, algorithm='ball_tree').fit(val_frame.values)
+    dist, ind = nbrs.kneighbors()
+    resids = dist.sum(axis=1)
+    # sorting
+    sorted_i = resids.argsort()
+    resids = resids[sorted_i]
+
+    # initialize test group seperator for algorithm iteration
+    if iter_start > 1:
+        iter_index = iter_start
+    else:
+        iter_index = int(np.floor(resids.size * iter_start))
+    # initialize condition variables:
+    crit_val = np.inf
+    test_val = 0
+    neg_log_alpha = - np.log(alpha)
+
+    # define exponential dist density function:
+    def fit_function(x, lambd):
+        return lambd*np.exp(-lambd*x)
+
+    # initialise sampling bins
+    binz = np.linspace(resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac)))
+    binzenters = np.array([0.5 * (binz[i] + binz[i + 1]) for i in range(len(binz) - 1)])
+    # inititialize full histogram:
+    full_hist, binz = np.histogram(resids, bins=binz)
+    # check if start index is sufficiently high (pointing at resids value beyond histogram maximum at least):
+    hist_argmax = full_hist.argmax()
+
+    if hist_argmax >= findIndex(binz, resids[iter_index-1], 0):
+        raise ValueError("Either the data histogram is too strangely shaped for oddWater OD detection - "
+                         "or a too low value for iter_start was passed (iter_start better be greater 0.5)")
+    # GO!
+    iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
+    upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
+    resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
+    upper_tail_hist, bins = np.histogram(resids[resids_tail_index:iter_index],
+                                         bins=binz[upper_tail_index:iter_max_bin_index + 1])
+
+    while (test_val < crit_val) & (iter_index < resids.size-1):
+        iter_index += 1
+        new_iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
+
+        # following if/else block "manually" expands the data histogram and circumvents calculation of the complete
+        # histogram in any new iteration.
+        if new_iter_max_bin_index == iter_max_bin_index:
+            upper_tail_hist[-1] += 1
+        else:
+            upper_tail_hist = np.append(upper_tail_hist, np.zeros([new_iter_max_bin_index-iter_max_bin_index]))
+            upper_tail_hist[-1] += 1
+            iter_max_bin_index = new_iter_max_bin_index
+            upper_tail_index_new = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
+            upper_tail_hist = upper_tail_hist[upper_tail_index_new-upper_tail_index:]
+            upper_tail_index = upper_tail_index_new
+
+        # fitting
+        lambdA, _ = curve_fit(fit_function, xdata=binzenters[upper_tail_index:iter_max_bin_index],
+                              ydata=upper_tail_hist,
+                              p0=[-np.log(alpha/resids[iter_index])])
+
+        crit_val = neg_log_alpha / lambdA
+        test_val = resids[iter_index]
+
+    # flag them!
+    to_flag_index = val_frame.index[sorted_i[iter_index:]]
+    for var in fields:
+        flagger = flagger.setFlags(var, to_flag_index, **kwargs)
+
+    return data, flagger
+
 
 
 @register("spikes_limitRaise")
@@ -68,7 +162,7 @@ def flagSpikes_limitRaise(
     if raise_series.isna().all():
         return data, flagger
 
-    # "unflag" values of unsifficient deviation to there predecessors
+    # "unflag" values of unsifficient deviation to theire predecessors
     if min_slope is not None:
         w_mask = (pd.Series(dataseries.index).diff().dt.total_seconds() / intended_freq.total_seconds()) > \
                  min_slope_weight

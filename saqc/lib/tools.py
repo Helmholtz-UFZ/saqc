@@ -7,19 +7,75 @@ from typing import Sequence, Union, Any, Iterator
 import numpy as np
 import pandas as pd
 import numba as nb
-
-# from saqc.flagger import BaseFlagger
+import saqc.lib.ts_operators as ts_ops
+import scipy
+from functools import reduce, partial
 from saqc.lib.types import T, PandasLike
 
-STRING_2_FUNC = {
+SAQC_OPERATORS = {
+    "exp": np.exp,
+    "log": np.log,
     "sum": np.sum,
+    "var": np.var,
+    "std": np.std,
     "mean": np.mean,
     "median": np.median,
     "min": np.min,
     "max": np.max,
     "first": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").first,
     "last": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").last,
+    "delta_t": ts_ops.deltaT,
+    "id": ts_ops.identity,
+    "diff": ts_ops.difference,
+    "relDiff": ts_ops.relativeDifference,
+    "deriv": ts_ops.derivative,
+    "roc": ts_ops.rateOfChange,
+    "scale": ts_ops.scale,
+    "normScale": ts_ops.normScale
 }
+
+
+OP_MODULES = {'pd': pd,
+              'np': np,
+              'scipy': scipy
+              }
+
+
+def evalFuncString(func_string):
+    if not isinstance(func_string, str):
+        return func_string
+    module_dot = func_string.find(".")
+    first, *rest = func_string.split(".")
+    if rest:
+        module = func_string[:module_dot]
+        try:
+            return reduce(lambda m, f: getattr(m, f), rest, OP_MODULES[first])
+        except KeyError:
+            availability_list = [f"'{k}' (= {s.__name__})" for k, s in OP_MODULES.items()]
+            availability_list = " \n".join(availability_list)
+            raise ValueError(f'The external-module alias "{module}" is not known to the internal operators dispatcher. '
+                             f'\n Please select from: \n{availability_list}')
+
+    else:
+        if func_string in SAQC_OPERATORS:
+            return SAQC_OPERATORS[func_string]
+        else:
+            availability_list = [f"'{k}' (= {s.__name__})" for k, s in SAQC_OPERATORS.items()]
+            availability_list = " \n".join(availability_list)
+            raise ValueError(f'The external-module alias "{func_string}" is not known to the internal operators '
+                             f'dispatcher. \n Please select from: \n{availability_list}')
+
+
+def composeFunction(functions):
+    if callable(functions):
+        return functions
+    functions = toSequence(functions)
+    functions = [evalFuncString(f) for f in functions]
+
+    def composed(ts, funcs=functions):
+        return reduce(lambda x, f: f(x), reversed(funcs), ts)
+
+    return partial(composed, funcs=functions)
 
 
 def assertScalar(name, value, optional=False):
@@ -335,10 +391,8 @@ def getFuncFromInput(func):
             return func
         else:
             raise ValueError("The function you passed is suspicious!")
-    elif func in STRING_2_FUNC.keys():
-        return STRING_2_FUNC[func]
     else:
-        raise ValueError("Function input not a callable nor a known key to internal the func dictionary.")
+        return evalFuncString(func)
 
 
 @nb.jit(nopython=True, cache=True)

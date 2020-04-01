@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from saqc.funcs.register import register
-from saqc.lib.statistic_functions import varQC
+from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import (
     valueRange,
     slidingWindowIndices,

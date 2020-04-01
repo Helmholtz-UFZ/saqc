@@ -3,6 +3,8 @@
 
 import pandas as pd
 import numpy as np
+from scipy.spatial.distance import cdist
+
 
 
 def _isValid(data, max_nan_total, max_nan_consec):
@@ -20,6 +22,61 @@ def _isValid(data, max_nan_total, max_nan_consec):
             return False
     else:
         return False
+
+# ts_transformations
+def identity(ts):
+    return ts
+
+
+def difference(ts):
+    return pd.Series.diff(ts)
+
+
+def derivative(ts, unit='1min'):
+    return ts/(deltaT(ts, unit=unit))
+
+
+def deltaT(ts, unit='1min'):
+    return ts.index.to_series().diff().dt.total_seconds() / pd.Timedelta(unit).total_seconds()
+
+
+def rateOfChange(ts):
+    return ts.diff/ts
+
+
+def relativeDifference(ts):
+    return ts - 0.5*(ts.shift(+1) + ts.shift(-1))
+
+
+def scale(ts, target_range=1, projection_point=None):
+    if not projection_point:
+        projection_point = ts.abs().max()
+    return (ts / projection_point) * target_range
+
+
+def normScale(ts):
+    ts_min = ts.min()
+    return (ts - ts_min) / (ts.max() - ts_min)
+
+
+def nBallClustering(in_arr, ball_radius=None):
+    x_len = in_arr.shape[0]
+    x_cols = in_arr.shape[1]
+
+    if not ball_radius:
+        ball_radius = 0.1 / np.log(x_len)**(1/x_cols)
+    exemplars = [in_arr[0, :]]
+    members = [[]]
+    for index, point in in_arr:
+        dists = np.linalg.norm(point - np.array(exemplars), axis=1)
+        min_index = dists.argmin()
+        if dists[min_index] < ball_radius:
+            members[min_index].append(index)
+        else:
+            exemplars.append(in_arr[index])
+            members.append([index])
+    ex_indices = [x[0] for x in members]
+    return exemplars, members, ex_indices
 
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
