@@ -14,13 +14,19 @@ from saqc.flagger import BaseFlagger
 import_done = False
 __plotvars = []
 
+# order is important, because
+# latter may overwrite former
 _cols = [
+    # 1st PLOT
     # reference
-    "ref-flags",
+    "ref-data-line",
     "ref-data",
     "ref-data-nans",
+    "ref-flags",
+
+    # 2nd PLOT
     # other
-    "flag-nans",
+    "flag-nans",  # currently ignored
     # data
     "data-line",
     "data",
@@ -32,23 +38,30 @@ _cols = [
     "suspicious",
     "bad",
 ]
+
+nan_repr_style = dict(marker='o', fillstyle='none', linestyle='none', color="lightsteelblue")
+
+# uncomment rows to disable
 _colors = {
     # flags
     "unflagged": dict(marker='.', linestyle='none', color="silver", label="UNFLAGGED"),
     "good": dict(marker='.', linestyle='none', color="seagreen", label="GOOD"),
     "bad": dict(marker='.', linestyle='none', color="firebrick", label="BAD"),
     "suspicious": dict(marker='.', linestyle='none', color="gold", label="SUSPICIOUS"),
-    "old-flags": dict(marker='.', linestyle='none', color="black"),
+    "old-flags": dict(marker='.', linestyle='none', color="black", label="old-flags"),
     # data
-    "data": dict(marker='.', color="silver", label="data"),
-    "data-line": dict( color="silver", label="data"),
-    "data-nans": dict(marker='o', fillstyle='none', linestyle='none', color="lightsteelblue", label="NaN"),
-    # reference
-    "ref-flags": dict(marker='.', linestyle='none', color="silver"),
-    "ref-data": dict( color="silver"),
-    "ref-data-nans": dict(marker='o', fillstyle='none', linestyle='none', color="silver", label="NaN"),
+    "data": dict(marker='.', linestyle='-', color="silver", label="data-points"),
+    "data-line": dict(color="silver", linestyle='none', label="data"),
+    "data-nans": nan_repr_style,
     # other
-    "flag-nans": dict(marker='o', fillstyle='none', linestyle='none', color="lightsteelblue", label=""),
+    "flag-nans": nan_repr_style,
+
+    # reference
+    # labels are omitted as they are the same (by color) like above
+    "ref-data-line": dict(color="silver", linestyle='-'),
+    "ref-data": dict(marker='.', color="silver", linestyle='none'),
+    "ref-data-nans": nan_repr_style,
+    "ref-flags": dict(marker='.', linestyle='none', color="silver"),
 }
 
 _figsize = (10, 4)
@@ -171,31 +184,31 @@ def plotHook(
         toplot[k] = data.loc[idx]
 
     def _plot(ax, field):
-        if _colors.get(field, False):
+        if not toplot[field].empty and _colors.get(field, False):
             ax.plot(toplot[field], **_colors[field])
+
+    mask = toplot.columns.str.startswith("ref-")
 
     # plot reference
     if not toplot["ref-data"].empty:
-        fig, axs = plt.subplots(2, 1, figsize=_figsize)
-        _plot(axs[0], "ref-data")
-        _plot(axs[0], "ref-data-nans")
-        _plot(axs[0], "ref-flags")
+        fig, axs = plt.subplots(2, 1, figsize=_figsize, sharey=True, sharex=True)
+        toplot["ref-data-line"] = toplot['ref-data']
+        for c in toplot.columns[mask]:
+            _plot(axs[0], c)
+        axs[0].set_title("before change of index or data")
+        axs[1].set_title("actual data")
         ax = axs[1]
     else:
         fig, ax = plt.subplots(1, 1, figsize=_figsize)
 
     # plot data
     toplot["data-line"] = toplot['data']
-    cols = toplot.columns.difference(["ref-data", "ref-data-nans", "ref-flags"], sort=False)
-    for c in cols:
-        if c not in toplot or toplot[c].empty:
-            continue
+    for c in toplot.columns[~mask]:
         _plot(ax, c)
 
+    fig.suptitle(plot_name)
     plt.legend()
     plt.show()
-
-
 
 
 def _split_old_and_new(old: pd.Series, new: pd.Series):
