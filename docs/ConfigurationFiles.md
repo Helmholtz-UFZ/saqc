@@ -24,12 +24,12 @@ configuration headers have a look [here](saqc/core/config.py).
 The notation of test functions follows the function call notation of Python and
 many other programming languages and looks like this:
 ```
-range(min=0, max=100)
+flagRange(min=0, max=100)
 ```
-Here the function `range` is called and the values `0` and `100` are passed
+Here the function `flagRange` is called and the values `0` and `100` are passed
 to the parameters `min` and `max` respectively. As we (currently) value readablity
 of the configuration more than conciseness of the extrension language, only
-keyword arguments are supported. That means that the notation `range(0, 100)`
+keyword arguments are supported. That means that the notation `flagRange(0, 100)`
 is not a valid replacement for the above example.
 
 ## Examples
@@ -37,21 +37,21 @@ is not a valid replacement for the above example.
 Every row lists one test per variable, if you want to call multiple tests on
 a specific variable (and you probably want to), list them in separate rows
 
-| varname | test                     |
-|---------|--------------------------|
-| `x`     | `missing()`              |
-| `x`     | `range(min=0, max=100)`  |
-| `x`     | `constant(window="3h")`  |
-| `y`     | `range(min=-10, max=40)` |
+| varname | test                                |
+|---------|-------------------------------------|
+| `x`     | `flagMissing()`                     |
+| `x`     | `flagRange(min=0, max=100)`         |
+| `x`     | `constants_flagBasic(window="3h")`  |
+| `y`     | `flagRange(min=-10, max=40)`        |
 
 ### Multiple Tests
 A row lists multiple tests for a specific variable in separate columns. All test
 columns need to share the common prefix `test`.
 
-| varname | test_1                   | test_2                  | test_3                  |
-|---------|--------------------------|-------------------------|-------------------------|
-| `x`     | `missing()`              | `range(min=0, max=100)` | `constant(window="3h")` |
-| `y`     | `range(min=-10, max=40)` |                         |                         |
+| varname | test_1                       | test_2                      | test_3                             |
+|---------|------------------------------|-----------------------------|------------------------------------|
+| `x`     | `flagMissing()`              | `flagRange(min=0, max=100)` | `constants_flagBasic(window="3h")` |
+| `y`     | `flagRange(min=-10, max=40)` |                             |                                    |
 
 ### Plotting
 As the process of finding a good quality check setup is somewhat experimental, SaQC
@@ -61,12 +61,12 @@ to `True` whenever you want to see the result of the evaluation. These plots are
 meant to provide a quick and easy visual evaluation of the test setup and not to
 yield 'publication-ready' results
 
-| varname | test                     | plot  |
-|---------|--------------------------|-------|
-| `x`     | `missing()`              |       |
-| `x`     | `range(min=0, max=100)`  | False |
-| `x`     | `constant(window="3h")`  | True  |
-| `y`     | `range(min=-10, max=40)` |       |
+| varname | test                                | plot  |
+|---------|-------------------------------------|-------|
+| `x`     | `flagMissing()`                     |       |
+| `x`     | `flagRange(min=0, max=100)`         | False |
+| `x`     | `constants_flagBasic(window="3h")`  | True  |
+| `y`     | `flagRange(min=-10, max=40)`        |       |
 
 ### Regular Expressions
 Some of the most basic tests (e.g. checks for missing values or range tests) but
@@ -80,8 +80,8 @@ within the `varname` column. Please not that a `varname` needs to be quoted
 
 | varname      | test                                 |
 |--------------|--------------------------------------|
-| `'.*'`       | `harmonize_shift2Grid(freq="15Min")` |
-| `'(x \| y)'` | `missing()`                          |
+| `'.*'`       | `harm_shift2Grid(freq="15Min")`      |
+| `'(x \| y)'` | `flagMissing()`                      |
 
 #### Bring it to a file
 As mentioned above SaQC, expectd the configuration to be a table-like,
@@ -90,8 +90,8 @@ semicolon-separated text file. So the configuration from the
 
 ```
 varname;test;plot
-x;missing();
-x;range(min=0, max=100);False
-x;constant(window="3h");True
-y;range(min=-10, max=40);
+x;flagMissing();
+x;flagRange(min=0, max=100);False
+x;constants_flaBasic(window="3h");True
+y;flagRange(min=-10, max=40);
 ```
