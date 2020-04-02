@@ -39,29 +39,29 @@ _cols = [
     "bad",
 ]
 
-nan_repr_style = dict(marker='o', fillstyle='none', linestyle='none', color="lightsteelblue")
+nan_repr_style = dict(marker='.', fillstyle='none', ls='none', c="lightsteelblue", label="NaN")
 
 # uncomment rows to disable
-_colors = {
+_plotstyle = {
     # flags
-    "unflagged": dict(marker='.', linestyle='none', color="silver", label="UNFLAGGED"),
-    "good": dict(marker='.', linestyle='none', color="seagreen", label="GOOD"),
-    "bad": dict(marker='.', linestyle='none', color="firebrick", label="BAD"),
-    "suspicious": dict(marker='.', linestyle='none', color="gold", label="SUSPICIOUS"),
-    "old-flags": dict(marker='.', linestyle='none', color="black", label="old-flags"),
+    # "unflagged": dict(marker='.', fillstyle="none", ls='none', c="silver", label="UNFLAGGED"),
+    "good": dict(marker='.', fillstyle='none', ls='none', c="seagreen", label="GOOD"),
+    "bad": dict(marker='.', fillstyle='none', ls='none', c="firebrick", label="BAD"),
+    "suspicious": dict(marker='.', fillstyle='none', ls='none', c="gold", label="SUSPICIOUS"),
+    "old-flags": dict(marker='.', fillstyle='none', ls='none', c="black", label="old-flags"),
     # data
-    "data": dict(marker='.', linestyle='-', color="silver", label="data-points"),
-    "data-line": dict(color="silver", linestyle='none', label="data"),
+    "data": dict(marker='.', ls='none', c="silver", label="NOT FLAGGED"),
+    "data-line": dict(c="silver", ls='-', label="data"),
     "data-nans": nan_repr_style,
     # other
     "flag-nans": nan_repr_style,
 
     # reference
-    # labels are omitted as they are the same (by color) like above
-    "ref-data-line": dict(color="silver", linestyle='-'),
-    "ref-data": dict(marker='.', color="silver", linestyle='none'),
+    # labels are omitted as they are the same (by c) like above
+    "ref-data-line": dict(c="silver", ls='-'),
+    "ref-data": dict(marker='.', ls='none', c="silver", ),
     "ref-data-nans": nan_repr_style,
-    "ref-flags": dict(marker='.', linestyle='none', color="silver"),
+    "ref-flags": dict(marker='.', ls='none', c="silver"),
 }
 
 _figsize = (10, 4)
@@ -100,7 +100,7 @@ def plotHook(
         flagger_new: BaseFlagger,
         varnames: List[str],
         plot_name: str,
-        show_nans_as_cycles: bool = False,
+        show_nans: bool = True,
 ):
     # todo:
     #   - new/changed data ?
@@ -108,11 +108,6 @@ def plotHook(
     #       - changed data -> old != new -> plot new data(+all flags), old(no flags) as reference
     #       - index-change -> probably harmo -> plot new data(+all flags), old(no flags) as reference
     #   - else: split in old and new flags by diff (a!=b), plot data, old flags in black, other by color
-    # todo:
-    #  - assert var in datanew
-    #  - var not in data -> assigned new -> flags-line
-    #  - old.index != new.index -> (i)  harmo -> 2 plots
-    #
     __import_helper(ion=True)
 
     if len(varnames) != 1:
@@ -126,6 +121,8 @@ def plotHook(
     toplot = dios.DictOfSeries(columns=_cols)
     indexes = dict.fromkeys(_cols)
 
+    # prepare data, and if it was changed during
+    # the last test, also prepare reference data
     with_data = var in data_new
     if with_data:
         dat = data_new[var]
@@ -144,10 +141,14 @@ def plotHook(
             toplot["ref-data-nans"] = nans
             mask = flagger_old.isFlagged(var, flag=flagger_old.UNFLAGGED, comparator='!=')
             toplot["ref-flags"] = datold[mask]
+
+    # no data is present, if a fresh-new
+    # flags-column was assigned
     else:
-        dummy = pd.Series(0, index=flags.index)
+        dummy = pd.Series(6, index=flags.index)
         toplot["data"] = dummy
 
+    # prepare flags
     if var in flagger_old.flags:
         oldflags = flagger_old.flags[var]
 
@@ -175,62 +176,81 @@ def plotHook(
     indexes["suspicious"] = s
     indexes["unflagged"] = u
 
-    # project flags to correct y-location
+    # project flags to data's y-location
     for k, idx in indexes.items():
         if idx is None:
             continue
-        # either actual data series or dummy
-        data = toplot["data"]
-        toplot[k] = data.loc[idx]
+        # data actually is data or dummy
+        toplot[k] = toplot["data"].loc[idx]
 
-    def _plot(ax, field):
-        if not toplot[field].empty and _colors.get(field, False):
-            ax.plot(toplot[field], **_colors[field])
+    _plot(toplot, _plotstyle, plot_name)
+
+
+def _plot(toplot, styledict, title=""):
+
+    def add_data_to_plot(ax, field):
+        if not toplot[field].empty and styledict.get(field, False):
+            ax.plot(toplot[field], **styledict[field])
 
     mask = toplot.columns.str.startswith("ref-")
 
     # plot reference
-    if not toplot["ref-data"].empty:
-        fig, axs = plt.subplots(2, 1, figsize=_figsize, sharey=True, sharex=True)
+    with_ref = not toplot["ref-data"].empty
+    if with_ref:
+        fig, axs = plt.subplots(3, 1, figsize=_figsize, sharey=True, sharex=True)
+        upper_ax, lower_ax, tab = axs
+        tab.table([["foo"] *3] * 1)
         toplot["ref-data-line"] = toplot['ref-data']
         for c in toplot.columns[mask]:
-            _plot(axs[0], c)
-        axs[0].set_title("before change of index or data")
-        axs[1].set_title("actual data")
-        ax = axs[1]
+            add_data_to_plot(upper_ax, c)
     else:
-        fig, ax = plt.subplots(1, 1, figsize=_figsize)
+        upper_ax = None
+        fig, lower_ax = plt.subplots(1, 1, figsize=_figsize)
 
     # plot data
     toplot["data-line"] = toplot['data']
     for c in toplot.columns[~mask]:
-        _plot(ax, c)
+        add_data_to_plot(lower_ax, c)
 
-    fig.suptitle(plot_name)
+    # format figure layout
+    # we have a upper and a lower ax aka. plot
+    if with_ref:
+        fig.subplots_adjust(hspace=0)
+        upper_ax.set_title(f"{title}\n(upper: before change of index or data, lower: current data)")
+
+    # we only have one plot, the 'lower'
+    else:
+        lower_ax.set_title(title)
+
+    # fig.suptitle(title)
+    fig.text(0,0, "foo \n" * 9, wrap=True)
+    plt.tight_layout()
     plt.legend()
     plt.show()
 
 
 def _split_old_and_new(old: pd.Series, new: pd.Series):
     """
-    Return two indexes, that represent the equal-data and non-eq-data locations.
+    Split in locations where old and new data are equal, and where not.
 
-    Notes
-    ----
-        Locations that are only present in old are ignored.
-        Nan's are ignored.
+    Returns
+    -------
+        Two indexes, one with locations, where the old and new data(!) are equal
+        (including nans), the other with the rest of locations seen from new.
+        This means, the rest marks locations, that are present(!) in new, but the
+        data differs from the old data.
     """
-    idx = new.dropna().index & old.dropna().index
-    mask = new.loc[idx] == old[idx]
+    idx = old.index & new.index
+    both_nan = old.loc[idx].isna() & new.loc[idx].isna()
+    mask = (new.loc[idx] == old[idx]) | both_nan
     old_idx = mask[mask].index
-    new_idx = mask[~mask].index
-    new_idx |= new_idx ^ new.index
+    new_idx = new.index.difference(old_idx)
     return old_idx, new_idx
 
 
 def _split_by_flag(flags, flagger):
     """
-    Splits flags in four separate bins, GOOD, DOUBTFUL, BAD, UNFLAGGED.
+    Splits flags in the four separate bins, GOOD, SUSPICIOUS, BAD and UNFLAGGED.
 
     Parameters
     ----------
@@ -246,141 +266,9 @@ def _split_by_flag(flags, flagger):
     """
     g = flags[flags == flagger.GOOD].index
     b = flags[flags == flagger.BAD].index
-    d = flags[(flags > flagger.BAD) & (flags < flagger.GOOD)].index
+    s = flags[(flags > flagger.BAD) & (flags < flagger.GOOD)].index
     u = flags[flags == flagger.UNFLAGGED].index
-    assert len(u) + len(g) + len(b) + len(d) <= len(flags)
-    return g, d, b, u
+    assert len(u) + len(g) + len(b) + len(s) <= len(flags)
+    return g, s, b, u
 
 
-def _plot(
-        data, flagger, flagmask, varname, interactive_backend=True, title="Data Plot", plot_nans=True,
-):
-    # todo: try catch warn (once) return
-    # only import if plotting is requested by the user
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-    from pandas.plotting import register_matplotlib_converters
-
-    # needed for datetime conversion
-    register_matplotlib_converters()
-
-    if not interactive_backend:
-        # Import plot libs without interactivity, if not needed. This ensures that this can
-        # produce an plot.png even if tkinter is not installed. E.g. if one want to run this
-        # on machines without X-Server aka. graphic interface.
-        mpl.use("Agg")
-    else:
-        mpl.use("TkAgg")
-
-    if not isinstance(varname, (list, set)):
-        varname = [varname]
-    varname = set(varname)
-
-    # filter out variables to which no data is associated (e.g. freshly assigned vars)
-    tmp = []
-    for var in varname:
-        if var in data.columns:
-            tmp.append(var)
-        else:
-            logging.warning(f"Cannot plot column '{var}', because it is not present in data.")
-    if not tmp:
-        return
-    varnames = tmp
-
-    plots = len(varnames)
-    if plots > 1:
-        fig, axes = plt.subplots(plots, 1, sharex=True, figsize=_figsize)
-        axes[0].set_title(title)
-        for i, v in enumerate(varnames):
-            _plotByQualityFlag(data, v, flagger, flagmask, axes[i], plot_nans)
-    else:
-        fig, ax = plt.subplots(figsize=_figsize)
-        plt.title(title)
-        _plotByQualityFlag(data, varnames.pop(), flagger, flagmask, ax, plot_nans)
-
-    # dummy plot for the label `missing` see _plotVline for more info
-    if plot_nans:
-        plt.plot([], [], ":", color="silver", label="missing data")
-
-    plt.xlabel("time")
-    plt.legend()
-
-    if interactive_backend:
-        plt.show()
-
-
-def _plotByQualityFlag(data, varname, flagger, flagmask, ax, plot_nans):
-    ax.set_ylabel(varname)
-
-    if flagmask is True:
-        flagmask = pd.Series(data=np.ones(len(data), dtype=bool), index=data.index)
-
-    data = data[varname]
-    if not plot_nans:
-        data = data.dropna()
-        flagmask = flagmask.loc[data.index]
-
-    flagger = flagger.getFlagger(varname, loc=data.index)
-
-    # base plot: show all(!) data
-    ax.plot(
-        data,
-        # NOTE: no lines to flagged points
-        # data.index, np.ma.array(data.values, mask=flagger.isFlagged(varname).values),
-        "-",
-        color="silver",
-        label="data",
-    )
-
-    # ANY OLD FLAG
-    # plot all(!) data that are already flagged in black
-    flagged = flagger.isFlagged(varname, flag=flagger.GOOD, comparator=">=")
-    oldflags = flagged & ~flagmask
-
-    ax.plot(data[oldflags], ".", color="black", label="flagged by other test")
-    if plot_nans:
-        _plotNans(data[oldflags], "black", ax)
-
-    # now we just want to show data that was flagged
-    data = data.loc[flagmask[flagmask].index]
-    flagger = flagger.getFlagger(varname, loc=data.index)
-
-    if data.empty:
-        return
-
-    plots = [
-        (flagger.UNFLAGGED, _colors["unflagged"]),
-        (flagger.GOOD, _colors["good"]),
-        (flagger.BAD, _colors["bad"]),
-    ]
-
-    for flag, color in plots:
-        flagged = flagger.isFlagged(varname, flag=flag, comparator="==")
-        if not data[flagged].empty:
-            ax.plot(data[flagged], ".", color=color, label=f"flag: {flag}")
-        if plot_nans:
-            _plotNans(data[flagged], color, ax)
-
-    # plot SUSPICIOS
-    color = _colors["suspicious"]
-    flagged = flagger.isFlagged(varname, flag=flagger.GOOD, comparator=">")
-    flagged &= flagger.isFlagged(varname, flag=flagger.BAD, comparator="<")
-    if not data[flagged].empty:
-        ax.plot(
-            data[flagged], ".", color=color, label=f"{flagger.GOOD} < flag < {flagger.BAD}",
-        )
-    if plot_nans:
-        _plotNans(data[flagged], color, ax)
-
-
-def _plotNans(y, color, ax):
-    nans = y.isna()
-    _plotVline(ax, y[nans].index, color=color)
-
-
-def _plotVline(ax, points, color="blue"):
-    # workaround for ax.vlines() as this work unexpected
-    # normally this should work like so:
-    #   ax.vlines(idx, *ylim, linestyles=':', color='silver', label="missing")
-    for point in points:
-        ax.axvline(point, color=color, linestyle=":")
