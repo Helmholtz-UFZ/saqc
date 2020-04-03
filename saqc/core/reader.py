@@ -61,14 +61,13 @@ def _matchKey(keys: Iterable[str], fuzzy_key: str) -> str:
 
 def _castRow(row: Dict[str, Any]):
     out = {}
-    for k, func in CONFIG_TYPES.items():
-        key = _matchKey(row.keys(), k)
-        if key:
-            value = row[key]
-            try:
-                out[key] = func(value)
-            except ValueError:
-                _raise(row, ValueError, f"invalid value: '{value}'")
+    for row_key, row_value in row.items():
+        for fuzzy_key, func in CONFIG_TYPES.items():
+            if re.match(fuzzy_key, row_key):
+                try:
+                    out[row_key] = func(row_value)
+                except ValueError:
+                    _raise(row, ValueError, f"invalid value: '{row_value}'")
     return out
 
 

@@ -88,6 +88,33 @@ def test_configReaderLineNumbers(data):
     assert result == expected
 
 
+def test_configMultipleTests(data):
+
+    var = data.columns[0]
+
+    config = f"""
+    {F.VARNAME} ; test_1        ; test_2
+    #-----------;---------------;--------------------------
+    {var}       ; flagMissing() ; flagRange(min=10, max=60)
+    """
+
+    from saqc.flagger import SimpleFlagger
+    from saqc.core.core import run
+    from saqc.core.reader import readConfig, checkConfig
+    from saqc.funcs.functions import flagMissing, flagRange
+
+    flagger = SimpleFlagger().initFlags(data)
+    df = checkConfig(readConfig(writeIO(config), data), data, flagger, np.nan)
+    assert {"test_1", "test_2"} - set(df.columns) == set([])
+
+    flagger_expected = SimpleFlagger().initFlags(data)
+    for func, kwargs in [(flagMissing, {}), (flagRange, {"min": 10, "max": 60})]:
+        data, flagger_expected = func(data, var, flagger_expected, **kwargs)
+    _, flagger_result = run(writeIO(config), SimpleFlagger(), data)
+
+    assert np.all(flagger_result.getFlags() == flagger_expected.getFlags())
+
+
 def test_configFile(data):
 
     # check that the reader accepts different whitespace patterns

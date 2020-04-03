@@ -372,7 +372,6 @@ def sm_flagRandomForest(data, field, flagger, references, window_values: int, wi
         )  # mean gradient t to t+window
         return outdata
 
-
     # Function for moving window calculations
     # Create custom df for easier processing
     df = data.loc[:, [field] + references]

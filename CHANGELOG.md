@@ -41,17 +41,32 @@
 
 # 1.3
 
-coming soon...
-
 ## Features
+- spike detection test `spikes_flagRaise`
+- spike detection test `spikes_oddWater`
+- generic processing function `procGeneric` 
 
 ## Bugfixes
 - configuration: certain whitespace patterns broke the configuration parsing
+- configuration: multiple tests in one configuration row were not parsed correctly
 - reader: variables only available within the flagger were not transformed correctly
 
 ## Refactorings
---
+- Improved logging
 
 ## Breaking Changes
 - configuration: quoted variable names are handled as regular expressions
 - functions: renamed many test functions to a uniform naming scheme
+
+
+# 1.4
+
+coming soon ...
+
+## Features
+
+## Bugfixes
+
+## Refactorings
+
+## Breaking Changes

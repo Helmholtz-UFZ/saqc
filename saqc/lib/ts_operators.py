@@ -6,7 +6,6 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
 
-
 def _isValid(data, max_nan_total, max_nan_consec):
     if (max_nan_total is np.inf) & (max_nan_consec is np.inf):
         return True
@@ -23,6 +22,7 @@ def _isValid(data, max_nan_total, max_nan_consec):
     else:
         return False
 
+
 # ts_transformations
 def identity(ts):
     return ts
@@ -32,20 +32,20 @@ def difference(ts):
     return pd.Series.diff(ts)
 
 
-def derivative(ts, unit='1min'):
-    return ts/(deltaT(ts, unit=unit))
+def derivative(ts, unit="1min"):
+    return ts / (deltaT(ts, unit=unit))
 
 
-def deltaT(ts, unit='1min'):
+def deltaT(ts, unit="1min"):
     return ts.index.to_series().diff().dt.total_seconds() / pd.Timedelta(unit).total_seconds()
 
 
 def rateOfChange(ts):
-    return ts.diff/ts
+    return ts.diff / ts
 
 
 def relativeDifference(ts):
-    return ts - 0.5*(ts.shift(+1) + ts.shift(-1))
+    return ts - 0.5 * (ts.shift(+1) + ts.shift(-1))
 
 
 def scale(ts, target_range=1, projection_point=None):
@@ -64,7 +64,7 @@ def nBallClustering(in_arr, ball_radius=None):
     x_cols = in_arr.shape[1]
 
     if not ball_radius:
-        ball_radius = 0.1 / np.log(x_len)**(1/x_cols)
+        ball_radius = 0.1 / np.log(x_len) ** (1 / x_cols)
     exemplars = [in_arr[0, :]]
     members = [[]]
     for index, point in in_arr:
@@ -79,12 +79,12 @@ def nBallClustering(in_arr, ball_radius=None):
     return exemplars, members, ex_indices
 
 
-def kNN(in_arr, n_neighbors, algorithm='ball_tree'):
+def kNN(in_arr, n_neighbors, algorithm="ball_tree"):
     nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr)
     return nbrs.kneighbors()
 
 
-def kNNMaxGap(in_arr, n_neighbors, algorithm='ball_tree'):
+def kNNMaxGap(in_arr, n_neighbors, algorithm="ball_tree"):
     dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
     sample_size = dist.shape[0]
     to_gap = np.append(np.array([[0] * sample_size]).T, dist, axis=1)
@@ -92,7 +92,7 @@ def kNNMaxGap(in_arr, n_neighbors, algorithm='ball_tree'):
     return dist[range(0, sample_size), max_gap_ind]
 
 
-def kNNSum(in_arr, n_neighbors, algorithm='ball_tree'):
+def kNNSum(in_arr, n_neighbors, algorithm="ball_tree"):
     dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
     return dist.sum(axis=1)
 
