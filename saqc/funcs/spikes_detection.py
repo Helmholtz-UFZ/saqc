@@ -8,7 +8,6 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from scipy.stats import zscore
 from scipy.optimize import curve_fit
-from sklearn.neighbors import NearestNeighbors
 from saqc.funcs.register import register
 import numpy.polynomial.polynomial as poly
 import numba
@@ -21,8 +20,8 @@ from saqc.lib.tools import (
     composeFunction
 )
 
-@register("spikes_oddWater")
-def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0.05, bin_frac=10, n_neighbors=2,
+@register()
+def spikes_flagOddWater(data, field, flagger, fields, trafo='normScale', alpha=0.05, bin_frac=10, n_neighbors=2,
                         iter_start=0.5, scoring_method='kNNMaxGap', lambda_estimator='gap_average', **kwargs):
 
     trafo = composeFunction(trafo.split(','))
@@ -64,8 +63,6 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0
         for iter_index in range(i_start-1, sample_size):
            if gaps[iter_index] > log_alpha*ghat[iter_index]:
                break
-
-
     else:
         # (estimator == 'exponential_fit')
         iter_index = int(np.floor(resids.size * iter_start))
@@ -128,8 +125,8 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0
 
 
 
-@register("spikes_limitRaise")
-def flagSpikes_limitRaise(
+@register()
+def spikes_flagRaise(
     data, field, flagger, thresh, raise_window, intended_freq, average_window=None, mean_raise_factor=2, min_slope=None,
         min_slope_weight=0.8, numba_boost=True, **kwargs
 ):
@@ -215,8 +212,8 @@ def flagSpikes_limitRaise(
     return data, flagger
 
 
-@register("spikes_slidingZscore")
-def flagSpikes_slidingZscore(
+@register()
+def spikes_flagSlidingZscore(
     data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs,
 ):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
@@ -339,8 +336,8 @@ def flagSpikes_slidingZscore(
     return data, flagger
 
 
-@register("spikes_simpleMad")
-def flagSpikes_simpleMad(data, field, flagger, window, z=3.5, **kwargs):
+@register()
+def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
     """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
 
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
@@ -377,8 +374,8 @@ def flagSpikes_simpleMad(data, field, flagger, window, z=3.5, **kwargs):
     return data, flagger
 
 
-@register("spikes_basic")
-def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window="15min", **kwargs):
+@register()
+def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min", **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -463,8 +460,8 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window="15min"
     return data, flagger
 
 
-@register("spikes_spektrumBased")
-def flagSpikes_spektrumBased(
+@register()
+def spikes_flagSpektrumBased(
     data,
     field,
     flagger,

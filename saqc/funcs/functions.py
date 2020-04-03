@@ -9,7 +9,7 @@ from saqc.lib.tools import sesonalMask, flagWindow, groupConsecutives
 from saqc.funcs.register import register
 
 
-@register("procGeneric")
+@register()
 def procGeneric(data, field, flagger, func, **kwargs):
     # TODO:
     # - add new fields to te flagger
@@ -17,7 +17,7 @@ def procGeneric(data, field, flagger, func, **kwargs):
     return data, flagger
 
 
-@register("flagGeneric")
+@register()
 def flagGeneric(data, field, flagger, func, **kwargs):
     # NOTE:
     # The naming of the func parameter is pretty confusing
@@ -31,21 +31,7 @@ def flagGeneric(data, field, flagger, func, **kwargs):
     return data, flagger
 
 
-@register("flagWindowAfterFlag")
-def flagWindowAfterFlag(data, field, flagger, window, func, **kwargs):
-    data, flagger_new = func
-    flagger_repeated = flagWindow(flagger, flagger_new, field, direction="fw", window=window, **kwargs)
-    return data, flagger_repeated
-
-
-@register("flagNextAfterFlag")
-def flagNextAfterFlag(data, field, flagger, n, func, **kwargs):
-    data, flagger_new = func
-    flagger_repeated = flagWindow(flagger, flagger_new, field, direction="fw", window=n, **kwargs)
-    return data, flagger_repeated
-
-
-@register("range")
+@register()
 def flagRange(data, field, flagger, min, max, **kwargs):
     datacol = data[field].values
     mask = (datacol < min) | (datacol > max)
@@ -53,7 +39,7 @@ def flagRange(data, field, flagger, min, max, **kwargs):
     return data, flagger
 
 
-@register("missing")
+@register()
 def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     datacol = data[field]
     if np.isnan(nodata):
@@ -65,7 +51,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     return data, flagger
 
 
-@register("sesonalRange")
+@register()
 def flagSesonalRange(
     data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
 ):
@@ -84,19 +70,19 @@ def flagSesonalRange(
     return data, flagger
 
 
-@register("clear")
+@register()
 def clearFlags(data, field, flagger, **kwargs):
     flagger = flagger.clearFlags(field, **kwargs)
     return data, flagger
 
 
-@register("force")
+@register()
 def forceFlags(data, field, flagger, flag, **kwargs):
     flagger = flagger.clearFlags(field).setFlags(field, flag=flag, **kwargs)
     return data, flagger
 
 
-@register("isolated")
+@register()
 def flagIsolated(
     data, field, flagger, gap_window, group_window, **kwargs,
 ):
@@ -124,6 +110,6 @@ def flagIsolated(
     return data, flagger
 
 
-@register("dummy")
-def flagDummyFunction(data, field, flagger, **kwargs):
+@register()
+def flagDummy(data, field, flagger, **kwargs):
     return data, flagger

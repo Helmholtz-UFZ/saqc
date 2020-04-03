@@ -16,7 +16,7 @@ A modular structure and well-defined interfaces make it easy to extend
 the system with custom quality checks and even core components, like
 the flagging scheme, are exchangeable.
 
-![SaQC Workflow](docs/images/readme_image.png "SaQC Workflow") 
+![SaQC Workflow](ressources/images/readme_image.png "SaQC Workflow") 
 
 ## Why?
 During the implementation of data workflows in environmental sciences,
@@ -40,7 +40,14 @@ of the system, is text-based. All the magic takes place in a semicolon-separated
 table file listing the variables within the dataset and the routines to inspect,
 quality control and/or modify them.
 
-![Example config](docs/images/screenshot_config.png "Example config") 
+```
+varname    ; test                                ; plot
+#----------;-------------------------------------;------
+SM2        ; harm_shift2Grid(freq="15Min")       ; False
+SM2        ; flagMissing(nodata=NAN)             ; False
+'SM(1|2)+' ; flagRange(min=10, max=60)           ; False
+SM2        ; spikes_flagMad(window="30d", z=3.5) ; True
+```
 
 While a good (but still growing) number of predefined and highly configurable
 [functions](docs/FunctionIndex.md) are included and ready to use, SaQC

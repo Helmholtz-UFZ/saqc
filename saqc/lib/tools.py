@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import numbers
 from typing import Sequence, Union, Any, Iterator
 
 import numpy as np
