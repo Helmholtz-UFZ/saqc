@@ -38,10 +38,7 @@ def data():
 def test_missingIdentifier(data, flagger):
 
     flagger = flagger.initFlags(data)
-    tests = [
-        "flagGeneric(func=fff(var2) < 5)",
-        "flagGeneric(func=var3 != NODATA)"
-    ]
+    tests = ["flagGeneric(func=fff(var2) < 5)", "flagGeneric(func=var3 != NODATA)"]
     for expr in tests:
         with pytest.raises(NameError):
             evalExpression(expr, data, data.columns[0], flagger, np.nan)
@@ -64,9 +61,7 @@ def test_comparisonOperators(data, flagger):
 
     # check within the usually enclosing scope
     for expr, mask in tests:
-        _, result_flagger = evalExpression(
-            f"flagGeneric(func={expr})", data, this, flagger, np.nan
-        )
+        _, result_flagger = evalExpression(f"flagGeneric(func={expr})", data, this, flagger, np.nan)
         expected_flagger = flagger.setFlags(this, loc=mask, test="generic")
         assert np.all(result_flagger.isFlagged() == expected_flagger.isFlagged())
 
@@ -88,9 +83,7 @@ def test_arithmeticOperators(data, flagger):
 
     # check within the usually enclosing scope
     for expr, expected in tests:
-        result_data, _ = evalExpression(
-            f"procGeneric(func={expr})", data, var1, flagger, np.nan
-        )
+        result_data, _ = evalExpression(f"procGeneric(func={expr})", data, var1, flagger, np.nan)
         assert np.all(result_data[expected.name] == expected)
 
 
@@ -108,9 +101,7 @@ def test_nonReduncingBuiltins(data, flagger):
     ]
 
     for expr, expected in tests:
-        result_data, _ = evalExpression(
-            f"procGeneric(func={expr})", data, var1, flagger, np.nan
-        )
+        result_data, _ = evalExpression(f"procGeneric(func={expr})", data, var1, flagger, np.nan)
         assert np.all(result_data[expected.name] == expected)
 
 
@@ -131,9 +122,7 @@ def test_reduncingBuiltins(data, flagger, nodata):
         (f"len(this)", len(this)),
     ]
     for expr, expected in tests:
-        result_data, _ = evalExpression(
-            f"procGeneric(func={expr})", data, var1, flagger, np.nan
-        )
+        result_data, _ = evalExpression(f"procGeneric(func={expr})", data, var1, flagger, np.nan)
         assert np.all(result_data[var1] == expected)
 
 
@@ -149,10 +138,7 @@ def test_ismissing(data, flagger, nodata):
 
     tests = [
         (f"ismissing({var1})", lambda data: (pd.isnull(data) | (data == nodata)).all()),
-        (
-            f"~ismissing({var1})",
-            lambda data: (pd.notnull(data) & (data != nodata)).all(),
-        ),
+        (f"~ismissing({var1})", lambda data: (pd.notnull(data) & (data != nodata)).all(),),
     ]
 
     for expr, checkFunc in tests:
@@ -175,9 +161,7 @@ def test_bitOps(data, flagger, nodata):
     ]
 
     for expr, expected in tests:
-        _, flagger_result = evalExpression(
-            f"flagGeneric(func={expr})", data, this.name, flagger, nodata
-        )
+        _, flagger_result = evalExpression(f"flagGeneric(func={expr})", data, this.name, flagger, nodata)
         assert (flagger_result.isFlagged(this.name) == expected).all()
 
 
@@ -206,13 +190,11 @@ def test_invertIsFlagged(data, flagger):
 
     tests = [
         (f"~isflagged({var2})", ~flagger.isFlagged(var2)),
-        (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & (~flagger.isFlagged(var2)))
+        (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & (~flagger.isFlagged(var2))),
     ]
 
     for expr, flags_expected in tests:
-        _, flagger_result = evalExpression(
-            f"flagGeneric(func={expr})", data, var1, flagger, np.nan
-        )
+        _, flagger_result = evalExpression(f"flagGeneric(func={expr})", data, var1, flagger, np.nan)
         flags_result = flagger_result.isFlagged(var1)
         assert np.all(flags_result == flags_expected)
 
@@ -222,16 +204,14 @@ def test_isflaggedArgument(data, flagger):
 
     var1, var2, *_ = data.columns
 
-    flagger = flagger.initFlags(data).setFlags(
-        var1, iloc=slice(None, None, 2), flag=flagger.BAD
-    )
+    flagger = flagger.initFlags(data).setFlags(var1, iloc=slice(None, None, 2), flag=flagger.BAD)
 
     tests = [
-        (_evalDslExpression(f"isflagged({var1}, BAD)", data, var2, flagger),
-         flagger.isFlagged(var1, flag=flagger.BAD)
+        (_evalDslExpression(f"isflagged({var1}, BAD)", data, var2, flagger), flagger.isFlagged(var1, flag=flagger.BAD)),
+        (
+            _evalDslExpression(f"isflagged({var1}, UNFLAGGED, '==')", data, var2, flagger),
+            flagger.isFlagged(var1, flag=flagger.UNFLAGGED, comparator="=="),
         ),
-        (_evalDslExpression(f"isflagged({var1}, UNFLAGGED, '==')", data, var2, flagger),
-         flagger.isFlagged(var1, flag=flagger.UNFLAGGED, comparator="==")),
     ]
 
     for result, expected in tests:
@@ -254,5 +234,7 @@ def test_variableAssignments(data, flagger):
 
     result_data, result_flagger = run(writeIO(config), flagger, data)
 
-    assert set(result_data.columns) == set(data.columns) | {"dummy1", }
+    assert set(result_data.columns) == set(data.columns) | {
+        "dummy1",
+    }
     assert set(result_flagger.getFlags().columns) == set(data.columns) | {"dummy1", "dummy2"}

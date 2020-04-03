@@ -37,9 +37,7 @@ def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):
 
 
 def initMetaString(metastring, data):
-    cleaned = re.sub(
-        r"\s*,\s*", r",", re.sub(r"\|", r";", re.sub(r"\n[ \t]+", r"\n", metastring))
-    )
+    cleaned = re.sub(r"\s*,\s*", r",", re.sub(r"\|", r";", re.sub(r"\n[ \t]+", r"\n", metastring)))
     fobj = io.StringIO(cleaned.strip())
     config = readConfig(fobj, data)
     fobj.seek(0)

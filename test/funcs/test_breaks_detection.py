@@ -9,9 +9,7 @@ from test.common import TESTFLAGGER, initData
 
 @pytest.fixture
 def data():
-    return initData(
-        1, start_date="2011-01-01 00:00:00", end_date="2011-01-02 03:00:00", freq="5min"
-    )
+    return initData(1, start_date="2011-01-01 00:00:00", end_date="2011-01-02 03:00:00", freq="5min")
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

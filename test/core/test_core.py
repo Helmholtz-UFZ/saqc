@@ -100,14 +100,11 @@ def test_positionalPartitioning(data, flagger, flags):
         vname, start_index, end_index = row[fields]
         fchunk = pflagger.getFlags(field=vname, loc=pflagger.isFlagged(vname))
         assert fchunk.index.min() == start_index, "different start indices"
-        assert (
-            fchunk.index.max() == end_index
-        ), f"different end indices: {fchunk.index.max()} vs. {end_index}"
+        assert fchunk.index.max() == end_index, f"different end indices: {fchunk.index.max()} vs. {end_index}"
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_errorHandling(data, flagger):
-
     @register()
     def raisingFunc(data, fielf, flagger, **kwargs):
         raise TypeError
@@ -118,10 +115,7 @@ def test_errorHandling(data, flagger):
         {F.VARNAME: var1, F.TESTS: "raisingFunc()"},
     ]
 
-    tests = [
-        "ignore",
-        "warn"
-    ]
+    tests = ["ignore", "warn"]
 
     for policy in tests:
         # NOTE: should not fail, that's all we are testing here
@@ -209,8 +203,6 @@ def test_plotting(data, flagger):
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
     _, flagger_range = flagRange(data, field, flagger, min=10, max=90, flag=flagger.BAD)
-    _, flagger_range = flagRange(
-        data, field, flagger_range, min=40, max=60, flag=flagger.GOOD
-    )
+    _, flagger_range = flagRange(data, field, flagger_range, min=40, max=60, flag=flagger.GOOD)
     mask = flagger.getFlags(field) != flagger_range.getFlags(field)
     _plot(data, mask, field, flagger, interactive_backend=False)

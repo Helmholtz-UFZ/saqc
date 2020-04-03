@@ -30,14 +30,11 @@ SAQC_OPERATORS = {
     "deriv": ts_ops.derivative,
     "roc": ts_ops.rateOfChange,
     "scale": ts_ops.scale,
-    "normScale": ts_ops.normScale
+    "normScale": ts_ops.normScale,
 }
 
 
-OP_MODULES = {'pd': pd,
-              'np': np,
-              'scipy': scipy
-              }
+OP_MODULES = {"pd": pd, "np": np, "scipy": scipy}
 
 
 def evalFuncString(func_string):
@@ -52,8 +49,10 @@ def evalFuncString(func_string):
         except KeyError:
             availability_list = [f"'{k}' (= {s.__name__})" for k, s in OP_MODULES.items()]
             availability_list = " \n".join(availability_list)
-            raise ValueError(f'The external-module alias "{module}" is not known to the internal operators dispatcher. '
-                             f'\n Please select from: \n{availability_list}')
+            raise ValueError(
+                f'The external-module alias "{module}" is not known to the internal operators dispatcher. '
+                f"\n Please select from: \n{availability_list}"
+            )
 
     else:
         if func_string in SAQC_OPERATORS:
@@ -61,8 +60,10 @@ def evalFuncString(func_string):
         else:
             availability_list = [f"'{k}' (= {s.__name__})" for k, s in SAQC_OPERATORS.items()]
             availability_list = " \n".join(availability_list)
-            raise ValueError(f'The external-module alias "{func_string}" is not known to the internal operators '
-                             f'dispatcher. \n Please select from: \n{availability_list}')
+            raise ValueError(
+                f'The external-module alias "{func_string}" is not known to the internal operators '
+                f"dispatcher. \n Please select from: \n{availability_list}"
+            )
 
 
 def composeFunction(functions):

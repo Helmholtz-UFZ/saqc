@@ -42,28 +42,8 @@ def test_flagSesonalRange(data, field, flagger):
     nyears = len(data.index.year.unique())
 
     tests = [
-        (
-            {
-                "min": 1,
-                "max": 100,
-                "startmonth": 7,
-                "startday": 1,
-                "endmonth": 8,
-                "endday": 31,
-            },
-            31 * 2 * nyears // 2,
-        ),
-        (
-            {
-                "min": 1,
-                "max": 100,
-                "startmonth": 12,
-                "startday": 16,
-                "endmonth": 1,
-                "endday": 15,
-            },
-            31 * nyears // 2 + 1,
-        ),
+        ({"min": 1, "max": 100, "startmonth": 7, "startday": 1, "endmonth": 8, "endday": 31,}, 31 * 2 * nyears // 2,),
+        ({"min": 1, "max": 100, "startmonth": 12, "startday": 16, "endmonth": 1, "endday": 15,}, 31 * nyears // 2 + 1,),
     ]
 
     for test, expected in tests:
@@ -108,15 +88,8 @@ def test_flagIsolated(data, flagger):
 
     assert flagger_result.isFlagged(field)[slice(3, 6, 2)].all()
 
-    flagger = flagger.setFlags(
-        field, iloc=slice(3, 4), flag=flagger.UNFLAGGED, force=True
-    )
+    flagger = flagger.setFlags(field, iloc=slice(3, 4), flag=flagger.UNFLAGGED, force=True)
     data, flagger_result = flagIsolated(
-        data,
-        field,
-        flagger_result,
-        group_window="2D",
-        gap_window="2.1D",
-        continuation_range="1.1D",
+        data, field, flagger_result, group_window="2D", gap_window="2.1D", continuation_range="1.1D",
     )
     assert flagger_result.isFlagged(field)[[3, 5, 13, 14]].all()

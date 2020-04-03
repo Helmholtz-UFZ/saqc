@@ -58,7 +58,6 @@ def test_typeError(flagger):
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_supportedArguments(flagger):
-
     @register()
     def func(data, field, flagger, kwarg, **kwargs):
         return data, flagger
@@ -73,5 +72,3 @@ def test_supportedArguments(flagger):
     ]
     for expr in exprs:
         compileExpression(expr, flagger)
-
-
