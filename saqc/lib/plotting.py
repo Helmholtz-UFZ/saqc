@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import dios.dios as dios
 import matplotlib.pyplot as plt
-from typing import List
+from typing import List, Dict, Any
 
 from saqc.flagger import BaseFlagger
 
@@ -19,7 +19,6 @@ __plotvars = []
 _cols = [
     # 1st PLOT
     # reference
-    "ref-data-line",
     "ref-data",
     "ref-data-nans",
     "ref-flags",
@@ -28,7 +27,6 @@ _cols = [
     # other
     "flag-nans",  # currently ignored
     # data
-    "data-line",
     "data",
     "data-nans",
     # flags
@@ -39,32 +37,30 @@ _cols = [
     "bad",
 ]
 
-nan_repr_style = dict(marker='.', fillstyle='none', ls='none', c="lightsteelblue", label="NaN")
+nan_repr_style = dict(marker='.', fillstyle='none', ls='none', c="lightsteelblue")
 
-# uncomment rows to disable
-_plotstyle = {
+_plotstyle: Dict[str, dict] = {
     # flags
-    # "unflagged": dict(marker='.', fillstyle="none", ls='none', c="silver", label="UNFLAGGED"),
+    "unflagged": dict(marker='.', ls='none', c="silver", label="UNFLAGGED"),
     "good": dict(marker='.', fillstyle='none', ls='none', c="seagreen", label="GOOD"),
     "bad": dict(marker='.', fillstyle='none', ls='none', c="firebrick", label="BAD"),
     "suspicious": dict(marker='.', fillstyle='none', ls='none', c="gold", label="SUSPICIOUS"),
     "old-flags": dict(marker='.', fillstyle='none', ls='none', c="black", label="old-flags"),
     # data
-    "data": dict(marker='.', ls='none', c="silver", label="NOT FLAGGED"),
-    "data-line": dict(c="silver", ls='-', label="data"),
-    "data-nans": nan_repr_style,
+    # "data": dict(marker='.', ls='none', c="silver", label="NOT FLAGGED"),
+    "data": dict(c="silver", ls='-', label="data"),
+    "data-nans": dict(**nan_repr_style, label="NaN"),
     # other
-    "flag-nans": nan_repr_style,
+    # "flag-nans": nan_repr_style,
 
     # reference
     # labels are omitted as they are the same (by c) like above
-    "ref-data-line": dict(c="silver", ls='-'),
-    "ref-data": dict(marker='.', ls='none', c="silver", ),
-    "ref-data-nans": nan_repr_style,
-    "ref-flags": dict(marker='.', ls='none', c="silver"),
+    "ref-data": dict(c="silver", ls='-', label="reference-data"),
+    "ref-data-nans": dict(**nan_repr_style, label="reference-data-NaN"),
+    "ref-flags": dict(marker='.', ls='none', c="silver", label='reference-flags'),
 }
 
-_figsize = (10, 4)
+_figsize = (16, 9)
 
 
 def __import_helper(ion=False):
@@ -139,6 +135,7 @@ def plotHook(
             toplot["ref-data"] = datold
             nans = datold.interpolate().loc[datold.isna()]
             toplot["ref-data-nans"] = nans
+            # todo: split by flag
             mask = flagger_old.isFlagged(var, flag=flagger_old.UNFLAGGED, comparator='!=')
             toplot["ref-flags"] = datold[mask]
 
@@ -186,47 +183,114 @@ def plotHook(
     _plot(toplot, _plotstyle, plot_name)
 
 
-def _plot(toplot, styledict, title=""):
+def _plot(toplot, styledict: Dict[str, dict], title=""):
+    """
+    Create a figure with the data-plot(s) and a legend-table with additional info
+
+    Parameters
+    ----------
+    toplot : dios.DictOfSeries
+        data to plot
+    styledict : dict[dict]
+        dict of dict of params passed to plot
+    title : str
+        name of the whole thing
+    """
 
     def add_data_to_plot(ax, field):
-        if not toplot[field].empty and styledict.get(field, False):
-            ax.plot(toplot[field], **styledict[field])
+        data = toplot[field]
+        style = styledict.get(field, False)
+        if style and len(data) > 0:
+            ax.plot(data, **style)
 
     mask = toplot.columns.str.startswith("ref-")
+    gs_kw = dict(width_ratios=[5, 1])
 
     # plot reference
     with_ref = not toplot["ref-data"].empty
     if with_ref:
-        fig, axs = plt.subplots(3, 1, figsize=_figsize, sharey=True, sharex=True)
-        upper_ax, lower_ax, tab = axs
-        tab.table([["foo"] *3] * 1)
-        toplot["ref-data-line"] = toplot['ref-data']
+        fig, axs = plt.subplots(2, 2, figsize=_figsize,
+                                sharey=True, sharex=True,
+                                tight_layout=True,
+                                # constrained_layout=True,
+                                gridspec_kw=gs_kw)
+        upper_ax, uptab_ax = axs[0]
+        uptab_ax.axis('tight')
+        uptab_ax.axis('off')
+        lower_ax, lowtab_ax = axs[1]
         for c in toplot.columns[mask]:
             add_data_to_plot(upper_ax, c)
     else:
         upper_ax = None
-        fig, lower_ax = plt.subplots(1, 1, figsize=_figsize)
-
+        fig, (lower_ax, lowtab_ax) = plt.subplots(1, 2, figsize=_figsize,
+                                                  tight_layout=True,
+                                                  # constrained_layout=True,
+                                                  gridspec_kw = gs_kw)
     # plot data
-    toplot["data-line"] = toplot['data']
     for c in toplot.columns[~mask]:
         add_data_to_plot(lower_ax, c)
 
+    # info table
+    lowtab_ax.axis('tight')
+    lowtab_ax.axis('off')
+    make_info_table(lowtab_ax, toplot, styledict)
+
     # format figure layout
-    # we have a upper and a lower ax aka. plot
+    lower_ax.legend()
     if with_ref:
-        fig.subplots_adjust(hspace=0)
-        upper_ax.set_title(f"{title}\n(upper: before change of index or data, lower: current data)")
-
-    # we only have one plot, the 'lower'
+        upper_ax.legend()
+        upper_ax.set_title(f"{title}\nUPPER: before change of index/data, LOWER: current data")
+        # plt.tight_layout()
     else:
-        lower_ax.set_title(title)
+        lower_ax.set_title(f"{title}\n")
+        # plt.tight_layout()
 
-    # fig.suptitle(title)
-    fig.text(0,0, "foo \n" * 9, wrap=True)
-    plt.tight_layout()
-    plt.legend()
+    fig.subplots_adjust(hspace=0)
     plt.show()
+
+
+def make_info_table(ax, toplot, styledict):
+    # "data",
+    # "data-nans",
+    # # flags
+    # "unflagged",
+    # "old-flags",
+    # "good",
+    # "suspicious",
+    # "bad",
+    # todo: fresh B,G,U,S total, nans
+
+    cols = ["color", "name", "[#]", "[%]"]
+    tab = pd.DataFrame(columns=cols)
+    total = len(toplot['data'])
+
+    for field in toplot.columns:
+        data = toplot[field]
+        style = styledict.get(field, {})
+        color = style.get('color', None) or style.get('c', 'white')
+        if total == 0:
+            length = percent = 0
+        else:
+            length = len(data)
+            percent = length / total * 100
+        tab.loc[len(tab), :] = [color, field, length, round(percent, 2)]
+
+    # ax.table([["foo "]*3] *8, loc='center', rowColours=["blue", "red"] *4 )
+    cellcolors = [tab['color'].to_list()] + [['white'] * len(tab)] * 2
+    del tab['color']
+    o = ax.table(
+        cellColours=np.array(cellcolors).transpose(),
+        cellText=tab.iloc[:, :].values,
+        colLabels=tab.columns[:],
+        colWidths=[0.4, 0.3, 0.3],
+        in_layout=True,
+        # bbox=[0,0,1,1],
+        loc='center',
+    )
+    o.auto_set_column_width(False)
+    o.auto_set_font_size(False)
+    o.set_fontsize(10)
+    return o
 
 
 def _split_old_and_new(old: pd.Series, new: pd.Series):
@@ -270,5 +334,3 @@ def _split_by_flag(flags, flagger):
     u = flags[flags == flagger.UNFLAGGED].index
     assert len(u) + len(g) + len(b) + len(s) <= len(flags)
     return g, s, b, u
-
-
