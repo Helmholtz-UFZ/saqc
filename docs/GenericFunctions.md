@@ -7,7 +7,7 @@ and to implement simple quality checks directly within the configuration.
 The underlying idea is, that in most real world datasets many errors
 can be explained by the dataset itself. Think of a an active, fan-cooled
 measurement device: no matter how precise the instrument may work, problems
-are to expected when the fan stop working or the battery voltage 
+are to be expected when the fan stops working or the battery voltage 
 drops below a certain threshold. While these dependencies are easy to 
 [formalize](#a-real-world-example) on a per dataset basis, it is quite
 challenging to translate them into general purpose source code.
@@ -46,7 +46,7 @@ Flag all values of variable `x` that exceed 3 standard deviations of variable `y
 
 | varname | test                                |
 |---------|-------------------------------------|
-| x       | flagGeneric(func=this > std(y) * 3) |
+| x       | flagGeneric(func=x > std(y) * 3)    |
 
 ### Special functions
 
@@ -87,7 +87,7 @@ and than leverage this information later on:
 
 | varname | test                                                    |
 |---------|---------------------------------------------------------|
-| *       | missing()                                               |
+| *       | flagMissing()                                           |
 | fan     | flagGeneric(func=this == 0)                             |
 | volt    | flagGeneric(func=this < 12.0)                           |
 | meas    | flagGeneric(func=isflagged(fan) \| isflagged(volt)) |
@@ -99,9 +99,9 @@ so arbitrary cross references are possible. The variable of interest
 is furthermore available with the special reference `this`, so the second 
 [example](#calculations) could be rewritten as: 
 
-| varname | test                             |
-|---------|----------------------------------|
-| x       | flagGeneric(func=x > std(y) * 3) |
+| varname | test                                |
+|---------|-------------------------------------|
+| x       | flagGeneric(func=this > std(y) * 3) |
 
 When referencing other variables, their flags will be respected during evaluation
 of the generic expression. So, in the example above only previously
@@ -125,7 +125,7 @@ The following comparison operators are available:
 | `>=`     | `True` if the values of the left operand are greater or equal than the values of the right operand |
 | `<=`     | `True` if the values of the left operand are smaller or equal than the values of the right operand |
 
-#### Arithmetic
+#### Arithmetics
 The following arithmetic operators are supported:
 
 | Operator | Description    |
