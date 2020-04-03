@@ -3,7 +3,7 @@
 
 import pandas as pd
 import numpy as np
-from scipy.spatial.distance import cdist
+from sklearn.neighbors import NearestNeighbors
 
 
 
@@ -77,6 +77,24 @@ def nBallClustering(in_arr, ball_radius=None):
             members.append([index])
     ex_indices = [x[0] for x in members]
     return exemplars, members, ex_indices
+
+
+def kNN(in_arr, n_neighbors, algorithm='ball_tree'):
+    nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr)
+    return nbrs.kneighbors()
+
+
+def kNNMaxGap(in_arr, n_neighbors, algorithm='ball_tree'):
+    dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
+    sample_size = dist.shape[0]
+    to_gap = np.append(np.array([[0] * sample_size]).T, dist, axis=1)
+    max_gap_ind = np.diff(to_gap, axis=1).argmax(axis=1)
+    return dist[range(0, sample_size), max_gap_ind]
+
+
+def kNNSum(in_arr, n_neighbors, algorithm='ball_tree'):
+    dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
+    return dist.sum(axis=1)
 
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
