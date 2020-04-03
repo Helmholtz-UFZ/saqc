@@ -94,14 +94,14 @@ def test_configFile(data):
 
     config = f"""
     {F.VARNAME} ; {F.TESTS}
-    #temp1      ; dummy()
-    pre1; dummy()
-    pre2        ;dummy()
-    SM          ; dummy()
-    #SM         ; dummy()
-    # SM1       ; dummy()
+    #temp1      ; flagDummy()
+    pre1; flagDummy()
+    pre2        ;flagDummy()
+    SM          ; flagDummy()
+    #SM         ; flagDummy()
+    # SM1       ; flagDummy()
 
-    SM1;dummy()
+    SM1;flagDummy()
     """
     saqc.run(writeIO(config), TESTFLAGGER[0], data)
 
@@ -111,15 +111,14 @@ def test_configFile(data):
 def test_configChecks(data, flagger, nodata, caplog):
 
     flagger = flagger.initFlags(data)
-    flags = flagger.getFlags()
     var1, var2, var3, *_ = data.columns
 
     tests = [
-        ({F.VARNAME: var1, F.TESTS: "range(mn=0)"}, TypeError),
+        ({F.VARNAME: var1, F.TESTS: "flagRange(mn=0)"}, TypeError),
         ({F.VARNAME: var3, F.TESTS: "flagNothing()"}, NameError),
-        ({F.VARNAME: "", F.TESTS: "range(min=3)"}, SyntaxError),
+        ({F.VARNAME: "", F.TESTS: "flagRange(min=3)"}, SyntaxError),
         ({F.VARNAME: var1, F.TESTS: ""}, SyntaxError),
-        ({F.TESTS: "range(min=3)"}, SyntaxError),
+        ({F.TESTS: "flagRange(min=3)"}, SyntaxError),
     ]
 
     for config_dict, expected in tests:

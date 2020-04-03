@@ -3,9 +3,7 @@
 
 import pytest
 import numpy as np
-import pandas as pd
 
-from saqc.core.evaluator import evalExpression
 from saqc.funcs.functions import (
     flagRange,
     flagSesonalRange,
@@ -13,7 +11,6 @@ from saqc.funcs.functions import (
     clearFlags,
     flagIsolated,
 )
-from saqc.flagger.dmpflagger import DmpFlagger
 from test.common import initData, TESTFLAGGER
 
 
@@ -28,43 +25,13 @@ def field(data):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_flagAfter(data, field, flagger):
-
-    flagger = flagger.initFlags(data)
-
-    min = data.iloc[int(len(data) * 0.3), 0]
-    max = data.iloc[int(len(data) * 0.6), 0]
-    _, flagger_range = flagRange(data, field, flagger, min, max)
-    flagged_range = flagger_range.isFlagged(field, loc=flagger_range.isFlagged(field))
-
-    tests = [
-        (f"flagWindowAfterFlag(window='3D', func=range(min={min}, max={max}))", "3D"),
-        (f"flagNextAfterFlag(n=4, func=range(min={min}, max={max}))", 4),
-    ]
-
-    for expr, window in tests:
-        _, flagger_range_repeated = evalExpression(expr, data, field, flagger)
-
-        check = flagged_range.rolling(window=window).apply(
-            lambda df: (flagger_range_repeated.isFlagged(field, loc=df.index).all()),
-            raw=False,
-        )
-        assert check.all()
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_range(data, field, flagger):
+def test_flagRange(data, field, flagger):
     min, max = 10, 90
     flagger = flagger.initFlags(data)
     data, flagger = flagRange(data, field, flagger, min=min, max=max)
     flagged = flagger.isFlagged(field)
     expected = (data[field] < min) | (data[field] > max)
     assert np.all(flagged == expected)
-
-
-# @pytest.mark.parametrize('flagger', TESTFLAGGER)
-# def test_missing(data, field, flagger):
-#     pass
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

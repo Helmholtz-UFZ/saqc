@@ -9,7 +9,6 @@ from saqc.core.evaluator import (
     compileTree,
     parseExpression,
     initLocalEnv,
-    DslTransformer,
     ConfigChecker,
     ConfigTransformer,
 )
@@ -46,10 +45,10 @@ def test_typeError(flagger):
 
     exprs = [
         # "func",
-        "dummy(kwarg=[1, 2, 3])",
-        "dummy(x=5)",
-        "dummy(dummy())",
-        "dummy(kwarg=dummy(this))",
+        "flagDummy(kwarg=[1, 2, 3])",
+        "flagDummy(x=5)",
+        "flagDummy(dummy())",
+        "flagDummy(kwarg=dummy(this))",
     ]
 
     for expr in exprs:
@@ -60,8 +59,8 @@ def test_typeError(flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_supportedArguments(flagger):
 
-    @register("func")
-    def dummyRegisterFunc(data, field, flagger, kwarg, **kwargs):
+    @register()
+    def func(data, field, flagger, kwarg, **kwargs):
         return data, flagger
 
     exprs = [

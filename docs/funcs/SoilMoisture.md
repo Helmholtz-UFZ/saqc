@@ -5,32 +5,33 @@ A collection of soil moisture specific quality check routines.
 
 ## Index
 
-- [soilMoisture_spikes](#soilmoisture_spikes)
-- [soilMoisture_breaks](#soilmoisture_breaks)
-- [soilMoisture_constant](#soilmoisture_constant)
-- [soilMoisture_byFrost](#soilmoisture_byfrost)
-- [soilMoisture_byPrecipitation](#soilmoisture_byprecipitation)
+- [sm_flagSpikes](#sm_flagspikes)
+- [sm_flagBreaks](#sm_flagbreaks)
+- [sm_flagConstants](#sm_flagconstants)
+- [sm_flagFrost](#sm_flagfrost)
+- [sm_flagPrecipitation](#sm_flagprecipitation)
+- [sm_flagRandomForest](#sm_flagrandomforest)
 
 
-## soilMoisture_spikes
+## sm_flagSpikes
 
 ```
-soilMoisture_spikes(raise_factor=0.15, deriv_factor=0.2,
-                    noise_func="CoVar", noise_window="12h", noise_thresh=1,
-                    smooth_window="3h", smooth_poly_deg=2)
+sm_flagSpikes(raise_factor=0.15, deriv_factor=0.2,
+              noise_func="CoVar", noise_window="12h", noise_thresh=1,
+              smooth_window="3h", smooth_poly_deg=2)
 ```
 
-| parameter     | data type                                                     | default value |
-|---------------|---------------------------------------------------------------|---------------|
-| raise_factor  | float                                                         | `0.15`        |
-| deriv_factor  | float                                                         | `0.2`         |
-| noise_func    | [string](#noise-detection-functions)                          | `"CoVar"`     |
-| noise_window  | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       |
-| noise_thresh  | float                                                         | `1`           |
-| smooth_window | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"3h"`        |
-| smooth_poly_deg | integer                                                     | `2`           | 
+| parameter       | data type                                                     | default value |
+|-----------------|---------------------------------------------------------------|---------------|
+| raise_factor    | float                                                         | `0.15`        |
+| deriv_factor    | float                                                         | `0.2`         |
+| noise_func      | [string](#noise-detection-functions)                          | `"CoVar"`     |
+| noise_window    | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"12h"`       |
+| noise_thresh    | float                                                         | `1`           |
+| smooth_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"3h"`        |
+| smooth_poly_deg | integer                                                       | `2`           |
 
-The Function is a wrapper around `flagSpikes_spektrumBased`
+The Function is a wrapper around `spikes_flagSpektrumBased`
 with a set of default parameters referring to [1]. For a complete description of 
 the algorithm and the available parameters please refer to the documentation of 
 [flagSpikes_spektrumBased](docs/funcs/SpikeDetection.md#spikes_spektrumbased)
@@ -40,13 +41,13 @@ the algorithm and the available parameters please refer to the documentation of
     Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
 
-## soilMoisture_breaks
+## sm_flagBreaks
 
 ```
-soilMoisture_breaks(thresh_rel=0.1, thresh_abs=0.01,
-                    first_der_factor=10, first_der_window="12h",
-                    scnd_der_ratio_range=0.05, scnd_der_ratio_thresh=10,
-                    smooth=False, smooth_window="3h", smooth_poly_deg=2)
+sm_flagBreaks(thresh_rel=0.1, thresh_abs=0.01,
+              first_der_factor=10, first_der_window="12h",
+              scnd_der_ratio_range=0.05, scnd_der_ratio_thresh=10,
+              smooth=False, smooth_window="3h", smooth_poly_deg=2)
 ```
 
 | parameter             | data type                                                     | default value |
@@ -62,7 +63,7 @@ soilMoisture_breaks(thresh_rel=0.1, thresh_abs=0.01,
 | smooth_poly_deg       | integer                                                       | `2`           |
 
 
-The Function is a wrapper around `breaks_spektrumBased`
+The Function is a wrapper around `breaks_flagSpektrumBased`
 with a set of default parameters referring to [1]. For a complete description of 
 the algorithm and the available parameters please refer to the documentation of 
 [breaks_spektrumBased](docs/funcs/BreakDetection.md#breaks_spektrumbased).
@@ -72,15 +73,15 @@ the algorithm and the available parameters please refer to the documentation of
     Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
 
-## soilMoisture_constant
+## sm_flagConstants
 
 ```
-soilMoisture_constant(window="12h", thresh=0.0005,
-                      precipitation_window="12h",
-                      tolerance=0.95,
-                      deriv_max=0.0025, deriv_min=0,
-                      max_missing=None, max_consec_missing=None,
-                      smooth_window=None, smooth_poly_deg=2)
+sm_flagConstants(window="12h", thresh=0.0005,
+                 precipitation_window="12h",
+                 tolerance=0.95,
+                 deriv_max=0.0025, deriv_min=0,
+                 max_missing=None, max_consec_missing=None,
+                 smooth_window=None, smooth_poly_deg=2)
 ```
 
 | parameter            | data type                                                     | default value | description                                                                                                                                                |
@@ -100,7 +101,7 @@ soilMoisture_constant(window="12h", thresh=0.0005,
 This function flags plateaus/series of constant values in soil moisture data.
 
 The function represents a stricter version of
-[constant_varianceBased](docs/funcs/ConstantDetection.md#constants_variancebased).
+[constants_flagVarianceBased](docs/funcs/ConstantDetection.md#constants_flagvariancebased).
 The additional constraints (3)-(5), are designed to match the special cases of constant
 values in soil moisture measurements and basically for preceding precipitation events
 (conditions (3) and (4)) and certain plateau level (condition (5)).
@@ -125,10 +126,10 @@ This Function is based on [1] and all default parameter values are taken from th
     doi:10.2136/vzj2012.0097.
 
 
-## soilMoisture_byFrost
+## sm_flagFrost
 
 ```
-soilMoisture_byFrost(soil_temp_variable, window="1h", frost_thresh=0)
+sm_flagFrost(soil_temp_variable, window="1h", frost_thresh=0)
 ```
 
 | parameter          | data type                                                     | default value | description                                                   |
@@ -151,15 +152,15 @@ publication.
     doi:10.2136/vzj2012.0097.
 
 
-## soilMoisture_byPrecipitation
+## sm_flagPrecipitation
 
 ```
-soilMoisture_byPrecipitation(prec_variable, 
-                             raise_window=None,
-                             sensor_depth=0, sensor_accuracy=0, 
-                             soil_porosity=0,
-                             std_factor=2, std_window="24h"
-                             ignore_missing=False)
+sn_flagPrecipitation(prec_variable, 
+                     raise_window=None,
+                     sensor_depth=0, sensor_accuracy=0, 
+                     soil_porosity=0,
+                     std_factor=2, std_window="24h"
+                     ignore_missing=False)
 ```
 
 | parameter       | data type                                                     | default value | description                                                               |
@@ -170,7 +171,7 @@ soilMoisture_byPrecipitation(prec_variable,
 | sensor_accuracy | float                                                         | `0`           | Soil moisture sensor accuracy in $`\frac{m^3}{m^{-3}}`$                   |
 | soil_porosity   | float                                                         | `0`           | Porosity of the soil surrounding the soil moisture sensor                 |
 | std_factor      | integer                                                       | `2`           | See condition (2)                                                         |
-| std_window      | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"24h"`        | See condition (2)                                                         |
+| std_window      | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"24h"`       | See condition (2)                                                         |
 | ignore_missing  | bool                                                          | `False`       | Whether to check values even if there is invalid data within `std_window` |
 
 
@@ -205,3 +206,32 @@ publication.
 [1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture Data
     from the international Soil Moisture Network. 2013. Vadoze Zone J.
     doi:10.2136/vzj2012.0097.
+
+
+## sm_flagRandomForest
+
+```
+sm_flagRandomForest(references, window_values, window_flags, path)
+```
+
+| parameter     | data type                 | default value | description                                                                                                                       |
+|---------------|---------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| references    | string or list of strings |               | the field names of the data series that should be used as reference variables                                                      |
+| window_values | integer                   |               | Window size that is used to derive the gradients of both the field- and reference-series inside the moving window                 |
+| window_flags  | integer                   |               | Window size that is used to count the surrounding automatic flags that have been set before                                       |
+| path          | string                    |               | Path to the respective model object, i.e. its name and the respective value of the grouping variable. e.g. "models/model_0.2.pkl" |
+
+
+This Function uses pre-trained machine-learning model objects for flagging. 
+This requires training a model by use of the [training script](../ressources/machine_learning/train_machine_learning.py) provided. 
+For flagging, inputs to the model are the data of the variable of interest, 
+data of reference variables and the automatic flags that were assigned by other 
+tests inside SaQC. Therefore, this function should be executed after all other tests.
+Internally, context information for each point is gathered in form of moving 
+windows. The size of the moving windows for counting of the surrounding 
+automatic flags and for calculation of gradients in the data is specified by 
+the user during model training. For the model to work, the parameters 
+'references', 'window_values' and 'window_flags' have to be set to the same 
+values as during training. For a more detailed description of the modeling 
+approach see the [training script](ressources/machine_learning/train_machine_learning.py).
+

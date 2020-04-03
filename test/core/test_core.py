@@ -22,7 +22,7 @@ logging.disable(logging.CRITICAL)
 OPTIONAL = [False, True]
 
 
-@register("flagAll")
+@register()
 def flagAll(data, field, flagger, **kwargs):
     # NOTE: remember to rename flag -> flag_values
     return data, flagger.setFlags(field=field, flag=flagger.BAD)
@@ -108,8 +108,8 @@ def test_positionalPartitioning(data, flagger, flags):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_errorHandling(data, flagger):
 
-    @register("raisingFunc")
-    def _raisingFunc(data, fielf, flagger, **kwargs):
+    @register()
+    def raisingFunc(data, fielf, flagger, **kwargs):
         raise TypeError
 
     var1, *_ = data.columns

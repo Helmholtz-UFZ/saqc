@@ -115,7 +115,7 @@ saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
 
 Which will output this plot:
 
-![Toy Plot](images/example_plot_1.png "Toy Plot")
+![Toy Plot](../ressources/images/example_plot_1.png "Toy Plot")
 
 So, what do we see here?
 
@@ -162,10 +162,10 @@ range-test:
 	SM2;spikes_flagMad(window="30d", z=3.5);True
 Rerunning SaQC as above produces the following plot:
 
-![Changing the config](images/example_plot_2.png "Changing the config")
+![Changing the config](../ressources/images/example_plot_2.png "Changing the config")
 
 You can see that the changes that we made to the parameters of the range test
-take effect so that only the values >60 are flagged by it (black points). This,
+take effect so that only the values > 60 are flagged by it (black points). This,
 in turn, leaves more erroneous data that is then identified by the proceeding
 spike-test (red points).
 
@@ -187,9 +187,9 @@ tests:
 
 SM1         |  SM2
 :-------------------------:|:-------------------------:
-![](images/example_plot_31.png)  |  ![](images/example_plot_32.png)
+![](../ressources/images/example_plot_31.png)  |  ![](../ressources/images/example_plot_32.png)
 
-![](images/example_plot_33.png)
+![](../ressources/images/example_plot_33.png)
 
 #### Data harmonization and custom functions
 
@@ -216,4 +216,4 @@ Also, all values where SM2 is below 30 are flagged via the custom function (see
 plot below). You can learn more about the syntax of these custom functions
 [here](docs/GenericFunctions.md).
 
-![Example custom function](images/example_plot_4.png "Example custom function")
+![Example custom function](../ressources/images/example_plot_4.png "Example custom function")

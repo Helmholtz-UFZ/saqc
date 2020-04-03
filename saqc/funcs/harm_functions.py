@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pdb
 import pandas as pd
 import numpy as np
 import logging
@@ -183,9 +182,9 @@ def harmWrapper(heap={}):
     return harmonize, deharmonize
 
 
-harmonize, deharmonize = harmWrapper()
-register("harmonize")(harmonize)
-register("deharmonize")(deharmonize)
+harm_harmonize, harm_deharmonize = harmWrapper()
+register()(harm_harmonize)
+register()(harm_deharmonize)
 
 
 # (de-)harmonize helper
@@ -761,18 +760,18 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
         return flagMissing(data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan, **kwargs)
 
 
-@register("harmonize_shift2Grid")
-def shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, **kwargs):
-    return harmonize(
+@register()
+def harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, **kwargs):
+    return harm_harmonize(
         data, field, flagger, freq, inter_method=method, reshape_method=method, drop_flags=drop_flags, **kwargs,
     )
 
 
-@register("harmonize_aggregate2Grid")
-def aggregate2Grid(
+@register()
+def harm_aggregate2Grid(
     data, field, flagger, freq, value_func, flag_func="max", method="nagg", drop_flags=None, **kwargs,
 ):
-    return harmonize(
+    return harm_harmonize(
         data,
         field,
         flagger,
@@ -786,9 +785,9 @@ def aggregate2Grid(
     )
 
 
-@register("harmonize_linear2Grid")
-def linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flags=None, **kwargs):
-    return harmonize(
+@register()
+def harm_linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flags=None, **kwargs):
+    return harm_harmonize(
         data,
         field,
         flagger,
@@ -801,11 +800,11 @@ def linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flag
     )
 
 
-@register("harmonize_interpolate2Grid")
-def interpolate2Grid(
+@register()
+def harm_interpolate2Grid(
     data, field, flagger, freq, method, order=1, flag_method="nagg", flag_func="max", drop_flags=None, **kwargs,
 ):
-    return harmonize(
+    return harm_harmonize(
         data,
         field,
         flagger,
@@ -819,8 +818,8 @@ def interpolate2Grid(
     )
 
 
-@register("harmonize_downsample")
-def downsample(
+@register()
+def harm_downsample(
     data,
     field,
     flagger,
@@ -891,7 +890,7 @@ def downsample(
                 def aggregator(x):
                     return agg_func(x.resample(sample_freq).apply(sample_func))
 
-    return harmonize(
+    return harm_harmonize(
         data,
         field,
         flagger,

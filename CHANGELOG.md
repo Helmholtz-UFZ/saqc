@@ -53,4 +53,5 @@ coming soon...
 --
 
 ## Breaking Changes
-- configuration: only quoted variable names are handled as regular expressions
+- configuration: quoted variable names are handled as regular expressions
+- functions: renamed many test functions to a uniform naming scheme

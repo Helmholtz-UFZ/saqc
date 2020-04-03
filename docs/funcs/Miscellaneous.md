@@ -4,21 +4,21 @@ A collection of unrelated quality check functions.
 
 ## Index
 
-- [range](#range)
-- [seasonalRange](#seasonalrange)
-- [isolated](#isolated)
-- [missing](#missing)
-- [clear](#clear)
-- [force](#force)
+- [flagRange](#flagrange)
+- [flagSeasonalRange](#flagseasonalrange)
+- [flagIsolated](#flagisolated)
+- [flagMissing](#flagmissing)
+- [clearFlags](#clearflags)
+- [forceFlags](#forceflags)
 
 
-## range
+## flagRange
 
 ```
-range(min, max)
+flagRange(min, max)
 ```
-| parameter | data type | default value | description                  |
-| --------- | --------- | ------------- | -----------                  |
+| parameter | data type | default value | description                      |
+| --------- | --------- | ------------- | -----------                      |
 | min       | float     |               | The upper bound for valid values |
 | max       | float     |               | The lower bound for valid values |
 
@@ -26,14 +26,14 @@ range(min, max)
 The function flags all values outside the closed interval
 $`[`$`min`, `max`$`]`$.
 
-## seasonalRange
+## flagSeasonalRange
 
 ```
-sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
+flagSeasonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 ```
 
-| parameter  | data type   | default value | description                  |
-| ---------  | ----------- | ----          | -----------                  |
+| parameter  | data type   | default value | description                      |
+| ---------  | ----------- | ----          | -----------                      |
 | min        | float       |               | The upper bound for valid values |
 | max        | float       |               | The lower bound for valid values |
 | startmonth | integer     | `1`           | The interval start month         |
@@ -41,7 +41,7 @@ sesonalRange(min, max, startmonth=1, endmonth=12, startday=1, endday=31)
 | startday   | integer     | `1`           | The interval start day           |
 | endday     | integer     | `31`          | The interval end day             |
 
-The function does the same as `range`, but only if the timestamp of the
+The function does the same as `flagRange`, but only if the timestamp of the
 data-point lies in a defined interval, which is build from days and months only. 
 In particular, the *year* is not considered in the Interval. 
 
@@ -55,17 +55,17 @@ January and February).
 NOTE: Only works for time-series-like datasets.
 
 
-## isolated
+## flagIsolated
 
 ```
-isolated(window, gap_window, group_window) 
+flagIsolated(window, gap_window, group_window) 
 
 ```
 
-| parameter    | data type                                                     | default value | description                                                            |
-|--------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------|
+| parameter    | data type                                                     | default value | description                                                                                                                                    |
+|--------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------|
 | gap_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The minimum size of the gap before and after a group of valid values, which makes this group considered as isolated. See condition (2) and (3) |
-| group_window | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The maximum size of an isolated group of valid data. See condition (1).                  |
+| group_window | [offset string](docs/ParameterDescriptions.md#offset-strings) |               | The maximum size of an isolated group of valid data. See condition (1).                                                                        |
 
 The function flags arbitrary large groups of values, if they are surrounded by sufficiently
 large data gaps. A gap is defined as group of missing and/or flagged values.
@@ -78,44 +78,43 @@ is considered to be isolated, if:
 3. None of the values $` x_{k+n+1}, ..., x_{j} `$, with $`t_{j} - t_{k+n+1} \ge `$ `gap_window` is valid or unflagged
 
 
-## missing
+## flagMissing
 
 ```
-missing(nodata=NaN)
+flagMissing(nodata=NaN)
 ```
 
-| parameter | data type  | default value  | description |
-| --------- | ---------- | -------------- | ----------- |
+| parameter | data type  | default value  | description                       |
+| --------- | ---------- | -------------- | -----------                       |
 | nodata    | any        | `NAN`          | A value that defines missing data |
 
 
 The function flags all values indicating missing data.
 
-## clear
+## clearFlags
 
 ```
-clear()
+clearFlags()
 ```
 
 The funcion removes all previously set flags.
 
-## force
+## forceFlags
 
 ```
-force(flag)
+forceFlags(flag)
 ```
-| parameter | data type                | default value | description   |
-| --------- | -----------              | ----          | -----------   |
-| flag      | float/[flagging constant](docs/ParameterDescriptions.md#flagging-constants) | GOOD     | The flag that is set unconditionally |
+| parameter | data type                                                                   | default value | description                          |
+| --------- | -----------                                                                 | ----          | -----------                          |
+| flag      | float/[flagging constant](docs/ParameterDescriptions.md#flagging-constants) | GOOD          | The flag that is set unconditionally |
 
 The functions overwrites all previous set flags with the given flag.
 
 
-## dummy
+## flagDummy
 
 ```
-dummy()
+flagDummy()
 ```
 
-The funcion does nothing.
-
+Identity function, i.e. the function does nothing.
