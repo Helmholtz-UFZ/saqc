@@ -17,24 +17,18 @@ __plotvars = []
 # order is important, because
 # latter may overwrite former
 _cols = [
-    # 1st PLOT
-    # reference
-    "ref-data",
-    "ref-data-nans",
-    "ref-flags",
-
-    # 2nd PLOT
-    # other
-    "flag-nans",  # currently ignored
     # data
     "data",
     "data-nans",
     # flags
     "unflagged",
-    "old-flags",
     "good",
     "suspicious",
     "bad",
+    # special flags
+    "unchanged",
+    "changed",
+    "flag-nans",  # currently ignored
 ]
 
 nan_repr_style = dict(marker='.', fillstyle='none', ls='none', c="lightsteelblue")
@@ -52,12 +46,6 @@ _plotstyle: Dict[str, dict] = {
     "data-nans": dict(**nan_repr_style, label="NaN"),
     # other
     # "flag-nans": nan_repr_style,
-
-    # reference
-    # labels are omitted as they are the same (by c) like above
-    "ref-data": dict(c="silver", ls='-', label="reference-data"),
-    "ref-data-nans": dict(**nan_repr_style, label="reference-data-NaN"),
-    "ref-flags": dict(marker='.', ls='none', c="silver", label='reference-flags'),
 }
 
 _figsize = (16, 9)
@@ -111,161 +99,265 @@ def plotHook(
     var = varnames[0]
 
     assert var in flagger_new.flags
-    flags = flagger_new.flags[var]
-    flags: pd.Series
-
-    toplot = dios.DictOfSeries(columns=_cols)
-    indexes = dict.fromkeys(_cols)
-
-    # prepare data, and if it was changed during
-    # the last test, also prepare reference data
-    with_data = var in data_new
-    if with_data:
-        dat = data_new[var]
-        assert flags.index.equals(dat.index)
-        toplot["data"] = dat
-        nans = dat.interpolate().loc[dat.isna()]
-        toplot["data-nans"] = nans
-
-        # check for data(!) changes
-        if var in data_old and not data_old[var].equals(data_new[var]):
-            datold = data_old[var]
-            flagsold = flagger_old.flags[var]
-            assert flagsold.index.equals(datold.index)
-            toplot["ref-data"] = datold
-            nans = datold.interpolate().loc[datold.isna()]
-            toplot["ref-data-nans"] = nans
-            # todo: split by flag
-            mask = flagger_old.isFlagged(var, flag=flagger_old.UNFLAGGED, comparator='!=')
-            toplot["ref-flags"] = datold[mask]
-
-    # no data is present, if a fresh-new
-    # flags-column was assigned
-    else:
-        dummy = pd.Series(6, index=flags.index)
-        toplot["data"] = dummy
+    flags_new: pd.Series = flagger_new.flags[var]
+    plotdict = get_plotdict(data_new, flags_new, flagger_new, var)
+    ref_plotdict = None
 
     # prepare flags
     if var in flagger_old.flags:
-        oldflags = flagger_old.flags[var]
+        flags_old = flagger_old.flags[var]
+        ref_plotdict = get_plotdict(data_old, flags_old, flagger_old, var)
 
-        # we dont allow index-changes, because they can
-        # potentially lead to wrong plotted flags
-        if oldflags.index.equals(flags.index):
+        # check flags-index changes:
+        # if we want to know locations, where the flags has changed between old and new,
+        # the index must match, otherwise, this could lead to wrong placed flags. Even
+        # though the calculations would work.
+        if flags_old.index.equals(flags_new.index):
+            unchanged, changed = _split_old_and_new(flags_old, flags_new)
+            unchanged, changed = project_flags_to_data([unchanged, changed], plotdict['data'])
+            plotdict["unchanged"] = unchanged.copy()
+            plotdict["changed"] = changed.copy()
 
-            old, new = _split_old_and_new(oldflags, flags)
-            indexes["old-flags"] = old
-            flags = flags.loc[new]
+            # check for data(!) changes.
+            if var in data_new and var in data_old:
+                # equals does not work, because of dtype, eg. int vs float
+                o, n = data_old[var], data_new[var]
+                eq = ((o == n) | (o.isna() == n.isna())).all()
 
-        # we will plot reference flags without data
-        elif not with_data:
-            dummy = pd.Series(0, index=oldflags.index)
-            toplot["ref-data"] = dummy
-            mask = flagger_old.isFlagged(var, flag=flagger_old.UNFLAGGED, comparator='!=')
-            toplot["ref-flags"] = oldflags[mask]
+    if "changed" in plotdict:
+        changed = plotdict["changed"]
+        unchanged = plotdict["unchanged"]
+        unflagged = plotdict["unflagged"]
+        diff = unchanged.index.difference(unflagged.index)
+        plotdict["old-flags"] = unchanged.loc[diff].copy()
+        for field in ["bad", "suspicious", "good"]:
+            data = plotdict[field]
+            isect = changed.index & data.index
+            plotdict[field] = data.loc[isect].copy()
 
-    # toplot["flag-nans"] = flags[flags.isna()]
-    flags = flags.dropna()
-
-    g, s, b, u = _split_by_flag(flags, flagger_new)
-    indexes["bad"] = b
-    indexes["good"] = g
-    indexes["suspicious"] = s
-    indexes["unflagged"] = u
-
-    # project flags to data's y-location
-    for k, idx in indexes.items():
-        if idx is None:
-            continue
-        # data actually is data or dummy
-        toplot[k] = toplot["data"].loc[idx]
-
-    _plot(toplot, _plotstyle, plot_name)
+    _plot(plotdict, ref_plotdict, _plotstyle, plot_name)
 
 
-def _plot(toplot, styledict: Dict[str, dict], title=""):
+def get_plotdict(data: dios.DictOfSeries, flags: pd.Series, flagger, var):
     """
-    Create a figure with the data-plot(s) and a legend-table with additional info
+    Collect info and put them in a dict and creates dummy data if no data present.
+
+    The collectend info include nan-data (projected to interpolated locations) and
+    flag-info for BAD, SUSP., GOOD, UNFLAGGED, and flag-nans. Except the flag-nans
+    all info is projected to the data-locations. E.g a BAD at the position N is
+    projected to the data's x- and y- location at the very same position.
 
     Parameters
     ----------
-    toplot : dios.DictOfSeries
-        data to plot
-    styledict : dict[dict]
-        dict of dict of params passed to plot
+    data
+    flags
+    flagger
+    var
+
+    Returns
+    -------
+
+    """
+    pdict = dios.DictOfSeries(columns=_cols)
+    pdict = data_to_pdict(pdict, data, flags, var)
+    dat = pdict['data']
+    pdict = flags_to_pdict(pdict, dat, flags, flagger, var)
+    return pdict
+
+
+def data_to_pdict(pdict, data: dios.DictOfSeries, flags: pd.Series, var):
+    dat, nans = _get_data(data, flags, var)
+    assert flags.index.equals(dat.index)
+    pdict["data"] = dat.copy()
+    pdict["data-nans"] = nans.copy()
+    return pdict
+
+
+def flags_to_pdict(pdict, data: pd.Series, flags: pd.Series, flagger, var):
+    assert data.index.equals(flags.index)
+
+    tup = _split_by_flag(flags, flagger, var)
+    assert sum(map(len, tup)) == len(flags)
+
+    g, s, b, u, n = project_flags_to_data(tup, data)
+
+    pdict["good"] = g.copy()
+    pdict["suspicious"] = s.copy()
+    pdict["bad"] = b.copy()
+    pdict["unflagged"] = u.copy()
+    pdict["flag-nans"] = n.copy()
+    return pdict
+
+
+def project_flags_to_data(idxlist: List[pd.Series], data: pd.Series):
+    res = []
+    for item in idxlist:
+        res.append(data.loc[item.index])
+    return tuple(res)
+
+
+def _get_data(data: dios.DictOfSeries, flags: pd.Series, var: str):
+    if var in data:
+        dat = data[var]
+        nans = dat.interpolate().loc[dat.isna()]
+    # create dummy data
+    else:
+        dat = pd.Series(0, index=flags.index)
+        nans = pd.Index([])
+    return dat, nans
+
+
+def _plot(plotdict, ref_plotdict, styledict: Dict[str, dict], title="", info_table=True):
+    """
+    Create a plot with an optionally info-table.
+
+
+    Each data stored in the plotdict is added to the very same axes (plot)
+    with its own plot-parameters given in the styledict.
+    If a key from plotdict is not present in the styledict the
+    corresponding data is ignored, and will not plotted.
+
+    If the optional ref_ref_plotdict is given a second axes (plot) with
+    its data is generated. Same rules for plotdict also apply for ref_plotdict.
+
+    For each axes a info-table is created that indicates the count of the data
+    which is shown next to the plots.
+
+    Parameters
+    ----------
+    plotdict : dict-like
+        holds data to plot. the data must not have the same length, but the same
+        type of data. - eg. a datetime x-axis cannot be in the same plot with an
+        numeric axis.
+    styledict : dict[str: dict]
+        dict of dicts of params directly passed to plot
     title : str
         name of the whole thing
+    info_table : bool, default True
+        enable or disable the info-tables
     """
 
-    def add_data_to_plot(ax, field):
-        data = toplot[field]
-        style = styledict.get(field, False)
-        if style and len(data) > 0:
-            ax.plot(data, **style)
-
-    mask = toplot.columns.str.startswith("ref-")
     gs_kw = dict(width_ratios=[5, 1])
+    layout = dict(
+        figsize=_figsize,
+        sharey=True,
+        sharex=True,
+        tight_layout=True,
+        # constrained_layout=True,
+        gridspec_kw=gs_kw
+    )
 
     # plot reference
-    with_ref = not toplot["ref-data"].empty
-    if with_ref:
-        fig, axs = plt.subplots(2, 2, figsize=_figsize,
-                                sharey=True, sharex=True,
-                                tight_layout=True,
-                                # constrained_layout=True,
-                                gridspec_kw=gs_kw)
+    if ref_plotdict is not None:
+        fig, axs = plt.subplots(2, 2, **layout)
         upper_ax, uptab_ax = axs[0]
+        lower_ax, lowtab_ax = axs[1]
+
         uptab_ax.axis('tight')
         uptab_ax.axis('off')
-        lower_ax, lowtab_ax = axs[1]
-        for c in toplot.columns[mask]:
-            add_data_to_plot(upper_ax, c)
+        make_info_table(uptab_ax, ref_plotdict, styledict, len(ref_plotdict['data']))
+        make_plot_from_dicts(upper_ax, ref_plotdict, styledict)
     else:
         upper_ax = None
-        fig, (lower_ax, lowtab_ax) = plt.subplots(1, 2, figsize=_figsize,
-                                                  tight_layout=True,
-                                                  # constrained_layout=True,
-                                                  gridspec_kw = gs_kw)
-    # plot data
-    for c in toplot.columns[~mask]:
-        add_data_to_plot(lower_ax, c)
+        fig, (lower_ax, lowtab_ax) = plt.subplots(1, 2, **layout)
 
-    # info table
+    # plot current-test data
+    make_plot_from_dicts(lower_ax, plotdict, styledict)
+
+    # info table for current
     lowtab_ax.axis('tight')
     lowtab_ax.axis('off')
-    make_info_table(lowtab_ax, toplot, styledict)
+    make_info_table(lowtab_ax, plotdict, styledict, len(plotdict['data']))
 
     # format figure layout
-    lower_ax.legend()
-    if with_ref:
+    if ref_plotdict is not None:
         upper_ax.legend()
-        upper_ax.set_title(f"{title}\nUPPER: before change of index/data, LOWER: current data")
+        lower_ax.legend()
+        upper_ax.set_title(f"before current test")
+        lower_ax.set_title(f"current test: {title}")
         # plt.tight_layout()
     else:
-        lower_ax.set_title(f"{title}\n")
+        lower_ax.set_title(f"current test: {title}")
+        lower_ax.legend()
         # plt.tight_layout()
 
     fig.subplots_adjust(hspace=0)
     plt.show()
 
 
-def make_info_table(ax, toplot, styledict):
-    # "data",
-    # "data-nans",
-    # # flags
-    # "unflagged",
-    # "old-flags",
-    # "good",
-    # "suspicious",
-    # "bad",
-    # todo: fresh B,G,U,S total, nans
+def make_plot_from_dicts(ax, plotdict, styledict):
+    """
+    Plot multiple data from a dict in the same plot.
 
+    Each data stored in the plot dict is added to
+    the very same axes (plot) with its own plot-
+    Parameters that come from the styledict. If a
+    key is not present in the styledict the
+    corresponding data is ignored.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes
+        axes object to add the plot to
+
+    plotdict: dict or dict-like
+        holds pd.Series with plotting-data.
+
+    styledict: dict
+        holds dicts of kwargs that will passed to plot.
+
+    Notes
+    -----
+     - changes the axes
+     - styledict and plotdict must have same keys
+
+    """
+    for field in plotdict:
+        data = plotdict[field]
+        style = styledict.get(field, False)
+        if style and len(data) > 0:
+            ax.plot(data, **style)
+
+
+def make_info_table(ax, plotdict, styledict, total):
+    """
+    Make a nice table with information about the quantity of elements.
+
+    Makes a table from data in plotdict, which indicated, how many
+    elements each series in data have. The count is show as number
+    and in percent from total.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes
+        axes object to add the table to
+
+    plotdict: dict or dict-like
+        holds pd.Series with plotting-data. only the length of the
+        series is evaluated.
+
+    styledict: dict
+        holds dicts of kwargs that can passed to plot. currently only
+        the `color`-kw (or just `c`) is evaluated.
+
+    total: int/float
+        total count used to calculate percentage
+
+    Returns
+    -------
+        instance of matplotlib.table
+
+    Notes
+    -----
+     changes the axes object
+
+    """
     cols = ["color", "name", "[#]", "[%]"]
     tab = pd.DataFrame(columns=cols)
-    total = len(toplot['data'])
 
-    for field in toplot.columns:
-        data = toplot[field]
+    # extract counts and color
+    for field in plotdict:
+        data = plotdict[field]
         style = styledict.get(field, {})
         color = style.get('color', None) or style.get('c', 'white')
         if total == 0:
@@ -275,11 +367,14 @@ def make_info_table(ax, toplot, styledict):
             percent = length / total * 100
         tab.loc[len(tab), :] = [color, field, length, round(percent, 2)]
 
-    # ax.table([["foo "]*3] *8, loc='center', rowColours=["blue", "red"] *4 )
-    cellcolors = [tab['color'].to_list()] + [['white'] * len(tab)] * 2
+    # nested list of cell-colors
+    ccs = np.full([len(tab.columns) - 1, len(tab)], fill_value='white', dtype=object)
+    ccs[0] = tab['color']
     del tab['color']
-    o = ax.table(
-        cellColours=np.array(cellcolors).transpose(),
+
+    # create and format layout
+    tab_obj = ax.table(
+        cellColours=ccs.transpose(),
         cellText=tab.iloc[:, :].values,
         colLabels=tab.columns[:],
         colWidths=[0.4, 0.3, 0.3],
@@ -287,50 +382,49 @@ def make_info_table(ax, toplot, styledict):
         # bbox=[0,0,1,1],
         loc='center',
     )
-    o.auto_set_column_width(False)
-    o.auto_set_font_size(False)
-    o.set_fontsize(10)
-    return o
+    tab_obj.auto_set_column_width(False)
+    tab_obj.auto_set_font_size(False)
+    tab_obj.set_fontsize(10)
+
+    # color fix - use white text color if background is dark
+    # sa: https://www.w3.org/TR/WCAG20/#relativeluminancedef
+    thresh = 0.5
+    for k, cell in tab_obj.get_celld().items():
+        r, g, b, a = cell.get_facecolor()
+        if 0.2126 * r + 0.7152 * g + 0.0722 * b < thresh:
+            cell.set_text_props(c='white')
+
+    return tab_obj
 
 
 def _split_old_and_new(old: pd.Series, new: pd.Series):
     """
-    Split in locations where old and new data are equal, and where not.
+    Split new in two distinct series of equality and non-equality with old.
 
     Returns
     -------
-        Two indexes, one with locations, where the old and new data(!) are equal
-        (including nans), the other with the rest of locations seen from new.
-        This means, the rest marks locations, that are present(!) in new, but the
-        data differs from the old data.
+        Two distinct series, one with locations, where the old and new data(!)
+        are equal (including nans at same positions), the other with the rest
+        of locations seen from new. This means, the rest marks locations, that
+        are present(!) in new, but its data differs from old.
     """
     idx = old.index & new.index
     both_nan = old.loc[idx].isna() & new.loc[idx].isna()
     mask = (new.loc[idx] == old[idx]) | both_nan
     old_idx = mask[mask].index
     new_idx = new.index.difference(old_idx)
-    return old_idx, new_idx
+    return new.loc[old_idx], new.loc[new_idx]
 
 
-def _split_by_flag(flags, flagger):
+def _split_by_flag(flags: pd.Series, flagger, var: str):
     """
-    Splits flags in the four separate bins, GOOD, SUSPICIOUS, BAD and UNFLAGGED.
-
-    Parameters
-    ----------
-    flags : pd.Series
-
-    flagger : sqqc.Flagger
-
-    Returns
-    -------
-    tuple[pd.Index]
-        four indexes with locations of:
-        1st GOOD's, 2nd DOUBTFUL's, 3rd BAD's, 4th UNFLAGGED
+    Splits flags in the five distinct bins: GOOD, SUSPICIOUS, BAD, UNFLAGGED and NaNs.
     """
-    g = flags[flags == flagger.GOOD].index
-    b = flags[flags == flagger.BAD].index
-    s = flags[(flags > flagger.BAD) & (flags < flagger.GOOD)].index
-    u = flags[flags == flagger.UNFLAGGED].index
-    assert len(u) + len(g) + len(b) + len(s) <= len(flags)
-    return g, s, b, u
+    n = flags.isna()
+    loc = flags.dropna().index
+    g = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator='==')
+    b = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator='==')
+    u = flagger.isFlagged(field=var, loc=loc, flag=flagger.UNFLAGGED, comparator='==')
+    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator='>')
+    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator='<') & s
+    return g[g], s[s], b[b], u[u], n[n]
