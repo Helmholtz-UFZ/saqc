@@ -55,15 +55,14 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0
         tail_size = int(max(min(50, np.floor(sample_size/4)), 2))
         tail_indices = np.arange(2, tail_size + 1)
         i_start = int(max(np.floor(sample_size*iter_start), 1) + 1)
-        sum(tail_indices/(tail_size-1)*gaps[i_start-tail_indices+1])
         ghat = np.array([np.nan]*sample_size)
         for i in range(i_start-1, sample_size):
-            ghat[i] = sum(tail_indices/(tail_size-1)*gaps[i-tail_indices+1])
+            ghat[i] = sum((tail_indices/(tail_size-1))*gaps[i-tail_indices+1])
 
         log_alpha = np.log(1/alpha)
         for iter_index in range(i_start-1, sample_size):
-           if gaps[iter_index] > log_alpha*ghat[iter_index]:
-               break
+            if gaps[iter_index] > log_alpha*ghat[iter_index]:
+                break
 
 
     else:
