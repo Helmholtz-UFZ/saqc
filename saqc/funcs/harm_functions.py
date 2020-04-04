@@ -68,12 +68,9 @@ def harmWrapper(heap={}):
             if flagger.BAD not in drop_flags:
                 drop_flags.append(flagger.BAD)
 
-        # before sending the current flags and data frame to the future (for backtracking reasons), we clear it
-        # from merge-nans that just resulted from harmonization of other variables!
-        # fixme: this is no longer needed, is it?
-        dat_col, flagger_merged = _fromMerged(data, flagger, field)
-        # replace it by
-        # dat_col, flagger_merged = flagger.getFlagger(field=field)
+        # get data of variable
+        flagger_merged = flagger.getFlagger(field=field)
+        dat_col = data[field]
 
         # now we send the flags frame in its current shape to the future:
         heap[field] = {
@@ -83,14 +80,6 @@ def harmWrapper(heap={}):
             Heap.METHOD: reshape_method,
             Heap.DROP: drop_flags,
         }
-
-        # fixme with harmo-rework: now that every series have its
-        #  own index, we dont have to store a global index, as
-        #  we have the index from Heap.DATA
-        # furthermore we need to memorize the initial timestamps
-        # to ensure output format will equal input format.
-        # if Heap.INDEX not in heap.keys():
-        #     heap.update({Heap.INDEX: dat_col.index})
 
         # now we can manipulate it without loosing information gathered before harmonization
         dat_col, flagger_merged_clean = _outsortCrap(dat_col, field, flagger_merged, drop_flags=drop_flags,)
@@ -119,12 +108,8 @@ def harmWrapper(heap={}):
             **kwargs,
         )
 
-        # finally we happily blow up the data and flags frame again,
-        # to release them on their ongoing journey through saqc.
-        # fixme: no need with dios
-        # data, flagger_out = _toMerged(data, flagger, field,
-        #                               data_to_insert=dat_col,
-        #                               flagger_to_insert=flagger_merged_clean_reshaped, **kwargs)
+        # TODO: ask BERT: why so verbose?
+        # TODO: ask BERT: why so assert?
         flags_col = flagger_merged_clean_reshaped.getFlags(field)
         flags = flagger.getFlags()
         flags[field] = flags_col
@@ -132,6 +117,7 @@ def harmWrapper(heap={}):
         flagger_out = flagger.initFlags(flags=flags)
         assert (data[field].index == flagger_out.getFlags(field).index).all()
         return data, flagger_out
+
 
     def deharmonize(data, field, flagger, co_flagging=False, **kwargs):
 
@@ -148,7 +134,8 @@ def harmWrapper(heap={}):
         resolve_method = HARM_2_DEHARM[harm_info[Heap.METHOD]]
 
         # retrieve data and flags from the merged saqc-conform data frame (and by that get rid of blow-up entries).
-        dat_col, flagger_merged = _fromMerged(data, flagger, field)
+        flagger_merged = flagger.getFlagger(field=field)
+        dat_col = data[field]
 
         # reconstruct the drops that were performed before harmonization
         drops, flagger_original_clean = _outsortCrap(
@@ -175,17 +162,6 @@ def harmWrapper(heap={}):
 
         dat_col = harm_info[Heap.DATA].reindex(flags_col.index, fill_value=np.nan)
         dat_col.name = field
-
-        # fixme not needed anymore with dios
-        # transform the result into the form, data travels through saqc:
-        # data, flagger_out = _toMerged(
-        #     data, flagger, field, dat_col, flagger_back_full, target_index=harm_info[Heap.DATA].index, **kwargs
-        # )
-
-        # fixme: INDEX is now series specific
-        # clear heap if nessecary:
-        # if len(heap) == 1 and Heap.INDEX in heap:
-        #     del heap[Heap.INDEX]
 
         # bye bye data
         flags = flagger.getFlags()

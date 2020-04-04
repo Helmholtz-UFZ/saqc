@@ -6,7 +6,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-import dios
+import from dios import dios
 from test.common import TESTFLAGGER
 
 from saqc.funcs.harm_functions import (
