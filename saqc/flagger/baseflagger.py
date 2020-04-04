@@ -22,13 +22,13 @@ COMPARATOR_MAP = {
     "<": op.lt,
 }
 
-BaseFlaggerT = TypeVar("BaseFlaggerT")
-# fixme: does DictOfSeries is pd-like ?
-PandasT = Union[pd.Series, dios.DictOfSeries]
 # TODO: get some real types here (could be tricky...)
 LocT = Any
-IlocT = Any
 FlagT = Any
+diosT = dios.DictOfSeries
+BaseFlaggerT = TypeVar("BaseFlaggerT")
+# fixme: does DictOfSeries is pd-like ?
+PandasT = Union[pd.Series, diosT]
 
 
 class BaseFlagger(ABC):
@@ -39,9 +39,13 @@ class BaseFlagger(ABC):
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
         self.signature = ("flag",)
-        self._flags: dios.DictOfSeries = dios.DictOfSeries()
+        self._flags: diosT = dios.DictOfSeries()
 
-    def initFlags(self, data: dios.DictOfSeries = None, flags: dios.DictOfSeries = None) -> BaseFlaggerT:
+    @property
+    def flags(self):
+        return self._flags.copy()
+
+    def initFlags(self, data: diosT = None, flags: diosT = None) -> BaseFlaggerT:
         """
         initialize a flagger based on the given 'data' or 'flags'
         if 'data' is not None: return a flagger with flagger.UNFALGGED values
@@ -52,14 +56,15 @@ class BaseFlagger(ABC):
             raise TypeError("either 'data' or 'flags' are required")
 
         if data is not None:
-            assert isinstance(data, dios.DictOfSeries)
+            assert isinstance(data, diosT)
             flags = data.copy()
             flags[:] = self.UNFLAGGED
         else:
-            assert isinstance(flags, dios.DictOfSeries)
+            assert isinstance(flags, diosT)
 
-        # self._flags ist set implicit by copy()
-        return self.copy(flags.astype(self.dtype))
+        newflagger = self.copy()
+        newflagger._flags = flags.astype(self.dtype)
+        return newflagger
 
     def setFlagger(self, other: BaseFlaggerT):
         """
@@ -69,8 +74,8 @@ class BaseFlagger(ABC):
         if not isinstance(other, self.__class__):
             raise TypeError(f"flagger of type '{self.__class__}' needed")
 
-        this = self._flags
-        other = other._flags
+        this = self.flags
+        other = other.flags
 
         # use dios.merge() as soon as it implemented
         # see https://git.ufz.de/rdm/dios/issues/15
@@ -86,13 +91,17 @@ class BaseFlagger(ABC):
         for c in newcols:
             new[c] = other[c].copy()
 
-        return self.copy(new)
+        newflagger = self.copy()
+        newflagger._flags = new
+        return newflagger
 
     def getFlagger(self, field: str = None, loc: LocT = None) -> BaseFlaggerT:
         """ Return a potentially trimmed down copy of self. """
         flags = self.getFlags(field=field, loc=loc)
         flags = dios.to_dios(flags)
-        return self.copy(flags)
+        newflagger = self.copy()
+        newflagger._flags = flags
+        return newflagger
 
     def getFlags(self, field: str = None, loc: LocT = None) -> PandasT:
         """ Return a potentially, to `loc`, trimmed down version of flags.
@@ -111,7 +120,7 @@ class BaseFlagger(ABC):
         # loc should be a valid 2D-indexer and
         # then field must be None. Otherwise aloc
         # will fail and throw the correct Error.
-        if isinstance(loc, dios.DictOfSeries) and field is None:
+        if isinstance(loc, diosT) and field is None:
             indexer = loc
 
         else:
@@ -119,7 +128,7 @@ class BaseFlagger(ABC):
             field = slice(None) if field is None else self._check_field(field)
             indexer = (loc, field)
 
-        return self._flags.aloc[indexer]
+        return self.flags.aloc[indexer]
 
     def setFlags(self, field: str, loc: LocT = None, flag: FlagT = None, force: bool = False, **kwargs) -> BaseFlaggerT:
         """Overwrite existing flags at loc.
@@ -162,12 +171,8 @@ class BaseFlagger(ABC):
         flagged = flags.notna() & cp(flags, flag)
         return flagged
 
-    def copy(self, flags: dios.DictOfSeries = None) -> BaseFlaggerT:
-        assert isinstance(flags, dios.DictOfSeries)
-        out = deepcopy(self)
-        if flags is not None:
-            out._flags = flags
-        return out
+    def copy(self) -> BaseFlaggerT:
+        return deepcopy(self)
 
     def _check_field(self, field):
         """ Check if (all) field(s) in self._flags. """
@@ -176,12 +181,12 @@ class BaseFlagger(ABC):
         # https://git.ufz.de/rdm-software/saqc/issues/46
         failed = []
         if isinstance(field, str):
-            if field not in self._flags:
+            if field not in self.flags:
                 failed += [field]
         else:
             try:
                 for f in field:
-                    if f not in self._flags:
+                    if f not in self.flags:
                         failed += [f]
             # not iterable, probably a slice or
             # any indexer we dont have to check

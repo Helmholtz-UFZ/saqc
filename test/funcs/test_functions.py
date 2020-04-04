@@ -135,15 +135,16 @@ def test_flagIsolated(data, flagger):
     data.iloc[11:13, 0] = np.nan
     data.iloc[15:17, 0] = np.nan
     flagger = flagger.initFlags(data)
-    flagger = flagger.setFlags(field, iloc=slice(5, 6))
+    s = data[field].iloc[5:6]
+    flagger = flagger.setFlags(field, loc=s)
 
     _, flagger_result = flagIsolated(data, field, flagger, group_window="1D", gap_window="2.1D")
 
     assert flagger_result.isFlagged(field)[slice(3, 6, 2)].all()
 
-    flagger = flagger.setFlags(
-        field, iloc=slice(3, 4), flag=flagger.UNFLAGGED, force=True
-    )
+    # flagger = flagger.setFlags(
+    #     field, iloc=slice(3, 4), flag=flagger.UNFLAGGED, force=True
+    # )
     data, flagger_result = flagIsolated(
         data,
         field,

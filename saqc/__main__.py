@@ -9,6 +9,7 @@ import pandas as pd
 from saqc.core import run
 from saqc.flagger import CategoricalFlagger
 from saqc.flagger.dmpflagger import DmpFlagger, FlagFields
+import dios
 
 
 FLAGGERS = {
@@ -34,6 +35,7 @@ FLAGGERS = {
 def main(config, data, flagger, outfile, nodata, fail):
 
     data = pd.read_csv(data, index_col=0, parse_dates=True,)
+    data = dios.DictOfSeries(data)
 
     data_result, flagger_result = run(
         config_file=config,
