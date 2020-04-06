@@ -4,6 +4,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+from scipy.stats import iqr
 
 
 
@@ -27,6 +28,11 @@ def _isValid(data, max_nan_total, max_nan_consec):
 def identity(ts):
     return ts
 
+
+def zeroLog(ts):
+    log_ts = np.log(ts)
+    log_ts[log_ts == -np.inf] = np.nan
+    return log_ts
 
 def difference(ts):
     return pd.Series.diff(ts)
@@ -82,6 +88,14 @@ def nBallClustering(in_arr, ball_radius=None):
 def kNN(in_arr, n_neighbors, algorithm='ball_tree'):
     nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr)
     return nbrs.kneighbors()
+
+
+def standardizeByMean(ts):
+    return (ts - ts.mean())/ts.std()
+
+
+def standardizeByMedian(ts):
+    return (ts - ts.median())/iqr(ts, nan_policy='omit')
 
 
 def kNNMaxGap(in_arr, n_neighbors, algorithm='ball_tree'):

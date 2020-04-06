@@ -27,17 +27,18 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0
 
     trafo = composeFunction(trafo.split(','))
     # data fransformation/extraction
-    val_frame = trafo(data[fields[0]])
+    val_frame = data[fields[0]]
 
     for var in fields[1:]:
-        val_frame = pd.merge(val_frame, trafo(data[var]),
-                             how='outer',
+        val_frame = pd.merge(val_frame, data[var],
+                             how='inner',
                              left_index=True,
                              right_index=True
                              )
 
     data_len = val_frame.index.size
     val_frame.dropna(inplace=True)
+    val_frame = val_frame.transform(trafo)
 
     # KNN calculation
     kNNfunc = getattr(ts_ops, scoring_method)

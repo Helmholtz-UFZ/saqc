@@ -9,6 +9,7 @@ import pandas as pd
 import numba as nb
 import saqc.lib.ts_operators as ts_ops
 import scipy
+import sklearn
 from functools import reduce, partial
 from saqc.lib.types import T, PandasLike
 
@@ -31,13 +32,17 @@ SAQC_OPERATORS = {
     "deriv": ts_ops.derivative,
     "roc": ts_ops.rateOfChange,
     "scale": ts_ops.scale,
-    "normScale": ts_ops.normScale
+    "normScale": ts_ops.normScale,
+    "stdByMean": ts_ops.standardizeByMean,
+    "stdByMedian": ts_ops.standardizeByMedian,
+    "zlog": ts_ops.zeroLog
 }
 
 
 OP_MODULES = {'pd': pd,
               'np': np,
-              'scipy': scipy
+              'scipy': scipy,
+              'sklearn': sklearn
               }
 
 
