@@ -73,7 +73,8 @@ def __import_helper(ion=False):
 
 def plotAllHook(data, flagger, info_table: bool = True, ):
 
-    _plot(data, flagger, True, __plotvars, plot_nans=plot_nans)
+    # _plot(data, flagger, True, __plotvars, plot_nans=plot_nans)
+    pass
 
 
 def plotHook(
@@ -81,21 +82,120 @@ def plotHook(
         data_new: dios.DictOfSeries,
         flagger_old: BaseFlagger,
         flagger_new: BaseFlagger,
-        varnames: List[str],
+        sources: List[str],
+        targets: List[str],
         plot_name: str,
         info_table: bool = True,
 ):
+    # TODO:
+    #   - sources upper     [---]  [---]  [---]
+    #   - before + tab      [-oo--^--v---] |==|
+    #   - current + tab     [-oo--^-ovo--] |==|
+    #   if srces is None & len(targets) == 1 and with_ref -> before, curr + tabs
+    #   if srces is Nne & len(tarets) > 1 or withref is False -> all targents + tabs
+    #   else and len(t) > 1
+    plot_name: str
+    info_table: bool = True
+    slen = len(sources)
+    tlen = len(targets)
+    show_srces = False
+    show_ref = True
+    show_tab = info_table
+    plot_single_var = tlen == 1
+
+    nfigs = 0
+    nrows = 0
+    if tlen == 1:
+        nrows += 1
+        if show_ref:
+            nrows += 1
+        if slen > 0:
+            nrows += 1
+            show_srces = True
+    else:
+        nfigs, nrows = tlen//4, min(tlen, 4)
+    nfigs += 1
+
+    if show_srces and slen > 4:
+        logging.warning(f"plotting: only first 4 of {slen} sources are shown.")
+        slen = 4
+
+    fig = plt.figure(tight_layout=True)
+    outer_gs = fig.add_gridspec(ncols=1, nrows=nrows)
+
+    # plot srces
+    if show_srces:
+        srcs_gs_arr = outer_gs[0].subgridspec(ncols=slen, nrows=1)
+        for i, gs in enumerate(srcs_gs_arr):
+            ax = fig.add_subplot(gs)
+            var = sources[i]
+            src, _ = get_data_from_var(data_old, data_new, flagger_old, flagger_new, var)
+            _plot_from_dicts(ax, src, _plotstyle)
+
+    # plot reference data aka. data from before the last test
+    if tlen == 1:
+        if show_ref:
+            # only if we have a single target, the reference
+            # can be shown and it also could be not available
+            var = targets[0]
+            curr, ref = get_data_from_var(data_old, data_new, flagger_old, flagger_new, var)
+
+            if ref:
+                if show_tab:
+                    plot_gs, tab_gs = outer_gs[1].subgridspec(ncols=2, nrows=1)
+                    ax = fig.add_subplot(tab_gs)
+                    _plot_info_table(ax, ref, _plotstyle, len(ref['data']))
+                    ax = fig.add_subplot(plot_gs)
+                else:
+                    ax = fig.add_subplot(outer_gs[1])
+                _plot_from_dicts(ax, ref, _plotstyle)
+
+            # plot current
+            if show_tab:
+                plot_gs, tab_gs = outer_gs[2].subgridspec(ncols=2, nrows=1)
+                ax = fig.add_subplot(tab_gs)
+                _plot_info_table(ax, curr, _plotstyle, len(curr['data']))
+                ax = fig.add_subplot(plot_gs)
+            else:
+                ax = fig.add_subplot(outer_gs[2])
+            _plot_from_dicts(ax, curr, _plotstyle)
+
+    # plot multiple vars
+    else:
+        srcs_gs, before_gs, curr_gs = outer_gs
+        gsarr = srcs_gs.subgridspec(ncols=slen, nrows=1)
+        for varname in enumerate(sources):
+            curr, _ = get_data_from_var(data_old, data_new, flagger_old, flagger_new, varname)
+
+        srcs_gs, before_gs, curr_gs = outer_gs
+        gsarr = srcs_gs.subgridspec(ncols=slen, nrows=1)
+        for varname in enumerate(sources):
+            curr, _ = get_data_from_var(data_old, data_new, flagger_old, flagger_new, varname)
+
+    for varname in targets:
+        curr, before = get_data_from_var(data_old, data_new, flagger_old, flagger_new, varname)
+    _plot(plotdict, ref_plotdict, _plotstyle, plot_name, info_table=info_table)
+
+    # fixme: for fig in nfigs: ...
+    fig = plt.figure(tight_layout=True)
+    outer_gs = fig.add_gridspec(ncols=1, nrows=nrows)
 
 
-def plot_variable(
+
+
+def grind_space_finder(n):
+    if n < 5:
+        return n, 0, False
+    if n < 9:
+        return (n+1)//2, n//2, False
+    return 4, 4, True
+
+def get_data_from_var(
         data_old: dios.DictOfSeries,
         data_new: dios.DictOfSeries,
         flagger_old: BaseFlagger,
         flagger_new: BaseFlagger,
         varname: str,
-        plot_name: str,
-        info_table: bool=True,
-        show_ref=True,
 ):
     __import_helper(ion=True)
 
@@ -137,10 +237,7 @@ def plot_variable(
             isect = changed.index & data.index
             plotdict[field] = data.loc[isect]
 
-    if not show_ref:
-        ref_plotdict = None
-
-    _plot(plotdict, ref_plotdict, _plotstyle, plot_name, info_table=info_table)
+    return plotdict, ref_plotdict
 
 
 def get_plotdict(data: dios.DictOfSeries, flags: pd.Series, flagger, var):
@@ -260,20 +357,20 @@ def _plot(plotdict, ref_plotdict, styledict: Dict[str, dict], title="", info_tab
 
         uptab_ax.axis('tight')
         uptab_ax.axis('off')
-        make_info_table(uptab_ax, ref_plotdict, styledict, len(ref_plotdict['data']))
-        make_plot_from_dicts(upper_ax, ref_plotdict, styledict)
+        _plot_info_table(uptab_ax, ref_plotdict, styledict, len(ref_plotdict['data']))
+        _plot_from_dicts(upper_ax, ref_plotdict, styledict)
     else:
         fig, axs = plt.subplots(1, 2, **layout)
         upper_ax, uptab_ax = None, None
         lower_ax, lowtab_ax = axs
 
     # plot current-test data
-    make_plot_from_dicts(lower_ax, plotdict, styledict)
+    _plot_from_dicts(lower_ax, plotdict, styledict)
 
     # info table for current
     lowtab_ax.axis('tight')
     lowtab_ax.axis('off')
-    make_info_table(lowtab_ax, plotdict, styledict, len(plotdict['data']))
+    _plot_info_table(lowtab_ax, plotdict, styledict, len(plotdict['data']))
 
     # format figure layout
     if upper_ax is not None:
@@ -291,7 +388,7 @@ def _plot(plotdict, ref_plotdict, styledict: Dict[str, dict], title="", info_tab
     plt.show()
 
 
-def make_plot_from_dicts(ax, plotdict, styledict):
+def _plot_from_dicts(ax, plotdict, styledict):
     """
     Plot multiple data from a dict in the same plot.
 
@@ -325,7 +422,7 @@ def make_plot_from_dicts(ax, plotdict, styledict):
             ax.plot(data, **style)
 
 
-def make_info_table(ax, plotdict, styledict, total):
+def _plot_info_table(ax, plotdict, styledict, total):
     """
     Make a nice table with information about the quantity of elements.
 
@@ -399,8 +496,6 @@ def make_info_table(ax, plotdict, styledict, total):
         r, g, b, a = cell.get_facecolor()
         if 0.2126 * r + 0.7152 * g + 0.0722 * b < thresh:
             cell.set_text_props(c='white')
-
-    return tab_obj
 
 
 def _split_old_and_new(old: pd.Series, new: pd.Series):
