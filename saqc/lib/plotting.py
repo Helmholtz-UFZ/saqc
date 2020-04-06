@@ -12,7 +12,6 @@ from typing import List, Dict, Any
 from saqc.flagger import BaseFlagger
 
 import_done = False
-__plotvars = []
 
 # order is important, because
 # latter may overwrite former
@@ -72,9 +71,9 @@ def __import_helper(ion=False):
         mpl.use("TkAgg")
 
 
-def plotAllHook(data, flagger, plot_nans=False):
-    if __plotvars:
-        _plot(data, flagger, True, __plotvars, plot_nans=plot_nans)
+def plotAllHook(data, flagger, info_table: bool = True, ):
+
+    _plot(data, flagger, True, __plotvars, plot_nans=plot_nans)
 
 
 def plotHook(
@@ -84,20 +83,23 @@ def plotHook(
         flagger_new: BaseFlagger,
         varnames: List[str],
         plot_name: str,
-        show_nans: bool = True,
+        info_table: bool = True,
 ):
-    # todo:
-    #   - new/changed data ?
-    #       - new column -> new varname -> plot only new(+all flags)
-    #       - changed data -> old != new -> plot new data(+all flags), old(no flags) as reference
-    #       - index-change -> probably harmo -> plot new data(+all flags), old(no flags) as reference
-    #   - else: split in old and new flags by diff (a!=b), plot data, old flags in black, other by color
+
+
+def plot_variable(
+        data_old: dios.DictOfSeries,
+        data_new: dios.DictOfSeries,
+        flagger_old: BaseFlagger,
+        flagger_new: BaseFlagger,
+        varname: str,
+        plot_name: str,
+        info_table: bool=True,
+        show_ref=True,
+):
     __import_helper(ion=True)
 
-    if len(varnames) != 1:
-        NotImplementedError("currently only single changed variables can be plotted")
-    var = varnames[0]
-
+    var = varname
     assert var in flagger_new.flags
     flags_new: pd.Series = flagger_new.flags[var]
     plotdict = get_plotdict(data_new, flags_new, flagger_new, var)
@@ -115,8 +117,8 @@ def plotHook(
         if flags_old.index.equals(flags_new.index):
             unchanged, changed = _split_old_and_new(flags_old, flags_new)
             unchanged, changed = project_flags_to_data([unchanged, changed], plotdict['data'])
-            plotdict["unchanged"] = unchanged.copy()
-            plotdict["changed"] = changed.copy()
+            plotdict["unchanged"] = unchanged
+            plotdict["changed"] = changed
 
             # check for data(!) changes.
             if var in data_new and var in data_old:
@@ -129,13 +131,16 @@ def plotHook(
         unchanged = plotdict["unchanged"]
         unflagged = plotdict["unflagged"]
         diff = unchanged.index.difference(unflagged.index)
-        plotdict["old-flags"] = unchanged.loc[diff].copy()
+        plotdict["old-flags"] = unchanged.loc[diff]
         for field in ["bad", "suspicious", "good"]:
             data = plotdict[field]
             isect = changed.index & data.index
-            plotdict[field] = data.loc[isect].copy()
+            plotdict[field] = data.loc[isect]
 
-    _plot(plotdict, ref_plotdict, _plotstyle, plot_name)
+    if not show_ref:
+        ref_plotdict = None
+
+    _plot(plotdict, ref_plotdict, _plotstyle, plot_name, info_table=info_table)
 
 
 def get_plotdict(data: dios.DictOfSeries, flags: pd.Series, flagger, var):
@@ -168,8 +173,8 @@ def get_plotdict(data: dios.DictOfSeries, flags: pd.Series, flagger, var):
 def data_to_pdict(pdict, data: dios.DictOfSeries, flags: pd.Series, var):
     dat, nans = _get_data(data, flags, var)
     assert flags.index.equals(dat.index)
-    pdict["data"] = dat.copy()
-    pdict["data-nans"] = nans.copy()
+    pdict["data"] = dat
+    pdict["data-nans"] = nans
     return pdict
 
 
@@ -181,11 +186,11 @@ def flags_to_pdict(pdict, data: pd.Series, flags: pd.Series, flagger, var):
 
     g, s, b, u, n = project_flags_to_data(tup, data)
 
-    pdict["good"] = g.copy()
-    pdict["suspicious"] = s.copy()
-    pdict["bad"] = b.copy()
-    pdict["unflagged"] = u.copy()
-    pdict["flag-nans"] = n.copy()
+    pdict["good"] = g
+    pdict["suspicious"] = s
+    pdict["bad"] = b
+    pdict["unflagged"] = u
+    pdict["flag-nans"] = n
     return pdict
 
 
@@ -258,8 +263,9 @@ def _plot(plotdict, ref_plotdict, styledict: Dict[str, dict], title="", info_tab
         make_info_table(uptab_ax, ref_plotdict, styledict, len(ref_plotdict['data']))
         make_plot_from_dicts(upper_ax, ref_plotdict, styledict)
     else:
-        upper_ax = None
-        fig, (lower_ax, lowtab_ax) = plt.subplots(1, 2, **layout)
+        fig, axs = plt.subplots(1, 2, **layout)
+        upper_ax, uptab_ax = None, None
+        lower_ax, lowtab_ax = axs
 
     # plot current-test data
     make_plot_from_dicts(lower_ax, plotdict, styledict)
@@ -270,7 +276,7 @@ def _plot(plotdict, ref_plotdict, styledict: Dict[str, dict], title="", info_tab
     make_info_table(lowtab_ax, plotdict, styledict, len(plotdict['data']))
 
     # format figure layout
-    if ref_plotdict is not None:
+    if upper_ax is not None:
         upper_ax.legend()
         lower_ax.legend()
         upper_ax.set_title(f"before current test")
