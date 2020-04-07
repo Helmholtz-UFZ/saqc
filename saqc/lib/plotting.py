@@ -47,6 +47,7 @@ _plotstyle: Dict[str, dict] = {
     # "flag-nans": nan_repr_style,
 }
 
+# _figsize = (4, 3)
 _figsize = (16, 9)
 
 
@@ -71,10 +72,16 @@ def __import_helper(ion=False):
         mpl.use("TkAgg")
 
 
-def plotAllHook(data, flagger, info_table: bool = True, ):
-
-    # _plot(data, flagger, True, __plotvars, plot_nans=plot_nans)
-    pass
+def plotAllHook(data, flagger, show_info_table: bool = True, ):
+    _plot_multiple_variables(data_old=None,
+                             data_new=data,
+                             flagger_old=None,
+                             flagger_new=flagger,
+                             targets=flagger.flags.columns,
+                             show_info_table=show_info_table
+                             )
+    plt.tight_layout()
+    plt.show()
 
 
 def plotHook(
@@ -85,7 +92,7 @@ def plotHook(
         sources: List[str],
         targets: List[str],
         plot_name: str,
-        info_table: bool = True,
+        show_info_table: bool = True,
 ):
     # TODO:
     #   - sources upper     [---]  [---]  [---]
@@ -94,101 +101,178 @@ def plotHook(
     #   if srces is None & len(targets) == 1 and with_ref -> before, curr + tabs
     #   if srces is Nne & len(tarets) > 1 or withref is False -> all targents + tabs
     #   else and len(t) > 1
-    plot_name: str
-    info_table: bool = True
-    slen = len(sources)
-    tlen = len(targets)
-    show_srces = False
-    show_ref = True
-    show_tab = info_table
-    plot_single_var = tlen == 1
+    assert len(targets) > 0
 
-    nfigs = 0
-    nrows = 0
-    if tlen == 1:
-        nrows += 1
-        if show_ref:
-            nrows += 1
-        if slen > 0:
-            nrows += 1
-            show_srces = True
+    args = locals()
+    if len(targets) == 1:
+        _plot_single_vaiable(data_old=data_old,
+                             data_new=data_new,
+                             flagger_old=flagger_old,
+                             flagger_new=flagger_new,
+                             sources=sources,
+                             targets=targets,
+                             show_reference_data=True,
+                             show_info_table=show_info_table,
+                             plot_name=plot_name)
     else:
-        nfigs, nrows = tlen//4, min(tlen, 4)
-    nfigs += 1
+        _plot_multiple_variables(data_old=data_old,
+                                 data_new=data_new,
+                                 flagger_old=flagger_old,
+                                 flagger_new=flagger_new,
+                                 targets=targets,
+                                 show_info_table=show_info_table)
+    plt.tight_layout()
+    plt.show()
 
-    if show_srces and slen > 4:
-        logging.warning(f"plotting: only first 4 of {slen} sources are shown.")
-        slen = 4
 
-    fig = plt.figure(tight_layout=True)
+def _plot_multiple_variables(
+        data_old: dios.DictOfSeries,
+        data_new: dios.DictOfSeries,
+        flagger_old: BaseFlagger,
+        flagger_new: BaseFlagger,
+        targets: List[str],
+        show_info_table: bool = True,
+):
+    tlen = len(targets)
+    show_tab = show_info_table
+    allaxs = []
+    nfig, ncols_rest = divmod(tlen, 5)
+    nfig += 1
+    ncols = [4] * nfig + [ncols_rest]
+    tgen = (t for t in targets)
+
+    gs_kw = dict(width_ratios=[5, 1])
+    layout = dict(
+        figsize=_figsize,
+        sharex=True,
+        tight_layout=True,
+        # constrained_layout=True,
+        gridspec_kw=gs_kw
+    )
+
+    # plot 4 plots per figure
+    for n in range(nfig):
+        fig, axs = plt.subplots(nrows=ncols[n], ncols=2 if show_tab else 1, **layout)
+        for ax in axs:
+            var = next(tgen)
+            tar, _ = get_data_from_var(data_old, data_new, flagger_old, flagger_new, var)
+            if show_tab:
+                plot_ax, tab_ax = ax
+                _plot_info_table(tab_ax, tar, _plotstyle, len(tar['data']))
+            else:
+                plot_ax = ax
+            _plot_from_dicts(plot_ax, tar, _plotstyle)
+            plot_ax.set_title(str(var))
+            allaxs.append(plot_ax)
+
+    # we join all x-axis together. Surprisingly
+    # this also works between different figures :D
+    ax0 = allaxs[0]
+    for ax in allaxs:
+        ax.get_shared_x_axes().join(ax, ax0)
+        ax.autoscale()
+
+
+def _plot_single_vaiable(
+        data_old: dios.DictOfSeries,
+        data_new: dios.DictOfSeries,
+        flagger_old: BaseFlagger,
+        flagger_new: BaseFlagger,
+        sources: List[str],
+        targets: List[str],
+        show_reference_data=True,
+        show_info_table: bool = True,
+        plot_name=""
+):
+    assert len(targets) == 1
+    var = targets[0]
+    slen = len(sources)
+    show_ref = show_reference_data
+    show_tab = show_info_table
+    show_srces = slen > 0
+
+    nrows = 1
+    if show_ref:
+        nrows += 1
+    if show_srces:
+        nrows += 1
+        if slen > 4:
+            logging.warning(f"plotting: only first 4 of {slen} sources are shown.")
+            slen = 4
+
+    fig = plt.figure(
+        constrained_layout=True,
+        # tight_layout=True,
+        figsize=_figsize,
+    )
     outer_gs = fig.add_gridspec(ncols=1, nrows=nrows)
+    gs_count = 0
+    allaxs = []
 
     # plot srces
     if show_srces:
-        srcs_gs_arr = outer_gs[0].subgridspec(ncols=slen, nrows=1)
+        srcs_gs_arr = outer_gs[gs_count].subgridspec(ncols=slen, nrows=1)
+        gs_count += 1
+        # NOTE: i implicit assume that all sources are available before the test run.
+        # if this ever fails, one could use data instead of ref. but i can't imagine
+        # any case, where this could happen -- bert.palm@ufz.de
         for i, gs in enumerate(srcs_gs_arr):
             ax = fig.add_subplot(gs)
-            var = sources[i]
-            src, _ = get_data_from_var(data_old, data_new, flagger_old, flagger_new, var)
+            v = sources[i]
+            _, src = get_data_from_var(data_old, data_new, flagger_old, flagger_new, v)
             _plot_from_dicts(ax, src, _plotstyle)
+            ax.set_title(f"src{i + 1}: {v}")
+            allaxs.append(ax)
 
-    # plot reference data aka. data from before the last test
-    if tlen == 1:
-        if show_ref:
-            # only if we have a single target, the reference
-            # can be shown and it also could be not available
-            var = targets[0]
-            curr, ref = get_data_from_var(data_old, data_new, flagger_old, flagger_new, var)
+    curr, ref = get_data_from_var(data_old, data_new, flagger_old, flagger_new, var)
 
-            if ref:
-                if show_tab:
-                    plot_gs, tab_gs = outer_gs[1].subgridspec(ncols=2, nrows=1)
-                    ax = fig.add_subplot(tab_gs)
-                    _plot_info_table(ax, ref, _plotstyle, len(ref['data']))
-                    ax = fig.add_subplot(plot_gs)
-                else:
-                    ax = fig.add_subplot(outer_gs[1])
-                _plot_from_dicts(ax, ref, _plotstyle)
+    # plot reference data (the data as it was before the test)
+    if ref and show_ref:
+        if show_tab:
+            plot_gs, tab_gs = outer_gs[gs_count].subgridspec(ncols=2, nrows=1, width_ratios=[5, 1])
+            gs_count += 1
+            ax = fig.add_subplot(tab_gs)
+            _plot_info_table(ax, ref, _plotstyle, len(ref['data']))
+            ax = fig.add_subplot(plot_gs)
+        else:
+            ax = fig.add_subplot(outer_gs[gs_count])
+        _plot_from_dicts(ax, ref, _plotstyle)
+        ax.set_title(f"Reference data (before the test)")
+        allaxs.append(ax)
 
-            # plot current
-            if show_tab:
-                plot_gs, tab_gs = outer_gs[2].subgridspec(ncols=2, nrows=1)
-                ax = fig.add_subplot(tab_gs)
-                _plot_info_table(ax, curr, _plotstyle, len(curr['data']))
-                ax = fig.add_subplot(plot_gs)
-            else:
-                ax = fig.add_subplot(outer_gs[2])
-            _plot_from_dicts(ax, curr, _plotstyle)
-
-    # plot multiple vars
+    # plot data
+    if show_tab:
+        plot_gs, tab_gs = outer_gs[gs_count].subgridspec(ncols=2, nrows=1, width_ratios=[5, 1])
+        gs_count += 1
+        ax = fig.add_subplot(tab_gs)
+        _plot_info_table(ax, curr, _plotstyle, len(curr['data']))
+        ax = fig.add_subplot(plot_gs)
     else:
-        srcs_gs, before_gs, curr_gs = outer_gs
-        gsarr = srcs_gs.subgridspec(ncols=slen, nrows=1)
-        for varname in enumerate(sources):
-            curr, _ = get_data_from_var(data_old, data_new, flagger_old, flagger_new, varname)
+        ax = fig.add_subplot(outer_gs[gs_count])
+    _plot_from_dicts(ax, curr, _plotstyle)
+    ax.set_title(f"{plot_name}")
+    if ref and show_ref:
+        # also share y axis with ref
+        ax.get_shared_y_axes().join(ax, allaxs[-1])
+    allaxs.append(ax)
 
-        srcs_gs, before_gs, curr_gs = outer_gs
-        gsarr = srcs_gs.subgridspec(ncols=slen, nrows=1)
-        for varname in enumerate(sources):
-            curr, _ = get_data_from_var(data_old, data_new, flagger_old, flagger_new, varname)
+    # share all axes
+    ax0 = allaxs[0]
+    for ax in allaxs:
+        ax.get_shared_x_axes().join(ax, ax0)
+        ax.autoscale()
 
-    for varname in targets:
-        curr, before = get_data_from_var(data_old, data_new, flagger_old, flagger_new, varname)
-    _plot(plotdict, ref_plotdict, _plotstyle, plot_name, info_table=info_table)
-
-    # fixme: for fig in nfigs: ...
-    fig = plt.figure(tight_layout=True)
-    outer_gs = fig.add_gridspec(ncols=1, nrows=nrows)
-
-
+    # use all space
+    outer_gs.tight_layout(fig)
 
 
 def grind_space_finder(n):
     if n < 5:
         return n, 0, False
     if n < 9:
-        return (n+1)//2, n//2, False
+        return (n + 1) // 2, n // 2, False
     return 4, 4, True
+
 
 def get_data_from_var(
         data_old: dios.DictOfSeries,
@@ -206,7 +290,7 @@ def get_data_from_var(
     ref_plotdict = None
 
     # prepare flags
-    if var in flagger_old.flags:
+    if flagger_old is not None and var in flagger_old.flags:
         flags_old = flagger_old.flags[var]
         ref_plotdict = get_plotdict(data_old, flags_old, flagger_old, var)
 
@@ -220,22 +304,15 @@ def get_data_from_var(
             plotdict["unchanged"] = unchanged
             plotdict["changed"] = changed
 
-            # check for data(!) changes.
-            if var in data_new and var in data_old:
-                # equals does not work, because of dtype, eg. int vs float
-                o, n = data_old[var], data_new[var]
-                eq = ((o == n) | (o.isna() == n.isna())).all()
-
-    if "changed" in plotdict:
-        changed = plotdict["changed"]
-        unchanged = plotdict["unchanged"]
-        unflagged = plotdict["unflagged"]
-        diff = unchanged.index.difference(unflagged.index)
-        plotdict["old-flags"] = unchanged.loc[diff]
-        for field in ["bad", "suspicious", "good"]:
-            data = plotdict[field]
-            isect = changed.index & data.index
-            plotdict[field] = data.loc[isect]
+            # calculate old-flags and update flags, like BADs,
+            # to show only freshly new set values
+            unflagged = plotdict["unflagged"]
+            diff = unchanged.index.difference(unflagged.index)
+            plotdict["old-flags"] = unchanged.loc[diff]
+            for field in ["bad", "suspicious", "good"]:
+                data = plotdict[field]
+                isect = changed.index & data.index
+                plotdict[field] = data.loc[isect]
 
     return plotdict, ref_plotdict
 
@@ -476,13 +553,15 @@ def _plot_info_table(ax, plotdict, styledict, total):
     del tab['color']
 
     # create and format layout
+    ax.axis('tight')
+    ax.axis('off')
     tab_obj = ax.table(
         cellColours=ccs.transpose(),
         cellText=tab.iloc[:, :].values,
         colLabels=tab.columns[:],
         colWidths=[0.4, 0.3, 0.3],
         in_layout=True,
-        # bbox=[0,0,1,1],
+        bbox=[0.0, 0.1, 0.95, 0.8],
         loc='center',
     )
     tab_obj.auto_set_column_width(False)
