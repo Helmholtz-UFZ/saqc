@@ -7,12 +7,26 @@ import numpy as np
 import pandas as pd
 import dios.dios as dios
 import matplotlib.pyplot as plt
-from typing import List, Dict, Any
-
-
+from typing import List, Dict, Optional
 from saqc.flagger import BaseFlagger
 
-__import_done = False
+
+def __importHelper():
+    import matplotlib as mpl
+    from pandas.plotting import register_matplotlib_converters
+
+    # needed for datetime conversion
+    register_matplotlib_converters()
+
+    if _interactive:
+        mpl.use("TkAgg")
+    else:
+        # Import plot libs without interactivity, if not needed.
+        # This ensures that we can produce an plot.png even if
+        # tkinter is not installed. E.g. if one want to run this
+        # on machines without X-Server aka. graphic interface.
+        mpl.use("Agg")
+
 
 # global switches - use is read-only
 _interactive = True
@@ -38,7 +52,6 @@ _cols = [
     "changed",
 ]
 
-nan_repr_style = dict(marker='.', fillstyle='none', ls='none', c="lightsteelblue")
 
 _plotstyle: Dict[str, dict] = {
     # flags
@@ -49,32 +62,8 @@ _plotstyle: Dict[str, dict] = {
     "old-flags": dict(marker='.', fillstyle='none', ls='none', c="black", label="old-flags"),
     # data
     "data": dict(c="silver", ls='-', label="data"),
-    "data-nans": dict(**nan_repr_style, label="NaN"),
-    # other
-    # "flag-nans": nan_repr_style,
+    "data-nans": dict(marker='.', fillstyle='none', ls='none', c="lightsteelblue", label="NaN"),
 }
-
-
-def __import_helper():
-    global __import_done
-    if __import_done:
-        return
-    __import_done = True
-
-    import matplotlib as mpl
-    from pandas.plotting import register_matplotlib_converters
-
-    # needed for datetime conversion
-    register_matplotlib_converters()
-
-    if _interactive:
-        mpl.use("TkAgg")
-    else:
-        # Import plot libs without interactivity, if not needed.
-        # This ensures that we can produce an plot.png even if
-        # tkinter is not installed. E.g. if one want to run this
-        # on machines without X-Server aka. graphic interface.
-        mpl.use("Agg")
 
 
 def _show():
@@ -82,14 +71,15 @@ def _show():
         plt.show()
 
 
-def plotAllHook(data, flagger, show_info_table: bool = True, ):
-    __import_helper()
-    _plot_multiple_variables(
+def plotAllHook(data, flagger, targets=None, show_info_table: bool = True, ):
+    __importHelper()
+    targets = flagger.flags.columns if targets is None else targets
+    _plotMultipleVariables(
         data_old=None,
         flagger_old=None,
         data_new=data,
         flagger_new=flagger,
-        targets=flagger.flags.columns,
+        targets=targets,
         show_info_table=show_info_table
     )
     plt.tight_layout()
@@ -97,16 +87,16 @@ def plotAllHook(data, flagger, show_info_table: bool = True, ):
 
 
 def plotHook(
-        data_old: dios.DictOfSeries,
+        data_old: Optional[dios.DictOfSeries],
         data_new: dios.DictOfSeries,
-        flagger_old: BaseFlagger,
+        flagger_old: Optional[BaseFlagger],
         flagger_new: BaseFlagger,
         sources: List[str],
         targets: List[str],
-        plot_name: str,
+        plot_name: str = "",
 ):
     assert len(targets) > 0
-    __import_helper()
+    __importHelper()
 
     args = dict(
         data_old=data_old,
@@ -118,17 +108,17 @@ def plotHook(
     )
 
     if len(targets) == 1:
-        _plot_single_vaiable(**args, sources=sources, show_reference_data=True, plot_name=plot_name)
+        _plotSingleVariable(**args, sources=sources, show_reference_data=True, plot_name=plot_name)
     else:
-        _plot_multiple_variables(**args)
+        _plotMultipleVariables(**args)
 
     _show()
 
 
-def _plot_multiple_variables(
-        data_old: dios.DictOfSeries,
+def _plotMultipleVariables(
+        data_old: Optional[dios.DictOfSeries],
         data_new: dios.DictOfSeries,
-        flagger_old: BaseFlagger,
+        flagger_old: Optional[BaseFlagger],
         flagger_new: BaseFlagger,
         targets: List[str],
         show_info_table: bool = True,
@@ -175,6 +165,7 @@ def _plot_multiple_variables(
         figsize=_figsize,
         sharex=True,
         tight_layout=True,
+        squeeze=False,
         gridspec_kw=gs_kw
     )
 
@@ -184,13 +175,13 @@ def _plot_multiple_variables(
         fig, axs = plt.subplots(nrows=ncols[n], ncols=2 if show_tab else 1, **layout)
         for ax in axs:
             var = next(tgen)
-            tar, _ = get_data_from_var(data_old, data_new, flagger_old, flagger_new, var)
+            tar, _ = _getDataFromVar(data_old, data_new, flagger_old, flagger_new, var)
             if show_tab:
                 plot_ax, tab_ax = ax
-                _plot_info_table(tab_ax, tar, _plotstyle, len(tar['data']))
+                _plotInfoTable(tab_ax, tar, _plotstyle, len(tar['data']))
             else:
                 plot_ax = ax
-            _plot_from_dicts(plot_ax, tar, _plotstyle)
+            _plotFromDicts(plot_ax, tar, _plotstyle)
             plot_ax.set_title(str(var))
             allaxs.append(plot_ax)
 
@@ -202,7 +193,7 @@ def _plot_multiple_variables(
         ax.autoscale()
 
 
-def _plot_single_vaiable(
+def _plotSingleVariable(
         data_old: dios.DictOfSeries,
         data_new: dios.DictOfSeries,
         flagger_old: BaseFlagger,
@@ -256,7 +247,10 @@ def _plot_single_vaiable(
     assert len(targets) == 1
     var = targets[0]
     slen = len(sources)
-    show_ref = show_reference_data
+
+    curr, ref = _getDataFromVar(data_old, data_new, flagger_old, flagger_new, var)
+
+    show_ref = show_reference_data and ref is not None
     show_tab = show_info_table
     show_srces = slen > 0
 
@@ -286,23 +280,21 @@ def _plot_single_vaiable(
         for i, gs in enumerate(srcs_gs_arr):
             ax = fig.add_subplot(gs)
             v = sources[i]
-            _, src = get_data_from_var(data_old, data_new, flagger_old, flagger_new, v)
-            _plot_from_dicts(ax, src, _plotstyle)
+            _, src = _getDataFromVar(data_old, data_new, flagger_old, flagger_new, v)
+            _plotFromDicts(ax, src, _plotstyle)
             ax.set_title(f"src{i + 1}: {v}")
             allaxs.append(ax)
 
-    curr, ref = get_data_from_var(data_old, data_new, flagger_old, flagger_new, var)
-
     # plot reference data (the data as it was before the test)
     if ref and show_ref:
-        ax = _plot_data_with_table(fig, outer_gs[gs_count], ref, show_tab=show_tab)
+        ax = _plotDataWithTable(fig, outer_gs[gs_count], ref, show_tab=show_tab)
         ax.set_title(f"Reference data (before the test)")
         allaxs.append(ax)
         gs_count += 1
 
     # plot data
     if show_tab:
-        ax = _plot_data_with_table(fig, outer_gs[gs_count], curr, show_tab=show_tab)
+        ax = _plotDataWithTable(fig, outer_gs[gs_count], curr, show_tab=show_tab)
         ax.set_title(f"{plot_name}")
         # also share y-axis with ref
         if ref and show_ref:
@@ -320,7 +312,7 @@ def _plot_single_vaiable(
     outer_gs.tight_layout(fig)
 
 
-def get_data_from_var(
+def _getDataFromVar(
         data_old: dios.DictOfSeries,
         data_new: dios.DictOfSeries,
         flagger_old: BaseFlagger,
@@ -376,21 +368,21 @@ def get_data_from_var(
     var = varname
     assert var in flagger_new.flags
     flags_new: pd.Series = flagger_new.flags[var]
-    plotdict = _get_plotdict(data_new, flags_new, flagger_new, var)
+    plotdict = _getPlotdict(data_new, flags_new, flagger_new, var)
     ref_plotdict = None
 
     # prepare flags
     if flagger_old is not None and var in flagger_old.flags:
         flags_old = flagger_old.flags[var]
-        ref_plotdict = _get_plotdict(data_old, flags_old, flagger_old, var)
+        ref_plotdict = _getPlotdict(data_old, flags_old, flagger_old, var)
 
         # check flags-index changes:
         # if we want to know locations, where the flags has changed between old and new,
         # the index must match, otherwise, this could lead to wrong placed flags. Even
         # though the calculations would work.
         if flags_old.index.equals(flags_new.index):
-            unchanged, changed = _split_old_and_new(flags_old, flags_new)
-            unchanged, changed = _project_flags_onto_data([unchanged, changed], plotdict['data'])
+            unchanged, changed = _splitOldAndNew(flags_old, flags_new)
+            unchanged, changed = _projectFlagsOntoData([unchanged, changed], plotdict['data'])
             plotdict["unchanged"] = unchanged
             plotdict["changed"] = changed
 
@@ -407,7 +399,7 @@ def get_data_from_var(
     return plotdict, ref_plotdict
 
 
-def _get_plotdict(data: dios.DictOfSeries, flags: pd.Series, flagger, var):
+def _getPlotdict(data: dios.DictOfSeries, flags: pd.Series, flagger, var):
     """
     Collect info and put them in a dict and creates dummy data if no data present.
 
@@ -453,15 +445,15 @@ def _get_plotdict(data: dios.DictOfSeries, flags: pd.Series, flagger, var):
     pdict = dios.DictOfSeries(columns=_cols)
 
     # fill data
-    dat, nans = _get_data(data, flags, var)
+    dat, nans = _getData(data, flags, var)
     assert dat.index.equals(flags.index)
     pdict["data"] = dat
     pdict["data-nans"] = nans
 
     # fill flags
-    tup = _split_by_flag(flags, flagger, var)
+    tup = _splitByFlag(flags, flagger, var)
     assert sum(map(len, tup)) == len(flags)
-    g, s, b, u, n = _project_flags_onto_data(list(tup), dat)
+    g, s, b, u, n = _projectFlagsOntoData(list(tup), dat)
     pdict["good"] = g
     pdict["suspicious"] = s
     pdict["bad"] = b
@@ -471,7 +463,7 @@ def _get_plotdict(data: dios.DictOfSeries, flags: pd.Series, flagger, var):
     return pdict
 
 
-def _get_data(data: dios.DictOfSeries, flags: pd.Series, var: str):
+def _getData(data: dios.DictOfSeries, flags: pd.Series, var: str):
     """
     Get data from a dios or create a dummy data.
 
@@ -497,7 +489,7 @@ def _get_data(data: dios.DictOfSeries, flags: pd.Series, var: str):
     return dat, nans
 
 
-def _split_old_and_new(old: pd.Series, new: pd.Series):
+def _splitOldAndNew(old: pd.Series, new: pd.Series):
     """
     Split new in two distinct series of equality and non-equality with old.
 
@@ -516,7 +508,7 @@ def _split_old_and_new(old: pd.Series, new: pd.Series):
     return new.loc[old_idx], new.loc[new_idx]
 
 
-def _split_by_flag(flags: pd.Series, flagger, var: str):
+def _splitByFlag(flags: pd.Series, flagger, var: str):
     """
     Splits flags in the five distinct bins: GOOD, SUSPICIOUS, BAD, UNFLAGGED and NaNs.
     """
@@ -530,7 +522,7 @@ def _split_by_flag(flags: pd.Series, flagger, var: str):
     return g[g], s[s], b[b], u[u], n[n]
 
 
-def _project_flags_onto_data(idxlist: List[pd.Series], data: pd.Series):
+def _projectFlagsOntoData(idxlist: List[pd.Series], data: pd.Series):
     """ Project flags to a xy-location, based on data. """
     res = []
     for item in idxlist:
@@ -538,7 +530,7 @@ def _project_flags_onto_data(idxlist: List[pd.Series], data: pd.Series):
     return tuple(res)
 
 
-def _plot_data_with_table(fig, gs, pdict, show_tab=True):
+def _plotDataWithTable(fig, gs, pdict, show_tab=True):
     """
     Plot multiple series from a dict and optionally create a info table
 
@@ -567,21 +559,21 @@ def _plot_data_with_table(fig, gs, pdict, show_tab=True):
 
     See Also
     --------
-        _plot_from_dicts()
-        _plot_info_table()
+        _plotFromDicts()
+        _plotInfoTable()
     """
     if show_tab:
         plot_gs, tab_gs = gs.subgridspec(ncols=2, nrows=1, width_ratios=_layout_data_to_table_ratio)
         ax = fig.add_subplot(tab_gs)
-        _plot_info_table(ax, pdict, _plotstyle, len(pdict['data']))
+        _plotInfoTable(ax, pdict, _plotstyle, len(pdict['data']))
         ax = fig.add_subplot(plot_gs)
     else:
         ax = fig.add_subplot(gs)
-    _plot_from_dicts(ax, pdict, _plotstyle)
+    _plotFromDicts(ax, pdict, _plotstyle)
     return ax
 
 
-def _plot_from_dicts(ax, plotdict, styledict):
+def _plotFromDicts(ax, plotdict, styledict):
     """
     Plot multiple data from a dict in the same plot.
 
@@ -615,7 +607,7 @@ def _plot_from_dicts(ax, plotdict, styledict):
             ax.plot(data, **style)
 
 
-def _plot_info_table(ax, plotdict, styledict, total):
+def _plotInfoTable(ax, plotdict, styledict, total):
     """
     Make a nice table with information about the quantity of elements.
 
