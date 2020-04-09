@@ -150,7 +150,9 @@ def run(
 
             if configrow[Fields.PLOT]:
                 plotHook(
-                    data_chunk_result, flagger_chunk, flagger_chunk_result, varname, func,
+                    data_old=data_chunk, data_new=data_chunk_result,
+                    flagger_old=flagger_chunk, flagger_new=flagger_chunk_result,
+                    sources=[], targets=[varname], plot_name=func,
                 )
 
             # NOTE:
@@ -160,6 +162,8 @@ def run(
             flagger = flagger_chunk_result
             data = data_chunk_result
 
-    plotAllHook(data, flagger)
+    plotfields = config[Fields.VARNAME][config[Fields.PLOT]]
+    if len(plotfields) > 0:
+        plotAllHook(data, flagger)
 
     return data, flagger
