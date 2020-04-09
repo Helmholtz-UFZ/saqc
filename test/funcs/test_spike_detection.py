@@ -113,7 +113,7 @@ def test_flagSpikesOddWater(dat, flagger):
     data = pd.DataFrame({'data1': data1.squeeze(), 'data2': data2.squeeze()}, index=data1.index)
     flagger = flagger.initFlags(data)
     _, flagger_result = flagSpikes_oddWater(
-        data, field, flagger, fields=fields, bin_frac=50, trafo='np.log',
+        data, field, flagger, fields=fields, binning=50, trafo='np.log',
         iter_start=0.95, n_neighbors=10
     )
     assert flagger_result.isFlagged(fields[0])[characteristics['raise']].all()

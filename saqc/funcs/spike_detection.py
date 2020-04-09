@@ -27,10 +27,13 @@ def _stray(val_frame, partition_freq=None, scoring_method='kNNMaxGap', n_neighbo
     partitions = val_frame.groupby(pd.Grouper(freq=partition_freq))
     to_flag = []
     for _, partition in partitions:
-        resids = kNNfunc(partition.values, n_neighbors=n_neighbors, algorithm='ball_tree')
+        if partition.empty:
+            continue
+        sample_size = partition.shape[0]
+        nn_neighbors = min(n_neighbors, sample_size)
+        resids = kNNfunc(partition.values, n_neighbors=nn_neighbors-1, algorithm='ball_tree')
         sorted_i = resids.argsort()
         resids = resids[sorted_i]
-        sample_size = resids.shape[0]
         gaps = np.append(0, np.diff(resids))
 
         tail_size = int(max(min(50, np.floor(sample_size / 4)), 2))
@@ -70,7 +73,13 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
     def fit_function(x, lambd):
         return lambd * np.exp(-lambd * x)
     # initialise sampling bins
-    binz = np.linspace(resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac)))
+    if isinstance(bin_frac, int):
+        binz = np.linspace(resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac)))
+    elif bin_frac in ['auto', 'fd', 'doane', 'scott', 'stone', 'rice', 'sturges', 'sqrt']:
+        binz = np.histogram_bin_edges(resids, bins=bin_frac)
+    else:
+        raise ValueError('Cant interpret {} as an binning technique.'.format(bin_frac))
+
     binzenters = np.array([0.5 * (binz[i] + binz[i + 1]) for i in range(len(binz) - 1)])
     # inititialize full histogram:
     full_hist, binz = np.histogram(resids, bins=binz)
@@ -116,8 +125,8 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
 
 
 @register("spikes_oddWater")
-def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0.05, bin_frac=10, n_neighbors=2,
-                        iter_start=0.5, scoring_method='kNNMaxGap', thresholding='stray', stray_partition=None,
+def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0.05, binning='auto', n_neighbors=2,
+                        iter_start=0.5, scoring_method='kNNMaxGap', threshing='stray', stray_partition=None,
                         **kwargs):
 
     trafo = composeFunction(trafo.split(','))
@@ -134,7 +143,7 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0
     val_frame.dropna(inplace=True)
     val_frame = val_frame.transform(trafo)
 
-    if thresholding == 'stray':
+    if threshing == 'stray':
         to_flag_index =_stray(val_frame,
                               partition_freq=stray_partition,
                               scoring_method=scoring_method,
@@ -147,7 +156,7 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0
                                 n_neighbors=n_neighbors,
                                 iter_start=iter_start,
                                 alpha=alpha,
-                                bin_frac=bin_frac)
+                                bin_frac=binning)
     for var in fields:
         flagger = flagger.setFlags(var, to_flag_index, **kwargs)
 
