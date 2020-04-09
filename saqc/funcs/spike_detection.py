@@ -4,11 +4,9 @@
 
 import numpy as np
 import pandas as pd
-
 from scipy.signal import savgol_filter
 from scipy.stats import zscore
 from scipy.optimize import curve_fit
-from sklearn.neighbors import NearestNeighbors
 from saqc.funcs.register import register
 import numpy.polynomial.polynomial as poly
 import numba
@@ -21,9 +19,106 @@ from saqc.lib.tools import (
     composeFunction
 )
 
+
+def _stray(val_frame, partition_freq=None, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
+           alpha=0.05):
+
+    kNNfunc = getattr(ts_ops, scoring_method)
+    partitions = val_frame.groupby(pd.Grouper(freq=partition_freq))
+    to_flag = []
+    for _, partition in partitions:
+        resids = kNNfunc(partition.values, n_neighbors=n_neighbors, algorithm='ball_tree')
+        sorted_i = resids.argsort()
+        resids = resids[sorted_i]
+        sample_size = resids.shape[0]
+        gaps = np.append(0, np.diff(resids))
+
+        tail_size = int(max(min(50, np.floor(sample_size / 4)), 2))
+        tail_indices = np.arange(2, tail_size + 1)
+        i_start = int(max(np.floor(sample_size * iter_start), 1) + 1)
+        ghat = np.array([np.nan] * sample_size)
+        for i in range(i_start - 1, sample_size):
+            ghat[i] = sum((tail_indices / (tail_size - 1)) * gaps[i - tail_indices + 1])
+
+        log_alpha = np.log(1 / alpha)
+        for iter_index in range(i_start - 1, sample_size):
+            if gaps[iter_index] > log_alpha * ghat[iter_index]:
+                break
+
+        to_flag = np.append(to_flag, list(partition.index[sorted_i[iter_index:]]))
+
+    return to_flag
+
+
+def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
+           alpha=0.05, bin_frac=10):
+
+
+    kNNfunc = getattr(ts_ops, scoring_method)
+    resids = kNNfunc(val_frame.values, n_neighbors=n_neighbors, algorithm='ball_tree')
+    data_len = resids.shape[0]
+    # sorting
+    sorted_i = resids.argsort()
+    resids = resids[sorted_i]
+    iter_index = int(np.floor(resids.size * iter_start))
+    # initialize condition variables:
+    crit_val = np.inf
+    test_val = 0
+    neg_log_alpha = - np.log(alpha)
+
+    # define exponential dist density function:
+    def fit_function(x, lambd):
+        return lambd * np.exp(-lambd * x)
+    # initialise sampling bins
+    binz = np.linspace(resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac)))
+    binzenters = np.array([0.5 * (binz[i] + binz[i + 1]) for i in range(len(binz) - 1)])
+    # inititialize full histogram:
+    full_hist, binz = np.histogram(resids, bins=binz)
+    # check if start index is sufficiently high (pointing at resids value beyond histogram maximum at least):
+    hist_argmax = full_hist.argmax()
+
+    if hist_argmax >= findIndex(binz, resids[iter_index-1], 0):
+        raise ValueError("Either the data histogram is too strangely shaped for oddWater OD detection - "
+                         "or a too low value for 'iter_start' was passed "
+                         "(iter_start better be much greater 0.5)")
+    # GO!
+    iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
+    upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
+    resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
+    upper_tail_hist, bins = np.histogram(resids[resids_tail_index:iter_index],
+                                             bins=binz[upper_tail_index:iter_max_bin_index + 1])
+
+    while (test_val < crit_val) & (iter_index < resids.size-1):
+        iter_index += 1
+        new_iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
+
+        # following if/else block "manually" expands the data histogram and circumvents calculation of the complete
+        # histogram in any new iteration.
+        if new_iter_max_bin_index == iter_max_bin_index:
+            upper_tail_hist[-1] += 1
+        else:
+            upper_tail_hist = np.append(upper_tail_hist, np.zeros([new_iter_max_bin_index-iter_max_bin_index]))
+            upper_tail_hist[-1] += 1
+            iter_max_bin_index = new_iter_max_bin_index
+            upper_tail_index_new = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
+            upper_tail_hist = upper_tail_hist[upper_tail_index_new-upper_tail_index:]
+            upper_tail_index = upper_tail_index_new
+
+        # fitting
+        lambdA, _ = curve_fit(fit_function, xdata=binzenters[upper_tail_index:iter_max_bin_index],
+                                ydata=upper_tail_hist,
+                                p0=[-np.log(alpha/resids[iter_index])])
+
+        crit_val = neg_log_alpha / lambdA
+        test_val = resids[iter_index]
+
+    return val_frame.index[sorted_i[iter_index:]]
+
+
 @register("spikes_oddWater")
 def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0.05, bin_frac=10, n_neighbors=2,
-                        iter_start=0.5, scoring_method='kNNMaxGap', lambda_estimator='gap_average', **kwargs):
+                        iter_start=0.5, scoring_method='kNNMaxGap', thresholding='stray', stray_partition=None,
+                        **kwargs):
 
     trafo = composeFunction(trafo.split(','))
     # data fransformation/extraction
@@ -36,96 +131,27 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0
                              right_index=True
                              )
 
-    data_len = val_frame.index.size
     val_frame.dropna(inplace=True)
     val_frame = val_frame.transform(trafo)
 
-    # KNN calculation
-    kNNfunc = getattr(ts_ops, scoring_method)
-    resids = kNNfunc(val_frame.values, n_neighbors=n_neighbors, algorithm='ball_tree')
-
-    # sorting
-    sorted_i = resids.argsort()
-    resids = resids[sorted_i]
-
-    # iter_start
-
-    if lambda_estimator == 'gap_average':
-        sample_size = resids.shape[0]
-        gaps = np.append(0, np.diff(resids))
-        tail_size = int(max(min(50, np.floor(sample_size/4)), 2))
-        tail_indices = np.arange(2, tail_size + 1)
-        i_start = int(max(np.floor(sample_size*iter_start), 1) + 1)
-        ghat = np.array([np.nan]*sample_size)
-        for i in range(i_start-1, sample_size):
-            ghat[i] = sum((tail_indices/(tail_size-1))*gaps[i-tail_indices+1])
-
-        log_alpha = np.log(1/alpha)
-        for iter_index in range(i_start-1, sample_size):
-            if gaps[iter_index] > log_alpha*ghat[iter_index]:
-                break
-
+    if thresholding == 'stray':
+        to_flag_index =_stray(val_frame,
+                              partition_freq=stray_partition,
+                              scoring_method=scoring_method,
+                              n_neighbors=n_neighbors,
+                              iter_start=iter_start)
 
     else:
-        # (estimator == 'exponential_fit')
-        iter_index = int(np.floor(resids.size * iter_start))
-        # initialize condition variables:
-        crit_val = np.inf
-        test_val = 0
-        neg_log_alpha = - np.log(alpha)
-
-        # define exponential dist density function:
-        def fit_function(x, lambd):
-            return lambd * np.exp(-lambd * x)
-        # initialise sampling bins
-        binz = np.linspace(resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac)))
-        binzenters = np.array([0.5 * (binz[i] + binz[i + 1]) for i in range(len(binz) - 1)])
-        # inititialize full histogram:
-        full_hist, binz = np.histogram(resids, bins=binz)
-        # check if start index is sufficiently high (pointing at resids value beyond histogram maximum at least):
-        hist_argmax = full_hist.argmax()
-
-        if hist_argmax >= findIndex(binz, resids[iter_index-1], 0):
-            raise ValueError("Either the data histogram is too strangely shaped for oddWater OD detection - "
-                             "or a too low value for iter_start was passed (iter_start better be greater 0.5)")
-        # GO!
-        iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
-        upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
-        resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
-        upper_tail_hist, bins = np.histogram(resids[resids_tail_index:iter_index],
-                                             bins=binz[upper_tail_index:iter_max_bin_index + 1])
-
-        while (test_val < crit_val) & (iter_index < resids.size-1):
-            iter_index += 1
-            new_iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
-
-            # following if/else block "manually" expands the data histogram and circumvents calculation of the complete
-            # histogram in any new iteration.
-            if new_iter_max_bin_index == iter_max_bin_index:
-                upper_tail_hist[-1] += 1
-            else:
-                upper_tail_hist = np.append(upper_tail_hist, np.zeros([new_iter_max_bin_index-iter_max_bin_index]))
-                upper_tail_hist[-1] += 1
-                iter_max_bin_index = new_iter_max_bin_index
-                upper_tail_index_new = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
-                upper_tail_hist = upper_tail_hist[upper_tail_index_new-upper_tail_index:]
-                upper_tail_index = upper_tail_index_new
-
-            # fitting
-            lambdA, _ = curve_fit(fit_function, xdata=binzenters[upper_tail_index:iter_max_bin_index],
-                                  ydata=upper_tail_hist,
-                                  p0=[-np.log(alpha/resids[iter_index])])
-
-            crit_val = neg_log_alpha / lambdA
-            test_val = resids[iter_index]
-
-    # flag them!
-    to_flag_index = val_frame.index[sorted_i[iter_index:]]
+        to_flag_index = _expFit(val_frame,
+                                scoring_method=scoring_method,
+                                n_neighbors=n_neighbors,
+                                iter_start=iter_start,
+                                alpha=alpha,
+                                bin_frac=bin_frac)
     for var in fields:
         flagger = flagger.setFlags(var, to_flag_index, **kwargs)
 
     return data, flagger
-
 
 
 @register("spikes_limitRaise")
