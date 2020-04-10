@@ -75,6 +75,7 @@ def test_sm_flagRandomForest(flagger):
     field = "SM2"
 
     # prepare flagsframe
+    data = dios.to_dios(data)
     flagger = flagger.initFlags(data)
     flagger = flagger.setFlags(field, loc=mask_bad[field])
     flagger = flagger.setFlags(field, loc=mask_unflagged[field], flag=flagger.UNFLAGGED)
