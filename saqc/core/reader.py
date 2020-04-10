@@ -3,17 +3,21 @@
 
 
 import re
+import logging
 from csv import reader
 from typing import Dict, List, Any, Union, Iterable, Iterator, Tuple
 from contextlib import contextmanager
 from io import StringIO, TextIOWrapper
 
 import pandas as pd
-import dios.dios as dios
+import dios
 
 from saqc.core.config import Fields as F
 from saqc.core.evaluator import compileExpression
 from saqc.flagger import BaseFlagger
+
+
+logger = logging.getLogger("SaQC")
 
 
 # typing declarations
@@ -58,25 +62,28 @@ def _matchKey(keys: Iterable[str], fuzzy_key: str) -> str:
 
 def _castRow(row: Dict[str, Any]):
     out = {}
-    for k, func in CONFIG_TYPES.items():
-        key = _matchKey(row.keys(), k)
-        if key:
-            value = row[key]
-            try:
-                out[key] = func(value)
-            except ValueError:
-                _raise(row, ValueError, f"invalid value: '{value}'")
+    for row_key, row_value in row.items():
+        for fuzzy_key, func in CONFIG_TYPES.items():
+            if re.match(fuzzy_key, row_key):
+                try:
+                    out[row_key] = func(row_value)
+                except ValueError:
+                    _raise(row, ValueError, f"invalid value: '{row_value}'")
     return out
 
 
 def _expandVarnameWildcards(config: Config, data: dios.DictOfSeries) -> Config:
+    def isQuoted(string):
+        return bool(re.search(r"'.*'|\".*\"", string))
+
     new = []
     for row in config:
         varname = row[F.VARNAME]
-        if varname and varname not in data:
-            expansion = data.columns[data.columns.str.match(varname)]
+        if varname and isQuoted(varname):
+            pattern = varname[1:-1]
+            expansion = data.columns[data.columns.str.match(pattern)]
             if not len(expansion):
-                expansion = [varname]
+                logger.warning(f"no match for regular expression '{pattern}'")
             for var in expansion:
                 new.append({**row, F.VARNAME: var})
         else:

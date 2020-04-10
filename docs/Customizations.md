@@ -48,13 +48,13 @@ def yourTestFunction(
 ### Integrate into SaQC
 In order make your function available to the system it needs to be registered. We provide the decorator 
 [`register`](saqc/functions/register.py) in the module `saqc.functions.register`, to integrate your 
-test functions into SaQC and expose them via a name of your choice. A complete, yet useless example might
+test functions into SaQC. A complete, yet useless example might
 look like that:
 
 ```python
 from saqc.functions.register import register
 
-@register("myFunc")
+@register()
 def yourTestFunction(data, field, flagger, *args, **kwargs):
     return data, flagger
 ```

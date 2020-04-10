@@ -13,5 +13,6 @@ class Fields:
 
 class Params:
     FLAG_GENERIC = "flagGeneric"
+    PROC_GENERIC = "procGeneric"
     GENERIC_ARGS = "func_arguments"
     FUNC = "func"

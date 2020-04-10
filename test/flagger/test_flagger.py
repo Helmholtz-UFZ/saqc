@@ -309,26 +309,11 @@ def test_isFlaggedDios(data, flagger):
     mask = np.zeros(len(data[field]), dtype=bool)
 
     df_tests = [
-        (
-            flagger.isFlagged(),
-            mask
-        ),
-        (
-            flagger.setFlags(field).isFlagged(),
-            ~mask
-        ),
-        (
-            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator=">"),
-            mask,
-        ),
-        (
-            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="<"),
-            mask,
-        ),
-        (
-            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="=="),
-            ~mask,
-        ),
+        (flagger.isFlagged(), mask),
+        (flagger.setFlags(field).isFlagged(), ~mask),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator=">"), mask,),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="<"), mask,),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="=="), ~mask,),
     ]
     for flags, expected in df_tests:
         assert np.all(flags[field] == expected)
@@ -353,26 +338,11 @@ def test_isFlaggedSeries(data, flagger):
     mask = np.zeros(len(data[field]), dtype=bool)
 
     series_tests = [
-        (
-            flagger.isFlagged(field),
-            mask
-        ),
-        (
-            flagger.setFlags(field).isFlagged(field),
-            ~mask
-        ),
-        (
-            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator=">"),
-            mask,
-        ),
-        (
-            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="<"),
-            mask,
-        ),
-        (
-            flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="=="),
-            ~mask,
-        ),
+        (flagger.isFlagged(field), mask),
+        (flagger.setFlags(field).isFlagged(field), ~mask),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator=">"), mask,),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="<"), mask,),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="=="), ~mask,),
     ]
     for flags, expected in series_tests:
         assert np.all(flags == expected)

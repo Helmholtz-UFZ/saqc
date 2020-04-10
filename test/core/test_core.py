@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import logging
+
 import pytest
 import numpy as np
 import pandas as pd
@@ -13,10 +15,15 @@ import saqc.lib.plotting as splot
 from test.common import initData, initMetaDict, TESTFLAGGER
 
 
+# no logging output needed here
+# -> can this be configured on the test runner level?
+logging.disable(logging.CRITICAL)
+
+
 OPTIONAL = [False, True]
 
 
-@register("flagAll")
+@register()
 def flagAll(data, field, flagger, **kwargs):
     # NOTE: remember to rename flag -> flag_values
     return data, flagger.setFlags(field=field, flag=flagger.BAD)
@@ -94,16 +101,13 @@ def test_positionalPartitioning(data, flagger, flags):
         vname, start_index, end_index = row[fields]
         fchunk = pflagger.getFlags(field=vname, loc=pflagger.isFlagged(vname))
         assert fchunk.index.min() == start_index, "different start indices"
-        assert (
-            fchunk.index.max() == end_index
-        ), f"different end indices: {fchunk.index.max()} vs. {end_index}"
+        assert fchunk.index.max() == end_index, f"different end indices: {fchunk.index.max()} vs. {end_index}"
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_errorHandling(data, flagger):
-
-    @register("raisingFunc")
-    def _raisingFunc(data, fielf, flagger, **kwargs):
+    @register()
+    def raisingFunc(data, fielf, flagger, **kwargs):
         raise TypeError
 
     var1, *_ = data.columns
@@ -112,10 +116,7 @@ def test_errorHandling(data, flagger):
         {F.VARNAME: var1, F.TESTS: "raisingFunc()"},
     ]
 
-    tests = [
-        "ignore",
-        "warn"
-    ]
+    tests = ["ignore", "warn"]
 
     for policy in tests:
         # NOTE: should not fail, that's all we are testing here

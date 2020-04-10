@@ -79,8 +79,8 @@ Now create your our own configuration file `saqc/ressources/data/myconfig.csv`
 and paste the following lines into it:
 	
 	varname;test;plot
-	SM2;range(min=10, max=60);False
-	SM2;spikes_simpleMad(window="30d", z=3.5);True
+	SM2;flagRange(min=10, max=60);False
+	SM2;spikes_flagMad(window="30d", z=3.5);True
 
 These lines illustrate how different quality control tests can be specified for
 different variables by following the pattern:
@@ -115,7 +115,7 @@ saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
 
 Which will output this plot:
 
-![Toy Plot](images/example_plot_1.png "Toy Plot")
+![Toy Plot](../ressources/images/example_plot_1.png "Toy Plot")
 
 So, what do we see here?
 
@@ -128,75 +128,6 @@ So, what do we see here?
   only. Thus, the plot aggregates all preceeding tests (here: `range`) to black
   points and highlights the flags of the selected test as red points.
 
-### Configure SaQC
-
-#### Change test parameters
-Now you can start to change the settings in the config-file and investigate the
-effect that has on how many datapoints are flagged as "BAD". When using your
-own data, this is your way to configure the tests according to your needs. For
-example, you could modify your `myconfig.csv` and change the parameters of the
-range-test:
-	
-	varname;test;plot
-	SM2;range(min=-20, max=60);False
-	SM2;spikes_simpleMad(window="30d", z=3.5);True
-Rerunning SaQC as above produces the following plot:
-
-![Changing the config](images/example_plot_2.png "Changing the config")
-
-You can see that the changes that we made to the parameters of the range test
-take effect so that only the values >60 are flagged by it (black points). This,
-in turn, leaves more erroneous data that is then identified by the proceeding
-spike-test (red points).
-
-### Explore the functionality
-#### Process multiple variables
-You can also define multiple tests for multiple variables in your data. These
-are then executed sequentially and can be plotted seperately. E.g. you could do
-something like this:
-
-	varname;test;plot
-	SM1;range(min=10, max=60);False
-	SM2;range(min=10, max=60);False
-	SM1;spikes_simpleMad(window="15d", z=3.5);True
-	SM2;spikes_simpleMad(window="30d", z=3.5);True
-
-which gives you separate plots for each line where the plotting option is set to
-`True` as well as one summary "data plot" that depicts the joint flags from all
-tests:
-
-SM1         |  SM2
-:-------------------------:|:-------------------------:
-![](images/example_plot_31.png)  |  ![](images/example_plot_32.png)
-
-![](images/example_plot_33.png)
-
-#### Data harmonization and custom functions
-
-SaQC includes functionality to harmonize the timestamps of one or more data
-series. Also, you can write your own tests using a python-based
-[extension language](docs/GenericFunctions.md). This would look like this:
-
-	varname;test;plot
-	SM2;harmonize_shift2Grid(freq="15Min");False
-	SM2;flagGeneric(func=(SM2 < 30));True
-
-The above executes an internal framework that harmonizes the timestamps of SM2
-to a 15min-grid (see data below). Further information about this routine can be
-found in the [function definition](docs/FunctionIndex.md).
-
-	Date,SM1,SM1_flags,SM2,SM2_flags
-	2016-04-01 00:00:00,,,29.3157,OK
-	2016-04-01 00:05:48,32.685,OK,,
-	2016-04-01 00:15:00,,,29.3157,OK
-	2016-04-01 00:20:42,32.7428,OK,,
-	...
-
-Also, all values where SM2 is below 30 are flagged via the custom function (see
-plot below). You can learn more about the syntax of these custom functions
-[here](docs/GenericFunctions.md).
-
-![Example custom function](images/example_plot_4.png "Example custom function")
 
 #### Save outputs to file
 If you want the final results to be saved to a csv-file, you can do so by the
@@ -216,3 +147,73 @@ flags that were assigned by SaQC for each of the variables:
 	2016-04-01 00:50:32,32.736999999999995,OK,29.3679,OK
 	...
 
+
+### Configure SaQC
+
+#### Change test parameters
+Now you can start to change the settings in the config-file and investigate the
+effect that has on how many datapoints are flagged as "BAD". When using your
+own data, this is your way to configure the tests according to your needs. For
+example, you could modify your `myconfig.csv` and change the parameters of the
+range-test:
+	
+	varname;test;plot
+	SM2;flagRange(min=-20, max=60);False
+	SM2;spikes_flagMad(window="30d", z=3.5);True
+Rerunning SaQC as above produces the following plot:
+
+![Changing the config](../ressources/images/example_plot_2.png "Changing the config")
+
+You can see that the changes that we made to the parameters of the range test
+take effect so that only the values > 60 are flagged by it (black points). This,
+in turn, leaves more erroneous data that is then identified by the proceeding
+spike-test (red points).
+
+### Explore the functionality
+#### Process multiple variables
+You can also define multiple tests for multiple variables in your data. These
+are then executed sequentially and can be plotted seperately. E.g. you could do
+something like this:
+
+	varname;test;plot
+	SM1;flagRange(min=10, max=60);False
+	SM2;flagRange(min=10, max=60);False
+	SM1;spikes_flagMad(window="15d", z=3.5);True
+	SM2;spikes_flagMad(window="30d", z=3.5);True
+
+which gives you separate plots for each line where the plotting option is set to
+`True` as well as one summary "data plot" that depicts the joint flags from all
+tests:
+
+SM1         |  SM2
+:-------------------------:|:-------------------------:
+![](../ressources/images/example_plot_31.png)  |  ![](../ressources/images/example_plot_32.png)
+
+![](../ressources/images/example_plot_33.png)
+
+#### Data harmonization and custom functions
+
+SaQC includes functionality to harmonize the timestamps of one or more data
+series. Also, you can write your own tests using a python-based
+[extension language](docs/GenericFunctions.md). This would look like this:
+
+	varname;test;plot
+	SM2;harm_shift2Grid(freq="15Min");False
+	SM2;flagGeneric(func=(SM2 < 30));True
+
+The above executes an internal framework that harmonizes the timestamps of SM2
+to a 15min-grid (see data below). Further information about this routine can be
+found in the [function definition](docs/FunctionIndex.md).
+
+	Date,SM1,SM1_flags,SM2,SM2_flags
+	2016-04-01 00:00:00,,,29.3157,OK
+	2016-04-01 00:05:48,32.685,OK,,
+	2016-04-01 00:15:00,,,29.3157,OK
+	2016-04-01 00:20:42,32.7428,OK,,
+	...
+
+Also, all values where SM2 is below 30 are flagged via the custom function (see
+plot below). You can learn more about the syntax of these custom functions
+[here](docs/GenericFunctions.md).
+
+![Example custom function](../ressources/images/example_plot_4.png "Example custom function")

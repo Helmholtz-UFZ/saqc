@@ -31,8 +31,11 @@ FLAGGERS = {
     "--flagger", default="category", type=click.Choice(FLAGGERS.keys()), help="the flagging scheme to use",
 )
 @click.option("--nodata", default=np.nan, help="nodata value")
+@click.option(
+    "--log-level", default="INFO", type=click.Choice(["DEBUG", "INFO", "WARNING"]), help="set output verbosity"
+)
 @click.option("--fail/--no-fail", default=True, help="whether to stop the program run on errors")
-def main(config, data, flagger, outfile, nodata, fail):
+def main(config, data, flagger, outfile, nodata, log_level, fail):
 
     data = pd.read_csv(data, index_col=0, parse_dates=True,)
     data = dios.DictOfSeries(data)
@@ -42,6 +45,7 @@ def main(config, data, flagger, outfile, nodata, fail):
         flagger=FLAGGERS[flagger],
         data=data,
         nodata=nodata,
+        log_level=log_level,
         error_policy="raise" if fail else "warn",
     )
 

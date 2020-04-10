@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
-
+import saqc
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
     name="saqc",
-    version="1.2.0",
+    version=saqc.__version__,
     author="Bert Palm, David Schaefer, Peter Luenenschloss, Lennard Schmidt",
     author_email="david.schaefer@ufz.de",
     description="Data quality checking and processing tool/framework",
@@ -24,6 +24,7 @@ setup(
         "click",
         "pyarrow",
         "python-intervals",
+        "astor",
     ],
     license="GPLv3",
     entry_points={"console_scripts": ["saqc=saqc.__main__:main"],},

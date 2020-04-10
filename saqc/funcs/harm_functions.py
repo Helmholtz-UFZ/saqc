@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pdb
 import pandas as pd
 import numpy as np
 import logging
@@ -10,6 +9,9 @@ import dios
 from saqc.funcs.functions import flagMissing
 from saqc.funcs.register import register
 from saqc.lib.tools import toSequence, getFuncFromInput
+
+
+logger = logging.getLogger("SaQC")
 
 
 class Heap:
@@ -115,7 +117,7 @@ def harmWrapper(heap={}):
 
         # Check if there is backtracking information available for actual harmonization resolving
         if field not in heap:
-            logging.warning(
+            logger.warning(
                 'No backtracking data for resolving harmonization of "{}". Reverse projection of flags gets'
                 " skipped!".format(field)
             )
@@ -162,9 +164,9 @@ def harmWrapper(heap={}):
     return harmonize, deharmonize
 
 
-harmonize, deharmonize = harmWrapper()
-register("harmonize")(harmonize)
-register("deharmonize")(deharmonize)
+harm_harmonize, harm_deharmonize = harmWrapper()
+register()(harm_harmonize)
+register()(harm_deharmonize)
 
 
 # (de-)harmonize helper
@@ -432,7 +434,7 @@ def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=Fa
                 try:
                     return x.interpolate(method=wrap_method, order=int(wrap_order))
                 except (NotImplementedError, ValueError):
-                    logging.warning(
+                    logger.warning(
                         "Interpolation with method {} is not supported at order {}. "
                         "Interpolation will be performed with order {}".format(
                             method, str(wrap_order), str(wrap_order - 1)
@@ -756,18 +758,18 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
         return flagMissing(data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan, **kwargs)
 
 
-@register("harmonize_shift2Grid")
-def shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, **kwargs):
-    return harmonize(
+@register()
+def harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, **kwargs):
+    return harm_harmonize(
         data, field, flagger, freq, inter_method=method, reshape_method=method, drop_flags=drop_flags, **kwargs,
     )
 
 
-@register("harmonize_aggregate2Grid")
-def aggregate2Grid(
+@register()
+def harm_aggregate2Grid(
     data, field, flagger, freq, value_func, flag_func="max", method="nagg", drop_flags=None, **kwargs,
 ):
-    return harmonize(
+    return harm_harmonize(
         data,
         field,
         flagger,
@@ -781,9 +783,9 @@ def aggregate2Grid(
     )
 
 
-@register("harmonize_linear2Grid")
-def linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flags=None, **kwargs):
-    return harmonize(
+@register()
+def harm_linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flags=None, **kwargs):
+    return harm_harmonize(
         data,
         field,
         flagger,
@@ -796,11 +798,11 @@ def linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flag
     )
 
 
-@register("harmonize_interpolate2Grid")
-def interpolate2Grid(
+@register()
+def harm_interpolate2Grid(
     data, field, flagger, freq, method, order=1, flag_method="nagg", flag_func="max", drop_flags=None, **kwargs,
 ):
-    return harmonize(
+    return harm_harmonize(
         data,
         field,
         flagger,
@@ -814,8 +816,8 @@ def interpolate2Grid(
     )
 
 
-@register("harmonize_downsample")
-def downsample(
+@register()
+def harm_downsample(
     data,
     field,
     flagger,
@@ -886,7 +888,7 @@ def downsample(
                 def aggregator(x):
                     return agg_func(x.resample(sample_freq).apply(sample_func))
 
-    return harmonize(
+    return harm_harmonize(
         data,
         field,
         flagger,
