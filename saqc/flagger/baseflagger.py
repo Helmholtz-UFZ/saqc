@@ -135,7 +135,7 @@ class BaseFlagger(ABC):
         If `force=False` (default) only flags with a lower priority are overwritten,
         otherwise, if `force=True`, flags are overwritten unconditionally.
         """
-        assert "iloc" not in kwargs, "deprecated keyword, iloc"
+        assert "iloc" not in kwargs, "deprecated keyword, `iloc=slice(i:j)`. Use eg. `loc=srs.index[i:j]` instead."
 
         assertScalar("field", field, optional=False)
         flag = self.BAD if flag is None else flag

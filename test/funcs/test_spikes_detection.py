@@ -98,6 +98,7 @@ def test_flagSpikesLimitRaise(dat, flagger):
     assert not flagger_result.isFlagged(field)[characteristics["drop"]].any()
 
 
+# see test/functs/conftest.py for the 'course_N'
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
 def test_flagSpikesOddWater(dat, flagger):
@@ -105,12 +106,16 @@ def test_flagSpikesOddWater(dat, flagger):
     data2, characteristics = dat(periods=1000, initial_level=20, final_level=1, out_val=30)
     field = "dummy"
     fields = ["data1", "data2"]
-    data = pd.DataFrame({"data1": data1.squeeze(), "data2": data2.squeeze()}, index=data1.index)
+    s1, s2 = data1.squeeze(), data2.squeeze()
+    s1 = pd.Series(data=s1.values, index=s1.index)
+    s2 = pd.Series(data=s2.values, index=s1.index)
+    data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flagger = flagger.initFlags(data)
     _, flagger_result = spikes_flagOddWater(
         data, field, flagger, fields=fields, bin_frac=50, trafo="np.log", iter_start=0.95, n_neighbors=10
     )
-    isflagged = flagger_result.isFlagged(field)
-    assert isflagged[characteristics['raise']].all()
-    assert not isflagged[characteristics['return']].any()
-    assert not isflagged[characteristics['drop']].any()
+    for field in fields:
+        isflagged = flagger_result.isFlagged(field)
+        assert isflagged[characteristics['raise']].all()
+        assert not isflagged[characteristics['return']].any()
+        assert not isflagged[characteristics['drop']].any()

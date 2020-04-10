@@ -183,7 +183,7 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
             assert (~flagger.isFlagged(loc=d.index[7:]).squeeze()).all()
         if co_flagging is False:
             assert (
-                flagger.isFlagged().squeeze() == [False, False, False, False, True, False, True, False, False]
+                flagger.isFlagged().squeeze() == [False, False, False, False, True, False, False, False, False]
             ).all()
     if reshaper == "bshift":
         if co_flagging is True:
@@ -192,7 +192,7 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
             assert (~flagger.isFlagged(loc=d.index[7:]).squeeze()).all()
         if co_flagging is False:
             assert (
-                flagger.isFlagged().squeeze() == [False, False, False, False, False, True, True, False, False]
+                flagger.isFlagged().squeeze() == [False, False, False, False, False, True, False, False, False]
             ).all()
     if reshaper == "fshift":
         if co_flagging is True:
@@ -201,7 +201,7 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
             assert (~flagger.isFlagged(loc=d.index[5:]).squeeze()).all()
         if co_flagging is False:
             assert (
-                flagger.isFlagged().squeeze() == [False, False, False, False, True, False, True, False, False]
+                flagger.isFlagged().squeeze() == [False, False, False, False, True, False, False, False, False]
             ).all()
 
     flags = flagger.getFlags()
@@ -329,8 +329,8 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
 @pytest.mark.parametrize("method", INTERPOLATIONS2)
 def test_gridInterpolation(data, method):
     freq = "15min"
-    data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
     data = data.squeeze()
+    data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
     # we are just testing if the interpolation gets passed to the series without causing an error:
     _interpolateGrid(data, freq, method, order=1, agg_method="sum", downcast_interpolation=True)
     if method == "polynomial":
@@ -345,18 +345,18 @@ def test_outsortCrap(data, flagger):
 
     field = data.columns[0]
     flagger = flagger.initFlags(data)
-    flagger = flagger.setFlags(field, iloc=slice(5, 7))
+    flagger = flagger.setFlags(field, loc=data[field].index[5:7])
 
-    drop_index = data.index[5:7]
-    d, _ = _outsortCrap(data, field, flagger, drop_flags=flagger.BAD)
+    drop_index = data[field].index[5:7]
+    d, _ = _outsortCrap(data[field], field, flagger, drop_flags=flagger.BAD)
     assert drop_index.difference(d.index).equals(drop_index)
 
-    flagger = flagger.setFlags(field, iloc=slice(0, 1), flag=flagger.GOOD)
+    flagger = flagger.setFlags(field, loc=data[field].index[0:1], flag=flagger.GOOD)
     drop_index = drop_index.insert(-1, data.index[0])
-    d, _ = _outsortCrap(data, field, flagger, drop_flags=[flagger.BAD, flagger.GOOD],)
+    d, _ = _outsortCrap(data[field], field, flagger, drop_flags=[flagger.BAD, flagger.GOOD],)
     assert drop_index.sort_values().difference(d.index).equals(drop_index.sort_values())
 
-    f_drop, _ = _outsortCrap(data, field, flagger, drop_flags=[flagger.BAD, flagger.GOOD], return_drops=True,)
+    f_drop, _ = _outsortCrap(data[field], field, flagger, drop_flags=[flagger.BAD, flagger.GOOD], return_drops=True,)
     assert f_drop.index.sort_values().equals(drop_index.sort_values())
 
 

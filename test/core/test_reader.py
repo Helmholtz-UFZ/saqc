@@ -119,7 +119,7 @@ def test_configMultipleTests(data):
         data, flagger_expected = func(data, var, flagger_expected, **kwargs)
     _, flagger_result = run(writeIO(config), SimpleFlagger(), data)
 
-    assert np.all(flagger_result.getFlags() == flagger_expected.getFlags())
+    assert (flagger_result.getFlags() == flagger_expected.getFlags()).all(None)
 
 
 def test_configFile(data):
