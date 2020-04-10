@@ -107,17 +107,15 @@ def test_outsortCrap(data, flagger):
 
     drop_index = s.index[5:7]
     flagger = flagger.setFlags(field, loc=drop_index)
-    res, _ = _outsortCrap(s, field, flagger, drop_flags=flagger.BAD)
+    res, *_ = _outsortCrap(s, field, flagger, drop_flags=flagger.BAD)
     assert drop_index.difference(res.index).equals(drop_index)
 
     flagger = flagger.setFlags(field, loc=s.iloc[0:1], flag=flagger.GOOD)
     drop_index = drop_index.insert(-1, s.index[0])
     to_drop = [flagger.BAD, flagger.GOOD]
-    res, _ = _outsortCrap(s, field, flagger, drop_flags=to_drop)
+    res, *_ = _outsortCrap(s, field, flagger, drop_flags=to_drop)
     assert drop_index.sort_values().difference(res.index).equals(drop_index.sort_values())
 
-    res, _ = _outsortCrap(s, field, flagger, drop_flags=to_drop, return_drops=True)
-    assert res.index.sort_values().equals(drop_index.sort_values())
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -149,7 +147,7 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
         if co_flagging is False:
             assert (
                     flagger.isFlagged().squeeze()
-                    == [False, False, False, False, True, False, True, False, False]
+                    == [False, False, False, False, True, False, False, False, False]
             ).all()
     if reshaper == "bshift":
         if co_flagging is True:
@@ -159,18 +157,17 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
         if co_flagging is False:
             assert (
                     flagger.isFlagged().squeeze()
-                    == [False, False, False, False, False, True, True, False, False]
+                    == [False, False, False, False, False, True, False, False, False]
             ).all()
     if reshaper == "fshift":
         if co_flagging is True:
             assert flagger.isFlagged(loc=d.index[3:5]).squeeze().all()
-            assert flagger.isFlagged(loc=d.index[6:7]).squeeze().all()
             assert (~flagger.isFlagged(loc=d.index[0:3]).squeeze()).all()
-            assert (~flagger.isFlagged(loc=d.index[7:]).squeeze()).all()
+            assert (~flagger.isFlagged(loc=d.index[5:]).squeeze()).all()
         if co_flagging is False:
             assert (
                     flagger.isFlagged().squeeze()
-                    == [False, False, False, False, True, False, True, False, False]
+                    == [False, False, False, False, True, False, False, False, False]
             ).all()
 
     flags = flagger.getFlags()
@@ -315,6 +312,8 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
+
+
 def test_wrapper(data, flagger):
     # we are only testing, whether the wrappers do pass processing:
     field = data.columns[0]
@@ -326,3 +325,9 @@ def test_wrapper(data, flagger):
                    flag_func="max", method='nagg', drop_flags=None)
     shift2Grid(data, field, flagger, freq, method='nshift', drop_flags=None)
     interpolate2Grid(data, field, flagger, freq, method="spline")
+
+if __name__ == "__main__":
+    flagger=TESTFLAGGER[2]
+    dat = data()
+    field, *_ = dat.columns
+    test_harmSingleVarIntermediateFlagging(dat, flagger, 'fshift', True)
