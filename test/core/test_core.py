@@ -9,7 +9,7 @@ import dios.dios as dios
 from saqc.funcs import register, flagRange
 from saqc.core.core import run
 from saqc.core.config import Fields as F
-from saqc.lib.plotting import _plot
+import saqc.lib.plotting as splot
 from test.common import initData, initMetaDict, TESTFLAGGER
 
 
@@ -198,8 +198,8 @@ def test_plotting(data, flagger):
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
     _, flagger_range = flagRange(data, field, flagger, min=10, max=90, flag=flagger.BAD)
-    _, flagger_range = flagRange(
-        data, field, flagger_range, min=40, max=60, flag=flagger.GOOD
-    )
-    mask = flagger.getFlags(field) != flagger_range.getFlags(field)
-    _plot(data, mask, field, flagger, interactive_backend=False)
+    data_new, flagger_range = flagRange(data, field, flagger_range, min=40, max=60, flag=flagger.GOOD)
+    splot._interactive = False
+    splot._plotSingleVariable(data, data_new, flagger, flagger_range, sources=[], targets=[data_new.columns[0]])
+    splot._plotMultipleVariables(data, data_new, flagger, flagger_range, targets=data_new.columns)
+    splot._interactive = True

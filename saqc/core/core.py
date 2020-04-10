@@ -10,7 +10,6 @@ from saqc.core.reader import readConfig, checkConfig
 from saqc.core.config import Fields
 from saqc.core.evaluator import evalExpression
 from saqc.lib.plotting import plotHook, plotAllHook
-from saqc.lib.tools import combineDataFrames
 from saqc.lib.types import DiosLikeT
 from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 
@@ -39,7 +38,9 @@ def _convertInput(data, flags):
 
 
 def _checkAndConvertInput(data, flags, flagger):
-    if not isinstance(data, DiosLikeT):
+    dios_like = (dios.DictOfSeries, pd.DataFrame)
+
+    if not isinstance(data, dios_like):
         raise TypeError("data must be of type dios.DictOfSeries or pd.DataFrame")
 
     if isinstance(data, pd.DataFrame):
@@ -55,7 +56,7 @@ def _checkAndConvertInput(data, flags, flagger):
 
     if flags is not None:
 
-        if not isinstance(flags, DiosLikeT):
+        if not isinstance(flags, dios_like):
             raise TypeError("flags must be of type dios.DictOfSeries or pd.DataFrame")
 
         if isinstance(flags, pd.DataFrame):
