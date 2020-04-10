@@ -66,7 +66,7 @@ def flagML(data, field, flagger, references, window_values: int, window_flags: i
         ref = _refCalc(reference=df[i], window_values=window_values).to_df()
         df = pd.concat([df, ref], axis=1)
 
-    # TODO:
+    # TODO: use dios.merge() when available...
     # replace the above version with its DictOfSeries -> DataFrame
     # conversions as soon as merging/joining is available in dios
     # for i in [field] + references:

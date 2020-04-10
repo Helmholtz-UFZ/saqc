@@ -142,9 +142,6 @@ def test_flagIsolated(data, flagger):
 
     assert flagger_result.isFlagged(field)[slice(3, 6, 2)].all()
 
-    # flagger = flagger.setFlags(
-    #     field, iloc=slice(3, 4), flag=flagger.UNFLAGGED, force=True
-    # )
     data, flagger_result = flagIsolated(
         data,
         field,

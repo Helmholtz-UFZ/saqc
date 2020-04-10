@@ -45,11 +45,6 @@ class DmpFlagger(CategoricalFlagger):
         self._causes = None
         self._comments = None
 
-    # defined in BaseFlagger
-    # @property
-    # def flags(self):
-    #     return self._flags
-
     @property
     def causes(self):
         return self._causes
@@ -78,9 +73,6 @@ class DmpFlagger(CategoricalFlagger):
         newflagger._causes = self._causes.aloc[flags, ...]
         newflagger._comments = self._comments.aloc[flags, ...]
         return newflagger
-
-    def getFlags(self, field=None, loc=None):
-        return super().getFlags(field=field, loc=loc)
 
     def setFlags(self, field, loc=None, flag=None, force=False, comment="", cause="", **kwargs):
         assert "iloc" not in kwargs, "deprecated keyword, iloc"

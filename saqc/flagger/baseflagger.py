@@ -27,7 +27,6 @@ LocT = Any
 FlagT = Any
 diosT = dios.DictOfSeries
 BaseFlaggerT = TypeVar("BaseFlaggerT")
-# fixme: does DictOfSeries is pd-like ?
 PandasT = Union[pd.Series, diosT]
 
 

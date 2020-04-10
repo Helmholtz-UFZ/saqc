@@ -7,7 +7,7 @@ from typing import Sequence, Union, Any, Iterator
 import numpy as np
 import numba as nb
 import pandas as pd
-import dios.dios as dios
+import dios
 
 # from saqc.flagger import BaseFlagger
 from saqc.lib.types import T, PandasLike
@@ -79,14 +79,10 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
       relying on the size of the window (sum, mean, median)
     """
 
-    # fixme slidingWindowIndices
+    if not isinstance(dates, pd.DatetimeIndex):
+        raise TypeError("Must pass pd.DatetimeIndex")
 
     # lets work on numpy data structures for performance reasons
-    if isinstance(dates, (pd.DataFrame, pd.Series)):
-        dates = dates.index
-    elif isinstance(dates, dios.DictOfSeries):
-        raise NotImplementedError("This currently is not implemented for DictOfSeries")
-
     dates = np.array(dates, dtype=np.int64)
 
     if np.any(np.diff(dates) <= 0):
@@ -119,29 +115,6 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
 
 def inferFrequency(data: pd.Series) -> pd.DateOffset:
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
-
-
-def combineDataFrames(left: dios.DictOfSeries, right: dios.DictOfSeries,
-                      fill_value: float = np.nan) -> dios.DictOfSeries:
-    """
-    Combine the given DataFrames 'left' and 'right' such that, the
-    output is union of the indices and the columns of both. In case
-    of duplicated values, 'left' is overwritten by 'right'
-    """
-
-    # fixme: use df.align()
-    #  l,r = l.align(r, join='outer', ...)
-
-    combined = left.reindex(
-        index=left.index.union(right.index),
-        columns=left.columns.union(right.columns, sort=False),
-        fill_value=fill_value,
-    )
-
-    for key, values in right.iteritems():
-        combined.loc[right.index, key] = values
-
-    return combined
 
 
 def retrieveTrustworthyOriginal(data: dios.DictOfSeries, field: str, flagger=None,
@@ -302,43 +275,9 @@ def assertDictOfSeries(df: Any, argname: str = "arg") -> None:
         raise TypeError(f"{argname} must be of type dios.DictOfSeries, {type(df)} was given")
 
 
-def assertDataFrame(df: Any, argname: str = "arg", allow_multiindex: bool = True) -> None:
-    if not isinstance(df, pd.DataFrame):
-        raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
-    if not allow_multiindex:
-        assertSingleColumns(df, argname)
-    if not df.columns.is_unique:
-        raise TypeError(f"{argname} must have unique columns")
-
-
 def assertSeries(srs: Any, argname: str = "arg") -> None:
     if not isinstance(srs, pd.Series):
         raise TypeError(f"{argname} must be of type pd.Series, {type(srs)} was given")
-
-
-def assertPandas(pdlike: PandasLike, argname: str = "arg") -> None:
-    if not isinstance(pdlike, pd.Series) and not isinstance(pdlike, dios.DictOfSeries):
-        raise TypeError(f"{argname} must be of type dios.DictOfSeries or pd.Series, {type(pdlike)} was given")
-
-
-def assertMultiColumns(dfmi: dios.DictOfSeries, argname: str = "") -> None:
-    # fixme: multicolumns?
-    raise NotImplementedError
-
-    assertDictOfSeries(dfmi, argname, allow_multiindex=True)
-    if not isinstance(dfmi.columns, pd.MultiIndex):
-        raise TypeError(
-            f"given dios.DictOfSeries ({argname}) need to have a muliindex on columns, "
-            f"instead it has a {type(dfmi.columns)}"
-        )
-
-
-def assertSingleColumns(df: PandasLike, argname: str = "") -> None:
-    # fixme: multicolumns?
-    raise NotImplementedError
-
-    if isinstance(df, dios.DictOfSeries) and isinstance(df.columns, pd.MultiIndex):
-        raise TypeError(f"given dios.DictOfSeries {argname} is not allowed to have a muliindex on columns")
 
 
 def getFuncFromInput(func):
