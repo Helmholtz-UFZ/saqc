@@ -44,9 +44,11 @@ def _stray(val_frame, partition_freq=None, scoring_method='kNNMaxGap', n_neighbo
             ghat[i] = sum((tail_indices / (tail_size - 1)) * gaps[i - tail_indices + 1])
 
         log_alpha = np.log(1 / alpha)
+        log_inv_alpha = np.log(1 / (1-alpha))
         for iter_index in range(i_start - 1, sample_size):
             if gaps[iter_index] > log_alpha * ghat[iter_index]:
                 break
+
 
         to_flag = np.append(to_flag, list(partition.index[sorted_i[iter_index:]]))
 
