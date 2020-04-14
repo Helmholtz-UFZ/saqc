@@ -3,13 +3,12 @@
 
 import pytest
 import numpy as np
-import pandas as pd
 
-from test.common import initData, TESTFLAGGER, TESTNODATA
 from saqc.core.core import run
 from saqc.core.config import Fields as F
 
-from test.common import initData, TESTFLAGGER, TESTNODATA, initMetaDict, initMetaString
+from test.common import TESTFLAGGER, TESTNODATA, initData, writeIO
+
 
 from saqc.core.evaluator import (
     DslTransformer,
@@ -221,10 +220,6 @@ def test_isflaggedArgument(data, flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_variableAssignments(data, flagger):
     var1, var2, *_ = data.columns
-
-    from saqc.core.core import run
-    from saqc.core.config import Fields as F
-    from test.common import writeIO
 
     config = f"""
     {F.VARNAME}  ; {F.TESTS}
