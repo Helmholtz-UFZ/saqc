@@ -98,5 +98,5 @@ def evalExpression(expr, data, field, flagger, nodata=np.nan):
     local_env, code = compileExpression(expr, data_in, field, flagger, nodata)
     data_result, flagger_result = evalCode(code, FUNC_MAP, local_env)
     # reinject the original values, as we don't want to loose them
-    data_result[mask] = data[mask]
+    data_result.aloc[mask] = data[mask]
     return data_result, flagger_result
