@@ -348,16 +348,13 @@ def test_outsortCrap(data, flagger):
     flagger = flagger.setFlags(field, loc=data[field].index[5:7])
 
     drop_index = data[field].index[5:7]
-    d, _ = _outsortCrap(data[field], field, flagger, drop_flags=flagger.BAD)
+    d, *_ = _outsortCrap(data[field], field, flagger, drop_flags=flagger.BAD)
     assert drop_index.difference(d.index).equals(drop_index)
 
     flagger = flagger.setFlags(field, loc=data[field].index[0:1], flag=flagger.GOOD)
-    drop_index = drop_index.insert(-1, data.index[0])
-    d, _ = _outsortCrap(data[field], field, flagger, drop_flags=[flagger.BAD, flagger.GOOD],)
+    drop_index = drop_index.insert(-1, data[field].index[0])
+    d, *_ = _outsortCrap(data[field], field, flagger, drop_flags=[flagger.BAD, flagger.GOOD],)
     assert drop_index.sort_values().difference(d.index).equals(drop_index.sort_values())
-
-    f_drop, _ = _outsortCrap(data[field], field, flagger, drop_flags=[flagger.BAD, flagger.GOOD], return_drops=True,)
-    assert f_drop.index.sort_values().equals(drop_index.sort_values())
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

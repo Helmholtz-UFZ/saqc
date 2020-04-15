@@ -171,7 +171,7 @@ register()(harm_deharmonize)
 
 # (de-)harmonize helper
 def _outsortCrap(
-    data, field, flagger, drop_flags=None, return_drops=False,
+    data, field, flagger, drop_flags=None
 ):
 
     """Harmonization gets the more easy, the more data points we can exclude from crowded sampling intervals.
@@ -181,16 +181,11 @@ def _outsortCrap(
 
     :param data:            pd.Series. ['data'].
     :param flagger:         saqc.flagger.
-    :param drop_suspicious: Boolean. Default = True. If True, only values that are flagged GOOD or UNFLAGGED get
-                            processed.
-    :param drop_bad:        Boolean. Default = True. If True, BAD-flagged values get dropped from data.
     :param drop_list:       List or None. Default = None. List of flags that shall be dropped from data. If None is
                             passed (default), list based data dropping is omitted.
     :param return_drops:    Boolean. Default = False. If True, return the drops only. If False, return the data and
                             flags without drops.
-    :return:                If return_drops=False. (default) Returns data, flags tuple with values-to-be-dropped
-                            dropped.
-                            If return_drops=True. Returns the dropped flags.
+
     """
     assert isinstance(data, pd.Series), "data must be pd.Series"
 
