@@ -6,11 +6,12 @@ import logging
 import pytest
 import numpy as np
 import pandas as pd
+import dios.dios as dios
 
 from saqc.funcs import register, flagRange
 from saqc.core.core import run
 from saqc.core.config import Fields as F
-from saqc.lib.plotting import _plot
+import saqc.lib.plotting as splot
 from test.common import initData, initMetaDict, TESTFLAGGER
 
 
@@ -162,13 +163,8 @@ def test_assignVariable(flagger):
     pdata, pflagger = run(metafobj, flagger, data)
     pflags = pflagger.getFlags()
 
-    if isinstance(pflags.columns, pd.MultiIndex):
-        cols = pflags.columns.get_level_values(0).drop_duplicates()
-        assert (cols == [var1, var2]).all()
-        assert pflagger.isFlagged(var2).any()
-    else:
-        assert (pflags.columns == [var1, var2]).all()
-        assert pflagger.isFlagged(var2).any()
+    assert (pflags.columns == [var1, var2]).all()
+    assert pflagger.isFlagged(var2).empty
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -203,6 +199,8 @@ def test_plotting(data, flagger):
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
     _, flagger_range = flagRange(data, field, flagger, min=10, max=90, flag=flagger.BAD)
-    _, flagger_range = flagRange(data, field, flagger_range, min=40, max=60, flag=flagger.GOOD)
-    mask = flagger.getFlags(field) != flagger_range.getFlags(field)
-    _plot(data, mask, field, flagger, interactive_backend=False)
+    data_new, flagger_range = flagRange(data, field, flagger_range, min=40, max=60, flag=flagger.GOOD)
+    splot._interactive = False
+    splot._plotSingleVariable(data, data_new, flagger, flagger_range, sources=[], targets=[data_new.columns[0]])
+    splot._plotMultipleVariables(data, data_new, flagger, flagger_range, targets=data_new.columns)
+    splot._interactive = True

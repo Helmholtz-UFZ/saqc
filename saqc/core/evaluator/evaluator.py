@@ -10,6 +10,7 @@ from typing import Any, Dict
 import astor
 import numpy as np
 import pandas as pd
+import dios.dios as dios
 
 from saqc.flagger.baseflagger import BaseFlagger
 from saqc.core.config import Params
@@ -27,7 +28,7 @@ def _dslIsFlagged(flagger, field, flag=None, comparator=None):
     return flagger.isFlagged(field, flag=flag, comparator=comparator)
 
 
-def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
+def initLocalEnv(data: dios.DictOfSeries, field: str, flagger: BaseFlagger, nodata: float) -> Dict[str, Any]:
 
     return {
         # general
@@ -46,7 +47,7 @@ def initLocalEnv(data: pd.DataFrame, field: str, flagger: BaseFlagger, nodata: f
         "BAD": flagger.BAD,
         "UNFLAGGED": flagger.UNFLAGGED,
         # special functions
-        "ismissing": lambda data: ((data == nodata) | pd.isnull(data)),
+        "ismissing": lambda data: (data == nodata) | data.isna(),
         "isflagged": partial(_dslIsFlagged, flagger),
         # math
         "abs": np.abs,
@@ -97,5 +98,5 @@ def evalExpression(expr, data, field, flagger, nodata=np.nan):
     local_env, code = compileExpression(expr, data_in, field, flagger, nodata)
     data_result, flagger_result = evalCode(code, FUNC_MAP, local_env)
     # reinject the original values, as we don't want to loose them
-    data_result[mask] = data[mask]
+    data_result.aloc[mask] = data[mask]
     return data_result, flagger_result

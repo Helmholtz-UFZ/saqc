@@ -4,6 +4,7 @@
 import pytest
 import numpy as np
 import pandas as pd
+import dios
 
 from saqc.funcs.spikes_detection import (
     spikes_flagSpektrumBased,
@@ -20,11 +21,11 @@ from test.common import TESTFLAGGER
 @pytest.fixture(scope="module")
 def spiky_data():
     index = pd.date_range(start="2011-01-01", end="2011-01-05", freq="5min")
-    spiky_series = pd.DataFrame(dict(spiky_data=np.linspace(1, 2, index.size)), index=index)
-    spiky_series.iloc[100] = 100
-    spiky_series.iloc[1000] = -100
+    s = pd.Series(np.linspace(1, 2, index.size), index=index, name="spiky_data")
+    s.iloc[100] = 100
+    s.iloc[1000] = -100
     flag_assertion = [100, 1000]
-    return spiky_series, flag_assertion
+    return dios.DictOfSeries(s), flag_assertion
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -52,7 +53,6 @@ def test_flagMad(spiky_data, flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("method", ["modZ", "zscore"])
 def test_slidingOutlier(spiky_data, flagger, method):
-
     # test for numeric input
     data = spiky_data[0]
     field, *_ = data.columns
@@ -80,16 +80,12 @@ def test_flagSpikesBasic(spiky_data, flagger):
     assert test_sum == len(spiky_data[1])
 
 
+# see test/functs/conftest.py for the 'course_N'
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-@pytest.mark.parametrize(
-    "dat",
-    [
-        pytest.lazy_fixture("course_1"),
-        pytest.lazy_fixture("course_2"),
-        pytest.lazy_fixture("course_3"),
-        pytest.lazy_fixture("course_4"),
-    ],
-)
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1"),
+                                 pytest.lazy_fixture("course_2"),
+                                 pytest.lazy_fixture("course_3"),
+                                 pytest.lazy_fixture("course_4"), ], )
 def test_flagSpikesLimitRaise(dat, flagger):
     data, characteristics = dat()
     field, *_ = data.columns
@@ -102,6 +98,7 @@ def test_flagSpikesLimitRaise(dat, flagger):
     assert not flagger_result.isFlagged(field)[characteristics["drop"]].any()
 
 
+# see test/functs/conftest.py for the 'course_N'
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
 def test_flagSpikesOddWater(dat, flagger):
@@ -109,9 +106,16 @@ def test_flagSpikesOddWater(dat, flagger):
     data2, characteristics = dat(periods=1000, initial_level=20, final_level=1, out_val=30)
     field = "dummy"
     fields = ["data1", "data2"]
-    data = pd.DataFrame({"data1": data1.squeeze(), "data2": data2.squeeze()}, index=data1.index)
+    s1, s2 = data1.squeeze(), data2.squeeze()
+    s1 = pd.Series(data=s1.values, index=s1.index)
+    s2 = pd.Series(data=s2.values, index=s1.index)
+    data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flagger = flagger.initFlags(data)
     _, flagger_result = spikes_flagOddWater(
         data, field, flagger, fields=fields, bin_frac=50, trafo="np.log", iter_start=0.95, n_neighbors=10
     )
-    assert flagger_result.isFlagged(fields[0])[characteristics["raise"]].all()
+    for field in fields:
+        isflagged = flagger_result.isFlagged(field)
+        assert isflagged[characteristics['raise']].all()
+        assert not isflagged[characteristics['return']].any()
+        assert not isflagged[characteristics['drop']].any()

@@ -6,6 +6,7 @@ import re
 
 import numpy as np
 import pandas as pd
+import dios.dios as dios
 
 from saqc.core.core import readConfig
 from saqc.flagger import (
@@ -23,17 +24,22 @@ TESTFLAGGER = (
     CategoricalFlagger(["NIL", "GOOD", "BAD"]),
     SimpleFlagger(),
     DmpFlagger(),
-    ContinuousFlagger(),
+    # ContinuousFlagger(),
 )
 
 
-def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq="1h"):
-    dates = pd.date_range(start=start_date, end=end_date, freq=freq)
-    data = {}
+def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq=None, rows=None):
+    if rows is None:
+        freq = freq or '1h'
+
+    di = dios.DictOfSeries(itype=dios.DtItype)
+    dates = pd.date_range(start=start_date, end=end_date, freq=freq, periods=rows)
     dummy = np.arange(len(dates))
+
     for col in range(1, cols + 1):
-        data[f"var{col}"] = dummy * (col)
-    return pd.DataFrame(data, index=dates)
+        di[f"var{col}"] = pd.Series(data=dummy * col, index=dates)
+
+    return di
 
 
 def initMetaString(metastring, data):

@@ -4,6 +4,7 @@
 import pandas as pd
 import numpy as np
 import logging
+import dios
 
 from saqc.funcs.functions import flagMissing
 from saqc.funcs.register import register
@@ -56,22 +57,14 @@ def harmWrapper(heap={}):
         data_missing_value=np.nan,
         **kwargs,
     ):
-
+        data = data.copy()
         # get funcs from strings:
         inter_agg = getFuncFromInput(inter_agg)
         reshape_agg = getFuncFromInput(reshape_agg)
 
-        # for some tingle tangle reasons, resolving the harmonization will not be sound, if not all missing/np.nan
-        # values get flagged initially:
-        data, flagger = flagMissing(data, field, flagger, nodata=data_missing_value, **kwargs)
-        # and dropped for harmonization:
-        if drop_flags is not None:
-            if flagger.BAD not in drop_flags:
-                drop_flags.append(flagger.BAD)
-
-        # before sending the current flags and data frame to the future (for backtracking reasons), we clear it
-        # from merge-nans that just resulted from harmonization of other variables!
-        dat_col, flagger_merged = _fromMerged(data, flagger, field)
+        # get data of variable
+        flagger_merged = flagger.getFlagger(field=field)
+        dat_col = data[field]
 
         # now we send the flags frame in its current shape to the future:
         heap[field] = {
@@ -82,12 +75,8 @@ def harmWrapper(heap={}):
             Heap.DROP: drop_flags,
         }
 
-        # furthermore we need to memorize the initial timestamp to ensure output format will equal input format.
-        if Heap.INDEX not in heap.keys():
-            heap.update({Heap.INDEX: dat_col.index})
-
         # now we can manipulate it without loosing information gathered before harmonization
-        dat_col, flagger_merged_clean = _outsortCrap(dat_col, field, flagger_merged, drop_flags=drop_flags,)
+        dat_col, flagger_merged_clean, _ = _outsortCrap(dat_col, field, flagger_merged, drop_flags=drop_flags)
 
         # interpolation! (yeah)
         dat_col, chunk_bounds = _interpolateGrid(
@@ -96,7 +85,7 @@ def harmWrapper(heap={}):
             method=inter_method,
             order=inter_order,
             agg_method=inter_agg,
-            total_range=(heap[Heap.INDEX][0], heap[Heap.INDEX][-1]),
+            total_range=(dat_col.index[0], dat_col.index[-1]),
             downcast_interpolation=inter_downcast,
         )
 
@@ -113,13 +102,16 @@ def harmWrapper(heap={}):
             **kwargs,
         )
 
-        # finally we happily blow up the data and flags frame again,
-        # to release them on their ongoing journey through saqc.
-        data, flagger_out = _toMerged(
-            data, flagger, field, data_to_insert=dat_col, flagger_to_insert=flagger_merged_clean_reshaped, **kwargs
-        )
-
+        # TODO: ask BERT: why so verbose?
+        # TODO: ask BERT: why so assert?
+        flags_col = flagger_merged_clean_reshaped.getFlags(field)
+        flags = flagger.getFlags()
+        flags[field] = flags_col
+        data[field] = dat_col
+        flagger_out = flagger.initFlags(flags=flags)
+        assert (data[field].index == flagger_out.getFlags(field).index).all()
         return data, flagger_out
+
 
     def deharmonize(data, field, flagger, co_flagging=False, **kwargs):
 
@@ -136,47 +128,37 @@ def harmWrapper(heap={}):
         resolve_method = HARM_2_DEHARM[harm_info[Heap.METHOD]]
 
         # retrieve data and flags from the merged saqc-conform data frame (and by that get rid of blow-up entries).
-        dat_col, flagger_merged = _fromMerged(data, flagger, field)
+        flagger_harmony = flagger.getFlagger(field=field)
+        dat_col = data[field]
 
         # reconstruct the drops that were performed before harmonization
-        drops, flagger_original_clean = _outsortCrap(
-            dat_col, field, harm_info[Heap.FLAGGER], drop_flags=harm_info[Heap.DROP], return_drops=True,
+        _, flagger_original_clean, drop_mask = _outsortCrap(
+            dat_col, field, harm_info[Heap.FLAGGER], drop_flags=harm_info[Heap.DROP]
         )
+        drops = flagger.getFlags(field=field, loc=drop_mask)
 
         # with reconstructed pre-harmonization flags-frame -> perform the projection of the flags calculated for
         # the harmonized timeseries, onto the original timestamps
         flagger_back = _backtrackFlags(
-            flagger_merged,
+            flagger_harmony,
             flagger_original_clean,
+            harm_info[Heap.FLAGGER],
             harm_info[Heap.FREQ],
             track_method=resolve_method,
             co_flagging=co_flagging,
         )
-        flags_back = flagger_back.getFlags()
 
-        # now: re-insert the pre-harmonization-drops
-        flags_col = flags_back.reindex(flags_back.index.join(drops.index, how="outer"))
-        # due to assignment reluctants with 1-d-dataframes we are squeezing:
-        flags_col = flags_col.squeeze(axis=1)
-        drops = drops.squeeze(axis=1)
-        flags_col.loc[drops.index] = drops
-
-        # but to stick with the policy of always having flags as pd.DataFrames we blow up the flags col again:
-        if isinstance(flags_col, pd.Series):
-            flags_col = flags_col.to_frame()
-        flagger_back_full = flagger.initFlags(flags=flags_col)
+        flags_col = flagger_back.getFlags(field)
 
         dat_col = harm_info[Heap.DATA].reindex(flags_col.index, fill_value=np.nan)
         dat_col.name = field
-        # transform the result into the form, data travels through saqc:
-        data, flagger_out = _toMerged(
-            data, flagger, field, dat_col, flagger_back_full, target_index=heap[Heap.INDEX], **kwargs
-        )
-        # clear heap if nessecary:
-        if len(heap) == 1 and Heap.INDEX in heap:
-            del heap[Heap.INDEX]
 
         # bye bye data
+        flags = flagger.getFlags()
+        flags[field] = flags_col
+        data[field] = dat_col
+        flagger_out = flagger.initFlags(flags=flags)
+        assert (data[field].index == flagger_out.getFlags(field).index).all()
         return data, flagger_out
 
     return harmonize, deharmonize
@@ -189,26 +171,23 @@ register()(harm_deharmonize)
 
 # (de-)harmonize helper
 def _outsortCrap(
-    data, field, flagger, drop_flags=None, return_drops=False,
+    data, field, flagger, drop_flags=None
 ):
 
     """Harmonization gets the more easy, the more data points we can exclude from crowded sampling intervals.
     Depending on passed key word options the function will remove nan entries and as-suspicious-flagged values from
     the data and the flags passed. In deharmonization the function is used to reconstruct original flags field shape.
 
+
     :param data:            pd.Series. ['data'].
     :param flagger:         saqc.flagger.
-    :param drop_suspicious: Boolean. Default = True. If True, only values that are flagged GOOD or UNFLAGGED get
-                            processed.
-    :param drop_bad:        Boolean. Default = True. If True, BAD-flagged values get dropped from data.
     :param drop_list:       List or None. Default = None. List of flags that shall be dropped from data. If None is
                             passed (default), list based data dropping is omitted.
     :param return_drops:    Boolean. Default = False. If True, return the drops only. If False, return the data and
                             flags without drops.
-    :return:                If return_drops=False. (default) Returns data, flags tuple with values-to-be-dropped
-                            dropped.
-                            If return_drops=True. Returns the dropped flags.
+
     """
+    assert isinstance(data, pd.Series), "data must be pd.Series"
 
     drop_mask = pd.Series(data=False, index=data.index)
 
@@ -217,9 +196,7 @@ def _outsortCrap(
         drop_mask = drop_mask | flagger.isFlagged(field, flag=drop_flag, comparator="==")
 
     flagger_out = flagger.getFlagger(loc=~drop_mask)
-    if return_drops:
-        return flagger.getFlags(loc=drop_mask), flagger_out
-    return data[~drop_mask], flagger_out
+    return data[~drop_mask], flagger_out, drop_mask
 
 
 def _makeGrid(t0, t1, freq, name=None):
@@ -291,7 +268,7 @@ def _interpolateGrid(
     'fagg'          - all values in a sampling interval get aggregated with agg_method and the result gets assigned to
                     the next grid point
 
-    :param data:        pd.DataFrame. ['data'].
+    :param data:        dios.DictOfSeries. ['data'].
     :param freq:        Offset String. the grid frequency.
     :param method:      String. Method you want to interpolate with. See function doc above.
     :param order:       Integer. Default = 1. If an interpolation method is selected that needs
@@ -303,7 +280,7 @@ def _interpolateGrid(
                         The total range of all the data in the Dataframe that is currently processed. If not
                         None, the resulting harmonization grid of the current data column will range over the total
                         Data-range. This ensures not having nan-entries in the flags dataframe after harmonization.
-    :return:            pd.DataFrame. ['data'].
+    :return:            dios.DictOfSeries. ['data'].
     """
 
     chunk_bounds = None
@@ -525,7 +502,7 @@ def _reshapeFlags(
     :block_flags:       DatetimeIndex. A DatetimeIndex containing labels that will get the "nan-flag" assigned.
                         This option mainly is introduced to account for the backtracking inconsistencies at the end
                         and beginning of interpolation chunks.
-    :return: flags:     pd.Series/pd.DataFrame. The reshaped pandas like Flags object, referring to the harmonized data.
+    :return: flags:     pd.Series/dios.DictOfSeries. The reshaped pandas like Flags object, referring to the harmonized data.
     """
 
     missing_flag = missing_flag or flagger.BAD
@@ -541,6 +518,11 @@ def _reshapeFlags(
 
     freq = ref_index.freq
 
+    # fixme: NOTE: now with dios we just work on the series in question and leave
+    #  other indexes untouched...
+    flags = flagger.getFlags()
+    fdata = flags[field]
+
     if method in shifts:
         # forward/backward projection of every intervals last/first flag - rest will be dropped
         if method == "fshift":
@@ -555,17 +537,17 @@ def _reshapeFlags(
             direction = "nearest"
             tolerance = pd.Timedelta(freq) / 2
 
-        flags = flagger.getFlags().reindex(ref_index, tolerance=tolerance, method=direction, fill_value=np.nan)
+        # if you want to keep previous comments
+        # only newly generated missing flags get commented:
 
-        # if you want to keep previous comments - only newly generated missing flags get commented:
-        flags_series = flags.squeeze()
+        fdata = fdata.reindex(ref_index, tolerance=tolerance, method=direction, fill_value=np.nan)
 
-        flagger_new = flagger.initFlags(flags=flags).setFlags(
-            field, loc=flags_series.isna(), flag=missing_flag, force=True, **kwargs
-        )
+        flags[field] = fdata
+        flagger_new = flagger.initFlags(flags=flags)
+        flagger_new.setFlags(field, loc=fdata.isna(), flag=missing_flag, force=True, **kwargs)
 
         if set_shift_comment:
-            flagger_new = flagger_new.setFlags(field, flag=flags_series, force=True, **kwargs)
+            flagger_new = flagger_new.setFlags(field, flag=fdata, force=True, **kwargs)
 
     elif method in aggregations:
         # prepare resampling keywords
@@ -586,37 +568,33 @@ def _reshapeFlags(
             seconds_total = pd.Timedelta(freq).total_seconds()
             base = seconds_total / 2
             freq_string = str(int(seconds_total)) + "s"
-            i_start = flagger.getFlags().index[0]
+            i_start = fdata.index[0]
             if abs(i_start - i_start.floor(freq)) <= pd.Timedelta(freq) / 2:
                 shift_correcture = 1
             else:
                 shift_correcture = -1
 
         # resampling the flags series with aggregation method
-        flags = (
-            flagger.getFlags()
-            # NOTE: otherwise the datetime index will get lost
-            .squeeze()
-            .resample(freq_string, closed=closed, label=label, base=base)
-            # NOTE: breaks for non categorical flaggers
-            .apply(lambda x: agg_method(x) if not x.empty else missing_flag)
-            .astype(flagger.dtype)
-        )
+        agg = lambda x: agg_method(x) if not x.empty else missing_flag
+        resampled = fdata.resample(freq_string, closed=closed, label=label, base=base)
+        # NOTE: breaks for non categorical flaggers
+        fdata = resampled.apply(agg).astype(flagger.dtype)
 
         if method == "nagg":
-            flags = flags.shift(periods=shift_correcture, freq=pd.Timedelta(freq) / 2)
+            fdata = fdata.shift(periods=shift_correcture, freq=pd.Timedelta(freq) / 2)
 
         # some consistency clean up to ensure new flags frame matching new data frames size:
-        if ref_index[0] != flags.index[0]:
-            flags = pd.Series(data=flagger.BAD, index=[ref_index[0]]).astype(flagger.dtype).append(flags)
-        if ref_index[-1] != flags.index[-1]:
-            flags = flags.append(pd.Series(data=flagger.BAD, index=[ref_index[-1]]).astype(flagger.dtype))
+        if ref_index[0] != fdata.index[0]:
+            fdata = pd.Series(data=flagger.BAD, index=[ref_index[0]]).astype(flagger.dtype).append(fdata)
+        if ref_index[-1] != fdata.index[-1]:
+            fdata = fdata.append(pd.Series(data=flagger.BAD, index=[ref_index[-1]]).astype(flagger.dtype))
 
         # block flagging/backtracking of chunk_starts/chunk_ends
         if block_flags is not None:
-            flags[block_flags] = np.nan
+            fdata[block_flags] = np.nan
 
-        flagger_new = flagger.initFlags(flags=flags.to_frame(name=field))
+        flags[field] = fdata
+        flagger_new = flagger.initFlags(flags=flags)
 
     else:
         methods = ", ".join(shifts + ["\n"] + aggregations)
@@ -626,22 +604,30 @@ def _reshapeFlags(
 
     # block flagging/backtracking of chunk_starts/chunk_ends
     if block_flags is not None:
-        flagger_new = flagger_new.setFlags(
-            field, loc=block_flags, flag=pd.Series(np.nan, index=block_flags).astype(flagger_new.dtype), force=True,
-        )
+        flags_to_force = pd.Series(np.nan, index=block_flags).astype(flagger_new.dtype)
+        flagger_new = flagger_new.setFlags(field, loc=block_flags, flag=flags_to_force, force=True,)
     return flagger_new
 
 
-def _backtrackFlags(flagger_post, flagger_pre, freq, track_method="invert_fshift", co_flagging=False):
+def _backtrackFlags(flagger_harmony, flagger_original_clean, flagger_original, freq, track_method="invert_fshift", co_flagging=False):
 
     # in the case of "real" up/downsampling - evaluating the harm flags against the original flags makes no sence!
     if track_method in ["regain"]:
-        return flagger_pre
+        return flagger_original_clean
 
-    # NOTE: PROBLEM flager_pre carries one value ib exces (index: -3)
-    flags_post = flagger_post.getFlags()
-    flags_pre = flagger_pre.getFlags()
-    flags_header = flags_post.columns
+    flags_harmony = flagger_harmony.getFlags()
+    flags_original_clean = flagger_original_clean.getFlags()
+    flags_original = flagger_original.getFlags()
+
+    flags_header = flags_harmony.columns
+    assert len(flags_header) == 1
+
+    flags_original_clean = flags_original_clean.squeeze()
+    flags_original = flags_original.squeeze()
+    flags_harmony = flags_harmony.squeeze()
+    assert isinstance(flags_harmony, pd.Series)
+    assert isinstance(flags_original_clean, pd.Series)
+
     if track_method in ["invert_fshift", "invert_bshift", "invert_nearest"] and co_flagging is True:
         if track_method == "invert_fshift":
             method = "bfill"
@@ -655,12 +641,9 @@ def _backtrackFlags(flagger_post, flagger_pre, freq, track_method="invert_fshift
             method = "nearest"
             tolerance = pd.Timedelta(freq) / 2
 
-        flags_post = flags_post.reindex(flags_pre.index, method=method, tolerance=tolerance)
-        replacement_mask = flags_post.squeeze() > flags_pre.squeeze()
-        # there is a mysterious problem when assigning 1-d-dataframes - so we squeeze:
-        flags_pre = flags_pre.squeeze(axis=1)
-        flags_post = flags_post.squeeze(axis=1)
-        flags_pre.loc[replacement_mask] = flags_post.loc[replacement_mask]
+        flags_harmony = flags_harmony.reindex(flags_original.index, method=method, tolerance=tolerance)
+        replacement_mask = flags_harmony > flags_original
+        flags_original.loc[replacement_mask] = flags_harmony.loc[replacement_mask]
 
     if track_method in ["invert_fshift", "invert_bshift", "invert_nearest"] and co_flagging is False:
         if track_method == "invert_fshift":
@@ -674,32 +657,31 @@ def _backtrackFlags(flagger_post, flagger_pre, freq, track_method="invert_fshift
             method = "nearest"
             tolerance = pd.Timedelta(freq) / 2
 
-        flags_post = pd.merge_asof(
-            flags_post,
-            pd.DataFrame(flags_pre.index.values, index=flags_pre.index, columns=["pre_index"]),
+        flags_harmony = pd.merge_asof(
+            flags_harmony.to_frame(),
+            pd.DataFrame(flags_original_clean.index.values,
+                         index=flags_original_clean.index,
+                         columns=["pre_index"]),
             left_index=True,
             right_index=True,
             tolerance=tolerance,
             direction=method,
         )
 
-        flags_post.dropna(subset=["pre_index"], inplace=True)
-        flags_post.set_index(["pre_index"], inplace=True)
+        flags_harmony.dropna(subset=["pre_index"], inplace=True)
+        flags_harmony.set_index(["pre_index"], inplace=True)
+        # get rid of Dataframe (not dios !) , that we needed for the merge_asof()-method
+        flags_harmony = flags_harmony.squeeze()
 
-        # restore flag shape
-        flags_post.columns = flags_header
+        replacement_mask = flags_harmony > flags_original_clean.loc[flags_harmony.index]
+        flags_original_clean.loc[replacement_mask[replacement_mask].index] = flags_harmony.loc[replacement_mask]
 
-        replacement_mask = flags_post.squeeze() > flags_pre.loc[flags_post.index, :].squeeze()
-        # there is a mysterious problem when assigning 1-d-dataframes - so we squeeze:
-        flags_pre = flags_pre.squeeze(axis=1)
-        flags_post = flags_post.squeeze(axis=1)
-        flags_pre.loc[replacement_mask[replacement_mask].index] = flags_post.loc[replacement_mask]
+        drops_index = flags_original.index.difference(flags_original_clean.index)
+        flags_original = flags_original_clean.reindex(flags_original_clean.index.join(drops_index, how='outer'))
+        flags_original.loc[drops_index] = flags_original[drops_index]
 
-    # sticking to the nomenklatura of always-DF for flags:
-    if isinstance(flags_pre, pd.Series):
-        flags_pre = flags_pre.to_frame()
-
-    return flagger_pre.initFlags(flags=flags_pre)
+    res = dios.DictOfSeries(flags_original, columns=flags_header)
+    return flagger_original.initFlags(flags=res)
 
 
 def _fromMerged(data, flagger, fieldname):
@@ -714,22 +696,33 @@ def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, targe
     flags = flagger._flags
     flags_to_insert = flagger_to_insert._flags
 
-    if isinstance(data, pd.Series):
-        data = data.to_frame()
+    # this should never happen, but if this could happen in general,
+    # the caller have to ensure, that we get a dios
+    assert not isinstance(data, pd.Series)
 
-    data.drop(fieldname, axis="columns", errors="ignore", inplace=True)
-    flags.drop(fieldname, axis="columns", errors="ignore", inplace=True)
+    newcols = data.columns.difference([fieldname])
+    data = data[newcols]
+    flags = flags[newcols]
 
     # first case: there is no data, the data-to-insert would have
     # to be merged with, and also are we not deharmonizing:
-    if (data.empty) and (target_index is None):
-        return data_to_insert.to_frame(name=fieldname), flagger_to_insert
+    if data.empty and target_index is None:
+        return data, flagger_to_insert
+
 
     # if thats not the case: generate the drop mask for the remaining data:
-    mask = data.isna().all(axis=1)
+
+    # the following is not implemented in dios, but as soon as it is done,
+    # we should use it. wait for #21 see: https://git.ufz.de/rdm/dios/issues/21
+    # mask = data.isna().all(axis=1)
+    # workaround:
+    nans = data.isna()
+    common_nans_index = nans[nans].index_of('shared')
+
     # we only want to drop lines, that do not have to be re-inserted in the merge:
-    drops = mask[mask].index.difference(data_to_insert.index)
+    drops = common_nans_index.difference(data_to_insert.index)
     # clear mask, but keep index
+    mask = data.copy()
     mask[:] = True
     # final mask:
     mask[drops] = False

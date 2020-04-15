@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from io import StringIO, TextIOWrapper
 
 import pandas as pd
+import dios
 
 from saqc.core.config import Fields as F
 from saqc.core.evaluator import compileExpression
@@ -71,7 +72,7 @@ def _castRow(row: Dict[str, Any]):
     return out
 
 
-def _expandVarnameWildcards(config: Config, data: pd.DataFrame) -> Config:
+def _expandVarnameWildcards(config: Config, data: dios.DictOfSeries) -> Config:
     def isQuoted(string):
         return bool(re.search(r"'.*'|\".*\"", string))
 
@@ -98,8 +99,14 @@ def _clearRows(rows: Iterable[List[str]], comment: str = "#") -> Iterator[Tuple[
             yield i, row
 
 
-def readConfig(fname: Filename, data: pd.DataFrame, sep: str = ";", comment: str = "#") -> pd.DataFrame:
-    defaults = {F.VARNAME: "", F.START: data.index.min(), F.END: data.index.max(), F.PLOT: False}
+def readConfig(fname: Filename, data: dios.DictOfSeries, sep: str = ";", comment: str = "#") -> pd.DataFrame:
+
+    defaults = {
+        F.VARNAME: "",
+        F.START: min(map(min, data.indexes)),
+        F.END: max(map(max, data.indexes)),
+        F.PLOT: False
+    }
 
     with _open(fname) as f:
         rdr = reader(f, delimiter=";")
@@ -109,15 +116,18 @@ def readConfig(fname: Filename, data: pd.DataFrame, sep: str = ";", comment: str
 
         config = []
         for n, row in rows:
-            row = dict(zip(header, row))
-            row = _castRow({**defaults, **row, F.LINENUMBER: n + 1})
+            row = {**defaults, **dict(zip(header, row)), F.LINENUMBER: n + 1}
+            if row[F.VARNAME] in data:
+                index = data[row[F.VARNAME]].index
+                row = {**row, **{F.START: index.min(), F.END: index.max()}}
+            row = _castRow(row)
             config.append(row)
 
     expanded = _expandVarnameWildcards(config, data)
     return pd.DataFrame(expanded)
 
 
-def checkConfig(config_df: pd.DataFrame, data: pd.DataFrame, flagger: BaseFlagger, nodata: float) -> pd.DataFrame:
+def checkConfig(config_df: pd.DataFrame, data: dios.DictOfSeries, flagger: BaseFlagger, nodata: float) -> pd.DataFrame:
 
     for _, config_row in config_df.iterrows():
 

@@ -3,13 +3,12 @@
 
 import pytest
 import numpy as np
-import pandas as pd
 
-from test.common import initData, TESTFLAGGER, TESTNODATA
 from saqc.core.core import run
 from saqc.core.config import Fields as F
 
-from test.common import initData, TESTFLAGGER, TESTNODATA, initMetaDict, initMetaString
+from test.common import TESTFLAGGER, TESTNODATA, initData, writeIO
+
 
 from saqc.core.evaluator import (
     DslTransformer,
@@ -63,7 +62,7 @@ def test_comparisonOperators(data, flagger):
     for expr, mask in tests:
         _, result_flagger = evalExpression(f"flagGeneric(func={expr})", data, this, flagger, np.nan)
         expected_flagger = flagger.setFlags(this, loc=mask, test="generic")
-        assert np.all(result_flagger.isFlagged() == expected_flagger.isFlagged())
+        assert (result_flagger.isFlagged() == expected_flagger.isFlagged()).all(None)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -130,15 +129,15 @@ def test_reduncingBuiltins(data, flagger, nodata):
 @pytest.mark.parametrize("nodata", TESTNODATA)
 def test_ismissing(data, flagger, nodata):
 
-    data.iloc[: len(data) // 2, 0] = np.nan
-    data.iloc[(len(data) // 2) + 1 :, 0] = -9999
+    data.iloc[: data.lengths[0] // 2, 0] = np.nan
+    data.iloc[(data.lengths[0] // 2) + 1 :, 0] = -9999
     var1, *_ = data.columns
 
     flagger = flagger.initFlags(data)
 
     tests = [
-        (f"ismissing({var1})", lambda data: (pd.isnull(data) | (data == nodata)).all()),
-        (f"~ismissing({var1})", lambda data: (pd.notnull(data) & (data != nodata)).all(),),
+        (f"ismissing({var1})", lambda data: (data.isna() | (data == nodata)).all()),
+        (f"~ismissing({var1})", lambda data: ~(data.isna() | (data == nodata)).all(),),
     ]
 
     for expr, checkFunc in tests:
@@ -171,8 +170,8 @@ def test_isflagged(data, flagger):
     flagger = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
-    flagger = flagger.setFlags(var1, iloc=slice(None, None, 2))
-    flagger = flagger.setFlags(var2, iloc=slice(None, None, 2))
+    flagger = flagger.setFlags(var1, loc=slice(None, None, 2))
+    flagger = flagger.setFlags(var2, loc=slice(None, None, 2))
 
     idx = _evalDslExpression(f"isflagged({var1})", data, var2, flagger)
 
@@ -186,7 +185,7 @@ def test_invertIsFlagged(data, flagger):
     flagger = flagger.initFlags(data)
     var1, var2, *_ = data.columns
 
-    flagger = flagger.setFlags(var2, iloc=slice(None, None, 2))
+    flagger = flagger.setFlags(var2, loc=slice(None, None, 2))
 
     tests = [
         (f"~isflagged({var2})", ~flagger.isFlagged(var2)),
@@ -196,7 +195,7 @@ def test_invertIsFlagged(data, flagger):
     for expr, flags_expected in tests:
         _, flagger_result = evalExpression(f"flagGeneric(func={expr})", data, var1, flagger, np.nan)
         flags_result = flagger_result.isFlagged(var1)
-        assert np.all(flags_result == flags_expected)
+        assert (flags_result == flags_expected).all(None)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -204,7 +203,7 @@ def test_isflaggedArgument(data, flagger):
 
     var1, var2, *_ = data.columns
 
-    flagger = flagger.initFlags(data).setFlags(var1, iloc=slice(None, None, 2), flag=flagger.BAD)
+    flagger = flagger.initFlags(data).setFlags(var1, loc=slice(None, None, 2), flag=flagger.BAD)
 
     tests = [
         (_evalDslExpression(f"isflagged({var1}, BAD)", data, var2, flagger), flagger.isFlagged(var1, flag=flagger.BAD)),
@@ -215,16 +214,12 @@ def test_isflaggedArgument(data, flagger):
     ]
 
     for result, expected in tests:
-        assert np.all(result == expected)
+        assert (result == expected).all(None)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_variableAssignments(data, flagger):
     var1, var2, *_ = data.columns
-
-    from saqc.core.core import run
-    from saqc.core.config import Fields as F
-    from test.common import writeIO
 
     config = f"""
     {F.VARNAME}  ; {F.TESTS}
