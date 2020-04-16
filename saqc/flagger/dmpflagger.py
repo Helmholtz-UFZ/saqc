@@ -3,15 +3,11 @@
 import subprocess
 import json
 from copy import deepcopy
-from collections import OrderedDict
-from typing import Union, Sequence
 
-import pandas as pd
 import dios.dios as dios
 
 from saqc.flagger.categoricalflagger import CategoricalFlagger
-from saqc.flagger.baseflagger import diosT
-from saqc.lib.tools import assertDictOfSeries, toSequence, assertScalar
+from saqc.lib.tools import assertScalar
 
 
 class Keywords:

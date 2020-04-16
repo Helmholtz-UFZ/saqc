@@ -50,22 +50,22 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
     )
 
     if outfile:
-        flags = flagger_result.getFlags()
-        flags_out = flags.where((flags.isnull() | flagger_result.isFlagged()), flagger_result.GOOD)
+        data_result = data_result.to_df()
+        flags = flagger_result.getFlags().to_df()
+        flags_flagged = flagger_result.isFlagged().to_df()
+
+        flags_out = flags.where((flags.isnull() | flags_flagged), flagger_result.GOOD)
+        fields = {"data": data_result, "flags": flags_out}
 
         if isinstance(flagger_result, DmpFlagger):
-            flags = flagger_result._flags
-            flags.loc[flags_out.index, (slice(None), FlagFields.FLAG)] = flags_out.values
-            flags_out = flags
+            fields["comments"] = flagger_result.comments.to_df()
+            fields["causes"] = flagger_result.causes.to_df()
 
-        if not isinstance(flags_out.columns, pd.MultiIndex):
-            flags_out.columns = pd.MultiIndex.from_product([flags.columns, ["flag"]])
-
-        data_result.columns = pd.MultiIndex.from_product([data_result.columns, ["data"]])
-
-        # flags_out.columns = flags_out.columns.map("_".join)
-        data_out = data_result.join(flags_out)
-        data_out.sort_index(axis="columns").to_csv(outfile, header=True, index=True, na_rep=nodata)
+        out = (pd.concat(fields.values(), axis=1, keys=fields.keys())
+               .reorder_levels(order=[1, 0], axis=1)
+               .sort_index(axis=1, level=0, sort_remaining=False))
+        out.columns = out.columns.rename(["", ""])
+        out.to_csv(outfile, header=True, index=True, na_rep=nodata)
 
 
 if __name__ == "__main__":
