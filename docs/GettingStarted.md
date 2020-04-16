@@ -54,7 +54,7 @@ cd YOURDIR
 virtualenv env_saqc
 	
 # move to the Scripts directory in "env_saqc"
-cd env_saqc\Scripts
+cd env_saqc/Scripts
 
 # activate the environment
 ./activate
