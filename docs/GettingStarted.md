@@ -119,11 +119,12 @@ Remember to have your virtual environment activated:
 ```sh
 source env_saqc/bin/activate
 ```
-or respectively on Windows
+or respectively on Windows:
 ```sh
+cd env_saqc/Scripts
 ./activate
 ```
-in env_saqc/Scripts.
+
 
 Via your console, move into the folder you downloaded saqc into:
 ```sh
