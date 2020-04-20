@@ -136,9 +136,10 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
 
 
 @register()
-def spikes_flagMultivariateKNNScores(data, field, flagger, fields, trafo='normScale', alpha=0.05, binning='auto', n_neighbors=2,
-                                      iter_start=0.5, scoring_method='kNNMaxGap', threshing='stray', stray_partition=None,
-                                      **kwargs):
+def spikes_flagMultivariateKNNScores(data, field, flagger, fields, trafo='normScale', alpha=0.05, n_neighbors=10,
+                                     scoring_method='kNNMaxGap', iter_start=0.5, threshing='stray',
+                                     expfit_binning='auto', stray_partition=None, stray_partition_min=0,
+                                     **kwargs):
 
     trafo = composeFunction(trafo.split(','))
     # data fransformation/extraction
@@ -157,6 +158,7 @@ def spikes_flagMultivariateKNNScores(data, field, flagger, fields, trafo='normSc
     if threshing == 'stray':
         to_flag_index = _stray(val_frame,
                                partition_freq=stray_partition,
+                               partition_min=stray_partition_min,
                                scoring_method=scoring_method,
                                n_neighbors=n_neighbors,
                                iter_start=iter_start)
@@ -167,7 +169,7 @@ def spikes_flagMultivariateKNNScores(data, field, flagger, fields, trafo='normSc
                                 n_neighbors=n_neighbors,
                                 iter_start=iter_start,
                                 alpha=alpha,
-                                bin_frac=binning)
+                                bin_frac=expfit_binning)
 
     for var in fields:
         flagger = flagger.setFlags(var, to_flag_index, **kwargs)
