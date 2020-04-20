@@ -31,15 +31,15 @@ def test_flagRange(data, field, flagger):
     data, flagger = flagRange(data, field, flagger, min=min, max=max)
     flagged = flagger.isFlagged(field)
     expected = (data[field] < min) | (data[field] > max)
-    assert np.all(flagged == expected)
+    assert (flagged == expected).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagSesonalRange(data, field, flagger):
     # prepare
-    data.loc[::2] = 0
-    data.loc[1::2] = 50
-    nyears = len(data.index.year.unique())
+    data.iloc[::2] = 0
+    data.iloc[1::2] = 50
+    nyears = len(data[field].index.year.unique())
 
     tests = [
         ({"min": 1, "max": 100, "startmonth": 7, "startday": 1, "endmonth": 8, "endday": 31,}, 31 * 2 * nyears // 2,),
@@ -60,8 +60,8 @@ def test_clearFlags(data, field, flagger):
     flags_set = flagger.setFlags(field, flag=flagger.BAD).getFlags()
     _, flagger = clearFlags(data, field, flagger)
     flags_cleared = flagger.getFlags()
-    assert np.all(flags_orig != flags_set)
-    assert np.all(flags_orig == flags_cleared)
+    assert (flags_orig != flags_set).all(None)
+    assert (flags_orig == flags_cleared).all(None)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -82,13 +82,13 @@ def test_flagIsolated(data, flagger):
     data.iloc[11:13, 0] = np.nan
     data.iloc[15:17, 0] = np.nan
     flagger = flagger.initFlags(data)
-    flagger = flagger.setFlags(field, iloc=slice(5, 6))
+    s = data[field].iloc[5:6]
+    flagger = flagger.setFlags(field, loc=s)
 
     _, flagger_result = flagIsolated(data, field, flagger, group_window="1D", gap_window="2.1D")
 
     assert flagger_result.isFlagged(field)[slice(3, 6, 2)].all()
 
-    flagger = flagger.setFlags(field, iloc=slice(3, 4), flag=flagger.UNFLAGGED, force=True)
     data, flagger_result = flagIsolated(
         data, field, flagger_result, group_window="2D", gap_window="2.1D", continuation_range="1.1D",
     )

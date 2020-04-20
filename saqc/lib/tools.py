@@ -4,12 +4,15 @@
 from typing import Sequence, Union, Any, Iterator
 
 import numpy as np
-import pandas as pd
 import numba as nb
 import saqc.lib.ts_operators as ts_ops
 import scipy
 import sklearn
 from functools import reduce, partial
+import pandas as pd
+import dios
+
+# from saqc.flagger import BaseFlagger
 from saqc.lib.types import T, PandasLike
 
 SAQC_OPERATORS = {
@@ -142,9 +145,10 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
       relying on the size of the window (sum, mean, median)
     """
 
+    if not isinstance(dates, pd.DatetimeIndex):
+        raise TypeError("Must pass pd.DatetimeIndex")
+
     # lets work on numpy data structures for performance reasons
-    if isinstance(dates, (pd.DataFrame, pd.Series)):
-        dates = dates.index
     dates = np.array(dates, dtype=np.int64)
 
     if np.any(np.diff(dates) <= 0):
@@ -175,29 +179,12 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
         start_date = dates[start_idx]
 
 
-def inferFrequency(data: PandasLike) -> pd.DateOffset:
+def inferFrequency(data: pd.Series) -> pd.DateOffset:
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
-def combineDataFrames(left: pd.DataFrame, right: pd.DataFrame, fill_value: float = np.nan) -> pd.DataFrame:
-    """
-    Combine the given DataFrames 'left' and 'right' such that, the
-    output is union of the indices and the columns of both. In case
-    of duplicated values, 'left' is overwritten by 'right'
-    """
-    combined = left.reindex(
-        index=left.index.union(right.index),
-        columns=left.columns.union(right.columns, sort=False),
-        fill_value=fill_value,
-    )
-
-    for key, values in right.iteritems():
-        combined.loc[right.index, key] = values
-
-    return combined
-
-
-def retrieveTrustworthyOriginal(data: pd.DataFrame, field: str, flagger=None, level: Any = None) -> pd.DataFrame:
+def retrieveTrustworthyOriginal(data: dios.DictOfSeries, field: str, flagger=None,
+                                level: Any = None) -> dios.DictOfSeries:
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
     differenciating between missng value - nans und fillvalue nans is impossible.
 
@@ -256,7 +243,6 @@ def offset2seconds(offset):
 
 
 def flagWindow(flagger_old, flagger_new, field, direction="fw", window=0, **kwargs) -> pd.Series:
-
     if window == 0 or window == "":
         return flagger_new
 
@@ -350,39 +336,14 @@ def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
         return mask
 
 
-def assertDataFrame(df: Any, argname: str = "arg", allow_multiindex: bool = True) -> None:
-    if not isinstance(df, pd.DataFrame):
-        raise TypeError(f"{argname} must be of type pd.DataFrame, {type(df)} was given")
-    if not allow_multiindex:
-        assertSingleColumns(df, argname)
-    if not df.columns.is_unique:
-        raise TypeError(f"{argname} must have unique columns")
+def assertDictOfSeries(df: Any, argname: str = "arg") -> None:
+    if not isinstance(df, dios.DictOfSeries):
+        raise TypeError(f"{argname} must be of type dios.DictOfSeries, {type(df)} was given")
 
 
 def assertSeries(srs: Any, argname: str = "arg") -> None:
     if not isinstance(srs, pd.Series):
         raise TypeError(f"{argname} must be of type pd.Series, {type(srs)} was given")
-
-
-def assertPandas(pdlike: PandasLike, argname: str = "arg", allow_multiindex: bool = True) -> None:
-    if not isinstance(pdlike, pd.Series) and not isinstance(pdlike, pd.DataFrame):
-        raise TypeError(f"{argname} must be of type pd.DataFrame or pd.Series, {type(pdlike)} was given")
-    if not allow_multiindex:
-        assertSingleColumns(pdlike, argname)
-
-
-def assertMultiColumns(dfmi: pd.DataFrame, argname: str = "") -> None:
-    assertDataFrame(dfmi, argname, allow_multiindex=True)
-    if not isinstance(dfmi.columns, pd.MultiIndex):
-        raise TypeError(
-            f"given pd.DataFrame ({argname}) need to have a muliindex on columns, "
-            f"instead it has a {type(dfmi.columns)}"
-        )
-
-
-def assertSingleColumns(df: PandasLike, argname: str = "") -> None:
-    if isinstance(df, pd.DataFrame) and isinstance(df.columns, pd.MultiIndex):
-        raise TypeError(f"given pd.DataFrame {argname} is not allowed to have a muliindex on columns")
 
 
 def getFuncFromInput(func):
@@ -417,7 +378,6 @@ def otherIndex(values: np.ndarray, start: int = 0) -> int:
 
 
 def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
-
     """
     group consecutive values into distinct pd.Series
     """

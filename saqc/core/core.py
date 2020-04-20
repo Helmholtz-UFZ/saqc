@@ -4,12 +4,13 @@ import logging
 
 import numpy as np
 import pandas as pd
+import dios
 
 from saqc.core.reader import readConfig, checkConfig
 from saqc.core.config import Fields
 from saqc.core.evaluator import evalExpression
 from saqc.lib.plotting import plotHook, plotAllHook
-from saqc.lib.tools import combineDataFrames
+from saqc.lib.types import DiosLikeT
 from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 
 
@@ -32,33 +33,48 @@ def _collectVariables(meta, data):
     return variables
 
 
-def _checkInput(data, flags, flagger):
-    if not isinstance(data, pd.DataFrame):
-        raise TypeError("data must be of type pd.DataFrame")
+def _convertInput(data, flags):
+    if isinstance(data, pd.DataFrame):
+        data = dios.to_dios(data)
+    if isinstance(flags, pd.DataFrame):
+        flags = dios.to_dios(flags)
 
-    if isinstance(data.index, pd.MultiIndex):
-        raise TypeError("the index of data is not allowed to be a multiindex")
 
-    if isinstance(data.columns, pd.MultiIndex):
-        raise TypeError("the columns of data is not allowed to be a multiindex")
+def _checkAndConvertInput(data, flags, flagger):
+    dios_like = (dios.DictOfSeries, pd.DataFrame)
+
+    if not isinstance(data, dios_like):
+        raise TypeError("data must be of type dios.DictOfSeries or pd.DataFrame")
+
+    if isinstance(data, pd.DataFrame):
+        if isinstance(data.index, pd.MultiIndex):
+            raise TypeError("the index of data is not allowed to be a multiindex")
+        if isinstance(data.columns, pd.MultiIndex):
+            raise TypeError("the columns of data is not allowed to be a multiindex")
+        data = dios.to_dios(data)
 
     if not isinstance(flagger, BaseFlagger):
         flaggerlist = [CategoricalFlagger, SimpleFlagger, DmpFlagger]
         raise TypeError(f"flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}")
 
-    if flags is None:
-        return
+    if flags is not None:
 
-    if not isinstance(flags, pd.DataFrame):
-        raise TypeError("flags must be of type pd.DataFrame")
+        if not isinstance(flags, dios_like):
+            raise TypeError("flags must be of type dios.DictOfSeries or pd.DataFrame")
 
-    if isinstance(data.index, pd.MultiIndex):
-        raise TypeError("the index of data is not allowed to be a multiindex")
+        if isinstance(flags, pd.DataFrame):
+            if isinstance(flags.index, pd.MultiIndex):
+                raise TypeError("the index of flags is not allowed to be a multiindex")
+            if isinstance(flags.columns, pd.MultiIndex):
+                raise TypeError("the columns of flags is not allowed to be a multiindex")
+            flags = dios.to_dios(flags)
 
-    if len(data) != len(flags):
-        raise ValueError("the index of flags and data has not the same length")
+        # NOTE: do not test all columns as they not necessarily need to be the same
+        cols = flags.columns & data.columns
+        if not (flags[cols].lengths == data[cols].lengths).all():
+            raise ValueError("the length of values in flags and data does not match.")
 
-    # NOTE: do not test columns as they not necessarily must be the same
+    return data, flags
 
 
 def _handleErrors(exc, configrow, test, policy):
@@ -87,15 +103,15 @@ def _setup(loglevel):
 def run(
     config_file: str,
     flagger: BaseFlagger,
-    data: pd.DataFrame,
-    flags: pd.DataFrame = None,
+    data: DiosLikeT,
+    flags: DiosLikeT = None,
     nodata: float = np.nan,
     log_level: str = "INFO",
     error_policy: str = "raise",
-) -> (pd.DataFrame, BaseFlagger):
+) -> (dios.DictOfSeries, BaseFlagger):
 
     _setup(log_level)
-    _checkInput(data, flags, flagger)
+    data, flags = _checkAndConvertInput(data, flags, flagger)
     config = readConfig(config_file, data)
 
     # split config into the test and some 'meta' data
@@ -104,7 +120,7 @@ def run(
 
     # prepapre the flags
     flag_cols = _collectVariables(meta, data)
-    flagger = flagger.initFlags(data=pd.DataFrame(index=data.index, columns=flag_cols))
+    flagger = flagger.initFlags(dios.DictOfSeries(data=data, columns=flag_cols))
     if flags is not None:
         flagger = flagger.setFlagger(flagger.initFlags(flags=flags))
 
@@ -140,11 +156,12 @@ def run(
             # NOTE:
             # time slicing support is currently disabled
             # prepare the data for the tests
-            # data_chunk = data.loc[start_date:end_date]
-            data_chunk = data
+            # dtslice = slice(start_date, end_date)
+            dtslice = slice(None)
+            data_chunk = data.loc[dtslice]
             if data_chunk.empty:
                 continue
-            flagger_chunk = flagger.getFlagger(loc=data_chunk.index)
+            flagger_chunk = flagger.getFlagger(loc=dtslice)
 
             try:
                 # actually run the tests
@@ -157,7 +174,9 @@ def run(
 
             if configrow[Fields.PLOT]:
                 plotHook(
-                    data_chunk_result, flagger_chunk, flagger_chunk_result, varname, func,
+                    data_old=data_chunk, data_new=data_chunk_result,
+                    flagger_old=flagger_chunk, flagger_new=flagger_chunk_result,
+                    sources=[], targets=[varname], plot_name=func,
                 )
 
             # NOTE:
@@ -167,6 +186,8 @@ def run(
             flagger = flagger_chunk_result
             data = data_chunk_result
 
-    plotAllHook(data, flagger)
+    plotfields = config[Fields.VARNAME][config[Fields.PLOT]]
+    if len(plotfields) > 0:
+        plotAllHook(data, flagger)
 
     return data, flagger

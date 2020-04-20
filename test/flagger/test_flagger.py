@@ -9,187 +9,108 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype
 
-from test.common import TESTFLAGGER
+import dios.dios as dios
+
+from test.common import TESTFLAGGER, initData
 
 
 def _getDataset(rows, cols):
-    df = pd.DataFrame()
-    for c in range(cols):
-        df[f"var{c}"] = np.linspace(0 + 100 * c, rows, rows)
-    vals = pd.date_range(start="2011-01-01", end="2011-01-10", periods=rows)
-    df.index = pd.DatetimeIndex(data=vals)
-    return df
+    return initData(cols=cols, rows=rows,
+                    start_date="2011-01-01",
+                    end_date="2011-01-10")
 
 
 DATASETS = [
-    # _getDataset(0, 1),
-    # _getDataset(1, 1),
+    _getDataset(0, 1),
+    _getDataset(1, 1),
     _getDataset(100, 1),
     # _getDataset(1000, 1),
-    # _getDataset(0, 4),
-    # _getDataset(1, 4),
-    _getDataset(100, 4),
+    _getDataset(0, 4),
+    _getDataset(1, 4),
+    # _getDataset(100, 4),
     # _getDataset(1000, 4),
     # _getDataset(10000, 40),
-    # _getDataset(20, 4),
+    _getDataset(20, 4),
 ]
 
 
-@pytest.mark.parametrize("data", DATASETS)
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_setFlagger(data, flagger):
-
-    field, *_ = data.columns
-
-    this_flagger = flagger.initFlags(data)
-    other_flagger = this_flagger.getFlagger(iloc=slice(None, None, 3)).setFlags(field)
-    result_flagger = this_flagger.setFlagger(other_flagger)
-
-    other_flags = other_flagger.getFlags()
-    result_flags = result_flagger.getFlags(field)
-
-    assert np.all(result_flagger.getFlags(loc=other_flagger.getFlags().index) == other_flags)
-
-    assert np.all(result_flags[~result_flags.index.isin(other_flags.index)] == flagger.UNFLAGGED)
-
-
-@pytest.mark.parametrize("data", DATASETS)
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_setFlaggerColumnsDiff(data, flagger):
-
-    field, *_ = data.columns
-    new_field = field + "_new"
-    iloc = slice(None, None, 2)
-
-    other_data = data.iloc[iloc]
-    other_data.columns = [new_field] + data.columns[1:].to_list()
-
-    this_flagger = flagger.initFlags(data).setFlags(field, flag=flagger.BAD)
-    other_flagger = flagger.initFlags(other_data)
-    result_flagger = this_flagger.setFlagger(other_flagger)
-
-    assert np.all(result_flagger.getFlags(new_field, loc=other_data.index) == other_flagger.getFlags(new_field))
-    assert np.all(result_flagger.getFlags(new_field, loc=data.index) == flagger.UNFLAGGED)
-
-
-@pytest.mark.parametrize("data", DATASETS)
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_setFlaggerIndexDiff(data, flagger):
-
-    field, *_ = data.columns
-    iloc = slice(None, None, 2)
-
-    other_data = data.iloc[iloc]
-    other_data.index = other_data.index + pd.Timedelta(minutes=2, seconds=25)
-
-    this_flagger = flagger.initFlags(data).setFlags(field, flag=flagger.BAD)
-    other_flagger = flagger.initFlags(other_data)
-    result_flagger = this_flagger.setFlagger(other_flagger)
-
-    assert np.all(result_flagger.getFlags(field, loc=other_data.index) == other_flagger.getFlags(field))
-    assert np.all(result_flagger.getFlags(field, loc=data.index) == this_flagger.getFlags(field))
+def check_all_dios_index_length(tocheck, expected):
+    for c in tocheck:
+        if len(tocheck[c]) != len(expected[c]):
+            return False
+    return True
 
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_initFlags(data, flagger):
-    flags = flagger.initFlags(data).getFlags()
-    assert isinstance(flags, pd.DataFrame)
-    assert len(flags.index) == len(data.index)
+    """
+    test before:
+    - None
+    """
+
+    newflagger = flagger.initFlags(data)
+    assert isinstance(newflagger, type(flagger))
+    assert newflagger is not flagger
+
+    flags = newflagger.getFlags()
+    assert isinstance(flags, dios.DictOfSeries)
+
     assert len(flags.columns) >= len(data.columns)
+    assert check_all_dios_index_length(flags, data)
 
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_getFlags(data, flagger):
+    """
+    test before:
+    - initFlags()
+
+    we need to check:
+    - access all flags -> get a dios
+    - access some columns of flags -> get a dios
+    - access one column of flags -> get a series
+    """
+
     flagger = flagger.initFlags(data)
     field, *_ = data.columns
 
-    # df
+    # all - dios
     flags0 = flagger.getFlags()
-    assert isinstance(flags0, pd.DataFrame)
-    assert flags0.shape == data.shape
+    assert isinstance(flags0, dios.DictOfSeries)
     assert (flags0.columns == data.columns).all()
-
+    assert check_all_dios_index_length(flags0, data)
     for dt in flags0.dtypes:
         assert dt == flagger.dtype
 
+    # some - dios
+    if len(data.columns) >= 2:
+        cols = data.columns[:2].to_list()
+        flags1 = flagger.getFlags(cols)
+        assert isinstance(flags1, dios.DictOfSeries)
+        assert (flags1.columns == data.columns[:2]).all()
+        assert check_all_dios_index_length(flags1, data[cols])
+        for dt in flags1.dtypes:
+            assert dt == flagger.dtype
+
     # series
-    flags1 = flagger.getFlags(field)
-    assert isinstance(flags1, pd.Series)
-    assert flags1.dtype == flagger.dtype
-    assert flags1.shape[0] == data.shape[0]
-    assert flags1.name in data.columns
-
-
-@pytest.mark.parametrize("data", DATASETS)
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_isFlaggedDataFrame(data, flagger):
-
-    flagger = flagger.initFlags(data)
-    field, *_ = data.columns
-
-    mask = np.zeros(len(data), dtype=bool)
-
-    df_tests = [
-        (flagger.isFlagged(), mask),
-        (flagger.setFlags(field).isFlagged(), ~mask),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator=">"), mask,),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="<"), mask,),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="=="), ~mask,),
-    ]
-    for flags, expected in df_tests:
-        assert np.all(flags[field] == expected)
-        assert isinstance(flags, pd.DataFrame)
-        assert flags.shape == data.shape
-        assert (flags.columns == data.columns).all()
-        for dt in flags.dtypes:
-            assert is_bool_dtype(dt)
-
-
-@pytest.mark.parametrize("data", DATASETS)
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_isFlaggedSeries(data, flagger):
-
-    flagger = flagger.initFlags(data)
-    field, *_ = data.columns
-
-    mask = np.zeros(len(data), dtype=bool)
-
-    series_tests = [
-        (flagger.isFlagged(field), mask),
-        (flagger.setFlags(field).isFlagged(field), ~mask),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator=">"), mask,),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="<"), mask,),
-        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="=="), ~mask,),
-    ]
-    for flags, expected in series_tests:
-        assert np.all(flags == expected)
-        assert isinstance(flags, pd.Series)
-        assert flags.dtype == bool
-        assert flags.shape[0] == data.shape[0]
-        assert flags.name in data.columns
-
-
-@pytest.mark.parametrize("data", DATASETS)
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_isFlaggedSeries(data, flagger):
-
-    flagger = flagger.initFlags(data)
-    field, *_ = data.columns
-
-    fail_tests = [
-        {"flag": pd.Series(index=data.index, data=flagger.BAD).astype(flagger.dtype)},
-        {"field": ["var1", "var2"]},
-    ]
-    for args in fail_tests:
-        with pytest.raises(ValueError):
-            flagger.isFlagged(**args)
+    flags2 = flagger.getFlags(field)
+    assert isinstance(flags2, pd.Series)
+    assert flags2.dtype == flagger.dtype
+    assert flags2.shape[0] == data[field].shape[0]
+    # NOTE: need fix in dios see issue #16 (has very low priority)
+    # assert flags2.name in data.columns
 
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_setFlags(data, flagger):
+    """
+    test before:
+    - initFlags()
+    - getFlags()
+    """
     flagger = flagger.initFlags(data)
     sl = slice("2011-01-02", "2011-01-05")
     field, *_ = data.columns
@@ -197,8 +118,11 @@ def test_setFlags(data, flagger):
     base = flagger.getFlags()
 
     flagger_good = flagger.setFlags(field, flag=flagger.GOOD, loc=sl)
+    assert isinstance(flagger_good, type(flagger))
+    assert flagger_good is not flagger
+
     flags_good = flagger_good.getFlags()
-    assert flags_good.shape == base.shape
+    assert len(flags_good[field]) <= len(base[field])
     assert (flags_good.columns == base.columns).all()
     assert (flags_good.loc[sl, field] == flagger.GOOD).all()
 
@@ -220,32 +144,277 @@ def test_setFlags(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_getFlagger(data, flagger):
+    """
+    test before:
+    - initFlags()
+    - getFlags() inside getFlagger()
+    """
+    sl = slice(None, None, 3)
+
+    flagger = flagger.initFlags(data)
+    newflagger = flagger.getFlagger(loc=sl)
+    assert isinstance(newflagger, type(flagger))
+
+    newflags = newflagger.getFlags()
+    assert (newflags.columns == data.columns).all()
+    assert check_all_dios_index_length(newflags, data[sl])
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_setFlagger(data, flagger):
+    """
+    test before:
+    - initFlags()
+    - getFlags()
+    - setFlags()
+    - getFlagger()
+    """
+    field, *_ = data.columns
+    sl = slice(None, None, 3)
+
+    this_flagger = flagger.initFlags(data)
+    other_flagger = this_flagger.getFlagger(loc=sl).setFlags(field)
+    result_flagger = this_flagger.setFlagger(other_flagger)
+
+    result_flags = result_flagger.getFlags()
+    other_flags = other_flagger.getFlags()
+
+    # check flags that was set
+    check = result_flags.loc[sl, field] == other_flags[field]
+    assert check.all(None)
+    # check flags that was not set
+    mask = ~result_flags[field].index.isin(other_flags[field].index)
+    check = result_flags.loc[mask, field] == result_flagger.UNFLAGGED
+    assert check.all(None)
+
+    # check unchanged columns
+    cols = data.columns.to_list()
+    cols.remove(field)
+    check = result_flags[cols] == result_flagger.UNFLAGGED
+    assert check.all(None)
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_setFlaggerColumnsDiff(data, flagger):
+    """
+    test before:
+    - initFlags()
+    - getFlags()
+    - setFlags()
+    - getFlagger()
+    - setFlagger()
+    """
+    field, *_ = data.columns
+    new_field = field + "_new"
+    sl = slice(None, None, 2)
+
+    other_data = data.loc[sl]
+    other_data.columns = [new_field] + data.columns[1:].to_list()
+    other_flagger = flagger.initFlags(other_data)
+
+    this_flagger = flagger.initFlags(data).setFlags(field, flag=flagger.BAD)
+    result_flagger = this_flagger.setFlagger(other_flagger)
+
+    result_flags = result_flagger.getFlags()
+    other_flags = other_flagger.getFlags()
+
+    # we need to check if
+    # - the new column is present
+    # - the new column is identical to the original
+    # - the other column are unchanged
+    #   - field-column is BAD
+    #   - other columns are UNFLAGGED
+
+    assert new_field in result_flags
+
+    check = result_flags[new_field] == other_flags[new_field]
+    assert check.all(None)
+
+    check = result_flags[field] == result_flagger.BAD
+    assert check.all(None)
+
+    cols = data.columns.to_list()
+    cols.remove(field)
+    check = result_flags[cols] == result_flagger.UNFLAGGED
+    assert check.all(None)
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_setFlaggerIndexDiff(data, flagger):
+    """
+    test before:
+    - initFlags()
+    - getFlags()
+    - setFlags()
+    - getFlagger()
+    - setFlagger()
+
+    we need to check:
+    - index is union of this and other's index
+    - indices + values that only in this, should be present
+    - indices + values that only in other, should be present
+    - indices that in this and other, have values from other
+    """
+    field, *_ = data.columns
+    sl = slice(None, None, 2)
+
+    def shiftindex(s):
+        s.index = s.index + pd.Timedelta(minutes=2, seconds=25)
+        return s
+
+    # create a sliced time-shifted version of data
+    other_data = data.loc[sl].apply(shiftindex)
+    if isinstance(other_data, pd.Series):
+        pass
+
+    this_flagger = flagger.initFlags(data).setFlags(field, flag=flagger.BAD)
+    other_flagger = flagger.initFlags(other_data)
+    result_flagger = this_flagger.setFlagger(other_flagger)
+
+    result_flags = result_flagger.getFlags()
+    this_flags = this_flagger.getFlags()
+    other_flags = other_flagger.getFlags()
+
+    for c in result_flags:
+        t, o, r = this_flags[c], other_flags[c], result_flags[c]
+        assert (r.index == t.index.union(o.index)).all()
+
+        only_this = t.index.difference(o.index)
+        only_other = o.index.difference(t.index)
+        both = t.index.intersection(o.index)
+
+        # nothing is missing
+        assert (r.index == only_this.union(only_other).union(both)).all()
+
+        assert (r[only_this] == t[only_this]).all()
+        assert (r[only_other] == o[only_other]).all()
+        assert (r[both] == o[both]).all()
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_isFlaggedDios(data, flagger):
+    """
+    test before:
+    - initFlags()
+    - setFlags()
+    """
+    flagger = flagger.initFlags(data)
+    field, *_ = data.columns
+
+    mask = np.zeros(len(data[field]), dtype=bool)
+
+    df_tests = [
+        (flagger.isFlagged(), mask),
+        (flagger.setFlags(field).isFlagged(), ~mask),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator=">"), mask,),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="<"), mask,),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(flag=flagger.GOOD, comparator="=="), ~mask,),
+    ]
+    for flags, expected in df_tests:
+        assert np.all(flags[field] == expected)
+        assert isinstance(flags, dios.DictOfSeries)
+        assert check_all_dios_index_length(flags, data)
+        assert (flags.columns == data.columns).all()
+        for dt in flags.dtypes:
+            assert is_bool_dtype(dt)
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_isFlaggedSeries(data, flagger):
+    """
+    test before:
+    - initFlags()
+    - setFlags()
+    """
+    flagger = flagger.initFlags(data)
+    field, *_ = data.columns
+
+    mask = np.zeros(len(data[field]), dtype=bool)
+
+    series_tests = [
+        (flagger.isFlagged(field), mask),
+        (flagger.setFlags(field).isFlagged(field), ~mask),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator=">"), mask,),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="<"), mask,),
+        (flagger.setFlags(field, flag=flagger.GOOD).isFlagged(field, flag=flagger.GOOD, comparator="=="), ~mask,),
+    ]
+    for flags, expected in series_tests:
+        assert np.all(flags == expected)
+        assert isinstance(flags, pd.Series)
+        assert flags.dtype == bool
+        assert flags.shape[0] == data[field].shape[0]
+        # NOTE: need fix in dios see issue #16 (has very low priority)
+        # assert flags.name in data.columns
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_isFlaggedSeries_fail(data, flagger):
+    """
+    test before:
+    - initFlags()
+    """
+    flagger = flagger.initFlags(data)
+    field, *_ = data.columns
+
+    fail_tests = [
+        {"flag": pd.Series(index=data[field].index, data=flagger.BAD).astype(flagger.dtype)},
+        # NOTE: allowed since use of dios
+        # {"field": ["var1", "var2"]},
+    ]
+    for args in fail_tests:
+        with pytest.raises(ValueError):
+            flagger.isFlagged(**args)
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_clearFlags(data, flagger):
+    """
+    test before:
+    - initFlags()
+    - getFlags()
+    - setFlags()
+    - isFlagged()
+    """
     flagger = flagger.initFlags(data)
     sl = slice("2011-01-02", "2011-01-05")
     field, *_ = data.columns
 
-    base = flagger.getFlags()
+    base = flagger.getFlags(field)
 
     flagger = flagger.setFlags(field=field, flag=flagger.BAD)
     assert np.sum(flagger.isFlagged(field)) == len(base)
+
+    flaggernew = flagger.clearFlags(field)
+    assert isinstance(flaggernew, type(flagger))
+    assert flaggernew is not flagger
+    assert len(flagger.getFlags(field)) == len(data[field])
 
     flagger = flagger.clearFlags(field)
     assert np.sum(flagger.isFlagged(field)) == 0
+    assert len(flagger.getFlags(field)) == len(data[field])
 
     flagger = flagger.setFlags(field=field, flag=flagger.BAD)
     assert np.sum(flagger.isFlagged(field)) == len(base)
+    assert len(flagger.getFlags(field)) == len(data[field])
 
     flagger = flagger.clearFlags(field, loc=sl)
+    assert len(flagger.getFlags(field)) == len(data[field])
     unflagged = flagger.isFlagged(field, loc=sl)
     assert np.sum(unflagged) == 0
-    assert np.sum(flagger.isFlagged(field)) == len(data) - len(unflagged)
+    assert np.sum(flagger.isFlagged(field)) == len(data[field]) - len(unflagged)
 
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_dtype(data, flagger):
-
     flagger = flagger.initFlags(data)
     field, *_ = data.columns
 
@@ -264,7 +433,6 @@ def test_dtype(data, flagger):
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER[-1:])
 def test_returnCopy(data, flagger):
-
     flagger = flagger.initFlags(data)
     field, *_ = data.columns
 
@@ -283,7 +451,6 @@ LOC_ILOC_FUNCS = ["isFlagged", "getFlags"]
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("flaggerfunc", LOC_ILOC_FUNCS)
 def test_loc(data, flagger, flaggerfunc):
-
     flagger = flagger.initFlags(data)
     sl = slice("2011-01-02", "2011-01-05")
     field, *_ = data.columns
@@ -293,9 +460,9 @@ def test_loc(data, flagger, flaggerfunc):
     if d.empty:
         mask = []
     else:
-        m = data.index.get_loc(d.index[0])
-        M = data.index.get_loc(d.index[-1])
-        mask = np.full(len(data), False)
+        m = data[field].index.get_loc(d[field].index[0])
+        M = data[field].index.get_loc(d[field].index[-1])
+        mask = np.full(len(data[field]), False)
         mask[m:M] = True
 
     flagger_func = getattr(flagger, flaggerfunc)
@@ -332,70 +499,26 @@ def test_loc(data, flagger, flaggerfunc):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-@pytest.mark.parametrize("flaggerfunc", LOC_ILOC_FUNCS)
-def test_iloc(data, flagger, flaggerfunc):
-    flagger = flagger.initFlags(data)
-    field, *_ = data.columns
-
-    M = len(data.index) - 1 if len(data.index) > 0 else 0
-    m = M // 3
-    M = m * 2
-
-    array = data.reset_index(drop=True).index.values[m:M]
-    sl = slice(m, M)
-    mask = np.full(len(data), False)
-    mask[sl] = True
-
-    flagger_func = getattr(flagger, flaggerfunc)
-
-    # masked
-    mflags0 = flagger_func(field, iloc=mask)
-    mflags1 = flagger_func().iloc[mask, 0]
-    mflags2 = flagger_func(field).iloc[mask]
-    mflags3 = flagger_func(iloc=mask)[field]
-    assert (mflags0 == mflags1).all()
-    assert (mflags0 == mflags2).all()
-    assert (mflags0 == mflags3).all()
-
-    # indexed
-    iflags0 = flagger_func(field, iloc=array)
-    iflags1 = flagger_func().iloc[array, 0]
-    iflags2 = flagger_func(field).iloc[array]
-    iflags3 = flagger_func(iloc=array)[field]
-    assert (iflags0 == iflags1).all()
-    assert (iflags0 == iflags2).all()
-    assert (iflags0 == iflags3).all()
-
-    # sliced
-    sflags0 = flagger_func(field, iloc=sl)
-    sflags1 = flagger_func().iloc[sl, 0]
-    sflags2 = flagger_func(field).iloc[sl]
-    sflags3 = flagger_func(iloc=sl)[field]
-    assert (sflags0 == sflags1).all()
-    assert (sflags0 == sflags2).all()
-    assert (sflags0 == sflags3).all()
-
-    assert (sflags0 == iflags0).all()
-    assert (sflags0 == mflags0).all()
-
-
-@pytest.mark.parametrize("data", DATASETS)
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_classicUseCases(data, flagger):
     flagger = flagger.initFlags(data)
     field, *_ = data.columns
 
+    flagger = flagger.clearFlags(field)
+
     # data-mask, same length than flags
     d = data[field]
     mask = d < (d.max() - d.min()) // 2
-    flagger = flagger.clearFlags(field)
     flagged = flagger.setFlags(field, loc=mask, flag=flagger.BAD).isFlagged(field)
     assert (flagged == mask).all()
 
-    # some fun with numpy but not same dimensions.. pass indices to iloc
-    indices = np.arange(0, len(data))
+    flagger = flagger.clearFlags(field)
+
+    indices = np.arange(0, len(data[field]))
     mask = indices % 3 == 0
     indices = indices[mask]
-    flagger.clearFlags(field)
-    flagged = flagger.setFlags(field, iloc=indices, flag=flagger.BAD).isFlagged(field)
+    # we had some fun with numpy and end up with
+    # numpy indices (positional), but with different length..
+    # make dt-index with iloc, then pass to loc
+    dt_idx = data[field].iloc[indices].index
+    flagged = flagger.setFlags(field, loc=dt_idx, flag=flagger.BAD).isFlagged(field)
     assert (flagged.iloc[indices] == flagged[flagged]).all()

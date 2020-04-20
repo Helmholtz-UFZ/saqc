@@ -7,35 +7,42 @@ import numpy as np
 import saqc
 from saqc.core.reader import checkConfig
 from saqc.core.config import Fields as F
+import dios
 from test.common import initData, initMetaDict, initMetaString, TESTFLAGGER, TESTNODATA, writeIO
 
 
 @pytest.fixture
-def data():
+def data() -> dios.DictOfSeries:
     return initData(3)
 
 
 def test_configPreparation(data):
     var1, var2, var3, *_ = data.columns
-    date = data.index[len(data.index) // 2]
+    date = data.indexes[0][data.lengths[0] // 2]
 
     # NOTE:
     # time slicing support is currently disabled
     tests = [
         # {F.VARNAME: var1, F.START: date, F.TESTS: "flagAll()", F.PLOT: True},
-        {F.VARNAME: var2, F.TESTS: "flagAll()", F.PLOT: False},
         # {F.VARNAME: var3, F.END: date, F.TESTS: "flagAll()"},
+
+        {F.VARNAME: var2, F.TESTS: "flagAll()", F.PLOT: False},
         {F.VARNAME: var3, F.TESTS: "flagAll()",},
     ]
 
-    defaults = {
-        F.START: data.index.min(),
-        F.END: data.index.max(),
-        F.PLOT: False,
-        F.LINENUMBER: 2,
-    }
 
     for i, test in enumerate(tests):
+
+        index = data[test[F.VARNAME]].index
+        start_date, end_date = index.min(), index.max()
+
+        defaults = {
+            F.START: start_date,
+            F.END: end_date,
+            F.PLOT: False,
+            F.LINENUMBER: 2,
+        }
+
         _, meta_frame = initMetaDict([test], data)
         result = dict(zip(meta_frame.columns, meta_frame.iloc[0]))
         expected = {**defaults, **test}
@@ -112,7 +119,7 @@ def test_configMultipleTests(data):
         data, flagger_expected = func(data, var, flagger_expected, **kwargs)
     _, flagger_result = run(writeIO(config), SimpleFlagger(), data)
 
-    assert np.all(flagger_result.getFlags() == flagger_expected.getFlags())
+    assert (flagger_result.getFlags() == flagger_expected.getFlags()).all(None)
 
 
 def test_configFile(data):

@@ -9,9 +9,9 @@ from typing import TypeVar, Union, Any
 
 import numpy as np
 import pandas as pd
+import dios.dios as dios
 
-from saqc.lib.tools import toSequence, assertScalar, assertDataFrame
-
+from saqc.lib.tools import toSequence, assertScalar, assertDictOfSeries
 
 COMPARATOR_MAP = {
     "!=": op.ne,
@@ -22,26 +22,29 @@ COMPARATOR_MAP = {
     "<": op.lt,
 }
 
-
-BaseFlaggerT = TypeVar("BaseFlaggerT")
-PandasT = Union[pd.Series, pd.DataFrame]
 # TODO: get some real types here (could be tricky...)
 LocT = Any
-IlocT = Any
 FlagT = Any
+diosT = dios.DictOfSeries
+BaseFlaggerT = TypeVar("BaseFlaggerT")
+PandasT = Union[pd.Series, diosT]
 
 
 class BaseFlagger(ABC):
     @abstractmethod
     def __init__(self, dtype):
-        # NOTE: the type of the _flags DataFrame
+        # NOTE: the type of the _flags DictOfSeries
         self.dtype = dtype
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
         self.signature = ("flag",)
-        self._flags: pd.DataFrame
+        self._flags: diosT = dios.DictOfSeries()
 
-    def initFlags(self, data: pd.DataFrame = None, flags: pd.DataFrame = None) -> BaseFlaggerT:
+    @property
+    def flags(self):
+        return self._flags.copy()
+
+    def initFlags(self, data: diosT = None, flags: diosT = None) -> BaseFlaggerT:
         """
         initialize a flagger based on the given 'data' or 'flags'
         if 'data' is not None: return a flagger with flagger.UNFALGGED values
@@ -50,9 +53,17 @@ class BaseFlagger(ABC):
 
         if data is None and flags is None:
             raise TypeError("either 'data' or 'flags' are required")
+
         if data is not None:
-            flags = pd.DataFrame(data=self.UNFLAGGED, index=data.index, columns=data.columns)
-        return self._copy(self._assureDtype(flags))
+            assert isinstance(data, diosT)
+            flags = data.copy()
+            flags[:] = self.UNFLAGGED
+        else:
+            assert isinstance(flags, diosT)
+
+        newflagger = self.copy()
+        newflagger._flags = flags.astype(self.dtype)
+        return newflagger
 
     def setFlagger(self, other: BaseFlaggerT):
         """
@@ -62,116 +73,128 @@ class BaseFlagger(ABC):
         if not isinstance(other, self.__class__):
             raise TypeError(f"flagger of type '{self.__class__}' needed")
 
-        this = self._flags
-        other = other._flags
+        this = self.flags
+        other = other.flags
 
-        flags = this.reindex(
-            index=this.index.union(other.index),
-            columns=this.columns.union(other.columns, sort=False),
-            fill_value=self.UNFLAGGED,
-        )
+        # use dios.merge() as soon as it implemented
+        # see https://git.ufz.de/rdm/dios/issues/15
+        new = this.copy()
+        cols = this.columns.intersection(other.columns)
+        for c in cols:
+            l, r = this[c], other[c]
+            l = l.align(r, join='outer')[0]
+            l.loc[r.index] = r
+            new[c] = l
 
-        for key, values in other.iteritems():
-            flags.loc[other.index, key] = values
+        newcols = other.columns.difference(new.columns)
+        for c in newcols:
+            new[c] = other[c].copy()
 
-        return self._copy(self._assureDtype(flags))
+        newflagger = self.copy()
+        newflagger._flags = new
+        return newflagger
 
-    def getFlagger(self, field: str = None, loc: LocT = None, iloc: IlocT = None) -> BaseFlaggerT:
+    def getFlagger(self, field: str = None, loc: LocT = None) -> BaseFlaggerT:
+        """ Return a potentially trimmed down copy of self. """
+        flags = self.getFlags(field=field, loc=loc)
+        flags = dios.to_dios(flags)
+        newflagger = self.copy()
+        newflagger._flags = flags
+        return newflagger
+
+    def getFlags(self, field: str = None, loc: LocT = None) -> PandasT:
+        """ Return a potentially, to `loc`, trimmed down version of flags.
+
+        Return
+        ------
+        a pd.Series if field is a string or a Dios if not
+
+        Note
+        ----
+            This is more or less a __getitem__(key)-like function, where
+            self._flags is accessed and key is a single key or a tuple.
+            Either key is [loc] or [loc,field]. loc also can be a 2D-key,
+            aka. a booldios"""
+
+        # loc should be a valid 2D-indexer and
+        # then field must be None. Otherwise aloc
+        # will fail and throw the correct Error.
+        if isinstance(loc, diosT) and field is None:
+            indexer = loc
+
+        else:
+            loc = slice(None) if loc is None else loc
+            field = slice(None) if field is None else self._check_field(field)
+            indexer = (loc, field)
+
+        return self.flags.aloc[indexer]
+
+    def setFlags(self, field: str, loc: LocT = None, flag: FlagT = None, force: bool = False, **kwargs) -> BaseFlaggerT:
+        """Overwrite existing flags at loc.
+
+        If `force=False` (default) only flags with a lower priority are overwritten,
+        otherwise, if `force=True`, flags are overwritten unconditionally.
         """
-        return a potentially trimmed down copy of self
-        """
-        assertScalar("field", field, optional=True)
-        mask = self._locatorMask(field=slice(None), loc=loc, iloc=iloc)
-        flags = self._flags.loc[mask, field or slice(None)]
-        if isinstance(flags, pd.Series):
-            flags = flags.to_frame()
-        return self._copy(flags)
+        assert "iloc" not in kwargs, "deprecated keyword, `iloc=slice(i:j)`. Use eg. `loc=srs.index[i:j]` instead."
 
-    def getFlags(self, field: str = None, loc: LocT = None, iloc: IlocT = None) -> PandasT:
-        """
-        return a copy of a potentially trimmed down 'self._flags' DataFrame
-        """
-        assertScalar("field", field, optional=True)
-        field = field or slice(None)
-        flags = self._flags.copy()
-        mask = self._locatorMask(field, loc, iloc)
-        return flags.loc[mask, field]
-
-    def setFlags(
-        self, field: str, loc: LocT = None, iloc: IlocT = None, flag: FlagT = None, force: bool = False, **kwargs,
-    ) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
+        flag = self.BAD if flag is None else flag
 
-        flag = self.BAD if flag is None else self._checkFlag(flag)
-
-        this = self.getFlags(field=field)
-        other = self._broadcastFlags(field=field, flag=flag)
-
-        mask = self._locatorMask(field, loc, iloc)
-        if not force:
-            mask &= (this < other).values
+        if force:
+            row_indexer = loc
+        else:
+            # trim flags to loc, we always get a pd.Series returned
+            this = self.getFlags(field=field, loc=loc)
+            row_indexer = this < flag
 
         out = deepcopy(self)
-        out._flags.loc[mask, field] = other[mask]
+        out._flags.aloc[row_indexer, field] = flag
         return out
 
-    def clearFlags(self, field: str, loc: LocT = None, iloc: IlocT = None, **kwargs) -> BaseFlaggerT:
+    def clearFlags(self, field: str, loc: LocT = None, **kwargs) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
-        return self.setFlags(field=field, loc=loc, iloc=iloc, flag=self.UNFLAGGED, force=True, **kwargs)
+        if "force" in kwargs:
+            raise ValueError("Keyword 'force' is not allowed here.")
+        if "flag" in kwargs:
+            raise ValueError("Keyword 'flag' is not allowed here.")
+        return self.setFlags(field=field, loc=loc, flag=self.UNFLAGGED, force=True, **kwargs)
 
-    def isFlagged(
-        self, field=None, loc: LocT = None, iloc: IlocT = None, flag: FlagT = None, comparator: str = ">", **kwargs,
-    ) -> PandasT:
-        assertScalar("field", field, optional=True)
+    def isFlagged(self, field=None, loc: LocT = None, flag: FlagT = None, comparator: str = ">") -> PandasT:
         assertScalar("flag", flag, optional=True)
-        self._checkFlag(flag)
         flag = self.GOOD if flag is None else flag
-        flags = self.getFlags(field, loc, iloc, **kwargs)
+        flags = self.getFlags(field, loc)
         cp = COMPARATOR_MAP[comparator]
-        flagged = pd.notna(flags) & cp(flags, flag)
+
+        # use notna() to prevent nans to become True,
+        # like in: np.nan != 0 -> True
+        flagged = flags.notna() & cp(flags, flag)
         return flagged
 
-    def _copy(self, flags: pd.DataFrame = None) -> BaseFlaggerT:
-        out = deepcopy(self)
-        if flags is not None:
-            out._flags = flags
-        return out
+    def copy(self) -> BaseFlaggerT:
+        return deepcopy(self)
 
-    def _locatorMask(self, field: str = None, loc: LocT = None, iloc: IlocT = None) -> PandasT:
-        field = field or slice(None)
-        locator = [l for l in (loc, iloc, slice(None)) if l is not None][0]
-        index = self._flags.index
-        mask = pd.Series(data=np.zeros(len(index), dtype=bool), index=index)
-        mask[locator] = True
-        return mask
+    def _check_field(self, field):
+        """ Check if (all) field(s) in self._flags. """
 
-    def _broadcastFlags(self, field: str, flag: FlagT) -> pd.Series:
+        # wait for outcome of
+        # https://git.ufz.de/rdm-software/saqc/issues/46
+        failed = []
+        if isinstance(field, str):
+            if field not in self.flags:
+                failed += [field]
+        else:
+            try:
+                for f in field:
+                    if f not in self.flags:
+                        failed += [f]
+            # not iterable, probably a slice or
+            # any indexer we dont have to check
+            except TypeError:
+                pass
 
-        this = self.getFlags(field)
-
-        if np.isscalar(flag):
-            flag = np.full_like(this, flag)
-
-        return pd.Series(data=flag, index=this.index, name=field, dtype=self.dtype)
-
-    def _checkFlag(self, flag):
-        if flag is not None and not self._isDtype(flag):
-            raise TypeError(f"invalid flag value '{flag}' for flagger 'self.__class__'")
-        return flag
-
-    def _assureDtype(self, flags):
-        # NOTE: building up new DataFrames is significantly
-        #       faster than assigning into existing ones
-        if isinstance(flags, pd.Series):
-            return flags.astype(self.dtype)
-        tmp = OrderedDict()
-        for c in flags.columns:
-            tmp[c] = flags[c].astype(self.dtype)
-        return pd.DataFrame(tmp)
-
-    @abstractmethod
-    def _isDtype(self, flag) -> bool:
-        pass
+        if failed:
+            raise ValueError(f"key(s) missing in flags: {failed}")
+        return field
 
     @property
     @abstractmethod
