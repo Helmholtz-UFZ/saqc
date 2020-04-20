@@ -24,6 +24,10 @@ def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNM
            alpha=0.05):
 
     kNNfunc = getattr(ts_ops, scoring_method)
+    # partitioning
+    if not partition_freq:
+        partition_freq = val_frame.shape[0]
+
     if isinstance(partition_freq, str):
         partitions = val_frame.groupby(pd.Grouper(freq=partition_freq))
     else:
@@ -31,6 +35,7 @@ def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNM
         grouper_series = grouper_series.transform(lambda x: int(np.floor(x / partition_freq)))
         partitions = val_frame.groupby(grouper_series)
 
+    # calculate flags for every partition
     to_flag = []
     for _, partition in partitions:
         if partition.empty | (partition.shape[0] < partition_min):
@@ -131,10 +136,10 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@register("spikes_oddWater")
-def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0.05, binning='auto', n_neighbors=2,
-                        iter_start=0.5, scoring_method='kNNMaxGap', threshing='stray', stray_partition=None,
-                        **kwargs):
+@register("spikes_multivariateKNNScoring")
+def flagSpikes_multivariateKNNScoring(data, field, flagger, fields, trafo='normScale', alpha=0.05, binning='auto', n_neighbors=2,
+                                      iter_start=0.5, scoring_method='kNNMaxGap', threshing='stray', stray_partition=None,
+                                      **kwargs):
 
     trafo = composeFunction(trafo.split(','))
     # data fransformation/extraction

@@ -11,7 +11,7 @@ from saqc.funcs.spike_detection import (
     flagSpikes_slidingZscore,
     flagSpikes_basic,
     flagSpikes_limitRaise,
-    flagSpikes_oddWater
+    flagSpikes_multivariateKNNScoring
 )
 
 from test.common import TESTFLAGGER
@@ -112,7 +112,7 @@ def test_flagSpikesOddWater(dat, flagger):
     fields = ['data1', 'data2']
     data = pd.DataFrame({'data1': data1.squeeze(), 'data2': data2.squeeze()}, index=data1.index)
     flagger = flagger.initFlags(data)
-    _, flagger_result = flagSpikes_oddWater(
+    _, flagger_result = flagSpikes_multivariateKNNScoring(
         data, field, flagger, fields=fields, binning=50, trafo='np.log',
         iter_start=0.95, n_neighbors=10
     )
