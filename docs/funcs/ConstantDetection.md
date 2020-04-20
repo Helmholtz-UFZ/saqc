@@ -4,20 +4,20 @@ A collection of quality check routines to find constant values and plateaus.
 
 ## Index
 
-- [constant](#constant)
-- [constants_varianceBased](#constants_variancebased)
+- [constants_flagBasic](#constants_flagbasic)
+- [constants_flagVarianceBased](#constants_flagvariancebased)
 
 
-## constant
+## constants_flagBasic
 
 ```
-constant(window, thresh=0)
+constants_flagBasic(window, thresh=0)
 ```
 
-| parameter | data type                                                             | default value | description                                                                                          |
-|-----------|-----------------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------|
+| parameter | data type                                                             | default value | description                                                                                                                  |
+|-----------|-----------------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------|
 | window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) |               | The minimum count or duration in which the values must be constant to be considered as plateau candidates. See condition (1) |
-| thresh    | float                                                                 |             0 | The maximum difference between values to still considered as constant. See condition (2)                 |
+| thresh    | float                                                                 |             0 | The maximum difference between values to still considered as constant. See condition (2)                                     |
 
 This functions flags plateaus/series of constant values of length `window` if
 their difference is smaller than `thresh`.
@@ -28,11 +28,11 @@ is considered to be constant, if:
 2. $`|x_n - x_{n+s}| \le `$ `thresh`, $`s \in {1,2, ..., k}`$
 
 
-## constants_varianceBased
+## constants_flagVarianceBased
 
 ```
-constants_varianceBased(window="12h", thresh=0.0005,
-                        max_missing=None, max_consec_missing=None)
+constants_flagVarianceBased(window="12h", thresh=0.0005,
+                            max_missing=None, max_consec_missing=None)
 ```
 
 | parameter          | data type                                                     | default value | description                                                                                            |

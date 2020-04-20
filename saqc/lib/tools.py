@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import numbers
 from typing import Sequence, Union, Any, Iterator
 
 import numpy as np
@@ -58,8 +57,10 @@ def evalFuncString(func_string):
         except KeyError:
             availability_list = [f"'{k}' (= {s.__name__})" for k, s in OP_MODULES.items()]
             availability_list = " \n".join(availability_list)
-            raise ValueError(f'The external-module alias "{module}" is not known to the internal operators dispatcher. '
-                             f'\n Please select from: \n{availability_list}')
+            raise ValueError(
+                f'The external-module alias "{module}" is not known to the internal operators dispatcher. '
+                f"\n Please select from: \n{availability_list}"
+            )
 
     else:
         if func_string in SAQC_OPERATORS:
@@ -67,8 +68,10 @@ def evalFuncString(func_string):
         else:
             availability_list = [f"'{k}' (= {s.__name__})" for k, s in SAQC_OPERATORS.items()]
             availability_list = " \n".join(availability_list)
-            raise ValueError(f'The external-module alias "{func_string}" is not known to the internal operators '
-                             f'dispatcher. \n Please select from: \n{availability_list}')
+            raise ValueError(
+                f'The external-module alias "{func_string}" is not known to the internal operators '
+                f"dispatcher. \n Please select from: \n{availability_list}"
+            )
 
 
 def composeFunction(functions):

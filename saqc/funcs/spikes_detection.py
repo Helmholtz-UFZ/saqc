@@ -68,10 +68,10 @@ def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNM
 def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
            alpha=0.05, bin_frac=10):
 
-
     kNNfunc = getattr(ts_ops, scoring_method)
     resids = kNNfunc(val_frame.values, n_neighbors=n_neighbors, algorithm='ball_tree')
     data_len = resids.shape[0]
+
     # sorting
     sorted_i = resids.argsort()
     resids = resids[sorted_i]
@@ -112,7 +112,6 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
     while (test_val < crit_val) & (iter_index < resids.size-1):
         iter_index += 1
         new_iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
-
         # following if/else block "manually" expands the data histogram and circumvents calculation of the complete
         # histogram in any new iteration.
         if new_iter_max_bin_index == iter_max_bin_index:
@@ -136,8 +135,8 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@register("spikes_multivariateKNNScoring")
-def flagSpikes_multivariateKNNScoring(data, field, flagger, fields, trafo='normScale', alpha=0.05, binning='auto', n_neighbors=2,
+@register()
+def spikes_flagMultivariateKNNScores(data, field, flagger, fields, trafo='normScale', alpha=0.05, binning='auto', n_neighbors=2,
                                       iter_start=0.5, scoring_method='kNNMaxGap', threshing='stray', stray_partition=None,
                                       **kwargs):
 
@@ -169,17 +168,18 @@ def flagSpikes_multivariateKNNScoring(data, field, flagger, fields, trafo='normS
                                 iter_start=iter_start,
                                 alpha=alpha,
                                 bin_frac=binning)
+
     for var in fields:
         flagger = flagger.setFlags(var, to_flag_index, **kwargs)
 
     return data, flagger
 
 
-@register("spikes_limitRaise")
-def flagSpikes_limitRaise(
+
+@register()
+def spikes_flagRaise(
     data, field, flagger, thresh, raise_window, intended_freq, average_window=None, mean_raise_factor=2, min_slope=None,
-        min_slope_weight=0.8, numba_boost=True, **kwargs
-):
+        min_slope_weight=0.8, numba_boost=True, **kwargs):
 
     # NOTE1: this implementation accounts for the case of "pseudo" spikes that result from checking against outliers
     # NOTE2: the test is designed to work on raw data as well as on regularized
@@ -227,27 +227,31 @@ def flagSpikes_limitRaise(
 
     # "unflag" values of unsifficient deviation to theire predecessors
     if min_slope is not None:
-        w_mask = (pd.Series(dataseries.index).diff().dt.total_seconds() / intended_freq.total_seconds()) > \
-                 min_slope_weight
+        w_mask = (
+            pd.Series(dataseries.index).diff().dt.total_seconds() / intended_freq.total_seconds()
+        ) > min_slope_weight
         slope_mask = np.abs(dataseries.diff()) < min_slope
         to_unflag = raise_series.notna() & w_mask.values & slope_mask
         raise_series[to_unflag] = np.nan
 
     # calculate and apply the weighted mean weights (pseudo-harmonization):
-    weights = pd.Series(dataseries.index).diff(periods=2).shift(
-        -1).dt.total_seconds() / intended_freq.total_seconds() / 2
+    weights = (
+        pd.Series(dataseries.index).diff(periods=2).shift(-1).dt.total_seconds() / intended_freq.total_seconds() / 2
+    )
 
     weights.iloc[0] = 0.5 + (dataseries.index[1] - dataseries.index[0]).total_seconds() / (
-                intended_freq.total_seconds() * 2)
+        intended_freq.total_seconds() * 2
+    )
 
     weights.iloc[-1] = 0.5 + (dataseries.index[-1] - dataseries.index[-2]).total_seconds() / (
-                intended_freq.total_seconds() * 2)
+        intended_freq.total_seconds() * 2
+    )
 
     weights[weights > 1.5] = 1.5
     weighted_data = dataseries.mul(weights.values)
 
     # rolling weighted mean calculation
-    weighted_rolling_mean = weighted_data.rolling(average_window, min_periods=2, closed='both')
+    weighted_rolling_mean = weighted_data.rolling(average_window, min_periods=2, closed="both")
     if numba_boost:
         custom_rolling_mean = numba.jit(custom_rolling_mean, nopython=True)
         weighted_rolling_mean = weighted_rolling_mean.apply(custom_rolling_mean, raw=True, engine="numba")
@@ -262,8 +266,8 @@ def flagSpikes_limitRaise(
     return data, flagger
 
 
-@register("spikes_slidingZscore")
-def flagSpikes_slidingZscore(
+@register()
+def spikes_flagSlidingZscore(
     data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs,
 ):
     """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
@@ -386,8 +390,8 @@ def flagSpikes_slidingZscore(
     return data, flagger
 
 
-@register("spikes_simpleMad")
-def flagSpikes_simpleMad(data, field, flagger, window, z=3.5, **kwargs):
+@register()
+def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
     """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
 
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
@@ -424,8 +428,8 @@ def flagSpikes_simpleMad(data, field, flagger, window, z=3.5, **kwargs):
     return data, flagger
 
 
-@register("spikes_basic")
-def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window="15min", **kwargs):
+@register()
+def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min", **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -510,8 +514,8 @@ def flagSpikes_basic(data, field, flagger, thresh=7, tolerance=0, window="15min"
     return data, flagger
 
 
-@register("spikes_spektrumBased")
-def flagSpikes_spektrumBased(
+@register()
+def spikes_flagSpektrumBased(
     data,
     field,
     flagger,

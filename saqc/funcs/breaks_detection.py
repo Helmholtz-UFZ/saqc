@@ -10,8 +10,8 @@ from saqc.funcs.register import register
 from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
-@register("breaks_spektrumBased")
-def flagBreaksSpektrumBased(
+@register()
+def breaks_flagSpektrumBased(
     data,
     field,
     flagger,

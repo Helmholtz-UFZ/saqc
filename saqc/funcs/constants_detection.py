@@ -6,16 +6,11 @@ import pandas as pd
 
 from saqc.funcs.register import register
 from saqc.lib.ts_operators import varQC
-from saqc.lib.tools import (
-    valueRange,
-    slidingWindowIndices,
-    retrieveTrustworthyOriginal,
-    groupConsecutives,
-)
+from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
-@register("constant")
-def flagConstant(data, field, flagger, thresh, window, **kwargs):
+@register()
+def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
     """
     Flag values are (semi-)constant.
 
@@ -44,8 +39,8 @@ def flagConstant(data, field, flagger, thresh, window, **kwargs):
     return data, flagger
 
 
-@register("constant_varianceBased")
-def flagConstantVarianceBased(
+@register()
+def constants_flagVarianceBased(
     data, field, flagger, window="12h", thresh=0.0005, max_missing=None, max_consec_missing=None, **kwargs
 ):
 

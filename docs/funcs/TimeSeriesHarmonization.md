@@ -4,19 +4,19 @@ A collection of functions to harmonize time series.
 
 ## Index
 
-- [harmonize_shift2Grid](#harmonize_shift2grid)
-- [harmonize_aggregate2Grid](#harmonize_aggregate2grid)
-- [harmonize_linear2Grid](#harmonize_linear2grid)
-- [harmonize_interpolate2Grid](#harmonize_interpolate2grid)
-- [harmonize_downsample](#harmonize_downsample)
-- [harmonize](#harmonize)
-- [deharmonize](#deharmonize)
+- [harm_shift2Grid](#harm_shift2grid)
+- [harm_aggregate2Grid](#harm_aggregate2grid)
+- [harm_linear2Grid](#harm_linear2grid)
+- [harm_interpolate2Grid](#harm_interpolate2grid)
+- [harm_downsample](#harm_downsample)
+- [harm_harmonize](#harm_harmonize)
+- [harm_deharmonize](#harm_deharmonize)
 
 
-## harmonize_shift2grid
+## harm_shift2grid
 
 ```
-harmonize_shift2Grid(freq, method='nshift')
+harm_shift2Grid(freq, method='nshift')
 ```
 | parameter | data type                                                     | default value | description                           |
 |-----------|---------------------------------------------------------------|---------------|---------------------------------------|
@@ -29,7 +29,7 @@ grid by shifting data points to multiples of `freq`.
 
 This process includes:
 
-1. All missing values in the data set get [flagged](docs/funcs/Miscellaneous-md#missing). 
+1. All missing values in the data set get [flagged](docs/funcs/Miscellaneous-md#flagmissing). 
    These values will be excluded from the shifting process.
 2. Depending on the `method`, the data points and the associated
    flags will be assigned to a timestamp in the target grid
@@ -41,12 +41,12 @@ NOTE:
   is likely to differ from the size of the original series
 - Data from the original time series might be dropped 
   (e.g. if there are multiple candidates for a shift, only 
-  one is used), but can be restored by [deharmonize](#deharmonize)
+  one is used), but can be restored by [harm_deharmonize](#harm_deharmonize)
 
-## harmonize_aggregate2grid
+## harm_aggregate2grid
 
 ```
-harmonize_aggregate2Grid(freq, value_func, flag_func="max", method='nagg')
+harm_aggregate2Grid(freq, value_func, flag_func="max", method='nagg')
 ```
 | parameter  | data type                                                     | default value | description                                     |
 |------------|---------------------------------------------------------------|---------------|-------------------------------------------------|
@@ -61,7 +61,7 @@ by aggregating data points to multiples of `freq` using the `method`.
 
 This process includes:
 
-1. All missing values in the data set get [flagged](docs/funcs/Miscellaneous-md#missing). 
+1. All missing values in the data set get [flagged](docs/funcs/Miscellaneous-md#flagmissing). 
    These values will be excluded from the aggregation process
 2. Values and flags will be aggregated by `value_func` and `flag_func` respectively
 3. Depending on the `method`, the aggregation results will be assigned to a timestamp
@@ -76,10 +76,10 @@ NOTE:
   dataset will be treated as missing data
 
 
-## harmonize_linear2grid
+## harm_linear2grid
 
 ```
-harmonize_linear2Grid(freq, method='nagg', func="max")
+harm_linear2Grid(freq, method='nagg', func="max")
 ```
 
 | parameter | data type                                                                 | default value | description                                       |
@@ -94,7 +94,7 @@ by linear interpolation of data points to multiples of `freq`.
 
 This process includes:
 
-1. All missing values in the data set get [flagged](docs/funcs/Miscellaneous-md#missing). 
+1. All missing values in the data set get [flagged](docs/funcs/Miscellaneous-md#flagmissing). 
    These values will be excluded from the aggregation process
 2. Linear interpolation. This is not a gap filling algorithm, only target grid points, 
    that are surrounded by valid data points in the original data set within a range 
@@ -108,12 +108,12 @@ NOTE:
   dataset will be treated as missing data
 
 
-## harmonize_interpolate2grid
+## harm_interpolate2grid
 
 ```
-harmonize_interpolate2Grid(freq,
-                           method, order=1,
-                           flag_method='nagg', flag_func="max")
+harm_interpolate2Grid(freq,
+                      method, order=1,
+                      flag_method='nagg', flag_func="max")
 ```
 | parameter   | data type                                                                 | default value | description                                                             |
 |-------------|---------------------------------------------------------------------------|---------------|-------------------------------------------------------------------------|
@@ -129,7 +129,7 @@ by interpolation of data points to multiples of `freq`.
 
 This process includes:
 
-1. All missing values in the data set get [flagged](docs/funcs/Miscellaneous-md#missing). 
+1. All missing values in the data set get [flagged](docs/funcs/Miscellaneous-md#flagmissing). 
    These values will be excluded from the aggregation process
 2. Interpolation with `method`. This is not a gap filling algorithm,
    only target grid points, that are surrounded by valid data points in the original
@@ -144,12 +144,12 @@ NOTE:
   `nearest` and `pad`
 
 
-## harmonize_downsample
+## harm_downsample
 
 ```
-harmonize_downsample(sample_freq, agg_freq,
-                     sample_func="mean", agg_func="mean",
-                     max_invalid=None)
+harm_downsample(sample_freq, agg_freq,
+                sample_func="mean", agg_func="mean",
+                max_invalid=None)
 ```
 | parameter   | data type                                                     | default value | description                                                                                                                    |
 |-------------|---------------------------------------------------------------|---------------|--------------------------------------------------------------------------------------------------------------------------------|
@@ -166,16 +166,16 @@ If a `sample_func` is given, the data will be aggregated to `sample_freq`
 before downsampling.
 
 NOTE:
-- Although the function is a wrapper around `harmonize`, the deharmonization of "true"
+- Although the function is a wrapper around `harm_harmonize`, the deharmonization of "true"
   downsamples (`sample_freq` < `agg_freq`) is not supported yet.
 
 
-## harmonize
+## harm_harmonize
 
 ```
-harmonize(freq, inter_method, reshape_method, inter_agg="mean", inter_order=1,
-          inter_downcast=False, reshape_agg="max", reshape_missing_flag=None,
-          reshape_shift_comment=False, data_missing_value=np.nan)
+harm_harmonize(freq, inter_method, reshape_method, inter_agg="mean", inter_order=1,
+               inter_downcast=False, reshape_agg="max", reshape_missing_flag=None,
+               reshape_shift_comment=False, data_missing_value=np.nan)
 ```
 
 | parameter             | data type                                                                                                         | default value | description                                                                                                                                                                                                                                   |
@@ -188,7 +188,7 @@ harmonize(freq, inter_method, reshape_method, inter_agg="mean", inter_order=1,
 | inter_downcast        | bool                                                                                                              | `False`       | `True`: Decrease interpolation order if data chunks that are too short to be interpolated with order `inter_order`. <br/> `False`: Project those data chunks to `NAN`. <br/> Option only relevant if `inter_method` supports an `inter_order` |
 | reshape_agg           | [aggregation function string](#aggregation-functions)                                                             | `"max"`       | Function used for the aggregation of flags. By default (`"max"`) the worst/highest flag is assigned                                                                                                                                           |
 | reshape_missing_flag  | string                                                                                                            | `None`        | Valid flag value, that will be used for empty harmonization intervals. By default (`None`) such intervals are set to `BAD`                                                                                                                    |
-| reshape_shift_comment | bool                                                                                                              | `False`        | `True`: Shifted flags will be reset, other fields associated with a flag might get lost. <br/> `False`: Shifted flags will not be reset. <br/> <br/> Only relevant for multi-column flagger and a given `inter_method`                        |
+| reshape_shift_comment | bool                                                                                                              | `False`       | `True`: Shifted flags will be reset, other fields associated with a flag might get lost. <br/> `False`: Shifted flags will not be reset. <br/> <br/> Only relevant for multi-column flagger and a given `inter_method`                        |
 | data_missing_value    | Any                                                                                                               | `np.nan`      | The value, indicating missing data                                                                                                                                                                                                            |
 
 
@@ -199,7 +199,7 @@ timestamps, that are multiples of `freq`.
 This process includes:
 
 1. All missing values equal to `data_missing_value` in the data set
-   get [flagged](docs/funcs/Miscellaneous-md#missing). 
+   get [flagged](docs/funcs/Miscellaneous-md#flagmissing). 
    These values will be excluded from the aggregation process
 2. Values will be calculated according to the given `inter_method`
 3. Flags will be calculated according to the given `reshape_method`
@@ -215,13 +215,13 @@ NOTE:
 - Data from the original time series might be dropped, but can
   be restored by [deharmonize](#deharmonize)
 - Flags calculated on the new harmonized data set can be projected
-  to the original grid by [deharmonize](#deharmonize)
+  to the original grid by [harm_deharmonize](#harm_deharmonize)
 
 
-## deharmonize
+## harm_deharmonize
 
 ```
-deharmonize(co_flagging=False)
+harm_deharmonize(co_flagging=False)
 ```
 
 | parameter   | data type | default value | description                                                    |
@@ -229,20 +229,20 @@ deharmonize(co_flagging=False)
 | co_flagging | boolean   | `False`       | Control the bahviour of the flag reprojection, see description |
 
 
-This functions projects harmonized datasets back to there original time stamps
+This functions projects harmonized datasets back to their original time stamps
 and thereby restores the original data shape.
 
-A combination of calls to one of the `harmonize*` functions and `deharmonize`,
+A combination of calls to one of the `harm_*` functions and `harm_deharmonize`,
 allows to leverage information from data sets with differing timestamps/frequencies
 and bring the generated information back to the original dataset.
 
-`deharmonize` will implicitly revert the methods and functions applied during
+`_harm_deharmonize` will implicitly revert the methods and functions applied during
 harmonization. I.e.:
 - The harmonized time series will be dropped in favor of the original one
 - Flags are projected to the original time stamps if the are 'worse'/higher
   than the original. The direction of this projection is invert to the
-  shift/aggregation direction in `harmonize*`, i.e. a forward shift in
-  `harmonize*` will result in a backward shift in `deharmonize` and vice
+  shift/aggregation direction in `harm_*`, i.e. a forward shift in
+  `harm_*` will result in a backward shift in `harm_deharmonize` and vice
    versa.
 - The projection behavior is controlled by the value of `co_flagging`:
   + `False`: Project a flag from the harmonized time series to a single 
