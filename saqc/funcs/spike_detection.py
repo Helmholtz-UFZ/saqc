@@ -20,14 +20,20 @@ from saqc.lib.tools import (
 )
 
 
-def _stray(val_frame, partition_freq=None, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
+def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
            alpha=0.05):
 
     kNNfunc = getattr(ts_ops, scoring_method)
-    partitions = val_frame.groupby(pd.Grouper(freq=partition_freq))
+    if isinstance(partition_freq, str):
+        partitions = val_frame.groupby(pd.Grouper(freq=partition_freq))
+    else:
+        grouper_series = pd.Series(data=np.arange(0, val_frame.shape[0]), index=val_frame.index)
+        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / partition_freq)))
+        partitions = val_frame.groupby(grouper_series)
+
     to_flag = []
     for _, partition in partitions:
-        if partition.empty:
+        if partition.empty | (partition.shape[0] < partition_min):
             continue
         sample_size = partition.shape[0]
         nn_neighbors = min(n_neighbors, sample_size)
@@ -44,7 +50,6 @@ def _stray(val_frame, partition_freq=None, scoring_method='kNNMaxGap', n_neighbo
             ghat[i] = sum((tail_indices / (tail_size - 1)) * gaps[i - tail_indices + 1])
 
         log_alpha = np.log(1 / alpha)
-        log_inv_alpha = np.log(1 / (1-alpha))
         for iter_index in range(i_start - 1, sample_size):
             if gaps[iter_index] > log_alpha * ghat[iter_index]:
                 break
@@ -146,11 +151,11 @@ def flagSpikes_oddWater(data, field, flagger, fields, trafo='normScale', alpha=0
     val_frame = val_frame.transform(trafo)
 
     if threshing == 'stray':
-        to_flag_index =_stray(val_frame,
-                              partition_freq=stray_partition,
-                              scoring_method=scoring_method,
-                              n_neighbors=n_neighbors,
-                              iter_start=iter_start)
+        to_flag_index = _stray(val_frame,
+                               partition_freq=stray_partition,
+                               scoring_method=scoring_method,
+                               n_neighbors=n_neighbors,
+                               iter_start=iter_start)
 
     else:
         to_flag_index = _expFit(val_frame,
