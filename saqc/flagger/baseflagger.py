@@ -55,11 +55,13 @@ class BaseFlagger(ABC):
             raise TypeError("either 'data' or 'flags' are required")
 
         if data is not None:
-            assert isinstance(data, diosT)
+            if not isinstance(data, diosT):
+                data = dios.DictOfSeries(data)
             flags = data.copy()
             flags[:] = self.UNFLAGGED
         else:
-            assert isinstance(flags, diosT)
+            if not isinstance(data, diosT):
+                flags = dios.DictOfSeries(flags)
 
         newflagger = self.copy()
         newflagger._flags = flags.astype(self.dtype)
