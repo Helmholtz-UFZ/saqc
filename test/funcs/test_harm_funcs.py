@@ -113,32 +113,8 @@ def test_outsortCrap(data, flagger):
     assert drop_index.sort_values().difference(res.index).equals(drop_index.sort_values())
 
 
-
-@pytest.mark.skip(reason="makes all other tests in this module fail")
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_heapConsistency(data, flagger):
-
-    # NOTE:
-    #
-    # We currently rely on a heap usage, that breaks a situation
-    # like the one tested here:
-    # 1. harmonize a dataset `d_1` with index `i_1`
-    # 2. harmonize a dateset `d_2` with index `i_2` and
-    #    `i_1[0] != i_2[0]` and/or `i_1[-1] != i_2[-1]`
-    # 3. deharmonize `d_2`
-    #
-    # Expected behaviour:
-    # `deharmonize(harmonize(d_2)).index == i_2`
-    #
-    # Actual behaviour:
-    # `deharmonize(harmonize(d_2)).index == i_1`
-    #
-    # We cannot fix that right now, because this would break the more
-    # common usage pattern where SaQC only sees one dataset during the
-    # entire lifetime of the harmonization heap (we used to be CLI-first,
-    # after all).
-    #
-    # Merging `dios` should fix that issue, though.
 
     freq = "15Min"
 
@@ -152,7 +128,7 @@ def test_heapConsistency(data, flagger):
     flagger = flagger.initFlags(data)
     data_harm, flagger_harm = harm_harmonize(data, "data", flagger, freq, "time", "nshift")
     data_deharm, flagger_deharm = harm_deharmonize(data_harm, "data", flagger_harm)
-    assert np.all(data.dropna() == data_deharm.dropna())
+    assert np.all(data.to_df().dropna() == data_deharm.to_df().dropna())
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
