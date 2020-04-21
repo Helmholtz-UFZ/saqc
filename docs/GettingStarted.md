@@ -70,6 +70,12 @@ python -m pip install saqc
 
 or download it directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc).
 
+Get all required packages:
+
+```sh
+pip install -r requirements.txt
+```
+
 ## 3. Training tour
 
 The following passage guides you through the essentials of the usage of SaQC via
