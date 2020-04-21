@@ -4,16 +4,24 @@
 import numpy as np
 import pandas as pd
 
-from saqc.lib.tools import sesonalMask, flagWindow, groupConsecutives
+from saqc.lib.tools import groupConsecutives, sesonalMask
 
 from saqc.funcs.register import register
 
 
 @register()
 def procGeneric(data, field, flagger, func, **kwargs):
-    # TODO:
-    # - add new fields to te flagger
     data[field] = func.squeeze()
+    # NOTE:
+    # The flags to `field` will be (re-)set to UNFLAGGED
+
+    # PROBLEM:
+    # flagger.setFlagger merges the given flaggers, if
+    # `field` did already exist before the call to `procGeneric`
+    # but with a differing index, we end up with:
+    # len(data[field]) != len(flagger.getFlags(field))
+    # see: test/funcs/test_generic_functions.py::test_procGenericMultiple
+    flagger = flagger.setFlagger(flagger.initFlags(data[field]))
     return data, flagger
 
 

@@ -4,6 +4,8 @@
 import pytest
 import numpy as np
 
+from dios.dios import DictOfSeries
+
 from saqc.core.core import run
 from saqc.core.config import Fields as F
 
@@ -32,6 +34,20 @@ def _evalDslExpression(expr, data, field, flagger, nodata=np.nan):
 def data():
     return initData()
 
+
+@pytest.fixture
+def data_diff():
+    data = initData(cols=3)
+    col0 = data[data.columns[0]]
+    col1 = data[data.columns[1]]
+    mid = len(col0) // 2
+    offset = len(col0) // 8
+    return DictOfSeries(
+        data={
+            col0.name: col0.iloc[:mid + offset],
+            col1.name: col1.iloc[mid - offset:],
+        }
+    )
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_missingIdentifier(data, flagger):
@@ -233,3 +249,18 @@ def test_variableAssignments(data, flagger):
         "dummy1",
     }
     assert set(result_flagger.getFlags().columns) == set(data.columns) | {"dummy1", "dummy2"}
+
+
+@pytest.mark.xfail(strict=True)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_procGenericMultiple(data_diff, flagger):
+    var1, var2, *_ = data_diff.columns
+
+    config = f"""
+    {F.VARNAME} ; {F.TESTS}
+    dummy       ; procGeneric(func=var1 + 1)
+    dummy       ; procGeneric(func=var2 - 1)
+    """
+
+    result_data, result_flagger = run(writeIO(config), flagger, data_diff)
+    assert len(result_data["dummy"]) == len(result_flagger.getFlags("dummy"))
