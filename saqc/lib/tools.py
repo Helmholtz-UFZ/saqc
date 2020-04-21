@@ -7,6 +7,7 @@ import numpy as np
 import numba as nb
 import saqc.lib.ts_operators as ts_ops
 import scipy
+import sklearn
 from functools import reduce, partial
 import pandas as pd
 import dios
@@ -26,18 +27,25 @@ SAQC_OPERATORS = {
     "max": np.max,
     "first": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").first,
     "last": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").last,
-    "delta_t": ts_ops.deltaT,
+    "deltaT": ts_ops.deltaT,
     "id": ts_ops.identity,
     "diff": ts_ops.difference,
     "relDiff": ts_ops.relativeDifference,
     "deriv": ts_ops.derivative,
-    "roc": ts_ops.rateOfChange,
+    "rateOfChange": ts_ops.rateOfChange,
     "scale": ts_ops.scale,
     "normScale": ts_ops.normScale,
+    "meanStandardize": ts_ops.standardizeByMean,
+    "medianStandardize": ts_ops.standardizeByMedian,
+    "zLog": ts_ops.zeroLog
 }
 
 
-OP_MODULES = {"pd": pd, "np": np, "scipy": scipy}
+OP_MODULES = {'pd': pd,
+              'np': np,
+              'scipy': scipy,
+              'sklearn': sklearn
+              }
 
 
 def evalFuncString(func_string):

@@ -4,6 +4,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+from scipy.stats import iqr
 
 
 def _isValid(data, max_nan_total, max_nan_consec):
@@ -27,6 +28,11 @@ def _isValid(data, max_nan_total, max_nan_consec):
 def identity(ts):
     return ts
 
+
+def zeroLog(ts):
+    log_ts = np.log(ts)
+    log_ts[log_ts == -np.inf] = np.nan
+    return log_ts
 
 def difference(ts):
     return pd.Series.diff(ts)
@@ -84,7 +90,16 @@ def kNN(in_arr, n_neighbors, algorithm="ball_tree"):
     return nbrs.kneighbors()
 
 
-def kNNMaxGap(in_arr, n_neighbors, algorithm="ball_tree"):
+
+def standardizeByMean(ts):
+    return (ts - ts.mean())/ts.std()
+
+
+def standardizeByMedian(ts):
+    return (ts - ts.median())/iqr(ts, nan_policy='omit')
+
+
+def kNNMaxGap(in_arr, n_neighbors, algorithm='ball_tree'):
     dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
     sample_size = dist.shape[0]
     to_gap = np.append(np.array([[0] * sample_size]).T, dist, axis=1)

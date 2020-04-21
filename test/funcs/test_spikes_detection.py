@@ -12,7 +12,7 @@ from saqc.funcs.spikes_detection import (
     spikes_flagSlidingZscore,
     spikes_flagBasic,
     spikes_flagRaise,
-    spikes_flagOddWater,
+    spikes_flagMultivarScores
 )
 
 from test.common import TESTFLAGGER
@@ -111,8 +111,9 @@ def test_flagSpikesOddWater(dat, flagger):
     s2 = pd.Series(data=s2.values, index=s1.index)
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flagger = flagger.initFlags(data)
-    _, flagger_result = spikes_flagOddWater(
-        data, field, flagger, fields=fields, bin_frac=50, trafo="np.log", iter_start=0.95, n_neighbors=10
+    _, flagger_result = spikes_flagMultivarScores(
+        data, field, flagger, fields=fields, binning=50, trafo='np.log',
+        iter_start=0.95, n_neighbors=10
     )
     for field in fields:
         isflagged = flagger_result.isFlagged(field)

@@ -6,7 +6,7 @@ import re
 
 import numpy as np
 import pandas as pd
-import dios.dios as dios
+import dios
 
 from saqc.core.core import readConfig
 from saqc.flagger import (
