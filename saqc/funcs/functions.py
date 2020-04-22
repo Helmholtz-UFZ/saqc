@@ -35,6 +35,9 @@ def flagGeneric(data, field, flagger, func, **kwargs):
         raise TypeError(f"generic expression does not return an array")
     if not np.issubdtype(mask.dtype, np.bool_):
         raise TypeError(f"generic expression does not return a boolean array")
+
+    if flagger.getFlags(field).empty:
+        flagger = flagger.setFlagger(flagger.initFlags(data=pd.Series(name=field, index=mask.index)))
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
