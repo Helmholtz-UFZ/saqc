@@ -66,10 +66,11 @@ coming soon ...
 ## Features
 
 ## Bugfixes
-- spikes_flagRaise - overestimation of value courses average fixed
-- spikes_flagRaise - raise check window now closed on both sides
+- `spikes_flagRaise` - overestimation of value courses average fixed
+- `spikes_flagRaise` - raise check window now closed on both sides
 
 ## Refactorings
 - renamed `spikes_oddWater` to `spikes_flagMultivarScores`
+- added STRAY auto treshing algorithm to `spikes_flagMultivarScores`
 
 ## Breaking Changes
