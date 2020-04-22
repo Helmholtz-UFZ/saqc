@@ -213,10 +213,10 @@ def spikes_flagRaise(
             return np.nan
 
     def custom_rolling_mean(x):
-        return np.mean(x[:-1])
+        return np.sum(x[:-1])
 
     # get invalid-raise/drop mask:
-    raise_series = dataseries.rolling(raise_window, min_periods=2)
+    raise_series = dataseries.rolling(raise_window, min_periods=2, closed='both')
 
     if numba_boost:
         raise_check = numba.jit(raise_check, nopython=True)
@@ -250,16 +250,21 @@ def spikes_flagRaise(
     )
 
     weights[weights > 1.5] = 1.5
-    weighted_data = dataseries.mul(weights.values)
+    weights.index = dataseries.index
+    weighted_data = dataseries.mul(weights)
 
     # rolling weighted mean calculation
     weighted_rolling_mean = weighted_data.rolling(average_window, min_periods=2, closed="both")
+    weights_rolling_sum = weights.rolling(average_window, min_periods=2, closed="both")
     if numba_boost:
         custom_rolling_mean = numba.jit(custom_rolling_mean, nopython=True)
         weighted_rolling_mean = weighted_rolling_mean.apply(custom_rolling_mean, raw=True, engine="numba")
+        weights_rolling_sum = weights_rolling_sum.apply(custom_rolling_mean, raw=True, engine="numba")
     else:
         weighted_rolling_mean = weighted_rolling_mean.apply(custom_rolling_mean, raw=True)
+        weights_rolling_sum = weights_rolling_sum.apply(custom_rolling_mean, raw=True, engine="numba")
 
+    weighted_rolling_mean = weighted_rolling_mean/weights_rolling_sum
     # check means against critical raise value:
     to_flag = dataseries >= weighted_rolling_mean + (raise_series / mean_raise_factor)
     to_flag &= raise_series.notna()
