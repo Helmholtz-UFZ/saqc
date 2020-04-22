@@ -43,7 +43,7 @@
 
 ## Features
 - spike detection test `spikes_flagRaise`
-- spike detection test `spikes_flagMultivarScores`
+- spike detection test `spikes_oddWater`
 - generic processing function `procGeneric` 
 
 ## Bugfixes
@@ -66,7 +66,10 @@ coming soon ...
 ## Features
 
 ## Bugfixes
+- spikes_flagRaise - overestimation of value courses average fixed
+- spikes_flagRaise - raise check window now closed on both sides
 
 ## Refactorings
+- renamed `spikes_oddWater` to `spikes_flagMultivarScores`
 
 ## Breaking Changes
