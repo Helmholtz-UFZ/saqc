@@ -352,9 +352,12 @@ def _interpolateGrid(
 
         # account for annoying case of subsequent frequency alligned values, differing exactly by the margin
         # 2*freq:
-        spec_case_mask = data.asfreq(freq).dropna().index.to_series()
-        spec_case_mask = (spec_case_mask - spec_case_mask.shift(1)) == 2 * pd.Timedelta(freq)
+        spec_case_mask = data.index.to_series()
+        spec_case_mask = spec_case_mask - spec_case_mask.shift(1)
+        spec_case_mask = spec_case_mask == 2 * pd.Timedelta(freq)
         spec_case_mask = spec_case_mask[spec_case_mask]
+        spec_case_mask = spec_case_mask.resample(freq).asfreq().dropna()
+
         if not spec_case_mask.empty:
             spec_case_mask = spec_case_mask.tshift(-1, freq)
 
