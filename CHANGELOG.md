@@ -43,7 +43,7 @@
 
 ## Features
 - spike detection test `spikes_flagRaise`
-- spike detection test `spikes_oddWater`
+- spike detection test `spikes_flagMultivarScores`
 - generic processing function `procGeneric` 
 
 ## Bugfixes
