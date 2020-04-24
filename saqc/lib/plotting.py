@@ -517,8 +517,8 @@ def _splitByFlag(flags: pd.Series, flagger, var: str):
     g = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator='==')
     b = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator='==')
     u = flagger.isFlagged(field=var, loc=loc, flag=flagger.UNFLAGGED, comparator='==')
-    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator='>')
-    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator='<') & s
+    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator='<')
+    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator='>') & s
     return g[g], s[s], b[b], u[u], n[n]
 
 
