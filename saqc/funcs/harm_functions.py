@@ -9,6 +9,7 @@ import dios
 from saqc.funcs.functions import flagMissing
 from saqc.funcs.register import register
 from saqc.lib.tools import toSequence, getFuncFromInput
+from saqc.lib.ts_operators import interpolateNANs
 
 
 logger = logging.getLogger("SaQC")
@@ -362,8 +363,9 @@ def _interpolateGrid(
             spec_case_mask = spec_case_mask.tshift(-1, freq)
 
         data = _insertGrid(data, freq)
-        data, chunk_bounds = _interpolate(
+        data, chunk_bounds = interpolateNANs(
             data, method, order=order, inter_limit=2, downcast_interpolation=downcast_interpolation,
+            return_chunk_bounds=True
         )
 
         # exclude falsely interpolated values:
@@ -379,78 +381,6 @@ def _interpolateGrid(
     if total_range is not None:
         data = data.reindex(total_index)
 
-    return data, chunk_bounds
-
-
-def _interpolate(data, method, order=2, inter_limit=2, downcast_interpolation=False):
-    """
-    The function interpolates nan-values (and nan-grids) in timeseries data. It can be passed all the method keywords
-    from the pd.Series.interpolate method and will than apply this very methods. Note, that the inter_limit keyword
-    really restricts the interpolation to chunks, not containing more than "inter_limit" nan entries
-    (thereby opposing the limit keyword of pd.Series.interpolate).
-
-    :param data:                    pd.Series. The data series to be interpolated
-    :param method:                  String. Method keyword designating interpolation method to use.
-    :param order:                   Integer. If your desired interpolation method needs an order to be passed -
-                                    here you pass it.
-    :param inter_limit:             Integer. Default = 2. Limit up to wich nan - gaps in the data get interpolated.
-                                    Its default value suits an interpolation that only will apply on an inserted
-                                    frequency grid.
-    :param downcast_interpolation:  Boolean. Default False. If True:
-                                    If a data chunk not contains enough values for interpolation of the order "order",
-                                    the highest order possible will be selected for that chunks interpolation."
-    :return:
-    """
-
-    gap_mask = (data.rolling(inter_limit, min_periods=0).apply(lambda x: np.sum(np.isnan(x)), raw=True)) != inter_limit
-
-    if inter_limit == 2:
-        gap_mask = gap_mask & gap_mask.shift(-1, fill_value=True)
-    else:
-        gap_mask = (
-            gap_mask.replace(True, np.nan).fillna(method="bfill", limit=inter_limit).replace(np.nan, True).astype(bool)
-        )
-    # start end ending points of interpolation chunks have to be memorized to block their flagging:
-    chunk_switches = gap_mask.astype(int).diff()
-    chunk_starts = chunk_switches[chunk_switches == -1].index
-    chunk_ends = chunk_switches[(chunk_switches.shift(-1) == 1)].index
-    chunk_bounds = chunk_starts.join(chunk_ends, how="outer", sort=True)
-
-    data = data[gap_mask]
-
-    if method in ["linear", "time"]:
-
-        data.interpolate(method=method, inplace=True, limit=1, limit_area="inside")
-
-    else:
-        dat_name = data.name
-        gap_mask = (~gap_mask).cumsum()
-        data = pd.merge(gap_mask, data, how="inner", left_index=True, right_index=True)
-
-        def _interpolWrapper(x, wrap_order=order, wrap_method=method):
-            if x.count() > wrap_order:
-                try:
-                    return x.interpolate(method=wrap_method, order=int(wrap_order))
-                except (NotImplementedError, ValueError):
-                    logger.warning(
-                        "Interpolation with method {} is not supported at order {}. "
-                        "Interpolation will be performed with order {}".format(
-                            method, str(wrap_order), str(wrap_order - 1)
-                        )
-                    )
-                    return _interpolWrapper(x, int(wrap_order - 1), wrap_method)
-            elif x.size < 3:
-                return x
-            else:
-                if downcast_interpolation:
-                    return _interpolWrapper(x, int(x.count() - 1), wrap_method)
-                else:
-                    return x
-
-        data = data.groupby(data.columns[0]).transform(_interpolWrapper)
-        # squeezing the 1-dimensional frame resulting from groupby for consistency reasons
-        data = data.squeeze(axis=1)
-        data.name = dat_name
     return data, chunk_bounds
 
 
