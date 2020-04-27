@@ -3,11 +3,19 @@
 
 import pandas as pd
 import numpy as np
+import numba as nb
+import math
 from sklearn.neighbors import NearestNeighbors
 from scipy.stats import iqr
+import logging
+logger = logging.getLogger("SaQC")
 
+# CONSISTENCY-NOTE:
+# ALL transformations can handle np.array and pd.Series as input (excluded the transformations needing timestamp
+# informations for calculation). Although some transformations retain pd.Series index information -
+# some others do not. Use dataseries' .transform / .resample / ... methods to apply transformations to
+# dataseries/dataframe columns, so you can be sure to keep index informations.
 
-# ts_transformations
 def identity(ts):
     return ts
 
@@ -17,8 +25,10 @@ def zeroLog(ts):
     log_ts[log_ts == -np.inf] = np.nan
     return log_ts
 
+
 def difference(ts):
-    return pd.Series.diff(ts)
+    # NOTE: index of input series gets lost!
+    return np.diff(ts, prepend=np.nan)
 
 
 def derivative(ts, unit="1min"):
@@ -30,16 +40,19 @@ def deltaT(ts, unit="1min"):
 
 
 def rateOfChange(ts):
-    return ts.diff / ts
+    return difference(ts) / ts
 
 
 def relativeDifference(ts):
-    return ts - 0.5 * (ts.shift(+1) + ts.shift(-1))
+    res = ts - 0.5 * (np.roll(ts, +1) + np.roll(ts, -1))
+    res[0] = np.nan
+    res[-1] = np.nan
+    return res
 
 
 def scale(ts, target_range=1, projection_point=None):
     if not projection_point:
-        projection_point = ts.abs().max()
+        projection_point = np.max(np.abs(ts))
     return (ts / projection_point) * target_range
 
 
@@ -48,40 +61,22 @@ def normScale(ts):
     return (ts - ts_min) / (ts.max() - ts_min)
 
 
-def nBallClustering(in_arr, ball_radius=None):
-    x_len = in_arr.shape[0]
-    x_cols = in_arr.shape[1]
-
-    if not ball_radius:
-        ball_radius = 0.1 / np.log(x_len) ** (1 / x_cols)
-    exemplars = [in_arr[0, :]]
-    members = [[]]
-    for index, point in in_arr:
-        dists = np.linalg.norm(point - np.array(exemplars), axis=1)
-        min_index = dists.argmin()
-        if dists[min_index] < ball_radius:
-            members[min_index].append(index)
-        else:
-            exemplars.append(in_arr[index])
-            members.append([index])
-    ex_indices = [x[0] for x in members]
-    return exemplars, members, ex_indices
-
-
 def standardizeByMean(ts):
-    return (ts - ts.mean())/ts.std()
+    return (ts - np.mean(ts))/np.std(ts, ddof=1)
 
 
 def standardizeByMedian(ts):
-    return (ts - ts.median())/iqr(ts, nan_policy='omit')
+    return (ts - np.median(ts))/iqr(ts, nan_policy='omit')
 
 
 def _kNN(in_arr, n_neighbors, algorithm="ball_tree"):
-    nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr)
+    # in: array only
+    nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr.reshape(-1, 1))
     return nbrs.kneighbors()
 
 
 def kNNMaxGap(in_arr, n_neighbors, algorithm='ball_tree'):
+    in_arr = np.asarray(in_arr)
     dist, *_ = _kNN(in_arr, n_neighbors, algorithm=algorithm)
     sample_size = dist.shape[0]
     to_gap = np.append(np.array([[0] * sample_size]).T, dist, axis=1)
@@ -90,20 +85,37 @@ def kNNMaxGap(in_arr, n_neighbors, algorithm='ball_tree'):
 
 
 def kNNSum(in_arr, n_neighbors, algorithm="ball_tree"):
+    in_arr = np.asarray(in_arr)
     dist, *_ = _kNN(in_arr, n_neighbors, algorithm=algorithm)
     return dist.sum(axis=1)
+
+
+@nb.njit
+def _max_consecutive_nan(arr):
+    max_ = 0
+    current = 0
+    idx = 0
+    while idx < arr.size:
+        while idx < arr.size and math.isnan(arr[idx]):
+            current += 1
+            idx += 1
+        if current > max_:
+            max_ = current
+        current = 0
+        idx += 1
+    return max_
 
 
 def _isValid(data, max_nan_total, max_nan_consec):
     if (max_nan_total is np.inf) & (max_nan_consec is np.inf):
         return True
 
-    nan_mask = data.isna()
+    nan_mask = np.isnan(data)
 
     if nan_mask.sum() <= max_nan_total:
         if max_nan_consec is np.inf:
             return True
-        elif nan_mask.rolling(window=max_nan_consec + 1).sum().max() <= max_nan_consec:
+        elif _max_consecutive_nan(np.asarray(data)) <= max_nan_consec:
             return True
         else:
             return False
@@ -121,7 +133,7 @@ def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
     """
     if _isValid(data, max_nan_total, max_nan_consec):
-        return data.std()
+        return np.std(data, ddof=1)
     return np.nan
 
 
@@ -135,7 +147,7 @@ def varQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
     """
     if _isValid(data, max_nan_total, max_nan_consec):
-        return data.var()
+        return np.var(data, ddof=1)
     return np.nan
 
 
@@ -149,7 +161,7 @@ def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
     """
     if _isValid(data, max_nan_total, max_nan_consec):
-        return data.mean()
+        return np.mean(data)
     return np.nan
 
 
@@ -180,6 +192,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downcast_interpolation
     :return:
     """
 
+    data = pd.Series(data)
     gap_mask = (data.rolling(inter_limit, min_periods=0).apply(lambda x: np.sum(np.isnan(x)), raw=True)) != inter_limit
 
     if inter_limit == 2:
@@ -235,3 +248,23 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downcast_interpolation
         return data, chunk_bounds
     else:
         return data
+
+
+def leaderClustering(in_arr, ball_radius=None):
+    x_len = in_arr.shape[0]
+    x_cols = in_arr.shape[1]
+
+    if not ball_radius:
+        ball_radius = 0.1 / np.log(x_len) ** (1 / x_cols)
+    exemplars = [in_arr[0, :]]
+    members = [[]]
+    for index, point in in_arr:
+        dists = np.linalg.norm(point - np.array(exemplars), axis=1)
+        min_index = dists.argmin()
+        if dists[min_index] < ball_radius:
+            members[min_index].append(index)
+        else:
+            exemplars.append(in_arr[index])
+            members.append([index])
+    ex_indices = [x[0] for x in members]
+    return exemplars, members, ex_indices
