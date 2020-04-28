@@ -91,78 +91,52 @@ def kNNSum(in_arr, n_neighbors, algorithm="ball_tree"):
 
 
 @nb.njit
-def _max_consecutive_nan(arr):
-    max_ = 0
+def _max_consecutive_nan(arr, max_consec):
     current = 0
     idx = 0
     while idx < arr.size:
-        while idx < arr.size and math.isnan(arr[idx]):
+        while idx < arr.size and arr[idx]:
             current += 1
             idx += 1
-        if current > max_:
-            max_ = current
+        if current > max_consec:
+            return False
         current = 0
         idx += 1
-    return max_
+    return True
 
 
-def _isValid(data, max_nan_total, max_nan_consec):
+def validationTrafo(data, max_nan_total, max_nan_consec):
+    # function returns nan arraylike of input array size for invalid input arrays and works alike identity on valid ones
+    data = data.copy()
     if (max_nan_total is np.inf) & (max_nan_consec is np.inf):
-        return True
+        return data
 
     nan_mask = np.isnan(data)
 
     if nan_mask.sum() <= max_nan_total:
         if max_nan_consec is np.inf:
-            return True
-        elif _max_consecutive_nan(np.asarray(data)) <= max_nan_consec:
-            return True
+            return data
+        elif _max_consecutive_nan(np.asarray(nan_mask),max_nan_consec):
+            return data
         else:
-            return False
+            data[:] = np.nan
+            return data
     else:
-        return False
+        data[:] = np.nan
+        return data
 
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    """Pandas built in function for statistical moments have quite poor nan- control, so here comes a wrapper that
-    will return the standart deviation for a given series input, if the total number of nans in the series does
-    not exceed "max_nan_total" and the number of consecutive nans does not exceed max_nan_consec.
-
-    :param data             Pandas Series. The data series, the standart deviation shall be calculated of.
-    :param max_nan_total    Integer. Number of np.nan entries allowed to be contained in the series
-    :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
-    """
-    if _isValid(data, max_nan_total, max_nan_consec):
-        return np.std(data, ddof=1)
-    return np.nan
+    return np.nanstd(validationTrafo(data, max_nan_total, max_nan_consec), ddof=1)
 
 
 def varQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    """Pandas built in function for statistical moments have quite poor nan- control, so here comes a wrapper that
-    will return the variance for a given series input, if the total number of nans in the series does
-    not exceed "max_nan_total" and the number of consecutive nans does not exceed max_nan_consec.
-
-    :param data             Pandas Series. The data series, the variance shall be calculated of.
-    :param max_nan_total    Integer. Number of np.nan entries allowed to be contained in the series
-    :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
-    """
-    if _isValid(data, max_nan_total, max_nan_consec):
-        return np.var(data, ddof=1)
-    return np.nan
+    return np.nanvar(validationTrafo(data, max_nan_total, max_nan_consec), ddof=1)
 
 
 def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    """Pandas built in function for statistical moments have quite poor nan- control, so here comes a wrapper that
-    will return the mean for a given series input, if the total number of nans in the series does
-    not exceed "max_nan_total" and the number of consecutive nans does not exceed max_nan_consec.
+    return np.nanmean(validationTrafo(data, max_nan_total, max_nan_consec))
 
-    :param data             Pandas Series. The data series, the mean shall be calculated of.
-    :param max_nan_total    Integer. Number of np.nan entries allowed to be contained in the series
-    :param max_nan_consec   Integer. Maximal number of consecutive nan entries allowed to occure in data.
-    """
-    if _isValid(data, max_nan_total, max_nan_consec):
-        return np.mean(data)
-    return np.nan
 
 
 def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolation=False, return_chunk_bounds=False):
