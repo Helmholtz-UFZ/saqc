@@ -8,7 +8,7 @@ from saqc.lib.ts_operators import interpolateNANs, validationTrafo
 from saqc.lib.tools import composeFunction
 
 @register()
-def proc_interpolateMissing(data, field, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
+def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
                             downgrade_interpolation=False, return_chunk_bounds=False, **kwargs):
 
     inter_data = interpolateNANs(data[field], method, order=inter_order, inter_limit=inter_limit,
