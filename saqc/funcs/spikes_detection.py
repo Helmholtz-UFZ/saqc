@@ -59,7 +59,7 @@ def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNM
             if gaps[iter_index] > log_alpha * ghat[iter_index]:
                 break
 
-
+        
         to_flag = np.append(to_flag, list(partition.index[sorted_i[iter_index:]]))
 
     return to_flag

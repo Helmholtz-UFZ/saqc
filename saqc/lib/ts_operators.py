@@ -71,7 +71,7 @@ def standardizeByMedian(ts):
 
 def _kNN(in_arr, n_neighbors, algorithm="ball_tree"):
     # in: array only
-    nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr.reshape(-1, 1))
+    nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr.reshape(in_arr.shape[0], -1))
     return nbrs.kneighbors()
 
 

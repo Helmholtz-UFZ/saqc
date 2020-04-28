@@ -12,7 +12,6 @@ from test.common import TESTFLAGGER, initData
 from saqc.funcs.harm_functions import (
     harm_harmonize,
     harm_deharmonize,
-    _interpolate,
     _interpolateGrid,
     _insertGrid,
     _outsortCrap,
@@ -92,7 +91,6 @@ def test_gridInterpolation(data, method):
         _interpolateGrid(data, freq, method, order=2, **kwds)
         _interpolateGrid(data, freq, method, order=10, **kwds)
         data = _insertGrid(data, freq)
-        _interpolate(data, method, inter_limit=3)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -313,7 +311,6 @@ def test_gridInterpolation(data, method):
         _interpolateGrid(data, freq, method, order=2, agg_method="sum", downcast_interpolation=True)
         _interpolateGrid(data, freq, method, order=10, agg_method="sum", downcast_interpolation=True)
         data = _insertGrid(data, freq)
-        _interpolate(data, method, inter_limit=3)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
