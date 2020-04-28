@@ -173,11 +173,17 @@ def run(
                 continue
 
             if configrow[Fields.PLOT]:
-                plotHook(
-                    data_old=data_chunk, data_new=data_chunk_result,
-                    flagger_old=flagger_chunk, flagger_new=flagger_chunk_result,
-                    sources=[], targets=[varname], plot_name=func,
-                )
+                try:
+                    plotHook(
+                        data_old=data_chunk, data_new=data_chunk_result,
+                        flagger_old=flagger_chunk, flagger_new=flagger_chunk_result,
+                        sources=[], targets=[varname], plot_name=func,
+                    )
+                except Exception:
+                    logger.exception(f"Plotting failed. \n"
+                                     f"  config line:  {configrow[Fields.LINENUMBER]}\n"
+                                     f"  expression:   {func}\n"
+                                     f"  variable(s):  {[varname]}.")
 
             # NOTE:
             # time slicing support is currently disabled
@@ -188,6 +194,11 @@ def run(
 
     plotfields = config[Fields.VARNAME][config[Fields.PLOT]]
     if len(plotfields) > 0:
-        plotAllHook(data, flagger)
+        try:
+            # to only show variables that have set the plot-flag
+            # use: plotAllHook(data, flagger, targets=plotfields)
+            plotAllHook(data, flagger)
+        except Exception:
+            logger.exception(f"Final plotting failed.")
 
     return data, flagger
