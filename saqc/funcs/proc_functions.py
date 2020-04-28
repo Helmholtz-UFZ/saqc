@@ -7,6 +7,7 @@ from saqc.funcs.register import register
 from saqc.lib.ts_operators import interpolateNANs, validationTrafo
 from saqc.lib.tools import composeFunction
 
+
 @register()
 def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
                             downgrade_interpolation=False, return_chunk_bounds=False, **kwargs):
@@ -19,6 +20,7 @@ def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_l
         flagger = flagger.setFlags(field, loc=interpolated[interpolated].index, force=True,
                                    flag=getattr(flagger, interpol_flag), **kwargs)
     return inter_data, flagger
+
 
 @register()
 def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total=None, max_invalid_consec=None,
@@ -61,4 +63,11 @@ def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total=Non
     all_flags[field] = datflags
     flagger = flagger.initFlags(flags=all_flags)
 
+    return data, flagger
+
+
+@register()
+def proc_transform(data, field, flagger, func, **kwargs):
+    func = composeFunction(func)
+    data[field] = data[field].transform(func)
     return data, flagger
