@@ -116,7 +116,7 @@ def validationTrafo(data, max_nan_total, max_nan_consec):
     if nan_mask.sum() <= max_nan_total:
         if max_nan_consec is np.inf:
             return data
-        elif _max_consecutive_nan(np.asarray(nan_mask),max_nan_consec):
+        elif _max_consecutive_nan(np.asarray(nan_mask), max_nan_consec):
             return data
         else:
             data[:] = np.nan
