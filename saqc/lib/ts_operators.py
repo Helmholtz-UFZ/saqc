@@ -165,29 +165,31 @@ def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     return np.nan
 
 
-def interpolateNANs(data, method, order=2, inter_limit=2, downcast_interpolation=False, return_chunk_bounds=False):
+def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolation=False, return_chunk_bounds=False):
     """
     The function interpolates nan-values (and nan-grids) in timeseries data. It can be passed all the method keywords
     from the pd.Series.interpolate method and will than apply this very methods. Note, that the inter_limit keyword
     really restricts the interpolation to chunks, not containing more than "inter_limit" nan entries
-    (thereby opposing the limit keyword of pd.Series.interpolate).
+    (thereby not being identical to the "limit" keyword of pd.Series.interpolate).
 
-    :param data:                    pd.Series. The data series to be interpolated
+    :param data:                    pd.Series or np.array. The data series to be interpolated
     :param method:                  String. Method keyword designating interpolation method to use.
     :param order:                   Integer. If your desired interpolation method needs an order to be passed -
                                     here you pass it.
-    :param inter_limit:             Integer. Default = 2. Limit up to whitch nan - gaps in the data get interpolated.
-                                    Its default value suits an interpolation that only will apply on an inserted
-                                    frequency grid. (regularization by interpolation)
-    :param downcast_interpolation:  Boolean. Default False. If True:
+    :param inter_limit:             Integer. Default = 2. Limit up to which consecutive nan - values in the data get
+                                    replaced by interpolation.
+                                    Its default value suits an interpolation that only will apply to points of an
+                                    inserted frequency grid. (regularization by interpolation)
+                                    Gaps wider than "inter_limit" will NOT be interpolated at all.
+    :param downgrade_interpolation:  Boolean. Default False. If True:
                                     If a data chunk not contains enough values for interpolation of the order "order",
-                                    the highest order possible will be selected for that chunks interpolation."
+                                    the highest order possible will be selected for that chunks interpolation.
     :param return_chunk_bounds:     Boolean. Default False. If True:
                                     Additionally to the interpolated data, the start and ending points of data chunks
                                     not containing no series consisting of more then "inter_limit" nan values,
                                     are calculated and returned.
-                                    (This option fits requirements of the "_interpolate" functions use in the context of
-                                    saqc harmonization mainly.)
+                                    (This option fits requirements of the "interpolateNANs" functions use in the
+                                    context of saqc harmonization mainly.)
 
     :return:
     """
@@ -227,7 +229,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downcast_interpolation
                 except (NotImplementedError, ValueError):
                     logger.warning(
                         "Interpolation with method {} is not supported at order {}. "
-                        "Interpolation will be performed with order {}".format(
+                        "Interpolation will be performed at order {}".format(
                             method, str(wrap_order), str(wrap_order - 1)
                         )
                     )
@@ -235,7 +237,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downcast_interpolation
             elif x.size < 3:
                 return x
             else:
-                if downcast_interpolation:
+                if downgrade_interpolation:
                     return _interpolWrapper(x, int(x.count() - 1), wrap_method)
                 else:
                     return x

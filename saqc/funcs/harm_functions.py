@@ -364,7 +364,7 @@ def _interpolateGrid(
 
         data = _insertGrid(data, freq)
         data, chunk_bounds = interpolateNANs(
-            data, method, order=order, inter_limit=2, downcast_interpolation=downcast_interpolation,
+            data, method, order=order, inter_limit=2, downgrade_interpolation=downcast_interpolation,
             return_chunk_bounds=True
         )
 
