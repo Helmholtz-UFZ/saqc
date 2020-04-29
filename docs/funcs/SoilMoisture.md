@@ -31,7 +31,7 @@ sm_flagSpikes(raise_factor=0.15, deriv_factor=0.2,
 | smooth_window   | [offset string](docs/ParameterDescriptions.md#offset-strings) | `"3h"`        |
 | smooth_poly_deg | integer                                                       | `2`           |
 
-The Function is a wrapper around `spikes_flagSpektrumBased`
+The function is a wrapper around `spikes_flagSpektrumBased`
 with a set of default parameters referring to [1]. For a complete description of 
 the algorithm and the available parameters please refer to the documentation of 
 [flagSpikes_spektrumBased](docs/funcs/SpikeDetection.md#spikes_spektrumbased)
@@ -63,7 +63,7 @@ sm_flagBreaks(thresh_rel=0.1, thresh_abs=0.01,
 | smooth_poly_deg       | integer                                                       | `2`           |
 
 
-The Function is a wrapper around `breaks_flagSpektrumBased`
+The function is a wrapper around `breaks_flagSpektrumBased`
 with a set of default parameters referring to [1]. For a complete description of 
 the algorithm and the available parameters please refer to the documentation of 
 [breaks_spektrumBased](docs/funcs/BreakDetection.md#breaks_spektrumbased).
@@ -119,7 +119,7 @@ NOTE:
 - The time series is expected to be harmonized to an
   [equidistant frequency grid](docs/funcs/TimeSeriesHarmonization.md)
 
-This Function is based on [1] and all default parameter values are taken from this publication.
+This function is based on [1] and all default parameter values are taken from this publication.
 
 [1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture Data
     from the international Soil Moisture Network. 2013. Vadoze Zone J.
@@ -143,7 +143,7 @@ This function flags soil moisture values if the soil temperature
 (given in `soil_temp_variable`) drops below `frost_thresh`
 within a period of +/- `window`.
 
-This Function is an implementation of the soil temperature based flagging
+This function is an implementation of the soil temperature based flagging
 presented in [1] and all default parameter values are taken from this
 publication.
 
@@ -199,7 +199,7 @@ is flagged, if:
    $` y_{k-j} + y_{k-j+1} + ... + y_{k} \le `$ `sensor_depth` $`\cdot`$ `sensor_accuracy` $`\cdot`$ `soil_porosity`
    
 
-This Function is an implementation of the precipitation based flagging
+This function is an implementation of the precipitation based flagging
 presented in [1] and all default parameter values are taken from this
 publication.
 
@@ -222,7 +222,7 @@ sm_flagRandomForest(references, window_values, window_flags, path)
 | path          | string                    |               | Path to the respective model object, i.e. its name and the respective value of the grouping variable. e.g. "models/model_0.2.pkl" |
 
 
-This Function uses pre-trained machine-learning model objects for flagging. 
+This function uses pre-trained machine-learning model objects for flagging. 
 This requires training a model by use of the [training script](../ressources/machine_learning/train_machine_learning.py) provided. 
 For flagging, inputs to the model are the data of the variable of interest, 
 data of reference variables and the automatic flags that were assigned by other 
