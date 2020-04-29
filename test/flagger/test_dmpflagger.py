@@ -75,3 +75,23 @@ def test_setFlaggerInner(data):
     merged = left.setFlagger(right, join="inner").getFlags().to_df()
     assert (merged.index == data_right.index).all(axis=None)
     assert (merged == flagger.GOOD).all(axis=None)
+
+
+def test_getFlaggerDrop(data):
+    flagger = DmpFlagger().initFlags(data)
+    with pytest.raises(TypeError):
+        flagger.getFlags(field=data.columns, drop="var")
+
+    field = data.columns[0]
+    expected = data[data.columns.drop(field)].to_df()
+
+    filtered = flagger.getFlagger(drop=field)
+
+    assert (filtered._flags.columns == expected.columns).all(axis=None)
+    assert (filtered._comments.columns == expected.columns).all(axis=None)
+    assert (filtered._causes.columns == expected.columns).all(axis=None)
+
+    assert (filtered._flags.to_df().index== expected.index).all(axis=None)
+    assert (filtered._comments.to_df().index== expected.index).all(axis=None)
+    assert (filtered._causes.to_df().index== expected.index).all(axis=None)
+

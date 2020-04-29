@@ -68,8 +68,8 @@ class DmpFlagger(CategoricalFlagger):
         newflagger._causes[:], newflagger._comments[:] = "", ""
         return newflagger
 
-    def getFlagger(self, field=None, loc=None):
-        newflagger = super().getFlagger(field=field, loc=loc)
+    def getFlagger(self, field=None, loc=None, drop=None):
+        newflagger = super().getFlagger(field=field, loc=loc, drop=drop)
         flags = newflagger.flags
         newflagger._causes = self._causes.aloc[flags, ...]
         newflagger._comments = self._comments.aloc[flags, ...]

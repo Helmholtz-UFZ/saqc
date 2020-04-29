@@ -4,7 +4,7 @@
 import operator as op
 from copy import deepcopy
 from abc import ABC, abstractmethod
-from typing import TypeVar, Union, Any
+from typing import TypeVar, Union, Any, List
 
 import pandas as pd
 import dios.dios as dios
@@ -26,6 +26,7 @@ FlagT = Any
 diosT = dios.DictOfSeries
 BaseFlaggerT = TypeVar("BaseFlaggerT")
 PandasT = Union[pd.Series, diosT]
+FieldsT = Union[str, List[str]]
 
 
 class BaseFlagger(ABC):
@@ -78,14 +79,18 @@ class BaseFlagger(ABC):
         )
         return newflagger
 
-    def getFlagger(self, field: str = None, loc: LocT = None) -> BaseFlaggerT:
+    def getFlagger(self, field: FieldsT = None, loc: LocT = None, drop: FieldsT = None) -> BaseFlaggerT:
         """ Return a potentially trimmed down copy of self. """
+        if drop is not None:
+            if field is not None:
+                raise TypeError("either 'field' or 'drop' can be given, but not both")
+            field = self._flags.columns.drop(drop, errors="ignore")
         flags = self.getFlags(field=field, loc=loc)
         flags = dios.to_dios(flags)
         newflagger = self.copy(flags=flags)
         return newflagger
 
-    def getFlags(self, field: str = None, loc: LocT = None) -> PandasT:
+    def getFlags(self, field: FieldsT = None, loc: LocT = None) -> PandasT:
         """ Return a potentially, to `loc`, trimmed down version of flags.
 
         Return
