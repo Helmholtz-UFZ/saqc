@@ -1,13 +1,13 @@
-## FastDTW
+## DTW
 
 
 ## Index
-[flagFastdtw](#flagFastdtw)
+[flagDTW](#flagDTW)
 
-## flagFastDTW
+## flagDTW
 
 ```                            
-flagFastDTW(refdatafield='SM1', window = 25, min_distance = 0.25, method_dtw = "fast")
+flagDTW(refdatafield='SM1', window = 25, min_distance = 0.25, method_dtw = "fast")
 ``` 
 
 
