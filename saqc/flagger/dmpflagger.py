@@ -1,13 +1,18 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import subprocess
 import json
 from copy import deepcopy
+from typing import TypeVar
 
 import dios.dios as dios
 
 from saqc.flagger.categoricalflagger import CategoricalFlagger
-from saqc.lib.tools import assertScalar
+from saqc.lib.tools import assertScalar, mergeDios
+
+
+DmpFlaggerT = TypeVar("DmpFlaggerT")
 
 
 class Keywords:
@@ -60,7 +65,7 @@ class DmpFlagger(CategoricalFlagger):
         newflagger = super().initFlags(data=data, flags=flags)
         newflagger._causes = newflagger.flags.astype(str)
         newflagger._comments = newflagger.flags.astype(str)
-        newflagger.causes[:], newflagger.comments[:] = "", ""
+        newflagger._causes[:], newflagger._comments[:] = "", ""
         return newflagger
 
     def getFlagger(self, field=None, loc=None):
@@ -69,6 +74,13 @@ class DmpFlagger(CategoricalFlagger):
         newflagger._causes = self._causes.aloc[flags, ...]
         newflagger._comments = self._comments.aloc[flags, ...]
         return newflagger
+
+    def setFlagger(self, other: DmpFlaggerT, join: str="outer"):
+        assert isinstance(other, DmpFlagger)
+        out = super().setFlagger(other, join)
+        out._causes = mergeDios(out._causes, other._causes, join=join)
+        out._comments = mergeDios(out._comments, other._comments, join=join)
+        return out
 
     def setFlags(self, field, loc=None, flag=None, force=False, comment="", cause="", **kwargs):
         assert "iloc" not in kwargs, "deprecated keyword, iloc"
