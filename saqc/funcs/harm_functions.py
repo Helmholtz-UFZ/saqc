@@ -103,14 +103,8 @@ def harmWrapper(heap={}):
             **kwargs,
         )
 
-        # TODO: ask BERT: why so verbose?
-        # TODO: ask BERT: why so assert?
-        flags_col = flagger_merged_clean_reshaped.getFlags(field)
-        flags = flagger.getFlags()
-        flags[field] = flags_col
+        flagger_out = flagger.getFlagger(drop=field).setFlagger(flagger_merged_clean_reshaped)
         data[field] = dat_col
-        flagger_out = flagger.initFlags(flags=flags)
-        assert (data[field].index == flagger_out.getFlags(field).index).all()
         return data, flagger_out
 
 
@@ -155,10 +149,9 @@ def harmWrapper(heap={}):
         dat_col.name = field
 
         # bye bye data
-        flags = flagger.getFlags()
-        flags[field] = flags_col
+        flagger_out = flagger.getFlagger(drop=field).setFlagger(flagger_back)
         data[field] = dat_col
-        flagger_out = flagger.initFlags(flags=flags)
+
         assert (data[field].index == flagger_out.getFlags(field).index).all()
         return data, flagger_out
 
