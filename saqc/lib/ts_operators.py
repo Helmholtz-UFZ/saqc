@@ -185,6 +185,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         chunk_ends = chunk_switches[(chunk_switches.shift(-1) == 1)].index
         chunk_bounds = chunk_starts.join(chunk_ends, how="outer", sort=True)
 
+    pre_index = data.index
     data = data[gap_mask]
 
     if method in ["linear", "time"]:
@@ -220,6 +221,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         # squeezing the 1-dimensional frame resulting from groupby for consistency reasons
         data = data.squeeze(axis=1)
         data.name = dat_name
+        data = data.reindex(pre_index)
     if return_chunk_bounds:
         return data, chunk_bounds
     else:
