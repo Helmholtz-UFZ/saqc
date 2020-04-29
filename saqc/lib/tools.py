@@ -82,8 +82,12 @@ def evalFuncString(full_func_string):
                 f"dispatcher. \n Please select from: \n{availability_list}"
             )
 
-    para_names = inspect.getfullargspec(func).args[1:1 + len(paras)]
-    return partial(func, **dict(zip(para_names, paras)))
+    kwarg_dict = {}
+    if len(paras) > 0:
+        para_names = inspect.getfullargspec(func).args[1:1 + len(paras)]
+        kwarg_dict.update(dict(zip(para_names, paras)))
+
+    return partial(func, **kwarg_dict)
 
 def composeFunction(functions):
     if callable(functions):
