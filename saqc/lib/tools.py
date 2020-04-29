@@ -37,7 +37,9 @@ SAQC_OPERATORS = {
     "normScale": ts_ops.normScale,
     "meanStandardize": ts_ops.standardizeByMean,
     "medianStandardize": ts_ops.standardizeByMedian,
-    "zLog": ts_ops.zeroLog
+    "zLog": ts_ops.zeroLog,
+    "linear": ts_ops.linearInterpolation,
+    "polynomial": ts_ops.polynomialInterpolation
 }
 
 

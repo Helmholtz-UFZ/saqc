@@ -228,6 +228,14 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         return data
 
 
+def linearInterpolation(data, inter_limit=2):
+    return interpolateNANs(data, 'time', inter_limit=inter_limit)
+
+
+def polynomialInterpolation(data, inter_limit=2, inter_order=2):
+    return interpolateNANs(data, 'polynomial', inter_limit=inter_limit, order=inter_order)
+
+
 def leaderClustering(in_arr, ball_radius=None):
     x_len = in_arr.shape[0]
     x_cols = in_arr.shape[1]
