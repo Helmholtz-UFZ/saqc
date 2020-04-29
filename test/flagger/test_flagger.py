@@ -163,6 +163,21 @@ def test_getFlagger(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_getFlaggerDrop(data, flagger):
+    flagger = flagger.initFlags(data)
+    with pytest.raises(TypeError):
+        flagger.getFlags(field=data.columns, drop="var")
+
+    field = data.columns[0]
+    expected = data.columns.drop(field)
+
+    filtered = flagger.getFlagger(drop=field)
+    assert (filtered.getFlags().columns == expected).all(axis=None)
+    assert (filtered.getFlags().to_df().index== data[expected].to_df().index).all(axis=None)
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_setFlagger(data, flagger):
     """
     test before:

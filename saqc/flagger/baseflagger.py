@@ -3,15 +3,13 @@
 
 import operator as op
 from copy import deepcopy
-from collections import OrderedDict
 from abc import ABC, abstractmethod
-from typing import TypeVar, Union, Any
+from typing import TypeVar, Union, Any, List
 
-import numpy as np
 import pandas as pd
 import dios.dios as dios
 
-from saqc.lib.tools import toSequence, assertScalar, assertDictOfSeries
+from saqc.lib.tools import assertScalar, mergeDios
 
 COMPARATOR_MAP = {
     "!=": op.ne,
@@ -28,6 +26,7 @@ FlagT = Any
 diosT = dios.DictOfSeries
 BaseFlaggerT = TypeVar("BaseFlaggerT")
 PandasT = Union[pd.Series, diosT]
+FieldsT = Union[str, List[str]]
 
 
 class BaseFlagger(ABC):
@@ -67,7 +66,7 @@ class BaseFlagger(ABC):
         newflagger._flags = flags.astype(self.dtype)
         return newflagger
 
-    def setFlagger(self, other: BaseFlaggerT):
+    def setFlagger(self, other: BaseFlaggerT, join: str = "outer"):
         """
         Merge the given flagger 'other' into self
         """
@@ -75,36 +74,23 @@ class BaseFlagger(ABC):
         if not isinstance(other, self.__class__):
             raise TypeError(f"flagger of type '{self.__class__}' needed")
 
-        this = self.flags
-        other = other.flags
-
-        # use dios.merge() as soon as it implemented
-        # see https://git.ufz.de/rdm/dios/issues/15
-        new = this.copy()
-        cols = this.columns.intersection(other.columns)
-        for c in cols:
-            l, r = this[c], other[c]
-            l = l.align(r, join='outer')[0]
-            l.loc[r.index] = r
-            new[c] = l
-
-        newcols = other.columns.difference(new.columns)
-        for c in newcols:
-            new[c] = other[c].copy()
-
-        newflagger = self.copy()
-        newflagger._flags = new
+        newflagger = self.copy(
+            flags=mergeDios(self.flags, other.flags, join=join)
+        )
         return newflagger
 
-    def getFlagger(self, field: str = None, loc: LocT = None) -> BaseFlaggerT:
+    def getFlagger(self, field: FieldsT = None, loc: LocT = None, drop: FieldsT = None) -> BaseFlaggerT:
         """ Return a potentially trimmed down copy of self. """
+        if drop is not None:
+            if field is not None:
+                raise TypeError("either 'field' or 'drop' can be given, but not both")
+            field = self._flags.columns.drop(drop, errors="ignore")
         flags = self.getFlags(field=field, loc=loc)
         flags = dios.to_dios(flags)
-        newflagger = self.copy()
-        newflagger._flags = flags
+        newflagger = self.copy(flags=flags)
         return newflagger
 
-    def getFlags(self, field: str = None, loc: LocT = None) -> PandasT:
+    def getFlags(self, field: FieldsT = None, loc: LocT = None) -> PandasT:
         """ Return a potentially, to `loc`, trimmed down version of flags.
 
         Return
@@ -172,8 +158,11 @@ class BaseFlagger(ABC):
         flagged = flags.notna() & cp(flags, flag)
         return flagged
 
-    def copy(self) -> BaseFlaggerT:
-        return deepcopy(self)
+    def copy(self, flags=None) -> BaseFlaggerT:
+        out = deepcopy(self)
+        if flags is not None:
+            out._flags = flags
+        return out
 
     def _check_field(self, field):
         """ Check if (all) field(s) in self._flags. """
@@ -202,22 +191,18 @@ class BaseFlagger(ABC):
     @abstractmethod
     def UNFLAGGED(self) -> FlagT:
         """ Return the flag that indicates unflagged data """
-        pass
 
     @property
     @abstractmethod
     def GOOD(self) -> FlagT:
         """ Return the flag that indicates the very best data """
-        pass
 
     @property
     @abstractmethod
     def BAD(self) -> FlagT:
         """ Return the flag that indicates the worst data """
-        pass
 
     @abstractmethod
     def isSUSPICIOUS(self, flag: FlagT) -> bool:
         """ Return bool that indicates if the given flag is valid, but neither
         UNFLAGGED, BAD, nor GOOD."""
-        pass

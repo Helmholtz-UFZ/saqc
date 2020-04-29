@@ -14,7 +14,7 @@ import dios
 import inspect
 
 # from saqc.flagger import BaseFlagger
-from saqc.lib.types import T, PandasLike
+from saqc.lib.types import T
 
 SAQC_OPERATORS = {
     "exp": np.exp,
@@ -395,7 +395,6 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
     """
     index = series.index
     values = series.values
-    target = values[0]
 
     start = 0
     while True:
@@ -404,3 +403,22 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
             break
         yield pd.Series(data=values[start:stop], index=index[start:stop])
         start = stop
+
+
+def mergeDios(left, right, join="outer"):
+    # use dios.merge() as soon as it implemented
+    # see https://git.ufz.de/rdm/dios/issues/15
+    merged = left.copy()
+    cols = left.columns.intersection(right.columns)
+    for c in cols:
+        l, r = left[c], right[c]
+        l = l.align(r, join=join)[0]
+        l.loc[r.index] = r
+        merged[c] = l
+
+    newcols = right.columns.difference(merged.columns)
+    for c in newcols:
+        merged[c] = right[c].copy()
+
+    return merged
+
