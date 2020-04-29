@@ -168,7 +168,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
     :return:
     """
 
-    data = pd.Series(data)
+    data = pd.Series(data).copy()
     gap_mask = (data.rolling(inter_limit, min_periods=0).apply(lambda x: np.sum(np.isnan(x)), raw=True)) != inter_limit
 
     if inter_limit == 2:
@@ -190,7 +190,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
 
     if method in ["linear", "time"]:
 
-        data.interpolate(method=method, inplace=True, limit=1, limit_area="inside")
+        data.interpolate(method=method, inplace=True, limit=inter_limit-1, limit_area="inside")
 
     else:
         dat_name = data.name
@@ -221,7 +221,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         # squeezing the 1-dimensional frame resulting from groupby for consistency reasons
         data = data.squeeze(axis=1)
         data.name = dat_name
-        data = data.reindex(pre_index)
+    data = data.reindex(pre_index)
     if return_chunk_bounds:
         return data, chunk_bounds
     else:

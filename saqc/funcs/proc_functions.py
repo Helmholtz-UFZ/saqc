@@ -12,6 +12,7 @@ from saqc.lib.tools import composeFunction, toSequence
 def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
                             downgrade_interpolation=False, return_chunk_bounds=False, not_interpol_flags=None, **kwargs):
 
+    data = data.copy()
     inter_data = interpolateNANs(data[field], method, order=inter_order, inter_limit=inter_limit,
                            downgrade_interpolation=downgrade_interpolation, return_chunk_bounds=return_chunk_bounds)
     interpolated = data[field].isna() & inter_data.notna()
