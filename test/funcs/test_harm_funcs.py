@@ -18,8 +18,7 @@ from saqc.funcs.harm_functions import (
     harm_linear2Grid,
     harm_interpolate2Grid,
     harm_shift2Grid,
-    harm_aggregate2Grid,
-    harm_downsample,
+    harm_aggregate2Grid
 )
 
 RESHAPERS = ["nshift", "fshift", "bshift"]
@@ -338,7 +337,6 @@ def test_wrapper(data, flagger):
     field = data.columns[0]
     freq = "15min"
     flagger = flagger.initFlags(data)
-    harm_downsample(data, field, flagger, "15min", "30min", agg_func="sum", sample_func="mean")
     harm_linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flags=None)
     harm_aggregate2Grid(data, field, flagger, freq, value_func="sum", flag_func="max", method="nagg", drop_flags=None)
     harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None)
