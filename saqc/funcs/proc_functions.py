@@ -5,21 +5,34 @@ import pandas as pd
 import numpy as np
 from saqc.funcs.register import register
 from saqc.lib.ts_operators import interpolateNANs, validationTrafo
-from saqc.lib.tools import composeFunction
+from saqc.lib.tools import composeFunction, toSequence
 
 
 @register()
 def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
-                            downgrade_interpolation=False, return_chunk_bounds=False, **kwargs):
+                            downgrade_interpolation=False, return_chunk_bounds=False, not_interpol_flags=None, **kwargs):
 
     inter_data = interpolateNANs(data[field], method, order=inter_order, inter_limit=inter_limit,
                            downgrade_interpolation=downgrade_interpolation, return_chunk_bounds=return_chunk_bounds)
     interpolated = data[field].isna() & inter_data.notna()
 
+    if not_interpol_flags:
+        for f in toSequence(not_interpol_flags):
+            if f in ['BAD', 'UNFLAGGED', 'GOOD']:
+                f = getattr(flagger, interpol_flag)
+            is_flagged = flagger.isFlagged(flag=f)[field]
+            cond = is_flagged & interpolated
+            inter_data.mask(cond, np.nan, inplace=True)
+        interpolated &= inter_data.notna()
+
     if interpol_flag:
+        if interpol_flag in ['BAD', 'UNFLAGGED', 'GOOD']:
+            interpol_flag = getattr(flagger, interpol_flag)
         flagger = flagger.setFlags(field, loc=interpolated[interpolated].index, force=True,
-                                   flag=getattr(flagger, interpol_flag), **kwargs)
-    return inter_data, flagger
+                                   flag=interpol_flag, **kwargs)
+
+    data[field] = inter_data
+    return data, flagger
 
 
 @register()
