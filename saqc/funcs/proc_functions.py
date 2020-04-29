@@ -39,6 +39,7 @@ def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_l
 @register()
 def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total=None, max_invalid_consec=None,
                   flag_agg_func='max', **kwargs):
+    data = data.copy()
     datcol = data[field]
 
     # filter data for invalid patterns
@@ -73,15 +74,14 @@ def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total=Non
 
     # data/flags reshaping:
     data[field] = datcol
-    all_flags = flagger.getFlags()
-    all_flags[field] = datflags
-    flagger = flagger.initFlags(flags=all_flags)
-
+    reshape_flagger = flagger.initFlags(datcol).setFlags(field, flag=datflags, force=True, **kwargs)
+    flagger = flagger.getFlagger(drop=field).setFlagger(reshape_flagger)
     return data, flagger
 
 
 @register()
 def proc_transform(data, field, flagger, func, **kwargs):
+    data = data.copy()
     func = composeFunction(func)
     data[field] = data[field].transform(func)
     return data, flagger
