@@ -75,7 +75,7 @@ def _kNN(in_arr, n_neighbors, algorithm="ball_tree"):
     return nbrs.kneighbors()
 
 
-def kNNMaxGap(in_arr, n_neighbors, algorithm='ball_tree'):
+def kNNMaxGap(in_arr, n_neighbors=10, algorithm='ball_tree'):
     in_arr = np.asarray(in_arr)
     dist, *_ = _kNN(in_arr, n_neighbors, algorithm=algorithm)
     sample_size = dist.shape[0]
@@ -84,7 +84,7 @@ def kNNMaxGap(in_arr, n_neighbors, algorithm='ball_tree'):
     return dist[range(0, sample_size), max_gap_ind]
 
 
-def kNNSum(in_arr, n_neighbors, algorithm="ball_tree"):
+def kNNSum(in_arr, n_neighbors=10, algorithm="ball_tree"):
     in_arr = np.asarray(in_arr)
     dist, *_ = _kNN(in_arr, n_neighbors, algorithm=algorithm)
     return dist.sum(axis=1)

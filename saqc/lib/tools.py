@@ -11,6 +11,7 @@ import sklearn
 from functools import reduce, partial
 import pandas as pd
 import dios
+import inspect
 
 # from saqc.flagger import BaseFlagger
 from saqc.lib.types import T, PandasLike
@@ -50,15 +51,18 @@ OP_MODULES = {'pd': pd,
               }
 
 
-def evalFuncString(func_string):
-    if not isinstance(func_string, str):
-        return func_string
+def evalFuncString(full_func_string):
+    if not isinstance(full_func_string, str):
+        return full_func_string
+    full_func_string = full_func_string.split("$")
+    func_string = full_func_string[0]
+    paras = full_func_string[1:]
     module_dot = func_string.find(".")
     first, *rest = func_string.split(".")
     if rest:
         module = func_string[:module_dot]
         try:
-            return reduce(lambda m, f: getattr(m, f), rest, OP_MODULES[first])
+            func = reduce(lambda m, f: getattr(m, f), rest, OP_MODULES[first])
         except KeyError:
             availability_list = [f"'{k}' (= {s.__name__})" for k, s in OP_MODULES.items()]
             availability_list = " \n".join(availability_list)
@@ -69,7 +73,7 @@ def evalFuncString(func_string):
 
     else:
         if func_string in SAQC_OPERATORS:
-            return SAQC_OPERATORS[func_string]
+            func = SAQC_OPERATORS[func_string]
         else:
             availability_list = [f"'{k}' (= {s.__name__})" for k, s in SAQC_OPERATORS.items()]
             availability_list = " \n".join(availability_list)
@@ -78,6 +82,8 @@ def evalFuncString(func_string):
                 f"dispatcher. \n Please select from: \n{availability_list}"
             )
 
+    para_names = inspect.getfullargspec(func).args[1:1 + len(paras)]
+    return partial(func, **dict(zip(para_names, paras)))
 
 def composeFunction(functions):
     if callable(functions):
