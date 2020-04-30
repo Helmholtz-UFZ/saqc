@@ -10,7 +10,8 @@ def char_dict():
     return {"raise": pd.DatetimeIndex([]),
             "drop": pd.DatetimeIndex([]),
             "peak": pd.DatetimeIndex([]),
-            "return": pd.DatetimeIndex([])}
+            "return": pd.DatetimeIndex([]),
+            "missing": pd.DatetimeIndex([])}
 
 
 @pytest.fixture
@@ -122,5 +123,27 @@ def course_4(char_dict):
 
         data = DictOfSeries(data=data, columns=['data'])
         return data, char_dict
+
+    return fix_funk
+
+@pytest.fixture
+def course_5(char_dict):
+    # NAN_holes values , that remain on value level "base_level" and than begin exposing an outlierish or
+    # spikey value of magnitude "out_val" every second timestep, starting at periods/2, with the first spike. number
+    # periods better be even!
+    # periods better be greater 5
+
+    def fix_funk(freq='10min', periods=100, nan_slice=slice(0, None, 5), initial_level=0, final_level=10,
+                 initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), char_dict=char_dict):
+        t_index = pd.date_range(initial_index, freq=freq, periods=periods)
+        values = np.linspace(initial_level, final_level, periods)
+        s = pd.Series(values, index=t_index)
+        s[nan_slice] = np.nan
+        char_dict['missing'] = s[nan_slice].index
+
+        data = DictOfSeries(data=s, columns=['data'])
+        return data, char_dict
+
+    return fix_funk
 
     return fix_funk
