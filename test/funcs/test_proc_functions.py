@@ -15,7 +15,45 @@ from saqc.funcs.proc_functions import (
 from test.common import TESTFLAGGER
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_interpolateMissing(course_1, flagger):
-    data, *_ = course_1(periods=100)
-    data[1] = np.nan
-    data[]
+def test_interpolateMissing(course_5, flagger):
+    data, characteristics = course_5(periods=10, nan_slice=[5])
+    field = data.columns[0]
+    data = dios.DictOfSeries(data)
+    flagger = flagger.initFlags(data)
+    dataLin, *_ = proc_interpolateMissing(data, field, flagger, method='linear')
+    dataPoly, *_ = proc_interpolateMissing(data, field, flagger, method='polynomial')
+    assert dataLin[field][characteristics['missing']].notna().all()
+    assert dataPoly[field][characteristics['missing']].notna().all()
+    data, characteristics = course_5(periods=10, nan_slice=[5, 6, 7])
+    dataLin1, *_ = proc_interpolateMissing(data, field, flagger, method='linear', inter_limit=2)
+    dataLin2, *_ = proc_interpolateMissing(data, field, flagger, method='linear', inter_limit=3)
+    dataLin3, *_ = proc_interpolateMissing(data, field, flagger, method='linear', inter_limit=4)
+    assert dataLin1[field][characteristics['missing']].isna().all()
+    assert dataLin2[field][characteristics['missing']].isna().all()
+    assert dataLin3[field][characteristics['missing']].notna().all()
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_transform(course_5, flagger):
+    data, characteristics = course_5(periods=10, nan_slice=[5, 6])
+    field = data.columns[0]
+    data = dios.DictOfSeries(data)
+    flagger = flagger.initFlags(data)
+    data1, *_ = proc_transform(data, field, flagger, func='linear')
+    assert data1[field][characteristics['missing']].isna().all()
+    data1, *_ = proc_transform(data, field, flagger, func='linear$3')
+    assert data1[field][characteristics['missing']].notna().all()
+    data1, *_ = proc_transform(data, field, flagger, func='polynomial$3$3')
+    assert data1[field][characteristics['missing']].notna().all()
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_resample(course_5, flagger):
+    data, characteristics = course_5(freq='1min', periods=30, nan_slice=[1, 11, 12, 22, 24, 26])
+    field = data.columns[0]
+    data = dios.DictOfSeries(data)
+    flagger = flagger.initFlags(data)
+    data1, *_ = proc_resample(data, field, flagger, '10min', 'mean', max_invalid_total=2, max_invalid_consec=1)
+    assert ~np.isnan(data1[field].iloc[0])
+    assert np.isnan(data1[field].iloc[1])
+    assert np.isnan(data1[field].iloc[2])

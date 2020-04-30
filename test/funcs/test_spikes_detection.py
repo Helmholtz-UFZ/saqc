@@ -101,7 +101,7 @@ def test_flagSpikesLimitRaise(dat, flagger):
 # see test/functs/conftest.py for the 'course_N'
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
-def test_flagSpikesOddWater(dat, flagger):
+def test_flagMultivarScores(dat, flagger):
     data1, characteristics = dat(periods=1000, initial_level=5, final_level=15, out_val=50)
     data2, characteristics = dat(periods=1000, initial_level=20, final_level=1, out_val=30)
     field = "dummy"

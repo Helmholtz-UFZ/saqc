@@ -84,6 +84,7 @@ def evalFuncString(full_func_string):
 
     kwarg_dict = {}
     if len(paras) > 0:
+        paras = [float(x) if x.isnumeric() else x for x in paras]
         para_names = inspect.getfullargspec(func).args[1:1 + len(paras)]
         kwarg_dict.update(dict(zip(para_names, paras)))
 

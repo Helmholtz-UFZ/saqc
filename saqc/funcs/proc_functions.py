@@ -41,9 +41,11 @@ def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total=Non
                   flag_agg_func='max', **kwargs):
     data = data.copy()
     datcol = data[field]
+    d_start = datcol.index[0].floor(freq)
+    d_end = datcol.index[-1].ceil(freq)
 
     # filter data for invalid patterns
-    if (max_invalid_total is None) | (max_invalid_consec is None):
+    if (max_invalid_total is not None) | (max_invalid_consec is not None):
         if not max_invalid_total:
             max_invalid_total = np.inf
         if not max_invalid_consec:
@@ -72,6 +74,11 @@ def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total=Non
         flag_agg_func = composeFunction(flag_agg_func)
         datflags = flagsresampler.apply(flag_agg_func)
 
+    # insert freqgrid (for consistency reasons -> in above step, start and ending chunks can get lost due to invalid
+    # intervals):
+    grid = pd.date_range(d_start, d_end, freq=freq)
+    datcol = datcol.reindex(grid)
+    datflags = datflags.reindex(grid)
     # data/flags reshaping:
     data[field] = datcol
     reshape_flagger = flagger.initFlags(datcol).setFlags(field, flag=datflags, force=True, **kwargs)
@@ -83,5 +90,8 @@ def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total=Non
 def proc_transform(data, field, flagger, func, **kwargs):
     data = data.copy()
     func = composeFunction(func)
-    data[field] = data[field].transform(func)
+    # NOTE: avoiding pd.Series.transform() in the line below, because transform does process columns element wise
+    # (so interpolations wouldn't work)
+    new_col = pd.Series(func(data[field]), index=data[field].index)
+    data[field] = new_col
     return data, flagger

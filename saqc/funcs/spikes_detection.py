@@ -158,7 +158,9 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo='normScale', a
                              )
 
     val_frame.dropna(inplace=True)
-    val_frame = val_frame.transform(trafo_dict)
+    for field in val_frame.columns:
+        val_frame[field] = trafo_dict[field](val_frame[field])
+
 
     if threshing == 'stray':
         to_flag_index = _stray(val_frame,
