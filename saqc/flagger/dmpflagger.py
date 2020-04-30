@@ -75,7 +75,7 @@ class DmpFlagger(CategoricalFlagger):
         newflagger._comments = self._comments.aloc[flags, ...]
         return newflagger
 
-    def setFlagger(self, other: DmpFlaggerT, join: str="outer"):
+    def setFlagger(self, other: DmpFlaggerT, join: str="merge"):
         assert isinstance(other, DmpFlagger)
         out = super().setFlagger(other, join)
         out._causes = mergeDios(out._causes, other._causes, join=join)

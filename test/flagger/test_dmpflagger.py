@@ -32,28 +32,34 @@ def test_setFlaggerOuter(data):
 
     field = data.columns[0]
 
-    df = data[field].iloc[::2].to_frame()
-    data_right = pd.DataFrame(data=df.values, columns=[field], index=df.index + pd.Timedelta("1Min"))
-    data_left = data[field].to_frame()
+    data_left = data
+
+    data_right = data.to_df()
+    dates = data_right.index.to_series()
+    dates[len(dates)//2:] += pd.Timedelta("1Min")
+    data_right.index = dates
+    data_right = data_right.to_dios()
 
     left = (flagger
             .initFlags(data=data_left)
-            .setFlags(field=field, flag=flagger.BAD, comment="left", cause="left"))
+            .setFlags(field=field, flag=flagger.BAD, cause="SaQCLeft", comment="testLeft"))
+
 
     right = (flagger
              .initFlags(data=data_right)
-             .setFlags(field, flag=flagger.GOOD, comment="right", cause="right"))
+             .setFlags(field=field, flag=flagger.GOOD, cause="SaQCRight", comment="testRight"))
 
     merged = left.setFlagger(right, join="outer")
 
-    assert (merged._flags.loc[data_right.index] == flagger.GOOD).all(axis=None)
-    assert (merged._causes.loc[data_right.index] == "right").all(axis=None)
-    assert np.all(parseComments(merged._comments.loc[data_right.index]) == "right")
+    right_index = data_right[field].index.difference(data_left[field].index)
+    assert (merged._flags.loc[right_index] == flagger.GOOD).all(axis=None)
+    assert (merged._causes.loc[right_index] == "SaQCRight").all(axis=None)
+    assert np.all(parseComments(merged._comments.loc[right_index]) == "testRight")
 
-    assert (merged._flags.loc[data_left.index] == flagger.BAD).all(axis=None)
-    assert (merged._causes.loc[data_left.index] == "left").all(axis=None)
-    assert np.all(parseComments(merged._comments.loc[data_left.index]) == "left")
-
+    left_index = data_left[field].index
+    assert (merged._flags.loc[left_index] == flagger.BAD).all(axis=None)
+    assert (merged._causes.loc[left_index] == "SaQCLeft").all(axis=None)
+    assert np.all(parseComments(merged._comments.loc[left_index]) == "testLeft")
 
 def test_setFlaggerInner(data):
 
@@ -61,20 +67,27 @@ def test_setFlaggerInner(data):
 
     field = data.columns[0]
 
-    data_right = data[field].iloc[::2].to_frame()
-    data_left = data[field].to_frame()
+    data_left = data
+    data_right = data.iloc[::2]
 
     left = (flagger
             .initFlags(data=data_left)
-            .setFlags(field=field, flag=flagger.BAD, comment="left", cause="left"))
+            .setFlags(field=field, flag=flagger.BAD, cause="SaQCLeft", comment="testLeft"))
+
 
     right = (flagger
              .initFlags(data=data_right)
-             .setFlags(field, flag=flagger.GOOD, comment="right", cause="right"))
+             .setFlags(field=field, flag=flagger.GOOD, cause="SaQCRight", comment="testRight"))
 
-    merged = left.setFlagger(right, join="inner").getFlags().to_df()
-    assert (merged.index == data_right.index).all(axis=None)
-    assert (merged == flagger.GOOD).all(axis=None)
+    merged = left.setFlagger(right, join="inner")
+
+    assert (merged._flags[field].index == data_right[field].index).all()
+    assert (merged._causes[field].index == data_right[field].index).all()
+    assert (merged._comments[field].index == data_right[field].index).all()
+
+    assert (merged._flags[field] == flagger.BAD).all()
+    assert (merged._causes[field] == "SaQCLeft").all(axis=None)
+    assert np.all(parseComments(merged._comments) == "testLeft")
 
 
 def test_getFlaggerDrop(data):
