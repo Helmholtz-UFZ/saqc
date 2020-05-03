@@ -66,7 +66,7 @@ class BaseFlagger(ABC):
         newflagger._flags = flags.astype(self.dtype)
         return newflagger
 
-    def setFlagger(self, other: BaseFlaggerT, join: str = "outer"):
+    def setFlagger(self, other: BaseFlaggerT, join: str = "merge"):
         """
         Merge the given flagger 'other' into self
         """

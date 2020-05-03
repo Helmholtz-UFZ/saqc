@@ -405,17 +405,25 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
         yield pd.Series(data=values[start:stop], index=index[start:stop])
         start = stop
 
-
-def mergeDios(left, right, join="outer"):
+def mergeDios(left, right, join="merge"):
     # use dios.merge() as soon as it implemented
     # see https://git.ufz.de/rdm/dios/issues/15
+
     merged = left.copy()
-    cols = left.columns.intersection(right.columns)
-    for c in cols:
+    shared_cols = left.columns.intersection(right.columns)
+    for c in shared_cols:
         l, r = left[c], right[c]
-        l = l.align(r, join=join)[0]
-        l.loc[r.index] = r
-        merged[c] = l
+        if join == "merge":
+            # NOTE:
+            # our merge behavior is nothing more than an
+            # outer join, where the right join argument
+            # overwrites the left at the shared indices,
+            # while on a normal outer join common indices
+            # hold the values from the left join argument
+            r, l = l.align(r, join="outer")
+        else:
+            l, r= l.align(r, join=join)
+        merged[c] = l.combine_first(r)
 
     newcols = right.columns.difference(merged.columns)
     for c in newcols:

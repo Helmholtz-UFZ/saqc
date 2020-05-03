@@ -312,6 +312,78 @@ def test_setFlaggerIndexDiff(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_setFlaggerOuter(data, flagger):
+
+
+    field = data.columns[0]
+
+    data_left = data
+    data_right = data.iloc[::2]
+
+    left = (flagger
+            .initFlags(data=data_left)
+            .setFlags(field=field, flag=flagger.BAD))
+
+    right = (flagger
+             .initFlags(data=data_right)
+             .setFlags(field, flag=flagger.GOOD))
+
+    merged = left.setFlagger(right, join="outer")
+
+    loc = data_right[field].index.difference(data_left[field].index)
+    assert (merged.getFlags(field, loc=loc) == flagger.GOOD).all(axis=None)
+    assert (merged.getFlags(field, loc=data_left[field].index) == flagger.BAD).all(axis=None)
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_setFlaggerInner(data, flagger):
+
+
+    field = data.columns[0]
+
+    data_left = data
+    data_right = data.iloc[::2]
+
+    left = (flagger
+            .initFlags(data=data_left)
+            .setFlags(field=field, flag=flagger.BAD))
+
+    right = (flagger
+             .initFlags(data=data_right)
+             .setFlags(field, flag=flagger.GOOD))
+
+    merged = left.setFlagger(right, join="inner")
+
+    assert (merged.getFlags(field).index == data_right[field].index).all()
+    assert (merged.getFlags(field) == flagger.BAD).all()
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_setFlaggerMerge(data, flagger):
+
+    field = data.columns[0]
+    data_left = data
+    data_right = data.iloc[::2]
+
+    left = (flagger
+            .initFlags(data=data_left)
+            .setFlags(field=field, flag=flagger.BAD))
+
+    right = (flagger
+             .initFlags(data=data_right)
+             .setFlags(field, flag=flagger.GOOD))
+
+    merged = left.setFlagger(right, join="merge")
+
+    loc = data_left[field].index.difference(data_right[field].index)
+    assert (merged.getFlags(field, loc=data_right[field].index) == flagger.GOOD).all(axis=None)
+    assert (merged.getFlags(field,loc=loc) == flagger.BAD).all(axis=None)
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_isFlaggedDios(data, flagger):
     """
     test before:
