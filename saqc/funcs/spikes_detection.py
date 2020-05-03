@@ -134,12 +134,14 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
 
     return val_frame.index[sorted_i[iter_index:]]
 
+def _reduceMVflags(to_flag_index, val_frame):
+    return 0
 
 @register()
 def spikes_flagMultivarScores(data, field, flagger, fields, trafo='normScale', alpha=0.05, n_neighbors=10,
                               scoring_method='kNNMaxGap', iter_start=0.5, threshing='stray',
                               expfit_binning='auto', stray_partition=None, stray_partition_min=0,
-                              **kwargs):
+                              post_reduction=None, **kwargs):
 
     trafo_list = trafo.split(',')
     if len(trafo_list) == 1:
