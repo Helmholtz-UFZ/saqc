@@ -64,6 +64,7 @@
 coming soon ...
 
 ## Features
+- added the data processing module `proc_functions`
 
 ## Bugfixes
 - `spikes_flagRaise` - overestimation of value courses average fixed
