@@ -156,9 +156,11 @@ def _plotMultipleVariables(
     tlen = len(targets)
     tgen = (t for t in targets)
 
-    nfig, ncols_rest = divmod(tlen, 5)
-    ncols = [4] * nfig + [ncols_rest]
-    nfig += 1
+    nfig, ncols_rest = divmod(tlen, 4)
+    ncols = [4] * nfig
+    if ncols_rest:
+        nfig += 1
+        ncols += [ncols_rest]
 
     gs_kw = dict(width_ratios=_layout_data_to_table_ratio)
     layout = dict(
