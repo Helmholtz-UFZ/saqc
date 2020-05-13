@@ -42,7 +42,7 @@ def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNM
         if partition.empty | (partition.shape[0] < partition_min):
             continue
         sample_size = partition.shape[0]
-        nn_neighbors = min(n_neighbors, sample_size)
+        nn_neighbors = min(n_neighbors, max(sample_size, 2))
         resids = kNNfunc(partition.values, n_neighbors=nn_neighbors-1, algorithm='ball_tree')
         sorted_i = resids.argsort()
         resids = resids[sorted_i]
@@ -145,7 +145,7 @@ def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range):
                                 index[1] + pd.Timedelta(reduction_range))
 
             #test_slice = val_frame[var][index_slice].drop(np.delete(to_flag_index, index[0]), errors='ignore')
-            test_slice = val_frame[var][index_slice].drop(to_flag_index, errors='ignore')
+            test_slice = val_frame[var][index_slice]
             if not test_slice.empty:
                 x = (test_slice.index.values.astype(float))
                 x_0 = x[0]
@@ -157,15 +157,17 @@ def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range):
                 med_resids = np.median(resids)
                 MAD = np.median(np.abs(resids - med_resids))
                 crit_val = 0.6745*(abs(med_resids - testval)) / MAD
-
-
-                test_slice = dios.DictOfSeries(test_slice)
-                test_flags = flagger.initFlags(test_slice)
-                test_slice, test_flags = spikes_flagSlidingZscore(test_slice, var, test_flags, window=reduction_range,
-                                                                  offset='15min', count=1,
-                                                                  polydeg=1, z=3.5, method="modZ")
-                if test_flags.isFlagged(field=var)[index[1]]:
+                if crit_val > 3.5:
                     to_flag_frame.loc[index[1], var] = True
+
+
+                #test_slice = dios.DictOfSeries(test_slice)
+                #test_flags = flagger.initFlags(test_slice)
+                #test_slice, test_flags = spikes_flagSlidingZscore(test_slice, var, test_flags, window=reduction_range,
+                                                                  #offset='15min', count=1,
+                                                                  #polydeg=1, z=3.5, method="modZ")
+                #if test_flags.isFlagged(field=var)[index[1]]:
+                #    to_flag_frame.loc[index[1], var] = True
     return to_flag_frame
 
 
