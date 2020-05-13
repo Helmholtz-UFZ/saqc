@@ -136,7 +136,8 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
     return val_frame.index[sorted_i[iter_index:]]
 
 
-def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range):
+def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
+                   reduction_drop_flagged=False, reduction_thresh=3.5):
     to_flag_frame[:] = False
     to_flag_index = to_flag_frame.index
     for var in fields:
@@ -144,8 +145,10 @@ def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range):
             index_slice = slice(index[1] - pd.Timedelta(reduction_range),
                                 index[1] + pd.Timedelta(reduction_range))
 
-            #test_slice = val_frame[var][index_slice].drop(np.delete(to_flag_index, index[0]), errors='ignore')
+
             test_slice = val_frame[var][index_slice]
+            if reduction_drop_flagged:
+                test_slice = test_slice.drop(to_flag_index, errors='ignore')
             if not test_slice.empty:
                 x = (test_slice.index.values.astype(float))
                 x_0 = x[0]
@@ -157,17 +160,11 @@ def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range):
                 med_resids = np.median(resids)
                 MAD = np.median(np.abs(resids - med_resids))
                 crit_val = 0.6745*(abs(med_resids - testval)) / MAD
-                if crit_val > 3.5:
+                if crit_val > reduction_thresh:
                     to_flag_frame.loc[index[1], var] = True
+            else:
+                to_flag_frame.loc[index[1], var] = True
 
-
-                #test_slice = dios.DictOfSeries(test_slice)
-                #test_flags = flagger.initFlags(test_slice)
-                #test_slice, test_flags = spikes_flagSlidingZscore(test_slice, var, test_flags, window=reduction_range,
-                                                                  #offset='15min', count=1,
-                                                                  #polydeg=1, z=3.5, method="modZ")
-                #if test_flags.isFlagged(field=var)[index[1]]:
-                #    to_flag_frame.loc[index[1], var] = True
     return to_flag_frame
 
 
@@ -175,7 +172,8 @@ def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range):
 def spikes_flagMultivarScores(data, field, flagger, fields, trafo='normScale', alpha=0.05, n_neighbors=10,
                               scoring_method='kNNMaxGap', iter_start=0.5, threshing='stray',
                               expfit_binning='auto', stray_partition=None, stray_partition_min=0,
-                              post_reduction=None, reduction_range=None, **kwargs):
+                              post_reduction=None, reduction_range=None, reduction_drop_flagged=False,
+                              reduction_thresh=3.5, **kwargs):
 
     trafo_list = trafo.split(',')
     if len(trafo_list) == 1:
@@ -216,7 +214,9 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo='normScale', a
 
     to_flag_frame = pd.DataFrame({var_name: True for var_name in fields}, index=to_flag_index)
     if post_reduction:
-        to_flag_frame = _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range)
+        to_flag_frame = _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
+                                       reduction_drop_flagged=reduction_drop_flagged,
+                                       reduction_thresh=reduction_thresh)
 
     for var in fields:
         to_flag_ind = to_flag_frame.loc[: ,var]
