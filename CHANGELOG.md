@@ -73,5 +73,6 @@ coming soon ...
 ## Refactorings
 - renamed `spikes_oddWater` to `spikes_flagMultivarScores`
 - added STRAY auto treshing algorithm to `spikes_flagMultivarScores`
+- added "unflagging" - postprocess to `spikes_flagMultivarScores`
 
 ## Breaking Changes
