@@ -308,20 +308,32 @@ def _interpolateGrid(
             # all values within a grid points range (+/- freq/2, closed to the left) get aggregated with 'agg method'
             # some timestamp acrobatics to feed the base keyword properly
             seconds_total = pd.Timedelta(freq).total_seconds()
-            seconds_string = str(int(seconds_total)) + "s"
+            freq_string = str(int(seconds_total)) + "s"
+            base = seconds_total / 2
+            loffset = pd.Timedelta(freq) / 2
+            label = 'left'
+            closed = 'left'
             # calculate the series of aggregated values
-            data = data.resample(seconds_string, base=seconds_total / 2, loffset=pd.Timedelta(freq) / 2).apply(
-                agg_method
-            )
-
         elif method == "bagg":
+            seconds_total = pd.Timedelta(freq).total_seconds()
+            freq_string = str(int(seconds_total)) + "s"
+            base = 0
+            loffset = pd.Timedelta(0)
+            label = 'left'
+            closed = 'left'
             # all values in a sampling interval get aggregated with agg_method and assigned to the last grid point
-            data = data.resample(freq).apply(agg_method)
-        # if method is fagg
+            # if method is fagg
         else:
+            seconds_total = pd.Timedelta(freq).total_seconds()
+            freq_string = str(int(seconds_total)) + "s"
+            base = 0
+            loffset = pd.Timedelta(0)
+            label = 'right'
+            closed = 'right'
             # all values in a sampling interval get aggregated with agg_method and assigned to the next grid point
-            data = data.resample(freq, closed="right", label="right").apply(agg_method)
-        # some consistency cleanup:
+            # some consistency cleanup:
+        data = data.resample(freq_string, loffset=loffset, base=base, closed=closed,
+                             label=label).apply(agg_method)
         if total_range is None:
             data = data.reindex(ref_index)
 
@@ -482,11 +494,13 @@ def _reshapeFlags(
             label = "right"
             base = 0
             freq_string = freq
+            loffset = pd.Timedelta(0)
         elif method in ["bagg", "bagg_no_deharm"]:
             closed = "left"
             label = "left"
             base = 0
             freq_string = freq
+            loffset = pd.Timedelta(0)
         # var sets for 'nagg':
         else:
             closed = "left"
@@ -494,20 +508,13 @@ def _reshapeFlags(
             seconds_total = pd.Timedelta(freq).total_seconds()
             base = seconds_total / 2
             freq_string = str(int(seconds_total)) + "s"
-            i_start = fdata.index[0]
-            if abs(i_start - i_start.floor(freq)) <= pd.Timedelta(freq) / 2:
-                shift_correcture = 1
-            else:
-                shift_correcture = -1
+            loffset = pd.Timedelta(freq) / 2
 
         # resampling the flags series with aggregation method
         agg = lambda x: agg_method(x) if not x.empty else missing_flag
-        resampled = fdata.resample(freq_string, closed=closed, label=label, base=base)
+        resampled = fdata.resample(freq_string, closed=closed, label=label, base=base, loffset=loffset)
         # NOTE: breaks for non categorical flaggers
         fdata = resampled.apply(agg).astype(flagger.dtype)
-
-        if method == "nagg":
-            fdata = fdata.shift(periods=shift_correcture, freq=pd.Timedelta(freq) / 2)
 
         # some consistency clean up to ensure new flags frame matching new data frames size:
         if ref_index[0] != fdata.index[0]:
