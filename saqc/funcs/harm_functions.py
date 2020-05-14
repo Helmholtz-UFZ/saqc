@@ -332,8 +332,12 @@ def _interpolateGrid(
             closed = 'right'
             # all values in a sampling interval get aggregated with agg_method and assigned to the next grid point
             # some consistency cleanup:
+        # we are not trusting resamples interplay with sum and others - so we check for empty intervals:
+        to_nan = data.resample(freq_string, loffset=loffset, base=base, closed=closed,
+                             label=label).count() == 0
         data = data.resample(freq_string, loffset=loffset, base=base, closed=closed,
                              label=label).apply(agg_method)
+        data[to_nan] = np.nan
         if total_range is None:
             data = data.reindex(ref_index)
 
