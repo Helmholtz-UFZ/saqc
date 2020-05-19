@@ -53,7 +53,7 @@ def test_resample(course_5, flagger):
     field = data.columns[0]
     data = dios.DictOfSeries(data)
     flagger = flagger.initFlags(data)
-    data1, *_ = proc_resample(data, field, flagger, '10min', 'mean', max_invalid_total=2, max_invalid_consec=1)
+    data1, *_ = proc_resample(data, field, flagger, '10min', 'mean', max_invalid_total_d=2, max_invalid_consec_d=1)
     assert ~np.isnan(data1[field].iloc[0])
     assert np.isnan(data1[field].iloc[1])
     assert np.isnan(data1[field].iloc[2])

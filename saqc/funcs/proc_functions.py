@@ -4,7 +4,7 @@
 import pandas as pd
 import numpy as np
 from saqc.funcs.register import register
-from saqc.lib.ts_operators import interpolateNANs, validationTrafo
+from saqc.lib.ts_operators import interpolateNANs, validationTrafo, aggregate2Freq
 from saqc.lib.tools import composeFunction, toSequence
 
 
@@ -37,51 +37,27 @@ def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_l
 
 
 @register()
-def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total=None, max_invalid_consec=None,
-                  flag_agg_func='max', **kwargs):
+def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total_d=None, max_invalid_consec_d=None,
+                  max_invalid_consec_f=None, max_invalid_total_f=None, flag_agg_func='max', method='bagg', **kwargs):
+
     data = data.copy()
     datcol = data[field]
-    d_start = datcol.index[0].floor(freq)
-    d_end = datcol.index[-1].ceil(freq)
+    flagscol = flagger.getFlags(field)
 
-    # filter data for invalid patterns
-    if (max_invalid_total is not None) | (max_invalid_consec is not None):
-        if not max_invalid_total:
-            max_invalid_total = np.inf
-        if not max_invalid_consec:
-            max_invalid_consec = np.inf
+    func = composeFunction(func)
+    flag_agg_func = composeFunction(flag_agg_func)
 
-        datcol = datcol.groupby(pd.Grouper(freq=freq)).transform(validationTrafo, max_nan_total=max_invalid_total,
-                                                             max_nan_consec=max_invalid_consec)
-    nanmask = np.isnan(datcol)
-    datcol = datcol[~nanmask]
-    datflags = flagger.getFlags()[field]
-    datflags = datflags[~nanmask]
-    datresampler = datcol.resample(freq)
-    flagsresampler = datflags.resample(freq)
-
-    # data resampling:
-    try:
-        datcol = getattr(datresampler, func)()
-    except AttributeError:
-        func = composeFunction(func)
-        datcol = datresampler.apply(func)
+    # data resampling
+    datcol = aggregate2Freq(datcol, method, agg_func=func, freq=freq, fill_value=np.nan,
+                          max_invalid_total=max_invalid_total_d, max_invalid_consec=max_invalid_consec_d)
 
     # flags resampling:
-    try:
-        datflags = getattr(flagsresampler, flag_agg_func)()
-    except AttributeError:
-        flag_agg_func = composeFunction(flag_agg_func)
-        datflags = flagsresampler.apply(flag_agg_func)
+    flagscol = aggregate2Freq(flagscol, method, agg_func=flag_agg_func, freq=freq, fill_value=flagger.BAD,
+                          max_invalid_total=max_invalid_total_f, max_invalid_consec=max_invalid_consec_f)
 
-    # insert freqgrid (for consistency reasons -> in above step, start and ending chunks can get lost due to invalid
-    # intervals):
-    grid = pd.date_range(d_start, d_end, freq=freq)
-    datcol = datcol.reindex(grid)
-    datflags = datflags.reindex(grid)
     # data/flags reshaping:
     data[field] = datcol
-    reshape_flagger = flagger.initFlags(datcol).setFlags(field, flag=datflags, force=True, **kwargs)
+    reshape_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
     flagger = flagger.getFlagger(drop=field).setFlagger(reshape_flagger)
     return data, flagger
 

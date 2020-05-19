@@ -7,6 +7,7 @@ import numba as nb
 import math
 from sklearn.neighbors import NearestNeighbors
 from scipy.stats import iqr
+#from saqc.lib.tools import composeFunction
 import logging
 logger = logging.getLogger("SaQC")
 
@@ -129,15 +130,15 @@ def validationTrafo(data, max_nan_total, max_nan_consec):
 
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    return np.nanstd(validationTrafo(data, max_nan_total, max_nan_consec), ddof=1)
+    return np.nanstd(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)], ddof=1)
 
 
 def varQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    return np.nanvar(validationTrafo(data, max_nan_total, max_nan_consec), ddof=1)
+    return np.nanvar(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)], ddof=1)
 
 
 def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    return np.nanmean(validationTrafo(data, max_nan_total, max_nan_consec))
+    return np.nanmean(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)])
 
 
 def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolation=False, return_chunk_bounds=False):
@@ -232,14 +233,19 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
 def aggregate2Freq(data, method, agg_func, freq, fill_value=np.nan, max_invalid_total=None, max_invalid_consec=None):
 
     # filter data for invalid patterns
+    #import pdb
+    #pdb.set_trace()
     if (max_invalid_total is not None) | (max_invalid_consec is not None):
         if not max_invalid_total:
             max_invalid_total = np.inf
         if not max_invalid_consec:
             max_invalid_consec = np.inf
 
-        temp_mask = (data == fill_value)
-        temp_mask.groupby(pd.Grouper(freq=freq)).transform(validationTrafo, max_nan_total=max_invalid_total,
+        if pd.isnull(fill_value):
+            temp_mask = (data.isna())
+        else:
+            temp_mask = (data == fill_value)
+        temp_mask = temp_mask.groupby(pd.Grouper(freq=freq)).transform(validationTrafo, max_nan_total=max_invalid_total,
                                                                  max_nan_consec=max_invalid_consec)
         data[temp_mask] = fill_value
 
@@ -278,11 +284,16 @@ def aggregate2Freq(data, method, agg_func, freq, fill_value=np.nan, max_invalid_
 
     empty_intervals = data.resample(freq_string, loffset=loffset, base=base, closed=closed,
                            label=label).count() == 0
-    data = data.resample(freq_string, loffset=loffset, base=base, closed=closed,
-                         label=label).apply(agg_func)
+
+    dataresampler = data.resample(freq_string, loffset=loffset, base=base, closed=closed,
+                         label=label)
+
+    data = dataresampler.apply(agg_func)
+
     data[empty_intervals] = fill_value
 
     return data
+
 
 def linearInterpolation(data, inter_limit=2):
     return interpolateNANs(data, 'time', inter_limit=inter_limit)
