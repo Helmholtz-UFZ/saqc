@@ -138,7 +138,6 @@ def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     return np.nanmean(validationTrafo(data, max_nan_total, max_nan_consec))
 
 
-
 def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolation=False, return_chunk_bounds=False):
     """
     The function interpolates nan-values (and nan-grids) in timeseries data. It can be passed all the method keywords
@@ -227,6 +226,48 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
     else:
         return data
 
+
+def aggregate2Freq(data, method, agg_func, freq, fill_value=np.nan):
+    if method == "nagg":
+        # all values within a grid points range (+/- freq/2, closed to the left) get aggregated with 'agg method'
+        # some timestamp acrobatics to feed the base keyword properly
+        seconds_total = pd.Timedelta(freq).total_seconds()
+        freq_string = str(int(seconds_total)) + "s"
+        base = seconds_total / 2
+        loffset = pd.Timedelta(freq) / 2
+        label = 'left'
+        closed = 'left'
+    elif method == "bagg":
+        seconds_total = pd.Timedelta(freq).total_seconds()
+        freq_string = str(int(seconds_total)) + "s"
+        base = 0
+        loffset = pd.Timedelta(0)
+        label = 'left'
+        closed = 'left'
+        # all values in a sampling interval get aggregated with agg_method and assigned to the last grid point
+        # if method is fagg
+    else:
+        # "fagg"
+        seconds_total = pd.Timedelta(freq).total_seconds()
+        freq_string = str(int(seconds_total)) + "s"
+        base = 0
+        loffset = pd.Timedelta(0)
+        label = 'right'
+        closed = 'right'
+        # all values in a sampling interval get aggregated with agg_method and assigned to the next grid point
+        # some consistency cleanup:
+    # we check for empty intervals before resampling, because:
+    # - resample AND groupBy do insert value zero for empty intervals if resampling with any kind of "sum" -
+    #   we want value nan
+    # - we are aggregating flags as well and empty intervals get BAD flag (which usually is not nan)
+
+    empty_intervals = data.resample(freq_string, loffset=loffset, base=base, closed=closed,
+                           label=label).count() == 0
+    data = data.resample(freq_string, loffset=loffset, base=base, closed=closed,
+                         label=label).apply(agg_func)
+    data[empty_intervals] = fill_value
+
+    return data
 
 def linearInterpolation(data, inter_limit=2):
     return interpolateNANs(data, 'time', inter_limit=inter_limit)
