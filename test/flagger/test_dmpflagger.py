@@ -7,8 +7,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from test.common import initData
-from saqc.flagger import DmpFlagger
+from test.common import initData, writeIO
+from saqc import DmpFlagger, run
+from saqc.core.config import Fields as F
+from saqc.flagger.dmpflagger import FlagFields as FF
+
 
 @pytest.fixture
 def data():
@@ -61,6 +64,7 @@ def test_setFlaggerOuter(data):
     assert (merged._causes.loc[left_index] == "SaQCLeft").all(axis=None)
     assert np.all(parseComments(merged._comments.loc[left_index]) == "testLeft")
 
+
 def test_setFlaggerInner(data):
 
     flagger = DmpFlagger()
@@ -108,3 +112,29 @@ def test_getFlaggerDrop(data):
     assert (filtered._comments.to_df().index== expected.index).all(axis=None)
     assert (filtered._causes.to_df().index== expected.index).all(axis=None)
 
+
+def test_getFlagsAll(data):
+    flagger = DmpFlagger().initFlags(data)
+    flag_cause = "SaQC"
+    flag_comment = "test"
+
+    config = f"""
+    {F.VARNAME};{F.TESTS}
+    var1;flagRange(min=0, max=20, cause='{flag_cause}', comment='{flag_comment}')
+    """
+    data, flagger = run(writeIO(config), flagger, data)
+    flags = flagger.getFlagger(loc=flagger.isFlagged()).getFlagsAll()
+
+    assert set(flags.columns.get_level_values(0)) == set(data.columns)
+    assert set(flags.columns.get_level_values(1)) == set([FF.FLAG, FF.CAUSE, FF.COMMENT])
+
+    causes = flags.xs("quality_cause", axis=1, level=1).drop_duplicates()
+    comments = flags.xs("quality_comment", axis=1, level=1).drop_duplicates()
+
+    assert len(causes) == 1
+    assert len(comments) == 1
+
+    comment = json.loads(comments.iat[0, 0])
+    assert set(causes.iloc[0]) == set([flag_cause])
+    assert comment["comment"] == flag_comment
+    assert comment["test"] == "flagRange"
