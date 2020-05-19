@@ -302,22 +302,3 @@ def linearInterpolation(data, inter_limit=2):
 def polynomialInterpolation(data, inter_limit=2, inter_order=2):
     return interpolateNANs(data, 'polynomial', inter_limit=inter_limit, order=inter_order)
 
-
-def leaderClustering(in_arr, ball_radius=None):
-    x_len = in_arr.shape[0]
-    x_cols = in_arr.shape[1]
-
-    if not ball_radius:
-        ball_radius = 0.1 / np.log(x_len) ** (1 / x_cols)
-    exemplars = [in_arr[0, :]]
-    members = [[]]
-    for index, point in in_arr:
-        dists = np.linalg.norm(point - np.array(exemplars), axis=1)
-        min_index = dists.argmin()
-        if dists[min_index] < ball_radius:
-            members[min_index].append(index)
-        else:
-            exemplars.append(in_arr[index])
-            members.append([index])
-    ex_indices = [x[0] for x in members]
-    return exemplars, members, ex_indices
