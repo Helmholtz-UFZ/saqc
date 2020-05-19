@@ -111,18 +111,20 @@ def validationTrafo(data, max_nan_total, max_nan_consec):
     if (max_nan_total is np.inf) & (max_nan_consec is np.inf):
         return data
 
-    nan_mask = np.isnan(data)
+    # nan_mask = np.isnan(data)
 
-    if nan_mask.sum() <= max_nan_total:
+    if data.sum() <= max_nan_total:
         if max_nan_consec is np.inf:
+            data[:] = False
             return data
-        elif _max_consecutive_nan(np.asarray(nan_mask), max_nan_consec):
+        elif _max_consecutive_nan(np.asarray(data), max_nan_consec):
+            data[:] = False
             return data
         else:
-            data[:] = np.nan
+            data[:] = True
             return data
     else:
-        data[:] = np.nan
+        data[:] = True
         return data
 
 
@@ -227,7 +229,20 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         return data
 
 
-def aggregate2Freq(data, method, agg_func, freq, fill_value=np.nan):
+def aggregate2Freq(data, method, agg_func, freq, fill_value=np.nan, max_invalid_total=None, max_invalid_consec=None):
+
+    # filter data for invalid patterns
+    if (max_invalid_total is not None) | (max_invalid_consec is not None):
+        if not max_invalid_total:
+            max_invalid_total = np.inf
+        if not max_invalid_consec:
+            max_invalid_consec = np.inf
+
+        temp_mask = (data == fill_value)
+        temp_mask.groupby(pd.Grouper(freq=freq)).transform(validationTrafo, max_nan_total=max_invalid_total,
+                                                                 max_nan_consec=max_invalid_consec)
+        data[temp_mask] = fill_value
+
     if method == "nagg":
         # all values within a grid points range (+/- freq/2, closed to the left) get aggregated with 'agg method'
         # some timestamp acrobatics to feed the base keyword properly
