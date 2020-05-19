@@ -80,16 +80,16 @@ class DmpFlagger(CategoricalFlagger):
         newflagger._causes[:], newflagger._comments[:] = "", ""
         return newflagger
 
-    def getFlagger(self, field=None, loc=None, drop=None):
-        newflagger = super().getFlagger(field=field, loc=loc, drop=drop)
+    def slice(self, field=None, loc=None, drop=None):
+        newflagger = super().slice(field=field, loc=loc, drop=drop)
         flags = newflagger.flags
         newflagger._causes = self._causes.aloc[flags, ...]
         newflagger._comments = self._comments.aloc[flags, ...]
         return newflagger
 
-    def setFlagger(self, other: DmpFlaggerT, join: str="merge"):
+    def merge(self, other: DmpFlaggerT, join: str= "merge"):
         assert isinstance(other, DmpFlagger)
-        out = super().setFlagger(other, join)
+        out = super().merge(other, join)
         out._causes = mergeDios(out._causes, other._causes, join=join)
         out._comments = mergeDios(out._comments, other._comments, join=join)
         return out

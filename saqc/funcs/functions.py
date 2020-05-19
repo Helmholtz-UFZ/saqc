@@ -16,12 +16,12 @@ def procGeneric(data, field, flagger, func, **kwargs):
     # The flags to `field` will be (re-)set to UNFLAGGED
 
     # PROBLEM:
-    # flagger.setFlagger merges the given flaggers, if
+    # flagger.merge merges the given flaggers, if
     # `field` did already exist before the call to `procGeneric`
     # but with a differing index, we end up with:
     # len(data[field]) != len(flagger.getFlags(field))
     # see: test/funcs/test_generic_functions.py::test_procGenericMultiple
-    flagger = flagger.setFlagger(flagger.initFlags(data[field]))
+    flagger = flagger.merge(flagger.initFlags(data[field]))
     return data, flagger
 
 
@@ -37,7 +37,7 @@ def flagGeneric(data, field, flagger, func, **kwargs):
         raise TypeError(f"generic expression does not return a boolean array")
 
     if flagger.getFlags(field).empty:
-        flagger = flagger.setFlagger(flagger.initFlags(data=pd.Series(name=field, index=mask.index)))
+        flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field, index=mask.index)))
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
@@ -73,12 +73,12 @@ def flagSesonalRange(
     if d.empty:
         return data, flagger
 
-    _, flagger_range = flagRange(d, field, flagger.getFlagger(loc=d[field].index), min=min, max=max, **kwargs)
+    _, flagger_range = flagRange(d, field, flagger.slice(loc=d[field].index), min=min, max=max, **kwargs)
 
     if not flagger_range.isFlagged(field).any():
         return data, flagger
 
-    flagger = flagger.setFlagger(flagger_range)
+    flagger = flagger.merge(flagger_range)
     return data, flagger
 
 
