@@ -122,7 +122,7 @@ def run(
     flag_cols = _collectVariables(meta, data)
     flagger = flagger.initFlags(dios.DictOfSeries(data=data, columns=flag_cols))
     if flags is not None:
-        flagger = flagger.setFlagger(flagger.initFlags(flags=flags))
+        flagger = flagger.merge(flagger.initFlags(flags=flags))
 
     # NOTE:
     # this checks comes late, but the compilation of
@@ -161,7 +161,7 @@ def run(
             data_chunk = data.loc[dtslice]
             if data_chunk.empty:
                 continue
-            flagger_chunk = flagger.getFlagger(loc=dtslice)
+            flagger_chunk = flagger.slice(loc=dtslice)
 
             try:
                 # actually run the tests
@@ -187,7 +187,7 @@ def run(
 
             # NOTE:
             # time slicing support is currently disabled
-            # flagger = flagger.setFlagger(flagger_chunk_result)
+            # flagger = flagger.merge(flagger_chunk_result)
             # data = combineDataFrames(data, data_chunk_result)
             flagger = flagger_chunk_result
             data = data_chunk_result

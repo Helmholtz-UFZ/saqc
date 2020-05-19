@@ -63,7 +63,7 @@ def harmWrapper(heap={}):
         reshape_agg = getFuncFromInput(reshape_agg)
 
         # get data of variable
-        flagger_merged = flagger.getFlagger(field=field)
+        flagger_merged = flagger.slice(field=field)
         dat_col = data[field]
 
         # now we send the flags frame in its current shape to the future:
@@ -128,7 +128,7 @@ def harmWrapper(heap={}):
         resolve_method = HARM_2_DEHARM[harm_info[Heap.METHOD]]
 
         # retrieve data and flags from the merged saqc-conform data frame (and by that get rid of blow-up entries).
-        flagger_harmony = flagger.getFlagger(field=field)
+        flagger_harmony = flagger.slice(field=field)
         dat_col = data[field]
 
         # reconstruct the drops that were performed before harmonization
@@ -195,7 +195,7 @@ def _outsortCrap(
     for drop_flag in drop_flags:
         drop_mask = drop_mask | flagger.isFlagged(field, flag=drop_flag, comparator="==")
 
-    flagger_out = flagger.getFlagger(loc=~drop_mask)
+    flagger_out = flagger.slice(loc=~drop_mask)
     return data[~drop_mask], flagger_out, drop_mask
 
 
@@ -690,7 +690,7 @@ def _backtrackFlags(flagger_harmony, flagger_original_clean, flagger_original, f
 def _fromMerged(data, flagger, fieldname):
     # we need a not-na mask for the flags data to be retrieved:
     mask = flagger.getFlags(fieldname).notna()
-    return data.loc[mask[mask].index, fieldname], flagger.getFlagger(field=fieldname, loc=mask)
+    return data.loc[mask[mask].index, fieldname], flagger.slice(field=fieldname, loc=mask)
 
 
 def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None, **kwargs):
