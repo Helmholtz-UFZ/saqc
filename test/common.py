@@ -10,7 +10,7 @@ import dios
 
 from saqc.core.core import readConfig
 from saqc.flagger import (
-    ContinuousFlagger,
+    # ContinuousFlagger,
     CategoricalFlagger,
     SimpleFlagger,
     DmpFlagger,

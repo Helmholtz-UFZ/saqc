@@ -6,6 +6,8 @@ import json
 from copy import deepcopy
 from typing import TypeVar
 
+import pandas as pd
+
 import dios.dios as dios
 
 from saqc.flagger.categoricalflagger import CategoricalFlagger
@@ -53,6 +55,16 @@ class DmpFlagger(CategoricalFlagger):
     @property
     def comments(self):
         return self._comments
+
+    def getFlagsAll(self):
+        out = pd.concat(
+            [self._flags.to_df(), self._causes.to_df(), self._comments.to_df()],
+            axis=1,
+            keys=[FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
+        )
+        out = (out.reorder_levels(order=[1, 0], axis=1)
+               .sort_index(axis=1, level=0, sort_remaining=False))
+        return out
 
     def initFlags(self, data: dios.DictOfSeries = None, flags: dios.DictOfSeries = None):
         """
