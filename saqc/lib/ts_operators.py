@@ -233,8 +233,6 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
 def aggregate2Freq(data, method, agg_func, freq, fill_value=np.nan, max_invalid_total=None, max_invalid_consec=None):
 
     # filter data for invalid patterns
-    #import pdb
-    #pdb.set_trace()
     if (max_invalid_total is not None) | (max_invalid_consec is not None):
         if not max_invalid_total:
             max_invalid_total = np.inf

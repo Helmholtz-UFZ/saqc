@@ -202,7 +202,8 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
     data, flagger = harm_harmonize(
         data, "data", flagger, freq, interpolation, "fshift", reshape_shift_comment=False, inter_agg="sum",
     )
-
+    #import pdb
+    #pdb.set_trace()
     if interpolation == "fshift":
         if freq == "15min":
             exp = pd.Series([np.nan, -37.5, -25.0, 0.0, 37.5, 50.0], index=test_index)
@@ -226,10 +227,10 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
             assert data[field].equals(exp)
     if interpolation == "nagg":
         if freq == "15min":
-            exp = pd.Series([np.nan, -87.5, -25.0, 0.0, 37.5, 50.0], index=test_index)
+            exp = pd.Series([-87.5, -25.0, 0.0, 37.5, 50.0], index=test_index[1:])
             assert data[field].equals(exp)
         if freq == "30min":
-            exp = pd.Series([np.nan, -87.5, -25.0, 87.5], index=test_index)
+            exp = pd.Series([-87.5, -25.0, 87.5], index=test_index[1:])
             assert data[field].equals(exp)
     if interpolation == "bagg":
         if freq == "15min":
