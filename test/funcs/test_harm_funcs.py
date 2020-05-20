@@ -202,8 +202,6 @@ def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
     data, flagger = harm_harmonize(
         data, "data", flagger, freq, interpolation, "fshift", reshape_shift_comment=False, inter_agg="sum",
     )
-    #import pdb
-    #pdb.set_trace()
     if interpolation == "fshift":
         if freq == "15min":
             exp = pd.Series([np.nan, -37.5, -25.0, 0.0, 37.5, 50.0], index=test_index)
@@ -284,9 +282,6 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
     for c in multi_data.columns:
         harm_start = multi_data[c].index[0].floor(freq=freq)
         harm_end = multi_data[c].index[-1].ceil(freq=freq)
-        test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
-
-        assert multi_data[c].index.equals(test_index)
         assert pd.Timedelta(pd.infer_freq(multi_data[c].index)) == pd.Timedelta(freq)
 
     multi_data, flagger = harm_deharmonize(multi_data, "data3", flagger, co_flagging=False)

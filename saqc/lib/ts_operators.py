@@ -293,6 +293,26 @@ def aggregate2Freq(data, method, agg_func, freq, fill_value=np.nan, max_invalid_
     return data
 
 
+def shift2Freq(data, method, freq, fill_value=np.nan):
+    # Shifts
+    if method == "fshift":
+        direction = "ffill"
+        tolerance = pd.Timedelta(freq)
+
+    elif method == "bshift":
+        direction = "bfill"
+        tolerance = pd.Timedelta(freq)
+
+    else:
+        direction = "nearest"
+        tolerance = pd.Timedelta(freq) / 2
+
+    target_ind = pd.date_range(start=data.index[0].floor(freq), end=data.index[-1].ceil(freq),
+                               freq=freq,
+                               name=data.index.name)
+    return data.reindex(target_ind, method=direction, tolerance=tolerance, fill_value=fill_value)
+
+
 def linearInterpolation(data, inter_limit=2):
     return interpolateNANs(data, 'time', inter_limit=inter_limit)
 

@@ -9,7 +9,7 @@ import dios
 
 from saqc.funcs.register import register
 from saqc.lib.tools import toSequence, getFuncFromInput
-from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq
+from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq
 
 
 logger = logging.getLogger("SaQC")
@@ -298,23 +298,9 @@ def _interpolateGrid(
     if method in aggregations:
         data = aggregate2Freq(data, method, agg_method, freq)
 
-
     # Shifts
     elif method in shifts:
-        if method == "fshift":
-            direction = "ffill"
-            tolerance = pd.Timedelta(freq)
-
-        elif method == "bshift":
-            direction = "bfill"
-            tolerance = pd.Timedelta(freq)
-        # if method = nshift
-        else:
-            direction = "nearest"
-            tolerance = pd.Timedelta(freq) / 2
-
-        ref_ind = _makeGrid(data.index[0], data.index[-1], freq, name=data.index.name)
-        data = data.reindex(ref_ind, method=direction, tolerance=tolerance)
+        data = shift2Freq(data, method, freq)
 
     # Interpolations:
     elif method in interpolations:
@@ -418,23 +404,7 @@ def _reshapeFlags(
 
     if method in shifts:
         # forward/backward projection of every intervals last/first flag - rest will be dropped
-        if method == "fshift":
-            direction = "ffill"
-            tolerance = pd.Timedelta(freq)
-
-        elif method == "bshift":
-            direction = "bfill"
-            tolerance = pd.Timedelta(freq)
-        # varset for nshift
-        else:
-            direction = "nearest"
-            tolerance = pd.Timedelta(freq) / 2
-
-        # if you want to keep previous comments
-        # only newly generated missing flags get commented:
-
-        ref_ind = _makeGrid(fdata.index[0], fdata.index[-1], freq, name=fdata.index.name)
-        fdata = fdata.reindex(ref_ind, tolerance=tolerance, method=direction, fill_value=np.nan)
+        fdata = shift2Freq(fdata, method, freq)
 
         flags[field] = fdata
         flagger_new = flagger.initFlags(flags=flags)
