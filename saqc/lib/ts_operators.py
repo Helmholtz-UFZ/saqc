@@ -293,9 +293,14 @@ def shift2Freq(data, method, freq, fill_value=np.nan):
         direction = "bfill"
         tolerance = pd.Timedelta(freq)
 
-    else:
+    elif method == "nearest":
         direction = "nearest"
         tolerance = pd.Timedelta(freq) / 2
+
+    else:
+        # method == nearest2
+        direction = "nearest"
+        tolerance = pd.Timedelta(freq)
 
     target_ind = pd.date_range(start=data.index[0].floor(freq), end=data.index[-1].ceil(freq),
                                freq=freq,
