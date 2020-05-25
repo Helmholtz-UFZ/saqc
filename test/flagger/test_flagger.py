@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-__author__ = "Bert Palm"
-__email__ = "bert.palm@ufz.de"
-__copyright__ = "Copyright 2018, Helmholtz-Zentrum für Umweltforschung GmbH - UFZ"
-
 import pytest
 import numpy as np
 import pandas as pd
