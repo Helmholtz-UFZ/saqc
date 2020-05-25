@@ -178,8 +178,8 @@ def flagDummy(data, field, flagger, **kwargs):
     return data, flagger
 
 
-#@register
-def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median):
+@register
+def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median, **kwargs):
     val_frame = data.loc[data.index_of('shared')].to_df()
     try:
         stat = getattr(val_frame, cross_stat.__name__)(axis=1)
@@ -188,5 +188,5 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median)
     diff_scores = val_frame.subtract(stat, axis=0).abs()
     diff_scores = diff_scores > thresh
     for var in fields:
-        flagger = flagger.setFlags(var, diff_scores[fields[0]].values)
+        flagger = flagger.setFlags(var, diff_scores[fields[0]].values, **kwargs)
     return data, flagger
