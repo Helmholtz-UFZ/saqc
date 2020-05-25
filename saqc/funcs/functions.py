@@ -176,3 +176,17 @@ def flagIsolated(
 @register
 def flagDummy(data, field, flagger, **kwargs):
     return data, flagger
+
+
+#@register
+def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median):
+    val_frame = data.loc[data.index_of('shared')].to_df()
+    try:
+        stat = getattr(val_frame, cross_stat.__name__)(axis=1)
+    except AttributeError:
+        stat = val_frame.aggregate(cross_stat, axis=1)
+    diff_scores = val_frame.subtract(stat, axis=0).abs()
+    diff_scores = diff_scores > thresh
+    for var in fields:
+        flagger = flagger.setFlags(var, diff_scores[fields[0]].values)
+    return data, flagger
