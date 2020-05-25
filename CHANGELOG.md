@@ -64,6 +64,7 @@
 coming soon ...
 
 ## Features
+- `flagCrossValidation` implemented
 
 ## Bugfixes
 - `spikes_flagRaise` - overestimation of value courses average fixed
