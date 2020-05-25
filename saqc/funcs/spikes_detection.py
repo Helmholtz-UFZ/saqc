@@ -10,7 +10,6 @@ from scipy.optimize import curve_fit
 from saqc.core.register import register
 import numpy.polynomial.polynomial as poly
 import numba
-import dios
 import saqc.lib.ts_operators as ts_ops
 from saqc.lib.tools import (
     retrieveTrustworthyOriginal,
@@ -169,31 +168,17 @@ def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
 
 
 @register
-def spikes_flagMultivarScores(data, field, flagger, fields, trafo='normScale', alpha=0.05, n_neighbors=10,
+def spikes_flagMultivarScores(data, field, flagger, fields, trafo=np.log, alpha=0.05, n_neighbors=10,
                               scoring_method='kNNMaxGap', iter_start=0.5, threshing='stray',
                               expfit_binning='auto', stray_partition=None, stray_partition_min=0,
                               post_reduction=None, reduction_range=None, reduction_drop_flagged=False,
                               reduction_thresh=3.5, **kwargs):
 
-    trafo_list = trafo.split(',')
-    if len(trafo_list) == 1:
-        trafo_list = trafo_list * len(fields)
-    trafo_dict = {var_name: composeFunction(traffo.split('-')) for (var_name, traffo)
-                  in dict(zip(fields, trafo_list)).items()}
 
     # data fransformation/extraction
-    val_frame = data[fields[0]]
-
-    for var in fields[1:]:
-        val_frame = pd.merge(val_frame, data[var],
-                             how='inner',
-                             left_index=True,
-                             right_index=True
-                             )
-
+    val_frame = data.loc[data.index_of('shared')].to_df()
     val_frame.dropna(inplace=True)
-    for field in val_frame.columns:
-        val_frame[field] = trafo_dict[field](val_frame[field])
+    val_frame = val_frame.apply(trafo)
 
 
     if threshing == 'stray':
