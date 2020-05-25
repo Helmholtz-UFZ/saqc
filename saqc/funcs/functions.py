@@ -175,6 +175,7 @@ def flagIsolated(
 
 @register
 def flagDummy(data, field, flagger, **kwargs):
+    """ Do nothing """  
     return data, flagger
 
 
