@@ -6,9 +6,9 @@ import click
 import numpy as np
 import pandas as pd
 
-from saqc.core import run
+from saqc.core import SaQC
 from saqc.flagger import CategoricalFlagger
-from saqc.flagger.dmpflagger import DmpFlagger, FlagFields
+from saqc.flagger.dmpflagger import DmpFlagger
 import dios
 
 
@@ -40,14 +40,15 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
     data = pd.read_csv(data, index_col=0, parse_dates=True,)
     data = dios.DictOfSeries(data)
 
-    data_result, flagger_result = run(
-        config_file=config,
+    saqc = SaQC(
         flagger=FLAGGERS[flagger],
         data=data,
-        nodata=nodata,
         log_level=log_level,
+        nodata=nodata,
         error_policy="raise" if fail else "warn",
     )
+
+    data_result, flagger_result = saqc.readConfig(config).getResult()
 
     if outfile:
         data_result = data_result.to_df()

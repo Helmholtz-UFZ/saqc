@@ -3,6 +3,8 @@
 
 import pytest
 import numpy as np
+import pandas as pd
+import dios
 
 from saqc.funcs.functions import (
     flagRange,
@@ -10,6 +12,7 @@ from saqc.funcs.functions import (
     forceFlags,
     clearFlags,
     flagIsolated,
+    flagCrossScoring
 )
 from test.common import initData, TESTFLAGGER
 
@@ -93,3 +96,22 @@ def test_flagIsolated(data, flagger):
         data, field, flagger_result, group_window="2D", gap_window="2.1D", continuation_range="1.1D",
     )
     assert flagger_result.isFlagged(field)[[3, 5, 13, 14]].all()
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])
+def test_flagCrossScoring(dat, flagger):
+    data1, characteristics = dat(initial_level=0, final_level=0, out_val=0)
+    data2, characteristics = dat(initial_level=0, final_level=0, out_val=10)
+    field = "dummy"
+    fields = ["data1", "data2"]
+    s1, s2 = data1.squeeze(), data2.squeeze()
+    s1 = pd.Series(data=s1.values, index=s1.index)
+    s2 = pd.Series(data=s2.values, index=s1.index)
+    data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
+    flagger = flagger.initFlags(data)
+    _, flagger_result = flagCrossScoring(
+        data, field, flagger, fields=fields, thresh=3, cross_stat=np.mean
+    )
+    for field in fields:
+        isflagged = flagger_result.isFlagged(field)
+        assert isflagged[characteristics['raise']].all()

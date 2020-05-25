@@ -5,11 +5,12 @@ import operator as op
 from copy import deepcopy
 from abc import ABC, abstractmethod
 from typing import TypeVar, Union, Any, List
+from functools import reduce
 
 import pandas as pd
 import dios.dios as dios
 
-from saqc.lib.tools import assertScalar, mergeDios
+from saqc.lib.tools import assertScalar, mergeDios, toSequence
 
 COMPARATOR_MAP = {
     "!=": op.ne,
@@ -66,7 +67,7 @@ class BaseFlagger(ABC):
         newflagger._flags = flags.astype(self.dtype)
         return newflagger
 
-    def setFlagger(self, other: BaseFlaggerT, join: str = "merge"):
+    def merge(self, other: BaseFlaggerT, join: str = "merge"):
         """
         Merge the given flagger 'other' into self
         """
@@ -79,7 +80,7 @@ class BaseFlagger(ABC):
         )
         return newflagger
 
-    def getFlagger(self, field: FieldsT = None, loc: LocT = None, drop: FieldsT = None) -> BaseFlaggerT:
+    def slice(self, field: FieldsT = None, loc: LocT = None, drop: FieldsT = None) -> BaseFlaggerT:
         """ Return a potentially trimmed down copy of self. """
         if drop is not None:
             if field is not None:
@@ -148,14 +149,48 @@ class BaseFlagger(ABC):
         return self.setFlags(field=field, loc=loc, flag=self.UNFLAGGED, force=True, **kwargs)
 
     def isFlagged(self, field=None, loc: LocT = None, flag: FlagT = None, comparator: str = ">") -> PandasT:
-        assertScalar("flag", flag, optional=True)
-        flag = self.GOOD if flag is None else flag
+        """
+        Returns boolean data that indicate where data has been flagged.
+
+        Parameters
+        ----------
+        field : str, list-like, default None
+            The field(s)/column(s) of the data to be tested if flagged.
+            If None all columns are used.
+
+        loc : mask, slice, pd.Index, etc., default None
+            The location/rows of the data to be tested if flagged.
+            If None all rows are used.
+
+        flag : str, category, list-like, default None
+            The flag(s) that define data as flagged. If None, `flagger.GOOD`
+            is used.
+
+        comparator : {'<', '<=', '==', '!=', '>=', '>'}, default '>'
+            Defines how the comparison is done. The `flags` are always on the
+            left-hand-side, thus, the flag to compare is always on the right-
+            hand-side. Eg. a call with all defaults, return the equivalent
+            of `flagger.getFlags() > flagger.GOOD`
+
+        Returns
+        -------
+        pandas.Series or dios.DictOfSeries : Return Series if field is a scalar,
+        otherwise DictOfSeries.
+        """
+        if isinstance(flag, pd.Series):
+            raise TypeError("flag: pd.Series is not allowed")
+        checkflags = set(toSequence(flag, self.GOOD))
+
         flags = self.getFlags(field, loc)
         cp = COMPARATOR_MAP[comparator]
 
-        # use notna() to prevent nans to become True,
-        # like in: np.nan != 0 -> True
-        flagged = flags.notna() & cp(flags, flag)
+        # notna() to prevent nans to become True, eg.: `np.nan != 0 -> True`
+        flagged = flags.notna()
+        for f in checkflags:
+            if not self.isValidFlag(f):
+                raise ValueError(f"invalid flag: {f}")
+            flagged &= cp(flags, f)
+
         return flagged
 
     def copy(self, flags=None) -> BaseFlaggerT:
@@ -163,6 +198,24 @@ class BaseFlagger(ABC):
         if flags is not None:
             out._flags = flags
         return out
+
+    def isValidFlag(self, flag: FlagT) -> bool:
+        """
+        Check if given flag is known to this flagger.
+
+        Parameters
+        ----------
+        flag: str
+            The flag to be checked.
+
+        Returns
+        -------
+        bool
+        """
+        # This is a very rudimentary fallback for the check
+        # and the child flagger may should implement a better
+        # version of it.
+        return flag == self.BAD or flag == self.GOOD or flag == self.UNFLAGGED or self.isSUSPICIOUS(flag)
 
     def _check_field(self, field):
         """ Check if (all) field(s) in self._flags. """

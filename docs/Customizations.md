@@ -54,7 +54,7 @@ look like that:
 ```python
 from saqc.functions.register import register
 
-@register()
+@register
 def yourTestFunction(data, field, flagger, *args, **kwargs):
     return data, flagger
 ```

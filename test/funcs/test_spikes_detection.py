@@ -112,7 +112,7 @@ def test_flagMultivarScores(dat, flagger):
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flagger = flagger.initFlags(data)
     _, flagger_result = spikes_flagMultivarScores(
-        data, field, flagger, fields=fields, binning=50, trafo='np.log',
+        data, field, flagger, fields=fields, binning=50, trafo=np.log,
         iter_start=0.95, n_neighbors=10
     )
     for field in fields:

@@ -1,105 +1,18 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import re
 from typing import Sequence, Union, Any, Iterator
 
 import numpy as np
 import numba as nb
-import saqc.lib.ts_operators as ts_ops
-import scipy
-import sklearn
-from functools import reduce, partial
 import pandas as pd
+
 import dios
 import inspect
 
 # from saqc.flagger import BaseFlagger
 from saqc.lib.types import T
-
-SAQC_OPERATORS = {
-    "exp": np.exp,
-    "log": np.log,
-    "sum": np.sum,
-    "var": np.var,
-    "std": np.std,
-    "mean": np.mean,
-    "median": np.median,
-    "min": np.min,
-    "max": np.max,
-    "first": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").first,
-    "last": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").last,
-    "deltaT": ts_ops.deltaT,
-    "id": ts_ops.identity,
-    "diff": ts_ops.difference,
-    "relDiff": ts_ops.relativeDifference,
-    "deriv": ts_ops.derivative,
-    "rateOfChange": ts_ops.rateOfChange,
-    "scale": ts_ops.scale,
-    "normScale": ts_ops.normScale,
-    "meanStandardize": ts_ops.standardizeByMean,
-    "medianStandardize": ts_ops.standardizeByMedian,
-    "zLog": ts_ops.zeroLog,
-    "linear": ts_ops.linearInterpolation,
-    "polynomial": ts_ops.polynomialInterpolation
-}
-
-
-OP_MODULES = {'pd': pd,
-              'np': np,
-              'scipy': scipy,
-              'sklearn': sklearn
-              }
-
-
-def evalFuncString(full_func_string):
-    if not isinstance(full_func_string, str):
-        return full_func_string
-    full_func_string = full_func_string.split("$")
-    func_string = full_func_string[0]
-    paras = full_func_string[1:]
-    module_dot = func_string.find(".")
-    first, *rest = func_string.split(".")
-    if rest:
-        module = func_string[:module_dot]
-        try:
-            func = reduce(lambda m, f: getattr(m, f), rest, OP_MODULES[first])
-        except KeyError:
-            availability_list = [f"'{k}' (= {s.__name__})" for k, s in OP_MODULES.items()]
-            availability_list = " \n".join(availability_list)
-            raise ValueError(
-                f'The external-module alias "{module}" is not known to the internal operators dispatcher. '
-                f"\n Please select from: \n{availability_list}"
-            )
-
-    else:
-        if func_string in SAQC_OPERATORS:
-            func = SAQC_OPERATORS[func_string]
-        else:
-            availability_list = [f"'{k}' (= {s.__name__})" for k, s in SAQC_OPERATORS.items()]
-            availability_list = " \n".join(availability_list)
-            raise ValueError(
-                f'The external-module alias "{func_string}" is not known to the internal operators '
-                f"dispatcher. \n Please select from: \n{availability_list}"
-            )
-
-    kwarg_dict = {}
-    if len(paras) > 0:
-        paras = [float(x) if x.isnumeric() else x for x in paras]
-        para_names = inspect.getfullargspec(func).args[1:1 + len(paras)]
-        kwarg_dict.update(dict(zip(para_names, paras)))
-
-    return partial(func, **kwarg_dict)
-
-def composeFunction(functions):
-    if callable(functions):
-        return functions
-    functions = toSequence(functions)
-    functions = [evalFuncString(f) for f in functions]
-
-    def composed(ts, funcs=functions):
-        return reduce(lambda x, f: f(x), reversed(funcs), ts)
-
-    return partial(composed, funcs=functions)
 
 
 def assertScalar(name, value, optional=False):
@@ -256,6 +169,7 @@ def offset2seconds(offset):
 
 
 def flagWindow(flagger_old, flagger_new, field, direction="fw", window=0, **kwargs) -> pd.Series:
+    # NOTE: unused -> remove?
     if window == 0 or window == "":
         return flagger_new
 
@@ -359,24 +273,6 @@ def assertSeries(srs: Any, argname: str = "arg") -> None:
         raise TypeError(f"{argname} must be of type pd.Series, {type(srs)} was given")
 
 
-def getFuncFromInput(func):
-    """
-    Aggregation functions passed by the user, are selected by looking them up in the STRING_2_DICT dictionary -
-    But since there are wrappers, that dynamically generate aggregation functions and pass those on ,the parameter
-    interfaces must as well be capable of processing real functions passed. This function does that.
-
-    :param func: A key to the STRING_2_FUNC dict, or an actual function
-    """
-    # if input is a callable - than just pass it:
-    if hasattr(func, "__call__"):
-        if (func.__name__ == "aggregator") & (func.__module__ == "saqc.funcs.harm_functions"):
-            return func
-        else:
-            raise ValueError("The function you passed is suspicious!")
-    else:
-        return evalFuncString(func)
-
-
 @nb.jit(nopython=True, cache=True)
 def otherIndex(values: np.ndarray, start: int = 0) -> int:
     """
@@ -405,6 +301,7 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
         yield pd.Series(data=values[start:stop], index=index[start:stop])
         start = stop
 
+
 def mergeDios(left, right, join="merge"):
     # use dios.merge() as soon as it implemented
     # see https://git.ufz.de/rdm/dios/issues/15
@@ -431,3 +328,6 @@ def mergeDios(left, right, join="merge"):
 
     return merged
 
+
+def isQuoted(string):
+    return bool(re.search(r"'.*'|\".*\"", string))

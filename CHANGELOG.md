@@ -65,6 +65,8 @@ coming soon ...
 
 ## Features
 - added the data processing module `proc_functions`
+- `flagCrossValidation` implemented
+
 
 ## Bugfixes
 - `spikes_flagRaise` - overestimation of value courses average fixed

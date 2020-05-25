@@ -7,9 +7,10 @@ import logging
 import dios
 
 
-from saqc.funcs.register import register
-from saqc.lib.tools import toSequence, getFuncFromInput
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq
+from saqc.core.register import register
+from saqc.lib.tools import toSequence
+
 
 
 logger = logging.getLogger("SaQC")
@@ -48,10 +49,10 @@ def harmWrapper(heap={}):
         freq,
         inter_method,
         reshape_method,
-        inter_agg="mean",
+        inter_agg=np.nanmean,
         inter_order=1,
         inter_downcast=False,
-        reshape_agg="max",
+        reshape_agg=np.nanmax,
         reshape_missing_flag=None,
         reshape_shift_comment=False,
         drop_flags=None,
@@ -59,12 +60,9 @@ def harmWrapper(heap={}):
         **kwargs,
     ):
         data = data.copy()
-        # get funcs from strings:
-        inter_agg = getFuncFromInput(inter_agg)
-        reshape_agg = getFuncFromInput(reshape_agg)
 
         # get data of variable
-        flagger_merged = flagger.getFlagger(field=field)
+        flagger_merged = flagger.slice(field=field)
         dat_col = data[field]
 
         # now we send the flags frame in its current shape to the future:
@@ -122,14 +120,13 @@ def harmWrapper(heap={}):
         resolve_method = HARM_2_DEHARM[harm_info[Heap.METHOD]]
 
         # retrieve data and flags from the merged saqc-conform data frame (and by that get rid of blow-up entries).
-        flagger_harmony = flagger.getFlagger(field=field)
+        flagger_harmony = flagger.slice(field=field)
         dat_col = data[field]
 
         # reconstruct the drops that were performed before harmonization
         _, flagger_original_clean, drop_mask = _outsortCrap(
             dat_col, field, harm_info[Heap.FLAGGER], drop_flags=harm_info[Heap.DROP]
         )
-        drops = flagger.getFlags(field=field, loc=drop_mask)
 
         # with reconstructed pre-harmonization flags-frame -> perform the projection of the flags calculated for
         # the harmonized timeseries, onto the original timestamps
@@ -158,8 +155,8 @@ def harmWrapper(heap={}):
 
 
 harm_harmonize, harm_deharmonize = harmWrapper()
-register()(harm_harmonize)
-register()(harm_deharmonize)
+register(harm_harmonize)
+register(harm_deharmonize)
 
 
 # (de-)harmonize helper
@@ -188,7 +185,7 @@ def _outsortCrap(
     for drop_flag in drop_flags:
         drop_mask = drop_mask | flagger.isFlagged(field, flag=drop_flag, comparator="==")
 
-    flagger_out = flagger.getFlagger(loc=~drop_mask)
+    flagger_out = flagger.slice(loc=~drop_mask)
     return data[~drop_mask], flagger_out, drop_mask
 
 
@@ -511,16 +508,16 @@ def _backtrackFlags(flagger_harmony, flagger_original_clean, flagger_original, f
     return flagger_original.initFlags(flags=res)
 
 
-@register()
+@register
 def harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, **kwargs):
     return harm_harmonize(
         data, field, flagger, freq, inter_method=method, reshape_method=method, drop_flags=drop_flags, **kwargs,
     )
 
 
-@register()
+@register
 def harm_aggregate2Grid(
-    data, field, flagger, freq, value_func, flag_func="max", method="nagg", drop_flags=None, **kwargs,
+    data, field, flagger, freq, value_func, flag_func=np.nanmax, method="nagg", drop_flags=None, **kwargs,
 ):
     return harm_harmonize(
         data,
@@ -536,8 +533,8 @@ def harm_aggregate2Grid(
     )
 
 
-@register()
-def harm_linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flags=None, **kwargs):
+@register
+def harm_linear2Grid(data, field, flagger, freq, method="nagg", func=np.nanmax, drop_flags=None, **kwargs):
     return harm_harmonize(
         data,
         field,
@@ -551,9 +548,9 @@ def harm_linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop
     )
 
 
-@register()
+@register
 def harm_interpolate2Grid(
-    data, field, flagger, freq, method, order=1, flag_method="nagg", flag_func="max", drop_flags=None, **kwargs,
+    data, field, flagger, freq, method, order=1, flag_method="nagg", flag_func=np.nanmax, drop_flags=None, **kwargs,
 ):
     return harm_harmonize(
         data,
@@ -567,4 +564,5 @@ def harm_interpolate2Grid(
         drop_flags=drop_flags,
         **kwargs,
     )
+
 
