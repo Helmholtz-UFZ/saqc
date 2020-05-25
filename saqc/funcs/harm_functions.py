@@ -296,7 +296,7 @@ def _interpolateGrid(
 
     # Aggregations:
     if method in aggregations:
-        data = aggregate2Freq(data, method, agg_method, freq)
+        data = aggregate2Freq(data, method, freq, agg_method)
 
     # Shifts
     elif method in shifts:
@@ -304,7 +304,6 @@ def _interpolateGrid(
 
     # Interpolations:
     elif method in interpolations:
-
         # account for annoying case of subsequent frequency alligned values, differing exactly by the margin
         # 2*freq:
         spec_case_mask = data.index.to_series()
@@ -414,7 +413,7 @@ def _reshapeFlags(
             flagger_new = flagger_new.setFlags(field, flag=fdata, force=True, **kwargs)
 
     elif method in aggregations:
-        fdata = aggregate2Freq(fdata, method, agg_method, freq, fill_value=missing_flag)
+        fdata = aggregate2Freq(fdata, method, freq, agg_method, fill_value=missing_flag)
         fdata = fdata.astype(flagger.dtype)
 
         # block flagging/backtracking of chunk_starts/chunk_ends

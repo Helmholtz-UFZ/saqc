@@ -230,64 +230,54 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         return data
 
 
-def aggregate2Freq(data, method, agg_func, freq, fill_value=np.nan, max_invalid_total=None, max_invalid_consec=None):
-
-    # filter data for invalid patterns
-    if (max_invalid_total is not None) | (max_invalid_consec is not None):
-        if not max_invalid_total:
-            max_invalid_total = np.inf
-        if not max_invalid_consec:
-            max_invalid_consec = np.inf
-
+def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_total=np.inf, max_invalid_consec=np.inf):
+    # filter data for invalid patterns (since filtering is expensive we pre-check if it is demanded)
+    if (max_invalid_total is not np.inf) | (max_invalid_consec is not np.inf):
         if pd.isnull(fill_value):
             temp_mask = (data.isna())
         else:
             temp_mask = (data == fill_value)
+
         temp_mask = temp_mask.groupby(pd.Grouper(freq=freq)).transform(validationTrafo, max_nan_total=max_invalid_total,
                                                                  max_nan_consec=max_invalid_consec)
         data[temp_mask] = fill_value
 
+    # some timestamp acrobatics to feed pd.resample`s base keyword properly
+    seconds_total = pd.Timedelta(freq).total_seconds()
+    freq_string = str(int(seconds_total)) + "s"
     if method == "nagg":
         # all values within a grid points range (+/- freq/2, closed to the left) get aggregated with 'agg method'
-        # some timestamp acrobatics to feed the base keyword properly
-        seconds_total = pd.Timedelta(freq).total_seconds()
-        freq_string = str(int(seconds_total)) + "s"
         base = seconds_total / 2
-        loffset = pd.Timedelta(freq) / 2
         label = 'left'
         closed = 'left'
     elif method == "bagg":
-        seconds_total = pd.Timedelta(freq).total_seconds()
-        freq_string = str(int(seconds_total)) + "s"
+        # all values in a sampling interval get aggregated with agg_method and assigned to the last grid point
         base = 0
-        loffset = pd.Timedelta(0)
         label = 'left'
         closed = 'left'
-        # all values in a sampling interval get aggregated with agg_method and assigned to the last grid point
-        # if method is fagg
     else:
-        # "fagg"
-        seconds_total = pd.Timedelta(freq).total_seconds()
-        freq_string = str(int(seconds_total)) + "s"
+        # all values in a sampling interval get aggregated with agg_method and assigned to the next grid point
         base = 0
-        loffset = pd.Timedelta(0)
         label = 'right'
         closed = 'right'
-        # all values in a sampling interval get aggregated with agg_method and assigned to the next grid point
-        # some consistency cleanup:
-    # we check for empty intervals before resampling, because:
-    # - resample AND groupBy do insert value zero for empty intervals if resampling with any kind of "sum" -
-    #   we want value nan
-    # - we are aggregating flags as well and empty intervals get BAD flag (which usually is not nan)
 
-    empty_intervals = data.resample(freq_string, loffset=loffset, base=base, closed=closed,
-                           label=label).count() == 0
+    # In the following, we check for empty intervals outside resample.apply, because:
+    # - resample AND groupBy do insert value zero for empty intervals if resampling with any kind of "sum" application -
+    #   we want "fill_value" to be inserted
+    # - we are aggregating data and flags with this function and empty intervals usually would get assigned flagger.BAD
+    #   flag (where resample inserts np.nan)
 
-    dataresampler = data.resample(freq_string, loffset=loffset, base=base, closed=closed,
-                         label=label)
+    data_resampler = data.resample(freq_string, base=base, closed=closed,
+                                  label=label)
 
-    data = dataresampler.apply(agg_func)
+    empty_intervals = data_resampler.count() == 0
+    data = data_resampler.apply(agg_func)
 
+    # since loffset keyword of pandas "discharges" after one use of the resampler (pandas logic) - we correct the
+    # resampled labels offset manually, if necessary.
+    if method == "nagg":
+        data.index = data.index.shift(freq=pd.Timedelta(freq) / 2)
+        empty_intervals.index = empty_intervals.index.shift(freq=pd.Timedelta(freq) / 2)
     data[empty_intervals] = fill_value
 
     return data

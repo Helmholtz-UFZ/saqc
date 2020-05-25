@@ -37,8 +37,8 @@ def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_l
 
 
 @register()
-def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total_d=None, max_invalid_consec_d=None,
-                  max_invalid_consec_f=None, max_invalid_total_f=None, flag_agg_func='max', method='bagg', **kwargs):
+def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total_d=np.inf, max_invalid_consec_d=np.inf,
+                  max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf, flag_agg_func='max', method='bagg', **kwargs):
 
     data = data.copy()
     datcol = data[field]
@@ -46,6 +46,9 @@ def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total_d=N
 
     func = composeFunction(func)
     flag_agg_func = composeFunction(flag_agg_func)
+
+    if func == 'shift':
+        datcol = shift2Freq(datcol, method, freq, fill_value=fill_value)
 
     # data resampling
     datcol = aggregate2Freq(datcol, method, agg_func=func, freq=freq, fill_value=np.nan,
