@@ -1,56 +1,56 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-import logging
 
-import numpy as np
+"""
+TODOS:
+  - integrate plotting into the api
+  - `data` and `flagger` as arguments to `getResult`
+"""
+
+import logging
+from copy import deepcopy
+from operator import attrgetter
+from typing import List, Tuple
+
 import pandas as pd
 import dios
+import numpy as np
 
-from saqc.core.reader import readConfig, checkConfig
-from saqc.core.config import Fields
-from saqc.core.evaluator import evalExpression
 from saqc.lib.plotting import plotHook, plotAllHook
-from saqc.lib.types import DiosLikeT
+from saqc.lib.tools import isQuoted
+from saqc.core.register import FUNC_MAP, SaQCFunc
+from saqc.core.reader import readConfig
 from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 
 
 logger = logging.getLogger("SaQC")
 
 
-def _collectVariables(meta, data):
-    """
-    find every relevant variable
-    """
-    # NOTE: get to know every variable from meta
-    variables = list(data.columns)
-    for idx, configrow in meta.iterrows():
-        varname = configrow[Fields.VARNAME]
-        # assign = configrow[Fields.ASSIGN]
-        if varname in variables:
-            continue
-        # if (varname in data):  # or (varname not in variables and assign is True):
-        variables.append(varname)
-    return variables
+def _handleErrors(exc, func, policy):
+    msg = f"failed with:\n{type(exc).__name__}: {exc}"
+    if func.lineno is not None and func.expr is not None:
+        msg = f"config, line {func.lineno}: '{func.expr}' " + msg
+    else:
+        msg = f"function '{func.func}' with parameters '{func.kwargs}' " + msg
+
+    if policy == "ignore":
+        logger.debug(msg)
+    elif policy == "warn":
+        logger.warning(msg)
+    else:
+        logger.error(msg)
+        raise
 
 
-def _convertInput(data, flags):
-    if isinstance(data, pd.DataFrame):
-        data = dios.to_dios(data)
-    if isinstance(flags, pd.DataFrame):
-        flags = dios.to_dios(flags)
-
-
-def _checkAndConvertInput(data, flags, flagger):
+def _prepInput(flagger, data, flags):
     dios_like = (dios.DictOfSeries, pd.DataFrame)
 
     if not isinstance(data, dios_like):
         raise TypeError("data must be of type dios.DictOfSeries or pd.DataFrame")
 
     if isinstance(data, pd.DataFrame):
-        if isinstance(data.index, pd.MultiIndex):
-            raise TypeError("the index of data is not allowed to be a multiindex")
-        if isinstance(data.columns, pd.MultiIndex):
-            raise TypeError("the columns of data is not allowed to be a multiindex")
+        if isinstance(data.index, pd.MultiIndex) or isinstance(data.columns, pd.MultiIndex):
+            raise TypeError("data should not use MultiIndex")
         data = dios.to_dios(data)
 
     if not isinstance(flagger, BaseFlagger):
@@ -58,147 +58,122 @@ def _checkAndConvertInput(data, flags, flagger):
         raise TypeError(f"flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}")
 
     if flags is not None:
-
         if not isinstance(flags, dios_like):
             raise TypeError("flags must be of type dios.DictOfSeries or pd.DataFrame")
 
         if isinstance(flags, pd.DataFrame):
-            if isinstance(flags.index, pd.MultiIndex):
-                raise TypeError("the index of flags is not allowed to be a multiindex")
-            if isinstance(flags.columns, pd.MultiIndex):
-                raise TypeError("the columns of flags is not allowed to be a multiindex")
+            if isinstance(flags.index, pd.MultiIndex) or isinstance(flags.columns, pd.MultiIndex):
+                raise TypeError("flags' should not use MultiIndex")
             flags = dios.to_dios(flags)
 
         # NOTE: do not test all columns as they not necessarily need to be the same
         cols = flags.columns & data.columns
         if not (flags[cols].lengths == data[cols].lengths).all():
-            raise ValueError("the length of values in flags and data does not match.")
+            raise ValueError("the length of flags and data need to be equal")
 
     return data, flags
 
 
-def _handleErrors(exc, configrow, test, policy):
-    line = configrow[Fields.LINENUMBER]
-    msg = f"config, line {line}, test: '{test}' failed with:\n{type(exc).__name__}: {exc}"
-    if policy == "ignore":
-        logger.debug(msg)
-    elif policy == "warn":
-        logger.warning(msg)
-    else:
-        raise Exception(msg)
+def _setup(log_level):
+    # NOTE:
+    # the import is needed to trigger the registration
+    # of the built-in (test-)functions
+    import saqc.funcs
 
-
-def _setup(loglevel):
+    # warnings
     pd.set_option("mode.chained_assignment", "warn")
     np.seterr(invalid="ignore")
 
-    # logging setting
-    logger.setLevel(loglevel)
+    # logging
+    logger.setLevel(log_level)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("[%(asctime)s][%(name)s][%(levelname)s]: %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
 
-def run(
-    config_file: str,
-    flagger: BaseFlagger,
-    data: DiosLikeT,
-    flags: DiosLikeT = None,
-    nodata: float = np.nan,
-    log_level: str = "INFO",
-    error_policy: str = "raise",
-) -> (dios.DictOfSeries, BaseFlagger):
+class SaQC:
+    def __init__(self, flagger, data, flags=None, nodata=np.nan, log_level="INFO", error_policy="raise"):
+        _setup(log_level)
+        data, flags = _prepInput(flagger, data, flags)
+        self._flagger = flagger.initFlags(data)
+        if flags is not None:
+            self._flagger = self._flagger.merge(flagger.initFlags(flags=flags))
+        self._data = data
+        self._nodata = nodata
+        self._error_policy = error_policy
+        # NOTE: will be filled by calls to `_wrap`
+        self._to_call: List[Tuple[str, SaQCFunc]] = []
 
-    _setup(log_level)
-    data, flags = _checkAndConvertInput(data, flags, flagger)
-    config = readConfig(config_file, data)
+    def readConfig(self, fname):
 
-    # split config into the test and some 'meta' data
-    tests = config.filter(regex=Fields.TESTS)
-    meta = config[config.columns.difference(tests.columns)]
+        config = readConfig(fname)
 
-    # prepapre the flags
-    flag_cols = _collectVariables(meta, data)
-    flagger = flagger.initFlags(dios.DictOfSeries(data=data, columns=flag_cols))
-    if flags is not None:
-        flagger = flagger.merge(flagger.initFlags(flags=flags))
+        out = deepcopy(self)
+        for func, field, kwargs, plot, lineno, expr in config:
+            if isQuoted(field):
+                kwargs["regex"] = True
+                field = field[1:-1]
+            kwargs["field"] = field
+            out = out._wrap(func, plot, lineno, expr)(**kwargs)
+        return out
 
-    # NOTE:
-    # this checks comes late, but the compilation of
-    # user-test needs fully prepared flags
-    checkConfig(config, data, flagger, nodata)
+    def getResult(self):
+        data, flagger = self._data, self._flagger
 
-    # NOTE:
-    # the outer loop runs over the flag tests, the inner one over the
-    # variables. Switching the loop order would complicate the
-    # reference to flags from other variables within the dataset
-    for _, testcol in tests.iteritems():
-
-        # NOTE: just an optimization
-        if testcol.dropna().empty:
-            continue
-
-        for idx, configrow in meta.iterrows():
-
-            # store config params in some handy variables
-            varname = configrow[Fields.VARNAME]
-            start_date = configrow[Fields.START]
-            end_date = configrow[Fields.END]
-
-            func = testcol[idx]
-            if pd.isnull(func):
-                continue
-
-            if varname not in data and varname not in flagger.getFlags():
-                continue
-
-            # NOTE:
-            # time slicing support is currently disabled
-            # prepare the data for the tests
-            # dtslice = slice(start_date, end_date)
-            dtslice = slice(None)
-            data_chunk = data.loc[dtslice]
-            if data_chunk.empty:
-                continue
-            flagger_chunk = flagger.slice(loc=dtslice)
+        for field, func in self._to_call:
 
             try:
-                # actually run the tests
-                data_chunk_result, flagger_chunk_result = evalExpression(
-                    func, data=data_chunk, field=varname, flagger=flagger_chunk, nodata=nodata,
-                )
+                data_result, flagger_result = func(data=data, flagger=flagger, field=field)
             except Exception as e:
-                _handleErrors(e, configrow, func, error_policy)
+                _handleErrors(e, func, self._error_policy)
                 continue
 
-            if configrow[Fields.PLOT]:
-                try:
-                    plotHook(
-                        data_old=data_chunk, data_new=data_chunk_result,
-                        flagger_old=flagger_chunk, flagger_new=flagger_chunk_result,
-                        sources=[], targets=[varname], plot_name=func,
-                    )
-                except Exception:
-                    logger.exception(f"Plotting failed. \n"
-                                     f"  config line:  {configrow[Fields.LINENUMBER]}\n"
-                                     f"  expression:   {func}\n"
-                                     f"  variable(s):  {[varname]}.")
+            if func.plot:
+                plotHook(
+                    data_old=data, data_new=data_result,
+                    flagger_old=flagger, flagger_new=flagger_result,
+                    sources=[], targets=[func.field], plot_name=func.name,
+                )
 
-            # NOTE:
-            # time slicing support is currently disabled
-            # flagger = flagger.merge(flagger_chunk_result)
-            # data = combineDataFrames(data, data_chunk_result)
-            flagger = flagger_chunk_result
-            data = data_chunk_result
+            data = data_result
+            flagger = flagger_result
 
-    plotfields = config[Fields.VARNAME][config[Fields.PLOT]]
-    if len(plotfields) > 0:
-        try:
-            # to only show variables that have set the plot-flag
-            # use: plotAllHook(data, flagger, targets=plotfields)
+        if any([func.plot for _, func in self._to_call]):
             plotAllHook(data, flagger)
-        except Exception:
-            logger.exception(f"Final plotting failed.")
 
-    return data, flagger
+        return data, flagger
+
+    def _wrap(self, func, plot=False, lineno=None, expr=None):
+
+        def inner(field: str, *args, regex: bool=False, **kwargs):
+
+            fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
+
+            if func.__name__ in ("flagGeneric", "procGeneric"):
+                # NOTE:
+                # We need to pass `nodata` to the generic functions
+                # (to implement stuff like `ismissing`). As we
+                # should not interfere with proper nodata attributes
+                # of other test functions (e.g. `flagMissing`) we
+                # special case the injection
+                kwargs["nodata"] = kwargs.get("nodata", self._nodata)
+
+            out = deepcopy(self)
+            for field in fields:
+                f = SaQCFunc(func, plot=plot, lineno=lineno, expression=expr, *args, **kwargs)
+                out._to_call.append((field, f))
+            return out
+
+        return inner
+
+    def __getattr__(self, key):
+        """
+        All failing attribute accesses are redirected to
+        __getattr__. We use this mechanism to make the
+        `RegisterFunc`s appear as `SaQC`-methods with
+        actually implementing them.
+        """
+        if key not in FUNC_MAP:
+            raise AttributeError(f"no such attribute: '{key}'")
+        return self._wrap(FUNC_MAP[key])

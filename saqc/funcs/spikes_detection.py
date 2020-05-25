@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from scipy.stats import zscore
 from scipy.optimize import curve_fit
-from saqc.funcs.register import register
+from saqc.core.register import register
 import numpy.polynomial.polynomial as poly
 import numba
 import saqc.lib.ts_operators as ts_ops
@@ -16,7 +16,6 @@ from saqc.lib.tools import (
     offset2seconds,
     slidingWindowIndices,
     findIndex,
-    composeFunction
 )
 
 
@@ -135,13 +134,12 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@register()
+@register
 def spikes_flagMultivarScores(data, field, flagger, fields, trafo='normScale', alpha=0.05, n_neighbors=10,
                               scoring_method='kNNMaxGap', iter_start=0.5, threshing='stray',
                               expfit_binning='auto', stray_partition=None, stray_partition_min=0,
                               **kwargs):
 
-    trafo = composeFunction(trafo.split(','))
     # data fransformation/extraction
     val_frame = data[fields[0]]
 
@@ -178,7 +176,7 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo='normScale', a
 
 
 
-@register()
+@register
 def spikes_flagRaise(
     data, field, flagger, thresh, raise_window, intended_freq, average_window=None, mean_raise_factor=2, min_slope=None,
         min_slope_weight=0.8, numba_boost=True, **kwargs):
@@ -273,7 +271,7 @@ def spikes_flagRaise(
     return data, flagger
 
 
-@register()
+@register
 def spikes_flagSlidingZscore(
     data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs,
 ):
@@ -397,7 +395,7 @@ def spikes_flagSlidingZscore(
     return data, flagger
 
 
-@register()
+@register
 def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
     """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
 
@@ -435,7 +433,7 @@ def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
     return data, flagger
 
 
-@register()
+@register
 def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min", **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
@@ -521,7 +519,7 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
     return data, flagger
 
 
-@register()
+@register
 def spikes_flagSpektrumBased(
     data,
     field,

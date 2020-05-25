@@ -29,11 +29,7 @@ COFLAGGING = [False, True]
 
 SETSHIFTCOMMENT = [False, True]
 
-INTERPOLATIONS = ["fshift", "bshift", "nshift", "nagg", "bagg"]
-
 INTERPOLATIONS2 = ["fagg", "time", "polynomial"]
-
-FREQS = ["15min", "30min"]
 
 
 @pytest.fixture
@@ -77,40 +73,6 @@ def multi_data():
     data = pd.merge(data, dat2, how="outer", left_index=True, right_index=True)
     data = pd.merge(data, dat3, how="outer", left_index=True, right_index=True)
     return dios.DictOfSeries(data)
-
-
-@pytest.mark.parametrize("method", INTERPOLATIONS2)
-def test_gridInterpolation(data, method):
-    freq = "15min"
-    data = data.squeeze()
-    data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
-    kwds = dict(agg_method="sum", downcast_interpolation=True)
-
-    # we are just testing if the interpolation gets passed to the series without causing an error:
-    _interpolateGrid(data, freq, method, order=1, **kwds)
-    if method == "polynomial":
-        _interpolateGrid(data, freq, method, order=2, **kwds)
-        _interpolateGrid(data, freq, method, order=10, **kwds)
-        data = _insertGrid(data, freq)
-        _interpolate(data, method, inter_limit=3)
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_outsortCrap(data, flagger):
-    field = data.columns[0]
-    s = data[field]
-    flagger = flagger.initFlags(data)
-
-    drop_index = s.index[5:7]
-    flagger = flagger.setFlags(field, loc=drop_index)
-    res, *_ = _outsortCrap(s, field, flagger, drop_flags=flagger.BAD)
-    assert drop_index.difference(res.index).equals(drop_index)
-
-    flagger = flagger.setFlags(field, loc=s.iloc[0:1], flag=flagger.GOOD)
-    drop_index = drop_index.insert(-1, s.index[0])
-    to_drop = [flagger.BAD, flagger.GOOD]
-    res, *_ = _outsortCrap(s, field, flagger, drop_flags=to_drop)
-    assert drop_index.sort_values().difference(res.index).equals(drop_index.sort_values())
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -187,69 +149,43 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-@pytest.mark.parametrize("interpolation", INTERPOLATIONS)
-@pytest.mark.parametrize("freq", FREQS)
-def test_harmSingleVarInterpolations(data, flagger, interpolation, freq):
+def test_harmSingleVarInterpolations(data, flagger):
     flagger = flagger.initFlags(data)
-    flags = flagger.getFlags()
-    # make pre harm copies:
-    pre_data = data.copy()
-    pre_flags = flags.copy()
 
-    assert len(data.columns) == 1
     field = data.columns[0]
 
-    harm_start = data[field].index[0].floor(freq=freq)
-    harm_end = data[field].index[-1].ceil(freq=freq)
-    test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
-    data, flagger = harm_harmonize(
-        data, "data", flagger, freq, interpolation, "fshift", reshape_shift_comment=False, inter_agg="sum",
-    )
+    tests = [
+        ("fshift", "15Min", [np.nan, -37.5, -25.0, 0.0, 37.5, 50.0]),
+        ("fshift", "30Min", [np.nan, -37.5, 0.0, 50.0]),
+        ("bshift", "15Min", [-50.0, -37.5, -25.0, 12.5, 37.5, 50.0]),
+        ("bshift", "30Min", [-50.0, -37.5, 12.5, 50.0]),
+        ("nshift", "15min", [np.nan, -37.5, -25.0, 12.5, 37.5, 50.0]),
+        ("nshift", "30min", [np.nan, -37.5, 12.5, 50.0]),
+        ("nagg", "15Min", [np.nan, -87.5, -25.0, 0.0, 37.5, 50.0]),
+        ("nagg", "30Min", [np.nan, -87.5, -25.0, 87.5]),
+        ("bagg", "15Min", [-50.0, -37.5, -37.5, 12.5, 37.5, 50.0]),
+        ("bagg", "30Min", [-50.0, -75.0, 50.0, 50.0]),
+    ]
 
-    if interpolation == "fshift":
-        if freq == "15min":
-            exp = pd.Series([np.nan, -37.5, -25.0, 0.0, 37.5, 50.0], index=test_index)
-            assert data[field].equals(exp)
-        if freq == "30min":
-            exp = pd.Series([np.nan, -37.5, 0.0, 50.0], index=test_index)
-            assert data[field].equals(exp)
-    if interpolation == "bshift":
-        if freq == "15min":
-            exp = pd.Series([-50.0, -37.5, -25.0, 12.5, 37.5, 50.0], index=test_index)
-            assert data[field].equals(exp)
-        if freq == "30min":
-            exp = pd.Series([-50.0, -37.5, 12.5, 50.0], index=test_index)
-            assert data[field].equals(exp)
-    if interpolation == "nshift":
-        if freq == "15min":
-            exp = pd.Series([np.nan, -37.5, -25.0, 12.5, 37.5, 50.0], index=test_index)
-            assert data[field].equals(exp)
-        if freq == "30min":
-            exp = pd.Series([np.nan, -37.5, 12.5, 50.0], index=test_index)
-            assert data[field].equals(exp)
-    if interpolation == "nagg":
-        if freq == "15min":
-            exp = pd.Series([np.nan, -87.5, -25.0, 0.0, 37.5, 50.0], index=test_index)
-            assert data[field].equals(exp)
-        if freq == "30min":
-            exp = pd.Series([np.nan, -87.5, -25.0, 87.5], index=test_index)
-            assert data[field].equals(exp)
-    if interpolation == "bagg":
-        if freq == "15min":
-            exp = pd.Series([-50.0, -37.5, -37.5, 12.5, 37.5, 50.0], index=test_index)
-            assert data[field].equals(exp)
-        if freq == "30min":
-            exp = pd.Series([-50.0, -75.0, 50.0, 50.0], index=test_index)
-            assert data[field].equals(exp)
+    for interpolation, freq, expected in tests:
+        data_harm, _ = harm_harmonize(
+            data, "data", flagger, freq, interpolation, "fshift", reshape_shift_comment=False, inter_agg="sum",
+        )
 
-    data, flagger = harm_deharmonize(data, "data", flagger, co_flagging=True)
+        harm_start = data[field].index[0].floor(freq=freq)
+        harm_end = data[field].index[-1].ceil(freq=freq)
+        test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
+        expected = pd.Series(expected, index=test_index)
+        assert data_harm[field].equals(expected)
 
-    # data, flagger = harm_deharmonize(data, "data", flagger, co_flagging=True)
+    data_deharm, flagger_deharm = harm_deharmonize(data, "data", flagger, co_flagging=True)
+
     flags = flagger.getFlags()
+    flags_deharm = flagger_deharm.getFlags()
 
-    assert pre_data[field].equals(data[field])
-    assert len(data[field]) == len(flags[field])
-    assert (pre_flags[field].index == flags[field].index).all()
+    assert data[field].equals(data[field])
+    assert len(data_deharm[field]) == len(flags[field])
+    assert (flags[field].index == flags_deharm[field].index).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -334,15 +270,13 @@ def test_outsortCrap(data, flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-
-
 def test_wrapper(data, flagger):
     # we are only testing, whether the wrappers do pass processing:
     field = data.columns[0]
     freq = "15min"
     flagger = flagger.initFlags(data)
-    harm_downsample(data, field, flagger, "15min", "30min", agg_func="sum", sample_func="mean")
-    harm_linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flags=None)
-    harm_aggregate2Grid(data, field, flagger, freq, value_func="sum", flag_func="max", method="nagg", drop_flags=None)
+    harm_downsample(data, field, flagger, "15min", "30min", agg_func=np.nansum, sample_func=np.nanmean)
+    harm_linear2Grid(data, field, flagger, freq, method="nagg", func=np.nanmax, drop_flags=None)
+    harm_aggregate2Grid(data, field, flagger, freq, value_func=np.nansum, flag_func=np.nanmax, method="nagg", drop_flags=None)
     harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None)
     harm_interpolate2Grid(data, field, flagger, freq, method="spline")

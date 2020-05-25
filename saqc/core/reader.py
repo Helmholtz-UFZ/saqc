@@ -1,155 +1,85 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import ast
 
-import re
-import logging
-from csv import reader
-from typing import Dict, List, Any, Union, Iterable, Iterator, Tuple
-from contextlib import contextmanager
-from io import StringIO, TextIOWrapper
+import numpy as np
 
 import pandas as pd
-import dios
 
 from saqc.core.config import Fields as F
-from saqc.core.evaluator import compileExpression
-from saqc.flagger import BaseFlagger
+from saqc.core.visitor import ConfigFunctionParser
+
+COMMENT = "#"
+EMPTY = "None"
 
 
-logger = logging.getLogger("SaQC")
+def _handleEmptyLines(df):
+    if F.VARNAME not in df.columns:
+        # at least the first line was empty, so we search the header
+        df = df.reset_index()
+        i = (df == F.VARNAME).first_valid_index()
+        df.columns = df.iloc[i]
+        df = df.iloc[i + 1:]
+
+    # mark empty lines
+    mask = (df.isnull() | (df == "")).all(axis=1)
+    df.loc[mask] = EMPTY
+    return df
 
 
-# typing declarations
-Config = Iterable[Dict[str, Any]]
-Filename = Union[StringIO, str]
+def _handleComments(df):
+    # mark commented lines
+    df.loc[df[F.VARNAME].str.startswith(COMMENT)] = EMPTY
+
+    for col in df:
+        df[col] = df[col].str.split(COMMENT, expand=True).iloc[:, 0].str.strip()
+
+    return df
 
 
-CONFIG_TYPES = {
-    F.VARNAME: str,
-    F.START: pd.to_datetime,
-    F.END: pd.to_datetime,
-    F.TESTS: str,
-    F.PLOT: lambda v: str(v).lower() == "true",
-    F.LINENUMBER: int,
-}
+def _injectOptionalColumns(df):
+    # inject optional columns
+    if F.PLOT not in df:
+        empty = (df == EMPTY).all(axis=1)
+        df[F.PLOT] = "False"
+        df[empty] = EMPTY
+    return df
 
 
-def _raise(config_row, exc, msg, field=None):
-    line_number = config_row[F.LINENUMBER]
-    base_msg = f"configuration error in line {line_number}"
-    if field:
-        base_msg += f", column '{field}'"
-    msg = base_msg + ":\n" + msg
-    raise exc(msg)
+def _parseConfig(df):
+    to_call = []
+    for lineno, (_, field, expr, plot) in enumerate(df.itertuples()):
+        if field == "None":
+            continue
+        if pd.isnull(field):
+            raise SyntaxError(f"line {lineno}: non-optional column '{F.VARNAME}' missing")
+        if pd.isnull(expr):
+            raise SyntaxError(f"line {lineno}: non-optional column '{F.TEST}' missing")
+        tree = ast.parse(expr, mode="eval")
+        cp = ConfigFunctionParser(tree.body)
+        to_call.append((cp.func, field, cp.kwargs, plot, lineno + 2, expr))
+    return to_call
 
 
-@contextmanager
-def _open(fname: Filename) -> Union[StringIO, TextIOWrapper]:
-    if isinstance(fname, StringIO):
-        yield fname
-    else:
-        f = open(fname)
-        yield f
-        f.close()
+def readConfig(fname):
+    df = pd.read_csv(
+        fname,
+        sep=r"\s*;\s*", engine="python",
+        dtype=str,
+        quoting=3,
+        keep_default_na=False,  # don't replace "" by nan
+        skip_blank_lines=False,
+    )
 
+    df = _handleEmptyLines(df)
+    df = _injectOptionalColumns(df)
+    df = _handleComments(df)
 
-def _matchKey(keys: Iterable[str], fuzzy_key: str) -> str:
-    for key in keys:
-        if re.match(fuzzy_key, key):
-            return key
+    df[F.VARNAME] = df[F.VARNAME].replace(r"^\s*$", np.nan, regex=True)
+    df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
+    df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: ""})
+    df = df.astype({F.PLOT: bool})
+    df = _parseConfig(df)
 
-
-def _castRow(row: Dict[str, Any]):
-    out = {}
-    for row_key, row_value in row.items():
-        for fuzzy_key, func in CONFIG_TYPES.items():
-            if re.match(fuzzy_key, row_key):
-                try:
-                    out[row_key] = func(row_value)
-                except ValueError:
-                    _raise(row, ValueError, f"invalid value: '{row_value}'")
-    return out
-
-
-def _expandVarnameWildcards(config: Config, data: dios.DictOfSeries) -> Config:
-    def isQuoted(string):
-        return bool(re.search(r"'.*'|\".*\"", string))
-
-    new = []
-    for row in config:
-        varname = row[F.VARNAME]
-        if varname and isQuoted(varname):
-            pattern = varname[1:-1]
-            expansion = data.columns[data.columns.str.match(pattern)]
-            if not len(expansion):
-                logger.warning(f"no match for regular expression '{pattern}'")
-            for var in expansion:
-                new.append({**row, F.VARNAME: var})
-        else:
-            new.append(row)
-    return new
-
-
-def _clearRows(rows: Iterable[List[str]], comment: str = "#") -> Iterator[Tuple[str, List[Any]]]:
-    for i, row in enumerate(rows):
-        row = [c.strip() for c in row]
-        if any(row) and not row[0].lstrip().startswith(comment):
-            row = [c.split(comment)[0].strip() for c in row]
-            yield i, row
-
-
-def readConfig(fname: Filename, data: dios.DictOfSeries, sep: str = ";", comment: str = "#") -> pd.DataFrame:
-
-    defaults = {
-        F.VARNAME: "",
-        F.START: min(map(min, data.indexes)),
-        F.END: max(map(max, data.indexes)),
-        F.PLOT: False
-    }
-
-    with _open(fname) as f:
-        rdr = reader(f, delimiter=";")
-
-        rows = _clearRows(rdr)
-        _, header = next(rows)
-
-        config = []
-        for n, row in rows:
-            row = {**defaults, **dict(zip(header, row)), F.LINENUMBER: n + 1}
-            if row[F.VARNAME] in data:
-                index = data[row[F.VARNAME]].index
-                row = {**row, **{F.START: index.min(), F.END: index.max()}}
-            row = _castRow(row)
-            config.append(row)
-
-    expanded = _expandVarnameWildcards(config, data)
-    return pd.DataFrame(expanded)
-
-
-def checkConfig(config_df: pd.DataFrame, data: dios.DictOfSeries, flagger: BaseFlagger, nodata: float) -> pd.DataFrame:
-
-    for _, config_row in config_df.iterrows():
-
-        var_name = config_row[F.VARNAME]
-        if pd.isnull(config_row[F.VARNAME]) or not var_name:
-            _raise(
-                config_row, SyntaxError, f"non-optional column '{F.VARNAME}' is missing or empty",
-            )
-
-        test_fields = config_row.filter(regex=F.TESTS).dropna()
-        if test_fields.empty:
-            _raise(
-                config_row, SyntaxError, f"at least one test needs to be given for variable",
-            )
-
-        for col, expr in test_fields.iteritems():
-            if not expr:
-                _raise(config_row, SyntaxError, f"field '{col}' may not be empty")
-            try:
-                compileExpression(expr, data, var_name, flagger, nodata)
-            except (TypeError, NameError, SyntaxError) as exc:
-                _raise(
-                    config_row, type(exc), exc.args[0] + f" (failing statement: '{expr}')", col,
-                )
-    return config_df
+    return df

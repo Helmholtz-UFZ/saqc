@@ -1,92 +1,92 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import re
 from typing import Sequence, Union, Any, Iterator
 
 import numpy as np
 import numba as nb
-import saqc.lib.ts_operators as ts_ops
-import scipy
-import sklearn
-from functools import reduce, partial
 import pandas as pd
+
 import dios
 
 # from saqc.flagger import BaseFlagger
 from saqc.lib.types import T
 
-SAQC_OPERATORS = {
-    "exp": np.exp,
-    "log": np.log,
-    "sum": np.sum,
-    "var": np.var,
-    "std": np.std,
-    "mean": np.mean,
-    "median": np.median,
-    "min": np.min,
-    "max": np.max,
-    "first": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").first,
-    "last": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").last,
-    "deltaT": ts_ops.deltaT,
-    "id": ts_ops.identity,
-    "diff": ts_ops.difference,
-    "relDiff": ts_ops.relativeDifference,
-    "deriv": ts_ops.derivative,
-    "rateOfChange": ts_ops.rateOfChange,
-    "scale": ts_ops.scale,
-    "normScale": ts_ops.normScale,
-    "meanStandardize": ts_ops.standardizeByMean,
-    "medianStandardize": ts_ops.standardizeByMedian,
-    "zLog": ts_ops.zeroLog
-}
+# SAQC_OPERATORS = {
+#     "exp": np.exp,
+#     "log": np.log,
+#     "sum": np.sum,
+#     "var": np.var,
+#     "std": np.std,
+#     "mean": np.mean,
+#     "median": np.median,
+#     "min": np.min,
+#     "max": np.max,
+#     "first": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").first,
+#     "last": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").last,
+#     "deltaT": ts_ops.deltaT,
+#     "id": ts_ops.identity,
+#     "diff": ts_ops.difference,
+#     "relDiff": ts_ops.relativeDifference,
+#     "deriv": ts_ops.derivative,
+#     "rateOfChange": ts_ops.rateOfChange,
+#     "scale": ts_ops.scale,
+#     "normScale": ts_ops.normScale,
+#     "meanStandardize": ts_ops.standardizeByMean,
+#     "medianStandardize": ts_ops.standardizeByMedian,
+#     "zLog": ts_ops.zeroLog
+# }
 
 
-OP_MODULES = {'pd': pd,
-              'np': np,
-              'scipy': scipy,
-              'sklearn': sklearn
-              }
+# OP_MODULES = {'pd': pd,
+#               'np': np,
+#               'scipy': scipy,
+#               'sklearn': sklearn
+#               }
 
 
-def evalFuncString(func_string):
-    if not isinstance(func_string, str):
-        return func_string
-    module_dot = func_string.find(".")
-    first, *rest = func_string.split(".")
-    if rest:
-        module = func_string[:module_dot]
-        try:
-            return reduce(lambda m, f: getattr(m, f), rest, OP_MODULES[first])
-        except KeyError:
-            availability_list = [f"'{k}' (= {s.__name__})" for k, s in OP_MODULES.items()]
-            availability_list = " \n".join(availability_list)
-            raise ValueError(
-                f'The external-module alias "{module}" is not known to the internal operators dispatcher. '
-                f"\n Please select from: \n{availability_list}"
-            )
+# def evalFuncString(func_string):
+#     # TODO: check if necessary when the API is available
+#     if not isinstance(func_string, str):
+#         return func_string
+#     module_dot = func_string.find(".")
+#     first, *rest = func_string.split(".")
+#     if rest:
+#         module = func_string[:module_dot]
+#         try:
+#             return reduce(lambda m, f: getattr(m, f), rest, OP_MODULES[first])
+#         except KeyError:
+#             availability_list = [f"'{k}' (= {s.__name__})" for k, s in OP_MODULES.items()]
+#             availability_list = " \n".join(availability_list)
+#             raise ValueError(
+#                 f'The external-module alias "{module}" is not known to the internal operators dispatcher. '
+#                 f"\n Please select from: \n{availability_list}"
+#             )
 
-    else:
-        if func_string in SAQC_OPERATORS:
-            return SAQC_OPERATORS[func_string]
-        else:
-            availability_list = [f"'{k}' (= {s.__name__})" for k, s in SAQC_OPERATORS.items()]
-            availability_list = " \n".join(availability_list)
-            raise ValueError(
-                f'The external-module alias "{func_string}" is not known to the internal operators '
-                f"dispatcher. \n Please select from: \n{availability_list}"
-            )
+#     else:
+#         if func_string in SAQC_OPERATORS:
+#             return SAQC_OPERATORS[func_string]
+#         else:
+#             availability_list = [f"'{k}' (= {s.__name__})" for k, s in SAQC_OPERATORS.items()]
+#             availability_list = " \n".join(availability_list)
+#             raise ValueError(
+#                 f'The external-module alias "{func_string}" is not known to the internal operators '
+#                 f"dispatcher. \n Please select from: \n{availability_list}"
+#             )
 
 
-def composeFunction(functions):
-    if callable(functions):
-        return functions
-    functions = toSequence(functions)
-    functions = [evalFuncString(f) for f in functions]
+# def composeFunction(functions):
+#     # TODO: check if necessary when the API is available
+#     if callable(functions):
+#         return functions
+#     functions = toSequence(functions)
+#     functions = [evalFuncString(f) for f in functions]
 
-    def composed(ts, funcs=functions):
-        return reduce(lambda x, f: f(x), reversed(funcs), ts)
+#     def composed(ts, funcs=functions):
+#         return reduce(lambda x, f: f(x), reversed(funcs), ts)
 
-    return partial(composed, funcs=functions)
+#     return partial(composed, funcs=functions)
 
 
 def assertScalar(name, value, optional=False):
@@ -243,6 +243,7 @@ def offset2seconds(offset):
 
 
 def flagWindow(flagger_old, flagger_new, field, direction="fw", window=0, **kwargs) -> pd.Series:
+    # NOTE: unused -> remove?
     if window == 0 or window == "":
         return flagger_new
 
@@ -354,6 +355,7 @@ def getFuncFromInput(func):
 
     :param func: A key to the STRING_2_FUNC dict, or an actual function
     """
+    # TODO: check if necessary when the API is available
     # if input is a callable - than just pass it:
     if hasattr(func, "__call__"):
         if (func.__name__ == "aggregator") & (func.__module__ == "saqc.funcs.harm_functions"):
@@ -392,6 +394,7 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
         yield pd.Series(data=values[start:stop], index=index[start:stop])
         start = stop
 
+
 def mergeDios(left, right, join="merge"):
     # use dios.merge() as soon as it implemented
     # see https://git.ufz.de/rdm/dios/issues/15
@@ -418,3 +421,6 @@ def mergeDios(left, right, join="merge"):
 
     return merged
 
+
+def isQuoted(string):
+    return bool(re.search(r"'.*'|\".*\"", string))

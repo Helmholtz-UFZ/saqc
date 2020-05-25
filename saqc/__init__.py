@@ -3,6 +3,6 @@
 
 __version__ = "1.3.0"
 
-from saqc.core.core import run
+from saqc.core.core import SaQC
 from saqc.flagger import *
-from saqc.funcs import register
+from saqc.core.register import register

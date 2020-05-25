@@ -1,36 +1,87 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from functools import partial
+
 import numpy as np
 import pandas as pd
 
 from saqc.lib.tools import groupConsecutives, sesonalMask
 
-from saqc.funcs.register import register
+from saqc.core.register import register, Func
+from saqc.core.visitor import ENVIRONMENT
 
 
-@register()
-def procGeneric(data, field, flagger, func, **kwargs):
-    data[field] = func.squeeze()
+def _dslIsFlagged(flagger, var, flag=None, comparator=None):
+    """
+    helper function for `flagGeneric`
+    """
+    if comparator is None:
+        return flagger.isFlagged(var.name, flag=flag)
+    return flagger.isFlagged(var.name, flag=flag, comparator=comparator)
+
+
+def _execGeneric(flagger, data, func, field, nodata):
+
+    # TODO:
+    # - check series.index compatibility
+    # - field is only needed to translate 'this' parameters
+    #    -> maybe we could do the translation on the tree instead
+
+    func = Func(func)
+    for k in func.parameters:
+        k = field if k == "this" else k
+        if k not in data:
+            raise NameError(f"variable '{k}' not found")
+        func = Func(func, data[k])
+
+    globs = {
+        "isflagged": partial(_dslIsFlagged, flagger),
+        "ismissing": lambda var: ((var == nodata) | pd.isnull(var)),
+        "this": field,
+        "NODATA": nodata,
+        "GOOD": flagger.GOOD,
+        "BAD": flagger.BAD,
+        "UNFLAGGED": flagger.UNFLAGGED,
+        **ENVIRONMENT
+    }
+    func = func.addGlobals(globs)
+    return func()
+
+
+@register
+def procGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
+    """
+    Execute generic functions.
+    The **kwargs are needed to satisfy the test-function interface,
+    although they are of no use here. Usually they are abused to
+    transport the name of the test function (here: `procGeneric`)
+    into the flagger, but as we don't set flags here, we simply
+    ignore them
+    """
+    data[field] = _execGeneric(flagger, data, func, field, nodata).squeeze()
     # NOTE:
     # The flags to `field` will be (re-)set to UNFLAGGED
-
-    # PROBLEM:
+    # That leads to the following problem:
     # flagger.merge merges the given flaggers, if
     # `field` did already exist before the call to `procGeneric`
     # but with a differing index, we end up with:
     # len(data[field]) != len(flagger.getFlags(field))
     # see: test/funcs/test_generic_functions.py::test_procGenericMultiple
+
+    # TODO:
+    # We need a way to simply overwrite a given flagger column, maybe
+    # an optional keyword to merge ?
     flagger = flagger.merge(flagger.initFlags(data[field]))
     return data, flagger
 
 
-@register()
-def flagGeneric(data, field, flagger, func, **kwargs):
+@register
+def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     # NOTE:
     # The naming of the func parameter is pretty confusing
     # as it actually holds the result of a generic expression
-    mask = func.squeeze()
+    mask = _execGeneric(flagger, data, func, field, nodata).squeeze()
     if np.isscalar(mask):
         raise TypeError(f"generic expression does not return an array")
     if not np.issubdtype(mask.dtype, np.bool_):
@@ -42,7 +93,7 @@ def flagGeneric(data, field, flagger, func, **kwargs):
     return data, flagger
 
 
-@register()
+@register
 def flagRange(data, field, flagger, min, max, **kwargs):
     # using .values is very much faster
     datacol = data[field].values
@@ -51,7 +102,7 @@ def flagRange(data, field, flagger, min, max, **kwargs):
     return data, flagger
 
 
-@register()
+@register
 def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     datacol = data[field]
     if np.isnan(nodata):
@@ -63,7 +114,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     return data, flagger
 
 
-@register()
+@register
 def flagSesonalRange(
     data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
 ):
@@ -82,19 +133,19 @@ def flagSesonalRange(
     return data, flagger
 
 
-@register()
+@register
 def clearFlags(data, field, flagger, **kwargs):
     flagger = flagger.clearFlags(field, **kwargs)
     return data, flagger
 
 
-@register()
+@register
 def forceFlags(data, field, flagger, flag, **kwargs):
     flagger = flagger.clearFlags(field).setFlags(field, flag=flag, **kwargs)
     return data, flagger
 
 
-@register()
+@register
 def flagIsolated(
     data, field, flagger, gap_window, group_window, **kwargs,
 ):
@@ -122,6 +173,6 @@ def flagIsolated(
     return data, flagger
 
 
-@register()
+@register
 def flagDummy(data, field, flagger, **kwargs):
     return data, flagger
