@@ -100,7 +100,7 @@ def harmWrapper(heap={}):
             **kwargs,
         )
 
-        flagger_out = flagger.getFlagger(drop=field).setFlagger(flagger_merged_clean_reshaped)
+        flagger_out = flagger.slice(drop=field).merge(flagger_merged_clean_reshaped)
         data[field] = dat_col
         return data, flagger_out
 
@@ -145,7 +145,7 @@ def harmWrapper(heap={}):
         dat_col.name = field
 
         # bye bye data
-        flagger_out = flagger.getFlagger(drop=field).setFlagger(flagger_back)
+        flagger_out = flagger.slice(drop=field).merge(flagger_back)
         data[field] = dat_col
 
         assert (data[field].index == flagger_out.getFlags(field).index).all()

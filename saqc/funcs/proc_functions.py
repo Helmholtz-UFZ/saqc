@@ -3,12 +3,12 @@
 
 import pandas as pd
 import numpy as np
-from saqc.funcs.register import register
+from saqc.core.register import register
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq
-from saqc.lib.tools import composeFunction, toSequence
+from saqc.lib.tools import toSequence
 
 
-@register()
+@register
 def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
                             downgrade_interpolation=False, return_chunk_bounds=False, not_interpol_flags=None, **kwargs):
 
@@ -37,16 +37,13 @@ def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_l
     return data, flagger
 
 
-@register()
-def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total_d=np.inf, max_invalid_consec_d=np.inf,
-                  max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf, flag_agg_func='max', method='bagg', **kwargs):
+@register
+def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=np.inf, max_invalid_consec_d=np.inf,
+                  max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf, flag_agg_func=max, method='bagg', **kwargs):
 
     data = data.copy()
     datcol = data[field]
     flagscol = flagger.getFlags(field)
-
-    func = composeFunction(func)
-    flag_agg_func = composeFunction(flag_agg_func)
 
     if func == "shift":
         datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
@@ -61,14 +58,13 @@ def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total_d=n
     # data/flags reshaping:
     data[field] = datcol
     reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
-    flagger = flagger.getFlagger(drop=field).setFlagger(reshaped_flagger)
+    flagger = flagger.slice(drop=field).merge(reshaped_flagger)
     return data, flagger
 
 
-@register()
+@register
 def proc_transform(data, field, flagger, func, **kwargs):
     data = data.copy()
-    func = composeFunction(func)
     # NOTE: avoiding pd.Series.transform() in the line below, because transform does process columns element wise
     # (so interpolations wouldn't work)
     new_col = pd.Series(func(data[field]), index=data[field].index)

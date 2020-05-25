@@ -11,6 +11,7 @@ from saqc.funcs.proc_functions import (
     proc_resample,
     proc_transform
 )
+from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
 
 from test.common import TESTFLAGGER
 
@@ -39,11 +40,12 @@ def test_transform(course_5, flagger):
     field = data.columns[0]
     data = dios.DictOfSeries(data)
     flagger = flagger.initFlags(data)
-    data1, *_ = proc_transform(data, field, flagger, func='linear')
+    data1, *_ = proc_transform(data, field, flagger, func=linearInterpolation)
     assert data1[field][characteristics['missing']].isna().all()
-    data1, *_ = proc_transform(data, field, flagger, func='linear$3')
+    data1, *_ = proc_transform(data, field, flagger, func=lambda x: linearInterpolation(x, inter_limit=3))
     assert data1[field][characteristics['missing']].notna().all()
-    data1, *_ = proc_transform(data, field, flagger, func='polynomial$3$3')
+    data1, *_ = proc_transform(data, field, flagger, func=lambda x: polynomialInterpolation(x, inter_limit=3,
+                                                                                            inter_order=3))
     assert data1[field][characteristics['missing']].notna().all()
 
 
@@ -53,7 +55,7 @@ def test_resample(course_5, flagger):
     field = data.columns[0]
     data = dios.DictOfSeries(data)
     flagger = flagger.initFlags(data)
-    data1, *_ = proc_resample(data, field, flagger, '10min', 'mean', max_invalid_total_d=2, max_invalid_consec_d=1)
+    data1, *_ = proc_resample(data, field, flagger, '10min', np.mean, max_invalid_total_d=2, max_invalid_consec_d=1)
     assert ~np.isnan(data1[field].iloc[0])
     assert np.isnan(data1[field].iloc[1])
     assert np.isnan(data1[field].iloc[2])
