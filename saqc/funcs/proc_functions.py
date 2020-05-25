@@ -4,13 +4,14 @@
 import pandas as pd
 import numpy as np
 from saqc.funcs.register import register
-from saqc.lib.ts_operators import interpolateNANs, validationTrafo, aggregate2Freq
+from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq
 from saqc.lib.tools import composeFunction, toSequence
 
 
 @register()
 def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
                             downgrade_interpolation=False, return_chunk_bounds=False, not_interpol_flags=None, **kwargs):
+
 
     data = data.copy()
     inter_data = interpolateNANs(data[field], method, order=inter_order, inter_limit=inter_limit,
@@ -47,21 +48,20 @@ def proc_resample(data, field, flagger, freq, func="mean", max_invalid_total_d=n
     func = composeFunction(func)
     flag_agg_func = composeFunction(flag_agg_func)
 
-    if func == 'shift':
-        datcol = shift2Freq(datcol, method, freq, fill_value=fill_value)
+    if func == "shift":
+        datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
+        flagscol =shift2Freq(flagscol, method, freq, fill_value=flagger.BAD)
 
-    # data resampling
-    datcol = aggregate2Freq(datcol, method, agg_func=func, freq=freq, fill_value=np.nan,
+    else:
+        datcol = aggregate2Freq(datcol, method, freq, func, fill_value=np.nan,
                           max_invalid_total=max_invalid_total_d, max_invalid_consec=max_invalid_consec_d)
-
-    # flags resampling:
-    flagscol = aggregate2Freq(flagscol, method, agg_func=flag_agg_func, freq=freq, fill_value=flagger.BAD,
+        flagscol = aggregate2Freq(flagscol, method, freq, flag_agg_func, fill_value=flagger.BAD,
                           max_invalid_total=max_invalid_total_f, max_invalid_consec=max_invalid_consec_f)
 
     # data/flags reshaping:
     data[field] = datcol
-    reshape_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
-    flagger = flagger.getFlagger(drop=field).setFlagger(reshape_flagger)
+    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
+    flagger = flagger.getFlagger(drop=field).setFlagger(reshaped_flagger)
     return data, flagger
 
 
