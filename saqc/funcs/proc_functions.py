@@ -104,7 +104,8 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
     flagscol[flagscol.isna()] = empty_intervals_flag
     # ...hack done
 
-    # we might miss the flag for interpolated data grids last entry (its always nan - just settling a convention here):
+    # we might miss the flag for interpolated data grids last entry (if we miss it - the datapoint is always nan
+    # - just settling a convention here):
     if inter_data.shape[0] > flagscol.shape[0]:
         flagscol = flagscol.append(pd.Series(empty_intervals_flag, index=[datcol.index[-1]]))
 
@@ -120,21 +121,23 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
 
 @register
 def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=np.inf, max_invalid_consec_d=np.inf,
-                  max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf, flag_agg_func=max, method='bagg', **kwargs):
+                  max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf, flag_agg_func=max, method='bagg',
+                  empty_intervals_flag=None, **kwargs):
 
     data = data.copy()
     datcol = data[field]
     flagscol = flagger.getFlags(field)
-
+    if empty_intervals_flag is None:
+        empty_intervals_flag = flagger.BAD
 
     if func == "shift":
         datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
-        flagscol = shift2Freq(flagscol, method, freq, fill_value=flagger.BAD)
+        flagscol = shift2Freq(flagscol, method, freq, fill_value=empty_intervals_flag)
 
     else:
         datcol = aggregate2Freq(datcol, method, freq, func, fill_value=np.nan,
                           max_invalid_total=max_invalid_total_d, max_invalid_consec=max_invalid_consec_d)
-        flagscol = aggregate2Freq(flagscol, method, freq, flag_agg_func, fill_value=flagger.BAD,
+        flagscol = aggregate2Freq(flagscol, method, freq, flag_agg_func, fill_value=empty_intervals_flag,
                           max_invalid_total=max_invalid_total_f, max_invalid_consec=max_invalid_consec_f)
 
     # data/flags reshaping:
@@ -152,3 +155,6 @@ def proc_transform(data, field, flagger, func, **kwargs):
     new_col = pd.Series(func(data[field]), index=data[field].index)
     data[field] = new_col
     return data, flagger
+
+#@register
+#def proc_projectFlags(data, field, flagger, target_field, **kwargs):
