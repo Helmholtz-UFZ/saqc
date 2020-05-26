@@ -160,8 +160,9 @@ def harmWrapper(heap={}):
 
 
 harm_harmonize, harm_deharmonize = harmWrapper()
-register(harm_harmonize)
-register(harm_deharmonize)
+register(harm_harmonize, name='harm_harmonize')
+register(harm_deharmonize, name='harm_deharmonize')
+
 
 
 # (de-)harmonize helper

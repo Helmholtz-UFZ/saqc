@@ -180,8 +180,11 @@ class SaQCFunc(Func):
 FUNC_MAP : Dict[str, RegisterFunc] = {}
 
 
-def register(func):
-    name = func.__name__
+def register(func, name=None):
+    if name is None:
+        name = func.__name__
+    else:
+        func.__name__ = name
     func = RegisterFunc(func)
     FUNC_MAP[name] = func
     return func

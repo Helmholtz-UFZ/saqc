@@ -93,7 +93,7 @@ def _setup(log_level):
 
 
 class SaQC:
-    def __init__(self, flagger, data, flags=None, nodata=np.nan, log_level="INFO", error_policy="raise"):
+    def __init__(self, flagger, data, flags=None, nodata=np.nan, log_level=logging.INFO, error_policy="raise"):
         _setup(log_level)
         data, flags = _prepInput(flagger, data, flags)
         self._flagger = flagger.initFlags(data)

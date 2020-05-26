@@ -189,5 +189,5 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median,
     diff_scores = val_frame.subtract(stat, axis=0).abs()
     diff_scores = diff_scores > thresh
     for var in fields:
-        flagger = flagger.setFlags(var, diff_scores[fields[0]].values, **kwargs)
+        flagger = flagger.setFlags(var, diff_scores[var].values, **kwargs)
     return data, flagger
