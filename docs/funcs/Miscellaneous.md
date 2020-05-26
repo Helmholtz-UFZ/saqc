@@ -112,7 +112,7 @@ flagPattern(ref_datafield, partition_freq = 'D', sample_freq = '15 Min', method 
 | min_distance          | float                                                         | `None`        |For DTW - alogrithm: the minimum distance of two graphs in order to be classified as "different"                                      |
 
 
-Implementation of the pattern recognition algorithms introduced in [Pattern Recognition with Wavelets](https://git.ufz.de/rdm-software/saqc/-/wikis/Pattern-Recognition-with-Wavelets#Results). 
+Implementation of the pattern recognition algorithms introduced in [Pattern Recognition](https://git.ufz.de/rdm-software/saqc/-/wikis/Pattern-Recognition). 
 
 
 
