@@ -145,7 +145,7 @@ def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=
 
 
 @register
-def proc_shift(data, field, flagger, freq, drop_flags=None, empty_intervals_flag=None):
+def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_intervals_flag=None, **kwargs):
     # Note: all data nans get excluded defaultly from shifting. I drop_flags is None - all BAD flagged values get
     # excluded as well.
     data = data.copy()
