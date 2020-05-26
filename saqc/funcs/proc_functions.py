@@ -130,9 +130,6 @@ def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
 
-    if func == "shift":
-        datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
-        flagscol = shift2Freq(flagscol, method, freq, fill_value=empty_intervals_flag)
 
     else:
         datcol = aggregate2Freq(datcol, method, freq, func, fill_value=np.nan,
@@ -146,6 +143,35 @@ def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=
     flagger = flagger.slice(drop=field).merge(reshaped_flagger)
     return data, flagger
 
+
+@register
+def proc_shift(data, field, flagger, freq, drop_flags=None, empty_intervals_flag=None):
+    # Note: all data nans get excluded defaultly from shifting. I drop_flags is None - all BAD flagged values get
+    # excluded as well.
+    data = data.copy()
+    datcol = data[field]
+    flagscol = flagger.getFlags(field)
+
+    if empty_intervals_flag is None:
+        empty_intervals_flag = flagger.BAD
+    if drop_flags is None:
+        drop_flags = flagger.BAD
+
+    drop_flags = toSequence(drop_flags)
+    drop_mask = pd.Series(False, index=datcol.index)
+    for f in drop_flags:
+        drop_mask |= flagger.isFlagged(field, flag=f)
+    drop_mask |= datcol.isna()
+    datcol[drop_mask] = np.nan
+    datcol.dropna(inplace=True)
+    flagscol.drop(drop_mask[drop_mask].index, inplace=True)
+
+    datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
+    flagscol = shift2Freq(flagscol, method, freq, fill_value=empty_intervals_flag)
+    data[field] = datcol
+    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
+    flagger = flagger.slice(drop=field).merge(reshaped_flagger)
+    return data, flagger
 
 @register
 def proc_transform(data, field, flagger, func, **kwargs):
