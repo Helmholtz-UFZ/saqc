@@ -131,11 +131,11 @@ def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=
         empty_intervals_flag = flagger.BAD
 
 
-    else:
-        datcol = aggregate2Freq(datcol, method, freq, func, fill_value=np.nan,
-                          max_invalid_total=max_invalid_total_d, max_invalid_consec=max_invalid_consec_d)
-        flagscol = aggregate2Freq(flagscol, method, freq, flag_agg_func, fill_value=empty_intervals_flag,
-                          max_invalid_total=max_invalid_total_f, max_invalid_consec=max_invalid_consec_f)
+
+    datcol = aggregate2Freq(datcol, method, freq, func, fill_value=np.nan,
+                      max_invalid_total=max_invalid_total_d, max_invalid_consec=max_invalid_consec_d)
+    flagscol = aggregate2Freq(flagscol, method, freq, flag_agg_func, fill_value=empty_intervals_flag,
+                      max_invalid_total=max_invalid_total_f, max_invalid_consec=max_invalid_consec_f)
 
     # data/flags reshaping:
     data[field] = datcol
