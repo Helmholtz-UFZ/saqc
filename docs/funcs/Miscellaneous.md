@@ -98,16 +98,14 @@ The function flags all values indicating missing data.
 ## flagPattern
 
 ```                            
-flagPattern(ref_datafield, partition_freq = 'D', sample_freq = '15 Min', method = 'dtw', min_distance = None)
+flagPattern(ref_datafield, sample_freq = '15 Min', method = 'dtw', min_distance = None)
 ``` 
 
 
 | parameter             | data type                                                     | default value | description                                                                                                                                                |
 |-----------------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ref_datafield         | string                                                        |               |Name of the reference datafield = "pattern"                                           |
-| partition_freq          | string or float                                                         | `"1 D"`        |Frequency in which the pattern occurs                                      |
 | sample_freq         | string                                                         | `"15 Min"`        |Sample frequency to harmonize the data                                   |
-| min_distance          | float                                                         | `None`        |For DTW - alogrithm: the minimum distance of two graphs in order to be classified as "different"                                      |
 | method                | string                                                        | `"dtw "`      |"dtw" for Dynamic Time Warping (DTW), "wavelet" for Wavelet Pattern Recognition Algorithm                                                          |
 | min_distance          | float                                                         | `None`        |For DTW - alogrithm: the minimum distance of two graphs in order to be classified as "different"                                      |
 
