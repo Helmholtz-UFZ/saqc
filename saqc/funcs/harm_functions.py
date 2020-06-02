@@ -560,5 +560,4 @@ def harm_deharm(
                                       drop_flags=drop_flags,
                                       **kwargs)
     data, flagger = proc_drop(data, field, flagger)
-    data, flagger = proc_rename(data, field + ORIGINAL_SUFFIX, flagger, field)
     return data, flagger

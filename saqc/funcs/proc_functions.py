@@ -302,10 +302,3 @@ def proc_drop(data, field, flagger, **kwargs):
     return data, flagger
 
 
-def proc_rename(data, field, flagger, new_name, **kwargs):
-    field_pos = np.where(flagger._flags.columns == field)[0][0]
-    new_index = flagger._flags.columns.drop[field]
-    new_index = new_index.insert(field_pos, new_name)
-    flagger._flags.columns = new_index
-    data.columns = new_index
-    return data, flagger
