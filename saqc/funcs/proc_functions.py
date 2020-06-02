@@ -143,13 +143,25 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
 @register
 def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=np.inf, max_invalid_consec_d=np.inf,
                   max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf, flag_agg_func=max, method='bagg',
-                  empty_intervals_flag=None, **kwargs):
+                  empty_intervals_flag=None, drop_flags=None, **kwargs):
+    # NOTE: Dropping flags will screw any result, dependent on counting of valid/invalid values per interval.
 
     data = data.copy()
     datcol = data[field]
     flagscol = flagger.getFlags(field)
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
+    if drop_flags is None:
+        drop_flags = []
+
+    drop_flags = toSequence(drop_flags)
+    drop_mask = flagscol.isna()
+    for f in drop_flags:
+        drop_mask |= flagger.isFlagged(field, flag=f)
+    drop_mask |= datcol.isna()
+    datcol[drop_mask] = np.nan
+    datcol.dropna(inplace=True)
+    flagscol.drop(flagscol[drop_mask].index, inplace=True)
 
     datcol = aggregate2Freq(datcol, method, freq, func, fill_value=np.nan,
                       max_invalid_total=max_invalid_total_d, max_invalid_consec=max_invalid_consec_d)
@@ -164,7 +176,7 @@ def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=
 
 
 @register
-def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_intervals_flag=None, keep=True, **kwargs):
+def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_intervals_flag=None, **kwargs):
     # Note: all data nans get excluded defaultly from shifting. If drop_flags is None - all BAD flagged values get
     # excluded as well.
     data = data.copy()
@@ -272,17 +284,17 @@ def proc_projectFlags(data, field, flagger, method, target=None, freq=None, drop
         target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how='outer'))
         target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
 
-    flagger = flagger.setFlags(field=target, flag=target_flagscol.values, **kwargs)
+    flagger = flagger.setFlags(field=target, flag=target_flagscol, **kwargs)
     return data, flagger
 
 
+@register
 def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     fork_field = field + suffix
     fork_dios = dios.DictOfSeries({fork_field: data[field]})
     data = mergeDios(data, fork_dios)
     fork_flags = flagger.getFlags(field)
-    forked_flagger = flagger.initFlags(data[fork_field]).setFlags(field, flag=fork_flags, **kwargs)
+    forked_flagger = flagger.initFlags(data[fork_field]).setFlags(fork_field, flag=fork_flags, **kwargs)
     flagger = flagger.merge(forked_flagger)
     return data, flagger
-
 

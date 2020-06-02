@@ -10,7 +10,7 @@ import dios
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq
 from saqc.core.register import register
 from saqc.lib.tools import toSequence
-
+from saqc.funcs.proc_functions import proc_interpolateGrid, proc_shift, proc_fork, proc_resample, proc_projectFlags
 
 
 logger = logging.getLogger("SaQC")
@@ -508,61 +508,52 @@ def _backtrackFlags(flagger_harmony, flagger_original_clean, flagger_original, f
     return flagger_original.initFlags(flags=res)
 
 
+# some wrapper functions mimicking classic harmonization look and feel
 @register
-def harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, **kwargs):
-    return harm_harmonize(
-        data, field, flagger, freq, inter_method=method, reshape_method=method, drop_flags=drop_flags, **kwargs,
-    )
+def harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, empty_intervals_flag=None, **kwargs):
+
+    data, flagger = proc_fork(data, field, flagger)
+    data, flagger = proc_shift(data, field, flagger, freq, method, drop_flags=drop_flags,
+                               empty_intervals_flag=empty_intervals_flag, **kwargs)
+    return data, flagger
 
 
 @register
 def harm_aggregate2Grid(
-    data, field, flagger, freq, value_func, flag_func=np.nanmax, method="nagg", drop_flags=None, **kwargs,
+    data, field, flagger, freq, value_func, flag_func=np.nanmax, method="nagg", drop_flags=None,
+        empty_intervals_flag=None, **kwargs
 ):
-    return harm_harmonize(
-        data,
-        field,
-        flagger,
-        freq,
-        inter_method=method,
-        reshape_method=method,
-        inter_agg=value_func,
-        reshape_agg=flag_func,
-        drop_flags=drop_flags,
-        **kwargs,
-    )
+
+    data, flagger = proc_fork(data, field, flagger)
+    data, flagger = proc_resample(data, field, flagger, freq, func=value_func, flag_agg_func=flag_func,
+                                  method=method, empty_intervals_flag=empty_intervals_flag, drop_flags=drop_flags,
+                                  **kwargs)
+    return data, flagger
 
 
 @register
-def harm_linear2Grid(data, field, flagger, freq, method="nagg", func=np.nanmax, drop_flags=None, **kwargs):
-    return harm_harmonize(
-        data,
-        field,
-        flagger,
-        freq,
-        inter_method="time",
-        reshape_method=method,
-        reshape_agg=func,
-        drop_flags=drop_flags,
-        **kwargs,
-    )
+def harm_linear2Grid(data, field, flagger, freq, drop_flags=None, empty_intervals_flag=None, **kwargs):
+    data, flagger = proc_fork(data, field, flagger)
+    data, flagger = proc_interpolateGrid(data, field, flagger, freq, 'time',
+                                         drop_flags=drop_flags, empty_intervals_flag=empty_intervals_flag, **kwargs)
+    return data, flagger
 
 
 @register
 def harm_interpolate2Grid(
-    data, field, flagger, freq, method, order=1, flag_method="nagg", flag_func=np.nanmax, drop_flags=None, **kwargs,
+    data, field, flagger, freq, method, order=1, drop_flags=None, empty_intervals_flag=None, **kwargs,
 ):
-    return harm_harmonize(
-        data,
-        field,
-        flagger,
-        freq,
-        inter_method=method,
-        inter_order=order,
-        reshape_method=flag_method,
-        reshape_agg=flag_func,
-        drop_flags=drop_flags,
-        **kwargs,
-    )
+    data, flagger = proc_fork(data, field, flagger)
+    data, flagger = proc_interpolateGrid(data, field, flagger, freq, method=method, inter_order=order,
+                                         drop_flags=drop_flags, empty_intervals_flag=empty_intervals_flag,
+                                         **kwargs)
+    return data, flagger
 
 
+@register
+def harm_deharmonize(
+    data, field, flagger, method, drop_flags=None, **kwargs
+):
+    data, flagger = proc_projectFlags(data, field, flagger, method, target=field + "_original", drop_flags=drop_flags,
+                                      **kwargs)
+    return data, flagger
