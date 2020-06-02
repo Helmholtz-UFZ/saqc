@@ -265,7 +265,7 @@ def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_
     # - resample AND groupBy do insert value zero for empty intervals if resampling with any kind of "sum" application -
     #   we want "fill_value" to be inserted
     # - we are aggregating data and flags with this function and empty intervals usually would get assigned flagger.BAD
-    #   flag (where resample inserts np.nan)
+    #   flag (where resample inserts np.nan or 0)
 
     data_resampler = data.resample(freq_string, base=base, closed=closed,
                                   label=label)
@@ -273,7 +273,7 @@ def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_
     empty_intervals = data_resampler.count() == 0
     data = data_resampler.apply(agg_func)
 
-    # since loffset keyword of pandas "discharges" after one use of the resampler (pandas logic) - we correct the
+    # since loffset keyword of pandas.resample "discharges" after one use of the resampler (pandas logic) - we correct the
     # resampled labels offset manually, if necessary.
     if method == "nagg":
         data.index = data.index.shift(freq=pd.Timedelta(freq) / 2)
