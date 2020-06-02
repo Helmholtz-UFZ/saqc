@@ -215,21 +215,19 @@ def proc_transform(data, field, flagger, func, **kwargs):
 
 
 @register
-def proc_projectFlags(data, field, flagger, method, target=None, freq=None, drop_flags=None, **kwargs):
-    if target is None:
-        target = data.columns[data.columns == field + ORIGINAL_SUFFIX][0]
+def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flags=None, **kwargs):
 
-    datcol = data[field].copy()
-    target_datcol = data[target].copy()
-    flagscol = flagger.getFlags(field)
-    target_flagscol = flagger.getFlags(target)
+    datcol = data[source].copy()
+    target_datcol = data[field].copy()
+    flagscol = flagger.getFlags(source)
+    target_flagscol = flagger.getFlags(field)
 
     if freq is None:
         freq = pd.Timedelta(datcol.index.freq)
         if freq is pd.NaT:
             raise ValueError(
                 "Nor is {} a frequency regular timeseries, neither was a frequency passed to parameter 'freq'. "
-                "Dont know what to do.".format(field)
+                "Dont know what to do.".format(source)
             )
     if method[-3:] == "agg":
         # Aggregation - Inversion
@@ -254,7 +252,7 @@ def proc_projectFlags(data, field, flagger, method, target=None, freq=None, drop
         drop_flags = toSequence(drop_flags)
         drop_mask = pd.Series(False, index=target_datcol.index)
         for f in drop_flags:
-            drop_mask |= flagger.isFlagged(field, flag=f)
+            drop_mask |= flagger.isFlagged(source, flag=f)
         drop_mask |= target_datcol.isna()
         target_flagscol_drops = target_flagscol[drop_mask]
         target_flagscol.drop(drop_mask[drop_mask].index, inplace=True)
@@ -283,7 +281,7 @@ def proc_projectFlags(data, field, flagger, method, target=None, freq=None, drop
         target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how='outer'))
         target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
 
-    flagger = flagger.setFlags(field=target, flag=target_flagscol, **kwargs)
+    flagger = flagger.setFlags(field=field, flag=target_flagscol, **kwargs)
     return data, flagger
 
 
@@ -301,4 +299,13 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
 def proc_drop(data, field, flagger, **kwargs):
     data = data[data.columns.drop(field)]
     flagger = flagger.slice(drop=field)
+    return data, flagger
+
+
+def proc_rename(data, field, flagger, new_name, **kwargs):
+    field_pos = np.where(flagger._flags.columns == field)[0][0]
+    new_index = flagger._flags.columns.drop[field]
+    new_index = new_index.insert(field_pos, new_name)
+    flagger._flags.columns = new_index
+    data.columns = new_index
     return data, flagger
