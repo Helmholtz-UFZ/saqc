@@ -155,12 +155,11 @@ def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=
         drop_flags = []
 
     drop_flags = toSequence(drop_flags)
-    drop_mask = flagscol.isna()
+    drop_mask = pd.Series(data=False, index=datcol.index)
     for f in drop_flags:
         drop_mask |= flagger.isFlagged(field, flag=f)
-    drop_mask |= datcol.isna()
-    datcol[drop_mask] = np.nan
-    datcol.dropna(inplace=True)
+
+    datcol.drop(datcol[drop_mask].index, inplace=True)
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
 
     datcol = aggregate2Freq(datcol, method, freq, func, fill_value=np.nan,
@@ -298,3 +297,8 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     flagger = flagger.merge(forked_flagger)
     return data, flagger
 
+@register
+def proc_drop(data, field, flagger, **kwargs):
+    data = data[data.columns.drop(field)]
+    flagger = flagger.slice(drop=field)
+    return data, flagger

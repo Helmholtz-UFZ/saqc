@@ -10,7 +10,8 @@ import dios
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq
 from saqc.core.register import register
 from saqc.lib.tools import toSequence
-from saqc.funcs.proc_functions import proc_interpolateGrid, proc_shift, proc_fork, proc_resample, proc_projectFlags
+from saqc.funcs.proc_functions import proc_interpolateGrid, proc_shift, proc_fork, proc_resample, proc_projectFlags, \
+    proc_drop
 
 
 logger = logging.getLogger("SaQC")
@@ -551,9 +552,11 @@ def harm_interpolate2Grid(
 
 
 @register
-def harm_deharmonize(
+def harm_deharm(
     data, field, flagger, method, drop_flags=None, **kwargs
 ):
+
     data, flagger = proc_projectFlags(data, field, flagger, method, target=field + "_original", drop_flags=drop_flags,
                                       **kwargs)
+    data, flagger = proc_drop(data, flagger, field)
     return data, flagger

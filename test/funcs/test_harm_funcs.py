@@ -27,7 +27,7 @@ COFLAGGING = [False, True]
 
 SETSHIFTCOMMENT = [False, True]
 
-INTERPOLATIONS2 = ["fagg", "time", "polynomial"]
+INTERPOLATIONS2 = ["time", "polynomial"]
 
 
 @pytest.fixture
@@ -272,13 +272,17 @@ def test_multivariatHarmonization(multi_data, flagger, shift_comment):
 def test_gridInterpolation(data, method):
     freq = "15min"
     data = data.squeeze()
+    field = data.name
     data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
+    data = dios.DictOfSeries(data)
+    flagger = TESTFLAGGER[0].initFlags(data)
+
     # we are just testing if the interpolation gets passed to the series without causing an error:
-    _interpolateGrid(data, freq, method, order=1, agg_method="sum", downcast_interpolation=True)
+
+    harm_interpolate2Grid(data, field, flagger, freq, method=method, downcast_interpolation=True)
     if method == "polynomial":
-        _interpolateGrid(data, freq, method, order=2, agg_method="sum", downcast_interpolation=True)
-        _interpolateGrid(data, freq, method, order=10, agg_method="sum", downcast_interpolation=True)
-        data = _insertGrid(data, freq)
+        harm_interpolate2Grid(data, field, flagger, freq, order=2, method=method, downcast_interpolation=True)
+        harm_interpolate2Grid(data, field, flagger, freq, order=10, method=method, downcast_interpolation=True)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
