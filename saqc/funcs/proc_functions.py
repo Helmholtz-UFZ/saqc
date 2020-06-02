@@ -5,7 +5,10 @@ import pandas as pd
 import numpy as np
 from saqc.core.register import register
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq
-from saqc.lib.tools import toSequence
+from saqc.lib.tools import toSequence, mergeDios
+import dios
+
+ORIGINAL_SUFFIX = '_original'
 
 METHOD2ARGS = {'inverse_fshift': ('backward', pd.Timedelta),
                'inverse_bshift': ('forward', pd.Timedelta),
@@ -161,7 +164,7 @@ def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=
 
 
 @register
-def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_intervals_flag=None, **kwargs):
+def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_intervals_flag=None, keep=True, **kwargs):
     # Note: all data nans get excluded defaultly from shifting. If drop_flags is None - all BAD flagged values get
     # excluded as well.
     data = data.copy()
@@ -189,6 +192,7 @@ def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_interv
     flagger = flagger.slice(drop=field).merge(reshaped_flagger)
     return data, flagger
 
+
 @register
 def proc_transform(data, field, flagger, func, **kwargs):
     data = data.copy()
@@ -198,8 +202,12 @@ def proc_transform(data, field, flagger, func, **kwargs):
     data[field] = new_col
     return data, flagger
 
+
 @register
-def proc_projectFlags(data, field, flagger, target, method, freq=None, drop_flags=None, **kwargs):
+def proc_projectFlags(data, field, flagger, method, target=None, freq=None, drop_flags=None, **kwargs):
+    if target is None:
+        target = data.columns[data.columns == field + ORIGINAL_SUFFIX][0]
+
     datcol = data[field].copy()
     target_datcol = data[target].copy()
     flagscol = flagger.getFlags(field)
@@ -264,5 +272,17 @@ def proc_projectFlags(data, field, flagger, target, method, freq=None, drop_flag
         target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how='outer'))
         target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
 
-    flagger = flagger.setFlags(field=target, flag=target_flagscol.values)
+    flagger = flagger.setFlags(field=target, flag=target_flagscol.values, **kwargs)
     return data, flagger
+
+
+def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
+    fork_field = field + suffix
+    fork_dios = dios.DictOfSeries({fork_field: data[field]})
+    data = mergeDios(data, fork_dios)
+    fork_flags = flagger.getFlags(field)
+    forked_flagger = flagger.initFlags(data[fork_field]).setFlags(field, flag=fork_flags, **kwargs)
+    flagger = flagger.merge(forked_flagger)
+    return data, flagger
+
+
