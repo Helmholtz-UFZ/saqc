@@ -93,7 +93,7 @@ def _setup(log_level):
 
 
 class SaQC:
-    def __init__(self, flagger, data, flags=None, nodata=np.nan, log_level="INFO", error_policy="raise"):
+    def __init__(self, flagger, data, flags=None, nodata=np.nan, log_level=logging.INFO, error_policy="raise"):
         _setup(log_level)
         data, flags = _prepInput(flagger, data, flags)
         self._flagger = flagger.initFlags(data)
@@ -115,7 +115,8 @@ class SaQC:
                 kwargs["regex"] = True
                 field = field[1:-1]
             kwargs["field"] = field
-            out = out._wrap(func, plot, lineno, expr)(**kwargs)
+            kwargs["plot"] = plot
+            out = out._wrap(func, lineno=lineno, expr=expr)(**kwargs)
         return out
 
     def getResult(self):
@@ -133,7 +134,7 @@ class SaQC:
                 plotHook(
                     data_old=data, data_new=data_result,
                     flagger_old=flagger, flagger_new=flagger_result,
-                    sources=[], targets=[func.field], plot_name=func.name,
+                    sources=[], targets=[field], plot_name=func.__name__,
                 )
 
             data = data_result
@@ -144,9 +145,9 @@ class SaQC:
 
         return data, flagger
 
-    def _wrap(self, func, plot=False, lineno=None, expr=None):
+    def _wrap(self, func, lineno=None, expr=None):
 
-        def inner(field: str, *args, regex: bool=False, **kwargs):
+        def inner(field: str, *args, regex: bool = False, **kwargs):
 
             fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
 
@@ -161,7 +162,7 @@ class SaQC:
 
             out = deepcopy(self)
             for field in fields:
-                f = SaQCFunc(func, plot=plot, lineno=lineno, expression=expr, *args, **kwargs)
+                f = SaQCFunc(func, *args, lineno=lineno, expression=expr, **kwargs)
                 out._to_call.append((field, f))
             return out
 

@@ -12,6 +12,8 @@ from saqc.funcs.proc_functions import proc_interpolateGrid, proc_shift, proc_for
 logger = logging.getLogger("SaQC")
 
 # some wrapper functions to mimicking classic harmonization look and feel
+
+
 @register
 def harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, empty_intervals_flag=None, **kwargs):
 
