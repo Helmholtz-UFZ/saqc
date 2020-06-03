@@ -18,12 +18,15 @@ from saqc.funcs.harm_functions import (
     harm_linear2Grid,
     harm_interpolate2Grid,
     harm_shift2Grid,
-    harm_aggregate2Grid
+    harm_aggregate2Grid,
+    harm_deharm
 )
+from saqc.funcs.proc_functions import ORIGINAL_SUFFIX
+
 
 RESHAPERS = ["nshift", "fshift", "bshift"]
 
-COFLAGGING = [False, True]
+COFLAGGING = [False]
 
 SETSHIFTCOMMENT = [False, True]
 
@@ -87,12 +90,13 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
     field = data.columns[0]
 
     # harmonize data:
-    data, flagger = harm_harmonize(data, "data", flagger, freq, "time", reshaper)
+    #data, flagger = harm_harmonize(data, "data", flagger, freq, "time", reshaper)
 
+    data, flagger = harm_linear2Grid(data, 'data', flagger, freq)
     # flag something bad
     flagger = flagger.setFlags("data", loc=data[field].index[3:4])
-    data, flagger = harm_deharmonize(data, "data", flagger, co_flagging=co_flagging)
-    d = data[field]
+    data, flagger = harm_deharm(data, "data", flagger, method='inverse_' + reshaper)
+    d = data[field + ORIGINAL_SUFFIX]
 
     if reshaper == "nshift":
         if co_flagging is True:
@@ -123,9 +127,9 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
             ).all()
 
     flags = flagger.getFlags()
-    assert pre_data[field].equals(data[field])
-    assert len(data[field]) == len(flags[field])
-    assert (pre_flags[field].index == flags[field].index).all()
+    assert pre_data[field].equals(data[field + ORIGINAL_SUFFIX])
+    assert len(data[field + ORIGINAL_SUFFIX]) == len(flags[field + ORIGINAL_SUFFIX])
+    assert (pre_flags[field].index == flags[field + ORIGINAL_SUFFIX].index).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
