@@ -10,7 +10,6 @@ from dios import dios
 from test.common import TESTFLAGGER, initData
 
 from saqc.funcs.harm_functions import (
-    _outsortCrap,
     harm_linear2Grid,
     harm_interpolate2Grid,
     harm_shift2Grid,

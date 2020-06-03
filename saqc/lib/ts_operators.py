@@ -4,10 +4,9 @@
 import pandas as pd
 import numpy as np
 import numba as nb
-import math
+
 from sklearn.neighbors import NearestNeighbors
 from scipy.stats import iqr
-#from saqc.lib.tools import composeFunction
 import logging
 logger = logging.getLogger("SaQC")
 
@@ -271,7 +270,12 @@ def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_
                                   label=label)
 
     empty_intervals = data_resampler.count() == 0
-    data = data_resampler.apply(agg_func)
+    # great performance gain can be achieved, when avoiding .apply and using pd.resampler
+    # methods instead. (this covers all the basic func aggregations, such as median, mean, sum, count, ...)
+    try:
+        data = getattr(data_resampler, agg_func.__name__)()
+    except AttributeError:
+        data = data_resampler.apply(agg_func)
 
     # since loffset keyword of pandas.resample "discharges" after one use of the resampler (pandas logic) - we correct the
     # resampled labels offset manually, if necessary.
