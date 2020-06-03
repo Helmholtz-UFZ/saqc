@@ -73,58 +73,6 @@ def multi_data():
     return dios.DictOfSeries(data)
 
 
-@pytest.mark.parametrize("method", INTERPOLATIONS2)
-def test_gridInterpolation(data, method):
-    freq = "15min"
-    data = data.squeeze()
-    data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
-    kwds = dict(agg_method="sum", downcast_interpolation=True)
-
-    # we are just testing if the interpolation gets passed to the series without causing an error:
-    _interpolateGrid(data, freq, method, order=1, **kwds)
-    if method == "polynomial":
-        _interpolateGrid(data, freq, method, order=2, **kwds)
-        _interpolateGrid(data, freq, method, order=10, **kwds)
-        data = _insertGrid(data, freq)
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_outsortCrap(data, flagger):
-    field = data.columns[0]
-    s = data[field]
-    flagger = flagger.initFlags(data)
-
-    drop_index = s.index[5:7]
-    flagger = flagger.setFlags(field, loc=drop_index)
-    res, *_ = _outsortCrap(s, field, flagger, drop_flags=flagger.BAD)
-    assert drop_index.difference(res.index).equals(drop_index)
-
-    flagger = flagger.setFlags(field, loc=s.iloc[0:1], flag=flagger.GOOD)
-    drop_index = drop_index.insert(-1, s.index[0])
-    to_drop = [flagger.BAD, flagger.GOOD]
-    res, *_ = _outsortCrap(s, field, flagger, drop_flags=to_drop)
-    assert drop_index.sort_values().difference(res.index).equals(drop_index.sort_values())
-
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_heapConsistency(data, flagger):
-
-    freq = "15Min"
-
-    # harmonize `other_data` and prefill the HEAP
-    other_data = initData(3)
-    other_flagger = flagger.initFlags(other_data)
-    harm_harmonize(other_data, other_data.columns[0], other_flagger, freq, "time", "nshift")
-
-    # harmonize and deharmonize `data`
-    # -> we want both harmonizations (`data` and `other_data`) to not interfere
-    flagger = flagger.initFlags(data)
-    data_harm, flagger_harm = harm_harmonize(data, "data", flagger, freq, "time", "nshift")
-    data_deharm, flagger_deharm = harm_deharmonize(data_harm, "data", flagger_harm)
-    assert np.all(data.to_df().dropna() == data_deharm.to_df().dropna())
-
-
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("reshaper", RESHAPERS)
 @pytest.mark.parametrize("co_flagging", COFLAGGING)
