@@ -150,6 +150,8 @@ def test_harmSingleVarInterpolations(data, flagger):
         data_harm, _ = harm_aggregate2Grid(data, field, flagger, freq, value_func=np.sum, method=interpolation)
         assert data_harm[field].equals(expected)
 
+    import pdb
+    pdb.set_trace()
     #tests = [
     #    ("fshift", "15Min", [np.nan, -37.5, -25.0, 0.0, 37.5, 50.0]),
     #    ("fshift", "30Min", [np.nan, -37.5, 0.0, 50.0]),
@@ -159,7 +161,7 @@ def test_harmSingleVarInterpolations(data, flagger):
     #    ("nshift", "30min", [np.nan, -37.5, 12.5, 50.0])]
 
     #for interpolation, freq, expected in tests:
-    #    data_harm, _ = harm_aggregate2Grid(data, field, flagger, freq, value_func=np.sum, method=interpolation)
+    #    data_harm, _ = harm_shift2Grid(data, field, flagger, freq, method=interpolation)
     #    harm_start = data[field].index[0].floor(freq=freq)
     #    harm_end = data[field].index[-1].ceil(freq=freq)
     #    test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)

@@ -293,7 +293,7 @@ def shift2Freq(data, method, freq, fill_value=np.nan):
         direction = "bfill"
         tolerance = pd.Timedelta(freq)
 
-    elif method == "nearest":
+    elif method == "nshift":
         direction = "nearest"
         tolerance = pd.Timedelta(freq) / 2
 
