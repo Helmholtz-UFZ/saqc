@@ -24,7 +24,7 @@ from saqc.funcs.harm_functions import (
 from saqc.funcs.proc_functions import ORIGINAL_SUFFIX
 
 
-RESHAPERS = ["nshift", "fshift", "bshift"]
+RESHAPERS = ["nshift", "fshift", "bshift", "nagg", "bagg", "fagg"]
 
 COFLAGGING = [False]
 
@@ -89,41 +89,30 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging)
     assert len(data.columns) == 1
     field = data.columns[0]
 
-    # harmonize data:
-    #data, flagger = harm_harmonize(data, "data", flagger, freq, "time", reshaper)
-
     data, flagger = harm_linear2Grid(data, 'data', flagger, freq)
     # flag something bad
     flagger = flagger.setFlags("data", loc=data[field].index[3:4])
     data, flagger = harm_deharm(data, "data", flagger, method='inverse_' + reshaper)
     d = data[field + ORIGINAL_SUFFIX]
 
+    if reshaper == "nagg":
+        assert flagger.isFlagged(loc=d.index[3:7]).squeeze().all()
+        assert (~flagger.isFlagged(loc=d.index[0:3]).squeeze()).all()
+        assert (~flagger.isFlagged(loc=d.index[7:]).squeeze()).all()
     if reshaper == "nshift":
-        if co_flagging is True:
-            assert flagger.isFlagged(loc=d.index[3:7]).squeeze().all()
-            assert (~flagger.isFlagged(loc=d.index[0:3]).squeeze()).all()
-            assert (~flagger.isFlagged(loc=d.index[7:]).squeeze()).all()
-        if co_flagging is False:
-            assert (
-                flagger.isFlagged().squeeze() == [False, False, False, False, True, False, False, False, False]
-            ).all()
+        assert (flagger.isFlagged().squeeze() == [False, False, False, False, True, False, False, False, False]).all()
+    if reshaper == "bagg":
+        assert flagger.isFlagged(loc=d.index[5:7]).squeeze().all()
+        assert (~flagger.isFlagged(loc=d.index[0:5]).squeeze()).all()
+        assert (~flagger.isFlagged(loc=d.index[7:]).squeeze()).all()
     if reshaper == "bshift":
-        if co_flagging is True:
-            assert flagger.isFlagged(loc=d.index[5:7]).squeeze().all()
-            assert (~flagger.isFlagged(loc=d.index[0:5]).squeeze()).all()
-            assert (~flagger.isFlagged(loc=d.index[7:]).squeeze()).all()
-        if co_flagging is False:
-            assert (
-                flagger.isFlagged().squeeze() == [False, False, False, False, False, True, False, False, False]
-            ).all()
+        assert (flagger.isFlagged().squeeze() == [False, False, False, False, False, True, False, False, False]).all()
+    if reshaper == "fagg":
+        assert flagger.isFlagged(loc=d.index[3:5]).squeeze().all()
+        assert (~flagger.isFlagged(loc=d.index[0:3]).squeeze()).all()
+        assert (~flagger.isFlagged(loc=d.index[5:]).squeeze()).all()
     if reshaper == "fshift":
-        if co_flagging is True:
-            assert flagger.isFlagged(loc=d.index[3:5]).squeeze().all()
-            assert (~flagger.isFlagged(loc=d.index[0:3]).squeeze()).all()
-            assert (~flagger.isFlagged(loc=d.index[5:]).squeeze()).all()
-        if co_flagging is False:
-            assert (
-                flagger.isFlagged().squeeze() == [False, False, False, False, True, False, False, False, False]
+        assert (flagger.isFlagged().squeeze() == [False, False, False, False, True, False, False, False, False]
             ).all()
 
     flags = flagger.getFlags()
@@ -171,53 +160,6 @@ def test_harmSingleVarInterpolations(data, flagger):
     assert data[field].equals(data[field])
     assert len(data_deharm[field]) == len(flags[field])
     assert (flags[field].index == flags_deharm[field].index).all()
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-@pytest.mark.parametrize("shift_comment", SETSHIFTCOMMENT)
-def test_multivariatHarmonization(multi_data, flagger, shift_comment):
-    flagger = flagger.initFlags(multi_data)
-    flags = flagger.getFlags()
-    # for comparison
-    pre_data = multi_data.copy()
-    pre_flags = flags.copy()
-    freq = "15min"
-
-    # harm:
-    multi_data, flagger = harm_harmonize(
-        multi_data, "data", flagger, freq, "time", "nshift", reshape_shift_comment=shift_comment,
-    )
-
-    multi_data, flagger = harm_harmonize(
-        multi_data,
-        "data2",
-        flagger,
-        freq,
-        "bagg",
-        "bshift",
-        inter_agg="sum",
-        reshape_agg="max",
-        reshape_shift_comment=shift_comment,
-    )
-
-    multi_data, flagger = harm_harmonize(
-        multi_data, "data3", flagger, freq, "fshift", "fshift", reshape_shift_comment=shift_comment,
-    )
-
-    for c in multi_data.columns:
-        harm_start = multi_data[c].index[0].floor(freq=freq)
-        harm_end = multi_data[c].index[-1].ceil(freq=freq)
-        assert pd.Timedelta(pd.infer_freq(multi_data[c].index)) == pd.Timedelta(freq)
-
-    multi_data, flagger = harm_deharmonize(multi_data, "data3", flagger, co_flagging=False)
-    multi_data, flagger = harm_deharmonize(multi_data, "data2", flagger, co_flagging=True)
-    multi_data, flagger = harm_deharmonize(multi_data, "data", flagger, co_flagging=True)
-
-    for c in multi_data.columns:
-        flags = flagger.getFlags()
-        assert pre_data[c].equals(multi_data[pre_data.columns.to_list()][c])
-        assert len(multi_data[c]) == len(flags[c])
-        assert (pre_flags[c].index == flags[c].index).all()
 
 
 @pytest.mark.parametrize("method", INTERPOLATIONS2)
