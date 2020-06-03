@@ -10,10 +10,6 @@ from dios import dios
 from test.common import TESTFLAGGER, initData
 
 from saqc.funcs.harm_functions import (
-    harm_harmonize,
-    harm_deharmonize,
-    _interpolateGrid,
-    _insertGrid,
     _outsortCrap,
     harm_linear2Grid,
     harm_interpolate2Grid,
@@ -175,23 +171,6 @@ def test_gridInterpolation(data, method):
     if method == "polynomial":
         harm_interpolate2Grid(data, field, flagger, freq, order=2, method=method, downcast_interpolation=True)
         harm_interpolate2Grid(data, field, flagger, freq, order=10, method=method, downcast_interpolation=True)
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_outsortCrap(data, flagger):
-
-    field = data.columns[0]
-    flagger = flagger.initFlags(data)
-    flagger = flagger.setFlags(field, loc=data[field].index[5:7])
-
-    drop_index = data[field].index[5:7]
-    d, *_ = _outsortCrap(data[field], field, flagger, drop_flags=flagger.BAD)
-    assert drop_index.difference(d.index).equals(drop_index)
-
-    flagger = flagger.setFlags(field, loc=data[field].index[0:1], flag=flagger.GOOD)
-    drop_index = drop_index.insert(-1, data[field].index[0])
-    d, *_ = _outsortCrap(data[field], field, flagger, drop_flags=[flagger.BAD, flagger.GOOD],)
-    assert drop_index.sort_values().difference(d.index).equals(drop_index.sort_values())
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
