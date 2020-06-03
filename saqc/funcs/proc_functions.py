@@ -22,6 +22,23 @@ METHOD2ARGS = {'inverse_fshift': ('backward', pd.Timedelta),
 def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
                             downgrade_interpolation=False, return_chunk_bounds=False, not_interpol_flags=None, **kwargs):
 
+    """
+    function to interpolate nan values in the data.
+    There are available all the interpolation methods from the pandas.interpolate() method and they are applicable by
+    the very same key words, that you would pass to pd.Series.interpolates's method parameter.
+
+    Note, that the inter_limit keyword really restricts the interpolation to chunks, not containing more than
+    "inter_limit" successive nan entries.
+
+    Note, that the function differs from proc_interpolateGrid, in its behyviour to ONLY interpolate nan values that
+    were already present in the data passed.
+
+    Parameters
+    ---------
+    method : {}: string
+        The interpolation method you want to apply.
+
+    """
 
     data = data.copy()
     inter_data = interpolateNANs(data[field], method, order=inter_order, inter_limit=inter_limit,
@@ -53,10 +70,10 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
 
     datcol = data[field].copy()
     flagscol = flagger.getFlags(field)
-    if drop_flags is None:
-        drop_flags = flagger.BAD
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
+    if drop_flags is None:
+        drop_flags = flagger.BAD
     drop_flags = toSequence(drop_flags)
     drop_mask = flagscol.isna()
     for f in drop_flags:
@@ -144,7 +161,8 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
 def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=np.inf, max_invalid_consec_d=np.inf,
                   max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf, flag_agg_func=max, method='bagg',
                   empty_intervals_flag=None, drop_flags=None, **kwargs):
-    # NOTE: Dropping flags will screw any result, dependent on counting of valid/invalid values per interval.
+    # NOTE: Dropping flags will screw any result that depends on counting of valid/invalid values per interval. So it
+    # should be sticked to one of this strategies.
 
     data = data.copy()
     datcol = data[field]

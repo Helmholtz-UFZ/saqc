@@ -11,13 +11,27 @@ import logging
 logger = logging.getLogger("SaQC")
 
 # CONSISTENCY-NOTE:
-# ALL transformations can handle np.array and pd.Series as input (excluded the transformations needing timestamp
-# informations for calculation). Although some transformations retain pd.Series index information -
+# Although some transformations retain pd.Series index information -
 # some others do not. Use dataseries' .transform / .resample / ... methods to apply transformations to
 # dataseries/dataframe columns, so you can be sure to keep index informations.
 
 def identity(ts):
     return ts
+
+# count, first and last are actually dummys to trigger according built in methods of
+# resamplers when passed to aggregate2freq. For consistency reasons, they work accordingly when
+# applied directly:
+
+def count(ts):
+    return ts.count()
+
+
+def first(ts):
+    return ts.first()
+
+
+def last(ts):
+    return ts.last()
 
 
 def zeroLog(ts):
