@@ -128,38 +128,53 @@ def test_harmSingleVarInterpolations(data, flagger):
     field = data.columns[0]
 
     tests = [
-        ("fshift", "15Min", [np.nan, -37.5, -25.0, 0.0, 37.5, 50.0]),
-        ("fshift", "30Min", [np.nan, -37.5, 0.0, 50.0]),
-        ("bshift", "15Min", [-50.0, -37.5, -25.0, 12.5, 37.5, 50.0]),
-        ("bshift", "30Min", [-50.0, -37.5, 12.5, 50.0]),
-        #("nshift", "15min", [np.nan, -37.5, -25.0, 12.5, 37.5, 50.0]),
-        #("nshift", "30min", [np.nan, -37.5, 12.5, 50.0]),
-        #("nagg", "15Min", [-87.5, -25.0, 0.0, 37.5, 50.0]),
-        #("nagg", "30Min", [-87.5, -25.0, 87.5]),
-        ("bagg", "15Min", [-50.0, -37.5, -37.5, 12.5, 37.5, 50.0]),
-        ("bagg", "30Min", [-50.0, -75.0, 50.0, 50.0]),
+        ("nagg", "15Min", pd.Series(data=[-87.5, -25.0, 0.0, 37.5, 50.0],
+                                    index=pd.date_range('2011-01-01 00:00:00',
+                                                        '2011-01-01 01:00:00',
+                                                        freq='15min'))),
+        ("nagg", "30Min", pd.Series(data=[-87.5, -25.0, 87.5],
+                                    index=pd.date_range('2011-01-01 00:00:00',
+                                                        '2011-01-01 01:00:00',
+                                                        freq='30min'))),
+        ("bagg", "15Min", pd.Series(data=[-50.0, -37.5, -37.5, 12.5, 37.5, 50.0],
+                                    index=pd.date_range('2010-12-31 23:45:00',
+                                                        '2011-01-01 01:00:00',
+                                                        freq='15min'))),
+        ("bagg", "30Min", pd.Series(data=[-50.0, -75.0, 50.0, 50.0],
+                                    index=pd.date_range('2010-12-31 23:30:00',
+                                                        '2011-01-01 01:00:00',
+                                                        freq='30min'))),
     ]
 
     for interpolation, freq, expected in tests:
-        data_harm, _ = harm_harmonize(
-            data, "data", flagger, freq, interpolation, "fshift", reshape_shift_comment=False, inter_agg="sum",
-        )
-
-        harm_start = data[field].index[0].floor(freq=freq)
-        harm_end = data[field].index[-1].ceil(freq=freq)
-        test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
-        expected = pd.Series(expected, index=test_index)
+        data_harm, _ = harm_aggregate2Grid(data, field, flagger, freq, value_func=np.sum, method=interpolation)
         assert data_harm[field].equals(expected)
 
-    data_deharm, flagger_deharm = harm_deharmonize(data, "data", flagger, co_flagging=True)
+    #tests = [
+    #    ("fshift", "15Min", [np.nan, -37.5, -25.0, 0.0, 37.5, 50.0]),
+    #    ("fshift", "30Min", [np.nan, -37.5, 0.0, 50.0]),
+    #    ("bshift", "15Min", [-50.0, -37.5, -25.0, 12.5, 37.5, 50.0]),
+    #    ("bshift", "30Min", [-50.0, -37.5, 12.5, 50.0]),
+    #    ("nshift", "15min", [np.nan, -37.5, -25.0, 12.5, 37.5, 50.0]),
+    #    ("nshift", "30min", [np.nan, -37.5, 12.5, 50.0])]
+
+    #for interpolation, freq, expected in tests:
+    #    data_harm, _ = harm_aggregate2Grid(data, field, flagger, freq, value_func=np.sum, method=interpolation)
+    #    harm_start = data[field].index[0].floor(freq=freq)
+    #    harm_end = data[field].index[-1].ceil(freq=freq)
+    #    test_index = pd.date_range(start=harm_start, end=harm_end, freq=freq)
+    #    expected = pd.Series(expected, index=test_index)
+    #    assert data_harm[field].equals(expected)
+
+    #data_deharm, flagger_deharm = harm_deharmonize(data, "data", flagger, co_flagging=True)
 
 
-    flags = flagger.getFlags()
-    flags_deharm = flagger_deharm.getFlags()
+    #flags = flagger.getFlags()
+    #flags_deharm = flagger_deharm.getFlags()
 
-    assert data[field].equals(data[field])
-    assert len(data_deharm[field]) == len(flags[field])
-    assert (flags[field].index == flags_deharm[field].index).all()
+    #assert data[field].equals(data[field])
+    #assert len(data_deharm[field]) == len(flags[field])
+    #assert (flags[field].index == flags_deharm[field].index).all()
 
 
 @pytest.mark.parametrize("method", INTERPOLATIONS2)
