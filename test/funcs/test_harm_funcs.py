@@ -119,7 +119,7 @@ def test_harmSingleVarInterpolations(data, flagger):
         assert data_harm[field].equals(expected)
         data_deharm, flagger_deharm = harm_deharm(data_harm, "data", flagger_harm, method="inverse_" + interpolation)
         assert data_deharm[field + ORIGINAL_SUFFIX].equals(pre_data)
-        assert flagger_deharm.getFlags([field + ORIGINAL_SUFFIX]).equals(pre_flags)
+        assert flagger_deharm.getFlags([field + ORIGINAL_SUFFIX]).squeeze().equals(pre_flags)
 
     tests = [
         ("fshift", "15Min", pd.Series(data=[np.nan, -37.5, -25.0, 0.0, 37.5, 50.0],
