@@ -518,8 +518,8 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
     data.
 
-    Note, the current structure doesnt allow for propper copies - the flagger of data_original doesnt hold no additional
-    flagging informations (like comment,...)
+    Note, the current structure doesnt allow for propper copies - the flagger of data + suffix doesnt hold no additional
+    flagging informations (like comment,...) that were present in the flagger.
 
     Parameters
     ---------
@@ -538,6 +538,10 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
 
 @register
 def proc_drop(data, field, flagger, **kwargs):
+    """
+    The function drops field from the data dios and the flagger.
+    """
+
     data = data[data.columns.drop(field)]
     flagger = flagger.slice(drop=field)
     return data, flagger
