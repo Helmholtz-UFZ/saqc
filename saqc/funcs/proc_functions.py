@@ -85,6 +85,42 @@ def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_l
 @register
 def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop_flags=None,
                             downgrade_interpolation=False, empty_intervals_flag=None, **kwargs):
+    """
+    Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
+
+    Note, that the interpolation will only be calculated, for grid timestamps that have a preceeding AND a succeeding
+    valid data value within "freq" range.
+
+    Note, that the function differs from proc_interpolateMissing, by returning a whole new data set, only containing
+    samples at the interpolated, equidistant timestamps (of frequency "freq").
+
+    Parameters
+    ---------
+    freq : Offset String
+        The frequency of the grid you want to interpolate your data at.
+
+    method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
+        "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
+        The interpolation method you want to apply.
+
+    inter_order : integer, default 2
+        If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
+        order.
+
+    drop_flags : list or string, default None
+        Flags that refer to values you want to drop before interpotion - effectively excluding grid points from
+        interpolation, that are only surrounded by values having a flag in them, that is listed in drop flags. Default
+        results in the flaggers 'BAD' flag to be the drop_flag.
+
+    downgrade_interpolation : boolean, default False
+        If interpolation can not be performed at 'inter_order' - (not enough values or not implemented at this order) -
+        automaticalyy try to interpolate at order 'inter_order' - 1.
+
+    empty_intervals_flag : String, default None
+        A Flag, that you want to assign to those values resulting equidistant sample grid, that were not surrounded by
+        valid (flagged) data in the original dataset and thus werent interpolated. Default automatically assigns
+        flagger.BAD flag to those values.
+        """
 
     datcol = data[field].copy()
     flagscol = flagger.getFlags(field)
@@ -121,6 +157,7 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
         datcol.index.join(grid_index, how="outer", )
     )
 
+    # do the interpolation
     inter_data, chunk_bounds = interpolateNANs(
         datcol, method, order=inter_order, inter_limit=2, downgrade_interpolation=downgrade_interpolation,
         return_chunk_bounds=True
@@ -176,11 +213,79 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
 
 
 @register
-def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=np.inf, max_invalid_consec_d=np.inf,
-                  max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf, flag_agg_func=max, method='bagg',
-                  empty_intervals_flag=None, drop_flags=None, **kwargs):
-    # NOTE: Dropping flags will screw any result that depends on counting of valid/invalid values per interval. So it
-    # should be sticked to one of this strategies.
+def proc_resample(data, field, flagger, freq, agg_func=np.mean, method='bagg', max_invalid_total_d=np.inf,
+                  max_invalid_consec_d=np.inf, max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf,
+                  flag_agg_func=max, empty_intervals_flag=None, drop_flags=None, **kwargs):
+    """
+    Function to resample the data. Afterwards the data will be sampled at regular (equidistant) timestamps
+    (or Grid points). Sampling intervals therefor get aggregated with a function, specifyed by 'agg_func' parameter and
+    the result gets projected onto the new timestamps with a method, specified by "method". The following method
+    (keywords) are available:
+
+    'nagg' - all values in the range (+/- freq/2) of a grid point get aggregated with agg_func and assigned to it.
+    'bagg' - all values in a sampling interval get aggregated with agg_func and the result gets assigned to the last
+            grid point.
+    'fagg' - all values in a sampling interval get aggregated with agg_func and the result gets assigned to the next
+            grid point.
+
+
+    Note, that. if possible, functions passed to agg_func will get projected internally onto pandas.resample methods,
+    wich results in some reasonable performance boost - however, for this to work, you should pass functions that have
+    the __name__ attribute initialised and the according methods name assigned to it.
+    Furthermore, you shouldnt pass numpys nan-functions
+    (nansum, nanmean,...) because those for example, have __name__ == 'nansum' and they will thus not trigger
+    resample.func(), but the slower resample.apply(nanfunc). Also, internally, no nans get passed to the functions
+    anyway, so that there is no point in passing the nan functions.
+
+    Parameters
+    ---------
+    freq : Offset String
+        The frequency of the grid you want to resample your data to.
+
+    agg_func : function
+        The function you want to use for aggregation.
+
+    method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
+        Specifies which intervals to be aggregated for a certain timestamp. (preceeding, succeeding or
+        "surrounding" interval). See description above for more details.
+
+    max_invalid_total_d : integer, default np.inf
+        Maximum number of invalid (nan) datapoints, allowed per resampling interval. If max_invalid_total_d is
+        exceeded, the interval gets resampled to nan. By default (np.inf), there is no bound to the number of nan values
+        in an interval and only intervals containing ONLY nan values or those, containing no values at all,
+        get projected onto nan
+
+    max_invalid_consec_d : integer, default np.inf
+        Maximum number of consecutive invalid (nan) data points, allowed per resampling interval.
+        If max_invalid_consec_d is exceeded, the interval gets resampled to nan. By default (np.inf),
+        there is no bound to the number of consecutive nan values in an interval and only intervals
+        containing ONLY nan values, or those containing no values at all, get projected onto nan.
+
+    max_invalid_total_f : integer, default np.inf
+        Same as "max_invalid_total_d", only applying for the flags. The flag regarded as "invalid" value,
+        is the one passed to empty_intervals_flag (default=flagger.BAD).
+        Also this is the flag assigned to invalid/empty intervals.
+
+    max_invalid_total_f : integer, default np.inf
+        Same as "max_invalid_total_f", only applying onto flgas. The flag regarded as "invalid" value, is the one passed
+        to empty_intervals_flag (default=flagger.BAD). Also this is the flag assigned to invalid/empty intervals.
+
+    flag_agg_func : function, default: max
+        The function you want to aggregate the flags with. It should be capable of operating on the flags dtype
+        (usually ordered categorical).
+
+    empty_intervals_flag : String, default None
+        A Flag, that you want to assign to invalid intervals. Invalid are those intervals, that contain nan values only,
+        or no values at all. Furthermore the empty_intervals_flag is the flag, serving as "invalid" identifyer when
+        checking for "max_total_invalid_f" and "max_consec_invalid_f patterns". Default triggers flagger.BAD to be
+        assigned.
+
+    drop_flags : list or string, default None
+        Flags that refer to values you want to drop before resampling - effectively excluding values that are flagged
+        with a flag in drop_flags from the resampling process - this means that they also will not be counted in the
+        the max_consec/max_total evaluation. Drop_flags = None results in NO flags being dropped initially.
+    """
+
 
     data = data.copy()
     datcol = data[field]
@@ -198,8 +303,8 @@ def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=
     datcol.drop(datcol[drop_mask].index, inplace=True)
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
 
-    datcol = aggregate2Freq(datcol, method, freq, func, fill_value=np.nan,
-                      max_invalid_total=max_invalid_total_d, max_invalid_consec=max_invalid_consec_d)
+    datcol = aggregate2Freq(datcol, method, freq, agg_func, fill_value=np.nan,
+                            max_invalid_total=max_invalid_total_d, max_invalid_consec=max_invalid_consec_d)
     flagscol = aggregate2Freq(flagscol, method, freq, flag_agg_func, fill_value=empty_intervals_flag,
                       max_invalid_total=max_invalid_total_f, max_invalid_consec=max_invalid_consec_f)
 
@@ -212,8 +317,39 @@ def proc_resample(data, field, flagger, freq, func=np.mean, max_invalid_total_d=
 
 @register
 def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_intervals_flag=None, **kwargs):
-    # Note: all data nans get excluded defaultly from shifting. If drop_flags is None - all BAD flagged values get
-    # excluded as well.
+    """
+    Function to shift data points to regular (equidistant) timestamps.
+    Values get shifted according to the keyword passed to 'method'.
+
+    Note: all data nans get excluded defaultly from shifting. If drop_flags is None - all BAD flagged values get
+    excluded as well.
+
+    'nshift' -  every grid point gets assigned the nearest value in its range ( range = +/-(freq/2) )
+    'bshift' -  every grid point gets assigned its first succeeding value - if there is one available in the
+            succeeding sampling interval. (equals resampling wih "first")
+    'fshift'  -  every grid point gets assigned its ultimately preceeding value - if there is one available in
+            the preceeding sampling interval. (equals resampling with "last")
+
+
+    Parameters
+    ---------
+    freq : Offset String
+        The frequency of the grid you want to shift your data to.
+
+    method: {'fagg', 'bagg', 'nagg'}, default 'nshift'
+        Specifies if datapoints get propagated forwards, backwards or to the nearest grid timestamp. See function
+        description for more details.
+
+    empty_intervals_flag : String, default None
+        A Flag, that you want to assign to grid points, where no values are avaible to be shifted to.
+        Default triggers flagger.BAD to be assigned.
+
+    drop_flags : list or string, default None
+        Flags that refer to values you want to drop before shifting - effectively, excluding values that are flagged
+        with a flag in drop_flags from the shifting process. Default - Drop_flags = None  - results in flagger.BAD
+        values being dropped initially.
+
+    """
     data = data.copy()
     datcol = data[field]
     flagscol = flagger.getFlags(field)
@@ -242,6 +378,17 @@ def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_interv
 
 @register
 def proc_transform(data, field, flagger, func, **kwargs):
+    """
+    Function to transform data columns with a transformation that maps series onto series of the same length.
+
+    Note, that flags get preserved.
+
+    Parameters
+    ---------
+    func : function
+        Function to transform data[field] with.
+
+    """
     data = data.copy()
     # NOTE: avoiding pd.Series.transform() in the line below, because transform does process columns element wise
     # (so interpolations wouldn't work)
@@ -252,6 +399,50 @@ def proc_transform(data, field, flagger, func, **kwargs):
 
 @register
 def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flags=None, **kwargs):
+
+    """
+    The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
+    source flags projected on them, they get overridden with this associated source flag value.
+    Which "field"-flags are to be projected on which source flags, is controlled by the "method" and "freq"
+    parameters.
+
+    method: (field_flag=flags in associated with "field", source_flags = flags associated with "source")
+
+    'inverse_nagg' - all field_flags within the range +/- freq/2 of a source_flag, get assigned this source flags value.
+        (if source_flag > field_flag)
+    'inverse_bagg' - all field_flags succeeding a source_flag within the range of "freq", get assigned this source flags
+        value. (if source_flag > field_flag)
+    'inverse_fagg' - all field_flags preceeding a source_flag within the range of "freq", get assigned this source flags
+        value. (if source_flag > field_flag)
+
+    'inverse_nshift' - That field_flag within the range +/- freq/2, that is nearest to a source_flag, gets the source
+        flags value. (if source_flag > field_flag)
+    'inverse_bshift' - That field_flag succeeding a source flag within the range freq, that is nearest to a
+        source_flag, gets assigned this source flags value. (if source_flag > field_flag)
+    'inverse_nshift' - That field_flag preceeding a source flag within the range freq, that is nearest to a
+        source_flag, gets assigned this source flags value. (if source_flag > field_flag)
+
+    Note, to undo or backtrack a resampling/shifting/interpolation that has been performed with a certain method,
+    you can just pass the associated "inverse" method. Also you shoud pass the same drop flags keyword.
+
+    Parameters
+    ---------
+
+    method: {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
+        The method used for projection of source flags onto field flags. See description above for more details.
+
+    source: String
+        The source source of flags projection.
+
+    freq: Offset, default None
+        The freq determines the projection range for the projection method. See above description for more details.
+        Defaultly (None), the sampling frequency of source is used.
+
+    drop_flags: list or String
+        Flags referring to values that are to drop before flags projection. Relevant only when projecting wiht an
+        inverted shift method. Defaultly flagger.BAD is listed.
+
+    """
 
     datcol = data[source].copy()
     target_datcol = data[field].copy()
@@ -278,7 +469,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
     if method[-5:] == "shift":
         # NOTE: although inverting a simple shift seems to be a less complex operation, it has quite some
         # code assigned to it and appears to be more verbose than inverting aggregation -
-        # that ownes itself to the problem of BAD/invalid values blocking a proper
+        # that owes itself to the problem of BAD/invalid values blocking a proper
         # shift inversion and having to be outsorted before shift inversion and re-inserted afterwards.
         #
         # starting with the dropping and its memorization:
@@ -323,6 +514,20 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
 
 @register
 def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
+    """
+    The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
+    data.
+
+    Note, the current structure doesnt allow for propper copies - the flagger of data_original doesnt hold no additional
+    flagging informations (like comment,...)
+
+    Parameters
+    ---------
+
+    suffix: String
+        Sub string to append to the forked data variables name.
+
+    """
     fork_field = field + suffix
     fork_dios = dios.DictOfSeries({fork_field: data[field]})
     data = mergeDios(data, fork_dios)
