@@ -20,7 +20,7 @@ METHOD2ARGS = {'inverse_fshift': ('backward', pd.Timedelta),
 
 @register
 def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
-                            downgrade_interpolation=False, return_chunk_bounds=False, not_interpol_flags=None, **kwargs):
+                            downgrade_interpolation=False, not_interpol_flags=None, **kwargs):
 
     """
     function to interpolate nan values in the data.
@@ -30,19 +30,37 @@ def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_l
     Note, that the inter_limit keyword really restricts the interpolation to chunks, not containing more than
     "inter_limit" successive nan entries.
 
-    Note, that the function differs from proc_interpolateGrid, in its behyviour to ONLY interpolate nan values that
+    Note, that the function differs from proc_interpolateGrid, in its behaviour to ONLY interpolate nan values that
     were already present in the data passed.
 
     Parameters
     ---------
-    method : {}: string
+    method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
+    "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
 
+    inter_order : integer, default 2
+        If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
+        order.
+
+    inter_limit : integer, default 2
+        Maximum number of consecutive 'nan' values allowed for a gap to be interpolated.
+
+    interpol_flag : {'GOOD', 'BAD', 'UNFLAGGED'} or String, default 'UNFLAGGED'
+        Flag that is to be inserted for the interpolated values. You can either pass one of the three major flag-classes
+        or specify directly a certain flag from the passed flagger.
+
+    downgrade_interpolation : boolean, default False
+        If interpolation can not be performed at 'inter_order' - (not enough values or not implemented at this order) -
+        automaticalyy try to interpolate at order 'inter_order' - 1.
+
+    not_interpol_flags : list or String, default None
+        A list of flags or a single Flag, marking values, you want NOT to be interpolated.
     """
 
     data = data.copy()
     inter_data = interpolateNANs(data[field], method, order=inter_order, inter_limit=inter_limit,
-                           downgrade_interpolation=downgrade_interpolation, return_chunk_bounds=return_chunk_bounds)
+                           downgrade_interpolation=downgrade_interpolation, return_chunk_bounds=False)
     interpolated = data[field].isna() & inter_data.notna()
 
     if not_interpol_flags:
