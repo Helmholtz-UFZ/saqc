@@ -15,7 +15,8 @@ METHOD2ARGS = {'inverse_fshift': ('backward', pd.Timedelta),
                'inverse_nshift': ('nearest', lambda x: pd.Timedelta(x)/2),
                'inverse_fagg': ('bfill', pd.Timedelta),
                'inverse_bagg': ('ffill', pd.Timedelta),
-               'inverse_nagg': ('nearest', lambda x: pd.Timedelta(x)/2)}
+               'inverse_nagg': ('nearest', lambda x: pd.Timedelta(x)/2),
+               'match': (None, lambda x: '0min')}
 
 
 @register
@@ -408,6 +409,9 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
     'inverse_nshift' - That field_flag preceeding a source flag within the range freq, that is nearest to a
         source_flag, gets assigned this source flags value. (if source_flag > field_flag)
 
+    'match' - any field_flag with a timestamp matching a source_flags timestamp gets this source_flags value
+    (if source_flag > field_flag)
+
     Note, to undo or backtrack a resampling/shifting/interpolation that has been performed with a certain method,
     you can just pass the associated "inverse" method. Also you shoud pass the same drop flags keyword.
 
@@ -435,14 +439,14 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
     flagscol = flagger.getFlags(source)
     target_flagscol = flagger.getFlags(field)
 
-    if freq is None:
+    if (freq is None) and (method != 'match'):
         freq = pd.Timedelta(datcol.index.freq)
         if freq is pd.NaT:
             raise ValueError(
                 "Nor is {} a frequency regular timeseries, neither was a frequency passed to parameter 'freq'. "
                 "Dont know what to do.".format(source)
             )
-    if method[-3:] == "agg":
+    if (method[-3:] == "agg") or (method == 'match'):
         # Aggregation - Inversion
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
