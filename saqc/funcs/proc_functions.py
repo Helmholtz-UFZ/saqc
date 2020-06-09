@@ -392,7 +392,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
     Which "field"-flags are to be projected on which source flags, is controlled by the "method" and "freq"
     parameters.
 
-    method: (field_flag=flags in associated with "field", source_flags = flags associated with "source")
+    method: (field_flag in associated with "field", source_flags associated with "source")
 
     'inverse_nagg' - all field_flags within the range +/- freq/2 of a source_flag, get assigned this source flags value.
         (if source_flag > field_flag)
@@ -498,9 +498,6 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     """
     The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
     data.
-
-    Note, the current structure doesnt allow for propper copies - the flagger of data + suffix doesnt hold no additional
-    flagging informations (like comment,...) that were present in the flagger.
 
     Parameters
     ---------
