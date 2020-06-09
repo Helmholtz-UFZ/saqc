@@ -56,7 +56,7 @@ def harm_interpolate2Grid(
 
 
 @register
-def harm_deharm(
+def harm_deharmonize(
     data, field, flagger, method, drop_flags=None, **kwargs
 ):
 
