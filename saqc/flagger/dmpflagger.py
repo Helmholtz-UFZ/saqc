@@ -11,7 +11,7 @@ import pandas as pd
 import dios.dios as dios
 
 from saqc.flagger.categoricalflagger import CategoricalFlagger
-from saqc.lib.tools import assertScalar, mergeDios
+from saqc.lib.tools import assertScalar, mergeDios, mutateIndex
 
 
 DmpFlaggerT = TypeVar("DmpFlaggerT")
@@ -86,6 +86,12 @@ class DmpFlagger(CategoricalFlagger):
         newflagger._causes = self._causes.aloc[flags, ...]
         newflagger._comments = self._comments.aloc[flags, ...]
         return newflagger
+
+    def rename(self, field: str, new_name: str):
+        renamed_flagger = super().rename(field, new_name)
+        renamed_flagger._causes.columns = mutateIndex(renamed_flagger._causes.columns, field, new_name)
+        renamed_flagger._comments.columns = mutateIndex(renamed_flagger._comments.columns, field, new_name)
+        return renamed_flagger
 
     def merge(self, other: DmpFlaggerT, join: str= "merge"):
         assert isinstance(other, DmpFlagger)

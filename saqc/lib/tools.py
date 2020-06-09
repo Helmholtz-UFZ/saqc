@@ -341,3 +341,10 @@ def dropper(field, drop_flags, flagger, default):
     for f in drop_flags:
         drop_mask |= flagger.isFlagged(field, flag=f)
     return drop_mask
+
+
+def mutateIndex(index, old_name, new_name):
+    pos = index.get_loc(old_name)
+    index = index.drop(index[pos])
+    index = index.insert(pos, new_name)
+    return index

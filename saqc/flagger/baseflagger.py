@@ -10,7 +10,7 @@ from functools import reduce
 import pandas as pd
 import dios.dios as dios
 
-from saqc.lib.tools import assertScalar, mergeDios, toSequence
+from saqc.lib.tools import assertScalar, mergeDios, toSequence, mutateIndex
 
 COMPARATOR_MAP = {
     "!=": op.ne,
@@ -66,6 +66,11 @@ class BaseFlagger(ABC):
         newflagger = self.copy()
         newflagger._flags = flags.astype(self.dtype)
         return newflagger
+
+    def rename(self, field: str, new_name: str):
+        renamed_flagger = self.copy()
+        renamed_flagger._flags.columns = mutateIndex(renamed_flagger._flags.columns, field, new_name)
+        return renamed_flagger
 
     def merge(self, other: BaseFlaggerT, join: str = "merge"):
         """
