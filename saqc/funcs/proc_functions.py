@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from saqc.core.register import register
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq
-from saqc.lib.tools import toSequence, mergeDios, dropper
+from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex
 import dios
 
 ORIGINAL_SUFFIX = '_original'
@@ -517,6 +517,7 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     flagger = flagger.merge(forked_flagger)
     return data, flagger
 
+
 @register
 def proc_drop(data, field, flagger, **kwargs):
     """
@@ -526,5 +527,16 @@ def proc_drop(data, field, flagger, **kwargs):
     data = data[data.columns.drop(field)]
     flagger = flagger.slice(drop=field)
     return data, flagger
+
+
+@register
+def proc_rename(data, field, flagger, new_name, **kwargs):
+    """
+    The function renames field to new name (in both, the flagger and the data).
+    """
+
+    data.columns = mutateIndex(data.columns, field, new_name)
+    new_flagger = flagger.rename(field, new_name)
+    return data, new_flagger
 
 

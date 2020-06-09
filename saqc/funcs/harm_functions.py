@@ -6,7 +6,7 @@ import numpy as np
 import logging
 from saqc.core.register import register
 from saqc.funcs.proc_functions import proc_interpolateGrid, proc_shift, proc_fork, proc_resample, proc_projectFlags, \
-    proc_drop, ORIGINAL_SUFFIX
+    proc_drop, proc_rename, ORIGINAL_SUFFIX
 
 
 logger = logging.getLogger("SaQC")
@@ -64,4 +64,5 @@ def harm_deharmonize(
                                       drop_flags=drop_flags,
                                       **kwargs)
     data, flagger = proc_drop(data, field, flagger)
+    data, flagger = proc_rename(data, field + ORIGINAL_SUFFIX, flagger, field)
     return data, flagger
