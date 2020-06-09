@@ -287,7 +287,14 @@ def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_
     # great performance gain can be achieved, when avoiding .apply and using pd.resampler
     # methods instead. (this covers all the basic func aggregations, such as median, mean, sum, count, ...)
     try:
-        data = getattr(data_resampler, agg_func.__name__)()
+        # get rid of nan_prefix attached to numpys nanfuncs ("ignore nan is pointless down here -
+        # resample doesnt pass no nans to the func applied)
+        if agg_func.__name__[:3] == 'nan':
+            check_name = agg_func.__name__[3:]
+        else:
+            check_name = agg_func.__name__
+
+        data = getattr(data_resampler, check_name)()
     except AttributeError:
         data = data_resampler.apply(agg_func)
 
