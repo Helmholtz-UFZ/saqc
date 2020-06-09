@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from saqc.core.register import register
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq
-from saqc.lib.tools import toSequence, mergeDios
+from saqc.lib.tools import toSequence, mergeDios, dropper
 import dios
 
 ORIGINAL_SUFFIX = '_original'
@@ -126,12 +126,9 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
     flagscol = flagger.getFlags(field)
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
-    if drop_flags is None:
-        drop_flags = flagger.BAD
-    drop_flags = toSequence(drop_flags)
-    drop_mask = flagscol.isna()
-    for f in drop_flags:
-        drop_mask |= flagger.isFlagged(field, flag=f)
+
+    drop_mask = dropper(field, drop_flags, flagger, flagger.BAD)
+    drop_mask |= flagscol.isna()
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
@@ -292,14 +289,8 @@ def proc_resample(data, field, flagger, freq, agg_func=np.mean, method='bagg', m
     flagscol = flagger.getFlags(field)
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
-    if drop_flags is None:
-        drop_flags = []
 
-    drop_flags = toSequence(drop_flags)
-    drop_mask = pd.Series(data=False, index=datcol.index)
-    for f in drop_flags:
-        drop_mask |= flagger.isFlagged(field, flag=f)
-
+    drop_mask = dropper(field, drop_flags, flagger, [])
     datcol.drop(datcol[drop_mask].index, inplace=True)
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
 
@@ -356,13 +347,8 @@ def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_interv
 
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
-    if drop_flags is None:
-        drop_flags = flagger.BAD
 
-    drop_flags = toSequence(drop_flags)
-    drop_mask = pd.Series(False, index=datcol.index)
-    for f in drop_flags:
-        drop_mask |= flagger.isFlagged(field, flag=f)
+    drop_mask = dropper(field, drop_flags, flagger, flagger.BAD)
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
@@ -473,13 +459,8 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
         # shift inversion and having to be outsorted before shift inversion and re-inserted afterwards.
         #
         # starting with the dropping and its memorization:
-        if drop_flags is None:
-            drop_flags = flagger.BAD
 
-        drop_flags = toSequence(drop_flags)
-        drop_mask = pd.Series(False, index=target_datcol.index)
-        for f in drop_flags:
-            drop_mask |= flagger.isFlagged(source, flag=f)
+        drop_mask = dropper(field, drop_flags, flagger, flagger.BAD)
         drop_mask |= target_datcol.isna()
         target_flagscol_drops = target_flagscol[drop_mask]
         target_flagscol.drop(drop_mask[drop_mask].index, inplace=True)

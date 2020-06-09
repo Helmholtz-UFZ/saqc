@@ -331,3 +331,13 @@ def mergeDios(left, right, join="merge"):
 
 def isQuoted(string):
     return bool(re.search(r"'.*'|\".*\"", string))
+
+
+def dropper(field, drop_flags, flagger, default):
+    drop_mask = pd.Series(False, flagger.getFlags(field).index)
+    if drop_flags is None:
+        drop_flags = default
+    drop_flags = toSequence(drop_flags)
+    for f in drop_flags:
+        drop_mask |= flagger.isFlagged(field, flag=f)
+    return drop_mask
