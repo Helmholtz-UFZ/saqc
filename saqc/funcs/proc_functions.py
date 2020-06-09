@@ -511,10 +511,9 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     """
     fork_field = field + suffix
     fork_dios = dios.DictOfSeries({fork_field: data[field]})
+    fork_flagger = flagger.slice(drop=data.columns.drop(field)).rename(field, fork_field)
     data = mergeDios(data, fork_dios)
-    fork_flags = flagger.getFlags(field)
-    forked_flagger = flagger.initFlags(data[fork_field]).setFlags(fork_field, flag=fork_flags, **kwargs)
-    flagger = flagger.merge(forked_flagger)
+    flagger = flagger.merge(fork_flagger)
     return data, flagger
 
 
