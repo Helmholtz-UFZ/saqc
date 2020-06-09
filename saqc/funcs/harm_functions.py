@@ -312,17 +312,23 @@ def _interpolateGrid(
             seconds_total = pd.Timedelta(freq).total_seconds()
             seconds_string = str(int(seconds_total)) + "s"
             # calculate the series of aggregated values
+            invalid_intervals = data.resample(seconds_string, base=seconds_total / 2, loffset=pd.Timedelta(freq) / 2)\
+                .count() == 0
             data = data.resample(seconds_string, base=seconds_total / 2, loffset=pd.Timedelta(freq) / 2).apply(
                 agg_method
             )
 
         elif method == "bagg":
             # all values in a sampling interval get aggregated with agg_method and assigned to the last grid point
+            invalid_intervals = data.resample(freq).count() == 0
             data = data.resample(freq).apply(agg_method)
         # if method is fagg
         else:
             # all values in a sampling interval get aggregated with agg_method and assigned to the next grid point
+            invalid_intervals = data.resample(freq, closed="right", label="right").count() == 0
             data = data.resample(freq, closed="right", label="right").apply(agg_method)
+
+        data[invalid_intervals] = np.nan
         # some consistency cleanup:
         if total_range is None:
             data = data.reindex(ref_index)
