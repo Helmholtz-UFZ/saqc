@@ -88,10 +88,10 @@ class DmpFlagger(CategoricalFlagger):
         return newflagger
 
     def rename(self, field: str, new_name: str):
-        renamed_flagger = super().rename(field, new_name)
-        renamed_flagger._causes.columns = mutateIndex(renamed_flagger._causes.columns, field, new_name)
-        renamed_flagger._comments.columns = mutateIndex(renamed_flagger._comments.columns, field, new_name)
-        return renamed_flagger
+        newflagger = super().rename(field, new_name)
+        newflagger._causes.columns = mutateIndex(newflagger._causes.columns, field, new_name)
+        newflagger._comments.columns = mutateIndex(newflagger._comments.columns, field, new_name)
+        return newflagger
 
     def merge(self, other: DmpFlaggerT, join: str= "merge"):
         assert isinstance(other, DmpFlagger)

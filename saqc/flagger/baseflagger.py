@@ -5,7 +5,7 @@ import operator as op
 from copy import deepcopy
 from abc import ABC, abstractmethod
 from typing import TypeVar, Union, Any, List
-from functools import reduce
+
 
 import pandas as pd
 import dios.dios as dios
@@ -68,9 +68,9 @@ class BaseFlagger(ABC):
         return newflagger
 
     def rename(self, field: str, new_name: str):
-        renamed_flagger = self.copy()
-        renamed_flagger._flags.columns = mutateIndex(renamed_flagger._flags.columns, field, new_name)
-        return renamed_flagger
+        newflagger = self.copy()
+        newflagger._flags.columns = mutateIndex(newflagger._flags.columns, field, new_name)
+        return newflagger
 
     def merge(self, other: BaseFlaggerT, join: str = "merge"):
         """

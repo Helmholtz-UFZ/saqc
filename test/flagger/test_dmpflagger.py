@@ -11,9 +11,14 @@ from test.common import initData
 from saqc.flagger import DmpFlagger
 
 
+
 @pytest.fixture
 def data():
     return initData(cols=1)
+
+@pytest.fixture
+def data_4cols():
+    return initData(cols=4)
 
 
 def parseComments(data):
@@ -109,3 +114,15 @@ def test_sliceFlaggerDrop(data):
     assert (filtered._comments.to_df().index== expected.index).all(axis=None)
     assert (filtered._causes.to_df().index== expected.index).all(axis=None)
 
+def test_rename(data_4cols):
+    new_name = 'mysterious'
+    cols = pd.Index(['var1', 'var2', new_name, 'var4'])
+    cols = cols.rename(data_4cols.columns.name)
+
+    flagger = DmpFlagger().initFlags(data_4cols)
+    new_flagger = flagger.rename(data_4cols.columns[2], new_name)
+    new_flagger.getFlags(new_name)
+
+    assert new_flagger._causes.columns.equals(cols)
+    assert new_flagger._comments.columns.equals(cols)
+    assert new_flagger._flags.columns.equals(cols)
