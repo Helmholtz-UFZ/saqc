@@ -181,12 +181,22 @@ def flagDummy(data, field, flagger, **kwargs):
 
 @register
 def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median, **kwargs):
-    val_frame = data.loc[data.index_of('shared')].to_df()
-    try:
-        stat = getattr(val_frame, cross_stat.__name__)(axis=1)
-    except AttributeError:
-        stat = val_frame.aggregate(cross_stat, axis=1)
-    diff_scores = val_frame.subtract(stat, axis=0).abs()
+    val_frame = data[fields].loc[data[fields].index_of('shared')].to_df()
+    if not isinstance(cross_stat,str):
+        try:
+            stat = getattr(val_frame, cross_stat.__name__)(axis=1)
+        except AttributeError:
+            stat = val_frame.aggregate(cross_stat, axis=1)
+        diff_scores = val_frame.subtract(stat, axis=0).abs()
+
+    else:
+        if cross_stat == 'modZscore':
+            MAD_series = val_frame.subtract(val_frame.median(axis=1), axis=0).abs().median(axis=1)
+            diff_scores = ((0.6745 * (val_frame.subtract(val_frame.median(axis=1), axis=0)))
+                           .divide(MAD_series, axis=0)).abs()
+        if cross_stat == 'Zscore':
+            diff_scores = (val_frame.subtract(val_frame.mean(axis=1), axis=0)).divide(val_frame.std(axis=1), axis=0).abs()
+
     diff_scores = diff_scores > thresh
     for var in fields:
         flagger = flagger.setFlags(var, diff_scores[var].values, **kwargs)
