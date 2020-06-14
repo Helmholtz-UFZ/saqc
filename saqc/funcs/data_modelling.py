@@ -71,7 +71,7 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
     if not to_fit.index.freqstr:
         if isinstance(winsz, int):
             raise NotImplementedError('Integer based window size is not supported for not-harmonized'
-                             'sample series (because it makes no sence)')
+                             'sample series.')
         # get interval centers
         centers = np.floor((to_fit.rolling(pd.Timedelta(winsz)/2, closed='both', min_periods=min_periods).count()))
         centers = centers.drop(centers[centers.isna()].index)

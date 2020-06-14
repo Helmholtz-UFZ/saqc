@@ -699,18 +699,20 @@ def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, **
 
     (https://en.wikipedia.org/wiki/Grubbs%27s_test_for_outliers)
 
-    The (two-sided) test gets applied onto data chunks of size "winsz". The test will
-    be iterated onto each data chunk till no more outliers are detected.
+    The (two-sided) test gets applied onto data chunks of size "winsz". The tests appliance  will
+    be iterated onto each data chunk, till no more outliers are detected in that chunk.
 
     Note, that the test performs poorely for small data chunks (resulting in heavy overflagging).
     Therefor you should select "winsz" so that every window contains at least > 8 values and also
     adjust the min_periods values accordingly.
 
+    Note, that the data to be tested by the grubbs test are expected to be "normalish" distributed.
+
     Parameters
     ----------
     winsz : Integer or Offset String
         The size of the window you want to use for outlier testing. If an integer is passed, the size
-        refers to the number of periods for every tesitng window. If an offset string is passed,
+        refers to the number of periods of every testing window. If an offset string is passed,
         the size refers to the total temporal extension of every window.
         even.
     alpha : float
