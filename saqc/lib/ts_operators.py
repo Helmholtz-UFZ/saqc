@@ -7,6 +7,7 @@ import numba as nb
 
 from sklearn.neighbors import NearestNeighbors
 from scipy.stats import iqr
+import numpy.polynomial.polynomial as poly
 import logging
 logger = logging.getLogger("SaQC")
 
@@ -340,3 +341,67 @@ def linearInterpolation(data, inter_limit=2):
 def polynomialInterpolation(data, inter_limit=2, inter_order=2):
     return interpolateNANs(data, 'polynomial', inter_limit=inter_limit, order=inter_order)
 
+
+def validationAgg(x, max_nan_total):
+    return validationTrafo(x, max_nan_total=max_nan_total)[0]
+
+
+@nb.njit
+def _coeff_mat(x, deg):
+    mat_ = np.zeros(shape=(x.shape[0], deg + 1))
+    const = np.ones_like(x)
+    mat_[:, 0] = const
+    mat_[:, 1] = x
+    if deg > 1:
+        for n in range(2, deg + 1):
+            mat_[:, n] = x ** n
+    return mat_
+
+
+@nb.jit
+def _fit_x(a, b):
+    # linalg solves ax = b
+    det_ = np.linalg.lstsq(a, b)[0]
+    return det_
+
+
+@nb.jit
+def fit_poly(x, y, deg):
+    a = _coeff_mat(x, deg)
+    p = _fit_x(a, y)
+    # Reverse order so p[0] is coefficient of highest order
+    return p[::-1]
+
+
+@nb.jit
+def eval_polynomial(P, x):
+    result = 0
+    for coeff in P:
+        result = x * result + coeff
+    return result
+
+
+def polyRoller_numba(in_slice, miss_marker, val_range, center_index, poly_deg):
+    miss_mask = (in_slice == miss_marker)
+    x_data = val_range[~miss_mask]
+    y_data = in_slice[~miss_mask]
+    fitted = fit_poly(x_data, y_data, deg=poly_deg)
+    return eval_polynomial(fitted, center_index)
+
+
+def polyRollerNoMissing_numba(in_slice, val_range, center_index, poly_deg):
+    fitted = fit_poly(val_range, in_slice, deg=poly_deg)
+    return eval_polynomial(fitted, center_index)
+
+
+def polyRoller(in_slice, miss_marker, val_range, center_index, poly_deg):
+    miss_mask = (in_slice == miss_marker)
+    x_data = val_range[~miss_mask]
+    y_data = in_slice[~miss_mask]
+    fitted = poly.polyfit(x=x_data, y=y_data, deg=poly_deg)
+    return poly.polyval(center_index, fitted)
+
+
+def polyRollerNoMissing(in_slice, val_range, center_index, poly_deg):
+    fitted = poly.polyfit(x=val_range, y=in_slice, deg=poly_deg)
+    return poly.polyval(center_index, fitted)
