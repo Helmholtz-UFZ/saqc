@@ -8,10 +8,10 @@ from saqc.lib.ts_operators import polyRoller, polyRollerNoMissing, polyRoller_nu
     validationAgg
 
 
-
 @register
 def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_flags=True, min_periods=0, **kwargs):
-    to_fit = data[field].copy()
+    data = data.copy()
+    to_fit = data[field]
     flags = flagger.getFlags(field)
     if numba == 'auto':
         if to_fit.shape[0] < 200000:
@@ -33,10 +33,10 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
         if numba:
             residues = to_fit.rolling(winsz, center=True).apply(polyRoller_numba, args=(miss_marker, val_range,
                                                                                     center_index, polydeg),
-                                                    engine='numba', engine_kwargs={'no_python': True})
+                                                    raw=True, engine='numba', engine_kwargs={'no_python': True})
         else:
             residues = to_fit.rolling(winsz, center=True).apply(polyRoller,
-                                                            args=(miss_marker, val_range, center_index, polydeg))
+                                                            args=(miss_marker, val_range, center_index, polydeg), raw=True)
         residues = residues - to_fit
         residues[na_mask] = np.nan
     else:
@@ -44,10 +44,10 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
         if numba:
             residues = to_fit.rolling(winsz, center=True).apply(polyRollerNoMissing_numba, args=(val_range,
                                                                                         center_index, polydeg),
-                                                                engine='numba', engine_kwargs={'no_python': True})
+                                                                engine='numba', engine_kwargs={'no_python': True}, raw=True)
         else:
             residues = to_fit.rolling(winsz, center=True).apply(polyRollerNoMissing,
-                                                                args=(val_range, center_index, polydeg))
+                                                                args=(val_range, center_index, polydeg), raw=True)
 
     data[field] = residues
     if eval_flags:

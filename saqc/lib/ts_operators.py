@@ -367,6 +367,7 @@ def _fit_x(a, b):
 
 @nb.jit
 def fit_poly(x, y, deg):
+    # a numba compatible polynomial fit function
     a = _coeff_mat(x, deg)
     p = _fit_x(a, y)
     # Reverse order so p[0] is coefficient of highest order
@@ -375,6 +376,7 @@ def fit_poly(x, y, deg):
 
 @nb.jit
 def eval_polynomial(P, x):
+    # a numba compatible polynomial evaluator
     result = 0
     for coeff in P:
         result = x * result + coeff
@@ -382,6 +384,7 @@ def eval_polynomial(P, x):
 
 
 def polyRoller_numba(in_slice, miss_marker, val_range, center_index, poly_deg):
+    # numba compatible function to roll with when modelling data with polynomial model
     miss_mask = (in_slice == miss_marker)
     x_data = val_range[~miss_mask]
     y_data = in_slice[~miss_mask]
@@ -390,11 +393,14 @@ def polyRoller_numba(in_slice, miss_marker, val_range, center_index, poly_deg):
 
 
 def polyRollerNoMissing_numba(in_slice, val_range, center_index, poly_deg):
+    # numba compatible function to roll with when modelling data with polynomial model -
+    # it is assumed, that in slice is an equidistant sample
     fitted = fit_poly(val_range, in_slice, deg=poly_deg)
     return eval_polynomial(fitted, center_index)
 
 
 def polyRoller(in_slice, miss_marker, val_range, center_index, poly_deg):
+    # function to roll with when modelling data with polynomial model
     miss_mask = (in_slice == miss_marker)
     x_data = val_range[~miss_mask]
     y_data = in_slice[~miss_mask]
@@ -403,5 +409,7 @@ def polyRoller(in_slice, miss_marker, val_range, center_index, poly_deg):
 
 
 def polyRollerNoMissing(in_slice, val_range, center_index, poly_deg):
+    # function to roll with when modelling data with polynomial model
+    # it is assumed, that in slice is an equidistant sample
     fitted = poly.polyfit(x=val_range, y=in_slice, deg=poly_deg)
     return poly.polyval(center_index, fitted)
