@@ -57,7 +57,7 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
         flag present in the interval, the data for its calculation was obtained from.
     min_periods : integer, default 0
         The minimum number of periods, that has to be available in every values fitting surrounding for the polynomial
-        fit to be performed. If there are not enough intervals, np.nan gets assigned. Default (0) results in fitting
+        fit to be performed. If there are not enough values, np.nan gets assigned. Default (0) results in fitting
         regardless of the number of values present (results in overfitting for to sparse intervals).
     kwargs
 

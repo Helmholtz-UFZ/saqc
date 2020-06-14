@@ -17,7 +17,7 @@ from saqc.lib.tools import (
     slidingWindowIndices,
     findIndex,
 )
-
+from outliers import smirnov_grubbs
 
 def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
            alpha=0.05):
@@ -690,4 +690,56 @@ def spikes_flagSpektrumBased(
     spikes = spikes[spikes == True]
 
     flagger = flagger.setFlags(field, spikes.index, **kwargs)
+    return data, flagger
+
+
+def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, **kwargs):
+    """
+    The function flags values that are regarded outliers due to the grubbs test.
+
+    (https://en.wikipedia.org/wiki/Grubbs%27s_test_for_outliers)
+
+    The (two-sided) test gets applied onto data chunks of size "winsz". The test will
+    be iterated onto each data chunk till no more outliers are detected.
+
+    Note, that the test performs poorely for small data chunks (resulting in heavy overflagging).
+    Therefor you should select "winsz" so that every window contains at least > 8 values and also
+    adjust the min_periods values accordingly.
+
+    Parameters
+    ----------
+    winsz : Integer or Offset String
+        The size of the window you want to use for outlier testing. If an integer is passed, the size
+        refers to the number of periods for every tesitng window. If an offset string is passed,
+        the size refers to the total temporal extension of every window.
+        even.
+    alpha : float
+        The level of significance the grubbs test is to be performed at. (between 0 and 1)
+    min_periods : Integer
+        The minimum number of values present in a testing interval for a grubbs test result to be accepted. Only
+        effective when winsz is an offset string.
+    kwargs
+
+    Returns
+    -------
+
+    """
+    data = data.copy()
+    to_flag = data[field]
+    to_group = pd.DataFrame(data={'ts': to_flag.index, 'data': to_flag})
+    if isinstance(winsz, int):
+        # period number defined test intervals
+        grouper_series = pd.Series(data=np.arange(0, to_flag.shape[0]), index=to_flag.index)
+        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / winsz)))
+        partitions = to_group.groupby(grouper_series)
+    else:
+        # offset defined test intervals:
+        partitions = to_group.groupby(pd.Grouper(freq=winsz))
+
+    for _, partition in partitions:
+        if partition.shape[0] > min_periods:
+            to_flag = smirnov_grubbs.two_sided_test_indices(partition['data'].values, alpha=alpha)
+            to_flag = partition['ts'].iloc[to_flag]
+            flagger = flagger.setFlags(field, loc=to_flag, **kwargs)
+
     return data, flagger
