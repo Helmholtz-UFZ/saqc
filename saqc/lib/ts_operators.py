@@ -413,3 +413,12 @@ def polyRollerNoMissing(in_slice, val_range, center_index, poly_deg):
     # it is assumed, that in slice is an equidistant sample
     fitted = poly.polyfit(x=val_range, y=in_slice, deg=poly_deg)
     return poly.polyval(center_index, fitted)
+
+
+def polyRollerIrregular(in_slice, center_index_ser, poly_deg):
+    # a function to roll with, for polynomial fitting of data not having an equidistant frequency grid.
+    # (expects to get passed pandas timeseries), so raw parameter of rolling.apply should be set to False.
+    x_data = ((in_slice.index - in_slice.index[0]).total_seconds()) / 60
+    fitted = poly.polyfit(x_data, in_slice.values, poly_deg)
+    center_pos = int(len(in_slice) - center_index_ser[in_slice.index[-1]])
+    return poly.polyval(x_data[center_pos], fitted)
