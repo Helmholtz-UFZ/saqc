@@ -71,6 +71,18 @@ def _prepInput(flagger, data, flags):
         if not (flags[cols].lengths == data[cols].lengths).all():
             raise ValueError("the length of flags and data need to be equal")
 
+    if flagger.initialized:
+        err = "Flagger is not correctly initialized for given data. Call flagger.initFlags() on data or" \
+              "do not call it at all."
+        fflags = flagger.getFlags()
+        if not fflags.columns.difference(data.columns).empty:
+            raise ValueError(err + " Detail: Columns missmatch.")
+
+        # flagger could have more columns than data
+        cols = fflags.columns & data.columns
+        if not (fflags[cols].lengths == data[cols].lengths).all():
+            raise ValueError(err + " Detail: Length of flags does not match length of data.")
+
     return data, flags
 
 
@@ -96,14 +108,27 @@ class SaQC:
     def __init__(self, flagger, data, flags=None, nodata=np.nan, log_level=logging.INFO, error_policy="raise"):
         _setup(log_level)
         data, flags = _prepInput(flagger, data, flags)
-        self._flagger = flagger.initFlags(data)
-        if flags is not None:
-            self._flagger = self._flagger.merge(flagger.initFlags(flags=flags))
         self._data = data
         self._nodata = nodata
+        self._flagger = self._initFlagger(data, flagger, flags)
         self._error_policy = error_policy
         # NOTE: will be filled by calls to `_wrap`
         self._to_call: List[Tuple[str, SaQCFunc]] = []
+
+    def _initFlagger(self, data, flagger, flags):
+        """ Init the internal flagger object.
+
+        Ensures that all data columns are present and user passed flags from
+        a flags frame and/or an already initialised flagger are used.
+        If columns overlap the passed flagger object is prioritised.
+        """
+        # ensure all data columns
+        merged = flagger.initFlags(data)
+        if flags is not None:
+            merged = merged.merge(flagger.initFlags(flags=flags))
+        if flagger.initialized:
+            merged = merged.merge(flagger)
+        return merged
 
     def readConfig(self, fname):
 
