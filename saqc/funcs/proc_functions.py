@@ -4,10 +4,13 @@
 import pandas as pd
 import numpy as np
 from saqc.core.register import register
-from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq
+from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq, expModelFunc
 from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex
 import dios
-
+import functools
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+import pickle
 ORIGINAL_SUFFIX = '_original'
 
 METHOD2ARGS = {'inverse_fshift': ('backward', pd.Timedelta),
@@ -540,3 +543,120 @@ def proc_rename(data, field, flagger, new_name, **kwargs):
     return data, new_flagger
 
 
+def _drift_fit(x, shift_target, cal_mean):
+    x_index = (x.index - x.index[0])
+    x_data = x_index.total_seconds().values
+    x_data = x_data / x_data[-1]
+    y_data = x.values
+    origin_mean = np.mean(y_data[:cal_mean])
+    target_mean = np.mean(y_data[-cal_mean:])
+    def modelWrapper(x, c, a=origin_mean, target_mean=target_mean):
+        # final fitted curves val = target mean
+        b = (target_mean - a) / (np.exp(c) - 1)
+        return expModelFunc(x, a, b, c)
+    dataFitFunc = functools.partial(modelWrapper, a=origin_mean, target_mean=target_mean)
+
+    try:
+        fitParas,_ = curve_fit(dataFitFunc, x_data, y_data, bounds=([0], [np.inf]))
+        dataFit = dataFitFunc(x_data, fitParas[0])
+        b_val = (shift_target - origin_mean) / (np.exp(fitParas[0]) - 1)
+        dataShiftFunc = functools.partial(expModelFunc, a=origin_mean, b=b_val, c=fitParas[0])
+        dataShift = dataShiftFunc(x_data)
+    except RuntimeError:
+        dataFit = np.array([np.nan]*len(x_data))
+        dataShift = np.array([np.nan]*len(x_data))
+
+    return dataFit, dataShift
+
+
+@register
+def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data, cal_mean=5, flag_maint_period=False, **kwargs):
+    """
+    The function fits an exponential model to chunks of data[field].
+    It is assumed, that between maintenance events, there is a drift effect shifting the meassurements in a way, that
+    can be described by the model M:
+
+    M(t, a, b, c) = a + b(exp(c*t))
+
+    Where as the values y_0 and y_1, describing the mean value directly after the last maintenance event (y_0) and
+    directly before the next maintenance event (y_1), impose the following additional conditions on the drift model:.
+
+    M(0, a, b, c) = y0
+    M(1, a, b, c) = y1
+
+    Solving the equation, one obtains the one-parameter Model:
+
+    M_drift(t, c) = y0 + [(y1 - y0)/(exp(c) - )] * (exp(c*t) - 1)
+
+    For every datachunk in between maintenance events.
+
+    After having found the optimal parameter c*, the correction is performed by bending the fitted curve M_drift(t, c*),
+    in a way that, it matches y2 at t=1 (with y2 being the mean value observed directly after the end of the next
+    maintenance event.).
+    This bended curve is given by:
+
+    M_shift(t, c*) = M(t, y0, [(y1 - y0)/(exp(c*) - )], c*)
+
+    And the new values are computed via:
+
+    new_vals = old_vals(t) + M_shift(t) - M_drift(t)
+
+    Parameters
+    ----------
+    maint_data : pandas.Series
+        The timeseries holding the maintenance information. The series' timestamp itself represent the beginning of a
+        maintenance event, wheras the values represent the endings of the maintenance intervals
+    cal_mean : Integer, default 5
+        The number of values the mean is computed over, for obtaining the value level directly after and
+        directly before maintenance event. This values are needed for shift calibration. (see above description)
+    flag_maint_period : bool, default False
+        Wheather or not to flag BAD the values directly obtained while maintenance.
+
+    """
+
+    # 1: extract fit intervals:
+    to_correct = data[field].copy()
+    drift_frame = pd.DataFrame({'drift_group': np.nan, to_correct.name: to_correct.values}, index=to_correct.index)
+    # group the drift frame
+    for k in range(0, maint_data.shape[0]-1):
+        # assign group numbers for the timespans in between one maintenance ending and the beginning of the next
+        # maintenance time itself remains np.nan assigned
+        drift_frame.loc[maint_data.values[k]:pd.Timestamp(maint_data.index[k+1]), 'drift_group'] = k
+    drift_grouper = drift_frame.groupby('drift_group')
+    # define target values for correction
+    shift_targets = drift_grouper.aggregate(lambda x: x[:cal_mean].mean()).shift(-1)
+
+    ########################### plotting stuff for testing phase #############################################
+    fig, axes = plt.subplots(nrows=2, ncols=1, sharex=True)
+    axes[0].plot(to_correct[drift_frame.index[0]:drift_frame.index[-1]])
+    axes[0].set(ylabel='sak')
+    axes[1].set(ylabel='shifted - sak')
+    ##########################################################################################################
+
+    for k, group in drift_grouper:
+        dataSeries = group[to_correct.name]
+        dataFit, dataShiftTarget = _drift_fit(dataSeries, shift_targets.loc[k, :][0], cal_mean)
+        dataFit = pd.Series(dataFit, index=group.index)
+        dataShiftTarget = pd.Series(dataShiftTarget, index=group.index)
+        dataShiftVektor = dataShiftTarget - dataFit
+        shiftedData = dataSeries + dataShiftVektor
+
+    ########################### plotting stuff for testing phase ##################################################
+        axes[0].plot(dataFit, color='red')
+        axes[0].plot(dataShiftTarget, color='yellow')
+        axes[1].plot(shiftedData, color='green')
+
+    axes[0].vlines(maint_data[drift_frame.index[0]:drift_frame.index[-1]].index, to_correct.min(), to_correct.max(), color='black')
+    axes[0].vlines(maint_data[drift_frame.index[0]:drift_frame.index[-1]].values, to_correct.min(), to_correct.max(), color='black')
+    fig.autofmt_xdate()
+    with open('/home/luenensc/PyPojects/testSpace/SEEFOPics/DriftCorrecture2.pkl', 'wb') as file:
+        pickle.dump(fig, file)
+    ################################################################################################################
+
+    data[field] = shiftedData
+    if flag_maint_period:
+        to_flag = drift_frame['drift_group']
+        to_flag = to_flag.drop(to_flag[:maint_data.index[0]].index)
+        to_flag = to_flag[to_flag.isna()]
+        flagger = flagger.setFlags(field, loc=to_flag, **kwargs)
+    return data, flagger

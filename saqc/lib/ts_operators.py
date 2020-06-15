@@ -422,3 +422,7 @@ def polyRollerIrregular(in_slice, center_index_ser, poly_deg):
     fitted = poly.polyfit(x_data, in_slice.values, poly_deg)
     center_pos = int(len(in_slice) - center_index_ser[in_slice.index[-1]])
     return poly.polyval(x_data[center_pos], fitted)
+
+
+def expModelFunc(x, a=0, b=0, c=0):
+    return a + b*(np.exp(c*x) - 1)
