@@ -191,3 +191,4 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median,
     for var in fields:
         flagger = flagger.setFlags(var, diff_scores[var].values, **kwargs)
     return data, flagger
+
