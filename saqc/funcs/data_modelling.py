@@ -38,6 +38,8 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
     (1) Harmonization/resampling of your data will have a noticable impact on polyfittings performance - since
         numba_boost doesnt apply for irregularly sampled data in the current implementation.
 
+    Note, that in the current implementation, the initial and final winsz/2 values do not get fitted.
+
     Parameters
     ----------
     winsz : integer or offset String
@@ -55,10 +57,11 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
     eval_flags : boolean, default True
         Wheather or not to assign new flags to the calculated residuals. If True, a residual gets assigned the worst
         flag present in the interval, the data for its calculation was obtained from.
-    min_periods : integer, default 0
+    min_periods : integer or np.nan, default 0
         The minimum number of periods, that has to be available in every values fitting surrounding for the polynomial
         fit to be performed. If there are not enough values, np.nan gets assigned. Default (0) results in fitting
-        regardless of the number of values present (results in overfitting for too sparse intervals).
+        regardless of the number of values present (results in overfitting for too sparse intervals). To automatically
+        set the minimum number of periods to the number of values in an offset defined window size, pass np.nan.
     kwargs
 
     Returns
@@ -90,9 +93,9 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
         residues[residues.index[centers_iloc[-1]]:residues.index[-1]] = np.nan
     else:
         if isinstance(winsz, str):
-            winsz = np.floor(pd.Timedelta(winsz) / pd.Timedelta(to_fit.index.freqstr))
-        if winsz % 2 == 1:
-            winsz = winsz -1
+            winsz = int(np.floor(pd.Timedelta(winsz) / pd.Timedelta(to_fit.index.freqstr)))
+        if winsz % 2 == 0:
+            winsz = int(winsz -1)
         if numba == 'auto':
             if to_fit.shape[0] < 200000:
                 numba = False
@@ -100,11 +103,13 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
                 numba = True
 
         val_range = np.arange(0, winsz)
-        center_index = np.floor(winsz / 2)
+        center_index = int(np.floor(winsz / 2))
         if min_periods < winsz:
             if min_periods > 0:
-                max_nan_total = winsz - min_periods
-                to_fit = to_fit.rolling(winsz, center=True).apply(validationAgg, raw=True, args=(max_nan_total))
+                to_fit = to_fit.rolling(winsz, min_periods=min_periods, center=True).apply(lambda x, y: x[y],
+                                                                                           raw=True,
+                                                                                           args=(center_index,))
+
             # we need a missing value marker that is not nan, because nan values dont get passed by pandas rolling
             # method
             miss_marker = to_fit.min()
@@ -112,20 +117,26 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
             na_mask = to_fit.isna()
             to_fit[na_mask] = miss_marker
             if numba:
-                residues = to_fit.rolling(winsz, center=True).apply(polyRoller_numba, args=(miss_marker, val_range,
-                                                                                        center_index, polydeg),
+                residues = to_fit.rolling(winsz).apply(polyRoller_numba, args=(miss_marker, val_range,
+                                                                                            center_index, polydeg),
                                                         raw=True, engine='numba', engine_kwargs={'no_python': True})
+                # due to a tiny bug - rolling with center=True doesnt work when using numba engine.
+                residues = residues.shift(-int(center_index))
             else:
-                residues = to_fit.rolling(winsz, center=True).apply(polyRoller,
-                                                                args=(miss_marker, val_range, center_index, polydeg), raw=True)
+                residues = to_fit.rolling(winsz, center=True).apply(polyRoller, args=(miss_marker, val_range,
+                                                                                      center_index, polydeg),
+                                                                                             raw=True)
             residues[na_mask] = np.nan
         else:
             # we only fit fully populated intervals:
             if numba:
-                residues = to_fit.rolling(winsz, center=True).apply(polyRollerNoMissing_numba, args=(val_range,
-                                                                                            center_index, polydeg),
+                residues = to_fit.rolling(winsz).apply(polyRollerNoMissing_numba, args=(val_range,
+                                                                                                     center_index,
+                                                                                                     polydeg),
                                                                     engine='numba', engine_kwargs={'no_python': True},
                                                                     raw=True)
+                # due to a tiny bug - rolling with center=True doesnt work when using numba engine.
+                residues = residues.shift(-int(center_index))
             else:
                 residues = to_fit.rolling(winsz, center=True).apply(polyRollerNoMissing,
                                                                     args=(val_range, center_index, polydeg), raw=True)

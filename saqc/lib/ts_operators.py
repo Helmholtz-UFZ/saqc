@@ -342,8 +342,8 @@ def polynomialInterpolation(data, inter_limit=2, inter_order=2):
     return interpolateNANs(data, 'polynomial', inter_limit=inter_limit, order=inter_order)
 
 
-def validationAgg(x, max_nan_total):
-    return validationTrafo(x, max_nan_total=max_nan_total)[0]
+def validationAgg(x, max_nan_total, max_nan_consec):
+    return validationTrafo(x, max_nan_total=max_nan_total, max_nan_consec=max_nan_consec)[0]
 
 
 @nb.njit
