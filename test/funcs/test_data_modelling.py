@@ -4,18 +4,15 @@
 import pytest
 
 import numpy as np
-import pandas as pd
 
 from dios import dios
 from test.common import TESTFLAGGER
-import matplotlib.pyplot as plt
 
 from saqc.funcs.data_modelling import (
     modelling_polyFit
 )
-import numpy.polynomial.polynomial as poly
 
-TF=TESTFLAGGER[:1]
+TF = TESTFLAGGER[:1]
 @pytest.mark.parametrize("flagger", TF)
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])
 def test_modelling_polyFit_forRegular(dat, flagger):
