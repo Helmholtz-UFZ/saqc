@@ -11,6 +11,7 @@ numba==0.48.0
 numpy==1.18.1
 outlier==0.2
 utils==1.0.1
+outlier-utils==0.0.3
 packaging==20.1
 pandas==1.0.1
 pluggy==0.13.1
