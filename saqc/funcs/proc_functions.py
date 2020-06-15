@@ -591,15 +591,15 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data, cal_mean=5, f
     For every datachunk in between maintenance events.
 
     After having found the optimal parameter c*, the correction is performed by bending the fitted curve M_drift(t, c*),
-    in a way that, it matches y2 at t=1 (with y2 being the mean value observed directly after the end of the next
-    maintenance event.).
+    in a way that it matches y2 at t=1 (,with y2 being the mean value observed directly after the end of the next
+    maintenance event).
     This bended curve is given by:
 
     M_shift(t, c*) = M(t, y0, [(y1 - y0)/(exp(c*) - )], c*)
 
-    And the new values are computed via:
+    And the new values at t are computed via:
 
-    new_vals = old_vals(t) + M_shift(t) - M_drift(t)
+    new_vals(t) = old_vals(t) + M_shift(t) - M_drift(t)
 
     Parameters
     ----------
