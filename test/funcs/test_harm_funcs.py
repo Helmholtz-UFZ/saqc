@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from dios import dios
-from test.common import TESTFLAGGER, initData
+from test.common import TESTFLAGGER
 
 from saqc.funcs.harm_functions import (
     harm_linear2Grid,
@@ -16,7 +16,6 @@ from saqc.funcs.harm_functions import (
     harm_aggregate2Grid,
     harm_deharmonize
 )
-from saqc.funcs.proc_functions import ORIGINAL_SUFFIX
 
 
 RESHAPERS = ["nshift", "fshift", "bshift", "nagg", "bagg", "fagg"]

@@ -58,7 +58,7 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
     min_periods : integer, default 0
         The minimum number of periods, that has to be available in every values fitting surrounding for the polynomial
         fit to be performed. If there are not enough values, np.nan gets assigned. Default (0) results in fitting
-        regardless of the number of values present (results in overfitting for to sparse intervals).
+        regardless of the number of values present (results in overfitting for too sparse intervals).
     kwargs
 
     Returns
@@ -105,7 +105,8 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
             if min_periods > 0:
                 max_nan_total = winsz - min_periods
                 to_fit = to_fit.rolling(winsz, center=True).apply(validationAgg, raw=True, args=(max_nan_total))
-            # we need a missing value marker that is not nan, because nan values dont get passed by pandas rolling method
+            # we need a missing value marker that is not nan, because nan values dont get passed by pandas rolling
+            # method
             miss_marker = to_fit.min()
             miss_marker = np.floor(miss_marker - 1)
             na_mask = to_fit.isna()
@@ -123,7 +124,8 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
             if numba:
                 residues = to_fit.rolling(winsz, center=True).apply(polyRollerNoMissing_numba, args=(val_range,
                                                                                             center_index, polydeg),
-                                                                    engine='numba', engine_kwargs={'no_python': True}, raw=True)
+                                                                    engine='numba', engine_kwargs={'no_python': True},
+                                                                    raw=True)
             else:
                 residues = to_fit.rolling(winsz, center=True).apply(polyRollerNoMissing,
                                                                     args=(val_range, center_index, polydeg), raw=True)
