@@ -125,7 +125,8 @@ def test_flagMultivarScores(dat, flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
 def test_grubbs(dat, flagger):
-    data, char_dict = dat(freq='10min', periods=45, initial_level=0, final_level=0, crowd_size=1, crowd_spacing=3, out_val=-10)
+    data, char_dict = dat(freq='10min', periods=45, initial_level=0, final_level=0, crowd_size=1, crowd_spacing=3,
+                          out_val=-10)
     flagger = flagger.initFlags(data)
     data, result_flagger = spikes_flagGrubbs(data, 'data', flagger, winsz=20, min_periods=15)
     assert result_flagger.isFlagged('data')[char_dict["drop"]].all()
