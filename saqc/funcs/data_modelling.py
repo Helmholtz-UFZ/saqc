@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from saqc.core.register import register
 from saqc.lib.ts_operators import polyRoller, polyRollerNoMissing, polyRoller_numba, polyRollerNoMissing_numba, \
-    polyRollerIrregular, validationAgg
+    polyRollerIrregular
 
 
 @register

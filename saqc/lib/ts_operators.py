@@ -11,47 +11,53 @@ import numpy.polynomial.polynomial as poly
 import logging
 logger = logging.getLogger("SaQC")
 
-# CONSISTENCY-NOTE:
-# Although some transformations retain pd.Series index information -
-# some others do not. Use dataseries' .transform / .resample / ... methods to apply transformations to
-# dataseries/dataframe columns, so you can be sure to keep index informations.
-
 def identity(ts):
+    # identity function
     return ts
 
-# count, first and last are actually dummys to trigger according built in methods of
-# resamplers when passed to aggregate2freq. For consistency reasons, they work accordingly when
-# applied directly:
-
 def count(ts):
+    # count is a dummy to trigger according built in count method of
+    # resamplers when passed to aggregate2freq. For consistency reasons, it works accordingly when
+    # applied directly:
     return ts.count()
 
 
 def first(ts):
+    # first is a dummy to trigger according built in count method of
+    # resamplers when passed to aggregate2freq. For consistency reasons, it works accordingly when
+    # applied directly:
     return ts.first()
 
 
 def last(ts):
+    # last is a dummy to trigger according built in count method of
+    # resamplers when passed to aggregate2freq. For consistency reasons, it works accordingly when
+    # applied directly:
     return ts.last()
 
 
 def zeroLog(ts):
+    # zero log returns np.nan instead of -np.inf, when passed 0. Usefull, because
+    # in internal processing, you only have to check for nan values if you need to
+    # remove "invalidish" values from the data.
     log_ts = np.log(ts)
     log_ts[log_ts == -np.inf] = np.nan
     return log_ts
 
 
-def difference(ts):
-    # NOTE: index of input series gets lost!
-    return np.diff(ts, prepend=np.nan)
-
-
 def derivative(ts, unit="1min"):
+    # calculates derivative of timeseries, expressed in slope per "unit"
     return ts / (deltaT(ts, unit=unit))
 
 
 def deltaT(ts, unit="1min"):
+    # calculates series of time gaps in ts
     return ts.index.to_series().diff().dt.total_seconds() / pd.Timedelta(unit).total_seconds()
+
+
+def difference(ts):
+    # NOTE: index of input series gets lost!
+    return np.diff(ts, prepend=np.nan)
 
 
 def rateOfChange(ts):
@@ -66,6 +72,7 @@ def relativeDifference(ts):
 
 
 def scale(ts, target_range=1, projection_point=None):
+    # scales input series to have values ranging from - target_rang to + target_range
     if not projection_point:
         projection_point = np.max(np.abs(ts))
     return (ts / projection_point) * target_range
@@ -77,20 +84,25 @@ def normScale(ts):
 
 
 def standardizeByMean(ts):
+    # standardization with mean and probe variance
     return (ts - np.mean(ts))/np.std(ts, ddof=1)
 
 
 def standardizeByMedian(ts):
+    # standardization with median and iqr
     return (ts - np.median(ts))/iqr(ts, nan_policy='omit')
 
 
 def _kNN(in_arr, n_neighbors, algorithm="ball_tree"):
-    # in: array only
+    # k-nearest-neighbor search
     nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr.reshape(in_arr.shape[0], -1))
     return nbrs.kneighbors()
 
 
 def kNNMaxGap(in_arr, n_neighbors=10, algorithm='ball_tree'):
+    # searches for the "n_neighbors" nearest neighbors of every value in "in_arr"
+    # and then returns the distance to the neighbor with the "maximum" Gap to its
+    # predecessor in the neighbor hierarchy
     in_arr = np.asarray(in_arr)
     dist, *_ = _kNN(in_arr, n_neighbors, algorithm=algorithm)
     sample_size = dist.shape[0]
@@ -100,6 +112,8 @@ def kNNMaxGap(in_arr, n_neighbors=10, algorithm='ball_tree'):
 
 
 def kNNSum(in_arr, n_neighbors=10, algorithm="ball_tree"):
+    # searches for the "n_neighbors" nearest neighbors of every value in "in_arr"
+    # and assigns that value the summed up distances to this neighbors
     in_arr = np.asarray(in_arr)
     dist, *_ = _kNN(in_arr, n_neighbors, algorithm=algorithm)
     return dist.sum(axis=1)
@@ -107,6 +121,7 @@ def kNNSum(in_arr, n_neighbors=10, algorithm="ball_tree"):
 
 @nb.njit
 def _max_consecutive_nan(arr, max_consec):
+    # checks if arr (boolean array) has not more then "max_consec" consecutive True values
     current = 0
     idx = 0
     while idx < arr.size:
@@ -122,6 +137,8 @@ def _max_consecutive_nan(arr, max_consec):
 
 def validationTrafo(data, max_nan_total, max_nan_consec):
     # function returns nan arraylike of input array size for invalid input arrays and works alike identity on valid ones
+    # An input is valid, if it not contains more then max_nan_total nan values in total,
+    # and not more then "max_nan_consec" consecutive nan values.
     data = data.copy()
     if (max_nan_total is np.inf) & (max_nan_consec is np.inf):
         return data
@@ -245,6 +262,10 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
 
 
 def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_total=np.inf, max_invalid_consec=np.inf):
+    # The function aggregates values to an equidistant frequency grid with agg_func.
+    # Timestamps that have no values projected on thme, get fill_values assigned. Also,
+    # fill_values serves as replacement for "invalid" intervals
+
     # filter data for invalid patterns (since filtering is expensive we pre-check if it is demanded)
     if (max_invalid_total is not np.inf) | (max_invalid_consec is not np.inf):
         if pd.isnull(fill_value):
@@ -310,6 +331,9 @@ def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_
 
 
 def shift2Freq(data, method, freq, fill_value=np.nan):
+    # shift timestamps backwards/forwards in order to allign them with an equidistant
+    # frequencie grid.
+
     # Shifts
     if method == "fshift":
         direction = "ffill"
@@ -334,20 +358,9 @@ def shift2Freq(data, method, freq, fill_value=np.nan):
     return data.reindex(target_ind, method=direction, tolerance=tolerance, fill_value=fill_value)
 
 
-def linearInterpolation(data, inter_limit=2):
-    return interpolateNANs(data, 'time', inter_limit=inter_limit)
-
-
-def polynomialInterpolation(data, inter_limit=2, inter_order=2):
-    return interpolateNANs(data, 'polynomial', inter_limit=inter_limit, order=inter_order)
-
-
-def validationAgg(x, max_nan_total, max_nan_consec):
-    return validationTrafo(x, max_nan_total=max_nan_total, max_nan_consec=max_nan_consec)[0]
-
-
 @nb.njit
 def _coeff_mat(x, deg):
+    # helper function to construct numba-compatible polynomial fit function
     mat_ = np.zeros(shape=(x.shape[0], deg + 1))
     const = np.ones_like(x)
     mat_[:, 0] = const
@@ -360,6 +373,7 @@ def _coeff_mat(x, deg):
 
 @nb.jit
 def _fit_x(a, b):
+    # helper function to construct numba-compatible polynomial fit function
     # linalg solves ax = b
     det_ = np.linalg.lstsq(a, b)[0]
     return det_
@@ -425,4 +439,13 @@ def polyRollerIrregular(in_slice, center_index_ser, poly_deg):
 
 
 def expModelFunc(x, a=0, b=0, c=0):
+    # exponential model function, used in optimization contexts (drift correction)
     return a + b*(np.exp(c*x) - 1)
+
+
+def linearInterpolation(data, inter_limit=2):
+    return interpolateNANs(data, 'time', inter_limit=inter_limit)
+
+
+def polynomialInterpolation(data, inter_limit=2, inter_order=2):
+    return interpolateNANs(data, 'polynomial', inter_limit=inter_limit, order=inter_order)
