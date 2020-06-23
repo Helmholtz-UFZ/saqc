@@ -405,6 +405,9 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
     'inverse_fagg' - all field_flags preceeding a source_flag within the range of "freq", get assigned this source flags
         value. (if source_flag > field_flag)
 
+    'inverse_interpolation' - all field_flags within the range +/- freq of a source_flag, get assigned this source flags value.
+        (if source_flag > field_flag)
+
     'inverse_nshift' - That field_flag within the range +/- freq/2, that is nearest to a source_flag, gets the source
         flags value. (if source_flag > field_flag)
     'inverse_bshift' - That field_flag succeeding a source flag within the range freq, that is nearest to a
@@ -449,6 +452,16 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
                 "Nor is {} a frequency regular timeseries, neither was a frequency passed to parameter 'freq'. "
                 "Dont know what to do.".format(source)
             )
+    if method[-13:] == 'interpolation':
+        backprojected = flagscol.reindex(target_flagscol.index, method='bfill',
+                                    tolerance=freq)
+        fwrdprojected = flagscol.reindex(target_flagscol.index, method='ffill',
+                                    tolerance=freq)
+        b_replacement_mask = backprojected > target_flagscol
+        target_flagscol.loc[b_replacement_mask] = backprojected.loc[b_replacement_mask]
+        f_replacement_mask = (fwrdprojected > target_flagscol) & (fwrdprojected > backprojected)
+        target_flagscol.loc[f_replacement_mask] = backprojected.loc[f_replacement_mask]
+
     if (method[-3:] == "agg") or (method == 'match'):
         # Aggregation - Inversion
         projection_method = METHOD2ARGS[method][0]
@@ -513,7 +526,7 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
         Sub string to append to the forked data variables name.
 
     """
-    fork_field = field + suffix
+    fork_field = str(field) + suffix
     fork_dios = dios.DictOfSeries({fork_field: data[field]})
     fork_flagger = flagger.slice(drop=data.columns.drop(field)).rename(field, fork_field)
     data = mergeDios(data, fork_dios)
@@ -563,14 +576,14 @@ def _drift_fit(x, shift_target, cal_mean):
         dataShiftFunc = functools.partial(expModelFunc, a=origin_mean, b=b_val, c=fitParas[0])
         dataShift = dataShiftFunc(x_data)
     except RuntimeError:
-        dataFit = np.array([np.nan]*len(x_data))
-        dataShift = np.array([np.nan]*len(x_data))
+        dataFit = np.array([0]*len(x_data))
+        dataShift = np.array([0]*len(x_data))
 
     return dataFit, dataShift
 
 
 @register
-def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data, cal_mean=5, flag_maint_period=False, **kwargs):
+def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mean=5, flag_maint_period=False, **kwargs):
     """
     The function fits an exponential model to chunks of data[field].
     It is assumed, that between maintenance events, there is a drift effect shifting the meassurements in a way, that
@@ -617,6 +630,7 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data, cal_mean=5, f
     # 1: extract fit intervals:
     to_correct = data[field].copy()
     drift_frame = pd.DataFrame({'drift_group': np.nan, to_correct.name: to_correct.values}, index=to_correct.index)
+    maint_data = data[maint_data_field]
     # group the drift frame
     for k in range(0, maint_data.shape[0]-1):
         # assign group numbers for the timespans in between one maintenance ending and the beginning of the next

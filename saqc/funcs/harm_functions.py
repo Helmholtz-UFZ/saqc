@@ -60,9 +60,9 @@ def harm_deharmonize(
     data, field, flagger, method, drop_flags=None, **kwargs
 ):
 
-    data, flagger = proc_projectFlags(data, field + ORIGINAL_SUFFIX, flagger, method, source=field,
+    data, flagger = proc_projectFlags(data, str(field) + ORIGINAL_SUFFIX, flagger, method, source=field,
                                       drop_flags=drop_flags,
                                       **kwargs)
     data, flagger = proc_drop(data, field, flagger)
-    data, flagger = proc_rename(data, field + ORIGINAL_SUFFIX, flagger, field)
+    data, flagger = proc_rename(data, str(field) + ORIGINAL_SUFFIX, flagger, field)
     return data, flagger

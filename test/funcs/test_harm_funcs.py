@@ -18,7 +18,7 @@ from saqc.funcs.harm_functions import (
 )
 
 
-RESHAPERS = ["nshift", "fshift", "bshift", "nagg", "bagg", "fagg"]
+RESHAPERS = ["nshift", "fshift", "bshift", "nagg", "bagg", "fagg", "interpolation"]
 
 COFLAGGING = [False]
 
