@@ -4,8 +4,8 @@
 import operator as op
 from copy import deepcopy
 from abc import ABC, abstractmethod
-from typing import TypeVar, Union, Any, List
 
+from typing import TypeVar, Union, Any, List, Optional
 
 import pandas as pd
 import dios.dios as dios
@@ -38,7 +38,11 @@ class BaseFlagger(ABC):
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
         self.signature = ("flag",)
-        self._flags: diosT = dios.DictOfSeries()
+        self._flags: Optional[diosT] = None
+
+    @property
+    def initialized(self):
+        return self._flags is not None
 
     @property
     def flags(self):

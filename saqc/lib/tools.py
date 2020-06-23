@@ -319,7 +319,7 @@ def mergeDios(left, right, join="merge"):
             # hold the values from the left join argument
             r, l = l.align(r, join="outer")
         else:
-            l, r= l.align(r, join=join)
+            l, r = l.align(r, join=join)
         merged[c] = l.combine_first(r)
 
     newcols = right.columns.difference(merged.columns)
