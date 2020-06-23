@@ -89,8 +89,8 @@ class DmpFlagger(CategoricalFlagger):
 
     def rename(self, field: str, new_name: str):
         newflagger = super().rename(field, new_name)
-        newflagger._causes.columns = mutateIndex(newflagger._causes.columns, field, new_name)
-        newflagger._comments.columns = mutateIndex(newflagger._comments.columns, field, new_name)
+        newflagger._causes.columns = newflagger._flags.columns
+        newflagger._comments.columns = newflagger._flags.columns
         return newflagger
 
     def merge(self, other: DmpFlaggerT, join: str= "merge"):
