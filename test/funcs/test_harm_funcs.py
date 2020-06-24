@@ -17,15 +17,9 @@ from saqc.funcs.harm_functions import (
     harm_deharmonize
 )
 
-
 RESHAPERS = ["nshift", "fshift", "bshift", "nagg", "bagg", "fagg", "interpolation"]
 
-COFLAGGING = [False]
-
-SETSHIFTCOMMENT = [False, True]
-
-INTERPOLATIONS2 = ["time", "polynomial"]
-
+INTERPOLATIONS = ["time", "polynomial"]
 
 @pytest.fixture
 def data():
@@ -45,8 +39,7 @@ def data():
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("reshaper", RESHAPERS)
-@pytest.mark.parametrize("co_flagging", COFLAGGING)
-def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper, co_flagging):
+def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper):
     flagger = flagger.initFlags(data)
     # make pre harm copies:
     pre_data = data.copy()
@@ -154,7 +147,7 @@ def test_harmSingleVarInterpolations(data, flagger):
         assert flagger_deharm.getFlags([field]).squeeze().equals(pre_flags)
 
 
-@pytest.mark.parametrize("method", INTERPOLATIONS2)
+@pytest.mark.parametrize("method", INTERPOLATIONS)
 def test_gridInterpolation(data, method):
     freq = "15min"
     data = data.squeeze()

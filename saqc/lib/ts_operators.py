@@ -1,6 +1,10 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+The module gathers all kinds of timeseries tranformations.
+"""
+
 import pandas as pd
 import numpy as np
 import numba as nb
@@ -89,7 +93,7 @@ def standardizeByMean(ts):
 
 
 def standardizeByMedian(ts):
-    # standardization with median and iqr
+    # standardization with median and interquartile range
     return (ts - np.median(ts))/iqr(ts, nan_policy='omit')
 
 
@@ -263,8 +267,8 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
 
 def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_total=np.inf, max_invalid_consec=np.inf):
     # The function aggregates values to an equidistant frequency grid with agg_func.
-    # Timestamps that have no values projected on thme, get fill_values assigned. Also,
-    # fill_values serves as replacement for "invalid" intervals
+    # Timestamps that have no values projected on them, get "fill_value" assigned. Also,
+    # "fill_value" serves as replacement for "invalid" intervals
 
     # filter data for invalid patterns (since filtering is expensive we pre-check if it is demanded)
     if (max_invalid_total is not np.inf) | (max_invalid_consec is not np.inf):

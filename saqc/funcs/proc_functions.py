@@ -99,7 +99,7 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
     samples at the interpolated, equidistant timestamps (of frequency "freq").
 
     Parameters
-    ---------
+    ---------.copy()
     freq : Offset String
         The frequency of the grid you want to interpolate your data at.
 
@@ -126,7 +126,10 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
         flagger.BAD flag to those values.
         """
 
-    datcol = data[field].copy()
+    datcol = data[field]
+    if datcol.empty:
+        return data, flagger
+    datcol = datcol.copy()
     flagscol = flagger.getFlags(field)
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
@@ -345,6 +348,9 @@ def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_interv
         values being dropped initially.
 
     """
+    if data[field].empty:
+        return data, flagger
+
     data = data.copy()
     datcol = data[field]
     flagscol = flagger.getFlags(field)
@@ -381,7 +387,7 @@ def proc_transform(data, field, flagger, func, **kwargs):
     """
     data = data.copy()
     # NOTE: avoiding pd.Series.transform() in the line below, because transform does process columns element wise
-    # (so interpolations wouldn't work)
+    # (so interpolati   ons wouldn't work)
     new_col = pd.Series(func(data[field]), index=data[field].index)
     data[field] = new_col
     return data, flagger
@@ -439,14 +445,14 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
         inverted shift method. Defaultly flagger.BAD is listed.
 
     """
-
-    datcol = data[source].copy()
-    target_datcol = data[field].copy()
     flagscol = flagger.getFlags(source)
+    if flagscol.empty:
+        return data, flagger
+    target_datcol = data[field]
     target_flagscol = flagger.getFlags(field)
 
     if (freq is None) and (method != 'match'):
-        freq = pd.Timedelta(datcol.index.freq)
+        freq = pd.Timedelta(flagscol.index.freq)
         if freq is pd.NaT:
             raise ValueError(
                 "Nor is {} a frequency regular timeseries, neither was a frequency passed to parameter 'freq'. "
@@ -628,7 +634,10 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
     """
 
     # 1: extract fit intervals:
-    to_correct = data[field].copy()
+    if data[maint_data_field].empty:
+        return data, flagger
+    data = data.copy()
+    to_correct = data[field]
     drift_frame = pd.DataFrame({'drift_group': np.nan, to_correct.name: to_correct.values}, index=to_correct.index)
     maint_data = data[maint_data_field]
     # group the drift frame
@@ -654,7 +663,7 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         dataShiftTarget = pd.Series(dataShiftTarget, index=group.index)
         dataShiftVektor = dataShiftTarget - dataFit
         shiftedData = dataSeries + dataShiftVektor
-
+        to_correct[shiftedData.index] = shiftedData
     ########################### plotting stuff for testing phase ##################################################
         axes[0].plot(dataFit, color='red')
         axes[0].plot(dataShiftTarget, color='yellow')
@@ -667,7 +676,6 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         pickle.dump(fig, file)
     ################################################################################################################
 
-    data[field] = shiftedData
     if flag_maint_period:
         to_flag = drift_frame['drift_group']
         to_flag = to_flag.drop(to_flag[:maint_data.index[0]].index)

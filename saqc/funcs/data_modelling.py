@@ -21,6 +21,7 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
 
     Note, that calculating the residues tends to be quite cost intensive - because a function fitting is perfomed for every
     sample. To improve performance, consider the following possibillities:
+data, flagger = modelling_polyFit(SEEFOdata, 'efield', flagger, '1h', 2, eval_flags=False)
 
     In case your data is sampled at an equidistant frequency grid:
 
@@ -68,6 +69,8 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
     -------
 
     """
+    if data[field].empty:
+        return data, flagger
     data = data.copy()
     to_fit = data[field]
     flags = flagger.getFlags(field)
