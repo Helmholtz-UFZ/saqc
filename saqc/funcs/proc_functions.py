@@ -23,6 +23,60 @@ METHOD2ARGS = {'inverse_fshift': ('backward', pd.Timedelta),
 
 
 @register
+def proc_rollingInterpolateMissing(data, field, flagger, winsz, func=np.median, center=True, min_periods=0,
+                                   interpol_flag='UNFLAGGED', **kwargs):
+    """
+    Interpolates missing values (nan values present in the data) by assigning them the aggregation result of
+    a window surrounding them.
+
+    Note, that in the current implementation, center=True can only be used with integer window sizes - furthermore
+    note, that integer window sizes can yield screwed aggregation results for not-harmonized or irregular data.
+
+    Parameters
+    ----------
+    winsz : Integer or Offset String
+        The size of the window, the aggregation is computed from. Either counted in periods number (Integer passed),
+        or defined by a total temporal extension (offset String passed)
+    func : Function
+        The function used for aggregation.
+    center : boolean, default True
+        Wheather or not the window the aggregation is computed of is centered around the value to be interpolated.
+    min_periods : Integer
+        Minimum number of valid (not np.nan) values that have to be available in a window for its Aggregation to be
+        computed.
+    interpol_flag : {'GOOD', 'BAD', 'UNFLAGGED'} or String, default 'UNFLAGGED'
+        Flag that is to be inserted for the interpolated values. You can either pass one of the three major flag-classes
+        or specify directly a certain flag from the passed flagger.
+
+    Returns
+    -------
+
+    """
+    data = data.copy()
+    datcol = data[field]
+    roller = datcol.rolling(window=winsz, center=center, min_periods=min_periods)
+    try:
+        func_name = func.name
+        if func_name[:3] == 'nan':
+            func_name = func_name[3:]
+        rolled = getattr(roller, func_name)
+    except AttributeError:
+        rolled = roller.apply(func)
+
+    na_mask = datcol.isna()
+    interpolated = na_mask & ~rolled.isna()
+    datcol[na_mask] = rolled[na_mask]
+
+    if interpol_flag:
+        if interpol_flag in ['BAD', 'UNFLAGGED', 'GOOD']:
+            interpol_flag = getattr(flagger, interpol_flag)
+        flagger = flagger.setFlags(field, loc=interpolated[interpolated].index, force=True,
+                                   flag=interpol_flag, **kwargs)
+
+    return data, flagger
+
+
+@register
 def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
                             downgrade_interpolation=False, not_interpol_flags=None, **kwargs):
 
