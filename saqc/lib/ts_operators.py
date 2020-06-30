@@ -140,9 +140,8 @@ def _max_consecutive_nan(arr, max_consec):
 
 
 def validationTrafo(data, max_nan_total, max_nan_consec):
-    # function returns nan arraylike of input array size for invalid input arrays and works alike identity on valid ones
-    # An input is valid, if it not contains more then max_nan_total nan values in total,
-    # and not more then "max_nan_consec" consecutive nan values.
+    # data has to be boolean. False=Valid Value, True=invalid Value
+    # function returns True-array of input array size for invalid input arrays False array for valid ones
     data = data.copy()
     if (max_nan_total is np.inf) & (max_nan_consec is np.inf):
         return data

@@ -128,7 +128,8 @@ def course_4(char_dict):
 
 @pytest.fixture
 def course_5(char_dict):
-    # NAN_holes values , that ascend from initial_level to final_level linearly and have missing data(=nan)
+    # NAN_holes
+    # values , that ascend from initial_level to final_level linearly and have missing data(=nan)
     # at posiiotns "nan_slice", (=a slice or a list, for iloc indexing)
     # periods better be even!
     # periods better be greater 5

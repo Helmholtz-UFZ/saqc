@@ -9,11 +9,27 @@ import dios
 from saqc.funcs.proc_functions import (
     proc_interpolateMissing,
     proc_resample,
-    proc_transform
+    proc_transform,
+    proc_rollingInterpolateMissing
 )
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
 
 from test.common import TESTFLAGGER
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_rollingInterpolateMissing(course_5, flagger):
+    data, characteristics = course_5(periods=10, nan_slice=[5, 6])
+    field = data.columns[0]
+    data = dios.DictOfSeries(data)
+    flagger = flagger.initFlags(data)
+    dataInt, *_ = proc_rollingInterpolateMissing(data, field, flagger, 3, func=np.median, center=True,
+                                                 min_periods=0, interpol_flag='UNFLAGGED')
+    #import pdb
+    #pdb.set_trace()
+    assert dataInt[field][characteristics['missing']].notna().all()
+    dataInt, *_ = proc_rollingInterpolateMissing(data, field, flagger, 3, func=np.nanmean, center=False,
+                                                 min_periods=3, interpol_flag='UNFLAGGED')
+    assert dataInt[field][characteristics['missing']].isna().all()
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_interpolateMissing(course_5, flagger):

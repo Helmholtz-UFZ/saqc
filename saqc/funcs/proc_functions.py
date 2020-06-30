@@ -32,6 +32,8 @@ def proc_rollingInterpolateMissing(data, field, flagger, winsz, func=np.median, 
     Note, that in the current implementation, center=True can only be used with integer window sizes - furthermore
     note, that integer window sizes can yield screwed aggregation results for not-harmonized or irregular data.
 
+
+
     Parameters
     ----------
     winsz : Integer or Offset String
@@ -56,16 +58,17 @@ def proc_rollingInterpolateMissing(data, field, flagger, winsz, func=np.median, 
     datcol = data[field]
     roller = datcol.rolling(window=winsz, center=center, min_periods=min_periods)
     try:
-        func_name = func.name
+        func_name = func.__name__
         if func_name[:3] == 'nan':
             func_name = func_name[3:]
-        rolled = getattr(roller, func_name)
+        rolled = getattr(roller, func_name)()
     except AttributeError:
         rolled = roller.apply(func)
 
     na_mask = datcol.isna()
     interpolated = na_mask & ~rolled.isna()
     datcol[na_mask] = rolled[na_mask]
+    data[field] = datcol
 
     if interpol_flag:
         if interpol_flag in ['BAD', 'UNFLAGGED', 'GOOD']:
