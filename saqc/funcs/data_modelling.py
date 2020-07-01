@@ -182,11 +182,6 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
     center : boolean, default True
         Wheather or not to center the window the mean is calculated of around the reference value. If False,
         the reference value is placed to the right of the window (classic rolling mean with lag.)
-    kwargs
-
-    Returns
-    -------
-
     """
     data = data.copy()
     to_fit = data[field]

@@ -9,7 +9,8 @@ from dios import dios
 from test.common import TESTFLAGGER
 
 from saqc.funcs.data_modelling import (
-    modelling_polyFit
+    modelling_polyFit,
+    modelling_rollingMean
 )
 
 TF = TESTFLAGGER[:1]
@@ -32,3 +33,11 @@ def test_modelling_polyFit_forRegular(dat, flagger):
     result5, _ = modelling_polyFit(data, 'data', flagger, 11, 2, numba=True, min_periods=9)
     assert result5['data'].iloc[10:19].isna().all()
 
+@pytest.mark.parametrize("flagger", TF)
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])
+def test_modelling_rollingMean_forRegular(dat, flagger):
+    data, _ = dat(freq='10min', periods=30, initial_level=0, final_level=100, out_val=-100)
+    data = dios.DictOfSeries(data)
+    flagger = flagger.initFlags(data)
+    modelling_rollingMean(data, 'data', flagger, 5, eval_flags=True, min_periods=0, center=True)
+    modelling_rollingMean(data, 'data', flagger, 5, eval_flags=True, min_periods=0, center=False)
