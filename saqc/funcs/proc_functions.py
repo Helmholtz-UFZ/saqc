@@ -145,7 +145,8 @@ def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_l
 
 @register
 def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop_flags=None,
-                            downgrade_interpolation=False, empty_intervals_flag=None, **kwargs):
+                            downgrade_interpolation=False, empty_intervals_flag=None, grid_field=None, inter_limit=2,
+                            **kwargs):
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
 
@@ -155,12 +156,17 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
     Note, that the function differs from proc_interpolateMissing, by returning a whole new data set, only containing
     samples at the interpolated, equidistant timestamps (of frequency "freq").
 
+    Note, it is possible to interpolate unregular "grids" (with no frequencies). In fact, any date index
+    can be target of the interpolation. Just pass the field name of the variable, holding the index
+    you want to interpolate, to "grid_field". The feature is currently regarded experimental. Interpolation
+    range can not be controlled.
+
     Parameters
     ---------.copy()
     freq : Offset String
         The frequency of the grid you want to interpolate your data at.
 
-    method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
+    method : {"linear", "tim   e", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
 
@@ -181,7 +187,14 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
         A Flag, that you want to assign to those values resulting equidistant sample grid, that were not surrounded by
         valid (flagged) data in the original dataset and thus werent interpolated. Default automatically assigns
         flagger.BAD flag to those values.
-        """
+
+    grid_field : String, default None
+        Use the timestamp of another variable as (not nessecarily regular) "grid" to be interpolated.
+
+    inter_limit : Integer, default 2
+        Maximum number of consecutive Grid values allowed for interpolation. If set
+        to "n", in the result, chunks of "n" consecutive grid values wont be interpolated.
+    """
 
     datcol = data[field]
     if datcol.empty:
@@ -209,8 +222,11 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
         spec_case_mask = spec_case_mask.tshift(-1, freq)
 
     # prepare grid interpolation:
-    grid_index = pd.date_range(start=datcol.index[0].floor(freq), end=datcol.index[-1].ceil(freq), freq=freq,
-                               name=datcol.index.name)
+    if grid_field is None:
+        grid_index = pd.date_range(start=datcol.index[0].floor(freq), end=datcol.index[-1].ceil(freq), freq=freq,
+                                   name=datcol.index.name)
+    else:
+        grid_index = data[grid_field].index
 
     aligned_start = datcol.index[0] == grid_index[0]
     aligned_end = datcol.index[-1] == grid_index[-1]
@@ -220,20 +236,40 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
 
     # do the interpolation
     inter_data, chunk_bounds = interpolateNANs(
-        datcol, method, order=inter_order, inter_limit=2, downgrade_interpolation=downgrade_interpolation,
+        datcol, method, order=inter_order, inter_limit=inter_limit, downgrade_interpolation=downgrade_interpolation,
         return_chunk_bounds=True
     )
 
-    # override falsely interpolated values:
-    inter_data[spec_case_mask.index] = np.nan
+    if grid_field is None:
+        # override falsely interpolated values:
+        inter_data[spec_case_mask.index] = np.nan
 
     # store interpolated grid
-    inter_data = inter_data.asfreq(freq)
+    inter_data = inter_data[grid_index]
     data[field] = inter_data
 
     # flags reshaping (dropping data drops):
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
 
+    if grid_field is not None:
+        # only basic flag propagation supported for custom grids (take worst from preceeding/succeeding)
+        preceeding = flagscol.reindex(grid_index, method='ffill', tolerance=freq)
+        succeeding = flagscol.reindex(grid_index, method='bfill', tolerance=freq)
+        # check for too big gaps in the source data and drop the values interpolated in those too big gaps
+        na_mask = preceeding.isna() | succeeding.isna()
+        na_mask = na_mask[na_mask]
+        preceeding.drop(na_mask.index, inplace=True)
+        succeeding.drop(na_mask.index, inplace=True)
+        inter_data.drop(na_mask.index, inplace=True)
+        data[field] = inter_data
+        mask = succeeding > preceeding
+        preceeding.loc[mask] = succeeding.loc[mask]
+        flagscol = preceeding
+        flagger_new = flagger.initFlags(inter_data).setFlags(field, flag=flagscol, force=True, **kwargs)
+        flagger = flagger.slice(drop=field).merge(flagger_new)
+        return data, flagger
+
+    # for freq defined grids, max-aggregate flags of every grid points freq-ranged surrounding
     # hack ahead! Resampling with overlapping intervals:
     # 1. -> no rolling over categories allowed in pandas, so we translate manually:
     cats = pd.CategoricalIndex(flagger.dtype.categories, ordered=True)
