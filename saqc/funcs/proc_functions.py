@@ -706,13 +706,6 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
     # define target values for correction
     shift_targets = drift_grouper.aggregate(lambda x: x[:cal_mean].mean()).shift(-1)
 
-    ########################### plotting stuff for testing phase #############################################
-    fig, axes = plt.subplots(nrows=2, ncols=1, sharex=True)
-    axes[0].plot(to_correct[drift_frame.index[0]:drift_frame.index[-1]])
-    axes[0].set(ylabel='sak')
-    axes[1].set(ylabel='shifted - sak')
-    ##########################################################################################################
-
     for k, group in drift_grouper:
         dataSeries = group[to_correct.name]
         dataFit, dataShiftTarget = _drift_fit(dataSeries, shift_targets.loc[k, :][0], cal_mean)
@@ -721,17 +714,6 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         dataShiftVektor = dataShiftTarget - dataFit
         shiftedData = dataSeries + dataShiftVektor
         to_correct[shiftedData.index] = shiftedData
-    ########################### plotting stuff for testing phase ##################################################
-        axes[0].plot(dataFit, color='red')
-        axes[0].plot(dataShiftTarget, color='yellow')
-        axes[1].plot(shiftedData, color='green')
-
-    axes[0].vlines(maint_data[drift_frame.index[0]:drift_frame.index[-1]].index, to_correct.min(), to_correct.max(), color='black')
-    axes[0].vlines(maint_data[drift_frame.index[0]:drift_frame.index[-1]].values, to_correct.min(), to_correct.max(), color='black')
-    fig.autofmt_xdate()
-    with open('/home/luenensc/PyPojects/testSpace/SEEFOPics/DriftCorrecture2.pkl', 'wb') as file:
-        pickle.dump(fig, file)
-    ################################################################################################################
 
     if flag_maint_period:
         to_flag = drift_frame['drift_group']

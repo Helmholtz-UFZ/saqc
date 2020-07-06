@@ -338,8 +338,7 @@ def dropper(field, drop_flags, flagger, default):
     if drop_flags is None:
         drop_flags = default
     drop_flags = toSequence(drop_flags)
-    for f in drop_flags:
-        drop_mask |= flagger.isFlagged(field, flag=f)
+    drop_mask = flagger.isFlagged(field, flag=drop_flags)
     return drop_mask
 
 
