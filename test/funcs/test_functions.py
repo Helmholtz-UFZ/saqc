@@ -41,9 +41,7 @@ def test_flagRange(data, field, flagger):
 @pytest.mark.parametrize("method", ['wavelet', 'dtw'])
 @pytest.mark.parametrize("pattern", [pytest.lazy_fixture("course_pattern_1"),
                                      pytest.lazy_fixture("course_pattern_2"),] ,)
-                            #     pytest.lazy_fixture("course_3"),
-                            #     pytest.lazy_fixture("course_4"), ],
-                                           #  )
+
 def test_flagPattern(course_test, flagger, method, pattern):
     pattern_data, dict_pattern = pattern()
 
