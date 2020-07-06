@@ -34,6 +34,7 @@ def zeroLog(ts):
     log_ts[log_ts == -np.inf] = np.nan
     return log_ts
 
+
 def difference(ts):
     return pd.Series.diff(ts)
 
@@ -88,7 +89,6 @@ def nBallClustering(in_arr, ball_radius=None):
 def kNN(in_arr, n_neighbors, algorithm="ball_tree"):
     nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr)
     return nbrs.kneighbors()
-
 
 
 def standardizeByMean(ts):

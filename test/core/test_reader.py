@@ -1,14 +1,21 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from pathlib import Path
+
 import pytest
 import numpy as np
+import pandas as pd
 
-import saqc
-from saqc.core.reader import checkConfig
+from dios.dios import DictOfSeries
 from saqc.core.config import Fields as F
+from test.common import initData, writeIO
+
+from saqc.core.core import SaQC
+from saqc.flagger import SimpleFlagger
+from saqc.funcs.functions import flagRange, flagDummy
+from saqc.core.register import FUNC_MAP, register, SaQCFunc
 import dios
-from test.common import initData, initMetaDict, initMetaString, TESTFLAGGER, TESTNODATA, writeIO
 
 
 @pytest.fixture
@@ -16,52 +23,53 @@ def data() -> dios.DictOfSeries:
     return initData(3)
 
 
-def test_configPreparation(data):
+def test_packagedConfig():
+
+    path = Path(__file__).parents[2] / "ressources/data"
+
+    config_path = path / "config_ci.csv"
+    data_path = path / "data.csv"
+
+    data = pd.read_csv(data_path, index_col=0, parse_dates=True,)
+    saqc = SaQC(SimpleFlagger(), DictOfSeries(data)).readConfig(config_path)
+    data, flagger = saqc.getResult()
+
+
+def test_configDefaults(data):
     var1, var2, var3, *_ = data.columns
-    date = data.indexes[0][data.lengths[0] // 2]
 
-    # NOTE:
-    # time slicing support is currently disabled
+    header = f"{F.VARNAME};{F.TEST};{F.PLOT}"
     tests = [
-        # {F.VARNAME: var1, F.START: date, F.TESTS: "flagAll()", F.PLOT: True},
-        # {F.VARNAME: var3, F.END: date, F.TESTS: "flagAll()"},
-
-        {F.VARNAME: var2, F.TESTS: "flagAll()", F.PLOT: False},
-        {F.VARNAME: var3, F.TESTS: "flagAll()",},
+        (f"{var2};flagRange(min=3, max=6);True", SaQCFunc(flagRange, min=3, max=6, plot=True, lineno=2)),
+        (f"{var3};flagDummy()", SaQCFunc(flagDummy, plot=False, lineno=2))
     ]
 
-
-    for i, test in enumerate(tests):
-
-        index = data[test[F.VARNAME]].index
-        start_date, end_date = index.min(), index.max()
-
-        defaults = {
-            F.START: start_date,
-            F.END: end_date,
-            F.PLOT: False,
-            F.LINENUMBER: 2,
-        }
-
-        _, meta_frame = initMetaDict([test], data)
-        result = dict(zip(meta_frame.columns, meta_frame.iloc[0]))
-        expected = {**defaults, **test}
-        assert result == expected
+    for config, expected in tests:
+        fobj = writeIO(header + "\n" + config)
+        saqc = SaQC(SimpleFlagger(), data).readConfig(fobj)
+        result = [func for _, func in saqc._to_call][0]
+        assert result.kwargs == expected.kwargs
+        assert result.lineno == expected.lineno
+        assert result.plot == expected.plot
 
 
 def test_variableRegex(data):
 
+    header = f"{F.VARNAME};{F.TEST};{F.PLOT}"
     tests = [
         ("'.*'", data.columns),
         ("'var(1|2)'", [c for c in data.columns if c[-1] in ("1", "2")]),
         ("'var[12]'", [c for c in data.columns if c[-1] in ("1", "2")]),
         ("var[12]", ["var[12]"]),  # not quoted -> not a regex
-        ('"(.*3)"', [c for c in data.columns if c[-1] == "3"]),
+        ('".*3"', [c for c in data.columns if c[-1] == "3"]),
     ]
 
-    for config_wc, expected in tests:
-        _, config = initMetaDict([{F.VARNAME: config_wc, F.TESTS: "flagAll()"}], data)
-        assert np.all(config[F.VARNAME] == expected)
+
+    for regex, expected in tests:
+        fobj = writeIO(header + "\n" + f"{regex} ; flagDummy()")
+        saqc = SaQC(SimpleFlagger(), data).readConfig(fobj)
+        result = [field for field, _ in saqc._to_call]
+        assert np.all(result == expected)
 
 
 def test_inlineComments(data):
@@ -69,57 +77,31 @@ def test_inlineComments(data):
     adresses issue #3
     """
     config = f"""
-    {F.VARNAME}|{F.TESTS}|{F.PLOT}
-    pre2|flagAll() # test|False # test
+    {F.VARNAME} ; {F.TEST}       ; {F.PLOT}
+    pre2        ; flagDummy() # test ; False # test
     """
-    _, meta_frame = initMetaString(config, data)
-    assert meta_frame.loc[0, F.PLOT] == False
-    assert meta_frame.loc[0, F.TESTS] == "flagAll()"
+    saqc = SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
+    result = [func for _, func in saqc._to_call][0]
+    assert result.plot == False
+    assert result.func == FUNC_MAP["flagDummy"].func
 
 
 def test_configReaderLineNumbers(data):
     config = f"""
-    {F.VARNAME}|{F.TESTS}
-    #temp1|dummy()
-    pre1|dummy()
-    pre2|dummy()
-    SM|dummy()
-    #SM|dummy()
-    # SM1|dummy()
+    {F.VARNAME} ; {F.TEST}
+    #temp1      ; flagDummy()
+    pre1        ; flagDummy()
+    pre2        ; flagDummy()
+    SM          ; flagDummy()
+    #SM         ; flagDummy()
+    # SM1       ; flagDummy()
 
-    SM1|dummy()
+    SM1         ; flagDummy()
     """
-    meta_fname, meta_frame = initMetaString(config, data)
-    result = meta_frame[F.LINENUMBER].tolist()
+    saqc = SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
+    result = [func.lineno for _, func in saqc._to_call]
     expected = [3, 4, 5, 9]
     assert result == expected
-
-
-def test_configMultipleTests(data):
-
-    var = data.columns[0]
-
-    config = f"""
-    {F.VARNAME} ; test_1        ; test_2
-    #-----------;---------------;--------------------------
-    {var}       ; flagMissing() ; flagRange(min=10, max=60)
-    """
-
-    from saqc.flagger import SimpleFlagger
-    from saqc.core.core import run
-    from saqc.core.reader import readConfig, checkConfig
-    from saqc.funcs.functions import flagMissing, flagRange
-
-    flagger = SimpleFlagger().initFlags(data)
-    df = checkConfig(readConfig(writeIO(config), data), data, flagger, np.nan)
-    assert {"test_1", "test_2"} - set(df.columns) == set([])
-
-    flagger_expected = SimpleFlagger().initFlags(data)
-    for func, kwargs in [(flagMissing, {}), (flagRange, {"min": 10, "max": 60})]:
-        data, flagger_expected = func(data, var, flagger_expected, **kwargs)
-    _, flagger_result = run(writeIO(config), SimpleFlagger(), data)
-
-    assert (flagger_result.getFlags() == flagger_expected.getFlags()).all(None)
 
 
 def test_configFile(data):
@@ -127,7 +109,8 @@ def test_configFile(data):
     # check that the reader accepts different whitespace patterns
 
     config = f"""
-    {F.VARNAME} ; {F.TESTS}
+    {F.VARNAME} ; {F.TEST}
+
     #temp1      ; flagDummy()
     pre1; flagDummy()
     pre2        ;flagDummy()
@@ -137,25 +120,54 @@ def test_configFile(data):
 
     SM1;flagDummy()
     """
-    saqc.run(writeIO(config), TESTFLAGGER[0], data)
+    SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-@pytest.mark.parametrize("nodata", TESTNODATA)
-def test_configChecks(data, flagger, nodata, caplog):
+def test_configChecks(data):
 
-    flagger = flagger.initFlags(data)
     var1, var2, var3, *_ = data.columns
 
+    header = f"{F.VARNAME};{F.TEST}"
     tests = [
-        ({F.VARNAME: var1, F.TESTS: "flagRange(mn=0)"}, TypeError),
-        ({F.VARNAME: var3, F.TESTS: "flagNothing()"}, NameError),
-        ({F.VARNAME: "", F.TESTS: "flagRange(min=3)"}, SyntaxError),
-        ({F.VARNAME: var1, F.TESTS: ""}, SyntaxError),
-        ({F.TESTS: "flagRange(min=3)"}, SyntaxError),
+        (f"{var1};flagRange(mn=0)", TypeError),   # bad argument name
+        (f"{var1};flagRange(min=0)", TypeError),  # not enough arguments
+        (f"{var3};flagNothing()", NameError),     # unknown function
+        (";flagRange(min=3)", SyntaxError),       # missing variable
+        (f"{var1};", SyntaxError),                # missing test
+        (f"{var1}; min", TypeError),              # not a function call
     ]
 
-    for config_dict, expected in tests:
-        _, config_df = initMetaDict([config_dict], data)
+    for test, expected in tests:
+        fobj = writeIO(header + "\n" + test)
         with pytest.raises(expected):
-            checkConfig(config_df, data, flagger, nodata)
+            SaQC(SimpleFlagger(), data).readConfig(fobj)
+
+
+def test_supportedArguments(data):
+
+    # test if the following function arguments
+    # are supported (i.e. parsing does not fail)
+
+    # TODO: necessary?
+
+    @register
+    def func(data, field, flagger, kwarg, **kwargs):
+        return data, flagger
+
+    var1 = data.columns[0]
+
+    header = f"{F.VARNAME};{F.TEST}"
+    tests = [
+        f"{var1};func(kwarg=NAN)",
+        f"{var1};func(kwarg='str')",
+        f"{var1};func(kwarg=5)",
+        f"{var1};func(kwarg=5.5)",
+        f"{var1};func(kwarg=-5)",
+        f"{var1};func(kwarg=True)",
+        f"{var1};func(kwarg=sum([1, 2, 3]))",
+    ]
+
+    for test in tests:
+        fobj = writeIO(header + "\n" + test)
+        SaQC(SimpleFlagger(), data).readConfig(fobj)
+

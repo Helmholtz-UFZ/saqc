@@ -17,7 +17,7 @@ constants_flagBasic(window, thresh=0)
 | parameter | data type                                                             | default value | description                                                                                                                  |
 |-----------|-----------------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------|
 | window    | integer/[offset string](docs/ParameterDescriptions.md#offset-strings) |               | The minimum count or duration in which the values must be constant to be considered as plateau candidates. See condition (1) |
-| thresh    | float                                                                 |             0 | The maximum difference between values to still considered as constant. See condition (2)                                     |
+| thresh    | float                                                                 |             0 | The maximum difference between values to be still considered as constant. See condition (2)                                     |
 
 This functions flags plateaus/series of constant values of length `window` if
 their difference is smaller than `thresh`.

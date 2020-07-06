@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-__author__ = "Bert Palm"
-__email__ = "bert.palm@ufz.de"
-__copyright__ = "Copyright 2018, Helmholtz-Zentrum für Umweltforschung GmbH - UFZ"
-
 import pytest
 import numpy as np
 import pandas as pd
@@ -144,16 +140,16 @@ def test_setFlags(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_getFlagger(data, flagger):
+def test_sliceFlagger(data, flagger):
     """
     test before:
     - initFlags()
-    - getFlags() inside getFlagger()
+    - getFlags() inside slice()
     """
     sl = slice(None, None, 3)
 
     flagger = flagger.initFlags(data)
-    newflagger = flagger.getFlagger(loc=sl)
+    newflagger = flagger.slice(loc=sl)
     assert isinstance(newflagger, type(flagger))
 
     newflags = newflagger.getFlags()
@@ -163,7 +159,7 @@ def test_getFlagger(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_getFlaggerDrop(data, flagger):
+def test_sliceFlaggerDrop(data, flagger):
     flagger = flagger.initFlags(data)
     with pytest.raises(TypeError):
         flagger.getFlags(field=data.columns, drop="var")
@@ -171,27 +167,27 @@ def test_getFlaggerDrop(data, flagger):
     field = data.columns[0]
     expected = data.columns.drop(field)
 
-    filtered = flagger.getFlagger(drop=field)
+    filtered = flagger.slice(drop=field)
     assert (filtered.getFlags().columns == expected).all(axis=None)
     assert (filtered.getFlags().to_df().index== data[expected].to_df().index).all(axis=None)
 
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_setFlagger(data, flagger):
+def test_mergeFlagger(data, flagger):
     """
     test before:
     - initFlags()
     - getFlags()
     - setFlags()
-    - getFlagger()
+    - slice()
     """
     field, *_ = data.columns
     sl = slice(None, None, 3)
 
     this_flagger = flagger.initFlags(data)
-    other_flagger = this_flagger.getFlagger(loc=sl).setFlags(field)
-    result_flagger = this_flagger.setFlagger(other_flagger)
+    other_flagger = this_flagger.slice(loc=sl).setFlags(field)
+    result_flagger = this_flagger.merge(other_flagger)
 
     result_flags = result_flagger.getFlags()
     other_flags = other_flagger.getFlags()
@@ -213,14 +209,14 @@ def test_setFlagger(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_setFlaggerColumnsDiff(data, flagger):
+def test_mergeFlaggerColumnsDiff(data, flagger):
     """
     test before:
     - initFlags()
     - getFlags()
     - setFlags()
-    - getFlagger()
-    - setFlagger()
+    - slice()
+    - merge()
     """
     field, *_ = data.columns
     new_field = field + "_new"
@@ -231,7 +227,7 @@ def test_setFlaggerColumnsDiff(data, flagger):
     other_flagger = flagger.initFlags(other_data)
 
     this_flagger = flagger.initFlags(data).setFlags(field, flag=flagger.BAD)
-    result_flagger = this_flagger.setFlagger(other_flagger)
+    result_flagger = this_flagger.merge(other_flagger)
 
     result_flags = result_flagger.getFlags()
     other_flags = other_flagger.getFlags()
@@ -259,14 +255,14 @@ def test_setFlaggerColumnsDiff(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_setFlaggerIndexDiff(data, flagger):
+def test_mergeFlaggerIndexDiff(data, flagger):
     """
     test before:
     - initFlags()
     - getFlags()
     - setFlags()
-    - getFlagger()
-    - setFlagger()
+    - slice()
+    - merge()
 
     we need to check:
     - index is union of this and other's index
@@ -288,7 +284,7 @@ def test_setFlaggerIndexDiff(data, flagger):
 
     this_flagger = flagger.initFlags(data).setFlags(field, flag=flagger.BAD)
     other_flagger = flagger.initFlags(other_data)
-    result_flagger = this_flagger.setFlagger(other_flagger)
+    result_flagger = this_flagger.merge(other_flagger)
 
     result_flags = result_flagger.getFlags()
     this_flags = this_flagger.getFlags()
@@ -312,7 +308,7 @@ def test_setFlaggerIndexDiff(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_setFlaggerOuter(data, flagger):
+def test_mergeFlaggerOuter(data, flagger):
 
 
     field = data.columns[0]
@@ -328,7 +324,7 @@ def test_setFlaggerOuter(data, flagger):
              .initFlags(data=data_right)
              .setFlags(field, flag=flagger.GOOD))
 
-    merged = left.setFlagger(right, join="outer")
+    merged = left.merge(right, join="outer")
 
     loc = data_right[field].index.difference(data_left[field].index)
     assert (merged.getFlags(field, loc=loc) == flagger.GOOD).all(axis=None)
@@ -337,7 +333,7 @@ def test_setFlaggerOuter(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_setFlaggerInner(data, flagger):
+def test_mergeFlaggerInner(data, flagger):
 
 
     field = data.columns[0]
@@ -353,7 +349,7 @@ def test_setFlaggerInner(data, flagger):
              .initFlags(data=data_right)
              .setFlags(field, flag=flagger.GOOD))
 
-    merged = left.setFlagger(right, join="inner")
+    merged = left.merge(right, join="inner")
 
     assert (merged.getFlags(field).index == data_right[field].index).all()
     assert (merged.getFlags(field) == flagger.BAD).all()
@@ -361,7 +357,7 @@ def test_setFlaggerInner(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_setFlaggerMerge(data, flagger):
+def test_mergeFlaggerMerge(data, flagger):
 
     field = data.columns[0]
     data_left = data
@@ -375,7 +371,7 @@ def test_setFlaggerMerge(data, flagger):
              .initFlags(data=data_right)
              .setFlags(field, flag=flagger.GOOD))
 
-    merged = left.setFlagger(right, join="merge")
+    merged = left.merge(right, join="merge")
 
     loc = data_left[field].index.difference(data_right[field].index)
     assert (merged.getFlags(field, loc=data_right[field].index) == flagger.GOOD).all(axis=None)
@@ -456,7 +452,7 @@ def test_isFlaggedSeries_fail(data, flagger):
         # {"field": ["var1", "var2"]},
     ]
     for args in fail_tests:
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             flagger.isFlagged(**args)
 
 

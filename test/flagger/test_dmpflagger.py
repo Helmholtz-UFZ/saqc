@@ -10,6 +10,7 @@ import pytest
 from test.common import initData
 from saqc.flagger import DmpFlagger
 
+
 @pytest.fixture
 def data():
     return initData(cols=1)
@@ -26,7 +27,7 @@ def test_initFlags(data):
     assert (flagger._comments == "").all(axis=None)
 
 
-def test_setFlaggerOuter(data):
+def test_mergeFlaggerOuter(data):
 
     flagger = DmpFlagger()
 
@@ -49,7 +50,7 @@ def test_setFlaggerOuter(data):
              .initFlags(data=data_right)
              .setFlags(field=field, flag=flagger.GOOD, cause="SaQCRight", comment="testRight"))
 
-    merged = left.setFlagger(right, join="outer")
+    merged = left.merge(right, join="outer")
 
     right_index = data_right[field].index.difference(data_left[field].index)
     assert (merged._flags.loc[right_index] == flagger.GOOD).all(axis=None)
@@ -61,7 +62,7 @@ def test_setFlaggerOuter(data):
     assert (merged._causes.loc[left_index] == "SaQCLeft").all(axis=None)
     assert np.all(parseComments(merged._comments.loc[left_index]) == "testLeft")
 
-def test_setFlaggerInner(data):
+def test_mergeFlaggerInner(data):
 
     flagger = DmpFlagger()
 
@@ -79,7 +80,7 @@ def test_setFlaggerInner(data):
              .initFlags(data=data_right)
              .setFlags(field=field, flag=flagger.GOOD, cause="SaQCRight", comment="testRight"))
 
-    merged = left.setFlagger(right, join="inner")
+    merged = left.merge(right, join="inner")
 
     assert (merged._flags[field].index == data_right[field].index).all()
     assert (merged._causes[field].index == data_right[field].index).all()
@@ -90,7 +91,7 @@ def test_setFlaggerInner(data):
     assert np.all(parseComments(merged._comments) == "testLeft")
 
 
-def test_getFlaggerDrop(data):
+def test_sliceFlaggerDrop(data):
     flagger = DmpFlagger().initFlags(data)
     with pytest.raises(TypeError):
         flagger.getFlags(field=data.columns, drop="var")
@@ -98,7 +99,7 @@ def test_getFlaggerDrop(data):
     field = data.columns[0]
     expected = data[data.columns.drop(field)].to_df()
 
-    filtered = flagger.getFlagger(drop=field)
+    filtered = flagger.slice(drop=field)
 
     assert (filtered._flags.columns == expected.columns).all(axis=None)
     assert (filtered._comments.columns == expected.columns).all(axis=None)

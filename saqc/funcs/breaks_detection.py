@@ -6,11 +6,11 @@ import pandas as pd
 
 from scipy.signal import savgol_filter
 
-from saqc.funcs.register import register
+from saqc.core.register import register
 from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
-@register()
+@register
 def breaks_flagSpektrumBased(
     data,
     field,

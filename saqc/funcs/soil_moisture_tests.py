@@ -10,11 +10,11 @@ from scipy.signal import savgol_filter
 from saqc.funcs.breaks_detection import breaks_flagSpektrumBased
 from saqc.funcs.spikes_detection import spikes_flagSpektrumBased
 from saqc.funcs.constants_detection import constants_flagVarianceBased
-from saqc.funcs.register import register
+from saqc.core.register import register
 from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
-@register()
+@register
 def sm_flagSpikes(
     data,
     field,
@@ -51,7 +51,7 @@ def sm_flagSpikes(
     )
 
 
-@register()
+@register
 def sm_flagBreaks(
     data,
     field,
@@ -92,7 +92,7 @@ def sm_flagBreaks(
     )
 
 
-@register()
+@register
 def sm_flagFrost(data, field, flagger, soil_temp_variable, window="1h", frost_thresh=0, **kwargs):
 
     """This Function is an implementation of the soil temperature based Soil Moisture flagging, as presented in:
@@ -139,7 +139,7 @@ def sm_flagFrost(data, field, flagger, soil_temp_variable, window="1h", frost_th
     return data, flagger
 
 
-@register()
+@register
 def sm_flagPrecipitation(
     data,
     field,
@@ -246,7 +246,7 @@ def sm_flagPrecipitation(
     return data, flagger
 
 
-@register()
+@register
 def sm_flagConstants(
     data,
     field,
@@ -340,7 +340,7 @@ def sm_flagConstants(
     return data, flagger
 
 
-@register()
+@register
 def sm_flagRandomForest(data, field, flagger, references, window_values: int, window_flags: int, path: str, **kwargs):
     """
     This Function uses pre-trained machine-learning model objects for flagging of a specific variable. The model is

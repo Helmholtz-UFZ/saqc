@@ -6,9 +6,8 @@ import numpy as np
 import logging
 import dios
 
-from saqc.funcs.functions import flagMissing
-from saqc.funcs.register import register
-from saqc.lib.tools import toSequence, getFuncFromInput
+from saqc.core.register import register
+from saqc.lib.tools import toSequence
 
 
 logger = logging.getLogger("SaQC")
@@ -47,10 +46,10 @@ def harmWrapper(heap={}):
         freq,
         inter_method,
         reshape_method,
-        inter_agg="mean",
+        inter_agg=np.nanmean,
         inter_order=1,
         inter_downcast=False,
-        reshape_agg="max",
+        reshape_agg=np.nanmax,
         reshape_missing_flag=None,
         reshape_shift_comment=False,
         drop_flags=None,
@@ -58,12 +57,9 @@ def harmWrapper(heap={}):
         **kwargs,
     ):
         data = data.copy()
-        # get funcs from strings:
-        inter_agg = getFuncFromInput(inter_agg)
-        reshape_agg = getFuncFromInput(reshape_agg)
 
         # get data of variable
-        flagger_merged = flagger.getFlagger(field=field)
+        flagger_merged = flagger.slice(field=field)
         dat_col = data[field]
 
         # now we send the flags frame in its current shape to the future:
@@ -77,6 +73,9 @@ def harmWrapper(heap={}):
 
         # now we can manipulate it without loosing information gathered before harmonization
         dat_col, flagger_merged_clean, _ = _outsortCrap(dat_col, field, flagger_merged, drop_flags=drop_flags)
+
+        if dat_col.empty:
+            return data, flagger
 
         # interpolation! (yeah)
         dat_col, chunk_bounds = _interpolateGrid(
@@ -128,14 +127,13 @@ def harmWrapper(heap={}):
         resolve_method = HARM_2_DEHARM[harm_info[Heap.METHOD]]
 
         # retrieve data and flags from the merged saqc-conform data frame (and by that get rid of blow-up entries).
-        flagger_harmony = flagger.getFlagger(field=field)
+        flagger_harmony = flagger.slice(field=field)
         dat_col = data[field]
 
         # reconstruct the drops that were performed before harmonization
         _, flagger_original_clean, drop_mask = _outsortCrap(
             dat_col, field, harm_info[Heap.FLAGGER], drop_flags=harm_info[Heap.DROP]
         )
-        drops = flagger.getFlags(field=field, loc=drop_mask)
 
         # with reconstructed pre-harmonization flags-frame -> perform the projection of the flags calculated for
         # the harmonized timeseries, onto the original timestamps
@@ -165,8 +163,9 @@ def harmWrapper(heap={}):
 
 
 harm_harmonize, harm_deharmonize = harmWrapper()
-register()(harm_harmonize)
-register()(harm_deharmonize)
+register(harm_harmonize, name='harm_harmonize')
+register(harm_deharmonize, name='harm_deharmonize')
+
 
 
 # (de-)harmonize helper
@@ -195,7 +194,7 @@ def _outsortCrap(
     for drop_flag in drop_flags:
         drop_mask = drop_mask | flagger.isFlagged(field, flag=drop_flag, comparator="==")
 
-    flagger_out = flagger.getFlagger(loc=~drop_mask)
+    flagger_out = flagger.slice(loc=~drop_mask)
     return data[~drop_mask], flagger_out, drop_mask
 
 
@@ -687,85 +686,17 @@ def _backtrackFlags(flagger_harmony, flagger_original_clean, flagger_original, f
     return flagger_original.initFlags(flags=res)
 
 
-def _fromMerged(data, flagger, fieldname):
-    # we need a not-na mask for the flags data to be retrieved:
-    mask = flagger.getFlags(fieldname).notna()
-    return data.loc[mask[mask].index, fieldname], flagger.getFlagger(field=fieldname, loc=mask)
 
-
-def _toMerged(data, flagger, fieldname, data_to_insert, flagger_to_insert, target_index=None, **kwargs):
-
-    data = data.copy()
-    flags = flagger._flags
-    flags_to_insert = flagger_to_insert._flags
-
-    # this should never happen, but if this could happen in general,
-    # the caller have to ensure, that we get a dios
-    assert not isinstance(data, pd.Series)
-
-    newcols = data.columns.difference([fieldname])
-    data = data[newcols]
-    flags = flags[newcols]
-
-    # first case: there is no data, the data-to-insert would have
-    # to be merged with, and also are we not deharmonizing:
-    if data.empty and target_index is None:
-        return data, flagger_to_insert
-
-
-    # if thats not the case: generate the drop mask for the remaining data:
-
-    # the following is not implemented in dios, but as soon as it is done,
-    # we should use it. wait for #21 see: https://git.ufz.de/rdm/dios/issues/21
-    # mask = data.isna().all(axis=1)
-    # workaround:
-    nans = data.isna()
-    common_nans_index = nans[nans].index_of('shared')
-
-    # we only want to drop lines, that do not have to be re-inserted in the merge:
-    drops = common_nans_index.difference(data_to_insert.index)
-    # clear mask, but keep index
-    mask = data.copy()
-    mask[:] = True
-    # final mask:
-    mask[drops] = False
-
-    # if we are not "de-harmonizing":
-    if target_index is None:
-        # erase nan rows in the data, that became redundant because of harmonization and merge with data-to-insert:
-        data = pd.merge(data[mask], data_to_insert, how="outer", left_index=True, right_index=True)
-        flags = pd.merge(flags[mask], flags_to_insert, how="outer", left_index=True, right_index=True)
-        return data, flagger.initFlags(flags=flags)
-
-    else:
-        # trivial case: there is only one variable ("reindexing to make sure shape matches pre-harm shape"):
-        if data.empty:
-            data = data_to_insert.reindex(target_index).to_frame(name=fieldname)
-            flags = flags_to_insert.reindex(target_index, fill_value=flagger.UNFLAGGED)
-            return data, flagger.initFlags(flags=flags)
-        # annoying case: more than one variables:
-        # erase nan rows resulting from harmonization but keep/regain those, that were initially present in the data:
-        new_index = data[mask].index.join(target_index, how="outer")
-        data = data.reindex(new_index)
-        flags = flags.reindex(new_index, fill_value=flagger.UNFLAGGED)
-        data = pd.merge(data, data_to_insert, how="outer", left_index=True, right_index=True)
-        flags = pd.merge(flags, flags_to_insert, how="outer", left_index=True, right_index=True)
-
-        # internally harmonization memorizes its own manipulation by inserting nan flags -
-        # those we will now assign the flagger.bad flag by the "missingTest":
-        return flagMissing(data, fieldname, flagger.initFlags(flags=flags), nodata=np.nan, **kwargs)
-
-
-@register()
+@register
 def harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, **kwargs):
     return harm_harmonize(
         data, field, flagger, freq, inter_method=method, reshape_method=method, drop_flags=drop_flags, **kwargs,
     )
 
 
-@register()
+@register
 def harm_aggregate2Grid(
-    data, field, flagger, freq, value_func, flag_func="max", method="nagg", drop_flags=None, **kwargs,
+    data, field, flagger, freq, value_func, flag_func=np.nanmax, method="nagg", drop_flags=None, **kwargs,
 ):
     return harm_harmonize(
         data,
@@ -781,8 +712,8 @@ def harm_aggregate2Grid(
     )
 
 
-@register()
-def harm_linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop_flags=None, **kwargs):
+@register
+def harm_linear2Grid(data, field, flagger, freq, method="nagg", func=np.nanmax, drop_flags=None, **kwargs):
     return harm_harmonize(
         data,
         field,
@@ -796,9 +727,9 @@ def harm_linear2Grid(data, field, flagger, freq, method="nagg", func="max", drop
     )
 
 
-@register()
+@register
 def harm_interpolate2Grid(
-    data, field, flagger, freq, method, order=1, flag_method="nagg", flag_func="max", drop_flags=None, **kwargs,
+    data, field, flagger, freq, method, order=1, flag_method="nagg", flag_func=np.nanmax, drop_flags=None, **kwargs,
 ):
     return harm_harmonize(
         data,
@@ -814,45 +745,38 @@ def harm_interpolate2Grid(
     )
 
 
-@register()
+@register
 def harm_downsample(
     data,
     field,
     flagger,
     sample_freq,
     agg_freq,
-    sample_func="mean",
-    agg_func="mean",
+    sample_func=np.nanmean,
+    agg_func=np.nanmean,
     invalid_flags=None,
     max_invalid=None,
     **kwargs,
 ):
 
-    agg_func = getFuncFromInput(agg_func)
 
     if max_invalid is None:
         max_invalid = np.inf
 
-    if sample_func is not None:
-        sample_func = getFuncFromInput(sample_func)
 
     # define the "fastest possible" aggregator
     if sample_func is None:
         if max_invalid < np.inf:
-
             def aggregator(x):
                 if x.isna().sum() < max_invalid:
                     return agg_func(x)
                 else:
                     return np.nan
-
         else:
-
             def aggregator(x):
                 return agg_func(x)
 
     else:
-
         dummy_resampler = pd.Series(np.nan, index=[pd.Timedelta("1min")]).resample("1min")
         if hasattr(dummy_resampler, sample_func.__name__):
 
@@ -870,7 +794,6 @@ def harm_downsample(
 
                 def aggregator(x):
                     return agg_func(getattr(x.resample(sample_freq), sample_func_name)())
-
         else:
             if max_invalid < np.inf:
 
@@ -880,9 +803,7 @@ def harm_downsample(
                         return agg_func(y)
                     else:
                         return np.nan
-
             else:
-
                 def aggregator(x):
                     return agg_func(x.resample(sample_freq).apply(sample_func))
 
@@ -894,7 +815,7 @@ def harm_downsample(
         inter_method="bagg",
         reshape_method="bagg_no_deharm",
         inter_agg=aggregator,
-        reshape_agg="max",
+        reshape_agg=np.nanmax,
         drop_flags=invalid_flags,
         **kwargs,
     )
