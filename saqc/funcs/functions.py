@@ -58,91 +58,69 @@ def flagRange(data, field, flagger, min, max, **kwargs):
 
 
 @register()
-def flagPattern(data, field, flagger, ref_datafield, sample_freq = '15 Min', method = 'dtw', min_distance = None, **kwargs):
-    # To Do: Bisher geht der Algo davon aus, dass sich das Pattern über einen Tag erstreckt -> noch erweitern auf > 1 Tag bzw. < 1 Tag (z.B. alle zwei Stunden ein Pattern)
+def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition_freq = "days", partition_offset = 0, max_distance = 0.03, normalized_distance = True, widths = [1,2,4,8], waveform = 'mexh', **kwargs):
 
-    test_field = data[field].copy()
-    ref_field  = data[ref_datafield].copy()
-    # Test : Referenzhut ist der 30. Juni 2019
-    ref_field = ref_field['2019-06-30 11:00:00':'2019-06-30 18:00:00']
+    test = data[field].copy()
+    ref = data[reference_field].copy()
+    #ref = ref['2019-06-29 11:00:00':'2019-06-29 18:00:00']
+    Pattern_start_date = ref.index[0]
+    Pattern_start_time = datetime.datetime.time(Pattern_start_date)
+    Pattern_end_date = ref.index[-1]
+    Pattern_end_time = datetime.datetime.time(Pattern_end_date)
 
-    # Get start and end time from reference field
-    Start_date = ref_field.head(1).index.item()
-    Start_time = datetime.datetime.time(Start_date)
-    End_date = ref_field.tail(1).index.item()
-    End_time = datetime.datetime.time(End_date)
+    ### Extract partition frequency from pattern if needed
+    if not isinstance(partition_freq, str):
+        raise ValueError('Partition frequency has to be given in string format.')
+    elif partition_freq == "days" or partition_freq == "months":
+            # Get partition frequency from reference field
+            partition_count = (Pattern_end_date - Pattern_start_date).days
+            partitions = test.groupby(pd.Grouper(freq="%d D" % (partition_count + 1)))
+    else:
+        partitions = test.groupby(pd.Grouper(freq=partition_freq))
 
-    # Count length of partition
-    partition_count = End_date.day - Start_date.day + 1
-    partition_freq = "%d D" % partition_count
-
-    # Harmonization
-    test_field = test_field.resample(sample_freq).first().interpolate('time')
-    ref_field = ref_field.resample(sample_freq).first().interpolate('time')
-
-
-
-
-    # Calculate Partition
-#    if not partition_freq:
-#        partition_freq = test_field.shape[0]
-
-#    if isinstance(partition_freq, str):
-
-    partitions = test_field.groupby(pd.Grouper(freq=partition_freq))
-
-#    else:
-#        grouper_series = pd.Series(data=np.arange(0, test_field.shape[0]), index=test_field.index)
-#        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / partition_freq)))
-#        partitions = test_field.groupby(grouper_series)
-
-    # Initialize the chosen pattern method
-    # DTW as standard
-    if (not method) or (method != 'dtw' and method != 'wavelet'):
-        method = 'dtw'
-    # Initializing DTW
-    if method == 'dtw':
-        # Set minimal distance
-        if not min_distance:
-            min_distance = 4.5
     # Initializing Wavelets
     if method == 'wavelet':
         # calculate reference wavelet transform
-        ref_field_wl = ref_field.values.ravel()
+        ref_wl = ref.values.ravel()
         # Widths lambda as in Ann Maharaj
-        widths = [1, 2, 4, 8]
-        cwtmat_ref, freqs = pywt.cwt(ref_field_wl, widths, 'mexh')
+        cwtmat_ref, freqs = pywt.cwt(ref_wl, widths, waveform)
         # Square of matrix elements as Power sum of the matrix
         wavepower_ref = np.power(cwtmat_ref, 2)
+    elif not method == 'dtw':
+    # No correct method given
+        raise ValueError('Unable to interpret {} as method.'.format(method))
 
-
-
-    flags = pd.Series(data=0, index=test_field.index)
-    # calculate flags for every partition
-    partition_min = 0
-    # Set time frames for partition
-    if not Start_time:
-        Start_time = '00:00'
-    if not End_time:
-        End_time = '23:59'
+    flags = pd.Series(data=0, index=test.index)
+    ### Calculate flags for every partition
+    partition_min = ref.shape[0]
     for _, partition in partitions:
-        if partition.empty | (partition.shape[0] < partition_min):
+        # Ensuring that partition is at least as long as reference pattern
+        if partition.empty or (partition.shape[0] < partition_min):
             continue
-        # Use only the given time frame
-        pattern = partition.between_time(Start_time, End_time)
-        # Choose method
+        if partition_freq == "days" or partition_freq == "months":
+            # Use only the time frame given by the pattern
+            test = partition.between_time(Pattern_start_time, Pattern_end_time)
+            mask = (partition.index >= test.index[0]) & (partition.index <= test.index[-1])
+            test = partition.loc[mask]
+        else:
+            # cut partition according to pattern and offset
+            start_time = pd.Timedelta(partition_offset) + partition.index[0]
+            end_time = start_time + pd.Timedelta(Pattern_end_date - Pattern_start_date)
+            test = partition[start_time:end_time]
+        ### Switch method
         if method == 'dtw':
-            distance = dtw.dtw(pattern, ref_field, open_end=True, distance_only=True).normalizedDistance
+            distance = dtw.dtw(test, ref, open_end=True, distance_only=True).normalizedDistance
+            if normalized_distance:
+                distance = distance/abs(ref.mean())
             # Partition labeled as pattern by dtw
-            if distance < min_distance:
+            if distance < max_distance:
                 flags[partition.index] = 1
         elif method == 'wavelet':
             # calculate reference wavelet transform
-            test_field_wl = pattern.values.ravel()
-            cwtmat_test, freqs = pywt.cwt(test_field_wl, widths, 'mexh')
+            test_wl = test.values.ravel()
+            cwtmat_test, freqs = pywt.cwt(test_wl, widths, 'mexh')
             # Square of matrix elements as Power sum of the matrix
             wavepower_test = np.power(cwtmat_test, 2)
-
             # Permutation test on Powersum of matrix
             p_value = []
             for i in range(len(widths)):

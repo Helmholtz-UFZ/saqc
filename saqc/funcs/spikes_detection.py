@@ -126,8 +126,8 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
 
         # fitting
         lambdA, _ = curve_fit(fit_function, xdata=binzenters[upper_tail_index:iter_max_bin_index],
-                                ydata=upper_tail_hist,
-                                p0=[-np.log(alpha/resids[iter_index])])
+                              ydata=upper_tail_hist,
+                              p0=[-np.log(alpha / resids[iter_index])])
 
         crit_val = neg_log_alpha / lambdA
         test_val = resids[iter_index]

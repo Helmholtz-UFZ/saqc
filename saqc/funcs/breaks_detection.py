@@ -27,7 +27,7 @@ def breaks_flagSpektrumBased(
     **kwargs
 ):
 
-    """ This Function is an generalization of the Spectrum based break flagging mechanism as presented in:
+    """ This Function is a generalization of the Spectrum based break flagging mechanism as presented in:
 
     Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
     Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
