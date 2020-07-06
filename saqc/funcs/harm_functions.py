@@ -74,6 +74,9 @@ def harmWrapper(heap={}):
         # now we can manipulate it without loosing information gathered before harmonization
         dat_col, flagger_merged_clean, _ = _outsortCrap(dat_col, field, flagger_merged, drop_flags=drop_flags)
 
+        if dat_col.empty:
+            return data, flagger
+
         # interpolation! (yeah)
         dat_col, chunk_bounds = _interpolateGrid(
             dat_col,
