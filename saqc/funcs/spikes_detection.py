@@ -17,7 +17,7 @@ from saqc.lib.tools import (
     slidingWindowIndices,
     findIndex,
 )
-
+from outliers import smirnov_grubbs
 
 def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
            alpha=0.05):
@@ -40,7 +40,7 @@ def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNM
         if partition.empty | (partition.shape[0] < partition_min):
             continue
         sample_size = partition.shape[0]
-        nn_neighbors = min(n_neighbors, sample_size)
+        nn_neighbors = min(n_neighbors, max(sample_size, 2))
         resids = kNNfunc(partition.values, n_neighbors=nn_neighbors-1, algorithm='ball_tree')
         sorted_i = resids.argsort()
         resids = resids[sorted_i]
@@ -58,7 +58,7 @@ def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNM
             if gaps[iter_index] > log_alpha * ghat[iter_index]:
                 break
 
-
+        
         to_flag = np.append(to_flag, list(partition.index[sorted_i[iter_index:]]))
 
     return to_flag
@@ -134,24 +134,52 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
     return val_frame.index[sorted_i[iter_index:]]
 
 
+
+def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
+                   reduction_drop_flagged=False, reduction_thresh=3.5):
+    to_flag_frame[:] = False
+    to_flag_index = to_flag_frame.index
+    for var in fields:
+        for index in enumerate(to_flag_index):
+            index_slice = slice(index[1] - pd.Timedelta(reduction_range),
+                                index[1] + pd.Timedelta(reduction_range))
+
+
+            test_slice = val_frame[var][index_slice]
+            if reduction_drop_flagged:
+                test_slice = test_slice.drop(to_flag_index, errors='ignore')
+            if not test_slice.empty:
+                x = (test_slice.index.values.astype(float))
+                x_0 = x[0]
+                x = (x - x_0)/10**12
+                polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=2)
+                testval = poly.polyval((float(index[1].to_numpy()) - x_0)/10**12, polyfitted)
+                testval = val_frame[var][index[1]] - testval
+                resids = test_slice.values -poly.polyval(x, polyfitted)
+                med_resids = np.median(resids)
+                MAD = np.median(np.abs(resids - med_resids))
+                crit_val = 0.6745*(abs(med_resids - testval)) / MAD
+                if crit_val > reduction_thresh:
+                    to_flag_frame.loc[index[1], var] = True
+            else:
+                to_flag_frame.loc[index[1], var] = True
+
+    return to_flag_frame
+
+
 @register
-def spikes_flagMultivarScores(data, field, flagger, fields, trafo='normScale', alpha=0.05, n_neighbors=10,
+def spikes_flagMultivarScores(data, field, flagger, fields, trafo=np.log, alpha=0.05, n_neighbors=10,
                               scoring_method='kNNMaxGap', iter_start=0.5, threshing='stray',
                               expfit_binning='auto', stray_partition=None, stray_partition_min=0,
-                              **kwargs):
+                              post_reduction=None, reduction_range=None, reduction_drop_flagged=False,
+                              reduction_thresh=3.5, **kwargs):
+
 
     # data fransformation/extraction
-    val_frame = data[fields[0]]
-
-    for var in fields[1:]:
-        val_frame = pd.merge(val_frame, data[var],
-                             how='inner',
-                             left_index=True,
-                             right_index=True
-                             )
-
+    val_frame = data.loc[data.index_of('shared')].to_df()
     val_frame.dropna(inplace=True)
-    val_frame = val_frame.transform(trafo)
+    val_frame = val_frame.apply(trafo)
+
 
     if threshing == 'stray':
         to_flag_index = _stray(val_frame,
@@ -169,8 +197,16 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo='normScale', a
                                 alpha=alpha,
                                 bin_frac=expfit_binning)
 
+    to_flag_frame = pd.DataFrame({var_name: True for var_name in fields}, index=to_flag_index)
+    if post_reduction:
+        to_flag_frame = _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
+                                       reduction_drop_flagged=reduction_drop_flagged,
+                                       reduction_thresh=reduction_thresh)
+
     for var in fields:
-        flagger = flagger.setFlags(var, to_flag_index, **kwargs)
+        to_flag_ind = to_flag_frame.loc[: ,var]
+        to_flag_ind = to_flag_ind[to_flag_ind].index
+        flagger = flagger.setFlags(var, to_flag_ind, **kwargs)
 
     return data, flagger
 
@@ -654,4 +690,57 @@ def spikes_flagSpektrumBased(
     spikes = spikes[spikes == True]
 
     flagger = flagger.setFlags(field, spikes.index, **kwargs)
+    return data, flagger
+
+
+def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, **kwargs):
+    """
+    The function flags values that are regarded outliers due to the grubbs test.
+
+    (https://en.wikipedia.org/wiki/Grubbs%27s_test_for_outliers)
+
+    The (two-sided) test gets applied onto data chunks of size "winsz". The tests appliccation  will
+    be iterated on each data-chunk under test, till no more outliers are detected in that chunk.
+
+    Note, that the test performs poorely for small data chunks (resulting in heavy overflagging).
+    Therefor you should select "winsz" so that every window contains at least > 8 values and also
+    adjust the min_periods values accordingly.
+
+    Note, that the data to be tested by the grubbs test are expected to be "normallish" distributed.
+
+    Parameters
+    ----------
+    winsz : Integer or Offset String
+        The size of the window you want to use for outlier testing. If an integer is passed, the size
+        refers to the number of periods of every testing window. If an offset string is passed,
+        the size refers to the total temporal extension of every window.
+        even.
+    alpha : float
+        The level of significance the grubbs test is to be performed at. (between 0 and 1)
+    min_periods : Integer
+        The minimum number of values present in a testing interval for a grubbs test result to be accepted. Only
+        makes sence in case "winsz" is an offset string.
+
+    Returns
+    -------
+
+    """
+    data = data.copy()
+    datcol = data[field]
+    to_group = pd.DataFrame(data={'ts': datcol.index, 'data': datcol})
+    if isinstance(winsz, int):
+        # period number defined test intervals
+        grouper_series = pd.Series(data=np.arange(0, datcol.shape[0]), index=datcol.index)
+        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / winsz)))
+        partitions = to_group.groupby(grouper_series)
+    else:
+        # offset defined test intervals:
+        partitions = to_group.groupby(pd.Grouper(freq=winsz))
+    for _, partition in partitions:
+        if partition.shape[0] > min_periods:
+            to_flag = smirnov_grubbs.two_sided_test_indices(partition['data'].values, alpha=alpha)
+            to_flag = partition['ts'].iloc[to_flag]
+            if not to_flag.empty:
+                print(to_flag)
+            flagger = flagger.setFlags(field, loc=to_flag, **kwargs)
     return data, flagger

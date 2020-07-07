@@ -10,7 +10,8 @@ def char_dict():
     return {"raise": pd.DatetimeIndex([]),
             "drop": pd.DatetimeIndex([]),
             "peak": pd.DatetimeIndex([]),
-            "return": pd.DatetimeIndex([])}
+            "return": pd.DatetimeIndex([]),
+            "missing": pd.DatetimeIndex([])}
 
 
 @pytest.fixture
@@ -121,6 +122,27 @@ def course_4(char_dict):
         char_dict['return'] = t_index[int((len(t_index) / 2) + 1)::2]
 
         data = DictOfSeries(data=data, columns=['data'])
+        return data, char_dict
+
+    return fix_funk
+
+@pytest.fixture
+def course_5(char_dict):
+    # NAN_holes
+    # values , that ascend from initial_level to final_level linearly and have missing data(=nan)
+    # at posiiotns "nan_slice", (=a slice or a list, for iloc indexing)
+    # periods better be even!
+    # periods better be greater 5
+
+    def fix_funk(freq='10min', periods=10, nan_slice=slice(0, None, 5), initial_level=0, final_level=10,
+                 initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), char_dict=char_dict):
+        t_index = pd.date_range(initial_index, freq=freq, periods=periods)
+        values = np.linspace(initial_level, final_level, periods)
+        s = pd.Series(values, index=t_index)
+        s.iloc[nan_slice] = np.nan
+        char_dict['missing'] = s.iloc[nan_slice].index
+
+        data = DictOfSeries(data=s, columns=['data'])
         return data, char_dict
 
     return fix_funk
