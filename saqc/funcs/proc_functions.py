@@ -757,6 +757,9 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         to_flag = to_flag.drop(to_flag[:maint_data.index[0]].index)
         to_flag = to_flag[to_flag.isna()]
         flagger = flagger.setFlags(field, loc=to_flag, **kwargs)
+
+    data[field] = to_correct
+
     return data, flagger
 
 
