@@ -156,7 +156,7 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
     samples at the interpolated, equidistant timestamps (of frequency "freq").
 
     Parameters
-    ---------.copy()
+    ---------
     freq : Offset String
         The frequency of the grid you want to interpolate your data at.
 
@@ -184,8 +184,6 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
         """
 
     datcol = data[field]
-    if datcol.empty:
-        return data, flagger
     datcol = datcol.copy()
     flagscol = flagger.getFlags(field)
     if empty_intervals_flag is None:
@@ -196,7 +194,8 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
-
+    if datcol.empty:
+        return data, flagger
     # account for annoying case of subsequent frequency aligned values, differing exactly by the margin
     # 2*freq:
     spec_case_mask = datcol.index.to_series()
