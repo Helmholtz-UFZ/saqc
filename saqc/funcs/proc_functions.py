@@ -404,9 +404,6 @@ def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_interv
         values being dropped initially.
 
     """
-    if data[field].empty:
-        return data, flagger
-
     data = data.copy()
     datcol = data[field]
     flagscol = flagger.getFlags(field)
@@ -418,6 +415,8 @@ def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_interv
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
+    if datcol.empty:
+        return data, flagger
     flagscol.drop(drop_mask[drop_mask].index, inplace=True)
 
     datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
