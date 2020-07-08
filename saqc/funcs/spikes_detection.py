@@ -391,6 +391,8 @@ def spikes_flagSlidingZscore(
 
     # prepare data, work on numpy arrays for the fulfilling pleasure of performance
     d = data[field].dropna()
+    if d.empty:
+        return data, flagger
     all_indices = np.arange(len(d.index))
     x = (d.index - d.index[0]).total_seconds().values
     y = d.values
