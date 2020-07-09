@@ -30,7 +30,7 @@ def harm_aggregate2Grid(
     data, flagger = proc_fork(data, field, flagger)
     data, flagger = proc_resample(data, field, flagger, freq, agg_func=value_func, flag_agg_func=flag_func,
                                   method=method, empty_intervals_flag=empty_intervals_flag, drop_flags=drop_flags,
-                                  **kwargs)
+                                  all_na_2_empty=True, **kwargs)
     return data, flagger
 
 
