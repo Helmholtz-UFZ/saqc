@@ -319,6 +319,10 @@ def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_
         else:
             check_name = agg_func.__name__
 
+        # another nasty special case: if function "count" was passed, we not want empty intervals to be replaced by nan:
+        if check_name == 'count':
+            empty_intervals[:] = False
+
         data = getattr(data_resampler, check_name)()
     except AttributeError:
         data = data_resampler.apply(agg_func)
