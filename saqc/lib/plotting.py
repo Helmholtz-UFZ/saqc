@@ -34,7 +34,6 @@ _figsize = (16, 9)
 _layout_data_to_table_ratio = [5, 1]
 _show_info_table = True
 
-
 # order is important, because
 # latter may overwrite former
 _cols = [
@@ -51,7 +50,6 @@ _cols = [
     "unchanged",
     "changed",
 ]
-
 
 _plotstyle: Dict[str, dict] = {
     # flags
@@ -71,7 +69,13 @@ def _show():
         plt.show()
 
 
-def plotAllHook(data, flagger, targets=None, show_info_table: bool = True, ):
+def plotAllHook(
+        data,
+        flagger,
+        targets=None,
+        show_info_table: bool = True,
+        annotations: Optional[dios.DictOfSeries] = None,
+):
     __importHelper()
     targets = flagger.flags.columns if targets is None else targets
     _plotMultipleVariables(
@@ -80,7 +84,8 @@ def plotAllHook(data, flagger, targets=None, show_info_table: bool = True, ):
         data_new=data,
         flagger_new=flagger,
         targets=targets,
-        show_info_table=show_info_table
+        show_info_table=show_info_table,
+        annotations=annotations,
     )
     plt.tight_layout()
     _show()
@@ -94,6 +99,7 @@ def plotHook(
         sources: List[str],
         targets: List[str],
         plot_name: str = "",
+        annotations: Optional[dios.DictOfSeries] = None,
 ):
     assert len(targets) > 0
     __importHelper()
@@ -105,6 +111,7 @@ def plotHook(
         flagger_new=flagger_new,
         targets=targets,
         show_info_table=_show_info_table,
+        annotations=annotations,
     )
 
     if len(targets) == 1:
@@ -122,6 +129,7 @@ def _plotMultipleVariables(
         flagger_new: BaseFlagger,
         targets: List[str],
         show_info_table: bool = True,
+        annotations=None,
 ):
     """
     Plot data and flags for a multiple target-variables.
@@ -144,7 +152,7 @@ def _plotMultipleVariables(
     flagger_new
         flagger that hold flags corresponding to data_new
     targets
-        a single(!) string that indicates flags in flagger_new.flags
+        a list of strings, each indicating a column in flagger_new.flags
     show_info_table
         Show a info-table on the right of reference-data and data or not
 
@@ -175,15 +183,22 @@ def _plotMultipleVariables(
     allaxs = []
     for n in range(nfig):
         fig, axs = plt.subplots(nrows=ncols[n], ncols=2 if show_tab else 1, **layout)
+
         for ax in axs:
             var = next(tgen)
             tar, _ = _getDataFromVar(data_old, data_new, flagger_old, flagger_new, var)
+
             if show_tab:
                 plot_ax, tab_ax = ax
                 _plotInfoTable(tab_ax, tar, _plotstyle, len(tar['data']))
             else:
                 plot_ax = ax
+
             _plotFromDicts(plot_ax, tar, _plotstyle)
+
+            if annotations is not None and var in annotations:
+                _annotate(plot_ax, tar, annotations[var])
+
             plot_ax.set_title(str(var))
             allaxs.append(plot_ax)
 
@@ -195,6 +210,28 @@ def _plotMultipleVariables(
         ax.autoscale()
 
 
+def simplePlot(
+        data: dios.DictOfSeries,
+        flagger: BaseFlagger,
+        field: str,
+        plot_name=None,
+        show_info_table: bool = True,
+        annotations=None,
+):
+    __importHelper()
+    _plotSingleVariable(data_old=None,
+                        data_new=data,
+                        flagger_old=None,
+                        flagger_new=flagger,
+                        sources=[],
+                        targets=[field],
+                        show_reference_data=False,
+                        show_info_table=show_info_table,
+                        plot_name=plot_name or str(field),
+                        annotations=annotations,)
+    _show()
+
+
 def _plotSingleVariable(
         data_old: dios.DictOfSeries,
         data_new: dios.DictOfSeries,
@@ -204,7 +241,8 @@ def _plotSingleVariable(
         targets: List[str],
         show_reference_data=True,
         show_info_table: bool = True,
-        plot_name="current data"
+        plot_name="current data",
+        annotations=None,
 ):
     """
     Plot data and flags for a single target-variable.
@@ -295,14 +333,16 @@ def _plotSingleVariable(
         gs_count += 1
 
     # plot data
-    if show_tab:
-        ax = _plotDataWithTable(fig, outer_gs[gs_count], curr, show_tab=show_tab)
-        ax.set_title(f"{plot_name}")
-        # also share y-axis with ref
-        if ref and show_ref:
-            ax.get_shared_y_axes().join(ax, allaxs[-1])
-        allaxs.append(ax)
-        gs_count += 1
+    ax = _plotDataWithTable(fig, outer_gs[gs_count], curr, show_tab=show_tab)
+    ax.set_title(f"{plot_name}")
+    # also share y-axis with ref
+    if ref and show_ref:
+        ax.get_shared_y_axes().join(ax, allaxs[-1])
+    allaxs.append(ax)
+    gs_count += 1
+
+    if annotations is not None and var in annotations:
+        _annotate(ax, curr, annotations[var])
 
     # share all x-axis
     ax0 = allaxs[0]
@@ -607,6 +647,15 @@ def _plotFromDicts(ax, plotdict, styledict):
         style = styledict.get(field, False)
         if style and len(data) > 0:
             ax.plot(data, **style)
+
+
+def _annotate(ax, plotdict, txtseries: pd.Series):
+    for x, txt in txtseries.iteritems():
+        try:
+            y = plotdict['data'].loc[x]
+        except KeyError:
+            continue
+        ax.annotate(txt, xy=(x, y), rotation=45)
 
 
 def _plotInfoTable(ax, plotdict, styledict, total):

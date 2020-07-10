@@ -163,7 +163,7 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
     a grid point to be interpolated.
 
     Parameters
-    ---------.copy()
+    ---------
     freq : Offset String
         The frequency of the grid you want to interpolate your data at.
 
@@ -198,8 +198,6 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
     """
 
     datcol = data[field]
-    if datcol.empty:
-        return data, flagger
     datcol = datcol.copy()
     flagscol = flagger.getFlags(field)
     if empty_intervals_flag is None:
@@ -210,7 +208,11 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
-
+    if datcol.empty:
+        data[field] = datcol
+        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
+        flagger = flagger.slice(drop=field).merge(reshaped_flagger)
+        return data, flagger
     # account for annoying case of subsequent frequency aligned values, differing exactly by the margin
     # 2*freq:
     spec_case_mask = datcol.index.to_series()
@@ -313,7 +315,7 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
 @register
 def proc_resample(data, field, flagger, freq, agg_func=np.mean, method='bagg', max_invalid_total_d=np.inf,
                   max_invalid_consec_d=np.inf, max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf,
-                  flag_agg_func=max, empty_intervals_flag=None, drop_flags=None, **kwargs):
+                  flag_agg_func=max, empty_intervals_flag=None, drop_flags=None, all_na_2_empty=False, **kwargs):
     """
     Function to resample the data. Afterwards the data will be sampled at regular (equidistant) timestamps
     (or Grid points). Sampling intervals therefor get aggregated with a function, specifyed by 'agg_func' parameter and
@@ -342,7 +344,7 @@ def proc_resample(data, field, flagger, freq, agg_func=np.mean, method='bagg', m
 
     agg_func : function
         The function you want to use for aggregation.
-
+na_ser.resample('10min').apply(lambda x: x.count())
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
         Specifies which intervals to be aggregated for a certain timestamp. (preceeding, succeeding or
         "surrounding" interval). See description above for more details.
@@ -394,6 +396,17 @@ def proc_resample(data, field, flagger, freq, agg_func=np.mean, method='bagg', m
     drop_mask = dropper(field, drop_flags, flagger, [])
     datcol.drop(datcol[drop_mask].index, inplace=True)
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
+    if all_na_2_empty:
+        if datcol.dropna().empty:
+            datcol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
+
+    if datcol.empty:
+        # for consistency reasons - return empty data/flags column when there is no valid data left
+        # after filtering.
+        data[field] = datcol
+        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
+        flagger = flagger.slice(drop=field).merge(reshaped_flagger)
+        return data, flagger
 
     datcol = aggregate2Freq(datcol, method, freq, agg_func, fill_value=np.nan,
                             max_invalid_total=max_invalid_total_d, max_invalid_consec=max_invalid_consec_d)
@@ -442,9 +455,6 @@ def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_interv
         values being dropped initially.
 
     """
-    if data[field].empty:
-        return data, flagger
-
     data = data.copy()
     datcol = data[field]
     flagscol = flagger.getFlags(field)
@@ -456,6 +466,12 @@ def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_interv
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
+    if datcol.empty:
+        data[field] = datcol
+        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
+        flagger = flagger.slice(drop=field).merge(reshaped_flagger)
+        return data, flagger
+
     flagscol.drop(drop_mask[drop_mask].index, inplace=True)
 
     datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)

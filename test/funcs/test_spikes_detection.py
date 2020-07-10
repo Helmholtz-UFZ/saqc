@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# see test/functs/conftest.py for global fixtures "course_..."
 import pytest
 import numpy as np
 import pandas as pd
