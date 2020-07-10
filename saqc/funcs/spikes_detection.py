@@ -756,9 +756,6 @@ def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, ch
             if partition.shape[0] > min_periods:
                 detected = smirnov_grubbs.two_sided_test_indices(partition['data'].values, alpha=alpha)
                 detected = partition['ts'].iloc[detected]
-                if not detected.empty:
-                    print(detected)
-                    print('stop')
                 to_flag_lagged[detected.index] = True
         to_flag = to_flag & to_flag_lagged
 
