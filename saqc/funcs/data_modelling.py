@@ -186,6 +186,8 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
     data = data.copy()
     to_fit = data[field]
     flags = flagger.getFlags(field)
+    if to_fit.empty:
+        return data, flagger
 
     # starting with the annoying case: finding the rolling interval centers of not-harmonized input time series:
     if (to_fit.index.freqstr is None) and center:
