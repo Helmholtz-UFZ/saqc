@@ -196,7 +196,7 @@ def flagManual(data, field, flagger, mdata, mflag: Any = 1, method='plain', **kw
         It also determine the column in mdata if its of type pd.Dataframe or dios.DictOfSeries.
 
     flagger : flagger
-
+range_dict.keys()
     mdata : {pd.Series, pd.Dataframe, DictOfSeries, str}
         The manual data
 
