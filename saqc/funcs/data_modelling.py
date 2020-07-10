@@ -153,7 +153,7 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
         to_flag = pd.Series(codes[num_cats.astype(int)], index=num_cats.index)
         to_flag = to_flag.align(nan_samples)[0]
         to_flag[nan_samples.index] = flags[nan_samples.index]
-        flagger = flagger.setFlags(field, flags=to_flag, **kwargs)
+        flagger = flagger.setFlags(field, to_flag.values, **kwargs)
 
     return data, flagger
 
@@ -228,6 +228,6 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
         to_flag = pd.Series(codes[num_cats.astype(int)], index=num_cats.index)
         to_flag = to_flag.align(nan_samples)[0]
         to_flag[nan_samples.index] = flags[nan_samples.index]
-        flagger = flagger.setFlags(field, flags=to_flag, **kwargs)
+        flagger = flagger.setFlags(field, to_flag.values, **kwargs)
 
     return data, flagger
