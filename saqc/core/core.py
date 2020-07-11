@@ -53,8 +53,10 @@ def _prepInput(flagger, data, flags):
         data = dios.to_dios(data)
 
     if not isinstance(flagger, BaseFlagger):
+        # NOTE: we should generate that list automatically,
+        #       it won't ever be complete otherwise
         flaggerlist = [CategoricalFlagger, SimpleFlagger, DmpFlagger]
-        raise TypeError(f"flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}")
+        raise TypeError(f"flagger must be of type {flaggerlist} or a subclass of {BaseFlagger}")
 
     if flags is not None:
         if not isinstance(flags, dios_like):
@@ -71,16 +73,11 @@ def _prepInput(flagger, data, flags):
             raise ValueError("the length of flags and data need to be equal")
 
     if flagger.initialized:
-        err = "Flagger is not correctly initialized for given data. Call flagger.initFlags() on data or" \
-              "do not call it at all."
-        fflags = flagger.getFlags()
-        if not fflags.columns.difference(data.columns).empty:
-            raise ValueError(err + " Detail: Columns missmatch.")
+        flags = flagger.getFlags()
 
-        # flagger could have more columns than data
-        cols = fflags.columns & data.columns
-        if not (fflags[cols].lengths == data[cols].lengths).all():
-            raise ValueError(err + " Detail: Length of flags does not match length of data.")
+        cols = flags.columns & data.columns
+        if not data.columns.difference(flags.columns).empty:
+            raise ValueError("Given flagger does not contain all data columns")
 
     return data, flags
 
