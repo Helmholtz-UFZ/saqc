@@ -58,6 +58,14 @@ def test_initFlags(data, flagger):
 
 @pytest.mark.parametrize("data", DATASETS)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_initFlagsWithFlags(data, flagger):
+    flags = dios.DictOfSeries(pd.Series(data=flagger.BAD))
+    flagger = flagger.initFlags(flags=flags)
+    assert (flagger.flags == flags).all(axis=None)
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_getFlags(data, flagger):
     """
     test before:

@@ -51,12 +51,15 @@ class BaseFlagger(ABC):
     def initFlags(self, data: diosT = None, flags: diosT = None) -> BaseFlaggerT:
         """
         initialize a flagger based on the given 'data' or 'flags'
-        if 'data' is not None: return a flagger with flagger.UNFALGGED values
+        if 'data' is not None: return a flagger with flagger.UNFLAGGED values
         if 'flags' is not None: return a flagger with the given flags
         """
 
         if data is None and flags is None:
             raise TypeError("either 'data' or 'flags' are required")
+
+        if data is not None and flags is not None:
+            raise TypeError("either 'data' or 'flags' can be given")
 
         if data is not None:
             if not isinstance(data, diosT):
