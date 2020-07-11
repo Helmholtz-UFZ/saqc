@@ -140,21 +140,20 @@ class SaQC:
             out = out._wrap(func, lineno=lineno, expr=expr)(**kwargs)
         return out
 
-    def getResult(self, write_back=False):
-        """ Do the actual calculations and return the results.
+    def evaluate(self):
+        """
+        Realize all the registered calculations and return a updated SaQC Object
 
-        Parameters
-        ----------
-        write_back: bool, default False
-            If False, every call will recalculate, eventually plot and return the result anew.
-            If True the resulting data is written back in the SaQC object itself, like if
-            the object would have been initialized with it. Further calls will then directly
-            return the result with no recalculation needed, but a replotting is not possible.
+        Paramters
+        ---------
 
         Returns
         -------
-        data, flagger: (DictOfSeries, DictOfSeries)
+        An updated SaQC Object incorporating the requested computations
         """
+
+        # NOTE: It would be nicer to separate the plotting into an own
+        #       method instead of intermingling it with the computation
         data, flagger = self._data, self._flagger
 
         for field, func in self._to_call:
@@ -178,12 +177,22 @@ class SaQC:
         if any([func.plot for _, func in self._to_call]):
             plotAllHook(data, flagger)
 
-        if write_back:
-            self._data = data
-            self._flagger = flagger
-            self._to_call = []
+        return SaQC(flagger, data, nodata=self._nodata, error_policy=self._error_policy)
 
-        return data, flagger
+    def getResult(self):
+        """
+        Realized the registerd calculations and return the results
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        data, flagger: (DictOfSeries, DictOfSeries)
+        """
+
+        realization = self.evaluate()
+        return realization._data, realization._flagger
 
     def _wrap(self, func, lineno=None, expr=None):
 
