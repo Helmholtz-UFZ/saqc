@@ -6,7 +6,7 @@ import click
 import numpy as np
 import pandas as pd
 
-from saqc.core import SaQC
+from saqc.core import SaQC, logger
 from saqc.flagger import CategoricalFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 import dios
@@ -37,13 +37,14 @@ FLAGGERS = {
 @click.option("--fail/--no-fail", default=True, help="whether to stop the program run on errors")
 def main(config, data, flagger, outfile, nodata, log_level, fail):
 
+    logger.setLevel(log_level)
+
     data = pd.read_csv(data, index_col=0, parse_dates=True,)
     data = dios.DictOfSeries(data)
 
     saqc = SaQC(
         flagger=FLAGGERS[flagger],
         data=data,
-        log_level=log_level,
         nodata=nodata,
         error_policy="raise" if fail else "warn",
     )

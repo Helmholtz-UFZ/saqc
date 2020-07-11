@@ -9,7 +9,6 @@ TODOS:
 
 import logging
 from copy import deepcopy
-from operator import attrgetter
 from typing import List, Tuple
 
 import pandas as pd
@@ -86,7 +85,7 @@ def _prepInput(flagger, data, flags):
     return data, flags
 
 
-def _setup(log_level):
+def _setup():
     # NOTE:
     # the import is needed to trigger the registration
     # of the built-in (test-)functions
@@ -97,16 +96,16 @@ def _setup(log_level):
     np.seterr(invalid="ignore")
 
     # logging
-    logger.setLevel(log_level)
+    logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("[%(asctime)s][%(name)s][%(levelname)s]: %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
+_setup()
 
 class SaQC:
-    def __init__(self, flagger, data, flags=None, nodata=np.nan, log_level=logging.INFO, error_policy="raise"):
-        _setup(log_level)
+    def __init__(self, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
         data, flags = _prepInput(flagger, data, flags)
         self._data = data
         self._nodata = nodata
