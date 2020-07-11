@@ -177,7 +177,7 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo=np.log, alpha=
 
     # data fransformation/extraction
     val_frame = data[fields]
-    val_frame = data.loc[data.index_of('shared')].to_df()
+    val_frame = val_frame.loc[val_frame.index_of('shared')].to_df()
     val_frame.dropna(inplace=True)
     val_frame = val_frame.apply(trafo)
 
