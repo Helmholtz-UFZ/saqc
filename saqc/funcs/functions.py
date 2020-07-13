@@ -108,7 +108,34 @@ def flagRange(data, field, flagger, min, max, **kwargs):
 
 
 @register
-def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition_freq = "days", partition_offset = 0, max_distance = 0.03, normalized_distance = True, open_end = True, widths = None, waveform = 'mexh', **kwargs):
+def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition_freq = "days", partition_offset = 0, max_distance = 0.03, normalized_distance = True, open_end = True, widths = (1, 2, 4, 8), waveform = 'mexh', **kwargs):
+    """ Implementation of two pattern recognition algorithms:
+    - Dynamic Time Warping (dtw) [1]
+    - Pattern recognition via wavelets [2]
+
+    The steps are:
+    1. Get the frequency of partitions, in which the time series has to be divided (for example: a pattern occurs daily, or every hour)
+    2. Compare each partition with the given pattern
+    3. Check if the compared partition contains the pattern or not
+    4. Flag partition if it contains pattern
+
+    :param data:                pandas dataframe. holding the data
+    :param field:               fieldname in `data`, which holds the series to be checked for patterns
+    :param flagger:             flagger.
+    :param reference_field:     fieldname in `data`, which holds the pattern
+    :param method:              str. Pattern Recognition method to be used: 'dtw' or 'wavelets'. Default: 'dtw'
+    :param partition_freq:      str. Frequency, in which the pattern occurs. If only "days" or "months" is given, then precise length of partition is calculated from pattern length. Default: "days"
+    :param partition_offset:    str. If partition frequency is given, and pattern starts after a timely offset (e.g., partition frequency is "1 h", pattern starts at 10:15, then offset is "15 min"). Default: 0
+    :param max_distance:        float. For dtw. Maximum dtw-distance between partition and pattern, so that partition is recognized as pattern. Default: 0.03
+    :param normalized_distance: boolean. For dtw. Normalizing dtw-distance (see [1]). Default: True
+    :param open_end:            boolean. For dtw. End of pattern is matched with a value in the partition (not necessarily end of partition). Recommendation of [1]. Default: True
+    :param widths:              tuple of int. For wavelets. Widths for wavelet decomposition. [2] recommends a dyadic scale. Default: (1,2,4,8)
+    :param waveform:            str. For wavelets. Wavelet to be used for decomposition. Default: 'mexh'
+
+    Literature:
+    [1] https://cran.r-project.org/web/packages/dtw/dtw.pdf
+    [2] Maharaj, E.A. (2002): Pattern Recognition of Time Series using Wavelets. In: Härdle W., Rönz B. (eds) Compstat. Physica, Heidelberg, 978-3-7908-1517-7.
+    """
 
     test = data[field].copy()
     ref = data[reference_field].copy()
@@ -130,8 +157,6 @@ def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition
         # calculate reference wavelet transform
         ref_wl = ref.values.ravel()
         # Widths lambda as in Ann Maharaj
-        if not widths:
-            widths = [1, 2, 4, 8]
         cwtmat_ref, freqs = pywt.cwt(ref_wl, widths, waveform)
         # Square of matrix elements as Power sum of the matrix
         wavepower_ref = np.power(cwtmat_ref, 2)
