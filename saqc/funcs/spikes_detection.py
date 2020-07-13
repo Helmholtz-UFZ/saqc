@@ -136,7 +136,7 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
 
 
 def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
-                   reduction_drop_flagged=False, reduction_thresh=3.5):
+                   reduction_drop_flagged=False, reduction_thresh=3.5, reduction_min_periods=1):
     to_flag_frame[:] = False
     to_flag_index = to_flag_frame.index
     for var in fields:
@@ -145,14 +145,22 @@ def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
                                 index[1] + pd.Timedelta(reduction_range))
 
 
-            test_slice = val_frame[var][index_slice]
+            test_slice = val_frame[var][index_slice].dropna()
+            # check, wheather value under test is sufficiently centered:
+            first_valid = test_slice.first_valid_index()
+            last_valid = test_slice.last_valid_index()
+            min_range = pd.Timedelta(reduction_range)/4
+            polydeg = 2
+            if ((pd.Timedelta(index[1] - first_valid) < min_range) |
+                (pd.Timedelta(last_valid - index[1]) < min_range)):
+                polydeg = 0
             if reduction_drop_flagged:
                 test_slice = test_slice.drop(to_flag_index, errors='ignore')
-            if not test_slice.empty:
+            if test_slice.shape[0] >= reduction_min_periods:
                 x = (test_slice.index.values.astype(float))
                 x_0 = x[0]
                 x = (x - x_0)/10**12
-                polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=2)
+                polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=polydeg)
                 testval = poly.polyval((float(index[1].to_numpy()) - x_0)/10**12, polyfitted)
                 testval = val_frame[var][index[1]] - testval
                 resids = test_slice.values -poly.polyval(x, polyfitted)
@@ -172,10 +180,11 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo=np.log, alpha=
                               scoring_method='kNNMaxGap', iter_start=0.5, threshing='stray',
                               expfit_binning='auto', stray_partition=None, stray_partition_min=0,
                               post_reduction=None, reduction_range=None, reduction_drop_flagged=False,
-                              reduction_thresh=3.5, **kwargs):
+                              reduction_thresh=3.5, reduction_min_periods=1, **kwargs):
 
 
     # data fransformation/extraction
+    data = data.copy()
     val_frame = data[fields]
     val_frame = val_frame.loc[val_frame.index_of('shared')].to_df()
     val_frame.dropna(inplace=True)
@@ -200,9 +209,11 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo=np.log, alpha=
 
     to_flag_frame = pd.DataFrame({var_name: True for var_name in fields}, index=to_flag_index)
     if post_reduction:
+        val_frame = data[fields].to_df()
         to_flag_frame = _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
                                        reduction_drop_flagged=reduction_drop_flagged,
-                                       reduction_thresh=reduction_thresh)
+                                       reduction_thresh=reduction_thresh,
+                                       reduction_min_periods=reduction_min_periods)
 
     for var in fields:
         to_flag_ind = to_flag_frame.loc[: ,var]
