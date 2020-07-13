@@ -22,6 +22,7 @@ from saqc.lib.tools import (
 def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
            alpha=0.05):
 
+
     kNNfunc = getattr(ts_ops, scoring_method)
     # partitioning
     if not partition_freq:

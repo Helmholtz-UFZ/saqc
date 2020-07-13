@@ -44,34 +44,6 @@ def course_2(char_dict):
     # values , that linearly  develop over the whole timeseries, from "initial_level" to "final_level", exhibiting
     # one "anomalous" or "outlierish" value of magnitude "out_val" at position "periods/2"
     # number of periods better be even!
-    def fix_funk(freq='10min', periods=10, initial_level=0, final_level=2, out_val=5,
-                 initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), char_dict=char_dict):
-
-        t_index = pd.date_range(initial_index, freq=freq, periods=periods)
-        data = np.linspace(initial_level, final_level, int(np.floor(len(t_index))))
-
-        data = pd.Series(data=data, index=t_index)
-        data.iloc[int(np.floor(periods / 2))] = out_val
-
-        if out_val > data.iloc[int(np.floor(periods / 2) - 1)]:
-            kind = 'raise'
-        else:
-            kind = 'drop'
-
-        char_dict[kind] = data.index[int(np.floor(periods / 2))]
-        char_dict['return'] = data.index[int(np.floor(len(t_index) / 2)) + 1]
-
-        data = DictOfSeries(data=data, columns=['data'])
-        return data, char_dict
-
-    return fix_funk
-
-@pytest.fixture
-def course_2(char_dict):
-    # SINGLE_SPIKE
-    # values , that linearly  develop over the whole timeseries, from "initial_level" to "final_level", exhibiting
-    # one "anomalous" or "outlierish" value of magnitude "out_val" at position "periods/2"
-    # number of periods better be even!
     def fix_funk(freq='10min', periods=10, initial_level=0, final_level=0, out_val=5,
                  initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), char_dict=char_dict):
 
@@ -98,7 +70,8 @@ def course_2(char_dict):
 
 @pytest.fixture
 def course_pattern_1(char_dict):
-    # Test spike pattern
+    # Test trapezium pattern - values , that linearly increase till out_val, stay constant for one more value, and then
+    # decrease again to 0. Sample frequency is 10 min.
     def fix_funk(freq='10min',
                  initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), out_val=5, char_dict=char_dict):
 
@@ -119,7 +92,8 @@ def course_pattern_1(char_dict):
 
 @pytest.fixture
 def course_pattern_2(char_dict):
-    # Test spike pattern
+    # Test trapezium pattern - values , that linearly increase till out_val, stay constant for one more value, and then
+    # decrease again to 0. Sample frequency is 1 H.
     def fix_funk(freq='1 H',
                  initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), out_val=5, char_dict=char_dict):
 
@@ -146,7 +120,6 @@ def course_test(char_dict):
                  initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), out_val=5, char_dict=char_dict):
 
         t_index = pd.date_range(initial_index, freq=freq, periods=100)
-        #data = np.linspace(initial_level, final_level, int(np.floor(len(t_index))))
 
         data = pd.Series(data=0, index=t_index)
         data.iloc[2] = out_val

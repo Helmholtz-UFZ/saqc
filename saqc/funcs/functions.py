@@ -107,24 +107,20 @@ def flagRange(data, field, flagger, min, max, **kwargs):
     return data, flagger
 
 
-
-@register()
-def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition_freq = "days", partition_offset = 0, max_distance = 0.03, normalized_distance = True, widths = [1,2,4,8], waveform = 'mexh', **kwargs):
+@register
+def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition_freq = "days", partition_offset = 0, max_distance = 0.03, normalized_distance = True, open_end = True, widths = None, waveform = 'mexh', **kwargs):
 
     test = data[field].copy()
     ref = data[reference_field].copy()
-    #ref = ref['2019-06-29 11:00:00':'2019-06-29 18:00:00']
-    Pattern_start_date = ref.index[0]
-    Pattern_start_time = datetime.datetime.time(Pattern_start_date)
-    Pattern_end_date = ref.index[-1]
-    Pattern_end_time = datetime.datetime.time(Pattern_end_date)
+    pattern_start_date = ref.index[0].time()
+    pattern_end_date = ref.index[-1].time()
 
     ### Extract partition frequency from pattern if needed
     if not isinstance(partition_freq, str):
         raise ValueError('Partition frequency has to be given in string format.')
     elif partition_freq == "days" or partition_freq == "months":
             # Get partition frequency from reference field
-            partition_count = (Pattern_end_date - Pattern_start_date).days
+            partition_count = (pattern_end_date - pattern_start_date).days
             partitions = test.groupby(pd.Grouper(freq="%d D" % (partition_count + 1)))
     else:
         partitions = test.groupby(pd.Grouper(freq=partition_freq))
@@ -134,6 +130,8 @@ def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition
         # calculate reference wavelet transform
         ref_wl = ref.values.ravel()
         # Widths lambda as in Ann Maharaj
+        if not widths:
+            widths = [1, 2, 4, 8]
         cwtmat_ref, freqs = pywt.cwt(ref_wl, widths, waveform)
         # Square of matrix elements as Power sum of the matrix
         wavepower_ref = np.power(cwtmat_ref, 2)
@@ -141,31 +139,32 @@ def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition
     # No correct method given
         raise ValueError('Unable to interpret {} as method.'.format(method))
 
-    flags = pd.Series(data=0, index=test.index)
+    flags = pd.Series(data=False, index=test.index)
     ### Calculate flags for every partition
     partition_min = ref.shape[0]
     for _, partition in partitions:
+
         # Ensuring that partition is at least as long as reference pattern
         if partition.empty or (partition.shape[0] < partition_min):
             continue
         if partition_freq == "days" or partition_freq == "months":
             # Use only the time frame given by the pattern
-            test = partition.between_time(Pattern_start_time, Pattern_end_time)
+            test = partition[pattern_start_date:pattern_start_date]
             mask = (partition.index >= test.index[0]) & (partition.index <= test.index[-1])
             test = partition.loc[mask]
         else:
             # cut partition according to pattern and offset
             start_time = pd.Timedelta(partition_offset) + partition.index[0]
-            end_time = start_time + pd.Timedelta(Pattern_end_date - Pattern_start_date)
+            end_time = start_time + pd.Timedelta(pattern_end_date - pattern_start_date)
             test = partition[start_time:end_time]
         ### Switch method
         if method == 'dtw':
-            distance = dtw.dtw(test, ref, open_end=True, distance_only=True).normalizedDistance
+            distance = dtw.dtw(test, ref, open_end = open_end, distance_only = True).normalizedDistance
             if normalized_distance:
-                distance = distance/abs(ref.mean())
+                distance = distance/ref.var()
             # Partition labeled as pattern by dtw
             if distance < max_distance:
-                flags[partition.index] = 1
+                flags[partition.index] = True
         elif method == 'wavelet':
             # calculate reference wavelet transform
             test_wl = test.values.ravel()
@@ -182,9 +181,8 @@ def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition
                 p_value.append(min(pval, 1 - pval))
             # Partition labeled as pattern by wavelet
             if min(p_value) >= 0.01:
-                flags[partition.index] = 1
+                flags[partition.index] = True
 
-    mask = (flags == 1)
 
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
