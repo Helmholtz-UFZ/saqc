@@ -100,7 +100,7 @@ def test_flagSpikesLimitRaise(dat, flagger):
 
 # see test/functs/conftest.py for the 'course_N'
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_pattern")])
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
 def test_flagSpikesOddWater(dat, flagger):
     #data1, characteristics = dat(periods=100, initial_level=5, final_level=15, out_val=50)
     data1, characteristics = dat()
