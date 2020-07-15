@@ -191,3 +191,5 @@ def course_4(char_dict):
         return data, char_dict
 
     return fix_funk
+
+

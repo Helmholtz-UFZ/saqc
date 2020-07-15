@@ -117,7 +117,7 @@ def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition
     1. Get the frequency of partitions, in which the time series has to be divided (for example: a pattern occurs daily, or every hour)
     2. Compare each partition with the given pattern
     3. Check if the compared partition contains the pattern or not
-    4. Flag partition if it contains pattern
+    4. Flag partition if it contains the pattern
 
     :param data:                pandas dataframe. holding the data
     :param field:               fieldname in `data`, which holds the series to be checked for patterns
