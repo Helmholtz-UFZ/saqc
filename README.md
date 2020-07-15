@@ -81,7 +81,7 @@ the Python-API:
 ```python
 from saqc import SaQC, SimpleFlagger
 
-saqc = (SaQC(data, SimpleFlagger())
+saqc = (SaQC(SimpleFlagger(), data)
         .harm_shift2Grid("SM2", freq="15Min")
         .flagMissing("SM2", nodata=np.nan)
         .flagRange("SM(1|2)+", regex=True, min=10, max=60)

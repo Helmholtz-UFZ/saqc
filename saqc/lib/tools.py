@@ -9,84 +9,10 @@ import numba as nb
 import pandas as pd
 
 import dios
+import inspect
 
 # from saqc.flagger import BaseFlagger
 from saqc.lib.types import T
-
-# SAQC_OPERATORS = {
-#     "exp": np.exp,
-#     "log": np.log,
-#     "sum": np.sum,
-#     "var": np.var,
-#     "std": np.std,
-#     "mean": np.mean,
-#     "median": np.median,
-#     "min": np.min,
-#     "max": np.max,
-#     "first": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").first,
-#     "last": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").last,
-#     "deltaT": ts_ops.deltaT,
-#     "id": ts_ops.identity,
-#     "diff": ts_ops.difference,
-#     "relDiff": ts_ops.relativeDifference,
-#     "deriv": ts_ops.derivative,
-#     "rateOfChange": ts_ops.rateOfChange,
-#     "scale": ts_ops.scale,
-#     "normScale": ts_ops.normScale,
-#     "meanStandardize": ts_ops.standardizeByMean,
-#     "medianStandardize": ts_ops.standardizeByMedian,
-#     "zLog": ts_ops.zeroLog
-# }
-
-
-# OP_MODULES = {'pd': pd,
-#               'np': np,
-#               'scipy': scipy,
-#               'sklearn': sklearn
-#               }
-
-
-# def evalFuncString(func_string):
-#     # TODO: check if necessary when the API is available
-#     if not isinstance(func_string, str):
-#         return func_string
-#     module_dot = func_string.find(".")
-#     first, *rest = func_string.split(".")
-#     if rest:
-#         module = func_string[:module_dot]
-#         try:
-#             return reduce(lambda m, f: getattr(m, f), rest, OP_MODULES[first])
-#         except KeyError:
-#             availability_list = [f"'{k}' (= {s.__name__})" for k, s in OP_MODULES.items()]
-#             availability_list = " \n".join(availability_list)
-#             raise ValueError(
-#                 f'The external-module alias "{module}" is not known to the internal operators dispatcher. '
-#                 f"\n Please select from: \n{availability_list}"
-#             )
-
-#     else:
-#         if func_string in SAQC_OPERATORS:
-#             return SAQC_OPERATORS[func_string]
-#         else:
-#             availability_list = [f"'{k}' (= {s.__name__})" for k, s in SAQC_OPERATORS.items()]
-#             availability_list = " \n".join(availability_list)
-#             raise ValueError(
-#                 f'The external-module alias "{func_string}" is not known to the internal operators '
-#                 f"dispatcher. \n Please select from: \n{availability_list}"
-#             )
-
-
-# def composeFunction(functions):
-#     # TODO: check if necessary when the API is available
-#     if callable(functions):
-#         return functions
-#     functions = toSequence(functions)
-#     functions = [evalFuncString(f) for f in functions]
-
-#     def composed(ts, funcs=functions):
-#         return reduce(lambda x, f: f(x), reversed(funcs), ts)
-
-#     return partial(composed, funcs=functions)
 
 
 def assertScalar(name, value, optional=False):
@@ -183,8 +109,9 @@ def inferFrequency(data: pd.Series) -> pd.DateOffset:
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
-def retrieveTrustworthyOriginal(data: dios.DictOfSeries, field: str, flagger=None,
-                                level: Any = None) -> dios.DictOfSeries:
+def retrieveTrustworthyOriginal(
+    data: dios.DictOfSeries, field: str, flagger=None, level: Any = None
+) -> dios.DictOfSeries:
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
     differenciating between missng value - nans und fillvalue nans is impossible.
 
@@ -347,25 +274,6 @@ def assertSeries(srs: Any, argname: str = "arg") -> None:
         raise TypeError(f"{argname} must be of type pd.Series, {type(srs)} was given")
 
 
-def getFuncFromInput(func):
-    """
-    Aggregation functions passed by the user, are selected by looking them up in the STRING_2_DICT dictionary -
-    But since there are wrappers, that dynamically generate aggregation functions and pass those on ,the parameter
-    interfaces must as well be capable of processing real functions passed. This function does that.
-
-    :param func: A key to the STRING_2_FUNC dict, or an actual function
-    """
-    # TODO: check if necessary when the API is available
-    # if input is a callable - than just pass it:
-    if hasattr(func, "__call__"):
-        if (func.__name__ == "aggregator") & (func.__module__ == "saqc.funcs.harm_functions"):
-            return func
-        else:
-            raise ValueError("The function you passed is suspicious!")
-    else:
-        return evalFuncString(func)
-
-
 @nb.jit(nopython=True, cache=True)
 def otherIndex(values: np.ndarray, start: int = 0) -> int:
     """
@@ -424,3 +332,20 @@ def mergeDios(left, right, join="merge"):
 
 def isQuoted(string):
     return bool(re.search(r"'.*'|\".*\"", string))
+
+
+def dropper(field, drop_flags, flagger, default):
+    drop_mask = pd.Series(False, flagger.getFlags(field).index)
+    if drop_flags is None:
+        drop_flags = default
+    drop_flags = toSequence(drop_flags)
+    if len(drop_flags) > 0:
+        drop_mask |= flagger.isFlagged(field, flag=drop_flags)
+    return drop_mask
+
+
+def mutateIndex(index, old_name, new_name):
+    pos = index.get_loc(old_name)
+    index = index.drop(index[pos])
+    index = index.insert(pos, new_name)
+    return index

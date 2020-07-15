@@ -29,12 +29,7 @@ def data_diff():
     col1 = data[data.columns[1]]
     mid = len(col0) // 2
     offset = len(col0) // 8
-    return DictOfSeries(
-        data={
-            col0.name: col0.iloc[:mid + offset],
-            col1.name: col1.iloc[mid - offset:],
-        }
-    )
+    return DictOfSeries(data={col0.name: col0.iloc[: mid + offset], col1.name: col1.iloc[mid - offset :],})
 
 
 def _compileGeneric(expr):
@@ -82,9 +77,7 @@ def test_typeError(flagger):
     """
 
     # : think about cases that should be forbidden
-    tests = (
-        "lambda x: x * 2",
-    )
+    tests = ("lambda x: x * 2",)
 
     for test in tests:
         with pytest.raises(TypeError):
@@ -122,7 +115,7 @@ def test_arithmeticOperators(data, flagger):
         ("var1 + 100 > 110", this + 100 > 110),
         ("var1 - 100 > 0", this - 100 > 0),
         ("var1 * 100 > 200", this * 100 > 200),
-        ("var1 / 100 > .1", this / 100 > .1),
+        ("var1 / 100 > .1", this / 100 > 0.1),
         ("var1 % 2 == 1", this % 2 == 1),
         ("var1 ** 2 == 0", this ** 2 == 0),
     ]
@@ -219,16 +212,14 @@ def test_isflagged(data, flagger):
 
     var1, var2, *_ = data.columns
 
-    flagger = flagger.initFlags(data).setFlags(
-        var1, loc=data[var1].index[::2], flag=flagger.BAD
-    )
+    flagger = flagger.initFlags(data).setFlags(var1, loc=data[var1].index[::2], flag=flagger.BAD)
 
     tests = [
         (f"isflagged({var1})", flagger.isFlagged(var1)),
         (f"isflagged({var1}, BAD)", flagger.isFlagged(var1, flag=flagger.BAD)),
         (f"isflagged({var1}, UNFLAGGED, '==')", flagger.isFlagged(var1, flag=flagger.UNFLAGGED, comparator="==")),
         (f"~isflagged({var2})", ~flagger.isFlagged(var2)),
-        (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & (~flagger.isFlagged(var2)))
+        (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & (~flagger.isFlagged(var2))),
     ]
 
     for test, expected in tests:
@@ -314,7 +305,6 @@ def test_callableArgumentsBinary(data):
     def testFuncBinary(data, field, flagger, func, **kwargs):
         data[field] = func(data[var1], data[var2])
         return data, flagger.initFlags(data=data)
-
 
     config = f"""
     {F.VARNAME} ; {F.TEST}

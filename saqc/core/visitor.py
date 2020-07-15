@@ -21,10 +21,11 @@ ENVIRONMENT = {
     "len": len,
     "exp": np.exp,
     "log": np.log,
-    "var": np.var,
-    "median": np.median,
-    "first": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").first,
-    "last": pd.Series(np.nan, index=pd.DatetimeIndex([])).resample("0min").last,
+    "var": np.nanvar,
+    "median": np.nanmedian,
+    "first": ts_ops.first,
+    "last": ts_ops.last,
+    "count": ts_ops.count,
     "deltaT": ts_ops.deltaT,
     "id": ts_ops.identity,
     "diff": ts_ops.difference,
@@ -35,7 +36,7 @@ ENVIRONMENT = {
     "normScale": ts_ops.normScale,
     "meanStandardize": ts_ops.standardizeByMean,
     "medianStandardize": ts_ops.standardizeByMedian,
-    "zLog": ts_ops.zeroLog
+    "zLog": ts_ops.zeroLog,
 }
 
 RESERVED = {"GOOD", "BAD", "UNFLAGGED", "NODATA"}
@@ -179,9 +180,7 @@ class ConfigFunctionParser(ast.NodeVisitor):
         except TypeError:
             pass
 
-        vnode = ast.Assign(
-            targets=[ast.Name(id=k, ctx=ast.Store())], value=v
-        )
+        vnode = ast.Assign(targets=[ast.Name(id=k, ctx=ast.Store())], value=v)
 
         # NOTE:
         # in order to get concrete values out of the AST
@@ -190,11 +189,7 @@ class ConfigFunctionParser(ast.NodeVisitor):
         # -> after all keywords where visited we end up with
         #    a dictionary holding all the passed arguments as
         #    real python objects
-        co = compile(
-            ast.fix_missing_locations(ast.Interactive(body=[vnode])),
-            "<ast>",
-            mode="single"
-        )
+        co = compile(ast.fix_missing_locations(ast.Interactive(body=[vnode])), "<ast>", mode="single")
         # NOTE: only pass a copy to not clutter the ENVIRONMENT
         exec(co, {**ENVIRONMENT}, self.kwargs)
 
@@ -206,4 +201,3 @@ class ConfigFunctionParser(ast.NodeVisitor):
         if not isinstance(node, self.SUPPORTED_NODES):
             raise TypeError(f"invalid node: '{node}'")
         return super().generic_visit(node)
-

@@ -9,7 +9,6 @@ TODOS:
 
 import logging
 from copy import deepcopy
-from operator import attrgetter
 from typing import List, Tuple
 
 import pandas as pd
@@ -54,8 +53,10 @@ def _prepInput(flagger, data, flags):
         data = dios.to_dios(data)
 
     if not isinstance(flagger, BaseFlagger):
+        # NOTE: we should generate that list automatically,
+        #       it won't ever be complete otherwise
         flaggerlist = [CategoricalFlagger, SimpleFlagger, DmpFlagger]
-        raise TypeError(f"flagger must be of type {flaggerlist} or any inherit class from {BaseFlagger}")
+        raise TypeError(f"flagger must be of type {flaggerlist} or a subclass of {BaseFlagger}")
 
     if flags is not None:
         if not isinstance(flags, dios_like):
@@ -72,21 +73,16 @@ def _prepInput(flagger, data, flags):
             raise ValueError("the length of flags and data need to be equal")
 
     if flagger.initialized:
-        err = "Flagger is not correctly initialized for given data. Call flagger.initFlags() on data or" \
-              "do not call it at all."
-        fflags = flagger.getFlags()
-        if not fflags.columns.difference(data.columns).empty:
-            raise ValueError(err + " Detail: Columns missmatch.")
+        flags = flagger.getFlags()
 
-        # flagger could have more columns than data
-        cols = fflags.columns & data.columns
-        if not (fflags[cols].lengths == data[cols].lengths).all():
-            raise ValueError(err + " Detail: Length of flags does not match length of data.")
+        cols = flags.columns & data.columns
+        if not data.columns.difference(flags.columns).empty:
+            raise ValueError("Given flagger does not contain all data columns")
 
     return data, flags
 
 
-def _setup(log_level):
+def _setup():
     # NOTE:
     # the import is needed to trigger the registration
     # of the built-in (test-)functions
@@ -97,16 +93,18 @@ def _setup(log_level):
     np.seterr(invalid="ignore")
 
     # logging
-    logger.setLevel(log_level)
+    logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("[%(asctime)s][%(name)s][%(levelname)s]: %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
 
+_setup()
+
+
 class SaQC:
-    def __init__(self, flagger, data, flags=None, nodata=np.nan, log_level=logging.INFO, error_policy="raise"):
-        _setup(log_level)
+    def __init__(self, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
         data, flags = _prepInput(flagger, data, flags)
         self._data = data
         self._nodata = nodata
@@ -144,21 +142,20 @@ class SaQC:
             out = out._wrap(func, lineno=lineno, expr=expr)(**kwargs)
         return out
 
-    def getResult(self, write_back=False):
-        """ Do the actual calculations and return the results.
+    def evaluate(self):
+        """
+        Realize all the registered calculations and return a updated SaQC Object
 
-        Parameters
-        ----------
-        write_back: bool, default False
-            If False, every call will recalculate, eventually plot and return the result anew.
-            If True the resulting data is written back in the SaQC object itself, like if
-            the object would have been initialized with it. Further calls will then directly
-            return the result with no recalculation needed, but a replotting is not possible.
+        Paramters
+        ---------
 
         Returns
         -------
-        data, flagger: (DictOfSeries, DictOfSeries)
+        An updated SaQC Object incorporating the requested computations
         """
+
+        # NOTE: It would be nicer to separate the plotting into an own
+        #       method instead of intermingling it with the computation
         data, flagger = self._data, self._flagger
 
         for field, func in self._to_call:
@@ -171,9 +168,13 @@ class SaQC:
 
             if func.plot:
                 plotHook(
-                    data_old=data, data_new=data_result,
-                    flagger_old=flagger, flagger_new=flagger_result,
-                    sources=[], targets=[field], plot_name=func.__name__,
+                    data_old=data,
+                    data_new=data_result,
+                    flagger_old=flagger,
+                    flagger_new=flagger_result,
+                    sources=[],
+                    targets=[field],
+                    plot_name=func.__name__,
                 )
 
             data = data_result
@@ -182,15 +183,24 @@ class SaQC:
         if any([func.plot for _, func in self._to_call]):
             plotAllHook(data, flagger)
 
-        if write_back:
-            self._data = data
-            self._flagger = flagger
-            self._to_call = []
+        return SaQC(flagger, data, nodata=self._nodata, error_policy=self._error_policy)
 
-        return data, flagger
+    def getResult(self):
+        """
+        Realized the registerd calculations and return the results
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        data, flagger: (DictOfSeries, DictOfSeries)
+        """
+
+        realization = self.evaluate()
+        return realization._data, realization._flagger
 
     def _wrap(self, func, lineno=None, expr=None):
-
         def inner(field: str, *args, regex: bool = False, **kwargs):
 
             fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]

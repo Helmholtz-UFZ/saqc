@@ -19,6 +19,7 @@ class Func:
     `Func` provides a couple of properties/methods used to check
     the passed arguments before the actual function call happens.
     """
+
     def __init__(self, *args, **kwargs):
         if len(args) < 1:
             raise TypeError("'Func' takes at least one argument")
@@ -99,7 +100,7 @@ class Func:
         returns all the names of all unbound variables,
         i.e. not yet `partialed` parameters
         """
-        return set(self.positionals[len(self.args):]) - set(self.kwargs.keys())
+        return set(self.positionals[len(self.args) :]) - set(self.kwargs.keys())
 
 
 class RegisterFunc(Func):
@@ -109,6 +110,7 @@ class RegisterFunc(Func):
     functions. Currently its sole purpose is to inject additional
     call arguments
     """
+
     def __call__(self, *args, **kwargs):
         # NOTE:
         # injecting the function name into the
@@ -177,7 +179,7 @@ class SaQCFunc(Func):
 # NOTE:
 # the global SaQC function store,
 # will be filled by calls to register
-FUNC_MAP : Dict[str, RegisterFunc] = {}
+FUNC_MAP: Dict[str, RegisterFunc] = {}
 
 
 def register(func, name=None):
