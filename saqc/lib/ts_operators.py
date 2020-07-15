@@ -4,6 +4,7 @@
 """
 The module gathers all kinds of timeseries tranformations.
 """
+import logging
 
 import pandas as pd
 import numpy as np
@@ -12,12 +13,15 @@ import numba as nb
 from sklearn.neighbors import NearestNeighbors
 from scipy.stats import iqr
 import numpy.polynomial.polynomial as poly
-import logging
+
+
 logger = logging.getLogger("SaQC")
+
 
 def identity(ts):
     # identity function
     return ts
+
 
 def count(ts):
     # count is a dummy to trigger according built in count method of
@@ -97,7 +101,7 @@ def standardizeByMedian(ts):
     return (ts - np.median(ts))/iqr(ts, nan_policy='omit')
 
 
-def _kNN(in_arr, n_neighbors, algorithm="ball_tree"):
+def kNN(in_arr, n_neighbors, algorithm="ball_tree"):
     # k-nearest-neighbor search
     nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr.reshape(in_arr.shape[0], -1))
     return nbrs.kneighbors()
@@ -108,7 +112,7 @@ def kNNMaxGap(in_arr, n_neighbors=10, algorithm='ball_tree'):
     # and then returns the distance to the neighbor with the "maximum" Gap to its
     # predecessor in the neighbor hierarchy
     in_arr = np.asarray(in_arr)
-    dist, *_ = _kNN(in_arr, n_neighbors, algorithm=algorithm)
+    dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
     sample_size = dist.shape[0]
     to_gap = np.append(np.array([[0] * sample_size]).T, dist, axis=1)
     max_gap_ind = np.diff(to_gap, axis=1).argmax(axis=1)
@@ -119,12 +123,12 @@ def kNNSum(in_arr, n_neighbors=10, algorithm="ball_tree"):
     # searches for the "n_neighbors" nearest neighbors of every value in "in_arr"
     # and assigns that value the summed up distances to this neighbors
     in_arr = np.asarray(in_arr)
-    dist, *_ = _kNN(in_arr, n_neighbors, algorithm=algorithm)
+    dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
     return dist.sum(axis=1)
 
 
 @nb.njit
-def _max_consecutive_nan(arr, max_consec):
+def _maxConsecutiveNan(arr, max_consec):
     # checks if arr (boolean array) has not more then "max_consec" consecutive True values
     current = 0
     idx = 0
@@ -152,7 +156,7 @@ def validationTrafo(data, max_nan_total, max_nan_consec):
         if max_nan_consec is np.inf:
             data[:] = False
             return data
-        elif _max_consecutive_nan(np.asarray(data), max_nan_consec):
+        elif _maxConsecutiveNan(np.asarray(data), max_nan_consec):
             data[:] = False
             return data
         else:
@@ -366,7 +370,7 @@ def shift2Freq(data, method, freq, fill_value=np.nan):
 
 
 @nb.njit
-def _coeff_mat(x, deg):
+def _coeffMat(x, deg):
     # helper function to construct numba-compatible polynomial fit function
     mat_ = np.zeros(shape=(x.shape[0], deg + 1))
     const = np.ones_like(x)
@@ -379,7 +383,7 @@ def _coeff_mat(x, deg):
 
 
 @nb.jit
-def _fit_x(a, b):
+def _fitX(a, b):
     # helper function to construct numba-compatible polynomial fit function
     # linalg solves ax = b
     det_ = np.linalg.lstsq(a, b)[0]
@@ -387,16 +391,16 @@ def _fit_x(a, b):
 
 
 @nb.jit
-def fit_poly(x, y, deg):
+def _fitPoly(x, y, deg):
     # a numba compatible polynomial fit function
-    a = _coeff_mat(x, deg)
-    p = _fit_x(a, y)
+    a = _coeffMat(x, deg)
+    p = _fitX(a, y)
     # Reverse order so p[0] is coefficient of highest order
     return p[::-1]
 
 
 @nb.jit
-def eval_polynomial(P, x):
+def evalPolynomial(P, x):
     # a numba compatible polynomial evaluator
     result = 0
     for coeff in P:
@@ -404,20 +408,20 @@ def eval_polynomial(P, x):
     return result
 
 
-def polyRoller_numba(in_slice, miss_marker, val_range, center_index, poly_deg):
+def polyRollerNumba(in_slice, miss_marker, val_range, center_index, poly_deg):
     # numba compatible function to roll with when modelling data with polynomial model
     miss_mask = (in_slice == miss_marker)
     x_data = val_range[~miss_mask]
     y_data = in_slice[~miss_mask]
-    fitted = fit_poly(x_data, y_data, deg=poly_deg)
-    return eval_polynomial(fitted, center_index)
+    fitted = _fitPoly(x_data, y_data, deg=poly_deg)
+    return evalPolynomial(fitted, center_index)
 
 
-def polyRollerNoMissing_numba(in_slice, val_range, center_index, poly_deg):
+def polyRollerNoMissingNumba(in_slice, val_range, center_index, poly_deg):
     # numba compatible function to roll with when modelling data with polynomial model -
     # it is assumed, that in slice is an equidistant sample
-    fitted = fit_poly(val_range, in_slice, deg=poly_deg)
-    return eval_polynomial(fitted, center_index)
+    fitted = _fitPoly(val_range, in_slice, deg=poly_deg)
+    return evalPolynomial(fitted, center_index)
 
 
 def polyRoller(in_slice, miss_marker, val_range, center_index, poly_deg):

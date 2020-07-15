@@ -4,7 +4,7 @@
 import pandas as pd
 import numpy as np
 from saqc.core.register import register
-from saqc.lib.ts_operators import polyRoller, polyRollerNoMissing, polyRoller_numba, polyRollerNoMissing_numba, \
+from saqc.lib.ts_operators import polyRoller, polyRollerNoMissing, polyRollerNumba, polyRollerNoMissingNumba, \
     polyRollerIrregular
 
 
@@ -119,7 +119,7 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
             na_mask = to_fit.isna()
             to_fit[na_mask] = miss_marker
             if numba:
-                residues = to_fit.rolling(winsz).apply(polyRoller_numba, args=(miss_marker, val_range,
+                residues = to_fit.rolling(winsz).apply(polyRollerNumba, args=(miss_marker, val_range,
                                                                                             center_index, polydeg),
                                                         raw=True, engine='numba', engine_kwargs={'no_python': True})
                 # due to a tiny bug - rolling with center=True doesnt work when using numba engine.
@@ -132,11 +132,11 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
         else:
             # we only fit fully populated intervals:
             if numba:
-                residues = to_fit.rolling(winsz).apply(polyRollerNoMissing_numba, args=(val_range,
-                                                                                                     center_index,
-                                                                                                     polydeg),
-                                                                    engine='numba', engine_kwargs={'no_python': True},
-                                                                    raw=True)
+                residues = to_fit.rolling(winsz).apply(polyRollerNoMissingNumba, args=(val_range,
+                                                                                       center_index,
+                                                                                       polydeg),
+                                                       engine='numba', engine_kwargs={'no_python': True},
+                                                       raw=True)
                 # due to a tiny bug - rolling with center=True doesnt work when using numba engine.
                 residues = residues.shift(-int(center_index))
             else:
