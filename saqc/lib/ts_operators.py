@@ -87,8 +87,13 @@ def scale(ts, target_range=1, projection_point=None):
 
 
 def normScale(ts):
+    # func scales series to [0,1] interval and projects constant series onto 0.5
     ts_min = ts.min()
-    return (ts - ts_min) / (ts.max() - ts_min)
+    ts_max = ts.max()
+    if ts_min == ts_max:
+        return pd.Series(data=0.5, index=ts.index)
+    else:
+        return (ts - ts_min) / (ts.max() - ts_min)
 
 
 def standardizeByMean(ts):
