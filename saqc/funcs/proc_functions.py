@@ -10,13 +10,10 @@ import dios
 import functools
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-<<<<<<< HEAD
+
 from sklearn.linear_model import LinearRegression
 
 ORIGINAL_SUFFIX = '_original'
-=======
-import pickle
->>>>>>> develop
 
 ORIGINAL_SUFFIX = "_original"
 
@@ -172,24 +169,10 @@ def proc_interpolateMissing(
 
 
 @register
-<<<<<<< HEAD
 def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop_flags=None,
                             downgrade_interpolation=False, empty_intervals_flag=None, grid_field=None, inter_limit=2,
                             **kwargs):
-=======
-def proc_interpolateGrid(
-    data,
-    field,
-    flagger,
-    freq,
-    method,
-    inter_order=2,
-    drop_flags=None,
-    downgrade_interpolation=False,
-    empty_intervals_flag=None,
-    **kwargs
-):
->>>>>>> develop
+
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
 
@@ -267,17 +250,12 @@ def proc_interpolateGrid(
         spec_case_mask = spec_case_mask.tshift(-1, freq)
 
     # prepare grid interpolation:
-<<<<<<< HEAD
     if grid_field is None:
         grid_index = pd.date_range(start=datcol.index[0].floor(freq), end=datcol.index[-1].ceil(freq), freq=freq,
                                    name=datcol.index.name)
     else:
         grid_index = data[grid_field].index
-=======
-    grid_index = pd.date_range(
-        start=datcol.index[0].floor(freq), end=datcol.index[-1].ceil(freq), freq=freq, name=datcol.index.name
-    )
->>>>>>> develop
+
 
     aligned_start = datcol.index[0] == grid_index[0]
     aligned_end = datcol.index[-1] == grid_index[-1]
@@ -285,17 +263,8 @@ def proc_interpolateGrid(
 
     # do the interpolation
     inter_data, chunk_bounds = interpolateNANs(
-<<<<<<< HEAD
         datcol, method, order=inter_order, inter_limit=inter_limit, downgrade_interpolation=downgrade_interpolation,
         return_chunk_bounds=True
-=======
-        datcol,
-        method,
-        order=inter_order,
-        inter_limit=2,
-        downgrade_interpolation=downgrade_interpolation,
-        return_chunk_bounds=True,
->>>>>>> develop
     )
 
     if grid_field is None:
@@ -852,7 +821,6 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         to_flag = to_flag.drop(to_flag[: maint_data.index[0]].index)
         to_flag = to_flag[to_flag.isna()]
         flagger = flagger.setFlags(field, loc=to_flag, **kwargs)
-<<<<<<< HEAD
 
     data[field] = to_correct
 
@@ -886,6 +854,4 @@ def proc_seefoLinearDriftCorrecture(data, field, flagger, x_field, y_field, **kw
     datcol = (datcol * reg.coef_[0]) + reg.intercept_
     data[field] = datcol
     return data, flagger
-=======
-    return data, flagger
->>>>>>> develop
+
