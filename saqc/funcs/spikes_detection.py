@@ -16,11 +16,12 @@ from saqc.lib.tools import (
     offset2seconds,
     slidingWindowIndices,
     findIndex,
+    toSequence
 )
 from outliers import smirnov_grubbs
 
 def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
-           alpha=0.05):
+           alpha=0.05, trafo=lambda x: x):
 
     kNNfunc = getattr(ts_ops, scoring_method)
     # partitioning
@@ -39,6 +40,7 @@ def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNM
     for _, partition in partitions:
         if partition.empty | (partition.shape[0] < partition_min):
             continue
+        partition = partition.apply(trafo)
         sample_size = partition.shape[0]
         nn_neighbors = min(n_neighbors, max(sample_size, 2))
         resids = kNNfunc(partition.values, n_neighbors=nn_neighbors-1, algorithm='ball_tree')
@@ -185,11 +187,12 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo=np.log, alpha=
 
     # data fransformation/extraction
     data = data.copy()
+    fields = toSequence(fields)
     val_frame = data[fields]
     val_frame = val_frame.loc[val_frame.index_of('shared')].to_df()
     val_frame.dropna(inplace=True)
-    val_frame = val_frame.apply(trafo)
-
+    if val_frame.empty:
+        return data, flagger
 
     if threshing == 'stray':
         to_flag_index = _stray(val_frame,
@@ -197,9 +200,11 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo=np.log, alpha=
                                partition_min=stray_partition_min,
                                scoring_method=scoring_method,
                                n_neighbors=n_neighbors,
-                               iter_start=iter_start)
+                               iter_start=iter_start,
+                               trafo=trafo)
 
     else:
+        val_frame = val_frame.apply(trafo)
         to_flag_index = _expFit(val_frame,
                                 scoring_method=scoring_method,
                                 n_neighbors=n_neighbors,
@@ -209,7 +214,7 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo=np.log, alpha=
 
     to_flag_frame = pd.DataFrame({var_name: True for var_name in fields}, index=to_flag_index)
     if post_reduction:
-        val_frame = data[fields].to_df()
+        val_frame = data[toSequence(fields)].to_df()
         to_flag_frame = _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
                                        reduction_drop_flagged=reduction_drop_flagged,
                                        reduction_thresh=reduction_thresh,
