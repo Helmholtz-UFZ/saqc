@@ -60,10 +60,9 @@ class DmpFlagger(CategoricalFlagger):
         out = pd.concat(
             [self._flags.to_df(), self._causes.to_df(), self._comments.to_df()],
             axis=1,
-            keys=[FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
+            keys=[FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT],
         )
-        out = (out.reorder_levels(order=[1, 0], axis=1)
-               .sort_index(axis=1, level=0, sort_remaining=False))
+        out = out.reorder_levels(order=[1, 0], axis=1).sort_index(axis=1, level=0, sort_remaining=False)
         return out
 
     def initFlags(self, data: dios.DictOfSeries = None, flags: dios.DictOfSeries = None):
@@ -93,7 +92,7 @@ class DmpFlagger(CategoricalFlagger):
         newflagger._comments.columns = newflagger._flags.columns
         return newflagger
 
-    def merge(self, other: DmpFlaggerT, join: str= "merge"):
+    def merge(self, other: DmpFlaggerT, join: str = "merge"):
         assert isinstance(other, DmpFlagger)
         out = super().merge(other, join)
         out._causes = mergeDios(out._causes, other._causes, join=join)
@@ -119,4 +118,3 @@ class DmpFlagger(CategoricalFlagger):
         out._causes.aloc[row_indexer, field] = cause
         out._comments.aloc[row_indexer, field] = comment
         return out
-

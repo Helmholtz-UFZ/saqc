@@ -103,12 +103,10 @@ def test_flagCrossScoring(dat, flagger):
     s2 = pd.Series(data=s2.values, index=s1.index)
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flagger = flagger.initFlags(data)
-    _, flagger_result = flagCrossScoring(
-        data, field, flagger, fields=fields, thresh=3, cross_stat=np.mean
-    )
+    _, flagger_result = flagCrossScoring(data, field, flagger, fields=fields, thresh=3, cross_stat=np.mean)
     for field in fields:
         isflagged = flagger_result.isFlagged(field)
-        assert isflagged[characteristics['raise']].all()
+        assert isflagged[characteristics["raise"]].all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -118,17 +116,17 @@ def test_flagManual(data, flagger):
     args = data, field, flagger
     dat = data[field]
 
-    mdata = pd.Series('lala', index=dat.index)
+    mdata = pd.Series("lala", index=dat.index)
     index_exp = mdata.iloc[[10, 33, 200, 500]].index
-    mdata.iloc[[101, 133, 220, 506]] = 'b'
-    mdata.loc[index_exp] = 'a'
+    mdata.iloc[[101, 133, 220, 506]] = "b"
+    mdata.loc[index_exp] = "a"
     shrinked = mdata.loc[index_exp.union(mdata.iloc[[1, 2, 3, 4, 600, 601]].index)]
 
     kwargs_list = [
-        dict(mdata=mdata, mflag='a', method='plain'),
-        dict(mdata=mdata.to_list(), mflag='a', method='plain'),
-        dict(mdata=mdata, mflag='a', method='ontime'),
-        dict(mdata=shrinked, mflag='a', method='ontime'),
+        dict(mdata=mdata, mflag="a", method="plain"),
+        dict(mdata=mdata.to_list(), mflag="a", method="plain"),
+        dict(mdata=mdata, mflag="a", method="ontime"),
+        dict(mdata=shrinked, mflag="a", method="ontime"),
     ]
 
     for kw in kwargs_list:
@@ -137,7 +135,7 @@ def test_flagManual(data, flagger):
         assert isflagged[isflagged].index.equals(index_exp)
 
     # flag not exist in mdata
-    _, fl = flagManual(*args, mdata=mdata, mflag="i do not exist", method='ontime')
+    _, fl = flagManual(*args, mdata=mdata, mflag="i do not exist", method="ontime")
     isflagged = fl.isFlagged(field)
     assert isflagged[isflagged].index.equals(pd.DatetimeIndex([]))
 
@@ -165,7 +163,7 @@ def test_flagManual(data, flagger):
     expected.loc[dat.index[-1]] = 1
     expected = expected.astype(bool)
 
-    _, fl = flagManual(*args, mdata=mdata, mflag=1, method='right-open')
+    _, fl = flagManual(*args, mdata=mdata, mflag=1, method="right-open")
     isflagged = fl.isFlagged(field)
     last = expected.index[0]
     for curr in expected.index[1:]:
@@ -180,7 +178,7 @@ def test_flagManual(data, flagger):
 
     # check left-open / bfill
     expected.loc[dat.index[-1]] = 0  # this time the last is False
-    _, fl = flagManual(*args, mdata=mdata, mflag=1, method='left-open')
+    _, fl = flagManual(*args, mdata=mdata, mflag=1, method="left-open")
     isflagged = fl.isFlagged(field)
     last = expected.index[0]
     assert isflagged[last] == expected[last]

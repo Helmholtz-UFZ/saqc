@@ -87,9 +87,7 @@ class BaseFlagger(ABC):
         if not isinstance(other, self.__class__):
             raise TypeError(f"flagger of type '{self.__class__}' needed")
 
-        newflagger = self.copy(
-            flags=mergeDios(self.flags, other.flags, join=join)
-        )
+        newflagger = self.copy(flags=mergeDios(self.flags, other.flags, join=join))
         return newflagger
 
     def slice(self, field: FieldsT = None, loc: LocT = None, drop: FieldsT = None) -> BaseFlaggerT:

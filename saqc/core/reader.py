@@ -20,7 +20,7 @@ def _handleEmptyLines(df):
         df = df.reset_index()
         i = (df == F.VARNAME).first_valid_index()
         df.columns = df.iloc[i]
-        df = df.iloc[i + 1:]
+        df = df.iloc[i + 1 :]
 
     # mark empty lines
     mask = (df.isnull() | (df == "")).all(axis=1)
@@ -65,7 +65,8 @@ def _parseConfig(df):
 def readConfig(fname):
     df = pd.read_csv(
         fname,
-        sep=r"\s*;\s*", engine="python",
+        sep=r"\s*;\s*",
+        engine="python",
         dtype=str,
         quoting=3,
         keep_default_na=False,  # don't replace "" by nan

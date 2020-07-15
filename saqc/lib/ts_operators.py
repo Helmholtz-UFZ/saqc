@@ -93,12 +93,12 @@ def normScale(ts):
 
 def standardizeByMean(ts):
     # standardization with mean and probe variance
-    return (ts - np.mean(ts))/np.std(ts, ddof=1)
+    return (ts - np.mean(ts)) / np.std(ts, ddof=1)
 
 
 def standardizeByMedian(ts):
     # standardization with median and interquartile range
-    return (ts - np.median(ts))/iqr(ts, nan_policy='omit')
+    return (ts - np.median(ts)) / iqr(ts, nan_policy="omit")
 
 
 def kNN(in_arr, n_neighbors, algorithm="ball_tree"):
@@ -107,7 +107,7 @@ def kNN(in_arr, n_neighbors, algorithm="ball_tree"):
     return nbrs.kneighbors()
 
 
-def kNNMaxGap(in_arr, n_neighbors=10, algorithm='ball_tree'):
+def kNNMaxGap(in_arr, n_neighbors=10, algorithm="ball_tree"):
     # searches for the "n_neighbors" nearest neighbors of every value in "in_arr"
     # and then returns the distance to the neighbor with the "maximum" Gap to its
     # predecessor in the neighbor hierarchy
@@ -230,7 +230,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
 
     if method in ["linear", "time"]:
 
-        data.interpolate(method=method, inplace=True, limit=inter_limit-1, limit_area="inside")
+        data.interpolate(method=method, inplace=True, limit=inter_limit - 1, limit_area="inside")
 
     else:
         dat_name = data.name
@@ -268,7 +268,9 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         return data
 
 
-def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_total=np.inf, max_invalid_consec=np.inf):
+def aggregate2Freq(
+    data, method, freq, agg_func, fill_value=np.nan, max_invalid_total=np.inf, max_invalid_consec=np.inf
+):
     # The function aggregates values to an equidistant frequency grid with agg_func.
     # Timestamps that have no values projected on them, get "fill_value" assigned. Also,
     # "fill_value" serves as replacement for "invalid" intervals
@@ -276,12 +278,13 @@ def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_
     # filter data for invalid patterns (since filtering is expensive we pre-check if it is demanded)
     if (max_invalid_total is not np.inf) | (max_invalid_consec is not np.inf):
         if pd.isnull(fill_value):
-            temp_mask = (data.isna())
+            temp_mask = data.isna()
         else:
-            temp_mask = (data == fill_value)
+            temp_mask = data == fill_value
 
-        temp_mask = temp_mask.groupby(pd.Grouper(freq=freq)).transform(validationTrafo, max_nan_total=max_invalid_total,
-                                                                 max_nan_consec=max_invalid_consec)
+        temp_mask = temp_mask.groupby(pd.Grouper(freq=freq)).transform(
+            validationTrafo, max_nan_total=max_invalid_total, max_nan_consec=max_invalid_consec
+        )
         data[temp_mask] = fill_value
 
     # some timestamp acrobatics to feed pd.resample`s base keyword properly
@@ -290,18 +293,18 @@ def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_
     if method == "nagg":
         # all values within a grid points range (+/- freq/2, closed to the left) get aggregated with 'agg method'
         base = seconds_total / 2
-        label = 'left'
-        closed = 'left'
+        label = "left"
+        closed = "left"
     elif method == "bagg":
         # all values in a sampling interval get aggregated with agg_method and assigned to the last grid point
         base = 0
-        label = 'left'
-        closed = 'left'
+        label = "left"
+        closed = "left"
     else:
         # all values in a sampling interval get aggregated with agg_method and assigned to the next grid point
         base = 0
-        label = 'right'
-        closed = 'right'
+        label = "right"
+        closed = "right"
 
     # In the following, we check for empty intervals outside resample.apply, because:
     # - resample AND groupBy do insert value zero for empty intervals if resampling with any kind of "sum" application -
@@ -309,8 +312,7 @@ def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_
     # - we are aggregating data and flags with this function and empty intervals usually would get assigned flagger.BAD
     #   flag (where resample inserts np.nan or 0)
 
-    data_resampler = data.resample(freq_string, base=base, closed=closed,
-                                  label=label)
+    data_resampler = data.resample(freq_string, base=base, closed=closed, label=label)
 
     empty_intervals = data_resampler.count() == 0
     # great performance gain can be achieved, when avoiding .apply and using pd.resampler
@@ -318,13 +320,13 @@ def aggregate2Freq(data, method, freq, agg_func, fill_value=np.nan, max_invalid_
     try:
         # get rid of nan_prefix attached to numpys nanfuncs ("ignore nan is pointless down here -
         # resample doesnt pass no nans to the func applied)
-        if agg_func.__name__[:3] == 'nan':
+        if agg_func.__name__[:3] == "nan":
             check_name = agg_func.__name__[3:]
         else:
             check_name = agg_func.__name__
 
         # another nasty special case: if function "count" was passed, we not want empty intervals to be replaced by nan:
-        if check_name == 'count':
+        if check_name == "count":
             empty_intervals[:] = False
 
         data = getattr(data_resampler, check_name)()
@@ -363,9 +365,9 @@ def shift2Freq(data, method, freq, fill_value=np.nan):
         direction = "nearest"
         tolerance = pd.Timedelta(freq)
 
-    target_ind = pd.date_range(start=data.index[0].floor(freq), end=data.index[-1].ceil(freq),
-                               freq=freq,
-                               name=data.index.name)
+    target_ind = pd.date_range(
+        start=data.index[0].floor(freq), end=data.index[-1].ceil(freq), freq=freq, name=data.index.name
+    )
     return data.reindex(target_ind, method=direction, tolerance=tolerance, fill_value=fill_value)
 
 
@@ -410,7 +412,7 @@ def evalPolynomial(P, x):
 
 def polyRollerNumba(in_slice, miss_marker, val_range, center_index, poly_deg):
     # numba compatible function to roll with when modelling data with polynomial model
-    miss_mask = (in_slice == miss_marker)
+    miss_mask = in_slice == miss_marker
     x_data = val_range[~miss_mask]
     y_data = in_slice[~miss_mask]
     fitted = _fitPoly(x_data, y_data, deg=poly_deg)
@@ -426,7 +428,7 @@ def polyRollerNoMissingNumba(in_slice, val_range, center_index, poly_deg):
 
 def polyRoller(in_slice, miss_marker, val_range, center_index, poly_deg):
     # function to roll with when modelling data with polynomial model
-    miss_mask = (in_slice == miss_marker)
+    miss_mask = in_slice == miss_marker
     x_data = val_range[~miss_mask]
     y_data = in_slice[~miss_mask]
     fitted = poly.polyfit(x=x_data, y=y_data, deg=poly_deg)
@@ -451,12 +453,12 @@ def polyRollerIrregular(in_slice, center_index_ser, poly_deg):
 
 def expModelFunc(x, a=0, b=0, c=0):
     # exponential model function, used in optimization contexts (drift correction)
-    return a + b*(np.exp(c*x) - 1)
+    return a + b * (np.exp(c * x) - 1)
 
 
 def linearInterpolation(data, inter_limit=2):
-    return interpolateNANs(data, 'time', inter_limit=inter_limit)
+    return interpolateNANs(data, "time", inter_limit=inter_limit)
 
 
 def polynomialInterpolation(data, inter_limit=2, inter_order=2):
-    return interpolateNANs(data, 'polynomial', inter_limit=inter_limit, order=inter_order)
+    return interpolateNANs(data, "polynomial", inter_limit=inter_limit, order=inter_order)

@@ -99,7 +99,9 @@ def _setup():
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
+
 _setup()
+
 
 class SaQC:
     def __init__(self, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
@@ -166,9 +168,13 @@ class SaQC:
 
             if func.plot:
                 plotHook(
-                    data_old=data, data_new=data_result,
-                    flagger_old=flagger, flagger_new=flagger_result,
-                    sources=[], targets=[field], plot_name=func.__name__,
+                    data_old=data,
+                    data_new=data_result,
+                    flagger_old=flagger,
+                    flagger_new=flagger_result,
+                    sources=[],
+                    targets=[field],
+                    plot_name=func.__name__,
                 )
 
             data = data_result
@@ -195,7 +201,6 @@ class SaQC:
         return realization._data, realization._flagger
 
     def _wrap(self, func, lineno=None, expr=None):
-
         def inner(field: str, *args, regex: bool = False, **kwargs):
 
             fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]

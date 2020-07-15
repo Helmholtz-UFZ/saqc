@@ -4,12 +4,17 @@
 import pandas as pd
 import numpy as np
 from saqc.core.register import register
-from saqc.lib.ts_operators import polyRoller, polyRollerNoMissing, polyRollerNumba, polyRollerNoMissingNumba, \
-    polyRollerIrregular
+from saqc.lib.ts_operators import (
+    polyRoller,
+    polyRollerNoMissing,
+    polyRollerNumba,
+    polyRollerNoMissingNumba,
+    polyRollerIrregular,
+)
 
 
 @register
-def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_flags=True, min_periods=0, **kwargs):
+def modelling_polyFit(data, field, flagger, winsz, polydeg, numba="auto", eval_flags=True, min_periods=0, **kwargs):
     """
     Function fits a polynomial model to the data and returns the residues. (field gets overridden).
     The residue for value x is calculated by fitting a polynomial of degree "polydeg" to a data slice
@@ -75,30 +80,31 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
     flags = flagger.getFlags(field)
     if not to_fit.index.freqstr:
         if isinstance(winsz, int):
-            raise NotImplementedError('Integer based window size is not supported for not-harmonized'
-                             'sample series.')
+            raise NotImplementedError("Integer based window size is not supported for not-harmonized" "sample series.")
         # get interval centers
-        centers = np.floor((to_fit.rolling(pd.Timedelta(winsz)/2, closed='both', min_periods=min_periods).count()))
+        centers = np.floor((to_fit.rolling(pd.Timedelta(winsz) / 2, closed="both", min_periods=min_periods).count()))
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
-        residues = to_fit.rolling(pd.Timedelta(winsz), closed='both', min_periods=min_periods).apply(polyRollerIrregular,
-                                                                                   args=(centers, polydeg))
+        residues = to_fit.rolling(pd.Timedelta(winsz), closed="both", min_periods=min_periods).apply(
+            polyRollerIrregular, args=(centers, polydeg)
+        )
+
         def center_func(x, y=centers):
             pos = x.index[int(len(x) - y[x.index[-1]])]
             return y.index.get_loc(pos)
 
-        centers_iloc = centers.rolling(winsz, closed='both').apply(center_func, raw=False).astype(int)
+        centers_iloc = centers.rolling(winsz, closed="both").apply(center_func, raw=False).astype(int)
         temp = residues.copy()
         for k in centers_iloc.iteritems():
             residues.iloc[k[1]] = temp[k[0]]
-        residues[residues.index[0]:residues.index[centers_iloc[0]]] = np.nan
-        residues[residues.index[centers_iloc[-1]]:residues.index[-1]] = np.nan
+        residues[residues.index[0] : residues.index[centers_iloc[0]]] = np.nan
+        residues[residues.index[centers_iloc[-1]] : residues.index[-1]] = np.nan
     else:
         if isinstance(winsz, str):
             winsz = int(np.floor(pd.Timedelta(winsz) / pd.Timedelta(to_fit.index.freqstr)))
         if winsz % 2 == 0:
-            winsz = int(winsz -1)
-        if numba == 'auto':
+            winsz = int(winsz - 1)
+        if numba == "auto":
             if to_fit.shape[0] < 200000:
                 numba = False
             else:
@@ -108,9 +114,9 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
         center_index = int(np.floor(winsz / 2))
         if min_periods < winsz:
             if min_periods > 0:
-                to_fit = to_fit.rolling(winsz, min_periods=min_periods, center=True).apply(lambda x, y: x[y],
-                                                                                           raw=True,
-                                                                                           args=(center_index,))
+                to_fit = to_fit.rolling(winsz, min_periods=min_periods, center=True).apply(
+                    lambda x, y: x[y], raw=True, args=(center_index,)
+                )
 
             # we need a missing value marker that is not nan, because nan values dont get passed by pandas rolling
             # method
@@ -119,29 +125,36 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba='auto', eval_f
             na_mask = to_fit.isna()
             to_fit[na_mask] = miss_marker
             if numba:
-                residues = to_fit.rolling(winsz).apply(polyRollerNumba, args=(miss_marker, val_range,
-                                                                                            center_index, polydeg),
-                                                        raw=True, engine='numba', engine_kwargs={'no_python': True})
+                residues = to_fit.rolling(winsz).apply(
+                    polyRollerNumba,
+                    args=(miss_marker, val_range, center_index, polydeg),
+                    raw=True,
+                    engine="numba",
+                    engine_kwargs={"no_python": True},
+                )
                 # due to a tiny bug - rolling with center=True doesnt work when using numba engine.
                 residues = residues.shift(-int(center_index))
             else:
-                residues = to_fit.rolling(winsz, center=True).apply(polyRoller, args=(miss_marker, val_range,
-                                                                                      center_index, polydeg),
-                                                                                             raw=True)
+                residues = to_fit.rolling(winsz, center=True).apply(
+                    polyRoller, args=(miss_marker, val_range, center_index, polydeg), raw=True
+                )
             residues[na_mask] = np.nan
         else:
             # we only fit fully populated intervals:
             if numba:
-                residues = to_fit.rolling(winsz).apply(polyRollerNoMissingNumba, args=(val_range,
-                                                                                       center_index,
-                                                                                       polydeg),
-                                                       engine='numba', engine_kwargs={'no_python': True},
-                                                       raw=True)
+                residues = to_fit.rolling(winsz).apply(
+                    polyRollerNoMissingNumba,
+                    args=(val_range, center_index, polydeg),
+                    engine="numba",
+                    engine_kwargs={"no_python": True},
+                    raw=True,
+                )
                 # due to a tiny bug - rolling with center=True doesnt work when using numba engine.
                 residues = residues.shift(-int(center_index))
             else:
-                residues = to_fit.rolling(winsz, center=True).apply(polyRollerNoMissing,
-                                                                    args=(val_range, center_index, polydeg), raw=True)
+                residues = to_fit.rolling(winsz, center=True).apply(
+                    polyRollerNoMissing, args=(val_range, center_index, polydeg), raw=True
+                )
 
     residues = residues - to_fit
     data[field] = residues
@@ -192,24 +205,26 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
     # starting with the annoying case: finding the rolling interval centers of not-harmonized input time series:
     if (to_fit.index.freqstr is None) and center:
         if isinstance(winsz, int):
-            raise NotImplementedError('Integer based window size is not supported for not-harmonized'
-                                      'sample series when rolling with "center=True".')
+            raise NotImplementedError(
+                "Integer based window size is not supported for not-harmonized"
+                'sample series when rolling with "center=True".'
+            )
         # get interval centers
-        centers = np.floor((to_fit.rolling(pd.Timedelta(winsz) / 2, closed='both', min_periods=min_periods).count()))
+        centers = np.floor((to_fit.rolling(pd.Timedelta(winsz) / 2, closed="both", min_periods=min_periods).count()))
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
-        means = to_fit.rolling(pd.Timedelta(winsz), closed='both', min_periods=min_periods).mean()
+        means = to_fit.rolling(pd.Timedelta(winsz), closed="both", min_periods=min_periods).mean()
 
         def center_func(x, y=centers):
             pos = x.index[int(len(x) - y[x.index[-1]])]
             return y.index.get_loc(pos)
 
-        centers_iloc = centers.rolling(winsz, closed='both').apply(center_func, raw=False).astype(int)
+        centers_iloc = centers.rolling(winsz, closed="both").apply(center_func, raw=False).astype(int)
         temp = means.copy()
         for k in centers_iloc.iteritems():
             means.iloc[k[1]] = temp[k[0]]
         # last values are false, due to structural reasons:
-        means[means.index[centers_iloc[-1]]:means.index[-1]] = np.nan
+        means[means.index[centers_iloc[-1]] : means.index[-1]] = np.nan
 
     # everything is more easy if data[field] is harmonized:
     else:
@@ -218,7 +233,7 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
         if (winsz % 2 == 0) & center:
             winsz = int(winsz - 1)
 
-        means = to_fit.rolling(window=winsz, center=center, closed='both').mean()
+        means = to_fit.rolling(window=winsz, center=center, closed="both").mean()
 
     residues = means - to_fit
     data[field] = residues

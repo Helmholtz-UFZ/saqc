@@ -11,20 +11,24 @@ import functools
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import pickle
-ORIGINAL_SUFFIX = '_original'
 
-METHOD2ARGS = {'inverse_fshift': ('backward', pd.Timedelta),
-               'inverse_bshift': ('forward', pd.Timedelta),
-               'inverse_nshift': ('nearest', lambda x: pd.Timedelta(x)/2),
-               'inverse_fagg': ('bfill', pd.Timedelta),
-               'inverse_bagg': ('ffill', pd.Timedelta),
-               'inverse_nagg': ('nearest', lambda x: pd.Timedelta(x)/2),
-               'match': (None, lambda x: '0min')}
+ORIGINAL_SUFFIX = "_original"
+
+METHOD2ARGS = {
+    "inverse_fshift": ("backward", pd.Timedelta),
+    "inverse_bshift": ("forward", pd.Timedelta),
+    "inverse_nshift": ("nearest", lambda x: pd.Timedelta(x) / 2),
+    "inverse_fagg": ("bfill", pd.Timedelta),
+    "inverse_bagg": ("ffill", pd.Timedelta),
+    "inverse_nagg": ("nearest", lambda x: pd.Timedelta(x) / 2),
+    "match": (None, lambda x: "0min"),
+}
 
 
 @register
-def proc_rollingInterpolateMissing(data, field, flagger, winsz, func=np.median, center=True, min_periods=0,
-                                   interpol_flag='UNFLAGGED', **kwargs):
+def proc_rollingInterpolateMissing(
+    data, field, flagger, winsz, func=np.median, center=True, min_periods=0, interpol_flag="UNFLAGGED", **kwargs
+):
     """
     Interpolates missing values (nan values present in the data) by assigning them the aggregation result of
     a window surrounding them.
@@ -59,7 +63,7 @@ def proc_rollingInterpolateMissing(data, field, flagger, winsz, func=np.median, 
     roller = datcol.rolling(window=winsz, center=center, min_periods=min_periods)
     try:
         func_name = func.__name__
-        if func_name[:3] == 'nan':
+        if func_name[:3] == "nan":
             func_name = func_name[3:]
         rolled = getattr(roller, func_name)()
     except AttributeError:
@@ -71,17 +75,28 @@ def proc_rollingInterpolateMissing(data, field, flagger, winsz, func=np.median, 
     data[field] = datcol
 
     if interpol_flag:
-        if interpol_flag in ['BAD', 'UNFLAGGED', 'GOOD']:
+        if interpol_flag in ["BAD", "UNFLAGGED", "GOOD"]:
             interpol_flag = getattr(flagger, interpol_flag)
-        flagger = flagger.setFlags(field, loc=interpolated[interpolated].index, force=True,
-                                   flag=interpol_flag, **kwargs)
+        flagger = flagger.setFlags(
+            field, loc=interpolated[interpolated].index, force=True, flag=interpol_flag, **kwargs
+        )
 
     return data, flagger
 
 
 @register
-def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_limit=2, interpol_flag='UNFLAGGED',
-                            downgrade_interpolation=False, not_interpol_flags=None, **kwargs):
+def proc_interpolateMissing(
+    data,
+    field,
+    flagger,
+    method,
+    inter_order=2,
+    inter_limit=2,
+    interpol_flag="UNFLAGGED",
+    downgrade_interpolation=False,
+    not_interpol_flags=None,
+    **kwargs
+):
 
     """
     function to interpolate nan values in the data.
@@ -120,13 +135,19 @@ def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_l
     """
 
     data = data.copy()
-    inter_data = interpolateNANs(data[field], method, order=inter_order, inter_limit=inter_limit,
-                           downgrade_interpolation=downgrade_interpolation, return_chunk_bounds=False)
+    inter_data = interpolateNANs(
+        data[field],
+        method,
+        order=inter_order,
+        inter_limit=inter_limit,
+        downgrade_interpolation=downgrade_interpolation,
+        return_chunk_bounds=False,
+    )
     interpolated = data[field].isna() & inter_data.notna()
 
     if not_interpol_flags:
         for f in toSequence(not_interpol_flags):
-            if f in ['BAD', 'UNFLAGGED', 'GOOD']:
+            if f in ["BAD", "UNFLAGGED", "GOOD"]:
                 f = getattr(flagger, interpol_flag)
             is_flagged = flagger.isFlagged(flag=f)[field]
             cond = is_flagged & interpolated
@@ -134,18 +155,29 @@ def proc_interpolateMissing(data, field, flagger, method, inter_order=2, inter_l
         interpolated &= inter_data.notna()
 
     if interpol_flag:
-        if interpol_flag in ['BAD', 'UNFLAGGED', 'GOOD']:
+        if interpol_flag in ["BAD", "UNFLAGGED", "GOOD"]:
             interpol_flag = getattr(flagger, interpol_flag)
-        flagger = flagger.setFlags(field, loc=interpolated[interpolated].index, force=True,
-                                   flag=interpol_flag, **kwargs)
+        flagger = flagger.setFlags(
+            field, loc=interpolated[interpolated].index, force=True, flag=interpol_flag, **kwargs
+        )
 
     data[field] = inter_data
     return data, flagger
 
 
 @register
-def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop_flags=None,
-                            downgrade_interpolation=False, empty_intervals_flag=None, **kwargs):
+def proc_interpolateGrid(
+    data,
+    field,
+    flagger,
+    freq,
+    method,
+    inter_order=2,
+    drop_flags=None,
+    downgrade_interpolation=False,
+    empty_intervals_flag=None,
+    **kwargs
+):
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
 
@@ -211,19 +243,22 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
         spec_case_mask = spec_case_mask.tshift(-1, freq)
 
     # prepare grid interpolation:
-    grid_index = pd.date_range(start=datcol.index[0].floor(freq), end=datcol.index[-1].ceil(freq), freq=freq,
-                               name=datcol.index.name)
+    grid_index = pd.date_range(
+        start=datcol.index[0].floor(freq), end=datcol.index[-1].ceil(freq), freq=freq, name=datcol.index.name
+    )
 
     aligned_start = datcol.index[0] == grid_index[0]
     aligned_end = datcol.index[-1] == grid_index[-1]
-    datcol = datcol.reindex(
-        datcol.index.join(grid_index, how="outer", )
-    )
+    datcol = datcol.reindex(datcol.index.join(grid_index, how="outer",))
 
     # do the interpolation
     inter_data, chunk_bounds = interpolateNANs(
-        datcol, method, order=inter_order, inter_limit=2, downgrade_interpolation=downgrade_interpolation,
-        return_chunk_bounds=True
+        datcol,
+        method,
+        order=inter_order,
+        inter_limit=2,
+        downgrade_interpolation=downgrade_interpolation,
+        return_chunk_bounds=True,
     )
 
     # override falsely interpolated values:
@@ -247,7 +282,7 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
     flagscol = flagscol.rolling(2, center=True, closed="neither").max()
     flagscol[0] = initial
     cats_dict = {num: key for (key, num) in cats_dict.items()}
-    flagscol = flagscol.astype(int, errors='ignore').replace(cats_dict)
+    flagscol = flagscol.astype(int, errors="ignore").replace(cats_dict)
     flagscol[flagscol.isna()] = empty_intervals_flag
     # ...hack done
 
@@ -276,9 +311,23 @@ def proc_interpolateGrid(data, field, flagger, freq, method, inter_order=2, drop
 
 
 @register
-def proc_resample(data, field, flagger, freq, agg_func=np.mean, method='bagg', max_invalid_total_d=np.inf,
-                  max_invalid_consec_d=np.inf, max_invalid_consec_f=np.inf, max_invalid_total_f=np.inf,
-                  flag_agg_func=max, empty_intervals_flag=None, drop_flags=None, all_na_2_empty=False, **kwargs):
+def proc_resample(
+    data,
+    field,
+    flagger,
+    freq,
+    agg_func=np.mean,
+    method="bagg",
+    max_invalid_total_d=np.inf,
+    max_invalid_consec_d=np.inf,
+    max_invalid_consec_f=np.inf,
+    max_invalid_total_f=np.inf,
+    flag_agg_func=max,
+    empty_intervals_flag=None,
+    drop_flags=None,
+    all_na_2_empty=False,
+    **kwargs
+):
     """
     Function to resample the data. Afterwards the data will be sampled at regular (equidistant) timestamps
     (or Grid points). Sampling intervals therefor get aggregated with a function, specifyed by 'agg_func' parameter and
@@ -349,7 +398,6 @@ na_ser.resample('10min').apply(lambda x: x.count())
         the max_consec/max_total evaluation. Drop_flags = None results in NO flags being dropped initially.
     """
 
-
     data = data.copy()
     datcol = data[field]
     flagscol = flagger.getFlags(field)
@@ -371,10 +419,24 @@ na_ser.resample('10min').apply(lambda x: x.count())
         flagger = flagger.slice(drop=field).merge(reshaped_flagger)
         return data, flagger
 
-    datcol = aggregate2Freq(datcol, method, freq, agg_func, fill_value=np.nan,
-                            max_invalid_total=max_invalid_total_d, max_invalid_consec=max_invalid_consec_d)
-    flagscol = aggregate2Freq(flagscol, method, freq, flag_agg_func, fill_value=empty_intervals_flag,
-                      max_invalid_total=max_invalid_total_f, max_invalid_consec=max_invalid_consec_f)
+    datcol = aggregate2Freq(
+        datcol,
+        method,
+        freq,
+        agg_func,
+        fill_value=np.nan,
+        max_invalid_total=max_invalid_total_d,
+        max_invalid_consec=max_invalid_consec_d,
+    )
+    flagscol = aggregate2Freq(
+        flagscol,
+        method,
+        freq,
+        flag_agg_func,
+        fill_value=empty_intervals_flag,
+        max_invalid_total=max_invalid_total_f,
+        max_invalid_consec=max_invalid_consec_f,
+    )
 
     # data/flags reshaping:
     data[field] = datcol
@@ -524,30 +586,27 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
     target_datcol = data[field]
     target_flagscol = flagger.getFlags(field)
 
-    if (freq is None) and (method != 'match'):
+    if (freq is None) and (method != "match"):
         freq = pd.Timedelta(flagscol.index.freq)
         if freq is pd.NaT:
             raise ValueError(
                 "Nor is {} a frequency regular timeseries, neither was a frequency passed to parameter 'freq'. "
                 "Dont know what to do.".format(source)
             )
-    if method[-13:] == 'interpolation':
-        backprojected = flagscol.reindex(target_flagscol.index, method='bfill',
-                                    tolerance=freq)
-        fwrdprojected = flagscol.reindex(target_flagscol.index, method='ffill',
-                                    tolerance=freq)
+    if method[-13:] == "interpolation":
+        backprojected = flagscol.reindex(target_flagscol.index, method="bfill", tolerance=freq)
+        fwrdprojected = flagscol.reindex(target_flagscol.index, method="ffill", tolerance=freq)
         b_replacement_mask = backprojected > target_flagscol
         target_flagscol.loc[b_replacement_mask] = backprojected.loc[b_replacement_mask]
         f_replacement_mask = (fwrdprojected > target_flagscol) & (fwrdprojected > backprojected)
         target_flagscol.loc[f_replacement_mask] = backprojected.loc[f_replacement_mask]
 
-    if (method[-3:] == "agg") or (method == 'match'):
+    if (method[-3:] == "agg") or (method == "match"):
         # Aggregation - Inversion
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
 
-        flagscol = flagscol.reindex(target_flagscol.index, method=projection_method,
-                                              tolerance=tolerance)
+        flagscol = flagscol.reindex(target_flagscol.index, method=projection_method, tolerance=tolerance)
         replacement_mask = flagscol > target_flagscol
         target_flagscol.loc[replacement_mask] = flagscol.loc[replacement_mask]
 
@@ -569,9 +628,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
         tolerance = METHOD2ARGS[method][1](freq)
         flags_merged = pd.merge_asof(
             flagscol,
-            pd.Series(target_flagscol.index.values,
-                         index=target_flagscol.index,
-                         name="pre_index"),
+            pd.Series(target_flagscol.index.values, index=target_flagscol.index, name="pre_index"),
             left_index=True,
             right_index=True,
             tolerance=tolerance,
@@ -585,7 +642,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
         target_flagscol.loc[replacement_mask[replacement_mask].index] = flags_merged.loc[replacement_mask]
 
         # reinsert drops
-        target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how='outer'))
+        target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))
         target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
 
     flagger = flagger.setFlags(field=field, flag=target_flagscol, **kwargs)
@@ -636,27 +693,29 @@ def proc_rename(data, field, flagger, new_name, **kwargs):
 
 
 def _drift_fit(x, shift_target, cal_mean):
-    x_index = (x.index - x.index[0])
+    x_index = x.index - x.index[0]
     x_data = x_index.total_seconds().values
     x_data = x_data / x_data[-1]
     y_data = x.values
     origin_mean = np.mean(y_data[:cal_mean])
     target_mean = np.mean(y_data[-cal_mean:])
+
     def modelWrapper(x, c, a=origin_mean, target_mean=target_mean):
         # final fitted curves val = target mean
         b = (target_mean - a) / (np.exp(c) - 1)
         return expModelFunc(x, a, b, c)
+
     dataFitFunc = functools.partial(modelWrapper, a=origin_mean, target_mean=target_mean)
 
     try:
-        fitParas,_ = curve_fit(dataFitFunc, x_data, y_data, bounds=([0], [np.inf]))
+        fitParas, _ = curve_fit(dataFitFunc, x_data, y_data, bounds=([0], [np.inf]))
         dataFit = dataFitFunc(x_data, fitParas[0])
         b_val = (shift_target - origin_mean) / (np.exp(fitParas[0]) - 1)
         dataShiftFunc = functools.partial(expModelFunc, a=origin_mean, b=b_val, c=fitParas[0])
         dataShift = dataShiftFunc(x_data)
     except RuntimeError:
-        dataFit = np.array([0]*len(x_data))
-        dataShift = np.array([0]*len(x_data))
+        dataFit = np.array([0] * len(x_data))
+        dataShift = np.array([0] * len(x_data))
 
     return dataFit, dataShift
 
@@ -711,14 +770,14 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         return data, flagger
     data = data.copy()
     to_correct = data[field]
-    drift_frame = pd.DataFrame({'drift_group': np.nan, to_correct.name: to_correct.values}, index=to_correct.index)
+    drift_frame = pd.DataFrame({"drift_group": np.nan, to_correct.name: to_correct.values}, index=to_correct.index)
     maint_data = data[maint_data_field]
     # group the drift frame
-    for k in range(0, maint_data.shape[0]-1):
+    for k in range(0, maint_data.shape[0] - 1):
         # assign group numbers for the timespans in between one maintenance ending and the beginning of the next
         # maintenance time itself remains np.nan assigned
-        drift_frame.loc[maint_data.values[k]:pd.Timestamp(maint_data.index[k+1]), 'drift_group'] = k
-    drift_grouper = drift_frame.groupby('drift_group')
+        drift_frame.loc[maint_data.values[k] : pd.Timestamp(maint_data.index[k + 1]), "drift_group"] = k
+    drift_grouper = drift_frame.groupby("drift_group")
     # define target values for correction
     shift_targets = drift_grouper.aggregate(lambda x: x[:cal_mean].mean()).shift(-1)
 
@@ -732,8 +791,8 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         to_correct[shiftedData.index] = shiftedData
 
     if flag_maint_period:
-        to_flag = drift_frame['drift_group']
-        to_flag = to_flag.drop(to_flag[:maint_data.index[0]].index)
+        to_flag = drift_frame["drift_group"]
+        to_flag = to_flag.drop(to_flag[: maint_data.index[0]].index)
         to_flag = to_flag[to_flag.isna()]
         flagger = flagger.setFlags(field, loc=to_flag, **kwargs)
     return data, flagger
