@@ -26,7 +26,7 @@ def sm_flagSpikes(
     noise_thresh=1,
     smooth_window="3h",
     smooth_poly_deg=2,
-    **kwargs
+    **kwargs,
 ):
 
     """
@@ -47,7 +47,7 @@ def sm_flagSpikes(
         noise_thresh=noise_thresh,
         smooth_window=smooth_window,
         smooth_poly_deg=smooth_poly_deg,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -65,7 +65,7 @@ def sm_flagBreaks(
     smooth=False,
     smooth_window="3h",
     smooth_poly_deg=2,
-    **kwargs
+    **kwargs,
 ):
 
     """
@@ -88,7 +88,7 @@ def sm_flagBreaks(
         smooth=smooth,
         smooth_window=smooth_window,
         smooth_poly_deg=smooth_poly_deg,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -152,7 +152,7 @@ def sm_flagPrecipitation(
     std_factor=2,
     std_window="24h",
     ignore_missing=False,
-    **kwargs
+    **kwargs,
 ):
 
     """This Function is an implementation of the precipitation based Soil Moisture flagging, as presented in:
@@ -261,7 +261,7 @@ def sm_flagConstants(
     max_consec_missing=None,
     smooth_window=None,
     smooth_poly_deg=2,
-    **kwargs
+    **kwargs,
 ):
 
     """

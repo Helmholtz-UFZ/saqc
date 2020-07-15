@@ -47,7 +47,6 @@ def flags(flagger, data, optional):
 @pytest.mark.skip(reason="does not make sense anymore")
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_errorHandling(data, flagger):
-
     @register
     def raisingFunc(data, field, flagger, **kwargs):
         raise TypeError
@@ -64,10 +63,7 @@ def test_duplicatedVariable(flagger):
     data = initData(1)
     var1 = data.columns[0]
 
-    pdata, pflagger = (SaQC(flagger, data)
-                       .flagDummy(var1)
-                       .flagDummy(var1)
-                       .getResult())
+    pdata, pflagger = SaQC(flagger, data).flagDummy(var1).flagDummy(var1).getResult()
     pflags = pflagger.getFlags()
 
     if isinstance(pflags.columns, pd.MultiIndex):
@@ -86,10 +82,7 @@ def test_assignVariable(flagger):
     var1 = data.columns[0]
     var2 = "empty"
 
-    pdata, pflagger = (SaQC(flagger, data)
-                       .flagAll(var1)
-                       .flagAll(var2)
-                       .getResult())
+    pdata, pflagger = SaQC(flagger, data).flagAll(var1).flagAll(var2).getResult()
     pflags = pflagger.getFlags()
 
     assert (pflags.columns == [var1, var2]).all()
@@ -106,10 +99,7 @@ def test_dtypes(data, flagger, flags):
     flags = flagger.getFlags()
     var1, var2 = data.columns[:2]
 
-    pdata, pflagger = (SaQC(flagger, data, flags=flags)
-                       .flagAll(var1)
-                       .flagAll(var2)
-                       .getResult())
+    pdata, pflagger = SaQC(flagger, data, flags=flags).flagAll(var1).flagAll(var2).getResult()
 
     pflags = pflagger.getFlags()
     assert dict(flags.dtypes) == dict(pflags.dtypes)
@@ -124,12 +114,14 @@ def test_nanInjections(data, flagger):
     flags = flagger.getFlags()
     var = data.columns[0]
     mn = min(data[var])
-    mx = max(data[var])/2
+    mx = max(data[var]) / 2
 
-    pdata, pflagger = (SaQC(flagger, data, flags=flags)
-                       .flagRange(var, mn, mx)
-                       .procGeneric("dummy", func=lambda var1: var1 >= mn)
-                       .getResult())
+    pdata, pflagger = (
+        SaQC(flagger, data, flags=flags)
+        .flagRange(var, mn, mx)
+        .procGeneric("dummy", func=lambda var1: var1 >= mn)
+        .getResult()
+    )
     assert not pdata.loc[pflagger.isFlagged(var), "dummy"].any()
     assert pdata.loc[~pflagger.isFlagged(var), "dummy"].all()
 

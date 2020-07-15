@@ -6,7 +6,7 @@ import click
 import numpy as np
 import pandas as pd
 
-from saqc.core import SaQC
+from saqc.core import SaQC, logger
 from saqc.flagger import CategoricalFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 import dios
@@ -37,16 +37,12 @@ FLAGGERS = {
 @click.option("--fail/--no-fail", default=True, help="whether to stop the program run on errors")
 def main(config, data, flagger, outfile, nodata, log_level, fail):
 
+    logger.setLevel(log_level)
+
     data = pd.read_csv(data, index_col=0, parse_dates=True,)
     data = dios.DictOfSeries(data)
 
-    saqc = SaQC(
-        flagger=FLAGGERS[flagger],
-        data=data,
-        log_level=log_level,
-        nodata=nodata,
-        error_policy="raise" if fail else "warn",
-    )
+    saqc = SaQC(flagger=FLAGGERS[flagger], data=data, nodata=nodata, error_policy="raise" if fail else "warn",)
 
     data_result, flagger_result = saqc.readConfig(config).getResult()
 
@@ -62,9 +58,11 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
             fields["comments"] = flagger_result.comments.to_df()
             fields["causes"] = flagger_result.causes.to_df()
 
-        out = (pd.concat(fields.values(), axis=1, keys=fields.keys())
-               .reorder_levels(order=[1, 0], axis=1)
-               .sort_index(axis=1, level=0, sort_remaining=False))
+        out = (
+            pd.concat(fields.values(), axis=1, keys=fields.keys())
+            .reorder_levels(order=[1, 0], axis=1)
+            .sort_index(axis=1, level=0, sort_remaining=False)
+        )
         out.columns = out.columns.rename(["", ""])
         out.to_csv(outfile, header=True, index=True, na_rep=nodata)
 

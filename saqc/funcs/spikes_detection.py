@@ -20,8 +20,18 @@ from saqc.lib.tools import (
 )
 from outliers import smirnov_grubbs
 
-def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
-           alpha=0.05, trafo=lambda x: x):
+def _stray(
+    val_frame,
+    partition_freq=None,
+    partition_min=0,
+    scoring_method="kNNMaxGap",
+    n_neighbors=10,
+    iter_start=0.5,
+    alpha=0.05,
+    trafo=lambda x: x
+
+):
+
 
     kNNfunc = getattr(ts_ops, scoring_method)
     # partitioning
@@ -43,7 +53,7 @@ def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNM
         partition = partition.apply(trafo)
         sample_size = partition.shape[0]
         nn_neighbors = min(n_neighbors, max(sample_size, 2))
-        resids = kNNfunc(partition.values, n_neighbors=nn_neighbors-1, algorithm='ball_tree')
+        resids = kNNfunc(partition.values, n_neighbors=nn_neighbors - 1, algorithm="ball_tree")
         sorted_i = resids.argsort()
         resids = resids[sorted_i]
         gaps = np.append(0, np.diff(resids))
@@ -60,17 +70,15 @@ def _stray(val_frame, partition_freq=None, partition_min=0, scoring_method='kNNM
             if gaps[iter_index] > log_alpha * ghat[iter_index]:
                 break
 
-        
         to_flag = np.append(to_flag, list(partition.index[sorted_i[iter_index:]]))
 
     return to_flag
 
 
-def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.5,
-           alpha=0.05, bin_frac=10):
+def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.5, alpha=0.05, bin_frac=10):
 
     kNNfunc = getattr(ts_ops, scoring_method)
-    resids = kNNfunc(val_frame.values, n_neighbors=n_neighbors, algorithm='ball_tree')
+    resids = kNNfunc(val_frame.values, n_neighbors=n_neighbors, algorithm="ball_tree")
     data_len = resids.shape[0]
 
     # sorting
@@ -80,18 +88,19 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
     # initialize condition variables:
     crit_val = np.inf
     test_val = 0
-    neg_log_alpha = - np.log(alpha)
+    neg_log_alpha = -np.log(alpha)
 
     # define exponential dist density function:
     def fit_function(x, lambd):
         return lambd * np.exp(-lambd * x)
+
     # initialise sampling bins
     if isinstance(bin_frac, int):
         binz = np.linspace(resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac)))
-    elif bin_frac in ['auto', 'fd', 'doane', 'scott', 'stone', 'rice', 'sturges', 'sqrt']:
+    elif bin_frac in ["auto", "fd", "doane", "scott", "stone", "rice", "sturges", "sqrt"]:
         binz = np.histogram_bin_edges(resids, bins=bin_frac)
     else:
-        raise ValueError('Cant interpret {} as an binning technique.'.format(bin_frac))
+        raise ValueError("Cant interpret {} as an binning technique.".format(bin_frac))
 
     binzenters = np.array([0.5 * (binz[i] + binz[i + 1]) for i in range(len(binz) - 1)])
     # inititialize full histogram:
@@ -99,36 +108,42 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
     # check if start index is sufficiently high (pointing at resids value beyond histogram maximum at least):
     hist_argmax = full_hist.argmax()
 
-    if hist_argmax >= findIndex(binz, resids[iter_index-1], 0):
-        raise ValueError("Either the data histogram is too strangely shaped for oddWater OD detection - "
-                         "or a too low value for 'iter_start' was passed "
-                         "(iter_start better be much greater 0.5)")
+    if hist_argmax >= findIndex(binz, resids[iter_index - 1], 0):
+        raise ValueError(
+            "Either the data histogram is too strangely shaped for oddWater OD detection - "
+            "or a too low value for 'iter_start' was passed "
+            "(iter_start better be much greater 0.5)"
+        )
     # GO!
-    iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
+    iter_max_bin_index = findIndex(binz, resids[iter_index - 1], 0)
     upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
     resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
-    upper_tail_hist, bins = np.histogram(resids[resids_tail_index:iter_index],
-                                             bins=binz[upper_tail_index:iter_max_bin_index + 1])
+    upper_tail_hist, bins = np.histogram(
+        resids[resids_tail_index:iter_index], bins=binz[upper_tail_index : iter_max_bin_index + 1]
+    )
 
-    while (test_val < crit_val) & (iter_index < resids.size-1):
+    while (test_val < crit_val) & (iter_index < resids.size - 1):
         iter_index += 1
-        new_iter_max_bin_index = findIndex(binz, resids[iter_index-1], 0)
+        new_iter_max_bin_index = findIndex(binz, resids[iter_index - 1], 0)
         # following if/else block "manually" expands the data histogram and circumvents calculation of the complete
         # histogram in any new iteration.
         if new_iter_max_bin_index == iter_max_bin_index:
             upper_tail_hist[-1] += 1
         else:
-            upper_tail_hist = np.append(upper_tail_hist, np.zeros([new_iter_max_bin_index-iter_max_bin_index]))
+            upper_tail_hist = np.append(upper_tail_hist, np.zeros([new_iter_max_bin_index - iter_max_bin_index]))
             upper_tail_hist[-1] += 1
             iter_max_bin_index = new_iter_max_bin_index
             upper_tail_index_new = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
-            upper_tail_hist = upper_tail_hist[upper_tail_index_new-upper_tail_index:]
+            upper_tail_hist = upper_tail_hist[upper_tail_index_new - upper_tail_index :]
             upper_tail_index = upper_tail_index_new
 
         # fitting
-        lambdA, _ = curve_fit(fit_function, xdata=binzenters[upper_tail_index:iter_max_bin_index],
-                                ydata=upper_tail_hist,
-                                p0=[-np.log(alpha/resids[iter_index])])
+        lambdA, _ = curve_fit(
+            fit_function,
+            xdata=binzenters[upper_tail_index:iter_max_bin_index],
+            ydata=upper_tail_hist,
+            p0=[-np.log(alpha / resids[iter_index])],
+        )
 
         crit_val = neg_log_alpha / lambdA
         test_val = resids[iter_index]
@@ -137,15 +152,15 @@ def _expFit(val_frame, scoring_method='kNNMaxGap', n_neighbors=10, iter_start=0.
 
 
 
+
 def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
                    reduction_drop_flagged=False, reduction_thresh=3.5, reduction_min_periods=1):
+
     to_flag_frame[:] = False
     to_flag_index = to_flag_frame.index
     for var in fields:
         for index in enumerate(to_flag_index):
-            index_slice = slice(index[1] - pd.Timedelta(reduction_range),
-                                index[1] + pd.Timedelta(reduction_range))
-
+            index_slice = slice(index[1] - pd.Timedelta(reduction_range), index[1] + pd.Timedelta(reduction_range))
 
             test_slice = val_frame[var][index_slice].dropna()
             # check, wheather value under test is sufficiently centered:
@@ -165,10 +180,10 @@ def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
                 polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=polydeg)
                 testval = poly.polyval((float(index[1].to_numpy()) - x_0)/10**12, polyfitted)
                 testval = val_frame[var][index[1]] - testval
-                resids = test_slice.values -poly.polyval(x, polyfitted)
+                resids = test_slice.values - poly.polyval(x, polyfitted)
                 med_resids = np.median(resids)
                 MAD = np.median(np.abs(resids - med_resids))
-                crit_val = 0.6745*(abs(med_resids - testval)) / MAD
+                crit_val = 0.6745 * (abs(med_resids - testval)) / MAD
                 if crit_val > reduction_thresh:
                     to_flag_frame.loc[index[1], var] = True
             else:
@@ -178,18 +193,32 @@ def _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
 
 
 @register
-def spikes_flagMultivarScores(data, field, flagger, fields, trafo=np.log, alpha=0.05, n_neighbors=10,
-                              scoring_method='kNNMaxGap', iter_start=0.5, threshing='stray',
-                              expfit_binning='auto', stray_partition=None, stray_partition_min=0,
-                              post_reduction=None, reduction_range=None, reduction_drop_flagged=False,
-                              reduction_thresh=3.5, reduction_min_periods=1, **kwargs):
-
-
+def spikes_flagMultivarScores(
+    data,
+    field,
+    flagger,
+    fields,
+    trafo=np.log,
+    alpha=0.05,
+    n_neighbors=10,
+    scoring_method="kNNMaxGap",
+    iter_start=0.5,
+    threshing="stray",
+    expfit_binning="auto",
+    stray_partition=None,
+    stray_partition_min=0,
+    post_reduction=None,
+    reduction_range=None,
+    reduction_drop_flagged=False,
+    reduction_thresh=3.5,
+    reduction_min_periods=1,
+    **kwargs,
+):
     # data fransformation/extraction
     data = data.copy()
     fields = toSequence(fields)
     val_frame = data[fields]
-    val_frame = val_frame.loc[val_frame.index_of('shared')].to_df()
+    val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
     val_frame.dropna(inplace=True)
     if val_frame.empty:
         return data, flagger
@@ -220,19 +249,30 @@ def spikes_flagMultivarScores(data, field, flagger, fields, trafo=np.log, alpha=
                                        reduction_thresh=reduction_thresh,
                                        reduction_min_periods=reduction_min_periods)
 
+
     for var in fields:
-        to_flag_ind = to_flag_frame.loc[: ,var]
+        to_flag_ind = to_flag_frame.loc[:, var]
         to_flag_ind = to_flag_ind[to_flag_ind].index
         flagger = flagger.setFlags(var, to_flag_ind, **kwargs)
 
     return data, flagger
 
 
-
 @register
 def spikes_flagRaise(
-    data, field, flagger, thresh, raise_window, intended_freq, average_window=None, mean_raise_factor=2, min_slope=None,
-        min_slope_weight=0.8, numba_boost=True, **kwargs):
+    data,
+    field,
+    flagger,
+    thresh,
+    raise_window,
+    intended_freq,
+    average_window=None,
+    mean_raise_factor=2,
+    min_slope=None,
+    min_slope_weight=0.8,
+    numba_boost=True,
+    **kwargs,
+):
 
     # NOTE1: this implementation accounts for the case of "pseudo" spikes that result from checking against outliers
     # NOTE2: the test is designed to work on raw data as well as on regularized
@@ -267,7 +307,7 @@ def spikes_flagRaise(
         return np.sum(x[:-1])
 
     # get invalid-raise/drop mask:
-    raise_series = dataseries.rolling(raise_window, min_periods=2, closed='both')
+    raise_series = dataseries.rolling(raise_window, min_periods=2, closed="both")
 
     if numba_boost:
         raise_check = numba.jit(raise_check, nopython=True)
@@ -315,7 +355,7 @@ def spikes_flagRaise(
         weighted_rolling_mean = weighted_rolling_mean.apply(custom_rolling_mean, raw=True)
         weights_rolling_sum = weights_rolling_sum.apply(custom_rolling_mean, raw=True, engine="numba")
 
-    weighted_rolling_mean = weighted_rolling_mean/weights_rolling_sum
+    weighted_rolling_mean = weighted_rolling_mean / weights_rolling_sum
     # check means against critical raise value:
     to_flag = dataseries >= weighted_rolling_mean + (raise_series / mean_raise_factor)
     to_flag &= raise_series.notna()
@@ -712,8 +752,7 @@ def spikes_flagSpektrumBased(
     return data, flagger
 
 
-def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, check_lagged=False,
-                      **kwargs):
+def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, check_lagged=False, **kwargs):
     """
     The function flags values that are regarded outliers due to the grubbs test.
 
@@ -748,12 +787,12 @@ def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, ch
     """
     data = data.copy()
     datcol = data[field]
-    to_group = pd.DataFrame(data={'ts': datcol.index, 'data': datcol})
+    to_group = pd.DataFrame(data={"ts": datcol.index, "data": datcol})
     to_flag = pd.Series(False, index=datcol.index)
     if isinstance(winsz, int):
         # period number defined test intervals
         grouper_series = pd.Series(data=np.arange(0, datcol.shape[0]), index=datcol.index)
-        grouper_series_lagged = grouper_series + (winsz/2)
+        grouper_series_lagged = grouper_series + (winsz / 2)
         grouper_series = grouper_series.transform(lambda x: int(np.floor(x / winsz)))
         grouper_series_lagged = grouper_series_lagged.transform(lambda x: int(np.floor(x / winsz)))
         partitions = to_group.groupby(grouper_series)
@@ -763,16 +802,16 @@ def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, ch
         partitions = to_group.groupby(pd.Grouper(freq=winsz))
     for _, partition in partitions:
         if partition.shape[0] > min_periods:
-            detected = smirnov_grubbs.two_sided_test_indices(partition['data'].values, alpha=alpha)
-            detected = partition['ts'].iloc[detected]
+            detected = smirnov_grubbs.two_sided_test_indices(partition["data"].values, alpha=alpha)
+            detected = partition["ts"].iloc[detected]
             to_flag[detected.index] = True
 
     if check_lagged & isinstance(winsz, int):
         to_flag_lagged = pd.Series(False, index=datcol.index)
         for _, partition in partitions_lagged:
             if partition.shape[0] > min_periods:
-                detected = smirnov_grubbs.two_sided_test_indices(partition['data'].values, alpha=alpha)
-                detected = partition['ts'].iloc[detected]
+                detected = smirnov_grubbs.two_sided_test_indices(partition["data"].values, alpha=alpha)
+                detected = partition["ts"].iloc[detected]
                 to_flag_lagged[detected.index] = True
         to_flag = to_flag & to_flag_lagged
 

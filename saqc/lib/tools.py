@@ -109,8 +109,9 @@ def inferFrequency(data: pd.Series) -> pd.DateOffset:
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
-def retrieveTrustworthyOriginal(data: dios.DictOfSeries, field: str, flagger=None,
-                                level: Any = None) -> dios.DictOfSeries:
+def retrieveTrustworthyOriginal(
+    data: dios.DictOfSeries, field: str, flagger=None, level: Any = None
+) -> dios.DictOfSeries:
     """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
     differenciating between missng value - nans und fillvalue nans is impossible.
 

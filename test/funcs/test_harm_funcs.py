@@ -16,12 +16,13 @@ from saqc.funcs.harm_functions import (
     harm_interpolate2Grid,
     harm_shift2Grid,
     harm_aggregate2Grid,
-    harm_deharmonize
+    harm_deharmonize,
 )
 
 RESHAPERS = ["nshift", "fshift", "bshift", "nagg", "bagg", "fagg", "interpolation"]
 
 INTERPOLATIONS = ["time", "polynomial"]
+
 
 @pytest.fixture
 def data():
@@ -51,10 +52,10 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper):
     assert len(data.columns) == 1
     field = data.columns[0]
 
-    data, flagger = harm_linear2Grid(data, 'data', flagger, freq)
+    data, flagger = harm_linear2Grid(data, "data", flagger, freq)
     # flag something bad
     flagger = flagger.setFlags("data", loc=data[field].index[3:4])
-    data, flagger = harm_deharmonize(data, "data", flagger, method='inverse_' + reshaper)
+    data, flagger = harm_deharmonize(data, "data", flagger, method="inverse_" + reshaper)
     d = data[field]
 
     if reshaper == "nagg":
@@ -74,8 +75,7 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper):
         assert (~flagger.isFlagged(loc=d.index[0:3]).squeeze()).all()
         assert (~flagger.isFlagged(loc=d.index[5:]).squeeze()).all()
     if reshaper == "fshift":
-        assert (flagger.isFlagged().squeeze() == [False, False, False, False, True, False, False, False, False]
-            ).all()
+        assert (flagger.isFlagged().squeeze() == [False, False, False, False, True, False, False, False, False]).all()
 
     flags = flagger.getFlags()
     assert pre_data[field].equals(data[field])
@@ -90,61 +90,108 @@ def test_harmSingleVarInterpolations(data, flagger):
     pre_data = data[field]
     pre_flags = flagger.getFlags(field)
     tests = [
-        ("nagg", "15Min", pd.Series(data=[-87.5, -25.0, 0.0, 37.5, 50.0],
-                                    index=pd.date_range('2011-01-01 00:00:00',
-                                                        '2011-01-01 01:00:00',
-                                                        freq='15min'))),
-        ("nagg", "30Min", pd.Series(data=[-87.5, -25.0, 87.5],
-                                    index=pd.date_range('2011-01-01 00:00:00',
-                                                        '2011-01-01 01:00:00',
-                                                        freq='30min'))),
-        ("bagg", "15Min", pd.Series(data=[-50.0, -37.5, -37.5, 12.5, 37.5, 50.0],
-                                    index=pd.date_range('2010-12-31 23:45:00',
-                                                        '2011-01-01 01:00:00',
-                                                        freq='15min'))),
-        ("bagg", "30Min", pd.Series(data=[-50.0, -75.0, 50.0, 50.0],
-                                    index=pd.date_range('2010-12-31 23:30:00',
-                                                        '2011-01-01 01:00:00',
-                                                        freq='30min'))),
+        (
+            "nagg",
+            "15Min",
+            pd.Series(
+                data=[-87.5, -25.0, 0.0, 37.5, 50.0],
+                index=pd.date_range("2011-01-01 00:00:00", "2011-01-01 01:00:00", freq="15min"),
+            ),
+        ),
+        (
+            "nagg",
+            "30Min",
+            pd.Series(
+                data=[-87.5, -25.0, 87.5],
+                index=pd.date_range("2011-01-01 00:00:00", "2011-01-01 01:00:00", freq="30min"),
+            ),
+        ),
+        (
+            "bagg",
+            "15Min",
+            pd.Series(
+                data=[-50.0, -37.5, -37.5, 12.5, 37.5, 50.0],
+                index=pd.date_range("2010-12-31 23:45:00", "2011-01-01 01:00:00", freq="15min"),
+            ),
+        ),
+        (
+            "bagg",
+            "30Min",
+            pd.Series(
+                data=[-50.0, -75.0, 50.0, 50.0],
+                index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30min"),
+            ),
+        ),
     ]
 
     for interpolation, freq, expected in tests:
-        data_harm, flagger_harm = harm_aggregate2Grid(data, field, flagger, freq, value_func=np.sum, method=interpolation)
+        data_harm, flagger_harm = harm_aggregate2Grid(
+            data, field, flagger, freq, value_func=np.sum, method=interpolation
+        )
         assert data_harm[field].equals(expected)
-        data_deharm, flagger_deharm = harm_deharmonize(data_harm, "data", flagger_harm, method="inverse_" + interpolation)
+        data_deharm, flagger_deharm = harm_deharmonize(
+            data_harm, "data", flagger_harm, method="inverse_" + interpolation
+        )
         assert data_deharm[field].equals(pre_data)
         assert flagger_deharm.getFlags([field]).squeeze().equals(pre_flags)
 
     tests = [
-        ("fshift", "15Min", pd.Series(data=[np.nan, -37.5, -25.0, 0.0, 37.5, 50.0],
-                                      index=pd.date_range('2010-12-31 23:45:00',
-                                                          '2011-01-01 01:00:00',
-                                                          freq='15Min'))),
-        ("fshift", "30Min", pd.Series(data=[np.nan, -37.5, 0.0, 50.0],
-                                      index=pd.date_range('2010-12-31 23:30:00',
-                                                          '2011-01-01 01:00:00',
-                                                          freq='30Min'))),
-        ("bshift", "15Min", pd.Series(data=[-50.0, -37.5, -25.0, 12.5, 37.5, 50.0],
-                                      index=pd.date_range('2010-12-31 23:45:00',
-                                                          '2011-01-01 01:00:00',
-                                                          freq='15Min'))),
-        ("bshift", "30Min", pd.Series(data=[-50.0, -37.5, 12.5, 50.0],
-                                      index=pd.date_range('2010-12-31 23:30:00',
-                                                          '2011-01-01 01:00:00',
-                                                          freq='30Min'))),
-        ("nshift", "15min", pd.Series(data=[np.nan, -37.5, -25.0, 12.5, 37.5, 50.0],
-                                      index=pd.date_range('2010-12-31 23:45:00',
-                                                          '2011-01-01 01:00:00',
-                                                          freq='15Min'))),
-        ("nshift", "30min", pd.Series(data=[np.nan, -37.5, 12.5, 50.0],
-                                      index=pd.date_range('2010-12-31 23:30:00',
-                                                          '2011-01-01 01:00:00',
-                                                          freq='30Min')))]
+        (
+            "fshift",
+            "15Min",
+            pd.Series(
+                data=[np.nan, -37.5, -25.0, 0.0, 37.5, 50.0],
+                index=pd.date_range("2010-12-31 23:45:00", "2011-01-01 01:00:00", freq="15Min"),
+            ),
+        ),
+        (
+            "fshift",
+            "30Min",
+            pd.Series(
+                data=[np.nan, -37.5, 0.0, 50.0],
+                index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"),
+            ),
+        ),
+        (
+            "bshift",
+            "15Min",
+            pd.Series(
+                data=[-50.0, -37.5, -25.0, 12.5, 37.5, 50.0],
+                index=pd.date_range("2010-12-31 23:45:00", "2011-01-01 01:00:00", freq="15Min"),
+            ),
+        ),
+        (
+            "bshift",
+            "30Min",
+            pd.Series(
+                data=[-50.0, -37.5, 12.5, 50.0],
+                index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"),
+            ),
+        ),
+        (
+            "nshift",
+            "15min",
+            pd.Series(
+                data=[np.nan, -37.5, -25.0, 12.5, 37.5, 50.0],
+                index=pd.date_range("2010-12-31 23:45:00", "2011-01-01 01:00:00", freq="15Min"),
+            ),
+        ),
+        (
+            "nshift",
+            "30min",
+            pd.Series(
+                data=[np.nan, -37.5, 12.5, 50.0],
+                index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"),
+            ),
+        ),
+    ]
 
     for interpolation, freq, expected in tests:
         data_harm, flagger_harm = harm_shift2Grid(data, field, flagger, freq, method=interpolation)
         assert data_harm[field].equals(expected)
-        data_deharm, flagger_deharm = harm_deharmonize(data_harm, "data", flagger_harm, method="inverse_" + interpolation)
+        data_deharm, flagger_deharm = harm_deharmonize(
+            data_harm, "data", flagger_harm, method="inverse_" + interpolation
+        )
         assert data_deharm[field].equals(pre_data)
         assert flagger_deharm.getFlags([field]).squeeze().equals(pre_flags)
 

@@ -44,7 +44,7 @@ def _execGeneric(flagger, data, func, field, nodata):
         "GOOD": flagger.GOOD,
         "BAD": flagger.BAD,
         "UNFLAGGED": flagger.UNFLAGGED,
-        **ENVIRONMENT
+        **ENVIRONMENT,
     }
     func = func.addGlobals(globs)
     return func()
@@ -117,7 +117,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
 
 @register
 def flagSesonalRange(
-        data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
+    data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
 ):
     smask = sesonalMask(data[field].index, startmonth, startday, endmonth, endday)
 
@@ -148,7 +148,7 @@ def forceFlags(data, field, flagger, flag, **kwargs):
 
 @register
 def flagIsolated(
-        data, field, flagger, gap_window, group_window, **kwargs,
+    data, field, flagger, gap_window, group_window, **kwargs,
 ):
     gap_window = pd.tseries.frequencies.to_offset(gap_window)
     group_window = pd.tseries.frequencies.to_offset(group_window)
@@ -162,9 +162,9 @@ def flagIsolated(
             start = srs.index[0]
             stop = srs.index[-1]
             if stop - start <= group_window:
-                left = mask[start - gap_window: start].iloc[:-1]
+                left = mask[start - gap_window : start].iloc[:-1]
                 if left.all():
-                    right = mask[stop: stop + gap_window].iloc[1:]
+                    right = mask[stop : stop + gap_window].iloc[1:]
                     if right.all():
                         flags[start:stop] = True
 
@@ -180,7 +180,7 @@ def flagDummy(data, field, flagger, **kwargs):
 
 
 @register
-def flagManual(data, field, flagger, mdata, mflag: Any = 1, method='plain', **kwargs):
+def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kwargs):
     """ Flag data by given manual data.
 
     The data is flagged at locations where `mdata` is equal to a provided flag (`mflag`).
@@ -279,26 +279,26 @@ range_dict.keys()
         mdata = mdata[field]
 
     hasindex = isinstance(mdata, (pd.Series, pd.DataFrame, DictOfSeries))
-    if not hasindex and method != 'plain':
+    if not hasindex and method != "plain":
         raise ValueError("mdata has no index")
 
-    if method == 'plain':
+    if method == "plain":
         if hasindex:
             mdata = mdata.to_numpy()
         if len(mdata) != len(dat):
-            raise ValueError('mdata must have same length then data')
+            raise ValueError("mdata must have same length then data")
         mdata = pd.Series(mdata, index=dat.index)
-    elif method == 'ontime':
+    elif method == "ontime":
         pass  # reindex will do the job later
-    elif method in ['left-open', 'right-open']:
+    elif method in ["left-open", "right-open"]:
         mdata = mdata.reindex(dat.index.union(mdata.index))
 
         # -->)[t0-->)[t1--> (ffill)
-        if method == 'right-open':
+        if method == "right-open":
             mdata = mdata.ffill()
 
         # <--t0](<--t1](<-- (bfill)
-        if method == 'left-open':
+        if method == "left-open":
             mdata = mdata.bfill()
     else:
         raise ValueError(method)
@@ -311,7 +311,7 @@ range_dict.keys()
 
 @register
 def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median, **kwargs):
-    val_frame = data.loc[data.index_of('shared')].to_df()
+    val_frame = data.loc[data.index_of("shared")].to_df()
     try:
         stat = getattr(val_frame, cross_stat.__name__)(axis=1)
     except AttributeError:
@@ -321,4 +321,3 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median,
     for var in fields:
         flagger = flagger.setFlags(var, diff_scores[var].values, **kwargs)
     return data, flagger
-

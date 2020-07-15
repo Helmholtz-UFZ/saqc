@@ -41,7 +41,7 @@ def test_configDefaults(data):
     header = f"{F.VARNAME};{F.TEST};{F.PLOT}"
     tests = [
         (f"{var2};flagRange(min=3, max=6);True", SaQCFunc(flagRange, min=3, max=6, plot=True, lineno=2)),
-        (f"{var3};flagDummy()", SaQCFunc(flagDummy, plot=False, lineno=2))
+        (f"{var3};flagDummy()", SaQCFunc(flagDummy, plot=False, lineno=2)),
     ]
 
     for config, expected in tests:
@@ -63,7 +63,6 @@ def test_variableRegex(data):
         ("var[12]", ["var[12]"]),  # not quoted -> not a regex
         ('".*3"', [c for c in data.columns if c[-1] == "3"]),
     ]
-
 
     for regex, expected in tests:
         fobj = writeIO(header + "\n" + f"{regex} ; flagDummy()")
@@ -129,12 +128,12 @@ def test_configChecks(data):
 
     header = f"{F.VARNAME};{F.TEST}"
     tests = [
-        (f"{var1};flagRange(mn=0)", TypeError),   # bad argument name
+        (f"{var1};flagRange(mn=0)", TypeError),  # bad argument name
         (f"{var1};flagRange(min=0)", TypeError),  # not enough arguments
-        (f"{var3};flagNothing()", NameError),     # unknown function
-        (";flagRange(min=3)", SyntaxError),       # missing variable
-        (f"{var1};", SyntaxError),                # missing test
-        (f"{var1}; min", TypeError),              # not a function call
+        (f"{var3};flagNothing()", NameError),  # unknown function
+        (";flagRange(min=3)", SyntaxError),  # missing variable
+        (f"{var1};", SyntaxError),  # missing test
+        (f"{var1}; min", TypeError),  # not a function call
     ]
 
     for test, expected in tests:
@@ -170,4 +169,3 @@ def test_supportedArguments(data):
     for test in tests:
         fobj = writeIO(header + "\n" + test)
         SaQC(SimpleFlagger(), data).readConfig(fobj)
-
