@@ -14,10 +14,7 @@ from saqc.funcs.proc_functions import (
     proc_resample,
     proc_transform,
     proc_rollingInterpolateMissing,
-<<<<<<< HEAD
     proc_interpolateGrid
-=======
->>>>>>> develop
 )
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
 
@@ -87,7 +84,6 @@ def test_resample(course_5, flagger):
     assert ~np.isnan(data1[field].iloc[0])
     assert np.isnan(data1[field].iloc[1])
     assert np.isnan(data1[field].iloc[2])
-<<<<<<< HEAD
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_interpolateGrid(course_5, course_3, flagger):
@@ -98,5 +94,4 @@ def test_interpolateGrid(course_5, course_3, flagger):
     flagger = flagger.initFlags(data)
     dataInt, *_ = proc_interpolateGrid(data, 'data', flagger, '1h', 'time', grid_field='grid', inter_limit=10)
 
-=======
->>>>>>> develop
+
