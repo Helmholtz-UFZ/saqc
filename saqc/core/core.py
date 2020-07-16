@@ -73,10 +73,7 @@ def _prepInput(flagger, data, flags):
             raise ValueError("the length of flags and data need to be equal")
 
     if flagger.initialized:
-        flags = flagger.getFlags()
-
-        cols = flags.columns & data.columns
-        if not data.columns.difference(flags.columns).empty:
+        if not data.columns.difference(flagger.getFlags().columns).empty:
             raise ValueError("Given flagger does not contain all data columns")
 
     return data, flags
