@@ -32,12 +32,6 @@ def data():
     return initData(3)
 
 
-def _initFlags(flagger, data, optional):
-    return None
-    if optional:
-        return flagger.initFlags(data[data.columns[::2]])._flags
-
-
 @pytest.fixture
 def flags(flagger, data, optional):
     if not optional:
@@ -106,24 +100,30 @@ def test_dtypes(data, flagger, flags):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_nanInjections(data, flagger):
+def test_masking(data, flagger):
     """
     test if flagged values are exluded during the preceding tests
     """
     flagger = flagger.initFlags(data)
     flags = flagger.getFlags()
-    var = data.columns[0]
-    mn = min(data[var])
-    mx = max(data[var]) / 2
+    var1 = 'var1'
+    mn = min(data[var1])
+    mx = max(data[var1]) / 2
 
     pdata, pflagger = (
         SaQC(flagger, data, flags=flags)
-        .flagRange(var, mn, mx)
+        .flagRange(var1, mn, mx)
+        # min is not considered because its the smalles possible value.
+        # if masking works, `data > max` will be masked,
+        # so the following will deliver True for in range (data < max),
+        # otherwise False, like an inverse range-test
         .procGeneric("dummy", func=lambda var1: var1 >= mn)
         .getResult()
     )
-    assert not pdata.loc[pflagger.isFlagged(var), "dummy"].any()
-    assert pdata.loc[~pflagger.isFlagged(var), "dummy"].all()
+    out_of_range = pflagger.isFlagged(var1)
+    in_range = ~out_of_range
+    assert (pdata.loc[out_of_range, "dummy"] == False).all()
+    assert (pdata.loc[in_range, "dummy"] == True).all()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
