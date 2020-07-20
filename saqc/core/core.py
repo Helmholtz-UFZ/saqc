@@ -186,9 +186,6 @@ class SaQC:
         """
         Realized the registerd calculations and return the results
 
-        Parameters
-        ----------
-
         Returns
         -------
         data, flagger: (DictOfSeries, DictOfSeries)
@@ -198,7 +195,7 @@ class SaQC:
         return realization._data, realization._flagger
 
     def _wrap(self, func, lineno=None, expr=None):
-        def inner(field: str, *args, regex: bool = False, **kwargs):
+        def inner(field: str, *args, regex: bool = False, to_mask=None, **kwargs):
 
             fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
 
@@ -213,7 +210,7 @@ class SaQC:
 
             out = deepcopy(self)
             for field in fields:
-                f = SaQCFunc(func, *args, lineno=lineno, expression=expr, **kwargs)
+                f = SaQCFunc(func, *args, lineno=lineno, expression=expr, to_mask=to_mask, **kwargs)
                 out._to_call.append((field, f))
             return out
 
