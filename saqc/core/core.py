@@ -25,12 +25,13 @@ from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlag
 logger = logging.getLogger("SaQC")
 
 
-def _handleErrors(exc, func, policy):
-    msg = f"failed with:\n{type(exc).__name__}: {exc}"
+def _handleErrors(exc, func, field, policy):
+    msg = f"Execution failed. Variable: '{field}', "
     if func.lineno is not None and func.expr is not None:
-        msg = f"config, line {func.lineno}: '{func.expr}' " + msg
+        msg += f"Config line {func.lineno}: '{func.expr}', "
     else:
-        msg = f"function '{func.func}' with parameters '{func.kwargs}' " + msg
+        msg += f"Function: '{func.func}', parameters: '{func.kwargs}', "
+    msg += f"Exception:\n{type(exc).__name__}: {exc}"
 
     if policy == "ignore":
         logger.debug(msg)
@@ -160,7 +161,7 @@ class SaQC:
             try:
                 data_result, flagger_result = func(data=data, flagger=flagger, field=field)
             except Exception as e:
-                _handleErrors(e, func, self._error_policy)
+                _handleErrors(e, func, field, self._error_policy)
                 continue
 
             if func.plot:
