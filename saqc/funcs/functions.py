@@ -294,7 +294,19 @@ def flagDummy(data, field, flagger, **kwargs):
 def flagForceFail(data, field, flagger, **kwargs):
     """ Raise a RuntimeError. """
     raise RuntimeError("Works as expected :D")
+
+
+@register
+def flagUnflagged(data, field, flagger, **kwargs):
+    flag = kwargs.pop('flag', flagger.GOOD)
+    flagger = flagger.setFlags(field, flag=flag, **kwargs)
     return data, flagger
+
+
+@register
+def flagGood(data, field, flagger, **kwargs):
+    kwargs.pop('flag', None)
+    return flagUnflagged(data, field, flagger)
 
 
 @register
