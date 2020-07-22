@@ -30,7 +30,7 @@ def _handleErrors(exc, func, field, policy):
     if func.lineno is not None and func.expr is not None:
         msg += f"Config line {func.lineno}: '{func.expr}', "
     else:
-        msg += f"Function: '{func.func}', parameters: '{func.kwargs}', "
+        msg += f"Function: {func.func.__name__ }(), parameters: '{func.kwargs}', "
     msg += f"Exception:\n{type(exc).__name__}: {exc}"
 
     if policy == "ignore":

@@ -291,6 +291,13 @@ def flagDummy(data, field, flagger, **kwargs):
 
 
 @register
+def flagForceFail(data, field, flagger, **kwargs):
+    """ Raise a RuntimeError. """
+    raise RuntimeError("Works as expected :D")
+    return data, flagger
+
+
+@register
 def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kwargs):
     """ Flag data by given manual data.
 
