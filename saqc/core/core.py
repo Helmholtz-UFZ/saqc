@@ -25,12 +25,13 @@ from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlag
 logger = logging.getLogger("SaQC")
 
 
-def _handleErrors(exc, func, policy):
-    msg = f"failed with:\n{type(exc).__name__}: {exc}"
+def _handleErrors(exc, func, field, policy):
+    msg = f"Execution failed. Variable: '{field}', "
     if func.lineno is not None and func.expr is not None:
-        msg = f"config, line {func.lineno}: '{func.expr}' " + msg
+        msg += f"Config line {func.lineno}: '{func.expr}', "
     else:
-        msg = f"function '{func.func}' with parameters '{func.kwargs}' " + msg
+        msg += f"Function: {func.func.__name__ }(), parameters: '{func.kwargs}', "
+    msg += f"Exception:\n{type(exc).__name__}: {exc}"
 
     if policy == "ignore":
         logger.debug(msg)
@@ -73,10 +74,7 @@ def _prepInput(flagger, data, flags):
             raise ValueError("the length of flags and data need to be equal")
 
     if flagger.initialized:
-        flags = flagger.getFlags()
-
-        cols = flags.columns & data.columns
-        if not data.columns.difference(flags.columns).empty:
+        if not data.columns.difference(flagger.getFlags().columns).empty:
             raise ValueError("Given flagger does not contain all data columns")
 
     return data, flags
@@ -163,7 +161,7 @@ class SaQC:
             try:
                 data_result, flagger_result = func(data=data, flagger=flagger, field=field)
             except Exception as e:
-                _handleErrors(e, func, self._error_policy)
+                _handleErrors(e, func, field, self._error_policy)
                 continue
 
             if func.plot:
@@ -189,9 +187,6 @@ class SaQC:
         """
         Realized the registerd calculations and return the results
 
-        Parameters
-        ----------
-
         Returns
         -------
         data, flagger: (DictOfSeries, DictOfSeries)
@@ -201,7 +196,7 @@ class SaQC:
         return realization._data, realization._flagger
 
     def _wrap(self, func, lineno=None, expr=None):
-        def inner(field: str, *args, regex: bool = False, **kwargs):
+        def inner(field: str, *args, regex: bool = False, to_mask=None, **kwargs):
 
             fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
 
@@ -216,7 +211,7 @@ class SaQC:
 
             out = deepcopy(self)
             for field in fields:
-                f = SaQCFunc(func, *args, lineno=lineno, expression=expr, **kwargs)
+                f = SaQCFunc(func, *args, lineno=lineno, expression=expr, to_mask=to_mask, **kwargs)
                 out._to_call.append((field, f))
             return out
 

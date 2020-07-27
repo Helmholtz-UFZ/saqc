@@ -644,7 +644,9 @@ def _plotFromDicts(ax, plotdict, styledict):
 def _annotate(ax, plotdict, txtseries: pd.Series):
     for x, txt in txtseries.iteritems():
         try:
-            y = plotdict["data"].loc[x]
+            y = plotdict['data'].loc[x]
+            if np.isnan(y):
+                y = plotdict['data-nans'].loc[x]
         except KeyError:
             continue
         ax.annotate(txt, xy=(x, y), rotation=45)

@@ -5,6 +5,10 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
+import dtw
+import pywt
+from mlxtend.evaluate import permutation_test
+import datetime
 
 from saqc.lib.tools import groupConsecutives, sesonalMask
 
@@ -104,6 +108,113 @@ def flagRange(data, field, flagger, min, max, **kwargs):
 
 
 @register
+def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition_freq = "days", partition_offset = 0, max_distance = 0.03, normalized_distance = True, open_end = True, widths = (1, 2, 4, 8), waveform = 'mexh', **kwargs):
+    """ Implementation of two pattern recognition algorithms:
+    - Dynamic Time Warping (dtw) [1]
+    - Pattern recognition via wavelets [2]
+
+    The steps are:
+    1. Get the frequency of partitions, in which the time series has to be divided (for example: a pattern occurs daily, or every hour)
+    2. Compare each partition with the given pattern
+    3. Check if the compared partition contains the pattern or not
+    4. Flag partition if it contains the pattern
+
+    :param data:                pandas dataframe. holding the data
+    :param field:               fieldname in `data`, which holds the series to be checked for patterns
+    :param flagger:             flagger.
+    :param reference_field:     fieldname in `data`, which holds the pattern
+    :param method:              str. Pattern Recognition method to be used: 'dtw' or 'wavelets'. Default: 'dtw'
+    :param partition_freq:      str. Frequency, in which the pattern occurs. If only "days" or "months" is given, then precise length of partition is calculated from pattern length. Default: "days"
+    :param partition_offset:    str. If partition frequency is given, and pattern starts after a timely offset (e.g., partition frequency is "1 h", pattern starts at 10:15, then offset is "15 min"). Default: 0
+    :param max_distance:        float. For dtw. Maximum dtw-distance between partition and pattern, so that partition is recognized as pattern. Default: 0.03
+    :param normalized_distance: boolean. For dtw. Normalizing dtw-distance (see [1]). Default: True
+    :param open_end:            boolean. For dtw. End of pattern is matched with a value in the partition (not necessarily end of partition). Recommendation of [1]. Default: True
+    :param widths:              tuple of int. For wavelets. Widths for wavelet decomposition. [2] recommends a dyadic scale. Default: (1,2,4,8)
+    :param waveform:            str. For wavelets. Wavelet to be used for decomposition. Default: 'mexh'
+
+    Literature:
+    [1] https://cran.r-project.org/web/packages/dtw/dtw.pdf
+    [2] Maharaj, E.A. (2002): Pattern Recognition of Time Series using Wavelets. In: Härdle W., Rönz B. (eds) Compstat. Physica, Heidelberg, 978-3-7908-1517-7.
+    """
+
+    test = data[field].copy()
+    ref = data[reference_field].copy()
+    pattern_start_date = ref.index[0].time()
+    pattern_end_date = ref.index[-1].time()
+
+    ### Extract partition frequency from pattern if needed
+    if not isinstance(partition_freq, str):
+        raise ValueError('Partition frequency has to be given in string format.')
+    elif partition_freq == "days" or partition_freq == "months":
+            # Get partition frequency from reference field
+            partition_count = (pattern_end_date - pattern_start_date).days
+            partitions = test.groupby(pd.Grouper(freq="%d D" % (partition_count + 1)))
+    else:
+        partitions = test.groupby(pd.Grouper(freq=partition_freq))
+
+    # Initializing Wavelets
+    if method == 'wavelet':
+        # calculate reference wavelet transform
+        ref_wl = ref.values.ravel()
+        # Widths lambda as in Ann Maharaj
+        cwtmat_ref, freqs = pywt.cwt(ref_wl, widths, waveform)
+        # Square of matrix elements as Power sum of the matrix
+        wavepower_ref = np.power(cwtmat_ref, 2)
+    elif not method == 'dtw':
+    # No correct method given
+        raise ValueError('Unable to interpret {} as method.'.format(method))
+
+    flags = pd.Series(data=False, index=test.index)
+    ### Calculate flags for every partition
+    partition_min = ref.shape[0]
+    for _, partition in partitions:
+
+        # Ensuring that partition is at least as long as reference pattern
+        if partition.empty or (partition.shape[0] < partition_min):
+            continue
+        if partition_freq == "days" or partition_freq == "months":
+            # Use only the time frame given by the pattern
+            test = partition[pattern_start_date:pattern_start_date]
+            mask = (partition.index >= test.index[0]) & (partition.index <= test.index[-1])
+            test = partition.loc[mask]
+        else:
+            # cut partition according to pattern and offset
+            start_time = pd.Timedelta(partition_offset) + partition.index[0]
+            end_time = start_time + pd.Timedelta(pattern_end_date - pattern_start_date)
+            test = partition[start_time:end_time]
+        ### Switch method
+        if method == 'dtw':
+            distance = dtw.dtw(test, ref, open_end = open_end, distance_only = True).normalizedDistance
+            if normalized_distance:
+                distance = distance/ref.var()
+            # Partition labeled as pattern by dtw
+            if distance < max_distance:
+                flags[partition.index] = True
+        elif method == 'wavelet':
+            # calculate reference wavelet transform
+            test_wl = test.values.ravel()
+            cwtmat_test, freqs = pywt.cwt(test_wl, widths, 'mexh')
+            # Square of matrix elements as Power sum of the matrix
+            wavepower_test = np.power(cwtmat_test, 2)
+            # Permutation test on Powersum of matrix
+            p_value = []
+            for i in range(len(widths)):
+                x = wavepower_ref[i]
+                y = wavepower_test[i]
+                pval = permutation_test(x, y, method='approximate', num_rounds=200, func=lambda x, y: x.sum() / y.sum(),
+                                        seed=0)
+                p_value.append(min(pval, 1 - pval))
+            # Partition labeled as pattern by wavelet
+            if min(p_value) >= 0.01:
+                flags[partition.index] = True
+
+
+    flagger = flagger.setFlags(field, mask, **kwargs)
+    return data, flagger
+
+
+
+@register
 def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     datacol = data[field]
     if np.isnan(nodata):
@@ -177,6 +288,25 @@ def flagIsolated(
 def flagDummy(data, field, flagger, **kwargs):
     """ Do nothing """
     return data, flagger
+
+
+@register
+def flagForceFail(data, field, flagger, **kwargs):
+    """ Raise a RuntimeError. """
+    raise RuntimeError("Works as expected :D")
+
+
+@register
+def flagUnflagged(data, field, flagger, **kwargs):
+    flag = kwargs.pop('flag', flagger.GOOD)
+    flagger = flagger.setFlags(field, flag=flag, **kwargs)
+    return data, flagger
+
+
+@register
+def flagGood(data, field, flagger, **kwargs):
+    kwargs.pop('flag', None)
+    return flagUnflagged(data, field, flagger)
 
 
 @register

@@ -137,3 +137,4 @@ def test_grubbs(dat, flagger):
     flagger = flagger.initFlags(data)
     data, result_flagger = spikes_flagGrubbs(data, "data", flagger, winsz=20, min_periods=15)
     assert result_flagger.isFlagged("data")[char_dict["drop"]].all()
+

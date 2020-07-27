@@ -189,17 +189,24 @@ class BaseFlagger(ABC):
         """
         if isinstance(flag, pd.Series):
             raise TypeError("flag: pd.Series is not allowed")
-        checkflags = set(toSequence(flag, self.GOOD))
+        flags_to_compare = set(toSequence(flag, self.GOOD))
 
         flags = self.getFlags(field, loc)
         cp = COMPARATOR_MAP[comparator]
 
-        # notna() to prevent nans to become True, eg.: `np.nan != 0 -> True`
+        # notna() to prevent nans to become True,
+        # eg.: `np.nan != 0 -> True`
         flagged = flags.notna()
-        for f in checkflags:
-            if not self.isValidFlag(f):
-                raise ValueError(f"invalid flag: {f}")
-            flagged &= cp(flags, f)
+
+        # passing an empty list must result
+        # in a everywhere-False data
+        if len(flags_to_compare) == 0:
+            flagged[:] = False
+        else:
+            for f in flags_to_compare:
+                if not self.isValidFlag(f):
+                    raise ValueError(f"invalid flag: {f}")
+                flagged &= cp(flags, f)
 
         return flagged
 

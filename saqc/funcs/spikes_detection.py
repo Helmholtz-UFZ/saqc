@@ -138,6 +138,7 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
             upper_tail_index = upper_tail_index_new
 
         # fitting
+
         lambdA, _ = curve_fit(
             fit_function,
             xdata=binzenters[upper_tail_index:iter_max_bin_index],
@@ -368,7 +369,7 @@ def spikes_flagRaise(
 def spikes_flagSlidingZscore(
     data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs,
 ):
-    """ A outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
+    """ An outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
 
     The steps are:
