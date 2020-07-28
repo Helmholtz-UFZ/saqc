@@ -14,6 +14,7 @@ from typing import List, Tuple
 import pandas as pd
 import dios
 import numpy as np
+import timeit
 
 from saqc.lib.plotting import plotHook, plotAllHook
 from saqc.lib.tools import isQuoted
@@ -153,10 +154,16 @@ class SaQC:
             logger.debug(f"processing: {field}, {func.__name__}, {func.kwargs}")
 
             try:
+                t0 = timeit.default_timer()
                 data_result, flagger_result = func(data=data, flagger=flagger, field=field)
             except Exception as e:
+                t1 = timeit.default_timer()
+                logger.debug(f"{func.__name__} failed after {t1-t0} sec")
                 _handleErrors(e, func, field, self._error_policy)
                 continue
+            else:
+                t1 = timeit.default_timer()
+                logger.debug(f"{func.__name__} finished after {t1-t0} sec")
 
             if func.plot:
                 plotHook(
