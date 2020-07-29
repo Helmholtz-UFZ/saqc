@@ -588,6 +588,8 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
 
     if (freq is None) and (method != "match"):
         freq = pd.Timedelta(flagscol.index.freq)
+        if freq is None:
+            freq = pd.infer_freq(flagscol.index)
         if freq is pd.NaT:
             raise ValueError(
                 "Nor is {} a frequency regular timeseries, neither was a frequency passed to parameter 'freq'. "
