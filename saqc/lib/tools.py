@@ -412,7 +412,7 @@ def estimate_sampling_rates(index, freq=None):
     index : pd.DatetimeIndex
         Index, the sampling modes are estimated of.
     freq : Offsetstring or None, default None
-        Frequencie of wich consistence with the estimate is checked. None (default) skips check.
+        Frequency of which consistence with the estimate is checked. None (default) skips check.
 
     Returns
     -------
