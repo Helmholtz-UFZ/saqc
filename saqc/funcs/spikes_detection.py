@@ -310,7 +310,29 @@ def spikes_flagRaise(
     numba_boost=True,
     **kwargs,
 ):
+    """
+    Parameters
+    ----------
+    thresh : float
+        The threshold, for the total rise (thresh > 0), or total drop (thresh < 0), value courses must
+        not exceed within a timespan of length raise_window.
+    raise_window : str
+        An offset string, determining the timespan, the rise/drop thresholding refers to. Window is inclusively defined.
+    intended_freq : str
+        An offset string, determining The frequency, the timeseries to-be-flagged is supposed to be sampled at.
+        The window is inclusively defined.
+    average_window : {None, str}, default None
+        See condition (2) below. Window is inclusively defined. The window defaults to 1.5 times the size of
+        raise_window
+    mean_raise_factor : float, default 2
+        See condition (2) below.
+    min_slope : {None, float}, default None
+        See condition (3)
+    min_slope_weight : float, default 0.8
+        See condition (3)
+    numba_boost : bool, default True
 
+    """
     # NOTE1: this implementation accounts for the case of "pseudo" spikes that result from checking against outliers
     # NOTE2: the test is designed to work on raw data as well as on regularized
     #
