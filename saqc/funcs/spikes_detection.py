@@ -29,6 +29,53 @@ def _stray(
     iter_start=0.5,
     alpha=0.05,
 ):
+    """
+    Find outliers in multi dimensional observations.
+
+    The general idea is to assigning scores to every observation based on the observations neighborhood in the space
+    of observations. Then, the gaps between the (greatest) scores are tested for beeing drawn from the same
+    distribution, as the majority of the scores.
+
+    See the References section for a link to a detailed description of the algorithm.
+
+    Parameters
+    ----------
+    val_frame : (N,M) ndarray
+        Input NxM array of observations, where N is the number of observations and M the number of components per
+        observation.
+    partition_freq : Union[None, str, int], default None
+        Determines the size of the data partitions, the data is decomposed into. Each partition is checked seperately
+        for outliers. If a String is passed, it has to be an offset string and it results in partitioning the data into
+        parts of according temporal length. If an integer is passed, the data is simply split up into continous chunks
+        of `partition_freq` periods. if ``None`` is passed (default), all the data will be tested in one run.
+    partition_min : int, default 0
+        Minimum number of periods per partition that have to be present for a valid outlier dettection to be made in
+        this partition. (Only of effect, if `partition_freq` is an integer.)
+    scoring_method : {'kNNSum', 'kNNMaxGap'}, default 'kNNMaxGap'
+        Scoring method applied.
+        `'kNNSum'`: Assign to every point the sum of the distances to its 'n_neighbors' nearest neighbors.
+        `'kNNMaxGap'`: Assign to every point the distance to the neighbor with the "maximum gap" to its predecessor
+            in the hierarchy of the `n_neighbors` nearest neighbors. (see reference section for further descriptions)
+    n_neighbors : int, default 10
+        Number of neighbors included in the scoring process for every datapoint.
+    iter_start : float, default 0.5
+        Float in [0,1] that determines which percentage of data is considered "normal". 0.5 results in the stray
+        algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
+        information)
+    alpha : float, default 0.05
+        Niveau of significance it is tested at, if a score may be drawn from another distribution then the majority of
+        data.
+
+    Returns
+    -------
+
+    References
+    ----------
+    Detailed description of the Stray algorithm is covered here:
+
+    Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
+    arXiv preprint arXiv:1908.04000.
+    """
 
 
     kNNfunc = getattr(ts_ops, scoring_method)
