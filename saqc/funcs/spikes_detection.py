@@ -271,7 +271,6 @@ def _reduceMVflags(
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
 
-
     """
     to_flag_frame[:] = False
     to_flag_index = to_flag_frame.index
@@ -785,31 +784,36 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
+    The test classifies values/value courses as outliers by detecting not only a rise in value, but also
+    checking for a return to the initial value niveau.
+
     Values x(n), x(n+1), .... , x(n+k) of a timeseries x are considered spikes, if
 
-    (1) |x(n-1) - x(n + s)| > "thresh", for all s in [0,1,2,...,k]
+    (1) |x(n-1) - x(n + s)| > `thresh`, for all s in [0,1,2,...,k]
 
-    (2) |x(n-1) - x(n+k+1)| < tol
+    (2) |x(n-1) - x(n+k+1)| < `tolerance`
 
-    (3) |x(n-1).index - x(n+k+1).index| < length
+    (3) |x(n-1).index - x(n+k+1).index| < `windoow`
 
     Note, that this definition of a "spike" not only includes one-value outliers, but also plateau-ish value courses.
 
+
+    Parameters
+    ----------
+    thresh : float, default 7
+        Minimum difference between to values, to consider the latter one as a spike. See condition (1)
+    tolerance : float, default 0
+        Maximum difference between pre-spike and post-spike values. See condition (2)
+    window : str, default '15min'
+        Maximum length of "spiky" value courses. See condition (3)
+
+    References
+    ----------
     The implementation is a time-window based version of an outlier test from the UFZ Python library,
     that can be found here:
 
     https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py
 
-
-    :param data:    Pandas-like. The pandas dataframe holding the data-to-be flagged.
-    :param field:   String. Fieldname of the data column to be tested.
-    :param flagger: saqc.flagger. A flagger - object.
-    :param thresh:  Float. The lower bound for a value jump, to be considered as initialising a spike.
-                    (see condition (1) in function description).
-    :param tolerance: Float. Tolerance value.  (see condition (2) in function description)
-    :param window_size:  Offset String. The time span in wich the values of a spikey course have to return to the normal
-                    value course (see condition (3) in function description).
-    :return:
     """
 
     dataseries = data[field].dropna()
