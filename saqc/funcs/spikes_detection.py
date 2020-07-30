@@ -78,9 +78,7 @@ def _stray(
 
     [1] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
         arXiv preprint arXiv:1908.04000.
-
     """
-
 
     kNNfunc = getattr(ts_ops, scoring_method)
     # partitioning
@@ -125,7 +123,6 @@ def _stray(
 
 def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.5, alpha=0.05, bin_frac=10):
     """
-
     Find outliers in multi dimensional observations.
 
     The general idea is to assigning scores to every observation based on the observations neighborhood in the space
@@ -158,8 +155,6 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
         Controls the binning for the histogram in the fitting step. If an integer is passed, the residues will
         equidistantly be covered by `bin_frac` bins, ranging from the minimum to the maximum of the residues.
         If a string is passed, it will be passed on to the ``numpy.histogram_bin_edges`` method.
-
-
     """
 
     kNNfunc = getattr(ts_ops, scoring_method)
@@ -270,7 +265,6 @@ def _reduceMVflags(
     References
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
-
     """
     to_flag_frame[:] = False
     to_flag_index = to_flag_frame.index
@@ -322,7 +316,6 @@ def spikes_flagMultivarScores(
     **kwargs,
 ):
     """
-
     The algorithm implements a 3-step outlier detection procedure for simultaneously flagging of higher dimensional
     data (dimensions > 3).
 
@@ -360,13 +353,19 @@ def spikes_flagMultivarScores(
 
     Parameters
     ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
     fields : List[str]
-        List of fieldnames, corresponding to the variables to include into the flagging process.
+        List of fieldnames, corresponding to the variables that are to be included into the flagging process.
     trafo : callable, default np.log
         Transformation to be applied onto every column before scoring. Will likely get deprecated soon. Its better
-        to transform the data in a processing step, preceeeding the multivariate flagging process.
+        to transform the data in a processing step, preceeeding the call to ``flagMultivarScores``.
     alpha : float, default 0.05
-        Niveau of significance by which it is tested, if an observations score might be drawn from another distribution
+        Level of significance by which it is tested, if an observations score might be drawn from another distribution
         than the majority of the observation.
     n_neighbors : int, default 10
         Number of neighbors included in the scoring process for every datapoint.
@@ -414,6 +413,15 @@ def spikes_flagMultivarScores(
         The `critical` value, controlling wheather the MAD score is considered referring to an outlier or not.
         Higher values result in less rigid flagging. The default value is widely used in the literature.
 
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
+
     References
     ----------
     Odd Water Algorithm:
@@ -429,7 +437,6 @@ def spikes_flagMultivarScores(
     A detailed description of the MAD outlier scoring:
 
     [3] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
-
     """
 
     # data fransformation/extraction
@@ -506,6 +513,12 @@ def spikes_flagRaise(
 
     Parameters
     ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
     thresh : float
         The threshold, for the total rise (thresh > 0), or total drop (thresh < 0), value courses must
         not exceed within a timespan of length `raise_window`.
@@ -525,11 +538,18 @@ def spikes_flagRaise(
         See condition (3) of the description linked in the references
     numba_boost : bool, default True
 
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
+
     References
     ----------
     Find detailed description here:
     https://git.ufz.de/rdm-software/saqc/-/blob/testfuncDocs/docs/funcs/FormalDescriptions.md#spikes_flagraise
-
     """
 
     # prepare input args
@@ -569,7 +589,7 @@ def spikes_flagRaise(
     if raise_series.isna().all():
         return data, flagger
 
-    # "unflag" values of unsifficient deviation to theire predecessors
+    # "unflag" values of insufficient deviation to their predecessors
     if min_slope is not None:
         w_mask = (
             pd.Series(dataseries.index).diff().dt.total_seconds() / intended_freq.total_seconds()
@@ -619,7 +639,8 @@ def spikes_flagRaise(
 def spikes_flagSlidingZscore(
     data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs,
 ):
-    """ An outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
+    """
+    An outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
     modified Z-score, as introduced here [1].
 
     The steps are:
@@ -630,20 +651,32 @@ def spikes_flagSlidingZscore(
     5.  processing continue at 1. until end of data.
     6.  all potential outlier, that are detected `count`-many times, are promoted to real outlier and flagged by the `flagger`
 
-    :param data:        pandas dataframe. holding the data
-    :param field:       fieldname in `data`, which holds the relevant infos
-    :param flagger:     flagger.
-    :param window:      int or time-offset string (see [2]). The size of the window the outlier detection is run in. default: 1h
-    :param offset:      int or time-offset string (see [2]). Stepsize the window is set further. default: 1h
-    :param method:      str. `modZ`  or `zscore`. see [1] at section `Z-Scores and Modified Z-Scores`
-    :param count:       int. this many times, a datapoint needs to be detected in different windows, to be finally
-                        flagged as outlier
-    :param polydeg:     The degree for the polynomial fit, to calculate the residuum
-    :param z:           float. the value the (mod.) Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    window: {int, str}
+        Integer or offset string (see [2]). The size of the window the outlier detection is run in.
+    offset: {int, str}
+        Integer or offset string (see [2]). Stepsize the window is set further. default: 1h
+    count: int, default 1
+        Number of times a value has to be classified an outlier in different windows, to be finally flagged an outlier.
+    polydeg : int, default 1
+        The degree for the polynomial that is fitted to the data in order to calculate the residues.
+    z : float, default 3.5
+        The value the (mod.) Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
+    method: {'modZ', zscore}, default  'modZ'
+        See section `Z-Scores and Modified Z-Scores` in [1].
 
-    Links:
+    References
+    ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     [2] https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
+
     """
 
     use_offset = False
@@ -743,19 +776,40 @@ def spikes_flagSlidingZscore(
 
 @register
 def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
-    """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
 
+    """
+
+    The function represents an implementation of the modyfied Z-score outlier detection method.
+
+    See references [1] for more details on the algorithm.
+
+    Note, that the test needs the input data to be sampled regularly (fixed sampling rate).
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    window : str
+       Offset string. Denoting the windows size that the "Z-scored" values have to lie in.
+    z: float, default 3.5
+        The value the Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
+
+    References
+    ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
 
-    The test needs the input data to be harmonized to an equidustant time stamp series (=have frequencie))
-
-    :param data:        The pandas dataframe holding the data-to-be flagged.
-                        Data must be indexed by a datetime series and be harmonized onto a
-                        time raster with seconds precision.
-    :param field:       Fieldname of the Soil moisture measurements field in data.
-    :param flagger:     A flagger - object. (saqc.flagger.X)
-    :param winsz:      Offset String. Denoting the windows size that that th "Z-scored" values have to lie in.
-    :param z:           Float. The value the Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
     """
     d = data[field].copy().mask(flagger.isFlagged(field))
     median = d.rolling(window=window, closed="both").median()
@@ -784,8 +838,8 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
-    The test classifies values/value courses as outliers by detecting not only a rise in value, but also
-    checking for a return to the initial value niveau.
+    The test classifies values/value courses as outliers by detecting not only a rise in value, but also,
+    checking for a return to the initial value level.
 
     Values x(n), x(n+1), .... , x(n+k) of a timeseries x are considered spikes, if
 
@@ -800,12 +854,26 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
 
     Parameters
     ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
     thresh : float, default 7
         Minimum difference between to values, to consider the latter one as a spike. See condition (1)
     tolerance : float, default 0
         Maximum difference between pre-spike and post-spike values. See condition (2)
     window : str, default '15min'
         Maximum length of "spiky" value courses. See condition (3)
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
 
     References
     ----------
@@ -885,69 +953,68 @@ def spikes_flagSpektrumBased(
     **kwargs,
 ):
     """
-    This Function is a generalization of the Spectrum based Spike flagging mechanism as presented in:
-
-    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
-    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
 
     Function detects and flags spikes in input data series by evaluating its derivatives and applying some
     conditions to it. A datapoint is considered a spike, if:
 
     (1) the quotient to its preceeding datapoint exceeds a certain bound
-    (controlled by param "raise_factor")
+    (controlled by param `raise_factor`)
     (2) the quotient of the datas second derivate at the preceeding and subsequent timestamps is close enough to 1.
-    (controlled by param "deriv_factor")
+    (controlled by param `deriv_factor`)
     (3) the surrounding data is not too noisy. (Coefficient of Variation[+/- noise_window] < 1)
-    (controlled by param "noise_thresh")
+    (controlled by param `noise_thresh`)
 
-    Some things you should be conscious about when applying this test:
+    Note, that the data-to-be-flagged is supposed to be sampled at an equidistant frequency grid
 
-       NOTE1: You should run less complex tests, especially range-tests, or absolute spike tests previously to this one,
-       since the spike check for any potential, unflagged spike, is relatively costly
-       (1 x smoothing + 2 x deviating + 2 x condition application).
+    Note, that the derivative is calculated after applying a Savitsky-Golay filter to the data.
 
-       NOTE2: Due to inconsistency in the paper that provided the concept of this test [paper:], its not really clear
-       weather to use the coefficient of variance or the relative variance for noise testing.
-       Since the relative variance was explicitly denoted in the formulas, the function defaults to relative variance,
-       but can be switched to coefficient of variance, by assignment to parameter "noise statistic".
+    Parameters
+    ----------
 
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    raise_factor : float, default 0.15
+        Minimum relative value difference between two values to consider the latter as a spike candidate.
+        See condition (1) (or reference [2]).
+    deriv_factor : float, default 0.2
+        See condition (2) (or reference [2]).
+    noise_func : {'CoVar', 'rVar'}, default 'CoVar'
+        Function to calculate noisiness of the data surrounding potential spikes.
+        ``'CoVar'``: Coefficient of Variation
+        ``'rVar'``: Relative Variance
+    noise_window : str, default '12h'
+        An offset string that determines the range of the time window of the "surrounding" data of a potential spike.
+        See condition (3) (or reference [2]).
+    noise_thresh : float, default 1
+        Upper threshold for noisiness of data surrounding potential spikes. See condition (3) (or reference [2]).
+    smooth_window : {None, str}, default None
+        Size of the smoothing window of the Savitsky-Golay filter.
+        The default value ``None`` results in a window of two times the sampling rate (i.e. containing three values).
+    smooth_poly_deg : int, default 2
+        Degree of the polynomial used for fitting with the Savitsky-Golay filter.
 
-       :param data:                 The pandas dataframe holding the data-to-be flagged.
-                                    Data must be indexed by a datetime series and be harmonized onto a
-                                    time raster with seconds precision.
-       :param field:                Fieldname of the Soil moisture measurements field in data.
-       :param flagger:              A flagger - object. (saqc.flagger.X)
-       :param smooth_window:        Offset string. Size of the filter window, used to calculate the derivatives.
-                                    (relevant only, if: diff_method='savgol')
-       :param smooth_poly_deg:      Integer. Polynomial order, used for smoothing with savitzk golay filter.
-                                    (relevant only, if: diff_method='savgol')
-       :param raise_factor:         A float, determinating the bound, the quotient of two consecutive values
-                                    has to exceed, to be regarded as potentially spike. A value of 0.x will
-                                    trigger the spike test for value y_t, if:
-                                    (y_t)/(y_t-1) > 1 + x or:
-                                    (y_t)/(y_t-1) < 1 - x.
-       :param deriv_factor:         A float, determining the interval, the quotient of the datas second derivate
-                                    around a potential spike has to be part of, to trigger spike flagging for
-                                    this value. A datapoint y_t will pass this spike condition if,
-                                    for deriv_factor = 0.x, and the second derivative y'' of y, the condition:
-                                    1 - x < abs((y''_t-1)/(y''_t+1)) < 1 + x
-                                    holds
-       :param noise_thresh:         A float, determining the bound, the data noisy-ness around a potential spike
-                                    must not exceed, in order to guarantee a justifyed judgement:
-                                    Therefor the coefficient selected by parameter noise_func (COVA),
-                                    of all values within t +/- param "noise_window",
-                                    but excluding the point y_t itself, is evaluated and tested
-                                    for: COVA < noise_thresh.
-       :param noise_window:         Offset string, determining the size of the window, the coefficient of
-                                    variation is calculated of, to determine data noisy-ness around a potential
-                                    spike.
-                                    The potential spike y_t will be centered in a window of expansion:
-                                    [y_t - noise_window_size, y_t + noise_window_size].
-       :param noise_func:           String. Determines, wheather to use
-                                    "relative variance" or "coefficient of variation" to check against the noise
-                                    barrier.
-                                    'CoVar' -> "Coefficient of variation"
-                                    'rVar'  -> "relative Variance"
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
+
+    References
+    ----------
+    This Function is a generalization of the Spectrum based Spike flagging mechanism as presented in:
+
+    [1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
+        Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
+        doi:10.2136/vzj2012.0097.
+
+    [2] https://git.ufz.de/rdm-software/saqc/-/blob/testfuncDocs/docs/funcs/FormalDescriptions.md#spikes_flagspektrumbased
+
     """
 
     dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
@@ -1012,35 +1079,55 @@ def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, ch
     """
     The function flags values that are regarded outliers due to the grubbs test.
 
-    (https://en.wikipedia.org/wiki/Grubbs%27s_test_for_outliers)
+    See reference [1] for more information on the grubbs tests definition.
 
-    The (two-sided) test gets applied onto data chunks of size "winsz". The tests appliccation  will
+    The (two-sided) test gets applied onto data chunks of size "winsz". The tests application  will
     be iterated on each data-chunk under test, till no more outliers are detected in that chunk.
 
     Note, that the test performs poorely for small data chunks (resulting in heavy overflagging).
     Therefor you should select "winsz" so that every window contains at least > 8 values and also
     adjust the min_periods values accordingly.
 
-    Note, that the data to be tested by the grubbs test are expected to be "normallish" distributed.
+    Note, that the data to be tested by the grubbs test are expected to be distributed "normalish".
 
     Parameters
     ----------
-    winsz : Integer or Offset String
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    winsz : {int, str}
         The size of the window you want to use for outlier testing. If an integer is passed, the size
-        refers to the number of periods of every testing window. If an offset string is passed,
-        the size refers to the total temporal extension of every window.
-        even.
-    alpha : float
-        The level of significance the grubbs test is to be performed at. (between 0 and 1)
-    min_periods : Integer
-        The minimum number of values present in a testing interval for a grubbs test result to be accepted. Only
-        makes sence in case "winsz" is an offset string.
+        refers to the number of periods of every testing window. If a string is passed, it has to be an offset string,
+        and will denote the total temporal extension of every window.
+    alpha : float, default 0.05
+        The level of significance, the grubbs test is to be performed at. (between 0 and 1)
+    min_periods : int, default 8
+        The minimum number of values that have to be present in an interval under test, for a grubbs test result to be
+        accepted. Only makes sence in case `winsz` is an offset string.
     check_lagged: boolean, default False
-        If True, every value gets checked twice for being an outlier, ones in the initial rolling window and one more time
-        in a rolling window that is lagged by half the windows delimeter (winsz/2). Recommended for avoiding false
+        If True, every value gets checked twice for being an outlier. Ones in the initial rolling window and one more
+        time in a rolling window that is lagged by half the windows delimeter (winsz/2). Recommended for avoiding false
         positives at the window edges. Only available when rolling with integer defined window size.
 
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
+
+    References
+    ----------
+    introduction to the grubbs test:
+
+    [1] https://en.wikipedia.org/wiki/Grubbs%27s_test_for_outliers
+
     """
+
     data = data.copy()
     datcol = data[field]
     to_group = pd.DataFrame(data={"ts": datcol.index, "data": datcol})
