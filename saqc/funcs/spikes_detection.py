@@ -49,7 +49,7 @@ def _stray(
     val_frame : (N,M) ndarray
         Input NxM array of observations, where N is the number of observations and M the number of components per
         observation.
-    partition_freq : Union[None, str, int], default None
+    partition_freq : {None, str, int}, default None
         Determines the size of the data partitions, the data is decomposed into. Each partition is checked seperately
         for outliers. If a String is passed, it has to be an offset string and it results in partitioning the data into
         parts of according temporal length. If an integer is passed, the data is simply split up into continous chunks
@@ -316,7 +316,7 @@ def spikes_flagMultivarScores(
     expfit_binning="auto",
     stray_partition=None,
     stray_partition_min=0,
-    post_reduction=None,
+    post_reduction=False,
     reduction_range=None,
     reduction_drop_flagged=False,
     reduction_thresh=3.5,
@@ -324,29 +324,112 @@ def spikes_flagMultivarScores(
 ):
     """
 
+    The algorithm implements a 3-step outlier detection procedure for simultaneously flagging of higher dimensional
+    data (dimensions > 3).
+
+    In references [1], the procedure is introduced and exemplified with an application on hydrological data.
+
+    The basic steps are:
+
+    1. transforming
+
+    The different data columns are transformed via timeseries transformations to
+    (a) make them comparable and
+    (b) make outliers more stand out.
+
+    This step is usually subject to a phase of research/try and error. See [1] for more details.
+
+    Note, that the data transformation as an built-in step of the algorithm, will likely get deprecated soon. Its better
+    to transform the data in a processing step, preceeding the multivariate flagging process. Also, by doing so, one
+    gets mutch more control and variety in the transformation applied, since the `trafo` parameter only allows for
+    application of the same transformation to all of the variables involved.
+
+    2. scoring
+
+    Every observation gets assigned a score depending on its k nearest neighbors. See the `scoring_method` parameter
+    description for details on the different scoring methods. Furthermore [1], [2] may give some insight in the
+    pro and cons of the different methods.
+
+    3. threshing
+
+    The gaps between the (greatest) scores are tested for beeing drawn from the same
+    distribution as the majority of the scores. If a gap is encountered, that, with sufficient significance, can be
+    said to not be drawn from the same distribution as the one all the smaller gaps follow, than
+    the observation belonging to this gap, and all the observations belonging to gaps larger then this gap, get flagged
+    outliers. See description of the `threshing` parameter for more details. Although [2] gives a fully detailed
+    overview over the `stray` algorithm.
+
     Parameters
     ----------
-    data
-    field
-    flagger
-    fields
-    trafo
-    alpha
-    n_neighbors
-    scoring_method
-    iter_start
-    threshing
-    expfit_binning
-    stray_partition
-    stray_partition_min
-    post_reduction
-    reduction_range
-    reduction_drop_flagged
-    reduction_thresh
-    kwargs
+    fields : List[str]
+        List of fieldnames, corresponding to the variables to include into the flagging process.
+    trafo : callable, default np.log
+        Transformation to be applied onto every column before scoring. Will likely get deprecated soon. Its better
+        to transform the data in a processing step, preceeeding the multivariate flagging process.
+    alpha : float, default 0.05
+        Niveau of significance by which it is tested, if an observations score might be drawn from another distribution
+        than the majority of the observation.
+    n_neighbors : int, default 10
+        Number of neighbors included in the scoring process for every datapoint.
+    scoring_method : {'kNNSum', 'kNNMaxGap'}, default 'kNNMaxGap'
+        Scoring method applied.
+        ``'kNNSum'``: Assign to every point the sum of the distances to its 'n_neighbors' nearest neighbors.
+        ``'kNNMaxGap'``: Assign to every point the distance to the neighbor with the "maximum gap" to its predecessor
+        in the hierarchy of the `n_neighbors` nearest neighbors. (see reference section for further descriptions)
+    iter_start : float, default 0.5
+        Float in [0,1] that determines which percentage of data is considered "normal". 0.5 results in the threshing
+        algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
+        information)
+    threshing : {'stray', 'expfit'}, default 'stray'
+        A string, denoting the threshing algorithmus to be applied on the observations scores.
+        See the documentations of the algorithms (``_stray``, ``_expfit``) and/or the references sections paragraph [2]
+        for more informations on the algorithms.
+    expfit_binning : {int, str}, default 'auto'
+        Controls the binning for the histogram in the ``expfit`` algorithms fitting step.
+        If an integer is passed, the residues will equidistantly be covered by `bin_frac` bins, ranging from the
+        minimum to the maximum of the residues. If a string is passed, it will be passed on to the
+        ``numpy.histogram_bin_edges`` method.
+    stray_partition : {None, str, int}, default None
+        Only effective when `threshing` = 'stray'.
+        Determines the size of the data partitions, the data is decomposed into. Each partition is checked seperately
+        for outliers. If a String is passed, it has to be an offset string and it results in partitioning the data into
+        parts of according temporal length. If an integer is passed, the data is simply split up into continous chunks
+        of `partition_freq` periods. if ``None`` is passed (default), all the data will be tested in one run.
+    stray_partition_min : int, default 0
+        Only effective when `threshing` = 'stray'.
+        Minimum number of periods per partition that have to be present for a valid outlier detection to be made in
+        this partition. (Only of effect, if `stray_partition` is an integer.)
+    post_reduction : bool, default False
+        Wheather or not it should be tried to reduce the flag of an observation to one or more of its components. See
+        documentation of `_reduceMVflags` for more details.
+    reduction_range : {None, str}, default None
+        Only effective when `post_reduction` = True
+        An offset string, denoting the range of the temporal surrounding to include into the MAD testing while trying
+        to reduce flags.
+    reduction_drop_flagged : bool, default False
+        Only effective when `post_reduction` = True
+        Wheather or not to drop flagged values other than the value under test from the temporal surrounding
+        before checking the value with MAD.
+    reduction_thresh : float, default 3.5
+        Only effective when `post_reduction` = True
+        The `critical` value, controlling wheather the MAD score is considered referring to an outlier or not.
+        Higher values result in less rigid flagging. The default value is widely used in the literature.
 
-    Returns
-    -------
+    References
+    ----------
+    Odd Water Algorithm:
+
+    [1] Talagala, P.D. et al (2019): A Feature-Based Procedure for Detecting Technical Outliers in Water-Quality Data
+        From In Situ Sensors. Water Ressources Research, 55(11), 8547-8568.
+
+    A detailed description of the stray algorithm:
+
+    [2] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
+        arXiv preprint arXiv:1908.04000.
+
+    A detailed description of the MAD outlier scoring:
+
+    [3] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
 
     """
 
