@@ -38,6 +38,12 @@ def _stray(
 
     See the References section for a link to a detailed description of the algorithm.
 
+    Note, that the flagging result depends on the size of the partition under test and the distribution of the outliers
+    in it. For "normalish" and/or slightly "erratic" datasets, 5000 - 10000, periods turned out to be a good guess.
+
+    Note, that no normalizations/transformations are applied to the different components (data columns)
+    - those are expected to be applied previously, if necessary.
+
     Parameters
     ----------
     val_frame : (N,M) ndarray
@@ -55,7 +61,7 @@ def _stray(
         Scoring method applied.
         `'kNNSum'`: Assign to every point the sum of the distances to its 'n_neighbors' nearest neighbors.
         `'kNNMaxGap'`: Assign to every point the distance to the neighbor with the "maximum gap" to its predecessor
-            in the hierarchy of the `n_neighbors` nearest neighbors. (see reference section for further descriptions)
+        in the hierarchy of the `n_neighbors` nearest neighbors. (see reference section for further descriptions)
     n_neighbors : int, default 10
         Number of neighbors included in the scoring process for every datapoint.
     iter_start : float, default 0.5
@@ -70,8 +76,8 @@ def _stray(
     ----------
     Detailed description of the Stray algorithm is covered here:
 
-    Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
-    arXiv preprint arXiv:1908.04000.
+    [1] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
+        arXiv preprint arXiv:1908.04000.
 
     """
 
@@ -118,6 +124,43 @@ def _stray(
 
 
 def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.5, alpha=0.05, bin_frac=10):
+    """
+
+    Find outliers in multi dimensional observations.
+
+    The general idea is to assigning scores to every observation based on the observations neighborhood in the space
+    of observations. Then, the gaps between the (greatest) scores are tested for beeing drawn from the same
+    distribution, as the majority of the scores.
+
+    Note, that no normalizations/transformations are applied to the different components (data columns)
+    - those are expected to be applied previously, if necessary.
+
+    Parameters
+    ----------
+    val_frame : (N,M) ndarray
+        Input NxM array of observations, where N is the number of observations and M the number of components per
+        observation.
+    scoring_method : {'kNNSum', 'kNNMaxGap'}, default 'kNNMaxGap'
+        Scoring method applied.
+        `'kNNSum'`: Assign to every point the sum of the distances to its 'n_neighbors' nearest neighbors.
+        `'kNNMaxGap'`: Assign to every point the distance to the neighbor with the "maximum gap" to its predecessor
+        in the hierarchy of the `n_neighbors` nearest neighbors. (see reference section for further descriptions)
+    n_neighbors : int, default 10
+        Number of neighbors included in the scoring process for every datapoint.
+    iter_start : float, default 0.5
+        Float in [0,1] that determines which percentage of data is considered "normal". 0.5 results in the expfit
+        algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
+        information)
+    alpha : float, default 0.05
+        Niveau of significance by which it is tested, if a score might be drawn from another distribution, than the
+        majority of the data.
+    bin_frac : {int, str}, default 10
+        Controls the binning for the histogram in the fitting step. If an integer is passed, the residues will
+        equidistantly be covered by `bin_frac` bins, ranging from the minimum to the maximum of the residues.
+        If a string is passed, it will be passed on to the ``numpy.histogram_bin_edges`` method.
+
+
+    """
 
     kNNfunc = getattr(ts_ops, scoring_method)
     resids = kNNfunc(val_frame.values, n_neighbors=n_neighbors, algorithm="ball_tree")
@@ -197,6 +240,39 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
 def _reduceMVflags(
     val_frame, fields, flagger, to_flag_frame, reduction_range, reduction_drop_flagged=False, reduction_thresh=3.5
 ):
+    """
+    Function called by "spikes_flagMultivarScores" to reduce the number of false positives that result from
+    the algorithms confinement to only flag complete observations (all of its variables/components).
+
+    The function "reduces" an observations flag to components of it, by applying MAD (See references)
+    test onto every components temporal surrounding.
+
+    Parameters
+    ----------
+    val_frame : (N,M) pd.DataFrame
+        Input NxM DataFrame of observations, where N is the number of observations and M the number of components per
+        observation.
+    fields : str
+        Fieldnames of the components in `val_frame` that are to be tested for outlierishnes.
+    to_flag_frame : (K,M) pd.DataFrame
+        Input dataframe of observations to be tested, where N is the number of observations and M the number
+        of components per observation.
+    reduction_range : str
+        An offset string, denoting the range of the temporal surrounding to include into the MAD testing.
+    reduction_drop_flagged : bool, default False
+        Wheather or not to drop flagged values other than the value under test, from the temporal surrounding
+        before checking the value with MAD.
+    reduction_thresh : float, default 3.5
+        The `critical` value, controlling wheather the MAD score is considered referring to an outlier or not.
+        Higher values result in less rigid flagging. The default value is widely used in the literature. See references
+        section for more details ([1]).
+
+    References
+    ----------
+    [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+
+
+    """
     to_flag_frame[:] = False
     to_flag_index = to_flag_frame.index
     for var in fields:
@@ -246,6 +322,33 @@ def spikes_flagMultivarScores(
     reduction_thresh=3.5,
     **kwargs,
 ):
+    """
+
+    Parameters
+    ----------
+    data
+    field
+    flagger
+    fields
+    trafo
+    alpha
+    n_neighbors
+    scoring_method
+    iter_start
+    threshing
+    expfit_binning
+    stray_partition
+    stray_partition_min
+    post_reduction
+    reduction_range
+    reduction_drop_flagged
+    reduction_thresh
+    kwargs
+
+    Returns
+    -------
+
+    """
 
     # data fransformation/extraction
     val_frame = data[fields]
