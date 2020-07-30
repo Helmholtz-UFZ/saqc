@@ -284,6 +284,70 @@ def harm_interpolate2Grid(
 
 @register
 def harm_deharmonize(data, field, flagger, method, drop_flags=None, **kwargs):
+    """
+    The Function function "undoes" regularization, by regaining the original data and projecting the
+    flags calculated for the regularized data onto the original ones.
+
+    Afterwards the regularized data is removed from the data dios and 'field' will be associated
+    to the original data "again".
+
+    Wherever the flags in the original data are "better" then the regularized flags projected on them,
+    they get overridden with this regularized flags value.
+
+    Which regularized flags are to be projected on which original flags, is controlled by the "method" parameters.
+
+    Generally, if you regularized with the method 'X', you should pass the method 'inverse_X' to the deharmonization.
+    If you regularized with an interpolation, the method 'inverse_interpolation' would be the appropriate choice.
+    Also you should pass the same drop flags keyword.
+
+    The deharm methods in detail:
+    ("original_flags" are associated with the original data that is to be regained,
+    "regularized_flags" are associated with the regularized data that is to be "deharmonized",
+    "freq" refers to the regularized datas sampling frequencie)
+
+    'inverse_nagg' - all original_flags within the range +/- freq/2 of a regularized_flag, get assigned this
+        regularized flags value. (if regularized_flags > original_flag)
+    'inverse_bagg' - all original_flags succeeding a regularized_flag within the range of "freq", get assigned this
+        regularized flags value. (if regularized_flag > original_flag)
+    'inverse_fagg' - all original_flags preceeding a regularized_flag within the range of "freq", get assigned this
+        regularized flags value. (if regularized_flag > original_flag)
+
+    'inverse_interpolation' - all original_flags within the range +/- freq of a regularized_flag, get assigned this
+        regularized flags value (if regularized_flag > original_flag).
+
+    'inverse_nshift' - That original_flag within the range +/- freq/2, that is nearest to a regularized_flag, gets the
+        regularized flags value. (if regularized_flag > original_flag)
+    'inverse_bshift' - That original_flag succeeding a source flag within the range freq, that is nearest to a
+        regularized_flag, gets assigned this regularized flags value. (if regularized_flag > original_flag)
+    'inverse_nshift' - That original_flag preceeding a regularized flag within the range freq, that is nearest to a
+        regularized_flag, gets assigned this regularized flags value. (if source_flag > original_flag)
+
+    Parameters
+    ----------
+     data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-deharmonized.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.freq
+    method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift',
+            'inverse_interpolation'}
+        The method used for projection of regularized flags onto opriginal flags. See description above for more
+        details.
+    drop_flags : {List[str], str}, default None
+        Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
+        with a flag in drop_flags from the interpolation process. Default results in flagger.BAD
+        values being dropped initially.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values and shape may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values and shape may have changed relatively to the flagger input.
+    """
 
     data, flagger = proc_projectFlags(
         data, str(field) + ORIGINAL_SUFFIX, flagger, method, source=field, drop_flags=drop_flags, **kwargs
