@@ -356,7 +356,6 @@ def proc_resample(
 
     agg_func : function
         The function you want to use for aggregation.
-na_ser.resample('10min').apply(lambda x: x.count())
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
         Specifies which intervals to be aggregated for a certain timestamp. (preceeding, succeeding or
         "surrounding" interval). See description above for more details.
