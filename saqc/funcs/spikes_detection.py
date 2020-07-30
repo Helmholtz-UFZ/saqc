@@ -63,11 +63,8 @@ def _stray(
         algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
         information)
     alpha : float, default 0.05
-        Niveau of significance it is tested at, if a score may be drawn from another distribution then the majority of
-        data.
-
-    Returns
-    -------
+        Niveau of significance by which it is tested, if a score might be drawn from another distribution, than the
+        majority of the data.
 
     References
     ----------
@@ -75,6 +72,7 @@ def _stray(
 
     Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
     arXiv preprint arXiv:1908.04000.
+
     """
 
 
@@ -311,34 +309,43 @@ def spikes_flagRaise(
     **kwargs,
 ):
     """
+    The function flags rises and drops in value courses, that exceed a certain threshold
+    within a certain timespan.
+
+    The parameter variety of the function is owned to the intriguing
+    case of values, that "return" from outlierish or anomalious value levels and
+    thus exceed the threshold, while actually being usual values.
+
+    NOTE, the dataset is NOT supposed to be harmonized to a time series with an
+    equidistant frequency grid.
+
     Parameters
     ----------
     thresh : float
         The threshold, for the total rise (thresh > 0), or total drop (thresh < 0), value courses must
-        not exceed within a timespan of length raise_window.
+        not exceed within a timespan of length `raise_window`.
     raise_window : str
         An offset string, determining the timespan, the rise/drop thresholding refers to. Window is inclusively defined.
     intended_freq : str
         An offset string, determining The frequency, the timeseries to-be-flagged is supposed to be sampled at.
         The window is inclusively defined.
     average_window : {None, str}, default None
-        See condition (2) below. Window is inclusively defined. The window defaults to 1.5 times the size of
-        raise_window
+        See condition (2) of the description linked in the references. Window is inclusively defined.
+        The window defaults to 1.5 times the size of `raise_window`
     mean_raise_factor : float, default 2
-        See condition (2) below.
+        See condition (2) of the description linked in the references.
     min_slope : {None, float}, default None
-        See condition (3)
+        See condition (3) of the description linked in the references
     min_slope_weight : float, default 0.8
-        See condition (3)
+        See condition (3) of the description linked in the references
     numba_boost : bool, default True
 
+    References
+    ----------
+    Find detailed description here:
+    https://git.ufz.de/rdm-software/saqc/-/blob/testfuncDocs/docs/funcs/FormalDescriptions.md#spikes_flagraise
+
     """
-    # NOTE1: this implementation accounts for the case of "pseudo" spikes that result from checking against outliers
-    # NOTE2: the test is designed to work on raw data as well as on regularized
-    #
-    # See saqc documentation at:
-    # https://git.ufz.de/rdm-software/saqc/blob/develop/docs/funcs/SpikeDetection.md
-    # for more details
 
     # prepare input args
     dataseries = data[field].dropna()
