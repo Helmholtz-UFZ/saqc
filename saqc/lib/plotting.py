@@ -18,9 +18,7 @@ def __importHelper():
     # needed for datetime conversion
     register_matplotlib_converters()
 
-    if _interactive:
-        mpl.use("TkAgg")
-    else:
+    if not _interactive:
         # Import plot libs without interactivity, if not needed.
         # This ensures that we can produce an plot.png even if
         # tkinter is not installed. E.g. if one want to run this

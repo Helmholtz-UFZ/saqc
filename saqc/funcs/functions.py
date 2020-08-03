@@ -590,37 +590,25 @@ def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kw
 
 @register
 def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median, **kwargs):
-    """
+    df = data[fields].loc[data[fields].index_of('shared')].to_df()
 
+    if isinstance(cross_stat, str):
+        if cross_stat == 'modZscore':
+            MAD_series = df.subtract(df.median(axis=1), axis=0).abs().median(axis=1)
+            diff_scores = ((0.6745 * (df.subtract(df.median(axis=1), axis=0))).divide(MAD_series, axis=0)).abs()
+        elif cross_stat == 'Zscore':
+            diff_scores = (df.subtract(df.mean(axis=1), axis=0)).divide(df.std(axis=1), axis=0).abs()
+        else:
+            raise ValueError(cross_stat)
+    else:
+        try:
+            stat = getattr(df, cross_stat.__name__)(axis=1)
+        except AttributeError:
+            stat = df.aggregate(cross_stat, axis=1)
+        diff_scores = df.subtract(stat, axis=0).abs()
 
-    Parameters
-    ----------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    field : str
-        The fieldname of the column, holding the data-to-be-flagged. (Is a dummy here)
-    flagger : saqc.flagger
-        A flagger object, holding flags and additional informations related to `data`.
-    fields :
-    thresh
-    cross_stat
-    kwargs
-
-    Returns
-    -------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
-    """
-    val_frame = data.loc[data.index_of("shared")].to_df()
-    try:
-        stat = getattr(val_frame, cross_stat.__name__)(axis=1)
-    except AttributeError:
-        stat = val_frame.aggregate(cross_stat, axis=1)
-    diff_scores = val_frame.subtract(stat, axis=0).abs()
-    diff_scores = diff_scores > thresh
+    mask = diff_scores > thresh
     for var in fields:
-        flagger = flagger.setFlags(var, diff_scores[var].values, **kwargs)
+        flagger = flagger.setFlags(var, mask[var], **kwargs)
+
     return data, flagger
