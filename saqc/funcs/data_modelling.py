@@ -248,3 +248,43 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
         flagger = flagger.setFlags(field, to_flag.values, **kwargs)
 
     return data, flagger
+
+
+def modelling_mask(data, field, flagger, mode, loc_var=None, season_start=None, season_end=None):
+    data = data.copy()
+    datcol = data[field]
+    mask = pd.Series(False, index=datcol.index)
+    if mode == 'seasonal':
+        def _composeStamp(index, stamp):
+            if len(stamp) == 2:
+                return '{}-{}-{} {}:{}:'.format(index.year[0], index.month[0], index.day[0], index.hour[0],
+                                                index.minute[0]) + stamp
+            if len(stamp) == 5:
+                return '{}-{}-{} {}:'.format(index.year[0], index.month[0], index.day[0], index.hour[0]) + stamp
+            if len(stamp) == 8:
+                return '{}-{}-{} '.format(index.year[0], index.month[0], index.day[0]) + stamp
+            if len(stamp) == 11:
+                return '{}-{}-'.format(index.year[0], index.month[0]) + stamp
+            if len(stamp) == 14:
+                return '{}-'.format(index.year[0]) + stamp
+
+        if pd.Timestamp(_composeStamp(datcol.index, season_start)) <= pd.Timestamp(_composeStamp(datcol.index, season_end)):
+            overlap = False
+        else:
+            overlap = True
+
+        def _selector(x, overlap=overlap, start=season_start, end=season_end):
+            if not overlap:
+                x[_composeStamp(x.index, start):_composeStamp(x.index, end)] = True
+            else:
+                x[:_composeStamp(x.index, start)] = True
+                x[_composeStamp(x.index, end):] = True
+            return x
+        freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
+        seasonal_mask = mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
+
+    datcol[~seasonal_mask] = np.nan
+    flags_to_block = pd.Series(np.nan, index=datcol.index[~seasonal_mask]).astype(flagger.dtype)
+    flagger = flagger.setFlags(field, loc=datcol.index[~seasonal_mask], flag=flags_to_block, force=True)
+
+    return data, flagger
