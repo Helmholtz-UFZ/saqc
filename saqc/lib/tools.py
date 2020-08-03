@@ -201,7 +201,7 @@ def flagWindow(flagger_old, flagger_new, field, direction="fw", window=0, **kwar
 
 def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
     """
-    This function provide a mask for a sesonal time range in the given dtindex.
+    This function provides a mask for a sesonal time range in the given dtindex.
     This means the interval is applied again on every year and even over the change of a year.
     Note that both edges are inclusive.
 

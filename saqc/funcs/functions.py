@@ -57,22 +57,53 @@ def _execGeneric(flagger, data, func, field, nodata):
 @register
 def procGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     """
-    Execute generic functions.
-    The **kwargs are needed to satisfy the test-function interface,
-    although they are of no use here. Usually they are abused to
-    transport the name of the test function (here: `procGeneric`)
-    into the flagger, but as we don't set flags here, we simply
-    ignore them
+    generate/process data with generically defined functions.
+
+    The functions can depend on on any of the fields present in data.
+
+    Formally, what the function does, is the following:
+
+    1.  Let F be a Callable, depending on fields f_1, f_2,...f_K, (F = F(f_1, f_2,...f_K))
+        Than, for every timestamp t_i that occurs in at least one of the timeseries data[f_j] (outer join),
+        The value v_i is computed via:
+        v_i = data([f_1][t_i], data[f_2][t_i], ..., data[f_K][t_i]), if all data[f_j][t_i] do exist
+        v_i = `nodata`, if at least one of the data[f_j][t_i] is missing.
+    2.  The result is stored to data[field] (gets generated if not present)
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
-        The fieldname of the column, where you want the result from the generic expressions evaluation to be projected
-        to.
+        The fieldname of the column, where you want the result from the generic expressions processing to be written to.
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
+    func : Callable
+        The data processing function with parameter names that will be
+        interpreted as data column entries.
+        See the examples section to learn more.
+    nodata : any, default np.nan
+        The value that indicates missing/invalid data
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        The shape of the data may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        The flags shape may have changed relatively to the input flagger.
+
+    Examples
+    --------
+    Some examples on what to pass to the func parameter:
+    To compute the sum of the variables "temperature" and "uncertainty", you would pass the function:
+
+    >>> lambda temperature, uncertainty: temperature + uncertainty
+
+    You also can pass numpy and pandas functions:
+
+    >>> lambda temperature, uncertainty: np.round(temperature) * np.sqrt(uncertainty)
 
     """
     data[field] = _execGeneric(flagger, data, func, field, nodata).squeeze()
@@ -103,7 +134,7 @@ def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
 
     Let X be an expression, depending on fields f_1, f_2,...f_K, (X = X(f_1, f_2,...f_K))
     Than for every timestamp t_i in data[field]:
-    data[field][t_i] is flagged if X(f_1, f_2, ..., f_K) is True.
+    data[field][t_i] is flagged if X(data[f_1][t_i], data[f_2][t_i], ..., data[f_K][t_i]) is True.
 
     Note, that all value series included in the expression to evaluate must be labeled identically to field.
 
@@ -403,6 +434,41 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
 def flagSesonalRange(
     data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
 ):
+    """
+    Function applies a range check onto data chunks (seasons).
+
+    The data chunks to be tested are defined by annual seasons that range from a starting date,
+    to an ending date, wheras the dates are defined by month and day number.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    min : float
+        Lower bound for valid data.
+    max : float
+        Upper bound for valid data.
+    startmonth : int
+        Starting month of the season to flag.
+    endmonth : int
+        Ending month of the season to flag.
+    startday : int
+        Starting day of the season to flag.
+    endday : int
+        Ending day of the season to flag
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
+    """
     smask = sesonalMask(data[field].index, startmonth, startday, endmonth, endday)
 
     d = data.loc[smask, [field]]
