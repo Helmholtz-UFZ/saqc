@@ -589,7 +589,50 @@ def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kw
 
 
 @register
-def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median, **kwargs):
+def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore', **kwargs):
+    """
+    Function checks for outliers relatively to the "horizontal" input data axis.
+
+    For fields=[f_1,f_2,...,f_N] and timestamps [t_1,t_2,...,t_K], the following steps are taken for outlier detection:
+
+    1. All timestamps t_i, where there is one f_k, with data[f_K] having no entry at t_i, are excluded from the
+        following process (inner merge of the f_i fields.)
+    2. for every 0 <= i <= K, the value m_j = median({data[f_1][t_i], data[f_2][t_i], ..., data[f_N][t_i]}) is
+        calculated
+    2. for every 0 <= i <= K, the set {data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j} is tested
+        for outliers with the specified method (`cross_stat` parameter)
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        A dummy parameter.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional informations related to `data`.
+    fields : str
+        List of fieldnames in data, determining wich variables are to be included into the flagging process.
+    thresh : float
+        Threshold which the outlier score of an value must exceed, for being flagged an outlier.
+    cross_stat : {'modZscore', 'Zscore'}, default 'modZscore'
+        Method used for calculating the outlier scores.
+        * 'modZscore': Median based "sigma"-ish approach. See Referenecs [1].
+        * 'Zscore': Score values by how many times the standard deviation they differ from the median.
+            See References [1]
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the input flagger.
+
+    References
+    ----------
+    [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+    """
+
     df = data[fields].loc[data[fields].index_of('shared')].to_df()
 
     if isinstance(cross_stat, str):
