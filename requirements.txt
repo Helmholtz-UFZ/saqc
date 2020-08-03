@@ -23,7 +23,7 @@ pyarrow==1.0.0
 pytest-lazy-fixture==0.6.3
 pytest==6.0.1
 python-dateutil==2.8.1
-python-intervals==1.10.0
+python-intervals==1.10.0.post1
 pytz==2020.1
 PyWavelets==1.1.1
 scipy==1.5.2
