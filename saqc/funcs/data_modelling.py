@@ -54,7 +54,7 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba="auto", eval_f
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
-        The fieldname of the column, holding the data-to-be-flagged.
+        The fieldname of the column, holding the data-to-be-modelled.
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
     winsz : {str, int}
@@ -189,14 +189,17 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba="auto", eval_f
 @register
 def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_periods=0, center=True, **kwargs):
     """
-    Models the timeseries passed with the rolling mean.
+    Models the data with the rolling mean and returns the residues.
+
+    Note, that the residues will be stored to the `field` field of the input data, so that the data that is modelled
+    gets overridden.
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
-        The fieldname of the column, holding the data-to-be-flagged.
+        The fieldname of the column, holding the data-to-be-modelled.
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
     winsz : {int, str}

@@ -100,6 +100,31 @@ def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
 
 @register
 def flagRange(data, field, flagger, min, max, **kwargs):
+    """
+    Function flags values not covered by the closed interval [`min`, `max`].
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    min : float
+        Lower bound for valid data.
+    max : float
+        Upper bound for valid data.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
+    """
+
     # using .values is very much faster
     datacol = data[field].values
     mask = (datacol < min) | (datacol > max)
@@ -108,33 +133,73 @@ def flagRange(data, field, flagger, min, max, **kwargs):
 
 
 @register
-def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition_freq = "days", partition_offset = 0, max_distance = 0.03, normalized_distance = True, open_end = True, widths = (1, 2, 4, 8), waveform = 'mexh', **kwargs):
-    """ Implementation of two pattern recognition algorithms:
+def flagPattern(data, field, flagger, reference_field, method='dtw', partition_freq="days", partition_offset='0',
+                max_distance=0.03, normalized_distance=True, open_end=True, widths=(1, 2, 4, 8),
+                waveform='mexh', **kwargs):
+    """
+    Implementation of two pattern recognition algorithms:
+
     - Dynamic Time Warping (dtw) [1]
     - Pattern recognition via wavelets [2]
 
     The steps are:
-    1. Get the frequency of partitions, in which the time series has to be divided (for example: a pattern occurs daily, or every hour)
+    1. Get the frequency of partitions, in which the time series has to be divided (for example: a pattern occurs daily,
+        or every hour)
     2. Compare each partition with the given pattern
     3. Check if the compared partition contains the pattern or not
     4. Flag partition if it contains the pattern
 
-    :param data:                pandas dataframe. holding the data
-    :param field:               fieldname in `data`, which holds the series to be checked for patterns
-    :param flagger:             flagger.
-    :param reference_field:     fieldname in `data`, which holds the pattern
-    :param method:              str. Pattern Recognition method to be used: 'dtw' or 'wavelets'. Default: 'dtw'
-    :param partition_freq:      str. Frequency, in which the pattern occurs. If only "days" or "months" is given, then precise length of partition is calculated from pattern length. Default: "days"
-    :param partition_offset:    str. If partition frequency is given, and pattern starts after a timely offset (e.g., partition frequency is "1 h", pattern starts at 10:15, then offset is "15 min"). Default: 0
-    :param max_distance:        float. For dtw. Maximum dtw-distance between partition and pattern, so that partition is recognized as pattern. Default: 0.03
-    :param normalized_distance: boolean. For dtw. Normalizing dtw-distance (see [1]). Default: True
-    :param open_end:            boolean. For dtw. End of pattern is matched with a value in the partition (not necessarily end of partition). Recommendation of [1]. Default: True
-    :param widths:              tuple of int. For wavelets. Widths for wavelet decomposition. [2] recommends a dyadic scale. Default: (1,2,4,8)
-    :param waveform:            str. For wavelets. Wavelet to be used for decomposition. Default: 'mexh'
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    reference_field : str
+        Fieldname in `data`, that holds the pattern
+    method : {'dtw', 'wavelets'}, default 'dtw'.
+        Pattern Recognition method to be used.
+    partition_freq : str, default 'days'
+        Frequency, in which the pattern occurs.
+        Has to be an offset string or one out of {"days", "months"}. If 'days' or 'months' is passed,
+        then precise length of partition is calculated from pattern length.
+    partition_offset : str, default '0'
+        If partition frequency is given by an offset string and the pattern starts after a timely offset, this offset
+        is given by `partition_offset`.
+        (e.g., partition frequency is "1h", pattern starts at 10:15, then offset is "15min").
+    ax_distance : float, default 0.03
+        Only effective if method = 'dtw'.
+        Maximum dtw-distance between partition and pattern, so that partition is recognized as pattern.
+        (And thus gets flagged.)
+    normalized_distance : bool, default True.
+        For dtw. Normalizing dtw-distance (Doesnt refer to statistical normalization, but to a normalization that
+        makes comparable dtw-distances for probes of different length, see [1] for more details).
+    open_end : boolean, default True
+        Only effective if method = 'dtw'.
+        Weather or not, the ending of the probe and of the pattern have to be projected onto each other in the search
+        for the optimal dtw-mapping. Recommendation of [1].
+    widths : tuple[int], default (1,2,4,8)
+        Only effective if method = 'wavelets'.
+        Widths for wavelet decomposition. [2] recommends a dyadic scale.
+    waveform: str, default 'mexh'
+        Only effective if method = 'wavelets'.
+        Wavelet to be used for decomposition. Default: 'mexh'
 
-    Literature:
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
+
+    References
+    ----------
     [1] https://cran.r-project.org/web/packages/dtw/dtw.pdf
-    [2] Maharaj, E.A. (2002): Pattern Recognition of Time Series using Wavelets. In: Härdle W., Rönz B. (eds) Compstat. Physica, Heidelberg, 978-3-7908-1517-7.
+    [2] Maharaj, E.A. (2002): Pattern Recognition of Time Series using Wavelets. In: Härdle W., Rönz B. (eds) Compstat.
+        Physica, Heidelberg, 978-3-7908-1517-7.
     """
 
     test = data[field].copy()
@@ -216,6 +281,29 @@ def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition
 
 @register
 def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
+    """
+    The function flags all values indicating missing data.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    nodata : any, default np.nan
+        A value that defines missing data.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
+    """
+
     datacol = data[field]
     if np.isnan(nodata):
         mask = datacol.isna()
@@ -261,6 +349,41 @@ def forceFlags(data, field, flagger, flag, **kwargs):
 def flagIsolated(
     data, field, flagger, gap_window, group_window, **kwargs,
 ):
+    """
+    The function flags arbitrary large groups of values, if they are surrounded by sufficiently
+    large data gaps. A gap is defined as group of missing and/or flagged values.
+
+    A series of values x_k,x_(k+1),...,x_(k+n), with associated timestamps t_k,t_(k+1),...,t_(k+n),
+    is considered to be isolated, if:
+
+    1. t_(k+1) - t_n < `group_window`
+    2. None of the x_j with 0 < t_k - t_j < `gap_window`, is valid or unflagged (preceeding gap).
+    3. None of the x_j with 0 < t_j - t_(k+n) < `gap_window`, is valid or unflagged (succeding gap).
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional informations related to `data`.
+    gap_window :
+        The minimum size of the gap before and after a group of valid values, which makes this group regarded an
+        isolated group. See condition (2) and (3)
+    group_window :
+        The maximum temporal extension allowed for a group that is isolated by gaps of size 'gap_window',
+        to be actually flagged as isolated group. See condition (1).
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
+    """
+
     gap_window = pd.tseries.frequencies.to_offset(gap_window)
     group_window = pd.tseries.frequencies.to_offset(group_window)
 
@@ -286,13 +409,42 @@ def flagIsolated(
 
 @register
 def flagDummy(data, field, flagger, **kwargs):
-    """ Do nothing """
+    """
+    Function does nothing but returning data and flagger.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional informations related to `data`.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+    """
     return data, flagger
 
 
 @register
 def flagForceFail(data, field, flagger, **kwargs):
-    """ Raise a RuntimeError. """
+    """
+    Function raises a runtime error.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional informations related to `data`.
+    """
     raise RuntimeError("Works as expected :D")
 
 
@@ -311,38 +463,35 @@ def flagGood(data, field, flagger, **kwargs):
 
 @register
 def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kwargs):
-    """ Flag data by given manual data.
+    """
+    Flag data by given, "manually generated" data.
 
     The data is flagged at locations where `mdata` is equal to a provided flag (`mflag`).
-    The format of mdata can be a indexed object, like pd.Series, pd.Dataframe or dios.DictOfSeries,
+    The format of mdata can be an indexed object, like pd.Series, pd.Dataframe or dios.DictOfSeries,
     but also can be a plain list- or array-like.
-    How indexed mdata is aligned to data is specified via `method` argument.
+    How indexed mdata is aligned to data is specified via the `method` parameter.
 
     Parameters
     ----------
-    data : DictOfSeries
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
     field : str
-        The field chooses the column in flags and data in question.
-        It also determine the column in mdata if its of type pd.Dataframe or dios.DictOfSeries.
-
-    flagger : flagger
-range_dict.keys()
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional informations related to `data`.
     mdata : {pd.Series, pd.Dataframe, DictOfSeries, str}
-        The manual data
-
+        The "manually generated" data
     mflag : scalar
-        The flag that indicates data points in `mdata`, that should be flagged.
-
+        The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
     method : {'plain', 'ontime', 'left-open', 'right-open'}, default plain
-        Define how mdata is applied on data. Except 'plain' mdata must have a index.
-        * 'plain': mdata must have same length than data and is applied one-to-one on data.
-        * 'ontime': work only with indexed mdata, it is applied, where timestamps are match.
-        * 'right-open': mdata defines periods, which are defined by two consecutive timestamps, the
-            value of the first aka. left is applied on the whole period.
-        * 'left-open': like 'right-open' but the value is defined in the latter aka. right timestamp.
-
-    kwargs : Any
-        passed to flagger
+        Defines how mdata is projected on data. Except for the 'plain' method, the methods assume mdata to have an
+        index.
+        * 'plain': mdata must have the same length as data and is projected one-to-one on data.
+        * 'ontime': works only with indexed mdata. mdata entries are matched with data entries that have the same index.
+        * 'right-open': mdata defines intervals, values are to be projected on.
+            The intervals are defined by any two consecutive timestamps t_1 and 1_2 in mdata.
+            the value at t_1 gets projected onto all data timestamps t with t_1 <= t < t_2.
+        * 'left-open': like 'right-open', but the projected interval now covers all t with t_1 < t <= t_2.
 
     Returns
     -------
@@ -441,6 +590,30 @@ range_dict.keys()
 
 @register
 def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median, **kwargs):
+    """
+
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged. (Is a dummy here)
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional informations related to `data`.
+    fields :
+    thresh
+    cross_stat
+    kwargs
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
+    """
     val_frame = data.loc[data.index_of("shared")].to_df()
     try:
         stat = getattr(val_frame, cross_stat.__name__)(axis=1)
