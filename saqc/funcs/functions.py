@@ -369,7 +369,7 @@ def flagIsolated(
     flagger : saqc.flagger
         A flagger object, holding flags and additional informations related to `data`.
     gap_window :
-        The minimum size of the gap before and after a group of valid values, which makes this group regarded an
+        The minimum size of the gap before and after a group of valid values, making this group considered an
         isolated group. See condition (2) and (3)
     group_window :
         The maximum temporal extension allowed for a group that is isolated by gaps of size 'gap_window',
