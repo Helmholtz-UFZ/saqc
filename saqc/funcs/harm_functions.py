@@ -19,7 +19,6 @@ from saqc.funcs.proc_functions import (
 
 logger = logging.getLogger("SaQC")
 
-
 @register
 def harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None, **kwargs):
 
