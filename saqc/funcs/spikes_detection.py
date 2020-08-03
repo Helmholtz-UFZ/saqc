@@ -346,7 +346,7 @@ def spikes_flagMultivarScores(
 
     The gaps between the (greatest) scores are tested for beeing drawn from the same
     distribution as the majority of the scores. If a gap is encountered, that, with sufficient significance, can be
-    said to not be drawn from the same distribution as the one all the smaller gaps follow, than
+    said to not be drawn from the same distribution as the one all the smaller gaps are drawn from, than
     the observation belonging to this gap, and all the observations belonging to gaps larger then this gap, get flagged
     outliers. See description of the `threshing` parameter for more details. Although [2] gives a fully detailed
     overview over the `stray` algorithm.
@@ -379,7 +379,7 @@ def spikes_flagMultivarScores(
         algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
         information)
     threshing : {'stray', 'expfit'}, default 'stray'
-        A string, denoting the threshing algorithmus to be applied on the observations scores.
+        A string, denoting the threshing algorithm to be applied on the observations scores.
         See the documentations of the algorithms (``_stray``, ``_expfit``) and/or the references sections paragraph [2]
         for more informations on the algorithms.
     expfit_binning : {int, str}, default 'auto'
@@ -411,7 +411,8 @@ def spikes_flagMultivarScores(
     reduction_thresh : float, default 3.5
         Only effective when `post_reduction` = True
         The `critical` value, controlling wheather the MAD score is considered referring to an outlier or not.
-        Higher values result in less rigid flagging. The default value is widely used in the literature.
+        Higher values result in less rigid flagging. The default value is widely considered apropriate in the
+        literature.
 
 
     Returns
@@ -671,6 +672,14 @@ def spikes_flagSlidingZscore(
         The value the (mod.) Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
     method: {'modZ', zscore}, default  'modZ'
         See section `Z-Scores and Modified Z-Scores` in [1].
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
 
     References
     ----------
