@@ -595,12 +595,38 @@ def flagForceFail(data, field, flagger, **kwargs):
         The fieldname of the column, holding the data-to-be-flagged.
     flagger : saqc.flagger
         A flagger object, holding flags and additional informations related to `data`.
+
     """
     raise RuntimeError("Works as expected :D")
 
 
 @register
 def flagUnflagged(data, field, flagger, **kwargs):
+    """
+    Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
+    If there is an entry 'flag' in the kwargs dictionary passed, the
+    function sets the kwargs['flag'] flag to all values flagged better kwargs['flag']
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional informations related to `data`.
+    kwargs : Dict
+        If kwargs contains 'flag' entry, kwargs['flag] is set, if no entry 'flag' is present,
+        'flagger.UNFLAGGED' is set.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+    """
+
     flag = kwargs.pop('flag', flagger.GOOD)
     flagger = flagger.setFlags(field, flag=flag, **kwargs)
     return data, flagger
@@ -608,8 +634,30 @@ def flagUnflagged(data, field, flagger, **kwargs):
 
 @register
 def flagGood(data, field, flagger, **kwargs):
+    """
+    Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
+
+    Parameters
+    ----------
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional informations related to `data`.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+
+    """
     kwargs.pop('flag', None)
-    return flagUnflagged(data, field, flagger)
+    return flagUnflagged(data, field, flagger, **kwargs)
 
 
 @register
@@ -747,7 +795,7 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
     For fields=[f_1,f_2,...,f_N] and timestamps [t_1,t_2,...,t_K], the following steps are taken for outlier detection:
 
     1. All timestamps t_i, where there is one f_k, with data[f_K] having no entry at t_i, are excluded from the
-        following process (inner merge of the f_i fields.)
+        following process (inner join of the f_i fields.)
     2. for every 0 <= i <= K, the value m_j = median({data[f_1][t_i], data[f_2][t_i], ..., data[f_N][t_i]}) is
         calculated
     2. for every 0 <= i <= K, the set {data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j} is tested
