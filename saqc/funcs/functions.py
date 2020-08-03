@@ -18,12 +18,10 @@ from dios import DictOfSeries
 from typing import Any
 
 
-def _dslIsFlagged(flagger, var, flag=None, comparator=None):
+def _dslIsFlagged(flagger, var, flag=None, comparator=">="):
     """
     helper function for `flagGeneric`
     """
-    if comparator is None:
-        return flagger.isFlagged(var.name, flag=flag)
     return flagger.isFlagged(var.name, flag=flag, comparator=comparator)
 
 
