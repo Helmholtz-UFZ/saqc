@@ -179,8 +179,8 @@ class SaQCFunc(Func):
 
     def _unmaskData(self, data_old, flagger_old, data_new, flagger_new):
         to_mask = flagger_old.BAD if self.to_mask is None else self.to_mask
-        mask_old = flagger_old.isFlagged(flag=to_mask)
-        mask_new = flagger_new.isFlagged(flag=to_mask)
+        mask_old = flagger_old.isFlagged(flag=to_mask, comparator="==")
+        mask_new = flagger_new.isFlagged(flag=to_mask, comparator="==")
 
         for col, left in data_new.indexes.iteritems():
             if col not in mask_old:
