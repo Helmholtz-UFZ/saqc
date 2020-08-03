@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# see test/functs/conftest.py for global fixtures "course_..."
 import pytest
 import numpy as np
 import pandas as pd
@@ -12,7 +13,8 @@ from saqc.funcs.spikes_detection import (
     spikes_flagSlidingZscore,
     spikes_flagBasic,
     spikes_flagRaise,
-    spikes_flagMultivarScores
+    spikes_flagMultivarScores,
+    spikes_flagGrubbs,
 )
 
 from test.common import TESTFLAGGER
@@ -82,10 +84,15 @@ def test_flagSpikesBasic(spiky_data, flagger):
 
 # see test/functs/conftest.py for the 'course_N'
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1"),
-                                 pytest.lazy_fixture("course_2"),
-                                 pytest.lazy_fixture("course_3"),
-                                 pytest.lazy_fixture("course_4"), ], )
+@pytest.mark.parametrize(
+    "dat",
+    [
+        pytest.lazy_fixture("course_1"),
+        pytest.lazy_fixture("course_2"),
+        pytest.lazy_fixture("course_3"),
+        pytest.lazy_fixture("course_4"),
+    ],
+)
 def test_flagSpikesLimitRaise(dat, flagger):
     data, characteristics = dat()
     field, *_ = data.columns
@@ -101,7 +108,7 @@ def test_flagSpikesLimitRaise(dat, flagger):
 # see test/functs/conftest.py for the 'course_N'
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
-def test_flagSpikesOddWater(dat, flagger):
+def test_flagMultivarScores(dat, flagger):
     data1, characteristics = dat(periods=1000, initial_level=5, final_level=15, out_val=50)
     data2, characteristics = dat(periods=1000, initial_level=20, final_level=1, out_val=30)
     field = "dummy"
@@ -112,11 +119,22 @@ def test_flagSpikesOddWater(dat, flagger):
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flagger = flagger.initFlags(data)
     _, flagger_result = spikes_flagMultivarScores(
-        data, field, flagger, fields=fields, binning=50, trafo=np.log,
-        iter_start=0.95, n_neighbors=10
+        data, field, flagger, fields=fields, binning=50, trafo=np.log, iter_start=0.95, n_neighbors=10
     )
     for field in fields:
         isflagged = flagger_result.isFlagged(field)
-        assert isflagged[characteristics['raise']].all()
-        assert not isflagged[characteristics['return']].any()
-        assert not isflagged[characteristics['drop']].any()
+        assert isflagged[characteristics["raise"]].all()
+        assert not isflagged[characteristics["return"]].any()
+        assert not isflagged[characteristics["drop"]].any()
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
+def test_grubbs(dat, flagger):
+    data, char_dict = dat(
+        freq="10min", periods=45, initial_level=0, final_level=0, crowd_size=1, crowd_spacing=3, out_val=-10
+    )
+    flagger = flagger.initFlags(data)
+    data, result_flagger = spikes_flagGrubbs(data, "data", flagger, winsz=20, min_periods=15)
+    assert result_flagger.isFlagged("data")[char_dict["drop"]].all()
+

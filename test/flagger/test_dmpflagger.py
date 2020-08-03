@@ -16,6 +16,11 @@ def data():
     return initData(cols=1)
 
 
+@pytest.fixture
+def data_4cols():
+    return initData(cols=4)
+
+
 def parseComments(data):
     return np.array([json.loads(v)["comment"] for v in data.to_df().values.flatten()])
 
@@ -37,18 +42,17 @@ def test_mergeFlaggerOuter(data):
 
     data_right = data.to_df()
     dates = data_right.index.to_series()
-    dates[len(dates)//2:] += pd.Timedelta("1Min")
+    dates[len(dates) // 2 :] += pd.Timedelta("1Min")
     data_right.index = dates
     data_right = data_right.to_dios()
 
-    left = (flagger
-            .initFlags(data=data_left)
-            .setFlags(field=field, flag=flagger.BAD, cause="SaQCLeft", comment="testLeft"))
+    left = flagger.initFlags(data=data_left).setFlags(
+        field=field, flag=flagger.BAD, cause="SaQCLeft", comment="testLeft"
+    )
 
-
-    right = (flagger
-             .initFlags(data=data_right)
-             .setFlags(field=field, flag=flagger.GOOD, cause="SaQCRight", comment="testRight"))
+    right = flagger.initFlags(data=data_right).setFlags(
+        field=field, flag=flagger.GOOD, cause="SaQCRight", comment="testRight"
+    )
 
     merged = left.merge(right, join="outer")
 
@@ -62,6 +66,7 @@ def test_mergeFlaggerOuter(data):
     assert (merged._causes.loc[left_index] == "SaQCLeft").all(axis=None)
     assert np.all(parseComments(merged._comments.loc[left_index]) == "testLeft")
 
+
 def test_mergeFlaggerInner(data):
 
     flagger = DmpFlagger()
@@ -71,14 +76,13 @@ def test_mergeFlaggerInner(data):
     data_left = data
     data_right = data.iloc[::2]
 
-    left = (flagger
-            .initFlags(data=data_left)
-            .setFlags(field=field, flag=flagger.BAD, cause="SaQCLeft", comment="testLeft"))
+    left = flagger.initFlags(data=data_left).setFlags(
+        field=field, flag=flagger.BAD, cause="SaQCLeft", comment="testLeft"
+    )
 
-
-    right = (flagger
-             .initFlags(data=data_right)
-             .setFlags(field=field, flag=flagger.GOOD, cause="SaQCRight", comment="testRight"))
+    right = flagger.initFlags(data=data_right).setFlags(
+        field=field, flag=flagger.GOOD, cause="SaQCRight", comment="testRight"
+    )
 
     merged = left.merge(right, join="inner")
 
@@ -105,7 +109,20 @@ def test_sliceFlaggerDrop(data):
     assert (filtered._comments.columns == expected.columns).all(axis=None)
     assert (filtered._causes.columns == expected.columns).all(axis=None)
 
-    assert (filtered._flags.to_df().index== expected.index).all(axis=None)
-    assert (filtered._comments.to_df().index== expected.index).all(axis=None)
-    assert (filtered._causes.to_df().index== expected.index).all(axis=None)
+    assert (filtered._flags.to_df().index == expected.index).all(axis=None)
+    assert (filtered._comments.to_df().index == expected.index).all(axis=None)
+    assert (filtered._causes.to_df().index == expected.index).all(axis=None)
 
+
+def test_rename(data_4cols):
+    new_name = "mysterious"
+    cols = pd.Index(["var1", "var2", new_name, "var4"])
+    cols = cols.rename(data_4cols.columns.name)
+
+    flagger = DmpFlagger().initFlags(data_4cols)
+    new_flagger = flagger.rename(data_4cols.columns[2], new_name)
+    new_flagger.getFlags(new_name)
+
+    assert new_flagger._causes.columns.equals(cols)
+    assert new_flagger._comments.columns.equals(cols)
+    assert new_flagger._flags.columns.equals(cols)

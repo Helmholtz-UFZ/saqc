@@ -18,9 +18,7 @@ def __importHelper():
     # needed for datetime conversion
     register_matplotlib_converters()
 
-    if _interactive:
-        mpl.use("TkAgg")
-    else:
+    if not _interactive:
         # Import plot libs without interactivity, if not needed.
         # This ensures that we can produce an plot.png even if
         # tkinter is not installed. E.g. if one want to run this
@@ -33,7 +31,6 @@ _interactive = True
 _figsize = (16, 9)
 _layout_data_to_table_ratio = [5, 1]
 _show_info_table = True
-
 
 # order is important, because
 # latter may overwrite former
@@ -52,17 +49,16 @@ _cols = [
     "changed",
 ]
 
-
 _plotstyle: Dict[str, dict] = {
     # flags
-    "unflagged": dict(marker='.', ls='none', c="silver", label="UNFLAGGED"),
-    "good": dict(marker='.', fillstyle='none', ls='none', c="seagreen", label="GOOD"),
-    "bad": dict(marker='.', fillstyle='none', ls='none', c="firebrick", label="BAD"),
-    "suspicious": dict(marker='.', fillstyle='none', ls='none', c="gold", label="SUSPICIOUS"),
-    "old-flags": dict(marker='.', fillstyle='none', ls='none', c="black", label="old-flags"),
+    "unflagged": dict(marker=".", ls="none", c="silver", label="UNFLAGGED"),
+    "good": dict(marker=".", fillstyle="none", ls="none", c="seagreen", label="GOOD"),
+    "bad": dict(marker=".", fillstyle="none", ls="none", c="firebrick", label="BAD"),
+    "suspicious": dict(marker=".", fillstyle="none", ls="none", c="gold", label="SUSPICIOUS"),
+    "old-flags": dict(marker=".", fillstyle="none", ls="none", c="black", label="old-flags"),
     # data
-    "data": dict(c="silver", ls='-', label="data"),
-    "data-nans": dict(marker='.', fillstyle='none', ls='none', c="lightsteelblue", label="NaN"),
+    "data": dict(c="silver", ls="-", label="data"),
+    "data-nans": dict(marker=".", fillstyle="none", ls="none", c="lightsteelblue", label="NaN"),
 }
 
 
@@ -71,7 +67,9 @@ def _show():
         plt.show()
 
 
-def plotAllHook(data, flagger, targets=None, show_info_table: bool = True, ):
+def plotAllHook(
+    data, flagger, targets=None, show_info_table: bool = True, annotations: Optional[dios.DictOfSeries] = None,
+):
     __importHelper()
     targets = flagger.flags.columns if targets is None else targets
     _plotMultipleVariables(
@@ -80,20 +78,22 @@ def plotAllHook(data, flagger, targets=None, show_info_table: bool = True, ):
         data_new=data,
         flagger_new=flagger,
         targets=targets,
-        show_info_table=show_info_table
+        show_info_table=show_info_table,
+        annotations=annotations,
     )
     plt.tight_layout()
     _show()
 
 
 def plotHook(
-        data_old: Optional[dios.DictOfSeries],
-        data_new: dios.DictOfSeries,
-        flagger_old: Optional[BaseFlagger],
-        flagger_new: BaseFlagger,
-        sources: List[str],
-        targets: List[str],
-        plot_name: str = "",
+    data_old: Optional[dios.DictOfSeries],
+    data_new: dios.DictOfSeries,
+    flagger_old: Optional[BaseFlagger],
+    flagger_new: BaseFlagger,
+    sources: List[str],
+    targets: List[str],
+    plot_name: str = "",
+    annotations: Optional[dios.DictOfSeries] = None,
 ):
     assert len(targets) > 0
     __importHelper()
@@ -105,6 +105,7 @@ def plotHook(
         flagger_new=flagger_new,
         targets=targets,
         show_info_table=_show_info_table,
+        annotations=annotations,
     )
 
     if len(targets) == 1:
@@ -116,12 +117,13 @@ def plotHook(
 
 
 def _plotMultipleVariables(
-        data_old: Optional[dios.DictOfSeries],
-        data_new: dios.DictOfSeries,
-        flagger_old: Optional[BaseFlagger],
-        flagger_new: BaseFlagger,
-        targets: List[str],
-        show_info_table: bool = True,
+    data_old: Optional[dios.DictOfSeries],
+    data_new: dios.DictOfSeries,
+    flagger_old: Optional[BaseFlagger],
+    flagger_new: BaseFlagger,
+    targets: List[str],
+    show_info_table: bool = True,
+    annotations=None,
 ):
     """
     Plot data and flags for a multiple target-variables.
@@ -144,7 +146,7 @@ def _plotMultipleVariables(
     flagger_new
         flagger that hold flags corresponding to data_new
     targets
-        a single(!) string that indicates flags in flagger_new.flags
+        a list of strings, each indicating a column in flagger_new.flags
     show_info_table
         Show a info-table on the right of reference-data and data or not
 
@@ -163,27 +165,28 @@ def _plotMultipleVariables(
         ncols += [ncols_rest]
 
     gs_kw = dict(width_ratios=_layout_data_to_table_ratio)
-    layout = dict(
-        figsize=_figsize,
-        sharex=True,
-        tight_layout=True,
-        squeeze=False,
-        gridspec_kw=gs_kw
-    )
+    layout = dict(figsize=_figsize, sharex=True, tight_layout=True, squeeze=False, gridspec_kw=gs_kw)
 
     # plot max. 4 plots per figure
     allaxs = []
     for n in range(nfig):
         fig, axs = plt.subplots(nrows=ncols[n], ncols=2 if show_tab else 1, **layout)
+
         for ax in axs:
             var = next(tgen)
             tar, _ = _getDataFromVar(data_old, data_new, flagger_old, flagger_new, var)
+
             if show_tab:
                 plot_ax, tab_ax = ax
-                _plotInfoTable(tab_ax, tar, _plotstyle, len(tar['data']))
+                _plotInfoTable(tab_ax, tar, _plotstyle, len(tar["data"]))
             else:
                 plot_ax = ax
+
             _plotFromDicts(plot_ax, tar, _plotstyle)
+
+            if annotations is not None and var in annotations:
+                _annotate(plot_ax, tar, annotations[var])
+
             plot_ax.set_title(str(var))
             allaxs.append(plot_ax)
 
@@ -195,16 +198,41 @@ def _plotMultipleVariables(
         ax.autoscale()
 
 
+def simplePlot(
+    data: dios.DictOfSeries,
+    flagger: BaseFlagger,
+    field: str,
+    plot_name=None,
+    show_info_table: bool = True,
+    annotations=None,
+):
+    __importHelper()
+    _plotSingleVariable(
+        data_old=None,
+        data_new=data,
+        flagger_old=None,
+        flagger_new=flagger,
+        sources=[],
+        targets=[field],
+        show_reference_data=False,
+        show_info_table=show_info_table,
+        plot_name=plot_name or str(field),
+        annotations=annotations,
+    )
+    _show()
+
+
 def _plotSingleVariable(
-        data_old: dios.DictOfSeries,
-        data_new: dios.DictOfSeries,
-        flagger_old: BaseFlagger,
-        flagger_new: BaseFlagger,
-        sources: List[str],
-        targets: List[str],
-        show_reference_data=True,
-        show_info_table: bool = True,
-        plot_name="current data"
+    data_old: dios.DictOfSeries,
+    data_new: dios.DictOfSeries,
+    flagger_old: BaseFlagger,
+    flagger_new: BaseFlagger,
+    sources: List[str],
+    targets: List[str],
+    show_reference_data=True,
+    show_info_table: bool = True,
+    plot_name="current data",
+    annotations=None,
 ):
     """
     Plot data and flags for a single target-variable.
@@ -267,7 +295,7 @@ def _plotSingleVariable(
             logging.warning(f"plotting: only first 4 of {slen} sources are shown.")
             slen = 4
 
-    fig = plt.figure(constrained_layout=True, figsize=_figsize, )
+    fig = plt.figure(constrained_layout=True, figsize=_figsize,)
     outer_gs = fig.add_gridspec(ncols=1, nrows=nrows)
     gs_count = 0
     allaxs = []
@@ -295,14 +323,16 @@ def _plotSingleVariable(
         gs_count += 1
 
     # plot data
-    if show_tab:
-        ax = _plotDataWithTable(fig, outer_gs[gs_count], curr, show_tab=show_tab)
-        ax.set_title(f"{plot_name}")
-        # also share y-axis with ref
-        if ref and show_ref:
-            ax.get_shared_y_axes().join(ax, allaxs[-1])
-        allaxs.append(ax)
-        gs_count += 1
+    ax = _plotDataWithTable(fig, outer_gs[gs_count], curr, show_tab=show_tab)
+    ax.set_title(f"{plot_name}")
+    # also share y-axis with ref
+    if ref and show_ref:
+        ax.get_shared_y_axes().join(ax, allaxs[-1])
+    allaxs.append(ax)
+    gs_count += 1
+
+    if annotations is not None and var in annotations:
+        _annotate(ax, curr, annotations[var])
 
     # share all x-axis
     ax0 = allaxs[0]
@@ -315,11 +345,11 @@ def _plotSingleVariable(
 
 
 def _getDataFromVar(
-        data_old: dios.DictOfSeries,
-        data_new: dios.DictOfSeries,
-        flagger_old: BaseFlagger,
-        flagger_new: BaseFlagger,
-        varname: str,
+    data_old: dios.DictOfSeries,
+    data_new: dios.DictOfSeries,
+    flagger_old: BaseFlagger,
+    flagger_new: BaseFlagger,
+    varname: str,
 ):
     """
     Extract flag and data information and store them in separate pd.Series.
@@ -384,7 +414,7 @@ def _getDataFromVar(
         # though the calculations would work.
         if flags_old.index.equals(flags_new.index):
             unchanged, changed = _splitOldAndNew(flags_old, flags_new)
-            unchanged, changed = _projectFlagsOntoData([unchanged, changed], plotdict['data'])
+            unchanged, changed = _projectFlagsOntoData([unchanged, changed], plotdict["data"])
             plotdict["unchanged"] = unchanged
             plotdict["changed"] = changed
 
@@ -516,11 +546,11 @@ def _splitByFlag(flags: pd.Series, flagger, var: str):
     """
     n = flags.isna()
     loc = flags.dropna().index
-    g = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator='==')
-    b = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator='==')
-    u = flagger.isFlagged(field=var, loc=loc, flag=flagger.UNFLAGGED, comparator='==')
-    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator='<')
-    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator='>') & s
+    g = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator="==")
+    b = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator="==")
+    u = flagger.isFlagged(field=var, loc=loc, flag=flagger.UNFLAGGED, comparator="==")
+    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator="<")
+    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator=">") & s
     return g[g], s[s], b[b], u[u], n[n]
 
 
@@ -567,7 +597,7 @@ def _plotDataWithTable(fig, gs, pdict, show_tab=True):
     if show_tab:
         plot_gs, tab_gs = gs.subgridspec(ncols=2, nrows=1, width_ratios=_layout_data_to_table_ratio)
         ax = fig.add_subplot(tab_gs)
-        _plotInfoTable(ax, pdict, _plotstyle, len(pdict['data']))
+        _plotInfoTable(ax, pdict, _plotstyle, len(pdict["data"]))
         ax = fig.add_subplot(plot_gs)
     else:
         ax = fig.add_subplot(gs)
@@ -607,6 +637,17 @@ def _plotFromDicts(ax, plotdict, styledict):
         style = styledict.get(field, False)
         if style and len(data) > 0:
             ax.plot(data, **style)
+
+
+def _annotate(ax, plotdict, txtseries: pd.Series):
+    for x, txt in txtseries.iteritems():
+        try:
+            y = plotdict['data'].loc[x]
+            if np.isnan(y):
+                y = plotdict['data-nans'].loc[x]
+        except KeyError:
+            continue
+        ax.annotate(txt, xy=(x, y), rotation=45)
 
 
 def _plotInfoTable(ax, plotdict, styledict, total):
@@ -649,7 +690,7 @@ def _plotInfoTable(ax, plotdict, styledict, total):
     for field in plotdict:
         data = plotdict[field]
         style = styledict.get(field, {})
-        color = style.get('color', None) or style.get('c', 'white')
+        color = style.get("color", None) or style.get("c", "white")
         if total == 0:
             length = percent = 0
         else:
@@ -658,14 +699,14 @@ def _plotInfoTable(ax, plotdict, styledict, total):
         tab.loc[len(tab), :] = [color, field, length, round(percent, 2)]
 
     # nested list of cell-colors
-    ccs = np.full([len(tab.columns) - 1, len(tab)], fill_value='white', dtype=object)
-    ccs[0] = tab['color']
-    del tab['color']
+    ccs = np.full([len(tab.columns) - 1, len(tab)], fill_value="white", dtype=object)
+    ccs[0] = tab["color"]
+    del tab["color"]
 
     # disable the plot as we just
     # want to have the table
-    ax.axis('tight')
-    ax.axis('off')
+    ax.axis("tight")
+    ax.axis("off")
 
     # create and format layout
     tab_obj = ax.table(
@@ -674,7 +715,7 @@ def _plotInfoTable(ax, plotdict, styledict, total):
         colLabels=tab.columns[:],
         colWidths=[0.4, 0.3, 0.3],
         in_layout=True,
-        loc='center',
+        loc="center",
         # make the table a bit smaller than the plot
         bbox=[0.0, 0.1, 0.95, 0.8],
     )
@@ -698,4 +739,4 @@ def _plotInfoTable(ax, plotdict, styledict, total):
     for k, cell in tab_obj.get_celld().items():
         r, g, b, a = cell.get_facecolor()
         if 0.2126 * r + 0.7152 * g + 0.0722 * b < thresh:
-            cell.set_text_props(c='white')
+            cell.set_text_props(c="white")

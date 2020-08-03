@@ -19,6 +19,7 @@ class Func:
     `Func` provides a couple of properties/methods used to check
     the passed arguments before the actual function call happens.
     """
+
     def __init__(self, *args, **kwargs):
         if len(args) < 1:
             raise TypeError("'Func' takes at least one argument")
@@ -103,12 +104,12 @@ class Func:
 
 
 class RegisterFunc(Func):
-
     """
     This class acts as a simple wrapper around all registered
     functions. Currently its sole purpose is to inject additional
     call arguments
     """
+
     def __call__(self, *args, **kwargs):
         # NOTE:
         # injecting the function name into the
@@ -118,7 +119,6 @@ class RegisterFunc(Func):
 
 
 class SaQCFunc(Func):
-
     """
     This class represents all test-, process and horminzation functions
     provided through `SaQC`. Every call to an `SaQC` object will be wrapped
@@ -132,7 +132,7 @@ class SaQCFunc(Func):
     # we should formalize the function interface somehow, somewhere
     _injectables = ("data", "field", "flagger")
 
-    def __init__(self, *args, plot=False, lineno=None, expression=None, **kwargs):
+    def __init__(self, *args, plot=False, lineno=None, expression=None, to_mask=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         unbound = self.getUnbounds()
@@ -142,6 +142,7 @@ class SaQCFunc(Func):
         self.plot = plot
         self.lineno = lineno
         self.expr = expression
+        self.to_mask = to_mask
 
     def _getPositionals(self) -> Tuple[int]:
         """
@@ -161,23 +162,43 @@ class SaQCFunc(Func):
         if field not in flagger.getFlags():
             flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field)))
 
-        # NOTE: replace flagged values by nan
-        mask = flagger.isFlagged()
-        data_in = data.copy()
-        data_in[mask] = np.nan
+        data_in = self._maskData(data, flagger)
 
         data_result, flagger_result = self.func(data_in, field, flagger, *self.args, **self.kwargs)
 
-        # NOTE: reinject the masked values
-        data_result.aloc[mask] = data[mask]
+        data_result = self._unmaskData(data, flagger, data_result, flagger_result)
 
         return data_result, flagger_result
+
+    def _maskData(self, data, flagger):
+        to_mask = flagger.BAD if self.to_mask is None else self.to_mask
+        mask = flagger.isFlagged(flag=to_mask, comparator='==')
+        data = data.copy()
+        data[mask] = np.nan
+        return data
+
+    def _unmaskData(self, data_old, flagger_old, data_new, flagger_new):
+        to_mask = flagger_old.BAD if self.to_mask is None else self.to_mask
+        mask_old = flagger_old.isFlagged(flag=to_mask)
+        mask_new = flagger_new.isFlagged(flag=to_mask)
+
+        for col, left in data_new.indexes.iteritems():
+            if col not in mask_old:
+                continue
+            right = mask_old[col].index
+            # NOTE: ignore columns with changed indices (assumption: harmonization)
+            if left.equals(right):
+                # NOTE: Don't overwrite data, that was masked, but is not considered
+                # flagged anymore and also respect newly set data on masked locations.
+                mask = mask_old[col] & mask_new[col] & data_new[col].isna()
+                data_new.loc[mask, col] = data_old.loc[mask, col]
+        return data_new
 
 
 # NOTE:
 # the global SaQC function store,
 # will be filled by calls to register
-FUNC_MAP : Dict[str, RegisterFunc] = {}
+FUNC_MAP: Dict[str, RegisterFunc] = {}
 
 
 def register(func, name=None):

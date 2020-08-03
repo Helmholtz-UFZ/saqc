@@ -4,13 +4,13 @@
 import operator as op
 from copy import deepcopy
 from abc import ABC, abstractmethod
-from typing import TypeVar, Union, Any, List
-from functools import reduce
+
+from typing import TypeVar, Union, Any, List, Optional
 
 import pandas as pd
 import dios.dios as dios
 
-from saqc.lib.tools import assertScalar, mergeDios, toSequence
+from saqc.lib.tools import assertScalar, mergeDios, toSequence, mutateIndex
 
 COMPARATOR_MAP = {
     "!=": op.ne,
@@ -38,7 +38,11 @@ class BaseFlagger(ABC):
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
         self.signature = ("flag",)
-        self._flags: diosT = dios.DictOfSeries()
+        self._flags: Optional[diosT] = None
+
+    @property
+    def initialized(self):
+        return self._flags is not None
 
     @property
     def flags(self):
@@ -47,12 +51,15 @@ class BaseFlagger(ABC):
     def initFlags(self, data: diosT = None, flags: diosT = None) -> BaseFlaggerT:
         """
         initialize a flagger based on the given 'data' or 'flags'
-        if 'data' is not None: return a flagger with flagger.UNFALGGED values
+        if 'data' is not None: return a flagger with flagger.UNFLAGGED values
         if 'flags' is not None: return a flagger with the given flags
         """
 
         if data is None and flags is None:
             raise TypeError("either 'data' or 'flags' are required")
+
+        if data is not None and flags is not None:
+            raise TypeError("either 'data' or 'flags' can be given")
 
         if data is not None:
             if not isinstance(data, diosT):
@@ -67,6 +74,11 @@ class BaseFlagger(ABC):
         newflagger._flags = flags.astype(self.dtype)
         return newflagger
 
+    def rename(self, field: str, new_name: str):
+        newflagger = self.copy()
+        newflagger._flags.columns = mutateIndex(newflagger._flags.columns, field, new_name)
+        return newflagger
+
     def merge(self, other: BaseFlaggerT, join: str = "merge"):
         """
         Merge the given flagger 'other' into self
@@ -75,9 +87,7 @@ class BaseFlagger(ABC):
         if not isinstance(other, self.__class__):
             raise TypeError(f"flagger of type '{self.__class__}' needed")
 
-        newflagger = self.copy(
-            flags=mergeDios(self.flags, other.flags, join=join)
-        )
+        newflagger = self.copy(flags=mergeDios(self.flags, other.flags, join=join))
         return newflagger
 
     def slice(self, field: FieldsT = None, loc: LocT = None, drop: FieldsT = None) -> BaseFlaggerT:
@@ -179,17 +189,24 @@ class BaseFlagger(ABC):
         """
         if isinstance(flag, pd.Series):
             raise TypeError("flag: pd.Series is not allowed")
-        checkflags = set(toSequence(flag, self.GOOD))
+        flags_to_compare = set(toSequence(flag, self.GOOD))
 
         flags = self.getFlags(field, loc)
         cp = COMPARATOR_MAP[comparator]
 
-        # notna() to prevent nans to become True, eg.: `np.nan != 0 -> True`
+        # notna() to prevent nans to become True,
+        # eg.: `np.nan != 0 -> True`
         flagged = flags.notna()
-        for f in checkflags:
-            if not self.isValidFlag(f):
-                raise ValueError(f"invalid flag: {f}")
-            flagged &= cp(flags, f)
+
+        # passing an empty list must result
+        # in a everywhere-False data
+        if len(flags_to_compare) == 0:
+            flagged[:] = False
+        else:
+            for f in flags_to_compare:
+                if not self.isValidFlag(f):
+                    raise ValueError(f"invalid flag: {f}")
+                flagged &= cp(flags, f)
 
         return flagged
 

@@ -11,9 +11,7 @@ from test.common import TESTFLAGGER, initData
 
 
 def _getDataset(rows, cols):
-    return initData(cols=cols, rows=rows,
-                    start_date="2011-01-01",
-                    end_date="2011-01-10")
+    return initData(cols=cols, rows=rows, start_date="2011-01-01", end_date="2011-01-10")
 
 
 DATASETS = [
@@ -54,6 +52,14 @@ def test_initFlags(data, flagger):
 
     assert len(flags.columns) >= len(data.columns)
     assert check_all_dios_index_length(flags, data)
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_initFlagsWithFlags(data, flagger):
+    flags = dios.DictOfSeries(pd.Series(data=flagger.BAD))
+    flagger = flagger.initFlags(flags=flags)
+    assert (flagger.flags == flags).all(axis=None)
 
 
 @pytest.mark.parametrize("data", DATASETS)
@@ -169,7 +175,7 @@ def test_sliceFlaggerDrop(data, flagger):
 
     filtered = flagger.slice(drop=field)
     assert (filtered.getFlags().columns == expected).all(axis=None)
-    assert (filtered.getFlags().to_df().index== data[expected].to_df().index).all(axis=None)
+    assert (filtered.getFlags().to_df().index == data[expected].to_df().index).all(axis=None)
 
 
 @pytest.mark.parametrize("data", DATASETS)
@@ -310,19 +316,14 @@ def test_mergeFlaggerIndexDiff(data, flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_mergeFlaggerOuter(data, flagger):
 
-
     field = data.columns[0]
 
     data_left = data
     data_right = data.iloc[::2]
 
-    left = (flagger
-            .initFlags(data=data_left)
-            .setFlags(field=field, flag=flagger.BAD))
+    left = flagger.initFlags(data=data_left).setFlags(field=field, flag=flagger.BAD)
 
-    right = (flagger
-             .initFlags(data=data_right)
-             .setFlags(field, flag=flagger.GOOD))
+    right = flagger.initFlags(data=data_right).setFlags(field, flag=flagger.GOOD)
 
     merged = left.merge(right, join="outer")
 
@@ -335,19 +336,14 @@ def test_mergeFlaggerOuter(data, flagger):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_mergeFlaggerInner(data, flagger):
 
-
     field = data.columns[0]
 
     data_left = data
     data_right = data.iloc[::2]
 
-    left = (flagger
-            .initFlags(data=data_left)
-            .setFlags(field=field, flag=flagger.BAD))
+    left = flagger.initFlags(data=data_left).setFlags(field=field, flag=flagger.BAD)
 
-    right = (flagger
-             .initFlags(data=data_right)
-             .setFlags(field, flag=flagger.GOOD))
+    right = flagger.initFlags(data=data_right).setFlags(field, flag=flagger.GOOD)
 
     merged = left.merge(right, join="inner")
 
@@ -363,19 +359,15 @@ def test_mergeFlaggerMerge(data, flagger):
     data_left = data
     data_right = data.iloc[::2]
 
-    left = (flagger
-            .initFlags(data=data_left)
-            .setFlags(field=field, flag=flagger.BAD))
+    left = flagger.initFlags(data=data_left).setFlags(field=field, flag=flagger.BAD)
 
-    right = (flagger
-             .initFlags(data=data_right)
-             .setFlags(field, flag=flagger.GOOD))
+    right = flagger.initFlags(data=data_right).setFlags(field, flag=flagger.GOOD)
 
     merged = left.merge(right, join="merge")
 
     loc = data_left[field].index.difference(data_right[field].index)
     assert (merged.getFlags(field, loc=data_right[field].index) == flagger.GOOD).all(axis=None)
-    assert (merged.getFlags(field,loc=loc) == flagger.BAD).all(axis=None)
+    assert (merged.getFlags(field, loc=loc) == flagger.BAD).all(axis=None)
 
 
 @pytest.mark.parametrize("data", DATASETS)
