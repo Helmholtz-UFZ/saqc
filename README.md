@@ -13,8 +13,8 @@ and simple configuration system.
 
 Below its user interface, SaQC is highly customizable and extensible.
 A modular structure and well-defined interfaces make it easy to extend
-the system with custom quality checks and even core components, like
-the flagging scheme, are exchangeable.
+the system with custom quality checks. Furthermore, even core components like
+the flagging scheme are exchangeable.
 
 ![SaQC Workflow](ressources/images/readme_image.png "SaQC Workflow")
 
@@ -36,7 +36,7 @@ implementation of the algorithms is left to the respective developers.
 
 ## How?
 
-`SaQC` is both a command line application controlled by text based and a python
+`SaQC` is both a command line application controlled by table file and a python
 module with a simple API.
 
 While a good (but still growing) number of predefined and highly configurable
@@ -45,7 +45,7 @@ additionally ships with a python based
 [extension language](docs/GenericFunctions.md) for quality and general
 purpose data processing.
 
-For a more specific round trip to some of SaQC's possibilities, please refer to
+For a more specific round trip to some of SaQC's possibilities, we refer to
 our [GettingStarted](docs/GettingStarted.md).
 
 
