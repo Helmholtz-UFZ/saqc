@@ -534,19 +534,33 @@ def sm_flagRandomForest(data, field, flagger, references, window_values: int, wi
     model training. For the model to work, the parameters 'references', 'window_values' and 'window_flags' have to be
     set to the same values as during training.
 
-    :param data:            The pandas dataframe holding the data-to-be flagged, as well as the reference
-                            series. Data must be indexed by a datetime index.
-    :param flags:           A dataframe holding the flags
-    :param field:           Fieldname of the field in data that is to be flagged.
-    :param flagger:         A flagger - object.
-    :param references:      A string or list of strings, denoting the fieldnames of the data series that
-                            should be used as reference variables
-    :param window_values:   An integer, denoting the window size that is used to derive the gradients of
-                            both the field- and reference-series inside the moving window
-    :param window_flags:    An integer, denoting the window size that is used to count the surrounding
-                            automatic flags that have been set before
-    :param path:            A string giving the path to the respective model object, i.e. its name and
-                            the respective value of the grouping variable. e.g. "models/model_0.2.pkl"
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    references : {str, List[str]}
+        List or list of strings, denoting the fieldnames of the data series that should be used as reference variables
+    window_values : int
+        An integer, denoting the window size that is used to derive the gradients of both the field- and
+        reference-series inside the moving window
+    window_flags : int
+        An integer, denoting the window size that is used to count the surrounding automatic flags that have been set
+        before
+    path : str
+        A string giving the path to the respective model object, i.e. its name and
+        the respective value of the grouping variable. e.g. "models/model_0.2.pkl"
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
     """
 
     def _refCalc(reference, window_values):
