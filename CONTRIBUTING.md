@@ -1,19 +1,6 @@
 # Development Environment
-We recommend an virtual python environment for development. The setup process consists of the follwing simply steps:
+We recommend a virtual python environment for development. The setup process is described in detail in our [GettingStarted](docs/GettingStarted.md).
 
-1. Create a fresh environment with:
-   ```sh
-   python -m venv saqc_dev
-   ```
-2. Activate the created environment
-   ```
-   source saqc_dev/bin/activate
-   ```
-3. Install the dependencies
-   ```sh
-   python -m pip install -r requirements.txt
-   ```
- 
 # Testing
 SaQC comes with an extensive test suite based on [pytest](https://docs.pytest.org/en/latest/).
 In order to run all tests execute:
