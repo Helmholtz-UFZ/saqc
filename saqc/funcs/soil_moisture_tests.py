@@ -30,10 +30,55 @@ def sm_flagSpikes(
 ):
 
     """
-    The Function provides just a call to flagSpikes_spektrumBased, with parameter defaults, that refer to:
+    The Function provides just a call to ``flagSpikes_spektrumBased``, with parameter defaults,
+    that refer to References [1].
 
-    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
-    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    raise_factor : float, default 0.15
+        Minimum relative value difference between two values to consider the latter as a spike candidate.
+        See condition (1) (or reference [2]).
+    deriv_factor : float, default 0.2
+        See condition (2) (or reference [2]).
+    noise_func : {'CoVar', 'rVar'}, default 'CoVar'
+        Function to calculate noisiness of the data surrounding potential spikes.
+        ``'CoVar'``: Coefficient of Variation
+        ``'rVar'``: Relative Variance
+    noise_window : str, default '12h'
+        An offset string that determines the range of the time window of the "surrounding" data of a potential spike.
+        See condition (3) (or reference [2]).
+    noise_thresh : float, default 1
+        Upper threshold for noisiness of data surrounding potential spikes. See condition (3) (or reference [2]).
+    smooth_window : {None, str}, default None
+        Size of the smoothing window of the Savitsky-Golay filter.
+        The default value ``None`` results in a window of two times the sampling rate (i.e. containing three values).
+    smooth_poly_deg : int, default 2
+        Degree of the polynomial used for fitting with the Savitsky-Golay filter.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
+
+    References
+    ----------
+    This Function is a generalization of the Spectrum based Spike flagging mechanism as presented in:
+
+    [1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
+        Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
+        doi:10.2136/vzj2012.0097.
+
+    [2] https://git.ufz.de/rdm-software/saqc/-/blob/testfuncDocs/docs/funcs/FormalDescriptions.md#spikes_flagspektrumbased
+
     """
 
     return spikes_flagSpektrumBased(
@@ -69,10 +114,57 @@ def sm_flagBreaks(
 ):
 
     """
-    The Function provides just a call to flagBreaks_spektrumBased, with parameter defaults that refer to:
+    The Function provides just a call to flagBreaks_spektrumBased, with parameter defaults that refer to references [1].
 
-    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
-    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    thresh_rel : float, default 0.1
+        Float in [0,1]. See (1) of function description above to learn more
+    thresh_abs : float, default 0.01
+        Float > 0. See (2) of function descritpion above to learn more.
+    first_der_factor : float, default 10
+        Float > 0. See (3) of function descritpion above to learn more.
+    first_der_window_range : str, default '12h'
+        Offset string. See (3) of function description to learn more.
+    scnd_der_ratio_margin_1 : float, default 0.05
+        Float in [0,1]. See (4) of function descritpion above to learn more.
+    scnd_der_ratio_margin_2 : float, default 10
+        Float in [0,1]. See (5) of function descritpion above to learn more.
+    smooth : bool, default True
+        Method for obtaining dataseries' derivatives.
+        * False: Just take series step differences (default)
+        * True: Smooth data with a Savitzky Golay Filter before differentiating.
+    smooth_window : {None, str}, default 2
+        Effective only if `smooth` = True
+        Offset string. Size of the filter window, used to calculate the derivatives.
+    smooth_poly_deg : int, default 2
+        Effective only, if `smooth` = True
+        Polynomial order, used for smoothing with savitzk golay filter.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
+
+    References
+    ----------
+    [1] Dorigo,W. et al.: Global Automated Quality Control of In Situ Soil Moisture
+        Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
+        doi:10.2136/vzj2012.0097.
+
+    Find a brief mathematical description of the function here:
+
+    [2] https://git.ufz.de/rdm-software/saqc/-/blob/testfuncDocs/docs/funcs
+        /FormalDescriptions.md#breaks_flagspektrumbased
 
     """
     return breaks_flagSpektrumBased(
@@ -95,28 +187,45 @@ def sm_flagBreaks(
 @register
 def sm_flagFrost(data, field, flagger, soil_temp_variable, window="1h", frost_thresh=0, **kwargs):
 
-    """This Function is an implementation of the soil temperature based Soil Moisture flagging, as presented in:
-
-    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
-    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+    """
+    This Function is an implementation of the soil temperature based Soil Moisture flagging, as presented in
+    references [1]:
 
     All parameters default to the values, suggested in this publication.
 
     Function flags Soil moisture measurements by evaluating the soil-frost-level in the moment of measurement.
     Soil temperatures below "frost_level" are regarded as denoting frozen soil state.
 
-    :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
-                                        series. Data must be indexed by a datetime series.
-    :param field:                       Fieldname of the Soil moisture measurements field in data.
-    :param flagger:                     A flagger - object.
-                                        like thingies that refer to the data(including datestrings).
-    :param tolerated_deviation:         Offset String. Denoting the maximal temporal deviation,
-                                        the soil frost states timestamp is allowed to have, relative to the
-                                        data point to-be-flagged.
-    :param soil_temp_reference:         A STRING, denoting the fields name in data,
-                                        that holds the data series of soil temperature values,
-                                        the to-be-flagged values shall be checked against.
-    :param frost_level:                 Value level, the flagger shall check against, when evaluating soil frost level.
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    soil_temp_variable : str,
+        An offset string, denoting the fields name in data, that holds the data series of soil temperature values,
+        the to-be-flagged values shall be checked against.
+    window : str
+        An offset string denoting the maximal temporal deviation, the soil frost states timestamp is allowed to have,
+        relative to the data point to-be-flagged.
+    frost_thresh : float
+        Value level, the flagger shall check against, when evaluating soil frost level.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
+
+    References
+    ----------
+    [1] Dorigo,W. et al.: Global Automated Quality Control of In Situ Soil Moisture
+        Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
+        doi:10.2136/vzj2012.0097.
     """
 
     # retrieve reference series
@@ -155,10 +264,9 @@ def sm_flagPrecipitation(
     **kwargs,
 ):
 
-    """This Function is an implementation of the precipitation based Soil Moisture flagging, as presented in:
-
-    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
-    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+    """
+    This Function is an implementation of the precipitation based Soil Moisture flagging, as presented in
+    references [1].
 
     All parameters default to the values, suggested in this publication. (excluding porosity,sensor accuracy and
     sensor depth)
@@ -172,9 +280,9 @@ def sm_flagPrecipitation(
 
     A data point y_t is flagged an invalid soil moisture raise, if:
 
-    (1) y_t > y_(t-raise_window)
-    (2) y_t - y_(t-"std_factor_range") > "std_factor" * std(y_(t-"std_factor_range"),...,y_t)
-    (3) sum(prec(t-24h),...,prec(t)) > sensor_depth * sensor_accuracy * soil_porosity
+    (1) y_t > y_(t-`raise_window`)
+    (2) y_t - y_(t-`std_factor_range`) > `std_factor` * std(y_(t-`std_factor_range`),...,y_t)
+    (3) sum(prec(t-24h),...,prec(t)) > `sensor_depth` * `sensor_accuracy` * `soil_porosity`
 
     NOTE1: np.nan entries in the input precipitation series will be regarded as susipicious and the test will be
     omited for every 24h interval including a np.nan entrie in the original precipitation sampling rate.
@@ -183,27 +291,57 @@ def sm_flagPrecipitation(
     NOTE2: The function wont test any values that are flagged suspicious anyway - this may change in a future version.
 
 
-    :param data:                        The pandas dataframe holding the data-to-be flagged, as well as the reference
-                                        series. Data must be indexed by a datetime series and be harmonized onto a
-                                        time raster with seconds precision.
-    :param field:                       Fieldname of the Soil moisture measurements field in data.
-    :param flagger:                     A flagger - object. (saqc.flagger.X)
-    :param prec_variable:               Fieldname of the precipitation meassurements column in data.
-    :param sensor_depth:                Measurement depth of the soil moisture sensor, [m].
-    :param sensor_accuracy:             Accuracy of the soil moisture sensor, [-].
-    :param soil_porosity:               Porosity of moisture sensors surrounding soil, [-].
-    :param std_factor:                  The value determines by which rule it is decided, weather a raise in soil
-                                        moisture is significant enough to trigger the flag test or not:
-                                        Significants is assumed, if the raise is  greater then "std_factor" multiplied
-                                        with the last 24 hours standart deviation.
-    :param std_factor_range:            Offset String. Denotes the range over witch the standart deviation is obtained,
-                                        to test condition [2]. (Should be a multiple of the sampling rate)
-    :param raise_window:                Offset String. Denotes the distance to the datapoint, relatively to witch
-                                        it is decided if the current datapoint is a raise or not. Equation [1].
-                                        It defaults to None. When None is passed, raise_window is just the sample
-                                        rate of the data. Any raise reference must be a multiple of the (intended)
-                                        sample rate and below std_factor_range.
-    :param ignore_missing:
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional informations related to `data`.
+    prec_variable : str
+        Fieldname of the precipitation meassurements column in data.
+    raise_window: {None, str}, default None
+        Denotes the distance to the datapoint, relatively to witch
+        it is decided if the current datapoint is a raise or not. Equation [1].
+        It defaults to None. When None is passed, raise_window is just the sample
+        rate of the data. Any raise reference must be a multiple of the (intended)
+        sample rate and below std_factor_range.
+    sensor_depth : float, default 0
+        Measurement depth of the soil moisture sensor, [m].
+    sensor_accuracy : float, default 0
+        Accuracy of the soil moisture sensor, [-].
+    soil_porosity : float, default 0
+        Porosity of moisture sensors surrounding soil, [-].
+    std_factor : int, default 2
+        The value determines by which rule it is decided, weather a raise in soil
+        moisture is significant enough to trigger the flag test or not:
+        Significance is assumed, if the raise is  greater then "std_factor" multiplied
+        with the last 24 hours standart deviation.
+    std_window: str, default '24h'
+        An offset string that denotes the range over witch the standart deviation is obtained,
+        to test condition [2]. (Should be a multiple of the sampling rate)
+    raise_window: str
+        Denotes the distance to the datapoint, relatively to witch
+        it is decided if the current datapoint is a raise or not. Equation [1].
+        It defaults to None. When None is passed, raise_window is just the sample
+        rate of the data. Any raise reference must be a multiple of the (intended)
+        sample rate and below std_factor_range.
+    ignore_missing: bool, default False
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
+
+    References
+    ----------
+    [1] Dorigo,W. et al.: Global Automated Quality Control of In Situ Soil Moisture
+        Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
+        doi:10.2136/vzj2012.0097.
     """
 
     dataseries, moist_rate = retrieveTrustworthyOriginal(data, field, flagger)
@@ -245,7 +383,6 @@ def sm_flagPrecipitation(
     flagger = flagger.setFlags(field, loc=invalid_indices.index, **kwargs)
     return data, flagger
 
-
 @register
 def sm_flagConstants(
     data,
@@ -265,16 +402,62 @@ def sm_flagConstants(
 ):
 
     """
+    This function flags plateaus/series of constant values in soil moisture data.
 
-    Note, function has to be harmonized to equidistant freq_grid
+    Mentionings of "conditions" in the following explanations refer to references [2].
 
-    Note, in current implementation, it has to hold that: (rainfall_window_range >= plateau_window_min)
+    The function represents a stricter version of
+    constants_flagVarianceBased.
 
-    :param data:                        The pandas dataframe holding the data-to-be flagged.
-                                        Data must be indexed by a datetime series and be harmonized onto a
-                                        time raster with seconds precision (skips allowed).
-    :param field:                       Fieldname of the Soil moisture measurements field in data.
-    :param flagger:                     A flagger - object. (saqc.flagger.X)
+    The additional constraints (3)-(5), are designed to match the special cases of constant
+    values in soil moisture measurements and basically for preceding precipitation events
+    (conditions (3) and (4)) and certain plateau level (condition (5)).
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    window : str, default '12h'
+        Minimum duration during which values need to identical to become plateau candidates. See condition (1)
+    thresh : float, default 0.0005
+        Maximum variance of a group of values to still consider them constant. See condition (2)
+    precipitation_window : str, default '12h'
+        See condition (3) and (4)
+    tolerance : float, default 0.95
+        Tolerance factor, see condition (5)
+    deriv_max : float, default 0
+        See condition (4)
+    deriv_min : float, default 0.0025
+        See condition (3)
+    max_missing : {None, int}, default None
+        Maximum number of missing values allowed in window, by default this condition is ignored
+    max_consec_missing : {None, int}, default None
+        Maximum number of consecutive missing values allowed in window, by default this condition is ignored
+    smooth_window : {None, str}, default None
+        Size of the smoothing window of the Savitsky-Golay filter. The default value None results in a window of two
+        times the sampling rate (i.e. three values)
+    smooth_poly_deg : int, default 2
+        Degree of the polynomial used for smoothing with the Savitsky-Golay filter
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
+
+    References
+    ----------
+    [1] Dorigo,W. et al.: Global Automated Quality Control of In Situ Soil Moisture
+        Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
+        doi:10.2136/vzj2012.0097.
+
+    [2] https://git.ufz.de/rdm-software/saqc/-/edit/testfuncDocs/docs/funcs/FormalDescriptions.md#sm_flagconstants
     """
 
     # get plateaus:
