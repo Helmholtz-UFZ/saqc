@@ -7,6 +7,7 @@ A collection of detailed mathematical descriptions.
 - [spikes_flagRaise](#spikes_flagraise)
 - [spikes_flagSpektrumBased](#spikes_flagspektrumbased)
 - [breaks_flagSpektrumBased](#breaks_flagspektrumbased)
+- [sm_flagConstants](#sm_flagconstants)
 
 
 ## spikes_flagRaise
@@ -72,3 +73,14 @@ A value $`x_k`$ of a time series $`x_t`$ with timestamps $`t_i`$, is considered 
 5. The ratio (this/next) of the second derivatives is sufficiently height:
 
    $`|\frac{x''_{k}}{x''_{k+1}}| > `$`scnd_der_ratio_margin_2`
+   
+## sm_flagConstants   
+
+Any set of consecutive values
+$`x_k,..., x_{k+n}`$, of a time series $`x`$ is flagged, if:
+
+1. $`n > `$`window`
+2. $`\sigma(x_k, x_{k+1},..., x_{k+n}) < `$`thresh`
+3. $`\max(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \geq`$ `deriv_min`, with $`s`$ denoting periods per `precipitation_window`
+4. $`\min(x'_{k-n-s}, x'_{k-n-s+1},..., x'_{k-n+s}) \leq`$ `deriv_max`, with $`s`$ denoting periods per `precipitation_window`
+5. $`\mu(x_k, x_{k+1},..., x_{k+n}) \le \max(x) \cdot`$ `tolerance`   
