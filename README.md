@@ -36,7 +36,7 @@ implementation of the algorithms is left to the respective developers.
 
 ## How?
 
-`SaQC` is both a command line application controlled by table file and a python
+`SaQC` is both a command line application controlled by a text based configuration file and a python
 module with a simple API.
 
 While a good (but still growing) number of predefined and highly configurable
@@ -51,7 +51,7 @@ our [GettingStarted](docs/GettingStarted.md).
 
 ### SaQC as a command line application
 Most of the magic is controlled by a
-[semicolon-separated table file](saqc/docs/ConfigurationFiles.md) listing the variables of the
+[semicolon-separated text file](saqc/docs/ConfigurationFiles.md) listing the variables of the
 dataset and the routines to inspect, quality control and/or process them.
 The content of such a configuration could look like this:
 
