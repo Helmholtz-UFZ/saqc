@@ -12,14 +12,38 @@ from saqc.lib.tools import retrieveTrustworthyOriginal
 @register
 def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
     """
+    This functions flags plateaus/series of constant values of length `window` if
+    their maximum total change is smaller than thresh.
+
+    Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
+
+    (1) n > `window`
+    (2) |(y(t + i) - (t + j)| < `thresh`, for all i,j in [0, 1, ..., n]
+
     Flag values are (semi-)constant.
 
-    :param data: dataframe
-    :param field: column in data
-    :param flagger: saqc flagger obj
-    :param thresh: the difference between two values must be below that
-    :param window: sliding window
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    thresh : float
+        Upper bound for the maximum total change of an interval to be flagged constant.
+    window : str
+        Lower bound for the size of an interval to be flagged constant.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
     """
+
     d = data[field]
 
     # find all constant values in a row with a forward search
@@ -47,24 +71,37 @@ def constants_flagVarianceBased(
     """
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
-    (1) n > "plateau_interval_min"
-    (2) variance(y(t),...,y(t+n) < thresh
+    (1) n > `window`
+    (2) variance(y(t),...,y(t+n) < `thresh`
 
-    :param data:                        The pandas dataframe holding the data-to-be flagged.
-                                        Data must be indexed by a datetime series and be harmonized onto a
-                                        time raster with seconds precision (skips allowed).
-    :param field:                       Fieldname of the Soil moisture measurements field in data.
-    :param flagger:                     A flagger - object. (saqc.flagger.X)
-    :param window:                      Offset String. Only intervals of minimum size "window" have the
-                                        chance to get flagged as constant intervals
-    :param thresh:                      Float. The upper barrier, the variance of an interval mus not exceed, if the
-                                        interval wants to be flagged a plateau.
-    :param max_missing:                 maximum number of nan values tolerated in an interval, for retrieving a valid
-                                        variance from it. (Intervals with a number of nans exceeding "max_missing"
-                                        have no chance to get flagged a plateau!)
-    :param max_consec_missing:          Maximum number of consecutive nan values allowed in an interval to retrieve a
-                                        valid  variance from it. (Intervals with a number of nans exceeding
-                                        "max_missing" have no chance to get flagged a plateau!)
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    window : str
+        Only intervals of minimum size "window" have the chance to get flagged as constant intervals
+    thresh : float
+        The upper bound, the variance of an interval must not exceed, if the interval wants to be flagged a plateau.
+    max_missing : {None, int}, default None
+        Maximum number of nan values tolerated in an interval, for retrieving a valid
+        variance from it. (Intervals with a number of nans exceeding "max_missing"
+        have no chance to get flagged a plateau!)
+    max_consec_missing : {None, int}, default None
+        Maximum number of consecutive nan values allowed in an interval to retrieve a
+        valid  variance from it. (Intervals with a number of nans exceeding
+        "max_consec_missing" have no chance to get flagged a plateau!)
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
     """
 
     dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
