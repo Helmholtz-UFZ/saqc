@@ -29,13 +29,13 @@ install SaQC into by typing the following in your console:
 
 ```sh	
 # if you have not installed venv yet, do so:
-python3 -m pip install --user virtualenv
+python -m pip install --user virtualenv
 	
 # move to the directory where you want to create your virtual environment
 cd YOURDIR
 	
 # create virtual environment called "env_saqc"
-python3 -m venv env_saqc
+python -m venv env_saqc
 	
 # activate the virtual environment
 source env_saqc/bin/activate
@@ -62,19 +62,39 @@ cd env_saqc/Scripts
 
 ## 2. Get SaQC
 
-Now get saqc via PyPI as well:
+Now get saqc via PyPI as well.
+
+On Unix/Mac systems:
+
 
 ```sh
 python -m pip install saqc
 ```
 
+On Windows systems:
+
+```sh
+pip install saqc
+```
+
+
 or download it directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc).
 
 Get all required packages:
 
+On Unix/Mac systems:
+
+
 ```sh
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
+
+On Windows systems:
+
+```sh
+pip install -r requirements.txtpip install saqc
+```
+
 
 ## 3. Training tour
 
