@@ -13,7 +13,7 @@ python -m pytest .
 ## Naming
 
 ### Code
-We follow the follwing naming conventions
+We follow the follwing naming conventions:
 - Classes: CamelCase
 - Functions: camelCase
 - Variables/Arguments: snake_case
@@ -23,9 +23,9 @@ We follow the follwing naming conventions
  
 ## Formatting
 We use (black)[https://black.readthedocs.io/en/stable/] with a line length if 120 characters.
-Within the `SaQC` root directory run `black -l 120`
+Within the `SaQC` root directory run `black -l 120`.
 
 ## Imports
-Only absolute imports are accepted
+Only absolute imports are accepted.
 
 
