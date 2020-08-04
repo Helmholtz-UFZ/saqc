@@ -6,6 +6,7 @@ A collection of detailed mathematical descriptions.
 
 - [spikes_flagRaise](#spikes_flagraise)
 - [spikes_flagSpektrumBased](#spikes_flagspektrumbased)
+- [breaks_flagSpektrumBased](#breaks_flagspektrumbased)
 
 
 ## spikes_flagRaise
@@ -44,3 +45,30 @@ timestamps $`t_i`$ is considered a spikes, if:
    $`|t_{k-1} - t_i| = |t_j - t_{k+1}| =`$ `noise_window` fulfills the 
    following condition: 
    `noise_func`$`(X) <`$ `noise_thresh`
+
+## breaks_flagSpektrumBased
+
+A value $`x_k`$ of a time series $`x_t`$ with timestamps $`t_i`$, is considered to be a break, if:
+
+1. $`x_k`$ represents a sufficiently large relative jump:
+
+   $`|\frac{x_k - x_{k-1}}{x_k}| >`$ `thresh_rel`
+
+2. $`x_k`$ represents a sufficient absolute jump:
+
+   $`|x_k - x_{k-1}| >`$ `thresh_abs`
+
+3. The dataset $`X = x_i, ..., x_{k-1}, x_{k+1}, ..., x_j`$, with $`|t_{k-1} - t_i| = |t_j - t_{k+1}| =`$ `first_der_window`
+   fulfills the following condition:
+   
+   $`|x'_k| >`$ `first_der_factor` $` \cdot \bar{X} `$
+   
+   where $`\bar{X}`$ denotes the arithmetic mean of $`X`$.
+
+4. The ratio (last/this) of the second derivatives is close to 1:
+
+   $` 1 -`$ `scnd_der_ratio_margin_1` $`< |\frac{x''_{k-1}}{x_{k''}}| < 1 + `$`scnd_der_ratio_margin_1`
+
+5. The ratio (this/next) of the second derivatives is sufficiently height:
+
+   $`|\frac{x''_{k}}{x''_{k+1}}| > `$`scnd_der_ratio_margin_2`
