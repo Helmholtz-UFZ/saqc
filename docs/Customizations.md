@@ -2,11 +2,11 @@
 SaQC comes with a continuously growing number of pre-implemented
 [quality check and processing routines](docs/FunctionIndex.md) and 
 flagging schemes. 
-For any sufficiently large use case however, chances are high, that the 
+For any sufficiently large use case however it is very likely that the 
 functions provided won't fulfill all your needs and requirements.
 
-Acknowledging our insufficiency to address all (im-)possible use cases, we 
-designed the system in a way, that makes it's extension and customization as 
+Acknowledging the impossibility to address all imaginable use cases, we 
+designed the system allowing for extensions and costumizations as
 simple as possible. The main extensions options, namely 
 [quality check routines](#custom-quality-check-routines)
 and the [flagging scheme](#custom-flagging-schemes)
