@@ -30,9 +30,6 @@ def breaks_flagSpektrumBased(
     """
     The Function is a generalization of the Spectrum based break flagging mechanism as presented in:
 
-    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
-    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
-
     The function flags breaks (jumps/drops) in input measurement series by evaluating its derivatives.
     A measurement y_t is flagged a, break, if:
 
