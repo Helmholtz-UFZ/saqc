@@ -273,13 +273,15 @@ def modelling_mask(data, field, flagger, mode, loc_var=None, season_start=None, 
         else:
             overlap = True
 
-        def _selector(x, overlap=overlap, start=season_start, end=season_end):
-            if not overlap:
+        if not overlap:
+            def _selector(x, start=season_start, end=season_end):
                 x[_composeStamp(x.index, start):_composeStamp(x.index, end)] = True
-            else:
+                return x
+        else:
+            def _selector(x, start=season_start, end=season_end):
                 x[:_composeStamp(x.index, start)] = True
                 x[_composeStamp(x.index, end):] = True
-            return x
+                return x
         freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
         seasonal_mask = mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
 
