@@ -21,7 +21,7 @@ SaQC provides two ways to integrate custom routines into the system:
 2. An [interface](#interface) to the evaluation machinery
 
 ### Interface
-In order to make a function usable within the evaluation framework of SaQC the following interace is needed:
+In order to make a function usable within the evaluation framework of SaQC the following interface is needed:
 
 ```python
 def yourTestFunction(
@@ -37,17 +37,16 @@ def yourTestFunction(
 
 | Name      | Description                                                                                      |
 |-----------|--------------------------------------------------------------------------------------------------|
-| `data`    | The actual dataset                                                                               |
-| `field`   | The field/column within `data`, the function is checking/processing                              |
-| `flagger` | A instance of a flagger, responsible for the translation of test results into quality attributes |
-| `args`    | Any other arguments needed to parameterize the function                                          |
-| `kwargs`  | Any other keyword arguments needed to parameterize the function                                  |
+| `data`    | The actual dataset.                                                                               |
+| `field`   | The field/column within `data`, that function is processing.                              |
+| `flagger` | An instance of a flagger, responsible for the translation of test results into quality attributes. |
+| `args`    | Any other arguments needed to parameterize the function.                                          |
+| `kwargs`  | Any other keyword arguments needed to parameterize the function.                                  |
 
 ### Integrate into SaQC
 In order make your function available to the system it needs to be registered. We provide the decorator 
 [`register`](saqc/functions/register.py) in the module `saqc.functions.register`, to integrate your 
-test functions into SaQC. A complete, yet useless example might
-look like that:
+test functions into SaQC. Here is a complete dummy example:
 
 ```python
 from saqc.functions.register import register
@@ -59,8 +58,7 @@ def yourTestFunction(data, field, flagger, *args, **kwargs):
 
 ### Example
 The function [`flagRange`](saqc/funcs/functions.py) provides a simple, yet complete implementation of 
-a quality check routine. You might want to look into its implementation before you start writing your
-own.
+a quality check routine. You might want to look into its implementation as a reference for your own.
 
 
 ## Custom flagging schemes
