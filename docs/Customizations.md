@@ -45,7 +45,7 @@ def yourTestFunction(
 
 ### Integrate into SaQC
 In order make your function available to the system it needs to be registered. We provide the decorator 
-[`register`](saqc/functions/register.py) in the module `saqc.functions.register`, to integrate your 
+[`register`](saqc/functions/register.py) in the module `saqc.functions.register` to integrate your 
 test functions into SaQC. Here is a complete dummy example:
 
 ```python
