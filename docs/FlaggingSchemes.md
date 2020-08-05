@@ -2,7 +2,7 @@
 
 ## Possible flags
 
-The DMP scheme allows for the following flags:
+The DMP scheme produces the following flag constants:
 
 *    "ok"
 *    "doubtfull"
