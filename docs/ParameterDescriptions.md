@@ -25,8 +25,8 @@ The following flag constants are available and can be used to mark the quality o
 | `BAD`       | At least on test failed on the values and is therefore considered to be invalid               |
 | `UNFLAGGED` | The value has not got a flag yet. This might mean, that all tests passed or that no tests ran |
 
-How these aliases will be translated into 'real' flags (output of SaQC) dependes on the [flagger implementation](FlaggingSchemes.md)
-and might range from numerical values to string output.
+How these aliases will be translated into 'real' flags (output of SaQC) dependes on the [flagging scheme](FlaggingSchemes.md)
+and might range from numerical values to string constants.
 
 ### Numerical Constants
 | Alias    | Description  |
