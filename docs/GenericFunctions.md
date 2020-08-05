@@ -2,11 +2,11 @@
 
 ## Generic Flagging Functions
 
-Generic flagging functions provide a way to leverage cross-variable quality
+Generic flagging functions provide for cross-variable quality
 constraints and to implement simple quality checks directly within the configuration.
 
 ### Why?
-The underlying idea is, that in most real world datasets many errors
+In most real world datasets many errors
 can be explained by the dataset itself. Think of a an active, fan-cooled
 measurement device: no matter how precise the instrument may work, problems
 are to be expected when the fan stops working or the power supply 
@@ -23,9 +23,8 @@ flagGeneric(func=<expression>, flag=<flagging_constant>)
 ```
 where `<expression>` is composed of the [supported constructs](#supported-constructs)
 and `<flag_constant>` is one of the predefined
-[flagging constants](ParameterDescriptions.md#flagging-constants) (default: `BAD`)
-Generic flagging functions are expected to evaluate to a boolean value, i.e. only 
-constructs returning `True` or `False` are accepted. All other expressions will
+[flagging constants](ParameterDescriptions.md#flagging-constants) (default: `BAD`).
+Generic flagging functions are expected to return a boolean value, i.e. `True` or `False`. All other expressions will
 fail during the runtime of `SaQC`.
 
 
@@ -34,7 +33,7 @@ fail during the runtime of `SaQC`.
 #### Simple comparisons
 
 ##### Task
-Flag all values of variable `x` when variable `y` falls below a certain threshold
+Flag all values of `x` where `y` falls below 0.
 
 ##### Configuration file
 ```
@@ -46,7 +45,7 @@ x       ; flagGeneric(func=y < 0)
 #### Calculations
 
 ##### Task
-Flag all values of variable `x` that exceed 3 standard deviations of variable `y`
+Flag all values of `x` that exceed 3 standard deviations of `y`.
 
 ##### Configuration file
 ```
@@ -57,7 +56,7 @@ x       ; flagGeneric(func=x > std(y) * 3)
 #### Special functions
 
 ##### Task
-Flag variable `x` where variable `y` is flagged and variable `x` has missing values
+Flag all values of `x` where: `y` is flagged and `z` has missing values.
 
 ##### Configuration file
 ```
@@ -67,7 +66,7 @@ x       ; flagGeneric(func=isflagged(y) & ismissing(z))
 ```
 
 #### A real world example
-Let's consider a dataset like the following:
+Let's consider the following dataset:
 
 | date             | meas | fan | volt |
 |------------------|------|-----|------|
@@ -78,11 +77,11 @@ Let's consider a dataset like the following:
 | ...              |      |     |      |
 
 ##### Task
-Flag variable `meas` where variable `fan` equals 0 and variable `volt`
+Flag `meas` where `fan` equals 0 and `volt`
 is lower than `12.0`.
 
 ##### Configuration file
-We can directly implement the condition as follows:
+There are various options. We can directly implement the condition as follows:
 ```
 varname ; test
 #-------;-----------------------------------------------
