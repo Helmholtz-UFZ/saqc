@@ -74,14 +74,6 @@ or download it directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc
 
 #### Get all required packages:
 
-On Unix/Mac systems:
-
-
-```sh
-python -m pip install -r requirements.txt
-```
-
-On Windows systems:
 
 ```sh
 pip install -r requirements.txt
