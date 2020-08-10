@@ -74,8 +74,16 @@ or download it directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc
 
 #### Get all required packages:
 
+ 
+
 
 ```sh
+# Switch to the folder where you installed saqc
+
+cd YOURDIR/saqc 
+
+# execute requirements.txt
+
 pip install -r requirements.txt
 ```
 
