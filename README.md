@@ -98,6 +98,7 @@ can be installed using [pip](https://pip.pypa.io/en/stable/):
 ```sh
 python -m pip install saqc
 ```
+For a more detailed installion guide, see [GettingStarted](docs/GettingStarted.md).
 
 ### Anaconda
 Currently we don't provide pre-build conda packages but the installing of `SaQC`
