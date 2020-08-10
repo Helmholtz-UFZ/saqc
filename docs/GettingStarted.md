@@ -64,17 +64,9 @@ cd env_saqc/Scripts
 
 Now get saqc via PyPI as well.
 
-On Unix/Mac systems:
-
 
 ```sh
 python -m pip install saqc
-```
-
-On Windows systems:
-
-```sh
-pip install saqc
 ```
 
 
@@ -92,7 +84,7 @@ python -m pip install -r requirements.txt
 On Windows systems:
 
 ```sh
-pip install -r requirements.txtpip install saqc
+pip install -r requirements.txt
 ```
 
 
