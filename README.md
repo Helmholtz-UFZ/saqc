@@ -3,7 +3,7 @@
 Quality Control of numerical data requires a significant amount of
 domain knowledge and practical experience. Finding a robust setup of
 quality tests that identifies as many suspicious values as possible, without
-removing valid data, is usually a time-consuming and iterative endeavor,
+removing valid data, is usually a time-consuming endeavor,
 even for experts.
 
 SaQC is both, a Python framework and a command line application, that
