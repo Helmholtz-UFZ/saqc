@@ -60,28 +60,31 @@ cd env_saqc/Scripts
 
 ## 2. Get SaQC
 
-Now get saqc via PyPI as well.
+### Via PyPI
 
+Type
 
 ```sh
 python -m pip install saqc
 ```
 
 
-or download it directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc).
+### From Gitlab repository
 
-#### Get all required packages:
-
-
+Download SaQC directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc):
 
 ```sh
+# Clone gitlab - repository
+git clone https://git.ufz.de/rdm-software/saqc
+
 # Switch to the folder where you installed saqc
+cd saqc 
 
-cd YOURDIR/saqc 
-
-# execute requirements.txt
-
+# Install all required packages 
 pip install -r requirements.txt
+
+# Install required submodules
+git submodule update --init --recursive 
 ```
 
 
