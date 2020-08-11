@@ -74,16 +74,16 @@ python -m pip install saqc
 Download SaQC directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc) to make sure you use the most recent version:
 
 ```sh
-# Clone gitlab - repository
+# clone gitlab - repository
 git clone https://git.ufz.de/rdm-software/saqc
 
-# Switch to the folder where you installed saqc
+# switch to the folder where you installed saqc
 cd saqc 
 
-# Install all required packages 
+# install all required packages 
 pip install -r requirements.txt
 
-# Install required submodules
+# install all required submodules
 git submodule update --init --recursive 
 ```
 
