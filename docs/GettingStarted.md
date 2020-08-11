@@ -1,7 +1,7 @@
 # Getting started with SaQC
 
-Requirements: this "getting started" assumes that you have Python version > 3.6.1
-installed, and that both your operating system and Python version are 64-bit.
+Requirements: this "getting started" assumes that you have Python version 3.6.1 or newer
+installed, and that both your operating system and Python version are in 64-bit.
 
 ## Contents
 
