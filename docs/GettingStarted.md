@@ -1,7 +1,7 @@
 # Getting started with SaQC
 
-This "getting started" assumes that you have Python version 3.6 or 3.7
-installed.
+Requirements: this "getting started" assumes that you have Python version > 3.6.1
+installed, and that both your operating system and Python version are 64-bit.
 
 ## Contents
 
@@ -25,7 +25,7 @@ for your needs is using the Python Package Index (PyPI). Following good Python
 practice, you will first want to create a new virtual environment that you
 install SaQC into by typing the following in your console:
 
-### On Unix/Mac-systems
+
 
 ```sh	
 # if you have not installed venv yet, do so:
@@ -36,7 +36,14 @@ cd YOURDIR
 	
 # create virtual environment called "env_saqc"
 python -m venv env_saqc
-	
+
+```
+To activate your virtual environment, you need to type the following:
+
+
+### On Unix/Mac-systems
+
+```sh
 # activate the virtual environment
 source env_saqc/bin/activate
 ```
@@ -44,19 +51,10 @@ source env_saqc/bin/activate
 ### On Windows
 
 ```sh	
-# if you have not installed venv yet, do so:
-pip install virtualenv
-	
-# move to the directory where you want to create your virtual environment
-cd YOURDIR
-	
-# create virtual environment called "env_saqc"
-virtualenv env_saqc
-	
 # move to the Scripts directory in "env_saqc"
 cd env_saqc/Scripts
 
-# activate the environment
+# activate the virtual environment
 ./activate
 ```
 
@@ -74,7 +72,6 @@ or download it directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc
 
 #### Get all required packages:
 
- 
 
 
 ```sh
