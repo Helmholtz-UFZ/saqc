@@ -152,6 +152,10 @@ cd saqc
 From here, you can run saqc and tell it to run the tests from the toy
 config-file on the toy dataset via the `-c` and `-d` options:
 ```sh
+python -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
+```
+or if you installed saqc via PYPi, it suffices to type:
+```sh
 saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
 ```
 
