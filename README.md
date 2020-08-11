@@ -119,7 +119,7 @@ The latest development version is directly available from the
 [gitlab](https://git.ufz.de/rdm-software/saqc) server of the
 [Helmholtz Center for Environmental Research](https://www.ufz.de/index.php?en=33573).
 More details on how to setup an respective environment are available
-[here](CONTRIBUTING.md#development-environment)
+[here](CONTRIBUTING.md#development-environment).
 
 ### Python version
 The minimum Python version required is 3.6.
