@@ -71,7 +71,7 @@ python -m pip install saqc
 
 ### From Gitlab repository
 
-Download SaQC directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc):
+Download SaQC directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc) to make sure you use the most recent version:
 
 ```sh
 # Clone gitlab - repository
