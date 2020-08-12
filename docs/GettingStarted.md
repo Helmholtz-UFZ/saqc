@@ -135,13 +135,13 @@ flags that are set during one test are always passed on to the subsequent one.
 
 Remember to have your virtual environment activated:
 
-##### On Unix/Mac-systems:
+##### On Unix/Mac-systems
 
 ```sh
 source env_saqc/bin/activate
 ```
 
-##### On Windows:
+##### On Windows
 
 ```sh
 cd env_saqc/Scripts
