@@ -30,7 +30,7 @@ data processing.
 
 The main objective of SaQC is to bridge this gap by allowing both
 parties to focus on their strengths: The data collector/owner should be
-able to express his/her ideas in an easy and succinct way, while the actual
+able to express his/her ideas in an easy way, while the actual
 implementation of the algorithms is left to the respective developers.
 
 
@@ -118,11 +118,11 @@ straightforward:
 The latest development version is directly available from the
 [gitlab](https://git.ufz.de/rdm-software/saqc) server of the
 [Helmholtz Center for Environmental Research](https://www.ufz.de/index.php?en=33573).
-More details on how to setup an respective environment are available
-[here](CONTRIBUTING.md#development-environment).
+More details on how to install using the gitlab server are available
+[here](docs/GettingStarted.md).
 
 ### Python version
-The minimum Python version required is 3.6.
+The minimum Python version required is 3.6.1.
 
 
 ## Usage
