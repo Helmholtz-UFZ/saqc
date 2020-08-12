@@ -41,14 +41,14 @@ python -m venv env_saqc
 To activate your virtual environment, you need to type the following:
 
 
-### On Unix/Mac-systems
+#### On Unix/Mac-systems
 
 ```sh
 # activate the virtual environment
 source env_saqc/bin/activate
 ```
 
-### On Windows
+#### On Windows
 
 ```sh	
 # move to the Scripts directory in "env_saqc"
@@ -134,10 +134,15 @@ flags that are set during one test are always passed on to the subsequent one.
 ### Run SaQC
 
 Remember to have your virtual environment activated:
+
+#### On Unix/Mac-systems:
+
 ```sh
 source env_saqc/bin/activate
 ```
-or respectively on Windows:
+
+#### On Windows:
+
 ```sh
 cd env_saqc/Scripts
 ./activate
