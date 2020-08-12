@@ -159,12 +159,9 @@ config-file on the toy dataset via the `-c` and `-d` options:
 ```sh
 python -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
 ```
-or if you installed saqc via PYPi, it suffices to type:
-```sh
-saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
-```
+If you installed saqc via PYPi, you can omit "python -m".
 
-Which will output this plot:
+The command will output this plot:
 
 ![Toy Plot](../ressources/images/example_plot_1.png "Toy Plot")
 
