@@ -171,13 +171,20 @@ class SaQCFunc(Func):
         return data_result, flagger_result
 
     def _maskData(self, data, flagger):
+        # TODO: this is heavily undertested
         to_mask = flagger.BAD if self.to_mask is None else self.to_mask
         mask = flagger.isFlagged(flag=to_mask, comparator='==')
         data = data.copy()
-        data[mask] = np.nan
+        for c in data.columns:
+            col_mask = mask[c].values
+            if np.any(col_mask):
+                col_data = data[c].values.astype(np.float64)
+                col_data[col_mask] = np.nan
+                data[c] = col_data
         return data
 
     def _unmaskData(self, data_old, flagger_old, data_new, flagger_new):
+        # TODO: this is heavily undertested
         to_mask = flagger_old.BAD if self.to_mask is None else self.to_mask
         mask_old = flagger_old.isFlagged(flag=to_mask, comparator="==")
         mask_new = flagger_new.isFlagged(flag=to_mask, comparator="==")
@@ -190,8 +197,11 @@ class SaQCFunc(Func):
             if left.equals(right):
                 # NOTE: Don't overwrite data, that was masked, but is not considered
                 # flagged anymore and also respect newly set data on masked locations.
-                mask = mask_old[col] & mask_new[col] & data_new[col].isna()
-                data_new.loc[mask, col] = data_old.loc[mask, col]
+                mask = mask_old[col].values & mask_new[col].values & data_new[col].isna().values
+                if np.any(mask):
+                    col_data = data_new[col].values
+                    col_data[mask] = data_old[col].values[mask]
+                    data_new[col] = col_data
         return data_new
 
 
