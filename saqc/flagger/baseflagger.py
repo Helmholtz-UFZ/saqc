@@ -70,7 +70,7 @@ class BaseFlagger(ABC):
                 flags[c] = pd.Series(self.UNFLAGGED, index=data[c].index)
             flags = flags.astype(self.dtype)
         else:
-            if not isinstance(data, diosT):
+            if not isinstance(flags, diosT):
                 flags = dios.DictOfSeries(flags)
 
         newflagger = self.copy(flags=flags)
