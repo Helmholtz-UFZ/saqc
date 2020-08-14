@@ -79,7 +79,7 @@ def test_assignVariable(flagger):
     pdata, pflagger = SaQC(flagger, data).flagAll(var1).flagAll(var2).getResult()
     pflags = pflagger.getFlags()
 
-    assert (pflags.columns == [var1, var2]).all()
+    assert (set(pflags.columns) == {var1, var2})
     assert pflagger.isFlagged(var2).empty
 
 
@@ -105,7 +105,6 @@ def test_masking(data, flagger):
     test if flagged values are exluded during the preceding tests
     """
     flagger = flagger.initFlags(data)
-    flags = flagger.getFlags()
     var1 = 'var1'
     mn = min(data[var1])
     mx = max(data[var1]) / 2
