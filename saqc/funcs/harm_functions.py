@@ -19,7 +19,7 @@ from saqc.funcs.proc_functions import (
 
 logger = logging.getLogger("SaQC")
 
-@register
+@register(all_data=False)
 def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, **kwargs):
 
     data, flagger = proc_fork(data, field, flagger)
@@ -29,7 +29,7 @@ def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, *
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def harm_aggregate2Grid(
     data, field, flagger, freq, value_func, flag_func=np.nanmax, method="nagg", to_drop=None, **kwargs
 ):
@@ -51,7 +51,7 @@ def harm_aggregate2Grid(
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def harm_linear2Grid(data, field, flagger, freq, to_drop=None, **kwargs):
     data, flagger = proc_fork(data, field, flagger)
     data, flagger = proc_interpolateGrid(
@@ -60,7 +60,7 @@ def harm_linear2Grid(data, field, flagger, freq, to_drop=None, **kwargs):
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def harm_interpolate2Grid(
     data, field, flagger, freq, method, order=1, to_drop=None, **kwargs,
 ):
@@ -79,7 +79,7 @@ def harm_interpolate2Grid(
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def harm_deharmonize(data, field, flagger, method, to_drop=None, **kwargs):
 
     data, flagger = proc_projectFlags(

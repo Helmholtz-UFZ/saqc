@@ -97,7 +97,7 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
     elif bin_frac in ["auto", "fd", "doane", "scott", "stone", "rice", "sturges", "sqrt"]:
         binz = np.histogram_bin_edges(resids, bins=bin_frac)
     else:
-        raise ValueError("Cant interpret {} as an binning technique.".format(bin_frac))
+        raise ValueError(f"Can't interpret {bin_frac} as an binning technique.")
 
     binzenters = np.array([0.5 * (binz[i] + binz[i + 1]) for i in range(len(binz) - 1)])
     # inititialize full histogram:
@@ -180,7 +180,7 @@ def _reduceMVflags(
     return to_flag_frame
 
 
-@register
+@register(all_data=True)
 def spikes_flagMultivarScores(
     data,
     field,
@@ -248,7 +248,7 @@ def spikes_flagMultivarScores(
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def spikes_flagRaise(
     data,
     field,
@@ -354,7 +354,7 @@ def spikes_flagRaise(
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def spikes_flagSlidingZscore(
     data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs,
 ):
@@ -480,7 +480,7 @@ def spikes_flagSlidingZscore(
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
     """ The function represents an implementation of the modyfied Z-score outlier detection method, as introduced here:
 
@@ -518,7 +518,7 @@ def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min", **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
@@ -604,7 +604,7 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def spikes_flagSpektrumBased(
     data,
     field,
@@ -742,6 +742,7 @@ def spikes_flagSpektrumBased(
     return data, flagger
 
 
+@register(all_data=False)
 def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, check_lagged=False, **kwargs):
     """
     The function flags values that are regarded outliers due to the grubbs test.

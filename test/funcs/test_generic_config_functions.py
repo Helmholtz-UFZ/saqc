@@ -269,7 +269,7 @@ def test_callableArgumentsUnary(data):
 
     window = 5
 
-    @register
+    @register(all_data=False)
     def testFuncUnary(data, field, flagger, func, **kwargs):
         data[field] = data[field].rolling(window=window).apply(func)
         return data, flagger.initFlags(data=data)
@@ -301,7 +301,7 @@ def test_callableArgumentsBinary(data):
     flagger = SimpleFlagger()
     var1, var2 = data.columns[:2]
 
-    @register
+    @register(all_data=False)
     def testFuncBinary(data, field, flagger, func, **kwargs):
         data[field] = func(data[var1], data[var2])
         return data, flagger.initFlags(data=data)

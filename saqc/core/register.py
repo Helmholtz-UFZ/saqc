@@ -110,6 +110,10 @@ class RegisterFunc(Func):
     call arguments
     """
 
+    def __init__(self, all_data, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.all_data = all_data
+
     def __call__(self, *args, **kwargs):
         # NOTE:
         # injecting the function name into the
@@ -212,11 +216,10 @@ class SaQCFunc(Func):
 FUNC_MAP: Dict[str, RegisterFunc] = {}
 
 
-def register(func, name=None):
-    if name is None:
-        name = func.__name__
-    else:
-        func.__name__ = name
-    func = RegisterFunc(func)
-    FUNC_MAP[name] = func
-    return func
+def register(all_data=True):
+    def inner(func):
+        func = RegisterFunc(all_data, func)
+        FUNC_MAP[func.__name__] = func
+        print(func.__name__, all_data)
+        return func
+    return inner

@@ -8,9 +8,7 @@ from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq, e
 from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex
 import dios
 import functools
-import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-import pickle
 
 ORIGINAL_SUFFIX = "_original"
 
@@ -25,7 +23,7 @@ METHOD2ARGS = {
 }
 
 
-@register
+@register(all_data=False)
 def proc_rollingInterpolateMissing(
     data, field, flagger, winsz, func=np.median, center=True, min_periods=0, interpol_flag="UNFLAGGED", **kwargs
 ):
@@ -84,7 +82,7 @@ def proc_rollingInterpolateMissing(
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def proc_interpolateMissing(
     data,
     field,
@@ -165,7 +163,7 @@ def proc_interpolateMissing(
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def proc_interpolateGrid(
     data,
     field,
@@ -310,7 +308,7 @@ def proc_interpolateGrid(
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def proc_resample(
     data,
     field,
@@ -445,7 +443,7 @@ na_ser.resample('10min').apply(lambda x: x.count())
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals_flag=None, **kwargs):
     """
     Function to shift data points to regular (equidistant) timestamps.
@@ -507,7 +505,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def proc_transform(data, field, flagger, func, **kwargs):
     """
     Function to transform data columns with a transformation that maps series onto series of the same length.
@@ -528,7 +526,7 @@ def proc_transform(data, field, flagger, func, **kwargs):
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=None, **kwargs):
 
     """
@@ -651,7 +649,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     """
     The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
@@ -672,7 +670,7 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def proc_drop(data, field, flagger, **kwargs):
     """
     The function drops field from the data dios and the flagger.
@@ -683,7 +681,7 @@ def proc_drop(data, field, flagger, **kwargs):
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def proc_rename(data, field, flagger, new_name, **kwargs):
     """
     The function renames field to new name (in both, the flagger and the data).
@@ -722,7 +720,7 @@ def _drift_fit(x, shift_target, cal_mean):
     return dataFit, dataShift
 
 
-@register
+@register(all_data=True)
 def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mean=5, flag_maint_period=False, **kwargs):
     """
     The function fits an exponential model to chunks of data[field].

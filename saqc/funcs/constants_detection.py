@@ -9,7 +9,7 @@ from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
-@register
+@register(all_data=False)
 def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
     """
     Flag values are (semi-)constant.
@@ -39,7 +39,7 @@ def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
     return data, flagger
 
 
-@register
+@register(all_data=False)
 def constants_flagVarianceBased(
     data, field, flagger, window="12h", thresh=0.0005, max_missing=None, max_consec_missing=None, **kwargs
 ):
