@@ -1,0 +1,6 @@
+
+_api/
+_build/
+_static/
+*.automodsumm
+_static/*

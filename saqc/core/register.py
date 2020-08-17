@@ -206,6 +206,5 @@ def register(func, name=None):
         name = func.__name__
     else:
         func.__name__ = name
-    func = RegisterFunc(func)
-    FUNC_MAP[name] = func
+    FUNC_MAP[name] = RegisterFunc(func)
     return func
