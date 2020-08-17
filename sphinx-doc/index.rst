@@ -9,12 +9,17 @@ Welcome to SaQC's documentation!
 Saqc is a great tool to clean data from rubbish.
 
 .. toctree::
-   :maxdepth: 3
+   :hidden:
+
+   Repository <https://git.ufz.de/rdm-software/saqc>
+
+.. toctree::
+   :maxdepth: 2
 
    flagger
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    FlagFunctions
 
