@@ -224,7 +224,7 @@ def proc_interpolateGrid(
     inter_order : integer, default 2
         If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
         order.
-    drop_flags : {None, str, List[str]}, default None
+    to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before interpotion - effectively excluding grid points from
         interpolation, that are only surrounded by values having a flag in them, that is listed in drop flags. Default
         results in the flaggers 'BAD' flag to be the drop_flag.
@@ -420,10 +420,10 @@ def proc_resample(
         or no values at all. Furthermore the empty_intervals_flag is the flag, serving as "invalid" identifyer when
         checking for "max_total_invalid_f" and "max_consec_invalid_f patterns". Default triggers flagger.BAD to be
         assigned.
-    drop_flags : {None, str, List[str]}, default None
+    to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before resampling - effectively excluding values that are flagged
-        with a flag in drop_flags from the resampling process - this means that they also will not be counted in the
-        the max_consec/max_total evaluation. Drop_flags = None results in NO flags being dropped initially.
+        with a flag in to_drop from the resampling process - this means that they also will not be counted in the
+        the max_consec/max_total evaluation. to_drop = None results in NO flags being dropped initially.
 
     Returns
     -------
@@ -513,7 +513,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     empty_intervals_flag : {None, str}, default None
         A Flag, that you want to assign to grid points, where no values are avaible to be shifted to.
         Default triggers flagger.BAD to be assigned.
-    drop_flags : {None, str, List[str]}, default None
+    to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before shifting - effectively, excluding values that are flagged
         with a flag in to_drop from the shifting process. Default - to_drop = None  - results in flagger.BAD
         values being dropped initially.
@@ -637,7 +637,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     freq: {None, str},default None
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
-    drop_flags: {None, str, List[str]}, default None
+    to_drop: {None, str, List[str]}, default None
         Flags referring to values that are to drop before flags projection. Relevant only when projecting wiht an
         inverted shift method. Defaultly flagger.BAD is listed.
 

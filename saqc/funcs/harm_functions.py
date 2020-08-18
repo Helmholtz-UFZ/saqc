@@ -40,7 +40,7 @@ def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, *
     timestamp by the selected method, nan gets assigned to this timestamp. The associated flag will be of value
     flagger.UNFLAGGED.
 
-    Note: all data nans get excluded defaultly from shifting. If drop_flags is None - all BAD flagged values get
+    Note: all data nans get excluded defaultly from shifting. If to_drop is None - all BAD flagged values get
     excluded as well.
 
     Note: the method will likely and significantly alter values and shape of data[field]. The original data is kept
@@ -59,9 +59,9 @@ def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, *
     method : {'nshift', 'bshift', 'fshift'}, default 'nshift'
         Specifies if datapoints get propagated forwards, backwards or to the nearest grid timestamp.
         See description above for details
-    drop_flags : {List[str], str}, default None
+    to_drop : {List[str], str}, default None
         Flagtypes you want to drop before shifting - effectively excluding values that are flagged
-        with a flag in drop_flags from the shifting process. Default - results in flagger.BAD
+        with a flag in to_drop from the shifting process. Default - results in flagger.BAD
         values being dropped initially.
 
     Returns
@@ -130,9 +130,9 @@ def harm_aggregate2Grid(
     method : {'fagg', 'bagg', 'nagg'}, default 'nagg'
         Specifies which intervals to be aggregated for a certain timestamp. (preceeding, succeeding or
         "surrounding" interval). See description above for more details.
-    drop_flags : {List[str], str}, default None
+    to_drop : {List[str], str}, default None
         Flagtypes you want to drop before aggregation - effectively excluding values that are flagged
-        with a flag in drop_flags from the aggregation process. Default results in flagger.BAD
+        with a flag in to_drop from the aggregation process. Default results in flagger.BAD
         values being dropped initially.
 
     Returns
@@ -189,9 +189,9 @@ def harm_linear2Grid(data, field, flagger, freq, to_drop=None, **kwargs):
         A flagger object, holding flags and additional Informations related to `data`.freq
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
-    drop_flags : {List[str], str}, default None
+    to_drop : {List[str], str}, default None
         Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
-        with a flag in drop_flags from the interpolation process. Default results in flagger.BAD
+        with a flag in to_drop from the interpolation process. Default results in flagger.BAD
         values being dropped initially.
 
     Returns
@@ -251,9 +251,9 @@ def harm_interpolate2Grid(
     order : int, default 1
         If your selected interpolation method can be performed at different 'orders' - here you pass the desired
         order.
-    drop_flags : {List[str], str}, default None
+    to_drop : {List[str], str}, default None
         Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
-        with a flag in drop_flags from the interpolation process. Default results in flagger.BAD
+        with a flag in to_drop from the interpolation process. Default results in flagger.BAD
         values being dropped initially.
 
     Returns
@@ -333,9 +333,9 @@ def harm_deharmonize(data, field, flagger, method, to_drop=None, **kwargs):
             'inverse_interpolation'}
         The method used for projection of regularized flags onto opriginal flags. See description above for more
         details.
-    drop_flags : {List[str], str}, default None
+    to_drop : {List[str], str}, default None
         Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
-        with a flag in drop_flags from the interpolation process. Default results in flagger.BAD
+        with a flag in to_drop from the interpolation process. Default results in flagger.BAD
         values being dropped initially.
 
     Returns
