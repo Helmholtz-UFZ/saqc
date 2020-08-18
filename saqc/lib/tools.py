@@ -334,13 +334,13 @@ def isQuoted(string):
     return bool(re.search(r"'.*'|\".*\"", string))
 
 
-def dropper(field, drop_flags, flagger, default):
+def dropper(field, to_drop, flagger, default):
     drop_mask = pd.Series(False, flagger.getFlags(field).index)
-    if drop_flags is None:
-        drop_flags = default
-    drop_flags = toSequence(drop_flags)
-    if len(drop_flags) > 0:
-        drop_mask |= flagger.isFlagged(field, flag=drop_flags)
+    if to_drop is None:
+        to_drop = default
+    to_drop = toSequence(to_drop)
+    if len(to_drop) > 0:
+        drop_mask |= flagger.isFlagged(field, flag=to_drop)
     return drop_mask
 
 
