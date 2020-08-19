@@ -250,7 +250,7 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
     return data, flagger
 
 
-def modelling_mask(data, field, flagger, mode, loc_var=None, season_start=None, season_end=None):
+def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None, season_end=None):
     data = data.copy()
     datcol = data[field]
     mask = pd.Series(False, index=datcol.index)
@@ -268,12 +268,8 @@ def modelling_mask(data, field, flagger, mode, loc_var=None, season_start=None, 
             if len(stamp) == 14:
                 return '{}-'.format(index.year[0]) + stamp
 
-        if pd.Timestamp(_composeStamp(datcol.index, season_start)) <= pd.Timestamp(_composeStamp(datcol.index, season_end)):
-            overlap = False
-        else:
-            overlap = True
-
-        if not overlap:
+        if pd.Timestamp(_composeStamp(datcol.index, season_start)) <= pd.Timestamp(_composeStamp(datcol.index,
+                                                                                                 season_end)):
             def _selector(x, start=season_start, end=season_end):
                 x[_composeStamp(x.index, start):_composeStamp(x.index, end)] = True
                 return x
@@ -282,11 +278,15 @@ def modelling_mask(data, field, flagger, mode, loc_var=None, season_start=None, 
                 x[:_composeStamp(x.index, start)] = True
                 x[_composeStamp(x.index, end):] = True
                 return x
-        freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
-        seasonal_mask = mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
 
-    datcol[~seasonal_mask] = np.nan
-    flags_to_block = pd.Series(np.nan, index=datcol.index[~seasonal_mask]).astype(flagger.dtype)
-    flagger = flagger.setFlags(field, loc=datcol.index[~seasonal_mask], flag=flags_to_block, force=True)
+        freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
+        to_mask = mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
+    elif mode == 'mask_var':
+        to_mask = data[mask_var]
+        to_mask = to_mask.index.join(datcol.index, how='inner')
+
+    datcol[~to_mask] = np.nan
+    flags_to_block = pd.Series(np.nan, index=datcol.index[~to_mask]).astype(flagger.dtype)
+    flagger = flagger.setFlags(field, loc=datcol.index[~to_mask], flag=flags_to_block, force=True)
 
     return data, flagger
