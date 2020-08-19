@@ -165,11 +165,18 @@ def _plotMultipleVariables(
         ncols += [ncols_rest]
 
     gs_kw = dict(width_ratios=_layout_data_to_table_ratio)
-    layout = dict(figsize=_figsize, sharex=True, tight_layout=True, squeeze=False, gridspec_kw=gs_kw)
+    layout = dict(
+        figsize=_figsize,
+        sharex=True,
+        tight_layout=True,
+        squeeze=False,
+        gridspec_kw=gs_kw if show_tab else {}
+    )
 
     # plot max. 4 plots per figure
     allaxs = []
     for n in range(nfig):
+
         fig, axs = plt.subplots(nrows=ncols[n], ncols=2 if show_tab else 1, **layout)
 
         for ax in axs:
@@ -180,7 +187,7 @@ def _plotMultipleVariables(
                 plot_ax, tab_ax = ax
                 _plotInfoTable(tab_ax, tar, _plotstyle, len(tar["data"]))
             else:
-                plot_ax = ax
+                plot_ax = ax[0]
 
             _plotFromDicts(plot_ax, tar, _plotstyle)
 

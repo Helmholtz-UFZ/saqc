@@ -3,7 +3,7 @@
 Quality Control of numerical data requires a significant amount of
 domain knowledge and practical experience. Finding a robust setup of
 quality tests that identifies as many suspicious values as possible, without
-removing valid data, is usually a time-consuming and iterative endeavor,
+removing valid data, is usually a time-consuming endeavor,
 even for experts.
 
 SaQC is both, a Python framework and a command line application, that
@@ -13,8 +13,8 @@ and simple configuration system.
 
 Below its user interface, SaQC is highly customizable and extensible.
 A modular structure and well-defined interfaces make it easy to extend
-the system with custom quality checks and even core components, like
-the flagging scheme, are exchangeable.
+the system with custom quality checks. Furthermore, even core components like
+the flagging scheme are exchangeable.
 
 ![SaQC Workflow](ressources/images/readme_image.png "SaQC Workflow")
 
@@ -30,13 +30,13 @@ data processing.
 
 The main objective of SaQC is to bridge this gap by allowing both
 parties to focus on their strengths: The data collector/owner should be
-able to express his/her ideas in an easy and succinct way, while the actual
+able to express his/her ideas in an easy way, while the actual
 implementation of the algorithms is left to the respective developers.
 
 
 ## How?
 
-`SaQC` is both a command line application controlled by text based and a python
+`SaQC` is both a command line application controlled by a text based configuration file and a python
 module with a simple API.
 
 While a good (but still growing) number of predefined and highly configurable
@@ -45,13 +45,13 @@ additionally ships with a python based
 [extension language](docs/GenericFunctions.md) for quality and general
 purpose data processing.
 
-For a more specific round trip to some of SaQC's possibilities, please refer to
+For a more specific round trip to some of SaQC's possibilities, we refer to
 our [GettingStarted](docs/GettingStarted.md).
 
 
 ### SaQC as a command line application
 Most of the magic is controlled by a
-[semicolon-separated table file](saqc/docs/ConfigurationFiles.md) listing the variables of the
+[semicolon-separated text file](saqc/docs/ConfigurationFiles.md) listing the variables of the
 dataset and the routines to inspect, quality control and/or process them.
 The content of such a configuration could look like this:
 
@@ -98,6 +98,7 @@ can be installed using [pip](https://pip.pypa.io/en/stable/):
 ```sh
 python -m pip install saqc
 ```
+For a more detailed installion guide, see [GettingStarted](docs/GettingStarted.md).
 
 ### Anaconda
 Currently we don't provide pre-build conda packages but the installing of `SaQC`
@@ -117,11 +118,11 @@ straightforward:
 The latest development version is directly available from the
 [gitlab](https://git.ufz.de/rdm-software/saqc) server of the
 [Helmholtz Center for Environmental Research](https://www.ufz.de/index.php?en=33573).
-More details on how to setup an respective environment are available
-[here](CONTRIBUTING.md#development-environment)
+More details on how to install using the gitlab server are available
+[here](docs/GettingStarted.md).
 
 ### Python version
-The minimum Python version required is 3.6.
+The minimum Python version required is 3.6.1.
 
 
 ## Usage

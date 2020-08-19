@@ -173,7 +173,7 @@ def proc_interpolateGrid(
     freq,
     method,
     inter_order=2,
-    drop_flags=None,
+    to_drop=None,
     downgrade_interpolation=False,
     empty_intervals_flag=None,
     **kwargs
@@ -200,7 +200,7 @@ def proc_interpolateGrid(
         If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
         order.
 
-    drop_flags : list or string, default None
+    to_drop : list or string, default None
         Flags that refer to values you want to drop before interpotion - effectively excluding grid points from
         interpolation, that are only surrounded by values having a flag in them, that is listed in drop flags. Default
         results in the flaggers 'BAD' flag to be the drop_flag.
@@ -221,7 +221,7 @@ def proc_interpolateGrid(
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
 
-    drop_mask = dropper(field, drop_flags, flagger, flagger.BAD)
+    drop_mask = dropper(field, to_drop, flagger, flagger.BAD)
     drop_mask |= flagscol.isna()
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
@@ -324,7 +324,7 @@ def proc_resample(
     max_invalid_total_f=np.inf,
     flag_agg_func=max,
     empty_intervals_flag=None,
-    drop_flags=None,
+    to_drop=None,
     all_na_2_empty=False,
     **kwargs
 ):
@@ -392,10 +392,10 @@ na_ser.resample('10min').apply(lambda x: x.count())
         checking for "max_total_invalid_f" and "max_consec_invalid_f patterns". Default triggers flagger.BAD to be
         assigned.
 
-    drop_flags : list or string, default None
+    to_drop : list or string, default None
         Flags that refer to values you want to drop before resampling - effectively excluding values that are flagged
-        with a flag in drop_flags from the resampling process - this means that they also will not be counted in the
-        the max_consec/max_total evaluation. Drop_flags = None results in NO flags being dropped initially.
+        with a flag in to_drop from the resampling process - this means that they also will not be counted in the
+        the max_consec/max_total evaluation. to_drop = None results in NO flags being dropped initially.
     """
 
     data = data.copy()
@@ -404,7 +404,7 @@ na_ser.resample('10min').apply(lambda x: x.count())
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
 
-    drop_mask = dropper(field, drop_flags, flagger, [])
+    drop_mask = dropper(field, to_drop, flagger, [])
     datcol.drop(datcol[drop_mask].index, inplace=True)
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
     if all_na_2_empty:
@@ -446,12 +446,12 @@ na_ser.resample('10min').apply(lambda x: x.count())
 
 
 @register
-def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_intervals_flag=None, **kwargs):
+def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals_flag=None, **kwargs):
     """
     Function to shift data points to regular (equidistant) timestamps.
     Values get shifted according to the keyword passed to 'method'.
 
-    Note: all data nans get excluded defaultly from shifting. If drop_flags is None - all BAD flagged values get
+    Note: all data nans get excluded defaultly from shifting. If to_drop is None - all BAD flagged values get
     excluded as well.
 
     'nshift' -  every grid point gets assigned the nearest value in its range ( range = +/-(freq/2) )
@@ -474,9 +474,9 @@ def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_interv
         A Flag, that you want to assign to grid points, where no values are avaible to be shifted to.
         Default triggers flagger.BAD to be assigned.
 
-    drop_flags : list or string, default None
+    to_drop : list or string, default None
         Flags that refer to values you want to drop before shifting - effectively, excluding values that are flagged
-        with a flag in drop_flags from the shifting process. Default - Drop_flags = None  - results in flagger.BAD
+        with a flag in to_drop from the shifting process. Default - to_drop = None  - results in flagger.BAD
         values being dropped initially.
 
     """
@@ -487,7 +487,7 @@ def proc_shift(data, field, flagger, freq, method, drop_flags=None, empty_interv
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
 
-    drop_mask = dropper(field, drop_flags, flagger, flagger.BAD)
+    drop_mask = dropper(field, to_drop, flagger, flagger.BAD)
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
@@ -529,7 +529,7 @@ def proc_transform(data, field, flagger, func, **kwargs):
 
 
 @register
-def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flags=None, **kwargs):
+def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=None, **kwargs):
 
     """
     The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
@@ -575,7 +575,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
 
-    drop_flags: list or String
+    to_drop: list or String
         Flags referring to values that are to drop before flags projection. Relevant only when projecting wiht an
         inverted shift method. Defaultly flagger.BAD is listed.
 
@@ -620,7 +620,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, drop_flag
         #
         # starting with the dropping and its memorization:
 
-        drop_mask = dropper(field, drop_flags, flagger, flagger.BAD)
+        drop_mask = dropper(field, to_drop, flagger, flagger.BAD)
         drop_mask |= target_datcol.isna()
         target_flagscol_drops = target_flagscol[drop_mask]
         target_flagscol.drop(drop_mask[drop_mask].index, inplace=True)
