@@ -362,8 +362,8 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
                 return x
         else:
             def _selector(x, start=season_start, end=season_end):
-                x[:_composeStamp(x.index, start)] = True
-                x[_composeStamp(x.index, end):] = True
+                x[:_composeStamp(x.index, end)] = True
+                x[_composeStamp(x.index, start):] = True
                 return x
 
         freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]

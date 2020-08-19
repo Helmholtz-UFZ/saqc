@@ -11,6 +11,8 @@ from mlxtend.evaluate import permutation_test
 import datetime
 
 from saqc.lib.tools import groupConsecutives, sesonalMask
+from saqc.funcs.proc_functions import proc_fork, proc_drop, proc_projectFlags
+from saqc.funcs.data_modelling import modelling_mask
 
 from saqc.core.register import register, Func
 from saqc.core.visitor import ENVIRONMENT
@@ -228,20 +230,15 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
 def flagSesonalRange(
     data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
 ):
-    smask = sesonalMask(data[field].index, startmonth, startday, endmonth, endday)
 
-    d = data.loc[smask, [field]]
-    if d.empty:
-        return data, flagger
-
-    _, flagger_range = flagRange(d, field, flagger.slice(loc=d[field].index), min=min, max=max, **kwargs)
-
-    if not flagger_range.isFlagged(field).any():
-        return data, flagger
-
-    flagger = flagger.merge(flagger_range)
+    data, flagger = proc_fork(data, field, flagger, suffix="_masked")
+    data, flagger = modelling_mask(data, field + "_masked", flagger, mode='seasonal',
+                                   season_end=str(startmonth).zfill(2) + '-' + str(startday).zfill(2) + 'T00:00:00',
+                                   season_start=str(endmonth).zfill(2) + '-' + str(endday).zfill(2) + 'T00:00:00')
+    data, flagger = flagRange(data, field + "_masked", flagger, min=min, max=max, **kwargs)
+    data, flagger = proc_projectFlags(data, field, flagger, method='match', source=field + "_masked")
+    data, flagger = proc_drop(data, field + "_masked", flagger)
     return data, flagger
-
 
 @register
 def clearFlags(data, field, flagger, **kwargs):
