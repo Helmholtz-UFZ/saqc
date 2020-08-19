@@ -7,11 +7,12 @@
 import pytest
 
 import numpy as np
+import pandas as pd
 
 from dios import dios
 from test.common import TESTFLAGGER
 
-from saqc.funcs.data_modelling import modelling_polyFit, modelling_rollingMean
+from saqc.funcs.data_modelling import modelling_polyFit, modelling_rollingMean, modelling_mask
 
 TF = TESTFLAGGER[:1]
 
@@ -44,3 +45,30 @@ def test_modelling_rollingMean_forRegular(dat, flagger):
     flagger = flagger.initFlags(data)
     modelling_rollingMean(data, "data", flagger, 5, eval_flags=True, min_periods=0, center=True)
     modelling_rollingMean(data, "data", flagger, 5, eval_flags=True, min_periods=0, center=False)
+
+@pytest.mark.parametrize("flagger", TF)
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
+def test_modelling_mask(dat, flagger):
+    data, _ = dat()
+    data = dios.DictOfSeries(data)
+    flagger = flagger.initFlags(data)
+    data_seasonal, flagger_seasonal = modelling_mask(data, "data", flagger, mode='seasonal', season_start="20:00",
+                                                     season_end="40:00")
+    flaggs = flagger_seasonal._flags["data"]
+    assert flaggs[np.logical_and(20 <= flaggs.index.minute, 40 >= flaggs.index.minute)].isna().all()
+    data_seasonal, flagger_seasonal = modelling_mask(data, "data", flagger, mode='seasonal', season_start="15:00:00",
+                                                     season_end="02:00:00")
+    flaggs = flagger_seasonal._flags["data"]
+    assert flaggs[np.logical_and(15 <= flaggs.index.hour, 2 >= flaggs.index.hour)].isna().all()
+    data_seasonal, flagger_seasonal = modelling_mask(data, "data", flagger, mode='seasonal', season_start="03T00:00:00",
+                                                     season_end="10T00:00:00")
+    flaggs = flagger_seasonal._flags["data"]
+    assert flaggs[np.logical_and(3 <= flaggs.index.hour, 10 >= flaggs.index.hour)].isna().all()
+
+    mask_ser = pd.Series(False, index=data["data"].index)
+    mask_ser[::5] = True
+    data["mask_ser"] = mask_ser
+    flagger = flagger.initFlags(data)
+    data_masked, flagger_masked = modelling_mask(data, "data", flagger, mode='mask_var', mask_var="mask_ser")
+    flaggs = flagger_masked._flags["data"]
+    assert flaggs[data_masked['mask_ser']].isna().all()
