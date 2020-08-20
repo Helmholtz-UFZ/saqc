@@ -10,7 +10,7 @@ import pywt
 from mlxtend.evaluate import permutation_test
 import datetime
 
-from saqc.lib.tools import groupConsecutives, sesonalMask
+from saqc.lib.tools import groupConsecutives, seasonalMask
 from saqc.funcs.proc_functions import proc_fork, proc_drop, proc_projectFlags
 from saqc.funcs.data_modelling import modelling_mask
 

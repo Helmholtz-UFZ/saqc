@@ -11,6 +11,7 @@ from saqc.lib.ts_operators import (
     polyRollerNoMissingNumba,
     polyRollerIrregular,
 )
+from saqc.lib.tools import seasonalMask
 
 
 @register
@@ -251,8 +252,25 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
 
 
 def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None, season_end=None,
-                   inclusive_selection="masked"):
+                   inclusive_selection="mask"):
     """
+    This function realizes masking within saqc.
+
+    Due to some inner saqc mechanics, it is not straight forwardly possible to exclude
+    values or datachunks from flagging routines. This function replaces flags with np.nan
+    value, wherever values are to get masked. Furthermore, the masked values get replaced by
+    np.nan, so that they dont effect calculations.
+
+    Here comes a recipe on how to apply a flagging function only on a masked chunk of the variable field:
+
+    1. dublicate "field" in the input data (proc_fork)
+    2. mask the dublicated data (modelling_mask)
+    3. apply the tests you only want to be applied onto the masked data chunks (saqc_tests)
+    4. project the flags, calculated on the dublicated and masked data onto the original field data
+        (proc_projectFlags or flagGeneric)
+    5. drop the dublicated data (proc_drop)
+
+    To see an implemented example, checkout flagSeasonalRange in the saqc.functions module
 
     Parameters
     ----------
@@ -333,59 +351,15 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
 
     >>> season_start = "22:00:00"
     >>> season_end = "06:00:00"
-comprosed in the
+
     When inclusive_selection="season", all above examples work the same way, only that you now
     determine wich values NOT TO mask (=wich values are to constitute the "seasons").
-
     """
     data = data.copy()
     datcol = data[field]
-    if inclusive_selection == "mask":
-        base_bool = False
-    elif inclusive_selection == "season":
-        base_bool = True
-    else:
-        raise ValueError("invalid value {} was passed. Please select from 'mask' and 'season'."
-                         .format(inclusive_selection))
-    mask = pd.Series(base_bool, index=datcol.index)
     if mode == 'seasonal':
-        if len(season_start) == 2:
-            def _composeStamp(index, stamp):
-                return '{}-{}-{} {}:{}:'.format(index.year[0], index.month[0], index.day[0], index.hour[0],
-                                                index.minute[0]) + stamp
-        elif len(season_start) == 5:
-            def _composeStamp(index, stamp):
-                return '{}-{}-{} {}:'.format(index.year[0], index.month[0], index.day[0], index.hour[0]) + stamp
-        elif len(season_start) == 8:
-            def _composeStamp(index, stamp):
-                return '{}-{}-{} '.format(index.year[0], index.month[0], index.day[0]) + stamp
-        elif len(season_start) == 11:
-            def _composeStamp(index, stamp):
-                # some hick-hack ahead, to account for the strange fact that not all the month are of same length in
-                # this world.
-                max_days = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-                max_day_count = min(int(stamp[:2]), max_days[int(index.month[0] - 1)])
-                stamp = str(max_day_count) + stamp[2:]
-                return '{}-{}-'.format(index.year[0], index.month[0]) + stamp
-        elif len(season_start) == 14:
-            def _composeStamp(index, stamp):
-                return '{}-'.format(index.year[0]) + stamp
-        else:
-            raise ValueError("What´s this?: {}".format(season_start))
+        to_mask = seasonalMask(datcol.index, season_start, season_end, inclusive_selection)
 
-        if pd.Timestamp(_composeStamp(datcol.index, season_start)) <= pd.Timestamp(_composeStamp(datcol.index,
-                                                                                                 season_end)):
-            def _selector(x, start=season_start, end=season_end, base_bool=base_bool):
-                x[_composeStamp(x.index, start):_composeStamp(x.index, end)] = not base_bool
-                return x
-        else:
-            def _selector(x, start=season_start, end=season_end, base_bool=base_bool):
-                x[:_composeStamp(x.index, end)] = not base_bool
-                x[_composeStamp(x.index, start):] = not base_bool
-                return x
-
-        freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
-        to_mask = mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
     elif mode == 'mask_var':
         to_mask = data[mask_var]
         to_mask_i = to_mask.index.join(datcol.index, how='inner')
@@ -395,6 +369,7 @@ comprosed in the
 
     datcol[to_mask] = np.nan
     flags_to_block = pd.Series(np.nan, index=datcol.index[to_mask]).astype(flagger.dtype)
+    data[field] = datcol
     flagger = flagger.setFlags(field, loc=datcol.index[to_mask], flag=flags_to_block, force=True)
 
     return data, flagger

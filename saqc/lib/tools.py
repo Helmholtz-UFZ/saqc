@@ -199,69 +199,123 @@ def flagWindow(flagger_old, flagger_new, field, direction="fw", window=0, **kwar
     return flagger_new.setFlags(field, fmask, **kwargs)
 
 
-def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
+def seasonalMask(dtindex, season_start, season_end, inclusive_selection):
     """
-    This function provide a mask for a sesonal time range in the given dtindex.
-    This means the interval is applied again on every year and even over the change of a year.
-    Note that both edges are inclusive.
+    This function generates date-periodic/seasonal masks from an index passed.
 
-    Examples:
-        sesonal(dtindex, 1, 1, 3, 1)  -> [jan-mar]
-        sesonal(dtindex, 8, 1, 8, 15) -> [1.aug-15.aug]
+    For example you could mask all the values of an index, that are sampled in winter, or between 6 and 9 o'clock.
+    See the examples section for more details.
 
+    Parameters
+    ----------
+    dtindex : pandas.DatetimeIndex
+        The index according to wich you want to generate a mask.
+        (=resulting mask will be indexed with 'dtindex')
+    season_start : str
+        String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
+        Has to be of same length as `season_end` parameter.
+        See examples section below for some examples.
+    season_end : str
+        String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
+        Has to be of same length as `season_end` parameter.
+        See examples section below for some examples.
+    inclusive_selection : {"mask","season"}
+        - "mask": the `season_start` and `season_end` keywords inclusivly frame the mask (INCLUDING INTERVAL BOUNDS)
+        - "season": the `season_start` and `season_end` keywords inclusivly frame the season
+        (INCLUDING INTERVAL BOUNDS)
+        (Parameter mainly introduced to provide backwards compatibility. But, as a side effect, provides more control
+        over what to do with samples at the exact turning points of date-defined masks and season.)
 
-    This also works, if the second border is smaller then the first
+    Returns
+    -------
+    to_mask : pandas.Series[bool]
+        A series, indexed with the input index and having value `True` for all the values that are to be masked.
 
-    Examples:
-        sesonal(dtindex, 10, 1, 2, 1) -> [1.nov-1.feb (following year)]
-        sesonal(dtindex, 1, 10, 1, 1)  -> [10.jan-1.jan(following year)] like everything except ]1.jan-10.jan[
+    Examples
+    --------
+    The `season_start` and `season_end` parameters provide a conveniant way to generate seasonal / date-periodic masks.
+    They have to be strings of the forms: "mm-ddTHH:MM:SS", "ddTHH:MM:SS" , "HH:MM:SS", "MM:SS" or "SS"
+    (mm=month, dd=day, HH=hour, MM=minute, SS=second)
+    Single digit specifications have to be given with leading zeros.
+    `season_start` and `seas   on_end` strings have to be of same length (refer to the same periodicity)
+    The highest date unit gives the period.
+    For example:
 
+    >>> season_start = "01T15:00:00"
+    >>> season_end = "13T17:30:00"
+
+    Will result in all values sampled between 15:00 at the first and  17:30 at the 13th of every month get masked
+
+    >>> season_start = "01:00"
+    >>> season_end = "04:00"
+
+    All the values between the first and 4th minute of every hour get masked.
+
+    >>> season_start = "01-01T00:00:00"
+    >>> season_end = "01-03T00:00:00"
+
+    Mask january and february of evcomprosed in theery year. masking is inclusive always, so in this case the mask will
+    include 00:00:00 at the first of march. To exclude this one, pass:
+
+    >>> season_start = "01-01T00:00:00"
+    >>> season_end = "02-28T23:59:59"
+
+    To mask intervals that lap over a seasons frame, like nights, or winter, exchange sequence of season start and
+    season end. For example, to mask night hours between 22:00:00 in the evening and 06:00:00 in the morning, pass:
+
+    >>> season_start = "22:00:00"
+    >>> season_end = "06:00:00"
+
+    When inclusive_selection="season", all above examples work the same way, only that you now
+    determine wich values NOT TO mask (=wich values are to constitute the "seasons").
     """
-    if day1 is None:
-        day1 = 31 if month1 in [1, 3, 5, 7, 8, 10, 12] else 29 if month1 == 2 else 30
-
-    # test plausibility of date
-    try:
-        f = "%Y-%m-%d"
-        t0 = pd.to_datetime(f"2001-{month0}-{day0}", format=f)
-        t1 = pd.to_datetime(f"2001-{month1}-{day1}", format=f)
-    except ValueError:
-        raise ValueError("Given datelike parameter not logical")
-
-    # swap
-    if t1 < t0:
-        # we create the same mask as we would do if not inverted
-        # but the borders need special treatment..
-        # ===end]....................[start====
-        # ======]end+1........start-1[=========
-        # ......[end+1========start-1]......... + invert
-        # ......[start`========= end`]......... + invert
-        t0 -= pd.to_timedelta("1d")
-        t1 += pd.to_timedelta("1d")
-        invert = True
-        # only swap id condition is still true
-        t0, t1 = t1, t0 if t1 < t0 else (t0, t1)
-
-        month0, day0 = t0.month, t0.day
-        month1, day1 = t1.month, t1.day
+    if inclusive_selection == "mask":
+        base_bool = False
+    elif inclusive_selection == "season":
+        base_bool = True
     else:
-        invert = False
-
-    month = [m for m in range(month0, month1 + 1)]
-
-    # make a mask for [start:end]
-    mask = dtindex.month.isin(month)
-    if day0 > 1:
-        exclude = [d for d in range(1, day0)]
-        mask &= ~(dtindex.month.isin([month0]) & dtindex.day.isin(exclude))
-    if day1 < 31:
-        exclude = [d for d in range(day1 + 1, 31 + 1)]
-        mask &= ~(dtindex.month.isin([month1]) & dtindex.day.isin(exclude))
-
-    if invert:
-        return ~mask
+        raise ValueError("invalid value '{}' was passed to parameter 'inclusive_selection'"
+                         ". Please select from 'mask' and 'season'."
+                         .format(inclusive_selection))
+    mask = pd.Series(base_bool, index=dtindex)
+    if len(season_start) == 2:
+        def _composeStamp(index, stamp):
+            return '{}-{}-{} {}:{}:'.format(index.year[0], index.month[0], index.day[0], index.hour[0],
+                                            index.minute[0]) + stamp
+    elif len(season_start) == 5:
+        def _composeStamp(index, stamp):
+            return '{}-{}-{} {}:'.format(index.year[0], index.month[0], index.day[0], index.hour[0]) + stamp
+    elif len(season_start) == 8:
+        def _composeStamp(index, stamp):
+            return '{}-{}-{} '.format(index.year[0], index.month[0], index.day[0]) + stamp
+    elif len(season_start) == 11:
+        def _composeStamp(index, stamp):
+            # some hick-hack ahead, to account for the strange fact that not all the month are of same length in
+            # this world.
+            max_days = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+            max_day_count = min(int(stamp[:2]), max_days[int(index.month[0] - 1)])
+            stamp = str(max_day_count) + stamp[2:]
+            return '{}-{}-'.format(index.year[0], index.month[0]) + stamp
+    elif len(season_start) == 14:
+        def _composeStamp(index, stamp):
+            return '{}-'.format(index.year[0]) + stamp
     else:
-        return mask
+        raise ValueError("What´s this?: {}".format(season_start))
+
+    if pd.Timestamp(_composeStamp(dtindex, season_start)) <= pd.Timestamp(_composeStamp(dtindex,
+                                                                                             season_end)):
+        def _selector(x, start=season_start, end=season_end, base_bool=base_bool):
+            x[_composeStamp(x.index, start):_composeStamp(x.index, end)] = not base_bool
+            return x
+    else:
+        def _selector(x, start=season_start, end=season_end, base_bool=base_bool):
+            x[:_composeStamp(x.index, end)] = not base_bool
+            x[_composeStamp(x.index, start):] = not base_bool
+            return x
+
+    freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
+    return mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
+
 
 
 def assertDictOfSeries(df: Any, argname: str = "arg") -> None:
