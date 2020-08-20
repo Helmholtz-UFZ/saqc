@@ -76,8 +76,6 @@ def test_flagSesonalRange(data, field, flagger):
         flagger = flagger.initFlags(data)
         data, flagger = flagSesonalRange(data, field, flagger, **test)
         flagged = flagger.isFlagged(field)
-        import pdb
-        pdb.set_trace()
         assert flagged.sum() == expected
 
 
