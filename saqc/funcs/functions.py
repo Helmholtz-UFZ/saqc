@@ -234,7 +234,8 @@ def flagSesonalRange(
     data, flagger = proc_fork(data, field, flagger, suffix="_masked")
     data, flagger = modelling_mask(data, field + "_masked", flagger, mode='seasonal',
                                    season_end=str(startmonth).zfill(2) + '-' + str(startday).zfill(2) + 'T00:00:00',
-                                   season_start=str(endmonth).zfill(2) + '-' + str(endday).zfill(2) + 'T00:00:00')
+                                   season_start=str(endmonth).zfill(2) + '-' + str(endday).zfill(2) + 'T00:00:00',
+                                   inclusive_selection='season')
     data, flagger = flagRange(data, field + "_masked", flagger, min=min, max=max, **kwargs)
     data, flagger = proc_projectFlags(data, field, flagger, method='match', source=field + "_masked")
     data, flagger = proc_drop(data, field + "_masked", flagger)

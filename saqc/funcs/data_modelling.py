@@ -250,7 +250,8 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
     return data, flagger
 
 
-def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None, season_end=None):
+def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None, season_end=None,
+                   inclusive_selection="masked"):
     """
 
     Parameters
@@ -261,7 +262,7 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
         The fieldname of the column, holding the data-to-be-masked.
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
-    mode : {"seasonal", "mask_var"}
+    mode : {"seasonal", "mask_var"}select
         The masking mode.
         - "seasonal": parameters "season_start", "season_end" are evaluated to generate a seasonal (periodical) mask
         - "mask_var": data[mask_var] is expected to be a boolean valued timeseries and is used as mask.
@@ -271,15 +272,22 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
         Neither the series` length nor its labels have to match data[field]`s index and length. An inner join of the
         indices will be calculated and values get masked where the values of the inner join are "True".
     season_start : {None, str}, default None
-        Only effective if mode == "mask_var"
+        Only effective if mode == "seasonal"
         String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
         Has to be of same length as `season_end` parameter.
         See examples section below for some examples.
     season_end : {None, str}, default None
-        Only effective if mode == "mask_var"
+        Only effective if mode == "seasonal"
         String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
         Has to be of same length as `season_end` parameter.
         See examples section below for some examples.
+    inclusive_selection : {"mask","season"}, default "mask"
+        Only effective if mode == "seasonal"
+        - "mask": the `season_start` and `season_end` keywords inclusivly frame the mask (INCLUDING INTERVAL BOUNDS)
+        - "season": the `season_start` and `season_end` keywords inclusivly frame the season
+        (INCLUDING INTERVAL BOUNDS)
+        (Parameter mainly introduced to provide backwards compatibility. But, as a side effect, provides more control
+        over what to do with samples at the exact turning points of date-defined masks and season.)
 
     Returns
     -------
@@ -297,7 +305,7 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
     They have to be strings of the forms: "mm-ddTHH:MM:SS", "ddTHH:MM:SS" , "HH:MM:SS", "MM:SS" or "SS"
     (mm=month, dd=day, HH=hour, MM=minute, SS=second)
     Single digit specifications have to be given with leading zeros.
-    `season_start` and `season_end` strings have to be of same length (refer to the same periodicity)
+    `season_start` and `seas   on_end` strings have to be of same length (refer to the same periodicity)
     The highest date unit gives the period.
     For example:
 
@@ -314,7 +322,7 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
     >>> season_start = "01-01T00:00:00"
     >>> season_end = "01-03T00:00:00"
 
-    Mask january and february of every year. masking is inclusive always, so in this case the mask will
+    Mask january and february of evcomprosed in theery year. masking is inclusive always, so in this case the mask will
     include 00:00:00 at the first of march. To exclude this one, pass:
 
     >>> season_start = "01-01T00:00:00"
@@ -325,11 +333,21 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
 
     >>> season_start = "22:00:00"
     >>> season_end = "06:00:00"
+comprosed in the
+    When inclusive_selection="season", all above examples work the same way, only that you now
+    determine wich values NOT TO mask (=wich values are to constitute the "seasons").
 
     """
     data = data.copy()
     datcol = data[field]
-    mask = pd.Series(False, index=datcol.index)
+    if inclusive_selection == "mask":
+        base_bool = False
+    elif inclusive_selection == "season":
+        base_bool = True
+    else:
+        raise ValueError("invalid value {} was passed. Please select from 'mask' and 'season'."
+                         .format(inclusive_selection))
+    mask = pd.Series(base_bool, index=datcol.index)
     if mode == 'seasonal':
         if len(season_start) == 2:
             def _composeStamp(index, stamp):
@@ -353,17 +371,17 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
             def _composeStamp(index, stamp):
                 return '{}-'.format(index.year[0]) + stamp
         else:
-            raise ValueError("Whats this?: {}".format(season_start))
+            raise ValueError("What´s this?: {}".format(season_start))
 
         if pd.Timestamp(_composeStamp(datcol.index, season_start)) <= pd.Timestamp(_composeStamp(datcol.index,
                                                                                                  season_end)):
-            def _selector(x, start=season_start, end=season_end):
-                x[_composeStamp(x.index, start):_composeStamp(x.index, end)] = True
+            def _selector(x, start=season_start, end=season_end, base_bool=base_bool):
+                x[_composeStamp(x.index, start):_composeStamp(x.index, end)] = not base_bool
                 return x
         else:
-            def _selector(x, start=season_start, end=season_end):
-                x[:_composeStamp(x.index, end)] = True
-                x[_composeStamp(x.index, start):] = True
+            def _selector(x, start=season_start, end=season_end, base_bool=base_bool):
+                x[:_composeStamp(x.index, end)] = not base_bool
+                x[_composeStamp(x.index, start):] = not base_bool
                 return x
 
         freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
