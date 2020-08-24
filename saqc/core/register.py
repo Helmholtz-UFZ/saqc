@@ -166,8 +166,9 @@ class SaQCFunc(Func):
         if field not in flagger.getFlags():
             flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field)))
 
-        columns_in = data.columns.intersection([field])
-        data_in = self._maskData(data.loc[:, columns_in], flagger)
+        # columns_in = data.columns.intersection([field])
+        # data_in = self._maskData(data.loc[:, columns_in], flagger)
+        data_in = self._maskData(data, flagger)
 
         data_result, flagger_result = self.func(data_in, field, flagger, *self.args, **self.kwargs)
 
@@ -194,19 +195,21 @@ class SaQCFunc(Func):
         mask_old = flagger_old.isFlagged(flag=to_mask, comparator="==")
         mask_new = flagger_new.isFlagged(flag=to_mask, comparator="==")
 
-        for col, right in data_new.indexes.iteritems():
-            if col not in mask_old:
+        for c, right in data_new.indexes.iteritems():
+            if c not in mask_old:
                 continue
-            left = mask_old[col].index
-            col_data = data_new[col].values
+            left = mask_old[c].index
+            col = data_new[c]
+            col_data = col.values
+            col_index = col.index
             # NOTE: ignore columns with changed indices (assumption: harmonization)
             if left.equals(right):
                 # NOTE: Don't overwrite data, that was masked, but is not considered
                 # flagged anymore and also respect newly set data on masked locations.
-                mask = mask_old[col].values & mask_new[col].values & data_new[col].isna().values
+                mask = mask_old[c].values & mask_new[c].values & data_new[c].isna().values
                 if np.any(mask):
-                    col_data[mask] = data_old[col].values[mask]
-            data_old[col] = col_data
+                    col_data[mask] = data_old[c].values[mask]
+            data_old[c] = pd.Series(data=col_data, index=col_index)
         return data_old
 
 
