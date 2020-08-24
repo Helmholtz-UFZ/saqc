@@ -216,13 +216,13 @@ class SaQCFunc(Func):
 # NOTE:
 # the global SaQC function store,
 # will be filled by calls to register
-FUNC_MAP: Dict[str, RegisterFunc] = {}
+FUNC_MAP: Dict[str, Any] = {}
 
 
 def register(all_data=True):
     def inner(func):
-        func = RegisterFunc(all_data, func)
-        FUNC_MAP[func.__name__] = func
-        print(func.__name__, all_data)
+        ctrl_kws = dict(all_data=all_data)
+        FUNC_MAP[func.__name__] = dict(func=func, ctrl_kws=ctrl_kws)
         return func
+
     return inner

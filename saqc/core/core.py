@@ -9,7 +9,7 @@ TODOS:
 
 import logging
 from copy import deepcopy
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any, Callable
 
 import pandas as pd
 import dios
@@ -103,7 +103,7 @@ class SaQC:
         self._flagger = self._initFlagger(data, flagger, flags)
         self._error_policy = error_policy
         # NOTE: will be filled by calls to `_wrap`
-        self._to_call: List[Tuple[str, SaQCFunc]] = []
+        self._to_call: List[Dict[str, Any]] = []  # todo fix the access everywhere
 
     def _initFlagger(self, data, flagger, flags):
         """ Init the internal flagger object.
@@ -150,12 +150,21 @@ class SaQC:
         #       method instead of intermingling it with the computation
         data, flagger = self._data, self._flagger
 
-        for field, func in self._to_call:
-            logger.debug(f"processing: {field}, {func.__name__}, {func.kwargs}")
+        for func_dump in self._to_call:
+            func = func_dump['func']
+            func_name = func_dump['func_name']
+            func_args = func_dump['func_args']
+            func_kws = func_dump['func_kws']
+            field = func_dump['field']
+            ctrl_kws = func_dump['ctrl_kws']
+
+            logger.debug(f"processing: {field}, {func_name}, {func_kws}")
 
             try:
                 t0 = timeit.default_timer()
+                # todo: make a self.__callSaqcFunc(func_dump)
                 data_result, flagger_result = func(data=data, flagger=flagger, field=field)
+
             except Exception as e:
                 t1 = timeit.default_timer()
                 logger.debug(f"{func.__name__} failed after {t1-t0} sec")
@@ -196,24 +205,35 @@ class SaQC:
         realization = self.evaluate()
         return realization._data, realization._flagger
 
-    def _wrap(self, func, lineno=None, expr=None):
+    def _wrap(self, func_name, lineno=None, expr=None):
         def inner(field: str, *args, regex: bool = False, to_mask=None, **kwargs):
-
             fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
 
-            if func.__name__ in ("flagGeneric", "procGeneric"):
+            if func_name in ("flagGeneric", "procGeneric"):
                 # NOTE:
                 # We need to pass `nodata` to the generic functions
                 # (to implement stuff like `ismissing`). As we
                 # should not interfere with proper nodata attributes
                 # of other test functions (e.g. `flagMissing`) we
                 # special case the injection
-                kwargs["nodata"] = kwargs.get("nodata", self._nodata)
+                kwargs.setdefault('nodata', self._nodata)
+
+            # to_mask is a control keyword
+            ctrl_kws = {**FUNC_MAP[func_name]["ctrl_kws"], 'to_mask': to_mask}
+            func = FUNC_MAP[func_name]["func"]
+
+            func_dump = {
+                "name": func_name,
+                "func": func,
+                "func_args": args,
+                "func_kws": kwargs,
+                "ctrl_kws": ctrl_kws,
+            }
 
             out = deepcopy(self)
             for field in fields:
-                f = SaQCFunc(func, *args, lineno=lineno, expression=expr, to_mask=to_mask, **kwargs)
-                out._to_call.append((field, f))
+                dump_copy = {**func_dump, "field": field}
+                out._to_call.append(dump_copy)
             return out
 
         return inner
@@ -227,4 +247,4 @@ class SaQC:
         """
         if key not in FUNC_MAP:
             raise AttributeError(f"no such attribute: '{key}'")
-        return self._wrap(FUNC_MAP[key])
+        return self._wrap(key)
