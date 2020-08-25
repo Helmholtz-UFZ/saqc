@@ -7,6 +7,7 @@ from typing import Sequence, Union, Any, Iterator
 import numpy as np
 import numba as nb
 import pandas as pd
+import scipy.fft as fft
 
 import dios
 import inspect
@@ -349,3 +350,11 @@ def mutateIndex(index, old_name, new_name):
     index = index.drop(index[pos])
     index = index.insert(pos, new_name)
     return index
+
+def estimateFrequency(index, delta_precision=-1, max_rate="30s", min_rate="1D"):
+    index_n = index.to_numpy(float)
+    index_n = (index_n - index_n[0])*10**(-9 + delta_precision)
+    delta = np.zeros(int(index_n[-1])+1)
+    delta[index_n.astype(int)] = 1
+    delta_f = fft(delta)
+    max_rate_i = int(len(delta_f)/(pd.Timedelta(max_rate).total_seconds()*(10**delta_precision)))
