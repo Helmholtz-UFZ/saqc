@@ -278,29 +278,18 @@ def seasonalMask(dtindex, season_start, season_end, inclusive_selection):
                          ". Please select from 'mask' and 'season'."
                          .format(inclusive_selection))
     mask = pd.Series(base_bool, index=dtindex)
-    if len(season_start) == 2:
-        def _composeStamp(index, stamp):
-            return '{}-{}-{} {}:{}:'.format(index.year[0], index.month[0], index.day[0], index.hour[0],
-                                            index.minute[0]) + stamp
-    elif len(season_start) == 5:
-        def _composeStamp(index, stamp):
-            return '{}-{}-{} {}:'.format(index.year[0], index.month[0], index.day[0], index.hour[0]) + stamp
-    elif len(season_start) == 8:
-        def _composeStamp(index, stamp):
-            return '{}-{}-{} '.format(index.year[0], index.month[0], index.day[0]) + stamp
-    elif len(season_start) == 11:
-        def _composeStamp(index, stamp):
-            # some hick-hack ahead, to account for the strange fact that not all the month are of same length in
-            # this world.
-            max_days = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-            max_day_count = min(int(stamp[:2]), max_days[int(index.month[0] - 1)])
-            stamp = str(max_day_count) + stamp[2:]
-            return '{}-{}-'.format(index.year[0], index.month[0]) + stamp
-    elif len(season_start) == 14:
-        def _composeStamp(index, stamp):
-            return '{}-'.format(index.year[0]) + stamp
-    else:
-        raise ValueError("What´s this?: {}".format(season_start))
+
+    def _composeStamp(index, stamp):
+        stamp_list = [stamp[i:i + 2] for i in range(len(stamp))][::3]
+        index_list = [f"{index.year[0]}", f"{index.month[0]:02}", f"{index.day[0]:02}", f"{index.hour[0]:02}",
+                      f"{index.minute[0]:02}",
+                      f"{index.second[0]:02}"][:-len(stamp_list)]
+        final = index_list + stamp_list
+        # some hick-hack ahead, to account for the strange fact that not all the month are of same length in
+        # this world.
+        max_days = (31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+        month_day = min(int(final[2]), max_days[int(index.month[0] - 1)])
+        return f"{final[0]}-{final[1]}-{month_day:02}T{final[3]}:{final[4]}:{final[5]}"
 
     if pd.Timestamp(_composeStamp(dtindex, season_start)) <= pd.Timestamp(_composeStamp(dtindex,
                                                                                              season_end)):
