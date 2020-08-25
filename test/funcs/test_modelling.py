@@ -12,7 +12,7 @@ import pandas as pd
 from dios import dios
 from test.common import TESTFLAGGER
 
-from saqc.funcs.data_modelling import modelling_polyFit, modelling_rollingMean, modelling_mask
+from saqc.funcs.modelling import modelling_polyFit, modelling_rollingMean, modelling_mask
 
 TF = TESTFLAGGER[:1]
 

@@ -12,7 +12,7 @@ import datetime
 
 from saqc.lib.tools import groupConsecutives, seasonalMask
 from saqc.funcs.proc_functions import proc_fork, proc_drop, proc_projectFlags
-from saqc.funcs.data_modelling import modelling_mask
+from saqc.funcs.modelling import modelling_mask
 
 from saqc.core.register import register, Func
 from saqc.core.visitor import ENVIRONMENT
