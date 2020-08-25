@@ -18,9 +18,10 @@ import timeit
 
 from saqc.lib.plotting import plotHook, plotAllHook
 from saqc.lib.tools import isQuoted
-from saqc.core.register import FUNC_MAP, SaQCFunc
 from saqc.core.reader import readConfig
 from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
+from saqc.core.register import FUNC_MAP
+
 
 logger = logging.getLogger("SaQC")
 
@@ -220,11 +221,16 @@ class SaQC:
                 kwargs.setdefault('nodata', self._nodata)
 
             # to_mask is a control keyword
-            ctrl_kws = {**FUNC_MAP[func_name]["ctrl_kws"], 'to_mask': to_mask, "plot": plot}
+            ctrl_kws = {
+                **(FUNC_MAP[func_name]["ctrl_kws"]),
+                'to_mask': to_mask, "plot": plot,
+                'lineno': lineno,
+                'expr': expr
+            }
             func = FUNC_MAP[func_name]["func"]
 
             func_dump = {
-                "name": func_name,
+                "func_name": func_name,
                 "func": func,
                 "func_args": args,
                 "func_kws": kwargs,
@@ -259,6 +265,13 @@ def _saqcCallFunc(func_dump, data, flagger):
     field = func_dump['field']
     ctrl_kws = func_dump['ctrl_kws']
     to_mask = ctrl_kws['to_mask']
+
+    # NOTE:
+    # when assigning new variables to `data`, the respective
+    # field is missing in `flags`, so we add it if necessary in
+    # order to keep the columns from `data` and `flags` in sync
+    if field not in flagger.getFlags():
+        flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field)))
 
     to_mask = flagger.BAD if to_mask is None else to_mask
     data_in = _maskData(data, flagger, to_mask)
@@ -302,3 +315,5 @@ def _unmaskData(data_old, flagger_old, data_new, flagger_new, to_mask):
                 col_data[mask] = data_old[c].values[mask]
         data_old[c] = pd.Series(data=col_data, index=col_index)
     return data_old
+
+

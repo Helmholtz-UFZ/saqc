@@ -38,7 +38,6 @@ def flags(flagger, data, optional):
         return flagger.initFlags(data[data.columns[::2]])._flags
 
 
-@pytest.mark.skip(reason="does not make sense anymore")
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_errorHandling(data, flagger):
 
@@ -51,6 +50,9 @@ def test_errorHandling(data, flagger):
     for policy in ["ignore", "warn"]:
         # NOTE: should not fail, that's all we are testing here
         SaQC(flagger, data, error_policy=policy).raisingFunc(var1).getResult()
+
+    with pytest.raises(TypeError):
+        SaQC(flagger, data, error_policy='raise').raisingFunc(var1).getResult()
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from functools import partial
+from inspect import signature, _VAR_POSITIONAL
 
 import numpy as np
 import pandas as pd
@@ -31,12 +32,9 @@ def _execGeneric(flagger, data, func, field, nodata):
     # - field is only needed to translate 'this' parameters
     #    -> maybe we could do the translation on the tree instead
 
-    from signature import signature, _VAR_POSITIONAL
     sig = signature(func)
     args = []
     for k, v in sig.parameters.items():
-        if v.kind != _VAR_POSITIONAL:
-            continue
         k = field if k == "this" else k
         if k not in data:
             raise NameError(f"variable '{k}' not found")
