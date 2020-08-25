@@ -27,57 +27,77 @@ def breaks_flagSpektrumBased(
     **kwargs
 ):
 
-    """ This Function is a generalization of the Spectrum based break flagging mechanism as presented in:
-
-    Dorigo,W,.... Global Automated Quality Control of In Situ Soil Moisture Data from the international
-    Soil Moisture Network. 2013. Vadoze Zone J. doi:10.2136/vzj2012.0097.
+    """
+    The Function is a generalization of the Spectrum based break flagging mechanism as presented in:
 
     The function flags breaks (jumps/drops) in input measurement series by evaluating its derivatives.
     A measurement y_t is flagged a, break, if:
 
-    (1) y_t is changing relatively to its preceeding value by at least (100*rel_change_rate_min) percent
-    (2) y_(t-1) is difffering from its preceeding value, by a margin of at least "thresh_abs"
-    (3) Absolute first derivative |(y_t)'| has to be at least "first_der_factor" times as big as the arithmetic middle
-        over all the first derivative values within a 2 times "first_der_window_size" hours window, centered at t.
+    (1) y_t is changing relatively to its preceeding value by at least (100*`rel_change_rate_min`) percent
+    (2) y_(t-1) is difffering from its preceeding value, by a margin of at least `thresh_abs`
+    (3) Absolute first derivative |(y_t)'| has to be at least `first_der_factor` times as big as the arithmetic middle
+        over all the first derivative values within a 2 times `first_der_window_size` hours window, centered at t.
     (4) The ratio of the second derivatives at t and t+1 has to be "aproximately" 1.
-        ([1-scnd__der_ration_margin_1, 1+scnd_ratio_margin_1])
-    (5) The ratio of the second derivatives at t+1 and t+2 has to be larger than scnd_der_ratio_margin_2
+        ([1-`scnd_der_ration_margin_1`, 1+`scnd_ratio_margin_1`])
+    (5) The ratio of the second derivatives at t+1 and t+2 has to be larger than `scnd_der_ratio_margin_2`
 
     NOTE 1: As no reliable statement about the plausibility of the meassurements before and after the jump is possible,
     only the jump itself is flagged. For flagging constant values following upon a jump, use a flagConstants test.
 
     NOTE 2: All derivatives in the reference publication are obtained by applying a Savitzky-Golay filter to the data
-    before differentiating. However, i was not able to reproduce satisfaction of all the conditions for synthetically
-    constructed breaks.
-    Especially condition [4] and [5]! This is because smoothing distributes the harshness of the break over the
-    smoothing window. Since just taking the differences as derivatives did work well for my empirical data set,
-    the parameter "smooth" defaults to "raw". That means, that derivatives will be obtained by just using the
-    differences series.
-    You are free of course, to change this parameter to "savgol" and play around with the associated filter options.
-    (see parameter description below)
+    before differentiating.
 
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    thresh_rel : float, default 0.1
+        Float in [0,1]. See (1) of function description above to learn more
+    thresh_abs : float, default 0.01
+        Float > 0. See (2) of function descritpion above to learn more.
+    first_der_factor : float, default 10
+        Float > 0. See (3) of function descritpion above to learn more.
+    first_der_window_range : str, default '12h'
+        Offset string. See (3) of function description to learn more.
+    scnd_der_ratio_margin_1 : float, default 0.05
+        Float in [0,1]. See (4) of function descritpion above to learn more.
+    scnd_der_ratio_margin_2 : float, default 10
+        Float in [0,1]. See (5) of function descritpion above to learn more.
+    smooth : bool, default True
+        Method for obtaining dataseries' derivatives.
+        * False: Just take series step differences (default)
+        * True: Smooth data with a Savitzky Golay Filter before differentiating.
+    smooth_window : {None, str}, default 2
+        Effective only if `smooth` = True
+        Offset string. Size of the filter window, used to calculate the derivatives.
+    smooth_poly_deg : int, default 2
+        Effective only, if `smooth` = True
+        Polynomial order, used for smoothing with savitzk golay filter.
 
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
 
+    References
+    ----------
+    The Function is a generalization of the Spectrum based break flagging mechanism as presented in:
 
-       :param data:                        The pandas dataframe holding the data-to-be flagged.
-                                           Data must be indexed by a datetime series and be harmonized onto a
-                                           time raster with seconds precision (skips allowed).
-       :param flags:                       A dataframe holding the flags/flag-entries associated with "data".
-       :param field:                       Fieldname of the Soil moisture measurements field in data.
-       :param flagger:                     A flagger - object. (saqc.flagger.X)
-       :param smooth:                      Bool. Method for obtaining dataseries' derivatives.
-                                           False: Just take series step differences (default)
-                                           True: Smooth data with a Savitzky Golay Filter before differentiating.
-       :param smooth_window:               Offset string. Size of the filter window, used to calculate the derivatives.
-                                           (relevant only, if: smooth is True)
-       :param smooth_poly_deg:             Integer. Polynomial order, used for smoothing with savitzk golay filter.
-                                           (relevant only, if: smooth_func='savgol')
-       :param thresh_rel                   Float in [0,1]. See (1) of function descritpion above to learn more
-       :param thresh_abs                   Float > 0. See (2) of function descritpion above to learn more.
-       :param first_der_factor             Float > 0. See (3) of function descritpion above to learn more.
-       :param first_der_window_range        Offset_String. See (3) of function description to learn more.
-       :param scnd_der_ratio_margin_1      Float in [0,1]. See (4) of function descritpion above to learn more.
-       :param scnd_der_ratio_margin_2      Float in [0,1]. See (5) of function descritpion above to learn more.
+    [1] Dorigo,W. et al.: Global Automated Quality Control of In Situ Soil Moisture
+        Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
+        doi:10.2136/vzj2012.0097.
+
+    Find a brief mathematical description of the function here:
+
+    [2] https://git.ufz.de/rdm-software/saqc/-/blob/testfuncDocs/docs/funcs
+        /FormalDescriptions.md#breaks_flagspektrumbased
     """
 
     # retrieve data series input at its original sampling rate
