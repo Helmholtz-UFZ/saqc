@@ -22,16 +22,21 @@ from saqc.core.register import FUNC_MAP, SaQCFunc
 from saqc.core.reader import readConfig
 from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 
-
 logger = logging.getLogger("SaQC")
 
 
-def _handleErrors(exc, func, field, policy):
+def _handleErrors(exc, func_dump, policy):
+    func_name = func_dump['func_name']
+    func_kws = func_dump['func_kws']
+    field = func_dump['field']
+    ctrl_kws = func_dump['ctrl_kws']
+    lineno = ctrl_kws['lineno']
+    func_expr = ctrl_kws['lineno']
     msg = f"Execution failed. Variable: '{field}', "
-    if func.lineno is not None and func.expr is not None:
-        msg += f"Config line {func.lineno}: '{func.expr}', "
+    if lineno is not None and func_expr is not None:
+        msg += f"Config line {lineno}: '{func_expr}', "
     else:
-        msg += f"Function: {func.func.__name__ }(), parameters: '{func.kwargs}', "
+        msg += f"Function: {func_name}(), parameters: '{func_kws}', "
     msg += f"Exception:\n{type(exc).__name__}: {exc}"
 
     if policy == "ignore":
@@ -151,30 +156,26 @@ class SaQC:
         data, flagger = self._data, self._flagger
 
         for func_dump in self._to_call:
-            func = func_dump['func']
             func_name = func_dump['func_name']
-            func_args = func_dump['func_args']
             func_kws = func_dump['func_kws']
             field = func_dump['field']
-            ctrl_kws = func_dump['ctrl_kws']
-
+            plot = func_dump["ctrl_kws"]["plot"]
             logger.debug(f"processing: {field}, {func_name}, {func_kws}")
 
             try:
                 t0 = timeit.default_timer()
-                # todo: make a self.__callSaqcFunc(func_dump)
-                data_result, flagger_result = func(data=data, flagger=flagger, field=field)
+                data_result, flagger_result = _saqcCallFunc(func_dump, data, flagger)
 
             except Exception as e:
                 t1 = timeit.default_timer()
-                logger.debug(f"{func.__name__} failed after {t1-t0} sec")
-                _handleErrors(e, func, field, self._error_policy)
+                logger.debug(f"{func_name} failed after {t1 - t0} sec")
+                _handleErrors(e, func_dump, self._error_policy)
                 continue
             else:
                 t1 = timeit.default_timer()
-                logger.debug(f"{func.__name__} finished after {t1-t0} sec")
+                logger.debug(f"{func_name} finished after {t1 - t0} sec")
 
-            if func.plot:
+            if plot:
                 plotHook(
                     data_old=data,
                     data_new=data_result,
@@ -182,13 +183,13 @@ class SaQC:
                     flagger_new=flagger_result,
                     sources=[],
                     targets=[field],
-                    plot_name=func.__name__,
+                    plot_name=func_name,
                 )
 
             data = data_result
             flagger = flagger_result
 
-        if any([func.plot for _, func in self._to_call]):
+        if any([fdump["ctrl_kws"]["plot"] for fdump in self._to_call]):
             plotAllHook(data, flagger)
 
         return SaQC(flagger, data, nodata=self._nodata, error_policy=self._error_policy)
@@ -206,7 +207,7 @@ class SaQC:
         return realization._data, realization._flagger
 
     def _wrap(self, func_name, lineno=None, expr=None):
-        def inner(field: str, *args, regex: bool = False, to_mask=None, **kwargs):
+        def inner(field: str, *args, regex: bool = False, to_mask=None, plot=False, **kwargs):
             fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
 
             if func_name in ("flagGeneric", "procGeneric"):
@@ -219,7 +220,7 @@ class SaQC:
                 kwargs.setdefault('nodata', self._nodata)
 
             # to_mask is a control keyword
-            ctrl_kws = {**FUNC_MAP[func_name]["ctrl_kws"], 'to_mask': to_mask}
+            ctrl_kws = {**FUNC_MAP[func_name]["ctrl_kws"], 'to_mask': to_mask, "plot": plot}
             func = FUNC_MAP[func_name]["func"]
 
             func_dump = {
@@ -248,3 +249,56 @@ class SaQC:
         if key not in FUNC_MAP:
             raise AttributeError(f"no such attribute: '{key}'")
         return self._wrap(key)
+
+
+def _saqcCallFunc(func_dump, data, flagger):
+    func = func_dump['func']
+    func_name = func_dump['func_name']
+    func_args = func_dump['func_args']
+    func_kws = func_dump['func_kws']
+    field = func_dump['field']
+    ctrl_kws = func_dump['ctrl_kws']
+    to_mask = ctrl_kws['to_mask']
+
+    to_mask = flagger.BAD if to_mask is None else to_mask
+    data_in = _maskData(data, flagger, to_mask)
+    data_result, flagger_result = func(data_in, field, flagger, *func_args, **func_kws)
+    data_result = _unmaskData(data, flagger, data_result, flagger_result, to_mask)
+
+    return data_result, flagger_result
+
+
+def _maskData(data, flagger, to_mask):
+    # TODO: this is heavily undertested
+    mask = flagger.isFlagged(flag=to_mask, comparator='==')
+    data = data.copy()
+    for c in data.columns:
+        col_mask = mask[c].values
+        if np.any(col_mask):
+            col_data = data[c].values.astype(np.float64)
+            col_data[col_mask] = np.nan
+            data[c] = col_data
+    return data
+
+
+def _unmaskData(data_old, flagger_old, data_new, flagger_new, to_mask):
+    # TODO: this is heavily undertested
+    mask_old = flagger_old.isFlagged(flag=to_mask, comparator="==")
+    mask_new = flagger_new.isFlagged(flag=to_mask, comparator="==")
+
+    for c, right in data_new.indexes.iteritems():
+        if c not in mask_old:
+            continue
+        left = mask_old[c].index
+        col = data_new[c]
+        col_data = col.values
+        col_index = col.index
+        # NOTE: ignore columns with changed indices (assumption: harmonization)
+        if left.equals(right):
+            # NOTE: Don't overwrite data, that was masked, but is not considered
+            # flagged anymore and also respect newly set data on masked locations.
+            mask = mask_old[c].values & mask_new[c].values & data_new[c].isna().values
+            if np.any(mask):
+                col_data[mask] = data_old[c].values[mask]
+        data_old[c] = pd.Series(data=col_data, index=col_index)
+    return data_old

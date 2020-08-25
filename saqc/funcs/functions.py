@@ -31,12 +31,16 @@ def _execGeneric(flagger, data, func, field, nodata):
     # - field is only needed to translate 'this' parameters
     #    -> maybe we could do the translation on the tree instead
 
-    func = Func(func)
-    for k in func.parameters:
+    from signature import signature, _VAR_POSITIONAL
+    sig = signature(func)
+    args = []
+    for k, v in sig.parameters.items():
+        if v.kind != _VAR_POSITIONAL:
+            continue
         k = field if k == "this" else k
         if k not in data:
             raise NameError(f"variable '{k}' not found")
-        func = Func(func, data[k])
+        args.append(data[k])
 
     globs = {
         "isflagged": partial(_dslIsFlagged, flagger),
@@ -48,8 +52,8 @@ def _execGeneric(flagger, data, func, field, nodata):
         "UNFLAGGED": flagger.UNFLAGGED,
         **ENVIRONMENT,
     }
-    func = func.addGlobals(globs)
-    return func()
+    func.__globals__.update(globs)
+    return func(*args)
 
 
 @register(all_data=True)
