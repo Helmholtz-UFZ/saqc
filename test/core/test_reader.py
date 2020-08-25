@@ -13,8 +13,7 @@ from test.common import initData, writeIO
 
 from saqc.core.core import SaQC
 from saqc.flagger import SimpleFlagger
-from saqc.funcs.functions import flagRange, flagDummy
-from saqc.core.register import FUNC_MAP, register, SaQCFunc
+from saqc.core.register import FUNC_MAP, register
 import dios
 
 

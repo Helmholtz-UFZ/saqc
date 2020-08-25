@@ -249,7 +249,7 @@ class SaQC:
         """
         All failing attribute accesses are redirected to
         __getattr__. We use this mechanism to make the
-        `RegisterFunc`s appear as `SaQC`-methods with
+        registered functions as `SaQC`-methods without
         actually implementing them.
         """
         if key not in FUNC_MAP:

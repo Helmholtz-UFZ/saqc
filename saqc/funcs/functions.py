@@ -13,7 +13,7 @@ import datetime
 
 from saqc.lib.tools import groupConsecutives, sesonalMask
 
-from saqc.core.register import register, Func
+from saqc.core.register import register
 from saqc.core.visitor import ENVIRONMENT
 from dios import DictOfSeries
 from typing import Any
