@@ -1037,7 +1037,21 @@ def spikes_flagSpektrumBased(
         Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
         doi:10.2136/vzj2012.0097.
 
-    [2] https://git.ufz.de/rdm-software/saqc/-/blob/testfuncDocs/docs/funcs/FormalDescriptions.md#spikes_flagspektrumbased
+    Notes
+    -----
+    A value is flagged a spike, if:
+
+    1. The quotient to its preceding data point exceeds a certain bound:
+    * :math:`|\frac{x_k}{x_{k-1}}| > 1 + ` `raise_factor`, or
+    * :math:`|\frac{x_k}{x_{k-1}}| < 1 - ` `raise_factor`
+2. The quotient of the second derivative :math:`x''`, at the preceding
+   and subsequent timestamps is close enough to 1:
+    * :math:` |\frac{x''_{k-1}}{x''_{k+1}} | > 1 - ` `deriv_factor`, and
+    * :math:` |\frac{x''_{k-1}}{x''_{k+1}} | < 1 + ` `deriv_factor`
+3. The dataset :math:`X = x_i, ..., x_{k-1}, x_{k+1}, ..., x_j`, with
+   :math:`|t_{k-1} - t_i| = |t_j - t_{k+1}| =` `noise_window` fulfills the
+   following condition:
+   `noise_func`:math:`(X) <` `noise_thresh`
 
     """
 
