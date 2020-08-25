@@ -321,35 +321,7 @@ def spikes_flagMultivarScores(
 
     In references [1], the procedure is introduced and exemplified with an application on hydrological data.
 
-    The basic steps are:
-
-    1. transforming
-
-    The different data columns are transformed via timeseries transformations to
-    (a) make them comparable and
-    (b) make outliers more stand out.
-
-    This step is usually subject to a phase of research/try and error. See [1] for more details.
-
-    Note, that the data transformation as an built-in step of the algorithm, will likely get deprecated soon. Its better
-    to transform the data in a processing step, preceeding the multivariate flagging process. Also, by doing so, one
-    gets mutch more control and variety in the transformation applied, since the `trafo` parameter only allows for
-    application of the same transformation to all of the variables involved.
-
-    2. scoring
-
-    Every observation gets assigned a score depending on its k nearest neighbors. See the `scoring_method` parameter
-    description for details on the different scoring methods. Furthermore [1], [2] may give some insight in the
-    pro and cons of the different methods.
-
-    3. threshing
-
-    The gaps between the (greatest) scores are tested for beeing drawn from the same
-    distribution as the majority of the scores. If a gap is encountered, that, with sufficient significance, can be
-    said to not be drawn from the same distribution as the one all the smaller gaps are drawn from, than
-    the observation belonging to this gap, and all the observations belonging to gaps larger then this gap, get flagged
-    outliers. See description of the `threshing` parameter for more details. Although [2] gives a fully detailed
-    overview over the `stray` algorithm.
+    See the notes section for an overview over the algorithms basic steps.
 
     Parameters
     ----------
@@ -422,6 +394,38 @@ def spikes_flagMultivarScores(
     flagger : saqc.flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
+
+    Notes
+    -----
+    The basic steps are:
+
+    1. transforming
+
+    The different data columns are transformed via timeseries transformations to
+    (a) make them comparable and
+    (b) make outliers more stand out.
+
+    This step is usually subject to a phase of research/try and error. See [1] for more details.
+
+    Note, that the data transformation as an built-in step of the algorithm, will likely get deprecated soon. Its better
+    to transform the data in a processing step, preceeding the multivariate flagging process. Also, by doing so, one
+    gets mutch more control and variety in the transformation applied, since the `trafo` parameter only allows for
+    application of the same transformation to all of the variables involved.
+
+    2. scoring
+
+    Every observation gets assigned a score depending on its k nearest neighbors. See the `scoring_method` parameter
+    description for details on the different scoring methods. Furthermore [1], [2] may give some insight in the
+    pro and cons of the different methods.
+
+    3. threshing
+
+    The gaps between the (greatest) scores are tested for beeing drawn from the same
+    distribution as the majority of the scores. If a gap is encountered, that, with sufficient significance, can be
+    said to not be drawn from the same distribution as the one all the smaller gaps are drawn from, than
+    the observation belonging to this gap, and all the observations belonging to gaps larger then this gap, get flagged
+    outliers. See description of the `threshing` parameter for more details. Although [2] gives a fully detailed
+    overview over the `stray` algorithm.
 
     References
     ----------
@@ -547,10 +551,21 @@ def spikes_flagRaise(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
-    References
-    ----------
-    Find detailed description here:
-    https://git.ufz.de/rdm-software/saqc/-/blob/testfuncDocs/docs/funcs/FormalDescriptions.md#spikes_flagraise
+    Notes
+    -----
+    The value :math:`x_{k}` of a time series :math:`x` with associated
+    timestamps :math:`t_i`, is flagged a rise, if:
+
+    1. There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within `raise_window` range, so that:
+    * :math:` M = |x_k - x_s | > `  `thresh` :math:` > 0`
+    2. The weighted average :math:`\mu^*` of the values, preceeding :math:`x_{k}` within `average_window`
+    range indicates, that :math:`x_{k}`$ doesnt return from an outliererish value course, meaning that:
+    * :math:` x_k > \mu^* + ( M ` / `mean_raise_factor` :math:`)`
+    3. Additionally, if `min_slope` is not `None`, :math:`x_{k}` is checked for being sufficiently divergent from its
+    very predecessor $`x_{k-1}`$, meaning that, it is additionally checked if:
+    * :math:`x_k - x_{k-1} > ` `min_slope`
+    * :math:`t_k - t_{k-1} > ` `min_slope_weight`*`intended_freq`
+
     """
 
     # prepare input args
