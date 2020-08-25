@@ -285,14 +285,12 @@ def seasonalMask(dtindex, season_start, season_end, inclusive_selection):
                       f"{index.minute[0]:02}",
                       f"{index.second[0]:02}"][:-len(stamp_list)]
         final = index_list + stamp_list
-        # some hick-hack ahead, to account for the strange fact that not all the month are of same length in
-        # this world.
+        # need to account for different month's length:
         max_days = (31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
         month_day = min(int(final[2]), max_days[int(index.month[0] - 1)])
         return f"{final[0]}-{final[1]}-{month_day:02}T{final[3]}:{final[4]}:{final[5]}"
 
-    if pd.Timestamp(_composeStamp(dtindex, season_start)) <= pd.Timestamp(_composeStamp(dtindex,
-                                                                                             season_end)):
+    if pd.Timestamp(_composeStamp(dtindex, season_start)) <= pd.Timestamp(_composeStamp(dtindex, season_end)):
         def _selector(x, start=season_start, end=season_end, base_bool=base_bool):
             x[_composeStamp(x.index, start):_composeStamp(x.index, end)] = not base_bool
             return x
@@ -304,7 +302,6 @@ def seasonalMask(dtindex, season_start, season_end, inclusive_selection):
 
     freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
     return mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
-
 
 
 def assertDictOfSeries(df: Any, argname: str = "arg") -> None:
