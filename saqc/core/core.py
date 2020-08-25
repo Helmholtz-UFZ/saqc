@@ -265,6 +265,8 @@ def _saqcCallFunc(func_dump, data, flagger):
     field = func_dump['field']
     ctrl_kws = func_dump['ctrl_kws']
     to_mask = ctrl_kws['to_mask']
+    all_data = ctrl_kws['all_data']
+
 
     # NOTE:
     # when assigning new variables to `data`, the respective
@@ -273,19 +275,21 @@ def _saqcCallFunc(func_dump, data, flagger):
     if field not in flagger.getFlags():
         flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field)))
 
+    columns = data.columns if all_data else [field]
     to_mask = flagger.BAD if to_mask is None else to_mask
-    data_in = _maskData(data, flagger, to_mask)
+
+    data_in = _maskData(data, flagger, columns, to_mask)
     data_result, flagger_result = func(data_in, field, flagger, *func_args, **func_kws)
-    data_result = _unmaskData(data, flagger, data_result, flagger_result, to_mask)
+    data_result = _unmaskData(data, flagger, data_result, flagger_result, columns, to_mask)
 
     return data_result, flagger_result
 
 
-def _maskData(data, flagger, to_mask):
+def _maskData(data, flagger, columns, to_mask):
     # TODO: this is heavily undertested
     mask = flagger.isFlagged(flag=to_mask, comparator='==')
     data = data.copy()
-    for c in data.columns:
+    for c in columns:
         col_mask = mask[c].values
         if np.any(col_mask):
             col_data = data[c].values.astype(np.float64)
@@ -294,12 +298,12 @@ def _maskData(data, flagger, to_mask):
     return data
 
 
-def _unmaskData(data_old, flagger_old, data_new, flagger_new, to_mask):
+def _unmaskData(data_old, flagger_old, data_new, flagger_new, columns, to_mask):
     # TODO: this is heavily undertested
     mask_old = flagger_old.isFlagged(flag=to_mask, comparator="==")
     mask_new = flagger_new.isFlagged(flag=to_mask, comparator="==")
 
-    for c, right in data_new.indexes.iteritems():
+    for c, right in data_new[columns].indexes.iteritems():
         if c not in mask_old:
             continue
         left = mask_old[c].index
