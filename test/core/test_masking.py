@@ -54,13 +54,13 @@ def test_masking_UnmaskingOnDataChange(data, flagger):
     """
     FILLER = -9999
 
-    @register(all_data=True)
+    @register(masking='all')
     def changeData(data, field, flagger, **kwargs):
         mask = data.isna()
         data.aloc[mask] = FILLER
         return data, flagger
 
-    @register(all_data=True)
+    @register(masking='all')
     def changeFlags(data, field, flagger, **kwargs):
         mask = data.isna()
         flagger = flagger.setFlags(field, loc=mask[field], flag=flagger.UNFLAGGED, force=True)
@@ -94,7 +94,7 @@ def test_shapeDiffUnmasking(data, flagger):
 
     FILLER = -1111
 
-    @register(all_data=False)
+    @register(masking='none')
     def pseudoHarmo(data, field, flagger, **kwargs):
         index = data[field].index.to_series()
         index.iloc[-len(data[field])//2:] += pd.Timedelta("7.5Min")

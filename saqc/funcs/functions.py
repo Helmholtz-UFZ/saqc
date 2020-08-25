@@ -54,7 +54,7 @@ def _execGeneric(flagger, data, func, field, nodata):
     return func(*args)
 
 
-@register(all_data=True)
+@register(masking='all')
 def procGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     """
     Execute generic functions.
@@ -81,7 +81,7 @@ def procGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     return data, flagger
 
 
-@register(all_data=True)
+@register(masking='all')
 def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     # NOTE:
     # The naming of the func parameter is pretty confusing
@@ -98,7 +98,7 @@ def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     return data, flagger
 
 
-@register(all_data=False)
+@register(masking='field')
 def flagRange(data, field, flagger, min, max, **kwargs):
     # using .values is very much faster
     datacol = data[field].values
@@ -107,7 +107,7 @@ def flagRange(data, field, flagger, min, max, **kwargs):
     return data, flagger
 
 
-@register(all_data=True)
+@register(masking='all')
 def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition_freq = "days", partition_offset = 0, max_distance = 0.03, normalized_distance = True, open_end = True, widths = (1, 2, 4, 8), waveform = 'mexh', **kwargs):
     """ Implementation of two pattern recognition algorithms:
     - Dynamic Time Warping (dtw) [1]
@@ -213,7 +213,7 @@ def flagPattern(data, field, flagger, reference_field, method = 'dtw', partition
     return data, flagger
 
 
-@register(all_data=False)
+@register(masking='field')
 def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     datacol = data[field]
     if np.isnan(nodata):
@@ -225,7 +225,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     return data, flagger
 
 
-@register(all_data=False)
+@register(masking='field')
 def flagSesonalRange(
     data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
 ):
@@ -244,19 +244,19 @@ def flagSesonalRange(
     return data, flagger
 
 
-@register(all_data=False)
+@register(masking='field')
 def clearFlags(data, field, flagger, **kwargs):
     flagger = flagger.clearFlags(field, **kwargs)
     return data, flagger
 
 
-@register(all_data=False)
+@register(masking='field')
 def forceFlags(data, field, flagger, flag, **kwargs):
     flagger = flagger.clearFlags(field).setFlags(field, flag=flag, **kwargs)
     return data, flagger
 
 
-@register(all_data=False)
+@register(masking='field')
 def flagIsolated(
     data, field, flagger, gap_window, group_window, **kwargs,
 ):
@@ -283,32 +283,32 @@ def flagIsolated(
     return data, flagger
 
 
-@register(all_data=False)
+@register(masking='field')
 def flagDummy(data, field, flagger, **kwargs):
     """ Do nothing """
     return data, flagger
 
 
-@register(all_data=False)
+@register(masking='field')
 def flagForceFail(data, field, flagger, **kwargs):
     """ Raise a RuntimeError. """
     raise RuntimeError("Works as expected :D")
 
 
-@register(all_data=False)
+@register(masking='field')
 def flagUnflagged(data, field, flagger, **kwargs):
     flag = kwargs.pop('flag', flagger.GOOD)
     flagger = flagger.setFlags(field, flag=flag, **kwargs)
     return data, flagger
 
 
-@register(all_data=False)
+@register(masking='field')
 def flagGood(data, field, flagger, **kwargs):
     kwargs.pop('flag', None)
     return flagUnflagged(data, field, flagger)
 
 
-@register(all_data=False)
+@register(masking='field')
 def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kwargs):
     """ Flag data by given manual data.
 
@@ -438,7 +438,7 @@ range_dict.keys()
     return data, flagger
 
 
-@register(all_data=True)
+@register(masking='all')
 def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median, **kwargs):
     df = data[fields].loc[data[fields].index_of('shared')].to_df()
 

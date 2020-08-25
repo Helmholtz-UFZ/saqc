@@ -10,7 +10,7 @@ from saqc.core.register import register
 from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
-@register(all_data=False)
+@register(masking='field')
 def breaks_flagSpektrumBased(
     data,
     field,

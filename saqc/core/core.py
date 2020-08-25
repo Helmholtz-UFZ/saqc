@@ -265,29 +265,41 @@ def _saqcCallFunc(func_dump, data, flagger):
     field = func_dump['field']
     ctrl_kws = func_dump['ctrl_kws']
     to_mask = ctrl_kws['to_mask']
-    all_data = ctrl_kws['all_data']
+    masking = ctrl_kws['masking']
 
+    if masking == 'all':
+        columns = data.columns
+    elif masking == 'none':
+        columns = []
+    elif masking == 'field':
+        columns = [field]
+    else:
+        raise ValueError(f"masking: {masking}")
+    to_mask = flagger.BAD if to_mask is None else to_mask
 
     # NOTE:
     # when assigning new variables to `data`, the respective
     # field is missing in `flags`, so we add it if necessary in
-    # order to keep the columns from `data` and `flags` in sync
+    # order to keep the columns from `data` and `flags` in sync.
+    # NOTE:
+    # Also assigning a new variable to `flags` only, is possible.
+    # This is also is handled here.
+    # NOTE:
+    # Any newly assigned column can safely be ignored by masking, thus
+    # this check comes after setting `columns`
     if field not in flagger.getFlags():
         flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field)))
 
-    columns = data.columns if all_data else [field]
-    to_mask = flagger.BAD if to_mask is None else to_mask
-
-    data_in = _maskData(data, flagger, columns, to_mask)
+    data_in, mask = _maskData(data, flagger, columns, to_mask)
     data_result, flagger_result = func(data_in, field, flagger, *func_args, **func_kws)
-    data_result = _unmaskData(data, flagger, data_result, flagger_result, columns, to_mask)
+    data_result = _unmaskData(data, mask, data_result, flagger_result, to_mask)
 
     return data_result, flagger_result
 
 
 def _maskData(data, flagger, columns, to_mask):
     # TODO: this is heavily undertested
-    mask = flagger.isFlagged(flag=to_mask, comparator='==')
+    mask = flagger.isFlagged(field=columns, flag=to_mask, comparator='==')
     data = data.copy()
     for c in columns:
         col_mask = mask[c].values
@@ -295,29 +307,36 @@ def _maskData(data, flagger, columns, to_mask):
             col_data = data[c].values.astype(np.float64)
             col_data[col_mask] = np.nan
             data[c] = col_data
-    return data
+    return data, mask
 
 
-def _unmaskData(data_old, flagger_old, data_new, flagger_new, columns, to_mask):
+def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
     # TODO: this is heavily undertested
-    mask_old = flagger_old.isFlagged(flag=to_mask, comparator="==")
-    mask_new = flagger_new.isFlagged(flag=to_mask, comparator="==")
 
-    for c, right in data_new[columns].indexes.iteritems():
-        if c not in mask_old:
-            continue
-        left = mask_old[c].index
-        col = data_new[c]
-        col_data = col.values
-        col_index = col.index
-        # NOTE: ignore columns with changed indices (assumption: harmonization)
-        if left.equals(right):
-            # NOTE: Don't overwrite data, that was masked, but is not considered
-            # flagged anymore and also respect newly set data on masked locations.
-            mask = mask_old[c].values & mask_new[c].values & data_new[c].isna().values
+    # NOTE:
+    # we only need to respect columns, that was masked,
+    # and also are still present in new data.
+    # this throw out:
+    #  - any newly assigned columns
+    #  - columns that wasn't masked, due to masking-kw
+    columns = mask_old.columns.intersection(data_new.columns)
+    mask_new = flagger_new.isFlagged(field=columns, flag=to_mask, comparator="==")
+
+    for col in columns:
+        was_masked = mask_old[col]
+        is_masked = mask_new[col]
+
+        # if index changed we just go with the new data.
+        # A test should use `register(masking='none')` if it changes
+        # the index but, does not want to have all NaNs on flagged locations.
+        if was_masked.index.equals(is_masked.index):
+            mask = was_masked.values & is_masked.values & data_new[col].isna().values
+
+            # reapplying old values on masked positions
             if np.any(mask):
-                col_data[mask] = data_old[c].values[mask]
-        data_old[c] = pd.Series(data=col_data, index=col_index)
-    return data_old
+                data = np.where(mask, data_new[col].values, data_old[col].values)
+                data_new[col] = pd.Series(data=data, index=is_masked.index)
+
+    return data_new
 
 

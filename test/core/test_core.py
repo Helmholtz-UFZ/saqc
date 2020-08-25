@@ -21,7 +21,7 @@ logging.disable(logging.CRITICAL)
 OPTIONAL = [False, True]
 
 
-@register(all_data=False)
+@register(masking='field')
 def flagAll(data, field, flagger, **kwargs):
     # NOTE: remember to rename flag -> flag_values
     return data, flagger.setFlags(field=field, flag=flagger.BAD)
@@ -41,7 +41,7 @@ def flags(flagger, data, optional):
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_errorHandling(data, flagger):
 
-    @register(all_data=False)
+    @register(masking='field')
     def raisingFunc(data, field, flagger, **kwargs):
         raise TypeError
 

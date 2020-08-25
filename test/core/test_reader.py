@@ -130,7 +130,7 @@ def test_supportedArguments(data):
 
     # TODO: necessary?
 
-    @register(all_data=False)
+    @register(masking='field')
     def func(data, field, flagger, kwarg, **kwargs):
         return data, flagger
 

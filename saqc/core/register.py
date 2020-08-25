@@ -8,9 +8,9 @@ from typing import Dict, Any
 FUNC_MAP: Dict[str, Any] = {}
 
 
-def register(all_data=True):
+def register(masking='all'):
     def inner(func):
-        ctrl_kws = dict(all_data=all_data)
+        ctrl_kws = dict(masking=masking)
         FUNC_MAP[func.__name__] = dict(func=func, ctrl_kws=ctrl_kws)
         return func
 
