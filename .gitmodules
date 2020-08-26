@@ -1,3 +1,3 @@
 [submodule "dios"]
 	path = dios
-	url = https://git.ufz.de/rdm/dios.git
+	url = ../../rdm/dios.git
