@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from functools import partial
-from inspect import signature, _VAR_POSITIONAL
+from inspect import signature
 
 import numpy as np
 import pandas as pd
