@@ -46,7 +46,7 @@ class BaseFlagger(ABC):
 
     @property
     def flags(self):
-        return self._flags.copy()
+        return self._flags
 
     def initFlags(self, data: diosT = None, flags: diosT = None) -> BaseFlaggerT:
         """
@@ -64,14 +64,16 @@ class BaseFlagger(ABC):
         if data is not None:
             if not isinstance(data, diosT):
                 data = dios.DictOfSeries(data)
-            flags = data.copy()
-            flags[:] = self.UNFLAGGED
+
+            flags = dios.DictOfSeries(columns=data.columns)
+            for c in flags.columns:
+                flags[c] = pd.Series(self.UNFLAGGED, index=data[c].index)
+            flags = flags.astype(self.dtype)
         else:
-            if not isinstance(data, diosT):
+            if not isinstance(flags, diosT):
                 flags = dios.DictOfSeries(flags)
 
-        newflagger = self.copy()
-        newflagger._flags = flags.astype(self.dtype)
+        newflagger = self.copy(flags=flags)
         return newflagger
 
     def rename(self, field: str, new_name: str):
