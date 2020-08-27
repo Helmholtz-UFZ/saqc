@@ -291,7 +291,7 @@ def _saqcCallFunc(func_dump, data, flagger):
         flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field)))
 
     data_in, mask = _maskData(data, flagger, columns, to_mask)
-    data_result, flagger_result = func(data_in, field, flagger, *func_args, **func_kws)
+    data_result, flagger_result = func(data_in, field, flagger, *func_args, func_name=func_name, **func_kws)
     data_result = _unmaskData(data, mask, data_result, flagger_result, to_mask)
 
     return data_result, flagger_result
