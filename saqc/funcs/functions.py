@@ -785,11 +785,7 @@ def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kw
     return data, flagger
 
 
-<<<<<<< saqc/funcs/functions.py
 @register(masking='all')
-def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat=np.median, **kwargs):
-=======
-@register
 def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore', **kwargs):
     """
     Function checks for outliers relatively to the "horizontal" input data axis.
@@ -834,7 +830,6 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
 
->>>>>>> saqc/funcs/functions.py
     df = data[fields].loc[data[fields].index_of('shared')].to_df()
 
     if isinstance(cross_stat, str):

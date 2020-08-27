@@ -50,11 +50,7 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
 
     _setup_logging(log_level)
 
-    # data = pd.read_csv(data, index_col=0, parse_dates=True,)
-    import numpy as np
-    data = np.random.uniform(0, 1, (1_000_000, 20))
-    # data = np.random.uniform(0, 1, (10000, 20))
-    data = pd.DataFrame(data=data, columns=np.arange(data.shape[1]).astype(str), index=pd.date_range(start="2000-01-01", periods=data.shape[0], freq="10Min"))
+    data = pd.read_csv(data, index_col=0, parse_dates=True,)
     data = dios.DictOfSeries(data)
 
     saqc = SaQC(flagger=FLAGGERS[flagger], data=data, nodata=nodata, error_policy="raise" if fail else "warn",)
