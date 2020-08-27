@@ -34,28 +34,38 @@ def proc_rollingInterpolateMissing(
     Note, that in the current implementation, center=True can only be used with integer window sizes - furthermore
     note, that integer window sizes can yield screwed aggregation results for not-harmonized or irregular data.
 
-
-
     Parameters
     ----------
-    winsz : Integer or Offset String
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-interpolated.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    winsz : int, str
         The size of the window, the aggregation is computed from. Either counted in periods number (Integer passed),
-        or defined by a total temporal extension (offset String passed)
-    func : Function
+        or defined by a total temporal extension (offset String passed).
+    func : Callable
         The function used for aggregation.
-    center : boolean, default True
-        Wheather or not the window the aggregation is computed of is centered around the value to be interpolated.
-    min_periods : Integer
-        Minimum number of valid (not np.nan) values that have to be available in a window for its Aggregation to be
+    center : bool, default True
+        Wheather or not the window, the aggregation is computed of, is centered around the value to be interpolated.
+    min_periods : int
+        Minimum number of valid (not np.nan) values that have to be available in a window for its aggregation to be
         computed.
-    interpol_flag : {'GOOD', 'BAD', 'UNFLAGGED'} or String, default 'UNFLAGGED'
+    interpol_flag : {'GOOD', 'BAD', 'UNFLAGGED', str}, default 'UNFLAGGED'
         Flag that is to be inserted for the interpolated values. You can either pass one of the three major flag-classes
         or specify directly a certain flag from the passed flagger.
 
     Returns
     -------
-
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
     """
+
     data = data.copy()
     datcol = data[field]
     roller = datcol.rolling(window=winsz, center=center, min_periods=min_periods)
@@ -97,39 +107,50 @@ def proc_interpolateMissing(
 ):
 
     """
-    function to interpolate nan values in the data.
-    There are available all the interpolation methods from the pandas.interpolate() method and they are applicable by
+    Function to interpolate nan values in the data.
+
+    There are available all the interpolation methods from the pandas.interpolate method and they are applicable by
     the very same key words, that you would pass to pd.Series.interpolates's method parameter.
 
-    Note, that the inter_limit keyword really restricts the interpolation to chunks, not containing more than
-    "inter_limit" successive nan entries.
+    Note, that the `inter_limit` keyword really restricts the interpolation to chunks, not containing more than
+    `inter_limit` successive nan entries.
 
-    Note, that the function differs from proc_interpolateGrid, in its behaviour to ONLY interpolate nan values that
+    Note, that the function differs from ``proc_interpolateGrid``, in its behaviour to ONLY interpolate nan values that
     were already present in the data passed.
 
     Parameters
-    ---------
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-interpolated.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-    "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
+        "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
-
-    inter_order : integer, default 2
+    inter_order : int, default 2
         If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
         order.
-
-    inter_limit : integer, default 2
+    inter_limit : int, default 2
         Maximum number of consecutive 'nan' values allowed for a gap to be interpolated.
-
-    interpol_flag : {'GOOD', 'BAD', 'UNFLAGGED'} or String, default 'UNFLAGGED'
+    interpol_flag : {'GOOD', 'BAD', 'UNFLAGGED', str}, default 'UNFLAGGED'
         Flag that is to be inserted for the interpolated values. You can either pass one of the three major flag-classes
         or specify directly a certain flag from the passed flagger.
-
-    downgrade_interpolation : boolean, default False
+    downgrade_interpolation : bool, default False
         If interpolation can not be performed at 'inter_order' - (not enough values or not implemented at this order) -
         automaticalyy try to interpolate at order 'inter_order' - 1.
-
-    not_interpol_flags : list or String, default None
+    not_interpol_flags : {None, str, List[str]}, default None
         A list of flags or a single Flag, marking values, you want NOT to be interpolated.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
     """
 
     data = data.copy()
@@ -186,32 +207,42 @@ def proc_interpolateGrid(
     samples at the interpolated, equidistant timestamps (of frequency "freq").
 
     Parameters
-    ---------
-    freq : Offset String
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-interpolated.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    freq : str
         The frequency of the grid you want to interpolate your data at.
-
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
-
     inter_order : integer, default 2
         If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
         order.
-
-    to_drop : list or string, default None
+    to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before interpotion - effectively excluding grid points from
         interpolation, that are only surrounded by values having a flag in them, that is listed in drop flags. Default
         results in the flaggers 'BAD' flag to be the drop_flag.
-
-    downgrade_interpolation : boolean, default False
+    downgrade_interpolation : bool, default False
         If interpolation can not be performed at 'inter_order' - (not enough values or not implemented at this order) -
         automaticalyy try to interpolate at order 'inter_order' - 1.
-
-    empty_intervals_flag : String, default None
+    empty_intervals_flag : str, default None
         A Flag, that you want to assign to those values resulting equidistant sample grid, that were not surrounded by
         valid (flagged) data in the original dataset and thus werent interpolated. Default automatically assigns
         flagger.BAD flag to those values.
-        """
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values and shape may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values and shape may have changed relatively to the flagger input.
+    """
 
     datcol = data[field]
     datcol = datcol.copy()
@@ -348,52 +379,58 @@ def proc_resample(
     anyway, so that there is no point in passing the nan functions.
 
     Parameters
-    ---------
-    freq : Offset String
-        The frequency of the grid you want to resample your data to.
-
-    agg_func : function
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-resampled.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    freq : str
+        An offset string. The frequency of the grid you want to resample your data to.
+    agg_func : Callable
         The function you want to use for aggregation.
-na_ser.resample('10min').apply(lambda x: x.count())
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
         Specifies which intervals to be aggregated for a certain timestamp. (preceeding, succeeding or
         "surrounding" interval). See description above for more details.
-
-    max_invalid_total_d : integer, default np.inf
+    max_invalid_total_d : {np.inf, int}, np.inf
         Maximum number of invalid (nan) datapoints, allowed per resampling interval. If max_invalid_total_d is
         exceeded, the interval gets resampled to nan. By default (np.inf), there is no bound to the number of nan values
         in an interval and only intervals containing ONLY nan values or those, containing no values at all,
         get projected onto nan
-
-    max_invalid_consec_d : integer, default np.inf
+    max_invalid_consec_d : {np.inf, int}, default np.inf
         Maximum number of consecutive invalid (nan) data points, allowed per resampling interval.
         If max_invalid_consec_d is exceeded, the interval gets resampled to nan. By default (np.inf),
         there is no bound to the number of consecutive nan values in an interval and only intervals
         containing ONLY nan values, or those containing no values at all, get projected onto nan.
-
-    max_invalid_total_f : integer, default np.inf
+    max_invalid_total_f : {np.inf, int}, default np.inf
         Same as "max_invalid_total_d", only applying for the flags. The flag regarded as "invalid" value,
         is the one passed to empty_intervals_flag (default=flagger.BAD).
         Also this is the flag assigned to invalid/empty intervals.
-
-    max_invalid_total_f : integer, default np.inf
+    max_invalid_total_f : {np.inf, int}, default np.inf
         Same as "max_invalid_total_f", only applying onto flgas. The flag regarded as "invalid" value, is the one passed
         to empty_intervals_flag (default=flagger.BAD). Also this is the flag assigned to invalid/empty intervals.
-
-    flag_agg_func : function, default: max
+    flag_agg_func : Callable, default: max
         The function you want to aggregate the flags with. It should be capable of operating on the flags dtype
         (usually ordered categorical).
-
-    empty_intervals_flag : String, default None
+    empty_intervals_flag : {None, str}, default None
         A Flag, that you want to assign to invalid intervals. Invalid are those intervals, that contain nan values only,
         or no values at all. Furthermore the empty_intervals_flag is the flag, serving as "invalid" identifyer when
         checking for "max_total_invalid_f" and "max_consec_invalid_f patterns". Default triggers flagger.BAD to be
         assigned.
-
-    to_drop : list or string, default None
+    to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before resampling - effectively excluding values that are flagged
         with a flag in to_drop from the resampling process - this means that they also will not be counted in the
         the max_consec/max_total evaluation. to_drop = None results in NO flags being dropped initially.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values and shape may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values and shape may have changed relatively to the flagger input.
     """
 
     data = data.copy()
@@ -458,25 +495,35 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     'fshift'  -  every grid point gets assigned its ultimately preceeding value - if there is one available in
             the preceeding sampling interval. (equals resampling with "last")
 
-
     Parameters
-    ---------
-    freq : Offset String
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-shifted.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    freq : str
         The frequency of the grid you want to shift your data to.
-
     method: {'fagg', 'bagg', 'nagg'}, default 'nshift'
         Specifies if datapoints get propagated forwards, backwards or to the nearest grid timestamp. See function
         description for more details.
-
-    empty_intervals_flag : String, default None
+    empty_intervals_flag : {None, str}, default None
         A Flag, that you want to assign to grid points, where no values are avaible to be shifted to.
         Default triggers flagger.BAD to be assigned.
-
-    to_drop : list or string, default None
+    to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before shifting - effectively, excluding values that are flagged
         with a flag in to_drop from the shifting process. Default - to_drop = None  - results in flagger.BAD
         values being dropped initially.
 
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values and shape may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values and shape may have changed relatively to the flagger input.
     """
     data = data.copy()
     datcol = data[field]
@@ -513,10 +560,23 @@ def proc_transform(data, field, flagger, func, **kwargs):
     Note, that flags get preserved.
 
     Parameters
-    ---------
-    func : function
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-transformed.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    func : Callable
         Function to transform data[field] with.
 
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
     """
     data = data.copy()
     # NOTE: avoiding pd.Series.transform() in the line below, because transform does process columns element wise
@@ -561,22 +621,31 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     you can just pass the associated "inverse" method. Also you shoud pass the same drop flags keyword.
 
     Parameters
-    ---------
-
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the data column, you want to project the source-flags at.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
     method: {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
         The method used for projection of source flags onto field flags. See description above for more details.
-
-    source: String
+    source: str
         The source source of flags projection.
-
-    freq: Offset, default None
+    freq: {None, str},default None
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
-
-    to_drop: list or String
+    to_drop: {None, str, List[str]}, default None
         Flags referring to values that are to drop before flags projection. Relevant only when projecting wiht an
         inverted shift method. Defaultly flagger.BAD is listed.
 
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values and shape may have changed relatively to the flagger input.
     """
     flagscol = flagger.getFlags(source)
     if flagscol.empty:
@@ -656,12 +725,26 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     data.
 
     Parameters
-    ---------
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the data column, you want to fork (copy).
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    suffix: str
+        Substring to append to the forked data variables name.
 
-    suffix: String
-        Sub string to append to the forked data variables name.
-
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        data shape may have changed relatively to the flagger input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags shape may have changed relatively to the flagger input.
     """
+
     fork_field = str(field) + suffix
     fork_dios = dios.DictOfSeries({fork_field: data[field]})
     fork_flagger = flagger.slice(drop=data.columns.drop(field)).rename(field, fork_field)
@@ -674,6 +757,24 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
 def proc_drop(data, field, flagger, **kwargs):
     """
     The function drops field from the data dios and the flagger.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the data column, you want to drop.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        data shape may have changed relatively to the flagger input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags shape may have changed relatively to the flagger input.
     """
 
     data = data[data.columns.drop(field)]
@@ -685,6 +786,24 @@ def proc_drop(data, field, flagger, **kwargs):
 def proc_rename(data, field, flagger, new_name, **kwargs):
     """
     The function renames field to new name (in both, the flagger and the data).
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the data column, you want to rename.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    new_name : str
+        String, field is to be replaced with.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
     """
 
     data.columns = mutateIndex(data.columns, field, new_name)
@@ -754,15 +873,31 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
 
     Parameters
     ----------
-    maint_data : pandas.Series
-        The timeseries holding the maintenance information. The series' timestamp itself represent the beginning of a
-        maintenance event, wheras the values represent the endings of the maintenance intervals
-    cal_mean : Integer, default 5
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the data column, you want to correct.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    maint_data_field : str
+        The fieldname of the datacolumn holding the maintenance information.
+        The maint data is to expected to have following form:
+        The series' timestamp itself represents the beginning of a
+        maintenance event, wheras the values represent the endings of the maintenance intervals.
+    cal_mean : int, default 5
         The number of values the mean is computed over, for obtaining the value level directly after and
         directly before maintenance event. This values are needed for shift calibration. (see above description)
     flag_maint_period : bool, default False
         Wheather or not to flag BAD the values directly obtained while maintenance.
 
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
     """
 
     # 1: extract fit intervals:
