@@ -193,7 +193,11 @@ class SaQC:
         if any([fdump["ctrl_kws"]["plot"] for fdump in self._to_call]):
             plotAllHook(data, flagger)
 
-        return SaQC(flagger, data, nodata=self._nodata, error_policy=self._error_policy)
+        # This is much faster for big datasets that to throw everything in the constructor.
+        # Simply because of _initFlagger -> merge() -> mergeDios() over all columns.
+        new = SaQC(SimpleFlagger(), dios.DictOfSeries(), nodata=self._nodata, error_policy=self._error_policy)
+        new._flagger, new._data = flagger, data
+        return new
 
     def getResult(self):
         """
