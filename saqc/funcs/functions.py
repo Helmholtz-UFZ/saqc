@@ -9,7 +9,6 @@ import pandas as pd
 import dtw
 import pywt
 from mlxtend.evaluate import permutation_test
-import datetime
 
 from saqc.lib.tools import groupConsecutives, sesonalMask
 
@@ -209,7 +208,9 @@ def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
         raise TypeError(f"generic expression does not return a boolean array")
 
     if flagger.getFlags(field).empty:
-        flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field, index=mask.index)))
+        flagger = flagger.merge(
+            flagger.initFlags(
+                data=pd.Series(name=field, index=mask.index, dtype=np.float64)))
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 

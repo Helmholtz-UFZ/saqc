@@ -9,7 +9,7 @@ TODOS:
 
 import logging
 from copy import deepcopy
-from typing import List, Tuple, Dict, Any, Callable
+from typing import Any, Dict, List
 
 import pandas as pd
 import dios
@@ -91,7 +91,7 @@ def _setup():
     # NOTE:
     # the import is needed to trigger the registration
     # of the built-in (test-)functions
-    import saqc.funcs
+    pass
 
     # warnings
     pd.set_option("mode.chained_assignment", "warn")
@@ -288,7 +288,8 @@ def _saqcCallFunc(func_dump, data, flagger):
     # Any newly assigned column can safely be ignored by masking, thus
     # this check comes after setting `columns`
     if field not in flagger.getFlags():
-        flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field)))
+        flagger = flagger.merge(
+            flagger.initFlags(data=pd.Series(name=field, dtype=np.float64)))
 
     data_in, mask = _maskData(data, flagger, columns, to_mask)
     data_result, flagger_result = func(data_in, field, flagger, *func_args, func_name=func_name, **func_kws)
