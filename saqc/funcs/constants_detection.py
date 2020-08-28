@@ -9,7 +9,7 @@ from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
-@register
+@register(masking='field')
 def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
     """
     This functions flags plateaus/series of constant values of length `window` if
@@ -63,7 +63,7 @@ def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
     return data, flagger
 
 
-@register
+@register(masking='field')
 def constants_flagVarianceBased(
     data, field, flagger, window="12h", thresh=0.0005, max_missing=None, max_consec_missing=None, **kwargs
 ):

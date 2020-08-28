@@ -13,7 +13,7 @@ from saqc.lib.ts_operators import (
 )
 
 
-@register
+@register(masking='field')
 def modelling_polyFit(data, field, flagger, winsz, polydeg, numba="auto", eval_flags=True, min_periods=0, **kwargs):
     """
     Function fits a polynomial model to the data and returns the residues.
@@ -186,7 +186,7 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba="auto", eval_f
     return data, flagger
 
 
-@register
+@register(masking='field')
 def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_periods=0, center=True, **kwargs):
     """
     Models the data with the rolling mean and returns the residues.
