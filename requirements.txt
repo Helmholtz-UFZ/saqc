@@ -1,6 +1,7 @@
 attrs==19.3.0
 Click==7.1.2
 cycler==0.10.0
+dios==0.6.0
 dtw==1.4.0
 kiwisolver==1.2.0
 importlib-metadata==1.7.0

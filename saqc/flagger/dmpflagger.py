@@ -8,7 +8,7 @@ from typing import TypeVar
 
 import pandas as pd
 
-import dios.dios as dios
+import dios
 
 from saqc.flagger.categoricalflagger import CategoricalFlagger
 from saqc.lib.tools import assertScalar, mergeDios, mutateIndex

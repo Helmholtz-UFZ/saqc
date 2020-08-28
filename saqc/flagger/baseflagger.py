@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import TypeVar, Union, Any, List, Optional
 
 import pandas as pd
-import dios.dios as dios
+import dios
 
 from saqc.lib.tools import assertScalar, mergeDios, toSequence, mutateIndex
 

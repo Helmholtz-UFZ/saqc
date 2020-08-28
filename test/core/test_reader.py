@@ -6,15 +6,14 @@ from pathlib import Path
 import pytest
 import numpy as np
 import pandas as pd
+import dios
 
-from dios.dios import DictOfSeries
 from saqc.core.config import Fields as F
 from test.common import initData, writeIO
 
 from saqc.core.core import SaQC
 from saqc.flagger import SimpleFlagger
 from saqc.core.register import FUNC_MAP, register
-import dios
 
 
 @pytest.fixture
@@ -30,7 +29,7 @@ def test_packagedConfig():
     data_path = path / "data.csv"
 
     data = pd.read_csv(data_path, index_col=0, parse_dates=True,)
-    saqc = SaQC(SimpleFlagger(), DictOfSeries(data)).readConfig(config_path)
+    saqc = SaQC(SimpleFlagger(), dios.DictOfSeries(data)).readConfig(config_path)
     data, flagger = saqc.getResult()
 
 
