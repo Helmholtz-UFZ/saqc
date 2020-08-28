@@ -91,7 +91,7 @@ def _setup():
     # NOTE:
     # the import is needed to trigger the registration
     # of the built-in (test-)functions
-    pass
+    import saqc.funcs
 
     # warnings
     pd.set_option("mode.chained_assignment", "warn")
