@@ -121,9 +121,9 @@ class SaQC:
         # ensure all data columns
         merged = flagger.initFlags(data)
         if flags is not None:
-            merged = merged.merge(flagger.initFlags(flags=flags))
+            merged = merged.merge(flagger.initFlags(flags=flags), inplace=True)
         if flagger.initialized:
-            merged = merged.merge(flagger)
+            merged = merged.merge(flagger, inplace=True)
         return merged
 
     def readConfig(self, fname):
@@ -292,8 +292,7 @@ def _saqcCallFunc(func_dump, data, flagger):
     # Any newly assigned column can safely be ignored by masking, thus
     # this check comes after setting `columns`
     if field not in flagger.getFlags():
-        flagger = flagger.merge(
-            flagger.initFlags(data=pd.Series(name=field, dtype=np.float64)))
+        flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field, dtype=np.float64)))
 
     data_in, mask = _maskData(data, flagger, columns, to_mask)
     data_result, flagger_result = func(data_in, field, flagger, *func_args, func_name=func_name, **func_kws)

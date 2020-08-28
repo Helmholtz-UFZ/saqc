@@ -303,12 +303,18 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
         start = stop
 
 
-def mergeDios(left, right, join="merge"):
+def mergeDios(left, right, subset=None, join="merge"):
     # use dios.merge() as soon as it implemented
     # see https://git.ufz.de/rdm/dios/issues/15
 
     merged = left.copy()
-    shared_cols = left.columns.intersection(right.columns)
+    if subset is not None:
+        right_subset_cols = right.columns.intersection(subset)
+    else:
+        right_subset_cols = right.columns
+
+    shared_cols = left.columns.intersection(right_subset_cols)
+
     for c in shared_cols:
         l, r = left[c], right[c]
         if join == "merge":
@@ -323,7 +329,7 @@ def mergeDios(left, right, join="merge"):
             l, r = l.align(r, join=join)
         merged[c] = l.combine_first(r)
 
-    newcols = right.columns.difference(merged.columns)
+    newcols = right_subset_cols.difference(left.columns)
     for c in newcols:
         merged[c] = right[c].copy()
 
