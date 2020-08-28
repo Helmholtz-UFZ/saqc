@@ -491,7 +491,7 @@ def clearFlags(data, field, flagger, **kwargs):
 
 @register(masking='field')
 def forceFlags(data, field, flagger, flag, **kwargs):
-    flagger = flagger.clearFlags(field).setFlags(field, flag=flag, **kwargs)
+    flagger = flagger.clearFlags(field).setFlags(field, flag=flag, inplace=True, **kwargs)
     return data, flagger
 
 

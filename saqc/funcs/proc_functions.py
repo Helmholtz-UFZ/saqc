@@ -257,7 +257,7 @@ def proc_interpolateGrid(
     datcol.dropna(inplace=True)
     if datcol.empty:
         data[field] = datcol
-        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
+        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
         flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
         return data, flagger
     # account for annoying case of subsequent frequency aligned values, differing exactly by the margin
@@ -329,11 +329,11 @@ def proc_interpolateGrid(
     if np.isnan(inter_data[-1]) and not aligned_end:
         chunk_bounds = chunk_bounds.append(pd.DatetimeIndex([inter_data.index[-1]]))
     chunk_bounds = chunk_bounds.unique()
-    flagger_new = flagger.initFlags(inter_data).setFlags(field, flag=flagscol, force=True, **kwargs)
+    flagger_new = flagger.initFlags(inter_data).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
 
     # block chunk ends of interpolation
     flags_to_block = pd.Series(np.nan, index=chunk_bounds).astype(flagger_new.dtype)
-    flagger_new = flagger_new.setFlags(field, loc=chunk_bounds, flag=flags_to_block, force=True)
+    flagger_new = flagger_new.setFlags(field, loc=chunk_bounds, flag=flags_to_block, force=True, inplace=True)
 
     flagger = flagger.slice(drop=field).merge(flagger_new, subset=[field], inplace=True)
     return data, flagger
@@ -450,7 +450,7 @@ def proc_resample(
         # for consistency reasons - return empty data/flags column when there is no valid data left
         # after filtering.
         data[field] = datcol
-        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
+        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
         flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
         return data, flagger
 
@@ -475,7 +475,7 @@ def proc_resample(
 
     # data/flags reshaping:
     data[field] = datcol
-    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
+    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
     flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
     return data, flagger
 
@@ -538,7 +538,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     datcol.dropna(inplace=True)
     if datcol.empty:
         data[field] = datcol
-        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
+        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
         flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
         return data, flagger
 
@@ -547,7 +547,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
     flagscol = shift2Freq(flagscol, method, freq, fill_value=empty_intervals_flag)
     data[field] = datcol
-    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
+    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
     flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
     return data, flagger
 

@@ -212,7 +212,7 @@ class SaQC:
         return realization._data, realization._flagger
 
     def _wrap(self, func_name, lineno=None, expr=None):
-        def inner(field: str, *args, regex: bool = False, to_mask=None, plot=False, **kwargs):
+        def inner(field: str, *args, regex: bool = False, to_mask=None, plot=False, inplace=False, **kwargs):
             fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
 
             if func_name in ("flagGeneric", "procGeneric"):
@@ -227,7 +227,9 @@ class SaQC:
             # to_mask is a control keyword
             ctrl_kws = {
                 **(FUNC_MAP[func_name]["ctrl_kws"]),
-                'to_mask': to_mask, "plot": plot,
+                'to_mask': to_mask,
+                'plot': plot,
+                'inplace': inplace,
                 'lineno': lineno,
                 'expr': expr
             }
@@ -241,7 +243,11 @@ class SaQC:
                 "ctrl_kws": ctrl_kws,
             }
 
-            out = deepcopy(self)
+            if inplace:
+                out = self
+            else:
+                out = self.copy()
+
             for field in fields:
                 dump_copy = {**func_dump, "field": field}
                 out._to_call.append(dump_copy)
@@ -259,6 +265,9 @@ class SaQC:
         if key not in FUNC_MAP:
             raise AttributeError(f"no such attribute: '{key}'")
         return self._wrap(key)
+
+    def copy(self):
+        return deepcopy(self)
 
 
 def _saqcCallFunc(func_dump, data, flagger):

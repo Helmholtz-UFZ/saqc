@@ -225,7 +225,7 @@ class BaseFlagger(ABC):
 
         return flagged
 
-    def copy(self, flags=None, **kwargs) -> BaseFlaggerT:
+    def copy(self, flags=None) -> BaseFlaggerT:
         if flags is None:
             out = deepcopy(self)
         else:
