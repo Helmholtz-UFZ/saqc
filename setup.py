@@ -25,6 +25,7 @@ setup(
         "pyarrow",
         "python-intervals",
         "astor",
+        "dios"
     ],
     license="GPLv3",
     entry_points={"console_scripts": ["saqc=saqc.__main__:main"],},
