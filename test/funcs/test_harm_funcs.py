@@ -48,16 +48,13 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper):
     pre_data = data.copy()
     pre_flags = flagger.getFlags()
     freq = "15min"
-
     assert len(data.columns) == 1
     field = data.columns[0]
-
     data, flagger = harm_linear2Grid(data, "data", flagger, freq)
     # flag something bad
     flagger = flagger.setFlags("data", loc=data[field].index[3:4])
     data, flagger = harm_deharmonize(data, "data", flagger, method="inverse_" + reshaper)
     d = data[field]
-
     if reshaper == "nagg":
         assert flagger.isFlagged(loc=d.index[3:7]).squeeze().all()
         assert (~flagger.isFlagged(loc=d.index[0:3]).squeeze()).all()

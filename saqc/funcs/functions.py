@@ -7,8 +7,11 @@ import numpy as np
 import pandas as pd
 import dtw
 import pywt
+import itertools
 from mlxtend.evaluate import permutation_test
 import datetime
+from scipy.stats import linregress
+from scipy.cluster.hierarchy import linkage, fcluster
 
 from saqc.lib.tools import groupConsecutives, sesonalMask
 
@@ -852,3 +855,31 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
         flagger = flagger.setFlags(var, mask[var], **kwargs)
 
     return data, flagger
+
+def clusterOutDrifterByRedundants(data, field, flagger, fields, segment_freq):
+    data_to_flag = data[fields].to_df()
+    data_to_flag.dropna(inplace=True)
+    var_num = len(fields)
+    dist_mat = np.zeros((var_num, var_num))
+    segments = data_to_flag.groupby(pd.Grouper(freq=segment_freq))
+
+    for segment in segments:
+        combs = list(itertools.combinations(range(0, var_num), 2))
+        for i, j in combs:
+            _, intercept, _, _, _ = linregress(segment[1].iloc[:, i].values,
+                                               segment[1].iloc[:, j].values)
+            dist_mat[i, j] = intercept
+            dist_mat[j, i] = dist_mat[i, j]
+
+        condensed = np.array([np.abs(dist_mat[i[0], i[1]]) for i in combs])
+        Z = linkage(condensed, method='single')
+        cluster = fcluster(Z, 3, criterion='maxclust')
+        c_num = max(cluster)
+        print(segment[0])
+        print(f"cluster_number: {c_num}")
+        print(f"cluster_dist_condensed: {Z}")
+        # Note to Me: max_clust is too sensitive -
+        # Core of normal group is ten times closer then the outer "normals"
+        # - 1) set cluster costs of min_mormal clusterings to max(min_normal clusterings)
+        # - 2) try other linkages
+        # - not so promising: try other fcluster algorithms
