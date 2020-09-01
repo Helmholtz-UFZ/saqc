@@ -74,14 +74,14 @@ class DmpFlagger(CategoricalFlagger):
 
         # implicit set self._flags, and make deepcopy of self aka. DmpFlagger
         newflagger = super().initFlags(data=data, flags=flags)
-        newflagger._causes = newflagger.flags.astype(str)
-        newflagger._comments = newflagger.flags.astype(str)
+        newflagger._causes = newflagger._flags.astype(str)
+        newflagger._comments = newflagger._flags.astype(str)
         newflagger._causes[:], newflagger._comments[:] = "", ""
         return newflagger
 
     def slice(self, field=None, loc=None, drop=None, inplace=False):
         newflagger = super().slice(field=field, loc=loc, drop=drop, inplace=inplace)
-        flags = newflagger.flags
+        flags = newflagger._flags
         newflagger._causes = self._causes.aloc[flags, ...]
         newflagger._comments = self._comments.aloc[flags, ...]
         return newflagger
@@ -94,7 +94,7 @@ class DmpFlagger(CategoricalFlagger):
 
     def merge(self, other: DmpFlaggerT, subset: Optional[List] = None, join: str = "merge", inplace=False):
         assert isinstance(other, DmpFlagger)
-        flags = mergeDios(self.flags, other.flags, subset=subset, join=join)
+        flags = mergeDios(self._flags, other._flags, subset=subset, join=join)
         causes = mergeDios(self._causes, other._causes, subset=subset, join=join)
         comments = mergeDios(self._comments, other._comments, subset=subset, join=join)
         if inplace:
