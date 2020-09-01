@@ -269,35 +269,41 @@ def seasonalMask(dtindex, season_start, season_end, inclusive_selection):
     When inclusive_selection="season", all above examples work the same way, only that you now
     determine wich values NOT TO mask (=wich values are to constitute the "seasons").
     """
-    if inclusive_selection == "mask":
-        base_bool = False
-    elif inclusive_selection == "season":
-        base_bool = True
-    else:
-        raise ValueError("invalid value '{}' was passed to parameter 'inclusive_selection'"
-                         ". Please select from 'mask' and 'season'."
-                         .format(inclusive_selection))
+    def _replaceBuilder(stamp):
+        keys = ("second", "minute", "hour", "day", "month", "year")
+        stamp_list = map(int, re.split(r"[-T:]", stamp)[::-1])
+        stamp_kwargs = dict(zip(keys, stamp_list))
+
+        def _replace(index):
+            if "day" in stamp_kwargs:
+                stamp_kwargs["day"] = min(stamp_kwargs["day"], index[0].daysinmonth)
+
+            out = index[0].replace(**stamp_kwargs)
+            return out.strftime("%Y-%m-%dT%H:%M:%S")
+
+        return _replace
+
+    selectors = {"mask": False, "season": True}
+    if inclusive_selection not in selectors:
+        raise ValueError(
+            f"invalid value '{inclusive_selection}' was passed to "
+            f"parameter 'inclusive_selection'. Please select from "
+            f"{list(inclusive_selection.keys())}."
+        )
+    base_bool = selectors[inclusive_selection]
     mask = pd.Series(base_bool, index=dtindex)
 
-    def _composeStamp(index, stamp):
-        stamp_list = [stamp[i:i + 2] for i in range(len(stamp))][::3]
-        index_list = [f"{index.year[0]}", f"{index.month[0]:02}", f"{index.day[0]:02}", f"{index.hour[0]:02}",
-                      f"{index.minute[0]:02}",
-                      f"{index.second[0]:02}"][:-len(stamp_list)]
-        final = index_list + stamp_list
-        # need to account for different month's length:
-        max_days = (31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
-        month_day = min(int(final[2]), max_days[int(index.month[0] - 1)])
-        return f"{final[0]}-{final[1]}-{month_day:02}T{final[3]}:{final[4]}:{final[5]}"
+    start_replacer = _replaceBuilder(season_start)
+    end_replacer = _replaceBuilder(season_end)
 
-    if pd.Timestamp(_composeStamp(dtindex, season_start)) <= pd.Timestamp(_composeStamp(dtindex, season_end)):
-        def _selector(x, start=season_start, end=season_end, base_bool=base_bool):
-            x[_composeStamp(x.index, start):_composeStamp(x.index, end)] = not base_bool
+    if pd.Timestamp(start_replacer(dtindex)) <= pd.Timestamp(end_replacer(dtindex)):
+        def _selector(x, base_bool=base_bool):
+            x[start_replacer(x.index):end_replacer(x.index)] = not base_bool
             return x
     else:
-        def _selector(x, start=season_start, end=season_end, base_bool=base_bool):
-            x[:_composeStamp(x.index, end)] = not base_bool
-            x[_composeStamp(x.index, start):] = not base_bool
+        def _selector(x, base_bool=base_bool):
+            x[:end_replacer(x.index)] = not base_bool
+            x[start_replacer(x.index):] = not base_bool
             return x
 
     freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
