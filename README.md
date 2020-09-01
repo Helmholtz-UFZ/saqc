@@ -1,3 +1,5 @@
+[![pipeline status](https://git.ufz.de/rdm-software/saqc/badges/develop/pipeline.svg)](https://git.ufz.de/rdm-software/saqc/-/commits/develop)
+
 # System for automated Quality Control (SaQC)
 
 Quality Control of numerical data requires a significant amount of
