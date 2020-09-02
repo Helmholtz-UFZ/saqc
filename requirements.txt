@@ -1,4 +1,4 @@
-attrs==19.3.0
+attrs==20.1.0
 Click==7.1.2
 cycler==0.10.0
 dios==0.6.0
