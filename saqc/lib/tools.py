@@ -461,6 +461,4 @@ def evalFreqStr(freq, index):
             logging.warning(f"Sampling rate not uniform!."
                             f"Detected: {freqs}"
                             f"Greatest common Rate: {freq}, got selected.")
-        return freq
-    else:
-        return freq
+    return freq
