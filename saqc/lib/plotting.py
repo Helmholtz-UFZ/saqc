@@ -5,7 +5,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-import dios.dios as dios
+import dios
 import matplotlib.pyplot as plt
 from typing import List, Dict, Optional
 from saqc.flagger import BaseFlagger

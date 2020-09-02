@@ -7,8 +7,8 @@
 import pytest
 
 import numpy as np
+import dios
 
-from dios import dios
 from test.common import TESTFLAGGER
 
 from saqc.funcs.data_modelling import modelling_polyFit, modelling_rollingMean

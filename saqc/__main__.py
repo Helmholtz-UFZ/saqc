@@ -57,6 +57,7 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
 
     data_result, flagger_result = saqc.readConfig(config).getResult()
 
+    return
     if outfile:
         data_result = data_result.to_df()
         flags = flagger_result.getFlags().to_df()

@@ -9,11 +9,7 @@ import numba as nb
 import pandas as pd
 from scipy import fft
 import logging
-
 import dios
-import inspect
-
-# from saqc.flagger import BaseFlagger
 from saqc.lib.types import T
 
 logger = logging.getLogger("SaQC")
@@ -204,7 +200,7 @@ def flagWindow(flagger_old, flagger_new, field, direction="fw", window=0, **kwar
 
 def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
     """
-    This function provide a mask for a sesonal time range in the given dtindex.
+    This function provides a mask for a sesonal time range in the given dtindex.
     This means the interval is applied again on every year and even over the change of a year.
     Note that both edges are inclusive.
 
@@ -306,12 +302,18 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
         start = stop
 
 
-def mergeDios(left, right, join="merge"):
+def mergeDios(left, right, subset=None, join="merge"):
     # use dios.merge() as soon as it implemented
     # see https://git.ufz.de/rdm/dios/issues/15
 
     merged = left.copy()
-    shared_cols = left.columns.intersection(right.columns)
+    if subset is not None:
+        right_subset_cols = right.columns.intersection(subset)
+    else:
+        right_subset_cols = right.columns
+
+    shared_cols = left.columns.intersection(right_subset_cols)
+
     for c in shared_cols:
         l, r = left[c], right[c]
         if join == "merge":
@@ -326,7 +328,7 @@ def mergeDios(left, right, join="merge"):
             l, r = l.align(r, join=join)
         merged[c] = l.combine_first(r)
 
-    newcols = right.columns.difference(merged.columns)
+    newcols = right_subset_cols.difference(left.columns)
     for c in newcols:
         merged[c] = right[c].copy()
 
@@ -352,7 +354,6 @@ def mutateIndex(index, old_name, new_name):
     index = index.drop(index[pos])
     index = index.insert(pos, new_name)
     return index
-
 
 def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", pad_fft_to_opt=True,
                       min_energy=0.2, max_freqs=10, bins=None):

@@ -1,8 +1,8 @@
 # Configuration Files
-The behaviour of SaQC is completely controlled by a text based configuration file.
+The behaviour of SaQC can be completely controlled by a text based configuration file.
 
 ## Format
-SaQC expects its configuration files to be semicolon-separated text files with a
+SaQC expects configuration files to be semicolon-separated text files with a
 fixed header. Each row of the configuration file lists
 one variable and one or several test functions that are applied on the given variable.
 
@@ -12,11 +12,11 @@ one variable and one or several test functions that are applied on the given var
 The header names are basically fixed, but if you really insist in custom
 configuration headers have a look [here](saqc/core/config.py).
 
-| Name    | Data Type                                    | Description            | Optional |
+| Name    | Data Type                                    | Description            | Required |
 |---------|----------------------------------------------|------------------------|----------|
-| varname | string                                       | name of a variable     | no       |
-| test    | [function notation](#test-function-notation) | test function          | no       |
-| plot    | boolean (`True`/`False`)                     | plot the test's result | yes      |
+| varname | string                                       | name of a variable     | yes      |
+| test    | [function notation](#test-function-notation) | test function          | yes      |
+| plot    | boolean (`True`/`False`)                     | plot the test's result | no       |
 
 
 ### Test function notation

@@ -1,6 +1,6 @@
 varname;test;plot
 SM2;harm_shift2Grid(freq="15Min");False
-SM1;flagRange(min=10, max=60);False
+'.*';flagRange(min=10, max=60);False
 SM2;flagMissing(nodata=NAN);False
 SM2;flagRange(min=10, max=60);False
 SM2;spikes_flagMad(window="30d", z=3.5);False
