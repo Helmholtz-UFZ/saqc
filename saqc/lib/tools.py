@@ -202,7 +202,7 @@ def flagWindow(flagger_old, flagger_new, field, direction="fw", window=0, **kwar
 
 def sesonalMask(dtindex, month0=1, day0=1, month1=12, day1=None):
     """
-    This function provide a mask for a sesonal time range in the given dtindex.
+    This function provides a mask for a sesonal time range in the given dtindex.
     This means the interval is applied again on every year and even over the change of a year.
     Note that both edges are inclusive.
 
@@ -304,12 +304,18 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
         start = stop
 
 
-def mergeDios(left, right, join="merge"):
+def mergeDios(left, right, subset=None, join="merge"):
     # use dios.merge() as soon as it implemented
     # see https://git.ufz.de/rdm/dios/issues/15
 
     merged = left.copy()
-    shared_cols = left.columns.intersection(right.columns)
+    if subset is not None:
+        right_subset_cols = right.columns.intersection(subset)
+    else:
+        right_subset_cols = right.columns
+
+    shared_cols = left.columns.intersection(right_subset_cols)
+
     for c in shared_cols:
         l, r = left[c], right[c]
         if join == "merge":
@@ -324,7 +330,7 @@ def mergeDios(left, right, join="merge"):
             l, r = l.align(r, join=join)
         merged[c] = l.combine_first(r)
 
-    newcols = right.columns.difference(merged.columns)
+    newcols = right_subset_cols.difference(left.columns)
     for c in newcols:
         merged[c] = right[c].copy()
 
@@ -335,13 +341,13 @@ def isQuoted(string):
     return bool(re.search(r"'.*'|\".*\"", string))
 
 
-def dropper(field, drop_flags, flagger, default):
+def dropper(field, to_drop, flagger, default):
     drop_mask = pd.Series(False, flagger.getFlags(field).index)
-    if drop_flags is None:
-        drop_flags = default
-    drop_flags = toSequence(drop_flags)
-    if len(drop_flags) > 0:
-        drop_mask |= flagger.isFlagged(field, flag=drop_flags)
+    if to_drop is None:
+        to_drop = default
+    to_drop = toSequence(to_drop)
+    if len(to_drop) > 0:
+        drop_mask |= flagger.isFlagged(field, flag=to_drop)
     return drop_mask
 
 

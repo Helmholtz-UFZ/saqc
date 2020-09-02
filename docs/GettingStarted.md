@@ -1,7 +1,7 @@
 # Getting started with SaQC
 
-This "getting started" assumes that you have Python version 3.6 or 3.7
-installed.
+Requirements: this tutorial assumes that you have Python version 3.6.1 or newer
+installed, and that both your operating system and Python version are in 64-bit.
 
 ## Contents
 
@@ -25,56 +25,68 @@ for your needs is using the Python Package Index (PyPI). Following good Python
 practice, you will first want to create a new virtual environment that you
 install SaQC into by typing the following in your console:
 
-### On Unix/Mac-systems
+
 
 ```sh	
 # if you have not installed venv yet, do so:
-python3 -m pip install --user virtualenv
+python -m pip install --user virtualenv
 	
 # move to the directory where you want to create your virtual environment
 cd YOURDIR
 	
 # create virtual environment called "env_saqc"
-python3 -m venv env_saqc
-	
+python -m venv env_saqc
+
+```
+To activate your virtual environment, you need to type the following:
+
+
+##### On Unix/Mac-systems
+
+```sh
 # activate the virtual environment
 source env_saqc/bin/activate
 ```
 
-### On Windows
+##### On Windows
 
 ```sh	
-# if you have not installed venv yet, do so:
-pip install virtualenv
-	
-# move to the directory where you want to create your virtual environment
-cd YOURDIR
-	
-# create virtual environment called "env_saqc"
-virtualenv env_saqc
-	
 # move to the Scripts directory in "env_saqc"
 cd env_saqc/Scripts
 
-# activate the environment
+# activate the virtual environment
 ./activate
 ```
 
 ## 2. Get SaQC
 
-Now get saqc via PyPI as well:
+### Via PyPI
+
+Type
 
 ```sh
 python -m pip install saqc
 ```
 
-or download it directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc).
 
-Get all required packages:
+### From Gitlab repository
+
+Download SaQC directly from the [GitLab-repository](https://git.ufz.de/rdm/saqc) to make sure you use the most recent version:
 
 ```sh
+# clone gitlab - repository
+git clone https://git.ufz.de/rdm-software/saqc
+
+# switch to the folder where you installed saqc
+cd saqc 
+
+# install all required packages 
 pip install -r requirements.txt
+
+# install all required submodules
+git submodule update --init --recursive 
 ```
+
 
 ## 3. Training tour
 
@@ -122,10 +134,15 @@ flags that are set during one test are always passed on to the subsequent one.
 ### Run SaQC
 
 Remember to have your virtual environment activated:
+
+##### On Unix/Mac-systems
+
 ```sh
 source env_saqc/bin/activate
 ```
-or respectively on Windows:
+
+##### On Windows
+
 ```sh
 cd env_saqc/Scripts
 ./activate
@@ -140,10 +157,11 @@ cd saqc
 From here, you can run saqc and tell it to run the tests from the toy
 config-file on the toy dataset via the `-c` and `-d` options:
 ```sh
-saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
+python -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
 ```
+If you installed saqc via PYPi, you can omit "python -m".
 
-Which will output this plot:
+The command will output this plot:
 
 ![Toy Plot](../ressources/images/example_plot_1.png "Toy Plot")
 

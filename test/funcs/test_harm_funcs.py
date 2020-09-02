@@ -7,8 +7,8 @@ import pytest
 
 import numpy as np
 import pandas as pd
+import dios
 
-from dios import dios
 from test.common import TESTFLAGGER
 
 from saqc.funcs.harm_functions import (
@@ -220,7 +220,7 @@ def test_wrapper(data, flagger):
     freq = "15min"
     flagger = flagger.initFlags(data)
 
-    harm_linear2Grid(data, field, flagger, freq, drop_flags=None)
-    harm_aggregate2Grid(data, field, flagger, freq, value_func=np.nansum, method="nagg", drop_flags=None)
-    harm_shift2Grid(data, field, flagger, freq, method="nshift", drop_flags=None)
+    harm_linear2Grid(data, field, flagger, freq, to_drop=None)
+    harm_aggregate2Grid(data, field, flagger, freq, value_func=np.nansum, method="nagg", to_drop=None)
+    harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None)
     harm_interpolate2Grid(data, field, flagger, freq, method="spline")

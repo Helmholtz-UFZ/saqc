@@ -5,18 +5,29 @@ import click
 
 import numpy as np
 import pandas as pd
+import logging
 
-from saqc.core import SaQC, logger
+from saqc.core import SaQC
 from saqc.flagger import CategoricalFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 import dios
 
+
+logger = logging.getLogger("SaQC")
 
 FLAGGERS = {
     "numeric": CategoricalFlagger([-1, 0, 1]),
     "category": CategoricalFlagger(["NIL", "OK", "BAD"]),
     "dmp": DmpFlagger(),
 }
+
+
+def _setup_logging(loglvl):
+    logger.setLevel(loglvl)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("[%(asctime)s][%(name)s][%(levelname)s]: %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 
 @click.command()
@@ -37,7 +48,7 @@ FLAGGERS = {
 @click.option("--fail/--no-fail", default=True, help="whether to stop the program run on errors")
 def main(config, data, flagger, outfile, nodata, log_level, fail):
 
-    logger.setLevel(log_level)
+    _setup_logging(log_level)
 
     data = pd.read_csv(data, index_col=0, parse_dates=True,)
     data = dios.DictOfSeries(data)
@@ -46,6 +57,7 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
 
     data_result, flagger_result = saqc.readConfig(config).getResult()
 
+    return
     if outfile:
         data_result = data_result.to_df()
         flags = flagger_result.getFlags().to_df()

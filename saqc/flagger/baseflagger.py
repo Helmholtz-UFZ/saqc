@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import TypeVar, Union, Any, List, Optional
 
 import pandas as pd
-import dios.dios as dios
+import dios
 
 from saqc.lib.tools import assertScalar, mergeDios, toSequence, mutateIndex
 
@@ -46,7 +46,7 @@ class BaseFlagger(ABC):
 
     @property
     def flags(self):
-        return self._flags.copy()
+        return self._flags
 
     def initFlags(self, data: diosT = None, flags: diosT = None) -> BaseFlaggerT:
         """
@@ -64,22 +64,27 @@ class BaseFlagger(ABC):
         if data is not None:
             if not isinstance(data, diosT):
                 data = dios.DictOfSeries(data)
-            flags = data.copy()
-            flags[:] = self.UNFLAGGED
+
+            flags = dios.DictOfSeries(columns=data.columns)
+            for c in flags.columns:
+                flags[c] = pd.Series(self.UNFLAGGED, index=data[c].index)
+            flags = flags.astype(self.dtype)
         else:
-            if not isinstance(data, diosT):
+            if not isinstance(flags, diosT):
                 flags = dios.DictOfSeries(flags)
 
-        newflagger = self.copy()
-        newflagger._flags = flags.astype(self.dtype)
+        newflagger = self.copy(flags=flags)
         return newflagger
 
-    def rename(self, field: str, new_name: str):
-        newflagger = self.copy()
-        newflagger._flags.columns = mutateIndex(newflagger._flags.columns, field, new_name)
-        return newflagger
+    def rename(self, field: str, new_name: str, inplace=False):
+        if inplace:
+            out = self
+        else:
+            out = self.copy()
+        out._flags.columns = mutateIndex(out._flags.columns, field, new_name)
+        return out
 
-    def merge(self, other: BaseFlaggerT, join: str = "merge"):
+    def merge(self, other: BaseFlaggerT, subset: Optional[List] = None, join: str = "merge", inplace=False):
         """
         Merge the given flagger 'other' into self
         """
@@ -87,19 +92,25 @@ class BaseFlagger(ABC):
         if not isinstance(other, self.__class__):
             raise TypeError(f"flagger of type '{self.__class__}' needed")
 
-        newflagger = self.copy(flags=mergeDios(self.flags, other.flags, join=join))
-        return newflagger
+        if inplace:
+            self._flags = mergeDios(self.flags, other.flags, subset=subset, join=join)
+            return self
+        else:
+            return self.copy(flags=mergeDios(self.flags, other.flags, subset=subset, join=join))
 
-    def slice(self, field: FieldsT = None, loc: LocT = None, drop: FieldsT = None) -> BaseFlaggerT:
+    def slice(self, field: FieldsT = None, loc: LocT = None, drop: FieldsT = None, inplace=False) -> BaseFlaggerT:
         """ Return a potentially trimmed down copy of self. """
         if drop is not None:
             if field is not None:
                 raise TypeError("either 'field' or 'drop' can be given, but not both")
             field = self._flags.columns.drop(drop, errors="ignore")
-        flags = self.getFlags(field=field, loc=loc)
-        flags = dios.to_dios(flags)
-        newflagger = self.copy(flags=flags)
-        return newflagger
+        flags = self.getFlags(field=field, loc=loc).to_dios()
+
+        if inplace:
+            self._flags = flags
+            return self
+        else:
+            return self.copy(flags=flags)
 
     def getFlags(self, field: FieldsT = None, loc: LocT = None) -> PandasT:
         """ Return a potentially, to `loc`, trimmed down version of flags.
@@ -128,7 +139,7 @@ class BaseFlagger(ABC):
 
         return self.flags.aloc[indexer]
 
-    def setFlags(self, field: str, loc: LocT = None, flag: FlagT = None, force: bool = False, **kwargs) -> BaseFlaggerT:
+    def setFlags(self, field: str, loc: LocT = None, flag: FlagT = None, force: bool = False, inplace=False, **kwargs) -> BaseFlaggerT:
         """Overwrite existing flags at loc.
 
         If `force=False` (default) only flags with a lower priority are overwritten,
@@ -146,17 +157,21 @@ class BaseFlagger(ABC):
             this = self.getFlags(field=field, loc=loc)
             row_indexer = this < flag
 
-        out = deepcopy(self)
+        if inplace:
+            out = self
+        else:
+            out = deepcopy(self)
+
         out._flags.aloc[row_indexer, field] = flag
         return out
 
-    def clearFlags(self, field: str, loc: LocT = None, **kwargs) -> BaseFlaggerT:
+    def clearFlags(self, field: str, loc: LocT = None, inplace=False, **kwargs) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
         if "force" in kwargs:
             raise ValueError("Keyword 'force' is not allowed here.")
         if "flag" in kwargs:
             raise ValueError("Keyword 'flag' is not allowed here.")
-        return self.setFlags(field=field, loc=loc, flag=self.UNFLAGGED, force=True, **kwargs)
+        return self.setFlags(field=field, loc=loc, flag=self.UNFLAGGED, force=True, inplace=inplace, **kwargs)
 
     def isFlagged(self, field=None, loc: LocT = None, flag: FlagT = None, comparator: str = ">") -> PandasT:
         """
@@ -211,9 +226,16 @@ class BaseFlagger(ABC):
         return flagged
 
     def copy(self, flags=None) -> BaseFlaggerT:
-        out = deepcopy(self)
-        if flags is not None:
+        if flags is None:
+            out = deepcopy(self)
+        else:
+            # if flags is given and self.flags is big,
+            # this hack will bring some speed improvement
+            saved = self._flags
+            self._flags = None
+            out = deepcopy(self)
             out._flags = flags
+            self._flags = saved
         return out
 
     def isValidFlag(self, flag: FlagT) -> bool:

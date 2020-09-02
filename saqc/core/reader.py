@@ -33,7 +33,13 @@ def _handleComments(df):
     df.loc[df[F.VARNAME].str.startswith(COMMENT)] = EMPTY
 
     for col in df:
-        df[col] = df[col].str.split(COMMENT, expand=True).iloc[:, 0].str.strip()
+        try:
+            df[col] = df[col].str.split(COMMENT, expand=True).iloc[:, 0].str.strip()
+        except AttributeError:
+            # NOTE:
+            # if `df[col]` is not of type string, we know, that
+            # there are no comments and the `.str` access fails
+            pass
 
     return df
 
@@ -79,7 +85,7 @@ def readConfig(fname):
 
     df[F.VARNAME] = df[F.VARNAME].replace(r"^\s*$", np.nan, regex=True)
     df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
-    df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: ""})
+    df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: "", np.nan: ""})
     df = df.astype({F.PLOT: bool})
     df = _parseConfig(df)
 
