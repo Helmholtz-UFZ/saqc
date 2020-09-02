@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from saqc.core.register import register
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq, expModelFunc
-from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex
+from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex, evalFreqStr
 import dios
 import functools
 from scipy.optimize import curve_fit
@@ -223,7 +223,9 @@ def proc_interpolateGrid(
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
-        The frequency of the grid you want to interpolate your data at.
+        Either "auto", or an Offset String. If an offset string is passed, it will be interpreted as the frequency of
+        the grid you want to interpolate your data at.
+        If "auto" is passed, the intended sampling frequency of the dataseries passed, will be estimated.
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
@@ -260,6 +262,7 @@ def proc_interpolateGrid(
     datcol = data[field]
     datcol = datcol.copy()
     flagscol = flagger.getFlags(field)
+    freq = evalFreqStr(freq, datcol.index)
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
 
@@ -268,6 +271,7 @@ def proc_interpolateGrid(
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
+    freq = evalFreqStr(freq, datcol.index)
     if datcol.empty:
         data[field] = datcol
         reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
@@ -473,6 +477,7 @@ def proc_resample(
 
     drop_mask = dropper(field, to_drop, flagger, [])
     datcol.drop(datcol[drop_mask].index, inplace=True)
+    freq = evalFreqStr(freq, datcol.index)
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
     if all_na_2_empty:
         if datcol.dropna().empty:
@@ -568,6 +573,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
+    freq = evalFreqStr(freq, datcol.index)
     if datcol.empty:
         data[field] = datcol
         reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
@@ -686,14 +692,10 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     target_flagscol = flagger.getFlags(field)
 
     if (freq is None) and (method != "match"):
-        freq = pd.Timedelta(flagscol.index.freq)
-        if freq is None:
-            freq = pd.infer_freq(flagscol.index)
-        if freq is pd.NaT:
-            raise ValueError(
-                "Nor is {} a frequency regular timeseries, neither was a frequency passed to parameter 'freq'. "
-                "Dont know what to do.".format(source)
-            )
+        freq = 'auto'
+
+    freq = evalFreqStr(freq, flagscol.index)
+
     if method[-13:] == "interpolation":
         backprojected = flagscol.reindex(target_flagscol.index, method="bfill", tolerance=freq)
         fwrdprojected = flagscol.reindex(target_flagscol.index, method="ffill", tolerance=freq)

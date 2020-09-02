@@ -412,6 +412,8 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     index_n = (index_n - index_n[0])*10**(-9 + delta_precision)
     delta = np.zeros(int(index_n[-1])+1)
     delta[index_n.astype(int)] = 1
+    import pdb
+    pdb.set_trace()
     if pad_fft_to_opt:
         delta_f = np.abs(fft.rfft(delta, fft.next_fast_len(len(delta))))
     else:
@@ -454,6 +456,7 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
 def evalFreqStr(freq, index):
     if freq == 'auto':
         freq = index.inferred_freq
+        freqs = [freq]
         if freq is None:
             freq, freqs = estimateFrequency(index)
         if freq is None:
@@ -463,4 +466,22 @@ def evalFreqStr(freq, index):
             logging.warning(f"Sampling rate not uniform!."
                             f"Detected: {freqs}"
                             f"Greatest common Rate: {freq}, got selected.")
+    if freq.split('_')[-1] == 'check':
+        f_passed = freq.split('_')[0]
+        freq = index.inferred_freq
+        freqs = [freq]
+        if freq is None:
+            freq, freqs = estimateFrequency(index)
+        if freq is None:
+            logging.warning('Sampling rate could not be estimated.')
+            return f_passed
+        if len(freqs) > 1:
+            logging.warning(f"Sampling rate not uniform!."
+                            f"Detected: {freqs}"
+                            f"Greatest common Rate: {freq}."
+                            f"User passed: {f_passed}")
+            return f_passed
+        if f_passed != freq:
+            logging.warning(f"Sampling rate estimate ({freq}) missmatched passed frequency ({f_passed})")
+
     return freq
