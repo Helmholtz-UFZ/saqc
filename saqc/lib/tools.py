@@ -8,6 +8,7 @@ import numpy as np
 import numba as nb
 import pandas as pd
 import scipy.fft as fft
+import logging
 
 import dios
 import inspect
@@ -15,6 +16,7 @@ import inspect
 # from saqc.flagger import BaseFlagger
 from saqc.lib.types import T
 
+logger = logging.getLogger("SaQC")
 
 def assertScalar(name, value, optional=False):
     if (not np.isscalar(value)) and (value is not None) and (optional is True):
@@ -351,10 +353,114 @@ def mutateIndex(index, old_name, new_name):
     index = index.insert(pos, new_name)
     return index
 
-def estimateFrequency(index, delta_precision=-1, max_rate="30s", min_rate="1D"):
+
+def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", pad_fft_to_opt=True,
+                      min_energy=0.1, max_freqs=10, bins=None):
+
+    """
+    Function to estimate the sampling rate of an index.
+
+    The function comes with some optional overhead.
+    The default options detect sampling rates from 10 seconds to 1 day with a 10 seconds precision
+    for sampling rates below one minute, and a one minute precision for rates between 1 minute and
+    one day.
+
+    The function is designed to detect mixed sampling ratess as well as rate changes.
+    In boh situations, all the sampling rates detected, are returned, together with their
+    greatest common rate.
+
+    Parameters
+    ----------
+    index : {pandas.DateTimeIndex}
+        The index of wich the sampling rates shall be estimated
+    delta_precision : int, default -1
+        determines detection precision. Precision equals: seconds*10**(-1-delta_precision).
+        A too high precision attempt can lead to performance loss and doesnt necessarily result in
+        a more precise result. Especially when the samples deviation from their mean rate
+        is high compared to the delta_precision.
+    max_rate : str, default "10s"
+        Maximum rate that can be detected.
+    min_rate : str, default "1D"
+        Minimum detectable sampling rate.
+    pad_fft_to_opt : bool, default True
+        Wheather or not to speed up fft application by zero padding the derived response series to
+        an optimal length. (Length = 2**N)
+    min_energy : float, default 0.1
+        min_energy : percentage of energy a sampling rate must represent at least, to be detected.
+    max_freqs : int, default 10
+        Maximum number of frequencies collected from the index. Mainly a value to prevent the frequencie
+        collection loop from collecting noise and running endlessly.
+    bins : {None, List[float]} : default None
+
+
+    Returns
+    -------
+        freq : {None, str}
+            Either the sampling rate that was detected in the sample index (if uniform). Or
+            the greates common rate of all the sampling rates detected. equals None if
+            detection failed and 'empty', if input index was empty.
+        freqs : List[str]
+            List of detected sampling rates.
+
+    """
     index_n = index.to_numpy(float)
+    if index.empty:
+        return 'empty', []
+
     index_n = (index_n - index_n[0])*10**(-9 + delta_precision)
     delta = np.zeros(int(index_n[-1])+1)
     delta[index_n.astype(int)] = 1
-    delta_f = fft(delta)
+    if pad_fft_to_opt:
+        delta_f = np.abs(fft(delta, fft.next_fast_len(len(delta))))
+    else:
+        delta_f = np.abs(fft(delta))
+
+    len_f = len(delta_f)
+    min_energy = delta_f[0]*min_energy
+    # calc/assign low/high freq cut offs (makes life easier):
+    min_rate_i = int(len(delta_f)/(pd.Timedelta(min_rate).total_seconds()*(10**delta_precision)))
+    delta_f[:min_rate_i] = 0
     max_rate_i = int(len(delta_f)/(pd.Timedelta(max_rate).total_seconds()*(10**delta_precision)))
+    hf_cutoff = min(max_rate_i, len_f//2)
+    delta_f[hf_cutoff:] = 0
+    delta_f[delta_f < min_energy] = 0
+
+    # find frequencies present:
+    freqs = []
+    f_i = np.argmax(delta_f)
+    while (f_i > 0) & (len(freqs) < max_freqs):
+        f = (len_f / f_i)/(60*10**(delta_precision))
+        freqs.append(f)
+        for i in range(1, hf_cutoff//f_i + 1):
+            delta_f[(i*f_i) - min_rate_i:(i*f_i) + min_rate_i] = 0
+        f_i = np.argmax(delta_f)
+
+    if len(freqs) == 0:
+        return None, []
+
+    if bins is None:
+        r = range(0, int(pd.Timedelta(min_rate).total_seconds()/60))
+        bins = [0, 0.1, 0.2, 0.3, 0.4] + [i + 0.5 for i in r]
+
+    f_hist, bins = np.histogram(freqs, bins=bins)
+    freqs = np.ceil(bins[:-1][f_hist >= 1])
+    gcd_freq = np.gcd.reduce((10*freqs).astype(int))/10
+
+    return str(int(gcd_freq)) + 'min', [str(int(i)) + 'min' for i in freqs]
+
+
+def evalFreqStr(freq, index):
+    if freq == 'auto':
+        freq = index.inferred_freq
+        if freq is None:
+            freq, freqs = estimateFrequency(index)
+        if freq is None:
+            raise TypeError('Sampling rate could not be estimated, nor was an explicit freq string '
+                            'delivered')
+        if len(freqs) > 1:
+            logging.warning(f"Sampling rate not uniform!."
+                            f"Detected: {freqs}"
+                            f"Greatest common Rate: {freq}, got selected.")
+        return freq
+    else:
+        return freq
