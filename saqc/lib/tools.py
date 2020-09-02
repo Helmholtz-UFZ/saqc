@@ -7,7 +7,7 @@ from typing import Sequence, Union, Any, Iterator
 import numpy as np
 import numba as nb
 import pandas as pd
-import scipy.fft as fft
+from scipy import fft
 import logging
 
 import dios
@@ -355,7 +355,7 @@ def mutateIndex(index, old_name, new_name):
 
 
 def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", pad_fft_to_opt=True,
-                      min_energy=0.1, max_freqs=10, bins=None):
+                      min_energy=0.2, max_freqs=10, bins=None):
 
     """
     Function to estimate the sampling rate of an index.
@@ -385,20 +385,21 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     pad_fft_to_opt : bool, default True
         Wheather or not to speed up fft application by zero padding the derived response series to
         an optimal length. (Length = 2**N)
-    min_energy : float, default 0.1
-        min_energy : percentage of energy a sampling rate must represent at least, to be detected.
+    min_energy : float, default 0.2
+        min_energy : percentage of energy a sampling rate must represent at least, to be detected. Lower values
+        result in higher sensibillity - but as well increas detection rate of mix products. Default proofed to be
+        stable.
     max_freqs : int, default 10
-        Maximum number of frequencies collected from the index. Mainly a value to prevent the frequencie
+        Maximum number of frequencies collected from the index. Mainly a value to prevent the frequency
         collection loop from collecting noise and running endlessly.
     bins : {None, List[float]} : default None
-
 
     Returns
     -------
         freq : {None, str}
             Either the sampling rate that was detected in the sample index (if uniform). Or
-            the greates common rate of all the sampling rates detected. equals None if
-            detection failed and 'empty', if input index was empty.
+            the greates common rate of all the sampling rates detected. Equals `None` if
+            detection failed and `"empty"`, if input index was empty.
         freqs : List[str]
             List of detected sampling rates.
 
@@ -411,16 +412,16 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     delta = np.zeros(int(index_n[-1])+1)
     delta[index_n.astype(int)] = 1
     if pad_fft_to_opt:
-        delta_f = np.abs(fft(delta, fft.next_fast_len(len(delta))))
+        delta_f = np.abs(fft.rfft(delta, fft.next_fast_len(len(delta))))
     else:
-        delta_f = np.abs(fft(delta))
+        delta_f = np.abs(fft.rfft(delta))
 
-    len_f = len(delta_f)
+    len_f = len(delta_f)*2
     min_energy = delta_f[0]*min_energy
     # calc/assign low/high freq cut offs (makes life easier):
-    min_rate_i = int(len(delta_f)/(pd.Timedelta(min_rate).total_seconds()*(10**delta_precision)))
+    min_rate_i = int(len_f/(pd.Timedelta(min_rate).total_seconds()*(10**delta_precision)))
     delta_f[:min_rate_i] = 0
-    max_rate_i = int(len(delta_f)/(pd.Timedelta(max_rate).total_seconds()*(10**delta_precision)))
+    max_rate_i = int(len_f/(pd.Timedelta(max_rate).total_seconds()*(10**delta_precision)))
     hf_cutoff = min(max_rate_i, len_f//2)
     delta_f[hf_cutoff:] = 0
     delta_f[delta_f < min_energy] = 0
@@ -456,7 +457,7 @@ def evalFreqStr(freq, index):
             freq, freqs = estimateFrequency(index)
         if freq is None:
             raise TypeError('Sampling rate could not be estimated, nor was an explicit freq string '
-                            'delivered')
+                            'delivered.')
         if len(freqs) > 1:
             logging.warning(f"Sampling rate not uniform!."
                             f"Detected: {freqs}"
