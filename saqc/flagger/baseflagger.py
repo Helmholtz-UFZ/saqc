@@ -46,7 +46,7 @@ class BaseFlagger(ABC):
 
     @property
     def flags(self):
-        return self._flags
+        return self._flags.copy()
 
     def initFlags(self, data: diosT = None, flags: diosT = None) -> BaseFlaggerT:
         """
@@ -93,10 +93,10 @@ class BaseFlagger(ABC):
             raise TypeError(f"flagger of type '{self.__class__}' needed")
 
         if inplace:
-            self._flags = mergeDios(self.flags, other.flags, subset=subset, join=join)
+            self._flags = mergeDios(self._flags, other._flags, subset=subset, join=join)
             return self
         else:
-            return self.copy(flags=mergeDios(self.flags, other.flags, subset=subset, join=join))
+            return self.copy(flags=mergeDios(self._flags, other._flags, subset=subset, join=join))
 
     def slice(self, field: FieldsT = None, loc: LocT = None, drop: FieldsT = None, inplace=False) -> BaseFlaggerT:
         """ Return a potentially trimmed down copy of self. """
@@ -137,7 +137,9 @@ class BaseFlagger(ABC):
             field = slice(None) if field is None else self._check_field(field)
             indexer = (loc, field)
 
-        return self.flags.aloc[indexer]
+        # this is a bug in `dios.aloc`, which may return a shallow copied dios, if `slice(None)` is passed
+        # as row indexer. Thus is because pandas `.loc` return a shallow copy if a null-slice is passed to a series.
+        return self._flags.copy().aloc[indexer]
 
     def setFlags(self, field: str, loc: LocT = None, flag: FlagT = None, force: bool = False, inplace=False, **kwargs) -> BaseFlaggerT:
         """Overwrite existing flags at loc.
@@ -263,12 +265,12 @@ class BaseFlagger(ABC):
         # https://git.ufz.de/rdm-software/saqc/issues/46
         failed = []
         if isinstance(field, str):
-            if field not in self.flags:
+            if field not in self._flags:
                 failed += [field]
         else:
             try:
                 for f in field:
-                    if f not in self.flags:
+                    if f not in self._flags:
                         failed += [f]
             # not iterable, probably a slice or
             # any indexer we dont have to check

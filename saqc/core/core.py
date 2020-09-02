@@ -60,6 +60,9 @@ def _prepInput(flagger, data, flags):
             raise TypeError("data should not use MultiIndex")
         data = dios.to_dios(data)
 
+    if not hasattr(data.columns, "str"):
+        raise TypeError("expected dataframe columns of type string")
+
     if not isinstance(flagger, BaseFlagger):
         # NOTE: we should generate that list automatically,
         #       it won't ever be complete otherwise
