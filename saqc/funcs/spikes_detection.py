@@ -216,6 +216,7 @@ def spikes_flagMultivarScores(
             scoring_method=scoring_method,
             n_neighbors=n_neighbors,
             iter_start=iter_start,
+            alpha=alpha
         )
 
     else:
