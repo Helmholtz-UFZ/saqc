@@ -223,9 +223,12 @@ def proc_interpolateGrid(
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
-        Either "auto", or an Offset String. If an offset string is passed, it will be interpreted as the frequency of
+        Either "auto", or an Offset String or an offset string with "_check" added.
+        - If an offset string is passed, it will be interpreted as the frequency of
         the grid you want to interpolate your data at.
-        If "auto" is passed, the intended sampling frequency of the dataseries passed, will be estimated.
+        - If "auto" is passed, the intended sampling frequency of the dataseries passed, will be estimated.
+        - If offset string + "_check" suffix is passed, it will be checked, if the passed timeseries fits the
+        frequency passed and a warning will be logged, if it doesnt
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
@@ -423,7 +426,11 @@ def proc_resample(
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
-        An offset string. The frequency of the grid you want to resample your data to.
+        Either "auto", or an usual Offset String or an offset string with "_check" added.
+        - If an offset string is passed, it will be interpreted as the frequency you want to resample your data with.
+        - If "auto" is passed, the intended sampling frequency of the dataseries passed, will be estimated.
+        - If offset string + "_check" suffix is passed, it will be checked, if the passed timeseries fits the
+        frequency passed and a warning will be logged, if it doesnt
     agg_func : Callable
         The function you want to use for aggregation.
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
@@ -541,7 +548,11 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
-        The frequency of the grid you want to shift your data to.
+        Either "auto", or an usual Offset String or an offset string with "_check" added.
+        - If an offset string is passed, it will be interpreted as the frequency you want te data to be shifted to.
+        - If "auto" is passed, the intended sampling frequency of the dataseries passed, will be estimated.
+        - If offset string + "_check" suffix is passed, it will be checked, if the passed timeseries fits the
+        frequency passed and a warning will be logged, if it doesnt
     method: {'fagg', 'bagg', 'nagg'}, default 'nshift'
         Specifies if datapoints get propagated forwards, backwards or to the nearest grid timestamp. See function
         description for more details.
