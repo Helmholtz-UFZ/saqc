@@ -199,7 +199,7 @@ def flagWindow(flagger_old, flagger_new, field, direction="fw", window=0, **kwar
     return flagger_new.setFlags(field, fmask, **kwargs)
 
 
-def seasonalMask(dtindex, season_start, season_end, inclusive_selection):
+def seasonalMask(dtindex, season_start, season_end, include_bounds):
     """
     This function generates date-periodic/seasonal masks from an index passed.
 
@@ -219,7 +219,7 @@ def seasonalMask(dtindex, season_start, season_end, inclusive_selection):
         String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
         Has to be of same length as `season_end` parameter.
         See examples section below for some examples.
-    inclusive_selection : {"mask","season"}
+    include_bounds : {"mask","season"}
         - "mask": the `season_start` and `season_end` keywords inclusivly frame the mask (INCLUDING INTERVAL BOUNDS)
         - "season": the `season_start` and `season_end` keywords inclusivly frame the season
         (INCLUDING INTERVAL BOUNDS)
@@ -284,13 +284,13 @@ def seasonalMask(dtindex, season_start, season_end, inclusive_selection):
         return _replace
 
     selectors = {"mask": False, "season": True}
-    if inclusive_selection not in selectors:
+    if include_bounds not in selectors:
         raise ValueError(
-            f"invalid value '{inclusive_selection}' was passed to "
+            f"invalid value '{include_bounds}' was passed to "
             f"parameter 'inclusive_selection'. Please select from "
-            f"{list(inclusive_selection.keys())}."
+            f"{list(include_bounds.keys())}."
         )
-    base_bool = selectors[inclusive_selection]
+    base_bool = selectors[include_bounds]
     mask = pd.Series(base_bool, index=dtindex)
 
     start_replacer = _replaceBuilder(season_start)
