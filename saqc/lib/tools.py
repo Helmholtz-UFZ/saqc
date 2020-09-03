@@ -355,6 +355,7 @@ def mutateIndex(index, old_name, new_name):
     index = index.insert(pos, new_name)
     return index
 
+
 def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", pad_fft_to_opt=True,
                       min_energy=0.2, max_freqs=10, bins=None):
 
@@ -369,6 +370,10 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     The function is designed to detect mixed sampling ratess as well as rate changes.
     In boh situations, all the sampling rates detected, are returned, together with their
     greatest common rate.
+
+    Note, that there is a certain lower bound of index length,
+    beneath which frequency leaking and Niquist limit take over and mess up the fourier
+    transform.
 
     Parameters
     ----------
@@ -412,8 +417,6 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     index_n = (index_n - index_n[0])*10**(-9 + delta_precision)
     delta = np.zeros(int(index_n[-1])+1)
     delta[index_n.astype(int)] = 1
-    import pdb
-    pdb.set_trace()
     if pad_fft_to_opt:
         delta_f = np.abs(fft.rfft(delta, fft.next_fast_len(len(delta))))
     else:
@@ -454,19 +457,8 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
 
 
 def evalFreqStr(freq, index):
-    if freq == 'auto':
-        freq = index.inferred_freq
-        freqs = [freq]
-        if freq is None:
-            freq, freqs = estimateFrequency(index)
-        if freq is None:
-            raise TypeError('Sampling rate could not be estimated, nor was an explicit freq string '
-                            'delivered.')
-        if len(freqs) > 1:
-            logging.warning(f"Sampling rate not uniform!."
-                            f"Detected: {freqs}"
-                            f"Greatest common Rate: {freq}, got selected.")
-    if freq.split('_')[-1] == 'check':
+    check = freq.split('_')[-1]
+    if (freq == 'auto') or (check == 'check'):
         f_passed = freq.split('_')[0]
         freq = index.inferred_freq
         freqs = [freq]
@@ -474,14 +466,19 @@ def evalFreqStr(freq, index):
             freq, freqs = estimateFrequency(index)
         if freq is None:
             logging.warning('Sampling rate could not be estimated.')
-            return f_passed
         if len(freqs) > 1:
-            logging.warning(f"Sampling rate not uniform!."
-                            f"Detected: {freqs}"
-                            f"Greatest common Rate: {freq}."
-                            f"User passed: {f_passed}")
-            return f_passed
-        if f_passed != freq:
-            logging.warning(f"Sampling rate estimate ({freq}) missmatched passed frequency ({f_passed})")
+            logging.warning(f"Sampling rate seems to be not uniform!."
+                            f"Detected: {freqs}")
 
-    return freq
+        if f_passed != 'auto':
+            f_passed_seconds = pd.Timedelta(f_passed).total_seconds()
+            freq_seconds = pd.Timedelta(freq).total_seconds()
+            if (f_passed_seconds != freq_seconds):
+                logging.warning(f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed}).")
+        elif f_passed == 'auto':
+            if freq is None:
+                raise ValueError('Frequency estimation for non-empty series failed with no fall back frequency passed.')
+            f_passed = freq
+    else:
+        f_passed = freq
+    return f_passed
