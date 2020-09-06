@@ -219,3 +219,14 @@ def test_flagManual(data, flagger):
         chunk = isflagged.loc[i]
         assert (chunk == expected_value).all()
         last = curr
+
+    @pytest.mark.parametrize("flagger", TESTFLAGGER)
+    @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
+    def test_flagDriftFromNormal(dat, flagger):
+        data = dat(periods=200, peak_level=5, name='d1')
+        data['d2'] = dat(periods=200, peak_level=10, name='d2')['d2']
+        data['d3'] = dat(periods=200, peak_level=100, name='d3')['d3']
+        flagger = flagger.initFlags(data)
+        data, flagger = flagDriftFromNormals(data, flagger, ['d1', 'd2', 'd3'], segment_freq="200min",
+                                             norm_spread=5)
+        assert flagger.isFlagged()['d3'].all()
