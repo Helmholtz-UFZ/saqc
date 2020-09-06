@@ -858,10 +858,10 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
 
     return data, flagger
 
-def flagDriftFromNormals(data, field, flagger, fields, segment_freq, norm_spread, norm_frac=0.5,
-                                  metric=lambda x, y: scipy.spatial.distance.pdist(np.array([x, y]),
+def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, norm_frac=0.5,
+                      metric=lambda x, y: scipy.spatial.distance.pdist(np.array([x, y]),
                                                                                     metric='cityblock')/len(x),
-                                  linkage_method='single', **kwargs):
+                      linkage_method='single', **kwargs):
     """
     The function flags value courses that significantly deviate from a group of normal value courses.
 
