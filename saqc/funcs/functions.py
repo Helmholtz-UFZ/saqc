@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from functools import partial
+from inspect import signature
 
 import numpy as np
 import pandas as pd
@@ -11,13 +12,12 @@ import pywt
 import itertools
 import collections
 from mlxtend.evaluate import permutation_test
-import datetime
-from scipy.stats import linregress
 from scipy.cluster.hierarchy import linkage, fcluster
+
 
 from saqc.lib.tools import groupConsecutives, sesonalMask
 
-from saqc.core.register import register, Func
+from saqc.core.register import register
 from saqc.core.visitor import ENVIRONMENT
 from dios import DictOfSeries
 from typing import Any
@@ -36,12 +36,13 @@ def _execGeneric(flagger, data, func, field, nodata):
     # - field is only needed to translate 'this' parameters
     #    -> maybe we could do the translation on the tree instead
 
-    func = Func(func)
-    for k in func.parameters:
+    sig = signature(func)
+    args = []
+    for k, v in sig.parameters.items():
         k = field if k == "this" else k
         if k not in data:
             raise NameError(f"variable '{k}' not found")
-        func = Func(func, data[k])
+        args.append(data[k])
 
     globs = {
         "isflagged": partial(_dslIsFlagged, flagger),
@@ -53,11 +54,11 @@ def _execGeneric(flagger, data, func, field, nodata):
         "UNFLAGGED": flagger.UNFLAGGED,
         **ENVIRONMENT,
     }
-    func = func.addGlobals(globs)
-    return func()
+    func.__globals__.update(globs)
+    return func(*args)
 
 
-@register
+@register(masking='all')
 def procGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     """
     generate/process data with generically defined functions.
@@ -126,7 +127,7 @@ def procGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     return data, flagger
 
 
-@register
+@register(masking='all')
 def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     """
     a function to flag a data column by evaluation of a generic expression.
@@ -212,12 +213,14 @@ def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
         raise TypeError(f"generic expression does not return a boolean array")
 
     if flagger.getFlags(field).empty:
-        flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field, index=mask.index)))
+        flagger = flagger.merge(
+            flagger.initFlags(
+                data=pd.Series(name=field, index=mask.index, dtype=np.float64)))
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
 
-@register
+@register(masking='field')
 def flagRange(data, field, flagger, min, max, **kwargs):
     """
     Function flags values not covered by the closed interval [`min`, `max`].
@@ -251,13 +254,12 @@ def flagRange(data, field, flagger, min, max, **kwargs):
     return data, flagger
 
 
-@register
+@register(masking='all')
 def flagPattern(data, field, flagger, reference_field, method='dtw', partition_freq="days", partition_offset='0',
                 max_distance=0.03, normalized_distance=True, open_end=True, widths=(1, 2, 4, 8),
                 waveform='mexh', **kwargs):
     """
     Implementation of two pattern recognition algorithms:
-
     - Dynamic Time Warping (dtw) [1]
     - Pattern recognition via wavelets [2]
 
@@ -397,8 +399,7 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
     return data, flagger
 
 
-
-@register
+@register(masking='field')
 def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     """
     The function flags all values indicating missing data.
@@ -433,7 +434,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     return data, flagger
 
 
-@register
+@register(masking='field')
 def flagSesonalRange(
     data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
 ):
@@ -487,19 +488,19 @@ def flagSesonalRange(
     return data, flagger
 
 
-@register
+@register(masking='field')
 def clearFlags(data, field, flagger, **kwargs):
     flagger = flagger.clearFlags(field, **kwargs)
     return data, flagger
 
 
-@register
+@register(masking='field')
 def forceFlags(data, field, flagger, flag, **kwargs):
-    flagger = flagger.clearFlags(field).setFlags(field, flag=flag, **kwargs)
+    flagger = flagger.clearFlags(field).setFlags(field, flag=flag, inplace=True, **kwargs)
     return data, flagger
 
 
-@register
+@register(masking='field')
 def flagIsolated(
     data, field, flagger, gap_window, group_window, **kwargs,
 ):
@@ -561,7 +562,7 @@ def flagIsolated(
     return data, flagger
 
 
-@register
+@register(masking='field')
 def flagDummy(data, field, flagger, **kwargs):
     """
     Function does nothing but returning data and flagger.
@@ -585,7 +586,7 @@ def flagDummy(data, field, flagger, **kwargs):
     return data, flagger
 
 
-@register
+@register(masking='field')
 def flagForceFail(data, field, flagger, **kwargs):
     """
     Function raises a runtime error.
@@ -603,7 +604,7 @@ def flagForceFail(data, field, flagger, **kwargs):
     raise RuntimeError("Works as expected :D")
 
 
-@register
+@register(masking='field')
 def flagUnflagged(data, field, flagger, **kwargs):
     """
     Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
@@ -635,7 +636,7 @@ def flagUnflagged(data, field, flagger, **kwargs):
     return data, flagger
 
 
-@register
+@register(masking='field')
 def flagGood(data, field, flagger, **kwargs):
     """
     Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
@@ -663,7 +664,7 @@ def flagGood(data, field, flagger, **kwargs):
     return flagUnflagged(data, field, flagger, **kwargs)
 
 
-@register
+@register(masking='field')
 def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kwargs):
     """
     Flag data by given, "manually generated" data.
@@ -790,7 +791,7 @@ def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kw
     return data, flagger
 
 
-@register
+@register(masking='all')
 def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore', **kwargs):
     """
     Function checks for outliers relatively to the "horizontal" input data axis.

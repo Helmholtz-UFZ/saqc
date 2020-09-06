@@ -153,7 +153,7 @@ class ConfigFunctionParser(ast.NodeVisitor):
             raise NameError(f"unknown function '{func_name}'")
 
         self.generic_visit(node)
-        return FUNC_MAP[func_name]
+        return func_name
 
     def visit_keyword(self, node):
 

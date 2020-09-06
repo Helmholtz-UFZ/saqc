@@ -5,7 +5,7 @@ from typing import TypeVar, Union
 
 import numpy as np
 import pandas as pd
-import dios.dios as dios
+import dios
 
 T = TypeVar("T")
 ArrayLike = TypeVar("ArrayLike", np.ndarray, pd.Series, pd.DataFrame)

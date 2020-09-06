@@ -4,11 +4,11 @@
 import subprocess
 import json
 from copy import deepcopy
-from typing import TypeVar
+from typing import TypeVar, Optional, List
 
 import pandas as pd
 
-import dios.dios as dios
+import dios
 
 from saqc.flagger.categoricalflagger import CategoricalFlagger
 from saqc.lib.tools import assertScalar, mergeDios, mutateIndex
@@ -74,32 +74,38 @@ class DmpFlagger(CategoricalFlagger):
 
         # implicit set self._flags, and make deepcopy of self aka. DmpFlagger
         newflagger = super().initFlags(data=data, flags=flags)
-        newflagger._causes = newflagger.flags.astype(str)
-        newflagger._comments = newflagger.flags.astype(str)
+        newflagger._causes = newflagger._flags.astype(str)
+        newflagger._comments = newflagger._flags.astype(str)
         newflagger._causes[:], newflagger._comments[:] = "", ""
         return newflagger
 
-    def slice(self, field=None, loc=None, drop=None):
-        newflagger = super().slice(field=field, loc=loc, drop=drop)
-        flags = newflagger.flags
+    def slice(self, field=None, loc=None, drop=None, inplace=False):
+        newflagger = super().slice(field=field, loc=loc, drop=drop, inplace=inplace)
+        flags = newflagger._flags
         newflagger._causes = self._causes.aloc[flags, ...]
         newflagger._comments = self._comments.aloc[flags, ...]
         return newflagger
 
-    def rename(self, field: str, new_name: str):
-        newflagger = super().rename(field, new_name)
+    def rename(self, field: str, new_name: str, inplace=False):
+        newflagger = super().rename(field, new_name, inplace=inplace)
         newflagger._causes.columns = newflagger._flags.columns
         newflagger._comments.columns = newflagger._flags.columns
         return newflagger
 
-    def merge(self, other: DmpFlaggerT, join: str = "merge"):
+    def merge(self, other: DmpFlaggerT, subset: Optional[List] = None, join: str = "merge", inplace=False):
         assert isinstance(other, DmpFlagger)
-        out = super().merge(other, join)
-        out._causes = mergeDios(out._causes, other._causes, join=join)
-        out._comments = mergeDios(out._comments, other._comments, join=join)
-        return out
+        flags = mergeDios(self._flags, other._flags, subset=subset, join=join)
+        causes = mergeDios(self._causes, other._causes, subset=subset, join=join)
+        comments = mergeDios(self._comments, other._comments, subset=subset, join=join)
+        if inplace:
+            self._flags = flags
+            self._causes = causes
+            self._comments = comments
+            return self
+        else:
+            return self._construct_new(flags, causes, comments)
 
-    def setFlags(self, field, loc=None, flag=None, force=False, comment="", cause="", **kwargs):
+    def setFlags(self, field, loc=None, flag=None, force=False, comment="", cause="", inplace=False, **kwargs):
         assert "iloc" not in kwargs, "deprecated keyword, iloc"
         assertScalar("field", field, optional=False)
 
@@ -113,8 +119,20 @@ class DmpFlagger(CategoricalFlagger):
             this = self.getFlags(field=field, loc=loc)
             row_indexer = this < flag
 
-        out = deepcopy(self)
+        if inplace:
+            out = self
+        else:
+            out = deepcopy(self)
+
         out._flags.aloc[row_indexer, field] = flag
         out._causes.aloc[row_indexer, field] = cause
         out._comments.aloc[row_indexer, field] = comment
         return out
+
+    def _construct_new(self, flags, causes, comments) -> DmpFlaggerT:
+        new = DmpFlagger()
+        new.project_version = self.project_version
+        new._flags = flags
+        new._causes = causes
+        new._comments = comments
+        return new

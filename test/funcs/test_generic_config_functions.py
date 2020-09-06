@@ -7,7 +7,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from dios.dios import DictOfSeries
+from dios import DictOfSeries
 
 from test.common import TESTFLAGGER, TESTNODATA, initData, writeIO
 from saqc.core.visitor import ConfigFunctionParser
@@ -269,7 +269,7 @@ def test_callableArgumentsUnary(data):
 
     window = 5
 
-    @register
+    @register(masking='field')
     def testFuncUnary(data, field, flagger, func, **kwargs):
         data[field] = data[field].rolling(window=window).apply(func)
         return data, flagger.initFlags(data=data)
@@ -301,7 +301,7 @@ def test_callableArgumentsBinary(data):
     flagger = SimpleFlagger()
     var1, var2 = data.columns[:2]
 
-    @register
+    @register(masking='field')
     def testFuncBinary(data, field, flagger, func, **kwargs):
         data[field] = func(data[var1], data[var2])
         return data, flagger.initFlags(data=data)

@@ -19,7 +19,7 @@ from saqc.funcs.proc_functions import (
 
 logger = logging.getLogger("SaQC")
 
-@register
+@register(masking='none')
 def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, **kwargs):
     """
     A method to "regularize" data by shifting data points forward/backward to a regular timestamp.
@@ -81,7 +81,7 @@ def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, *
     return data, flagger
 
 
-@register
+@register(masking='none')
 def harm_aggregate2Grid(
     data, field, flagger, freq, value_func, flag_func=np.nanmax, method="nagg", to_drop=None, **kwargs
 ):
@@ -162,7 +162,7 @@ def harm_aggregate2Grid(
     return data, flagger
 
 
-@register
+@register(masking='none')
 def harm_linear2Grid(data, field, flagger, freq, to_drop=None, **kwargs):
     """
     A method to "regularize" data by interpolating linearly the data at regular timestamp.
@@ -211,7 +211,7 @@ def harm_linear2Grid(data, field, flagger, freq, to_drop=None, **kwargs):
     return data, flagger
 
 
-@register
+@register(masking='none')
 def harm_interpolate2Grid(
     data, field, flagger, freq, method, order=1, to_drop=None, **kwargs,
 ):
@@ -281,7 +281,7 @@ def harm_interpolate2Grid(
     return data, flagger
 
 
-@register
+@register(masking='none')
 def harm_deharmonize(data, field, flagger, method, to_drop=None, **kwargs):
     """
     The Function function "undoes" regularization, by regaining the original data and projecting the

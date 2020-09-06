@@ -16,9 +16,9 @@ from saqc.lib.tools import (
     offset2seconds,
     slidingWindowIndices,
     findIndex,
+    toSequence
 )
 from outliers import smirnov_grubbs
-
 
 def _stray(
     val_frame,
@@ -28,6 +28,8 @@ def _stray(
     n_neighbors=10,
     iter_start=0.5,
     alpha=0.05,
+    trafo=lambda x: x
+
 ):
     """
     Find outliers in multi dimensional observations.
@@ -97,6 +99,7 @@ def _stray(
     for _, partition in partitions:
         if partition.empty | (partition.shape[0] < partition_min):
             continue
+        partition = partition.apply(trafo)
         sample_size = partition.shape[0]
         nn_neighbors = min(n_neighbors, max(sample_size, 2))
         resids = kNNfunc(partition.values, n_neighbors=nn_neighbors - 1, algorithm="ball_tree")
@@ -180,7 +183,7 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
     elif bin_frac in ["auto", "fd", "doane", "scott", "stone", "rice", "sturges", "sqrt"]:
         binz = np.histogram_bin_edges(resids, bins=bin_frac)
     else:
-        raise ValueError("Cant interpret {} as an binning technique.".format(bin_frac))
+        raise ValueError(f"Can't interpret {bin_frac} as an binning technique.")
 
     binzenters = np.array([0.5 * (binz[i] + binz[i + 1]) for i in range(len(binz) - 1)])
     # inititialize full histogram:
@@ -233,7 +236,8 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
 
 
 def _reduceMVflags(
-    val_frame, fields, flagger, to_flag_frame, reduction_range, reduction_drop_flagged=False, reduction_thresh=3.5
+    val_frame, fields, flagger, to_flag_frame, reduction_range, reduction_drop_flagged=False, reduction_thresh=3.5,
+        reduction_min_periods=1
 ):
     """
     Function called by "spikes_flagMultivarScores" to reduce the number of false positives that result from
@@ -266,21 +270,30 @@ def _reduceMVflags(
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
+
     to_flag_frame[:] = False
     to_flag_index = to_flag_frame.index
     for var in fields:
         for index in enumerate(to_flag_index):
             index_slice = slice(index[1] - pd.Timedelta(reduction_range), index[1] + pd.Timedelta(reduction_range))
 
-            test_slice = val_frame[var][index_slice]
+            test_slice = val_frame[var][index_slice].dropna()
+            # check, wheather value under test is sufficiently centered:
+            first_valid = test_slice.first_valid_index()
+            last_valid = test_slice.last_valid_index()
+            min_range = pd.Timedelta(reduction_range)/4
+            polydeg = 2
+            if ((pd.Timedelta(index[1] - first_valid) < min_range) |
+                (pd.Timedelta(last_valid - index[1]) < min_range)):
+                polydeg = 0
             if reduction_drop_flagged:
-                test_slice = test_slice.drop(to_flag_index, errors="ignore")
-            if not test_slice.empty:
-                x = test_slice.index.values.astype(float)
+                test_slice = test_slice.drop(to_flag_index, errors='ignore')
+            if test_slice.shape[0] >= reduction_min_periods:
+                x = (test_slice.index.values.astype(float))
                 x_0 = x[0]
-                x = (x - x_0) / 10 ** 12
-                polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=2)
-                testval = poly.polyval((float(index[1].to_numpy()) - x_0) / 10 ** 12, polyfitted)
+                x = (x - x_0)/10**12
+                polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=polydeg)
+                testval = poly.polyval((float(index[1].to_numpy()) - x_0)/10**12, polyfitted)
                 testval = val_frame[var][index[1]] - testval
                 resids = test_slice.values - poly.polyval(x, polyfitted)
                 med_resids = np.median(resids)
@@ -294,7 +307,7 @@ def _reduceMVflags(
     return to_flag_frame
 
 
-@register
+@register(masking='all')
 def spikes_flagMultivarScores(
     data,
     field,
@@ -313,6 +326,7 @@ def spikes_flagMultivarScores(
     reduction_range=None,
     reduction_drop_flagged=False,
     reduction_thresh=3.5,
+    reduction_min_periods=1,
     **kwargs,
 ):
     """
@@ -445,42 +459,40 @@ def spikes_flagMultivarScores(
     """
 
     # data fransformation/extraction
+    data = data.copy()
+    fields = toSequence(fields)
     val_frame = data[fields]
     val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
     val_frame.dropna(inplace=True)
-    val_frame = val_frame.apply(trafo)
+    if val_frame.empty:
+        return data, flagger
 
-    if threshing == "stray":
-        to_flag_index = _stray(
-            val_frame,
-            partition_freq=stray_partition,
-            partition_min=stray_partition_min,
-            scoring_method=scoring_method,
-            n_neighbors=n_neighbors,
-            iter_start=iter_start,
-        )
+    if threshing == 'stray':
+        to_flag_index = _stray(val_frame,
+                               partition_freq=stray_partition,
+                               partition_min=stray_partition_min,
+                               scoring_method=scoring_method,
+                               n_neighbors=n_neighbors,
+                               iter_start=iter_start,
+                               trafo=trafo)
 
     else:
-        to_flag_index = _expFit(
-            val_frame,
-            scoring_method=scoring_method,
-            n_neighbors=n_neighbors,
-            iter_start=iter_start,
-            alpha=alpha,
-            bin_frac=expfit_binning,
-        )
+        val_frame = val_frame.apply(trafo)
+        to_flag_index = _expFit(val_frame,
+                                scoring_method=scoring_method,
+                                n_neighbors=n_neighbors,
+                                iter_start=iter_start,
+                                alpha=alpha,
+                                bin_frac=expfit_binning)
 
     to_flag_frame = pd.DataFrame({var_name: True for var_name in fields}, index=to_flag_index)
     if post_reduction:
-        to_flag_frame = _reduceMVflags(
-            val_frame,
-            fields,
-            flagger,
-            to_flag_frame,
-            reduction_range,
-            reduction_drop_flagged=reduction_drop_flagged,
-            reduction_thresh=reduction_thresh,
-        )
+        val_frame = data[toSequence(fields)].to_df()
+        to_flag_frame = _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
+                                       reduction_drop_flagged=reduction_drop_flagged,
+                                       reduction_thresh=reduction_thresh,
+                                       reduction_min_periods=reduction_min_periods)
+
 
     for var in fields:
         to_flag_ind = to_flag_frame.loc[:, var]
@@ -490,7 +502,7 @@ def spikes_flagMultivarScores(
     return data, flagger
 
 
-@register
+@register(masking='field')
 def spikes_flagRaise(
     data,
     field,
@@ -651,7 +663,7 @@ def spikes_flagRaise(
     return data, flagger
 
 
-@register
+@register(masking='field')
 def spikes_flagSlidingZscore(
     data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs,
 ):
@@ -798,7 +810,7 @@ def spikes_flagSlidingZscore(
     return data, flagger
 
 
-@register
+@register(masking='field')
 def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
 
     """
@@ -857,7 +869,7 @@ def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
     return data, flagger
 
 
-@register
+@register(masking='field')
 def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min", **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
@@ -962,7 +974,7 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
     return data, flagger
 
 
-@register
+@register(masking='field')
 def spikes_flagSpektrumBased(
     data,
     field,
@@ -1113,6 +1125,7 @@ def spikes_flagSpektrumBased(
     return data, flagger
 
 
+@register(masking='field')
 def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, check_lagged=False, **kwargs):
     """
     The function flags values that are regarded outliers due to the grubbs test.

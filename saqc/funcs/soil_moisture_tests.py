@@ -14,7 +14,7 @@ from saqc.core.register import register
 from saqc.lib.tools import retrieveTrustworthyOriginal
 
 
-@register
+@register(masking='field')
 def sm_flagSpikes(
     data,
     field,
@@ -96,7 +96,7 @@ def sm_flagSpikes(
     )
 
 
-@register
+@register(masking='field')
 def sm_flagBreaks(
     data,
     field,
@@ -184,7 +184,7 @@ def sm_flagBreaks(
     )
 
 
-@register
+@register(masking='all')
 def sm_flagFrost(data, field, flagger, soil_temp_variable, window="1h", frost_thresh=0, **kwargs):
 
     """
@@ -248,7 +248,7 @@ def sm_flagFrost(data, field, flagger, soil_temp_variable, window="1h", frost_th
     return data, flagger
 
 
-@register
+@register(masking='all')
 def sm_flagPrecipitation(
     data,
     field,
@@ -383,7 +383,8 @@ def sm_flagPrecipitation(
     flagger = flagger.setFlags(field, loc=invalid_indices.index, **kwargs)
     return data, flagger
 
-@register
+
+@register(masking='field')
 def sm_flagConstants(
     data,
     field,
@@ -523,7 +524,7 @@ def sm_flagConstants(
     return data, flagger
 
 
-@register
+@register(masking='all')
 def sm_flagRandomForest(data, field, flagger, references, window_values: int, window_flags: int, path: str, **kwargs):
     """
     This Function uses pre-trained machine-learning model objects for flagging of a specific variable. The model is

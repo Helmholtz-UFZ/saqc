@@ -8,9 +8,8 @@ from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq, e
 from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex
 import dios
 import functools
-import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-import pickle
+from sklearn.linear_model import LinearRegression
 
 ORIGINAL_SUFFIX = "_original"
 
@@ -25,7 +24,7 @@ METHOD2ARGS = {
 }
 
 
-@register
+@register(masking='field')
 def proc_rollingInterpolateMissing(
     data, field, flagger, winsz, func=np.median, center=True, min_periods=0, interpol_flag="UNFLAGGED", **kwargs
 ):
@@ -94,7 +93,7 @@ def proc_rollingInterpolateMissing(
     return data, flagger
 
 
-@register
+@register(masking='field')
 def proc_interpolateMissing(
     data,
     field,
@@ -186,19 +185,21 @@ def proc_interpolateMissing(
     return data, flagger
 
 
-@register
+@register(masking='field')
 def proc_interpolateGrid(
-    data,
-    field,
-    flagger,
-    freq,
-    method,
-    inter_order=2,
-    to_drop=None,
-    downgrade_interpolation=False,
-    empty_intervals_flag=None,
-    **kwargs
-):
+        data,
+        field,
+        flagger,
+        freq,
+        method,
+        inter_order=2,
+        to_drop=None,
+        downgrade_interpolation=False,
+        empty_intervals_flag=None,
+        grid_field=None,
+        inter_limit=2,
+        **kwargs):
+
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
 
@@ -207,6 +208,11 @@ def proc_interpolateGrid(
 
     Note, that the function differs from proc_interpolateMissing, by returning a whole new data set, only containing
     samples at the interpolated, equidistant timestamps (of frequency "freq").
+
+    Note, it is possible to interpolate unregular "grids" (with no frequencies). In fact, any date index
+    can be target of the interpolation. Just pass the field name of the variable, holding the index
+    you want to interpolate, to "grid_field". 'freq' is then use to determine the maximum gap size for
+    a grid point to be interpolated.
 
     Parameters
     ----------
@@ -235,6 +241,11 @@ def proc_interpolateGrid(
         A Flag, that you want to assign to those values resulting equidistant sample grid, that were not surrounded by
         valid (flagged) data in the original dataset and thus werent interpolated. Default automatically assigns
         flagger.BAD flag to those values.
+    grid_field : String, default None
+        Use the timestamp of another variable as (not nessecarily regular) "grid" to be interpolated.
+    inter_limit : Integer, default 2
+        Maximum number of consecutive Grid values allowed for interpolation. If set
+        to "n", in the result, chunks of "n" consecutive grid values wont be interpolated.
 
     Returns
     -------
@@ -259,8 +270,8 @@ def proc_interpolateGrid(
     datcol.dropna(inplace=True)
     if datcol.empty:
         data[field] = datcol
-        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
-        flagger = flagger.slice(drop=field).merge(reshaped_flagger)
+        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
+        flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
         return data, flagger
     # account for annoying case of subsequent frequency aligned values, differing exactly by the margin
     # 2*freq:
@@ -274,9 +285,12 @@ def proc_interpolateGrid(
         spec_case_mask = spec_case_mask.tshift(-1, freq)
 
     # prepare grid interpolation:
-    grid_index = pd.date_range(
-        start=datcol.index[0].floor(freq), end=datcol.index[-1].ceil(freq), freq=freq, name=datcol.index.name
-    )
+    if grid_field is None:
+        grid_index = pd.date_range(start=datcol.index[0].floor(freq), end=datcol.index[-1].ceil(freq), freq=freq,
+                                   name=datcol.index.name)
+    else:
+        grid_index = data[grid_field].index
+
 
     aligned_start = datcol.index[0] == grid_index[0]
     aligned_end = datcol.index[-1] == grid_index[-1]
@@ -284,24 +298,40 @@ def proc_interpolateGrid(
 
     # do the interpolation
     inter_data, chunk_bounds = interpolateNANs(
-        datcol,
-        method,
-        order=inter_order,
-        inter_limit=2,
-        downgrade_interpolation=downgrade_interpolation,
-        return_chunk_bounds=True,
+        datcol, method, order=inter_order, inter_limit=inter_limit, downgrade_interpolation=downgrade_interpolation,
+        return_chunk_bounds=True
     )
 
-    # override falsely interpolated values:
-    inter_data[spec_case_mask.index] = np.nan
+    if grid_field is None:
+        # override falsely interpolated values:
+        inter_data[spec_case_mask.index] = np.nan
 
     # store interpolated grid
-    inter_data = inter_data.asfreq(freq)
+    inter_data = inter_data[grid_index]
     data[field] = inter_data
 
     # flags reshaping (dropping data drops):
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
 
+    if grid_field is not None:
+        # only basic flag propagation supported for custom grids (take worst from preceeding/succeeding)
+        preceeding = flagscol.reindex(grid_index, method='ffill', tolerance=freq)
+        succeeding = flagscol.reindex(grid_index, method='bfill', tolerance=freq)
+        # check for too big gaps in the source data and drop the values interpolated in those too big gaps
+        na_mask = preceeding.isna() | succeeding.isna()
+        na_mask = na_mask[na_mask]
+        preceeding.drop(na_mask.index, inplace=True)
+        succeeding.drop(na_mask.index, inplace=True)
+        inter_data.drop(na_mask.index, inplace=True)
+        data[field] = inter_data
+        mask = succeeding > preceeding
+        preceeding.loc[mask] = succeeding.loc[mask]
+        flagscol = preceeding
+        flagger_new = flagger.initFlags(inter_data).setFlags(field, flag=flagscol, force=True, **kwargs)
+        flagger = flagger.slice(drop=field).merge(flagger_new)
+        return data, flagger
+
+    # for freq defined grids, max-aggregate flags of every grid points freq-ranged surrounding
     # hack ahead! Resampling with overlapping intervals:
     # 1. -> no rolling over categories allowed in pandas, so we translate manually:
     cats = pd.CategoricalIndex(flagger.dtype.categories, ordered=True)
@@ -331,17 +361,17 @@ def proc_interpolateGrid(
     if np.isnan(inter_data[-1]) and not aligned_end:
         chunk_bounds = chunk_bounds.append(pd.DatetimeIndex([inter_data.index[-1]]))
     chunk_bounds = chunk_bounds.unique()
-    flagger_new = flagger.initFlags(inter_data).setFlags(field, flag=flagscol, force=True, **kwargs)
+    flagger_new = flagger.initFlags(inter_data).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
 
     # block chunk ends of interpolation
     flags_to_block = pd.Series(np.nan, index=chunk_bounds).astype(flagger_new.dtype)
-    flagger_new = flagger_new.setFlags(field, loc=chunk_bounds, flag=flags_to_block, force=True)
+    flagger_new = flagger_new.setFlags(field, loc=chunk_bounds, flag=flags_to_block, force=True, inplace=True)
 
-    flagger = flagger.slice(drop=field).merge(flagger_new)
+    flagger = flagger.slice(drop=field).merge(flagger_new, subset=[field], inplace=True)
     return data, flagger
 
 
-@register
+@register(masking='field')
 def proc_resample(
     data,
     field,
@@ -452,8 +482,8 @@ def proc_resample(
         # for consistency reasons - return empty data/flags column when there is no valid data left
         # after filtering.
         data[field] = datcol
-        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
-        flagger = flagger.slice(drop=field).merge(reshaped_flagger)
+        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
+        flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
         return data, flagger
 
     datcol = aggregate2Freq(
@@ -477,12 +507,12 @@ def proc_resample(
 
     # data/flags reshaping:
     data[field] = datcol
-    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
-    flagger = flagger.slice(drop=field).merge(reshaped_flagger)
+    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
+    flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
     return data, flagger
 
 
-@register
+@register(masking='field')
 def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals_flag=None, **kwargs):
     """
     Function to shift data points to regular (equidistant) timestamps.
@@ -540,8 +570,8 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     datcol.dropna(inplace=True)
     if datcol.empty:
         data[field] = datcol
-        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
-        flagger = flagger.slice(drop=field).merge(reshaped_flagger)
+        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
+        flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
         return data, flagger
 
     flagscol.drop(drop_mask[drop_mask].index, inplace=True)
@@ -549,12 +579,12 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
     flagscol = shift2Freq(flagscol, method, freq, fill_value=empty_intervals_flag)
     data[field] = datcol
-    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, **kwargs)
-    flagger = flagger.slice(drop=field).merge(reshaped_flagger)
+    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
+    flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
     return data, flagger
 
 
-@register
+@register(masking='field')
 def proc_transform(data, field, flagger, func, **kwargs):
     """
     Function to transform data columns with a transformation that maps series onto series of the same length.
@@ -588,7 +618,7 @@ def proc_transform(data, field, flagger, func, **kwargs):
     return data, flagger
 
 
-@register
+@register(masking='field')
 def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=None, **kwargs):
 
     """
@@ -720,7 +750,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     return data, flagger
 
 
-@register
+@register(masking='none')
 def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     """
     The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
@@ -749,13 +779,13 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
 
     fork_field = str(field) + suffix
     fork_dios = dios.DictOfSeries({fork_field: data[field]})
-    fork_flagger = flagger.slice(drop=data.columns.drop(field)).rename(field, fork_field)
+    fork_flagger = flagger.slice(drop=data.columns.drop(field)).rename(field, fork_field, inplace=True)
     data = mergeDios(data, fork_dios)
     flagger = flagger.merge(fork_flagger)
     return data, flagger
 
 
-@register
+@register(masking='field')
 def proc_drop(data, field, flagger, **kwargs):
     """
     The function drops field from the data dios and the flagger.
@@ -784,7 +814,7 @@ def proc_drop(data, field, flagger, **kwargs):
     return data, flagger
 
 
-@register
+@register(masking='field')
 def proc_rename(data, field, flagger, new_name, **kwargs):
     """
     The function renames field to new name (in both, the flagger and the data).
@@ -841,7 +871,7 @@ def _drift_fit(x, shift_target, cal_mean):
     return dataFit, dataShift
 
 
-@register
+@register(masking='all')
 def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mean=5, flag_maint_period=False, **kwargs):
     """
     The function fits an exponential model to chunks of data[field].
@@ -932,4 +962,37 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         to_flag = to_flag.drop(to_flag[: maint_data.index[0]].index)
         to_flag = to_flag[to_flag.isna()]
         flagger = flagger.setFlags(field, loc=to_flag, **kwargs)
+
+    data[field] = to_correct
+
     return data, flagger
+
+
+@register
+def proc_seefoLinearDriftCorrecture(data, field, flagger, x_field, y_field, **kwargs):
+    """
+    Train a linear model that predicts data[y_field] by x_1*(data[x_field]) + x_0. (Least squares fit)
+
+    Then correct the data[field] via:
+
+    data[field] = data[field]*x_1 + x_0
+
+    Note, that data[x_field] and data[y_field] must be of equal length.
+    (Also, you might want them to be sampled at same timestamps.)
+
+    Parameters
+    ----------
+    x_field : String
+        Field name of x - data.
+    y_field : String
+        Field name of y - data.
+
+    """
+    data = data.copy()
+    datcol = data[field]
+    reg = LinearRegression()
+    reg.fit(data[x_field].values.reshape(-1,1), data[y_field].values)
+    datcol = (datcol * reg.coef_[0]) + reg.intercept_
+    data[field] = datcol
+    return data, flagger
+

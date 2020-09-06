@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from dios.dios import DictOfSeries
+from dios import DictOfSeries
 
 
 @pytest.fixture
