@@ -335,7 +335,7 @@ def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
     # this throw out:
     #  - any newly assigned columns
     #  - columns that wasn't masked, due to masking-kw
-    columns = mask_old.columns.intersection(data_new.columns)
+    columns = mask_old.dropempty().columns.intersection(data_new.dropempty().columns)
     mask_new = flagger_new.isFlagged(field=columns, flag=to_mask, comparator="==")
 
     for col in columns:
