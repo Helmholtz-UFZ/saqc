@@ -216,14 +216,14 @@ def test_isflagged(data, flagger):
 
     tests = [
         (f"isflagged({var1})", flagger.isFlagged(var1)),
-        (f"isflagged({var1}, BAD)", flagger.isFlagged(var1, flag=flagger.BAD, comparator=">=")),
+        (f"isflagged({var1}, flag=BAD)", flagger.isFlagged(var1, flag=flagger.BAD, comparator=">=")),
         (f"isflagged({var1}, UNFLAGGED, '==')", flagger.isFlagged(var1, flag=flagger.UNFLAGGED, comparator="==")),
         (f"~isflagged({var2})", ~flagger.isFlagged(var2)),
         (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & (~flagger.isFlagged(var2))),
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})")
+        func = _compileGeneric(f"flagGeneric(func={test}, flag=BAD)")
         result = _execGeneric(flagger, data, func, field=None, nodata=np.nan)
         assert np.all(result == expected)
 

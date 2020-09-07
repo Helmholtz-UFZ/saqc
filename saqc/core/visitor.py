@@ -160,7 +160,8 @@ class ConfigFunctionParser(ast.NodeVisitor):
         k, v = node.arg, node.value
         check_tree = True
 
-        # NOTE: not a constant or variable, should be function call
+        # NOTE: `node` is not a constant or a variable,
+        #       so it should be a function call
         try:
             visitor = ConfigExpressionParser(v)
             args = ast.arguments(
@@ -189,9 +190,16 @@ class ConfigFunctionParser(ast.NodeVisitor):
         # -> after all keywords where visited we end up with
         #    a dictionary holding all the passed arguments as
         #    real python objects
-        co = compile(ast.fix_missing_locations(ast.Interactive(body=[vnode])), "<ast>", mode="single")
-        # NOTE: only pass a copy to not clutter the ENVIRONMENT
-        exec(co, {**ENVIRONMENT}, self.kwargs)
+        if isinstance(v, ast.Name) and v.id in RESERVED:
+            # NOTE:
+            # the reserved constants needs to be evaluated during
+            # execution time, so dump the keyword directly and
+            # skip any further checks
+            self.kwargs[k] = v
+        else:
+            co = compile(ast.fix_missing_locations(ast.Interactive(body=[vnode])), "<ast>", mode="single")
+            # NOTE: only pass a copy to not clutter the ENVIRONMENT
+            exec(co, {**ENVIRONMENT}, self.kwargs)
 
         # let's do some more validity checks
         if check_tree:
