@@ -131,7 +131,7 @@ class SaQC:
 
     def readConfig(self, fname):
 
-        config = readConfig(fname)
+        config = readConfig(fname, self._flagger)
 
         out = deepcopy(self)
         for func, field, kwargs, plot, lineno, expr in config:

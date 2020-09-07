@@ -136,9 +136,15 @@ class ConfigFunctionParser(ast.NodeVisitor):
         ast.List,
     )
 
-    def __init__(self, node):
+    def __init__(self, node, flagger):
 
         self.kwargs = {}
+        self.environment = {
+            "GOOD": flagger.GOOD,
+            "BAD": flagger.BAD,
+            "UNFLAGGED": flagger.UNFLAGGED,
+            **ENVIRONMENT,
+        }
         self.func = self.visit_Call(node)
 
     def visit_Call(self, node):
@@ -190,16 +196,14 @@ class ConfigFunctionParser(ast.NodeVisitor):
         # -> after all keywords where visited we end up with
         #    a dictionary holding all the passed arguments as
         #    real python objects
-        if isinstance(v, ast.Name) and v.id in RESERVED:
-            # NOTE:
-            # the reserved constants needs to be evaluated during
-            # execution time, so dump the keyword directly and
-            # skip any further checks
-            self.kwargs[k] = v
-        else:
-            co = compile(ast.fix_missing_locations(ast.Interactive(body=[vnode])), "<ast>", mode="single")
-            # NOTE: only pass a copy to not clutter the ENVIRONMENT
-            exec(co, {**ENVIRONMENT}, self.kwargs)
+        co = compile(
+            ast.fix_missing_locations(ast.Interactive(body=[vnode])),
+            "<ast>",
+            mode="single"
+        )
+        # NOTE: only pass a copy to not clutter the self.environment
+        exec(co, {**self.environment}, self.kwargs)
+
 
         # let's do some more validity checks
         if check_tree:
