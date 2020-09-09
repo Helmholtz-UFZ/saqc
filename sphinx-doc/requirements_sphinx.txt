@@ -30,7 +30,7 @@ numpy==1.19.1
 outlier==0.2
 outlier-utils==0.0.3
 packaging==20.1
-pandas==1.1.1
+pandas==1.1.2
 pathspec==0.8.0
 pluggy==0.13.1
 py==1.8.1
