@@ -423,7 +423,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     if np.isnan(nodata):
         mask = datacol.isna()
     else:
-        mask = datacol[datacol == nodata]
+        mask = datacol == nodata
 
     flagger = flagger.setFlags(field, loc=mask, **kwargs)
     return data, flagger
