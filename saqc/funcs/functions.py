@@ -216,7 +216,7 @@ def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
 
 
 @register(masking='field')
-def flagRange(data, field, flagger, min, max, **kwargs):
+def flagRange(data, field, flagger, min=-np.inf, max=np.inf, **kwargs):
     """
     Function flags values not covered by the closed interval [`min`, `max`].
 
