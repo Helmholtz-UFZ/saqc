@@ -219,14 +219,7 @@ class SaQC:
         def inner(field: str, *args, regex: bool = False, to_mask=None, plot=False, inplace=False, **kwargs):
             fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
 
-            if func_name in ("flagGeneric", "procGeneric"):
-                # NOTE:
-                # We need to pass `nodata` to the generic functions
-                # (to implement stuff like `ismissing`). As we
-                # should not interfere with proper nodata attributes
-                # of other test functions (e.g. `flagMissing`) we
-                # special case the injection
-                kwargs.setdefault('nodata', self._nodata)
+            kwargs.setdefault('nodata', self._nodata)
 
             # to_mask is a control keyword
             ctrl_kws = {
@@ -247,10 +240,7 @@ class SaQC:
                 "ctrl_kws": ctrl_kws,
             }
 
-            if inplace:
-                out = self
-            else:
-                out = self.copy()
+            out = self if inplace else self.copy()
 
             for field in fields:
                 dump_copy = {**func_dump, "field": field}
@@ -331,11 +321,11 @@ def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
     # TODO: this is heavily undertested
 
     # NOTE:
-    # we only need to respect columns, that was masked,
-    # and also are still present in new data.
-    # this throw out:
+    # we only need to respect columns, that were masked,
+    # and are also still present in new data.
+    # this throws out:
     #  - any newly assigned columns
-    #  - columns that wasn't masked, due to masking-kw
+    #  - columns that were excluded from masking
     columns = mask_old.dropempty().columns.intersection(data_new.dropempty().columns)
     mask_new = flagger_new.isFlagged(field=columns, flag=to_mask, comparator="==")
 
@@ -351,7 +341,7 @@ def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
 
             # reapplying old values on masked positions
             if np.any(mask):
-                data = np.where(mask, data_new[col].values, data_old[col].values)
+                data = np.where(mask, data_old[col].values, data_new[col].values)
                 data_new[col] = pd.Series(data=data, index=is_masked.index)
 
     return data_new
