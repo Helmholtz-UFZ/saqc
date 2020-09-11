@@ -105,10 +105,11 @@ _setup()
 
 
 class SaQC:
-    def __init__(self, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
+    def __init__(self, flagger, data, flags=None, nodata=np.nan, to_mask=None, error_policy="raise"):
         data, flags = _prepInput(flagger, data, flags)
         self._data = data
         self._nodata = nodata
+        self._to_mask = to_mask
         self._flagger = self._initFlagger(data, flagger, flags)
         self._error_policy = error_policy
         # NOTE: will be filled by calls to `_wrap`
@@ -230,7 +231,7 @@ class SaQC:
             # to_mask is a control keyword
             ctrl_kws = {
                 **(FUNC_MAP[func_name]["ctrl_kws"]),
-                'to_mask': to_mask,
+                'to_mask': to_mask or self._to_mask,
                 'plot': plot,
                 'inplace': inplace,
                 'lineno': lineno,
