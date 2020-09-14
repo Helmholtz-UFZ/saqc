@@ -7,11 +7,8 @@
 import pytest
 
 import numpy as np
-<<<<<<< HEAD:test/funcs/test_modelling.py
 import pandas as pd
-=======
 import dios
->>>>>>> develop:test/funcs/test_data_modelling.py
 
 from test.common import TESTFLAGGER
 
@@ -56,7 +53,7 @@ def test_modelling_mask(dat, flagger):
     data = dios.DictOfSeries(data)
     flagger = flagger.initFlags(data)
     data_seasonal, flagger_seasonal = modelling_mask(data, "data", flagger, mode='seasonal', season_start="20:00",
-                                                     season_end="40:00")
+                                                     season_end="40:00", include_bounds=False)
     flaggs = flagger_seasonal._flags["data"]
     assert flaggs[np.logical_and(20 <= flaggs.index.minute, 40 >= flaggs.index.minute)].isna().all()
     data_seasonal, flagger_seasonal = modelling_mask(data, "data", flagger, mode='seasonal', season_start="15:00:00",
