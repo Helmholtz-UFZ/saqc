@@ -14,18 +14,22 @@ from saqc.lib.ts_operators import (
 from saqc.lib.tools import seasonalMask
 
 
-@register
+@register(masking='field')
 def modelling_polyFit(data, field, flagger, winsz, polydeg, numba="auto", eval_flags=True, min_periods=0, **kwargs):
     """
-    Function fits a polynomial model to the data and returns the residues. (field gets overridden).
+    Function fits a polynomial model to the data and returns the residues.
+
     The residue for value x is calculated by fitting a polynomial of degree "polydeg" to a data slice
     of size "winsz", wich has x at its center.
 
-    Note, that if data[field] is not alligned to an equidistant frequency grid, the window size passed,
-    has to be an offset string. Also numba boost options dont apply for irregularly sampled
+    Note, that the residues will be stored to the `field` field of the input data, so that the original data, the
+    polynomial is fitted to, gets overridden.
+
+    Note, that, if data[field] is not alligned to an equidistant frequency grid, the window size passed,
+    has to be an offset string. Also numba boost options don`t apply for irregularly sampled
     timeseries.
 
-    Note, that calculating the residues tends to be quite cost intensive - because a function fitting is perfomed for every
+    Note, that calculating the residues tends to be quite costy, because a function fitting is perfomed for every
     sample. To improve performance, consider the following possibillities:
 
     In case your data is sampled at an equidistant frequency grid:
@@ -48,30 +52,41 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba="auto", eval_f
 
     Parameters
     ----------
-    winsz : integer or offset String
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-modelled.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    winsz : {str, int}
         The size of the window you want to use for fitting. If an integer is passed, the size
         refers to the number of periods for every fitting window. If an offset string is passed,
         the size refers to the total temporal extension. The window will be centered around the vaule-to-be-fitted.
         For regularly sampled timeseries the period number will be casted down to an odd number if
         even.
-    polydeg : integer
+    polydeg : int
         The degree of the polynomial used for fitting
     numba : {True, False, "auto"}, default "auto"
         Wheather or not to apply numbas just-in-time compilation onto the poly fit function. This will noticably
         increase the speed of calculation, if the sample size is sufficiently high.
         If "auto" is selected, numba compatible fit functions get applied for data consisiting of > 200000 samples.
-    eval_flags : boolean, default True
+    eval_flags : bool, default True
         Wheather or not to assign new flags to the calculated residuals. If True, a residual gets assigned the worst
         flag present in the interval, the data for its calculation was obtained from.
-    min_periods : integer or np.nan, default 0
+    min_periods : {int, np.nan}, default 0
         The minimum number of periods, that has to be available in every values fitting surrounding for the polynomial
         fit to be performed. If there are not enough values, np.nan gets assigned. Default (0) results in fitting
         regardless of the number of values present (results in overfitting for too sparse intervals). To automatically
         set the minimum number of periods to the number of values in an offset defined window size, pass np.nan.
-    kwargs
 
     Returns
     -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
 
     """
     if data[field].empty:
@@ -172,31 +187,50 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba="auto", eval_f
     return data, flagger
 
 
-@register
+@register(masking='field')
 def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_periods=0, center=True, **kwargs):
     """
-    Models the timeseries passed with the rolling mean.
+    Models the data with the rolling mean and returns the residues.
+
+    Note, that the residues will be stored to the `field` field of the input data, so that the data that is modelled
+    gets overridden.
 
     Parameters
     ----------
-    winsz : integer or offset String
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-modelled.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    winsz : {int, str}
         The size of the window you want to roll with. If an integer is passed, the size
         refers to the number of periods for every fitting window. If an offset string is passed,
         the size refers to the total temporal extension.
         For regularly sampled timeseries, the period number will be casted down to an odd number if
         center = True.
-    eval_flags : boolean, default True
+    eval_flags : bool, default True
         Wheather or not to assign new flags to the calculated residuals. If True, a residual gets assigned the worst
         flag present in the interval, the data for its calculation was obtained from.
         Currently not implemented in combination with not-harmonized timeseries.
-    min_periods : integer, default 0
+    min_periods : int, default 0
         The minimum number of periods, that has to be available in every values fitting surrounding for the mean
         fitting to be performed. If there are not enough values, np.nan gets assigned. Default (0) results in fitting
         regardless of the number of values present.
-    center : boolean, default True
+    center : bool, default True
         Wheather or not to center the window the mean is calculated of around the reference value. If False,
         the reference value is placed to the right of the window (classic rolling mean with lag.)
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
     """
+
     data = data.copy()
     to_fit = data[field]
     flags = flagger.getFlags(field)

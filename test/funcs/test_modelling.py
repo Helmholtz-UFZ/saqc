@@ -7,9 +7,12 @@
 import pytest
 
 import numpy as np
+<<<<<<< HEAD:test/funcs/test_modelling.py
 import pandas as pd
+=======
+import dios
+>>>>>>> develop:test/funcs/test_data_modelling.py
 
-from dios import dios
 from test.common import TESTFLAGGER
 
 from saqc.funcs.modelling import modelling_polyFit, modelling_rollingMean, modelling_mask

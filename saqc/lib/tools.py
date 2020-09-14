@@ -7,13 +7,14 @@ from typing import Sequence, Union, Any, Iterator
 import numpy as np
 import numba as nb
 import pandas as pd
-
+import logging
 import dios
-import inspect
+
 
 # from saqc.flagger import BaseFlagger
 from saqc.lib.types import T
 
+logger = logging.getLogger("SaQC")
 
 def assertScalar(name, value, optional=False):
     if (not np.isscalar(value)) and (value is not None) and (optional is True):
@@ -337,12 +338,18 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
         start = stop
 
 
-def mergeDios(left, right, join="merge"):
+def mergeDios(left, right, subset=None, join="merge"):
     # use dios.merge() as soon as it implemented
     # see https://git.ufz.de/rdm/dios/issues/15
 
     merged = left.copy()
-    shared_cols = left.columns.intersection(right.columns)
+    if subset is not None:
+        right_subset_cols = right.columns.intersection(subset)
+    else:
+        right_subset_cols = right.columns
+
+    shared_cols = left.columns.intersection(right_subset_cols)
+
     for c in shared_cols:
         l, r = left[c], right[c]
         if join == "merge":
@@ -357,7 +364,7 @@ def mergeDios(left, right, join="merge"):
             l, r = l.align(r, join=join)
         merged[c] = l.combine_first(r)
 
-    newcols = right.columns.difference(merged.columns)
+    newcols = right_subset_cols.difference(left.columns)
     for c in newcols:
         merged[c] = right[c].copy()
 
@@ -383,3 +390,4 @@ def mutateIndex(index, old_name, new_name):
     index = index.drop(index[pos])
     index = index.insert(pos, new_name)
     return index
+

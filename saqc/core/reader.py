@@ -33,7 +33,13 @@ def _handleComments(df):
     df.loc[df[F.VARNAME].str.startswith(COMMENT)] = EMPTY
 
     for col in df:
-        df[col] = df[col].str.split(COMMENT, expand=True).iloc[:, 0].str.strip()
+        try:
+            df[col] = df[col].str.split(COMMENT, expand=True).iloc[:, 0].str.strip()
+        except AttributeError:
+            # NOTE:
+            # if `df[col]` is not of type string, we know, that
+            # there are no comments and the `.str` access fails
+            pass
 
     return df
 
@@ -47,7 +53,7 @@ def _injectOptionalColumns(df):
     return df
 
 
-def _parseConfig(df):
+def _parseConfig(df, flagger):
     to_call = []
     for lineno, (_, field, expr, plot) in enumerate(df.itertuples()):
         if field == "None":
@@ -57,12 +63,12 @@ def _parseConfig(df):
         if pd.isnull(expr):
             raise SyntaxError(f"line {lineno}: non-optional column '{F.TEST}' missing")
         tree = ast.parse(expr, mode="eval")
-        cp = ConfigFunctionParser(tree.body)
+        cp = ConfigFunctionParser(tree.body, flagger)
         to_call.append((cp.func, field, cp.kwargs, plot, lineno + 2, expr))
     return to_call
 
 
-def readConfig(fname):
+def readConfig(fname, flagger):
     df = pd.read_csv(
         fname,
         sep=r"\s*;\s*",
@@ -79,8 +85,8 @@ def readConfig(fname):
 
     df[F.VARNAME] = df[F.VARNAME].replace(r"^\s*$", np.nan, regex=True)
     df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
-    df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: ""})
+    df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: "", np.nan: ""})
     df = df.astype({F.PLOT: bool})
-    df = _parseConfig(df)
+    df = _parseConfig(df, flagger)
 
     return df
