@@ -1,4 +1,4 @@
-attrs==20.1.0
+attrs==20.2.0
 Click==7.1.2
 cycler==0.10.0
 dios==0.6.0
@@ -10,13 +10,13 @@ llvmlite==0.34.0
 mlxtend==0.17.3
 matplotlib==3.3.1
 more-itertools==8.5.0
-numba==0.51.1
-numpy==1.19.1
+numba==0.51.2
+numpy==1.19.2
 outlier==0.2
 utils==1.0.1
 outlier-utils==0.0.3
 packaging==20.4
-pandas==1.1.1
+pandas==1.1.2
 pluggy==0.13.1
 pyparsing==2.4.7
 py==1.9.0

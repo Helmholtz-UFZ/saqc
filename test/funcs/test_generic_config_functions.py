@@ -32,9 +32,9 @@ def data_diff():
     return DictOfSeries(data={col0.name: col0.iloc[: mid + offset], col1.name: col1.iloc[mid - offset :],})
 
 
-def _compileGeneric(expr):
+def _compileGeneric(expr, flagger):
     tree = ast.parse(expr, mode="eval")
-    cp = ConfigFunctionParser(tree.body)
+    cp = ConfigFunctionParser(tree.body, flagger)
     return cp.kwargs["func"]
 
 
@@ -49,7 +49,7 @@ def test_missingIdentifier(data, flagger):
     ]
 
     for test in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})")
+        func = _compileGeneric(f"flagGeneric(func={test})", flagger)
         with pytest.raises(NameError):
             _execGeneric(flagger, data, func, field="", nodata=np.nan)
 
@@ -65,7 +65,7 @@ def test_syntaxError(flagger):
 
     for test in tests:
         with pytest.raises(SyntaxError):
-            _compileGeneric(f"flagGeneric(func={test})")
+            _compileGeneric(f"flagGeneric(func={test})", flagger)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -81,7 +81,7 @@ def test_typeError(flagger):
 
     for test in tests:
         with pytest.raises(TypeError):
-            _compileGeneric(f"flagGeneric(func={test})")
+            _compileGeneric(f"flagGeneric(func={test})", flagger)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -100,7 +100,7 @@ def test_comparisonOperators(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})")
+        func = _compileGeneric(f"flagGeneric(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=var1, nodata=np.nan)
         assert np.all(result == expected)
 
@@ -121,7 +121,7 @@ def test_arithmeticOperators(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"procGeneric(func={test})")
+        func = _compileGeneric(f"procGeneric(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=var1, nodata=np.nan)
         assert np.all(result == expected)
 
@@ -139,7 +139,7 @@ def test_nonReduncingBuiltins(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"procGeneric(func={test})")
+        func = _compileGeneric(f"procGeneric(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=this, nodata=np.nan)
         assert (result == expected).all()
 
@@ -163,7 +163,7 @@ def test_reduncingBuiltins(data, flagger, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"procGeneric(func={test})")
+        func = _compileGeneric(f"procGeneric(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=this.name, nodata=nodata)
         assert result == expected
 
@@ -182,7 +182,7 @@ def test_ismissing(data, flagger, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})")
+        func = _compileGeneric(f"flagGeneric(func={test})", flagger)
         result = _execGeneric(flagger, data, func, this.name, nodata)
         assert np.all(result == expected)
 
@@ -202,7 +202,7 @@ def test_bitOps(data, flagger, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})")
+        func = _compileGeneric(f"flagGeneric(func={test})", flagger)
         result = _execGeneric(flagger, data, func, this, nodata)
         assert np.all(result == expected)
 
@@ -216,14 +216,14 @@ def test_isflagged(data, flagger):
 
     tests = [
         (f"isflagged({var1})", flagger.isFlagged(var1)),
-        (f"isflagged({var1}, BAD)", flagger.isFlagged(var1, flag=flagger.BAD, comparator=">=")),
+        (f"isflagged({var1}, flag=BAD)", flagger.isFlagged(var1, flag=flagger.BAD, comparator=">=")),
         (f"isflagged({var1}, UNFLAGGED, '==')", flagger.isFlagged(var1, flag=flagger.UNFLAGGED, comparator="==")),
         (f"~isflagged({var2})", ~flagger.isFlagged(var2)),
         (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & (~flagger.isFlagged(var2))),
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})")
+        func = _compileGeneric(f"flagGeneric(func={test}, flag=BAD)", flagger)
         result = _execGeneric(flagger, data, func, field=None, nodata=np.nan)
         assert np.all(result == expected)
 

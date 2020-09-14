@@ -221,7 +221,7 @@ def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
 
 
 @register(masking='field')
-def flagRange(data, field, flagger, min, max, **kwargs):
+def flagRange(data, field, flagger, min=-np.inf, max=np.inf, **kwargs):
     """
     Function flags values not covered by the closed interval [`min`, `max`].
 
@@ -428,7 +428,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     if np.isnan(nodata):
         mask = datacol.isna()
     else:
-        mask = datacol[datacol == nodata]
+        mask = datacol == nodata
 
     flagger = flagger.setFlags(field, loc=mask, **kwargs)
     return data, flagger
