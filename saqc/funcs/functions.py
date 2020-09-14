@@ -960,9 +960,8 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
         for i, j in combs:
             dist = metric(segment[1].iloc[:, i].values, segment[1].iloc[:, j].values)
             dist_mat[i, j] = dist
-            dist_mat[j, i] = dist
 
-        condensed = np.array([np.abs(dist_mat[i[0], i[1]]) for i in combs])
+        condensed = np.abs(dist_mat[tuple(zip(*combs))])
         Z = linkage(condensed, method=linkage_method)
         cluster = fcluster(Z, norm_spread, criterion='distance')
         counts = collections.Counter(cluster)
