@@ -252,7 +252,7 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
 
 
 def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None, season_end=None,
-                   inclusive_selection="mask"):
+                   include_bounds=True):
     """
     This function realizes masking within saqc.
 
@@ -280,7 +280,7 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
         The fieldname of the column, holding the data-to-be-masked.
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
-    mode : {"seasonal", "mask_var"}select
+    mode : {"seasonal", "mask_var"}
         The masking mode.
         - "seasonal": parameters "season_start", "season_end" are evaluated to generate a seasonal (periodical) mask
         - "mask_var": data[mask_var] is expected to be a boolean valued timeseries and is used as mask.
@@ -299,13 +299,8 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
         String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
         Has to be of same length as `season_end` parameter.
         See examples section below for some examples.
-    inclusive_selection : {"mask","season"}, default "mask"
-        Only effective if mode == "seasonal"
-        - "mask": the `season_start` and `season_end` keywords inclusivly frame the mask (INCLUDING INTERVAL BOUNDS)
-        - "season": the `season_start` and `season_end` keywords inclusivly frame the season
-        (INCLUDING INTERVAL BOUNDS)
-        (Parameter mainly introduced to provide backwards compatibility. But, as a side effect, provides more control
-        over what to do with samples at the exact turning points of date-defined masks and season.)
+    include_bounds : boolean
+        Wheather or not to include the mask defining bounds to the mask.
 
     Returns
     -------
@@ -358,7 +353,7 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
     data = data.copy()
     datcol = data[field]
     if mode == 'seasonal':
-        to_mask = seasonalMask(datcol.index, season_start, season_end, inclusive_selection)
+        to_mask = seasonalMask(datcol.index, season_start, season_end, include_bounds)
 
     elif mode == 'mask_var':
         to_mask = data[mask_var]

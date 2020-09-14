@@ -219,12 +219,8 @@ def seasonalMask(dtindex, season_start, season_end, include_bounds):
         String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
         Has to be of same length as `season_end` parameter.
         See examples section below for some examples.
-    include_bounds : {"mask","season"}
-        - "mask": the `season_start` and `season_end` keywords inclusivly frame the mask (INCLUDING INTERVAL BOUNDS)
-        - "season": the `season_start` and `season_end` keywords inclusivly frame the season
-        (INCLUDING INTERVAL BOUNDS)
-        (Parameter mainly introduced to provide backwards compatibility. But, as a side effect, provides more control
-        over what to do with samples at the exact turning points of date-defined masks and season.)
+    include_bounds : boolean
+        Wheather or not to include the mask defining bounds to the mask.
 
     Returns
     -------
@@ -283,25 +279,17 @@ def seasonalMask(dtindex, season_start, season_end, include_bounds):
 
         return _replace
 
-    selectors = {"mask": False, "season": True}
-    if include_bounds not in selectors:
-        raise ValueError(
-            f"invalid value '{include_bounds}' was passed to "
-            f"parameter 'inclusive_selection'. Please select from "
-            f"{list(include_bounds.keys())}."
-        )
-    base_bool = selectors[include_bounds]
-    mask = pd.Series(base_bool, index=dtindex)
+    mask = pd.Series(include_bounds, index=dtindex)
 
     start_replacer = _replaceBuilder(season_start)
     end_replacer = _replaceBuilder(season_end)
 
     if pd.Timestamp(start_replacer(dtindex)) <= pd.Timestamp(end_replacer(dtindex)):
-        def _selector(x, base_bool=base_bool):
+        def _selector(x, base_bool=include_bounds):
             x[start_replacer(x.index):end_replacer(x.index)] = not base_bool
             return x
     else:
-        def _selector(x, base_bool=base_bool):
+        def _selector(x, base_bool=include_bounds):
             x[:end_replacer(x.index)] = not base_bool
             x[start_replacer(x.index):] = not base_bool
             return x
