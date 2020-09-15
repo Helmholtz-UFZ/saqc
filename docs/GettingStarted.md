@@ -26,6 +26,23 @@ practice, you will first want to create a new virtual environment that you
 install SaQC into by typing the following in your console:
 
 
+##### On Unix/Mac-systems
+
+```sh
+# if you have not installed venv yet, do so:
+python3 -m pip install --user virtualenv
+	
+# move to the directory where you want to create your virtual environment
+cd YOURDIR
+	
+# create virtual environment called "env_saqc"
+python3 -m venv env_saqc
+
+# activate the virtual environment
+source env_saqc/bin/activate
+```
+
+##### On Windows-systems
 
 ```sh	
 # if you have not installed venv yet, do so:
@@ -37,20 +54,6 @@ cd YOURDIR
 # create virtual environment called "env_saqc"
 python -m venv env_saqc
 
-```
-To activate your virtual environment, you need to type the following:
-
-
-##### On Unix/Mac-systems
-
-```sh
-# activate the virtual environment
-source env_saqc/bin/activate
-```
-
-##### On Windows
-
-```sh	
 # move to the Scripts directory in "env_saqc"
 cd env_saqc/Scripts
 
@@ -61,6 +64,16 @@ cd env_saqc/Scripts
 ## 2. Get SaQC
 
 ### Via PyPI
+
+##### On Unix/Mac-systems
+
+Type
+
+```sh
+python3 -m pip install saqc
+```
+
+##### On Windows-systems
 
 Type
 
@@ -156,10 +169,16 @@ cd saqc
 
 From here, you can run saqc and tell it to run the tests from the toy
 config-file on the toy dataset via the `-c` and `-d` options:
+##### On Unix/Mac-systems
+```sh
+python3 -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
+```
+##### On Windows
 ```sh
 python -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
 ```
-If you installed saqc via PYPi, you can omit "python -m".
+
+If you installed saqc via PYPi, you can omit ```sh python -m```.
 
 The command will output this plot:
 
