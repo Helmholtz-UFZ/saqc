@@ -65,9 +65,10 @@ cd env_saqc/Scripts
 
 ### Via PyPI
 
+Type the following:
+
 ##### On Unix/Mac-systems
 
-Type
 
 ```sh
 python3 -m pip install saqc
@@ -75,7 +76,6 @@ python3 -m pip install saqc
 
 ##### On Windows-systems
 
-Type
 
 ```sh
 python -m pip install saqc
