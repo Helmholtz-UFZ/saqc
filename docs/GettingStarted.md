@@ -46,13 +46,13 @@ source env_saqc/bin/activate
 
 ```sh	
 # if you have not installed venv yet, do so:
-python -m pip install --user virtualenv
+py -3 -m pip install --user virtualenv
 	
 # move to the directory where you want to create your virtual environment
 cd YOURDIR
 	
 # create virtual environment called "env_saqc"
-python -m venv env_saqc
+py -3 -m venv env_saqc
 
 # move to the Scripts directory in "env_saqc"
 cd env_saqc/Scripts
@@ -78,7 +78,7 @@ python3 -m pip install saqc
 
 
 ```sh
-python -m pip install saqc
+py -3 -m pip install saqc
 ```
 
 
@@ -175,7 +175,7 @@ python3 -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
 ```
 ##### On Windows
 ```sh
-python -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
+py -3 -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
 ```
 
 If you installed saqc via PYPi, you can omit ```sh python -m```.
