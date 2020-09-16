@@ -713,7 +713,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     target_flagscol = flagger.getFlags(field)
 
     if (freq is None) and (method != "match"):
-        freq = 'auto'
+        freq_check = 'auto'
 
     freq = evalFreqStr(freq, freq_check, flagscol.index)
 
