@@ -456,10 +456,9 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     return str(int(gcd_freq)) + 'min', [str(int(i)) + 'min' for i in freqs]
 
 
-def evalFreqStr(freq, index):
-    check = freq.split('_')[-1]
-    if (freq == 'auto') or (check == 'check'):
-        f_passed = freq.split('_')[0]
+def evalFreqStr(freq, check, index):
+    if check in ['check', 'auto']:
+        f_passed = freq
         freq = index.inferred_freq
         freqs = [freq]
         if freq is None:
@@ -470,12 +469,12 @@ def evalFreqStr(freq, index):
             logging.warning(f"Sampling rate seems to be not uniform!."
                             f"Detected: {freqs}")
 
-        if f_passed != 'auto':
+        if check == 'check':
             f_passed_seconds = pd.Timedelta(f_passed).total_seconds()
             freq_seconds = pd.Timedelta(freq).total_seconds()
             if (f_passed_seconds != freq_seconds):
                 logging.warning(f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed}).")
-        elif f_passed == 'auto':
+        elif check == 'auto':
             if freq is None:
                 raise ValueError('Frequency estimation for non-empty series failed with no fall back frequency passed.')
             f_passed = freq

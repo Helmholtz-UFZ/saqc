@@ -20,7 +20,7 @@ from saqc.funcs.proc_functions import (
 logger = logging.getLogger("SaQC")
 
 @register(masking='none')
-def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, **kwargs):
+def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, freq_check=None, **kwargs):
     """
     A method to "regularize" data by shifting data points forward/backward to a regular timestamp.
 
@@ -63,6 +63,11 @@ def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, *
         Flagtypes you want to drop before shifting - effectively excluding values that are flagged
         with a flag in to_drop from the shifting process. Default - results in flagger.BAD
         values being dropped initially.
+    freq_check : {None, 'check', 'auto'}, default None
+        - None: do not validate frequency-string passed to `freq`
+        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+            if no uniform sampling rate could be estimated
+        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------

@@ -47,7 +47,7 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper):
     # make pre harm copies:
     pre_data = data.copy()
     pre_flags = flagger.getFlags()
-    freq = "15min_check"
+    freq = "15min"
 
     assert len(data.columns) == 1
     field = data.columns[0]
@@ -92,7 +92,7 @@ def test_harmSingleVarInterpolations(data, flagger):
     tests = [
         (
             "nagg",
-            "15Min_check",
+            "15Min",
             pd.Series(
                 data=[-87.5, -25.0, 0.0, 37.5, 50.0],
                 index=pd.date_range("2011-01-01 00:00:00", "2011-01-01 01:00:00", freq="15min"),
@@ -100,7 +100,7 @@ def test_harmSingleVarInterpolations(data, flagger):
         ),
         (
             "nagg",
-            "30Min_check",
+            "30Min",
             pd.Series(
                 data=[-87.5, -25.0, 87.5],
                 index=pd.date_range("2011-01-01 00:00:00", "2011-01-01 01:00:00", freq="30min"),

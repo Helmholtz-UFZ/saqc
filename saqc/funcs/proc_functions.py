@@ -198,6 +198,7 @@ def proc_interpolateGrid(
         empty_intervals_flag=None,
         grid_field=None,
         inter_limit=2,
+        freq_check=None,
         **kwargs):
 
     """
@@ -223,12 +224,8 @@ def proc_interpolateGrid(
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
-        Either "auto", or an Offset String or an offset string with "_check" added.
-        - If an offset string is passed, it will be interpreted as the frequency of
+        An Offset String, interpreted as the frequency of
         the grid you want to interpolate your data at.
-        - If "auto" is passed, the intended sampling frequency of the dataseries passed, will be estimated.
-        - If offset string + "_check" suffix is passed, it will be checked, if the passed timeseries fits the
-        frequency passed and a warning will be logged, if it doesnt
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
@@ -251,6 +248,11 @@ def proc_interpolateGrid(
     inter_limit : Integer, default 2
         Maximum number of consecutive Grid values allowed for interpolation. If set
         to "n", in the result, chunks of "n" consecutive grid values wont be interpolated.
+    freq_check : {None, 'check', 'auto'}, default None
+        - None: do not validate frequency-string passed to `freq`
+        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+            if no uniform sampling rate could be estimated
+        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -265,7 +267,7 @@ def proc_interpolateGrid(
     datcol = data[field]
     datcol = datcol.copy()
     flagscol = flagger.getFlags(field)
-    freq = evalFreqStr(freq, datcol.index)
+    freq = evalFreqStr(freq, freq_check, datcol.index)
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
 
@@ -274,7 +276,7 @@ def proc_interpolateGrid(
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
-    freq = evalFreqStr(freq, datcol.index)
+    freq = evalFreqStr(freq, freq_check, datcol.index)
     if datcol.empty:
         data[field] = datcol
         reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
@@ -394,6 +396,7 @@ def proc_resample(
     empty_intervals_flag=None,
     to_drop=None,
     all_na_2_empty=False,
+    freq_check=None,
     **kwargs
 ):
     """
@@ -426,11 +429,7 @@ def proc_resample(
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
-        Either "auto", or an usual Offset String or an offset string with "_check" added.
-        - If an offset string is passed, it will be interpreted as the frequency you want to resample your data with.
-        - If "auto" is passed, the intended sampling frequency of the dataseries passed, will be estimated.
-        - If offset string + "_check" suffix is passed, it will be checked, if the passed timeseries fits the
-        frequency passed and a warning will be logged, if it doesnt
+        An Offset String, that will be interpreted as the frequency you want to resample your data with.
     agg_func : Callable
         The function you want to use for aggregation.
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
@@ -465,6 +464,11 @@ def proc_resample(
         Flags that refer to values you want to drop before resampling - effectively excluding values that are flagged
         with a flag in to_drop from the resampling process - this means that they also will not be counted in the
         the max_consec/max_total evaluation. to_drop = None results in NO flags being dropped initially.
+    freq_check : {None, 'check', 'auto'}, default None
+        - None: do not validate frequency-string passed to `freq`
+        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+            if no uniform sampling rate could be estimated
+        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -484,7 +488,7 @@ def proc_resample(
 
     drop_mask = dropper(field, to_drop, flagger, [])
     datcol.drop(datcol[drop_mask].index, inplace=True)
-    freq = evalFreqStr(freq, datcol.index)
+    freq = evalFreqStr(freq, freq_check, datcol.index)
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
     if all_na_2_empty:
         if datcol.dropna().empty:
@@ -525,7 +529,7 @@ def proc_resample(
 
 
 @register(masking='field')
-def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals_flag=None, **kwargs):
+def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals_flag=None, freq_check=None, **kwargs):
     """
     Function to shift data points to regular (equidistant) timestamps.
     Values get shifted according to the keyword passed to 'method'.
@@ -548,11 +552,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
-        Either "auto", or an usual Offset String or an offset string with "_check" added.
-        - If an offset string is passed, it will be interpreted as the frequency you want te data to be shifted to.
-        - If "auto" is passed, the intended sampling frequency of the dataseries passed, will be estimated.
-        - If offset string + "_check" suffix is passed, it will be checked, if the passed timeseries fits the
-        frequency passed and a warning will be logged, if it doesnt
+        An frequency Offset String that will be interpreted as the sampling rate you want the data to be shifted to.
     method: {'fagg', 'bagg', 'nagg'}, default 'nshift'
         Specifies if datapoints get propagated forwards, backwards or to the nearest grid timestamp. See function
         description for more details.
@@ -563,6 +563,11 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
         Flags that refer to values you want to drop before shifting - effectively, excluding values that are flagged
         with a flag in to_drop from the shifting process. Default - to_drop = None  - results in flagger.BAD
         values being dropped initially.
+    freq_check : {None, 'check', 'auto'}, default None
+        - None: do not validate frequency-string passed to `freq`
+        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+            if no uniform sampling rate could be estimated
+        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -584,7 +589,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
-    freq = evalFreqStr(freq, datcol.index)
+    freq = evalFreqStr(freq, freq_check, datcol.index)
     if datcol.empty:
         data[field] = datcol
         reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
@@ -636,7 +641,7 @@ def proc_transform(data, field, flagger, func, **kwargs):
 
 
 @register(masking='field')
-def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=None, **kwargs):
+def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=None, freq_check=None, **kwargs):
 
     """
     The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
@@ -677,16 +682,21 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         The fieldname of the data column, you want to project the source-flags at.
     flagger : saqc.flagger
         A flagger object, holding flags and additional Informations related to `data`.
-    method: {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
+    method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
         The method used for projection of source flags onto field flags. See description above for more details.
-    source: str
+    source : str
         The source source of flags projection.
-    freq: {None, str},default None
+    freq : {None, str},default None
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
-    to_drop: {None, str, List[str]}, default None
+    to_drop : {None, str, List[str]}, default None
         Flags referring to values that are to drop before flags projection. Relevant only when projecting wiht an
         inverted shift method. Defaultly flagger.BAD is listed.
+    freq_check : {None, 'check', 'auto'}, default None
+        - None: do not validate frequency-string passed to `freq`
+        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+            if no uniform sampling rate could be estimated
+        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -705,7 +715,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     if (freq is None) and (method != "match"):
         freq = 'auto'
 
-    freq = evalFreqStr(freq, flagscol.index)
+    freq = evalFreqStr(freq, freq_check, flagscol.index)
 
     if method[-13:] == "interpolation":
         backprojected = flagscol.reindex(target_flagscol.index, method="bfill", tolerance=freq)
