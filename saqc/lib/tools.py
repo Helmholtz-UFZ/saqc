@@ -356,7 +356,7 @@ def mutateIndex(index, old_name, new_name):
     return index
 
 
-def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", pad_fft_to_opt=True,
+def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", optimize=True,
                       min_energy=0.2, max_freqs=10, bins=None):
 
     """
@@ -388,7 +388,7 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
         Maximum rate that can be detected.
     min_rate : str, default "1D"
         Minimum detectable sampling rate.
-    pad_fft_to_opt : bool, default True
+    optimize : bool, default True
         Wheather or not to speed up fft application by zero padding the derived response series to
         an optimal length. (Length = 2**N)
     min_energy : float, default 0.2
@@ -417,7 +417,7 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     index_n = (index_n - index_n[0])*10**(-9 + delta_precision)
     delta = np.zeros(int(index_n[-1])+1)
     delta[index_n.astype(int)] = 1
-    if pad_fft_to_opt:
+    if optimize:
         delta_f = np.abs(fft.rfft(delta, fft.next_fast_len(len(delta))))
     else:
         delta_f = np.abs(fft.rfft(delta))
