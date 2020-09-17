@@ -16,7 +16,8 @@ from saqc.lib.tools import (
     offset2seconds,
     slidingWindowIndices,
     findIndex,
-    toSequence
+    toSequence,
+    customRolling
 )
 from outliers import smirnov_grubbs
 
@@ -936,14 +937,16 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
         initial = np.searchsorted(chunk_stair, 2)
         if initial == len(chunk):
             return 0
-        if np.abs(chunk[- initial +1] - chunk[-1]) < tol:
+        if np.abs(chunk[- initial + 1] - chunk[-1]) < tol:
             return initial - 1
         else:
             return 0
 
     to_roll = dataseries[to_roll]
-    to_roll = to_roll.rolling(window, closed="both").apply(spike_tester, raw=True).astype(int)
-    detected = to_roll[to_roll > 0]
+    roll_mask = pd.Series(False, index=to_roll.index)
+    roll_mask[post_jumps.index] = True
+    result = customRolling(to_roll, window, spike_tester, roll_mask, closed='both')
+    detected = result[result > 0].astype(int)
     to_flag = pd.DatetimeIndex([])
     for row in detected.iteritems():
         loc = to_roll.index.get_loc(row[0])

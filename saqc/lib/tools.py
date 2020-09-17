@@ -9,6 +9,8 @@ import numba as nb
 import pandas as pd
 import logging
 import dios
+from pandas.api.indexers import BaseIndexer
+from pandas._libs.window.indexers import calculate_variable_window_bounds
 
 
 # from saqc.flagger import BaseFlagger
@@ -356,4 +358,31 @@ def mutateIndex(index, old_name, new_name):
     index = index.drop(index[pos])
     index = index.insert(pos, new_name)
     return index
+
+
+class FreqIndexer(BaseIndexer):
+    def get_window_bounds(self, num_values, min_periods, center, closed):
+        start, end = calculate_variable_window_bounds(num_values, self.window_size, min_periods, center, closed,
+                                            self.index_array)
+        start[~self.win_points] = 0
+        end[~self.win_points] = 0
+        return start, end
+
+
+def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, closed=None, raw=True, engine=None):
+    i_roll = to_roll.copy()
+    i_roll.index = np.arange(to_roll.shape[0])
+    winsz = int(pd.Timedelta(winsz).total_seconds()*10**9)
+    indexer = FreqIndexer(window_size=winsz,
+                              win_points=roll_mask,
+                              index_array=to_roll.index.to_numpy(int),
+                              center=center,
+                              closed=closed)
+    i_roll = i_roll.rolling(indexer,
+                            min_periods=min_periods,
+                            center=center,
+                            closed=closed).apply(func, raw=raw, engine=engine)
+    return pd.Series(i_roll.values, index=to_roll.index)
+
+
 
