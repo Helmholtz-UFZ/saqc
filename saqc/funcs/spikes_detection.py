@@ -922,54 +922,34 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
 
     dataseries = data[field].dropna()
     # get all the entries preceding a significant jump
-    pre_jumps = dataseries.diff(periods=-1).abs() > thresh
-    pre_jumps = pre_jumps[pre_jumps]
-    if pre_jumps.empty:
+    post_jumps = dataseries.diff().abs() > thresh
+    post_jumps = post_jumps[post_jumps]
+    if post_jumps.empty:
         return data, flagger
     # get all the entries preceeding a significant jump and its successors within "length" range
-    to_roll = pre_jumps.reindex(dataseries.index, method="ffill", tolerance=window, fill_value=False).dropna()
+    to_roll = post_jumps.reindex(dataseries.index, method="bfill", tolerance=window, fill_value=False).dropna()
 
     # define spike testing function to roll with:
-    def spike_tester(chunk, pre_jumps_index, thresh, tol):
-        if not chunk.index[-1] in pre_jumps_index:
+    def spike_tester(chunk, thresh=thresh, tol=tolerance):
+        # signum change!!!
+        chunk_stair = (np.abs(chunk - chunk[-1]) < thresh)[::-1].cumsum()
+        initial = np.searchsorted(chunk_stair, 2)
+        if initial == len(chunk):
             return 0
+        if np.abs(chunk[- initial +1] - chunk[-1]) < tol:
+            return initial - 1
         else:
-            # signum change!!!
-            chunk_stair = (abs(chunk - chunk[-1]) < thresh)[::-1].cumsum()
-            first_return = chunk_stair[(chunk_stair == 2)]
-            if first_return.sum() == 0:
-                return 0
-            if abs(chunk[first_return.index[0]] - chunk[-1]) < tol:
-                return (chunk_stair == 1).sum() - 1
-            else:
-                return 0
+            return 0
 
-    # since .rolling does neither support windows, defined by left starting points, nor rolling over monotonically
-    # decreasing indices, we have to trick the method by inverting the timeseries and transforming the resulting index
-    # to pseudo-increase.
     to_roll = dataseries[to_roll]
-    original_index = to_roll.index
-    to_roll = to_roll[::-1]
-    pre_jump_reversed_index = to_roll.index[0] - pre_jumps.index
-    to_roll.index = to_roll.index[0] - to_roll.index
-
-    # now lets roll:
-    to_roll = (
-        to_roll.rolling(window, closed="both")
-        .apply(spike_tester, args=(pre_jump_reversed_index, thresh, tolerance), raw=False)
-        .astype(int)
-    )
-    # reconstruct original index and sequence
-    to_roll = to_roll[::-1]
-    to_roll.index = original_index
-    to_write = to_roll[to_roll != 0]
-    to_flag = pd.Index([])
-    # here comes a loop...):
-    for row in to_write.iteritems():
+    to_roll = to_roll.rolling(window, closed="both").apply(spike_tester, raw=True).astype(int)
+    detected = to_roll[to_roll > 0]
+    to_flag = pd.DatetimeIndex([])
+    for row in detected.iteritems():
         loc = to_roll.index.get_loc(row[0])
-        to_flag = to_flag.append(to_roll.iloc[loc + 1 : loc + row[1] + 1].index)
+        to_flag = to_flag.append(to_roll.iloc[loc - row[1]: loc].index)
 
-    to_flag = to_flag.drop_duplicates(keep="first")
+    to_flag = to_flag.drop_duplicates(keep='first')
     flagger = flagger.setFlags(field, to_flag, **kwargs)
     return data, flagger
 
