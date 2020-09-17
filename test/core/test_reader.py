@@ -104,14 +104,18 @@ def test_configFile(data):
 
 def test_configChecks(data):
 
-    var1, var2, var3, *_ = data.columns
+    var1, _, var3, *_ = data.columns
+
+    @register(masking="none")
+    def flagFunc(data, field, flagger, arg, opt_arg=None, **kwargs):
+        return data, flagger
 
     header = f"{F.VARNAME};{F.TEST}"
     tests = [
-        (f"{var1};flagRange(mn=0)", TypeError),  # bad argument name
-        (f"{var1};flagRange(min=0)", TypeError),  # not enough arguments
+        (f"{var1};flagFunc(mn=0)", TypeError),  # bad argument name
+        (f"{var1};flagFunc()", TypeError),  # not enough arguments
         (f"{var3};flagNothing()", NameError),  # unknown function
-        (";flagRange(min=3)", SyntaxError),  # missing variable
+        (";flagFunc(min=3)", SyntaxError),  # missing variable
         (f"{var1};", SyntaxError),  # missing test
         (f"{var1}; min", TypeError),  # not a function call
     ]
