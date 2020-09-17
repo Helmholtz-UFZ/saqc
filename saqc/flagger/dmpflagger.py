@@ -105,12 +105,16 @@ class DmpFlagger(CategoricalFlagger):
         else:
             return self._construct_new(flags, causes, comments)
 
-    def setFlags(self, field, loc=None, flag=None, force=False, comment="", cause="", inplace=False, **kwargs):
+    def setFlags(self, field, loc=None, flag=None, force=False, comment="", cause="OTHER", inplace=False, **kwargs):
         assert "iloc" not in kwargs, "deprecated keyword, iloc"
         assertScalar("field", field, optional=False)
 
         flag = self.BAD if flag is None else flag
-        comment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
+        comment = json.dumps(
+            {"comment": comment,
+             "commit": self.project_version,
+             "test": kwargs.get("func_name", "")}
+        )
 
         if force:
             row_indexer = loc
