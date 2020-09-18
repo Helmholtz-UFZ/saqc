@@ -940,8 +940,6 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
         # signum change!!!
         chunk_stair = (np.abs(chunk - chunk[-1]) < thresh)[::-1].cumsum()
         initial = np.searchsorted(chunk_stair, 2)
-        import pdb
-        pdb.set_trace()
         if initial == len(chunk):
             return 0
         if np.abs(chunk[- initial - 1] - chunk[-1]) < tol:
@@ -956,13 +954,19 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
     if roll_mask.sum() > numba_kickin:
         engine = 'numba'
     result = customRolling(to_roll, window, spike_tester, roll_mask, closed='both', engine=engine)
-    detected = result[result > 0].astype(int)
-    to_flag = pd.DatetimeIndex([])
-    for row in detected.iteritems():
-        loc = to_roll.index.get_loc(row[0])
-        to_flag = to_flag.append(to_roll.iloc[loc - row[1]: loc].index)
+    group_col = np.nancumsum(result)
+    group_frame = pd.DataFrame({'group_col': group_col[:-1],
+                                'diff_col': np.diff(group_col).astype(int)},
+                               index=result.index[:-1])
 
-    to_flag = to_flag.drop_duplicates(keep='first')
+    groups = group_frame.groupby('group_col')
+
+    def g_func(x):
+        r = np.array([False] * x.shape[0])
+        r[-x[-1]:] = True
+        return r
+
+    to_flag = groups['diff_col'].transform(g_func)
     flagger = flagger.setFlags(field, to_flag, **kwargs)
     return data, flagger
 
