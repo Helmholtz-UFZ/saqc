@@ -871,7 +871,7 @@ def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
 
 
 @register(masking='field')
-def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min", **kwargs):
+def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min", numba_kickin=200000, **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -903,6 +903,11 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
         Maximum difference between pre-spike and post-spike values. See condition (2)
     window : str, default '15min'
         Maximum length of "spiky" value courses. See condition (3)
+    numba_kickin : int, default 200000
+        When there are detected more than `numba_kickin` incidents of potential spikes,
+        the pandas.rolling - part of computation gets "jitted" with numba.
+        Default value hast proven to be around the break even point between "jit-boost" and "jit-costs".
+
 
     Returns
     -------
@@ -945,7 +950,10 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
     to_roll = dataseries[to_roll]
     roll_mask = pd.Series(False, index=to_roll.index)
     roll_mask[post_jumps.index] = True
-    result = customRolling(to_roll, window, spike_tester, roll_mask, closed='both')
+    engine=None
+    if roll_mask.sum() > numba_kickin:
+        engine = 'numba'
+    result = customRolling(to_roll, window, spike_tester, roll_mask, closed='both', engine=engine)
     detected = result[result > 0].astype(int)
     to_flag = pd.DatetimeIndex([])
     for row in detected.iteritems():
