@@ -940,9 +940,11 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
         # signum change!!!
         chunk_stair = (np.abs(chunk - chunk[-1]) < thresh)[::-1].cumsum()
         initial = np.searchsorted(chunk_stair, 2)
+        import pdb
+        pdb.set_trace()
         if initial == len(chunk):
             return 0
-        if np.abs(chunk[- initial + 1] - chunk[-1]) < tol:
+        if np.abs(chunk[- initial - 1] - chunk[-1]) < tol:
             return initial - 1
         else:
             return 0
