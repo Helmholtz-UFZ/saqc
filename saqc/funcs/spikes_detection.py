@@ -871,7 +871,7 @@ def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
 
 
 @register(masking='field')
-def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min", numba_kickin=200000, **kwargs):
+def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kickin=200000, **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
