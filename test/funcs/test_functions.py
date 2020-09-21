@@ -117,7 +117,7 @@ def test_flagIsolated(data, flagger):
 
     data, flagger_result = flagIsolated(
         data, field, flagger_result, group_window="2D", gap_window="2.1D", continuation_range="1.1D",
-    )
+    )/home/luenensc
     assert flagger_result.isFlagged(field)[[3, 5, 13, 14]].all()
 
 

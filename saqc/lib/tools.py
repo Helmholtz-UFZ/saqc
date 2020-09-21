@@ -9,6 +9,8 @@ import numba as nb
 import pandas as pd
 import logging
 import dios
+from pandas.api.indexers import BaseIndexer
+from pandas._libs.window.indexers import calculate_variable_window_bounds
 
 
 # from saqc.flagger import BaseFlagger
@@ -390,4 +392,95 @@ def mutateIndex(index, old_name, new_name):
     index = index.drop(index[pos])
     index = index.insert(pos, new_name)
     return index
+
+
+class FreqIndexer(BaseIndexer):
+    def get_window_bounds(self, num_values, min_periods, center, closed):
+        start, end = calculate_variable_window_bounds(num_values, self.window_size, min_periods, center, closed,
+                                            self.index_array)
+        end[~self.win_points] = 0
+        start[~self.win_points] = 0
+        return start, end
+
+
+class PeriodsIndexer(BaseIndexer):
+    def get_window_bounds(self, num_values, min_periods, center, closed):
+        start_s = np.zeros(self.window_size, dtype="int64")
+        start_e = (
+                np.arange(self.window_size, num_values, dtype="int64")
+                - self.window_size
+                + 1
+        )
+        start = np.concatenate([start_s, start_e])[:num_values]
+
+        end_s = np.arange(self.window_size, dtype="int64") + 1
+        end_e = start_e + self.window_size
+        end = np.concatenate([end_s, end_e])[:num_values]
+        start[~self.win_points] = 0
+        end[~self.win_points] = 0
+        return start, end
+
+
+def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, closed=None, raw=True, engine=None):
+    """
+    A wrapper around pandas.rolling.apply(), that allows for skipping func application on
+    arbitrary selections of windows.
+
+    Parameters
+    ----------
+    to_roll : pandas.Series
+        Timeseries to be "rolled over".
+    winsz : {int, str}
+        Gets passed on to the window-size parameter of pandas.Rolling.
+    func : Callable
+        Function to be rolled with.
+    roll_mask : numpy.array[bool]
+        A mask, indicating the rolling windows, `func` shall be applied on.
+        Has to be of same length as `to_roll`.
+        roll_mask[i] = False indicates, that the window with right end point to_roll.index[i] shall
+        be skipped.
+    min_periods : int, default 1
+        Gets passed on to the min_periods parameter of pandas.Rolling.
+        (Note, that rolling with freq string defined window size and `min_periods`=None,
+        results in nothing being computed due to some inconsistencies in the interplay of pandas.rolling and its
+        indexer.)
+    center : bool, default False
+        Gets passed on to the center parameter of pandas.Rolling.
+    closed : {None, 'left', 'right', 'both'}, default None
+        Gets passed on to the closed parameter of pandas.Rolling.
+    raw : bool, default True
+        Gets passed on to the raw parameter of pandas.Rolling.apply.
+    engine : {None, 'numba'}, default None
+        Gets passed on to the engine parameter of pandas.Rolling.apply.
+
+    Returns
+    -------
+    result : pandas.Series
+        The result of the rolling application.
+
+    """
+    i_roll = to_roll.copy()
+    i_roll.index = np.arange(to_roll.shape[0])
+    if isinstance(winsz, str):
+        winsz = int(pd.Timedelta(winsz).total_seconds()*10**9)
+        indexer = FreqIndexer(window_size=winsz,
+                              win_points=roll_mask,
+                              index_array=to_roll.index.to_numpy(int),
+                              center=center,
+                              closed=closed)
+
+    elif isinstance(winsz, int):
+        indexer = PeriodsIndexer(window_size=winsz,
+                              win_points=roll_mask,
+                              center=center,
+                              closed=closed)
+
+    i_roll = i_roll.rolling(indexer,
+                            min_periods=min_periods,
+                            center=center,
+                            closed=closed).apply(func, raw=raw, engine=engine)
+
+    return pd.Series(i_roll.values, index=to_roll.index)
+
+
 
