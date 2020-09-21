@@ -30,6 +30,7 @@ def course_1(char_dict):
         peak_level=10,
         initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
         char_dict=char_dict,
+        name='data'
     ):
 
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
@@ -41,7 +42,7 @@ def course_1(char_dict):
         char_dict["drop"] = s.index[int(np.floor(len(t_index) / 2) + 1) :]
         char_dict["peak"] = s.index[int(np.floor(len(t_index) / 2)) - 1 : int(np.floor(len(t_index) / 2)) + 1]
 
-        data = DictOfSeries(data=s, columns=["data"])
+        data = DictOfSeries(data=s, columns=[name])
         return data, char_dict
 
     return fix_funk
