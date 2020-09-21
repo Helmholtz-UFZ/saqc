@@ -76,7 +76,7 @@ def test_flagSpikesBasic(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
-    data, flagger_result = spikes_flagBasic(data, field, flagger, thresh=60, tolerance=10, window_size="20min")
+    data, flagger_result = spikes_flagBasic(data, field, flagger, thresh=60, tolerance=10, window="20min")
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])

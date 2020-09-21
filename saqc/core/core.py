@@ -144,6 +144,15 @@ class SaQC:
             out = out._wrap(func, lineno=lineno, expr=expr)(**kwargs)
         return out
 
+    def _expandFields(self, func_dump, variables):
+        if not func_dump["regex"]:
+            return [func_dump]
+
+        out = []
+        for field in variables[variables.str.match(func_dump["field"])]:
+            out.append({**func_dump, "field": field})
+        return out
+
     def evaluate(self):
         """
         Realize all the registered calculations and return a updated SaQC Object
@@ -161,38 +170,39 @@ class SaQC:
         data, flagger = self._data, self._flagger
 
         for func_dump in self._to_call:
-            func_name = func_dump['func_name']
-            func_kws = func_dump['func_kws']
-            field = func_dump['field']
-            plot = func_dump["ctrl_kws"]["plot"]
-            logger.debug(f"processing: {field}, {func_name}, {func_kws}")
+            for func_dump in self._expandFields(func_dump, data.columns.union(flagger._flags.columns)):
+                func_name = func_dump['func_name']
+                func_kws = func_dump['func_kws']
+                field = func_dump['field']
+                plot = func_dump["ctrl_kws"]["plot"]
+                logger.debug(f"processing: {field}, {func_name}, {func_kws}")
 
-            try:
-                t0 = timeit.default_timer()
-                data_result, flagger_result = _saqcCallFunc(func_dump, data, flagger)
+                try:
+                    t0 = timeit.default_timer()
+                    data_result, flagger_result = _saqcCallFunc(func_dump, data, flagger)
 
-            except Exception as e:
-                t1 = timeit.default_timer()
-                logger.debug(f"{func_name} failed after {t1 - t0} sec")
-                _handleErrors(e, func_dump, self._error_policy)
-                continue
-            else:
-                t1 = timeit.default_timer()
-                logger.debug(f"{func_name} finished after {t1 - t0} sec")
+                except Exception as e:
+                    t1 = timeit.default_timer()
+                    logger.debug(f"{func_name} failed after {t1 - t0} sec")
+                    _handleErrors(e, func_dump, self._error_policy)
+                    continue
+                else:
+                    t1 = timeit.default_timer()
+                    logger.debug(f"{func_name} finished after {t1 - t0} sec")
 
-            if plot:
-                plotHook(
-                    data_old=data,
-                    data_new=data_result,
-                    flagger_old=flagger,
-                    flagger_new=flagger_result,
-                    sources=[],
-                    targets=[field],
-                    plot_name=func_name,
-                )
+                if plot:
+                    plotHook(
+                        data_old=data,
+                        data_new=data_result,
+                        flagger_old=flagger,
+                        flagger_new=flagger_result,
+                        sources=[],
+                        targets=[field],
+                        plot_name=func_name,
+                    )
 
-            data = data_result
-            flagger = flagger_result
+                data = data_result
+                flagger = flagger_result
 
         if any([fdump["ctrl_kws"]["plot"] for fdump in self._to_call]):
             plotAllHook(data, flagger)
@@ -217,7 +227,7 @@ class SaQC:
 
     def _wrap(self, func_name, lineno=None, expr=None):
         def inner(field: str, *args, regex: bool = False, to_mask=None, plot=False, inplace=False, **kwargs):
-            fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
+            # fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
 
             kwargs.setdefault('nodata', self._nodata)
 
@@ -238,13 +248,16 @@ class SaQC:
                 "func_args": args,
                 "func_kws": kwargs,
                 "ctrl_kws": ctrl_kws,
+                "field": field,
+                "regex": regex,
             }
 
             out = self if inplace else self.copy()
+            out._to_call.append(func_dump)
 
-            for field in fields:
-                dump_copy = {**func_dump, "field": field}
-                out._to_call.append(dump_copy)
+            # for field in fields:
+            #     dump_copy = {**func_dump, "field": field}
+            #     out._to_call.append(dump_copy)
             return out
 
         return inner
