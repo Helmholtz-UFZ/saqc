@@ -896,7 +896,7 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
         A distance function. It should be a function of 2 1-dimensional arrays and return a float scalar value.
         This value is interpreted as the distance of the two input arrays. The default is the averaged manhatten metric.
         See the Notes section to get an idea of why this could be a good choice.
-    linkage_method : {"single", "complete", "average", "weghted", "centroid", "median", "ward"}, default "single"
+    linkage_method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
         The linkage method used for hierarchical (agglomerative) clustering of the timeseries.
         See the Notes section for more details.
         The keyword gets passed on to scipy.hierarchy.linkage. See its documentation to learn more about the different
@@ -979,5 +979,70 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
 
         for var in drifters:
             flagger = flagger.setFlags(fields[var], loc=segment[1].index, **kwargs)
+
+    return data, flagger
+
+
+def flagDriftFromReference(data, field, flagger, fields, segment_freq, thresh,
+                      metric=lambda x, y: scipy.spatial.distance.pdist(np.array([x, y]),
+                                                                                    metric='cityblock')/len(x),
+                       **kwargs):
+    """
+    The function flags value courses that deviate from a reference course by a margin exceeding a certain threshold.
+
+    The deviation is meassured by the distance function passed to parameter metric.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The reference variable, the deviation from wich determines the flagging.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional informations related to `data`.
+    fields : str
+        List of fieldnames in data, determining wich variables are to be included into the flagging process.
+    segment_freq : str
+        An offset string, determining the size of the seperate datachunks that the algorihm is to be piecewise
+        applied on.
+    thresh : float
+        The threshod by wich normal variables can deviate from the reference variable at max.
+    metric : Callable[(numpyp.array, numpy-array), float]
+        A distance function. It should be a function of 2 1-dimensional arrays and return a float scalar value.
+        This value is interpreted as the distance of the two input arrays. The default is the averaged manhatten metric.
+        See the Notes section to get an idea of why this could be a good choice.
+    kwargs
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the input flagger.
+
+    Notes
+    -----
+    it is advisable to choose a distance function, that can be well interpreted in the units
+    dimension of the measurement and where the interpretation is invariant over the length of the timeseries.
+    That is, why, the "averaged manhatten metric" is set as the metric default, since it corresponds to the
+    averaged value distance, two timeseries have (as opposed by euclidean, for example).
+    """
+
+    data_to_flag = data[fields].to_df()
+    data_to_flag.dropna(inplace=True)
+    if field not in fields:
+        fields.append(field)
+    var_num = len(fields)
+    segments = data_to_flag.groupby(pd.Grouper(freq=segment_freq))
+
+    for segment in segments:
+
+        if segment[1].shape[0] <= 1:
+            continue
+        for i in range(var_num):
+            dist = metric(segment[1].iloc[:, i].values, segment[1].loc[:, field].values)
+            if dist > thresh:
+                flagger = flagger.setFlags(fields[i], loc=segment[1].index, **kwargs)
 
     return data, flagger

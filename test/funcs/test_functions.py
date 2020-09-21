@@ -227,6 +227,10 @@ def test_flagDriftFromNormal(dat, flagger):
     data['d2'] = dat(periods=200, peak_level=10, name='d2')[0]['d2']
     data['d3'] = dat(periods=200, peak_level=100, name='d3')[0]['d3']
     flagger = flagger.initFlags(data)
-    data, flagger = flagDriftFromNorm(data, 'dummy', flagger, ['d1', 'd2', 'd3'], segment_freq="200min",
+    data_norm, flagger_norm = flagDriftFromNorm(data, 'dummy', flagger, ['d1', 'd2', 'd3'], segment_freq="200min",
                                       norm_spread=5)
-    assert flagger.isFlagged()['d3'].all()
+
+    data_ref, flagger_ref = flagDriftFromReference(data, 'd1', flagger, ['d1', 'd2', 'd3'], segment_freq="3D",
+                                      thresh=20)
+    assert flagger_norm.isFlagged()['d3'].all()
+    assert flagger_ref.isFlagged()['d3'].all()
