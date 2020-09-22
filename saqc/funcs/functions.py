@@ -15,7 +15,9 @@ from mlxtend.evaluate import permutation_test
 from scipy.cluster.hierarchy import linkage, fcluster
 
 
-from saqc.lib.tools import groupConsecutives, sesonalMask
+from saqc.lib.tools import groupConsecutives, seasonalMask
+from saqc.funcs.proc_functions import proc_fork, proc_drop, proc_projectFlags
+from saqc.funcs.modelling import modelling_mask
 
 from saqc.core.register import register
 from saqc.core.visitor import ENVIRONMENT
@@ -473,18 +475,15 @@ def flagSesonalRange(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
-    smask = sesonalMask(data[field].index, startmonth, startday, endmonth, endday)
 
-    d = data.loc[smask, [field]]
-    if d.empty:
-        return data, flagger
-
-    _, flagger_range = flagRange(d, field, flagger.slice(loc=d[field].index), min=min, max=max, **kwargs)
-
-    if not flagger_range.isFlagged(field).any():
-        return data, flagger
-
-    flagger = flagger.merge(flagger_range)
+    data, flagger = proc_fork(data, field, flagger, suffix="_masked")
+    data, flagger = modelling_mask(data, field + "_masked", flagger, mode='seasonal',
+                                   season_start=f"{startmonth:02}-{startday:02}T00:00:00",
+                                   season_end=f"{endmonth:02}-{endday:02}T00:00:00",
+                                   include_bounds=True)
+    data, flagger = flagRange(data, field + "_masked", flagger, min=min, max=max, **kwargs)
+    data, flagger = proc_projectFlags(data, field, flagger, method='match', source=field + "_masked")
+    data, flagger = proc_drop(data, field + "_masked", flagger)
     return data, flagger
 
 

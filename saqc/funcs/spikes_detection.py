@@ -465,17 +465,21 @@ def spikes_flagMultivarScores(
     val_frame = data[fields]
     val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
     val_frame.dropna(inplace=True)
+    val_frame = val_frame.apply(trafo)
+
     if val_frame.empty:
         return data, flagger
 
-    if threshing == 'stray':
-        to_flag_index = _stray(val_frame,
-                               partition_freq=stray_partition,
-                               partition_min=stray_partition_min,
-                               scoring_method=scoring_method,
-                               n_neighbors=n_neighbors,
-                               iter_start=iter_start,
-                               trafo=trafo)
+    if threshing == "stray":
+        to_flag_index = _stray(
+            val_frame,
+            partition_freq=stray_partition,
+            partition_min=stray_partition_min,
+            scoring_method=scoring_method,
+            n_neighbors=n_neighbors,
+            iter_start=iter_start,
+            alpha=alpha
+        )
 
     else:
         val_frame = val_frame.apply(trafo)
