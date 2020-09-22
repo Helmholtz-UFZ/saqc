@@ -153,7 +153,7 @@ class BaseFlagger(ABC):
         flag = self.BAD if flag is None else flag
 
         if force:
-            row_indexer = loc
+            row_indexer = slice(None) if loc is None else loc
         else:
             # trim flags to loc, we always get a pd.Series returned
             this = self.getFlags(field=field, loc=loc)
