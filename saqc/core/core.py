@@ -15,6 +15,7 @@ import pandas as pd
 import dios
 import numpy as np
 import timeit
+import inspect
 
 from saqc.lib.plotting import plotHook, plotAllHook
 from saqc.lib.tools import isQuoted
@@ -231,7 +232,6 @@ class SaQC:
 
             kwargs.setdefault('nodata', self._nodata)
 
-            # to_mask is a control keyword
             ctrl_kws = {
                 **(FUNC_MAP[func_name]["ctrl_kws"]),
                 'to_mask': to_mask or self._to_mask,
@@ -314,6 +314,10 @@ def _saqcCallFunc(func_dump, data, flagger):
     data_result, flagger_result = func(data_in, field, flagger, *func_args, func_name=func_name, **func_kws)
     data_result = _unmaskData(data, mask, data_result, flagger_result, to_mask)
 
+    # we check the passed function-kwargs after the actual call, because now "hard" errors would already have been
+    # raised (Eg. `TypeError: got multiple values for argument 'data'`, when the user pass data=...)
+    _warnForUnusedKwargs(func_dump, flagger)
+
     return data_result, flagger_result
 
 
@@ -358,5 +362,45 @@ def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
                 data_new[col] = pd.Series(data=data, index=is_masked.index)
 
     return data_new
+
+
+def _warnForUnusedKwargs(func_dump, flagger):
+    """ Warn for unused kwargs, passed to a SaQC.function.
+
+    Parameters
+    ----------
+    func_dump: dict
+        Saqc internal data structure that hold all function info.
+    flagger: saqc.flagger.BaseFlagger
+        Flagger object.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    A single warning via the logging module is thrown, if any number of
+    missing kws are detected, naming each missing kw.
+    """
+    passed_kws = func_dump['func_kws']
+    func = func_dump['func']
+    sig_kws = inspect.signature(func).parameters
+
+    # we need to ignore kwargs that are injected or
+    # used to control the flagger
+    ignore = flagger.signature + ('nodata',)
+
+    missing = []
+    for kw in passed_kws:
+        # there is no need to check for
+        # `kw in [KEYWORD_ONLY, VAR_KEYWORD or POSITIONAL_OR_KEYWORD]`
+        # because this would have raised an error beforehand.
+        if kw not in sig_kws and kw not in ignore:
+            missing.append(kw)
+
+    if missing:
+        missing = ', '.join(missing)
+        logging.warning(f"Unused argument(s): {missing}")
 
 
