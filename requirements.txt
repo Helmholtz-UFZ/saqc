@@ -4,7 +4,7 @@ cycler==0.10.0
 dios==0.6.0
 dtw==1.4.0
 kiwisolver==1.2.0
-importlib-metadata==1.7.0
+importlib-metadata==2.0.0
 joblib==0.16.0
 llvmlite==0.34.0
 mlxtend==0.17.3
