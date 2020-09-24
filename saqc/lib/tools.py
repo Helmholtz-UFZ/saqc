@@ -410,7 +410,8 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
     winsz : {int, str}
         Gets passed on to the window-size parameter of pandas.Rolling.
     func : Callable
-        Function to be rolled with.
+        Function to be rolled with. If the funcname matches a .rolling attribute,
+        the associated method of .rolling will be used instead of .apply(func) (=faster)
     roll_mask : numpy.array[bool]
         A mask, indicating the rolling windows, `func` shall be applied on.
         Has to be of same length as `to_roll`.
@@ -456,10 +457,15 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
                               center=center,
                               closed=closed)
 
-    i_roll = i_roll.rolling(indexer,
+    i_roller = i_roll.rolling(indexer,
                             min_periods=min_periods,
                             center=center,
-                            closed=closed).apply(func, raw=raw, engine=engine)
+                            closed=closed)
+
+    if hasattr(i_roller, func.__name__):
+        i_roll = getattr(i_roller, func.__name__)
+    else:
+        i_roll = i_roller.apply(func, raw=raw, engine=engine)
 
     return pd.Series(i_roll.values, index=to_roll.index)
 
