@@ -361,15 +361,25 @@ def mutateIndex(index, old_name, new_name):
 
 
 class FreqIndexer(BaseIndexer):
+# indexer class capable of generating indices for frequency determined windows,
+# arbitrary window skips and forward facing windows (meant to be used by pd.rolling)
     def get_window_bounds(self, num_values, min_periods, center, closed):
+        i_dir = 1
+        if self.forward:
+            i_dir = -1
+
         start, end = calculate_variable_window_bounds(num_values, self.window_size, min_periods, center, closed,
-                                            self.index_array)
+                                            self.index_array[::i_dir])
+        if self.forward:
+            start, end = (num_values - end)[::-1], (num_values - start)[::-1]
         end[~self.win_points] = 0
         start[~self.win_points] = 0
         return start, end
 
 
 class PeriodsIndexer(BaseIndexer):
+# indexer class capable of generating periods-number determined windows and
+# arbitrary window skips (meant to be used by pd.rolling)
     def get_window_bounds(self, num_values, min_periods, center, closed):
         start_s = np.zeros(self.window_size, dtype="int64")
         start_e = (
@@ -387,7 +397,8 @@ class PeriodsIndexer(BaseIndexer):
         return start, end
 
 
-def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, closed=None, raw=True, engine=None):
+def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, closed=None, raw=True, engine=None,
+                  forward=False):
     """
     A wrapper around pandas.rolling.apply(), that allows for skipping func application on
     arbitrary selections of windows.
@@ -418,6 +429,9 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
         Gets passed on to the raw parameter of pandas.Rolling.apply.
     engine : {None, 'numba'}, default None
         Gets passed on to the engine parameter of pandas.Rolling.apply.
+    forward : bool, default False
+        If true, roll with forward facing windows. (not yet implemented for
+        integer defined windows.)
 
     Returns
     -------
@@ -433,7 +447,8 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
                               win_points=roll_mask,
                               index_array=to_roll.index.to_numpy(int),
                               center=center,
-                              closed=closed)
+                              closed=closed,
+                              forward=forward)
 
     elif isinstance(winsz, int):
         indexer = PeriodsIndexer(window_size=winsz,
