@@ -469,5 +469,3 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
 
     return pd.Series(i_roll.values, index=to_roll.index)
 
-
-
