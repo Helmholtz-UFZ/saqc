@@ -1049,9 +1049,7 @@ def flagDriftFromReference(data, field, flagger, fields, segment_freq, thresh,
     return data, flagger
 
 @numba.jit(nopython=True)
-def _slidingWindowSearch(data_arr, bwd_start, fwd_end, stat_func, thresh_func):
-    result_arr = np.zeros(len(data_arr) - 1)
-
+def _slidingWindowSearch(data_arr, bwd_start, fwd_end, stat_func, thresh_func, result_arr):
     for win_i in range(1, len(data_arr)):
         x = data_arr[bwd_start[win_i - 1]:win_i]
         y = data_arr[win_i:fwd_end[win_i - 1]]
@@ -1113,6 +1111,7 @@ def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, m
     fwd_start, fwd_end = np.roll(fwd_start, -1), np.roll(fwd_end, -1)
 
     data_arr = data_ser.values
-    result_arr = _slidingWindowSearch(data_arr, bwd_start, fwd_end, stat_func, thresh_func)
-    flagger = flagger.setFlags(field, loc=result_arr[result_arr])
+    result_arr = np.array([False] * var_len, dtype=bool)
+    result_arr = _slidingWindowSearch(data_arr, bwd_start, fwd_end, stat_func, thresh_func, result_arr)
+    flagger = flagger.setFlags(field, loc=result_arr)
     return data, flagger
