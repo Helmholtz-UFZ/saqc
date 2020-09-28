@@ -439,7 +439,7 @@ class PeriodsIndexer(BaseIndexer):
 
 
 def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=False, closed=None, raw=True, engine=None,
-                  forward=False):
+                  forward=False, index_only=False):
     """
     A wrapper around pandas.rolling.apply(), that allows for skipping func application on
     arbitrary selections of windows.
@@ -476,8 +476,10 @@ def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=Fa
         If true, roll with forward facing windows. (not yet implemented for
         integer defined windows.)
     center : bool, default False
-        If true, set the label to the center of the rolling window. Although available
-        for windows defined by sample rates! (yeah!)
+        If true, set the label to the center of the rolling window. Also available
+        for frequencie defined rolling windows! (yeah!)
+    index_only : bool, default False
+        Only return rolling window indices.
 
     Returns
     -------
@@ -501,6 +503,10 @@ def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=Fa
                                  win_points=roll_mask,
                                  center=center,
                                  closed=closed)
+
+    if index_only:
+        num_values = to_roll.shape[0]
+        return indexer.get_window_bounds(num_values, min_periods, center, closed)
 
     i_roller = i_roll.rolling(indexer,
                             min_periods=min_periods,
