@@ -26,19 +26,38 @@ from saqc.core.register import FUNC_MAP
 
 logger = logging.getLogger("SaQC")
 
+from dataclasses import dataclass, replace
+from typing import List, Any, Dict, Callable
 
-def _handleErrors(exc, func_dump, policy):
-    func_name = func_dump['func_name']
-    func_kws = func_dump['func_kws']
-    field = func_dump['field']
-    ctrl_kws = func_dump['ctrl_kws']
-    lineno = ctrl_kws['lineno']
-    func_expr = ctrl_kws['lineno']
-    msg = f"Execution failed. Variable: '{field}', "
-    if lineno is not None and func_expr is not None:
-        msg += f"Config line {lineno}: '{func_expr}', "
+
+@dataclass
+class FuncCtrl:
+    "ctrl_kws"
+    to_mask: Any   # flagger.FLAG constants or a list of those
+    masking: str   # one of: "none", "field", "all"
+    plot: bool
+    inplace: bool
+    lineno: int
+    expr: str
+
+
+@dataclass
+class Func:
+    name: str
+    func: Any # Callable[[...], Any]  # SaQCFunc
+    field: str
+    regex: bool
+    args: List[Any]
+    kwargs: Dict[str, Any]
+    ctrl: FuncCtrl
+
+
+def _handleErrors(exc, func, policy):
+    msg = f"Execution failed. Variable: '{func.field}', "
+    if func.ctrl.lineno is not None and func.ctrl.expr is not None:
+        msg += f"Config line {func.ctrl.lineno}: '{func.ctrl.expr}', "
     else:
-        msg += f"Function: {func_name}(), parameters: '{func_kws}', "
+        msg += f"Function: {func.name}(), parameters: '{func.kwargs}', "
     msg += f"Exception:\n{type(exc).__name__}: {exc}"
 
     if policy == "ignore":
@@ -145,13 +164,13 @@ class SaQC:
             out = out._wrap(func, lineno=lineno, expr=expr)(**kwargs)
         return out
 
-    def _expandFields(self, func_dump, variables):
-        if not func_dump["regex"]:
-            return [func_dump]
+    def _expandFields(self, func, variables):
+        if not func.regex:
+            return [func]
 
         out = []
-        for field in variables[variables.str.match(func_dump["field"])]:
-            out.append({**func_dump, "field": field})
+        for field in variables[variables.str.match(func.field)]:
+            out.append(replace(func, field=field))
         return out
 
     def evaluate(self):
@@ -170,42 +189,38 @@ class SaQC:
         #       method instead of intermingling it with the computation
         data, flagger = self._data, self._flagger
 
-        for func_dump in self._to_call:
-            for func_dump in self._expandFields(func_dump, data.columns.union(flagger._flags.columns)):
-                func_name = func_dump['func_name']
-                func_kws = func_dump['func_kws']
-                field = func_dump['field']
-                plot = func_dump["ctrl_kws"]["plot"]
-                logger.debug(f"processing: {field}, {func_name}, {func_kws}")
+        for func in self._to_call:
+            for func in self._expandFields(func, data.columns.union(flagger._flags.columns)):
+                logger.debug(f"processing: {func.field}, {func.name}, {func.kwargs}")
 
                 try:
                     t0 = timeit.default_timer()
-                    data_result, flagger_result = _saqcCallFunc(func_dump, data, flagger)
+                    data_result, flagger_result = _saqcCallFunc(func, data, flagger)
 
                 except Exception as e:
                     t1 = timeit.default_timer()
-                    logger.debug(f"{func_name} failed after {t1 - t0} sec")
-                    _handleErrors(e, func_dump, self._error_policy)
+                    logger.debug(f"{func.name} failed after {t1 - t0} sec")
+                    _handleErrors(e, func, self._error_policy)
                     continue
                 else:
                     t1 = timeit.default_timer()
-                    logger.debug(f"{func_name} finished after {t1 - t0} sec")
+                    logger.debug(f"{func.name} finished after {t1 - t0} sec")
 
-                if plot:
+                if func.ctrl.plot:
                     plotHook(
                         data_old=data,
                         data_new=data_result,
                         flagger_old=flagger,
                         flagger_new=flagger_result,
                         sources=[],
-                        targets=[field],
-                        plot_name=func_name,
+                        targets=[func.field],
+                        plot_name=func.name,
                     )
 
                 data = data_result
                 flagger = flagger_result
 
-        if any([fdump["ctrl_kws"]["plot"] for fdump in self._to_call]):
+        if any([fdump.ctrl.plot for fdump in self._to_call]):
             plotAllHook(data, flagger)
 
         # This is much faster for big datasets that to throw everything in the constructor.
@@ -232,32 +247,30 @@ class SaQC:
 
             kwargs.setdefault('nodata', self._nodata)
 
-            ctrl_kws = {
-                **(FUNC_MAP[func_name]["ctrl_kws"]),
-                'to_mask': to_mask or self._to_mask,
-                'plot': plot,
-                'inplace': inplace,
-                'lineno': lineno,
-                'expr': expr
-            }
             func = FUNC_MAP[func_name]["func"]
 
-            func_dump = {
-                "func_name": func_name,
-                "func": func,
-                "func_args": args,
-                "func_kws": kwargs,
-                "ctrl_kws": ctrl_kws,
-                "field": field,
-                "regex": regex,
-            }
+            ctrl_kws = FuncCtrl(
+                masking=FUNC_MAP[func_name]["masking"],
+                to_mask=to_mask or self._to_mask,
+                plot=plot,
+                inplace=inplace,
+                lineno=lineno,
+                expr=expr,
+                )
+
+            func_dump = Func(
+                name=func_name,
+                func=func,
+                field=field,
+                regex=regex,
+                args=args,
+                kwargs=kwargs,
+                ctrl=ctrl_kws,
+            )
 
             out = self if inplace else self.copy()
             out._to_call.append(func_dump)
 
-            # for field in fields:
-            #     dump_copy = {**func_dump, "field": field}
-            #     out._to_call.append(dump_copy)
             return out
 
         return inner
@@ -278,14 +291,10 @@ class SaQC:
 
 
 def _saqcCallFunc(func_dump, data, flagger):
-    func = func_dump['func']
-    func_name = func_dump['func_name']
-    func_args = func_dump['func_args']
-    func_kws = func_dump['func_kws']
-    field = func_dump['field']
-    ctrl_kws = func_dump['ctrl_kws']
-    to_mask = ctrl_kws['to_mask']
-    masking = ctrl_kws['masking']
+
+    field = func_dump.field
+    to_mask = func_dump.ctrl.to_mask
+    masking = func_dump.ctrl.masking
 
     if masking == 'all':
         columns = data.columns
@@ -311,7 +320,9 @@ def _saqcCallFunc(func_dump, data, flagger):
         flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field, dtype=np.float64)))
 
     data_in, mask = _maskData(data, flagger, columns, to_mask)
-    data_result, flagger_result = func(data_in, field, flagger, *func_args, func_name=func_name, **func_kws)
+    data_result, flagger_result = func_dump.func(
+        data_in, field, flagger,
+        *func_dump.args, func_name=func_dump.name, **func_dump.kwargs)
     data_result = _unmaskData(data, mask, data_result, flagger_result, to_mask)
 
     # we check the passed function-kwargs after the actual call, because now "hard" errors would already have been
@@ -383,16 +394,14 @@ def _warnForUnusedKwargs(func_dump, flagger):
     A single warning via the logging module is thrown, if any number of
     missing kws are detected, naming each missing kw.
     """
-    passed_kws = func_dump['func_kws']
-    func = func_dump['func']
-    sig_kws = inspect.signature(func).parameters
+    sig_kws = inspect.signature(func_dump.func).parameters
 
     # we need to ignore kwargs that are injected or
     # used to control the flagger
     ignore = flagger.signature + ('nodata',)
 
     missing = []
-    for kw in passed_kws:
+    for kw in func_dump.kwargs:
         # there is no need to check for
         # `kw in [KEYWORD_ONLY, VAR_KEYWORD or POSITIONAL_OR_KEYWORD]`
         # because this would have raised an error beforehand.
