@@ -86,9 +86,7 @@ def proc_rollingInterpolateMissing(
     if interpol_flag:
         if interpol_flag in ["BAD", "UNFLAGGED", "GOOD"]:
             interpol_flag = getattr(flagger, interpol_flag)
-        flagger = flagger.setFlags(
-            field, loc=interpolated[interpolated].index, force=True, flag=interpol_flag, **kwargs
-        )
+        flagger = flagger.setFlags(field, loc=interpolated, force=True, flag=interpol_flag, **kwargs)
 
     return data, flagger
 
@@ -177,9 +175,7 @@ def proc_interpolateMissing(
     if interpol_flag:
         if interpol_flag in ["BAD", "UNFLAGGED", "GOOD"]:
             interpol_flag = getattr(flagger, interpol_flag)
-        flagger = flagger.setFlags(
-            field, loc=interpolated[interpolated].index, force=True, flag=interpol_flag, **kwargs
-        )
+        flagger = flagger.setFlags(field, loc=interpolated, force=True, flag=interpol_flag, **kwargs)
 
     data[field] = inter_data
     return data, flagger
