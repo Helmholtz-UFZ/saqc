@@ -112,19 +112,37 @@ class BaseFlagger(ABC):
         else:
             return self.copy(flags=flags)
 
-    def getFlags(self, field: FieldsT = None, loc: LocT = None) -> PandasT:
+    def getFlags(self, field: FieldsT = None, loc: LocT = None, full=False):
         """ Return a potentially, to `loc`, trimmed down version of flags.
+
+        Parameters
+        ----------
+        field : str, list of str or None, default None
+            Field(s) to request.
+        loc :
+            limit result to specific rows.
+        full : object
+            If True, an additional dict is returned, holding all extras that
+            the flagger may specify. These extras can be feed back to a/the
+            flagger with `setFlags(...with_extras=True)`.
 
         Return
         ------
-        a pd.Series if field is a string or a Dios if not
+        flags: pandas.Series or dios.DictOfSeries
+            If field is a scalar a series is returned, otherwise a dios.
+        extras: dict
+            Present only if `full=True`. A dict that hold all extra information.
 
         Note
         ----
-            This is more or less a __getitem__(key)-like function, where
-            self._flags is accessed and key is a single key or a tuple.
-            Either key is [loc] or [loc,field]. loc also can be a 2D-key,
-            aka. a booldios"""
+        This is more or less a __getitem__(key)-like function, where
+        self._flags is accessed and key is a single key or a tuple.
+        Either key is [loc] or [loc,field]. loc also can be a 2D-key,
+        aka. a booldios
+
+        The resulting dict (full=True) can be feed to setFlags to update extra Columns.
+        but field must be a scalar then, because setFlags only can process a scalar field.
+        """
 
         # loc should be a valid 2D-indexer and
         # then field must be None. Otherwise aloc
@@ -139,18 +157,47 @@ class BaseFlagger(ABC):
 
         # this is a bug in `dios.aloc`, which may return a shallow copied dios, if `slice(None)` is passed
         # as row indexer. Thus is because pandas `.loc` return a shallow copy if a null-slice is passed to a series.
-        return self._flags.copy().aloc[indexer]
+        flags = self._flags.aloc[indexer].copy()
+        if full:
+            return flags, dict()
+        else:
+            return flags
 
-    def setFlags(self, field: str, loc: LocT = None, flag: FlagT = None, force: bool = False, inplace=False, **kwargs) -> BaseFlaggerT:
+    def setFlags(
+            self,
+            field: str,
+            loc: LocT = None,
+            flag: FlagT = None,
+            force: bool = False,
+            inplace=False,
+            with_extra=False,
+            **kwargs
+    ) -> BaseFlaggerT:
         """Overwrite existing flags at loc.
 
         If `force=False` (default) only flags with a lower priority are overwritten,
         otherwise, if `force=True`, flags are overwritten unconditionally.
+
+        Examples
+        --------
+        One can use this to update extra columns without knowing their names. Eg. like so:
+
+        >>> field = 'var0'
+        >>> flags, extra = flagger.getFlags(field, full=True)
+        >>> newflags = magic_that_alter_index(flags)
+        >>> for k, v in extra.items()
+        ...     extra[k] = magic_that_alter_index(v)
+        >>> flagger = flagger.setFlags(field, flags=newflags, with_extra=True, **extra)
         """
+
         assert "iloc" not in kwargs, "deprecated keyword, `iloc=slice(i:j)`. Use eg. `loc=srs.index[i:j]` instead."
 
-        assertScalar("field", field, optional=False)
+        assertScalar("field", self._check_field(field), optional=False)
         flag = self.BAD if flag is None else flag
+        out = self if inplace else deepcopy(self)
+
+        if with_extra and not isinstance(flag, pd.Series):
+            raise ValueError("flags must be pd.Series if `with_extras=True`.")
 
         if force:
             row_indexer = slice(None) if loc is None else loc
@@ -158,11 +205,6 @@ class BaseFlagger(ABC):
             # trim flags to loc, we always get a pd.Series returned
             this = self.getFlags(field=field, loc=loc)
             row_indexer = this < flag
-
-        if inplace:
-            out = self
-        else:
-            out = deepcopy(self)
 
         out._flags.aloc[row_indexer, field] = flag
         return out
@@ -236,7 +278,7 @@ class BaseFlagger(ABC):
             saved = self._flags
             self._flags = None
             out = deepcopy(self)
-            out._flags = flags
+            out._flags = flags.copy()
             self._flags = saved
         return out
 
