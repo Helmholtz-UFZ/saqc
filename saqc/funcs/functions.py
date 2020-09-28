@@ -1062,7 +1062,8 @@ def _slidingWindowSearch(data_arr, bwd_start, fwd_end, stat_func, thresh_func, n
 
 @register(masking='field')
 def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, min_periods_bwd,
-                     fwd_window=None, min_periods_fwd=None, closed='both', try_to_jit=True):
+                     fwd_window=None, min_periods_fwd=None, closed='both', try_to_jit=True,
+                     agg_range=None):
     """
     Function for change point detection based on sliding window search.
 
@@ -1096,6 +1097,12 @@ def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, m
     data_ser = data[field]
     center = False
     var_len = data_ser.shape[0]
+    if fwd_window is None:
+        fwd_window = bwd_window
+    if min_periods_fwd is None:
+        min_periods_fwd = min_periods_bwd
+    if agg_range is None:
+        agg_range = f"{int(pd.Timedelta(bwd_window).total_seconds() + pd.Timedelta(fwd_window).total_seconds())}s"
     if try_to_jit:
         stat_func = numba.jit(stat_func)
         thresh_func = numba.jit(thresh_func)
@@ -1114,6 +1121,10 @@ def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, m
 
     data_arr = data_ser.values
     stat_arr, thresh_arr = _slidingWindowSearch(data_arr, bwd_start, fwd_end, stat_func, thresh_func, var_len)
+
+    result_arr = stat_arr > thresh_arr
+
+    data_ser[result_arr].rolling(agg_range, closed='both', min_periods=0).count()
 
     flagger = flagger.setFlags(field, loc=result_arr)
     return data, flagger
