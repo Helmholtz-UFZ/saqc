@@ -465,17 +465,21 @@ def spikes_flagMultivarScores(
     val_frame = data[fields]
     val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
     val_frame.dropna(inplace=True)
+    val_frame = val_frame.apply(trafo)
+
     if val_frame.empty:
         return data, flagger
 
-    if threshing == 'stray':
-        to_flag_index = _stray(val_frame,
-                               partition_freq=stray_partition,
-                               partition_min=stray_partition_min,
-                               scoring_method=scoring_method,
-                               n_neighbors=n_neighbors,
-                               iter_start=iter_start,
-                               trafo=trafo)
+    if threshing == "stray":
+        to_flag_index = _stray(
+            val_frame,
+            partition_freq=stray_partition,
+            partition_min=stray_partition_min,
+            scoring_method=scoring_method,
+            n_neighbors=n_neighbors,
+            iter_start=iter_start,
+            alpha=alpha
+        )
 
     else:
         val_frame = val_frame.apply(trafo)
@@ -936,7 +940,7 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
     to_roll = post_jumps.reindex(dataseries.index, method="bfill", tolerance=window, fill_value=False).dropna()
 
     # define spike testing function to roll with:
-    def spike_tester(chunk, thresh=thresh, tol=tolerance):
+    def spikeTester(chunk, thresh=thresh, tol=tolerance):
         # signum change!!!
         chunk_stair = (np.abs(chunk - chunk[-1]) < thresh)[::-1].cumsum()
         initial = np.searchsorted(chunk_stair, 2)
@@ -953,21 +957,21 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
     engine=None
     if roll_mask.sum() > numba_kickin:
         engine = 'numba'
-    result = customRolling(to_roll, window, spike_tester, roll_mask, closed='both', engine=engine)
+    result = customRolling(to_roll, window, spikeTester, roll_mask, closed='both', engine=engine)
+
     group_col = np.nancumsum(result)
     group_frame = pd.DataFrame({'group_col': group_col[:-1],
                                 'diff_col': np.diff(group_col).astype(int)},
                                index=result.index[:-1])
-
     groups = group_frame.groupby('group_col')
 
-    def g_func(x):
-        r = np.array([False] * x.shape[0])
+    def gFunc(x):
+        r = np.zeros(shape=x.shape[0], dtype=np.bool)
         r[-x[-1]:] = True
         return r
 
-    to_flag = groups['diff_col'].transform(g_func)
-    flagger = flagger.setFlags(field, to_flag, **kwargs)
+    to_flag = groups['diff_col'].transform(gFunc)
+    flagger = flagger.setFlags(field, to_flag[to_flag == True].index, **kwargs)
     return data, flagger
 
 
