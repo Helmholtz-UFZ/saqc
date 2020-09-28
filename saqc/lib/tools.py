@@ -460,26 +460,25 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
 
     """
     i_roll = to_roll.copy()
-    i_roll.index = np.arange(to_roll.shape[0])
+    i_roll.index = np.arange(to_roll.shape[0], dtype=np.int64)
     if isinstance(winsz, str):
-        winsz = int(pd.Timedelta(winsz).total_seconds()*10**9)
+        winsz = np.int64(pd.Timedelta(winsz).total_seconds()*10**9)
         indexer = FreqIndexer(window_size=winsz,
                               win_points=roll_mask,
-                              index_array=to_roll.index.to_numpy(int),
+                              index_array=to_roll.index.to_numpy(np.int64),
                               center=center,
                               closed=closed)
 
     elif isinstance(winsz, int):
         indexer = PeriodsIndexer(window_size=winsz,
-                              win_points=roll_mask,
-                              center=center,
-                              closed=closed)
+                                 win_points=roll_mask,
+                                 center=center,
+                                 closed=closed)
 
     i_roll = i_roll.rolling(indexer,
                             min_periods=min_periods,
                             center=center,
                             closed=closed).apply(func, raw=raw, engine=engine)
-
     return pd.Series(i_roll.values, index=to_roll.index)
 
 
