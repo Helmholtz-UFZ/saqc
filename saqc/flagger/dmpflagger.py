@@ -10,9 +10,9 @@ import pandas as pd
 
 import dios
 
+from saqc.flagger.baseflagger import diosT
 from saqc.flagger.categoricalflagger import CategoricalFlagger
 from saqc.lib.tools import assertScalar, mergeDios, mutateIndex
-
 
 DmpFlaggerT = TypeVar("DmpFlaggerT")
 
@@ -105,28 +105,64 @@ class DmpFlagger(CategoricalFlagger):
         else:
             return self._construct_new(flags, causes, comments)
 
-    def setFlags(self, field, loc=None, flag=None, force=False, comment="", cause="OTHER", inplace=False, **kwargs):
-        assert "iloc" not in kwargs, "deprecated keyword, iloc"
-        assertScalar("field", field, optional=False)
+    def getFlags(self, field=None, loc=None, full=False):
+        # loc should be a valid 2D-indexer and
+        # then field must be None. Otherwise aloc
+        # will fail and throw the correct Error.
+        if isinstance(loc, diosT) and field is None:
+            indexer = loc
+        else:
+            loc = slice(None) if loc is None else loc
+            field = slice(None) if field is None else self._check_field(field)
+            indexer = (loc, field)
 
-        flag = self.BAD if flag is None else flag
-        comment = json.dumps(
-            {"comment": comment,
-             "commit": self.project_version,
-             "test": kwargs.get("func_name", "")}
-        )
+        # this is a bug in `dios.aloc`, which may return a shallow copied dios, if `slice(None)` is passed
+        # as row indexer. Thus is because pandas `.loc` return a shallow copy if a null-slice is passed to a series.
+        flags = self._flags.aloc[indexer].copy()
+
+        if full:
+            causes = self._causes.aloc[indexer].copy()
+            comments = self._comments.aloc[indexer].copy()
+            return flags, dict(cause=causes, comment=comments)
+        else:
+            return flags
+
+    def setFlags(
+        self,
+        field,
+        loc=None,
+        flag=None,
+        cause="OTHER",
+        comment="",
+        force=False,
+        inplace=False,
+        with_extra=False,
+        **kwargs
+    ):
+        assert "iloc" not in kwargs, "deprecated keyword, iloc"
+        assertScalar("field", self._check_field(field), optional=False)
+
+        out = self if inplace else deepcopy(self)
+
+        if with_extra:
+            for val in [comment, cause, flag]:
+                if not isinstance(val, pd.Series):
+                    raise TypeError(f"`flag`, `cause`, `comment` must be pd.Series, if `with_extra=True`.")
+            assert flag.index.equals(comment.index) and flag.index.equals(cause.index)
+
+        else:
+            flag = self.BAD if flag is None else flag
+            comment = json.dumps(
+                {"comment": comment,
+                 "commit": self.project_version,
+                 "test": kwargs.get("func_name", "")}
+            )
 
         if force:
             row_indexer = slice(None) if loc is None else loc
         else:
-            # trim flags to loc, we always get a pd.Series returned
             this = self.getFlags(field=field, loc=loc)
             row_indexer = this < flag
-
-        if inplace:
-            out = self
-        else:
-            out = deepcopy(self)
 
         out._flags.aloc[row_indexer, field] = flag
         out._causes.aloc[row_indexer, field] = cause
