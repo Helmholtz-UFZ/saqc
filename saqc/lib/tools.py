@@ -406,8 +406,14 @@ class FreqIndexer(BaseIndexer):
                                             self.index_array[::i_dir])
         if self.forward:
             start, end = (num_values - end)[::-1], (num_values - start)[::-1]
-        end[~self.win_points] = 0
-        start[~self.win_points] = 0
+        if self.center:
+            end = (num_values - start)[::-1]
+            end = np.roll(end, -1)
+            end[-1] = num_values - 1
+        if self.win_points is not None:
+            end[~self.win_points] = 0
+            start[~self.win_points] = 0
+
         return start, end
 
 
@@ -426,8 +432,9 @@ class PeriodsIndexer(BaseIndexer):
         end_s = np.arange(self.window_size, dtype="int64") + 1
         end_e = start_e + self.window_size
         end = np.concatenate([end_s, end_e])[:num_values]
-        start[~self.win_points] = 0
-        end[~self.win_points] = 0
+        if self.win_points is not None:
+            start[~self.win_points] = 0
+            end[~self.win_points] = 0
         return start, end
 
 
@@ -446,11 +453,12 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
     func : Callable
         Function to be rolled with. If the funcname matches a .rolling attribute,
         the associated method of .rolling will be used instead of .apply(func) (=faster)
-    roll_mask : numpy.array[bool]
+    roll_mask : {numpy.array[bool], None}
         A mask, indicating the rolling windows, `func` shall be applied on.
         Has to be of same length as `to_roll`.
         roll_mask[i] = False indicates, that the window with right end point to_roll.index[i] shall
         be skipped.
+        Pass None if you want values to be masked.
     min_periods : int, default 1
         Gets passed on to the min_periods parameter of pandas.Rolling.
         (Note, that rolling with freq string defined window size and `min_periods`=None,
@@ -467,6 +475,9 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
     forward : bool, default False
         If true, roll with forward facing windows. (not yet implemented for
         integer defined windows.)
+    center : bool, default False
+        If true, set the label to the center of the rolling window. Although available
+        for windows defined by sample rates! (yeah!)
 
     Returns
     -------

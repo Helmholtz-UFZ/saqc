@@ -1111,6 +1111,7 @@ def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, m
     indexer.win_points = np.array([True]*var_len)
     indexer.window_size = int(pd.Timedelta(bwd_window).total_seconds() * 10 ** 9)
     indexer.forward = False
+    indexer.center = False
     bwd_start, bwd_end = indexer.get_window_bounds(var_len, min_periods_bwd, center, closed)
 
     indexer.window_size = int(pd.Timedelta(fwd_window).total_seconds() * 10 ** 9)
