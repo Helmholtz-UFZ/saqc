@@ -17,6 +17,7 @@ from scipy.cluster.hierarchy import linkage, fcluster
 
 
 from saqc.lib.tools import groupConsecutives, seasonalMask, FreqIndexer, customRolling
+from saqc.lib.ts_operators import count
 from saqc.funcs.proc_functions import proc_fork, proc_drop, proc_projectFlags
 from saqc.funcs.modelling import modelling_mask
 
@@ -1123,8 +1124,8 @@ def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, m
     stat_arr, thresh_arr = _slidingWindowSearch(data_arr, bwd_start, fwd_end, stat_func, thresh_func, var_len)
 
     result_arr = stat_arr > thresh_arr
-
-    data_ser[result_arr].rolling(agg_range, closed='both', min_periods=0).count()
+    detected = pd.Series(True, index=data_ser[result_arr].index)
+    cp_cluster = customRolling(detected, agg_range, count, closed='both', min_periods=1, center=True)
 
     flagger = flagger.setFlags(field, loc=result_arr)
     return data, flagger

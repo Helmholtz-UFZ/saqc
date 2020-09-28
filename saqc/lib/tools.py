@@ -438,7 +438,7 @@ class PeriodsIndexer(BaseIndexer):
         return start, end
 
 
-def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, closed=None, raw=True, engine=None,
+def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=False, closed=None, raw=True, engine=None,
                   forward=False):
     """
     A wrapper around pandas.rolling.apply(), that allows for skipping func application on
@@ -453,12 +453,12 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
     func : Callable
         Function to be rolled with. If the funcname matches a .rolling attribute,
         the associated method of .rolling will be used instead of .apply(func) (=faster)
-    roll_mask : {numpy.array[bool], None}
+    roll_mask : {None, numpy.array[bool]}, default None
         A mask, indicating the rolling windows, `func` shall be applied on.
         Has to be of same length as `to_roll`.
         roll_mask[i] = False indicates, that the window with right end point to_roll.index[i] shall
         be skipped.
-        Pass None if you want values to be masked.
+        Pass None(default) if you want no values to be masked.
     min_periods : int, default 1
         Gets passed on to the min_periods parameter of pandas.Rolling.
         (Note, that rolling with freq string defined window size and `min_periods`=None,
@@ -502,14 +502,13 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
                                  center=center,
                                  closed=closed)
 
-    i_roll = i_roll.rolling(indexer,
+    i_roller = i_roll.rolling(indexer,
                             min_periods=min_periods,
                             center=center,
-                            closed=closed).apply(func, raw=raw, engine=engine)
-    return pd.Series(i_roll.values, index=to_roll.index)
+                            closed=closed)
 
     if hasattr(i_roller, func.__name__):
-        i_roll = getattr(i_roller, func.__name__)
+        i_roll = getattr(i_roller, func.__name__)()
     else:
         i_roll = i_roller.apply(func, raw=raw, engine=engine)
 
