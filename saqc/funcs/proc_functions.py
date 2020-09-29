@@ -777,12 +777,15 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
         Flags shape may have changed relatively to the flagger input.
     """
 
-    fork_field = str(field) + suffix
-    fork_dios = dios.DictOfSeries({fork_field: data[field]})
-    fork_flagger = flagger.slice(drop=data.columns.drop(field)).rename(field, fork_field, inplace=True)
-    data = mergeDios(data, fork_dios)
-    flagger = flagger.merge(fork_flagger)
-    return data, flagger
+    newfield = str(field) + suffix
+    if newfield in flagger.flags.columns.union(data.columns):
+        raise ValueError(f"{field}: field already exist")
+
+    flags, extras = flagger.getFlags(field, full=True)
+    newflagger = flagger.replaceField(newfield, flags=flags, **extras)
+    newdata = data.copy()
+    newdata[newfield] = data[field].copy()
+    return newdata, newflagger
 
 
 @register(masking='field')
@@ -837,10 +840,20 @@ def proc_rename(data, field, flagger, new_name, **kwargs):
     flagger : saqc.flagger
         The flagger object, holding flags and additional Informations related to `data`.
     """
+    # store
+    s = data[field]
+    f, e = flagger.getFlags(field, full=True)
 
-    data.columns = mutateIndex(data.columns, field, new_name)
-    new_flagger = flagger.rename(field, new_name)
-    return data, new_flagger
+    # delete
+    data = data.copy()
+    del data[field]
+    flagger = flagger.replaceField(field, flags=None)
+
+    # insert
+    data[new_name] = s
+    flagger = flagger.replaceField(new_name, inplace=True, flags=f, **e)
+
+    return data, flagger
 
 
 def _drift_fit(x, shift_target, cal_mean):
