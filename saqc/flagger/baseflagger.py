@@ -76,14 +76,6 @@ class BaseFlagger(ABC):
         newflagger = self.copy(flags=flags)
         return newflagger
 
-    def rename(self, field: str, new_name: str, inplace=False):
-        if inplace:
-            out = self
-        else:
-            out = self.copy()
-        out._flags.columns = mutateIndex(out._flags.columns, field, new_name)
-        return out
-
     def merge(self, other: BaseFlaggerT, subset: Optional[List] = None, join: str = "merge", inplace=False):
         """
         Merge the given flagger 'other' into self
@@ -299,6 +291,51 @@ class BaseFlagger(ABC):
         # and the child flagger may should implement a better
         # version of it.
         return flag == self.BAD or flag == self.GOOD or flag == self.UNFLAGGED or self.isSUSPICIOUS(flag)
+
+    def replaceField(self, field, flags, inplace=False, **kwargs):
+        """ Replace or delete all data for a given field.
+
+        Parameters
+        ----------
+        field : str
+            The field to replace / delete. If the field already exist, the respected data
+            is replaced, otherwise the data is inserted in the respected field column.
+        flags : pandas.Series or None
+            If None, the series denoted by `field` will be deleted. Otherwise
+            a series of flags (dtype flagger.dtype) that will replace the series
+            currently stored under `field`
+        inplace : bool, default False
+            If False, a flagger copy is returned, otherwise the flagger is not copied.
+        **kwargs : dict
+            ignored.
+
+        Returns
+        -------
+        flagger: saqc.flagger.BaseFlagger
+            The flagger object or a copy of it (if inplace=True).
+
+        Raises
+        ------
+        ValueError: (delete) if field does not exist
+        TypeError: (replace / insert) if flags are not pd.Series
+        """
+
+        assertScalar("field", field, optional=False)
+
+        out = self if inplace else deepcopy(self)
+
+        # delete
+        if flags is None:
+            if field not in self._flags:
+                raise ValueError(f"{field}: field does not exist")
+            del out._flags[field]
+
+        # insert / replace
+        else:
+            if not isinstance(flags, pd.Series):
+                raise TypeError(f"`flags` must be pd.Series.")
+            out._flags[field] = flags.astype(self.dtype)
+        return out
 
     def _check_field(self, field):
         """ Check if (all) field(s) in self._flags. """
