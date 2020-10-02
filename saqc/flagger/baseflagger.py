@@ -152,6 +152,10 @@ class BaseFlagger(ABC):
         assertScalar("field", field, optional=False)
         flag = self.BAD if flag is None else flag
 
+        if kwargs.get('diff_only', False):
+            del kwargs['diff_only']
+            self.setFlags(field, force=True, inplace=True, flag=self.UNFLAGGED, **kwargs)
+
         if force:
             row_indexer = slice(None) if loc is None else loc
         else:

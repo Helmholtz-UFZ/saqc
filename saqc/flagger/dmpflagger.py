@@ -110,6 +110,11 @@ class DmpFlagger(CategoricalFlagger):
         assertScalar("field", field, optional=False)
 
         flag = self.BAD if flag is None else flag
+
+        if kwargs.get('diff_only', False):
+            del kwargs['diff_only']
+            self.setFlags(field, force=True, inplace=True, flag=self.UNFLAGGED, **kwargs)
+
         comment = json.dumps(
             {"comment": comment,
              "commit": self.project_version,

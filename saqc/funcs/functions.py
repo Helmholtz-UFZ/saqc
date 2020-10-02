@@ -1076,7 +1076,7 @@ def _reduceCPCluster(stat_arr, thresh_arr, start, end, obj_func, num_val, out_ar
 @register(masking='field')
 def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, min_periods_bwd,
                      fwd_window=None, min_periods_fwd=None, closed='both', try_to_jit=True,
-                     agg_range=None, reduce_func=lambda x, y: x.argmax()):
+                     agg_range=None, reduce_func=lambda x, y: x.argmax(), **kwargs):
     """
     Function for change point detection based on sliding window search.
 
@@ -1152,5 +1152,5 @@ def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, m
                                 detected.shape[0], out_arr)
 
     det_index = det_index[detected]
-    flagger = flagger.setFlags(field, loc=det_index)
+    flagger = flagger.setFlags(field, loc=det_index, **kwargs)
     return data, flagger
