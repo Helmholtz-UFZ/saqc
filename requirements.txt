@@ -1,7 +1,7 @@
 attrs==20.2.0
 Click==7.1.2
 cycler==0.10.0
-dataclasses==0.7
+dataclasses==0.6
 dios==0.6.0
 dtw==1.4.0
 kiwisolver==1.2.0
