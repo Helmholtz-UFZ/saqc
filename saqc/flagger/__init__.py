@@ -6,3 +6,4 @@ from saqc.flagger.categoricalflagger import CategoricalFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger
 from saqc.flagger.dmpflagger import DmpFlagger
 from saqc.flagger.continuousflagger import ContinuousFlagger
+from saqc.flagger.positionalflagger import PositionalFlagger
