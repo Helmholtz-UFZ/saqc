@@ -267,6 +267,8 @@ class BaseFlagger(ABC):
         else:
             # if flags is given and self.flags is big,
             # this hack will bring some speed improvement
+            # NOTE: there should be nicer way to do this,
+            #       why not through a constructur method?
             saved = self._flags
             self._flags = None
             out = deepcopy(self)

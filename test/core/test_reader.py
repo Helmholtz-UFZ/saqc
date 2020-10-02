@@ -116,8 +116,6 @@ def test_configChecks(data):
         (f"{var1};flagFunc(mn=0)", TypeError),  # bad argument name
         (f"{var1};flagFunc()", TypeError),  # not enough arguments
         (f"{var3};flagNothing()", NameError),  # unknown function
-        (";flagFunc(min=3)", SyntaxError),  # missing variable
-        (f"{var1};", SyntaxError),  # missing test
         (f"{var1}; min", TypeError),  # not a function call
     ]
 

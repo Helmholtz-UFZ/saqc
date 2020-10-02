@@ -56,12 +56,14 @@ def _injectOptionalColumns(df):
 def _parseConfig(df, flagger):
     to_call = []
     for lineno, (_, field, expr, plot) in enumerate(df.itertuples()):
-        if field == "None":
+        if field == "None" or pd.isnull(field) or pd.isnull(expr):
             continue
-        if pd.isnull(field):
-            raise SyntaxError(f"line {lineno}: non-optional column '{F.VARNAME}' missing")
-        if pd.isnull(expr):
-            raise SyntaxError(f"line {lineno}: non-optional column '{F.TEST}' missing")
+        # if field == "None":
+        #     continue
+        # if pd.isnull(field):
+        #     raise SyntaxError(f"line {lineno}: non-optional column '{F.VARNAME}' missing")
+        # if pd.isnull(expr):
+        #     raise SyntaxError(f"line {lineno}: non-optional column '{F.TEST}' missing")
         tree = ast.parse(expr, mode="eval")
         cp = ConfigFunctionParser(tree.body, flagger)
         to_call.append((cp.func, field, cp.kwargs, plot, lineno + 2, expr))
