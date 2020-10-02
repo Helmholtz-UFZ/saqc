@@ -1048,7 +1048,8 @@ def flagDriftFromReference(data, field, flagger, fields, segment_freq, thresh,
 
     return data, flagger
 
-@numba.jit(nopython=True, parallel=True)
+
+#@numba.jit(parallel=True)
 def _slidingWindowSearch(data_arr, bwd_start, fwd_end, stat_func, thresh_func, num_val):
     stat_arr = np.zeros(num_val)
     thresh_arr = np.zeros(num_val)
@@ -1079,11 +1080,7 @@ def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, m
     """
     Function for change point detection based on sliding window search.
 
-    The function provides general basic architecture for applying two-sided t-tests,
-    max-likelyhood modelling or piecewise regression modelling in order to detect changepoints
-    via a sliding "twin window" search.
-
-    See examples in the examples section to get an idea of the interface and functionality.
+    The function provides basic architecture for basic sliding window changepoint detection.
 
     Parameters
     ----------
@@ -1093,12 +1090,22 @@ def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, m
         The reference variable, the deviation from wich determines the flagging.
     flagger : saqc.flagger
         A flagger object, holding flags and additional informations related to `data`.
-    stat_func : {Callable[numpy.array], Callable[numpy.array, numpy.array]}
+    stat_func : Callable[numpy.array, numpy.array]
+        A function that assigns a value to every twin window. Left window content will be passed to first variable,
+        right window content will be passed to the second.
     thresh_func : {float, Callable[numpy.array, numpy.array]}
+        A function that determines the value level, exceeding wich qualifies a timestamps stat func value as denoting a
+        changepoint.
     bwd_window : str
+        The left (backwards facing) windows temporal extension (freq-string).
     min_periods_bwd : {str, int}
+        Minimum number of periods that have to be present in a backwards facing window, for a changepoint test to be
+        performed.
     fwd_window : {None, str}, default None
+        The right (forward facing) windows temporal extension (freq-string).
     min_periods_fwd : {None, str, int}, default None
+        Minimum number of periods that have to be present in a forward facing window, for a changepoint test to be
+        performed.
     closed : {'right', 'left', 'both', 'neither'}, default 'both'
 
     Returns
@@ -1106,7 +1113,7 @@ def flagChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, m
 
     """
 
-    data_ser = data[field]
+    data_ser = data[field].dropna()
     center = False
     var_len = data_ser.shape[0]
     if fwd_window is None:
