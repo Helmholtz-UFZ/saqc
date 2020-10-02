@@ -959,6 +959,17 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
         engine = 'numba'
     result = customRolling(to_roll, window, spikeTester, roll_mask, closed='both', engine=engine)
 
+    # correct the result: only those values define plateaus, that do not have
+    # values at theire left starting point, that belong to other plateaus themselfs:
+    def correctResult(result):
+        for k in range(len(result)):
+            if result[k] > 0:
+                check_val = result[int(k-result[k])]
+                if check_val > 0:
+                    result[k] = np.nan
+        return result
+
+    result = correctResult(result)
     group_col = np.nancumsum(result)
     group_frame = pd.DataFrame({'group_col': group_col[:-1],
                                 'diff_col': np.diff(group_col).astype(int)},
@@ -967,7 +978,9 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
 
     def gFunc(x):
         r = np.zeros(shape=x.shape[0], dtype=np.bool)
-        r[-x[-1]:] = True
+        i_val = -x[-1]
+        if i_val < 0:
+            r[i_val:] = True
         return r
 
     to_flag = groups['diff_col'].transform(gFunc)
