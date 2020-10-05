@@ -506,7 +506,10 @@ def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=Fa
 
     if index_only:
         num_values = to_roll.shape[0]
-        return indexer.get_window_bounds(num_values, min_periods, center, closed)
+        if num_values == 0:
+            return np.array([]), np.array([])
+        else:
+            return indexer.get_window_bounds(num_values, min_periods, center, closed)
 
     i_roller = i_roll.rolling(indexer,
                             min_periods=min_periods,
