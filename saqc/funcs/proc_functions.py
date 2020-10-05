@@ -5,12 +5,13 @@ import pandas as pd
 import numpy as np
 from saqc.core.register import register
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq, expModelFunc
-from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex
+from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex, detectDeviants
 import dios
 import functools
 from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 from sklearn.utils import resample
+
 
 ORIGINAL_SUFFIX = "_original"
 
@@ -970,8 +971,13 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
 
 
 @register(masking='all')
-def proc_flagOffsets(data, field, flagger, stat, regime_cluster):
-    pass
+def proc_flagOffsets(data, field, flagger, cluster_field, norm_spread, metric=lambda x,y: np.abs(np.nanmean(x) - np.nanmean(y)),
+                     norm_frac=0.5):
+    clusterser = data[cluster_field]
+    cluster_num = clusterser.max() + 1
+    cluster_dios = dios.DictOfSeries({i : data[field][clusterser == i] for i in range(cluster_num)})
+    plateaus = detectDeviants(cluster_dios, metric, norm_spread, norm_frac)
+
 
 
 
