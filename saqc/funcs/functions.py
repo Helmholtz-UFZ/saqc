@@ -16,7 +16,7 @@ from mlxtend.evaluate import permutation_test
 from scipy.cluster.hierarchy import linkage, fcluster
 
 
-from saqc.lib.tools import groupConsecutives, seasonalMask, FreqIndexer, customRolling
+from saqc.lib.tools import groupConsecutives, detectDeviants
 from saqc.lib.ts_operators import count
 from saqc.funcs.proc_functions import proc_fork, proc_drop, proc_projectFlags
 from saqc.funcs.modelling import modelling_mask
@@ -860,6 +860,7 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
 
     return data, flagger
 
+@register(masking='all')
 def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, norm_frac=0.5,
                       metric=lambda x, y: scipy.spatial.distance.pdist(np.array([x, y]),
                                                                                     metric='cityblock')/len(x),
@@ -950,34 +951,11 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
 
     data_to_flag = data[fields].to_df()
     data_to_flag.dropna(inplace=True)
-    var_num = len(fields)
-    dist_mat = np.zeros((var_num, var_num))
     segments = data_to_flag.groupby(pd.Grouper(freq=segment_freq))
-
     for segment in segments:
-        combs = list(itertools.combinations(range(0, var_num), 2))
         if segment[1].shape[0] <= 1:
             continue
-        for i, j in combs:
-            dist = metric(segment[1].iloc[:, i].values, segment[1].iloc[:, j].values)
-            dist_mat[i, j] = dist
-
-        condensed = np.abs(dist_mat[tuple(zip(*combs))])
-        Z = linkage(condensed, method=linkage_method)
-        cluster = fcluster(Z, norm_spread, criterion='distance')
-        counts = collections.Counter(cluster)
-        norm_cluster = -1
-
-        for item in counts.items():
-            if item[1] > norm_frac*var_num:
-                norm_cluster = item[0]
-                break
-
-        if norm_cluster == -1 or counts[norm_cluster] == var_num:
-            continue
-
-        drifters = [i for i, x in enumerate(cluster) if x != norm_cluster]
-
+        drifters = detectDeviants(data, metric, norm_spread, norm_frac, linkage_method)
         for var in drifters:
             flagger = flagger.setFlags(fields[var], loc=segment[1].index, **kwargs)
 

@@ -528,7 +528,7 @@ def modelling_clusterByChangePoints(data, field, flagger, stat_func, thresh_func
                                     detected.shape[0])
         det_index = det_index[detected]
 
-    cluster = pd.Series(False, index=data_ser.index)
+    cluster = pd.Series(False, index=data[field].index)
     cluster[det_index] = True
     cluster = cluster.cumsum()
     data[field] = cluster

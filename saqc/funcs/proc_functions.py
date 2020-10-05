@@ -10,6 +10,7 @@ import dios
 import functools
 from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
+from sklearn.utils import resample
 
 ORIGINAL_SUFFIX = "_original"
 
@@ -966,6 +967,12 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
     data[field] = to_correct
 
     return data, flagger
+
+
+@register(masking='all')
+def proc_flagOffsets(data, field, flagger, stat, regime_cluster):
+    pass
+
 
 
 @register

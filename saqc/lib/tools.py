@@ -4,13 +4,16 @@
 import re
 from typing import Sequence, Union, Any, Iterator
 
+import itertools
 import numpy as np
 import numba as nb
 import pandas as pd
 import logging
 import dios
+import collections
 from pandas.api.indexers import BaseIndexer
 from pandas._libs.window.indexers import calculate_variable_window_bounds
+from scipy.cluster.hierarchy import linkage, fcluster
 
 
 # from saqc.flagger import BaseFlagger
@@ -522,4 +525,39 @@ def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=Fa
         i_roll = i_roller.apply(func, raw=raw, engine=engine)
 
     return pd.Series(i_roll.values, index=to_roll.index)
+
+
+def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'):
+    """Helper function for carrying out the repeatedly upcoming task,
+    to detect variables that significantly differ from the 'Norm'.
+
+    "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed.
+    In addition, only a group is considered "normal" if it contains more then `norm_frac` percent of the
+    variables in "fields".
+
+
+    """
+    var_num = len(data.columns)
+    dist_mat = np.zeros((var_num, var_num))
+    combs = list(itertools.combinations(range(0, var_num), 2))
+    for i, j in combs:
+        dist = metric(data.iloc[:, i].values, data.iloc[:, j].values)
+        dist_mat[i, j] = dist
+
+    condensed = np.abs(dist_mat[tuple(zip(*combs))])
+    Z = linkage(condensed, method=linkage_method)
+    cluster = fcluster(Z, norm_spread, criterion='distance')
+    counts = collections.Counter(cluster)
+    norm_cluster = -1
+
+    for item in counts.items():
+        if item[1] > norm_frac * var_num:
+            norm_cluster = item[0]
+            break
+
+    if norm_cluster == -1 or counts[norm_cluster] == var_num:
+        return []
+    else:
+        return [i for i, x in enumerate(cluster) if x != norm_cluster]
+
 
