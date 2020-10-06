@@ -14,12 +14,12 @@ from saqc.lib.tools import retrieveTrustworthyOriginal, detectDeviants
 @register(masking='all')
 def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread,
                      metric=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-                     norm_frac=0.5, **kwargs):
+                     norm_frac=0.5, recluster=False, **kwargs):
     """
-    A function to flag values belonging to an anomalous regimes of field.
+    A function to flag values belonging to an anomalous regime of field.
 
     "Normality" is determined in terms of a maximum spreading distance, regimes must not exceed in respect
-    to a certain metric.
+    to a certain metric and linkage method.
 
     In addition, only a range of regimes is considered "normal", if it models more then `norm_frac` percentage of
     the valid samples in "field".
@@ -27,7 +27,7 @@ def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread,
     Note, that you must detect the regime changepoints prior to calling this function.
 
     Note, that it is possible to perform hypothesis tests for regime equality by passing the metric
-    a function for p-value calculation.
+    a function for p-value calculation and selecting linkage method "complete".
 
     Parameters
     ----------
@@ -41,13 +41,15 @@ def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread,
         The name of the column in data, holding the cluster labels for the samples in field. (has to be indexed
         equal to field)
     norm_spread : float
-        A threshold denoting the distance, members of the "normal" group must not exceed to each other (in terms of the
-        metric passed) to qualify their group as the "normal" group.
+        A threshold denoting the valuelevel, up to wich clusters a agglomerated.
     metric : Callable[[numpy.array, numpy.array], float], default lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y))
         A metric function for calculating the dissimilarity between 2 regimes. Defaults to just the difference in mean.
     norm_frac : float
         Has to be in [0,1]. Determines the minimum percentage of samples,
         the "normal" group has to comprise to be the normal group actually.
+    recluster : bool, default False
+        If True,
+
     kwargs
 
     Returns
@@ -67,7 +69,7 @@ def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread,
     plateaus = detectDeviants(cluster_dios, metric, norm_spread, norm_frac, 'single', 'samples')
 
     for p in plateaus:
-        flagger = flagger.setFlags(data.iloc[:, p].index, **kwargs)
+        flagger = flagger.setFlags(field, loc=cluster_dios.iloc[:, p].index, **kwargs)
 
     return data, flagger
 

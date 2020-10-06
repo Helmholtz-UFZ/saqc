@@ -532,7 +532,9 @@ def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'
     Helper function for carrying out the repeatedly upcoming task,
     of detecting variables a group of variables.
 
-    "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed.
+    "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed
+    in respect to a certain metric and linkage method.
+
     In addition, only a group is considered "normal" if it contains more then `norm_frac` percent of the
     variables in "fields".
 
@@ -560,7 +562,7 @@ def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'
     Returns
     -------
     deviants : List
-        A list containing the the column positions of deviant variables in the input frame/dios.
+        A list containing the column positions of deviant variables in the input frame/dios.
 
     """
     var_num = len(data.columns)
@@ -582,7 +584,7 @@ def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'
             counts[cluster[c]] += data.iloc[:, c].dropna().shape[0]
         pop_num = np.sum(list(counts.values()))
     else:
-        raise ValueError("Not a valid normality criteria keyword passed. pass either 'variables' or 'population'.")
+        raise ValueError("Not a valid normality criteria keyword passed. Pass either 'variables' or 'population'.")
     norm_cluster = -1
 
     for item in counts.items():
