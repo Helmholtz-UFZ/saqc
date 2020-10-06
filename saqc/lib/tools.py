@@ -527,7 +527,7 @@ def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=Fa
     return pd.Series(i_roll.values, index=to_roll.index)
 
 
-def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'):
+def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single', population='variables'):
     """Helper function for carrying out the repeatedly upcoming task,
     to detect variables that significantly differ from the 'Norm'.
 
@@ -547,15 +547,24 @@ def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'
     condensed = np.abs(dist_mat[tuple(zip(*combs))])
     Z = linkage(condensed, method=linkage_method)
     cluster = fcluster(Z, norm_spread, criterion='distance')
-    counts = collections.Counter(cluster)
+    if population == 'variables':
+        counts = collections.Counter(cluster)
+        pop_num = var_num
+    elif population == 'samples':
+        counts = {cluster[j]: 0 for j in range(0,var_num)}
+        for c in range(var_num):
+            counts[cluster[c]] += data.iloc[:, c].dropna().shape[0]
+        pop_num = np.sum(list(counts.values()))
+    else:
+        raise ValueError("Not a valid normality criteria keyword passed. pass either 'variables' or 'population'.")
     norm_cluster = -1
 
     for item in counts.items():
-        if item[1] > norm_frac * var_num:
+        if item[1] > norm_frac * pop_num:
             norm_cluster = item[0]
             break
 
-    if norm_cluster == -1 or counts[norm_cluster] == var_num:
+    if norm_cluster == -1 or counts[norm_cluster] == pop_num:
         return []
     else:
         return [i for i, x in enumerate(cluster) if x != norm_cluster]

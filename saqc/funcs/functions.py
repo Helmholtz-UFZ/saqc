@@ -955,7 +955,7 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
     for segment in segments:
         if segment[1].shape[0] <= 1:
             continue
-        drifters = detectDeviants(data, metric, norm_spread, norm_frac, linkage_method)
+        drifters = detectDeviants(data, metric, norm_spread, norm_frac, linkage_method, 'variables')
         for var in drifters:
             flagger = flagger.setFlags(fields[var], loc=segment[1].index, **kwargs)
 
