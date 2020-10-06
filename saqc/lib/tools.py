@@ -528,13 +528,39 @@ def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=Fa
 
 
 def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single', population='variables'):
-    """Helper function for carrying out the repeatedly upcoming task,
-    to detect variables that significantly differ from the 'Norm'.
+    """
+    Helper function for carrying out the repeatedly upcoming task,
+    of detecting variables a group of variables.
 
     "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed.
     In addition, only a group is considered "normal" if it contains more then `norm_frac` percent of the
     variables in "fields".
 
+    Note, that the function also can be used to detect anormal regimes in a variable by assigning the different regimes
+    dios.DictOfSeries columns and passing this dios.
+
+    Parameters
+    ----------
+    data : {pandas.DataFrame, dios.DictOfSeries}
+        Input data
+    metric : Callable[[numpy.array, numpy.array], float]
+        A metric function that for calculating the dissimilarity between 2 variables.
+    norm_spread : float
+        A threshold denoting the distance, members of the "normal" group must not exceed to each other (in terms of the
+        metric passed) to qualify their group as the "normal" group.
+    norm_frac : float, default 0.5
+        Has to be in [0,1]. Determines the minimum percentage of variables or samples,
+        the "normal" group has to comprise to be the normal group actually.
+    linkage_method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
+        The linkage method used for hierarchical (agglomerative) clustering of the variables.
+    population : {"variables", "samples"}
+        Wheather to relate the minimum percentage of values needed to form a normal group, to the total number of
+        variables or to the total number of samples.
+
+    Returns
+    -------
+    deviants : List
+        A list containing the the column positions of deviant variables in the input frame/dios.
 
     """
     var_num = len(data.columns)

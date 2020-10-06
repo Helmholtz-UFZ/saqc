@@ -970,22 +970,6 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
     return data, flagger
 
 
-@register(masking='all')
-def proc_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread,
-                     metric=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-                     norm_frac=0.5, **kwargs):
-
-    clusterser = data[cluster_field]
-    cluster_num = clusterser.max() + 1
-    cluster_dios = dios.DictOfSeries({i: data[field][clusterser == i] for i in range(cluster_num)})
-    plateaus = detectDeviants(cluster_dios, metric, norm_spread, norm_frac, 'single', 'samples')
-
-    for p in plateaus:
-        flagger = flagger.setFlags(data.iloc[:, p].index, **kwargs)
-
-    return data, flagger
-
-
 @register
 def proc_seefoLinearDriftCorrecture(data, field, flagger, x_field, y_field, **kwargs):
     """

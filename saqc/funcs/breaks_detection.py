@@ -3,11 +3,73 @@
 
 import numpy as np
 import pandas as pd
+import dios
 
 from scipy.signal import savgol_filter
 
 from saqc.core.register import register
-from saqc.lib.tools import retrieveTrustworthyOriginal
+from saqc.lib.tools import retrieveTrustworthyOriginal, detectDeviants
+
+
+@register(masking='all')
+def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread,
+                     metric=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
+                     norm_frac=0.5, **kwargs):
+    """
+    A function to flag values belonging to an anomalous regimes of field.
+
+    "Normality" is determined in terms of a maximum spreading distance, regimes must not exceed in respect
+    to a certain metric.
+
+    In addition, only a range of regimes is considered "normal", if it models more then `norm_frac` percentage of
+    the valid samples in "field".
+
+    Note, that you must detect the regime changepoints prior to calling this function.
+
+    Note, that it is possible to perform hypothesis tests for regime equality by passing the metric
+    a function for p-value calculation.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    cluster_field : str
+        The name of the column in data, holding the cluster labels for the samples in field. (has to be indexed
+        equal to field)
+    norm_spread : float
+        A threshold denoting the distance, members of the "normal" group must not exceed to each other (in terms of the
+        metric passed) to qualify their group as the "normal" group.
+    metric : Callable[[numpy.array, numpy.array], float], default lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y))
+        A metric function for calculating the dissimilarity between 2 regimes. Defaults to just the difference in mean.
+    norm_frac : float
+        Has to be in [0,1]. Determines the minimum percentage of samples,
+        the "normal" group has to comprise to be the normal group actually.
+    kwargs
+
+    Returns
+    -------
+
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flagger input.
+
+    """
+
+    clusterser = data[cluster_field]
+    cluster_num = clusterser.max() + 1
+    cluster_dios = dios.DictOfSeries({i: data[field][clusterser == i] for i in range(cluster_num)})
+    plateaus = detectDeviants(cluster_dios, metric, norm_spread, norm_frac, 'single', 'samples')
+
+    for p in plateaus:
+        flagger = flagger.setFlags(data.iloc[:, p].index, **kwargs)
+
+    return data, flagger
 
 
 @register(masking='field')

@@ -429,7 +429,6 @@ def _reduceCPCluster(stat_arr, thresh_arr, start, end, obj_func, num_val):
     return out_arr
 
 
-
 @register(masking='field')
 def modelling_clusterByChangePoints(data, field, flagger, stat_func, thresh_func, bwd_window, min_periods_bwd,
                      fwd_window=None, min_periods_fwd=None, closed='both', try_to_jit=True,
@@ -523,7 +522,8 @@ def modelling_clusterByChangePoints(data, field, flagger, stat_func, thresh_func
     det_index = masked_index[result_arr]
     detected = pd.Series(True, index=det_index)
     if reduce_window is not False:
-        start, end = customRolling(detected, reduce_window, count, closed='both', min_periods=1, center=True, index_only=True)
+        start, end = customRolling(detected, reduce_window, count, closed='both', min_periods=1, center=True,
+                                   index_only=True)
         detected = _reduceCPCluster(stat_arr[result_arr], thresh_arr[result_arr], start, end, reduce_func,
                                     detected.shape[0])
         det_index = det_index[detected]
@@ -532,5 +532,5 @@ def modelling_clusterByChangePoints(data, field, flagger, stat_func, thresh_func
     cluster[det_index] = True
     cluster = cluster.cumsum()
     data[field] = cluster
-    flagger = flagger.setFlags(field, flag=flagger.UNFLAGGED)
+    flagger = flagger.setFlags(field, flag=flagger.UNFLAGGED, force=True, **kwargs)
     return data, flagger
