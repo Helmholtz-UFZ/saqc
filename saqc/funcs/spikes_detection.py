@@ -942,6 +942,7 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
     # define spike testing function to roll with:
     def spikeTester(chunk, thresh=thresh, tol=tolerance):
         # signum change!!!
+        # chunk_stair=(np.sign(chunk[-2] - chunk[-1])*(chunk - chunk[-1]) < thresh)[::-1].cumsum()
         chunk_stair = (np.abs(chunk - chunk[-1]) < thresh)[::-1].cumsum()
         initial = np.searchsorted(chunk_stair, 2)
         if initial == len(chunk):
@@ -960,7 +961,7 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
     result = customRolling(to_roll, window, spikeTester, roll_mask, closed='both', engine=engine)
 
     # correct the result: only those values define plateaus, that do not have
-    # values at theire left starting point, that belong to other plateaus themselfs:
+    # values at their left starting point, that belong to other plateaus themself:
     def correctResult(result):
         for k in range(len(result)):
             if result[k] > 0:
