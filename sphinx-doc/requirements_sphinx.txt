@@ -44,7 +44,7 @@ python-intervals==1.10.0
 pytz==2019.3
 PyWavelets==1.1.1
 recommonmark==0.6.0
-regex==2020.9.27
+regex==2020.10.11
 requests==2.24.0
 scikit-learn==0.22.1
 scipy==1.4.1
