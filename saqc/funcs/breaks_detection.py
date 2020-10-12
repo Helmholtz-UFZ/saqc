@@ -12,11 +12,11 @@ from saqc.lib.tools import retrieveTrustworthyOriginal, detectDeviants
 
 
 @register(masking='all')
-def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread,
+def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread, linkage_method='single',
                      metric=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-                     norm_frac=0.5, recluster=False, **kwargs):
+                     norm_frac=0.5, reset_cluster=False, **kwargs):
     """
-    A function to flag values belonging to an anomalous regime of field.
+    A function to flag values belonging to an anomalous regime regarding modelling regimes of field.
 
     "Normality" is determined in terms of a maximum spreading distance, regimes must not exceed in respect
     to a certain metric and linkage method.
@@ -42,13 +42,16 @@ def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread,
         equal to field)
     norm_spread : float
         A threshold denoting the valuelevel, up to wich clusters a agglomerated.
+    linkage_method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
+        The linkage method used for hierarchical (agglomerative) clustering of the variables.
     metric : Callable[[numpy.array, numpy.array], float], default lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y))
         A metric function for calculating the dissimilarity between 2 regimes. Defaults to just the difference in mean.
     norm_frac : float
         Has to be in [0,1]. Determines the minimum percentage of samples,
         the "normal" group has to comprise to be the normal group actually.
-    recluster : bool, default False
-        If True,
+    reset_cluster : bool, default False
+        If True, all data, considered "normal", gets assigned hte cluster Label "0", the
+        anormal data gets assigned "1" respectively.
 
     kwargs
 
@@ -66,10 +69,16 @@ def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread,
     clusterser = data[cluster_field]
     cluster_num = clusterser.max() + 1
     cluster_dios = dios.DictOfSeries({i: data[field][clusterser == i] for i in range(cluster_num)})
-    plateaus = detectDeviants(cluster_dios, metric, norm_spread, norm_frac, 'single', 'samples')
+    plateaus = detectDeviants(cluster_dios, metric, norm_spread, norm_frac, linkage_method, 'samples')
 
     for p in plateaus:
         flagger = flagger.setFlags(field, loc=cluster_dios.iloc[:, p].index, **kwargs)
+
+    if reset_cluster:
+        new_cluster = pd.Series(0, index=clusterser.index, dtype=int)
+        for p in plateaus:
+            new_cluster[cluster_dios.iloc[:, p].index] = 1
+        data[cluster_field] = new_cluster
 
     return data, flagger
 
