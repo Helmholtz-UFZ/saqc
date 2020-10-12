@@ -36,13 +36,13 @@ FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 
 class DmpFlagger(CategoricalFlagger):
-    def __init__(self):
+    def __init__(self, include_version=True):
         super().__init__(FLAGS)
         self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
         version = subprocess.run(
             "git describe --tags --always --dirty", shell=True, check=False, stdout=subprocess.PIPE,
         ).stdout
-        self.project_version = version.decode().strip()
+        self.project_version = version.decode().strip() if include_version else ""
         self.signature = ("flag", "comment", "cause", "force")
         self._flags = None
         self._causes = None
