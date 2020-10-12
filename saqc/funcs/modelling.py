@@ -479,6 +479,8 @@ def modelling_clusterByChangePoints(data, field, flagger, stat_func, thresh_func
         First input parameter will hold the result from the stat_func evaluation for every
         reduction window. Second input parameter holds the result from the thresh_func evaluation.
         The default reduction function just selects the value that maximizes the stat_func.
+    flag_changepoints : bool, default False
+        If true, the points, where there is a change in data modelling regime detected get flagged bad.
 
     Returns
     -------
