@@ -50,8 +50,8 @@ def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread, l
         Has to be in [0,1]. Determines the minimum percentage of samples,
         the "normal" group has to comprise to be the normal group actually.
     reset_cluster : bool, default False
-        If True, all data, considered "normal", gets assigned hte cluster Label "0", the
-        anormal data gets assigned "1" respectively.
+        If True, all data, considered "normal", gets assigned thee cluster Label "0", the remaining
+        cluster get numbered consecutively.
 
     kwargs
 
@@ -76,8 +76,10 @@ def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread, l
 
     if reset_cluster:
         new_cluster = pd.Series(0, index=clusterser.index, dtype=int)
+        k = 1
         for p in plateaus:
-            new_cluster[cluster_dios.iloc[:, p].index] = 1
+            new_cluster[cluster_dios.iloc[:, p].index] = k
+            k += 1
         data[cluster_field] = new_cluster
 
     return data, flagger
