@@ -14,7 +14,7 @@ from saqc.lib.tools import retrieveTrustworthyOriginal, detectDeviants
 @register(masking='all')
 def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread, linkage_method='single',
                      metric=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-                     norm_frac=0.5, reset_cluster=False, **kwargs):
+                     norm_frac=0.5, reset_cluster=True, **kwargs):
     """
     A function to flag values belonging to an anomalous regime regarding modelling regimes of field.
 
@@ -49,8 +49,8 @@ def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread, l
     norm_frac : float
         Has to be in [0,1]. Determines the minimum percentage of samples,
         the "normal" group has to comprise to be the normal group actually.
-    reset_cluster : bool, default False
-        If True, all data, considered "normal", gets assigned thee cluster Label "0", the remaining
+    reset_cluster : bool, default True
+        If True, all data, considered "normal", gets assigned the cluster Label "0" and the remaining
         cluster get numbered consecutively.
 
     kwargs

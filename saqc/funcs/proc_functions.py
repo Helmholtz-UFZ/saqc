@@ -998,3 +998,23 @@ def proc_seefoLinearDriftCorrecture(data, field, flagger, x_field, y_field, **kw
     data[field] = datcol
     return data, flagger
 
+
+def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model):
+    """
+    Function fits the passed model to every regime
+
+    Parameters
+    ----------
+    data
+    field
+    flagger
+    clusterfield
+    model
+
+    Returns
+    -------
+    """
+
+    clusterser = data[cluster_field]
+
+    # fit phase:

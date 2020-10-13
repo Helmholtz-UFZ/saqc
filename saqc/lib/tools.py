@@ -566,6 +566,8 @@ def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'
 
     """
     var_num = len(data.columns)
+    if var_num <= 1:
+        return []
     dist_mat = np.zeros((var_num, var_num))
     combs = list(itertools.combinations(range(0, var_num), 2))
     for i, j in combs:
