@@ -658,7 +658,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to project the source-flags at.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     method: {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
         The method used for projection of source flags onto field flags. See description above for more details.
@@ -675,7 +675,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -702,7 +702,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         f_replacement_mask = (fwrdprojected > target_flagscol) & (fwrdprojected > backprojected)
         target_flagscol.loc[f_replacement_mask] = backprojected.loc[f_replacement_mask]
 
-    if (method[-3:] == "agg") or (method == "match"):
+    if method[-3:] == "agg" or method == "match":
         # Aggregation - Inversion
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
@@ -788,7 +788,7 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     return newdata, newflagger
 
 
-@register(masking='field')
+@register(masking='none')
 def proc_drop(data, field, flagger, **kwargs):
     """
     The function drops field from the data dios and the flagger.
@@ -799,7 +799,7 @@ def proc_drop(data, field, flagger, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to drop.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
 
     Returns
@@ -812,12 +812,13 @@ def proc_drop(data, field, flagger, **kwargs):
         Flags shape may have changed relatively to the flagger input.
     """
 
-    data = data[data.columns.drop(field)]
-    flagger = flagger.slice(drop=field)
+    data = data.copy()
+    del data[field]
+    flagger = flagger.replaceField(field, flags=None)
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='none')
 def proc_rename(data, field, flagger, new_name, **kwargs):
     """
     The function renames field to new name (in both, the flagger and the data).
