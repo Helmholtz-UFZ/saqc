@@ -943,7 +943,6 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
     def spikeTester(chunk, thresh=thresh, tol=tolerance):
         # signum change!!!
         chunk_stair = (np.sign(chunk[-2] - chunk[-1])*(chunk - chunk[-1]) < thresh)[::-1].cumsum()
-        #chunk_stair = (np.abs(chunk - chunk[-1]) < thresh)[::-1].cumsum()
         initial = np.searchsorted(chunk_stair, 2)
         if initial == len(chunk):
             return 0
@@ -967,9 +966,10 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
         flag_scopes = np.zeros(var_num, dtype=bool)
         for k in range(var_num):
             if result[k] > 0:
+                k_r = int(result[k])
                 # validity check: plateuas start isnt another plateaus end:
-                if not flag_scopes[int(k - result[k] - 1)]:
-                    flag_scopes[int(k - result[k]):int(k)] = True
+                if not flag_scopes[k - k_r - 1]:
+                    flag_scopes[(k - k_r):k] = True
         return pd.Series(flag_scopes, index=result.index)
 
     cresult = calcResult(result)
