@@ -303,7 +303,12 @@ def _saqcCallFunc(func_dump, data, flagger):
     elif masking == 'field':
         columns = [field]
     else:
-        raise ValueError(f"masking: {masking}")
+        raise ValueError(f"wrong use of `register(masking={masking})`")
+
+    # warn if the user explicitly pass `to_mask=..` to a function that is
+    # decorated by `register(masking='none')`, and so `to_mask` is ignored.
+    if masking == 'none' and to_mask not in (None, []):
+        logging.warning("`to_mask` is given, but the test ignore masking. Please refer to the documentation: TODO")
     to_mask = flagger.BAD if to_mask is None else to_mask
 
     # NOTE:
