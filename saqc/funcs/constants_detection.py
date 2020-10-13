@@ -28,7 +28,7 @@ def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     thresh : float
         Upper bound for the maximum total change of an interval to be flagged constant.
@@ -39,7 +39,7 @@ def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
     """
@@ -80,7 +80,7 @@ def constants_flagVarianceBased(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     window : str
         Only intervals of minimum size "window" have the chance to get flagged as constant intervals
@@ -99,7 +99,7 @@ def constants_flagVarianceBased(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
     """

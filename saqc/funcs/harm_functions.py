@@ -52,7 +52,7 @@ def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, *
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.freq
     freq : str
         The frequency of the grid you want to shift your data to.
@@ -69,7 +69,7 @@ def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, *
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -119,7 +119,7 @@ def harm_aggregate2Grid(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.freq
     freq : str
         The sampling frequency the data is to be aggregated (resampled) at.
@@ -141,7 +141,7 @@ def harm_aggregate2Grid(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -186,7 +186,7 @@ def harm_linear2Grid(data, field, flagger, freq, to_drop=None, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.freq
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
@@ -200,7 +200,7 @@ def harm_linear2Grid(data, field, flagger, freq, to_drop=None, **kwargs):
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -240,7 +240,7 @@ def harm_interpolate2Grid(data, field, flagger, freq, method, order=1, to_drop=N
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.freq
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
@@ -260,7 +260,7 @@ def harm_interpolate2Grid(data, field, flagger, freq, method, order=1, to_drop=N
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
