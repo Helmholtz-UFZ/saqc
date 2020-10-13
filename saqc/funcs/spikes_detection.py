@@ -962,30 +962,19 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
 
     # correct the result: only those values define plateaus, that do not have
     # values at their left starting point, that belong to other plateaus themself:
-    def correctResult(result):
-        for k in range(len(result)):
+    def calcResult(result):
+        var_num = result.shape[0]
+        flag_scopes = np.zeros(var_num, dtype=bool)
+        for k in range(var_num):
             if result[k] > 0:
-                check_val = result[int(k-result[k])]
-                if check_val > 0:
-                    result[k] = np.nan
-        return result
+                # validity check: plateuas start isnt another plateaus end:
+                if not flag_scopes[int(k - result[k] - 1)]:
+                    flag_scopes[int(k - result[k]):int(k)] = True
+        return pd.Series(flag_scopes, index=result.index)
 
-    result = correctResult(result)
-    group_col = np.nancumsum(result)
-    group_frame = pd.DataFrame({'group_col': group_col[:-1],
-                                'diff_col': np.diff(group_col).astype(int)},
-                               index=result.index[:-1])
-    groups = group_frame.groupby('group_col')
-
-    def gFunc(x):
-        r = np.zeros(shape=x.shape[0], dtype=np.bool)
-        i_val = -x[-1]
-        if i_val < 0:
-            r[i_val:] = True
-        return r
-
-    to_flag = groups['diff_col'].transform(gFunc)
-    flagger = flagger.setFlags(field, to_flag[to_flag == True].index, **kwargs)
+    cresult = calcResult(result)
+    cresult = cresult[cresult]
+    flagger = flagger.setFlags(field, cresult, **kwargs)
     return data, flagger
 
 
