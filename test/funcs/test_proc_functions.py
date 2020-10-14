@@ -14,7 +14,8 @@ from saqc.funcs.proc_functions import (
     proc_resample,
     proc_transform,
     proc_rollingInterpolateMissing,
-    proc_interpolateGrid
+    proc_interpolateGrid,
+    proc_offsetCorrecture
 )
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
 
@@ -94,4 +95,14 @@ def test_interpolateGrid(course_5, course_3, flagger):
     flagger = flagger.initFlags(data)
     dataInt, *_ = proc_interpolateGrid(data, 'data', flagger, '1h', 'time', grid_field='grid', inter_limit=10)
 
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_offsetCorrecture(flagger):
+    # just a everything-runs-test
+    data = pd.Series(0, index=pd.date_range('2000', freq='1Y', periods=100), name='dat')
+    data.iloc[30:40] = -100
+    data.iloc[70:80] = 100
+    data = dios.DictOfSeries(data)
+    flagger = flagger.initFlags(data)
+    data, flagger = proc_offsetCorrecture(data, 'dat', flagger, 40, 20, '3Y', 1)
 

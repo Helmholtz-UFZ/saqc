@@ -1106,7 +1106,7 @@ def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime
     return data, flagger
 
 
-@register
+@register(masking='all')
 def proc_offsetCorrecture(data, field, flagger, max_mean_jump, normal_spread, search_winsz, min_periods,
                           regime_transmission=None):
     """
