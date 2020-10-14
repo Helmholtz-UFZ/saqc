@@ -1014,16 +1014,24 @@ def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime
 
     Parameters
     ----------
-    data
-    field
-    flagger
-    clusterfield
-    model
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the data column, you want to correct.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    clusterfield : str
+        A string denoting the field in data, holding the cluster label for the data you want to correct.
+    model : Callable
     regime_transmission
+    x_date : bool, default False
+
 
     Returns
     -------
     """
+
+    ## TODO: raw = false models
 
     cluster_ser = data[cluster_field]
     unique_successive = pd.unique(cluster_ser.values)
@@ -1036,12 +1044,16 @@ def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime
         # get seconds
         regime_transmission = pd.Timedelta(regime_transmission).total_seconds()
     for label, regime in regimes:
-        # get seconds data:
-        xdata = (regime.index - regime.index[0]).to_numpy(dtype=float)*10**(-9)
+        if x_date = False:
+            # get seconds data:
+            xdata = (regime.index - regime.index[0]).to_numpy(dtype=float)*10**(-9)
+        else:
+            # get seconds from epoch data
+            xdata = regime.index.to_numpy(dtype=float)*10**(-9)
         ydata = regime.values
         valid_mask = ~np.isnan(ydata)
         if regime_transmission is not None:
-            valid_mask &= (xdata > regime_transmission)
+            valid_mask &= (xdata > xdata[0] + regime_transmission)
             valid_mask &= (xdata < xdata[-1] - regime_transmission)
         try:
             p, pcov = curve_fit(model, xdata[valid_mask], ydata[valid_mask])
