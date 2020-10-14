@@ -430,7 +430,7 @@ class PeriodsIndexer(BaseIndexer):
         return start, end
 
 
-def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, closed=None, raw=True, engine=None):
+def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, closed=None, raw=True, engine="cython"):
     """
     A wrapper around pandas.rolling.apply(), that allows for skipping func application on
     arbitrary selections of windows.
@@ -459,7 +459,7 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
         Gets passed on to the closed parameter of pandas.Rolling.
     raw : bool, default True
         Gets passed on to the raw parameter of pandas.Rolling.apply.
-    engine : {None, 'numba'}, default None
+    engine : {'cython', 'numba'}, default 'cython'
         Gets passed on to the engine parameter of pandas.Rolling.apply.
 
     Returns
