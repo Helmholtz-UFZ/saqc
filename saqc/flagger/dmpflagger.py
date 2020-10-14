@@ -39,6 +39,7 @@ class DmpFlagger(CategoricalFlagger):
     def __init__(self, include_version=True):
         super().__init__(FLAGS)
         self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
+        self.extra_defaults = dict(cause=FLAGS[0], comment="")
         version = subprocess.run(
             "git describe --tags --always --dirty", shell=True, check=False, stdout=subprocess.PIPE,
         ).stdout

@@ -35,6 +35,7 @@ class BaseFlagger(ABC):
     def __init__(self, dtype):
         # NOTE: the type of the _flags DictOfSeries
         self.dtype = dtype
+        self.extra_defaults = dict()
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
         self.signature = ("flag",)
