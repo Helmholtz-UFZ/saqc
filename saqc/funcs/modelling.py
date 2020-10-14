@@ -536,6 +536,8 @@ def modelling_changePointCluster(data, field, flagger, stat_func, thresh_func, b
     cluster = pd.Series(False, index=data[field].index)
     cluster[det_index] = True
     cluster = cluster.cumsum()
+    # (better to start cluster labels with number one)
+    cluster += 1
     data[field] = cluster
     flagger = flagger.setFlags(field, flag=flagger.UNFLAGGED, force=True, **kwargs)
     if flag_changepoints:

@@ -999,9 +999,18 @@ def proc_seefoLinearDriftCorrecture(data, field, flagger, x_field, y_field, **kw
     return data, flagger
 
 
-def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model):
+def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime_transmission=None):
     """
-    Function fits the passed model to every regime
+    Function fits the passed model to the different regimes in data[field] and tries to correct
+    those values, that have assigned a negative label by data[cluster_field].
+
+    Currently, the only correction mode supported is the "parameter propagation."
+
+    Every regime z, labeled negatively and being modeled by the parameters p, gets corrected via:
+
+    z_correct = z + (m(p*) - m(p)),
+
+    where p* denotes the parameterset belonging to the fit of the nearest not-negatively labeled cluster.
 
     Parameters
     ----------
@@ -1010,11 +1019,61 @@ def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model):
     flagger
     clusterfield
     model
+    regime_transmission
 
     Returns
     -------
     """
 
-    clusterser = data[cluster_field]
+    cluster_ser = data[cluster_field]
+    unique_successive = pd.unique(cluster_ser.values)
+    data_ser = data[field]
+    regimes = data_ser.groupby(cluster_ser)
+    para_dict = {}
+    x_dict = {}
+    x_mask = {}
+    if regime_transmission is not None:
+        # get seconds
+        regime_transmission = pd.Timedelta(regime_transmission).total_seconds()
+    for label, regime in regimes:
+        # get seconds data:
+        xdata = (regime.index - regime.index[0]).to_numpy(dtype=float)*10**(-9)
+        ydata = regime.values
+        valid_mask = ~np.isnan(ydata)
+        if regime_transmission is not None:
+            valid_mask &= (xdata > regime_transmission)
+            valid_mask &= (xdata < xdata[-1] - regime_transmission)
+        try:
+            p, pcov = curve_fit(model, xdata[valid_mask], ydata[valid_mask])
+        except (RuntimeError, ValueError):
+            p = np.array([np.nan])
+        para_dict[label] = p
+        x_dict[label] = xdata
+        x_mask[label] = valid_mask
 
-    # fit phase:
+    first_normal = unique_successive > 0
+    first_valid = np.array([~pd.isna(para_dict[unique_successive[i]]).any() for i in range(0, unique_successive.shape[0])])
+    first_valid = np.where(first_normal & first_valid)[0][0]
+    last_valid = 1
+
+    for k in range(0, unique_successive.shape[0]):
+        if unique_successive[k] < 0 & (not pd.isna(para_dict[unique_successive[k]]).any()):
+            ydata = data_ser[regimes.groups[unique_successive[k]]].values
+            xdata = x_dict[unique_successive[k]]
+            ypara = para_dict[unique_successive[k]]
+            if k > 0:
+                target_para = para_dict[unique_successive[k-last_valid]]
+            else:
+                # first regime has no "last valid" to its left, so we use first valid to the right:
+                target_para = para_dict[unique_successive[k + first_valid]]
+            y_shifted = ydata + (model(xdata, *target_para) - model(xdata, *ypara))
+            data_ser[regimes.groups[unique_successive[k]]] = y_shifted
+            if k > 0:
+                last_valid += 1
+        elif pd.isna(para_dict[unique_successive[k]]).any() & (k > 0):
+            last_valid += 1
+        else:
+            last_valid = 1
+
+    data[field] = data_ser
+    return data, flagger

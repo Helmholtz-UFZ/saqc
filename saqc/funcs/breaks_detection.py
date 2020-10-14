@@ -13,8 +13,8 @@ from saqc.lib.tools import retrieveTrustworthyOriginal, detectDeviants
 
 @register(masking='all')
 def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread, linkage_method='single',
-                     metric=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-                     norm_frac=0.5, reset_cluster=True, **kwargs):
+                             metric=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
+                             norm_frac=0.5, set_cluster=True, set_flags=True, **kwargs):
     """
     A function to flag values belonging to an anomalous regime regarding modelling regimes of field.
 
@@ -49,9 +49,11 @@ def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread, l
     norm_frac : float
         Has to be in [0,1]. Determines the minimum percentage of samples,
         the "normal" group has to comprise to be the normal group actually.
-    reset_cluster : bool, default True
-        If True, all data, considered "normal", gets assigned the cluster Label "0" and the remaining
-        cluster get numbered consecutively.
+    set_cluster : bool, default True
+        If True, all data, considered "anormal", gets assigned a negative clusterlabel.
+    set_flags : bool, default True
+        Wheather or not to flag abnormal values (do not flag them, if you want to correct them
+        afterwards, becasue flagged values usually are not visible in further tests.).
 
     kwargs
 
@@ -67,21 +69,20 @@ def breaks_flagRegimeAnomaly(data, field, flagger, cluster_field, norm_spread, l
     """
 
     clusterser = data[cluster_field]
-    cluster_num = clusterser.max() + 1
-    cluster_dios = dios.DictOfSeries({i: data[field][clusterser == i] for i in range(cluster_num)})
+    cluster = np.unique(clusterser)
+    cluster_dios = dios.DictOfSeries({i: data[field][clusterser == i] for i in cluster})
     plateaus = detectDeviants(cluster_dios, metric, norm_spread, norm_frac, linkage_method, 'samples')
 
-    for p in plateaus:
-        flagger = flagger.setFlags(field, loc=cluster_dios.iloc[:, p].index, **kwargs)
-
-    if reset_cluster:
-        new_cluster = pd.Series(0, index=clusterser.index, dtype=int)
-        k = 1
+    if set_flags:
         for p in plateaus:
-            new_cluster[cluster_dios.iloc[:, p].index] = k
-            k += 1
-        data[cluster_field] = new_cluster
+            flagger = flagger.setFlags(field, loc=cluster_dios.iloc[:, p].index, **kwargs)
 
+    if set_cluster:
+        for p in plateaus:
+            if cluster[p] > 0:
+                clusterser[clusterser == cluster[p]] = -cluster[p]
+
+    data[cluster_field] = clusterser
     return data, flagger
 
 
