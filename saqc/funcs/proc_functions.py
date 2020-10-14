@@ -1023,15 +1023,27 @@ def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime
     clusterfield : str
         A string denoting the field in data, holding the cluster label for the data you want to correct.
     model : Callable
-    regime_transmission
+        The model function to be fitted to the regimes.
+        Must be a function of the form f(x, *p), where `x` is the numpy.array holding the independent variables and
+        `p` are the model parameters that are to be obtained by fitting.
+        Depending on the `x_date` parameter, independent variable x will either be the timestamps
+        of every regime transformed to seconds from epoch, or it will be just seconds, counting the regimes length.
+    regime_transmission : {None, str}, default None:
+        If an offset string is passed, a data chunk of length `regime_transimission` rigth at the
+        start and right at the end is ignored when fitting the model. This is to account for the unrelyability of data
+        near the changepoints of regimes.
     x_date : bool, default False
+        If True, use "seconds from epoch" as x input to the model func, instead of "seconds from regime start".
 
 
     Returns
     -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
     """
-
-    ## TODO: raw = false models
 
     cluster_ser = data[cluster_field]
     unique_successive = pd.unique(cluster_ser.values)
