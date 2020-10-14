@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from saqc.core.register import register
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq, expModelFunc
+from saqc.funcs.breaks_detection import breaks_flagRegimeAnomaly
+from saqc.funcs.modelling import modelling_changePointCluster
 from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex, detectDeviants
 import dios
 import functools
@@ -999,14 +1001,15 @@ def proc_seefoLinearDriftCorrecture(data, field, flagger, x_field, y_field, **kw
     return data, flagger
 
 
-def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime_transmission=None):
+@register(masking='all')
+def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime_transmission=None, x_date=False):
     """
     Function fits the passed model to the different regimes in data[field] and tries to correct
     those values, that have assigned a negative label by data[cluster_field].
 
     Currently, the only correction mode supported is the "parameter propagation."
 
-    Every regime z, labeled negatively and being modeled by the parameters p, gets corrected via:
+    This means, any regime z, labeled negatively and being modeled by the parameters p, gets corrected via:
 
     z_correct = z + (m(p*) - m(p)),
 
@@ -1056,7 +1059,7 @@ def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime
         # get seconds
         regime_transmission = pd.Timedelta(regime_transmission).total_seconds()
     for label, regime in regimes:
-        if x_date = False:
+        if x_date is False:
             # get seconds data:
             xdata = (regime.index - regime.index[0]).to_numpy(dtype=float)*10**(-9)
         else:
@@ -1100,4 +1103,59 @@ def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime
             last_valid = 1
 
     data[field] = data_ser
+    return data, flagger
+
+
+@register
+def proc_offsetCorrecture(data, field, flagger, max_mean_jump, normal_spread, search_winsz, min_periods,
+                          regime_transmission=None):
+    """
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the data column, you want to correct.
+    flagger : saqc.flagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    max_mean_jump : float
+        when searching for changepoints in mean - this is the threshold a mean difference in the
+        sliding window search must exceed to trigger changepoint detection.
+    normal_spread : float
+        threshold denoting the maximum, regimes are allowed to abolutely differ in their means
+        to form the "normal group" of values.
+    search_winsz : str
+        Size of the adjacent windows that are used to search for the mean changepoints.
+    min_periods : int
+        Minimum number of periods a search window has to contain, for the result of the changepoint
+        detection to be considered valid.
+    regime_transmission : {None, str}, default None:
+        If an offset string is passed, a data chunk of length `regime_transimission` right from the
+        start and right before the end of any regime is ignored when calculating a regimes mean for data correcture.
+        This is to account for the unrelyability of data near the changepoints of regimes.
+
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values may have changed relatively to the data input.
+    flagger : saqc.flagger
+        The flagger object, holding flags and additional Informations related to `data`.
+
+    """
+
+    data, flagger = proc_fork(data, field, flagger, '_CPcluster')
+    data, flagger = modelling_changePointCluster(data, field + '_CPcluster', flagger,
+                                                 lambda x, y: np.abs(np.mean(x) - np.mean(y)),
+                                                 lambda x, y: max_mean_jump,
+                                                 bwd_window=search_winsz,
+                                                 min_periods_bwd=min_periods)
+    data, flagger = breaks_flagRegimeAnomaly(data, field, flagger, field + '_CPcluster', normal_spread, set_flags=False)
+    data, flagger = proc_correctRegimeAnomaly(data, field, flagger, field + '_CPcluster',
+                                              lambda x, p1: np.array([p1] * x.shape[0]),
+                                              regime_transmission=regime_transmission)
+    data, flagger = proc_drop(data, field + '_CPcluster', flagger)
+
     return data, flagger
