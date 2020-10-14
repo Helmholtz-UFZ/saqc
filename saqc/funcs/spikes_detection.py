@@ -973,7 +973,7 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
         return pd.Series(flag_scopes, index=result.index)
 
     cresult = calcResult(result)
-    cresult = cresult[cresult]
+    cresult = cresult[cresult].index
     flagger = flagger.setFlags(field, cresult, **kwargs)
     return data, flagger
 
