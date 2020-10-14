@@ -164,6 +164,9 @@ class BaseFlagger(ABC):
             force: bool = False,
             inplace=False,
             with_extra=False,
+            flag_after=None,
+            flag_before=None,
+            win_flag=None,
             **kwargs
     ) -> BaseFlaggerT:
         """Overwrite existing flags at loc.
@@ -192,15 +195,31 @@ class BaseFlagger(ABC):
         if with_extra and not isinstance(flag, pd.Series):
             raise ValueError("flags must be pd.Series if `with_extras=True`.")
 
+        trimmed = self.getFlags(field=field, loc=loc)
         if force:
-            row_indexer = slice(None) if loc is None else loc
+            mask = pd.Series(True, index=trimmed.index, dtype=bool)
         else:
-            # trim flags to loc, we always get a pd.Series returned
-            this = self.getFlags(field=field, loc=loc)
-            row_indexer = this < flag
+            mask = trimmed < flag
 
-        out._flags.aloc[row_indexer, field] = flag
+        # set flags of the test
+        out._flags.aloc[mask, field] = flag
+
+        # calc and set window flags
+        if flag_after is not None or flag_before is not None:
+            win_mask = self._getWindowMask(field, mask, flag_after, flag_before)
+            out._flags.aloc[win_mask, field] = win_flag
+
         return out
+
+    def _getWindowMask(self, field, mask, flag_after, flag_before):
+        win_mask = mask.reindex_like(self._flags[field]).fillna(False)
+        # does not overwrite the flags from the test again
+        skip = ~win_mask
+        if flag_after is not None:
+            win_mask |= pd.Series(False)
+        if flag_before is not None:
+            win_mask |= pd.Series(False)
+        return win_mask & skip
 
     def clearFlags(self, field: str, loc: LocT = None, inplace=False, **kwargs) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)

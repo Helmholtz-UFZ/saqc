@@ -132,6 +132,9 @@ class DmpFlagger(CategoricalFlagger):
         force=False,
         inplace=False,
         with_extra=False,
+        flag_after=None,
+        flag_before=None,
+        win_flag=None,
         **kwargs
     ):
         assert "iloc" not in kwargs, "deprecated keyword, iloc"
@@ -153,15 +156,24 @@ class DmpFlagger(CategoricalFlagger):
                  "test": kwargs.get("func_name", "")}
             )
 
+        flags = self.getFlags(field=field, loc=loc)
         if force:
-            row_indexer = slice(None) if loc is None else loc
+            mask = pd.Series(True, index=flags.index, dtype=bool)
         else:
-            this = self.getFlags(field=field, loc=loc)
-            row_indexer = this < flag
+            mask = flags < flag
 
-        out._flags.aloc[row_indexer, field] = flag
-        out._causes.aloc[row_indexer, field] = cause
-        out._comments.aloc[row_indexer, field] = comment
+        # set flags of the test
+        out._flags.aloc[mask, field] = flag
+        out._causes.aloc[mask, field] = cause
+        out._comments.aloc[mask, field] = comment
+
+        # calc and set window flags
+        if flag_after is not None or flag_before is not None:
+            win_mask = self._getWindowMask(field, mask, flag_after, flag_before)
+            out._flags.aloc[win_mask, field] = win_flag
+            out._causes.aloc[win_mask, field] = cause
+            out._comments.aloc[win_mask, field] = comment
+
         return out
 
     def replaceField(self, field, flags, inplace=False, cause=None, comment=None, **kwargs):
