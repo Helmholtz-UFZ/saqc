@@ -460,10 +460,10 @@ def modelling_changePointCluster(data, field, flagger, stat_func, thresh_func, b
     min_periods_bwd : {str, int}
         Minimum number of periods that have to be present in a backwards facing window, for a changepoint test to be
         performed.
-    fwd_window : {None, str}, default None
-        The right (forward facing) windows temporal extension (freq-string).
+    fwd_window : {Non/home/luenensc/PyPojects/testSpace/flagBasicMystery.pye, str}, default None
+        The right (fo/home/luenensc/PyPojects/testSpace/flagBasicMystery.pyrward facing) windows temporal extension (freq-string).
     min_periods_fwd : {None, str, int}, default None
-        Minimum number of periods that have to be present in a forward facing window, for a changepoint test to be
+        Minimum numbe/home/luenensc/PyPojects/testSpace/flagBasicMystery.pyr of periods that have to be present in a forward facing window, for a changepoint test to be
         performed.
     closed : {'right', 'left', 'both', 'neither'}, default 'both'
         Determines the closure of the sliding windows.
