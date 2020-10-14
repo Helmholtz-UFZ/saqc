@@ -424,7 +424,7 @@ def _reduceCPCluster(stat_arr, thresh_arr, start, end, obj_func, num_val):
         s, e = start[win_i], end[win_i]
         x = stat_arr[s:e]
         y = thresh_arr[s:e]
-        pos = s + obj_func(x, y)
+        pos = s + obj_func(x, y) + 1
         out_arr[pos] = True
     return out_arr
 
