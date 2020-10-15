@@ -37,8 +37,11 @@ class PositionalFlagger(BaseFlagger):
         flag = str(self.BAD if flag is None else flag)
         self.isValidFlag(flag, fail=True)
         out = self if inplace else deepcopy(self)
-        loc = slice(None) if loc is None else loc
         out_flags = out._flags[field]
+
+        idx = self.getFlags(field, loc).index
+        mask = pd.Series(True, index=idx, dtype=bool)
+        mask = mask.reindex_like(out_flags).fillna(False)
 
         # replace unflagged with the magic starter '9'
         out_flags = out_flags.str.replace(f"^{self.UNFLAGGED}", "9", regex=True)
@@ -53,21 +56,21 @@ class PositionalFlagger(BaseFlagger):
 
         # we rigorously overwrite existing flags
         new_flags = out_flags.str[position]
-        new_flags.aloc[loc] = flag
+        new_flags.loc[mask] = flag
 
         # calc window flags
         if flag_after is not None or flag_before is not None:
-            idx = self.getFlags(field, loc).index
-            mask = pd.Series(True, index=idx, dtype=bool)
             win_mask, win_flag = self._getWindowMask(field, mask, flag_after, flag_before, win_flag, flag, force)
-            new_flags.aloc[win_mask] = win_flag
+            new_flags.loc[win_mask] = win_flag
 
         out._flags[field] = out_flags.str[:position] + new_flags + out_flags.str[position+1:]
         return out
 
     def isFlagged(self, field=None, loc=None, flag=None, comparator=">"):
 
+        field = slice(None) if field is None else field
         flags = self._getMaxFlag(field, loc).astype(int)
+        flags = flags.loc[:, field]
 
         # notna() to prevent nans to become True,
         # eg.: `np.nan != 0 -> True`
