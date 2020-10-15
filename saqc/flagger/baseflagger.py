@@ -261,7 +261,9 @@ class BaseFlagger(ABC):
         before, after = False, False
 
         if flag_after is not None:
-            after = base.rolling(window=flag_before, closed='both').sum().astype(bool)
+            if isinstance(flag_after, int):
+                flag_after += 1
+            after = base.rolling(window=flag_after, min_periods=1, closed='both').sum().astype(bool)
 
         if flag_before is not None:
             raise NotImplementedError("flag_before is not implemented")
