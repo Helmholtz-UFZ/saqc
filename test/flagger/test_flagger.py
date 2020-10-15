@@ -683,4 +683,37 @@ def test_replace_replace(data, flagger):
         assert (n[field] == flagger.BAD).all()
 
 
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_flagAfter(flagger):
+    idx = pd.date_range("2000", "2001", freq='1M')
+    s = pd.Series(0, index=idx)
+    data = dios.DictOfSeries(s, columns=['a'])
+    exp_base = pd.Series(flagger.UNFLAGGED, index=idx)
+
+    flagger = flagger.initFlags(data)
+    field, *_ = data.columns
+
+    flags = flagger.setFlags(field, loc=s.index[3], flag_after=5).getFlags(field)
+    exp = exp_base.copy()
+    exp.iloc[3: 3+5+1] = flagger.BAD
+    assert (flags == exp).all()
+
+    flags = flagger.setFlags(field, loc=s.index[3], flag_after=5, win_flag=flagger.GOOD).getFlags(field)
+    exp = exp_base.copy()
+    exp.iloc[3: 3+5+1] = flagger.GOOD
+    exp[3] = flagger.BAD
+    assert (flags == exp).all()
+
+    # 3 month < 99 days < 4 month
+    flags = flagger.setFlags(field, loc=s.index[3], flag_after="99d").getFlags(field)
+    exp = exp_base.copy()
+    exp.iloc[3: 3+3+1] = flagger.BAD
+    assert (flags == exp).all()
+
+    # 3 month < 99 days < 4 month
+    flags = flagger.setFlags(field, loc=s.index[3], flag_after="99d", win_flag=flagger.GOOD).getFlags(field)
+    exp = exp_base.copy()
+    exp.iloc[3: 3+3+1] = flagger.GOOD
+    exp[3] = flagger.BAD
+    assert (flags == exp).all()
 

@@ -8,9 +8,10 @@ from abc import ABC, abstractmethod
 from typing import TypeVar, Union, Any, List, Optional
 
 import pandas as pd
+import numpy as np
 import dios
 
-from saqc.lib.tools import assertScalar, mergeDios, toSequence, mutateIndex
+from saqc.lib.tools import assertScalar, mergeDios, toSequence, mutateIndex, customRolling
 
 COMPARATOR_MAP = {
     "!=": op.ne,
@@ -162,8 +163,11 @@ class BaseFlagger(ABC):
             loc: LocT = None,
             flag: FlagT = None,
             force: bool = False,
-            inplace=False,
-            with_extra=False,
+            inplace: bool = False,
+            with_extra: bool = False,
+            flag_after: Union[str, int] = None,
+            flag_before: Union[str, int] = None,
+            win_flag: FlagT = None,
             **kwargs
     ) -> BaseFlaggerT:
         """Overwrite existing flags at loc.
@@ -192,15 +196,87 @@ class BaseFlagger(ABC):
         if with_extra and not isinstance(flag, pd.Series):
             raise ValueError("flags must be pd.Series if `with_extras=True`.")
 
+        trimmed = self.getFlags(field=field, loc=loc)
         if force:
-            row_indexer = slice(None) if loc is None else loc
+            mask = pd.Series(True, index=trimmed.index, dtype=bool)
         else:
-            # trim flags to loc, we always get a pd.Series returned
-            this = self.getFlags(field=field, loc=loc)
-            row_indexer = this < flag
+            mask = trimmed < flag
 
-        out._flags.aloc[row_indexer, field] = flag
+        # set flags of the test
+        out._flags.aloc[mask, field] = flag
+
+        # calc and set window flags
+        if flag_after is not None or flag_before is not None:
+            win_mask, win_flag = self._getWindowMask(field, mask, flag_after, flag_before, win_flag, flag, force)
+            out._flags.aloc[win_mask, field] = win_flag
+
         return out
+
+    def _getWindowMask(self, field, mask, flag_after, flag_before, win_flag, flag, force):
+        """ Return a mask which is True where the additional window flags should get set.
+
+        Parameters
+        ----------
+        field : str
+            column identifier.
+        mask : boolean pd.Series
+            identified locations where flags was set
+        flag_after : offset or int
+            set additional flags after each flag that was set
+        flag_before : offset or int
+            set additional flags before each flag that was set
+        win_flag : any
+            Should be valid flag of the flagger or None. Defaults to `flag` if None.
+        flag : any
+            The flag that was used by flagger.setFlags(). Only used to determine `win_flag` if the latter is None.
+        force : bool
+            If True, the additional flags specified by `flag_after` and `flag_before` are set unconditionally and so
+            also could overwrite worse flags.
+
+        Returns
+        -------
+        mask: boolean pandas.Series
+            locations where additional flags should be set. The mask has the same (complete) length than `.flags[field]`
+        win_flag: the flag to set
+
+        Raises
+        ------
+        ValueError : If `win_flag` is None and `flag` is not a scalar.
+        ValueError : If `win_flag` is not a valid flagger flag
+        NotImplementedError: if `flag_before` is given
+        """
+
+        # win_flag default to flag if not explicitly given
+        if win_flag is None:
+            win_flag = flag
+            if not np.isscalar(win_flag):
+                raise ValueError("win_flag (None) cannot default to flag, if flag is not a scalar. "
+                                 "Pls specify `win_flag` or omit `flag_after` and `flag_before`.")
+        else:
+            if not self.isValidFlag(win_flag):
+                raise ValueError(f"invalid win_flag: {win_flag}")
+
+        # blow up the mask to the whole size of flags
+        base = mask.reindex_like(self._flags[field]).fillna(False)
+        before, after = False, False
+
+        if flag_after is not None:
+            if isinstance(flag_after, int):
+                flag_after += 1
+            after = base.rolling(window=flag_after, min_periods=1, closed='both').sum().astype(bool)
+
+        if flag_before is not None:
+            raise NotImplementedError("flag_before is not implemented")
+
+        # does not include base, to avoid overriding flags that just was set
+        # by the test, because flag and win_flag may differ.
+        mask = ~base & (after | before)
+
+        # also do not to overwrite worse flags
+        if not force:
+            mask &= self.getFlags(field) < win_flag
+
+        return mask, win_flag
 
     def clearFlags(self, field: str, loc: LocT = None, inplace=False, **kwargs) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
