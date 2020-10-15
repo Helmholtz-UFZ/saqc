@@ -169,7 +169,7 @@ class DmpFlagger(CategoricalFlagger):
 
         # calc and set window flags
         if flag_after is not None or flag_before is not None:
-            win_mask = self._getWindowMask(field, mask, flag_after, flag_before, win_flag, flag, force)
+            win_mask, win_flag = self._getWindowMask(field, mask, flag_after, flag_before, win_flag, flag, force)
             out._flags.aloc[win_mask, field] = win_flag
             out._causes.aloc[win_mask, field] = cause
             out._comments.aloc[win_mask, field] = comment

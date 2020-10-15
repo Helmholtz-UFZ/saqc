@@ -163,11 +163,11 @@ class BaseFlagger(ABC):
             loc: LocT = None,
             flag: FlagT = None,
             force: bool = False,
-            inplace=False,
-            with_extra=False,
-            flag_after=None,
-            flag_before=None,
-            win_flag=None,
+            inplace: bool = False,
+            with_extra: bool = False,
+            flag_after: Union[str, int] = None,
+            flag_before: Union[str, int] = None,
+            win_flag: FlagT = None,
             **kwargs
     ) -> BaseFlaggerT:
         """Overwrite existing flags at loc.
@@ -207,7 +207,7 @@ class BaseFlagger(ABC):
 
         # calc and set window flags
         if flag_after is not None or flag_before is not None:
-            win_mask = self._getWindowMask(field, mask, flag_after, flag_before, win_flag, flag, force)
+            win_mask, win_flag = self._getWindowMask(field, mask, flag_after, flag_before, win_flag, flag, force)
             out._flags.aloc[win_mask, field] = win_flag
 
         return out
@@ -236,7 +236,8 @@ class BaseFlagger(ABC):
         Returns
         -------
         mask: boolean pandas.Series
-            locations where additional flags should be set
+            locations where additional flags should be set. The mask has the same (complete) length than `.flags[field]`
+        win_flag: the flag to set
 
         Raises
         ------
@@ -273,7 +274,7 @@ class BaseFlagger(ABC):
         if not force:
             mask &= self.getFlags(field) < win_flag
 
-        return mask
+        return mask, win_flag
 
     def clearFlags(self, field: str, loc: LocT = None, inplace=False, **kwargs) -> BaseFlaggerT:
         assertScalar("field", field, optional=False)
