@@ -4,6 +4,7 @@
 from functools import partial
 from inspect import signature
 
+import dios
 import numpy as np
 import pandas as pd
 import scipy
@@ -13,6 +14,7 @@ import itertools
 import collections
 import numba
 from mlxtend.evaluate import permutation_test
+from scipy import stats
 from scipy.cluster.hierarchy import linkage, fcluster
 
 
@@ -955,7 +957,7 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
     for segment in segments:
         if segment[1].shape[0] <= 1:
             continue
-        drifters = detectDeviants(data, metric, norm_spread, norm_frac, linkage_method, 'variables')
+        drifters = detectDeviants(segment[1], metric, norm_spread, norm_frac, linkage_method, 'variables')
         for var in drifters:
             flagger = flagger.setFlags(fields[var], loc=segment[1].index, **kwargs)
 
@@ -969,7 +971,7 @@ def flagDriftFromReference(data, field, flagger, fields, segment_freq, thresh,
     """
     The function flags value courses that deviate from a reference course by a margin exceeding a certain threshold.
 
-    The deviation is meassured by the distance function passed to parameter metric.
+    The deviation is measured by the distance function passed to parameter metric.
 
     Parameters
     ----------
@@ -1027,3 +1029,46 @@ def flagDriftFromReference(data, field, flagger, fields, segment_freq, thresh,
     return data, flagger
 
 
+
+
+
+def flagDriftScale(data, field, flagger, fields_scale1, fields_scale2, segment_freq, norm_spread, norm_frac=0.5,
+                      metric=lambda x, y: scipy.spatial.distance.pdist(np.array([x, y]),
+                                                                                    metric='cityblock')/len(x),
+                      linkage_method='single', **kwargs):
+
+    fields = fields_scale1 + fields_scale2
+    data_to_flag = data[fields].to_df()
+    data_to_flag.dropna(inplace=True)
+
+    convert_slope = []
+    convert_intercept = []
+
+    for field1 in fields_scale1:
+        for field2 in fields_scale2:
+            slope, intercept, r_value, p_value, std_err = stats.linregress(data_to_flag[field1], data_to_flag[field2])
+            convert_slope.append(slope)
+            convert_intercept.append(intercept)
+
+    factor_slope = np.median(convert_slope)
+    factor_intercept = np.median(convert_intercept)
+
+    dat = dios.DictOfSeries()
+    for field1 in fields_scale1:
+        dat[field1] = factor_intercept + factor_slope * data_to_flag[field1]
+    for field2 in fields_scale2:
+        dat[field2] = data_to_flag[field2]
+
+    dat_to_flag = dat[fields].to_df()
+
+
+    segments = dat_to_flag.groupby(pd.Grouper(freq=segment_freq))
+    for segment in segments:
+        if segment[1].shape[0] <= 1:
+            continue
+        drifters = detectDeviants(segment[1], metric, norm_spread, norm_frac, linkage_method, 'variables')
+        for var in drifters:
+            flagger = flagger.setFlags(fields[var], loc=segment[1].index, **kwargs)
+
+
+    return data, flagger
