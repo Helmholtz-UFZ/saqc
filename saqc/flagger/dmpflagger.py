@@ -10,9 +10,9 @@ import pandas as pd
 
 import dios
 
+from saqc.flagger.baseflagger import diosT
 from saqc.flagger.categoricalflagger import CategoricalFlagger
 from saqc.lib.tools import assertScalar, mergeDios, mutateIndex
-
 
 DmpFlaggerT = TypeVar("DmpFlaggerT")
 
@@ -36,13 +36,14 @@ FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 
 class DmpFlagger(CategoricalFlagger):
-    def __init__(self):
+    def __init__(self, include_version=True):
         super().__init__(FLAGS)
         self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
+        self.extra_defaults = dict(cause=FLAGS[0], comment="")
         version = subprocess.run(
             "git describe --tags --always --dirty", shell=True, check=False, stdout=subprocess.PIPE,
         ).stdout
-        self.project_version = version.decode().strip()
+        self.project_version = version.decode().strip() if include_version else ""
         self.signature = ("flag", "comment", "cause", "force")
         self._flags = None
         self._causes = None
@@ -86,12 +87,6 @@ class DmpFlagger(CategoricalFlagger):
         newflagger._comments = self._comments.aloc[flags, ...]
         return newflagger
 
-    def rename(self, field: str, new_name: str, inplace=False):
-        newflagger = super().rename(field, new_name, inplace=inplace)
-        newflagger._causes.columns = newflagger._flags.columns
-        newflagger._comments.columns = newflagger._flags.columns
-        return newflagger
-
     def merge(self, other: DmpFlaggerT, subset: Optional[List] = None, join: str = "merge", inplace=False):
         assert isinstance(other, DmpFlagger)
         flags = mergeDios(self._flags, other._flags, subset=subset, join=join)
@@ -105,28 +100,130 @@ class DmpFlagger(CategoricalFlagger):
         else:
             return self._construct_new(flags, causes, comments)
 
-    def setFlags(self, field, loc=None, flag=None, force=False, comment="", cause="", inplace=False, **kwargs):
-        assert "iloc" not in kwargs, "deprecated keyword, iloc"
-        assertScalar("field", field, optional=False)
+    def getFlags(self, field=None, loc=None, full=False):
+        # loc should be a valid 2D-indexer and
+        # then field must be None. Otherwise aloc
+        # will fail and throw the correct Error.
+        if isinstance(loc, diosT) and field is None:
+            indexer = loc
+        else:
+            loc = slice(None) if loc is None else loc
+            field = slice(None) if field is None else self._check_field(field)
+            indexer = (loc, field)
 
-        flag = self.BAD if flag is None else flag
-        comment = json.dumps(dict(comment=comment, commit=self.project_version, test=kwargs.get("func_name", "")))
+        # this is a bug in `dios.aloc`, which may return a shallow copied dios, if `slice(None)` is passed
+        # as row indexer. Thus is because pandas `.loc` return a shallow copy if a null-slice is passed to a series.
+        flags = self._flags.aloc[indexer].copy()
+
+        if full:
+            causes = self._causes.aloc[indexer].copy()
+            comments = self._comments.aloc[indexer].copy()
+            return flags, dict(cause=causes, comment=comments)
+        else:
+            return flags
+
+    def setFlags(
+        self,
+        field,
+        loc=None,
+        flag=None,
+        cause="OTHER",
+        comment="",
+        force=False,
+        inplace=False,
+        with_extra=False,
+        **kwargs
+    ):
+        assert "iloc" not in kwargs, "deprecated keyword, iloc"
+        assertScalar("field", self._check_field(field), optional=False)
+
+        out = self if inplace else deepcopy(self)
+
+        if with_extra:
+            for val in [comment, cause, flag]:
+                if not isinstance(val, pd.Series):
+                    raise TypeError(f"`flag`, `cause`, `comment` must be pd.Series, if `with_extra=True`.")
+            assert flag.index.equals(comment.index) and flag.index.equals(cause.index)
+
+        else:
+            flag = self.BAD if flag is None else flag
+            comment = json.dumps(
+                {"comment": comment,
+                 "commit": self.project_version,
+                 "test": kwargs.get("func_name", "")}
+            )
 
         if force:
-            row_indexer = loc
+            row_indexer = slice(None) if loc is None else loc
         else:
-            # trim flags to loc, we always get a pd.Series returned
             this = self.getFlags(field=field, loc=loc)
             row_indexer = this < flag
-
-        if inplace:
-            out = self
-        else:
-            out = deepcopy(self)
 
         out._flags.aloc[row_indexer, field] = flag
         out._causes.aloc[row_indexer, field] = cause
         out._comments.aloc[row_indexer, field] = comment
+        return out
+
+    def replaceField(self, field, flags, inplace=False, cause=None, comment=None, **kwargs):
+        """ Replace or delete all data for a given field.
+
+        Parameters
+        ----------
+        field : str
+            The field to replace / delete. If the field already exist, the respected data
+            is replaced, otherwise the data is inserted in the respected field column.
+        flags : pandas.Series or None
+            If None, the series denoted by `field` will be deleted. Otherwise
+            a series of flags (dtype flagger.dtype) that will replace the series
+            currently stored under `field`
+        causes : pandas.Series
+            A series of causes (dtype str).
+        comments : pandas.Series
+            A series of comments (dtype str).
+        inplace : bool, default False
+            If False, a flagger copy is returned, otherwise the flagger is not copied.
+        **kwargs : dict
+            ignored.
+
+        Returns
+        -------
+        flagger: saqc.flagger.BaseFlagger
+            The flagger object or a copy of it (if inplace=True).
+
+        Raises
+        ------
+        ValueError: (delete) if field does not exist
+        TypeError: (replace / insert) if flags, causes, comments are not pd.Series
+        AssertionError: (replace / insert) if flags, causes, comments does not have the same index
+
+        Notes
+        -----
+        If deletion is requested (`flags=None`), `causes` and `comments` are don't-care.
+
+        Flags, causes and comments must have the same index, if flags is not None, also
+        each is casted implicit to the respected dtype.
+        """
+        assertScalar("field", field, optional=False)
+        out = self if inplace else deepcopy(self)
+        causes, comments = cause, comment
+
+        # delete
+        if flags is None:
+            if field not in self._flags:
+                raise ValueError(f"{field}: field does not exist")
+            del out._flags[field]
+            del out._comments[field]
+            del out._causes[field]
+
+        # insert / replace
+        else:
+            for val in [flags, causes, comments]:
+                if not isinstance(val, pd.Series):
+                    raise TypeError(f"`flag`, `cause`, `comment` must be pd.Series.")
+            assert flags.index.equals(comments.index) and flags.index.equals(causes.index)
+            out._flags[field] = flags.astype(self.dtype)
+            out._causes[field] = causes.astype(str)
+            out._comments[field] = comments.astype(str)
         return out
 
     def _construct_new(self, flags, causes, comments) -> DmpFlaggerT:

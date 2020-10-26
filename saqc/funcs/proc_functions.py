@@ -41,7 +41,7 @@ def proc_rollingInterpolateMissing(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-interpolated.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     winsz : int, str
         The size of the window, the aggregation is computed from. Either counted in periods number (Integer passed),
@@ -62,7 +62,7 @@ def proc_rollingInterpolateMissing(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -125,7 +125,7 @@ def proc_interpolateMissing(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-interpolated.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
@@ -149,7 +149,7 @@ def proc_interpolateMissing(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -221,7 +221,7 @@ def proc_interpolateGrid(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-interpolated.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
         An Offset String, interpreted as the frequency of
@@ -259,7 +259,7 @@ def proc_interpolateGrid(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -426,7 +426,7 @@ def proc_resample(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-resampled.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
         An Offset String, that will be interpreted as the frequency you want to resample your data with.
@@ -475,7 +475,7 @@ def proc_resample(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -549,7 +549,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-shifted.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
         An frequency Offset String that will be interpreted as the sampling rate you want the data to be shifted to.
@@ -574,7 +574,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -619,7 +619,7 @@ def proc_transform(data, field, flagger, func, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-transformed.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     func : Callable
         Function to transform data[field] with.
@@ -629,7 +629,7 @@ def proc_transform(data, field, flagger, func, **kwargs):
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
     """
     data = data.copy()
@@ -680,7 +680,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to project the source-flags at.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
         The method used for projection of source flags onto field flags. See description above for more details.
@@ -702,7 +702,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -725,7 +725,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         f_replacement_mask = (fwrdprojected > target_flagscol) & (fwrdprojected > backprojected)
         target_flagscol.loc[f_replacement_mask] = backprojected.loc[f_replacement_mask]
 
-    if (method[-3:] == "agg") or (method == "match"):
+    if method[-3:] == "agg" or method == "match":
         # Aggregation - Inversion
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
@@ -785,7 +785,7 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to fork (copy).
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     suffix: str
         Substring to append to the forked data variables name.
@@ -795,20 +795,23 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         data shape may have changed relatively to the flagger input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags shape may have changed relatively to the flagger input.
     """
 
-    fork_field = str(field) + suffix
-    fork_dios = dios.DictOfSeries({fork_field: data[field]})
-    fork_flagger = flagger.slice(drop=data.columns.drop(field)).rename(field, fork_field, inplace=True)
-    data = mergeDios(data, fork_dios)
-    flagger = flagger.merge(fork_flagger)
-    return data, flagger
+    newfield = str(field) + suffix
+    if newfield in flagger.flags.columns.union(data.columns):
+        raise ValueError(f"{field}: field already exist")
+
+    flags, extras = flagger.getFlags(field, full=True)
+    newflagger = flagger.replaceField(newfield, flags=flags, **extras)
+    newdata = data.copy()
+    newdata[newfield] = data[field].copy()
+    return newdata, newflagger
 
 
-@register(masking='field')
+@register(masking='none')
 def proc_drop(data, field, flagger, **kwargs):
     """
     The function drops field from the data dios and the flagger.
@@ -819,7 +822,7 @@ def proc_drop(data, field, flagger, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to drop.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
 
     Returns
@@ -827,17 +830,18 @@ def proc_drop(data, field, flagger, **kwargs):
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         data shape may have changed relatively to the flagger input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags shape may have changed relatively to the flagger input.
     """
 
-    data = data[data.columns.drop(field)]
-    flagger = flagger.slice(drop=field)
+    data = data.copy()
+    del data[field]
+    flagger = flagger.replaceField(field, flags=None)
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='none')
 def proc_rename(data, field, flagger, new_name, **kwargs):
     """
     The function renames field to new name (in both, the flagger and the data).
@@ -848,7 +852,7 @@ def proc_rename(data, field, flagger, new_name, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to rename.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     new_name : str
         String, field is to be replaced with.
@@ -857,13 +861,23 @@ def proc_rename(data, field, flagger, new_name, **kwargs):
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
     """
+    # store
+    s = data[field]
+    f, e = flagger.getFlags(field, full=True)
 
-    data.columns = mutateIndex(data.columns, field, new_name)
-    new_flagger = flagger.rename(field, new_name)
-    return data, new_flagger
+    # delete
+    data = data.copy()
+    del data[field]
+    flagger = flagger.replaceField(field, flags=None)
+
+    # insert
+    data[new_name] = s
+    flagger = flagger.replaceField(new_name, inplace=True, flags=f, **e)
+
+    return data, flagger
 
 
 def _drift_fit(x, shift_target, cal_mean):
@@ -932,7 +946,7 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to correct.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     maint_data_field : str
         The fieldname of the datacolumn holding the maintenance information.
@@ -950,7 +964,7 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """

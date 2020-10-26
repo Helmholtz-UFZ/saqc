@@ -15,6 +15,7 @@ import pandas as pd
 import dios
 import numpy as np
 import timeit
+import inspect
 
 from saqc.lib.plotting import plotHook, plotAllHook
 from saqc.lib.tools import isQuoted
@@ -25,19 +26,38 @@ from saqc.core.register import FUNC_MAP
 
 logger = logging.getLogger("SaQC")
 
+from dataclasses import dataclass, replace
+from typing import List, Any, Dict, Callable
 
-def _handleErrors(exc, func_dump, policy):
-    func_name = func_dump['func_name']
-    func_kws = func_dump['func_kws']
-    field = func_dump['field']
-    ctrl_kws = func_dump['ctrl_kws']
-    lineno = ctrl_kws['lineno']
-    func_expr = ctrl_kws['lineno']
-    msg = f"Execution failed. Variable: '{field}', "
-    if lineno is not None and func_expr is not None:
-        msg += f"Config line {lineno}: '{func_expr}', "
+
+@dataclass
+class FuncCtrl:
+    "ctrl_kws"
+    to_mask: Any   # flagger.FLAG constants or a list of those
+    masking: str   # one of: "none", "field", "all"
+    plot: bool
+    inplace: bool
+    lineno: int
+    expr: str
+
+
+@dataclass
+class Func:
+    name: str
+    func: Any # Callable[[...], Any]  # SaQCFunc
+    field: str
+    regex: bool
+    args: List[Any]
+    kwargs: Dict[str, Any]
+    ctrl: FuncCtrl
+
+
+def _handleErrors(exc, func, policy):
+    msg = f"Execution failed. Variable: '{func.field}', "
+    if func.ctrl.lineno is not None and func.ctrl.expr is not None:
+        msg += f"Config line {func.ctrl.lineno}: '{func.ctrl.expr}', "
     else:
-        msg += f"Function: {func_name}(), parameters: '{func_kws}', "
+        msg += f"Function: {func.name}(), parameters: '{func.kwargs}', "
     msg += f"Exception:\n{type(exc).__name__}: {exc}"
 
     if policy == "ignore":
@@ -105,10 +125,11 @@ _setup()
 
 
 class SaQC:
-    def __init__(self, flagger, data, flags=None, nodata=np.nan, error_policy="raise"):
+    def __init__(self, flagger, data, flags=None, nodata=np.nan, to_mask=None, error_policy="raise"):
         data, flags = _prepInput(flagger, data, flags)
         self._data = data
         self._nodata = nodata
+        self._to_mask = to_mask
         self._flagger = self._initFlagger(data, flagger, flags)
         self._error_policy = error_policy
         # NOTE: will be filled by calls to `_wrap`
@@ -131,7 +152,7 @@ class SaQC:
 
     def readConfig(self, fname):
 
-        config = readConfig(fname)
+        config = readConfig(fname, self._flagger)
 
         out = deepcopy(self)
         for func, field, kwargs, plot, lineno, expr in config:
@@ -141,6 +162,15 @@ class SaQC:
             kwargs["field"] = field
             kwargs["plot"] = plot
             out = out._wrap(func, lineno=lineno, expr=expr)(**kwargs)
+        return out
+
+    def _expandFields(self, func, variables):
+        if not func.regex:
+            return [func]
+
+        out = []
+        for field in variables[variables.str.match(func.field)]:
+            out.append(replace(func, field=field))
         return out
 
     def evaluate(self):
@@ -159,41 +189,38 @@ class SaQC:
         #       method instead of intermingling it with the computation
         data, flagger = self._data, self._flagger
 
-        for func_dump in self._to_call:
-            func_name = func_dump['func_name']
-            func_kws = func_dump['func_kws']
-            field = func_dump['field']
-            plot = func_dump["ctrl_kws"]["plot"]
-            logger.debug(f"processing: {field}, {func_name}, {func_kws}")
+        for func in self._to_call:
+            for func in self._expandFields(func, data.columns.union(flagger._flags.columns)):
+                logger.debug(f"processing: {func.field}, {func.name}, {func.kwargs}")
 
-            try:
-                t0 = timeit.default_timer()
-                data_result, flagger_result = _saqcCallFunc(func_dump, data, flagger)
+                try:
+                    t0 = timeit.default_timer()
+                    data_result, flagger_result = _saqcCallFunc(func, data, flagger)
 
-            except Exception as e:
-                t1 = timeit.default_timer()
-                logger.debug(f"{func_name} failed after {t1 - t0} sec")
-                _handleErrors(e, func_dump, self._error_policy)
-                continue
-            else:
-                t1 = timeit.default_timer()
-                logger.debug(f"{func_name} finished after {t1 - t0} sec")
+                except Exception as e:
+                    t1 = timeit.default_timer()
+                    logger.debug(f"{func.name} failed after {t1 - t0} sec")
+                    _handleErrors(e, func, self._error_policy)
+                    continue
+                else:
+                    t1 = timeit.default_timer()
+                    logger.debug(f"{func.name} finished after {t1 - t0} sec")
 
-            if plot:
-                plotHook(
-                    data_old=data,
-                    data_new=data_result,
-                    flagger_old=flagger,
-                    flagger_new=flagger_result,
-                    sources=[],
-                    targets=[field],
-                    plot_name=func_name,
-                )
+                if func.ctrl.plot:
+                    plotHook(
+                        data_old=data,
+                        data_new=data_result,
+                        flagger_old=flagger,
+                        flagger_new=flagger_result,
+                        sources=[],
+                        targets=[func.field],
+                        plot_name=func.name,
+                    )
 
-            data = data_result
-            flagger = flagger_result
+                data = data_result
+                flagger = flagger_result
 
-        if any([fdump["ctrl_kws"]["plot"] for fdump in self._to_call]):
+        if any([fdump.ctrl.plot for fdump in self._to_call]):
             plotAllHook(data, flagger)
 
         # This is much faster for big datasets that to throw everything in the constructor.
@@ -216,44 +243,34 @@ class SaQC:
 
     def _wrap(self, func_name, lineno=None, expr=None):
         def inner(field: str, *args, regex: bool = False, to_mask=None, plot=False, inplace=False, **kwargs):
-            fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
+            # fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
 
-            if func_name in ("flagGeneric", "procGeneric"):
-                # NOTE:
-                # We need to pass `nodata` to the generic functions
-                # (to implement stuff like `ismissing`). As we
-                # should not interfere with proper nodata attributes
-                # of other test functions (e.g. `flagMissing`) we
-                # special case the injection
-                kwargs.setdefault('nodata', self._nodata)
+            kwargs.setdefault('nodata', self._nodata)
 
-            # to_mask is a control keyword
-            ctrl_kws = {
-                **(FUNC_MAP[func_name]["ctrl_kws"]),
-                'to_mask': to_mask,
-                'plot': plot,
-                'inplace': inplace,
-                'lineno': lineno,
-                'expr': expr
-            }
             func = FUNC_MAP[func_name]["func"]
 
-            func_dump = {
-                "func_name": func_name,
-                "func": func,
-                "func_args": args,
-                "func_kws": kwargs,
-                "ctrl_kws": ctrl_kws,
-            }
+            ctrl_kws = FuncCtrl(
+                masking=FUNC_MAP[func_name]["masking"],
+                to_mask=to_mask or self._to_mask,
+                plot=plot,
+                inplace=inplace,
+                lineno=lineno,
+                expr=expr,
+                )
 
-            if inplace:
-                out = self
-            else:
-                out = self.copy()
+            func_dump = Func(
+                name=func_name,
+                func=func,
+                field=field,
+                regex=regex,
+                args=args,
+                kwargs=kwargs,
+                ctrl=ctrl_kws,
+            )
 
-            for field in fields:
-                dump_copy = {**func_dump, "field": field}
-                out._to_call.append(dump_copy)
+            out = self if inplace else self.copy()
+            out._to_call.append(func_dump)
+
             return out
 
         return inner
@@ -274,14 +291,10 @@ class SaQC:
 
 
 def _saqcCallFunc(func_dump, data, flagger):
-    func = func_dump['func']
-    func_name = func_dump['func_name']
-    func_args = func_dump['func_args']
-    func_kws = func_dump['func_kws']
-    field = func_dump['field']
-    ctrl_kws = func_dump['ctrl_kws']
-    to_mask = ctrl_kws['to_mask']
-    masking = ctrl_kws['masking']
+
+    field = func_dump.field
+    to_mask = func_dump.ctrl.to_mask
+    masking = func_dump.ctrl.masking
 
     if masking == 'all':
         columns = data.columns
@@ -290,7 +303,12 @@ def _saqcCallFunc(func_dump, data, flagger):
     elif masking == 'field':
         columns = [field]
     else:
-        raise ValueError(f"masking: {masking}")
+        raise ValueError(f"wrong use of `register(masking={masking})`")
+
+    # warn if the user explicitly pass `to_mask=..` to a function that is
+    # decorated by `register(masking='none')`, and so `to_mask` is ignored.
+    if masking == 'none' and to_mask not in (None, []):
+        logging.warning("`to_mask` is given, but the test ignore masking. Please refer to the documentation: TODO")
     to_mask = flagger.BAD if to_mask is None else to_mask
 
     # NOTE:
@@ -307,8 +325,14 @@ def _saqcCallFunc(func_dump, data, flagger):
         flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field, dtype=np.float64)))
 
     data_in, mask = _maskData(data, flagger, columns, to_mask)
-    data_result, flagger_result = func(data_in, field, flagger, *func_args, func_name=func_name, **func_kws)
+    data_result, flagger_result = func_dump.func(
+        data_in, field, flagger,
+        *func_dump.args, func_name=func_dump.name, **func_dump.kwargs)
     data_result = _unmaskData(data, mask, data_result, flagger_result, to_mask)
+
+    # we check the passed function-kwargs after the actual call, because now "hard" errors would already have been
+    # raised (Eg. `TypeError: got multiple values for argument 'data'`, when the user pass data=...)
+    _warnForUnusedKwargs(func_dump, flagger)
 
     return data_result, flagger_result
 
@@ -330,12 +354,12 @@ def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
     # TODO: this is heavily undertested
 
     # NOTE:
-    # we only need to respect columns, that was masked,
-    # and also are still present in new data.
-    # this throw out:
+    # we only need to respect columns, that were masked,
+    # and are also still present in new data.
+    # this throws out:
     #  - any newly assigned columns
-    #  - columns that wasn't masked, due to masking-kw
-    columns = mask_old.columns.intersection(data_new.columns)
+    #  - columns that were excluded from masking
+    columns = mask_old.dropempty().columns.intersection(data_new.dropempty().columns)
     mask_new = flagger_new.isFlagged(field=columns, flag=to_mask, comparator="==")
 
     for col in columns:
@@ -350,9 +374,47 @@ def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
 
             # reapplying old values on masked positions
             if np.any(mask):
-                data = np.where(mask, data_new[col].values, data_old[col].values)
+                data = np.where(mask, data_old[col].values, data_new[col].values)
                 data_new[col] = pd.Series(data=data, index=is_masked.index)
 
     return data_new
+
+
+def _warnForUnusedKwargs(func_dump, flagger):
+    """ Warn for unused kwargs, passed to a SaQC.function.
+
+    Parameters
+    ----------
+    func_dump: dict
+        Saqc internal data structure that hold all function info.
+    flagger: saqc.flagger.BaseFlagger
+        Flagger object.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    A single warning via the logging module is thrown, if any number of
+    missing kws are detected, naming each missing kw.
+    """
+    sig_kws = inspect.signature(func_dump.func).parameters
+
+    # we need to ignore kwargs that are injected or
+    # used to control the flagger
+    ignore = flagger.signature + ('nodata',)
+
+    missing = []
+    for kw in func_dump.kwargs:
+        # there is no need to check for
+        # `kw in [KEYWORD_ONLY, VAR_KEYWORD or POSITIONAL_OR_KEYWORD]`
+        # because this would have raised an error beforehand.
+        if kw not in sig_kws and kw not in ignore:
+            missing.append(kw)
+
+    if missing:
+        missing = ', '.join(missing)
+        logging.warning(f"Unused argument(s): {missing}")
 
 

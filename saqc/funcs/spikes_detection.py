@@ -16,7 +16,8 @@ from saqc.lib.tools import (
     offset2seconds,
     slidingWindowIndices,
     findIndex,
-    toSequence
+    toSequence,
+    customRolling
 )
 from outliers import smirnov_grubbs
 
@@ -343,7 +344,7 @@ def spikes_flagMultivarScores(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     fields : List[str]
         List of fieldnames, corresponding to the variables that are to be included into the flagging process.
@@ -405,7 +406,7 @@ def spikes_flagMultivarScores(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -464,17 +465,21 @@ def spikes_flagMultivarScores(
     val_frame = data[fields]
     val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
     val_frame.dropna(inplace=True)
+    val_frame = val_frame.apply(trafo)
+
     if val_frame.empty:
         return data, flagger
 
-    if threshing == 'stray':
-        to_flag_index = _stray(val_frame,
-                               partition_freq=stray_partition,
-                               partition_min=stray_partition_min,
-                               scoring_method=scoring_method,
-                               n_neighbors=n_neighbors,
-                               iter_start=iter_start,
-                               trafo=trafo)
+    if threshing == "stray":
+        to_flag_index = _stray(
+            val_frame,
+            partition_freq=stray_partition,
+            partition_min=stray_partition_min,
+            scoring_method=scoring_method,
+            n_neighbors=n_neighbors,
+            iter_start=iter_start,
+            alpha=alpha
+        )
 
     else:
         val_frame = val_frame.apply(trafo)
@@ -534,7 +539,7 @@ def spikes_flagRaise(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     thresh : float
         The threshold, for the total rise (thresh > 0), or total drop (thresh < 0), value courses must
@@ -559,7 +564,7 @@ def spikes_flagRaise(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -685,7 +690,7 @@ def spikes_flagSlidingZscore(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     window: {int, str}
         Integer or offset string (see [2]). The size of the window the outlier detection is run in.
@@ -704,7 +709,7 @@ def spikes_flagSlidingZscore(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -827,7 +832,7 @@ def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     window : str
        Offset string. Denoting the windows size that the "Z-scored" values have to lie in.
@@ -838,7 +843,7 @@ def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -870,7 +875,7 @@ def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
 
 
 @register(masking='field')
-def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min", **kwargs):
+def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kickin=200000, **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -894,7 +899,7 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     thresh : float, default 7
         Minimum difference between to values, to consider the latter one as a spike. See condition (1)
@@ -902,12 +907,17 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
         Maximum difference between pre-spike and post-spike values. See condition (2)
     window : str, default '15min'
         Maximum length of "spiky" value courses. See condition (3)
+    numba_kickin : int, default 200000
+        When there are detected more than `numba_kickin` incidents of potential spikes,
+        the pandas.rolling - part of computation gets "jitted" with numba.
+        Default value hast proven to be around the break even point between "jit-boost" and "jit-costs".
+
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -922,55 +932,49 @@ def spikes_flagBasic(data, field, flagger, thresh=7, tolerance=0, window="15min"
 
     dataseries = data[field].dropna()
     # get all the entries preceding a significant jump
-    pre_jumps = dataseries.diff(periods=-1).abs() > thresh
-    pre_jumps = pre_jumps[pre_jumps]
-    if pre_jumps.empty:
+    post_jumps = dataseries.diff().abs() > thresh
+    post_jumps = post_jumps[post_jumps]
+    if post_jumps.empty:
         return data, flagger
     # get all the entries preceeding a significant jump and its successors within "length" range
-    to_roll = pre_jumps.reindex(dataseries.index, method="ffill", tolerance=window, fill_value=False).dropna()
+    to_roll = post_jumps.reindex(dataseries.index, method="bfill", tolerance=window, fill_value=False).dropna()
 
     # define spike testing function to roll with:
-    def spike_tester(chunk, pre_jumps_index, thresh, tol):
-        if not chunk.index[-1] in pre_jumps_index:
+    def spikeTester(chunk, thresh=thresh, tol=tolerance):
+        # signum change!!!
+        chunk_stair = (np.sign(chunk[-2] - chunk[-1])*(chunk - chunk[-1]) < thresh)[::-1].cumsum()
+        initial = np.searchsorted(chunk_stair, 2)
+        if initial == len(chunk):
             return 0
+        if np.abs(chunk[- initial - 1] - chunk[-1]) < tol:
+            return initial - 1
         else:
-            # signum change!!!
-            chunk_stair = (abs(chunk - chunk[-1]) < thresh)[::-1].cumsum()
-            first_return = chunk_stair[(chunk_stair == 2)]
-            if first_return.sum() == 0:
-                return 0
-            if abs(chunk[first_return.index[0]] - chunk[-1]) < tol:
-                return (chunk_stair == 1).sum() - 1
-            else:
-                return 0
+            return 0
 
-    # since .rolling does neither support windows, defined by left starting points, nor rolling over monotonically
-    # decreasing indices, we have to trick the method by inverting the timeseries and transforming the resulting index
-    # to pseudo-increase.
     to_roll = dataseries[to_roll]
-    original_index = to_roll.index
-    to_roll = to_roll[::-1]
-    pre_jump_reversed_index = to_roll.index[0] - pre_jumps.index
-    to_roll.index = to_roll.index[0] - to_roll.index
+    roll_mask = pd.Series(False, index=to_roll.index)
+    roll_mask[post_jumps.index] = True
+    engine=None
+    if roll_mask.sum() > numba_kickin:
+        engine = 'numba'
+    result = customRolling(to_roll, window, spikeTester, roll_mask, closed='both', engine=engine, min_periods=2)
 
-    # now lets roll:
-    to_roll = (
-        to_roll.rolling(window, closed="both")
-        .apply(spike_tester, args=(pre_jump_reversed_index, thresh, tolerance), raw=False)
-        .astype(int)
-    )
-    # reconstruct original index and sequence
-    to_roll = to_roll[::-1]
-    to_roll.index = original_index
-    to_write = to_roll[to_roll != 0]
-    to_flag = pd.Index([])
-    # here comes a loop...):
-    for row in to_write.iteritems():
-        loc = to_roll.index.get_loc(row[0])
-        to_flag = to_flag.append(to_roll.iloc[loc + 1 : loc + row[1] + 1].index)
+    # correct the result: only those values define plateaus, that do not have
+    # values at their left starting point, that belong to other plateaus themself:
+    def calcResult(result):
+        var_num = result.shape[0]
+        flag_scopes = np.zeros(var_num, dtype=bool)
+        for k in range(var_num):
+            if result[k] > 0:
+                k_r = int(result[k])
+                # validity check: plateuas start isnt another plateaus end:
+                if not flag_scopes[k - k_r - 1]:
+                    flag_scopes[(k - k_r):k] = True
+        return pd.Series(flag_scopes, index=result.index)
 
-    to_flag = to_flag.drop_duplicates(keep="first")
-    flagger = flagger.setFlags(field, to_flag, **kwargs)
+    cresult = calcResult(result)
+    cresult = cresult[cresult].index
+    flagger = flagger.setFlags(field, cresult, **kwargs)
     return data, flagger
 
 
@@ -1011,7 +1015,7 @@ def spikes_flagSpektrumBased(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     raise_factor : float, default 0.15
         Minimum relative value difference between two values to consider the latter as a spike candidate.
@@ -1037,7 +1041,7 @@ def spikes_flagSpektrumBased(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 
@@ -1147,7 +1151,7 @@ def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, ch
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     winsz : {int, str}
         The size of the window you want to use for outlier testing. If an integer is passed, the size
@@ -1167,7 +1171,7 @@ def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, ch
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 
