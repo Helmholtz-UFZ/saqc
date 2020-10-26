@@ -17,7 +17,20 @@ class PositionalFlagger(BaseFlagger):
     def __init__(self):
         super().__init__(dtype=str)
 
-    def setFlags(self, field, loc, position=-1, flag=None, force=False, inplace=False, **kwargs):
+    def setFlags(
+            self,
+            field: str,
+            loc=None,
+            position=-1,
+            flag=None,
+            force: bool = False,
+            inplace: bool = False,
+            with_extra=False,
+            flag_after=None,
+            flag_before=None,
+            win_flag=None,
+            **kwargs
+    ):
         assertScalar("field", field, optional=False)
 
         # prepping
@@ -25,6 +38,10 @@ class PositionalFlagger(BaseFlagger):
         self.isValidFlag(flag, fail=True)
         out = self if inplace else deepcopy(self)
         out_flags = out._flags[field]
+
+        idx = self.getFlags(field, loc).index
+        mask = pd.Series(True, index=idx, dtype=bool)
+        mask = mask.reindex_like(out_flags).fillna(False)
 
         # replace unflagged with the magic starter '9'
         out_flags = out_flags.str.replace(f"^{self.UNFLAGGED}", "9", regex=True)
@@ -37,16 +54,23 @@ class PositionalFlagger(BaseFlagger):
             length = position = position + 1
         out_flags = out_flags.str.pad(length + 1, fillchar=self.GOOD, side="right")
 
-        # we rigerously overwrite existing flags 
+        # we rigorously overwrite existing flags
         new_flags = out_flags.str[position]
-        new_flags[loc] = flag
+        new_flags.loc[mask] = flag
+
+        # calc window flags
+        if flag_after is not None or flag_before is not None:
+            win_mask, win_flag = self._getWindowMask(field, mask, flag_after, flag_before, win_flag, flag, force)
+            new_flags.loc[win_mask] = win_flag
 
         out._flags[field] = out_flags.str[:position] + new_flags + out_flags.str[position+1:]
         return out
 
     def isFlagged(self, field=None, loc=None, flag=None, comparator=">"):
 
+        field = slice(None) if field is None else field
         flags = self._getMaxFlag(field, loc).astype(int)
+        flags = flags.loc[:, field]
 
         # notna() to prevent nans to become True,
         # eg.: `np.nan != 0 -> True`

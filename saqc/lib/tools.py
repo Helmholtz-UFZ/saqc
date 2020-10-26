@@ -13,9 +13,11 @@ import dios
 
 from pandas.api.indexers import BaseIndexer
 from pandas._libs.window.indexers import calculate_variable_window_bounds
+from pandas.core.window.indexers import calculate_variable_window_bounds
 from saqc.lib.types import T
 
 logger = logging.getLogger("SaQC")
+
 
 def assertScalar(name, value, optional=False):
     if (not np.isscalar(value)) and (value is not None) and (optional is True):
@@ -521,22 +523,30 @@ def evalFreqStr(freq, check, index):
 
 
 class FreqIndexer(BaseIndexer):
+    def __init__(self, *args, win_points=None, **kwargs):
+        if win_points is None:
+            raise TypeError(win_points)
+        self.win_points = win_points
+        super().__init__(*args, **kwargs)
+
     def get_window_bounds(self, num_values, min_periods, center, closed):
         start, end = calculate_variable_window_bounds(num_values, self.window_size, min_periods, center, closed,
-                                            self.index_array)
+                                                      self.index_array)
         end[~self.win_points] = 0
         start[~self.win_points] = 0
         return start, end
 
 
 class PeriodsIndexer(BaseIndexer):
+    def __init__(self, *args, win_points=None, **kwargs):
+        if win_points is None:
+            raise TypeError(win_points)
+        self.win_points = win_points
+        super().__init__(*args, **kwargs)
+
     def get_window_bounds(self, num_values, min_periods, center, closed):
         start_s = np.zeros(self.window_size, dtype="int64")
-        start_e = (
-                np.arange(self.window_size, num_values, dtype="int64")
-                - self.window_size
-                + 1
-        )
+        start_e = np.arange(self.window_size, num_values, dtype="int64") - self.window_size + 1
         start = np.concatenate([start_s, start_e])[:num_values]
 
         end_s = np.arange(self.window_size, dtype="int64") + 1
@@ -547,7 +557,7 @@ class PeriodsIndexer(BaseIndexer):
         return start, end
 
 
-def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, closed=None, raw=True, engine=None):
+def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, closed=None, raw=True, engine="cython"):
     """
     A wrapper around pandas.rolling.apply(), that allows for skipping func application on
     arbitrary selections of windows.
@@ -576,7 +586,7 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
         Gets passed on to the closed parameter of pandas.Rolling.
     raw : bool, default True
         Gets passed on to the raw parameter of pandas.Rolling.apply.
-    engine : {None, 'numba'}, default None
+    engine : {'cython', 'numba'}, default 'cython'
         Gets passed on to the engine parameter of pandas.Rolling.apply.
 
     Returns
@@ -586,14 +596,13 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
 
     """
     i_roll = to_roll.copy()
-    i_roll.index = np.arange(to_roll.shape[0], dtype=np.int64)
+    i_roll.index = pd.RangeIndex(len(i_roll))
+
     if isinstance(winsz, str):
-        winsz = np.int64(pd.Timedelta(winsz).total_seconds()*10**9)
-        indexer = FreqIndexer(window_size=winsz,
-                              win_points=roll_mask,
-                              index_array=to_roll.index.to_numpy(np.int64),
-                              center=center,
-                              closed=closed)
+        # offset-rolling is a integer-rolling on nano-seconds base
+        arr_ns = to_roll.index.to_numpy(np.int64)
+        winsz_ns = np.int64(pd.Timedelta(winsz).total_seconds()*10**9)
+        indexer = FreqIndexer(index_array=arr_ns, window_size=winsz_ns, win_points=roll_mask)
 
     elif isinstance(winsz, int):
         indexer = PeriodsIndexer(window_size=winsz,
@@ -601,8 +610,12 @@ def customRolling(to_roll, winsz, func, roll_mask, min_periods=1, center=False, 
                                  center=center,
                                  closed=closed)
 
-    i_roll = i_roll.rolling(indexer,
-                            min_periods=min_periods,
-                            center=center,
-                            closed=closed).apply(func, raw=raw, engine=engine)
-    return pd.Series(i_roll.values, index=to_roll.index)
+        indexer = PeriodsIndexer(index_array=None, window_size=winsz, win_points=roll_mask)
+
+    else:
+        raise TypeError(winsz)
+
+    roller = i_roll.rolling(indexer, min_periods=min_periods, center=center, closed=closed)
+    res = roller.apply(func, raw=raw, engine=engine)
+    return pd.Series(res.values, index=to_roll.index)
+

@@ -377,10 +377,8 @@ def sm_flagPrecipitation(
 
     dataseries = dataseries[raise_mask & std_mask]
     invalid_indices = prec_count[dataseries.index] <= sensor_depth * sensor_accuracy * soil_porosity
-    invalid_indices = invalid_indices[invalid_indices]
 
-    # set Flags
-    flagger = flagger.setFlags(field, loc=invalid_indices.index, **kwargs)
+    flagger = flagger.setFlags(field, loc=invalid_indices, **kwargs)
     return data, flagger
 
 
