@@ -20,7 +20,7 @@ from saqc.funcs.proc_functions import (
 logger = logging.getLogger("SaQC")
 
 @register(masking='none')
-def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, freq_check=None, **kwargs):
+def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, **kwargs):
     """
     A method to "regularize" data by shifting data points forward/backward to a regular timestamp.
 
