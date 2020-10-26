@@ -963,7 +963,7 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
 
     return data, flagger
 
-
+@register(masking='all')
 def flagDriftFromReference(data, field, flagger, fields, segment_freq, thresh,
                       metric=lambda x, y: scipy.spatial.distance.pdist(np.array([x, y]),
                                                                     metric='cityblock')/len(x),
