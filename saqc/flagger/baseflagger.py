@@ -35,6 +35,7 @@ class BaseFlagger(ABC):
     def __init__(self, dtype):
         # NOTE: the type of the _flags DictOfSeries
         self.dtype = dtype
+        self.extra_defaults = dict()
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
         self.signature = ("flag",)
@@ -76,14 +77,6 @@ class BaseFlagger(ABC):
         newflagger = self.copy(flags=flags)
         return newflagger
 
-    def rename(self, field: str, new_name: str, inplace=False):
-        if inplace:
-            out = self
-        else:
-            out = self.copy()
-        out._flags.columns = mutateIndex(out._flags.columns, field, new_name)
-        return out
-
     def merge(self, other: BaseFlaggerT, subset: Optional[List] = None, join: str = "merge", inplace=False):
         """
         Merge the given flagger 'other' into self
@@ -112,19 +105,37 @@ class BaseFlagger(ABC):
         else:
             return self.copy(flags=flags)
 
-    def getFlags(self, field: FieldsT = None, loc: LocT = None) -> PandasT:
+    def getFlags(self, field: FieldsT = None, loc: LocT = None, full=False):
         """ Return a potentially, to `loc`, trimmed down version of flags.
+
+        Parameters
+        ----------
+        field : str, list of str or None, default None
+            Field(s) to request.
+        loc :
+            limit result to specific rows.
+        full : object
+            If True, an additional dict is returned, holding all extras that
+            the flagger may specify. These extras can be feed back to a/the
+            flagger with `setFlags(...with_extras=True)`.
 
         Return
         ------
-        a pd.Series if field is a string or a Dios if not
+        flags: pandas.Series or dios.DictOfSeries
+            If field is a scalar a series is returned, otherwise a dios.
+        extras: dict
+            Present only if `full=True`. A dict that hold all extra information.
 
         Note
         ----
-            This is more or less a __getitem__(key)-like function, where
-            self._flags is accessed and key is a single key or a tuple.
-            Either key is [loc] or [loc,field]. loc also can be a 2D-key,
-            aka. a booldios"""
+        This is more or less a __getitem__(key)-like function, where
+        self._flags is accessed and key is a single key or a tuple.
+        Either key is [loc] or [loc,field]. loc also can be a 2D-key,
+        aka. a booldios
+
+        The resulting dict (full=True) can be feed to setFlags to update extra Columns.
+        but field must be a scalar then, because setFlags only can process a scalar field.
+        """
 
         # loc should be a valid 2D-indexer and
         # then field must be None. Otherwise aloc
@@ -139,22 +150,47 @@ class BaseFlagger(ABC):
 
         # this is a bug in `dios.aloc`, which may return a shallow copied dios, if `slice(None)` is passed
         # as row indexer. Thus is because pandas `.loc` return a shallow copy if a null-slice is passed to a series.
-        return self._flags.copy().aloc[indexer]
+        flags = self._flags.aloc[indexer].copy()
+        if full:
+            return flags, dict()
+        else:
+            return flags
 
-    def setFlags(self, field: str, loc: LocT = None, flag: FlagT = None, force: bool = False, inplace=False, **kwargs) -> BaseFlaggerT:
+    def setFlags(
+            self,
+            field: str,
+            loc: LocT = None,
+            flag: FlagT = None,
+            force: bool = False,
+            inplace=False,
+            with_extra=False,
+            **kwargs
+    ) -> BaseFlaggerT:
         """Overwrite existing flags at loc.
 
         If `force=False` (default) only flags with a lower priority are overwritten,
         otherwise, if `force=True`, flags are overwritten unconditionally.
+
+        Examples
+        --------
+        One can use this to update extra columns without knowing their names. Eg. like so:
+
+        >>> field = 'var0'
+        >>> flags, extra = flagger.getFlags(field, full=True)
+        >>> newflags = magic_that_alter_index(flags)
+        >>> for k, v in extra.items()
+        ...     extra[k] = magic_that_alter_index(v)
+        >>> flagger = flagger.setFlags(field, flags=newflags, with_extra=True, **extra)
         """
+
         assert "iloc" not in kwargs, "deprecated keyword, `iloc=slice(i:j)`. Use eg. `loc=srs.index[i:j]` instead."
 
-        assertScalar("field", field, optional=False)
+        assertScalar("field", self._check_field(field), optional=False)
         flag = self.BAD if flag is None else flag
+        out = self if inplace else deepcopy(self)
 
-        if kwargs.get('diff_only', False):
-            del kwargs['diff_only']
-            self.setFlags(field, force=True, inplace=True, flag=self.UNFLAGGED, **kwargs)
+        if with_extra and not isinstance(flag, pd.Series):
+            raise ValueError("flags must be pd.Series if `with_extras=True`.")
 
         if force:
             row_indexer = slice(None) if loc is None else loc
@@ -162,11 +198,6 @@ class BaseFlagger(ABC):
             # trim flags to loc, we always get a pd.Series returned
             this = self.getFlags(field=field, loc=loc)
             row_indexer = this < flag
-
-        if inplace:
-            out = self
-        else:
-            out = deepcopy(self)
 
         out._flags.aloc[row_indexer, field] = flag
         return out
@@ -237,10 +268,12 @@ class BaseFlagger(ABC):
         else:
             # if flags is given and self.flags is big,
             # this hack will bring some speed improvement
+            # NOTE: there should be nicer way to do this,
+            #       why not through a constructur method?
             saved = self._flags
             self._flags = None
             out = deepcopy(self)
-            out._flags = flags
+            out._flags = flags.copy()
             self._flags = saved
         return out
 
@@ -261,6 +294,51 @@ class BaseFlagger(ABC):
         # and the child flagger may should implement a better
         # version of it.
         return flag == self.BAD or flag == self.GOOD or flag == self.UNFLAGGED or self.isSUSPICIOUS(flag)
+
+    def replaceField(self, field, flags, inplace=False, **kwargs):
+        """ Replace or delete all data for a given field.
+
+        Parameters
+        ----------
+        field : str
+            The field to replace / delete. If the field already exist, the respected data
+            is replaced, otherwise the data is inserted in the respected field column.
+        flags : pandas.Series or None
+            If None, the series denoted by `field` will be deleted. Otherwise
+            a series of flags (dtype flagger.dtype) that will replace the series
+            currently stored under `field`
+        inplace : bool, default False
+            If False, a flagger copy is returned, otherwise the flagger is not copied.
+        **kwargs : dict
+            ignored.
+
+        Returns
+        -------
+        flagger: saqc.flagger.BaseFlagger
+            The flagger object or a copy of it (if inplace=True).
+
+        Raises
+        ------
+        ValueError: (delete) if field does not exist
+        TypeError: (replace / insert) if flags are not pd.Series
+        """
+
+        assertScalar("field", field, optional=False)
+
+        out = self if inplace else deepcopy(self)
+
+        # delete
+        if flags is None:
+            if field not in self._flags:
+                raise ValueError(f"{field}: field does not exist")
+            del out._flags[field]
+
+        # insert / replace
+        else:
+            if not isinstance(flags, pd.Series):
+                raise TypeError(f"`flags` must be pd.Series.")
+            out._flags[field] = flags.astype(self.dtype)
+        return out
 
     def _check_field(self, field):
         """ Check if (all) field(s) in self._flags. """

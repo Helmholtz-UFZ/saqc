@@ -86,12 +86,13 @@ def test_resample(course_5, flagger):
     assert np.isnan(data1[field].iloc[1])
     assert np.isnan(data1[field].iloc[2])
 
+
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_interpolateGrid(course_5, course_3, flagger):
     data, _ = course_5()
     data_grid, characteristics = course_3()
-    data['grid']=data_grid.to_df()
-    #data = dios.DictOfSeries(data)
+    data['grid'] = data_grid.to_df()
+    # data = dios.DictOfSeries(data)
     flagger = flagger.initFlags(data)
     dataInt, *_ = proc_interpolateGrid(data, 'data', flagger, '1h', 'time', grid_field='grid', inter_limit=10)
 
@@ -105,5 +106,4 @@ def test_offsetCorrecture(flagger):
     flagger = flagger.initFlags(data)
     data, flagger = proc_offsetCorrecture(data, 'dat', flagger, 40, 20, '3Y', 1)
     assert (data == 0).all()[0]
-
 

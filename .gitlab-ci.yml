@@ -14,16 +14,6 @@ before_script:
   - eval "$(pyenv init -)"
 
 
-test:python36:
-  script:
-    - pyenv install 3.6.9
-    - pyenv shell 3.6.9
-    - pip install --upgrade pip
-    - pip install -r requirements.txt
-    - python -m pytest test
-    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
-
-
 test:python37:
   script:
     - pyenv install 3.7.5

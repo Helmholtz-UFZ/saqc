@@ -58,7 +58,7 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba="auto", eval_f
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-modelled.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     winsz : {str, int}
         The size of the window you want to use for fitting. If an integer is passed, the size
@@ -86,7 +86,7 @@ def modelling_polyFit(data, field, flagger, winsz, polydeg, numba="auto", eval_f
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 
@@ -203,7 +203,7 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-modelled.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     winsz : {int, str}
         The size of the window you want to roll with. If an integer is passed, the size
@@ -228,7 +228,7 @@ def modelling_rollingMean(data, field, flagger, winsz, eval_flags=True, min_peri
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -314,7 +314,7 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-masked.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     mode : {"seasonal", "mask_var"}
         The masking mode.
@@ -343,7 +343,7 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 

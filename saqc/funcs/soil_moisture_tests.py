@@ -39,7 +39,7 @@ def sm_flagSpikes(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     raise_factor : float, default 0.15
         Minimum relative value difference between two values to consider the latter as a spike candidate.
@@ -65,7 +65,7 @@ def sm_flagSpikes(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 
@@ -122,7 +122,7 @@ def sm_flagBreaks(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     thresh_rel : float, default 0.1
         Float in [0,1]. See (1) of function description above to learn more
@@ -151,7 +151,7 @@ def sm_flagBreaks(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -202,7 +202,7 @@ def sm_flagFrost(data, field, flagger, soil_temp_variable, window="1h", frost_th
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     soil_temp_variable : str,
         An offset string, denoting the fields name in data, that holds the data series of soil temperature values,
@@ -217,7 +217,7 @@ def sm_flagFrost(data, field, flagger, soil_temp_variable, window="1h", frost_th
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -297,7 +297,7 @@ def sm_flagPrecipitation(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
     prec_variable : str
         Fieldname of the precipitation meassurements column in data.
@@ -333,7 +333,7 @@ def sm_flagPrecipitation(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -420,7 +420,7 @@ def sm_flagConstants(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     window : str, default '12h'
         Minimum duration during which values need to identical to become plateau candidates. See condition (1)
@@ -448,7 +448,7 @@ def sm_flagConstants(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -541,7 +541,7 @@ def sm_flagRandomForest(data, field, flagger, references, window_values: int, wi
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     references : {str, List[str]}
         List or list of strings, denoting the fieldnames of the data series that should be used as reference variables
@@ -559,7 +559,7 @@ def sm_flagRandomForest(data, field, flagger, references, window_values: int, wi
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
     """
