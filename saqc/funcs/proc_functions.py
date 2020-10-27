@@ -778,6 +778,20 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         # reinsert drops
         target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))
         target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
+        for meta_key in target_metacols.keys():
+            target_metacols[meta_key].drop(drop_mask[drop_mask].index, inplace=True)
+            meta_merged = pd.merge_asof(
+                metacols[meta_key],
+                pd.Series(target_metacols[meta_key].index.values, index=target_metacols[meta_key].index,
+                          name="pre_index"),
+                left_index=True,
+                right_index=True,
+                tolerance=tolerance,
+                direction=projection_method,
+            )
+            meta_merged.dropna(subset=["pre_index"], inplace=True)
+            meta_merged = meta_merged.set_index(["pre_index"]).squeeze()
+            target_metacols[meta_key][replacement_mask[replacement_mask].index] = meta_merged[replacement_mask]
 
     flagger = flagger.setFlags(field, flag=target_flagscol, with_extra=True, **target_metacols)
     return data, flagger
