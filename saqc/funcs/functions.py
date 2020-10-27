@@ -1039,10 +1039,17 @@ def flagDriftScale(data, field, flagger, fields_scale1, fields_scale2, segment_f
 
 
     """
-    The function transforms variables with different scales to one single scale and then flags value courses that
-    significantly deviate from a group of normal value courses. The scaling transformation is performed via linear
-    regression. The remaining steps are performed analogously to flagDriftFromNorm. The documentation of
-    flagDriftFromNorm gives a more detailed presentation of the remaining steps.
+    The function linearly rescales one set of variables to another set of variables with a different scale and then
+    flags value courses that significantly deviate from a group of normal value courses.
+
+    The two sets of variables can be linearly scaled one to another and hence the scaling transformation is performed
+    via linear regression: A linear regression is performed on each pair of variables giving a slope and an intercept.
+    The transformation is then calculated a the median of all the calculated slopes and intercepts.
+
+    Once the transformation is performed, the function flags those values, that deviate from a group of normal values.
+    "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed.
+    In addition, only a group is considered "normal" if it contains more then `norm_frac` percent of the
+    variables in "fields".
 
     Parameters
     ----------
