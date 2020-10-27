@@ -642,6 +642,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     """
     The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
     source flags projected on them, they get overridden with this associated source flag value.
+
     Which "field"-flags are to be projected on which source flags, is controlled by the "method" and "freq"
     parameters.
 
@@ -668,14 +669,14 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     (if source_flag > field_flag)
 
     Note, to undo or backtrack a resampling/shifting/interpolation that has been performed with a certain method,
-    you can just pass the associated "inverse" method. Also you shoud pass the same drop flags keyword.
+    you can just pass the associated "inverse" method. Also you should pass the same drop flags keyword.
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
-        The fieldname of the data column, you want to project the source-flags at.
+        The fieldname of the data column, you want to project the source-flags onto.
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
@@ -686,7 +687,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
     to_drop : {None, str, List[str]}, default None
-        Flags referring to values that are to drop before flags projection. Relevant only when projecting wiht an
+        Flags referring to values that are to drop before flags projection. Relevant only when projecting with an
         inverted shift method. Defaultly flagger.BAD is listed.
     freq_check : {None, 'check', 'auto'}, default None
         - None: do not validate frequency-string passed to `freq`
@@ -702,11 +703,11 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
-    flagscol = flagger.getFlags(source)
+    flagscol, metacols = flagger.getFlags(source, full=True)
     if flagscol.empty:
         return data, flagger
     target_datcol = data[field]
-    target_flagscol = flagger.getFlags(field)
+    target_flagscol, target_metacols = flagger.getFlags(field, full=True)
 
     if (freq is None) and (method != "match"):
         freq_check = 'auto'
@@ -725,10 +726,13 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         # Aggregation - Inversion
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
-
         flagscol = flagscol.reindex(target_flagscol.index, method=projection_method, tolerance=tolerance)
         replacement_mask = flagscol > target_flagscol
         target_flagscol.loc[replacement_mask] = flagscol.loc[replacement_mask]
+        for meta_key in target_metacols.keys():
+            metacols[meta_key] = metacols[meta_key].reindex(target_metacols[meta_key].index, method=projection_method,
+                                                            tolerance=tolerance)
+            target_metacols[meta_key].loc[replacement_mask] = metacols[meta_key].loc[replacement_mask]
 
     if method[-5:] == "shift":
         # NOTE: although inverting a simple shift seems to be a less complex operation, it has quite some
@@ -765,7 +769,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))
         target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
 
-    flagger = flagger.setFlags(field=field, flag=target_flagscol, **kwargs)
+    flagger = flagger.setFlags(field, flag=target_flagscol, **target_metacols, with_extra=True, **kwargs)
     return data, flagger
 
 
