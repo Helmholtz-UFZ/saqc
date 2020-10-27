@@ -717,10 +717,20 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     if method[-13:] == "interpolation":
         backprojected = flagscol.reindex(target_flagscol.index, method="bfill", tolerance=freq)
         fwrdprojected = flagscol.reindex(target_flagscol.index, method="ffill", tolerance=freq)
-        b_replacement_mask = backprojected > target_flagscol
-        target_flagscol.loc[b_replacement_mask] = backprojected.loc[b_replacement_mask]
+        b_replacement_mask = (backprojected > target_flagscol) & (backprojected >= fwrdprojected)
         f_replacement_mask = (fwrdprojected > target_flagscol) & (fwrdprojected > backprojected)
-        target_flagscol.loc[f_replacement_mask] = backprojected.loc[f_replacement_mask]
+        target_flagscol.loc[b_replacement_mask] = backprojected.loc[b_replacement_mask]
+        target_flagscol.loc[f_replacement_mask] = fwrdprojected.loc[f_replacement_mask]
+
+        backprojected_meta = {}
+        fwrdprojected_meta = {}
+        for meta_key in target_metacols.keys():
+            backprojected_meta[meta_key] = metacols[meta_key].reindex(target_metacols[meta_key].index, method='bfill',
+                                                                      tolerance=freq)
+            fwrdprojected_meta[meta_key] = metacols[meta_key].reindex(target_metacols[meta_key].index, method='ffill',
+                                                                      tolerance=freq)
+            target_metacols[meta_key].loc[b_replacement_mask] = backprojected_meta[meta_key].loc[b_replacement_mask]
+            target_metacols[meta_key].loc[f_replacement_mask] = fwrdprojected_meta[meta_key].loc[f_replacement_mask]
 
     if method[-3:] == "agg" or method == "match":
         # Aggregation - Inversion
@@ -769,7 +779,7 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))
         target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
 
-    flagger = flagger.setFlags(field, flag=target_flagscol, **target_metacols, with_extra=True, **kwargs)
+    flagger = flagger.setFlags(field, flag=target_flagscol, with_extra=True, **target_metacols)
     return data, flagger
 
 
