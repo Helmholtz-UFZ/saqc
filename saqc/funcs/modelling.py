@@ -387,21 +387,18 @@ def modelling_mask(data, field, flagger, mode, mask_var=None, season_start=None,
     determine wich values NOT TO mask (=wich values are to constitute the "seasons").
     """
     data = data.copy()
-    datcol = data[field]
-    if mode == 'seasonal':
-        to_mask = seasonalMask(datcol.index, season_start, season_end, include_bounds)
+    datcol_idx = data[field].index
 
+    if mode == 'seasonal':
+        to_mask = seasonalMask(datcol_idx, season_start, season_end, include_bounds)
     elif mode == 'mask_var':
-        to_mask = data[mask_var]
-        to_mask_i = to_mask.index.join(datcol.index, how='inner')
-        to_mask = to_mask[to_mask_i]
+        idx = data[mask_var].index.intersection(datcol_idx)
+        to_mask = data.loc[idx, mask_var]
     else:
         raise ValueError("Keyword passed as masking mode is unknown ({})!".format(mode))
 
-    datcol[to_mask] = np.nan
-    flags_to_block = pd.Series(np.nan, index=datcol.index[to_mask]).astype(flagger.dtype)
-    data[field] = datcol
-    flagger = flagger.setFlags(field, loc=datcol.index[to_mask], flag=flags_to_block, force=True)
+    data.aloc[to_mask, field] = np.nan
+    flagger = flagger.setFlags(field, loc=to_mask, flag=np.nan, force=True)
 
     return data, flagger
 

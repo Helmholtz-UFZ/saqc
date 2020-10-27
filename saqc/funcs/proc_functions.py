@@ -7,7 +7,7 @@ from saqc.core.register import register
 from saqc.lib.ts_operators import interpolateNANs, aggregate2Freq, shift2Freq, expModelFunc
 from saqc.funcs.breaks_detection import breaks_flagRegimeAnomaly
 from saqc.funcs.modelling import modelling_changePointCluster
-from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex, detectDeviants
+from saqc.lib.tools import toSequence, mergeDios, dropper, mutateIndex, detectDeviants, evalFreqStr
 import dios
 import functools
 from scipy.optimize import curve_fit
@@ -90,9 +90,7 @@ def proc_rollingInterpolateMissing(
     if interpol_flag:
         if interpol_flag in ["BAD", "UNFLAGGED", "GOOD"]:
             interpol_flag = getattr(flagger, interpol_flag)
-        flagger = flagger.setFlags(
-            field, loc=interpolated[interpolated].index, force=True, flag=interpol_flag, **kwargs
-        )
+        flagger = flagger.setFlags(field, loc=interpolated, force=True, flag=interpol_flag, **kwargs)
 
     return data, flagger
 
@@ -181,9 +179,7 @@ def proc_interpolateMissing(
     if interpol_flag:
         if interpol_flag in ["BAD", "UNFLAGGED", "GOOD"]:
             interpol_flag = getattr(flagger, interpol_flag)
-        flagger = flagger.setFlags(
-            field, loc=interpolated[interpolated].index, force=True, flag=interpol_flag, **kwargs
-        )
+        flagger = flagger.setFlags(field, loc=interpolated, force=True, flag=interpol_flag, **kwargs)
 
     data[field] = inter_data
     return data, flagger
@@ -202,6 +198,7 @@ def proc_interpolateGrid(
         empty_intervals_flag=None,
         grid_field=None,
         inter_limit=2,
+        freq_check=None,
         **kwargs):
 
     """
@@ -227,7 +224,8 @@ def proc_interpolateGrid(
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
-        The frequency of the grid you want to interpolate your data at.
+        An Offset String, interpreted as the frequency of
+        the grid you want to interpolate your data at.
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
@@ -250,6 +248,11 @@ def proc_interpolateGrid(
     inter_limit : Integer, default 2
         Maximum number of consecutive Grid values allowed for interpolation. If set
         to "n", in the result, chunks of "n" consecutive grid values wont be interpolated.
+    freq_check : {None, 'check', 'auto'}, default None
+        - None: do not validate frequency-string passed to `freq`
+        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+            if no uniform sampling rate could be estimated
+        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -264,6 +267,7 @@ def proc_interpolateGrid(
     datcol = data[field]
     datcol = datcol.copy()
     flagscol = flagger.getFlags(field)
+    freq = evalFreqStr(freq, freq_check, datcol.index)
     if empty_intervals_flag is None:
         empty_intervals_flag = flagger.BAD
 
@@ -272,6 +276,7 @@ def proc_interpolateGrid(
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
+    freq = evalFreqStr(freq, freq_check, datcol.index)
     if datcol.empty:
         data[field] = datcol
         reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
@@ -391,6 +396,7 @@ def proc_resample(
     empty_intervals_flag=None,
     to_drop=None,
     all_na_2_empty=False,
+    freq_check=None,
     **kwargs
 ):
     """
@@ -423,7 +429,7 @@ def proc_resample(
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
-        An offset string. The frequency of the grid you want to resample your data to.
+        An Offset String, that will be interpreted as the frequency you want to resample your data with.
     agg_func : Callable
         The function you want to use for aggregation.
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
@@ -458,6 +464,11 @@ def proc_resample(
         Flags that refer to values you want to drop before resampling - effectively excluding values that are flagged
         with a flag in to_drop from the resampling process - this means that they also will not be counted in the
         the max_consec/max_total evaluation. to_drop = None results in NO flags being dropped initially.
+    freq_check : {None, 'check', 'auto'}, default None
+        - None: do not validate frequency-string passed to `freq`
+        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+            if no uniform sampling rate could be estimated
+        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -477,6 +488,7 @@ def proc_resample(
 
     drop_mask = dropper(field, to_drop, flagger, [])
     datcol.drop(datcol[drop_mask].index, inplace=True)
+    freq = evalFreqStr(freq, freq_check, datcol.index)
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
     if all_na_2_empty:
         if datcol.dropna().empty:
@@ -517,7 +529,7 @@ def proc_resample(
 
 
 @register(masking='field')
-def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals_flag=None, **kwargs):
+def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals_flag=None, freq_check=None, **kwargs):
     """
     Function to shift data points to regular (equidistant) timestamps.
     Values get shifted according to the keyword passed to 'method'.
@@ -540,7 +552,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
-        The frequency of the grid you want to shift your data to.
+        An frequency Offset String that will be interpreted as the sampling rate you want the data to be shifted to.
     method: {'fagg', 'bagg', 'nagg'}, default 'nshift'
         Specifies if datapoints get propagated forwards, backwards or to the nearest grid timestamp. See function
         description for more details.
@@ -551,6 +563,11 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
         Flags that refer to values you want to drop before shifting - effectively, excluding values that are flagged
         with a flag in to_drop from the shifting process. Default - to_drop = None  - results in flagger.BAD
         values being dropped initially.
+    freq_check : {None, 'check', 'auto'}, default None
+        - None: do not validate frequency-string passed to `freq`
+        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+            if no uniform sampling rate could be estimated
+        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -572,6 +589,7 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
+    freq = evalFreqStr(freq, freq_check, datcol.index)
     if datcol.empty:
         data[field] = datcol
         reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
@@ -623,11 +641,12 @@ def proc_transform(data, field, flagger, func, **kwargs):
 
 
 @register(masking='field')
-def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=None, **kwargs):
+def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=None, freq_check=None, **kwargs):
 
     """
     The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
     source flags projected on them, they get overridden with this associated source flag value.
+
     Which "field"-flags are to be projected on which source flags, is controlled by the "method" and "freq"
     parameters.
 
@@ -654,26 +673,31 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
     (if source_flag > field_flag)
 
     Note, to undo or backtrack a resampling/shifting/interpolation that has been performed with a certain method,
-    you can just pass the associated "inverse" method. Also you shoud pass the same drop flags keyword.
+    you can just pass the associated "inverse" method. Also you should pass the same drop flags keyword.
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
-        The fieldname of the data column, you want to project the source-flags at.
+        The fieldname of the data column, you want to project the source-flags onto.
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
-    method: {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
+    method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
         The method used for projection of source flags onto field flags. See description above for more details.
-    source: str
+    source : str
         The source source of flags projection.
-    freq: {None, str},default None
+    freq : {None, str},default None
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
-    to_drop: {None, str, List[str]}, default None
-        Flags referring to values that are to drop before flags projection. Relevant only when projecting wiht an
+    to_drop : {None, str, List[str]}, default None
+        Flags referring to values that are to drop before flags projection. Relevant only when projecting with an
         inverted shift method. Defaultly flagger.BAD is listed.
+    freq_check : {None, 'check', 'auto'}, default None
+        - None: do not validate frequency-string passed to `freq`
+        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+            if no uniform sampling rate could be estimated
+        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -683,37 +707,46 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
-    flagscol = flagger.getFlags(source)
+    flagscol, metacols = flagger.getFlags(source, full=True)
     if flagscol.empty:
         return data, flagger
     target_datcol = data[field]
-    target_flagscol = flagger.getFlags(field)
+    target_flagscol, target_metacols = flagger.getFlags(field, full=True)
 
     if (freq is None) and (method != "match"):
-        freq = pd.Timedelta(flagscol.index.freq)
-        if freq is None:
-            freq = pd.infer_freq(flagscol.index)
-        if freq is pd.NaT:
-            raise ValueError(
-                "Nor is {} a frequency regular timeseries, neither was a frequency passed to parameter 'freq'. "
-                "Dont know what to do.".format(source)
-            )
+        freq_check = 'auto'
+
+    freq = evalFreqStr(freq, freq_check, flagscol.index)
+
     if method[-13:] == "interpolation":
         backprojected = flagscol.reindex(target_flagscol.index, method="bfill", tolerance=freq)
         fwrdprojected = flagscol.reindex(target_flagscol.index, method="ffill", tolerance=freq)
-        b_replacement_mask = backprojected > target_flagscol
-        target_flagscol.loc[b_replacement_mask] = backprojected.loc[b_replacement_mask]
+        b_replacement_mask = (backprojected > target_flagscol) & (backprojected >= fwrdprojected)
         f_replacement_mask = (fwrdprojected > target_flagscol) & (fwrdprojected > backprojected)
-        target_flagscol.loc[f_replacement_mask] = backprojected.loc[f_replacement_mask]
+        target_flagscol.loc[b_replacement_mask] = backprojected.loc[b_replacement_mask]
+        target_flagscol.loc[f_replacement_mask] = fwrdprojected.loc[f_replacement_mask]
+
+        backprojected_meta = {}
+        fwrdprojected_meta = {}
+        for meta_key in target_metacols.keys():
+            backprojected_meta[meta_key] = metacols[meta_key].reindex(target_metacols[meta_key].index, method='bfill',
+                                                                      tolerance=freq)
+            fwrdprojected_meta[meta_key] = metacols[meta_key].reindex(target_metacols[meta_key].index, method='ffill',
+                                                                      tolerance=freq)
+            target_metacols[meta_key].loc[b_replacement_mask] = backprojected_meta[meta_key].loc[b_replacement_mask]
+            target_metacols[meta_key].loc[f_replacement_mask] = fwrdprojected_meta[meta_key].loc[f_replacement_mask]
 
     if method[-3:] == "agg" or method == "match":
         # Aggregation - Inversion
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
-
         flagscol = flagscol.reindex(target_flagscol.index, method=projection_method, tolerance=tolerance)
         replacement_mask = flagscol > target_flagscol
         target_flagscol.loc[replacement_mask] = flagscol.loc[replacement_mask]
+        for meta_key in target_metacols.keys():
+            metacols[meta_key] = metacols[meta_key].reindex(target_metacols[meta_key].index, method=projection_method,
+                                                            tolerance=tolerance)
+            target_metacols[meta_key].loc[replacement_mask] = metacols[meta_key].loc[replacement_mask]
 
     if method[-5:] == "shift":
         # NOTE: although inverting a simple shift seems to be a less complex operation, it has quite some
@@ -750,7 +783,27 @@ def proc_projectFlags(data, field, flagger, method, source, freq=None, to_drop=N
         target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))
         target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
 
-    flagger = flagger.setFlags(field=field, flag=target_flagscol, **kwargs)
+        for meta_key in target_metacols.keys():
+            target_metadrops = target_metacols[meta_key][drop_mask]
+            target_metacols[meta_key].drop(drop_mask[drop_mask].index, inplace=True)
+            meta_merged = pd.merge_asof(
+                metacols[meta_key],
+                pd.Series(target_metacols[meta_key].index.values, index=target_metacols[meta_key].index,
+                          name="pre_index"),
+                left_index=True,
+                right_index=True,
+                tolerance=tolerance,
+                direction=projection_method,
+            )
+            meta_merged.dropna(subset=["pre_index"], inplace=True)
+            meta_merged = meta_merged.set_index(["pre_index"]).squeeze()
+            # reinsert drops
+            target_metacols[meta_key][replacement_mask[replacement_mask].index] = meta_merged[replacement_mask]
+            target_metacols[meta_key] = target_metacols[meta_key].reindex(
+                target_metacols[meta_key].index.join(target_metadrops.index, how="outer"))
+            target_metacols[meta_key].loc[target_metadrops.index] = target_metadrops.values
+
+    flagger = flagger.setFlags(field, flag=target_flagscol, with_extra=True, **target_metacols)
     return data, flagger
 
 

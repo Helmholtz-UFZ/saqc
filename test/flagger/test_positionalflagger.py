@@ -42,13 +42,15 @@ def test_isFlagged(data):
     flagger = PositionalFlagger().initFlags(data=data)
     field = data.columns[0]
 
-    loc_sus = slice(1, 20, 2)
-    flagger = flagger.setFlags(field=field, loc=loc_sus, flag=flagger.SUSPICIOUS)
-    assert (flagger.isFlagged(field=field, comparator=">=", flag=flagger.SUSPICIOUS)[loc_sus] == True).all(axis=None)
+    mask_sus = np.zeros(len(data[field]), dtype=bool)
+    mask_sus[1:20:2] = True
+    flagger = flagger.setFlags(field=field, loc=mask_sus, flag=flagger.SUSPICIOUS)
+    assert (flagger.isFlagged(field=field, comparator=">=", flag=flagger.SUSPICIOUS)[mask_sus] == True).all(axis=None)
     assert (flagger.isFlagged(field=field, comparator=">", flag=flagger.SUSPICIOUS) == False).all(axis=None)
 
-    loc_bad = slice(1, 10, 2)
-    flagger = flagger.setFlags(field=field, loc=loc_bad, flag=flagger.BAD)
-    assert (flagger.isFlagged(field=field, comparator=">")[loc_sus] == True).all(axis=None)
-    assert (flagger.isFlagged(field=field, comparator=">=", flag=flagger.BAD)[loc_bad] == True).all(axis=None)
+    mask_bad = np.zeros(len(data[field]), dtype=bool)
+    mask_bad[1:10:2] = True
+    flagger = flagger.setFlags(field=field, loc=mask_bad, flag=flagger.BAD)
+    assert (flagger.isFlagged(field=field, comparator=">")[mask_sus] == True).all(axis=None)
+    assert (flagger.isFlagged(field=field, comparator=">=", flag=flagger.BAD)[mask_bad] == True).all(axis=None)
     assert (flagger.isFlagged(field=field, comparator=">", flag=flagger.BAD) == False).all(axis=None)

@@ -19,7 +19,7 @@ from scipy.cluster.hierarchy import linkage, fcluster
 
 
 from saqc.lib.tools import groupConsecutives, detectDeviants
-from saqc.lib.ts_operators import count
+from saqc.lib.tools import groupConsecutives, seasonalMask
 from saqc.funcs.proc_functions import proc_fork, proc_drop, proc_projectFlags
 from saqc.funcs.modelling import modelling_mask
 
@@ -334,13 +334,13 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
     pattern_start_date = ref.index[0].time()
     pattern_end_date = ref.index[-1].time()
 
-    ### Extract partition frequency from pattern if needed
+    # ## Extract partition frequency from pattern if needed
     if not isinstance(partition_freq, str):
         raise ValueError('Partition frequency has to be given in string format.')
     elif partition_freq == "days" or partition_freq == "months":
-            # Get partition frequency from reference field
-            partition_count = (pattern_end_date - pattern_start_date).days
-            partitions = test.groupby(pd.Grouper(freq="%d D" % (partition_count + 1)))
+        # Get partition frequency from reference field
+        partition_count = (pattern_end_date - pattern_start_date).days
+        partitions = test.groupby(pd.Grouper(freq="%d D" % (partition_count + 1)))
     else:
         partitions = test.groupby(pd.Grouper(freq=partition_freq))
 
@@ -353,11 +353,11 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
         # Square of matrix elements as Power sum of the matrix
         wavepower_ref = np.power(cwtmat_ref, 2)
     elif not method == 'dtw':
-    # No correct method given
+        # No correct method given
         raise ValueError('Unable to interpret {} as method.'.format(method))
 
     flags = pd.Series(data=False, index=test.index)
-    ### Calculate flags for every partition
+    # ## Calculate flags for every partition
     partition_min = ref.shape[0]
     for _, partition in partitions:
 
@@ -374,11 +374,11 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
             start_time = pd.Timedelta(partition_offset) + partition.index[0]
             end_time = start_time + pd.Timedelta(pattern_end_date - pattern_start_date)
             test = partition[start_time:end_time]
-        ### Switch method
+        # ## Switch method
         if method == 'dtw':
-            distance = dtw.dtw(test, ref, open_end = open_end, distance_only = True).normalizedDistance
+            distance = dtw.dtw(test, ref, open_end=open_end, distance_only=True).normalizedDistance
             if normalized_distance:
-                distance = distance/ref.var()
+                distance = distance / ref.var()
             # Partition labeled as pattern by dtw
             if distance < max_distance:
                 flags[partition.index] = True
@@ -399,7 +399,6 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
             # Partition labeled as pattern by wavelet
             if min(p_value) >= 0.01:
                 flags[partition.index] = True
-
 
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
@@ -442,7 +441,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
 
 @register(masking='field')
 def flagSesonalRange(
-    data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
+        data, field, flagger, min, max, startmonth=1, endmonth=12, startday=1, endday=31, **kwargs,
 ):
     """
     Function applies a range check onto data chunks (seasons).
@@ -505,7 +504,7 @@ def forceFlags(data, field, flagger, flag, **kwargs):
 
 @register(masking='field')
 def flagIsolated(
-    data, field, flagger, gap_window, group_window, **kwargs,
+        data, field, flagger, gap_window, group_window, **kwargs,
 ):
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
@@ -554,9 +553,9 @@ def flagIsolated(
             start = srs.index[0]
             stop = srs.index[-1]
             if stop - start <= group_window:
-                left = mask[start - gap_window : start].iloc[:-1]
+                left = mask[start - gap_window: start].iloc[:-1]
                 if left.all():
-                    right = mask[stop : stop + gap_window].iloc[1:]
+                    right = mask[stop: stop + gap_window].iloc[1:]
                     if right.all():
                         flags[start:stop] = True
 
@@ -862,10 +861,11 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
 
     return data, flagger
 
+
 @register(masking='all')
 def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, norm_frac=0.5,
                       metric=lambda x, y: scipy.spatial.distance.pdist(np.array([x, y]),
-                                                                                    metric='cityblock')/len(x),
+                                                                       metric='cityblock') / len(x),
                       linkage_method='single', **kwargs):
     """
     The function flags value courses that significantly deviate from a group of normal value courses.
@@ -958,6 +958,7 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
         if segment[1].shape[0] <= 1:
             continue
         drifters = detectDeviants(segment[1], metric, norm_spread, norm_frac, linkage_method, 'variables')
+
         for var in drifters:
             flagger = flagger.setFlags(fields[var], loc=segment[1].index, **kwargs)
 
@@ -1027,8 +1028,6 @@ def flagDriftFromReference(data, field, flagger, fields, segment_freq, thresh,
                 flagger = flagger.setFlags(fields[i], loc=segment[1].index, **kwargs)
 
     return data, flagger
-
-
 
 
 @register(masking='all')
@@ -1127,7 +1126,6 @@ def flagDriftScale(data, field, flagger, fields_scale1, fields_scale2, segment_f
 
     dat_to_flag = dat[fields].to_df()
 
-
     segments = dat_to_flag.groupby(pd.Grouper(freq=segment_freq))
     for segment in segments:
         if segment[1].shape[0] <= 1:
@@ -1135,6 +1133,5 @@ def flagDriftScale(data, field, flagger, fields_scale1, fields_scale2, segment_f
         drifters = detectDeviants(segment[1], metric, norm_spread, norm_frac, linkage_method, 'variables')
         for var in drifters:
             flagger = flagger.setFlags(fields[var], loc=segment[1].index, **kwargs)
-
 
     return data, flagger

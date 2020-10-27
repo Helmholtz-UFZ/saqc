@@ -8,18 +8,21 @@ import itertools
 import numpy as np
 import numba as nb
 import pandas as pd
+from scipy import fft
 import logging
 import dios
+
 import collections
 from pandas.api.indexers import BaseIndexer
 from pandas._libs.window.indexers import calculate_variable_window_bounds
 from scipy.cluster.hierarchy import linkage, fcluster
-
-
-# from saqc.flagger import BaseFlagger
+from pandas.api.indexers import BaseIndexer
+from pandas._libs.window.indexers import calculate_variable_window_bounds
+from pandas.core.window.indexers import calculate_variable_window_bounds
 from saqc.lib.types import T
 
 logger = logging.getLogger("SaQC")
+
 
 def assertScalar(name, value, optional=False):
     if (not np.isscalar(value)) and (value is not None) and (optional is True):
@@ -397,9 +400,140 @@ def mutateIndex(index, old_name, new_name):
     return index
 
 
+def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", optimize=True,
+                      min_energy=0.2, max_freqs=10, bins=None):
+
+    """
+    Function to estimate the sampling rate of an index.
+
+    The function comes with some optional overhead.
+    The default options detect sampling rates from 10 seconds to 1 day with a 10 seconds precision
+    for sampling rates below one minute, and a one minute precision for rates between 1 minute and
+    one day.
+
+    The function is designed to detect mixed sampling ratess as well as rate changes.
+    In boh situations, all the sampling rates detected, are returned, together with their
+    greatest common rate.
+
+    Note, that there is a certain lower bound of index length,
+    beneath which frequency leaking and Niquist limit take over and mess up the fourier
+    transform.
+
+    Parameters
+    ----------
+    index : {pandas.DateTimeIndex}
+        The index of wich the sampling rates shall be estimated
+    delta_precision : int, default -1
+        determines detection precision. Precision equals: seconds*10**(-1-delta_precision).
+        A too high precision attempt can lead to performance loss and doesnt necessarily result in
+        a more precise result. Especially when the samples deviation from their mean rate
+        is high compared to the delta_precision.
+    max_rate : str, default "10s"
+        Maximum rate that can be detected.
+    min_rate : str, default "1D"
+        Minimum detectable sampling rate.
+    optimize : bool, default True
+        Wheather or not to speed up fft application by zero padding the derived response series to
+        an optimal length. (Length = 2**N)
+    min_energy : float, default 0.2
+        min_energy : percentage of energy a sampling rate must represent at least, to be detected. Lower values
+        result in higher sensibillity - but as well increas detection rate of mix products. Default proofed to be
+        stable.
+    max_freqs : int, default 10
+        Maximum number of frequencies collected from the index. Mainly a value to prevent the frequency
+        collection loop from collecting noise and running endlessly.
+    bins : {None, List[float]} : default None
+
+    Returns
+    -------
+        freq : {None, str}
+            Either the sampling rate that was detected in the sample index (if uniform). Or
+            the greates common rate of all the sampling rates detected. Equals `None` if
+            detection failed and `"empty"`, if input index was empty.
+        freqs : List[str]
+            List of detected sampling rates.
+
+    """
+    index_n = index.to_numpy(float)
+    if index.empty:
+        return 'empty', []
+
+    index_n = (index_n - index_n[0])*10**(-9 + delta_precision)
+    delta = np.zeros(int(index_n[-1])+1)
+    delta[index_n.astype(int)] = 1
+    if optimize:
+        delta_f = np.abs(fft.rfft(delta, fft.next_fast_len(len(delta))))
+    else:
+        delta_f = np.abs(fft.rfft(delta))
+
+    len_f = len(delta_f)*2
+    min_energy = delta_f[0]*min_energy
+    # calc/assign low/high freq cut offs (makes life easier):
+    min_rate_i = int(len_f/(pd.Timedelta(min_rate).total_seconds()*(10**delta_precision)))
+    delta_f[:min_rate_i] = 0
+    max_rate_i = int(len_f/(pd.Timedelta(max_rate).total_seconds()*(10**delta_precision)))
+    hf_cutoff = min(max_rate_i, len_f//2)
+    delta_f[hf_cutoff:] = 0
+    delta_f[delta_f < min_energy] = 0
+
+    # find frequencies present:
+    freqs = []
+    f_i = np.argmax(delta_f)
+    while (f_i > 0) & (len(freqs) < max_freqs):
+        f = (len_f / f_i)/(60*10**(delta_precision))
+        freqs.append(f)
+        for i in range(1, hf_cutoff//f_i + 1):
+            delta_f[(i*f_i) - min_rate_i:(i*f_i) + min_rate_i] = 0
+        f_i = np.argmax(delta_f)
+
+    if len(freqs) == 0:
+        return None, []
+
+    if bins is None:
+        r = range(0, int(pd.Timedelta(min_rate).total_seconds()/60))
+        bins = [0, 0.1, 0.2, 0.3, 0.4] + [i + 0.5 for i in r]
+
+    f_hist, bins = np.histogram(freqs, bins=bins)
+    freqs = np.ceil(bins[:-1][f_hist >= 1])
+    gcd_freq = np.gcd.reduce((10*freqs).astype(int))/10
+
+    return str(int(gcd_freq)) + 'min', [str(int(i)) + 'min' for i in freqs]
+
+
+def evalFreqStr(freq, check, index):
+    if check in ['check', 'auto']:
+        f_passed = freq
+        freq = index.inferred_freq
+        freqs = [freq]
+        if freq is None:
+            freq, freqs = estimateFrequency(index)
+        if freq is None:
+            logging.warning('Sampling rate could not be estimated.')
+        if len(freqs) > 1:
+            logging.warning(f"Sampling rate seems to be not uniform!."
+                            f"Detected: {freqs}")
+
+        if check == 'check':
+            f_passed_seconds = pd.Timedelta(f_passed).total_seconds()
+            freq_seconds = pd.Timedelta(freq).total_seconds()
+            if (f_passed_seconds != freq_seconds):
+                logging.warning(f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed}).")
+        elif check == 'auto':
+            if freq is None:
+                raise ValueError('Frequency estimation for non-empty series failed with no fall back frequency passed.')
+            f_passed = freq
+    else:
+        f_passed = freq
+    return f_passed
+
+
 class FreqIndexer(BaseIndexer):
-# indexer class capable of generating indices for frequency determined windows,
-# arbitrary window skips and forward facing windows (meant to be used by pd.rolling)
+    # indexer class capable of generating indices for frequency determined windows,
+    # arbitrary window skips and forward facing windows (meant to be used by pd.rolling)
+    def __init__(self, *args, win_points=None, **kwargs):
+        self.win_points = win_points
+        super().__init__(*args, **kwargs)
+
     def get_window_bounds(self, num_values, min_periods, center, closed):
         i_dir = 1
         if self.forward:
@@ -421,15 +555,15 @@ class FreqIndexer(BaseIndexer):
 
 
 class PeriodsIndexer(BaseIndexer):
-# indexer class capable of generating periods-number determined windows and
-# arbitrary window skips (meant to be used by pd.rolling)
+    # indexer class capable of generating periods-number determined windows and
+    # arbitrary window skips (meant to be used by pd.rolling)
+    def __init__(self, *args, win_points=None, **kwargs):
+        self.win_points = win_points
+        super().__init__(*args, **kwargs)
+
     def get_window_bounds(self, num_values, min_periods, center, closed):
         start_s = np.zeros(self.window_size, dtype="int64")
-        start_e = (
-                np.arange(self.window_size, num_values, dtype="int64")
-                - self.window_size
-                + 1
-        )
+        start_e = np.arange(self.window_size, num_values, dtype="int64") - self.window_size + 1
         start = np.concatenate([start_s, start_e])[:num_values]
 
         end_s = np.arange(self.window_size, dtype="int64") + 1
@@ -473,7 +607,7 @@ def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=Fa
         Gets passed on to the closed parameter of pandas.Rolling.
     raw : bool, default True
         Gets passed on to the raw parameter of pandas.Rolling.apply.
-    engine : {None, 'numba'}, default None
+    engine : {'cython', 'numba'}, default 'cython'
         Gets passed on to the engine parameter of pandas.Rolling.apply.
     forward : bool, default False
         If true, roll with forward facing windows. (not yet implemented for
@@ -491,7 +625,8 @@ def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=Fa
 
     """
     i_roll = to_roll.copy()
-    i_roll.index = np.arange(to_roll.shape[0], dtype=np.int64)
+    i_roll.index = pd.RangeIndex(len(i_roll))
+
     if isinstance(winsz, str):
         winsz = np.int64(pd.Timedelta(winsz).total_seconds()*10**9)
         indexer = FreqIndexer(window_size=winsz,

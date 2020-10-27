@@ -187,7 +187,7 @@ def breaks_flagSpektrumBased(
     # relative - change - break criteria testing:
     abs_change = np.abs(dataseries.shift(+1) - dataseries)
     breaks = (abs_change > thresh_abs) & (abs_change / dataseries > thresh_rel)
-    breaks = breaks[breaks == True]
+    breaks = breaks[breaks]
 
     # First derivative criterion
     smoothing_periods = int(np.ceil((smooth_window.seconds / data_rate.n)))
@@ -246,8 +246,6 @@ def breaks_flagSpektrumBased(
         else:
             breaks[brake] = False
 
-    breaks = breaks[breaks == True]
-
-    flagger = flagger.setFlags(field, breaks.index, **kwargs)
+    flagger = flagger.setFlags(field, breaks, **kwargs)
 
     return data, flagger
