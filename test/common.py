@@ -8,6 +8,7 @@ import pandas as pd
 import dios
 
 from saqc.flagger import (
+    PositionalFlagger,
     CategoricalFlagger,
     SimpleFlagger,
     DmpFlagger,

@@ -86,7 +86,7 @@ def procGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, where you want the result from the generic expressions processing to be written to.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     func : Callable
         The data processing function with parameter names that will be
@@ -100,7 +100,7 @@ def procGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         The shape of the data may have changed relatively to the data input.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         The flags shape may have changed relatively to the input flagger.
 
@@ -160,7 +160,7 @@ def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     field : str
         The fieldname of the column, where you want the result from the generic expressions evaluation to be projected
         to.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     func : Callable
         The expression that is to be evaluated is passed in form of a callable, with parameter names that will be
@@ -173,7 +173,7 @@ def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 
@@ -237,7 +237,7 @@ def flagRange(data, field, flagger, min=-np.inf, max=np.inf, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     min : float
         Lower bound for valid data.
@@ -248,7 +248,7 @@ def flagRange(data, field, flagger, min=-np.inf, max=np.inf, **kwargs):
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -282,7 +282,7 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     reference_field : str
         Fieldname in `data`, that holds the pattern
@@ -318,7 +318,7 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 
@@ -416,7 +416,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     nodata : any, default np.nan
         A value that defines missing data.
@@ -425,7 +425,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -456,7 +456,7 @@ def flagSesonalRange(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     min : float
         Lower bound for valid data.
@@ -475,7 +475,7 @@ def flagSesonalRange(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -524,7 +524,7 @@ def flagIsolated(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
     gap_window :
         The minimum size of the gap before and after a group of valid values, making this group considered an
@@ -537,7 +537,7 @@ def flagIsolated(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -576,14 +576,14 @@ def flagDummy(data, field, flagger, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
     """
     return data, flagger
@@ -600,7 +600,7 @@ def flagForceFail(data, field, flagger, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
 
     """
@@ -620,7 +620,7 @@ def flagUnflagged(data, field, flagger, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
     kwargs : Dict
         If kwargs contains 'flag' entry, kwargs['flag] is set, if no entry 'flag' is present,
@@ -630,7 +630,7 @@ def flagUnflagged(data, field, flagger, **kwargs):
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
     """
 
@@ -652,14 +652,14 @@ def flagGood(data, field, flagger, **kwargs):
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
 
     """
@@ -683,7 +683,7 @@ def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kw
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
     mdata : {pd.Series, pd.Dataframe, DictOfSeries, str}
         The "manually generated" data
@@ -814,7 +814,7 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
         A dictionary of pandas.Series, holding all the data.
     field : str
         A dummy parameter.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
     fields : str
         List of fieldnames in data, determining wich variables are to be included into the flagging process.
@@ -830,7 +830,7 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the input flagger.
 
@@ -882,7 +882,7 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
         A dictionary of pandas.Series, holding all the data.
     field : str
         A dummy parameter.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
     fields : str
         List of fieldnames in data, determining wich variables are to be included into the flagging process.
@@ -912,7 +912,7 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the input flagger.
 
@@ -963,7 +963,7 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
 
     return data, flagger
 
-
+@register(masking='all')
 def flagDriftFromReference(data, field, flagger, fields, segment_freq, thresh,
                       metric=lambda x, y: scipy.spatial.distance.pdist(np.array([x, y]),
                                                                     metric='cityblock')/len(x),
@@ -979,7 +979,7 @@ def flagDriftFromReference(data, field, flagger, fields, segment_freq, thresh,
         A dictionary of pandas.Series, holding all the data.
     field : str
         The reference variable, the deviation from wich determines the flagging.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
     fields : str
         List of fieldnames in data, determining wich variables are to be included into the flagging process.
@@ -998,7 +998,7 @@ def flagDriftFromReference(data, field, flagger, fields, segment_freq, thresh,
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the input flagger.
 

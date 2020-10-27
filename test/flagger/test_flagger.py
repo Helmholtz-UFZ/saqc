@@ -597,3 +597,90 @@ def test_classicUseCases(data, flagger):
     dt_idx = data[field].iloc[indices].index
     flagged = flagger.setFlags(field, loc=dt_idx, flag=flagger.BAD).isFlagged(field)
     assert (flagged.iloc[indices] == flagged[flagged]).all()
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_getFlagsWithExtras(data, flagger):
+    flagger = flagger.initFlags(data)
+    field, *_ = data.columns
+
+    flags, extra = flagger.getFlags(field, full=True)
+    assert isinstance(flags, pd.Series)
+    assert isinstance(extra, dict)
+    for k, v in extra.items():
+        assert isinstance(v, pd.Series)
+        assert flags.index.equals(v.index)
+
+    flags, extra = flagger.getFlags(full=True)
+    assert isinstance(flags, dios.DictOfSeries)
+    assert isinstance(extra, dict)
+    for k, v in extra.items():
+        assert isinstance(v, dios.DictOfSeries)
+        assert flags.columns.equals(v.columns)
+        for c in flags:
+            assert flags[c].index.equals(v[c].index)
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_replace_delete(data, flagger):
+    flagger = flagger.initFlags(data)
+    field, *_ = data.columns
+    newflagger = flagger.replaceField(field=field, flags=None)
+
+    new, newextra = newflagger.getFlags(full=True)
+    assert field not in newflagger.flags
+    for k in newextra:
+        assert field not in newextra[k]
+
+    with pytest.raises(ValueError):
+        flagger.replaceField(field="i_dont_exist", flags=None)
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_replace_insert(data, flagger):
+    flagger = flagger.initFlags(data)
+    field, *_ = data.columns
+    newfield = 'fooo'
+    flags, extra = flagger.getFlags(field, full=True)
+    newflagger = flagger.replaceField(field=newfield, flags=flags, **extra)
+
+    old, oldextra = flagger.getFlags(full=True)
+    new, newextra = newflagger.getFlags(full=True)
+    assert newfield in newflagger.flags
+    assert (newflagger._flags[newfield] == flagger._flags[field]).all()
+    assert newflagger._flags[newfield] is not flagger._flags[field]  # not a copy
+    for k in newextra:
+        assert newfield in newextra[k]
+        assert (newextra[k][newfield] == oldextra[k][field]).all()
+
+
+@pytest.mark.parametrize("data", DATASETS)
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_replace_replace(data, flagger):
+    flagger = flagger.initFlags(data)
+    field, *_ = data.columns
+    flags, extra = flagger.getFlags(field, full=True)
+
+    # set everything to DOUBTFUL
+    flags[:] = flagger.BAD
+    for k, v in extra.items():
+        v[:] = flagger.BAD
+        extra[k] = v
+
+    newflagger = flagger.replaceField(field=field, flags=flags, **extra)
+
+    old, oldextra = flagger.getFlags(full=True)
+    new, newextra = newflagger.getFlags(full=True)
+    assert old.columns.equals(new.columns)
+    assert (new[field] == flagger.BAD).all()
+
+    assert oldextra.keys() == newextra.keys()
+    for k in newextra:
+        o, n = oldextra[k], newextra[k]
+        assert n.columns.equals(o.columns)
+        assert (n[field] == flagger.BAD).all()
+
+
+

@@ -129,7 +129,7 @@ def breaks_flagSpektrumBased(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
     thresh_rel : float, default 0.1
         Float in [0,1]. See (1) of function description above to learn more
@@ -158,7 +158,7 @@ def breaks_flagSpektrumBased(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.BaseFlagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 

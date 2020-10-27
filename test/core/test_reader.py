@@ -48,7 +48,7 @@ def test_variableRegex(data):
         fobj = writeIO(header + "\n" + f"{regex} ; flagDummy()")
         saqc = SaQC(SimpleFlagger(), data).readConfig(fobj)
         expansion = saqc._expandFields(saqc._to_call[0], data.columns)
-        result = [f["field"] for f in expansion]
+        result = [f.field for f in expansion]
         assert np.all(result == expected)
 
 
@@ -62,8 +62,8 @@ def test_inlineComments(data):
     """
     saqc = SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
     func_dump = saqc._to_call[0]
-    assert func_dump["ctrl_kws"]["plot"] is False
-    assert func_dump["func"] == FUNC_MAP["flagDummy"]["func"]
+    assert func_dump.ctrl.plot is False
+    assert func_dump.func == FUNC_MAP["flagDummy"]["func"]
 
 
 def test_configReaderLineNumbers(data):
@@ -79,7 +79,7 @@ def test_configReaderLineNumbers(data):
     SM1         ; flagDummy()
     """
     saqc = SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
-    result = [f["ctrl_kws"]["lineno"] for f in saqc._to_call]
+    result = [f.ctrl.lineno for f in saqc._to_call]
     expected = [3, 4, 5, 9]
     assert result == expected
 
@@ -116,8 +116,6 @@ def test_configChecks(data):
         (f"{var1};flagFunc(mn=0)", TypeError),  # bad argument name
         (f"{var1};flagFunc()", TypeError),  # not enough arguments
         (f"{var3};flagNothing()", NameError),  # unknown function
-        (";flagFunc(min=3)", SyntaxError),  # missing variable
-        (f"{var1};", SyntaxError),  # missing test
         (f"{var1}; min", TypeError),  # not a function call
     ]
 
