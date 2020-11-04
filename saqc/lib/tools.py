@@ -607,8 +607,8 @@ def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=Fa
         Gets passed on to the closed parameter of pandas.Rolling.
     raw : bool, default True
         Gets passed on to the raw parameter of pandas.Rolling.apply.
-    engine : {'cython', 'numba'}, default 'cython'
-        Gets passed on to the engine parameter of pandas.Rolling.apply.
+    engine : {None, 'cython', 'numba'}, default None
+        Gets passed on to the engine parameter of pandas.Rolling.apply. None defaults to 'cython'.
     forward : bool, default False
         If true, roll with forward facing windows. (not yet implemented for
         integer defined windows.)
@@ -626,6 +626,7 @@ def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=Fa
     """
     i_roll = to_roll.copy()
     i_roll.index = pd.RangeIndex(len(i_roll))
+    engine = engine or 'cython'
 
     if isinstance(winsz, str):
         winsz = np.int64(pd.Timedelta(winsz).total_seconds()*10**9)
