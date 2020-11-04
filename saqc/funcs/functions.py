@@ -478,15 +478,19 @@ def flagSesonalRange(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
+    if data[field].empty:
+        return data, flagger
+
+    newfield = f"{field}_masked"
+    start = f"{startmonth:02}-{startday:02}T00:00:00"
+    end = f"{endmonth:02}-{endday:02}T00:00:00"
 
     data, flagger = proc_fork(data, field, flagger, suffix="_masked")
-    data, flagger = modelling_mask(data, field + "_masked", flagger, mode='seasonal',
-                                   season_start=f"{startmonth:02}-{startday:02}T00:00:00",
-                                   season_end=f"{endmonth:02}-{endday:02}T00:00:00",
+    data, flagger = modelling_mask(data, newfield, flagger, mode='seasonal', season_start=start, season_end=end,
                                    include_bounds=True)
-    data, flagger = flagRange(data, field + "_masked", flagger, min=min, max=max, **kwargs)
-    data, flagger = proc_projectFlags(data, field, flagger, method='match', source=field + "_masked")
-    data, flagger = proc_drop(data, field + "_masked", flagger)
+    data, flagger = flagRange(data, newfield, flagger, min=min, max=max, **kwargs)
+    data, flagger = proc_projectFlags(data, field, flagger, method='match', source=newfield)
+    data, flagger = proc_drop(data, newfield, flagger)
     return data, flagger
 
 
