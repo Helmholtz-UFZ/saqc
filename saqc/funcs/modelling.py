@@ -501,7 +501,7 @@ def modelling_changePointCluster(data, field, flagger, stat_func, thresh_func, b
     -------
 
     """
-
+    data = data.copy()
     data_ser = data[field].dropna()
     center = False
     var_len = data_ser.shape[0]
@@ -557,6 +557,7 @@ def modelling_changePointCluster(data, field, flagger, stat_func, thresh_func, b
     if model_by_resids:
         residues = pd.Series(np.nan, index=data[field].index)
         residues[masked_index] = stat_arr
+        data[field] = residues
         flagger = flagger.setFlags(field, flag=flagger.UNFLAGGED, force=True, **kwargs)
         return data, flagger
 
