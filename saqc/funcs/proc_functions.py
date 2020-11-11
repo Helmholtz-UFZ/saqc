@@ -1013,21 +1013,6 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
     data = data.copy()
     to_correct = data[field]
     maint_data = data[maint_data_field]
-    if check_maint is not None:
-        stat_data, _ = modelling_changePointCluster(data, field, flagger,
-                                                    lambda x, y: np.nanmean(x) - np.nanmean(y),
-                                                    lambda x, y: 0, bwd_window='2D', fwd_window='2D',
-                                                    min_periods_bwd=10, min_periods_fwd=10, model_by_resids=True)
-
-        for ind in maint_data.index:
-            maint_chunk = stat_data[field][ind:maint_data[ind]]
-            check_chunk = stat_data[field][ind - pd.Timedelta(check_maint):maint_data[ind] + pd.Timedelta(check_maint)]
-            if maint_chunk.max() < check_chunk.max():
-                arg_macks = check_chunk.argmax()
-                maint_len = maint_data[ind] - ind
-
-
-
     drift_frame = pd.DataFrame({"drift_group": np.nan, to_correct.name: to_correct.values}, index=to_correct.index)
 
     # group the drift frame
