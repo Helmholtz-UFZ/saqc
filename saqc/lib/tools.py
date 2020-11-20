@@ -13,13 +13,11 @@ import logging
 import dios
 
 import collections
-from pandas.api.indexers import BaseIndexer
-from pandas._libs.window.indexers import calculate_variable_window_bounds
 from scipy.cluster.hierarchy import linkage, fcluster
-from pandas.api.indexers import BaseIndexer
-from pandas._libs.window.indexers import calculate_variable_window_bounds
-from pandas.core.window.indexers import calculate_variable_window_bounds
 from saqc.lib.types import T
+
+# keep this for external imports
+from saqc.lib.rolling import customRoller, FixedWindowDirectionIndexer, VariableWindowDirectionIndexer
 
 logger = logging.getLogger("SaQC")
 
@@ -525,142 +523,6 @@ def evalFreqStr(freq, check, index):
     else:
         f_passed = freq
     return f_passed
-
-
-class FreqIndexer(BaseIndexer):
-    # indexer class capable of generating indices for frequency determined windows,
-    # arbitrary window skips and forward facing windows (meant to be used by pd.rolling)
-    def __init__(self, *args, win_points=None, **kwargs):
-        self.win_points = win_points
-        super().__init__(*args, **kwargs)
-
-    def get_window_bounds(self, num_values, min_periods, center, closed):
-        i_dir = 1
-        if self.forward:
-            i_dir = -1
-
-        start, end = calculate_variable_window_bounds(num_values, self.window_size, min_periods, center, closed,
-                                            self.index_array[::i_dir])
-        if self.forward:
-            start, end = (num_values - end)[::-1], (num_values - start)[::-1]
-        if self.center:
-            end = (num_values - start)[::-1]
-            end = np.roll(end, -1)
-            end[-1] = num_values - 1
-        if self.win_points is not None:
-            end[~self.win_points] = 0
-            start[~self.win_points] = 0
-
-        return start, end
-
-
-class PeriodsIndexer(BaseIndexer):
-    # indexer class capable of generating periods-number determined windows and
-    # arbitrary window skips (meant to be used by pd.rolling)
-    def __init__(self, *args, win_points=None, **kwargs):
-        self.win_points = win_points
-        super().__init__(*args, **kwargs)
-
-    def get_window_bounds(self, num_values, min_periods, center, closed):
-        start_s = np.zeros(self.window_size, dtype="int64")
-        start_e = np.arange(self.window_size, num_values, dtype="int64") - self.window_size + 1
-        start = np.concatenate([start_s, start_e])[:num_values]
-
-        end_s = np.arange(self.window_size, dtype="int64") + 1
-        end_e = start_e + self.window_size
-        end = np.concatenate([end_s, end_e])[:num_values]
-        if self.win_points is not None:
-            start[~self.win_points] = 0
-            end[~self.win_points] = 0
-        return start, end
-
-
-def customRolling(to_roll, winsz, func, roll_mask=None, min_periods=1, center=False, closed=None, raw=True, engine=None,
-                  forward=False, index_only=False):
-    """
-    A wrapper around pandas.rolling.apply(), that allows for skipping func application on
-    arbitrary selections of windows.
-
-    Parameters
-    ----------
-    to_roll : pandas.Series
-        Timeseries to be "rolled over".
-    winsz : {int, str}
-        Gets passed on to the window-size parameter of pandas.Rolling.
-    func : Callable
-        Function to be rolled with. If the funcname matches a .rolling attribute,
-        the associated method of .rolling will be used instead of .apply(func) (=faster)
-    roll_mask : {None, numpy.array[bool]}, default None
-        A mask, indicating the rolling windows, `func` shall be applied on.
-        Has to be of same length as `to_roll`.
-        roll_mask[i] = False indicates, that the window with right end point to_roll.index[i] shall
-        be skipped.
-        Pass None(default) if you want no values to be masked.
-    min_periods : int, default 1
-        Gets passed on to the min_periods parameter of pandas.Rolling.
-        (Note, that rolling with freq string defined window size and `min_periods`=None,
-        results in nothing being computed due to some inconsistencies in the interplay of pandas.rolling and its
-        indexer.)
-    center : bool, default False
-        Gets passed on to the center parameter of pandas.Rolling.
-    closed : {None, 'left', 'right', 'both'}, default None
-        Gets passed on to the closed parameter of pandas.Rolling.
-    raw : bool, default True
-        Gets passed on to the raw parameter of pandas.Rolling.apply.
-    engine : {None, 'cython', 'numba'}, default None
-        Gets passed on to the engine parameter of pandas.Rolling.apply. None defaults to 'cython'.
-    forward : bool, default False
-        If true, roll with forward facing windows. (not yet implemented for
-        integer defined windows.)
-    center : bool, default False
-        If true, set the label to the center of the rolling window. Also available
-        for frequencie defined rolling windows! (yeah!)
-    index_only : bool, default False
-        Only return rolling window indices.
-
-    Returns
-    -------
-    result : pandas.Series
-        The result of the rolling application.
-
-    """
-    i_roll = to_roll.copy()
-    i_roll.index = pd.RangeIndex(len(i_roll))
-    engine = engine or 'cython'
-
-    if isinstance(winsz, str):
-        winsz = np.int64(pd.Timedelta(winsz).total_seconds()*10**9)
-        indexer = FreqIndexer(window_size=winsz,
-                              win_points=roll_mask,
-                              index_array=to_roll.index.to_numpy(np.int64),
-                              center=center,
-                              closed=closed,
-                              forward=forward)
-
-    elif isinstance(winsz, int):
-        indexer = PeriodsIndexer(window_size=winsz,
-                                 win_points=roll_mask,
-                                 center=center,
-                                 closed=closed)
-
-    if index_only:
-        num_values = to_roll.shape[0]
-        if num_values == 0:
-            return np.array([]), np.array([])
-        else:
-            return indexer.get_window_bounds(num_values, min_periods, center, closed)
-
-    i_roller = i_roll.rolling(indexer,
-                            min_periods=min_periods,
-                            center=center,
-                            closed=closed)
-
-    if hasattr(i_roller, func.__name__):
-        i_roll = getattr(i_roller, func.__name__)()
-    else:
-        i_roll = i_roller.apply(func, raw=raw, engine=engine)
-
-    return pd.Series(i_roll.values, index=to_roll.index)
 
 
 def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single', population='variables'):

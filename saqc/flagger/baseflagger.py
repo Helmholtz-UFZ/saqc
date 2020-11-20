@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 import dios
 
-from saqc.lib.tools import assertScalar, mergeDios, toSequence, mutateIndex, customRolling
+from saqc.lib.tools import assertScalar, mergeDios, toSequence
 
 COMPARATOR_MAP = {
     "!=": op.ne,

@@ -107,7 +107,7 @@ class _CustomBaseIndexer(BaseIndexer):
         raise NotImplementedError
 
 
-class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
+class FixedWindowDirectionIndexer(_CustomBaseIndexer):
     # automatically added in super call to init
     index_array: np.array
     window_size: int
@@ -161,7 +161,7 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
         return start, end
 
 
-class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
+class VariableWindowDirectionIndexer(_CustomBaseIndexer):
     # automatically added in super call to init
     index_array: np.array
     window_size: int
@@ -241,6 +241,9 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     Returns
     -------
     Rolling object: Same as pd.rolling()
+
+
+    Notes
     """
     if not isinstance(obj, (pd.Series, pd.DataFrame)):
         raise TypeError("TODO")
@@ -259,9 +262,9 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
 
     kwargs = dict(forward=forward, expanding=expanding, step=step, mask=mask)
     if x.is_freq_type:
-        window_indexer = _VariableWindowDirectionIndexer(x._on.asi8, x.window, **kwargs)
+        window_indexer = VariableWindowDirectionIndexer(x._on.asi8, x.window, **kwargs)
     else:
-        window_indexer = _FixedWindowDirectionIndexer(x._on.asi8, window, **kwargs)
+        window_indexer = FixedWindowDirectionIndexer(x._on.asi8, window, **kwargs)
 
     return obj.rolling(window_indexer, min_periods=x.min_periods, center=center, on=on, axis=axis, closed=closed)
 
@@ -272,6 +275,9 @@ if __name__ == '__main__':
     s = pd.concat([s1, s2]).sort_index()
     s.name = 's'
     s[15] = np.nan
+
+    r = customRoller(s, 4)
+    r = customRoller(s, '4d')
 
     df = pd.DataFrame(s)
     df['32d'] = s.rolling('32d').sum()
