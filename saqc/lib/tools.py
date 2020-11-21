@@ -176,36 +176,6 @@ def offset2seconds(offset):
     return pd.Timedelta.total_seconds(pd.Timedelta(offset))
 
 
-def flagWindow(flagger_old, flagger_new, field, direction="fw", window=0, **kwargs) -> pd.Series:
-    # NOTE: unused -> remove?
-    if window == 0 or window == "":
-        return flagger_new
-
-    fw, bw = False, False
-    mask = flagger_old.getFlags(field) != flagger_new.getFlags(field)
-    f = flagger_new.isFlagged(field) & mask
-
-    if not mask.any():
-        # nothing was flagged, so nothing need to be flagged additional
-        return flagger_new
-
-    if isinstance(window, int):
-        x = f.rolling(window=window + 1).sum()
-        if direction in ["fw", "both"]:
-            fw = x.fillna(method="bfill").astype(bool)
-        if direction in ["bw", "both"]:
-            bw = x.shift(-window).fillna(method="bfill").astype(bool)
-    else:
-        # time-based windows
-        if direction in ["bw", "both"]:
-            # todo: implement time-based backward rolling
-            raise NotImplementedError
-        fw = f.rolling(window=window, closed="both").sum().astype(bool)
-
-    fmask = bw | fw
-    return flagger_new.setFlags(field, fmask, **kwargs)
-
-
 def seasonalMask(dtindex, season_start, season_end, include_bounds):
     """
     This function generates date-periodic/seasonal masks from an index passed.

@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 import dios
 
-from saqc.lib.tools import assertScalar, mergeDios, toSequence
+from saqc.lib.tools import assertScalar, mergeDios, toSequence, customRoller
 
 COMPARATOR_MAP = {
     "!=": op.ne,
@@ -260,13 +260,17 @@ class BaseFlagger(ABC):
         base = mask.reindex_like(self._flags[field]).fillna(False)
         before, after = False, False
 
+        if flag_before is not None:
+            if isinstance(flag_before, int):
+                flag_before += 1
+            r = customRoller(base, window=flag_before, min_periods=1, forward=True, closed='both', expand=True)
+            before = r.sum().astype(bool)
+
         if flag_after is not None:
             if isinstance(flag_after, int):
                 flag_after += 1
-            after = base.rolling(window=flag_after, min_periods=1, closed='both').sum().astype(bool)
-
-        if flag_before is not None:
-            raise NotImplementedError("flag_before is not implemented")
+            r = customRoller(base, window=flag_after, min_periods=1, closed='both', expand=True)
+            after = r.sum().astype(bool)
 
         # does not include base, to avoid overriding flags that just was set
         # by the test, because flag and win_flag may differ.

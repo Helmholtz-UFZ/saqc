@@ -33,7 +33,7 @@ class _CustomBaseIndexer(BaseIndexer):
     variable_window = None
 
     def __init__(self, index_array, window_size, min_periods=None, center=False, closed=None, forward=False,
-                 expanding=False, step=None, mask=None):
+                 expand=False, step=None, mask=None):
         super().__init__()
         self.index_array = index_array
         self.window_size = window_size
@@ -41,7 +41,7 @@ class _CustomBaseIndexer(BaseIndexer):
         self.center = center
         self.closed = closed
         self.forward = forward
-        self.expanding = expanding
+        self.expand = expand
         self.step = step
         self.skip = mask
         self.num_values = len(self.index_array)
@@ -59,8 +59,8 @@ class _CustomBaseIndexer(BaseIndexer):
         if self.variable_window and self.center:
             raise ValueError('offset-based windows cannot be centered.')
 
-        if not self.variable_window and self.closed not in [None, 'right']:
-            raise ValueError("For fixed windows only closed='right' is implemented")
+        if not self.variable_window and self.closed not in [None, 'both']:
+            raise ValueError("For fixed windows only closed='both' is implemented")
 
         if self.step is not None and not is_integer(self.step):
             raise TypeError('step must be integer.')
@@ -100,7 +100,7 @@ class _CustomBaseIndexer(BaseIndexer):
             start, end = self._center_result(start, end, offset)
             num_values -= offset
 
-        if not self.expanding:
+        if not self.expand:
             start, end = self._remove_ramps(start, end, offset, center, min_periods)
 
         if self.skip is not None:
@@ -235,7 +235,7 @@ class VariableWindowDirectionIndexer(_CustomBaseIndexer):
 
 def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
                  center=False, forward=False, win_type=None, on=None, axis=0, closed=None,
-                 expanding=None, step=None, mask=None) -> Rolling:
+                 expand=None, step=None, mask=None) -> Rolling:
     """
     A custom rolling implementation, using pandas as base.
 
@@ -276,7 +276,7 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     forward : bool, default False
         By default a window is 'looking' backwards (in time). If True the window is looking forward in time.
 
-    expanding : bool or None, default None
+    expand : bool or None, default None
         If True the window expands/shrink up to its final window size while shifted in the data or shifted out
         respectively.
         For (normal) backward-windows it only expands at the left border, for forward-windows it shrinks on
@@ -317,11 +317,10 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     except Exception:
         raise
 
+    if expand is None:
+        expand = not x.is_freq_type
 
-    if expanding is None:
-        expanding = not x.is_freq_type
-
-    kwargs = dict(min_periods=min_periods, center=center, closed=closed, forward=forward, expanding=expanding,
+    kwargs = dict(min_periods=min_periods, center=center, closed=closed, forward=forward, expand=expand,
                   step=step, mask=mask)
     if x.is_freq_type:
         window_indexer = VariableWindowDirectionIndexer(x._on.asi8, x.window, **kwargs)
