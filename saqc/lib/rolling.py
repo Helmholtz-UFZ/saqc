@@ -78,7 +78,11 @@ class _CustomBaseIndexer(BaseIndexer):
         assert self.num_values > 0
 
     def get_window_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
-        # do not use the params use ours instead
+        # do not use the params use ours instead also this should never change
+        assert closed is None
+        assert center is False
+        assert min_periods == self.min_periods
+        assert num_values == self.num_values
         num_values = self.num_values
         min_periods = self.min_periods
         center = self.center
@@ -110,8 +114,11 @@ class _CustomBaseIndexer(BaseIndexer):
         return start, end
 
     def _mask_min_periods(self, start, end, num_values):
+        # correction for min_periods calculation
         end[end > num_values] = num_values
-        end[end - start < self.min_periods] = 0
+
+        # this is the same as .rolling do
+        # end[end - start < self.min_periods] = 0
         return start, end
 
     def _center_result(self, start, end, offset):
@@ -125,8 +132,8 @@ class _CustomBaseIndexer(BaseIndexer):
         return start, end
 
     def _apply_steps(self, start, end, num_values):
-        m = np.full(num_values, 0)
-        m[::self.step] = 1
+        m = np.full(num_values, 1)
+        m[::self.step] = 0
         m = m.astype(bool)
         end[m] = 0
         return start, end
@@ -298,9 +305,10 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     ignored and instead the arguments that was passed to `customRoller()` beforehand will be evaluated.
     """
     if not isinstance(obj, (pd.Series, pd.DataFrame)):
-        raise TypeError("TODO")
+        raise TypeError("Not pd.Series nor pd.Dataframe")
     if win_type is not None:
         raise NotImplementedError("customRoller() not implemented with win_types.")
+
     try:
         # use .rolling for checks like if center is bool, closed in [left, right, neither, both],
         # center=True is not implemented for offset windows, closed not implemented for integer windows and
@@ -309,11 +317,12 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     except Exception:
         raise
 
+
     if expanding is None:
         expanding = not x.is_freq_type
 
     kwargs = dict(min_periods=min_periods, center=center, closed=closed, forward=forward, expanding=expanding,
-                  step=step, mask=mask, )
+                  step=step, mask=mask)
     if x.is_freq_type:
         window_indexer = VariableWindowDirectionIndexer(x._on.asi8, x.window, **kwargs)
     else:
@@ -321,9 +330,9 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
 
     # center offset is calculated from min_periods if a indexer is passed to rolling().
     # if instead a normal window is passed, it is used for offset calculation.
-    # also if we pass min_periods == None or 0, all values will exist in the result even if
-    # start[i]==end[i]. So we cannot pass the given min_periods to rolling. Instead we set
-    # it fix to `1`.
-    # this means we need to take care if center=True is passed.
-    #
-    return obj.rolling(window_indexer, min_periods=1, on=on, axis=axis)
+    # also if we pass min_periods == None or 0, all values will Nan in the result even if
+    # start[i]<end[i] as expected. So we cannot pass `center` to rolling.
+    # But to calculate min_periods including NaN count we pass it to rolling and ensure we never center
+    # in rolling. Instead we manually center in the Indexer.
+    min_periods = window_indexer.min_periods
+    return obj.rolling(window_indexer, min_periods=min_periods, on=on, axis=axis, center=False, closed=None)
