@@ -4,6 +4,23 @@ __author__ = "Bert Palm"
 __email__ = "bert.palm@ufz.de"
 __copyright__ = "Copyright 2020, Helmholtz-Zentrum für Umweltforschung GmbH - UFZ"
 
+# We need to implement the
+# - calculation/skipping of min_periods,
+# because `calculate_center_offset` does ignore those and we cannot rely on rolling(min_periods), as
+# pointed out in customRoller. Also we need to implement
+# - centering of windows for fixed windows,
+# for variable windows this is not allowed (similar to pandas).
+# The close-param, for variable windows is already implemented in `calculate_center_offset`,
+# and we dont allow it for fixed windows (similar to pandas). We also want to
+# - fix the strange ramp-up behavior,
+# which occur if the window is shifted in the data but yet is not fully inside the data. In this
+# case we want to spit out nan's instead of results calculated by less than window-size many values.
+# This is slightly different than the min_periods parameter, because this mainly should control Nan-behavior
+# for fixed windows, and minimum needed observations (also excluding Nans) in a offset window, but should not apply
+# if window-size many values couldn't be even possible due to technical reasons. This is mainly because one
+# cannot know (except one knows the exact (and fixed) frequency) the number(!) of observations that can occur in a
+# given offset window. That's why rolling should spit out Nan's as long as the window is not fully shifted in the data.
+
 import numpy as np
 import pandas as pd
 from pandas.api.indexers import BaseIndexer
@@ -302,8 +319,11 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     else:
         window_indexer = FixedWindowDirectionIndexer(x._on.asi8, window, **kwargs)
 
-    # center offset is calculated by min_periods if rolling(indexer)
-    # for normal .rolling(window,...) from window instead
-    # if min_periods == None or 0, all values exist even if start[i]==end[i]
-    # ->> always pass 1
-    return obj.rolling(window_indexer, min_periods=1, center=center, on=on, axis=axis, closed=closed)
+    # center offset is calculated from min_periods if a indexer is passed to rolling().
+    # if instead a normal window is passed, it is used for offset calculation.
+    # also if we pass min_periods == None or 0, all values will exist in the result even if
+    # start[i]==end[i]. So we cannot pass the given min_periods to rolling. Instead we set
+    # it fix to `1`.
+    # this means we need to take care if center=True is passed.
+    #
+    return obj.rolling(window_indexer, min_periods=1, on=on, axis=axis)
