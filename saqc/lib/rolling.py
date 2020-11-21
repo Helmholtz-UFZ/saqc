@@ -13,20 +13,21 @@ from pandas.api.types import is_integer
 
 
 class _CustomBaseIndexer(BaseIndexer):
-    # automatically added in super call to init
-    index_array: np.array
-    window_size: int
-    forward: bool
-    expanding: bool
-    skip: np.array
-    step: int
-    min_periods: int
     variable_window = None
 
-    def __init__(self, index_array, window_size, min_periods=None,
-                 forward=False, expanding=False, step=None, mask=None):
-        super().__init__(index_array, window_size, min_periods=min_periods,
-                         forward=forward, expanding=expanding, step=step, skip=mask)
+    def __init__(self, index_array, window_size, min_periods=None, center=False, closed=None, forward=False,
+                 expanding=False, step=None, mask=None):
+        super().__init__()
+        self.index_array = index_array
+        self.window_size = window_size
+        self.min_periods = min_periods
+        self.center = center
+        self.closed = closed
+        self.forward = forward
+        self.expanding = expanding
+        self.step = step
+        self.skip = mask
+        self.num_values = len(self.index_array)
         self.validate()
 
     def validate(self):
@@ -37,6 +38,12 @@ class _CustomBaseIndexer(BaseIndexer):
             self.min_periods = 1 if self.variable_window else self.window_size
         if not (is_integer(self.min_periods) and self.min_periods >= 0):
             raise TypeError('min_periods must be non negative integer.')
+
+        if self.variable_window and self.center:
+            raise ValueError('offset-based windows cannot be centered.')
+
+        if not self.variable_window and self.closed not in [None, 'right']:
+            raise ValueError("For fixed windows only closed='right' is implemented")
 
         if self.step is not None and not is_integer(self.step):
             raise TypeError('step must be integer.')
@@ -51,32 +58,29 @@ class _CustomBaseIndexer(BaseIndexer):
                 raise TypeError('mask must have boolean values only.')
             self.skip = ~skip
 
-    def _asserts(self, num_values, min_periods, center, closed):
-        if self.variable_window:
-            assert center is False
-        else:
-            assert closed in [None, 'right']
+        assert self.num_values > 0
 
     def get_window_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
-
-        self._asserts(num_values, min_periods, center, closed)
+        # do not use the params use ours instead
+        num_values = self.num_values
         min_periods = self.min_periods
+        center = self.center
+        closed = self.closed
 
-        new_length = num_values
-        offset = calculate_center_offset(self.window_size)
-        new_length = num_values + offset if center else num_values
-        print(locals())
+        offset = calculate_center_offset(self.window_size) if center else 0
+        num_values += offset
 
         if self.forward:
-            start, end = self._fw(new_length, min_periods, center, closed)
+            start, end = self._fw(num_values, min_periods, center, closed)
         else:
-            start, end = self._bw(new_length, min_periods, center, closed)
+            start, end = self._bw(num_values, min_periods, center, closed)
 
         if center:
             start, end = self._center_result(start, end, offset)
+            num_values -= offset
 
         if not self.expanding:
-            start, end = self._remove_ramps(start, end, num_values, center, min_periods)
+            start, end = self._remove_ramps(start, end, offset, center, min_periods)
 
         if self.skip is not None:
             start, end = self._apply_skipmask(start, end)
@@ -90,8 +94,7 @@ class _CustomBaseIndexer(BaseIndexer):
 
     def _mask_min_periods(self, start, end, num_values):
         end[end > num_values] = num_values
-        m = end - start < self.min_periods
-        end[m] = 0
+        end[end - start < self.min_periods] = 0
         return start, end
 
     def _center_result(self, start, end, offset):
@@ -125,22 +128,25 @@ class FixedWindowDirectionIndexer(_CustomBaseIndexer):
     # automatically added in super call to init
     index_array: np.array
     window_size: int
+    # set here
     variable_window = False
 
-    def _remove_ramps(self, start, end, num_values, center, min_periods):
+    def _remove_ramps(self, start, end, offset, center, min_periods):
         fw, bw = self.forward, not self.forward
-        offset_l = offset_r = calculate_center_offset(num_values)
+        rampsz = self.window_size - 1
         if center:
+            ramp_l = (rampsz + 1) // 2
+            ramp_r = rampsz // 2
+            if fw:
+                ramp_l, ramp_r = ramp_r, ramp_l
             fw = bw = True
-            offset_l = (offset_l + 1) // 2
-            offset_r = (offset_r + 0) // 2
+        else:
+            ramp_l = ramp_r = rampsz
 
-        offset_l = min(min_periods, offset_l)
-        offset_r = min(min_periods, offset_r)
-        if bw:
-            end[-offset_l:] = 0
-        if fw:
-            end[:offset_r] = 0
+        if bw and ramp_l > 0:
+            end[:ramp_l] = 0
+        if fw and ramp_r > 0:
+            end[-ramp_r:] = 0
 
         return start, end
 
@@ -170,6 +176,7 @@ class VariableWindowDirectionIndexer(_CustomBaseIndexer):
     # automatically added in super call to init
     index_array: np.array
     window_size: int
+    # set here
     variable_window = True
 
     def _remove_ramps(self, start, end, num_values, center, min_periods):
@@ -267,6 +274,11 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
 
 
     Notes
+    -----
+    If for some reason the start and end numeric indices of the window are needed, one can call
+    `start, end = customRoller(obj, ...).window.get_window_bounds()`, which return two arrays,
+    holding the start and end indices. Any passed (allowed) parameter to `get_window_bounds()` is
+    ignored and instead the arguments that was passed to `customRoller()` beforehand will be evaluated.
     """
     if not isinstance(obj, (pd.Series, pd.DataFrame)):
         raise TypeError("TODO")
@@ -283,7 +295,8 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     if expanding is None:
         expanding = not x.is_freq_type
 
-    kwargs = dict(forward=forward, expanding=expanding, step=step, mask=mask, min_periods=min_periods)
+    kwargs = dict(min_periods=min_periods, center=center, closed=closed, forward=forward, expanding=expanding,
+                  step=step, mask=mask, )
     if x.is_freq_type:
         window_indexer = VariableWindowDirectionIndexer(x._on.asi8, x.window, **kwargs)
     else:
@@ -294,4 +307,3 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     # if min_periods == None or 0, all values exist even if start[i]==end[i]
     # ->> always pass 1
     return obj.rolling(window_indexer, min_periods=1, center=center, on=on, axis=axis, closed=closed)
-
