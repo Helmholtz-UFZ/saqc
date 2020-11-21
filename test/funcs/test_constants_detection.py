@@ -12,14 +12,12 @@ from test.common import TESTFLAGGER, initData
 @pytest.fixture
 def data():
     constants_data = initData(1, start_date="2011-01-01 00:00:00", end_date="2011-01-01 03:00:00", freq="5min")
-    constants_data.iloc[5:25] = 0
+    constants_data.iloc[5:25] = 200
     return constants_data
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_constants_flagBasic(data, flagger):
-    idx = np.array([5, 6, 7, 8, 9, 10, 18, 19, 20, 21])
-    data.iloc[idx] = 200
     expected = np.arange(5, 22)
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
@@ -30,7 +28,6 @@ def test_constants_flagBasic(data, flagger):
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_constants_flagVarianceBased(data, flagger):
-    data.iloc[5:25] = 200
     expected = np.arange(5, 25)
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
