@@ -29,6 +29,9 @@ from pandas.core.window.rolling import Rolling, calculate_center_offset
 from pandas.api.types import is_integer
 
 
+def _is_slice(k): return isinstance(k, slice)
+
+
 class _CustomBaseIndexer(BaseIndexer):
     variable_window = None
 
@@ -59,14 +62,17 @@ class _CustomBaseIndexer(BaseIndexer):
         if not self.variable_window and self.closed not in [None, 'both']:
             raise ValueError("Only closed='both' is implemented for fixed windows")
 
-        if self.step is not None and not is_integer(self.step):
-            raise TypeError('step must be integer.')
-        if self.step == 0:
-            self.step = None
+        if is_integer(self.step) or self.step is None:
+            self.step = slice(None, None, self.step) if self.step else None
+        elif _is_slice(self.step):
+            if self.step == slice(None):
+                self.step = None
+        else:
+            raise TypeError('step must be integer or slice.')
 
         if self.skip is not None:
             if len(self.index_array) != len(self.skip):
-                raise ValueError('mask must have same length as data.')
+                raise ValueError('mask must have same length as data to roll over.')
             skip = np.array(self.skip)
             if skip.dtype != bool:
                 raise TypeError('mask must have boolean values only.')
@@ -86,33 +92,31 @@ class _CustomBaseIndexer(BaseIndexer):
         closed = self.closed
 
         start, end = self._get_bounds(num_values, min_periods, center, closed)
-
-        if self.skip is not None:
-            start, end = self._apply_skipmask(start, end)
-
-        if self.step is not None:
-            start, end = self._apply_steps(start, end, num_values)
-
-        start, end = self._mask_min_periods(start, end, num_values)
+        start, end = self._apply_skipmask(start, end)
+        start, end = self._apply_steps(start, end, num_values)
+        start, end = self._prepare_min_periods_masking(start, end, num_values)
         return start, end
 
-    def _mask_min_periods(self, start, end, num_values):
+    def _prepare_min_periods_masking(self, start, end, num_values):
         # correction for min_periods calculation
         end[end > num_values] = num_values
 
-        # this is the same as .rolling do
+        # this is the same as .rolling will do, so leave the work to them ;)
+        # additional they are able to count the nans in each window, we couldn't.
         # end[end - start < self.min_periods] = 0
         return start, end
 
     def _apply_skipmask(self, start, end):
-        end[self.skip] = 0
+        if self.skip is not None:
+            end[self.skip] = 0
         return start, end
 
     def _apply_steps(self, start, end, num_values):
-        m = np.full(num_values, 1)
-        m[::self.step] = 0
-        m = m.astype(bool)
-        end[m] = 0
+        if self.step is not None:
+            m = np.full(num_values, 1)
+            m[self.step] = 0
+            m = m.astype(bool)
+            end[m] = 0
         return start, end
 
     def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
@@ -314,8 +318,9 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
         valid value.
 
 
-    step : int or None, default None
-        If given only every n'th step a window is calculated.
+    step : int, slice or None, default None
+        If given, only every n'th step a window is calculated starting from the very first. One can
+        give a slice if one want to start from eg. the second (`slice(2,None,n)`) or similar.
 
     mask : boolean array-like
         Only calculate the window if the mask is True, otherwise skip it.
@@ -330,7 +335,7 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     If for some reason the start and end numeric indices of the window are needed, one can call
     `start, end = customRoller(obj, ...).window.get_window_bounds()`, which return two arrays,
     holding the start and end indices. Any passed (allowed) parameter to `get_window_bounds()` is
-    ignored and instead the arguments that was passed to `customRoller()` beforehand will be evaluated.
+    ignored and the arguments that was passed to `customRoller()` beforehand will be used instead.
     """
     if not isinstance(obj, (pd.Series, pd.DataFrame)):
         raise TypeError("Not pd.Series nor pd.Dataframe")
