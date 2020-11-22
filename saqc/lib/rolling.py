@@ -54,13 +54,10 @@ class _CustomBaseIndexer(BaseIndexer):
         if self.min_periods is None:
             self.min_periods = 1 if self.variable_window else self.window_size
         if not (is_integer(self.min_periods) and self.min_periods >= 0):
-            raise TypeError('min_periods must be non negative integer.')
-
-        if self.variable_window and self.center:
-            raise ValueError('offset-based windows cannot be centered.')
+            raise TypeError('min_periods must be non-negative integer.')
 
         if not self.variable_window and self.closed not in [None, 'both']:
-            raise ValueError("For fixed windows only closed='both' is implemented")
+            raise ValueError("Only closed='both' is implemented for fixed windows")
 
         if self.step is not None and not is_integer(self.step):
             raise TypeError('step must be integer.')
@@ -88,20 +85,7 @@ class _CustomBaseIndexer(BaseIndexer):
         center = self.center
         closed = self.closed
 
-        offset = calculate_center_offset(self.window_size) if center else 0
-        num_values += offset
-
-        if self.forward:
-            start, end = self._fw(num_values, min_periods, center, closed)
-        else:
-            start, end = self._bw(num_values, min_periods, center, closed)
-
-        if center:
-            start, end = self._center_result(start, end, offset)
-            num_values -= offset
-
-        if not self.expand:
-            start, end = self._remove_ramps(start, end, offset, center, min_periods)
+        start, end = self._get_bounds(num_values, min_periods, center, closed)
 
         if self.skip is not None:
             start, end = self._apply_skipmask(start, end)
@@ -110,7 +94,6 @@ class _CustomBaseIndexer(BaseIndexer):
             start, end = self._apply_steps(start, end, num_values)
 
         start, end = self._mask_min_periods(start, end, num_values)
-
         return start, end
 
     def _mask_min_periods(self, start, end, num_values):
@@ -119,12 +102,6 @@ class _CustomBaseIndexer(BaseIndexer):
 
         # this is the same as .rolling do
         # end[end - start < self.min_periods] = 0
-        return start, end
-
-    def _center_result(self, start, end, offset):
-        if offset > 0:
-            start = start[offset:]
-            end = end[offset:]
         return start, end
 
     def _apply_skipmask(self, start, end):
@@ -138,13 +115,7 @@ class _CustomBaseIndexer(BaseIndexer):
         end[m] = 0
         return start, end
 
-    def _remove_ramps(self, start, end, num_values, center, min_periods):
-        raise NotImplementedError
-
-    def _bw(self, num_values=0, min_periods=None, center=False, closed=None):
-        raise NotImplementedError
-
-    def _fw(self, num_values=0, min_periods=None, center=False, closed=None):
+    def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
         raise NotImplementedError
 
 
@@ -155,7 +126,31 @@ class FixedWindowDirectionIndexer(_CustomBaseIndexer):
     # set here
     variable_window = False
 
-    def _remove_ramps(self, start, end, offset, center, min_periods):
+    def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
+        offset = calculate_center_offset(self.window_size) if center else 0
+        num_values += offset
+
+        if self.forward:
+            start, end = self._fw(num_values, min_periods, center, closed)
+        else:
+            start, end = self._bw(num_values, min_periods, center, closed)
+
+        if center:
+            start, end = self._center_result(start, end, offset)
+            num_values -= offset
+
+        if not self.expand:
+            start, end = self._remove_ramps(start, end, center)
+
+        return start, end
+
+    def _center_result(self, start, end, offset):
+        if offset > 0:
+            start = start[offset:]
+            end = end[offset:]
+        return start, end
+
+    def _remove_ramps(self, start, end, center):
         fw, bw = self.forward, not self.forward
         rampsz = self.window_size - 1
         if center:
@@ -203,31 +198,64 @@ class VariableWindowDirectionIndexer(_CustomBaseIndexer):
     # set here
     variable_window = True
 
-    def _remove_ramps(self, start, end, num_values, center, min_periods):
-        if self.forward:
-            # remove (up) ramp
-            # we dont want this: [1,1,1,1,1].rolling(window='2min', forward=True).sum() -> [3, 3, 3,  2,  1  ]
-            # instead we want:   [1,1,1,1,1].rolling(window='2min', forward=True).sum() -> [3, 3, 3, nan, nan]
-            tresh = self.index_array[-1] - self.window_size
-            mask = self.index_array > tresh
+    def _get_center_window_sizes(self):
+        ws1 = ws2 = self.window_size
+        if self.center:
+            # centering of dtlike windows is just looking left and right
+            # with half amount of window-size
+            ws1 = (self.window_size + 1) // 2
+            ws2 = self.window_size // 2
+        return ws1, ws2
+
+    def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
+        ws_bw, ws_fw = self._get_center_window_sizes()
+        if center:
+            c1 = c2 = closed
+            if closed is 'neither':
+                c1, c2 = 'right', 'left'
+
+            start, _ = self._bw(num_values, ws_bw, c1)
+            _, end = self._fw(num_values, ws_fw, c2)
+
+        elif not self.forward:
+            start, end = self._bw(num_values, ws_bw, closed)
         else:
-            # remove (down) ramp
+            start, end = self._fw(num_values, ws_fw, closed)
+
+        if not self.expand:
+            start, end = self._remove_ramps(start, end, center)
+
+        return start, end
+
+    def _remove_ramps(self, start, end, center):
+        ws_bw, ws_fw = self._get_center_window_sizes()
+
+        if center or not self.forward:
+            # remove (up) ramp
             # we dont want this: [1,1,1,1,1].rolling(window='2min').sum() -> [1,   2,   3, 3, 3]
             # instead we want:   [1,1,1,1,1].rolling(window='2min').sum() -> [nan, nan, 3, 3, 3]
-            tresh = self.index_array[0] + self.window_size
+            tresh = self.index_array[0] + ws_bw
             mask = self.index_array < tresh
+            end[mask] = 0
 
-        end[mask] = 0
+        if center or self.forward:
+            # remove (down) ramp
+            # we dont want this: [1,1,1,1,1].rolling(window='2min', forward=True).sum() -> [3, 3, 3,  2,  1  ]
+            # instead we want:   [1,1,1,1,1].rolling(window='2min', forward=True).sum() -> [3, 3, 3, nan, nan]
+            tresh = self.index_array[-1] - ws_fw
+            mask = self.index_array > tresh
+            end[mask] = 0
+
         return start, end
 
-    def _bw(self, num_values=0, min_periods=None, center=False, closed=None):
+    def _bw(self, num_values, window_size, closed=None):
         arr = self.index_array
-        start, end = calculate_variable_window_bounds(num_values, self.window_size, min_periods, center, closed, arr)
+        start, end = calculate_variable_window_bounds(num_values, window_size, None, None, closed, arr)
         return start, end
 
-    def _fw(self, num_values=0, min_periods=None, center=False, closed=None):
+    def _fw(self, num_values, window_size, closed=None):
         arr = self.index_array[::-1]
-        s, _ = calculate_variable_window_bounds(num_values, self.window_size, min_periods, center, closed, arr)
+        s, _ = calculate_variable_window_bounds(num_values, window_size, None, None, closed, arr)
         start = np.arange(num_values)
         end = num_values - s[::-1]
         return start, end
@@ -256,7 +284,7 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
         will default to the size of the window.
 
     center : bool, default False
-        Set the labels at the center of the window.
+        Set the labels at the center of the window. Also works for offset-based windows (in contrary to pandas).
 
     win_type : str, default None
         Not implemented. Raise NotImplementedError if not None.
@@ -309,29 +337,29 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     if win_type is not None:
         raise NotImplementedError("customRoller() not implemented with win_types.")
 
+    # pandas does not implement rolling with offset and center
+    c = False if not is_integer(window) and center else center
     try:
         # use .rolling for checks like if center is bool, closed in [left, right, neither, both],
-        # center=True is not implemented for offset windows, closed not implemented for integer windows and
-        # that the index is monotonic in-/decreasing.
-        x = obj.rolling(window=window, min_periods=min_periods, center=center, on=on, axis=axis, closed=closed)
+        # closed not implemented for integer windows and that the index is monotonic in-/decreasing.
+        x = obj.rolling(window=window, min_periods=min_periods, center=c, on=on, axis=axis, closed=closed)
     except Exception:
         raise
 
+    # default differs between offset and fixed windows
     if expand is None:
         expand = not x.is_freq_type
 
-    kwargs = dict(min_periods=min_periods, center=center, closed=closed, forward=forward, expand=expand,
-                  step=step, mask=mask)
-    if x.is_freq_type:
-        window_indexer = VariableWindowDirectionIndexer(x._on.asi8, x.window, **kwargs)
-    else:
-        window_indexer = FixedWindowDirectionIndexer(x._on.asi8, window, **kwargs)
+    kwargs = dict(min_periods=min_periods, center=center, closed=closed,
+                  forward=forward, expand=expand, step=step, mask=mask)
+    window_indexer = VariableWindowDirectionIndexer if x.is_freq_type else FixedWindowDirectionIndexer
+    window_indexer = window_indexer(x._on.asi8, x.window, **kwargs)
 
     # center offset is calculated from min_periods if a indexer is passed to rolling().
     # if instead a normal window is passed, it is used for offset calculation.
     # also if we pass min_periods == None or 0, all values will Nan in the result even if
-    # start[i]<end[i] as expected. So we cannot pass `center` to rolling.
-    # But to calculate min_periods including NaN count we pass it to rolling and ensure we never center
-    # in rolling. Instead we manually center in the Indexer.
+    # start[i]<end[i] as expected. So we cannot pass `center` to rolling. Instead we manually do the centering
+    # in the Indexer. To calculate min_periods (!) including NaN count (!) we need to pass min_periods, but
+    # ensure that it is not None nor 0.
     min_periods = window_indexer.min_periods
     return obj.rolling(window_indexer, min_periods=min_periods, on=on, axis=axis, center=False, closed=None)
