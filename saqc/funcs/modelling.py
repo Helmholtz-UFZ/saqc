@@ -512,22 +512,22 @@ def modelling_changePointCluster(data, field, flagger, stat_func, thresh_func, b
     if reduce_window is None:
         reduce_window = f"{int(pd.Timedelta(bwd_window).total_seconds() + pd.Timedelta(fwd_window).total_seconds())}s"
 
-    # roller = customRoller(data_ser, window=bwd_window)
-    # bwd_start, bwd_end = roller.window.get_window_bounds(var_len, min_periods_bwd, center, closed)
-    indexer = VariableWindowDirectionIndexer(data_ser.index.asi8, pd.Timedelta(bwd_window).delta)
+    # native pandas.rolling also fails
+    # data_ser.rolling(window=bwd_window, min_periods=min_periods_bwd, closed=closed)
+    roller = customRoller(data_ser, window=bwd_window, min_periods=min_periods_bwd, closed=closed)
+    bwd_start, bwd_end = roller.window.get_window_bounds()
     # indexer = FreqIndexer()
     # indexer.index_array = data_ser.index.to_numpy(int)
     # indexer.win_points = None
     # indexer.window_size = int(pd.Timedelta(bwd_window).total_seconds() * 10 ** 9)
     # indexer.forward = False
     # indexer.center = False
-    bwd_start, bwd_end = indexer.get_window_bounds(var_len, min_periods_bwd, center, closed)
+    # bwd_start, bwd_end = indexer.get_window_bounds(var_len, min_periods_bwd, center, closed)
 
-    # roller = customRoller(data_ser, window=fwd_window, forward=True)
-    # fwd_start, fwd_end = roller.window.get_window_bounds(var_len, min_periods_bwd, center, closed)
-    indexer.window_size = pd.Timedelta(fwd_window).delta
-    indexer.forward = True
-    fwd_start, fwd_end = indexer.get_window_bounds(var_len, min_periods_fwd, center, closed)
+    roller = customRoller(data_ser, window=fwd_window, min_periods=min_periods_fwd, forward=True)
+    fwd_start, fwd_end = roller.window.get_window_bounds()
+    # indexer.window_size = pd.Timedelta(fwd_window).delta
+    # indexer.forward = True
     # fwd_start, fwd_end = np.roll(fwd_start, -1), np.roll(fwd_end, -1)
 
     min_mask = ~((fwd_end - fwd_start <= min_periods_fwd) | (bwd_end - bwd_start <= min_periods_bwd))

@@ -99,11 +99,11 @@ def test_interpolateGrid(course_5, course_3, flagger):
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_offsetCorrecture(flagger):
-    data = pd.Series(0, index=pd.date_range('2000', freq='1Y', periods=100), name='dat')
+    data = pd.Series(0, index=pd.date_range('2000', freq='1d', periods=100), name='dat')
     data.iloc[30:40] = -100
     data.iloc[70:80] = 100
     data = dios.DictOfSeries(data)
     flagger = flagger.initFlags(data)
-    data, flagger = proc_offsetCorrecture(data, 'dat', flagger, 40, 20, '3Y', 1)
+    data, flagger = proc_offsetCorrecture(data, 'dat', flagger, 40, 20, '3d', 1)
     assert (data == 0).all()[0]
 

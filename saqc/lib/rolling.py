@@ -82,10 +82,10 @@ class _CustomBaseIndexer(BaseIndexer):
 
     def get_window_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
         # do not use the params use ours instead also this should never change
-        assert closed is None
-        assert center is False
-        assert min_periods == self.min_periods
-        assert num_values == self.num_values
+        # assert closed is None
+        # assert center is False
+        # assert min_periods == self.min_periods
+        # assert num_values == self.num_values
         num_values = self.num_values
         min_periods = self.min_periods
         center = self.center
