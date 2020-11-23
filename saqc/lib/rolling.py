@@ -23,10 +23,11 @@ __copyright__ = "Copyright 2020, Helmholtz-Zentrum für Umweltforschung GmbH - U
 
 import numpy as np
 import pandas as pd
+from typing import Union
+from pandas.api.types import is_integer
 from pandas.api.indexers import BaseIndexer
 from pandas.core.window.indexers import calculate_variable_window_bounds
-from pandas.core.window.rolling import Rolling, calculate_center_offset
-from pandas.api.types import is_integer
+from pandas.core.window.rolling import Rolling, Window, calculate_center_offset
 
 
 def _is_slice(k): return isinstance(k, slice)
@@ -266,8 +267,8 @@ class VariableWindowDirectionIndexer(_CustomBaseIndexer):
 
 
 def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
-                 center=False, forward=False, win_type=None, on=None, axis=0, closed=None,
-                 expand=None, step=None, mask=None) -> Rolling:
+                 center=False, win_type=None, on=None, axis=0, closed=None,
+                 forward=False, expand=True, step=None, mask=None) -> Union[Rolling, Window]:
     """
     A custom rolling implementation, using pandas as base.
 
@@ -308,14 +309,14 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     forward : bool, default False
         By default a window is 'looking' backwards (in time). If True the window is looking forward in time.
 
-    expand : bool or None, default None
+    expand : bool, default True
         If True the window expands/shrink up to its final window size while shifted in the data or shifted out
         respectively.
         For (normal) backward-windows it only expands at the left border, for forward-windows it shrinks on
         the right border and for centered windows both apply.
-        For offset-based windows it defaults to False. For fixed windows, defaults to True.
+
         Also bear in mind that even if this is True, an many as `min_periods` values are necessary to get a
-        valid value.
+        valid value, see there for more info.
 
 
     step : int, slice or None, default None
@@ -327,7 +328,7 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
 
     Returns
     -------
-    Rolling object: Same as pd.rolling()
+    a Window or Rolling sub-classed for the particular operation
 
 
     Notes
@@ -336,29 +337,52 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     `start, end = customRoller(obj, ...).window.get_window_bounds()`, which return two arrays,
     holding the start and end indices. Any passed (allowed) parameter to `get_window_bounds()` is
     ignored and the arguments that was passed to `customRoller()` beforehand will be used instead.
+
+    See Also
+    --------
+    pandas.Series.rolling
+    pandas.DataFrame.rolling
     """
+    num_params = len(locals()) - 2  # do not count window and obj
     if not isinstance(obj, (pd.Series, pd.DataFrame)):
         raise TypeError("Not pd.Series nor pd.Dataframe")
-    if win_type is not None:
-        raise NotImplementedError("customRoller() not implemented with win_types.")
 
-    # pandas does not implement rolling with offset and center
-    c = False if not is_integer(window) and center else center
+    theirs = dict(min_periods=min_periods, center=center, win_type=win_type, on=on, axis=axis, closed=closed)
+    ours = dict(forward=forward, expand=expand, step=step, mask=mask)
+    assert len(theirs) + len(ours) == num_params, "not all params covert (!)"
+
+    # All defaults params -> pandas should do the job.
+    # Pandas can also handle win_type, we don't
+    if forward is False and expand is True and step is None and mask is None:
+        try:
+            return obj.rolling(window, **theirs)
+        except NotImplementedError:
+            # the only thing we additional implement in contrary
+            # to pandas is centering on a dt-index
+            if center is True:
+                pass
+            else:
+                raise
+
+    ours.update(center=theirs.pop('center'))
+    # use .rolling to do all the checks like if closed is one of [left, right, neither, both],
+    # closed not allowed for integer windows, index is monotonic (in- or decreasing), if freq-based
+    # windows can be transformed to nanoseconds (eg. fails for `1y` - it could have 364 or 365 days), etc.
+    # Also it converts window and the index to numpy-arrays (so we don't have to do it :D).
     try:
-        # use .rolling for checks like if center is bool, closed in [left, right, neither, both],
-        # closed not implemented for integer windows and that the index is monotonic in-/decreasing.
-        x = obj.rolling(window=window, min_periods=min_periods, center=c, on=on, axis=axis, closed=closed)
+        x = obj.rolling(window, center=False, **theirs)
     except Exception:
         raise
 
-    # default differs between offset and fixed windows
-    if expand is None:
-        expand = not x.is_freq_type
+    if theirs.pop('win_type') is not None:
+        raise NotImplementedError("customRoller() does not implemented win_type.")
+    num_params -= 1
 
-    kwargs = dict(min_periods=min_periods, center=center, closed=closed,
-                  forward=forward, expand=expand, step=step, mask=mask)
-    window_indexer = VariableWindowDirectionIndexer if x.is_freq_type else FixedWindowDirectionIndexer
-    window_indexer = window_indexer(x._on.asi8, x.window, **kwargs)
+    ours.update(min_periods=theirs.pop('min_periods'), closed=theirs.pop('closed'))
+    assert len(theirs) + len(ours) == num_params, "not all params covert (!)"
+
+    indexer = VariableWindowDirectionIndexer if x.is_freq_type else FixedWindowDirectionIndexer
+    indexer = indexer(index_array=x._on.asi8, window_size=x.window, **ours)
 
     # center offset is calculated from min_periods if a indexer is passed to rolling().
     # if instead a normal window is passed, it is used for offset calculation.
@@ -366,5 +390,4 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     # start[i]<end[i] as expected. So we cannot pass `center` to rolling. Instead we manually do the centering
     # in the Indexer. To calculate min_periods (!) including NaN count (!) we need to pass min_periods, but
     # ensure that it is not None nor 0.
-    min_periods = window_indexer.min_periods
-    return obj.rolling(window_indexer, min_periods=min_periods, on=on, axis=axis, center=False, closed=None)
+    return obj.rolling(indexer, min_periods=indexer.min_periods, **theirs)
