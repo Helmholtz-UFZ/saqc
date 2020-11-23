@@ -13,7 +13,7 @@ from saqc.lib.ts_operators import (
     polyRollerIrregular,
     count
 )
-from saqc.lib.tools import seasonalMask, customRoller, VariableWindowDirectionIndexer
+from saqc.lib.tools import seasonalMask, customRoller
 import logging
 
 logger = logging.getLogger("SaQC")
@@ -513,22 +513,12 @@ def modelling_changePointCluster(data, field, flagger, stat_func, thresh_func, b
         reduce_window = f"{int(pd.Timedelta(bwd_window).total_seconds() + pd.Timedelta(fwd_window).total_seconds())}s"
 
     # native pandas.rolling also fails
-    # data_ser.rolling(window=bwd_window, min_periods=min_periods_bwd, closed=closed)
+    data_ser.rolling(window=bwd_window, min_periods=min_periods_bwd, closed=closed)
     roller = customRoller(data_ser, window=bwd_window, min_periods=min_periods_bwd, closed=closed)
     bwd_start, bwd_end = roller.window.get_window_bounds()
-    # indexer = FreqIndexer()
-    # indexer.index_array = data_ser.index.to_numpy(int)
-    # indexer.win_points = None
-    # indexer.window_size = int(pd.Timedelta(bwd_window).total_seconds() * 10 ** 9)
-    # indexer.forward = False
-    # indexer.center = False
-    # bwd_start, bwd_end = indexer.get_window_bounds(var_len, min_periods_bwd, center, closed)
 
-    roller = customRoller(data_ser, window=fwd_window, min_periods=min_periods_fwd, forward=True)
+    roller = customRoller(data_ser, window=fwd_window, min_periods=min_periods_fwd, closed=closed, forward=True)
     fwd_start, fwd_end = roller.window.get_window_bounds()
-    # indexer.window_size = pd.Timedelta(fwd_window).delta
-    # indexer.forward = True
-    # fwd_start, fwd_end = np.roll(fwd_start, -1), np.roll(fwd_end, -1)
 
     min_mask = ~((fwd_end - fwd_start <= min_periods_fwd) | (bwd_end - bwd_start <= min_periods_bwd))
     fwd_end = fwd_end[min_mask]

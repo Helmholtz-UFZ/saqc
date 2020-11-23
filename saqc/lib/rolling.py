@@ -22,24 +22,25 @@ __copyright__ = "Copyright 2020, Helmholtz-Zentrum für Umweltforschung GmbH - U
 # given offset window. That's why rolling should spit out Nan's as long as the window is not fully shifted in the data.
 
 import numpy as np
-import pandas as pd
 from typing import Union
-from pandas.api.types import is_integer
+from pandas.api.types import is_integer, is_bool
 from pandas.api.indexers import BaseIndexer
+from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.core.window.indexers import calculate_variable_window_bounds
 from pandas.core.window.rolling import Rolling, Window, calculate_center_offset
 
 
-def _is_slice(k): return isinstance(k, slice)
+def is_slice(k): return isinstance(k, slice)
 
 
 class _CustomBaseIndexer(BaseIndexer):
-    variable_window = None
+    is_datetimelike = None
 
     def __init__(self, index_array, window_size, min_periods=None, center=False, closed=None, forward=False,
                  expand=False, step=None, mask=None):
         super().__init__()
         self.index_array = index_array
+        self.num_values = len(index_array)
         self.window_size = window_size
         self.min_periods = min_periods
         self.center = center
@@ -48,45 +49,34 @@ class _CustomBaseIndexer(BaseIndexer):
         self.expand = expand
         self.step = step
         self.skip = mask
-        self.num_values = len(self.index_array)
         self.validate()
 
-    def validate(self):
-        if not (is_integer(self.window_size) and self.window_size > 0):
-            raise TypeError('window_size must be positive integer')
-
-        if self.min_periods is None:
-            self.min_periods = 1 if self.variable_window else self.window_size
-        if not (is_integer(self.min_periods) and self.min_periods >= 0):
-            raise TypeError('min_periods must be non-negative integer.')
-
-        if not self.variable_window and self.closed not in [None, 'both']:
-            raise ValueError("Only closed='both' is implemented for fixed windows")
+    def validate(self) -> None:
+        if self.center is not None and not is_bool(self.center):
+            raise ValueError("center must be a boolean")
+        if not is_bool(self.forward):
+            raise ValueError("forward must be a boolean")
+        if not is_bool(self.expand):
+            raise ValueError("expand must be a boolean")
 
         if is_integer(self.step) or self.step is None:
-            self.step = slice(None, None, self.step) if self.step else None
-        elif _is_slice(self.step):
-            if self.step == slice(None):
-                self.step = None
-        else:
+            self.step = slice(None, None, self.step or None)
+        if not is_slice(self.step):
             raise TypeError('step must be integer or slice.')
+        if self.step == slice(None):
+            self.step = None
 
         if self.skip is not None:
             if len(self.index_array) != len(self.skip):
                 raise ValueError('mask must have same length as data to roll over.')
-            skip = np.array(self.skip)
-            if skip.dtype != bool:
+            self.skip = np.array(self.skip)
+            if self.skip.dtype != bool:
                 raise TypeError('mask must have boolean values only.')
-            self.skip = ~skip
-
-        assert self.num_values > 0
+            self.skip = ~self.skip
 
     def get_window_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
-        # do not use the params use ours instead also this should never change
-        # assert closed is None
-        # assert center is False
-        # assert min_periods == self.min_periods
-        # assert num_values == self.num_values
+        if min_periods is not None:
+            self.min_periods = max(self.min_periods, min_periods)
         num_values = self.num_values
         min_periods = self.min_periods
         center = self.center
@@ -135,12 +125,17 @@ class _CustomBaseIndexer(BaseIndexer):
         raise NotImplementedError
 
 
-class FixedWindowDirectionIndexer(_CustomBaseIndexer):
+class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
     # automatically added in super call to init
     index_array: np.array
     window_size: int
     # set here
-    variable_window = False
+    is_datetimelike = False
+
+    def validate(self) -> None:
+        super().validate()
+        if self.closed is not None:
+            raise ValueError("closed only implemented for datetimelike and offset based windows")
 
     def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
         offset = calculate_center_offset(self.window_size) if center else 0
@@ -201,12 +196,17 @@ class FixedWindowDirectionIndexer(_CustomBaseIndexer):
         return start, end
 
 
-class VariableWindowDirectionIndexer(_CustomBaseIndexer):
+class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
     # automatically added in super call to init
     index_array: np.array
     window_size: int
     # set here
-    variable_window = True
+    is_datetimelike = True
+
+    def validate(self) -> None:
+        super().validate()
+        if self.min_periods is None:
+            self.min_periods = 1
 
     def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
         ws_bw, ws_fw = self._get_center_window_sizes(self.window_size)
@@ -340,8 +340,8 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     pandas.DataFrame.rolling
     """
     num_params = len(locals()) - 2  # do not count window and obj
-    if not isinstance(obj, (pd.Series, pd.DataFrame)):
-        raise TypeError("Not pd.Series nor pd.Dataframe")
+    if not isinstance(obj, (ABCSeries, ABCDataFrame)):
+        raise TypeError(f"invalid type: {type(obj)}")
 
     theirs = dict(min_periods=min_periods, center=center, win_type=win_type, on=on, axis=axis, closed=closed)
     ours = dict(forward=forward, expand=expand, step=step, mask=mask)
@@ -377,7 +377,7 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     ours.update(min_periods=theirs.pop('min_periods'), closed=theirs.pop('closed'))
     assert len(theirs) + len(ours) == num_params, "not all params covert (!)"
 
-    indexer = VariableWindowDirectionIndexer if x.is_freq_type else FixedWindowDirectionIndexer
+    indexer = _VariableWindowDirectionIndexer if x.is_freq_type else _FixedWindowDirectionIndexer
     indexer = indexer(index_array=x._on.asi8, window_size=x.window, **ours)
 
     # center offset is calculated from min_periods if a indexer is passed to rolling().

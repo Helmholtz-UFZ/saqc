@@ -17,7 +17,7 @@ from scipy.cluster.hierarchy import linkage, fcluster
 from saqc.lib.types import T
 
 # keep this for external imports
-from saqc.lib.rolling import customRoller, FixedWindowDirectionIndexer, VariableWindowDirectionIndexer
+from saqc.lib.rolling import customRoller
 
 logger = logging.getLogger("SaQC")
 
