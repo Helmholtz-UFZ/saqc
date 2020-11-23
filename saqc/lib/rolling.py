@@ -107,6 +107,17 @@ class _CustomBaseIndexer(BaseIndexer):
         # end[end - start < self.min_periods] = 0
         return start, end
 
+    def _get_center_window_sizes(self, winsz):
+        ws1 = ws2 = winsz
+        if self.center:
+            # centering of dtlike windows is just looking left and right
+            # with half amount of window-size
+            ws1 = (winsz + 1) // 2
+            ws2 = winsz // 2
+            if self.forward:
+                ws1, ws2 = ws2, ws1
+        return ws1, ws2
+
     def _apply_skipmask(self, start, end):
         if self.skip is not None:
             end[self.skip] = 0
@@ -157,15 +168,9 @@ class FixedWindowDirectionIndexer(_CustomBaseIndexer):
 
     def _remove_ramps(self, start, end, center):
         fw, bw = self.forward, not self.forward
-        rampsz = self.window_size - 1
+        ramp_l, ramp_r = self._get_center_window_sizes(self.window_size - 1)
         if center:
-            ramp_l = (rampsz + 1) // 2
-            ramp_r = rampsz // 2
-            if fw:
-                ramp_l, ramp_r = ramp_r, ramp_l
             fw = bw = True
-        else:
-            ramp_l = ramp_r = rampsz
 
         if bw and ramp_l > 0:
             end[:ramp_l] = 0
@@ -203,17 +208,8 @@ class VariableWindowDirectionIndexer(_CustomBaseIndexer):
     # set here
     variable_window = True
 
-    def _get_center_window_sizes(self):
-        ws1 = ws2 = self.window_size
-        if self.center:
-            # centering of dtlike windows is just looking left and right
-            # with half amount of window-size
-            ws1 = (self.window_size + 1) // 2
-            ws2 = self.window_size // 2
-        return ws1, ws2
-
     def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
-        ws_bw, ws_fw = self._get_center_window_sizes()
+        ws_bw, ws_fw = self._get_center_window_sizes(self.window_size)
         if center:
             c1 = c2 = closed
             if closed is 'neither':
@@ -233,7 +229,7 @@ class VariableWindowDirectionIndexer(_CustomBaseIndexer):
         return start, end
 
     def _remove_ramps(self, start, end, center):
-        ws_bw, ws_fw = self._get_center_window_sizes()
+        ws_bw, ws_fw = self._get_center_window_sizes(self.window_size)
 
         if center or not self.forward:
             # remove (up) ramp
