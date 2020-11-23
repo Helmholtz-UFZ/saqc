@@ -70,11 +70,11 @@ class BaseFlagger(ABC):
             flags = dios.DictOfSeries(columns=data.columns)
             for c in flags.columns:
                 flags[c] = pd.Series(self.UNFLAGGED, index=data[c].index)
-            flags = flags.astype(self.dtype)
         else:
             if not isinstance(flags, diosT):
                 flags = dios.DictOfSeries(flags)
 
+        flags = flags.astype(self.dtype)
         newflagger = self.copy(flags=flags)
         return newflagger
 
