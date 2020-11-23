@@ -261,15 +261,17 @@ class BaseFlagger(ABC):
         before, after = False, False
 
         if flag_before is not None:
+            closed = 'both'
             if isinstance(flag_before, int):
-                flag_before += 1
-            r = customRoller(base, window=flag_before, min_periods=1, forward=True, closed='both', expand=True)
+                flag_before, closed = flag_before + 1, None
+            r = customRoller(base, window=flag_before, min_periods=1, closed=closed, expand=True, forward=True)
             before = r.sum().astype(bool)
 
         if flag_after is not None:
+            closed = 'both'
             if isinstance(flag_after, int):
-                flag_after += 1
-            r = customRoller(base, window=flag_after, min_periods=1, closed='both', expand=True)
+                flag_after, closed = flag_after + 1, None
+            r = customRoller(base, window=flag_after, min_periods=1, closed=closed, expand=True)
             after = r.sum().astype(bool)
 
         # does not include base, to avoid overriding flags that just was set

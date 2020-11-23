@@ -347,20 +347,10 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     ours = dict(forward=forward, expand=expand, step=step, mask=mask)
     assert len(theirs) + len(ours) == num_params, "not all params covert (!)"
 
-    # All defaults params -> pandas should do the job.
-    # Pandas can also handle win_type, we don't
-    if forward is False and expand is True and step is None and mask is None:
-        try:
-            return obj.rolling(window, **theirs)
-        except NotImplementedError:
-            # the only thing we additional implement in contrary
-            # to pandas is centering on a dt-index
-            if center is True:
-                pass
-            else:
-                raise
-
+    # center is the only param from the pandas rolling implementation
+    # that we advance, namely we allow center=True on dt-indexed data
     ours.update(center=theirs.pop('center'))
+
     # use .rolling to do all the checks like if closed is one of [left, right, neither, both],
     # closed not allowed for integer windows, index is monotonic (in- or decreasing), if freq-based
     # windows can be transformed to nanoseconds (eg. fails for `1y` - it could have 364 or 365 days), etc.
