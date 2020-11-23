@@ -943,7 +943,8 @@ def _drift_fit(x, shift_target, cal_mean):
 
 
 @register(masking='all')
-def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mean=5, flag_maint_period=False, **kwargs):
+def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mean=5, flag_maint_period=False,
+                                 check_maint='1h', **kwargs):
     """
     The function fits an exponential model to chunks of data[field].
     It is assumed, that between maintenance events, there is a drift effect shifting the meassurements in a way, that
@@ -992,6 +993,8 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         directly before maintenance event. This values are needed for shift calibration. (see above description)
     flag_maint_period : bool, default False
         Wheather or not to flag BAD the values directly obtained while maintenance.
+    check_maint : bool, default True
+        Wheather or not to check, if the reported maintenance intervals match are plausible
 
     Returns
     -------
@@ -1003,13 +1006,15 @@ def proc_seefoExpDriftCorrecture(data, field, flagger, maint_data_field, cal_mea
         Flags values may have changed relatively to the flagger input.
     """
 
+
     # 1: extract fit intervals:
     if data[maint_data_field].empty:
         return data, flagger
     data = data.copy()
     to_correct = data[field]
-    drift_frame = pd.DataFrame({"drift_group": np.nan, to_correct.name: to_correct.values}, index=to_correct.index)
     maint_data = data[maint_data_field]
+    drift_frame = pd.DataFrame({"drift_group": np.nan, to_correct.name: to_correct.values}, index=to_correct.index)
+
     # group the drift frame
     for k in range(0, maint_data.shape[0] - 1):
         # assign group numbers for the timespans in between one maintenance ending and the beginning of the next
