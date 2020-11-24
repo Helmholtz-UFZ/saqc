@@ -24,7 +24,7 @@ from outliers import smirnov_grubbs
 def _stray(
     val_frame,
     partition_freq=None,
-    partition_min=0,
+    partition_min=11,
     scoring_method="kNNMaxGap",
     n_neighbors=10,
     iter_start=0.5,
@@ -59,7 +59,8 @@ def _stray(
         of `partition_freq` periods. if ``None`` is passed (default), all the data will be tested in one run.
     partition_min : int, default 0
         Minimum number of periods per partition that have to be present for a valid outlier dettection to be made in
-        this partition. (Only of effect, if `partition_freq` is an integer.)
+        this partition. (Only of effect, if `partition_freq` is an integer.) Partition min value must always be
+        greater then the nn_neighbors value.
     scoring_method : {'kNNSum', 'kNNMaxGap'}, default 'kNNMaxGap'
         Scoring method applied.
         `'kNNSum'`: Assign to every point the sum of the distances to its 'n_neighbors' nearest neighbors.
