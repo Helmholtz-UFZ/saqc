@@ -86,6 +86,9 @@ class _CustomBaseIndexer(BaseIndexer):
         start, end = self._apply_skipmask(start, end)
         start, end = self._apply_steps(start, end, num_values)
         start, end = self._prepare_min_periods_masking(start, end, num_values)
+
+        # print('Custom')
+        # print(np.array([start, end]))
         return start, end
 
     def _prepare_min_periods_masking(self, start, end, num_values):
@@ -134,8 +137,8 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
 
     def validate(self) -> None:
         super().validate()
-        if self.closed is not None:
-            raise ValueError("closed only implemented for datetimelike and offset based windows")
+        # if self.closed is not None:
+        #     raise ValueError("closed only implemented for datetimelike and offset based windows")
 
     def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
         offset = calculate_center_offset(self.window_size) if center else 0
@@ -187,12 +190,9 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
         return start, end
 
     def _fw(self, num_values=0, min_periods=None, center=False, closed=None):
-        # code taken from pd.core.windows.indexer.FixedForwardWindowIndexer
-        start = np.arange(num_values, dtype="int64")
-        end_s = start[: -self.window_size] + self.window_size
-        end_e = np.full(self.window_size, num_values, dtype="int64")
-        end = np.concatenate([end_s, end_e])
-        # end stolen code
+        s, _ = self._bw(num_values, min_periods, center, closed)
+        start = np.arange(num_values)
+        end = num_values - s[::-1]
         return start, end
 
 
