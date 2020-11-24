@@ -11,16 +11,16 @@ def data():
 
 
 def data_():
-    # s1 = pd.Series(1., index=pd.date_range("1999/12", periods=12, freq='1M') + pd.Timedelta('1d'))
-    # s2 = pd.Series(1., index=pd.date_range('2000/05/15', periods=8, freq='1d'))
-    # s = pd.concat([s1, s2]).sort_index()
-    # s.name = 's'
-    # s[15] = np.nan
-    s1 = pd.Series(1., index=pd.date_range("1999/12", periods=4, freq='1M') + pd.Timedelta('1d'))
-    s2 = pd.Series(1., index=pd.date_range('2000/05/15', periods=2, freq='1d'))
+    s1 = pd.Series(1., index=pd.date_range("1999/12", periods=12, freq='1M') + pd.Timedelta('1d'))
+    s2 = pd.Series(1., index=pd.date_range('2000/05/15', periods=8, freq='1d'))
     s = pd.concat([s1, s2]).sort_index()
     s.name = 's'
-    s[4] = np.nan
+    s[15] = np.nan
+    # s1 = pd.Series(1., index=pd.date_range("1999/12", periods=4, freq='1M') + pd.Timedelta('1d'))
+    # s2 = pd.Series(1., index=pd.date_range('2000/05/15', periods=2, freq='1d'))
+    # s = pd.concat([s1, s2]).sort_index()
+    # s.name = 's'
+    # s[4] = np.nan
     return s
 
 
@@ -39,11 +39,11 @@ def make_num_kws():
 
 def make_dt_kws():
     l = []
-    for window in range(1, len_s + 3):
-        for min_periods in [None] + list(range(window + 1)):
-            for win in [f'{window}d', f'{window * 32}d']:
-                for center in [False, True]:
-                    for closed in [None] + ['left', 'right', 'both', 'neither']:
+    for closed in [None] + ['right', 'both', 'neither', 'left']:
+        for window in range(1, len_s + 3):
+            for min_periods in [None] + list(range(window + 1)):
+                for win in [f'{window}d', f'{window * 31}d']:
+                    for center in [False, True]:
                         l.append(dict(window=win, min_periods=min_periods, center=center, closed=closed))
     return l
 
@@ -95,7 +95,7 @@ def test_pandas_conform_num(data, kws):
 @pytest.mark.parametrize("kws", make_dt_kws())
 def test_pandas_conform_dt(data, kws):
     if kws.get('center', False) is True:
-        pass
+        pytest.skip('pandas has no center on dt-index')
     else:
         runtest_for_kw_combi(data, kws)
 
@@ -106,10 +106,25 @@ def test_forward_num(data, kws):
     runtest_for_kw_combi(data, kws)
 
 
-# @pytest.mark.parametrize("kws", make_dt_kws())
-# def test_forward_dt(data, kws):
-#     kws.update(forward=True)
-#     if kws['center'] is True:
-#         pytest.skip('pandas has no center on dt-index')
-#     else:
-#         runtest_for_kw_combi(data, kws)
+@pytest.mark.parametrize("kws", make_dt_kws())
+def test_forward_dt(data, kws):
+    kws.update(forward=True)
+    if kws.get('center', False) is True:
+        pytest.skip('pandas has no center on dt-index')
+    else:
+        runtest_for_kw_combi(data, kws)
+
+
+# def test_centering_w_dtindex():
+#     s = pd.Series(0., index=pd.date_range("2000", periods=10, freq='1H'))
+#     s[4:7] = 1
+#
+#     w = 2
+#     pd_kw= dict(window=w, center=True, min_periods=None)
+#     our_kw = dict(window=f'{w}h', center=True, closed='both')
+#     expected = s.rolling(**pd_kw).sum()
+#     result = customRoller(s, **our_kw, expand=False).sum()
+#     df = pd.DataFrame()
+#     df['res'] = result
+#     df['exp'] = expected
+#     print(df)

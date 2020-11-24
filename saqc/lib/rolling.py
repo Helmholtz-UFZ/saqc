@@ -86,9 +86,6 @@ class _CustomBaseIndexer(BaseIndexer):
         start, end = self._apply_skipmask(start, end)
         start, end = self._apply_steps(start, end, num_values)
         start, end = self._prepare_min_periods_masking(start, end, num_values)
-
-        # print('Custom')
-        # print(np.array([start, end]))
         return start, end
 
     def _prepare_min_periods_masking(self, start, end, num_values):
@@ -216,16 +213,16 @@ class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
         ws_bw, ws_fw = self._get_center_window_sizes(self.window_size)
         if center:
             c1 = c2 = closed
-            if closed is 'neither':
+            if closed == 'neither':
                 c1, c2 = 'right', 'left'
 
             start, _ = self._bw(num_values, ws_bw, c1)
             _, end = self._fw(num_values, ws_fw, c2)
 
-        elif not self.forward:
-            start, end = self._bw(num_values, ws_bw, closed)
-        else:
+        elif self.forward:
             start, end = self._fw(num_values, ws_fw, closed)
+        else:
+            start, end = self._bw(num_values, ws_bw, closed)
 
         if not self.expand:
             start, end = self._remove_ramps(start, end, center)
@@ -263,6 +260,9 @@ class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
         s, _ = calculate_variable_window_bounds(num_values, window_size, None, None, closed, arr)
         start = np.arange(num_values)
         end = num_values - s[::-1]
+
+        if closed in ['left', 'neither']:
+            start += 1
         return start, end
 
 
