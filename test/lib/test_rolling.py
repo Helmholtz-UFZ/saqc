@@ -86,30 +86,30 @@ def runtest_for_kw_combi(s, kws):
             print_diff(s, result, expected)
             assert False
 
-#
-# @pytest.mark.parametrize("kws", make_num_kws())
-# def test_pandas_conform_num(data, kws):
-#     runtest_for_kw_combi(data, kws)
-#
-#
-# @pytest.mark.parametrize("kws", make_dt_kws())
-# def test_pandas_conform_dt(data, kws):
-#     if kws.get('center', False) is True:
-#         pass
-#     else:
-#         runtest_for_kw_combi(data, kws)
-#
-#
-# @pytest.mark.parametrize("kws", make_num_kws())
-# def test_forward_num(data, kws):
-#     kws.update(forward=True, center=False)
-#     runtest_for_kw_combi(data, kws)
+
+@pytest.mark.parametrize("kws", make_num_kws())
+def test_pandas_conform_num(data, kws):
+    runtest_for_kw_combi(data, kws)
 
 
 @pytest.mark.parametrize("kws", make_dt_kws())
-def test_forward_dt(data, kws):
-    kws.update(forward=True)
-    if kws['center'] is True:
-        pytest.skip('pandas has no center on dt-index')
+def test_pandas_conform_dt(data, kws):
+    if kws.get('center', False) is True:
+        pass
     else:
         runtest_for_kw_combi(data, kws)
+
+
+@pytest.mark.parametrize("kws", make_num_kws())
+def test_forward_num(data, kws):
+    kws.update(forward=True)
+    runtest_for_kw_combi(data, kws)
+
+
+# @pytest.mark.parametrize("kws", make_dt_kws())
+# def test_forward_dt(data, kws):
+#     kws.update(forward=True)
+#     if kws['center'] is True:
+#         pytest.skip('pandas has no center on dt-index')
+#     else:
+#         runtest_for_kw_combi(data, kws)
