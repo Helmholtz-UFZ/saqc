@@ -245,3 +245,7 @@ class DmpFlagger(CategoricalFlagger):
         new._causes = causes
         new._comments = comments
         return new
+
+    @property
+    def SUSPICIOUS(self):
+        return FLAGS[-2]
