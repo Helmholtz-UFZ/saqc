@@ -6,7 +6,7 @@ import pandas as pd
 
 from saqc.core.register import register
 from saqc.lib.ts_operators import varQC
-from saqc.lib.tools import retrieveTrustworthyOriginal
+from saqc.lib.tools import retrieveTrustworthyOriginal, customRoller
 
 
 @register(masking='field')
@@ -45,19 +45,20 @@ def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
     """
 
     d = data[field]
+    if not isinstance(window, str):
+        raise TypeError('window must be offset string.')
 
-    # find all constant values in a row with a forward search
-    r = d.rolling(window=window)
-    mask = (r.max() - r.min() <= thresh) & (r.count() > 1)
+    # min_periods=2 ensures that at least two non-nan values are present
+    # in each window and also min() == max() == d[i] is not possible.
+    kws = dict(window=window, min_periods=2)
 
-    # backward rolling for offset windows hack
-    bw = mask[::-1].copy()
-    bw.index = bw.index.max() - bw.index
-
-    # propagate the mask(!), backwards
-    bwmask = bw.rolling(window=window).sum() > 0
-
-    mask |= bwmask[::-1].values
+    # find all consecutive constant values in one direction...
+    r = customRoller(d, **kws)
+    m1 = r.max() - r.min() <= thresh
+    # and in the other
+    r = customRoller(d, forward=True, **kws)
+    m2 = r.max() - r.min() <= thresh
+    mask = m1 | m2
 
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger

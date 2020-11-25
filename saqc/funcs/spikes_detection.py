@@ -17,7 +17,7 @@ from saqc.lib.tools import (
     slidingWindowIndices,
     findIndex,
     toSequence,
-    customRolling
+    customRoller
 )
 from outliers import smirnov_grubbs
 
@@ -955,10 +955,10 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
     to_roll = dataseries[to_roll]
     roll_mask = pd.Series(False, index=to_roll.index)
     roll_mask[post_jumps.index] = True
-    engine=None
-    if roll_mask.sum() > numba_kickin:
-        engine = 'numba'
-    result = customRolling(to_roll, window, spikeTester, roll_mask, closed='both', engine=engine, min_periods=2)
+
+    roller = customRoller(to_roll, window=window, mask=roll_mask, min_periods=2, closed='both')
+    engine = None if roll_mask.sum() < numba_kickin else 'numba'
+    result = roller.apply(spikeTester, raw=True, engine=engine)
 
     # correct the result: only those values define plateaus, that do not have
     # values at their left starting point, that belong to other plateaus themself:
