@@ -1,8 +1,15 @@
 import pytest
 
-from saqc.lib.rolling import customRoller
+from saqc.lib.rolling import customRoller, Rolling
 import pandas as pd
 import numpy as np
+
+FUNCTS = ['count', 'sum', 'mean', 'median', 'var', 'std', 'min', 'max', 'corr', 'cov', 'skew', 'kurt', ]
+
+OTHA = ['apply',
+        'aggregate',  # needs param func eg. func='min'
+        'quantile',  # needs param quantile=0.5 (0<=q<=1)
+        ]
 
 
 @pytest.fixture
@@ -19,26 +26,39 @@ def data_():
     return s
 
 
+def data__():
+    s1 = pd.Series(1., index=pd.date_range("1999/12", periods=4, freq='1M') + pd.Timedelta('1d'))
+    s2 = pd.Series(1., index=pd.date_range('2000/05/15', periods=2, freq='1d'))
+    s = pd.concat([s1, s2]).sort_index()
+    s.name = 's'
+    s[5] = np.nan
+    return s
+
+
 len_s = len(data_())
 
 
 def make_num_kws():
     l = []
-    for window in range(len_s + 2):
-        for min_periods in [None] + list(range(window + 1)):
+    n = [0, 1, 2, 10, 20, 30]
+    mp = [0, 1, 2, 10, 20, 30]
+    for window in n:
+        for min_periods in [None] + mp:
+            if min_periods is not None and min_periods > window:
+                continue
             for center in [False, True]:
-                for closed in [None] + ['left', 'right', 'both', 'neither']:
-                    l.append(dict(window=window, min_periods=min_periods, center=center, closed=closed))
+                l.append(dict(window=window, min_periods=min_periods, center=center))
     return l
 
 
 def make_dt_kws():
     l = []
-    for closed in [None] + ['right', 'both', 'neither', 'left']:
-        for window in range(1, len_s + 3):
-            for min_periods in [None] + list(range(window + 1)):
-                for win in [f'{window}d', f'{window * 31}d']:
-                    l.append(dict(window=win, min_periods=min_periods, closed=closed))
+    n = [0, 1, 2, 10, 32, 70, 120]
+    mp = [0, 1, 2, 10, 20, 30]
+    for closed in ['right', 'both', 'neither', 'left']:
+        for window in n:
+            for min_periods in [None] + mp:
+                l.append(dict(window=f'{window}d', min_periods=min_periods, closed=closed))
     return l
 
 
@@ -60,20 +80,37 @@ def print_diff(s, result, expected):
     print(df)
 
 
-def runtest_for_kw_combi(s, kws):
+def runtest_for_kw_combi(s, kws, func='sum'):
     print(kws)
     forward = kws.pop('forward', False)
+
+    def calc(roller):
+        if isinstance(func, str):
+            return getattr(roller, func)()
+        else:
+            return getattr(roller, 'apply')(func)
+
     if forward:
-        result = customRoller(s, forward=True, **kws).sum()
-        expected = pd.Series(reversed(s), reversed(s.index)).rolling(**kws).sum()[::-1]
+        expR = pd.Series(reversed(s), reversed(s.index)).rolling(**kws)
+        resR = customRoller(s, forward=True, **kws)
+        try:
+            expected = calc(expR)[::-1]
+        except Exception:
+            pytest.skip("pandas faild")
+        result = calc(resR)
 
         success = check_series(result, expected)
         if not success:
             print_diff(s, result, expected)
             assert False, f"forward=True !! {kws}"
     else:
-        result = customRoller(s, **kws).sum()
-        expected = s.rolling(**kws).sum()
+        expR = s.rolling(**kws)
+        resR = customRoller(s, **kws)
+        try:
+            expected = calc(expR)
+        except Exception:
+            pytest.skip("pandas faild")
+        result = calc(resR)
 
         success = check_series(result, expected)
         if not success:
@@ -81,26 +118,30 @@ def runtest_for_kw_combi(s, kws):
             assert False
 
 
-@pytest.mark.parametrize("kws", make_num_kws())
-def test_pandas_conform_num(data, kws):
-    runtest_for_kw_combi(data, kws)
+@pytest.mark.parametrize("kws", make_dt_kws(), ids=lambda x: str(x))
+@pytest.mark.parametrize("func", FUNCTS)
+def test_pandas_conform_dt(data, kws, func):
+    runtest_for_kw_combi(data, kws, func=func)
 
 
-@pytest.mark.parametrize("kws", make_dt_kws())
-def test_pandas_conform_dt(data, kws):
-    runtest_for_kw_combi(data, kws)
+@pytest.mark.parametrize("kws", make_num_kws(), ids=lambda x: str(x))
+@pytest.mark.parametrize("func", FUNCTS)
+def test_pandas_conform_num(data, kws, func):
+    runtest_for_kw_combi(data, kws, func=func)
 
 
-@pytest.mark.parametrize("kws", make_num_kws())
-def test_forward_num(data, kws):
+@pytest.mark.parametrize("kws", make_dt_kws(), ids=lambda x: str(x))
+@pytest.mark.parametrize("func", FUNCTS)
+def test_forward_dt(data, kws, func):
     kws.update(forward=True)
-    runtest_for_kw_combi(data, kws)
+    runtest_for_kw_combi(data, kws, func=func)
 
 
-@pytest.mark.parametrize("kws", make_dt_kws())
-def test_forward_dt(data, kws):
+@pytest.mark.parametrize("kws", make_num_kws(), ids=lambda x: str(x))
+@pytest.mark.parametrize("func", FUNCTS)
+def test_forward_num(data, kws, func):
     kws.update(forward=True)
-    runtest_for_kw_combi(data, kws)
+    runtest_for_kw_combi(data, kws, func=func)
 
 
 def dt_center_kws():
@@ -111,7 +152,7 @@ def dt_center_kws():
     return l
 
 
-@pytest.mark.parametrize("kws", dt_center_kws())
+@pytest.mark.parametrize("kws", make_num_kws(), ids=lambda x: str(x))
 def test_centering_w_dtindex(kws):
     print(kws)
     s = pd.Series(0., index=pd.date_range("2000", periods=10, freq='1H'))

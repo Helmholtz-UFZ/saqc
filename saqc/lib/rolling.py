@@ -75,8 +75,6 @@ class _CustomBaseIndexer(BaseIndexer):
             self.skip = ~self.skip
 
     def get_window_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
-        if min_periods is not None:
-            self.min_periods = max(self.min_periods, min_periods)
         num_values = self.num_values
         min_periods = self.min_periods
         center = self.center
@@ -134,17 +132,18 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
 
     def validate(self) -> None:
         super().validate()
-        # if self.closed is not None:
-        #     raise ValueError("closed only implemented for datetimelike and offset based windows")
+        if self.min_periods is None:
+            self.min_periods = self.window_size
 
     def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
+        # closed is always ignored and handled as 'both' other cases not implemented
         offset = calculate_center_offset(self.window_size) if center else 0
         num_values += offset
 
         if self.forward:
-            start, end = self._fw(num_values, min_periods, center, closed, offset)
+            start, end = self._fw(num_values, offset)
         else:
-            start, end = self._bw(num_values, min_periods, center, closed, offset)
+            start, end = self._bw(num_values, offset)
 
         if center:
             start, end = self._center_result(start, end, offset)
@@ -156,6 +155,8 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
         return start, end
 
     def _center_result(self, start, end, offset):
+        # cut N values at the front that was inserted in _fw()
+        # or cut N values at the end if _bw()
         if offset > 0:
             if self.forward:
                 start = start[:-offset]
@@ -178,20 +179,14 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
 
         return start, end
 
-    def _bw(self, num_values=0, min_periods=None, center=False, closed=None, offset=0):
-        # code taken from pd.core.windows.indexer.FixedWindowIndexer
-        start_s = np.zeros(self.window_size, dtype="int64")
-        start_e = (np.arange(self.window_size, num_values, dtype="int64") - self.window_size + 1)
-        start = np.concatenate([start_s, start_e])[:num_values]
-
-        end_s = np.arange(self.window_size, dtype="int64") + 1
-        end_e = start_e + self.window_size
-        end = np.concatenate([end_s, end_e])[:num_values]
-        # end stolen code
+    def _bw(self, num_values=0, offset=0):
+        start = np.arange(-self.window_size, num_values + offset, dtype="int64") + 1
+        end = start + self.window_size
+        start[:self.window_size] = 0
         return start, end
 
-    def _fw(self, num_values=0, min_periods=None, center=False, closed=None, offset=0):
-        start = np.arange(-offset, num_values, dtype="int64")[:num_values]
+    def _fw(self, num_values=0, offset=0):
+        start = np.arange(-offset, num_values, dtype="int64")
         end = start + self.window_size
         start[:offset] = 0
         return start, end
@@ -208,6 +203,8 @@ class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
         super().validate()
         if self.min_periods is None:
             self.min_periods = 1
+            if self.window_size == 0:
+                self.min_periods = 0
 
     def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
         ws_bw, ws_fw = self._get_center_window_sizes(self.window_size)
@@ -250,12 +247,12 @@ class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
 
         return start, end
 
-    def _bw(self, num_values, window_size, closed=None):
+    def _bw(self, num_values, window_size, closed):
         arr = self.index_array
         start, end = calculate_variable_window_bounds(num_values, window_size, None, None, closed, arr)
         return start, end
 
-    def _fw(self, num_values, window_size, closed=None):
+    def _fw(self, num_values, window_size, closed):
         arr = self.index_array[::-1]
         s, _ = calculate_variable_window_bounds(num_values, window_size, None, None, closed, arr)
         start = np.arange(num_values)
@@ -375,7 +372,7 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     indexer = indexer(index_array=x._on.asi8, window_size=x.window, **ours)
 
     # center offset is calculated from min_periods if a indexer is passed to rolling().
-    # if instead a normal window is passed, it is used for offset calculation.
+    # if instead a normal (dt or num) window is passed, it is used for offset calculation.
     # also if we pass min_periods == None or 0, all values will Nan in the result even if
     # start[i]<end[i] as expected. So we cannot pass `center` to rolling. Instead we manually do the centering
     # in the Indexer. To calculate min_periods (!) including NaN count (!) we need to pass min_periods, but
