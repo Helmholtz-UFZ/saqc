@@ -17,14 +17,14 @@ from saqc.lib.tools import (
     slidingWindowIndices,
     findIndex,
     toSequence,
-    customRolling
+    customRoller
 )
 from outliers import smirnov_grubbs
 
 def _stray(
     val_frame,
     partition_freq=None,
-    partition_min=0,
+    partition_min=11,
     scoring_method="kNNMaxGap",
     n_neighbors=10,
     iter_start=0.5,
@@ -59,7 +59,8 @@ def _stray(
         of `partition_freq` periods. if ``None`` is passed (default), all the data will be tested in one run.
     partition_min : int, default 0
         Minimum number of periods per partition that have to be present for a valid outlier dettection to be made in
-        this partition. (Only of effect, if `partition_freq` is an integer.)
+        this partition. (Only of effect, if `partition_freq` is an integer.) Partition min value must always be
+        greater then the nn_neighbors value.
     scoring_method : {'kNNSum', 'kNNMaxGap'}, default 'kNNMaxGap'
         Scoring method applied.
         `'kNNSum'`: Assign to every point the sum of the distances to its 'n_neighbors' nearest neighbors.
@@ -954,10 +955,10 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
     to_roll = dataseries[to_roll]
     roll_mask = pd.Series(False, index=to_roll.index)
     roll_mask[post_jumps.index] = True
-    engine=None
-    if roll_mask.sum() > numba_kickin:
-        engine = 'numba'
-    result = customRolling(to_roll, window, spikeTester, roll_mask, closed='both', engine=engine, min_periods=2)
+
+    roller = customRoller(to_roll, window=window, mask=roll_mask, min_periods=2, closed='both')
+    engine = None if roll_mask.sum() < numba_kickin else 'numba'
+    result = roller.apply(spikeTester, raw=True, engine=engine)
 
     # correct the result: only those values define plateaus, that do not have
     # values at their left starting point, that belong to other plateaus themself:

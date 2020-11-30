@@ -13,7 +13,7 @@ from saqc.lib.ts_operators import (
     polyRollerIrregular,
     count
 )
-from saqc.lib.tools import seasonalMask, customRolling, FreqIndexer
+from saqc.lib.tools import seasonalMask, customRoller
 import logging
 
 logger = logging.getLogger("SaQC")
@@ -512,18 +512,13 @@ def modelling_changePointCluster(data, field, flagger, stat_func, thresh_func, b
     if reduce_window is None:
         reduce_window = f"{int(pd.Timedelta(bwd_window).total_seconds() + pd.Timedelta(fwd_window).total_seconds())}s"
 
-    indexer = FreqIndexer()
-    indexer.index_array = data_ser.index.to_numpy(int)
-    indexer.win_points = None
-    indexer.window_size = int(pd.Timedelta(bwd_window).total_seconds() * 10 ** 9)
-    indexer.forward = False
-    indexer.center = False
-    bwd_start, bwd_end = indexer.get_window_bounds(var_len, min_periods_bwd, center, closed)
+    # native pandas.rolling also fails
+    data_ser.rolling(window=bwd_window, min_periods=min_periods_bwd, closed=closed)
+    roller = customRoller(data_ser, window=bwd_window, min_periods=min_periods_bwd, closed=closed)
+    bwd_start, bwd_end = roller.window.get_window_bounds()
 
-    indexer.window_size = int(pd.Timedelta(fwd_window).total_seconds() * 10 ** 9)
-    indexer.forward = True
-    fwd_start, fwd_end = indexer.get_window_bounds(var_len, min_periods_fwd, center, closed)
-    fwd_start, fwd_end = np.roll(fwd_start, -1), np.roll(fwd_end, -1)
+    roller = customRoller(data_ser, window=fwd_window, min_periods=min_periods_fwd, closed=closed, forward=True)
+    fwd_start, fwd_end = roller.window.get_window_bounds()
 
     min_mask = ~((fwd_end - fwd_start <= min_periods_fwd) | (bwd_end - bwd_start <= min_periods_bwd))
     fwd_end = fwd_end[min_mask]
@@ -564,10 +559,11 @@ def modelling_changePointCluster(data, field, flagger, stat_func, thresh_func, b
     det_index = masked_index[result_arr]
     detected = pd.Series(True, index=det_index)
     if reduce_window is not False:
-        start, end = customRolling(detected, reduce_window, count, closed='both', min_periods=1, center=True,
-                                   index_only=True)
-        detected = _reduceCPCluster(stat_arr[result_arr], thresh_arr[result_arr], start, end, reduce_func,
-                                    detected.shape[0])
+        l = detected.shape[0]
+        roller = customRoller(detected, window=reduce_window, min_periods=1, closed='both', center=True)
+        start, end = roller.window.get_window_bounds(num_values=l, min_periods=1, closed='both', center=True)
+
+        detected = _reduceCPCluster(stat_arr[result_arr], thresh_arr[result_arr], start, end, reduce_func, l)
         det_index = det_index[detected]
 
     cluster = pd.Series(False, index=data[field].index)
