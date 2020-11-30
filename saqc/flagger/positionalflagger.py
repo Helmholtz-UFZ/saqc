@@ -9,7 +9,7 @@ import pandas as pd
 from dios import DictOfSeries
 from saqc.flagger.baseflagger import BaseFlagger, COMPARATOR_MAP
 from saqc.flagger.dmpflagger import DmpFlagger
-from saqc.lib.tools import toSequence
+from saqc.lib.tools import toSequence, assertScalar
 
 
 FLAGS = ("-1", "0", "1", "2")
