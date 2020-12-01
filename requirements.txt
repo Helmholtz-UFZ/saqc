@@ -1,4 +1,4 @@
-attrs==20.2.0
+attrs==20.3.0
 Click==7.1.2
 cycler==0.10.0
 dataclasses==0.6
