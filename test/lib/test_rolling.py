@@ -158,7 +158,7 @@ def dt_center_kws():
     return l
 
 
-@pytest.mark.parametrize("kws", make_num_kws(), ids=lambda x: str(x))
+@pytest.mark.parametrize("kws", dt_center_kws(), ids=lambda x: str(x))
 def test_centering_w_dtindex(kws):
     print(kws)
     s = pd.Series(0., index=pd.date_range("2000", periods=10, freq='1H'))
