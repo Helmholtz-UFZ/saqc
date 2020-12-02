@@ -371,10 +371,18 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     indexer = _VariableWindowDirectionIndexer if x.is_freq_type else _FixedWindowDirectionIndexer
     indexer = indexer(index_array=x._on.asi8, window_size=x.window, **ours)
 
-    # center offset is calculated from min_periods if a indexer is passed to rolling().
-    # if instead a normal (dt or num) window is passed, it is used for offset calculation.
-    # also if we pass min_periods == None or 0, all values will Nan in the result even if
-    # start[i]<end[i] as expected. So we cannot pass `center` to rolling. Instead we manually do the centering
-    # in the Indexer. To calculate min_periods (!) including NaN count (!) we need to pass min_periods, but
-    # ensure that it is not None nor 0.
-    return obj.rolling(indexer, min_periods=indexer.min_periods, **theirs)
+    # Centering is fully done in our own indexers. So we do not pass center to rolling(). Especially because
+    # we also allow centering on dt-based indexes. Also centering would fail in forward windows, because of
+    # pandas internal centering magic (append nans at the end of array, later cut values from beginning of the
+    # result).
+    # min_periods is also quite tricky. Especially if None is passed. For dt-based windows min_periods defaults to 1
+    # and is set during rolling setup (-> if r=obj.rolling() is called). For numeric windows instead, it keeps None
+    # during setup and defaults to indexer.window_size if a rolling-method is called (-> if r.sum()). Thats a bit
+    # odd and quite hard to find. So we are good if we pass the already calculated x.min_periods as this will just
+    # hold the correct initialised or not initialised value. (It gets even trickier if one evaluates which value is
+    # actually passed to the function that actually thrown them out; i leave that to the reader to find out. start
+    # @ pandas.core.window.rolling:_Window._apply)
+    # Lastly, it is necessary to pass min_periods at all (!) and do not set it to a fix value (1, 0, None,...). This
+    # is, because we cannot throw out values by ourself in the indexer, because min_periods also evaluates NA values
+    # in its count and we have no control over the actual values, just their indexes.
+    return obj.rolling(indexer, min_periods=x.min_periods, **theirs)

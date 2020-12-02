@@ -91,12 +91,15 @@ def runtest_for_kw_combi(s, kws, func='sum'):
             return getattr(roller, 'apply')(func)
 
     if forward:
-        expR = pd.Series(reversed(s), reversed(s.index)).rolling(**kws)
-        resR = customRoller(s, forward=True, **kws)
+
         try:
+            expR = pd.Series(reversed(s), reversed(s.index)).rolling(**kws)
             expected = calc(expR)[::-1]
         except Exception:
-            pytest.skip("pandas faild")
+            pytest.skip("pandas failed")
+            return
+
+        resR = customRoller(s, forward=True, **kws)
         result = calc(resR)
 
         success = check_series(result, expected)
@@ -104,12 +107,15 @@ def runtest_for_kw_combi(s, kws, func='sum'):
             print_diff(s, result, expected)
             assert False, f"forward=True !! {kws}"
     else:
-        expR = s.rolling(**kws)
-        resR = customRoller(s, **kws)
+
         try:
+            expR = s.rolling(**kws)
             expected = calc(expR)
         except Exception:
-            pytest.skip("pandas faild")
+            pytest.skip("pandas failed")
+            return
+
+        resR = customRoller(s, **kws)
         result = calc(resR)
 
         success = check_series(result, expected)
