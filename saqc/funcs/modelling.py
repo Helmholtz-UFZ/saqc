@@ -512,13 +512,11 @@ def modelling_changePointCluster(data, field, flagger, stat_func, thresh_func, b
     if reduce_window is None:
         reduce_window = f"{int(pd.Timedelta(bwd_window).total_seconds() + pd.Timedelta(fwd_window).total_seconds())}s"
 
-    # native pandas.rolling also fails
-    data_ser.rolling(window=bwd_window, min_periods=min_periods_bwd, closed=closed)
-    roller = customRoller(data_ser, window=bwd_window, min_periods=min_periods_bwd, closed=closed)
-    bwd_start, bwd_end = roller.window.get_window_bounds()
+    roller = customRoller(data_ser, window=bwd_window)
+    bwd_start, bwd_end = roller.window.get_window_bounds(len(data_ser), min_periods=min_periods_bwd, closed=closed)
 
-    roller = customRoller(data_ser, window=fwd_window, min_periods=min_periods_fwd, closed=closed, forward=True)
-    fwd_start, fwd_end = roller.window.get_window_bounds()
+    roller = customRoller(data_ser, window=fwd_window, forward=True)
+    fwd_start, fwd_end = roller.window.get_window_bounds(len(data_ser), min_periods=min_periods_fwd, closed=closed)
 
     min_mask = ~((fwd_end - fwd_start <= min_periods_fwd) | (bwd_end - bwd_start <= min_periods_bwd))
     fwd_end = fwd_end[min_mask]
@@ -560,7 +558,7 @@ def modelling_changePointCluster(data, field, flagger, stat_func, thresh_func, b
     detected = pd.Series(True, index=det_index)
     if reduce_window is not False:
         l = detected.shape[0]
-        roller = customRoller(detected, window=reduce_window, min_periods=1, closed='both', center=True)
+        roller = customRoller(detected, window=reduce_window)
         start, end = roller.window.get_window_bounds(num_values=l, min_periods=1, closed='both', center=True)
 
         detected = _reduceCPCluster(stat_arr[result_arr], thresh_arr[result_arr], start, end, reduce_func, l)

@@ -324,9 +324,9 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     Notes
     -----
     If for some reason the start and end numeric indices of the window are needed, one can call
-    `start, end = customRoller(obj, ...).window.get_window_bounds()`, which return two arrays,
-    holding the start and end indices. Any passed (allowed) parameter to `get_window_bounds()` is
-    ignored and the arguments that was passed to `customRoller()` beforehand will be used instead.
+    `start, end = customRoller(obj, window).window.get_window_bounds(num_values, min_periods)`,
+    which return two np.arrays, that are holding the start and end indices. Fill at least all
+    parameter which are shown in the example.
 
     See Also
     --------
