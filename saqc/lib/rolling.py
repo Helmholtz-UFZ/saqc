@@ -105,8 +105,8 @@ class _CustomBaseIndexer(BaseIndexer):
         if center:
             # centering of dtlike windows is just looking left and right
             # with half amount of window-size
-            ws1 = (winsz + 1) // 2
-            ws2 = winsz // 2
+            ws2, ws1 = divmod(winsz, 2)
+            ws1 += ws2
             if self.forward:
                 ws1, ws2 = ws2, ws1
         return ws1, ws2
@@ -382,9 +382,10 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     def new_count():
         self = roller
         if not x.is_freq_type:
-            result = obj.notna().astype(int)
-            theirs.update(min_periods=min_periods or 0)
-            return customRoller(result, window, **theirs, **ours).sum()
+            obj_new = obj.notna().astype(int)
+            if min_periods is None:
+                theirs.update(min_periods=0)
+            return obj_new.rolling(indexer, center=None, **theirs).sum()
         return self._old_count()
 
     roller._old_count = roller.count
