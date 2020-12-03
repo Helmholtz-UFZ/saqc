@@ -524,7 +524,7 @@ def spikes_flagRaise(
     **kwargs,
 ):
     """
-    The function flags rises and drops in value courses, that exceed a certain threshold
+    The function flags raises and drops in value courses, that exceed a certain threshold
     within a certain timespan.
 
     The parameter variety of the function is owned to the intriguing
@@ -554,11 +554,11 @@ def spikes_flagRaise(
         See condition (2) of the description linked in the references. Window is inclusively defined.
         The window defaults to 1.5 times the size of `raise_window`
     mean_raise_factor : float, default 2
-        See condition (2) of the description linked in the references.
+        See second condition listed in the notes below.
     min_slope : {None, float}, default None
-        See condition (3) of the description linked in the references
+        See third condition listed in the notes below.
     min_slope_weight : float, default 0.8
-        See condition (3) of the description linked in the references
+        See third condition listed in the notes below.
     numba_boost : bool, default True
 
     Returns
@@ -572,17 +572,22 @@ def spikes_flagRaise(
     Notes
     -----
     The value :math:`x_{k}` of a time series :math:`x` with associated
-    timestamps :math:`t_i`, is flagged a rise, if:
+    timestamps :math:`t_i`, is flagged a raise, if:
 
-    1. There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within `raise_window` range, so that:
-    * :math:` M = |x_k - x_s | > `  `thresh` :math:` > 0`
-    2. The weighted average :math:`\mu^*` of the values, preceeding :math:`x_{k}` within `average_window`
-    range indicates, that :math:`x_{k}`$ doesnt return from an outliererish value course, meaning that:
-    * :math:` x_k > \mu^* + ( M ` / `mean_raise_factor` :math:`)`
-    3. Additionally, if `min_slope` is not `None`, :math:`x_{k}` is checked for being sufficiently divergent from its
-    very predecessor $`x_{k-1}`$, meaning that, it is additionally checked if:
-    * :math:`x_k - x_{k-1} > ` `min_slope`
-    * :math:`t_k - t_{k-1} > ` `min_slope_weight`*`intended_freq`
+    * There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within `raise_window` range, so that:
+
+      * :math:`M = |x_k - x_s | >`  `thresh` :math:`> 0`
+
+    * The weighted average :math:`\\mu^{*}` of the values, preceding :math:`x_{k}` within `average_window`
+      range indicates, that :math:`x_{k}` does not return from an "outlierish" value course, meaning that:
+
+      * :math:`x_k > \\mu^* + ( M` / `mean_raise_factor` :math:`)`
+
+    * Additionally, if `min_slope` is not `None`, :math:`x_{k}` is checked for being sufficiently divergent from its
+      very predecessor :max:`x_{k-1}`$, meaning that, it is additionally checked if:
+
+      * :math:`x_k - x_{k-1} >` `min_slope`
+      * :math:`t_k - t_{k-1} >` `min_slope_weight` :math:`\\times` `intended_freq`
 
     """
 
@@ -883,13 +888,14 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
     The test classifies values/value courses as outliers by detecting not only a rise in value, but also,
     checking for a return to the initial value level.
 
-    Values x(n), x(n+1), .... , x(n+k) of a timeseries x are considered spikes, if
+    Values :math:`x_n, x_{n+1}, .... , x_{n+k}` of a timeseries :math:`x` with associated timestamps
+    :math:`t_n, t_{n+1}, .... , t_{n+k}` are considered spikes, if
 
-    (1) |x(n-1) - x(n + s)| > `thresh`, for all s in [0,1,2,...,k]
+    1. :math:`|x_{n-1} - x_{n + s}| >` `thresh`, for all :math:`s \\in [0,1,2,...,k]`
 
-    (2) |x(n-1) - x(n+k+1)| < `tolerance`
+    2. :math:`|x_{n-1} - x_{n+k+1}| <` `tolerance`
 
-    (3) |x(n-1).index - x(n+k+1).index| < `windoow`
+    3. :math:`|t_{n-1} - t_{n+k+1}| <` `window`
 
     Note, that this definition of a "spike" not only includes one-value outliers, but also plateau-ish value courses.
 
@@ -1025,8 +1031,10 @@ def spikes_flagSpektrumBased(
         See condition (2) (or reference [2]).
     noise_func : {'CoVar', 'rVar'}, default 'CoVar'
         Function to calculate noisiness of the data surrounding potential spikes.
-        ``'CoVar'``: Coefficient of Variation
-        ``'rVar'``: Relative Variance
+
+        * ``'CoVar'``: Coefficient of Variation
+        * ``'rVar'``: Relative Variance
+
     noise_window : str, default '12h'
         An offset string that determines the range of the time window of the "surrounding" data of a potential spike.
         See condition (3) (or reference [2]).
@@ -1058,17 +1066,22 @@ def spikes_flagSpektrumBased(
     -----
     A value is flagged a spike, if:
 
-    1. The quotient to its preceding data point exceeds a certain bound:
-    * :math:`|\frac{x_k}{x_{k-1}}| > 1 + ` `raise_factor`, or
-    * :math:`|\frac{x_k}{x_{k-1}}| < 1 - ` `raise_factor`
-2. The quotient of the second derivative :math:`x''`, at the preceding
-   and subsequent timestamps is close enough to 1:
-    * :math:` |\frac{x''_{k-1}}{x''_{k+1}} | > 1 - ` `deriv_factor`, and
-    * :math:` |\frac{x''_{k-1}}{x''_{k+1}} | < 1 + ` `deriv_factor`
-3. The dataset :math:`X = x_i, ..., x_{k-1}, x_{k+1}, ..., x_j`, with
-   :math:`|t_{k-1} - t_i| = |t_j - t_{k+1}| =` `noise_window` fulfills the
-   following condition:
-   `noise_func`:math:`(X) <` `noise_thresh`
+    * The quotient to its preceding data point exceeds a certain bound:
+
+      * :math:`|\\frac{x_k}{x_{k-1}}| > 1 +` ``raise_factor``, or
+      * :math:`|\\frac{x_k}{x_{k-1}}| < 1 -` ``raise_factor``
+
+    * The quotient of the second derivative :math:`x''`, at the preceding
+      and subsequent timestamps is close enough to 1:
+
+      * :math:`|\\frac{x''_{k-1}}{x''_{k+1}} | > 1 -` ``deriv_factor``, and
+      * :math:`|\\frac{x''_{k-1}}{x''_{k+1}} | < 1 +` ``deriv_factor``
+
+    * The dataset :math:`X = x_i, ..., x_{k-1}, x_{k+1}, ..., x_j`, with
+      :math:`|t_{k-1} - t_i| = |t_j - t_{k+1}| =` ``noise_window`` fulfills the
+      following condition:
+
+      * ``noise_func``:math:`(X) <` ``noise_thresh``
 
     """
 
