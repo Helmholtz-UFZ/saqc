@@ -266,12 +266,14 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
                 waveform='mexh', **kwargs):
     """
     Implementation of two pattern recognition algorithms:
-    - Dynamic Time Warping (dtw) [1]
-    - Pattern recognition via wavelets [2]
+
+    * Dynamic Time Warping (dtw) [1]
+    * Pattern recognition via wavelets [2]
 
     The steps are:
+
     1. Get the frequency of partitions, in which the time series has to be divided (for example: a pattern occurs daily,
-        or every hour)
+       or every hour)
     2. Compare each partition with the given pattern
     3. Check if the compared partition contains the pattern or not
     4. Flag partition if it contains the pattern
@@ -290,7 +292,7 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
         Pattern Recognition method to be used.
     partition_freq : str, default 'days'
         Frequency, in which the pattern occurs.
-        Has to be an offset string or one out of {"days", "months"}. If 'days' or 'months' is passed,
+        Has to be an offset string or one out of {``'days'``, ``'months'``}. If ``'days'`` or ``'months'`` is passed,
         then precise length of partition is calculated from pattern length.
     partition_offset : str, default '0'
         If partition frequency is given by an offset string and the pattern starts after a timely offset, this offset
@@ -308,10 +310,10 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
         Weather or not, the ending of the probe and of the pattern have to be projected onto each other in the search
         for the optimal dtw-mapping. Recommendation of [1].
     widths : tuple[int], default (1,2,4,8)
-        Only effective if method = 'wavelets'.
+        Only effective if `method` = ``'wavelets'``.
         Widths for wavelet decomposition. [2] recommends a dyadic scale.
     waveform: str, default 'mexh'
-        Only effective if method = 'wavelets'.
+        Only effective if `method` = ``'wavelets'``.
         Wavelet to be used for decomposition. Default: 'mexh'
 
     Returns
@@ -326,7 +328,7 @@ def flagPattern(data, field, flagger, reference_field, method='dtw', partition_f
     ----------
     [1] https://cran.r-project.org/web/packages/dtw/dtw.pdf
     [2] Maharaj, E.A. (2002): Pattern Recognition of Time Series using Wavelets. In: Härdle W., Rönz B. (eds) Compstat.
-        Physica, Heidelberg, 978-3-7908-1517-7.
+    Physica, Heidelberg, 978-3-7908-1517-7.
     """
 
     test = data[field].copy()
@@ -695,11 +697,12 @@ def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kw
     method : {'plain', 'ontime', 'left-open', 'right-open'}, default plain
         Defines how mdata is projected on data. Except for the 'plain' method, the methods assume mdata to have an
         index.
+
         * 'plain': mdata must have the same length as data and is projected one-to-one on data.
         * 'ontime': works only with indexed mdata. mdata entries are matched with data entries that have the same index.
         * 'right-open': mdata defines intervals, values are to be projected on.
-            The intervals are defined by any two consecutive timestamps t_1 and 1_2 in mdata.
-            the value at t_1 gets projected onto all data timestamps t with t_1 <= t < t_2.
+          The intervals are defined by any two consecutive timestamps t_1 and 1_2 in mdata.
+          the value at t_1 gets projected onto all data timestamps t with t_1 <= t < t_2.
         * 'left-open': like 'right-open', but the projected interval now covers all t with t_1 < t <= t_2.
 
     Returns
@@ -802,14 +805,16 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
     """
     Function checks for outliers relatively to the "horizontal" input data axis.
 
-    For fields=[f_1,f_2,...,f_N] and timestamps [t_1,t_2,...,t_K], the following steps are taken for outlier detection:
+    For `fields` :math:`=[f_1,f_2,...,f_N]` and timestamps :math:`[t_1,t_2,...,t_K]`, the following steps are taken
+    for outlier detection:
 
-    1. All timestamps t_i, where there is one f_k, with data[f_K] having no entry at t_i, are excluded from the
-        following process (inner join of the f_i fields.)
-    2. for every 0 <= i <= K, the value m_j = median({data[f_1][t_i], data[f_2][t_i], ..., data[f_N][t_i]}) is
-        calculated
-    2. for every 0 <= i <= K, the set {data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j} is tested
-        for outliers with the specified method (`cross_stat` parameter)
+    1. All timestamps :math:`t_i`, where there is one :math:`f_k`, with :math:`data[f_K]` having no entry at
+       :math:`t_i`, are excluded from the following process (inner join of the :math:`f_i` fields.)
+    2. for every :math:`0 <= i <= K`, the value
+       :math:`m_j = median(\\{data[f_1][t_i], data[f_2][t_i], ..., data[f_N][t_i]\\})` is calculated
+    2. for every :math:`0 <= i <= K`, the set
+       :math:`\\{data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j\\}` is tested for outliers with the
+       specified method (`cross_stat` parameter).
 
     Parameters
     ----------
@@ -825,9 +830,10 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
         Threshold which the outlier score of an value must exceed, for being flagged an outlier.
     cross_stat : {'modZscore', 'Zscore'}, default 'modZscore'
         Method used for calculating the outlier scores.
-        * 'modZscore': Median based "sigma"-ish approach. See Referenecs [1].
-        * 'Zscore': Score values by how many times the standard deviation they differ from the median.
-            See References [1]
+
+        * ``'modZscore'``: Median based "sigma"-ish approach. See Referenecs [1].
+        * ``'Zscore'``: Score values by how many times the standard deviation they differ from the median.
+          See References [1]
 
     Returns
     -------
@@ -925,13 +931,15 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
     following steps are performed for every data "segment" of length `segment_freq` in order to find the
     "abnormal" data:
 
-    1. Calculate the distances d(x_i,x_j) for all x_i in parameter `fields` and "d" denoting the distance function
-        passed to the parameter `metric`.
-    2. Calculate a dendogram with a hierarchical linkage algorithm, specified by the parameter `linkage_method`
+    1. Calculate the distances :math:`d(x_i,x_j)` for all :math:`x_i` in parameter `fields`. (with :math:`d`
+       denoting the distance function
+       passed to the parameter `metric`.
+    2. Calculate a dendogram with a hierarchical linkage algorithm, specified by the parameter `linkage_method`.
     3. Flatten the dendogram at the level, the agglomeration costs exceed the value given by the parameter `norm_spread`
     4. check if there is a cluster containing more than `norm_frac` percentage of the variables in fields.
-        if yes: flag all the variables that are not in that cluster (inside the segment)
-        if no: flag nothing
+
+        1. if yes: flag all the variables that are not in that cluster (inside the segment)
+        2. if no: flag nothing
 
     The main parameter giving control over the algorithms behavior is the `norm_spread` parameter, that determines
     the maximum spread of a normal group by limiting the costs, a cluster agglomeration must not exceed in every
