@@ -371,4 +371,24 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     # is, because we cannot throw out values by ourself in the indexer, because min_periods also evaluates NA values
     # in its count and we have no control over the actual values, just their indexes.
     theirs.update(min_periods=x.min_periods)
-    return obj.rolling(indexer, center=None, **theirs)
+    roller = obj.rolling(indexer, center=None, **theirs)
+
+    # ----- count hack -------
+    # Unfortunately pandas calls count differently if a BaseIndexer
+    # instance is given. IMO, the intention behind this is to call
+    # count different for dt-like windows, but if a user pass a own
+    # indexer we also end up in this case /:
+    # The only possibility is to monkey-patch pandas...
+    def new_count():
+        self = roller
+        if not x.is_freq_type:
+            result = obj.notna().astype(int)
+            theirs.update(min_periods=min_periods or 0)
+            return customRoller(result, window, **theirs, **ours).sum()
+        return self._old_count()
+
+    roller._old_count = roller.count
+    roller.count = new_count
+    # ----- count hack -------
+
+    return roller
