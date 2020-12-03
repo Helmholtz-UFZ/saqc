@@ -1,8 +1,15 @@
 import pytest
 
-from saqc.lib.rolling import customRoller
+from saqc.lib.rolling import customRoller, Rolling
 import pandas as pd
 import numpy as np
+
+FUNCTS = ['count', 'sum', 'mean', 'median', 'var', 'std', 'min', 'max', 'corr', 'cov', 'skew', 'kurt', ]
+
+OTHA = ['apply',
+        'aggregate',  # needs param func eg. func='min'
+        'quantile',  # needs param quantile=0.5 (0<=q<=1)
+        ]
 
 
 @pytest.fixture
@@ -24,21 +31,25 @@ len_s = len(data_())
 
 def make_num_kws():
     l = []
-    for window in range(len_s + 2):
-        for min_periods in [None] + list(range(window + 1)):
+    n = list(range(len_s))
+    for window in n:
+        mp = list(range(window))
+        for min_periods in [None] + mp:
+            if min_periods is not None and min_periods > window:
+                continue
             for center in [False, True]:
-                for closed in [None] + ['left', 'right', 'both', 'neither']:
-                    l.append(dict(window=window, min_periods=min_periods, center=center, closed=closed))
+                l.append(dict(window=window, min_periods=min_periods, center=center))
     return l
 
 
 def make_dt_kws():
     l = []
-    for closed in [None] + ['right', 'both', 'neither', 'left']:
-        for window in range(1, len_s + 3):
-            for min_periods in [None] + list(range(window + 1)):
-                for win in [f'{window}d', f'{window * 31}d']:
-                    l.append(dict(window=win, min_periods=min_periods, closed=closed))
+    n = [0, 1, 2, 10, 32, 70, 120]
+    mp = list(range(len_s))
+    for closed in ['right', 'both', 'neither', 'left']:
+        for window in n:
+            for min_periods in [None] + mp:
+                l.append(dict(window=f'{window}d', min_periods=min_periods, closed=closed))
     return l
 
 
@@ -60,47 +71,115 @@ def print_diff(s, result, expected):
     print(df)
 
 
-def runtest_for_kw_combi(s, kws):
-    print(kws)
-    forward = kws.pop('forward', False)
-    if forward:
-        result = customRoller(s, forward=True, **kws).sum()
-        expected = pd.Series(reversed(s), reversed(s.index)).rolling(**kws).sum()[::-1]
-
-        success = check_series(result, expected)
-        if not success:
-            print_diff(s, result, expected)
-            assert False, f"forward=True !! {kws}"
+def call_rolling_function(roller, func):
+    if isinstance(func, str):
+        return getattr(roller, func)()
     else:
-        result = customRoller(s, **kws).sum()
-        expected = s.rolling(**kws).sum()
-
-        success = check_series(result, expected)
-        if not success:
-            print_diff(s, result, expected)
-            assert False
+        return getattr(roller, 'apply')(func)
 
 
-@pytest.mark.parametrize("kws", make_num_kws())
-def test_pandas_conform_num(data, kws):
-    runtest_for_kw_combi(data, kws)
+@pytest.mark.parametrize("kws", make_dt_kws(), ids=lambda x: str(x))
+@pytest.mark.parametrize("func", FUNCTS)
+def test_pandas_conform_dt(data, kws, func):
+    s = data
+    try:
+        expR = s.rolling(**kws)
+        expected = call_rolling_function(expR, func)
+    except Exception as e0:
+        # pandas failed, so we should also fail
+        try:
+            resR = customRoller(s, **kws)
+            result = call_rolling_function(resR, func)
+        except Exception as e1:
+            assert type(e0) == type(e1)
+            return
+        assert False, 'pandas faild, but we succeed'
+
+    resR = customRoller(s, **kws)
+    result = call_rolling_function(resR, func)
+    success = check_series(result, expected)
+    if success:
+        return
+    print_diff(s, result, expected)
+    assert False
 
 
-@pytest.mark.parametrize("kws", make_dt_kws())
-def test_pandas_conform_dt(data, kws):
-    runtest_for_kw_combi(data, kws)
+@pytest.mark.parametrize("kws", make_num_kws(), ids=lambda x: str(x))
+@pytest.mark.parametrize("func", FUNCTS)
+def test_pandas_conform_num(data, kws, func):
+    s = data
+    try:
+        expR = s.rolling(**kws)
+        expected = call_rolling_function(expR, func)
+    except Exception as e0:
+        # pandas failed, so we should also fail
+        try:
+            resR = customRoller(s, **kws)
+            result = call_rolling_function(resR, func)
+        except Exception as e1:
+            assert type(e0) == type(e1)
+            return
+        assert False, 'pandas faild, but we succeed'
+
+    resR = customRoller(s, **kws)
+    result = call_rolling_function(resR, func)
+    success = check_series(result, expected)
+    if success:
+        return
+    print_diff(s, result, expected)
+    assert False
 
 
-@pytest.mark.parametrize("kws", make_num_kws())
-def test_forward_num(data, kws):
-    kws.update(forward=True)
-    runtest_for_kw_combi(data, kws)
+@pytest.mark.parametrize("kws", make_dt_kws(), ids=lambda x: str(x))
+@pytest.mark.parametrize("func", FUNCTS)
+def test_forward_dt(data, kws, func):
+    s = data
+    try:
+        expR = pd.Series(reversed(s), reversed(s.index)).rolling(**kws)
+        expected = call_rolling_function(expR, func)[::-1]
+    except Exception as e0:
+        # pandas failed, so we should also fail
+        try:
+            resR = customRoller(s, forward=True, **kws)
+            result = call_rolling_function(resR, func)
+        except Exception as e1:
+            assert type(e0) == type(e1)
+            return
+        assert False, 'pandas faild, but we succeed'
+
+    resR = customRoller(s, forward=True, **kws)
+    result = call_rolling_function(resR, func)
+    success = check_series(result, expected)
+    if success:
+        return
+    print_diff(s, result, expected)
+    assert False
 
 
-@pytest.mark.parametrize("kws", make_dt_kws())
-def test_forward_dt(data, kws):
-    kws.update(forward=True)
-    runtest_for_kw_combi(data, kws)
+@pytest.mark.parametrize("kws", make_num_kws(), ids=lambda x: str(x))
+@pytest.mark.parametrize("func", FUNCTS)
+def test_forward_num(data, kws, func):
+    s = data
+    try:
+        expR = pd.Series(reversed(s), reversed(s.index)).rolling(**kws)
+        expected = call_rolling_function(expR, func)[::-1]
+    except Exception as e0:
+        # pandas failed, so we should also fail
+        try:
+            resR = customRoller(s, forward=True, **kws)
+            result = call_rolling_function(resR, func)
+        except Exception as e1:
+            assert type(e0) == type(e1)
+            return
+        assert False, 'pandas faild, but we succeed'
+
+    resR = customRoller(s, forward=True, **kws)
+    result = call_rolling_function(resR, func)
+    success = check_series(result, expected)
+    if success:
+        return
+    print_diff(s, result, expected)
+    assert False
 
 
 def dt_center_kws():
@@ -111,7 +190,7 @@ def dt_center_kws():
     return l
 
 
-@pytest.mark.parametrize("kws", dt_center_kws())
+@pytest.mark.parametrize("kws", dt_center_kws(), ids=lambda x: str(x))
 def test_centering_w_dtindex(kws):
     print(kws)
     s = pd.Series(0., index=pd.date_range("2000", periods=10, freq='1H'))

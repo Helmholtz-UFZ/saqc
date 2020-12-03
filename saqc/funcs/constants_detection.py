@@ -50,7 +50,7 @@ def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
 
     # min_periods=2 ensures that at least two non-nan values are present
     # in each window and also min() == max() == d[i] is not possible.
-    kws = dict(window=window, min_periods=2)
+    kws = dict(window=window, min_periods=2, expand=False)
 
     # find all consecutive constant values in one direction...
     r = customRoller(d, **kws)

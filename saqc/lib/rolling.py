@@ -36,15 +36,12 @@ def is_slice(k): return isinstance(k, slice)
 class _CustomBaseIndexer(BaseIndexer):
     is_datetimelike = None
 
-    def __init__(self, index_array, window_size, min_periods=None, center=False, closed=None, forward=False,
+    def __init__(self, index_array, window_size, center=False, forward=False,
                  expand=False, step=None, mask=None):
         super().__init__()
         self.index_array = index_array
-        self.num_values = len(index_array)
         self.window_size = window_size
-        self.min_periods = min_periods
-        self.center = center
-        self.closed = closed
+        self._center = center
         self.forward = forward
         self.expand = expand
         self.step = step
@@ -52,7 +49,9 @@ class _CustomBaseIndexer(BaseIndexer):
         self.validate()
 
     def validate(self) -> None:
-        if self.center is not None and not is_bool(self.center):
+        if self._center is None:
+            self._center = False
+        if not is_bool(self._center):
             raise ValueError("center must be a boolean")
         if not is_bool(self.forward):
             raise ValueError("forward must be a boolean")
@@ -74,13 +73,17 @@ class _CustomBaseIndexer(BaseIndexer):
                 raise TypeError('mask must have boolean values only.')
             self.skip = ~self.skip
 
-    def get_window_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
-        if min_periods is not None:
-            self.min_periods = max(self.min_periods, min_periods)
-        num_values = self.num_values
-        min_periods = self.min_periods
-        center = self.center
-        closed = self.closed
+    def get_window_bounds(self, num_values=0, min_periods=None, center=None, closed=None):
+        if min_periods is None:
+            assert self.is_datetimelike is False
+            min_periods = 1
+
+        # if one call us directly, one may pass a center value we should consider.
+        # pandas instead (via customRoller) will always pass None and the correct
+        # center value is set in __init__. This is because pandas cannot center on
+        # dt_like windows and would fail before even call us.
+        if center is None:
+            center = self._center
 
         start, end = self._get_bounds(num_values, min_periods, center, closed)
         start, end = self._apply_skipmask(start, end)
@@ -97,13 +100,13 @@ class _CustomBaseIndexer(BaseIndexer):
         # end[end - start < self.min_periods] = 0
         return start, end
 
-    def _get_center_window_sizes(self, winsz):
+    def _get_center_window_sizes(self, center, winsz):
         ws1 = ws2 = winsz
-        if self.center:
+        if center:
             # centering of dtlike windows is just looking left and right
             # with half amount of window-size
-            ws1 = (winsz + 1) // 2
-            ws2 = winsz // 2
+            ws2, ws1 = divmod(winsz, 2)
+            ws1 += ws2
             if self.forward:
                 ws1, ws2 = ws2, ws1
         return ws1, ws2
@@ -132,19 +135,15 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
     # set here
     is_datetimelike = False
 
-    def validate(self) -> None:
-        super().validate()
-        # if self.closed is not None:
-        #     raise ValueError("closed only implemented for datetimelike and offset based windows")
-
     def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
+        # closed is always ignored and handled as 'both' other cases not implemented
         offset = calculate_center_offset(self.window_size) if center else 0
         num_values += offset
 
         if self.forward:
-            start, end = self._fw(num_values, min_periods, center, closed, offset)
+            start, end = self._fw(num_values, offset)
         else:
-            start, end = self._bw(num_values, min_periods, center, closed, offset)
+            start, end = self._bw(num_values, offset)
 
         if center:
             start, end = self._center_result(start, end, offset)
@@ -156,6 +155,8 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
         return start, end
 
     def _center_result(self, start, end, offset):
+        # cut N values at the front that was inserted in _fw()
+        # or cut N values at the end if _bw()
         if offset > 0:
             if self.forward:
                 start = start[:-offset]
@@ -167,7 +168,7 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
 
     def _remove_ramps(self, start, end, center):
         fw, bw = self.forward, not self.forward
-        ramp_l, ramp_r = self._get_center_window_sizes(self.window_size - 1)
+        ramp_l, ramp_r = self._get_center_window_sizes(center, self.window_size - 1)
         if center:
             fw = bw = True
 
@@ -178,20 +179,14 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
 
         return start, end
 
-    def _bw(self, num_values=0, min_periods=None, center=False, closed=None, offset=0):
-        # code taken from pd.core.windows.indexer.FixedWindowIndexer
-        start_s = np.zeros(self.window_size, dtype="int64")
-        start_e = (np.arange(self.window_size, num_values, dtype="int64") - self.window_size + 1)
-        start = np.concatenate([start_s, start_e])[:num_values]
-
-        end_s = np.arange(self.window_size, dtype="int64") + 1
-        end_e = start_e + self.window_size
-        end = np.concatenate([end_s, end_e])[:num_values]
-        # end stolen code
+    def _bw(self, num_values=0, offset=0):
+        start = np.arange(-self.window_size, num_values + offset, dtype="int64") + 1
+        end = start + self.window_size
+        start[:self.window_size] = 0
         return start, end
 
-    def _fw(self, num_values=0, min_periods=None, center=False, closed=None, offset=0):
-        start = np.arange(-offset, num_values, dtype="int64")[:num_values]
+    def _fw(self, num_values=0, offset=0):
+        start = np.arange(-offset, num_values, dtype="int64")
         end = start + self.window_size
         start[:offset] = 0
         return start, end
@@ -204,13 +199,8 @@ class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
     # set here
     is_datetimelike = True
 
-    def validate(self) -> None:
-        super().validate()
-        if self.min_periods is None:
-            self.min_periods = 1
-
     def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
-        ws_bw, ws_fw = self._get_center_window_sizes(self.window_size)
+        ws_bw, ws_fw = self._get_center_window_sizes(center, self.window_size)
         if center:
             c1 = c2 = closed
             if closed == 'neither':
@@ -230,7 +220,7 @@ class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
         return start, end
 
     def _remove_ramps(self, start, end, center):
-        ws_bw, ws_fw = self._get_center_window_sizes(self.window_size)
+        ws_bw, ws_fw = self._get_center_window_sizes(center, self.window_size)
 
         if center or not self.forward:
             # remove (up) ramp
@@ -250,12 +240,12 @@ class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
 
         return start, end
 
-    def _bw(self, num_values, window_size, closed=None):
+    def _bw(self, num_values, window_size, closed):
         arr = self.index_array
         start, end = calculate_variable_window_bounds(num_values, window_size, None, None, closed, arr)
         return start, end
 
-    def _fw(self, num_values, window_size, closed=None):
+    def _fw(self, num_values, window_size, closed):
         arr = self.index_array[::-1]
         s, _ = calculate_variable_window_bounds(num_values, window_size, None, None, closed, arr)
         start = np.arange(num_values)
@@ -334,9 +324,9 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     Notes
     -----
     If for some reason the start and end numeric indices of the window are needed, one can call
-    `start, end = customRoller(obj, ...).window.get_window_bounds()`, which return two arrays,
-    holding the start and end indices. Any passed (allowed) parameter to `get_window_bounds()` is
-    ignored and the arguments that was passed to `customRoller()` beforehand will be used instead.
+    `start, end = customRoller(obj, window).window.get_window_bounds(num_values, min_periods)`,
+    which return two np.arrays, that are holding the start and end indices. Fill at least all
+    parameter which are shown in the example.
 
     See Also
     --------
@@ -347,37 +337,59 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     if not isinstance(obj, (ABCSeries, ABCDataFrame)):
         raise TypeError(f"invalid type: {type(obj)}")
 
-    theirs = dict(min_periods=min_periods, center=center, win_type=win_type, on=on, axis=axis, closed=closed)
-    ours = dict(forward=forward, expand=expand, step=step, mask=mask)
-    assert len(theirs) + len(ours) == num_params, "not all params covert (!)"
-
     # center is the only param from the pandas rolling implementation
     # that we advance, namely we allow center=True on dt-indexed data
-    ours.update(center=theirs.pop('center'))
+    # that's why we take it as ours
+    theirs = dict(min_periods=min_periods, win_type=win_type, on=on, axis=axis, closed=closed)
+    ours = dict(center=center, forward=forward, expand=expand, step=step, mask=mask)
+    assert len(theirs) + len(ours) == num_params, "not all params covert (!)"
 
     # use .rolling to do all the checks like if closed is one of [left, right, neither, both],
     # closed not allowed for integer windows, index is monotonic (in- or decreasing), if freq-based
     # windows can be transformed to nanoseconds (eg. fails for `1y` - it could have 364 or 365 days), etc.
     # Also it converts window and the index to numpy-arrays (so we don't have to do it :D).
     try:
-        x = obj.rolling(window, center=False, **theirs)
+        x = obj.rolling(window, **theirs)
     except Exception:
         raise
-
-    if theirs.pop('win_type') is not None:
-        raise NotImplementedError("customRoller() does not implemented win_type.")
-    num_params -= 1
-
-    ours.update(min_periods=theirs.pop('min_periods'), closed=theirs.pop('closed'))
-    assert len(theirs) + len(ours) == num_params, "not all params covert (!)"
 
     indexer = _VariableWindowDirectionIndexer if x.is_freq_type else _FixedWindowDirectionIndexer
     indexer = indexer(index_array=x._on.asi8, window_size=x.window, **ours)
 
-    # center offset is calculated from min_periods if a indexer is passed to rolling().
-    # if instead a normal window is passed, it is used for offset calculation.
-    # also if we pass min_periods == None or 0, all values will Nan in the result even if
-    # start[i]<end[i] as expected. So we cannot pass `center` to rolling. Instead we manually do the centering
-    # in the Indexer. To calculate min_periods (!) including NaN count (!) we need to pass min_periods, but
-    # ensure that it is not None nor 0.
-    return obj.rolling(indexer, min_periods=indexer.min_periods, **theirs)
+    # Centering is fully done in our own indexers. So we do not pass center to rolling(). Especially because
+    # we also allow centering on dt-based indexes. Also centering would fail in forward windows, because of
+    # pandas internal centering magic (append nans at the end of array, later cut values from beginning of the
+    # result).
+    # min_periods is also quite tricky. Especially if None is passed. For dt-based windows min_periods defaults to 1
+    # and is set during rolling setup (-> if r=obj.rolling() is called). For numeric windows instead, it keeps None
+    # during setup and defaults to indexer.window_size if a rolling-method is called (-> if r.sum()). Thats a bit
+    # odd and quite hard to find. So we are good if we pass the already calculated x.min_periods as this will just
+    # hold the correct initialised or not initialised value. (It gets even trickier if one evaluates which value is
+    # actually passed to the function that actually thrown them out; i leave that to the reader to find out. start
+    # @ pandas.core.window.rolling:_Window._apply)
+    # Lastly, it is necessary to pass min_periods at all (!) and do not set it to a fix value (1, 0, None,...). This
+    # is, because we cannot throw out values by ourself in the indexer, because min_periods also evaluates NA values
+    # in its count and we have no control over the actual values, just their indexes.
+    theirs.update(min_periods=x.min_periods)
+    roller = obj.rolling(indexer, center=None, **theirs)
+
+    # ----- count hack -------
+    # Unfortunately pandas calls count differently if a BaseIndexer
+    # instance is given. IMO, the intention behind this is to call
+    # count different for dt-like windows, but if a user pass a own
+    # indexer we also end up in this case /:
+    # The only possibility is to monkey-patch pandas...
+    def new_count():
+        self = roller
+        if not x.is_freq_type:
+            obj_new = obj.notna().astype(int)
+            if min_periods is None:
+                theirs.update(min_periods=0)
+            return obj_new.rolling(indexer, center=None, **theirs).sum()
+        return self._old_count()
+
+    roller._old_count = roller.count
+    roller.count = new_count
+    # ----- count hack -------
+
+    return roller
