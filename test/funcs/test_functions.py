@@ -32,34 +32,6 @@ def test_flagRange(data, field, flagger):
     assert (flagged == expected).all()
 
 
-'''@pytest.mark.parametrize("flagger", TESTFLAGGER)
-@pytest.mark.parametrize("method", ['wavelet', 'dtw'])
-@pytest.mark.parametrize("pattern", [pytest.lazy_fixture("course_pattern_1"),
-                                     pytest.lazy_fixture("course_pattern_2"),] ,)
-
-def test_flagPattern(course_test, flagger, method, pattern):
-    pattern_data, dict_pattern = pattern()
-
-    # testing the same pattern sampled at different frequencies
-    if pattern_data.columns == "pattern1":
-        test_data, *_ = course_test(freq="10 min")
-        test_data['pattern_data'] = pattern_data.to_df()
-        flagger = flagger.initFlags(test_data)
-        data, flagger = flagPattern(test_data, "data", flagger, reference_field="pattern_data", partition_freq="1 H", method=method)
-        assert flagger.isFlagged("data")[dict_pattern["pattern_1"]].all()
-    if pattern_data.columns == "pattern2":
-        test_data, *_ = course_test(freq="1 H")
-        test_data['pattern_data'] = pattern_data.to_df()
-        flagger = flagger.initFlags(test_data)
-        data, flagger = flagPattern(test_data, "data", flagger, reference_field="pattern_data", partition_freq="days", method=method)
-        assert flagger.isFlagged("data")[dict_pattern["pattern_2"]].all()
-'''
-
-
-
-
-
-
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagSesonalRange(data, field, flagger):
     # prepare

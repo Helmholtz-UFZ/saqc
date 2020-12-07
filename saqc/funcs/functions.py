@@ -8,8 +8,6 @@ import dios
 import numpy as np
 import pandas as pd
 import scipy
-import dtw
-import pywt
 import itertools
 import collections
 import numba
@@ -259,151 +257,6 @@ def flagRange(data, field, flagger, min=-np.inf, max=np.inf, **kwargs):
     flagger = flagger.setFlags(field, mask, **kwargs)
     return data, flagger
 
-
-@register(masking='all')
-def flagPattern(data, field, flagger, reference_field, method='dtw', partition_freq="days", partition_offset='0',
-                max_distance=0.03, normalized_distance=True, open_end=True, widths=(1, 2, 4, 8),
-                waveform='mexh', **kwargs):
-    """
-    Implementation of two pattern recognition algorithms:
-
-    * Dynamic Time Warping (dtw) [1]
-    * Pattern recognition via wavelets [2]
-
-    The steps are:
-
-    1. Get the frequency of partitions, in which the time series has to be divided (for example: a pattern occurs daily,
-       or every hour)
-    2. Compare each partition with the given pattern
-    3. Check if the compared partition contains the pattern or not
-    4. Flag partition if it contains the pattern
-
-    Parameters
-    ----------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    field : str
-        The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional Informations related to `data`.
-    reference_field : str
-        Fieldname in `data`, that holds the pattern
-    method : {'dtw', 'wavelets'}, default 'dtw'.
-        Pattern Recognition method to be used.
-    partition_freq : str, default 'days'
-        Frequency, in which the pattern occurs.
-        Has to be an offset string or one out of {``'days'``, ``'months'``}. If ``'days'`` or ``'months'`` is passed,
-        then precise length of partition is calculated from pattern length.
-    partition_offset : str, default '0'
-        If partition frequency is given by an offset string and the pattern starts after a timely offset, this offset
-        is given by `partition_offset`.
-        (e.g., partition frequency is "1h", pattern starts at 10:15, then offset is "15min").
-    ax_distance : float, default 0.03
-        Only effective if method = 'dtw'.
-        Maximum dtw-distance between partition and pattern, so that partition is recognized as pattern.
-        (And thus gets flagged.)
-    normalized_distance : bool, default True.
-        For dtw. Normalizing dtw-distance (Doesnt refer to statistical normalization, but to a normalization that
-        makes comparable dtw-distances for probes of different length, see [1] for more details).
-    open_end : boolean, default True
-        Only effective if method = 'dtw'.
-        Weather or not, the ending of the probe and of the pattern have to be projected onto each other in the search
-        for the optimal dtw-mapping. Recommendation of [1].
-    widths : tuple[int], default (1,2,4,8)
-        Only effective if `method` = ``'wavelets'``.
-        Widths for wavelet decomposition. [2] recommends a dyadic scale.
-    waveform: str, default 'mexh'
-        Only effective if `method` = ``'wavelets'``.
-        Wavelet to be used for decomposition. Default: 'mexh'
-
-    Returns
-    -------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
-
-    References
-    ----------
-    [1] https://cran.r-project.org/web/packages/dtw/dtw.pdf
-    [2] Maharaj, E.A. (2002): Pattern Recognition of Time Series using Wavelets. In: Härdle W., Rönz B. (eds) Compstat.
-    Physica, Heidelberg, 978-3-7908-1517-7.
-    """
-
-    test = data[field].copy()
-    ref = data[reference_field].copy()
-    pattern_start_date = ref.index[0].time()
-    pattern_end_date = ref.index[-1].time()
-
-    # ## Extract partition frequency from pattern if needed
-    if not isinstance(partition_freq, str):
-        raise ValueError('Partition frequency has to be given in string format.')
-    elif partition_freq == "days" or partition_freq == "months":
-        # Get partition frequency from reference field
-        partition_count = (pattern_end_date - pattern_start_date).days
-        partitions = test.groupby(pd.Grouper(freq="%d D" % (partition_count + 1)))
-    else:
-        partitions = test.groupby(pd.Grouper(freq=partition_freq))
-
-    # Initializing Wavelets
-    if method == 'wavelet':
-        # calculate reference wavelet transform
-        ref_wl = ref.values.ravel()
-        # Widths lambda as in Ann Maharaj
-        cwtmat_ref, freqs = pywt.cwt(ref_wl, widths, waveform)
-        # Square of matrix elements as Power sum of the matrix
-        wavepower_ref = np.power(cwtmat_ref, 2)
-    elif not method == 'dtw':
-        # No correct method given
-        raise ValueError('Unable to interpret {} as method.'.format(method))
-
-    flags = pd.Series(data=False, index=test.index)
-    # ## Calculate flags for every partition
-    partition_min = ref.shape[0]
-    for _, partition in partitions:
-
-        # Ensuring that partition is at least as long as reference pattern
-        if partition.empty or (partition.shape[0] < partition_min):
-            continue
-        if partition_freq == "days" or partition_freq == "months":
-            # Use only the time frame given by the pattern
-            test = partition[pattern_start_date:pattern_start_date]
-            mask = (partition.index >= test.index[0]) & (partition.index <= test.index[-1])
-            test = partition.loc[mask]
-        else:
-            # cut partition according to pattern and offset
-            start_time = pd.Timedelta(partition_offset) + partition.index[0]
-            end_time = start_time + pd.Timedelta(pattern_end_date - pattern_start_date)
-            test = partition[start_time:end_time]
-        # ## Switch method
-        if method == 'dtw':
-            distance = dtw.dtw(test, ref, open_end=open_end, distance_only=True).normalizedDistance
-            if normalized_distance:
-                distance = distance / ref.var()
-            # Partition labeled as pattern by dtw
-            if distance < max_distance:
-                flags[partition.index] = True
-        elif method == 'wavelet':
-            # calculate reference wavelet transform
-            test_wl = test.values.ravel()
-            cwtmat_test, freqs = pywt.cwt(test_wl, widths, 'mexh')
-            # Square of matrix elements as Power sum of the matrix
-            wavepower_test = np.power(cwtmat_test, 2)
-            # Permutation test on Powersum of matrix
-            p_value = []
-            for i in range(len(widths)):
-                x = wavepower_ref[i]
-                y = wavepower_test[i]
-                pval = permutation_test(x, y, method='approximate', num_rounds=200, func=lambda x, y: x.sum() / y.sum(),
-                                        seed=0)
-                p_value.append(min(pval, 1 - pval))
-            # Partition labeled as pattern by wavelet
-            if min(p_value) >= 0.01:
-                flags[partition.index] = True
-
-    flagger = flagger.setFlags(field, mask, **kwargs)
-    return data, flagger
 
 
 @register(masking='field')
@@ -871,7 +724,6 @@ def flagCrossScoring(data, field, flagger, fields, thresh, cross_stat='modZscore
 
     return data, flagger
 
-
 @register(masking='all')
 def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, norm_frac=0.5,
                       metric=lambda x, y: scipy.spatial.distance.pdist(np.array([x, y]),
@@ -895,7 +747,7 @@ def flagDriftFromNorm(data, field, flagger, fields, segment_freq, norm_spread, n
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
     fields : str
-        List of fieldnames in data, determining wich variables are to be included into the flagging process.
+        List of fieldnames in data, determining which variables are to be included into the flagging process.
     segment_freq : str
         An offset string, determining the size of the seperate datachunks that the algorihm is to be piecewise
         applied on.

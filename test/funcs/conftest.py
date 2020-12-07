@@ -83,52 +83,6 @@ def course_2(char_dict):
     return fix_funk
 
 
-
-@pytest.fixture
-def course_pattern_1(char_dict):
-    # Test trapezium pattern - values , that linearly increase till out_val, stay constant for one more value, and then
-    # decrease again to 0. Sample frequency is 10 min.
-    def fix_funk(freq='10min',
-                 initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), out_val=5, char_dict=char_dict):
-
-        t_index = pd.date_range(initial_index, freq=freq, periods=6)
-        #data = np.linspace(initial_level, final_level, int(np.floor(len(t_index))))
-
-        data = pd.Series(data=0, index=t_index)
-        data.iloc[2] = out_val
-        data.iloc[3] = out_val
-        char_dict['pattern_1'] = data.index
-
-        data = DictOfSeries(data=data, columns=['pattern_1'])
-        return data, char_dict
-
-    return fix_funk
-
-
-
-@pytest.fixture
-def course_pattern_2(char_dict):
-    # Test trapezium pattern - values , that linearly increase till out_val, stay constant for one more value, and then
-    # decrease again to 0. Sample frequency is 1 H.
-    def fix_funk(freq='1 H',
-                 initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), out_val=5, char_dict=char_dict):
-
-        t_index = pd.date_range(initial_index, freq=freq, periods=4)
-        #data = np.linspace(initial_level, final_level, int(np.floor(len(t_index))))
-
-        data = pd.Series(data=0, index=t_index)
-        data.iloc[2] = out_val
-        data.iloc[3] = out_val
-        char_dict['pattern_2'] = data.index
-
-        data = DictOfSeries(data=data, columns=['pattern_2'])
-        return data, char_dict
-
-    return fix_funk
-
-
-
-
 @pytest.fixture
 def course_test(char_dict):
     # Test function for pattern detection - same as test pattern for first three values, than constant function
