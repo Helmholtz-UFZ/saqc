@@ -86,6 +86,10 @@ class _CustomBaseIndexer(BaseIndexer):
             center = self._center
 
         start, end = self._get_bounds(num_values, min_periods, center, closed)
+
+        # ensure correct length
+        start, end = start[:num_values], end[:num_values]
+
         start, end = self._apply_skipmask(start, end)
         start, end = self._apply_steps(start, end, num_values)
         start, end = self._prepare_min_periods_masking(start, end, num_values)
