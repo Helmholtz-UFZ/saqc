@@ -131,11 +131,14 @@ def test_nonReduncingBuiltins(data, flagger):
     flagger = flagger.initFlags(data)
     var1, *_ = data.columns
     this = var1
+    mean = data[var1].mean()
 
     tests = [
         (f"abs({this})", np.abs(data[this])),
         (f"log({this})", np.log(data[this])),
         (f"exp({this})", np.exp(data[this])),
+        (f"ismissing(mask({this} < {mean}))", data.mask(data[this] < mean).isna()),
+        (f"pop(this)", data[this])
     ]
 
     for test, expected in tests:
@@ -279,7 +282,7 @@ def test_callableArgumentsUnary(data):
 
     config = f"""
     {F.VARNAME} ; {F.TEST}
-    {var}      ; testFuncUnary(func={{0}})
+    {var}       ; testFuncUnary(func={{0}})
     """
 
     tests = [

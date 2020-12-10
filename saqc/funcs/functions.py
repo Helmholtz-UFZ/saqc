@@ -51,6 +51,8 @@ def _execGeneric(flagger, data, func, field, nodata):
     globs = {
         "isflagged": partial(_dslIsFlagged, flagger),
         "ismissing": lambda var: ((var == nodata) | pd.isnull(var)),
+        "mask": lambda cond: data[cond.name].mask(cond),
+        "pop": lambda var: data.pop(var.name),
         "this": field,
         "NODATA": nodata,
         "GOOD": flagger.GOOD,
