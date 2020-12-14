@@ -106,6 +106,20 @@ class BaseFlagger(ABC):
         else:
             return self.copy(flags=flags)
 
+    def toFrame(self):
+        """ Return a pd.DataFrame holding the flags
+        Return
+        ------
+        frame: pandas.DataFrame
+
+        Note
+        ----
+        This is a convenience funtion hiding the implementation detail dios.DictOfSeries.
+        Subclasses with special flag structures (i.e. DmpFlagger) should overwrite the
+        this methode in order to provide a usefull user output.
+        """
+        return self._flags.to_df()
+
     def getFlags(self, field: FieldsT = None, loc: LocT = None, full=False):
         """ Return a potentially, to `loc`, trimmed down version of flags.
 
@@ -153,7 +167,7 @@ class BaseFlagger(ABC):
         # as row indexer. Thus is because pandas `.loc` return a shallow copy if a null-slice is passed to a series.
         flags = self._flags.aloc[indexer].copy()
         if full:
-            return flags, dict()
+            return flags, {}
         else:
             return flags
 

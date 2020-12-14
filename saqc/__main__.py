@@ -51,7 +51,7 @@ def readData(reader_dict, fname):
     extension = Path(fname).suffix
     reader = reader_dict.get(extension)
     if not reader:
-        raise ValueError(f"Unsupported file format '{extension}', use one of {tuple(READER.keys())}")
+        raise ValueError(f"Unsupported file format '{extension}', use one of {tuple(reader.keys())}")
     return reader(fname)
 
 
@@ -59,7 +59,7 @@ def writeData(writer_dict, df, fname):
     extension = Path(fname).suffix
     writer = writer_dict.get(extension)
     if not writer:
-        raise ValueError(f"Unsupported file format '{extension}', use one of {tuple(READER.keys())}")
+        raise ValueError(f"Unsupported file format '{extension}', use one of {tuple(writer.keys())}")
     writer(df, fname)
 
 
@@ -88,7 +88,7 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
 
     saqc = SaQC(flagger=FLAGGERS[flagger], data=data, nodata=nodata, error_policy="raise" if fail else "warn",)
 
-    data_result, flagger_result = saqc.readConfig(config).getResult()
+    data_result, flagger_result = saqc.readConfig(config).getResult(raw=True)
 
     if outfile:
         data_result = data_result.to_df()

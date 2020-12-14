@@ -645,7 +645,6 @@ def test_replace_insert(data, flagger):
     newfield = 'fooo'
     flags, extra = flagger.getFlags(field, full=True)
     newflagger = flagger.replaceField(field=newfield, flags=flags, **extra)
-
     old, oldextra = flagger.getFlags(full=True)
     new, newextra = newflagger.getFlags(full=True)
     assert newfield in newflagger.flags
