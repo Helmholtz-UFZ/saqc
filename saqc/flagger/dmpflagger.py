@@ -54,7 +54,7 @@ class DmpFlagger(CategoricalFlagger):
     def comments(self):
         return self._comments
 
-    def getFlagsAll(self):
+    def toFrame(self):
         out = pd.concat(
             [self._flags.to_df(), self._causes.to_df(), self._comments.to_df()],
             axis=1,

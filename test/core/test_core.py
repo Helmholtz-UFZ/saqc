@@ -60,8 +60,7 @@ def test_duplicatedVariable(flagger):
     data = initData(1)
     var1 = data.columns[0]
 
-    pdata, pflagger = SaQC(flagger, data).flagDummy(var1).flagDummy(var1).getResult()
-    pflags = pflagger.getFlags()
+    pdata, pflags = SaQC(flagger, data).flagDummy(var1).flagDummy(var1).getResult()
 
     if isinstance(pflags.columns, pd.MultiIndex):
         cols = pflags.columns.get_level_values(0).drop_duplicates()
@@ -79,7 +78,7 @@ def test_assignVariable(flagger):
     var1 = data.columns[0]
     var2 = "empty"
 
-    pdata, pflagger = SaQC(flagger, data).flagAll(var1).flagAll(var2).getResult()
+    pdata, pflagger = SaQC(flagger, data).flagAll(var1).flagAll(var2).getResult(raw=True)
     pflags = pflagger.getFlags()
 
     assert (set(pflags.columns) == {var1, var2})
@@ -96,7 +95,7 @@ def test_dtypes(data, flagger, flags):
     flags = flagger.getFlags()
     var1, var2 = data.columns[:2]
 
-    pdata, pflagger = SaQC(flagger, data, flags=flags).flagAll(var1).flagAll(var2).getResult()
+    pdata, pflagger = SaQC(flagger, data, flags=flags).flagAll(var1).flagAll(var2).getResult(raw=True)
 
     pflags = pflagger.getFlags()
     assert dict(flags.dtypes) == dict(pflags.dtypes)

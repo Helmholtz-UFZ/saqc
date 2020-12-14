@@ -72,12 +72,15 @@ def _handleErrors(exc, func, policy):
 def _prepInput(flagger, data, flags):
     dios_like = (dios.DictOfSeries, pd.DataFrame)
 
+    if isinstance(data, pd.Series):
+        data = data.to_frame()
+
     if not isinstance(data, dios_like):
-        raise TypeError("data must be of type dios.DictOfSeries or pd.DataFrame")
+        raise TypeError("'data' must be of type pd.Series, pd.DataFrame or dios.DictOfSeries")
 
     if isinstance(data, pd.DataFrame):
         if isinstance(data.index, pd.MultiIndex) or isinstance(data.columns, pd.MultiIndex):
-            raise TypeError("data should not use MultiIndex")
+            raise TypeError("'data' should not use MultiIndex")
         data = dios.to_dios(data)
 
     if not hasattr(data.columns, "str"):
@@ -87,25 +90,26 @@ def _prepInput(flagger, data, flags):
         # NOTE: we should generate that list automatically,
         #       it won't ever be complete otherwise
         flaggerlist = [CategoricalFlagger, SimpleFlagger, DmpFlagger]
-        raise TypeError(f"flagger must be of type {flaggerlist} or a subclass of {BaseFlagger}")
+        raise TypeError(f"'flagger' must be of type {flaggerlist} or a subclass of {BaseFlagger}")
 
     if flags is not None:
         if not isinstance(flags, dios_like):
-            raise TypeError("flags must be of type dios.DictOfSeries or pd.DataFrame")
+            raise TypeError("'flags' must be of type dios.DictOfSeries or pd.DataFrame")
 
         if isinstance(flags, pd.DataFrame):
             if isinstance(flags.index, pd.MultiIndex) or isinstance(flags.columns, pd.MultiIndex):
-                raise TypeError("flags' should not use MultiIndex")
+                raise TypeError("'flags' should not use MultiIndex")
             flags = dios.to_dios(flags)
 
         # NOTE: do not test all columns as they not necessarily need to be the same
         cols = flags.columns & data.columns
         if not (flags[cols].lengths == data[cols].lengths).all():
-            raise ValueError("the length of flags and data need to be equal")
+            raise ValueError("the length of 'flags' and 'data' need to be equal")
 
     if flagger.initialized:
-        if not data.columns.difference(flagger.getFlags().columns).empty:
-            raise ValueError("Given flagger does not contain all data columns")
+        diff = data.columns.difference(flagger.getFlags().columns)
+        if not diff.empty:
+            raise ValueError("Missing columns in 'flagger': '{list(diff)}'")
 
     return data, flags
 
@@ -133,7 +137,7 @@ class SaQC:
         self._flagger = self._initFlagger(data, flagger, flags)
         self._error_policy = error_policy
         # NOTE: will be filled by calls to `_wrap`
-        self._to_call: List[Dict[str, Any]] = []  # todo fix the access everywhere
+        self._to_call: List[Dict[str, Any]] = []
 
     def _initFlagger(self, data, flagger, flags):
         """ Init the internal flagger object.
@@ -229,9 +233,9 @@ class SaQC:
         new._flagger, new._data = flagger, data
         return new
 
-    def getResult(self):
+    def getResult(self, raw=False):
         """
-        Realized the registerd calculations and return the results
+        Realized the registered calculations and return the results
 
         Returns
         -------
@@ -239,7 +243,10 @@ class SaQC:
         """
 
         realization = self.evaluate()
-        return realization._data, realization._flagger
+        data, flagger = realization._data, realization._flagger
+        if raw is False:
+            return data.to_df(), flagger.toFrame()
+        return data, flagger
 
     def _wrap(self, func_name, lineno=None, expr=None):
         def inner(field: str, *args, regex: bool = False, to_mask=None, plot=False, inplace=False, **kwargs):

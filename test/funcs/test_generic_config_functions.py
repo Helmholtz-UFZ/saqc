@@ -243,7 +243,7 @@ def test_variableAssignments(data, flagger):
 
     fobj = writeIO(config)
     saqc = SaQC(flagger, data).readConfig(fobj)
-    result_data, result_flagger = saqc.getResult()
+    result_data, result_flagger = saqc.getResult(raw=True)
 
     assert set(result_data.columns) == set(data.columns) | {
         "dummy1",
