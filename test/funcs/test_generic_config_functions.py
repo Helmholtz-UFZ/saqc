@@ -138,7 +138,6 @@ def test_nonReduncingBuiltins(data, flagger):
         (f"log({this})", np.log(data[this])),
         (f"exp({this})", np.exp(data[this])),
         (f"ismissing(mask({this} < {mean}))", data.mask(data[this] < mean).isna()),
-        (f"pop(this)", data[this])
     ]
 
     for test, expected in tests:
