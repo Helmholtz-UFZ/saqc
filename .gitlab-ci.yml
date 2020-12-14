@@ -37,8 +37,8 @@ test:python38:
 pages:
   stage: deploy
   script:
-    - pyenv install 3.6.9
-    - pyenv shell 3.6.9
+    - pyenv install 3.8.0
+    - pyenv shell 3.8.0
     - pip install --upgrade pip
     - pip install -r requirements.txt
     - cd sphinx-doc/
