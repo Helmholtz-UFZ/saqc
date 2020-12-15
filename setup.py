@@ -14,6 +14,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://git.ufz.de/rdm-software/saqc",
     packages=find_packages(),
+    python_requires='>=3.7',
     install_requires=[
         "numpy",
         "pandas",

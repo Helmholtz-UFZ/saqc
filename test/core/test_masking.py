@@ -36,7 +36,7 @@ def test_masking(data, flagger):
     # otherwise False, like an inverse range-test
     qc = qc.procGeneric("dummy", func=lambda var1: var1 >= mn)
 
-    pdata, pflagger = qc.getResult()
+    pdata, pflagger = qc.getResult(raw=True)
     out_of_range = pflagger.isFlagged(var1)
     in_range = ~out_of_range
 
@@ -115,5 +115,5 @@ def test_shapeDiffUnmasking(data, flagger):
     qc = qc.flagRange(var, mn, mx)
     qc = qc.pseudoHarmo(var)
 
-    data, flagger = qc.getResult()
+    data, flagger = qc.getResult(raw=True)
     assert (data[var] == FILLER).all(axis=None)

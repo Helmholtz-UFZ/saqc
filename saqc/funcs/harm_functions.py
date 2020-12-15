@@ -28,30 +28,30 @@ def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, *
 
     Method keywords:
 
-    'nshift' -  every grid point gets assigned the nearest value in its range ( range = +/-(freq/2) )
-    'bshift' -  every grid point gets assigned its first succeeding value - if there is one available in the
-            succeeding sampling interval. (equals resampling wih "first")
-    'fshift'  -  every grid point gets assigned its ultimately preceeding value - if there is one available in
-            the preceeding sampling interval. (equals resampling with "last")
+    * ``'nshift'``:  every grid point gets assigned the nearest value in its range (*range = +/-(freq/2)*)
+    * ``'bshift'``:  every grid point gets assigned its first succeeding value - if there is one available in the
+            succeeding sampling interval.
+    * ``'fshift'``:  every grid point gets assigned its ultimately preceding value - if there is one available in
+      the preceeding sampling interval.
 
     Note: the flags associated with every datapoint will just get shifted with them.
 
-    Note: if there is no valid data (exisiing and not-na) available in a sampling interval assigned to a regular
+    Note: if there is no valid data (existing and not-na) available in a sampling interval assigned to a regular
     timestamp by the selected method, nan gets assigned to this timestamp. The associated flag will be of value
-    flagger.UNFLAGGED.
+    ``flagger.UNFLAGGED``.
 
-    Note: all data nans get excluded defaultly from shifting. If to_drop is None - all BAD flagged values get
+    Note: all data nans get excluded defaultly from shifting. If to_drop is None - all *BAD* flagged values get
     excluded as well.
 
-    Note: the method will likely and significantly alter values and shape of data[field]. The original data is kept
-    in the data dios and assigned to the fieldname field + "_original".
+    Note: the method will likely and significantly alter values and shape of ``data[field]``. The original data is kept
+    in the data dios and assigned to the fieldname ``field + '_original'``.
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
-        The fieldname of the column, holding the data-to-be-regularized.
+        The field name of the column, holding the data-to-be-regularized.
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.freq
     freq : str
@@ -60,14 +60,9 @@ def harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None, *
         Specifies if datapoints get propagated forwards, backwards or to the nearest grid timestamp.
         See description above for details
     to_drop : {List[str], str}, default None
-        Flagtypes you want to drop before shifting - effectively excluding values that are flagged
+        Flag types you want to drop before shifting - effectively excluding values that are flagged
         with a flag in to_drop from the shifting process. Default - results in flagger.BAD
         values being dropped initially.
-    freq_check : {None, 'check', 'auto'}, default None
-        - None: do not validate frequency-string passed to `freq`
-        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
-            if no uniform sampling rate could be estimated
-        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -100,23 +95,19 @@ def harm_aggregate2Grid(
 
     The following method (keywords) are available:
 
-    'nagg'  (aggreagtion to nearest) - all values in the range (+/- freq/2) of a grid point get aggregated with agg_func
-            and assigned to it.
-            Flags get aggregated by `flag_func` and assigned the same way.
-    'bagg'  (backwards aggregation) - all values in a sampling interval get aggregated with agg_func and the result gets
-            assigned to the last regular timestamp.
-            Flags get aggregated by flag_func and assigned the same way.
-    'fagg'  (forward aggregation) - all values in a sampling interval get aggregated with agg_func and the result gets
-            assigned to the next regular timestamp.
-            Flags get aggregated by flag_func and assigned the same way.
-
+    * ``'nagg'``: (aggreagtion to nearest) - all values in the range (+/- freq/2) of a grid point get aggregated with
+      `agg_func`. and assigned to it. Flags get aggregated by `flag_func` and assigned the same way.
+    * ``'bagg'``: (backwards aggregation) - all values in a sampling interval get aggregated with agg_func and the
+      result gets assigned to the last regular timestamp. Flags get aggregated by `flag_func` and assigned the same way.
+    * ``'fagg'``: (forward aggregation) - all values in a sampling interval get aggregated with agg_func and the result
+      gets assigned to the next regular timestamp. Flags get aggregated by `flag_func` and assigned the same way.
 
     Note, that, if there is no valid data (exisitng and not-na) available in a sampling interval assigned to a regular
     timestamp by the selected method, nan gets assigned to this timestamp. The associated flag will be of value
-    flagger.UNFLAGGED.
+    ``flagger.UNFLAGGED``.
 
-    Note: the method will likely and significantly alter values and shape of data[field]. The original data is kept
-    in the data dios and assigned to the fieldname field + "_original".
+    Note: the method will likely and significantly alter values and shape of ``data[field]``. The original data is kept
+    in the data dios and assigned to the fieldname ``field + '_original'``.
 
     Parameters
     ----------
@@ -177,13 +168,13 @@ def harm_linear2Grid(data, field, flagger, freq, to_drop=None, **kwargs):
 
     Interpolated values will get assigned the worst flag within freq-range.
 
-    Note: the method will likely and significantly alter values and shape of data[field]. The original data is kept
-    in the data dios and assigned to the fieldname field + "_original".
+    Note: the method will likely and significantly alter values and shape of ``data[field]``. The original data is kept
+    in the data dios and assigned to the fieldname ``field + '_original'``.
 
     Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
     not-na) datapoint preceeding them and one succeeding them within freq range.
     Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
-    flagger.UNFLAGGED.
+    ``flagger.UNFLAGGED``.
 
     Parameters
     ----------
@@ -229,15 +220,16 @@ def harm_interpolate2Grid(data, field, flagger, freq, method, order=1, to_drop=N
     There are available all the interpolations from the pandas.Series.interpolate method and they are called by
     the very same keywords.
 
-    Note, that, to perform a timestamp aware, linear interpolation, you have to pass 'time' as method, and NOT 'linear'.
+    Note, that, to perform a timestamp aware, linear interpolation, you have to pass ``'time'`` as `method`,
+    and NOT ``'linear'``.
 
-    Note: the method will likely and significantly alter values and shape of data[field]. The original data is kept
-    in the data dios and assigned to the fieldname field + "_original".
+    Note: the `method` will likely and significantly alter values and shape of ``data[field]``. The original data is
+    kept in the data dios and assigned to the fieldname ``field + '_original'``.
 
     Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
     not-na) datapoint preceeding them and one succeeding them within freq range.
     Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
-    flagger.UNFLAGGED.
+    ``flagger.UNFLAGGED``.
 
     Parameters
     ----------
@@ -253,11 +245,11 @@ def harm_interpolate2Grid(data, field, flagger, freq, method, order=1, to_drop=N
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
     order : int, default 1
-        If your selected interpolation method can be performed at different 'orders' - here you pass the desired
+        If your selected interpolation method can be performed at different *orders* - here you pass the desired
         order.
     to_drop : {List[str], str}, default None
         Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
-        with a flag in to_drop from the interpolation process. Default results in flagger.BAD
+        with a flag in `to_drop` from the interpolation process. Default results in ``flagger.BAD``
         values being dropped initially.
 
     Returns
@@ -291,16 +283,16 @@ def harm_deharmonize(data, field, flagger, method, to_drop=None, **kwargs):
     The Function function "undoes" regularization, by regaining the original data and projecting the
     flags calculated for the regularized data onto the original ones.
 
-    Afterwards the regularized data is removed from the data dios and 'field' will be associated
-    to the original data "again".
+    Afterwards the regularized data is removed from the data dios and ``'field'`` will be associated
+    with the original data "again".
 
     Wherever the flags in the original data are "better" then the regularized flags projected on them,
     they get overridden with this regularized flags value.
 
     Which regularized flags are to be projected on which original flags, is controlled by the "method" parameters.
 
-    Generally, if you regularized with the method 'X', you should pass the method 'inverse_X' to the deharmonization.
-    If you regularized with an interpolation, the method 'inverse_interpolation' would be the appropriate choice.
+    Generally, if you regularized with the method "X", you should pass the method "inverse_X" to the deharmonization.
+    If you regularized with an interpolation, the method "inverse_interpolation" would be the appropriate choice.
     Also you should pass the same drop flags keyword.
 
     The deharm methods in detail:
@@ -308,26 +300,26 @@ def harm_deharmonize(data, field, flagger, method, to_drop=None, **kwargs):
     "regularized_flags" are associated with the regularized data that is to be "deharmonized",
     "freq" refers to the regularized datas sampling frequencie)
 
-    'inverse_nagg' - all original_flags within the range +/- freq/2 of a regularized_flag, get assigned this
-        regularized flags value. (if regularized_flags > original_flag)
-    'inverse_bagg' - all original_flags succeeding a regularized_flag within the range of "freq", get assigned this
-        regularized flags value. (if regularized_flag > original_flag)
-    'inverse_fagg' - all original_flags preceeding a regularized_flag within the range of "freq", get assigned this
-        regularized flags value. (if regularized_flag > original_flag)
+    * ``'inverse_nagg'``: all original_flags within the range *+/- freq/2* of a regularized_flag, get assigned this
+      regularized flags value. (if regularized_flags > original_flag)
+    * ``'inverse_bagg'``: all original_flags succeeding a regularized_flag within the range of "freq", get assigned this
+      regularized flags value. (if regularized_flag > original_flag)
+    * ``'inverse_fagg'``: all original_flags preceeding a regularized_flag within the range of "freq", get assigned this
+      regularized flags value. (if regularized_flag > original_flag)
 
-    'inverse_interpolation' - all original_flags within the range +/- freq of a regularized_flag, get assigned this
-        regularized flags value (if regularized_flag > original_flag).
+    * ``'inverse_interpolation'``: all original_flags within the range *+/- freq* of a regularized_flag, get assigned this
+      regularized flags value (if regularized_flag > original_flag).
 
-    'inverse_nshift' - That original_flag within the range +/- freq/2, that is nearest to a regularized_flag, gets the
-        regularized flags value. (if regularized_flag > original_flag)
-    'inverse_bshift' - That original_flag succeeding a source flag within the range freq, that is nearest to a
-        regularized_flag, gets assigned this regularized flags value. (if regularized_flag > original_flag)
-    'inverse_nshift' - That original_flag preceeding a regularized flag within the range freq, that is nearest to a
-        regularized_flag, gets assigned this regularized flags value. (if source_flag > original_flag)
+    * ``'inverse_nshift'``: That original_flag within the range +/- *freq/2*, that is nearest to a regularized_flag,
+      gets the regularized flags value. (if regularized_flag > original_flag)
+    * ``'inverse_bshift'``: That original_flag succeeding a source flag within the range freq, that is nearest to a
+      regularized_flag, gets assigned this regularized flags value. (if regularized_flag > original_flag)
+    * ``'inverse_nshift'``: That original_flag preceeding a regularized flag within the range freq, that is nearest to a
+      regularized_flag, gets assigned this regularized flags value. (if source_flag > original_flag)
 
     Parameters
     ----------
-     data : dios.DictOfSeries
+    data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-deharmonized.
@@ -335,7 +327,7 @@ def harm_deharmonize(data, field, flagger, method, to_drop=None, **kwargs):
         A flagger object, holding flags and additional Informations related to `data`.freq
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift',
             'inverse_interpolation'}
-        The method used for projection of regularized flags onto opriginal flags. See description above for more
+        The method used for projection of regularized flags onto original flags. See description above for more
         details.
     to_drop : {List[str], str}, default None
         Flagtypes you want to drop before interpolation - effectively excluding values that are flagged

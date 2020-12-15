@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 import dios
 
-from saqc.lib.tools import assertScalar, mergeDios, toSequence, mutateIndex, customRolling
+from saqc.lib.tools import assertScalar, mergeDios, toSequence, customRoller
 
 COMPARATOR_MAP = {
     "!=": op.ne,
@@ -106,6 +106,20 @@ class BaseFlagger(ABC):
         else:
             return self.copy(flags=flags)
 
+    def toFrame(self):
+        """ Return a pd.DataFrame holding the flags
+        Return
+        ------
+        frame: pandas.DataFrame
+
+        Note
+        ----
+        This is a convenience funtion hiding the implementation detail dios.DictOfSeries.
+        Subclasses with special flag structures (i.e. DmpFlagger) should overwrite the
+        this methode in order to provide a usefull user output.
+        """
+        return self._flags.to_df()
+
     def getFlags(self, field: FieldsT = None, loc: LocT = None, full=False):
         """ Return a potentially, to `loc`, trimmed down version of flags.
 
@@ -153,7 +167,7 @@ class BaseFlagger(ABC):
         # as row indexer. Thus is because pandas `.loc` return a shallow copy if a null-slice is passed to a series.
         flags = self._flags.aloc[indexer].copy()
         if full:
-            return flags, dict()
+            return flags, {}
         else:
             return flags
 
@@ -260,13 +274,19 @@ class BaseFlagger(ABC):
         base = mask.reindex_like(self._flags[field]).fillna(False)
         before, after = False, False
 
-        if flag_after is not None:
-            if isinstance(flag_after, int):
-                flag_after += 1
-            after = base.rolling(window=flag_after, min_periods=1, closed='both').sum().astype(bool)
-
         if flag_before is not None:
-            raise NotImplementedError("flag_before is not implemented")
+            closed = 'both'
+            if isinstance(flag_before, int):
+                flag_before, closed = flag_before + 1, None
+            r = customRoller(base, window=flag_before, min_periods=1, closed=closed, expand=True, forward=True)
+            before = r.sum().astype(bool)
+
+        if flag_after is not None:
+            closed = 'both'
+            if isinstance(flag_after, int):
+                flag_after, closed = flag_after + 1, None
+            r = customRoller(base, window=flag_after, min_periods=1, closed=closed, expand=True)
+            after = r.sum().astype(bool)
 
         # does not include base, to avoid overriding flags that just was set
         # by the test, because flag and win_flag may differ.

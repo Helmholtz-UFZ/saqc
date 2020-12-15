@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import subprocess
 import json
 from copy import deepcopy
 from typing import TypeVar, Optional, List
@@ -36,15 +35,13 @@ FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 
 class DmpFlagger(CategoricalFlagger):
-    def __init__(self, include_version=True):
+    def __init__(self, **kwargs):
         super().__init__(FLAGS)
         self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
         self.extra_defaults = dict(cause=FLAGS[0], comment="")
-        version = subprocess.run(
-            "git describe --tags --always --dirty", shell=True, check=False, stdout=subprocess.PIPE,
-        ).stdout
-        self.project_version = version.decode().strip() if include_version else ""
         self.signature = ("flag", "comment", "cause", "force")
+
+        self._global_comments = kwargs
         self._flags = None
         self._causes = None
         self._comments = None
@@ -57,7 +54,7 @@ class DmpFlagger(CategoricalFlagger):
     def comments(self):
         return self._comments
 
-    def getFlagsAll(self):
+    def toFrame(self):
         out = pd.concat(
             [self._flags.to_df(), self._causes.to_df(), self._comments.to_df()],
             axis=1,
@@ -151,8 +148,8 @@ class DmpFlagger(CategoricalFlagger):
         else:
             flag = self.BAD if flag is None else flag
             comment = json.dumps(
-                {"comment": comment,
-                 "commit": self.project_version,
+                {**self._global_comments,
+                 "comment": comment,
                  "test": kwargs.get("func_name", "")}
             )
 
@@ -240,8 +237,12 @@ class DmpFlagger(CategoricalFlagger):
 
     def _construct_new(self, flags, causes, comments) -> DmpFlaggerT:
         new = DmpFlagger()
-        new.project_version = self.project_version
+        new._global_comments = self._global_comments
         new._flags = flags
         new._causes = causes
         new._comments = comments
         return new
+
+    @property
+    def SUSPICIOUS(self):
+        return FLAGS[-2]

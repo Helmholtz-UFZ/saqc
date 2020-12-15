@@ -131,11 +131,13 @@ def test_nonReduncingBuiltins(data, flagger):
     flagger = flagger.initFlags(data)
     var1, *_ = data.columns
     this = var1
+    mean = data[var1].mean()
 
     tests = [
         (f"abs({this})", np.abs(data[this])),
         (f"log({this})", np.log(data[this])),
         (f"exp({this})", np.exp(data[this])),
+        (f"ismissing(mask({this} < {mean}))", data.mask(data[this] < mean).isna()),
     ]
 
     for test, expected in tests:
@@ -240,7 +242,7 @@ def test_variableAssignments(data, flagger):
 
     fobj = writeIO(config)
     saqc = SaQC(flagger, data).readConfig(fobj)
-    result_data, result_flagger = saqc.getResult()
+    result_data, result_flagger = saqc.getResult(raw=True)
 
     assert set(result_data.columns) == set(data.columns) | {
         "dummy1",
@@ -279,7 +281,7 @@ def test_callableArgumentsUnary(data):
 
     config = f"""
     {F.VARNAME} ; {F.TEST}
-    {var}      ; testFuncUnary(func={{0}})
+    {var}       ; testFuncUnary(func={{0}})
     """
 
     tests = [

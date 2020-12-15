@@ -1,13 +1,15 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import json
 from copy import deepcopy
 
 import pandas as pd
 
 from dios import DictOfSeries
 from saqc.flagger.baseflagger import BaseFlagger, COMPARATOR_MAP
-from saqc.lib.tools import assertScalar, toSequence
+from saqc.flagger.dmpflagger import DmpFlagger
+from saqc.lib.tools import toSequence, assertScalar
 
 
 FLAGS = ("-1", "0", "1", "2")
@@ -104,6 +106,22 @@ class PositionalFlagger(BaseFlagger):
             col[mask] = col[mask].apply(lambda x: max(list(x)))
             data[col_name] = col
         return DictOfSeries(data)
+
+    def toDmpFlagger(self):
+        self = PositionalFlagger().initFlags(flags=self._flags)
+        dmp_flagger = DmpFlagger().initFlags(data=self._flags)
+        flag_map = {
+            self.BAD: dmp_flagger.BAD,
+            self.SUSPICIOUS: dmp_flagger.SUSPICIOUS,
+            self.GOOD: dmp_flagger.GOOD,
+        }
+        for pos_flag, dmp_flag in flag_map.items():
+            loc = self.isFlagged(flag=pos_flag, comparator="==")
+            dmp_flagger._flags.aloc[loc] = dmp_flag
+
+        dmp_flagger._comments.loc[:] = self._flags.to_df().applymap(lambda v: json.dumps({"flag": v}))
+        dmp_flagger._causes.loc[:] = "OTHER"
+        return dmp_flagger
 
     @property
     def UNFLAGGED(self):

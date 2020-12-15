@@ -113,7 +113,7 @@ def proc_interpolateMissing(
     Function to interpolate nan values in the data.
 
     There are available all the interpolation methods from the pandas.interpolate method and they are applicable by
-    the very same key words, that you would pass to pd.Series.interpolates's method parameter.
+    the very same key words, that you would pass to the ``pd.Series.interpolate``'s method parameter.
 
     Note, that the `inter_limit` keyword really restricts the interpolation to chunks, not containing more than
     `inter_limit` successive nan entries.
@@ -141,8 +141,8 @@ def proc_interpolateMissing(
         Flag that is to be inserted for the interpolated values. You can either pass one of the three major flag-classes
         or specify directly a certain flag from the passed flagger.
     downgrade_interpolation : bool, default False
-        If interpolation can not be performed at 'inter_order' - (not enough values or not implemented at this order) -
-        automaticalyy try to interpolate at order 'inter_order' - 1.
+        If interpolation can not be performed at `inter_order` - (not enough values or not implemented at this order) -
+        automaticalyy try to interpolate at order `inter_order` :math:`- 1`.
     not_interpol_flags : {None, str, List[str]}, default None
         A list of flags or a single Flag, marking values, you want NOT to be interpolated.
 
@@ -204,7 +204,7 @@ def proc_interpolateGrid(
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
 
-    Note, that the interpolation will only be calculated, for grid timestamps that have a preceeding AND a succeeding
+    Note, that the interpolation will only be calculated, for grid timestamps that have a preceding AND a succeeding
     valid data value within "freq" range.
 
     Note, that the function differs from proc_interpolateMissing, by returning a whole new data set, only containing
@@ -233,26 +233,28 @@ def proc_interpolateGrid(
         If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
         order.
     to_drop : {None, str, List[str]}, default None
-        Flags that refer to values you want to drop before interpotion - effectively excluding grid points from
+        Flags that refer to values you want to drop before interpolation - effectively excluding grid points from
         interpolation, that are only surrounded by values having a flag in them, that is listed in drop flags. Default
-        results in the flaggers 'BAD' flag to be the drop_flag.
+        results in the flaggers *BAD* flag to be the drop_flag.
     downgrade_interpolation : bool, default False
-        If interpolation can not be performed at 'inter_order' - (not enough values or not implemented at this order) -
-        automaticalyy try to interpolate at order 'inter_order' - 1.
+        If interpolation can not be performed at `inter_order` - (not enough values or not implemented at this order) -
+        automatically try to interpolate at order `inter_order` :math:`- 1`.
     empty_intervals_flag : str, default None
-        A Flag, that you want to assign to those values resulting equidistant sample grid, that were not surrounded by
-        valid (flagged) data in the original dataset and thus werent interpolated. Default automatically assigns
-        flagger.BAD flag to those values.
+        A Flag, that you want to assign to those values in the resulting equidistant sample grid, that were not
+        surrounded by valid data in the original dataset, and thus were not interpolated. Default automatically assigns
+        ``flagger.BAD`` flag to those values.
     grid_field : String, default None
-        Use the timestamp of another variable as (not nessecarily regular) "grid" to be interpolated.
+        Use the timestamp of another variable as (not necessarily regular) "grid" to be interpolated.
     inter_limit : Integer, default 2
         Maximum number of consecutive Grid values allowed for interpolation. If set
-        to "n", in the result, chunks of "n" consecutive grid values wont be interpolated.
+        to *n*, chunks of *n* and more consecutive grid values, where there is no value in between, wont be
+        interpolated.
     freq_check : {None, 'check', 'auto'}, default None
-        - None: do not validate frequency-string passed to `freq`
-        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
-            if no uniform sampling rate could be estimated
-        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
+
+        * ``None``: do not validate frequency-string passed to `freq`
+        * ``'check'``: estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+          if no uniform sampling rate could be estimated
+        * ``'auto'``: estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -405,20 +407,20 @@ def proc_resample(
     the result gets projected onto the new timestamps with a method, specified by "method". The following method
     (keywords) are available:
 
-    'nagg' - all values in the range (+/- freq/2) of a grid point get aggregated with agg_func and assigned to it.
-    'bagg' - all values in a sampling interval get aggregated with agg_func and the result gets assigned to the last
-            grid point.
-    'fagg' - all values in a sampling interval get aggregated with agg_func and the result gets assigned to the next
-            grid point.
+    * ``'nagg'``: all values in the range (+/- `freq`/2) of a grid point get aggregated with agg_func and assigned to it.
+    * ``'bagg'``: all values in a sampling interval get aggregated with agg_func and the result gets assigned to the last
+      grid point.
+    * ``'fagg'``: all values in a sampling interval get aggregated with agg_func and the result gets assigned to the next
+      grid point.
 
 
     Note, that. if possible, functions passed to agg_func will get projected internally onto pandas.resample methods,
     wich results in some reasonable performance boost - however, for this to work, you should pass functions that have
     the __name__ attribute initialised and the according methods name assigned to it.
     Furthermore, you shouldnt pass numpys nan-functions
-    (nansum, nanmean,...) because those for example, have __name__ == 'nansum' and they will thus not trigger
-    resample.func(), but the slower resample.apply(nanfunc). Also, internally, no nans get passed to the functions
-    anyway, so that there is no point in passing the nan functions.
+    (``nansum``, ``nanmean``,...) because those for example, have ``__name__ == 'nansum'`` and they will thus not
+    trigger ``resample.func()``, but the slower ``resample.apply(nanfunc)``. Also, internally, no nans get passed to
+    the functions anyway, so that there is no point in passing the nan functions.
 
     Parameters
     ----------
@@ -433,12 +435,12 @@ def proc_resample(
     agg_func : Callable
         The function you want to use for aggregation.
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
-        Specifies which intervals to be aggregated for a certain timestamp. (preceeding, succeeding or
+        Specifies which intervals to be aggregated for a certain timestamp. (preceding, succeeding or
         "surrounding" interval). See description above for more details.
     max_invalid_total_d : {np.inf, int}, np.inf
         Maximum number of invalid (nan) datapoints, allowed per resampling interval. If max_invalid_total_d is
-        exceeded, the interval gets resampled to nan. By default (np.inf), there is no bound to the number of nan values
-        in an interval and only intervals containing ONLY nan values or those, containing no values at all,
+        exceeded, the interval gets resampled to nan. By default (``np.inf``), there is no bound to the number of nan
+        values in an interval and only intervals containing ONLY nan values or those, containing no values at all,
         get projected onto nan
     max_invalid_consec_d : {np.inf, int}, default np.inf
         Maximum number of consecutive invalid (nan) data points, allowed per resampling interval.
@@ -446,11 +448,11 @@ def proc_resample(
         there is no bound to the number of consecutive nan values in an interval and only intervals
         containing ONLY nan values, or those containing no values at all, get projected onto nan.
     max_invalid_total_f : {np.inf, int}, default np.inf
-        Same as "max_invalid_total_d", only applying for the flags. The flag regarded as "invalid" value,
-        is the one passed to empty_intervals_flag (default=flagger.BAD).
+        Same as `max_invalid_total_d`, only applying for the flags. The flag regarded as "invalid" value,
+        is the one passed to empty_intervals_flag (default=``flagger.BAD``).
         Also this is the flag assigned to invalid/empty intervals.
     max_invalid_total_f : {np.inf, int}, default np.inf
-        Same as "max_invalid_total_f", only applying onto flgas. The flag regarded as "invalid" value, is the one passed
+        Same as `max_invalid_total_f`, only applying onto flags. The flag regarded as "invalid" value, is the one passed
         to empty_intervals_flag (default=flagger.BAD). Also this is the flag assigned to invalid/empty intervals.
     flag_agg_func : Callable, default: max
         The function you want to aggregate the flags with. It should be capable of operating on the flags dtype
@@ -458,17 +460,18 @@ def proc_resample(
     empty_intervals_flag : {None, str}, default None
         A Flag, that you want to assign to invalid intervals. Invalid are those intervals, that contain nan values only,
         or no values at all. Furthermore the empty_intervals_flag is the flag, serving as "invalid" identifyer when
-        checking for "max_total_invalid_f" and "max_consec_invalid_f patterns". Default triggers flagger.BAD to be
+        checking for `max_total_invalid_f` and `max_consec_invalid_f patterns`. Default triggers ``flagger.BAD`` to be
         assigned.
     to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before resampling - effectively excluding values that are flagged
         with a flag in to_drop from the resampling process - this means that they also will not be counted in the
-        the max_consec/max_total evaluation. to_drop = None results in NO flags being dropped initially.
+        the `max_consec`/`max_total evaluation`. `to_drop` = ``None`` results in NO flags being dropped initially.
     freq_check : {None, 'check', 'auto'}, default None
-        - None: do not validate frequency-string passed to `freq`
-        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
-            if no uniform sampling rate could be estimated
-        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
+
+        * ``None``: do not validate frequency-string passed to `freq`
+        * ``'check'``: estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
+          if no uniform sampling rate could be estimated
+        * ``'auto'``: estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -532,16 +535,16 @@ def proc_resample(
 def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals_flag=None, freq_check=None, **kwargs):
     """
     Function to shift data points to regular (equidistant) timestamps.
-    Values get shifted according to the keyword passed to 'method'.
+    Values get shifted according to the keyword passed to the `method` parameter.
 
-    Note: all data nans get excluded defaultly from shifting. If to_drop is None - all BAD flagged values get
+    * ``'nshift'``: every grid point gets assigned the nearest value in its range. (range = +/- 0.5 * `freq`)
+    * ``'bshift'``:  every grid point gets assigned its first succeeding value - if there is one available in the
+      succeeding sampling interval.
+    * ``'fshift'``:  every grid point gets assigned its ultimately preceeding value - if there is one available in
+      the preceeding sampling interval.
+
+    Note: all data nans get excluded defaultly from shifting. If `to_drop` is ``None``, - all *BAD* flagged values get
     excluded as well.
-
-    'nshift' -  every grid point gets assigned the nearest value in its range ( range = +/-(freq/2) )
-    'bshift' -  every grid point gets assigned its first succeeding value - if there is one available in the
-            succeeding sampling interval. (equals resampling wih "first")
-    'fshift'  -  every grid point gets assigned its ultimately preceeding value - if there is one available in
-            the preceeding sampling interval. (equals resampling with "last")
 
     Parameters
     ----------
@@ -564,10 +567,11 @@ def proc_shift(data, field, flagger, freq, method, to_drop=None, empty_intervals
         with a flag in to_drop from the shifting process. Default - to_drop = None  - results in flagger.BAD
         values being dropped initially.
     freq_check : {None, 'check', 'auto'}, default None
-        - None: do not validate frequency-string passed to `freq`
-        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
-            if no uniform sampling rate could be estimated
-        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
+
+        * ``None``: do not validate frequency-string passed to `freq`
+        * ``'check'``: estimate frequency and log a warning if estimate miss matches frequency string passed to `freq`,
+          or if no uniform sampling rate could be estimated
+        * ``'auto'``: estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -1081,11 +1085,11 @@ def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime
 
     Currently, the only correction mode supported is the "parameter propagation."
 
-    This means, any regime z, labeled negatively and being modeled by the parameters p, gets corrected via:
+    This means, any regime :math:`z`, labeled negatively and being modeled by the parameters p, gets corrected via:
 
-    z_correct = z + (m(p*) - m(p)),
+    :math:`z_{correct} = z + (m(p^*) - m(p))`,
 
-    where p* denotes the parameterset belonging to the fit of the nearest not-negatively labeled cluster.
+    where :math:`p^*` denotes the parameter set belonging to the fit of the nearest not-negatively labeled cluster.
 
     Parameters
     ----------
@@ -1099,14 +1103,14 @@ def proc_correctRegimeAnomaly(data, field, flagger, cluster_field, model, regime
         A string denoting the field in data, holding the cluster label for the data you want to correct.
     model : Callable
         The model function to be fitted to the regimes.
-        Must be a function of the form f(x, *p), where `x` is the numpy.array holding the independent variables and
-        `p` are the model parameters that are to be obtained by fitting.
+        It must be a function of the form :math:`f(x, *p)`, where :math:`x` is the ``numpy.array`` holding the
+        independent variables and :math:`p` are the model parameters that are to be obtained by fitting.
         Depending on the `x_date` parameter, independent variable x will either be the timestamps
         of every regime transformed to seconds from epoch, or it will be just seconds, counting the regimes length.
     regime_transmission : {None, str}, default None:
-        If an offset string is passed, a data chunk of length `regime_transimission` rigth at the
-        start and right at the end is ignored when fitting the model. This is to account for the unrelyability of data
-        near the changepoints of regimes.
+        If an offset string is passed, a data chunk of length `regime_transimission` right at the
+        start and right at the end is ignored when fitting the model. This is to account for the
+        unreliability of data near the changepoints of regimes.
     x_date : bool, default False
         If True, use "seconds from epoch" as x input to the model func, instead of "seconds from regime start".
 
