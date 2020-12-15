@@ -323,7 +323,7 @@ def spikes_flagMultivarScores(
     threshing="stray",
     expfit_binning="auto",
     stray_partition=None,
-    stray_partition_min=0,
+    stray_partition_min=11,
     post_reduction=False,
     reduction_range=None,
     reduction_drop_flagged=False,
