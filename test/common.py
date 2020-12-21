@@ -24,6 +24,10 @@ TESTFLAGGER = (
     DmpFlagger(),
 )
 
+def flagAll(data, field, flagger, **kwargs):
+    # NOTE: remember to rename flag -> flag_values
+    return data, flagger.setFlags(field=field, flag=flagger.BAD)
+
 
 def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq=None, rows=None):
     if rows is None:

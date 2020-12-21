@@ -10,7 +10,7 @@ import pandas as pd
 from saqc import SaQC, register
 from saqc.funcs import flagRange
 from saqc.lib import plotting as splot
-from test.common import initData, TESTFLAGGER
+from test.common import initData, TESTFLAGGER, flagAll
 
 
 # no logging output needed here
@@ -21,10 +21,7 @@ logging.disable(logging.CRITICAL)
 OPTIONAL = [False, True]
 
 
-@register(masking='field')
-def flagAll(data, field, flagger, **kwargs):
-    # NOTE: remember to rename flag -> flag_values
-    return data, flagger.setFlags(field=field, flag=flagger.BAD)
+register(masking='field')(flagAll)
 
 
 @pytest.fixture
@@ -67,22 +64,6 @@ def test_duplicatedVariable(flagger):
         assert np.all(cols == [var1])
     else:
         assert (pflags.columns == [var1]).all()
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_assignVariable(flagger):
-    """
-    test implicit assignments
-    """
-    data = initData(1)
-    var1 = data.columns[0]
-    var2 = "empty"
-
-    pdata, pflagger = SaQC(flagger, data).flagAll(var1).flagAll(var2).getResult(raw=True)
-    pflags = pflagger.getFlags()
-
-    assert (set(pflags.columns) == {var1, var2})
-    assert pflagger.isFlagged(var2).empty
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

@@ -217,11 +217,14 @@ def flagGeneric(data, field, flagger, func, nodata=np.nan, **kwargs):
     if not np.issubdtype(mask.dtype, np.bool_):
         raise TypeError(f"generic expression does not return a boolean array")
 
+    if field not in flagger.getFlags():
+        flagger = flagger.merge(flagger.initFlags(data=pd.Series(index=mask.index, name=field)))
+
     # if flagger.getFlags(field).empty:
     #     flagger = flagger.merge(
     #         flagger.initFlags(
     #             data=pd.Series(name=field, index=mask.index, dtype=np.float64)))
-    flagger = flagger.setFlags(field, mask, **kwargs)
+    flagger = flagger.setFlags(field=field, loc=mask, **kwargs)
     return data, flagger
 
 
