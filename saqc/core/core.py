@@ -299,6 +299,11 @@ class SaQC:
 
 def _saqcCallFunc(func_dump, data, flagger):
 
+    # NOTE:
+    # We assure that all columns in data have an equivalent column in flags,
+    # we might have more flagger columns though
+    assert data.columns.difference(flagger.getFlags().columns).empty
+
     field = func_dump.field
     to_mask = func_dump.ctrl.to_mask
     masking = func_dump.ctrl.masking
@@ -317,19 +322,6 @@ def _saqcCallFunc(func_dump, data, flagger):
     if masking == 'none' and to_mask not in (None, []):
         logging.warning("`to_mask` is given, but the test ignore masking. Please refer to the documentation: TODO")
     to_mask = flagger.BAD if to_mask is None else to_mask
-
-    # NOTE:
-    # when assigning new variables to `data`, the respective
-    # field is missing in `flags`, so we add it if necessary in
-    # order to keep the columns from `data` and `flags` in sync.
-    # NOTE:
-    # Also assigning a new variable to `flags` only, is possible.
-    # This is also is handled here.
-    # NOTE:
-    # Any newly assigned column can safely be ignored by masking, thus
-    # this check comes after setting `columns`
-    if field not in flagger.getFlags():
-        flagger = flagger.merge(flagger.initFlags(data=pd.Series(name=field, dtype=np.float64)))
 
     data_in, mask = _maskData(data, flagger, columns, to_mask)
     data_result, flagger_result = func_dump.func(
