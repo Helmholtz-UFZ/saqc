@@ -124,26 +124,7 @@ More details on how to install using the gitlab server are available
 [here](docs/GettingStarted.md).
 
 ### Python version
-The minimum Python version required is 3.6.1.
-
-
-## Usage
-### Command line interface (CLI)
-SaQC provides a basic CLI to get you started. As soon as the basic inputs,
-a dataset and the [configuration file](saqc/docs/ConfigurationFiles.md) are
-prepared, running SaQC is as simple as:
-```sh
-saqc \
-    --config path_to_configuration.txt \
-    --data path_to_data.csv \
-    --outfile path_to_output.csv
-```
-
-
-### Integration into larger workflows
-The main function is [exposed](saqc/core/core.py#L79) and can be used in within
-your own programs.
-
+The minimum Python version required is 3.7.
 
 ## License
 Copyright(c) 2019,
