@@ -67,6 +67,23 @@ def test_duplicatedVariable(flagger):
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
+def test_sourceTarget(flagger):
+    """
+    test implicit assignments
+    """
+    data = initData(1)
+    var1 = data.columns[0]
+    target = "new"
+
+    pdata, pflagger = SaQC(flagger, data).flagAll(field=var1, target=target).getResult(raw=True)
+    pflags = pflagger.isFlagged()
+
+    assert (pdata[var1] == pdata[target]).all(axis=None)
+    assert (pflags[var1] == False).all(axis=None)
+    assert (pflags[target] == True).all(axis=None)
+
+
+@pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("optional", OPTIONAL)
 def test_dtypes(data, flagger, flags):
     """

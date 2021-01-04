@@ -9,6 +9,10 @@ import pandas as pd
 
 from saqc.core.config import Fields as F
 from saqc.core.visitor import ConfigFunctionParser
+from saqc.core.core import Func, FuncCtrl
+from saqc.core.register import FUNC_MAP
+
+from saqc.lib.tools import isQuoted
 
 COMMENT = "#"
 EMPTY = "None"
@@ -54,20 +58,35 @@ def _injectOptionalColumns(df):
 
 
 def _parseConfig(df, flagger):
-    to_call = []
-    for lineno, (_, field, expr, plot) in enumerate(df.itertuples()):
-        if field == "None" or pd.isnull(field) or pd.isnull(expr):
+
+    funcs = []
+    for lineno, (_, target, expr, plot) in enumerate(df.itertuples()):
+        if target == "None" or pd.isnull(target) or pd.isnull(expr):
             continue
-        # if field == "None":
-        #     continue
-        # if pd.isnull(field):
-        #     raise SyntaxError(f"line {lineno}: non-optional column '{F.VARNAME}' missing")
-        # if pd.isnull(expr):
-        #     raise SyntaxError(f"line {lineno}: non-optional column '{F.TEST}' missing")
+
+        regex = False
+        if isQuoted(target):
+            regex = True
+            target = target[1:-1]
+
         tree = ast.parse(expr, mode="eval")
-        cp = ConfigFunctionParser(tree.body, flagger)
-        to_call.append((cp.func, field, cp.kwargs, plot, lineno + 2, expr))
-    return to_call
+        func_name, kwargs = ConfigFunctionParser(flagger).parse(tree.body)
+        f = Func(
+            field=kwargs.get("field", target),
+            target=target,
+            name=func_name,
+            func=FUNC_MAP[func_name]["func"],
+            kwargs=kwargs,
+            regex=regex,
+            ctrl=FuncCtrl(
+                masking=FUNC_MAP[func_name]["masking"],
+                plot=plot,
+                lineno=lineno+2,
+                expr=expr
+            )
+        )
+        funcs.append(f)
+    return funcs
 
 
 def readConfig(fname, flagger):
@@ -89,6 +108,4 @@ def readConfig(fname, flagger):
     df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
     df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: "", np.nan: ""})
     df = df.astype({F.PLOT: bool})
-    df = _parseConfig(df, flagger)
-
-    return df
+    return _parseConfig(df, flagger)

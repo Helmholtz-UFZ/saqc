@@ -837,8 +837,36 @@ def proc_fork(data, field, flagger, suffix=ORIGINAL_SUFFIX, **kwargs):
         The flagger object, holding flags and additional Informations related to `data`.
         Flags shape may have changed relatively to the flagger input.
     """
+    return proc_copy(data, field, flagger, newfield=str(field) + suffix, **kwargs)
 
-    newfield = str(field) + suffix
+
+@register(masking='none')
+def proc_copy(data, field, flagger, newfield, **kwargs):
+    """
+    The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
+    data.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the data column, you want to fork (copy).
+    flagger : saqc.flagger.BaseFlagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    suffix: str
+        Substring to append to the forked data variables name.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        data shape may have changed relatively to the flagger input.
+    flagger : saqc.flagger.BaseFlagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags shape may have changed relatively to the flagger input.
+    """
+
     if newfield in flagger.flags.columns.union(data.columns):
         raise ValueError(f"{field}: field already exist")
 
