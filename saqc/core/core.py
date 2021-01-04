@@ -9,7 +9,8 @@ TODOS:
 
 import logging
 from copy import deepcopy
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple, Callable, Sequence
+from dataclasses import dataclass, replace
 
 import pandas as pd
 import dios
@@ -18,38 +19,35 @@ import timeit
 import inspect
 
 from saqc.lib.plotting import plotHook, plotAllHook
-from saqc.lib.tools import isQuoted
-from saqc.core.reader import readConfig
 from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 from saqc.core.register import FUNC_MAP
+from saqc.funcs.proc_functions import proc_copy
 
 
 logger = logging.getLogger("SaQC")
-
-from dataclasses import dataclass, replace
-from typing import List, Any, Dict, Callable
 
 
 @dataclass
 class FuncCtrl:
     "ctrl_kws"
-    to_mask: Any   # flagger.FLAG constants or a list of those
-    masking: str   # one of: "none", "field", "all"
+    masking: str          # one of: "none", "field", "all"
     plot: bool
-    inplace: bool
-    lineno: int
-    expr: str
+    lineno: Optional[int] = None
+    expr: Optional[str] = None
+    inplace: bool = False
+    to_mask: Any = None   # flagger.FLAG constants or a list of those
 
 
 @dataclass
 class Func:
     name: str
-    func: Any # Callable[[...], Any]  # SaQCFunc
+    func: Callable[[pd.DataFrame, str, BaseFlagger, Any], Tuple[pd.DataFrame, BaseFlagger]]
     field: str
-    regex: bool
-    args: List[Any]
     kwargs: Dict[str, Any]
     ctrl: FuncCtrl
+    regex: bool = False
+    target: Optional[str] = None
+    args: Tuple[Any] = tuple()
 
 
 def _handleErrors(exc, func, policy):
@@ -66,7 +64,7 @@ def _handleErrors(exc, func, policy):
         logger.warning(msg)
     else:
         logger.error(msg)
-        raise
+        raise exc
 
 
 def _prepInput(flagger, data, flags):
@@ -137,7 +135,7 @@ class SaQC:
         self._flagger = self._initFlagger(data, flagger, flags)
         self._error_policy = error_policy
         # NOTE: will be filled by calls to `_wrap`
-        self._to_call: List[Dict[str, Any]] = []
+        self._to_call: List[Func] = []  # todo fix the access everywhere
 
     def _initFlagger(self, data, flagger, flags):
         """ Init the internal flagger object.
@@ -155,20 +153,12 @@ class SaQC:
         return merged
 
     def readConfig(self, fname):
-
-        config = readConfig(fname, self._flagger)
-
+        from saqc.core.reader import readConfig
         out = deepcopy(self)
-        for func, field, kwargs, plot, lineno, expr in config:
-            if isQuoted(field):
-                kwargs["regex"] = True
-                field = field[1:-1]
-            kwargs["field"] = field
-            kwargs["plot"] = plot
-            out = out._wrap(func, lineno=lineno, expr=expr)(**kwargs)
+        out._to_call.extend(readConfig(fname, self._flagger))
         return out
 
-    def _expandFields(self, func, variables):
+    def _expandFields(self, func, variables) -> Sequence[Func]:
         if not func.regex:
             return [func]
 
@@ -248,9 +238,8 @@ class SaQC:
             return data.to_df(), flagger.toFrame()
         return data, flagger
 
-    def _wrap(self, func_name, lineno=None, expr=None):
-        def inner(field: str, *args, regex: bool = False, to_mask=None, plot=False, inplace=False, **kwargs):
-            # fields = [field] if not regex else self._data.columns[self._data.columns.str.match(field)]
+    def _wrap(self, func_name):
+        def inner(field: str, *args, target: str=None, regex: bool = False, to_mask=None, plot=False, inplace=False, **kwargs):
 
             kwargs.setdefault('nodata', self._nodata)
 
@@ -261,14 +250,13 @@ class SaQC:
                 to_mask=to_mask or self._to_mask,
                 plot=plot,
                 inplace=inplace,
-                lineno=lineno,
-                expr=expr,
                 )
 
             func_dump = Func(
                 name=func_name,
                 func=func,
                 field=field,
+                target=target if target is not None else field,
                 regex=regex,
                 args=args,
                 kwargs=kwargs,
@@ -305,8 +293,13 @@ def _saqcCallFunc(func_dump, data, flagger):
     assert data.columns.difference(flagger.getFlags().columns).empty
 
     field = func_dump.field
+    target = func_dump.target
     to_mask = func_dump.ctrl.to_mask
     masking = func_dump.ctrl.masking
+
+    if (target != field) and (func_dump.regex is False):
+        data, flagger = proc_copy(data, field, flagger, target)
+        field = target
 
     if masking == 'all':
         columns = data.columns

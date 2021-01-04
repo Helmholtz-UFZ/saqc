@@ -34,8 +34,8 @@ def data_diff():
 
 def _compileGeneric(expr, flagger):
     tree = ast.parse(expr, mode="eval")
-    cp = ConfigFunctionParser(tree.body, flagger)
-    return cp.kwargs["func"]
+    _, kwargs = ConfigFunctionParser(flagger).parse(tree.body)
+    return kwargs["func"]
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

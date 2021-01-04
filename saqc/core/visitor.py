@@ -136,7 +136,7 @@ class ConfigFunctionParser(ast.NodeVisitor):
         ast.List,
     )
 
-    def __init__(self, node, flagger):
+    def __init__(self, flagger):
 
         self.kwargs = {}
         self.environment = {
@@ -145,7 +145,10 @@ class ConfigFunctionParser(ast.NodeVisitor):
             "UNFLAGGED": flagger.UNFLAGGED,
             **ENVIRONMENT,
         }
-        self.func = self.visit_Call(node)
+
+    def parse(self, node):
+        func = self.visit_Call(node)
+        return func, self.kwargs
 
     def visit_Call(self, node):
         if not isinstance(node, ast.Call):
@@ -203,7 +206,6 @@ class ConfigFunctionParser(ast.NodeVisitor):
         )
         # NOTE: only pass a copy to not clutter the self.environment
         exec(co, {**self.environment}, self.kwargs)
-
 
         # let's do some more validity checks
         if check_tree:
