@@ -27,7 +27,7 @@ from pandas.api.types import is_integer, is_bool
 from pandas.api.indexers import BaseIndexer
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.core.window.indexers import calculate_variable_window_bounds
-from pandas.core.window.rolling import Rolling, Window, calculate_center_offset
+from pandas.core.window.rolling import Rolling, Window
 
 
 def is_slice(k): return isinstance(k, slice)
@@ -141,7 +141,9 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
 
     def _get_bounds(self, num_values=0, min_periods=None, center=False, closed=None):
         # closed is always ignored and handled as 'both' other cases not implemented
-        offset = calculate_center_offset(self.window_size) if center else 0
+        offset = 0
+        if center:
+            offset = (self.window_size - 1) // 2
         num_values += offset
 
         if self.forward:
