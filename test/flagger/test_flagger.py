@@ -533,12 +533,12 @@ def test_loc(data, flagger, flaggerfunc):
     chunk = data.loc[sl, field]
     d = data.loc[sl]
     if d.empty:
-        mask = []
-    else:
-        m = data[field].index.get_loc(d[field].index[0])
-        M = data[field].index.get_loc(d[field].index[-1])
-        mask = np.full(len(data[field]), False)
-        mask[m:M] = True
+        return
+
+    m = data[field].index.get_loc(d[field].index[0])
+    M = data[field].index.get_loc(d[field].index[-1])
+    mask = np.full(len(data[field]), False)
+    mask[m:M] = True
 
     flagger_func = getattr(flagger, flaggerfunc)
 
@@ -547,6 +547,7 @@ def test_loc(data, flagger, flaggerfunc):
     mflags1 = flagger_func().loc[mask, field]
     mflags2 = flagger_func(field).loc[mask]
     mflags3 = flagger_func(loc=mask)[field]
+
     assert (mflags0 == mflags1).all()
     assert (mflags0 == mflags2).all()
     assert (mflags0 == mflags3).all()
