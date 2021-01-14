@@ -61,8 +61,6 @@
 
 # 1.4
 
-coming soon ...
-
 ## Features
 - added the data processing module `proc_functions`
 - `flagCrossValidation` implemented
@@ -80,3 +78,15 @@ coming soon ...
 
 ## Breaking Changes
 - register is now a decorator instead of a wrapper
+
+# 1.5
+
+coming soon ...
+
+## Features
+
+## Bugfixes
+
+## Refactorings
+
+## Breaking Changes
