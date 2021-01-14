@@ -1,0 +1,5 @@
+recommonmark
+sphinx
+sphinx-automodapi
+sphinxcontrib-fulltoc
+sphinx-markdown-tables

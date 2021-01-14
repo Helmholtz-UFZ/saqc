@@ -61,7 +61,28 @@
 
 # 1.4
 
-coming soon ...
+## Features
+- added the data processing module `proc_functions`
+- `flagCrossValidation` implemented
+- CLI: added support for parquet files
+
+## Bugfixes
+- `spikes_flagRaise` - overestimation of value courses average fixed
+- `spikes_flagRaise` - raise check window now closed on both sides
+
+## Refactorings
+- renamed `spikes_oddWater` to `spikes_flagMultivarScores`
+- added STRAY auto treshing algorithm to `spikes_flagMultivarScores`
+- added "unflagging" - postprocess to `spikes_flagMultivarScores`
+- improved and extended masking
+
+## Breaking Changes
+- register is now a decorator instead of a wrapper
+
+
+# 1.5
+
+coming soon...
 
 ## Features
 

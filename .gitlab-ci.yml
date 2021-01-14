@@ -1,3 +1,6 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
 before_script:
   - export DEBIAN_FRONTEND=noninteractive
   - apt-get -qq update
@@ -11,24 +14,14 @@ before_script:
   - eval "$(pyenv init -)"
 
 
-test:python36:
-  script:
-    - pyenv install 3.6.9
-    - pyenv shell 3.6.9
-    - pip install --upgrade pip
-    - pip install -r requirements.txt
-    - python -m pytest test
-    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv
-
-
 test:python37:
   script:
     - pyenv install 3.7.5
     - pyenv shell 3.7.5
     - pip install --upgrade pip
     - pip install -r requirements.txt
-    - python -m pytest test
-    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv
+    - python -m pytest --ignore test/lib test
+    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
 test:python38:
@@ -37,5 +30,23 @@ test:python38:
     - pyenv shell 3.8.0
     - pip install --upgrade pip
     - pip install -r requirements.txt
-    - python -m pytest test
-    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv
+    - python -m pytest --ignore test/lib test
+    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
+
+# Make html docu with sphinx
+pages:
+  stage: deploy
+  script:
+    - pyenv install 3.8.0
+    - pyenv shell 3.8.0
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - cd sphinx-doc/
+    - pip install -r requirements_sphinx.txt
+    - make html
+    - cp -r _build/html ../public
+  artifacts:
+    paths:
+      - public
+  only:
+    - develop

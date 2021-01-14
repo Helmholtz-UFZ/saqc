@@ -14,6 +14,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://git.ufz.de/rdm-software/saqc",
     packages=find_packages(),
+    python_requires='>=3.7',
     install_requires=[
         "numpy",
         "pandas",
@@ -25,6 +26,7 @@ setup(
         "pyarrow",
         "python-intervals",
         "astor",
+        "dios"
     ],
     license="GPLv3",
     entry_points={"console_scripts": ["saqc=saqc.__main__:main"],},
