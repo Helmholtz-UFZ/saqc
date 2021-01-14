@@ -75,7 +75,7 @@ def trainML(
 
     def _refCalc(reference, window_values):
         # Helper function for calculation of moving window values
-        outdata = pd.DataFrame()
+        outdata = dios.DictOfSeries()
         name = reference.name
         # derive gradients from reference series
         outdata[name + "_Dt_1"] = reference - reference.shift(1)  # gradient t vs. t-1
@@ -97,7 +97,7 @@ def trainML(
     # define Test/Training
     data = data.assign(TeTr="Tr")
     # create empty df for training data
-    traindata = pd.DataFrame()
+    traindata = dios.DictOfSeries()
     # calculate windows
     for sensor_id in data[sensor_field].unique():
         print(sensor_id)
@@ -194,7 +194,7 @@ def trainML(
 
     endtime = time.time()
     print("TIME ELAPSED: " + str(datetime.timedelta(seconds=endtime - starttime)) + " hours")
-    outinfo_df = pd.DataFrame.from_records(
+    outinfo_df = dios.DictOfSeries.from_records(
         outinfo_df,
         columns=[
             group_field,

@@ -7,9 +7,11 @@ A collection of unrelated quality check functions.
 - [flagRange](#flagrange)
 - [flagSeasonalRange](#flagseasonalrange)
 - [flagIsolated](#flagisolated)
+- [flagPattern](#flagpattern)
 - [flagMissing](#flagmissing)
 - [clearFlags](#clearflags)
 - [forceFlags](#forceflags)
+
 
 
 ## flagRange
@@ -88,8 +90,31 @@ flagMissing(nodata=NaN)
 | --------- | ---------- | -------------- | -----------                       |
 | nodata    | any        | `NAN`          | A value that defines missing data |
 
-
 The function flags all values indicating missing data.
+
+
+
+
+## flagPattern
+
+```                            
+flagPattern(ref_datafield, sample_freq = '15 Min', method = 'dtw', min_distance = None)
+``` 
+
+
+| parameter             | data type                                                     | default value | description                                                                                                                                                |
+|-----------------------|---------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ref_datafield         | string                                                        |               |Name of the reference datafield = "pattern"                                           |
+| sample_freq         | string                                                         | `"15 Min"`        |Sample frequency to harmonize the data                                   |
+| method                | string                                                        | `"dtw "`      |"dtw" for Dynamic Time Warping (DTW), "wavelet" for Wavelet Pattern Recognition Algorithm                                                          |
+| min_distance          | float                                                         | `None`        |For DTW - alogrithm: the minimum distance of two graphs in order to be classified as "different"                                      |
+
+
+Implementation of the pattern recognition algorithms introduced in [Pattern Recognition](https://git.ufz.de/rdm-software/saqc/-/wikis/Pattern-Recognition). 
+
+
+
+
 
 ## clearFlags
 

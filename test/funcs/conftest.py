@@ -2,6 +2,8 @@ import pytest
 import numpy as np
 import pandas as pd
 
+from dios import DictOfSeries
+
 
 @pytest.fixture
 def char_dict():
@@ -10,7 +12,9 @@ def char_dict():
         "drop": pd.DatetimeIndex([]),
         "peak": pd.DatetimeIndex([]),
         "return": pd.DatetimeIndex([]),
+        "missing": pd.DatetimeIndex([]),
     }
+
 
 
 @pytest.fixture
@@ -26,17 +30,19 @@ def course_1(char_dict):
         peak_level=10,
         initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
         char_dict=char_dict,
+        name='data'
     ):
 
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
-        data = np.append(
-            np.linspace(initial_level, peak_level, int(np.floor(len(t_index) / 2))),
-            np.linspace(peak_level, initial_level, int(np.ceil(len(t_index) / 2))),
-        )
-        data = pd.DataFrame(data=data, index=t_index, columns=["data"])
-        char_dict["raise"] = data.index[1 : int(np.floor(len(t_index) / 2))]
-        char_dict["drop"] = data.index[int(np.floor(len(t_index) / 2) + 1) :]
-        char_dict["peak"] = data.index[int(np.floor(len(t_index) / 2)) - 1 : int(np.floor(len(t_index) / 2)) + 1]
+        left = np.linspace(initial_level, peak_level, int(np.floor(len(t_index) / 2)))
+        right = np.linspace(peak_level, initial_level, int(np.ceil(len(t_index) / 2)))
+        s = pd.Series(np.append(left, right), index=t_index)
+
+        char_dict["raise"] = s.index[1 : int(np.floor(len(t_index) / 2))]
+        char_dict["drop"] = s.index[int(np.floor(len(t_index) / 2) + 1) :]
+        char_dict["peak"] = s.index[int(np.floor(len(t_index) / 2)) - 1 : int(np.floor(len(t_index) / 2)) + 1]
+
+        data = DictOfSeries(data=s, columns=[name])
         return data, char_dict
 
     return fix_funk
@@ -57,7 +63,6 @@ def course_2(char_dict):
         initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
         char_dict=char_dict,
     ):
-
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
         data = np.linspace(initial_level, final_level, int(np.floor(len(t_index))))
 
@@ -66,15 +71,36 @@ def course_2(char_dict):
 
         if out_val > data.iloc[int(np.floor(periods / 2) - 1)]:
             kind = "raise"
-
         else:
             kind = "drop"
 
         char_dict[kind] = data.index[int(np.floor(periods / 2))]
         char_dict["return"] = data.index[int(np.floor(len(t_index) / 2)) + 1]
-        return data.to_frame("data"), char_dict
+
+        data = DictOfSeries(data=data, columns=["data"])
+        return data, char_dict
 
     return fix_funk
+
+
+@pytest.fixture
+def course_test(char_dict):
+    # Test function for pattern detection - same as test pattern for first three values, than constant function
+    def fix_funk(freq='1 D',
+                 initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), out_val=5, char_dict=char_dict):
+
+        t_index = pd.date_range(initial_index, freq=freq, periods=100)
+
+        data = pd.Series(data=0, index=t_index)
+        data.iloc[2] = out_val
+        data.iloc[3] = out_val
+
+
+        data = DictOfSeries(data=data, columns=['data'])
+        return data, char_dict
+
+    return fix_funk
+
 
 
 @pytest.fixture
@@ -101,31 +127,36 @@ def course_3(char_dict):
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
         data = np.linspace(initial_level, final_level, int(np.floor(len(t_index))))
         data = pd.Series(data=data, index=t_index)
+
         ind1 = data.index[int(np.floor(periods / 2))]
-        insertion_index = pd.DatetimeIndex(
-            [ind1 + crowd_spacing * pd.Timedelta(str(k) + "min") for k in range(1, crowd_size + 1)]
-        )
+        dates = [ind1 + crowd_spacing * pd.Timedelta(f"{k}min") for k in range(1, crowd_size + 1)]
+        insertion_index = pd.DatetimeIndex(dates)
+
         data.iloc[int(np.floor(periods / 2))] = out_val
         data = data.append(pd.Series(data=out_val, index=insertion_index))
         data.sort_index(inplace=True)
         anomaly_index = insertion_index.insert(0, data.index[int(np.floor(periods / 2))])
+
         if out_val > data.iloc[int(np.floor(periods / 2) - 1)]:
             kind = "raise"
         else:
             kind = "drop"
+
         char_dict[kind] = anomaly_index
         char_dict["return"] = t_index[int(len(t_index) / 2) + 1]
-        return data.to_frame("data"), char_dict
+
+        data = DictOfSeries(data=data, columns=["data"])
+        return data, char_dict
 
     return fix_funk
 
 
 @pytest.fixture
 def course_4(char_dict):
-    # TEETH (ROW OF SPIKES)
-    # values , that remain on value level "base_level" and than begin exposing an outlierish or spikey value of magnitude
-    # "out_val" every second timestep, starting at periods/2, with the first spike.
-    # number of periods better be even!
+    # TEETH (ROW OF SPIKES) values , that remain on value level "base_level" and than begin exposing an outlierish or
+    # spikey value of magnitude "out_val" every second timestep, starting at periods/2, with the first spike. number
+    # of periods better be even!
+
     def fix_funk(
         freq="10min",
         periods=10,
@@ -136,11 +167,43 @@ def course_4(char_dict):
     ):
 
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
-
         data = pd.Series(data=base_level, index=t_index)
         data[int(len(t_index) / 2) :: 2] = out_val
         char_dict["raise"] = t_index[int(len(t_index) / 2) :: 2]
         char_dict["return"] = t_index[int((len(t_index) / 2) + 1) :: 2]
-        return data.to_frame("data"), char_dict
+
+        data = DictOfSeries(data=data, columns=["data"])
+        return data, char_dict
 
     return fix_funk
+
+
+@pytest.fixture
+def course_5(char_dict):
+    # NAN_holes
+    # values , that ascend from initial_level to final_level linearly and have missing data(=nan)
+    # at posiiotns "nan_slice", (=a slice or a list, for iloc indexing)
+    # periods better be even!
+    # periods better be greater 5
+
+    def fix_funk(
+        freq="10min",
+        periods=10,
+        nan_slice=slice(0, None, 5),
+        initial_level=0,
+        final_level=10,
+        initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
+        char_dict=char_dict,
+    ):
+        t_index = pd.date_range(initial_index, freq=freq, periods=periods)
+        values = np.linspace(initial_level, final_level, periods)
+        s = pd.Series(values, index=t_index)
+        s.iloc[nan_slice] = np.nan
+        char_dict["missing"] = s.iloc[nan_slice].index
+
+        data = DictOfSeries(data=s, columns=["data"])
+        return data, char_dict
+
+    return fix_funk
+
+

@@ -1,15 +1,19 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-import subprocess
+
 import json
 from copy import deepcopy
-from collections import OrderedDict
-from typing import Union, Sequence
+from typing import TypeVar, Optional, List
 
 import pandas as pd
 
+import dios
+
+from saqc.flagger.baseflagger import diosT
 from saqc.flagger.categoricalflagger import CategoricalFlagger
-from saqc.lib.tools import assertDataFrame, toSequence, assertScalar
+from saqc.lib.tools import assertScalar, mergeDios, mutateIndex
+
+DmpFlaggerT = TypeVar("DmpFlaggerT")
 
 
 class Keywords:
@@ -31,86 +35,214 @@ FLAGS = ["NIL", "OK", "DOUBTFUL", "BAD"]
 
 
 class DmpFlagger(CategoricalFlagger):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__(FLAGS)
         self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
-        version = subprocess.run(
-            "git describe --tags --always --dirty", shell=True, check=False, stdout=subprocess.PIPE,
-        ).stdout
-        self.project_version = version.decode().strip()
+        self.extra_defaults = dict(cause=FLAGS[0], comment="")
         self.signature = ("flag", "comment", "cause", "force")
-        self._flags = None
 
-    def initFlags(self, data: pd.DataFrame = None, flags: pd.DataFrame = None):
+        self._global_comments = kwargs
+        self._flags = None
+        self._causes = None
+        self._comments = None
+
+    @property
+    def causes(self):
+        return self._causes
+
+    @property
+    def comments(self):
+        return self._comments
+
+    def toFrame(self):
+        out = pd.concat(
+            [self._flags.to_df(), self._causes.to_df(), self._comments.to_df()],
+            axis=1,
+            keys=[FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT],
+        )
+        out = out.reorder_levels(order=[1, 0], axis=1).sort_index(axis=1, level=0, sort_remaining=False)
+        return out
+
+    def initFlags(self, data: dios.DictOfSeries = None, flags: dios.DictOfSeries = None):
         """
         initialize a flagger based on the given 'data' or 'flags'
         if 'data' is not None: return a flagger with flagger.UNFALGGED values
         if 'flags' is not None: return a flagger with the given flags
         """
 
-        if data is not None:
-            flags = pd.DataFrame(data="", columns=self._getColumnIndex(data.columns), index=data.index,)
-            flags.loc[:, self._getColumnIndex(data.columns, [FlagFields.FLAG])] = self.UNFLAGGED
-        elif flags is not None:
-            if not isinstance(flags.columns, pd.MultiIndex):
-                cols = flags.columns
-                flags = flags.copy()
-                flags.columns = self._getColumnIndex(cols, [FlagFields.FLAG])
-                flags = flags.reindex(columns=self._getColumnIndex(cols), fill_value="")
+        # implicit set self._flags, and make deepcopy of self aka. DmpFlagger
+        newflagger = super().initFlags(data=data, flags=flags)
+        newflagger._causes = newflagger._flags.astype(str)
+        newflagger._comments = newflagger._flags.astype(str)
+        newflagger._causes[:], newflagger._comments[:] = "", ""
+        return newflagger
+
+    def slice(self, field=None, loc=None, drop=None, inplace=False):
+        newflagger = super().slice(field=field, loc=loc, drop=drop, inplace=inplace)
+        flags = newflagger._flags
+        newflagger._causes = self._causes.aloc[flags, ...]
+        newflagger._comments = self._comments.aloc[flags, ...]
+        return newflagger
+
+    def merge(self, other: DmpFlaggerT, subset: Optional[List] = None, join: str = "merge", inplace=False):
+        assert isinstance(other, DmpFlagger)
+        flags = mergeDios(self._flags, other._flags, subset=subset, join=join)
+        causes = mergeDios(self._causes, other._causes, subset=subset, join=join)
+        comments = mergeDios(self._comments, other._comments, subset=subset, join=join)
+        if inplace:
+            self._flags = flags
+            self._causes = causes
+            self._comments = comments
+            return self
         else:
-            raise TypeError("either 'data' or 'flags' are required")
+            return self._construct_new(flags, causes, comments)
 
-        return self._copy(self._assureDtype(flags))
+    def getFlags(self, field=None, loc=None, full=False):
+        # loc should be a valid 2D-indexer and
+        # then field must be None. Otherwise aloc
+        # will fail and throw the correct Error.
+        if isinstance(loc, diosT) and field is None:
+            indexer = loc
+        else:
+            loc = slice(None) if loc is None else loc
+            field = slice(None) if field is None else self._check_field(field)
+            indexer = (loc, field)
 
-    def getFlagger(self, field=None, loc=None, iloc=None):
-        # NOTE: we need to preserve all indexing levels
-        assertScalar("field", field, optional=True)
-        variables = self._flags.columns.get_level_values(ColumnLevels.VARIABLES).drop_duplicates()
-        cols = toSequence(field, variables)
-        out = super().getFlagger(field, loc, iloc)
-        out._flags.columns = self._getColumnIndex(cols)
+        # this is a bug in `dios.aloc`, which may return a shallow copied dios, if `slice(None)` is passed
+        # as row indexer. Thus is because pandas `.loc` return a shallow copy if a null-slice is passed to a series.
+        flags = self._flags.aloc[indexer].copy()
+
+        if full:
+            causes = self._causes.aloc[indexer].copy()
+            comments = self._comments.aloc[indexer].copy()
+            return flags, dict(cause=causes, comment=comments)
+        else:
+            return flags
+
+    def setFlags(
+        self,
+        field,
+        loc=None,
+        flag=None,
+        cause="OTHER",
+        comment="",
+        force=False,
+        inplace=False,
+        with_extra=False,
+        flag_after=None,
+        flag_before=None,
+        win_flag=None,
+        **kwargs
+    ):
+        assert "iloc" not in kwargs, "deprecated keyword, iloc"
+        assertScalar("field", self._check_field(field), optional=False)
+
+        out = self if inplace else deepcopy(self)
+
+        if with_extra:
+            for val in [comment, cause, flag]:
+                if not isinstance(val, pd.Series):
+                    raise TypeError(f"`flag`, `cause`, `comment` must be pd.Series, if `with_extra=True`.")
+            assert flag.index.equals(comment.index) and flag.index.equals(cause.index)
+
+        else:
+            flag = self.BAD if flag is None else flag
+            comment = json.dumps(
+                {**self._global_comments,
+                 "comment": comment,
+                 "test": kwargs.get("func_name", "")}
+            )
+
+        flags = self.getFlags(field=field, loc=loc)
+        if force:
+            mask = pd.Series(True, index=flags.index, dtype=bool)
+        else:
+            mask = flags < flag
+
+        # set flags of the test
+        out._flags.aloc[mask, field] = flag
+        out._causes.aloc[mask, field] = cause
+        out._comments.aloc[mask, field] = comment
+
+        # calc and set window flags
+        if flag_after is not None or flag_before is not None:
+            win_mask, win_flag = self._getWindowMask(field, mask, flag_after, flag_before, win_flag, flag, force)
+            out._flags.aloc[win_mask, field] = win_flag
+            out._causes.aloc[win_mask, field] = cause
+            out._comments.aloc[win_mask, field] = comment
+
         return out
 
-    def getFlags(self, field=None, loc=None, iloc=None):
-        assertScalar("field", field, optional=True)
-        field = field or slice(None)
-        mask = self._locatorMask(field, loc, iloc)
-        flags = self._flags.xs(FlagFields.FLAG, level=ColumnLevels.FLAGS, axis=1).copy()
-        return super()._assureDtype(flags.loc[mask, field])
+    def replaceField(self, field, flags, inplace=False, cause=None, comment=None, **kwargs):
+        """ Replace or delete all data for a given field.
 
-    def setFlags(self, field, loc=None, iloc=None, flag=None, force=False, comment="", cause="", **kwargs):
-        assertScalar("field", field, optional=True)
+        Parameters
+        ----------
+        field : str
+            The field to replace / delete. If the field already exist, the respected data
+            is replaced, otherwise the data is inserted in the respected field column.
+        flags : pandas.Series or None
+            If None, the series denoted by `field` will be deleted. Otherwise
+            a series of flags (dtype flagger.dtype) that will replace the series
+            currently stored under `field`
+        causes : pandas.Series
+            A series of causes (dtype str).
+        comments : pandas.Series
+            A series of comments (dtype str).
+        inplace : bool, default False
+            If False, a flagger copy is returned, otherwise the flagger is not copied.
+        **kwargs : dict
+            ignored.
 
-        flag = self.BAD if flag is None else self._checkFlag(flag)
+        Returns
+        -------
+        flagger: saqc.flagger.BaseFlagger
+            The flagger object or a copy of it (if inplace=True).
 
-        comment = json.dumps({"comment": comment, "commit": self.project_version, "test": kwargs.get("func_name", ""),})
+        Raises
+        ------
+        ValueError: (delete) if field does not exist
+        TypeError: (replace / insert) if flags, causes, comments are not pd.Series
+        AssertionError: (replace / insert) if flags, causes, comments does not have the same index
 
-        this = self.getFlags(field=field)
-        other = self._broadcastFlags(field=field, flag=flag)
-        mask = self._locatorMask(field, loc, iloc)
-        if not force:
-            mask &= (this < other).values
+        Notes
+        -----
+        If deletion is requested (`flags=None`), `causes` and `comments` are don't-care.
 
-        out = deepcopy(self)
-        out._flags.loc[mask, field] = other[mask], cause, comment
+        Flags, causes and comments must have the same index, if flags is not None, also
+        each is casted implicit to the respected dtype.
+        """
+        assertScalar("field", field, optional=False)
+        out = self if inplace else deepcopy(self)
+        causes, comments = cause, comment
+
+        # delete
+        if flags is None:
+            if field not in self._flags:
+                raise ValueError(f"{field}: field does not exist")
+            del out._flags[field]
+            del out._comments[field]
+            del out._causes[field]
+
+        # insert / replace
+        else:
+            for val in [flags, causes, comments]:
+                if not isinstance(val, pd.Series):
+                    raise TypeError(f"`flag`, `cause`, `comment` must be pd.Series.")
+            assert flags.index.equals(comments.index) and flags.index.equals(causes.index)
+            out._flags[field] = flags.astype(self.dtype)
+            out._causes[field] = causes.astype(str)
+            out._comments[field] = comments.astype(str)
         return out
 
-    def _getColumnIndex(
-        self, cols: Union[str, Sequence[str]], fields: Union[str, Sequence[str]] = None
-    ) -> pd.MultiIndex:
-        cols = toSequence(cols)
-        fields = toSequence(fields, self.flags_fields)
-        return pd.MultiIndex.from_product([cols, fields], names=[ColumnLevels.VARIABLES, ColumnLevels.FLAGS])
+    def _construct_new(self, flags, causes, comments) -> DmpFlaggerT:
+        new = DmpFlagger()
+        new._global_comments = self._global_comments
+        new._flags = flags
+        new._causes = causes
+        new._comments = comments
+        return new
 
-    def _assureDtype(self, flags):
-        # NOTE: building up new DataFrames is significantly
-        #       faster than assigning into existing ones
-        tmp = OrderedDict()
-        for (var, flag_field) in flags.columns:
-            col_data = flags[(var, flag_field)]
-            if flag_field == FlagFields.FLAG:
-                col_data = col_data.astype(self.dtype)
-            else:
-                col_data = col_data.astype(str)
-            tmp[(var, flag_field)] = col_data
-        return pd.DataFrame(tmp, columns=flags.columns, index=flags.index)
+    @property
+    def SUSPICIOUS(self):
+        return FLAGS[-2]
