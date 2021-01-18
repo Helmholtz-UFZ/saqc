@@ -115,7 +115,7 @@ def flagByStray(
 
 def _evalStrayLabels(
     data, field, flagger, fields, reduction_range, reduction_drop_flagged=False, reduction_thresh=3.5,
-        reduction_min_periods=1, at_least_one=True
+        reduction_min_periods=1, at_least_one=True, **kwargs
 ):
     """
     The function "reduces" an observations flag to components of it, by applying MAD (See references)
@@ -202,7 +202,7 @@ def _evalStrayLabels(
         to_flag_frame[~to_flag_frame.any(axis=1)] = True
 
     for field in to_flag_frame.columns:
-        flagger = flagger.setFlags(field, loc=to_flag_frame[field][to_flag_frame[field]].index)
+        flagger = flagger.setFlags(field, loc=to_flag_frame[field][to_flag_frame[field]].index, **kwargs)
 
     return data, flagger
 

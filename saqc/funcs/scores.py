@@ -11,7 +11,7 @@ from saqc.core.register import register
 @register(masking='all')
 def assignKNNScore(data, field, flagger, fields, n_neighbors=10, trafo=lambda x: x, trafo_on_partition=True,
                    scoring_func=np.sum, target_field='kNN_scores', partition_freq=np.inf, partition_min=2,
-                   kNN_algorithm='ball_tree', metric='minkowski', p=2, radius=None):
+                   kNN_algorithm='ball_tree', metric='minkowski', p=2, radius=None, **kwargs):
     """
     Score datapoints by an aggregation of the dictances to their k nearest neighbors.
 
