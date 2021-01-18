@@ -129,7 +129,7 @@ and paste the following lines into it:
 	
 	varname;test;plot
 	SM2;flagRange(min=10, max=60);False
-	SM2;spikes_flagMad(window="30d", z=3.5);True
+	SM2;flagMad(window="30d", z=3.5);True
 
 These lines illustrate how different quality control tests can be specified for
 different variables by following the pattern:
@@ -188,10 +188,10 @@ So, what do we see here?
 
 * The plot shows the data as well as the quality flags that were set by the
   tests for the variable `SM2`, as defined in the config-file
-* Following our definition in the config-file, first the `range`-test that flags
+* Following our definition in the config-file, first the `flagRange`-test that flags
   all values outside the range [10,60] was executed and after that,
-  the `spikes_simpleMad`-test to identify spikes in the data
-* In the config, we set the plotting option to `True` for `spikes_simpleMad`,
+  the `flagMad`-test to identify spikes in the data
+* In the config, we set the plotting option to `True` for `flagMad`,
   only. Thus, the plot aggregates all preceeding tests (here: `range`) to black
   points and highlights the flags of the selected test as red points.
 
@@ -226,7 +226,7 @@ range-test:
 	
 	varname;test;plot
 	SM2;flagRange(min=-20, max=60);False
-	SM2;spikes_flagMad(window="30d", z=3.5);True
+	SM2;flagMad(window="30d", z=3.5);True
 Rerunning SaQC as above produces the following plot:
 
 ![Changing the config](../ressources/images/example_plot_2.png "Changing the config")
@@ -245,8 +245,8 @@ something like this:
 	varname;test;plot
 	SM1;flagRange(min=10, max=60);False
 	SM2;flagRange(min=10, max=60);False
-	SM1;spikes_flagMad(window="15d", z=3.5);True
-	SM2;spikes_flagMad(window="30d", z=3.5);True
+	SM1;flagMad(window="15d", z=3.5);True
+	SM2;flagMad(window="30d", z=3.5);True
 
 which gives you separate plots for each line where the plotting option is set to
 `True` as well as one summary "data plot" that depicts the joint flags from all
@@ -265,8 +265,8 @@ series. Also, you can write your own tests using a python-based
 [extension language](docs/GenericFunctions.md). This would look like this:
 
 	varname;test;plot
-	SM2;harm_shift2Grid(freq="15Min");False
-	SM2;flagGeneric(func=(SM2 < 30));True
+	SM2;shiftToFreq(freq="15Min");False
+	SM2;generic(func=(SM2 < 30));True
 
 The above executes an internal framework that harmonizes the timestamps of SM2
 to a 15min-grid (see data below). Further information about this routine can be

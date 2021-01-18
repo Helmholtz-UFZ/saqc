@@ -34,7 +34,7 @@ def test_masking(data, flagger):
     # if masking works, `data > max` will be masked,
     # so the following will deliver True for in range (data < max),
     # otherwise False, like an inverse range-test
-    qc = qc.procGeneric("dummy", func=lambda var1: var1 >= mn)
+    qc = qc.process("dummy", func=lambda var1: var1 >= mn)
 
     pdata, pflagger = qc.getResult(raw=True)
     out_of_range = pflagger.isFlagged(var1)

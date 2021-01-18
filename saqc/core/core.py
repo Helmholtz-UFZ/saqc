@@ -21,7 +21,7 @@ import inspect
 from saqc.lib.plotting import plotHook, plotAllHook
 from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
 from saqc.core.register import FUNC_MAP
-from saqc.funcs.proc_functions import proc_copy
+from saqc.funcs.tools import copy
 
 
 logger = logging.getLogger("SaQC")
@@ -298,7 +298,7 @@ def _saqcCallFunc(func_dump, data, flagger):
     masking = func_dump.ctrl.masking
 
     if (target != field) and (func_dump.regex is False):
-        data, flagger = proc_copy(data, field, flagger, target)
+        data, flagger = copy(data, field, flagger, target)
         field = target
 
     if masking == 'all':

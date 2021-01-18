@@ -12,7 +12,7 @@ from saqc.lib.tools import customRoller
 
 
 @register(masking='field')
-def flagPattern_wavelet(data, field, flagger, ref_field, widths=(1, 2, 4, 8), waveform='mexh', **kwargs):
+def flagPatternByDTW(data, field, flagger, ref_field, widths=(1, 2, 4, 8), waveform='mexh', **kwargs):
     """
     Pattern recognition via wavelets.
 
@@ -89,7 +89,7 @@ def flagPattern_wavelet(data, field, flagger, ref_field, widths=(1, 2, 4, 8), wa
 
 
 @register(masking='field')
-def flagPattern_dtw(data, field, flagger, ref_field, max_distance=0.03, normalize=True, **kwargs):
+def flagPatternByWavelet(data, field, flagger, ref_field, max_distance=0.03, normalize=True, **kwargs):
     """ Pattern Recognition via Dynamic Time Warping.
 
     The steps are:

@@ -4,7 +4,7 @@
 import pytest
 from dios import dios
 
-from saqc.funcs.pattern_rec import *
+from saqc.funcs.pattern import *
 from test.common import initData, TESTFLAGGER
 
 
@@ -28,7 +28,7 @@ def test_flagPattern_wavelet(flagger):
     data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
 
     flagger = flagger.initFlags(data)
-    data, flagger = flagPattern_wavelet(data, "data", flagger, ref_field="pattern_data")
+    data, flagger = flagPatternByDTW(data, "data", flagger, ref_field="pattern_data")
     assert (flagger.isFlagged("data")[1:6]).all()
     assert (flagger.isFlagged("data")[:1]).any()
     assert (flagger.isFlagged("data")[7:]).any()
@@ -44,7 +44,7 @@ def test_flagPattern_dtw(flagger):
     data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
 
     flagger = flagger.initFlags(data)
-    data, flagger = flagPattern_dtw(data, "data", flagger, ref_field="pattern_data")
+    data, flagger = flagPatternByWavelet(data, "data", flagger, ref_field="pattern_data")
     assert (flagger.isFlagged("data")[1:6]).all()
     assert (flagger.isFlagged("data")[:1]).any()
     assert (flagger.isFlagged("data")[7:]).any()

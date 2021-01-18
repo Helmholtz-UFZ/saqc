@@ -1,114 +1,98 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
+import saqc.lib.ts_operators as ts_ops
 import numpy as np
 import pandas as pd
-from scipy.signal import savgol_filter
-from scipy.stats import zscore
+
 from scipy.optimize import curve_fit
 from saqc.core.register import register
 import numpy.polynomial.polynomial as poly
 import numba
-import saqc.lib.ts_operators as ts_ops
 from saqc.lib.tools import (
-    retrieveTrustworthyOriginal,
-    offset2seconds,
-    slidingWindowIndices,
-    findIndex,
-    toSequence,
-    customRoller
+    customRoller,
+    findIndex
 )
+from saqc.funcs.scores import assignKNNScore
 from outliers import smirnov_grubbs
 
-def _stray(
-    val_frame,
+
+@register(masking='field')
+def flagByStray(
+    data,
+    field,
+    flagger,
     partition_freq=None,
     partition_min=11,
-    scoring_method="kNNMaxGap",
-    n_neighbors=10,
     iter_start=0.5,
     alpha=0.05,
-    trafo=lambda x: x
-
+    **kwargs
 ):
     """
-    Find outliers in multi dimensional observations.
+    Flag outliers in 1-dimensional (score) data with the STRAY Algorithm.
 
-    The general idea is to assigning scores to every observation based on the observations neighborhood in the space
-    of observations. Then, the gaps between the (greatest) scores are tested for beeing drawn from the same
-    distribution, as the majority of the scores.
-
-    See the References section for a link to a detailed description of the algorithm.
-
-    Note, that the flagging result depends on the size of the partition under test and the distribution of the outliers
-    in it. For "normalish" and/or slightly "erratic" datasets, 5000 - 10000, periods turned out to be a good guess.
-
-    Note, that no normalizations/transformations are applied to the different components (data columns)
-    - those are expected to be applied previously, if necessary.
+    Find more information on the algorithm in References [1].
 
     Parameters
     ----------
-    val_frame : (N,M) ndarray
-        Input NxM array of observations, where N is the number of observations and M the number of components per
-        observation.
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger.BaseFlagger
+        A flagger object, holding flags and additional Informations related to `data`.
     partition_freq : {None, str, int}, default None
-        Determines the size of the data partitions, the data is decomposed into. Each partition is checked seperately
-        for outliers. If a String is passed, it has to be an offset string and it results in partitioning the data into
-        parts of according temporal length. If an integer is passed, the data is simply split up into continous chunks
-        of `partition_freq` periods. if ``None`` is passed (default), all the data will be tested in one run.
+        partition_freq : {np.inf, float, str}, default np.inf
+        Determines the segmentation of the data into partitions, the kNN algorithm is
+        applied onto individually.
+
+        * ``np.inf``: Apply Scoring on whole data set at once
+        * ``x`` > 0 : Apply scoring on successive data chunks of periods length ``x``
+        * Offset String : Apply scoring on successive partitions of temporal extension matching the passed offset
+          string
+
     partition_min : int, default 0
         Minimum number of periods per partition that have to be present for a valid outlier dettection to be made in
         this partition. (Only of effect, if `partition_freq` is an integer.) Partition min value must always be
         greater then the nn_neighbors value.
-    scoring_method : {'kNNSum', 'kNNMaxGap'}, default 'kNNMaxGap'
-        Scoring method applied.
-        `'kNNSum'`: Assign to every point the sum of the distances to its 'n_neighbors' nearest neighbors.
-        `'kNNMaxGap'`: Assign to every point the distance to the neighbor with the "maximum gap" to its predecessor
-        in the hierarchy of the `n_neighbors` nearest neighbors. (see reference section for further descriptions)
-    n_neighbors : int, default 10
-        Number of neighbors included in the scoring process for every datapoint.
     iter_start : float, default 0.5
         Float in [0,1] that determines which percentage of data is considered "normal". 0.5 results in the stray
         algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
         information)
     alpha : float, default 0.05
-        Niveau of significance by which it is tested, if a score might be drawn from another distribution, than the
+        Level of significance by which it is tested, if a score might be drawn from another distribution, than the
         majority of the data.
 
     References
     ----------
-    Detailed description of the Stray algorithm is covered here:
-
     [1] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
         arXiv preprint arXiv:1908.04000.
     """
 
-    kNNfunc = getattr(ts_ops, scoring_method)
-    # partitioning
+    scores = data[field]
+    scores.dropna(inplace=True)
+    if scores.empty:
+        return data, flagger
+
     if not partition_freq:
-        partition_freq = val_frame.shape[0]
+        partition_freq = scores.shape[0]
 
     if isinstance(partition_freq, str):
-        partitions = val_frame.groupby(pd.Grouper(freq=partition_freq))
+        partitions = scores.groupby(pd.Grouper(freq=partition_freq))
     else:
-        grouper_series = pd.Series(data=np.arange(0, val_frame.shape[0]), index=val_frame.index)
+        grouper_series = pd.Series(data=np.arange(0, scores.shape[0]), index=scores.index)
         grouper_series = grouper_series.transform(lambda x: int(np.floor(x / partition_freq)))
-        partitions = val_frame.groupby(grouper_series)
+        partitions = scores.groupby(grouper_series)
 
     # calculate flags for every partition
     to_flag = []
     for _, partition in partitions:
         if partition.empty | (partition.shape[0] < partition_min):
             continue
-        partition = partition.apply(trafo)
         sample_size = partition.shape[0]
-        nn_neighbors = min(n_neighbors, max(sample_size, 2))
-        resids = kNNfunc(partition.values, n_neighbors=nn_neighbors - 1, algorithm="ball_tree")
-        sorted_i = resids.argsort()
-        resids = resids[sorted_i]
+        sorted_i = partition.values.argsort()
+        resids = partition.values[sorted_i]
         gaps = np.append(0, np.diff(resids))
-
         tail_size = int(max(min(50, np.floor(sample_size / 4)), 2))
         tail_indices = np.arange(2, tail_size + 1)
         i_start = int(max(np.floor(sample_size * iter_start), 1) + 1)
@@ -117,13 +101,110 @@ def _stray(
             ghat[i] = sum((tail_indices / (tail_size - 1)) * gaps[i - tail_indices + 1])
 
         log_alpha = np.log(1 / alpha)
+        trigger_flagging = False
         for iter_index in range(i_start - 1, sample_size):
             if gaps[iter_index] > log_alpha * ghat[iter_index]:
+                trigger_flagging = True
                 break
 
-        to_flag = np.append(to_flag, list(partition.index[sorted_i[iter_index:]]))
+        if trigger_flagging:
+            flagger = flagger.setFlags(field, loc=partition.index[sorted_i[iter_index:]])
 
-    return to_flag
+    return data, flagger
+
+
+def _evalStrayLabels(
+    data, field, flagger, fields, reduction_range, reduction_drop_flagged=False, reduction_thresh=3.5,
+        reduction_min_periods=1, at_least_one=True
+):
+    """
+    The function "reduces" an observations flag to components of it, by applying MAD (See references)
+    test onto every components temporal surrounding.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the labels to be evaluated.
+    flagger : saqc.flagger.BaseFlagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    fields : list[str]
+        A list of strings, holding the column names of the variables, the stray labels shall be
+        projected onto.
+    val_frame : (N,M) pd.DataFrame
+        Input NxM DataFrame of observations, where N is the number of observations and M the number of components per
+        observation.
+    to_flag_frame : pandas.DataFrame
+        Input dataframe of observations to be tested, where N is the number of observations and M the number
+        of components per observation.
+    reduction_range : {None, str}
+        An offset string, denoting the range of the temporal surrounding to include into the MAD testing.
+        If ``None`` is passed, no testing will be performed and all fields will have the stray flag projected.
+    reduction_drop_flagged : bool, default False
+        Wheather or not to drop flagged values other than the value under test, from the temporal surrounding
+        before checking the value with MAD.
+    reduction_thresh : float, default 3.5
+        The `critical` value, controlling wheather the MAD score is considered referring to an outlier or not.
+        Higher values result in less rigid flagging. The default value is widely used in the literature. See references
+        section for more details ([1]).
+    at_least_one : bool, default True
+        If none of the variables, the outlier label shall be reduced to, is an outlier with regard
+        to the test, all (True) or none (False) of the variables are flagged outliers
+
+    References
+    ----------
+    [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+    """
+
+    val_frame = data[fields].to_df()
+    stray_detects = flagger.isFlagged()[field]
+    stray_detects = stray_detects[stray_detects]
+    to_flag_frame = pd.DataFrame(False, columns=fields, index=stray_detects.index)
+    to_flag_index = to_flag_frame.index
+    if reduction_range is None:
+        for field in to_flag_frame.columns:
+            flagger = flagger.setFlags(field, loc=to_flag_index)
+        return data, flagger
+
+    for var in fields:
+        for index in enumerate(to_flag_index):
+            index_slice = slice(index[1] - pd.Timedelta(reduction_range), index[1] + pd.Timedelta(reduction_range))
+
+            test_slice = val_frame[var][index_slice].dropna()
+            # check, wheather value under test is sufficiently centered:
+            first_valid = test_slice.first_valid_index()
+            last_valid = test_slice.last_valid_index()
+            min_range = pd.Timedelta(reduction_range)/4
+            polydeg = 2
+            if ((pd.Timedelta(index[1] - first_valid) < min_range) |
+                (pd.Timedelta(last_valid - index[1]) < min_range)):
+                polydeg = 0
+            if reduction_drop_flagged:
+                test_slice = test_slice.drop(to_flag_index, errors='ignore')
+            if test_slice.shape[0] >= reduction_min_periods:
+                x = (test_slice.index.values.astype(float))
+                x_0 = x[0]
+                x = (x - x_0)/10**12
+                polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=polydeg)
+                testval = poly.polyval((float(index[1].to_numpy()) - x_0)/10**12, polyfitted)
+                testval = val_frame[var][index[1]] - testval
+                resids = test_slice.values - poly.polyval(x, polyfitted)
+                med_resids = np.median(resids)
+                MAD = np.median(np.abs(resids - med_resids))
+                crit_val = 0.6745 * (abs(med_resids - testval)) / MAD
+                if crit_val > reduction_thresh:
+                    to_flag_frame.loc[index[1], var] = True
+            else:
+                to_flag_frame.loc[index[1], var] = True
+
+    if at_least_one:
+        to_flag_frame[~to_flag_frame.any(axis=1)] = True
+
+    for field in to_flag_frame.columns:
+        flagger = flagger.setFlags(field, loc=to_flag_frame[field][to_flag_frame[field]].index)
+
+    return data, flagger
 
 
 def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.5, alpha=0.05, bin_frac=10):
@@ -237,94 +318,20 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
     return val_frame.index[sorted_i[iter_index:]]
 
 
-def _reduceMVflags(
-    val_frame, fields, flagger, to_flag_frame, reduction_range, reduction_drop_flagged=False, reduction_thresh=3.5,
-        reduction_min_periods=1
-):
-    """
-    Function called by "spikes_flagMultivarScores" to reduce the number of false positives that result from
-    the algorithms confinement to only flag complete observations (all of its variables/components).
-
-    The function "reduces" an observations flag to components of it, by applying MAD (See references)
-    test onto every components temporal surrounding.
-
-    Parameters
-    ----------
-    val_frame : (N,M) pd.DataFrame
-        Input NxM DataFrame of observations, where N is the number of observations and M the number of components per
-        observation.
-    fields : str
-        Fieldnames of the components in `val_frame` that are to be tested for outlierishnes.
-    to_flag_frame : (K,M) pd.DataFrame
-        Input dataframe of observations to be tested, where N is the number of observations and M the number
-        of components per observation.
-    reduction_range : str
-        An offset string, denoting the range of the temporal surrounding to include into the MAD testing.
-    reduction_drop_flagged : bool, default False
-        Wheather or not to drop flagged values other than the value under test, from the temporal surrounding
-        before checking the value with MAD.
-    reduction_thresh : float, default 3.5
-        The `critical` value, controlling wheather the MAD score is considered referring to an outlier or not.
-        Higher values result in less rigid flagging. The default value is widely used in the literature. See references
-        section for more details ([1]).
-
-    References
-    ----------
-    [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
-    """
-
-    to_flag_frame[:] = False
-    to_flag_index = to_flag_frame.index
-    for var in fields:
-        for index in enumerate(to_flag_index):
-            index_slice = slice(index[1] - pd.Timedelta(reduction_range), index[1] + pd.Timedelta(reduction_range))
-
-            test_slice = val_frame[var][index_slice].dropna()
-            # check, wheather value under test is sufficiently centered:
-            first_valid = test_slice.first_valid_index()
-            last_valid = test_slice.last_valid_index()
-            min_range = pd.Timedelta(reduction_range)/4
-            polydeg = 2
-            if ((pd.Timedelta(index[1] - first_valid) < min_range) |
-                (pd.Timedelta(last_valid - index[1]) < min_range)):
-                polydeg = 0
-            if reduction_drop_flagged:
-                test_slice = test_slice.drop(to_flag_index, errors='ignore')
-            if test_slice.shape[0] >= reduction_min_periods:
-                x = (test_slice.index.values.astype(float))
-                x_0 = x[0]
-                x = (x - x_0)/10**12
-                polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=polydeg)
-                testval = poly.polyval((float(index[1].to_numpy()) - x_0)/10**12, polyfitted)
-                testval = val_frame[var][index[1]] - testval
-                resids = test_slice.values - poly.polyval(x, polyfitted)
-                med_resids = np.median(resids)
-                MAD = np.median(np.abs(resids - med_resids))
-                crit_val = 0.6745 * (abs(med_resids - testval)) / MAD
-                if crit_val > reduction_thresh:
-                    to_flag_frame.loc[index[1], var] = True
-            else:
-                to_flag_frame.loc[index[1], var] = True
-
-    return to_flag_frame
-
-
 @register(masking='all')
-def spikes_flagMultivarScores(
+def flagMVScores(
     data,
     field,
     flagger,
     fields,
-    trafo=np.log,
+    trafo=lambda x: x,
     alpha=0.05,
     n_neighbors=10,
-    scoring_method="kNNMaxGap",
+    scoring_func=np.sum,
     iter_start=0.5,
-    threshing="stray",
-    expfit_binning="auto",
-    stray_partition=None,
+    stray_partition=np.inf,
     stray_partition_min=11,
-    post_reduction=False,
+    trafo_on_partition=True,
     reduction_range=None,
     reduction_drop_flagged=False,
     reduction_thresh=3.5,
@@ -349,32 +356,20 @@ def spikes_flagMultivarScores(
         A flagger object, holding flags and additional Informations related to `data`.
     fields : List[str]
         List of fieldnames, corresponding to the variables that are to be included into the flagging process.
-    trafo : callable, default np.log
+    trafo : callable, default lambda x:x
         Transformation to be applied onto every column before scoring. Will likely get deprecated soon. Its better
-        to transform the data in a processing step, preceeeding the call to ``flagMultivarScores``.
+        to transform the data in a processing step, preceeeding the call to ``flagMVScores``.
     alpha : float, default 0.05
         Level of significance by which it is tested, if an observations score might be drawn from another distribution
         than the majority of the observation.
     n_neighbors : int, default 10
         Number of neighbors included in the scoring process for every datapoint.
-    scoring_method : {'kNNSum', 'kNNMaxGap'}, default 'kNNMaxGap'
-        Scoring method applied.
-        ``'kNNSum'``: Assign to every point the sum of the distances to its 'n_neighbors' nearest neighbors.
-        ``'kNNMaxGap'``: Assign to every point the distance to the neighbor with the "maximum gap" to its predecessor
-        in the hierarchy of the `n_neighbors` nearest neighbors. (see reference section for further descriptions)
+    scoring_func : Callable[numpy.array, float], default np.sum
+        The function that maps the set of every points k-nearest neighbor distances onto a certain scoring.
     iter_start : float, default 0.5
         Float in [0,1] that determines which percentage of data is considered "normal". 0.5 results in the threshing
         algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
         information)
-    threshing : {'stray', 'expfit'}, default 'stray'
-        A string, denoting the threshing algorithm to be applied on the observations scores.
-        See the documentations of the algorithms (``_stray``, ``_expfit``) and/or the references sections paragraph [2]
-        for more informations on the algorithms.
-    expfit_binning : {int, str}, default 'auto'
-        Controls the binning for the histogram in the ``expfit`` algorithms fitting step.
-        If an integer is passed, the residues will equidistantly be covered by `bin_frac` bins, ranging from the
-        minimum to the maximum of the residues. If a string is passed, it will be passed on to the
-        ``numpy.histogram_bin_edges`` method.
     stray_partition : {None, str, int}, default None
         Only effective when `threshing` = 'stray'.
         Determines the size of the data partitions, the data is decomposed into. Each partition is checked seperately
@@ -385,23 +380,25 @@ def spikes_flagMultivarScores(
         Only effective when `threshing` = 'stray'.
         Minimum number of periods per partition that have to be present for a valid outlier detection to be made in
         this partition. (Only of effect, if `stray_partition` is an integer.)
-    post_reduction : bool, default False
-        Wheather or not it should be tried to reduce the flag of an observation to one or more of its components. See
-        documentation of `_reduceMVflags` for more details.
+    trafo_on_partition : bool, default True
+        Whether or not to apply the passed transformation on every partition the algorithm is applied on, separately.
     reduction_range : {None, str}, default None
-        Only effective when `post_reduction` = True
+        If not None, it is tried to reduce the stray result onto single outlier components of the input fields.
         An offset string, denoting the range of the temporal surrounding to include into the MAD testing while trying
         to reduce flags.
     reduction_drop_flagged : bool, default False
-        Only effective when `post_reduction` = True
-        Wheather or not to drop flagged values other than the value under test from the temporal surrounding
+        Only effective when `reduction_range` is not ``None``.
+        Whether or not to drop flagged values other than the value under test from the temporal surrounding
         before checking the value with MAD.
     reduction_thresh : float, default 3.5
-        Only effective when `post_reduction` = True
+        Only effective when `reduction_range` is not ``None``.
         The `critical` value, controlling wheather the MAD score is considered referring to an outlier or not.
         Higher values result in less rigid flagging. The default value is widely considered apropriate in the
         literature.
-
+    reduction_min_periods : int, 1
+        Only effective when `reduction_range` is not ``None``.
+        Minimum number of meassurements necessarily present in a reduction interval for reduction actually to be
+        performed.
 
     Returns
     -------
@@ -442,74 +439,28 @@ def spikes_flagMultivarScores(
     the observation belonging to this gap, and all the observations belonging to gaps larger then this gap, get flagged
     outliers. See description of the `threshing` parameter for more details. Although [2] gives a fully detailed
     overview over the `stray` algorithm.
-
-    References
-    ----------
-    Odd Water Algorithm:
-
-    [1] Talagala, P.D. et al (2019): A Feature-Based Procedure for Detecting Technical Outliers in Water-Quality Data
-        From In Situ Sensors. Water Ressources Research, 55(11), 8547-8568.
-
-    A detailed description of the stray algorithm:
-
-    [2] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
-        arXiv preprint arXiv:1908.04000.
-
-    A detailed description of the MAD outlier scoring:
-
-    [3] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
+    data, flagger = assignKNNScore(data, 'dummy', flagger, fields, n_neighbors=n_neighbors, trafo=trafo,
+                                   trafo_on_partition=trafo_on_partition, scoring_func=scoring_func,
+                                   target_field='kNN_scores', partition_freq=stray_partition,
+                                   kNN_algorithm='ball_tree', partition_min=stray_partition_min, **kwargs)
 
-    # data fransformation/extraction
-    data = data.copy()
-    fields = toSequence(fields)
-    val_frame = data[fields]
-    val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
-    val_frame.dropna(inplace=True)
-    val_frame = val_frame.apply(trafo)
-
-    if val_frame.empty:
-        return data, flagger
-
-    if threshing == "stray":
-        to_flag_index = _stray(
-            val_frame,
-            partition_freq=stray_partition,
-            partition_min=stray_partition_min,
-            scoring_method=scoring_method,
-            n_neighbors=n_neighbors,
-            iter_start=iter_start,
-            alpha=alpha
-        )
-
-    else:
-        val_frame = val_frame.apply(trafo)
-        to_flag_index = _expFit(val_frame,
-                                scoring_method=scoring_method,
-                                n_neighbors=n_neighbors,
+    data, flagger = flagByStray(data, 'kNN_scores', flagger,
+                                partition_freq=stray_partition,
+                                partition_min=stray_partition_min,
                                 iter_start=iter_start,
-                                alpha=alpha,
-                                bin_frac=expfit_binning)
+                                alpha=alpha, **kwargs)
 
-    to_flag_frame = pd.DataFrame({var_name: True for var_name in fields}, index=to_flag_index)
-    if post_reduction:
-        val_frame = data[toSequence(fields)].to_df()
-        to_flag_frame = _reduceMVflags(val_frame, fields, flagger, to_flag_frame, reduction_range,
-                                       reduction_drop_flagged=reduction_drop_flagged,
-                                       reduction_thresh=reduction_thresh,
-                                       reduction_min_periods=reduction_min_periods)
-
-
-    for var in fields:
-        to_flag_ind = to_flag_frame.loc[:, var]
-        to_flag_ind = to_flag_ind[to_flag_ind].index
-        flagger = flagger.setFlags(var, to_flag_ind, **kwargs)
+    data, flagger = _evalStrayLabels(
+        data, 'kNN_scores', flagger, fields, reduction_range=reduction_range,
+        reduction_drop_flagged=reduction_drop_flagged, reduction_thresh=reduction_thresh,
+        reduction_min_periods=reduction_min_periods, **kwargs)
 
     return data, flagger
 
 
 @register(masking='field')
-def spikes_flagRaise(
+def flagRaise(
     data,
     field,
     flagger,
@@ -675,154 +626,7 @@ def spikes_flagRaise(
 
 
 @register(masking='field')
-def spikes_flagSlidingZscore(
-    data, field, flagger, window, offset, count=1, polydeg=1, z=3.5, method="modZ", **kwargs,
-):
-    """
-    An outlier detection in a sliding window. The method for detection can be a simple Z-score or the more robust
-    modified Z-score, as introduced here [1].
-
-    The steps are:
-    1.  a window of size `window` is cut from the data
-    2.  the data is fit by a polynomial of the given degree `polydeg`
-    3.  the outlier `method` detect potential outlier
-    4.  the window is continued by `offset` to the next data-slot.
-    5.  processing continue at 1. until end of data.
-    6.  all potential outlier, that are detected `count`-many times, are promoted to real outlier and flagged by the `flagger`
-
-    Parameters
-    ----------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    field : str
-        The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional Informations related to `data`.
-    window: {int, str}
-        Integer or offset string (see [2]). The size of the window the outlier detection is run in.
-    offset: {int, str}
-        Integer or offset string (see [2]). Stepsize the window is set further. default: 1h
-    count: int, default 1
-        Number of times a value has to be classified an outlier in different windows, to be finally flagged an outlier.
-    polydeg : int, default 1
-        The degree for the polynomial that is fitted to the data in order to calculate the residues.
-    z : float, default 3.5
-        The value the (mod.) Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
-    method: {'modZ', zscore}, default  'modZ'
-        See section `Z-Scores and Modified Z-Scores` in [1].
-
-    Returns
-    -------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed, relatively to the flagger input.
-
-    References
-    ----------
-    [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
-    [2] https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
-
-    """
-
-    use_offset = False
-    dx_s = offset
-    winsz_s = window
-    # check param consistency
-    if isinstance(window, str) or isinstance(offset, str):
-        if isinstance(window, str) and isinstance(offset, str):
-            use_offset = True
-            dx_s = offset2seconds(offset)
-            winsz_s = offset2seconds(window)
-        else:
-            raise TypeError(
-                f"`window` and `offset` must both be an offset or both be numeric, {window} and {offset} was passed"
-            )
-
-    # check params
-    if polydeg < 0:
-        raise ValueError("polydeg must be positive")
-    if z < 0:
-        raise ValueError("z must be positive")
-    if count <= 0:
-        raise ValueError("count must be positive and not zero")
-
-    if dx_s >= winsz_s and count == 1:
-        pass
-    elif dx_s >= winsz_s and count > 1:
-        ValueError("If stepsize `offset` is bigger that the window-size, every value is seen just once, so use count=1")
-    elif count > winsz_s // dx_s:
-        raise ValueError(
-            f"Adjust `offset`, `stepsize` or `window`. A single data point is "
-            f"seen `floor(window / offset) = {winsz_s // dx_s}` times, but count is set to {count}"
-        )
-
-    # prepare the method
-    method = method.lower()
-    if method == "modz":
-
-        def _calc(residual):
-            diff = np.abs(residual - np.median(residual))
-            mad = np.median(diff)
-            return (mad > 0) & (0.6745 * diff > z * mad)
-
-    elif method == "zscore":
-
-        def _calc(residual):
-            score = zscore(residual, ddof=1)
-            return np.abs(score) > z
-
-    else:
-        raise NotImplementedError
-    method = _calc
-
-    # prepare data, work on numpy arrays for the fulfilling pleasure of performance
-    d = data[field].dropna()
-    if d.empty:
-        return data, flagger
-    all_indices = np.arange(len(d.index))
-    x = (d.index - d.index[0]).total_seconds().values
-    y = d.values
-    counters = np.full(len(d.index), count)
-
-    if use_offset:
-        _loopfun = slidingWindowIndices
-    else:
-
-        def _loopfun(arr, wsz, step):
-            for i in range(0, len(arr) - wsz + 1, step):
-                yield i, i + wsz
-
-    for start, end in _loopfun(d.index, window, offset):
-        # mask points that have been already discarded
-        mask = counters[start:end] > 0
-        indices = all_indices[all_indices[start:end][mask]]
-        xchunk = x[indices]
-        ychunk = y[indices]
-
-        if xchunk.size == 0:
-            continue
-
-        # get residual
-        coef = poly.polyfit(xchunk, ychunk, polydeg)
-        model = poly.polyval(xchunk, coef)
-        residual = ychunk - model
-
-        score = method(residual)
-
-        # count`em in
-        goneMad = score.nonzero()[0]
-        counters[indices[goneMad]] -= 1
-
-    outlier = np.where(counters <= 0)[0]
-    loc = d[outlier].index
-    flagger = flagger.setFlags(field, loc=loc, **kwargs)
-    return data, flagger
-
-
-@register(masking='field')
-def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
+def flagMAD(data, field, flagger, window, z=3.5, **kwargs):
 
     """
 
@@ -881,7 +685,7 @@ def spikes_flagMad(data, field, flagger, window, z=3.5, **kwargs):
 
 
 @register(masking='field')
-def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kickin=200000, **kwargs):
+def flagOffset(data, field, flagger, thresh, tolerance, window, numba_kickin=200000, **kwargs):
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -986,165 +790,7 @@ def spikes_flagBasic(data, field, flagger, thresh, tolerance, window, numba_kick
 
 
 @register(masking='field')
-def spikes_flagSpektrumBased(
-    data,
-    field,
-    flagger,
-    raise_factor=0.15,
-    deriv_factor=0.2,
-    noise_func="CoVar",
-    noise_window="12h",
-    noise_thresh=1,
-    smooth_window=None,
-    smooth_poly_deg=2,
-    **kwargs,
-):
-    """
-
-    Function detects and flags spikes in input data series by evaluating its derivatives and applying some
-    conditions to it. A datapoint is considered a spike, if:
-
-    (1) the quotient to its preceeding datapoint exceeds a certain bound
-    (controlled by param `raise_factor`)
-    (2) the quotient of the datas second derivate at the preceeding and subsequent timestamps is close enough to 1.
-    (controlled by param `deriv_factor`)
-    (3) the surrounding data is not too noisy. (Coefficient of Variation[+/- noise_window] < 1)
-    (controlled by param `noise_thresh`)
-
-    Note, that the data-to-be-flagged is supposed to be sampled at an equidistant frequency grid
-
-    Note, that the derivative is calculated after applying a Savitsky-Golay filter to the data.
-
-    Parameters
-    ----------
-
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    field : str
-        The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional Informations related to `data`.
-    raise_factor : float, default 0.15
-        Minimum relative value difference between two values to consider the latter as a spike candidate.
-        See condition (1) (or reference [2]).
-    deriv_factor : float, default 0.2
-        See condition (2) (or reference [2]).
-    noise_func : {'CoVar', 'rVar'}, default 'CoVar'
-        Function to calculate noisiness of the data surrounding potential spikes.
-
-        * ``'CoVar'``: Coefficient of Variation
-        * ``'rVar'``: Relative Variance
-
-    noise_window : str, default '12h'
-        An offset string that determines the range of the time window of the "surrounding" data of a potential spike.
-        See condition (3) (or reference [2]).
-    noise_thresh : float, default 1
-        Upper threshold for noisiness of data surrounding potential spikes. See condition (3) (or reference [2]).
-    smooth_window : {None, str}, default None
-        Size of the smoothing window of the Savitsky-Golay filter.
-        The default value ``None`` results in a window of two times the sampling rate (i.e. containing three values).
-    smooth_poly_deg : int, default 2
-        Degree of the polynomial used for fitting with the Savitsky-Golay filter.
-
-    Returns
-    -------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
-
-    References
-    ----------
-    This Function is a generalization of the Spectrum based Spike flagging mechanism as presented in:
-
-    [1] Dorigo, W. et al: Global Automated Quality Control of In Situ Soil Moisture
-        Data from the international Soil Moisture Network. 2013. Vadoze Zone J.
-        doi:10.2136/vzj2012.0097.
-
-    Notes
-    -----
-    A value is flagged a spike, if:
-
-    * The quotient to its preceding data point exceeds a certain bound:
-
-      * :math:`|\\frac{x_k}{x_{k-1}}| > 1 +` ``raise_factor``, or
-      * :math:`|\\frac{x_k}{x_{k-1}}| < 1 -` ``raise_factor``
-
-    * The quotient of the second derivative :math:`x''`, at the preceding
-      and subsequent timestamps is close enough to 1:
-
-      * :math:`|\\frac{x''_{k-1}}{x''_{k+1}} | > 1 -` ``deriv_factor``, and
-      * :math:`|\\frac{x''_{k-1}}{x''_{k+1}} | < 1 +` ``deriv_factor``
-
-    * The dataset :math:`X = x_i, ..., x_{k-1}, x_{k+1}, ..., x_j`, with
-      :math:`|t_{k-1} - t_i| = |t_j - t_{k+1}| =` ``noise_window`` fulfills the
-      following condition:
-
-      * ``noise_func``:math:`(X) <` ``noise_thresh``
-
-    """
-
-    dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
-    noise_func_map = {"covar": pd.Series.var, "rvar": pd.Series.std}
-    noise_func = noise_func_map[noise_func.lower()]
-
-    if smooth_window is None:
-        smooth_window = 3 * pd.Timedelta(data_rate)
-    else:
-        smooth_window = pd.Timedelta(smooth_window)
-
-    quotient_series = dataseries / dataseries.shift(+1)
-    spikes = (quotient_series > (1 + raise_factor)) | (quotient_series < (1 - raise_factor))
-    spikes = spikes[spikes == True]
-
-    # loop through spikes: (loop may sound ugly - but since the number of spikes is supposed to not exceed the
-    # thousands for year data - a loop going through all the spikes instances is much faster than
-    # a rolling window, rolling all through a stacked year dataframe )
-
-    # calculate some values, repeatedly needed in the course of the loop:
-
-    filter_window_seconds = smooth_window.seconds
-    smoothing_periods = int(np.ceil((filter_window_seconds / data_rate.n)))
-    lower_dev_bound = 1 - deriv_factor
-    upper_dev_bound = 1 + deriv_factor
-
-    if smoothing_periods % 2 == 0:
-        smoothing_periods += 1
-
-    for spike in spikes.index:
-        start_slice = spike - smooth_window
-        end_slice = spike + smooth_window
-
-        scnd_derivate = savgol_filter(
-            dataseries[start_slice:end_slice], window_length=smoothing_periods, polyorder=smooth_poly_deg, deriv=2,
-        )
-
-        length = scnd_derivate.size
-        test_ratio_1 = np.abs(scnd_derivate[int(((length + 1) / 2) - 2)] / scnd_derivate[int(((length + 1) / 2))])
-
-        if lower_dev_bound < test_ratio_1 < upper_dev_bound:
-            # apply noise condition:
-            start_slice = spike - pd.Timedelta(noise_window)
-            end_slice = spike + pd.Timedelta(noise_window)
-            test_slice = dataseries[start_slice:end_slice].drop(spike)
-            test_ratio_2 = np.abs(noise_func(test_slice) / test_slice.mean())
-            # not a spike, we want to flag, if condition not satisfied:
-            if test_ratio_2 > noise_thresh:
-                spikes[spike] = False
-
-        # not a spike, we want to flag, if condition not satisfied
-        else:
-            spikes[spike] = False
-
-    spikes = spikes[spikes == True]
-
-    flagger = flagger.setFlags(field, spikes.index, **kwargs)
-    return data, flagger
-
-
-@register(masking='field')
-def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, check_lagged=False, **kwargs):
+def flagByGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, check_lagged=False, **kwargs):
     """
     The function flags values that are regarded outliers due to the grubbs test.
 
@@ -1228,4 +874,110 @@ def spikes_flagGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, ch
         to_flag = to_flag & to_flag_lagged
 
     flagger = flagger.setFlags(field, loc=to_flag, **kwargs)
+    return data, flagger
+
+
+@register(masking='field')
+def flagRange(data, field, flagger, min=-np.inf, max=np.inf, **kwargs):
+    """
+    Function flags values not covered by the closed interval [`min`, `max`].
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flagger : saqc.flagger.BaseFlagger
+        A flagger object, holding flags and additional Informations related to `data`.
+    min : float
+        Lower bound for valid data.
+    max : float
+        Upper bound for valid data.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger.BaseFlagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the flagger input.
+    """
+
+    # using .values is very much faster
+    datacol = data[field].values
+    mask = (datacol < min) | (datacol > max)
+    flagger = flagger.setFlags(field, mask, **kwargs)
+    return data, flagger
+
+
+@register(masking='all')
+def flagCrossStatistic(data, field, flagger, fields, thresh, cross_stat='modZscore', **kwargs):
+    """
+    Function checks for outliers relatively to the "horizontal" input data axis.
+
+    For `fields` :math:`=[f_1,f_2,...,f_N]` and timestamps :math:`[t_1,t_2,...,t_K]`, the following steps are taken
+    for outlier detection:
+
+    1. All timestamps :math:`t_i`, where there is one :math:`f_k`, with :math:`data[f_K]` having no entry at
+       :math:`t_i`, are excluded from the following process (inner join of the :math:`f_i` fields.)
+    2. for every :math:`0 <= i <= K`, the value
+       :math:`m_j = median(\\{data[f_1][t_i], data[f_2][t_i], ..., data[f_N][t_i]\\})` is calculated
+    2. for every :math:`0 <= i <= K`, the set
+       :math:`\\{data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j\\}` is tested for outliers with the
+       specified method (`cross_stat` parameter).
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        A dummy parameter.
+    flagger : saqc.flagger.BaseFlagger
+        A flagger object, holding flags and additional informations related to `data`.
+    fields : str
+        List of fieldnames in data, determining wich variables are to be included into the flagging process.
+    thresh : float
+        Threshold which the outlier score of an value must exceed, for being flagged an outlier.
+    cross_stat : {'modZscore', 'Zscore'}, default 'modZscore'
+        Method used for calculating the outlier scores.
+
+        * ``'modZscore'``: Median based "sigma"-ish approach. See Referenecs [1].
+        * ``'Zscore'``: Score values by how many times the standard deviation they differ from the median.
+          See References [1]
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flagger : saqc.flagger.BaseFlagger
+        The flagger object, holding flags and additional Informations related to `data`.
+        Flags values may have changed relatively to the input flagger.
+
+    References
+    ----------
+    [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+    """
+
+    df = data[fields].loc[data[fields].index_of('shared')].to_df()
+
+    if isinstance(cross_stat, str):
+        if cross_stat == 'modZscore':
+            MAD_series = df.subtract(df.median(axis=1), axis=0).abs().median(axis=1)
+            diff_scores = ((0.6745 * (df.subtract(df.median(axis=1), axis=0))).divide(MAD_series, axis=0)).abs()
+        elif cross_stat == 'Zscore':
+            diff_scores = (df.subtract(df.mean(axis=1), axis=0)).divide(df.std(axis=1), axis=0).abs()
+        else:
+            raise ValueError(cross_stat)
+    else:
+        try:
+            stat = getattr(df, cross_stat.__name__)(axis=1)
+        except AttributeError:
+            stat = df.aggregate(cross_stat, axis=1)
+        diff_scores = df.subtract(stat, axis=0).abs()
+
+    mask = diff_scores > thresh
+    for var in fields:
+        flagger = flagger.setFlags(var, mask[var], **kwargs)
+
     return data, flagger

@@ -11,12 +11,12 @@ import dios
 
 from test.common import TESTFLAGGER
 
-from saqc.funcs.harm_functions import (
-    harm_linear2Grid,
-    harm_interpolate2Grid,
-    harm_shift2Grid,
-    harm_aggregate2Grid,
-    harm_deharmonize,
+from saqc.funcs.resampling import (
+    linear,
+    interpolate,
+    shift,
+    aggregate,
+    mapToOriginal,
 )
 
 RESHAPERS = ["nshift", "fshift", "bshift", "nagg", "bagg", "fagg", "interpolation"]
@@ -50,10 +50,10 @@ def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper):
     freq = "15min"
     assert len(data.columns) == 1
     field = data.columns[0]
-    data, flagger = harm_linear2Grid(data, "data", flagger, freq)
+    data, flagger = linear(data, "data", flagger, freq)
     # flag something bad
     flagger = flagger.setFlags("data", loc=data[field].index[3:4])
-    data, flagger = harm_deharmonize(data, "data", flagger, method="inverse_" + reshaper)
+    data, flagger = mapToOriginal(data, "data", flagger, method="inverse_" + reshaper)
     d = data[field]
     if reshaper == "nagg":
         assert flagger.isFlagged(loc=d.index[3:7]).squeeze().all()
@@ -122,11 +122,11 @@ def test_harmSingleVarInterpolations(data, flagger):
     ]
 
     for interpolation, freq, expected in tests:
-        data_harm, flagger_harm = harm_aggregate2Grid(
+        data_harm, flagger_harm = aggregate(
             data, field, flagger, freq, value_func=np.sum, method=interpolation
         )
         assert data_harm[field].equals(expected)
-        data_deharm, flagger_deharm = harm_deharmonize(
+        data_deharm, flagger_deharm = mapToOriginal(
             data_harm, "data", flagger_harm, method="inverse_" + interpolation
         )
         assert data_deharm[field].equals(pre_data)
@@ -184,9 +184,9 @@ def test_harmSingleVarInterpolations(data, flagger):
     ]
 
     for interpolation, freq, expected in tests:
-        data_harm, flagger_harm = harm_shift2Grid(data, field, flagger, freq, method=interpolation)
+        data_harm, flagger_harm = shift(data, field, flagger, freq, method=interpolation)
         assert data_harm[field].equals(expected)
-        data_deharm, flagger_deharm = harm_deharmonize(
+        data_deharm, flagger_deharm = mapToOriginal(
             data_harm, "data", flagger_harm, method="inverse_" + interpolation
         )
         assert data_deharm[field].equals(pre_data)
@@ -204,10 +204,10 @@ def test_gridInterpolation(data, method):
 
     # we are just testing if the interpolation gets passed to the series without causing an error:
 
-    harm_interpolate2Grid(data, field, flagger, freq, method=method, downcast_interpolation=True)
+    interpolate(data, field, flagger, freq, method=method, downcast_interpolation=True)
     if method == "polynomial":
-        harm_interpolate2Grid(data, field, flagger, freq, order=2, method=method, downcast_interpolation=True)
-        harm_interpolate2Grid(data, field, flagger, freq, order=10, method=method, downcast_interpolation=True)
+        interpolate(data, field, flagger, freq, order=2, method=method, downcast_interpolation=True)
+        interpolate(data, field, flagger, freq, order=10, method=method, downcast_interpolation=True)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -217,7 +217,7 @@ def test_wrapper(data, flagger):
     freq = "15min"
     flagger = flagger.initFlags(data)
 
-    harm_linear2Grid(data, field, flagger, freq, to_drop=None)
-    harm_aggregate2Grid(data, field, flagger, freq, value_func=np.nansum, method="nagg", to_drop=None)
-    harm_shift2Grid(data, field, flagger, freq, method="nshift", to_drop=None)
-    harm_interpolate2Grid(data, field, flagger, freq, method="spline")
+    linear(data, field, flagger, freq, to_drop=None)
+    aggregate(data, field, flagger, freq, value_func=np.nansum, method="nagg", to_drop=None)
+    shift(data, field, flagger, freq, method="nshift", to_drop=None)
+    interpolate(data, field, flagger, freq, method="spline")

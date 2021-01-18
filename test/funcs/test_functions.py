@@ -2,11 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-import numpy as np
 import pandas as pd
+import numpy as np
 import dios
 
-from saqc.funcs.functions import *
+from saqc.funcs.drift import flagDriftFromNorm, flagDriftFromReference, flagDriftFromScaledNorm
+from saqc.funcs.outliers import flagCrossStatistic, flagRange
+from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
+from saqc.funcs.tools import drop, copy, mask
+from saqc.funcs.resampling import reindexFlags
+from saqc.funcs.breaks import flagIsolated
 from test.common import initData, TESTFLAGGER
 
 
@@ -46,7 +51,16 @@ def test_flagSesonalRange(data, field, flagger):
 
     for test, expected in tests:
         flagger = flagger.initFlags(data)
-        data, flagger = flagSesonalRange(data, field, flagger, **test)
+        newfield = f"{field}_masked"
+        start = f"{test['startmonth']:02}-{test['startday']:02}T00:00:00"
+        end = f"{test['endmonth']:02}-{test['endday']:02}T00:00:00"
+
+        data, flagger = copy(data, field, flagger, field + "_masked")
+        data, flagger = mask(data, newfield, flagger, mode='periodic', period_start=start, period_end=end,
+                             include_bounds=True)
+        data, flagger = flagRange(data, newfield, flagger, min=test['min'], max=test['max'])
+        data, flagger = reindexFlags(data, field, flagger, method='match', source=newfield)
+        data, flagger = drop(data, newfield, flagger)
         flagged = flagger.isFlagged(field)
         assert flagged.sum() == expected
 
@@ -105,7 +119,7 @@ def test_flagCrossScoring(dat, flagger):
     s2 = pd.Series(data=s2.values, index=s1.index)
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flagger = flagger.initFlags(data)
-    _, flagger_result = flagCrossScoring(data, field, flagger, fields=fields, thresh=3, cross_stat=np.mean)
+    _, flagger_result = flagCrossStatistic(data, field, flagger, fields=fields, thresh=3, cross_stat=np.mean)
     for field in fields:
         isflagged = flagger_result.isFlagged(field)
         assert isflagged[characteristics["raise"]].all()
@@ -208,8 +222,8 @@ def test_flagDriftFromNormal(dat, flagger):
     data_ref, flagger_ref = flagDriftFromReference(data, 'd1', flagger, ['d1', 'd2', 'd3'], segment_freq="3D",
                                       thresh=20)
 
-    data_scale, flagger_scale = flagDriftScale(data, 'dummy', flagger, ['d1', 'd3'], ['d4', 'd5'], segment_freq="3D",
-                                                   thresh=20,  norm_spread=5)
+    data_scale, flagger_scale = flagDriftFromScaledNorm(data, 'dummy', flagger, ['d1', 'd3'], ['d4', 'd5'], segment_freq="3D",
+                                                        thresh=20, norm_spread=5)
     assert flagger_norm.isFlagged()['d3'].all()
     assert flagger_ref.isFlagged()['d3'].all()
     assert flagger_scale.isFlagged()['d3'].all()

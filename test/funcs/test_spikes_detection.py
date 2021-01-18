@@ -7,14 +7,12 @@ import numpy as np
 import pandas as pd
 import dios
 
-from saqc.funcs.spikes_detection import (
-    spikes_flagSpektrumBased,
-    spikes_flagMad,
-    spikes_flagSlidingZscore,
-    spikes_flagBasic,
-    spikes_flagRaise,
-    spikes_flagMultivarScores,
-    spikes_flagGrubbs,
+from saqc.funcs.outliers import (
+    flagMAD,
+    flagOffset,
+    flagRaise,
+    flagMVScores,
+    flagByGrubbs,
 )
 
 from test.common import TESTFLAGGER
@@ -31,44 +29,14 @@ def spiky_data():
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_flagSpikesSpektrumBased(spiky_data, flagger):
-    data = spiky_data[0]
-    field, *_ = data.columns
-    flagger = flagger.initFlags(data)
-    data, flagger_result = spikes_flagSpektrumBased(data, field, flagger)
-    flag_result = flagger_result.getFlags(field)
-    test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
-    assert test_sum == len(spiky_data[1])
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_flagMad(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
-    data, flagger_result = spikes_flagMad(data, field, flagger, "1H")
+    data, flagger_result = flagMAD(data, field, flagger, "1H")
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
-
-
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-@pytest.mark.parametrize("method", ["modZ", "zscore"])
-def test_slidingOutlier(spiky_data, flagger, method):
-    # test for numeric input
-    data = spiky_data[0]
-    field, *_ = data.columns
-    flagger = flagger.initFlags(data)
-
-    tests = [
-        spikes_flagSlidingZscore(data, field, flagger, window=300, offset=50, method=method),
-        spikes_flagSlidingZscore(data, field, flagger, window="1500min", offset="250min", method=method),
-    ]
-
-    for _, flagger_result in tests:
-        flag_result = flagger_result.getFlags(field)
-        test_sum = (flag_result.iloc[spiky_data[1]] == flagger.BAD).sum()
-        assert int(test_sum) == len(spiky_data[1])
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -76,7 +44,7 @@ def test_flagSpikesBasic(spiky_data, flagger):
     data = spiky_data[0]
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
-    data, flagger_result = spikes_flagBasic(data, field, flagger, thresh=60, tolerance=10, window="20min")
+    data, flagger_result = flagOffset(data, field, flagger, thresh=60, tolerance=10, window="20min")
     flag_result = flagger_result.getFlags(field)
     test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
     assert test_sum == len(spiky_data[1])
@@ -97,7 +65,7 @@ def test_flagSpikesLimitRaise(dat, flagger):
     data, characteristics = dat()
     field, *_ = data.columns
     flagger = flagger.initFlags(data)
-    _, flagger_result = spikes_flagRaise(
+    _, flagger_result = flagRaise(
         data, field, flagger, thresh=2, intended_freq="10min", raise_window="20min", numba_boost=False
     )
     assert flagger_result.isFlagged(field)[characteristics["raise"]].all()
@@ -118,8 +86,8 @@ def test_flagMultivarScores(dat, flagger):
     s2 = pd.Series(data=s2.values, index=s1.index)
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flagger = flagger.initFlags(data)
-    _, flagger_result = spikes_flagMultivarScores(
-        data, field, flagger, fields=fields, binning=50, trafo=np.log, iter_start=0.95, n_neighbors=10
+    _, flagger_result = flagMVScores(
+        data, field, flagger, fields=fields, trafo=np.log, iter_start=0.95, n_neighbors=10
     )
     for field in fields:
         isflagged = flagger_result.isFlagged(field)
@@ -135,6 +103,6 @@ def test_grubbs(dat, flagger):
         freq="10min", periods=45, initial_level=0, final_level=0, crowd_size=1, crowd_spacing=3, out_val=-10
     )
     flagger = flagger.initFlags(data)
-    data, result_flagger = spikes_flagGrubbs(data, "data", flagger, winsz=20, min_periods=15)
+    data, result_flagger = flagByGrubbs(data, "data", flagger, winsz=20, min_periods=15)
     assert result_flagger.isFlagged("data")[char_dict["drop"]].all()
 

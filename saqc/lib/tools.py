@@ -176,7 +176,7 @@ def offset2seconds(offset):
     return pd.Timedelta.total_seconds(pd.Timedelta(offset))
 
 
-def seasonalMask(dtindex, season_start, season_end, include_bounds):
+def periodicMask(dtindex, season_start, season_end, include_bounds):
     """
     This function generates date-periodic/seasonal masks from an index passed.
 
