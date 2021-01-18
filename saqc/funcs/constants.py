@@ -10,7 +10,7 @@ from saqc.lib.tools import retrieveTrustworthyOriginal, customRoller
 
 
 @register(masking='field')
-def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
+def flagConstants(data, field, flagger, thresh, window, **kwargs):
     """
     This functions flags plateaus/series of constant values of length `window` if
     their maximum total change is smaller than thresh.
@@ -65,7 +65,7 @@ def constants_flagBasic(data, field, flagger, thresh, window, **kwargs):
 
 
 @register(masking='field')
-def constants_flagVarianceBased(
+def flagByVariance(
     data, field, flagger, window="12h", thresh=0.0005, max_missing=None, max_consec_missing=None, **kwargs
 ):
 

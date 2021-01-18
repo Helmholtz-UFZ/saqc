@@ -14,7 +14,7 @@ from saqc.core.visitor import ConfigFunctionParser
 from saqc.core.config import Fields as F
 from saqc.core.register import register
 from saqc import SaQC, SimpleFlagger
-from saqc.funcs.functions import _execGeneric
+from saqc.funcs.generic import _execGeneric
 
 
 @pytest.fixture
@@ -49,7 +49,7 @@ def test_missingIdentifier(data, flagger):
     ]
 
     for test in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})", flagger)
+        func = _compileGeneric(f"flag(func={test})", flagger)
         with pytest.raises(NameError):
             _execGeneric(flagger, data, func, field="", nodata=np.nan)
 
@@ -65,7 +65,7 @@ def test_syntaxError(flagger):
 
     for test in tests:
         with pytest.raises(SyntaxError):
-            _compileGeneric(f"flagGeneric(func={test})", flagger)
+            _compileGeneric(f"flag(func={test})", flagger)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -81,7 +81,7 @@ def test_typeError(flagger):
 
     for test in tests:
         with pytest.raises(TypeError):
-            _compileGeneric(f"flagGeneric(func={test})", flagger)
+            _compileGeneric(f"flag(func={test})", flagger)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -100,7 +100,7 @@ def test_comparisonOperators(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})", flagger)
+        func = _compileGeneric(f"flag(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=var1, nodata=np.nan)
         assert np.all(result == expected)
 
@@ -121,7 +121,7 @@ def test_arithmeticOperators(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"procGeneric(func={test})", flagger)
+        func = _compileGeneric(f"process(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=var1, nodata=np.nan)
         assert np.all(result == expected)
 
@@ -141,7 +141,7 @@ def test_nonReduncingBuiltins(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"procGeneric(func={test})", flagger)
+        func = _compileGeneric(f"process(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=this, nodata=np.nan)
         assert (result == expected).all()
 
@@ -165,7 +165,7 @@ def test_reduncingBuiltins(data, flagger, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"procGeneric(func={test})", flagger)
+        func = _compileGeneric(f"process(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=this.name, nodata=nodata)
         assert result == expected
 
@@ -184,7 +184,7 @@ def test_ismissing(data, flagger, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})", flagger)
+        func = _compileGeneric(f"flag(func={test})", flagger)
         result = _execGeneric(flagger, data, func, this.name, nodata)
         assert np.all(result == expected)
 
@@ -204,7 +204,7 @@ def test_bitOps(data, flagger, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test})", flagger)
+        func = _compileGeneric(f"flag(func={test})", flagger)
         result = _execGeneric(flagger, data, func, this, nodata)
         assert np.all(result == expected)
 
@@ -225,7 +225,7 @@ def test_isflagged(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flagGeneric(func={test}, flag=BAD)", flagger)
+        func = _compileGeneric(f"flag(func={test}, flag=BAD)", flagger)
         result = _execGeneric(flagger, data, func, field=None, nodata=np.nan)
         assert np.all(result == expected)
 
@@ -236,8 +236,8 @@ def test_variableAssignments(data, flagger):
 
     config = f"""
     {F.VARNAME}  ; {F.TEST}
-    dummy1       ; procGeneric(func=var1 + var2)
-    dummy2       ; flagGeneric(func=var1 + var2 > 0)
+    dummy1       ; process(func=var1 + var2)
+    dummy2       ; flag(func=var1 + var2 > 0)
     """
 
     fobj = writeIO(config)
@@ -252,13 +252,13 @@ def test_variableAssignments(data, flagger):
 
 @pytest.mark.xfail(stric=True)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_procGenericMultiple(data_diff, flagger):
+def test_processMultiple(data_diff, flagger):
     var1, var2, *_ = data_diff.columns
 
     config = f"""
     {F.VARNAME} ; {F.TEST}
-    dummy       ; procGeneric(func=var1 + 1)
-    dummy       ; procGeneric(func=var2 - 1)
+    dummy       ; process(func=var1 + 1)
+    dummy       ; process(func=var2 - 1)
     """
 
     fobj = writeIO(config)

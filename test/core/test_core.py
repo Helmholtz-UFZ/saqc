@@ -7,6 +7,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
+
 from saqc import SaQC, register
 from saqc.funcs import flagRange
 from saqc.lib import plotting as splot
@@ -57,7 +58,7 @@ def test_duplicatedVariable(flagger):
     data = initData(1)
     var1 = data.columns[0]
 
-    pdata, pflags = SaQC(flagger, data).flagDummy(var1).flagDummy(var1).getResult()
+    pdata, pflags = SaQC(flagger, data).flagDummy(var1).getResult()
 
     if isinstance(pflags.columns, pd.MultiIndex):
         cols = pflags.columns.get_level_values(0).drop_duplicates()
