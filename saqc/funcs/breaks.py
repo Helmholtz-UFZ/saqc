@@ -108,12 +108,9 @@ def flagIsolated(data, field, flagger, gap_window, group_window, **kwargs):
 
 
 @register(masking='field')
-def flagJumps(data, field, flagger, tresh, winsz, min_periods=1, **kwargs):
-    """,
-    Flag datapoints, where the parametrization of the process, the data is assumed to generate by, significantly
-    changes.
-
-    The change points detection is based on a sliding window search.
+def flagJumps(data, field, flagger, thresh, winsz, min_periods=1, **kwargs):
+    """
+    Flag datapoints, where the mean of the values significantly changes (where the value course "jumps").
 
     Parameters
     ----------
@@ -123,50 +120,24 @@ def flagJumps(data, field, flagger, tresh, winsz, min_periods=1, **kwargs):
         The reference variable, the deviation from wich determines the flagging.
     flagger : saqc.flagger
         A flagger object, holding flags and additional informations related to `data`.
-    stat_func : Callable[numpy.array, numpy.array]
-         A function that assigns a value to every twin window. Left window content will be passed to first variable,
-        right window content will be passed to the second.
-    thresh_func : Callable[numpy.array, numpy.array]
-        A function that determines the value level, exceeding wich qualifies a timestamps stat func value as denoting a
-        changepoint.
-    bwd_window : str
-        The left (backwards facing) windows temporal extension (freq-string).
-    min_periods_bwd : {str, int}
-        Minimum number of periods that have to be present in a backwards facing window, for a changepoint test to be
-        performed.
-    fwd_window : {Non/home/luenensc/PyPojects/testSpace/flagBasicMystery.pye, str}, default None
-        The right (fo/home/luenensc/PyPojects/testSpace/flagBasicMystery.pyrward facing) windows temporal extension (freq-string).
-    min_periods_fwd : {None, str, int}, default None
-        Minimum numbe/home/luenensc/PyPojects/testSpace/flagBasicMystery.pyr of periods that have to be present in a forward facing window, for a changepoint test to be
-        performed.
-    closed : {'right', 'left', 'both', 'neither'}, default 'both'
-        Determines the closure of the sliding windows.
-    reduce_window : {None, False, str}, default None
-        The sliding window search method is not an exact CP search method and usually there wont be
-        detected a single changepoint, but a "region" of change around a changepoint.
-        If `reduce_window` is not False, for every window of size `reduce_window`, there
-        will be selected the value with index `reduce_func(x, y)` and the others will be dropped.
-        If `reduce_window` is None, the reduction window size equals the
-        twin window size, the changepoints have been detected with.
-    reduce_func : Callable[numpy.array, numpy.array], default lambda x, y: x.argmax()
-        A function that must return an index value upon input of two arrays x and y.
-        First input parameter will hold the result from the stat_func evaluation for every
-        reduction window. Second input parameter holds the result from the thresh_func evaluation.
-        The default reduction function just selects the value that maximizes the stat_func.
-
-
-    Returns
-    -------
-
+    thresh : float
+        The threshold, the mean of the values have to change by, to trigger flagging.
+    winsz : str
+        The temporal extension, of the rolling windows, the mean values that are to be compared,
+        are obtained from.
+    min_periods : {str, int}
+        Minimum number of periods that have to be present in a window of size `winsz`, so that
+        the mean value obtained from that window is regarded valid.
     """
 
     data, flagger = assignChangePointCluster(data, field, flagger,
                                              stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
-                                             tresh_func=lambda x, y: tresh,
+                                             tresh_func=lambda x, y: thresh,
                                              bwd_window=winsz,
                                              min_periods_bwd=min_periods,
                                              flag_changepoints=True,
                                              _model_by_resids=False,
-                                             _assign_cluster=False)
+                                             _assign_cluster=False,
+                                             **kwargs)
 
     return data, flagger
