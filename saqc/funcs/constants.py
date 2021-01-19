@@ -1,16 +1,21 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
 
+from dios import DictOfSeries
+
 from saqc.core.register import register
+from saqc.flagger.baseflagger import BaseFlagger
 from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import retrieveTrustworthyOriginal, customRoller
 
 
 @register(masking='field')
-def flagConstants(data, field, flagger, thresh, window, **kwargs):
+def flagConstants(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: float, window: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     This functions flags plateaus/series of constant values of length `window` if
     their maximum total change is smaller than thresh.
@@ -66,8 +71,10 @@ def flagConstants(data, field, flagger, thresh, window, **kwargs):
 
 @register(masking='field')
 def flagByVariance(
-    data, field, flagger, window="12h", thresh=0.0005, max_missing=None, max_consec_missing=None, **kwargs
-):
+        data: DictOfSeries, field: str, flagger: BaseFlagger,
+        window: str="12h", thresh: float=0.0005,
+        max_missing: int=None, max_consec_missing: int=None, **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
 
     """
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
@@ -111,7 +118,6 @@ def flagByVariance(
         max_missing = np.inf
     if max_consec_missing is None:
         max_consec_missing = np.inf
-
     min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(data_rate)))
 
     plateaus = dataseries.rolling(window=window, min_periods=min_periods).apply(
