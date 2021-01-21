@@ -1,17 +1,30 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+
+from math import floor
+from typing import Tuple, Union
+from typing_extensions import Literal
+
 import numpy as np
 import pandas as pd
 
 
+from dios import DictOfSeries
+
 from saqc.core.register import register
-from saqc.lib.ts_operators import polyRollerIrregular, polyRollerNumba, polyRoller, polyRollerNoMissingNumba, \
-    polyRollerNoMissing
+from saqc.flagger.baseflagger import BaseFlagger
+from saqc.lib.ts_operators import polyRollerIrregular, polyRollerNumba, polyRoller, polyRollerNoMissingNumba, polyRollerNoMissing
 
 
 @register(masking='field')
-def fitPolynomial(data, field, flagger, winsz, polydeg, numba="auto", eval_flags=True, min_periods=0,
-                  _return_residues=False, **kwargs):
+def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
+                  winsz: Union[int, str],
+                  polydeg: int,
+                  numba: Literal[True, False, "auto"]="auto",
+                  eval_flags: bool=True,
+                  min_periods: int=0,
+                  return_residues: bool=False,
+                  **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function fits a polynomial model to the data and returns the fitted data curve.
 
@@ -69,12 +82,12 @@ def fitPolynomial(data, field, flagger, winsz, polydeg, numba="auto", eval_flags
     eval_flags : bool, default True
         Wheather or not to assign new flags to the calculated residuals. If True, a residual gets assigned the worst
         flag present in the interval, the data for its calculation was obtained from.
-    min_periods : {int, np.nan}, default 0
+    min_periods : {int, None}, default 0
         The minimum number of periods, that has to be available in every values fitting surrounding for the polynomial
         fit to be performed. If there are not enough values, np.nan gets assigned. Default (0) results in fitting
         regardless of the number of values present (results in overfitting for too sparse intervals). To automatically
         set the minimum number of periods to the number of values in an offset defined window size, pass np.nan.
-    _return_residues : bool, default False
+    return_residues : bool, default False
         Internal parameter. Makes the method return the residues instead of the fit.
 
     Returns
@@ -98,7 +111,7 @@ def fitPolynomial(data, field, flagger, winsz, polydeg, numba="auto", eval_flags
         if isinstance(winsz, int):
             raise NotImplementedError("Integer based window size is not supported for not-harmonized" "sample series.")
         # get interval centers
-        centers = np.floor((to_fit.rolling(pd.Timedelta(winsz) / 2, closed="both", min_periods=min_periods).count()))
+        centers = (to_fit.rolling(pd.Timedelta(winsz) / 2, closed="both", min_periods=min_periods).count()).floor()
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
         residues = to_fit.rolling(pd.Timedelta(winsz), closed="both", min_periods=min_periods).apply(
@@ -117,9 +130,11 @@ def fitPolynomial(data, field, flagger, winsz, polydeg, numba="auto", eval_flags
         residues[residues.index[centers_iloc[-1]] : residues.index[-1]] = np.nan
     else:
         if isinstance(winsz, str):
-            winsz = int(np.floor(pd.Timedelta(winsz) / pd.Timedelta(to_fit.index.freqstr)))
+            winsz = pd.Timedelta(winsz) // pd.Timedelta(to_fit.index.freqstr)
         if winsz % 2 == 0:
             winsz = int(winsz - 1)
+        if min_periods is None:
+            min_periods = winsz
         if numba == "auto":
             if to_fit.shape[0] < 200000:
                 numba = False
@@ -127,7 +142,7 @@ def fitPolynomial(data, field, flagger, winsz, polydeg, numba="auto", eval_flags
                 numba = True
 
         val_range = np.arange(0, winsz)
-        center_index = int(np.floor(winsz / 2))
+        center_index = winsz // 2
         if min_periods < winsz:
             if min_periods > 0:
                 to_fit = to_fit.rolling(winsz, min_periods=min_periods, center=True).apply(
@@ -172,7 +187,7 @@ def fitPolynomial(data, field, flagger, winsz, polydeg, numba="auto", eval_flags
                     polyRollerNoMissing, args=(val_range, center_index, polydeg), raw=True
                 )
 
-    if _return_residues:
+    if return_residues:
         residues = residues - to_fit
 
     data[field] = residues
