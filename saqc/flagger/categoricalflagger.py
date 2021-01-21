@@ -6,7 +6,6 @@ from collections import OrderedDict
 import pandas as pd
 
 from saqc.flagger.baseflagger import BaseFlagger
-from saqc.lib.tools import assertDictOfSeries
 
 
 class Flags(pd.CategoricalDtype):
