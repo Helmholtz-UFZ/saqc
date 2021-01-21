@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 import json
 from copy import deepcopy
@@ -7,11 +8,10 @@ from typing import TypeVar, Optional, List
 
 import pandas as pd
 
-import dios
+from dios import DictOfSeries
 
-from saqc.flagger.baseflagger import diosT
 from saqc.flagger.categoricalflagger import CategoricalFlagger
-from saqc.lib.tools import assertScalar, mergeDios, mutateIndex
+from saqc.lib.tools import assertScalar, mergeDios
 
 DmpFlaggerT = TypeVar("DmpFlaggerT")
 
@@ -63,7 +63,7 @@ class DmpFlagger(CategoricalFlagger):
         out = out.reorder_levels(order=[1, 0], axis=1).sort_index(axis=1, level=0, sort_remaining=False)
         return out
 
-    def initFlags(self, data: dios.DictOfSeries = None, flags: dios.DictOfSeries = None):
+    def initFlags(self, data: DictOfSeries = None, flags: DictOfSeries = None):
         """
         initialize a flagger based on the given 'data' or 'flags'
         if 'data' is not None: return a flagger with flagger.UNFALGGED values
@@ -84,7 +84,7 @@ class DmpFlagger(CategoricalFlagger):
         newflagger._comments = self._comments.aloc[flags, ...]
         return newflagger
 
-    def merge(self, other: DmpFlaggerT, subset: Optional[List] = None, join: str = "merge", inplace=False):
+    def merge(self, other: DmpFlagger, subset: Optional[List] = None, join: str = "merge", inplace=False):
         assert isinstance(other, DmpFlagger)
         flags = mergeDios(self._flags, other._flags, subset=subset, join=join)
         causes = mergeDios(self._causes, other._causes, subset=subset, join=join)
@@ -101,7 +101,7 @@ class DmpFlagger(CategoricalFlagger):
         # loc should be a valid 2D-indexer and
         # then field must be None. Otherwise aloc
         # will fail and throw the correct Error.
-        if isinstance(loc, diosT) and field is None:
+        if isinstance(loc, DictOfSeries) and field is None:
             indexer = loc
         else:
             loc = slice(None) if loc is None else loc
@@ -235,7 +235,7 @@ class DmpFlagger(CategoricalFlagger):
             out._comments[field] = comments.astype(str)
         return out
 
-    def _construct_new(self, flags, causes, comments) -> DmpFlaggerT:
+    def _construct_new(self, flags, causes, comments) -> DmpFlagger:
         new = DmpFlagger()
         new._global_comments = self._global_comments
         new._flags = flags
