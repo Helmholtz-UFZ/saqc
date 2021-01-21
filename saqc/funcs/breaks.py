@@ -2,18 +2,20 @@
 # -*- coding: utf-8 -*-
 
 
-import dios
+from dios import DictOfSeries
 import numpy as np
 import pandas as pd
+from typing import Tuple
 
 
 from saqc.lib.tools import groupConsecutives
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.core.register import register
+from saqc.flagger.baseflagger import BaseFlagger
 
 
 @register(masking='field')
-def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
+def flagMissing(data: DictOfSeries, field: str, flagger: BaseFlagger, nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The function flags all values indicating missing data.
 
@@ -48,7 +50,7 @@ def flagMissing(data, field, flagger, nodata=np.nan, **kwargs):
 
 
 @register(masking='field')
-def flagIsolated(data, field, flagger, gap_window, group_window, **kwargs):
+def flagIsolated(data: DictOfSeries, field: str, flagger: BaseFlagger, gap_window: str, group_window: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
     large data gaps. A gap is defined as group of missing and/or flagged values.
@@ -68,10 +70,10 @@ def flagIsolated(data, field, flagger, gap_window, group_window, **kwargs):
         The fieldname of the column, holding the data-to-be-flagged.
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
-    gap_window :
+    gap_window : str
         The minimum size of the gap before and after a group of valid values, making this group considered an
         isolated group. See condition (2) and (3)
-    group_window :
+    group_window : str
         The maximum temporal extension allowed for a group that is isolated by gaps of size 'gap_window',
         to be actually flagged as isolated group. See condition (1).
 
@@ -108,7 +110,8 @@ def flagIsolated(data, field, flagger, gap_window, group_window, **kwargs):
 
 
 @register(masking='field')
-def flagJumps(data, field, flagger, thresh, winsz, min_periods=1, **kwargs):
+def flagJumps(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: float, winsz: str, min_periods: int=1,
+              **kwargs):
     """
     Flag datapoints, where the mean of the values significantly changes (where the value course "jumps").
 
@@ -125,7 +128,7 @@ def flagJumps(data, field, flagger, thresh, winsz, min_periods=1, **kwargs):
     winsz : str
         The temporal extension, of the rolling windows, the mean values that are to be compared,
         are obtained from.
-    min_periods : {str, int}
+    min_periods : int, default 1
         Minimum number of periods that have to be present in a window of size `winsz`, so that
         the mean value obtained from that window is regarded valid.
     """
@@ -136,8 +139,8 @@ def flagJumps(data, field, flagger, thresh, winsz, min_periods=1, **kwargs):
                                              bwd_window=winsz,
                                              min_periods_bwd=min_periods,
                                              flag_changepoints=True,
-                                             _model_by_resids=False,
-                                             _assign_cluster=False,
+                                             model_by_resids=False,
+                                             assign_cluster=False,
                                              **kwargs)
 
     return data, flagger
