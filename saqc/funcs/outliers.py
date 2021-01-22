@@ -11,7 +11,8 @@ import numpy.polynomial.polynomial as poly
 import numba
 from saqc.lib.tools import (
     customRoller,
-    findIndex
+    findIndex,
+    getFreqDelta
 )
 from saqc.funcs.scores import assignKNNScore
 from outliers import smirnov_grubbs
@@ -845,14 +846,20 @@ def flagByGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, check_l
 
     data = data.copy()
     datcol = data[field]
+    rate = getFreqDelta(datcol.index)
+
+    # if timeseries that is analyzed, is regular, window size can be transformed to a number of periods:
+    if rate and isinstance(winsz, str):
+        winsz = pd.Timedelta(winsz) // rate
+
     to_group = pd.DataFrame(data={"ts": datcol.index, "data": datcol})
     to_flag = pd.Series(False, index=datcol.index)
     if isinstance(winsz, int):
         # period number defined test intervals
         grouper_series = pd.Series(data=np.arange(0, datcol.shape[0]), index=datcol.index)
         grouper_series_lagged = grouper_series + (winsz / 2)
-        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / winsz)))
-        grouper_series_lagged = grouper_series_lagged.transform(lambda x: int(np.floor(x / winsz)))
+        grouper_series = grouper_series.transform(lambda x: x // winsz)
+        grouper_series_lagged = grouper_series_lagged.transform(lambda x: x // winsz)
         partitions = to_group.groupby(grouper_series)
         partitions_lagged = to_group.groupby(grouper_series_lagged)
     else:

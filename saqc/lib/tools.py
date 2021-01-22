@@ -568,3 +568,20 @@ def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'
         return [i for i, x in enumerate(cluster) if x != norm_cluster]
 
 
+def getFreqDelta(index):
+    """
+    Function checks if the passed index is regularly sampled.
+
+    If yes, the according timedelta value is returned,
+
+    If no, ``None`` is returned.
+
+    (``None`` will also be returned for pd.RangeIndex type.)
+
+    """
+    delta = getattr(index, 'freq', None)
+    if delta is None and not index.empty:
+        i = pd.date_range(index[0], index[-1], len(index))
+        if i.equals(index):
+            return i[1] - i[0]
+    return delta
