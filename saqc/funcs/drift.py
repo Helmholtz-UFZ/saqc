@@ -389,7 +389,7 @@ def correctExponentialDrift(data: DictOfSeries, field: str, flagger: BaseFlagger
         drift_frame.loc[maint_data.values[k] : pd.Timestamp(maint_data.index[k + 1]), "drift_group"] = k
     drift_grouper = drift_frame.groupby("drift_group")
     # define target values for correction
-    shift_targets = shift(-1)
+    shift_targets = drift_grouper.aggregate(lambda x: x[:cal_mean].mean()).shift(-1)
 
     for k, group in drift_grouper:
         dataSeries = group[to_correct.name]
