@@ -12,8 +12,11 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.core.register import register
+
+from saqc.lib.tools import getFreqDelta
 from saqc.flagger.baseflagger import BaseFlagger
 from saqc.lib.ts_operators import polyRollerIrregular, polyRollerNumba, polyRoller, polyRollerNoMissingNumba, polyRollerNoMissing
+
 
 
 @register(masking='field')
@@ -105,9 +108,8 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
     data = data.copy()
     to_fit = data[field]
     flags = flagger.getFlags(field)
-    i = to_fit.index
-    # checking if index is regular here (index.freqstr property is not reliable)
-    if not pd.date_range(i[0], i[-1], len(i)).equals(i):
+    regular = getFreqDelta(to_fit.index)
+    if not regular:
         if isinstance(winsz, int):
             raise NotImplementedError("Integer based window size is not supported for not-harmonized" "sample series.")
         # get interval centers
@@ -130,7 +132,7 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
         residues[residues.index[centers_iloc[-1]] : residues.index[-1]] = np.nan
     else:
         if isinstance(winsz, str):
-            winsz = pd.Timedelta(winsz) // pd.Timedelta(to_fit.index.freqstr)
+            winsz = pd.Timedelta(winsz) // regular
         if winsz % 2 == 0:
             winsz = int(winsz - 1)
         if min_periods is None:

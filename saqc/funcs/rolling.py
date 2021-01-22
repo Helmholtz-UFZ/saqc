@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from saqc.core.register import register
+from saqc.lib.tools import getFreqDelta
 
 
 @register(masking='field')
@@ -59,8 +60,9 @@ def roll(data, field, flagger, winsz, func=np.mean, eval_flags=True, min_periods
     if to_fit.empty:
         return data, flagger
 
+    regular = getFreqDelta(to_fit.index)
     # starting with the annoying case: finding the rolling interval centers of not-harmonized input time series:
-    if (to_fit.index.freqstr is None) and center:
+    if center and not regular:
         if isinstance(winsz, int):
             raise NotImplementedError(
                 "Integer based window size is not supported for not-harmonized"
@@ -90,7 +92,7 @@ def roll(data, field, flagger, winsz, func=np.mean, eval_flags=True, min_periods
     # everything is more easy if data[field] is harmonized:
     else:
         if isinstance(winsz, str):
-            winsz = int(np.floor(pd.Timedelta(winsz) / pd.Timedelta(to_fit.index.freqstr)))
+            winsz = pd.Timedelta(winsz) // regular
         if (winsz % 2 == 0) & center:
             winsz = int(winsz - 1)
 
@@ -101,9 +103,9 @@ def roll(data, field, flagger, winsz, func=np.mean, eval_flags=True, min_periods
             means = to_fit.rolling(window=winsz, center=center, closed="both").apply(func)
 
     if _return_residues:
-        residues = means - to_fit
+        means = means - to_fit
 
-    data[field] = residues
+    data[field] = means
     if eval_flags:
         num_cats, codes = flags.factorize()
         num_cats = pd.Series(num_cats, index=flags.index).rolling(winsz, center=True, min_periods=min_periods).max()
