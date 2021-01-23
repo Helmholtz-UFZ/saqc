@@ -13,7 +13,7 @@ import numpy as np
 import numba as nb
 
 from sklearn.neighbors import NearestNeighbors
-from scipy.stats import iqr
+from scipy.stats import iqr, median_abs_deviation
 import numpy.polynomial.polynomial as poly
 
 logger = logging.getLogger("SaQC")
@@ -103,6 +103,12 @@ def standardizeByMean(ts):
 
 
 def standardizeByMedian(ts):
+    # standardization with median (MAD)
+    # NO SCALING
+    return (ts - np.median(ts)) / median_abs_deviation(ts, nan_policy="omit")
+
+
+def standardizeByIQR(ts):
     # standardization with median and interquartile range
     return (ts - np.median(ts)) / iqr(ts, nan_policy="omit")
 
