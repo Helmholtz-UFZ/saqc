@@ -190,7 +190,7 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
                 )
 
     if return_residues:
-        residues = residues - to_fit
+        residues = to_fit - residues
 
     data[field] = residues
     if eval_flags:
