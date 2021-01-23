@@ -247,7 +247,7 @@ class SaQC:
 
             ctrl_kws = FuncCtrl(
                 masking=FUNC_MAP[func_name]["masking"],
-                to_mask=to_mask or self._to_mask,
+                to_mask=self._to_mask if to_mask is None else to_mask,
                 plot=plot,
                 inplace=inplace,
                 )
