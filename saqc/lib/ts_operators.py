@@ -124,24 +124,12 @@ def kNN(in_arr, n_neighbors, algorithm="ball_tree", metric='minkowski', p=2, rad
         i += 1
     return dist, np.array([])
 
-def kNNMaxGap(in_arr, n_neighbors=10, algorithm="ball_tree"):
-    # searches for the "n_neighbors" nearest neighbors of every value in "in_arr"
-    # and then returns the distance to the neighbor with the "maximum" Gap to its
-    # predecessor in the neighbor hierarchy
-    in_arr = np.asarray(in_arr)
-    dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
-    sample_size = dist.shape[0]
-    to_gap = np.append(np.array([[0] * sample_size]).T, dist, axis=1)
-    max_gap_ind = np.diff(to_gap, axis=1).argmax(axis=1)
-    return dist[range(0, sample_size), max_gap_ind]
 
-
-def kNNSum(in_arr, n_neighbors=10, algorithm="ball_tree"):
-    # searches for the "n_neighbors" nearest neighbors of every value in "in_arr"
-    # and assigns that value the summed up distances to this neighbors
-    in_arr = np.asarray(in_arr)
-    dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
-    return dist.sum(axis=1)
+def maxGap(in_arr):
+    """
+    Search for the maximum gap in an array of sorted distances (func for scoring kNN distance matrice)
+    """
+    return max(in_arr[0], max(np.diff(in_arr)))
 
 
 @nb.njit
