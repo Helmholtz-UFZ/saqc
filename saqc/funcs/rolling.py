@@ -103,7 +103,7 @@ def roll(data, field, flagger, winsz, func=np.mean, eval_flags=True, min_periods
             means = to_fit.rolling(window=winsz, center=center, closed="both").apply(func)
 
     if _return_residues:
-        means = means - to_fit
+        means = to_fit - means
 
     data[field] = means
     if eval_flags:
