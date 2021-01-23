@@ -41,7 +41,7 @@ class BaseFlagger(ABC):
         self.extra_defaults = dict()
         # NOTE: the arggumens of setFlags supported from
         #       the configuration functions
-        self.signature = ("flag",)
+        self.signature = ("flag", "force", "flag_after", "flag_before")
         self._flags: Optional[DictOfSeries] = None
 
     @property

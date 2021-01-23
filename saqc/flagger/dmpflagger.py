@@ -39,7 +39,7 @@ class DmpFlagger(CategoricalFlagger):
         super().__init__(FLAGS)
         self.flags_fields = [FlagFields.FLAG, FlagFields.CAUSE, FlagFields.COMMENT]
         self.extra_defaults = dict(cause=FLAGS[0], comment="")
-        self.signature = ("flag", "comment", "cause", "force")
+        self.signature = self.signature + ("flag", "comment", "cause")
 
         self._global_comments = kwargs
         self._flags = None
