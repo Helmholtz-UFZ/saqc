@@ -717,8 +717,9 @@ def flagOffset(data, field, flagger, thresh, tolerance, window, numba_kickin=200
         Minimum difference between to values, to consider the latter one as a spike. See condition (1)
     tolerance : float, default 0
         Maximum difference between pre-spike and post-spike values. See condition (2)
-    window : str, default '15min'
-        Maximum length of "spiky" value courses. See condition (3)
+    window : {str, int}, default '15min'
+        Maximum length of "spiky" value courses. See condition (3). Integer defined window length are only allowed for
+        regularly sampled timeseries.
     numba_kickin : int, default 200000
         When there are detected more than `numba_kickin` incidents of potential spikes,
         the pandas.rolling - part of computation gets "jitted" with numba.
@@ -743,6 +744,12 @@ def flagOffset(data, field, flagger, thresh, tolerance, window, numba_kickin=200
     """
 
     dataseries = data[field].dropna()
+    if isinstance(window, int):
+        delta = getFreqDelta(dataseries.index)
+        if not delta:
+            raise TypeError('Only offset string defined window sizes allowed for irrgegularly sampled timeseries')
+        window = delta * window
+
     # get all the entries preceding a significant jump
     post_jumps = dataseries.diff().abs() > thresh
     post_jumps = post_jumps[post_jumps]
