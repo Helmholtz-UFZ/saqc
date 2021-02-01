@@ -30,7 +30,7 @@ PyWavelets==1.1.1
 zipp==3.4.0
 wcwidth==0.2.5
 scipy==1.6.0
-scikit-learn==0.24.0
+scikit-learn==0.24.1
 six==1.15.0
 typing_extensions==3.7.4.3
 astor==0.8.1
