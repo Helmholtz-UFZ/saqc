@@ -51,8 +51,10 @@ class Backtrack:
         # of the bt parameter and serve as a fastpath for internal
         # fast creation of a new BT, where no checks are needed.
         if isinstance(bt, Backtrack):
-            bt = bt.bt
+            # keep this order, otherwise bt.mask
+            # will refer to pd.Dataframe.mask
             mask = bt.mask
+            bt = bt.bt
 
         elif bt is None and mask is None:
             bt = pd.DataFrame()
@@ -212,8 +214,8 @@ class Backtrack:
         else:
             # calc the squeezed series.
             # we dont have to care about any forced series
-            # because anytime force is given, the False's in
-            # the mask are propagated back over the whole BT
+            # because anytime force was given, the False's in
+            # the mask were propagated back over the whole BT
             mask = self.mask.iloc[:, -n:]
             bt = self.bt.iloc[: -n:]
             s = bt[mask].max(axis=1)
@@ -227,7 +229,7 @@ class Backtrack:
 
     def max(self) -> pd.Series:
         """
-        Get the maximum value per row of non-masked data.
+        Get the maximum value per row of the BT.
 
         Returns
         -------
@@ -240,6 +242,20 @@ class Backtrack:
         return Backtrack
 
     def copy(self, deep=True) -> Backtrack:
+        """
+        Make a copy of the BT.
+
+        Parameters
+        ----------
+        deep : bool, default True
+            - ``True``: make a deep copy
+            - ``False``: make a shallow copy
+
+        Returns
+        -------
+        copy : Backtrack
+            the copied BT
+        """
         return self._constructor(bt=self, copy=deep)
 
     def __len__(self) -> int:
@@ -275,7 +291,7 @@ class Backtrack:
 
     def _validate_bt(self, obj: pd.DataFrame) -> pd.DataFrame:
         """
-        check type, columns, index, dtype and if the mask fits the obj.
+        check type, columns, dtype of obj.
         """
 
         if not isinstance(obj, pd.DataFrame):
