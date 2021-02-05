@@ -51,8 +51,10 @@ class Backtrack:
         # of the bt parameter and serve as a fastpath for internal
         # fast creation of a new BT, where no checks are needed.
         if isinstance(bt, Backtrack):
-            bt = bt.bt
+            # keep this order, otherwise bt.mask
+            # will refer to pd.Dataframe.mask
             mask = bt.mask
+            bt = bt.bt
 
         elif bt is None and mask is None:
             bt = pd.DataFrame()
