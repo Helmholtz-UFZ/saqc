@@ -227,7 +227,7 @@ class Backtrack:
 
     def max(self) -> pd.Series:
         """
-        Get the maximum value per row of non-masked data.
+        Get the maximum value per row of the BT.
 
         Returns
         -------
@@ -240,6 +240,20 @@ class Backtrack:
         return Backtrack
 
     def copy(self, deep=True) -> Backtrack:
+        """
+        Make a copy of the BT.
+
+        Parameters
+        ----------
+        deep : bool, default True
+            - ``True``: make a deep copy
+            - ``False``: make a shallow copy
+
+        Returns
+        -------
+        copy : Backtrack
+            the copied BT
+        """
         return self._constructor(bt=self, copy=deep)
 
     def __len__(self) -> int:
@@ -275,7 +289,7 @@ class Backtrack:
 
     def _validate_bt(self, obj: pd.DataFrame) -> pd.DataFrame:
         """
-        check type, columns, index, dtype and if the mask fits the obj.
+        check type, columns, dtype of obj.
         """
 
         if not isinstance(obj, pd.DataFrame):
