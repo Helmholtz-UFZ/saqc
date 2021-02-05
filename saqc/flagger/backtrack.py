@@ -170,7 +170,7 @@ class Backtrack:
         if s.empty:
             raise ValueError('Cannot append empty pd.Series')
 
-        if not self.bt.empty and s.index.equals(self.index):
+        if not self.bt.empty and not s.index.equals(self.index):
             raise ValueError("Index must be equal to BT's index")
 
         self._insert(value, nr=len(self))
