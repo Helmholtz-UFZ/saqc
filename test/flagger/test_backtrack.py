@@ -31,8 +31,8 @@ data = [
 
 def check_invariants(bt):
     """
-    this can be called for **any** BT and
-    should never fail.
+    This can be called for **any** BT.
+    The assertions must hold in any case.
     """
     # basics
     assert isinstance(bt, Backtrack)
@@ -48,11 +48,31 @@ def check_invariants(bt):
     # advanced
     assert bt.columns.equals(pd.Index(range(len(bt))))
     assert isinstance(bt.max(), pd.Series)
+    assert bt.mask.empty or bt.mask.iloc[:, -1].all()
+
+    # False propagation
+
+    # for each row this must hold:
+    # either the row has one change (False->True)
+    # or the entire row is True
+    if not bt.empty:
+        idxmax = bt.mask.idxmax(axis=1)
+        for row, col in idxmax.items():
+            assert all(bt.mask.iloc[row, :col] == False)
+            assert all(bt.mask.iloc[row, col:] == True)
+
+
+def is_equal(bt1: Backtrack, bt2: Backtrack):
+    """
+    Check if two BT are (considered) equal, namely
+    have equal 'bt' and equal 'mask'.
+    """
+    return bt1.bt.equals(bt2.bt) and bt1.mask.equals(bt2.mask)
 
 
 @pytest.mark.parametrize('data', data + [None])
 def test_init(data: np.array):
-
+    # init
     df = pd.DataFrame(data, dtype=float)
     bt = Backtrack(bt=df)
 
@@ -65,23 +85,38 @@ def test_init(data: np.array):
         assert bt.mask.all(axis=None)
 
     # check fastpath
-    bt = Backtrack(bt=bt)
-    check_invariants(bt)
+    fast = Backtrack(bt=bt)
+    check_invariants(fast)
+
+    assert is_equal(bt, fast)
 
 
 @pytest.mark.parametrize('data', data + [None])
 def test_init_with_mask(data: np.array):
-
+    # init
     df = pd.DataFrame(data, dtype=float)
-
-    bt = Backtrack(bt=df)
+    mask = pd.DataFrame(data, dtype=bool)
+    if not mask.empty:
+        mask.iloc[:, -1] = True
+    bt = Backtrack(bt=df, mask=mask)
 
     check_invariants(bt)
 
-    if data is None:
-        return
+    # shape would fail
+    if data is not None:
+        assert len(bt.index) == data.shape[0]
+        assert len(bt.columns) == data.shape[1]
 
-    assert len(bt.index) == data.shape[0]
-    assert len(bt.columns) == data.shape[1]
-    assert bt.mask.all(axis=None)
+    # check fastpath
+    fast = Backtrack(bt=bt)
+    check_invariants(fast)
 
+    assert is_equal(bt, fast)
+
+
+def test_append():
+    pass
+
+
+def test_squeeze():
+    pass

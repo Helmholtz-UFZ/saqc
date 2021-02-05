@@ -93,7 +93,7 @@ class Backtrack:
 
         Returns
         -------
-        index: pd.Index
+        index : pd.Index
         """
         return self.bt.index
 
@@ -107,9 +107,25 @@ class Backtrack:
 
         Returns
         -------
-        columns: pd.Index
+        columns : pd.Index
         """
         return self.bt.columns
+
+    @property
+    def empty(self) -> bool:
+        """
+        Indicator whether Backtrack is empty.
+
+        True if Backtrack is entirely empty (no items).
+
+        Returns
+        -------
+        bool
+            If Backtrack is empty, return True, if not return False.
+        """
+        # we take self.mask here, because it cannot have NaN's,
+        # but self.bt could have -> see pd.DataFrame.empty
+        return self.mask.empty
 
     def _insert(self, s: pd.Series, nr: int, force=False) -> Backtrack:
         """
@@ -172,7 +188,7 @@ class Backtrack:
         if s.empty:
             raise ValueError('Cannot append empty pd.Series')
 
-        if not self.bt.empty and not s.index.equals(self.index):
+        if not self.empty and not s.index.equals(self.index):
             raise ValueError("Index must be equal to BT's index")
 
         self._insert(value, nr=len(self))
@@ -280,12 +296,15 @@ class Backtrack:
         if any(mask.dtypes != bool):
             raise ValueError("dtype of all columns in 'mask' must be bool")
 
+        if not mask.empty and not mask.iloc[:, -1].all():
+            raise ValueError("the values in the last column in mask must be 'True' everywhere.")
+
         # check combination of bt and mask
         if not obj.columns.equals(mask.columns):
-            raise ValueError("'BT' and 'mask' must have same columns")
+            raise ValueError("'bt' and 'mask' must have same columns")
 
-        if not obj.index.equals(mask.columns):
-            raise ValueError("'BT' and 'mask' must have same index")
+        if not obj.index.equals(mask.index):
+            raise ValueError("'bt' and 'mask' must have same index")
 
         return obj, mask
 
