@@ -20,7 +20,7 @@ pandas==1.2.0
 pluggy==0.13.1
 pyparsing==2.4.7
 py==1.10.0
-pyarrow==1.0.1
+pyarrow==3.0.0
 pytest-lazy-fixture==0.6.3
 pytest==6.2.1
 python-dateutil==2.8.1
