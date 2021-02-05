@@ -212,8 +212,8 @@ class Backtrack:
         else:
             # calc the squeezed series.
             # we dont have to care about any forced series
-            # because anytime force is given, the False's in
-            # the mask are propagated back over the whole BT
+            # because anytime force was given, the False's in
+            # the mask were propagated back over the whole BT
             mask = self.mask.iloc[:, -n:]
             bt = self.bt.iloc[: -n:]
             s = bt[mask].max(axis=1)
