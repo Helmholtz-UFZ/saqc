@@ -114,8 +114,67 @@ def test_init_with_mask(data: np.array):
     assert is_equal(bt, fast)
 
 
-def test_append():
-    pass
+@pytest.mark.parametrize('data', data + [None])
+def test_copy(data):
+    # init
+    df = pd.DataFrame(data, dtype=float)
+    bt = Backtrack(bt=df)
+    shallow = bt.copy(deep=False)
+    deep = bt.copy(deep=True)
+
+    # checks
+
+    for copy in [deep, shallow]:
+        check_invariants(copy)
+        assert copy is not bt
+        assert is_equal(copy, bt)
+
+    assert deep is not shallow
+    assert is_equal(deep, shallow)
+
+    assert deep.bt is not bt.bt
+    assert deep.mask is not bt.mask
+    assert shallow.bt is bt.bt
+    assert shallow.mask is bt.mask
+
+
+@pytest.fixture(scope='module')
+def _append_bt():
+    return Backtrack()
+
+
+@pytest.mark.parametrize('s, max_val', [
+    (pd.Series(val, index=range(6), dtype=float), max_val)
+    for val, max_val
+    in zip(
+        [0, 1, 3, np.nan, 2, 1, 0],
+        [0, 1, 3, 3, 3, 3, 3]  # expected max-val
+    )
+])
+def test_append(_append_bt, s, max_val):
+    bt = _append_bt
+    print(bt.bt)
+    bt.append(s, force=False)
+    check_invariants(bt)
+    assert all(bt.max() == max_val)
+
+
+# this test append more rows to the resulting
+# BT from the former test
+@pytest.mark.parametrize('s, max_val', [
+    (pd.Series(val, index=range(6), dtype=float), max_val)
+    for val, max_val
+    in zip(
+        [0, 1, 3, np.nan, 2, 1, 0],
+        [0, 1, 3,      3, 2, 1, 0],  # expected max-val
+    )
+])
+def test_append_force(_append_bt, s, max_val):
+    bt = _append_bt
+    print(bt.bt)
+    bt.append(s, force=True)
+    check_invariants(bt)
+    assert all(bt.max() == max_val)
 
 
 def test_squeeze():

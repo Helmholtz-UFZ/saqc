@@ -152,9 +152,18 @@ class Backtrack:
         # ensure continuous increasing columns
         assert 0 <= nr <= len(self)
 
+        # we dont care about force on first insert
+        if self.empty:
+
+            assert nr == 0
+
+            self.mask[nr] = pd.Series(True, index=s.index, dtype=bool)
+            self.bt[nr] = s
+            return self
+
         if force:
             touched = np.isfinite(s)
-            self.bt.iloc[touched, :nr] = False
+            self.mask.iloc[touched, :nr] = False
 
         # a column is appended
         if nr == len(self):
@@ -164,7 +173,7 @@ class Backtrack:
 
         return self
 
-    def append(self, value: pd.Series) -> Backtrack:
+    def append(self, value: pd.Series, force=False) -> Backtrack:
         """
         Create a new BT column and insert given pd.Series to it.
 
@@ -173,6 +182,9 @@ class Backtrack:
         value : pd.Series
             the data to append. Must have dtype float and the index must
             match the index of the BT.
+
+        force : bool, default False
+            if True the internal mask is updated accordingly
 
         Raises
         ------
@@ -191,7 +203,7 @@ class Backtrack:
         if not self.empty and not s.index.equals(self.index):
             raise ValueError("Index must be equal to BT's index")
 
-        self._insert(value, nr=len(self))
+        self._insert(value, nr=len(self), force=force)
         return self
 
     def squeeze(self, n: int) -> Backtrack:
