@@ -210,6 +210,8 @@ class Backtrack:
         """
         Squeeze last `n` columns to a single column.
 
+        This **not** changes the result of ``Backtrack.max()``.
+
         Parameters
         ----------
         n : int
@@ -245,7 +247,7 @@ class Backtrack:
             # because anytime force was given, the False's in
             # the mask were propagated back over the whole BT
             mask = self.mask.iloc[:, -n:]
-            bt = self.bt.iloc[: -n:]
+            bt = self.bt.iloc[:, -n:]
             s = bt[mask].max(axis=1)
 
             # slice self down
@@ -288,6 +290,12 @@ class Backtrack:
 
     def __len__(self) -> int:
         return len(self.bt.columns)
+
+    def __repr__(self):
+        return self.bt.__repr__()
+
+    def __str__(self):
+        return self.bt.__str__()
 
     # --------------------------------------------------------------------------------
     # validation
@@ -350,8 +358,3 @@ class Backtrack:
             raise ValueError('dtype must be float')
 
         return obj
-
-
-if __name__ == '__main__':
-    b = Backtrack(bt=pd.DataFrame(range(6), columns=[0], dtype=float))
-    b = Backtrack(bt=pd.DataFrame(dtype=float))
