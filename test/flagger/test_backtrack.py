@@ -7,6 +7,53 @@ from pandas.api.types import is_bool_dtype
 from test.common import TESTFLAGGER, initData
 from saqc.flagger.backtrack import Backtrack
 
+# see #GH143 combined bt
+# (adjusted to current implementation)
+example1 = (
+
+    # flags
+    np.array([
+        [0, np.nan, 50, 99, np.nan],
+        [0, np.nan, 50, np.nan, 25],
+        [0, 99, 99, 99, 25],
+        [0, 99, np.nan, np.nan, 25],
+    ]),
+
+    # mask
+    np.array([
+        [0, 0, 0, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+    ]),
+
+    # expected from max()
+    np.array([99, 25, 25, 25])
+)
+
+# see #GH143
+example2 = (
+
+    # flags
+    np.array([
+        [0, 99, np.nan, 0],
+        [0, np.nan, 99, np.nan],
+        [0, np.nan, np.nan, np.nan],
+        [0, np.nan, np.nan, 0],
+    ]),
+
+    # mask
+    np.array([
+        [0, 0, 0, 1],
+        [1, 1, 1, 1],
+        [1, 1, 1, 1],
+        [0, 0, 0, 1],
+    ]),
+
+    # expected from max()
+    np.array([0, 99, 0, 0])
+)
+
 data = [
 
     np.array([[]]),
@@ -139,7 +186,10 @@ def test_copy(data):
 
 
 @pytest.fixture(scope='module')
-def _append_bt():
+def __bt():
+    # this BT is filled by
+    #  - test_append
+    #  - test_append_force
     return Backtrack()
 
 
@@ -147,13 +197,12 @@ def _append_bt():
     (pd.Series(val, index=range(6), dtype=float), max_val)
     for val, max_val
     in zip(
-        [0, 1, 3, np.nan, 2, 1, 0],
-        [0, 1, 3, 3, 3, 3, 3]  # expected max-val
+        [0, 1, np.nan, 1, 0],
+        [0, 1, 1, 1, 1]  # expected max-val
     )
 ])
-def test_append(_append_bt, s, max_val):
-    bt = _append_bt
-    print(bt.bt)
+def test_append(__bt, s, max_val):
+    bt = __bt
     bt.append(s, force=False)
     check_invariants(bt)
     assert all(bt.max() == max_val)
@@ -165,17 +214,41 @@ def test_append(_append_bt, s, max_val):
     (pd.Series(val, index=range(6), dtype=float), max_val)
     for val, max_val
     in zip(
-        [0, 1, 3, np.nan, 2, 1, 0],
-        [0, 1, 3,      3, 2, 1, 0],  # expected max-val
+        [0, 1, np.nan, 0],
+        [0, 1, 1, 0],  # expected max-val
     )
 ])
-def test_append_force(_append_bt, s, max_val):
-    bt = _append_bt
-    print(bt.bt)
+def test_append_force(__bt, s, max_val):
+    bt = __bt
     bt.append(s, force=True)
     check_invariants(bt)
     assert all(bt.max() == max_val)
 
 
 def test_squeeze():
-    pass
+    # init
+    d, m, exp = example2
+    d = pd.DataFrame(d, dtype=float)
+    m = pd.DataFrame(m, dtype=bool)
+    orig = Backtrack(bt=d, mask=m)
+
+    check_invariants(orig)
+    assert all(orig.max() == exp)
+
+    # checks
+
+    for n in range(len(orig)):
+        bt = orig.copy()
+        bt.squeeze(n)
+
+        check_invariants(bt)
+
+        # squeeze for less then 2 rows does nothing
+        if n < 2:
+            assert is_equal(bt, orig)
+        else:
+            assert len(bt) == len(orig) - n + 1
+
+        # result does not change
+        assert all(bt.max() == exp)
+        print(bt)
