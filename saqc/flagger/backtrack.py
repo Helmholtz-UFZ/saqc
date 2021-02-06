@@ -154,7 +154,6 @@ class Backtrack:
 
         # we dont care about force on first insert
         if self.empty:
-
             assert nr == 0
 
             self.mask[nr] = pd.Series(True, index=s.index, dtype=bool)
@@ -184,7 +183,10 @@ class Backtrack:
             match the index of the BT.
 
         force : bool, default False
-            if True the internal mask is updated accordingly
+            if True the internal mask is updated in a way that the currently
+            set value (series values) will be returned if ``Backtrack.max()``
+            is called. This apply for all valid values (not ``np.Nan`` and
+            not ``-np.inf``).
 
         Raises
         ------
@@ -227,7 +229,8 @@ class Backtrack:
 
         Returns
         -------
-        Backtrack: squeezed backtrack
+        Backtrack
+            squeezed backtrack
         """
         if n <= 1:
             return self
@@ -251,6 +254,9 @@ class Backtrack:
             s = bt[mask].max(axis=1)
 
             # slice self down
+            # this may leave us in an unstable state, because
+            # the last column may not is entirely True, but
+            # the following append, will fix this
             self.bt = self.bt.iloc[:, :-n]
             self.mask = self.mask.iloc[:, :-n]
 
@@ -292,10 +298,17 @@ class Backtrack:
         return len(self.bt.columns)
 
     def __repr__(self):
-        return self.bt.__repr__()
 
-    def __str__(self):
-        return self.bt.__str__()
+        if self.empty:
+            return str(self.bt).replace('DataFrame', 'Backtrack')
+
+        repr = self.bt.astype(str)
+        m = self.mask
+
+        repr[m] = ' ' + repr[m] + ' '
+        repr[~m] = '(' + repr[~m] + ')'
+
+        return str(repr)[1:]
 
     # --------------------------------------------------------------------------------
     # validation
