@@ -6,19 +6,19 @@ import pandas as pd
 import numpy as np
 
 
-class Backtrack:
+class History:
     """
     Saqc internal storage for the history of a (single) flags column.
 
-    The backtrack (BT) stores the history of a flags column. Each time
-    ``append`` is called a new column is appended to the BT. The column
+    The flag-history (FH) stores the history of a flags column. Each time
+    ``append`` is called a new column is appended to the FH. The column
     names are increasing integers starting with 0. After initialisation
-    the BT is empty and has no columns at all. If an initial `UNFLAGGED`-
-    column is desired, it must created manually, or passed via the ``bt``
-    parameter. The same way a new BT can be created from an existing one.
+    the FH is empty and has no columns at all. If an initial `UNFLAGGED`-
+    column is desired, it must created manually, or passed via the ``hist``
+    parameter. The same way a new FH can be created from an existing one.
 
     To get the worst flags (highest value) that are currently stored in
-    the BT, we provide a ``max()`` method. It returns a pd.Series indicating
+    the FH, we provide a ``max()`` method. It returns a pd.Series indicating
     the worst flag per row.
 
     To counteract the problem, that one may want to force a better flag
@@ -32,62 +32,62 @@ class Backtrack:
 
     Parameters
     ----------
-    bt : pd.Dataframe, default None
-        if None a empty BT is created, otherwise the existing dataframe
-        is taken as the initial backtrack.
+    hist : pd.Dataframe, default None
+        if None a empty FH is created, otherwise the existing dataframe
+        is taken as the initial history.
 
     mask : pd.Dataframe, default None
         a mask holding the boolean force values. It must match the passed
-        ``bt``. If None an matching mask is created, assuming force never
+        ``hist``. If None an matching mask is created, assuming force never
         was passed to any test.
 
     copy : bool, default False
         If True, the input data is copied, otherwise not.
     """
 
-    def __init__(self, bt: pd.DataFrame = None, mask: pd.DataFrame = None, copy: bool = False):
+    def __init__(self, hist: pd.DataFrame = None, mask: pd.DataFrame = None, copy: bool = False):
 
         # this is a hidden _feature_ and not exposed by the type
-        # of the bt parameter and serve as a fastpath for internal
-        # fast creation of a new BT, where no checks are needed.
-        if isinstance(bt, Backtrack):
-            # keep this order, otherwise bt.mask
+        # of the hist parameter and serve as a fastpath for internal
+        # fast creation of a new FH, where no checks are needed.
+        if isinstance(hist, History):
+            # keep this order, otherwise hist.mask
             # will refer to pd.Dataframe.mask
-            mask = bt.mask
-            bt = bt.bt
+            mask = hist.mask
+            hist = hist.hist
 
-        elif bt is None and mask is None:
-            bt = pd.DataFrame()
+        elif hist is None and mask is None:
+            hist = pd.DataFrame()
             mask = pd.DataFrame()
 
-        elif bt is None and mask is not None:
-            raise ValueError("Cannot take 'mask' with no 'bt'")
+        elif hist is None and mask is not None:
+            raise ValueError("Cannot take 'mask' with no 'hist'")
 
-        elif bt is not None and mask is None:
-            bt = self._validate_bt(bt)
-            mask = pd.DataFrame(True, index=bt.index, columns=bt.columns)
+        elif hist is not None and mask is None:
+            hist = self._validate_hist(hist)
+            mask = pd.DataFrame(True, index=hist.index, columns=hist.columns)
 
         else:
-            bt, mask = self._validate_bt_with_mask(bt, mask)
+            hist, mask = self._validate_hist_with_mask(hist, mask)
 
         if copy:
-            bt = bt.copy()
+            hist = hist.copy()
             mask = mask.copy()
 
-        self.bt = bt
+        self.hist = hist
         self.mask = mask
 
     @property
     def index(self) -> pd.Index:
         """
-        The index of BT.
+        The index of FH.
 
         The index is the same for all columns.
 
         Notes
         -----
         The index should always be equal to the flags series,
-        this is BT is associated with. If this is messed up
+        this is FH is associated with. If this is messed up
         something went wrong in saqc internals or in a user-
         defined test.
 
@@ -95,12 +95,12 @@ class Backtrack:
         -------
         index : pd.Index
         """
-        return self.bt.index
+        return self.hist.index
 
     @property
     def columns(self) -> pd.Index:
         """
-        Columns of the BT.
+        Columns of the FH.
 
         The columns are always continuously
         increasing integers, starting from 0.
@@ -109,27 +109,27 @@ class Backtrack:
         -------
         columns : pd.Index
         """
-        return self.bt.columns
+        return self.hist.columns
 
     @property
     def empty(self) -> bool:
         """
-        Indicator whether Backtrack is empty.
+        Indicator whether History is empty.
 
-        True if Backtrack is entirely empty (no items).
+        True if History is entirely empty (no items).
 
         Returns
         -------
         bool
-            If Backtrack is empty, return True, if not return False.
+            If History is empty, return True, if not return False.
         """
         # we take self.mask here, because it cannot have NaN's,
-        # but self.bt could have -> see pd.DataFrame.empty
+        # but self.hist could have -> see pd.DataFrame.empty
         return self.mask.empty
 
-    def _insert(self, s: pd.Series, nr: int, force=False) -> Backtrack:
+    def _insert(self, s: pd.Series, nr: int, force=False) -> History:
         """
-        Insert data at an arbitrary position in the BT.
+        Insert data at an arbitrary position in the FH.
 
         No validation of series is done here.
 
@@ -146,7 +146,7 @@ class Backtrack:
 
         Returns
         -------
-        Backtrack
+        History
         """
         # internal detail:
         # ensure continuous increasing columns
@@ -157,7 +157,7 @@ class Backtrack:
             assert nr == 0
 
             self.mask[nr] = pd.Series(True, index=s.index, dtype=bool)
-            self.bt[nr] = s
+            self.hist[nr] = s
             return self
 
         if force:
@@ -168,23 +168,23 @@ class Backtrack:
         if nr == len(self):
             self.mask[nr] = True
 
-        self.bt[nr] = s
+        self.hist[nr] = s
 
         return self
 
-    def append(self, value: pd.Series, force=False) -> Backtrack:
+    def append(self, value: pd.Series, force=False) -> History:
         """
-        Create a new BT column and insert given pd.Series to it.
+        Create a new FH column and insert given pd.Series to it.
 
         Parameters
         ----------
         value : pd.Series
             the data to append. Must have dtype float and the index must
-            match the index of the BT.
+            match the index of the FH.
 
         force : bool, default False
             if True the internal mask is updated in a way that the currently
-            set value (series values) will be returned if ``Backtrack.max()``
+            set value (series values) will be returned if ``History.max()``
             is called. This apply for all valid values (not ``np.Nan`` and
             not ``-np.inf``).
 
@@ -195,7 +195,7 @@ class Backtrack:
 
         Returns
         -------
-        Backtrack: BT with appended series
+        History: FH with appended series
         """
         s = self._validate_value(value)
 
@@ -203,16 +203,16 @@ class Backtrack:
             raise ValueError('Cannot append empty pd.Series')
 
         if not self.empty and not s.index.equals(self.index):
-            raise ValueError("Index must be equal to BT's index")
+            raise ValueError("Index must be equal to FH's index")
 
         self._insert(value, nr=len(self), force=force)
         return self
 
-    def squeeze(self, n: int) -> Backtrack:
+    def squeeze(self, n: int) -> History:
         """
         Squeeze last `n` columns to a single column.
 
-        This **not** changes the result of ``Backtrack.max()``.
+        This **not** changes the result of ``History.max()``.
 
         Parameters
         ----------
@@ -229,18 +229,18 @@ class Backtrack:
 
         Returns
         -------
-        Backtrack
-            squeezed backtrack
+        History
+            squeezed history
         """
         if n <= 1:
             return self
 
         if n > len(self):
-            raise ValueError(f"'n={n}' cannot be greater than columns in the BT")
+            raise ValueError(f"'n={n}' cannot be greater than columns in the FH")
 
         # shortcut
         if len(self) == n:
-            self.bt = pd.DataFrame()
+            self.hist = pd.DataFrame()
             self.mask = pd.DataFrame()
             s = self.max()
 
@@ -248,16 +248,16 @@ class Backtrack:
             # calc the squeezed series.
             # we dont have to care about any forced series
             # because anytime force was given, the False's in
-            # the mask were propagated back over the whole BT
+            # the mask were propagated back over the whole FH
             mask = self.mask.iloc[:, -n:]
-            bt = self.bt.iloc[:, -n:]
-            s = bt[mask].max(axis=1)
+            hist = self.hist.iloc[:, -n:]
+            s = hist[mask].max(axis=1)
 
             # slice self down
             # this may leave us in an unstable state, because
             # the last column may not is entirely True, but
             # the following append, will fix this
-            self.bt = self.bt.iloc[:, :-n]
+            self.hist = self.hist.iloc[:, :-n]
             self.mask = self.mask.iloc[:, :-n]
 
         self.append(s)
@@ -265,21 +265,21 @@ class Backtrack:
 
     def max(self) -> pd.Series:
         """
-        Get the maximum value per row of the BT.
+        Get the maximum value per row of the FH.
 
         Returns
         -------
         pd.Series: maximum values
         """
-        return self.bt[self.mask].max(axis=1)
+        return self.hist[self.mask].max(axis=1)
 
     @property
-    def _constructor(self) -> Type['Backtrack']:
-        return Backtrack
+    def _constructor(self) -> Type['History']:
+        return History
 
-    def copy(self, deep=True) -> Backtrack:
+    def copy(self, deep=True) -> History:
         """
-        Make a copy of the BT.
+        Make a copy of the FH.
 
         Parameters
         ----------
@@ -289,20 +289,20 @@ class Backtrack:
 
         Returns
         -------
-        copy : Backtrack
-            the copied BT
+        copy : History
+            the copied FH
         """
-        return self._constructor(bt=self, copy=deep)
+        return self._constructor(hist=self, copy=deep)
 
     def __len__(self) -> int:
-        return len(self.bt.columns)
+        return len(self.hist.columns)
 
     def __repr__(self):
 
         if self.empty:
-            return str(self.bt).replace('DataFrame', 'Backtrack')
+            return str(self.hist).replace('DataFrame', 'History')
 
-        repr = self.bt.astype(str)
+        repr = self.hist.astype(str)
         m = self.mask
 
         repr[m] = ' ' + repr[m] + ' '
@@ -314,13 +314,13 @@ class Backtrack:
     # validation
     #
 
-    def _validate_bt_with_mask(self, obj: pd.DataFrame, mask: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def _validate_hist_with_mask(self, obj: pd.DataFrame, mask: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         check type, columns, index, dtype and if the mask fits the obj.
         """
 
-        # check bt
-        self._validate_bt(obj)
+        # check hist
+        self._validate_hist(obj)
 
         # check mask
         if not isinstance(mask, pd.DataFrame):
@@ -332,25 +332,25 @@ class Backtrack:
         if not mask.empty and not mask.iloc[:, -1].all():
             raise ValueError("the values in the last column in mask must be 'True' everywhere.")
 
-        # check combination of bt and mask
+        # check combination of hist and mask
         if not obj.columns.equals(mask.columns):
-            raise ValueError("'bt' and 'mask' must have same columns")
+            raise ValueError("'hist' and 'mask' must have same columns")
 
         if not obj.index.equals(mask.index):
-            raise ValueError("'bt' and 'mask' must have same index")
+            raise ValueError("'hist' and 'mask' must have same index")
 
         return obj, mask
 
-    def _validate_bt(self, obj: pd.DataFrame) -> pd.DataFrame:
+    def _validate_hist(self, obj: pd.DataFrame) -> pd.DataFrame:
         """
         check type, columns, dtype of obj.
         """
 
         if not isinstance(obj, pd.DataFrame):
-            raise TypeError(f"'bt' must be of type pd.DataFrame, but {type(obj).__name__} was given")
+            raise TypeError(f"'hist' must be of type pd.DataFrame, but {type(obj).__name__} was given")
 
         if any(obj.dtypes != float):
-            raise ValueError('dtype of all columns in bt must be float')
+            raise ValueError('dtype of all columns in hist must be float')
 
         if not obj.empty and (
                 not obj.columns.equals(pd.Index(range(len(obj.columns))))

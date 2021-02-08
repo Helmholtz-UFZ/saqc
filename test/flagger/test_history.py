@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype
 from test.common import TESTFLAGGER, initData
-from saqc.flagger.backtrack import Backtrack
+from saqc.flagger.history import History
 
-# see #GH143 combined bt
+# see #GH143 combined backtrack
 # (adjusted to current implementation)
 example1 = (
 
@@ -76,66 +76,66 @@ data = [
 ]
 
 
-def check_invariants(bt):
+def check_invariants(hist):
     """
-    This can be called for **any** BT.
+    This can be called for **any** FH.
     The assertions must hold in any case.
     """
     # basics
-    assert isinstance(bt, Backtrack)
-    assert isinstance(bt.bt, pd.DataFrame)
-    assert isinstance(bt.mask, pd.DataFrame)
-    assert all(bt.bt.dtypes == float)
-    assert all(bt.mask.dtypes == bool)
-    assert bt.bt.columns.equals(bt.mask.columns)
-    assert bt.columns is bt.bt.columns
-    assert bt.index is bt.bt.index
-    assert len(bt) == len(bt.columns)
+    assert isinstance(hist, History)
+    assert isinstance(hist.hist, pd.DataFrame)
+    assert isinstance(hist.mask, pd.DataFrame)
+    assert all(hist.hist.dtypes == float)
+    assert all(hist.mask.dtypes == bool)
+    assert hist.hist.columns.equals(hist.mask.columns)
+    assert hist.columns is hist.hist.columns
+    assert hist.index is hist.hist.index
+    assert len(hist) == len(hist.columns)
 
     # advanced
-    assert bt.columns.equals(pd.Index(range(len(bt))))
-    assert isinstance(bt.max(), pd.Series)
-    assert bt.mask.empty or bt.mask.iloc[:, -1].all()
+    assert hist.columns.equals(pd.Index(range(len(hist))))
+    assert isinstance(hist.max(), pd.Series)
+    assert hist.mask.empty or hist.mask.iloc[:, -1].all()
 
     # False propagation
 
     # for each row this must hold:
     # either the row has one change (False->True)
     # or the entire row is True
-    if not bt.empty:
-        idxmax = bt.mask.idxmax(axis=1)
+    if not hist.empty:
+        idxmax = hist.mask.idxmax(axis=1)
         for row, col in idxmax.items():
-            assert all(bt.mask.iloc[row, :col] == False)
-            assert all(bt.mask.iloc[row, col:] == True)
+            assert all(hist.mask.iloc[row, :col] == False)
+            assert all(hist.mask.iloc[row, col:] == True)
 
 
-def is_equal(bt1: Backtrack, bt2: Backtrack):
+def is_equal(hist1: History, hist2: History):
     """
-    Check if two BT are (considered) equal, namely
-    have equal 'bt' and equal 'mask'.
+    Check if two FH are (considered) equal, namely
+    have equal 'hist' and equal 'mask'.
     """
-    return bt1.bt.equals(bt2.bt) and bt1.mask.equals(bt2.mask)
+    return hist1.hist.equals(hist2.hist) and hist1.mask.equals(hist2.mask)
 
 
 @pytest.mark.parametrize('data', data + [None])
 def test_init(data: np.array):
     # init
     df = pd.DataFrame(data, dtype=float)
-    bt = Backtrack(bt=df)
+    hist = History(hist=df)
 
-    check_invariants(bt)
+    check_invariants(hist)
 
     # shape would fail
     if data is not None:
-        assert len(bt.index) == data.shape[0]
-        assert len(bt.columns) == data.shape[1]
-        assert bt.mask.all(axis=None)
+        assert len(hist.index) == data.shape[0]
+        assert len(hist.columns) == data.shape[1]
+        assert hist.mask.all(axis=None)
 
     # check fastpath
-    fast = Backtrack(bt=bt)
+    fast = History(hist=hist)
     check_invariants(fast)
 
-    assert is_equal(bt, fast)
+    assert is_equal(hist, fast)
 
 
 @pytest.mark.parametrize('data', data + [None])
@@ -145,52 +145,52 @@ def test_init_with_mask(data: np.array):
     mask = pd.DataFrame(data, dtype=bool)
     if not mask.empty:
         mask.iloc[:, -1] = True
-    bt = Backtrack(bt=df, mask=mask)
+    hist = History(hist=df, mask=mask)
 
-    check_invariants(bt)
+    check_invariants(hist)
 
     # shape would fail
     if data is not None:
-        assert len(bt.index) == data.shape[0]
-        assert len(bt.columns) == data.shape[1]
+        assert len(hist.index) == data.shape[0]
+        assert len(hist.columns) == data.shape[1]
 
     # check fastpath
-    fast = Backtrack(bt=bt)
+    fast = History(hist=hist)
     check_invariants(fast)
 
-    assert is_equal(bt, fast)
+    assert is_equal(hist, fast)
 
 
 @pytest.mark.parametrize('data', data + [None])
 def test_copy(data):
     # init
     df = pd.DataFrame(data, dtype=float)
-    bt = Backtrack(bt=df)
-    shallow = bt.copy(deep=False)
-    deep = bt.copy(deep=True)
+    hist = History(hist=df)
+    shallow = hist.copy(deep=False)
+    deep = hist.copy(deep=True)
 
     # checks
 
     for copy in [deep, shallow]:
         check_invariants(copy)
-        assert copy is not bt
-        assert is_equal(copy, bt)
+        assert copy is not hist
+        assert is_equal(copy, hist)
 
     assert deep is not shallow
     assert is_equal(deep, shallow)
 
-    assert deep.bt is not bt.bt
-    assert deep.mask is not bt.mask
-    assert shallow.bt is bt.bt
-    assert shallow.mask is bt.mask
+    assert deep.hist is not hist.hist
+    assert deep.mask is not hist.mask
+    assert shallow.hist is hist.hist
+    assert shallow.mask is hist.mask
 
 
 @pytest.fixture(scope='module')
-def __bt():
-    # this BT is filled by
+def __hist():
+    # this FH is filled by
     #  - test_append
     #  - test_append_force
-    return Backtrack()
+    return History()
 
 
 @pytest.mark.parametrize('s, max_val', [
@@ -201,15 +201,15 @@ def __bt():
         [0, 1, 1, 1, 1]  # expected max-val
     )
 ])
-def test_append(__bt, s, max_val):
-    bt = __bt
-    bt.append(s, force=False)
-    check_invariants(bt)
-    assert all(bt.max() == max_val)
+def test_append(__hist, s, max_val):
+    hist = __hist
+    hist.append(s, force=False)
+    check_invariants(hist)
+    assert all(hist.max() == max_val)
 
 
 # this test append more rows to the resulting
-# BT from the former test
+# FH from the former test
 @pytest.mark.parametrize('s, max_val', [
     (pd.Series(val, index=range(6), dtype=float), max_val)
     for val, max_val
@@ -218,11 +218,11 @@ def test_append(__bt, s, max_val):
         [0, 1, 1, 0],  # expected max-val
     )
 ])
-def test_append_force(__bt, s, max_val):
-    bt = __bt
-    bt.append(s, force=True)
-    check_invariants(bt)
-    assert all(bt.max() == max_val)
+def test_append_force(__hist, s, max_val):
+    hist = __hist
+    hist.append(s, force=True)
+    check_invariants(hist)
+    assert all(hist.max() == max_val)
 
 
 def test_squeeze():
@@ -230,7 +230,7 @@ def test_squeeze():
     d, m, exp = example2
     d = pd.DataFrame(d, dtype=float)
     m = pd.DataFrame(m, dtype=bool)
-    orig = Backtrack(bt=d, mask=m)
+    orig = History(hist=d, mask=m)
 
     check_invariants(orig)
     assert all(orig.max() == exp)
@@ -238,17 +238,17 @@ def test_squeeze():
     # checks
 
     for n in range(len(orig)):
-        bt = orig.copy()
-        bt.squeeze(n)
+        hist = orig.copy()
+        hist.squeeze(n)
 
-        check_invariants(bt)
+        check_invariants(hist)
 
         # squeeze for less then 2 rows does nothing
         if n < 2:
-            assert is_equal(bt, orig)
+            assert is_equal(hist, orig)
         else:
-            assert len(bt) == len(orig) - n + 1
+            assert len(hist) == len(orig) - n + 1
 
         # result does not change
-        assert all(bt.max() == exp)
-        print(bt)
+        assert all(hist.max() == exp)
+        print(hist)
