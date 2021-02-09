@@ -240,9 +240,9 @@ class History:
 
         # shortcut
         if len(self) == n:
+            s = self.max()
             self.hist = pd.DataFrame()
             self.mask = pd.DataFrame()
-            s = self.max()
 
         else:
             # calc the squeezed series.
