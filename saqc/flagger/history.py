@@ -127,7 +127,7 @@ class History:
         # but self.hist could have -> see pd.DataFrame.empty
         return self.mask.empty
 
-    def _insert(self, s: pd.Series, nr: int, force=False) -> History:
+    def _insert(self, s: pd.Series, pos: int, force=False) -> History:
         """
         Insert data at an arbitrary position in the FH.
 
@@ -138,11 +138,12 @@ class History:
         s : pd.Series
             the series to insert
 
-        nr : int
+        pos : int
             the position to insert
 
         force : bool, default False
-            if True the internal mask is updated accordingly
+            if True the internal mask is updated accordingly that the values overwrite
+            any earlier values in the FH.
 
         Returns
         -------
@@ -150,25 +151,16 @@ class History:
         """
         # internal detail:
         # ensure continuous increasing columns
-        assert 0 <= nr <= len(self)
+        assert 0 <= pos <= len(self)
 
-        # we dont care about force on first insert
-        if self.empty:
-            assert nr == 0
-
-            self.mask[nr] = pd.Series(True, index=s.index, dtype=bool)
-            self.hist[nr] = s
-            return self
+        if pos == len(self):  # append
+            self.mask[pos] = pd.Series(True, index=s.index, dtype=bool)
 
         if force:
             touched = np.isfinite(s)
-            self.mask.iloc[touched, :nr] = False
+            self.mask.iloc[touched, :pos] = False
 
-        # a column is appended
-        if nr == len(self):
-            self.mask[nr] = True
-
-        self.hist[nr] = s
+        self.hist[pos] = s
 
         return self
 
@@ -205,7 +197,7 @@ class History:
         if not self.empty and not s.index.equals(self.index):
             raise ValueError("Index must be equal to FH's index")
 
-        self._insert(value, nr=len(self), force=force)
+        self._insert(value, pos=len(self), force=force)
         return self
 
     def squeeze(self, n: int) -> History:
