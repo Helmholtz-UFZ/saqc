@@ -13,27 +13,23 @@ import numpy as np
 from saqc.common import *
 from saqc.lib.tools import assertScalar, mergeDios, toSequence, customRoller
 from saqc.flagger.flags import Flags, init_flags_like, History
-
-COMPARATOR_MAP = {
-    "!=": op.ne,
-    "==": op.eq,
-    ">=": op.ge,
-    ">": op.gt,
-    "<=": op.le,
-    "<": op.lt,
-}
-
-LocT = Union[pd.Series, pd.Index, slice]
-FlagT = Any
-BaseFlaggerT = TypeVar("BaseFlaggerT", bound="BaseFlagger")
-PandasT = Union[pd.Series, DictOfSeries]
-FieldsT = Union[str, List[str], slice]
+from saqc.flagger.baseflagger import (
+    BaseFlagger,
+    COMPARATOR_MAP,
+    LocT,
+    FlagT,
+    PandasT,
+    FieldsT,
+)
 
 
-class CompatFlagger:
+class CompatFlagger(BaseFlagger):
 
     def __init__(self):
-        self.dtype = float
+        super().__init__(float)
+
+        # not supported anymore
+        delattr(self, 'extra_defaults')
 
         # the arguments of setFlags supported from the configuration functions
         self.signature = ("flag", "force", "flag_after", "flag_before")
@@ -375,7 +371,7 @@ class CompatFlagger:
 
         return flagged
 
-    def copy(self) -> CompatFlagger:
+    def copy(self, **kwargs) -> CompatFlagger:
         copy = self._constructor()
         copy._flags = self._flags.copy(deep=True)
         return copy
