@@ -7,7 +7,7 @@ import dios
 from saqc.flagger.history import History
 import numpy as np
 import pandas as pd
-from typing import Union, Dict, DefaultDict, Iterable, Tuple, Optional
+from typing import Union, Dict, DefaultDict, Iterable, Tuple, Optional, Type
 
 UNTOUCHED = np.nan
 UNFLAGGED = 0
@@ -101,6 +101,11 @@ class Flags:
             if k in result:
                 raise ValueError('raw_data must not have duplicate keys')
 
+            # No, means no ! (copy)
+            if isinstance(item, History) and not copy:
+                result[k] = item
+                continue
+
             if isinstance(item, pd.Series):
                 item = item.to_frame(name=0)
             elif isinstance(item, History):
@@ -112,30 +117,12 @@ class Flags:
 
         return result
 
-    def __getitem__(self, key: str) -> pd.Series:
+    @property
+    def _constructor(self) -> Type['Flags']:
+        return Flags
 
-        if key not in self._cache:
-            self._cache[key] = self._data[key].max()
-
-        return self._cache[key].copy()
-
-    def __setitem__(self, key: str, value: pd.Series):
-
-        if key not in self._data:
-            hist = History()
-
-        else:
-            hist = self._data[key]
-
-        hist.append(value)
-        self._cache.pop(key, None)
-
-    def __delitem__(self, key):
-        del self._data[key]
-        self._cache.pop(key, None)
-
-    def drop(self, key):
-        self.__delitem__(key)
+    # ----------------------------------------------------------------------
+    # mata data
 
     @property
     def columns(self) -> pd.Index:
@@ -167,8 +154,102 @@ class Flags:
         self._cache = _cache
 
     @property
+    def empty(self) -> bool:
+        return len(self._data) == 0
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    # ----------------------------------------------------------------------
+    # item access
+
+    def __getitem__(self, key: str) -> pd.Series:
+
+        if key not in self._cache:
+            self._cache[key] = self._data[key].max()
+
+        return self._cache[key].copy()
+
+    def __setitem__(self, key: str, value: pd.Series, force=False):
+        # force is internal available only
+
+        if key not in self._data:
+            hist = History()
+
+        else:
+            hist = self._data[key]
+
+        hist.append(value, force=force)
+        self._cache.pop(key, None)
+
+    def force(self, key: str, value: pd.Series) -> Flags:
+        """
+        Overwrite existing flags, regardless if they are better
+        or worse than the existing flags.
+
+        Parameters
+        ----------
+        key : str
+            column name
+
+        value : pandas.Series
+            A series of float flags to force
+
+        Returns
+        -------
+        Flags
+            the same flags object with altered flags, no copy
+        """
+        self.__setitem__(key, value, force=True)
+        return self
+
+    def __delitem__(self, key):
+        del self._data[key]
+        self._cache.pop(key, None)
+
+    def drop(self, key: str):
+        """
+        Delete a flags column.
+
+        Parameters
+        ----------
+        key : str
+            column name
+
+        Returns
+        -------
+        Flags
+            the same flags object with dropeed column, no copy
+        """
+        self.__delitem__(key)
+
+    # ----------------------------------------------------------------------
+    # accessor
+
+    @property
     def history(self) -> _HistAccess:
         return _HistAccess(self)
+
+    # ----------------------------------------------------------------------
+    # copy
+
+    def copy(self, deep=True):
+        return self._constructor(self, copy=deep)
+
+    def __copy__(self, deep=True):
+        return self.copy(deep=deep)
+
+    def __deepcopy__(self, memo=None):
+        """
+        Parameters
+        ----------
+        memo, default None
+            Standard signature. Unused
+        """
+        return self.copy(deep=True)
+
+    # ----------------------------------------------------------------------
+    # transformation and representation
 
     def to_dios(self) -> dios.DictOfSeries:
         di = dios.DictOfSeries(columns=self.columns)
@@ -180,13 +261,6 @@ class Flags:
 
     def to_frame(self) -> pd.DataFrame:
         return self.to_dios().to_df()
-
-    @property
-    def empty(self) -> bool:
-        return len(self._data) == 0
-
-    def __len__(self) -> int:
-        return len(self._data)
 
     def __repr__(self) -> str:
         return str(self.to_dios()).replace('DictOfSeries', type(self).__name__)
