@@ -135,7 +135,7 @@ def flagJumps(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: floa
 
     data, flagger = assignChangePointCluster(data, field, flagger,
                                              stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
-                                             tresh_func=lambda x, y: thresh,
+                                             thresh_func=lambda x, y: thresh,
                                              bwd_window=winsz,
                                              min_periods_bwd=min_periods,
                                              flag_changepoints=True,
