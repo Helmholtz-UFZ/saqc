@@ -234,7 +234,7 @@ def test_squeeze():
 
     # checks
 
-    for n in range(len(orig)):
+    for n in range(len(orig) + 1):
         hist = orig.copy()
         hist.squeeze(n)
 

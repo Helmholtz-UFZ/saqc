@@ -230,27 +230,20 @@ class History:
         if n > len(self):
             raise ValueError(f"'n={n}' cannot be greater than columns in the FH")
 
-        # shortcut
-        if len(self) == n:
-            s = self.max()
-            self.hist = pd.DataFrame()
-            self.mask = pd.DataFrame()
+        # calc the squeezed series.
+        # we dont have to care about any forced series
+        # because anytime force was given, the False's in
+        # the mask were propagated back over the whole FH
+        mask = self.mask.iloc[:, -n:]
+        hist = self.hist.iloc[:, -n:]
+        s = hist[mask].max(axis=1)
 
-        else:
-            # calc the squeezed series.
-            # we dont have to care about any forced series
-            # because anytime force was given, the False's in
-            # the mask were propagated back over the whole FH
-            mask = self.mask.iloc[:, -n:]
-            hist = self.hist.iloc[:, -n:]
-            s = hist[mask].max(axis=1)
-
-            # slice self down
-            # this may leave us in an unstable state, because
-            # the last column may not is entirely True, but
-            # the following append, will fix this
-            self.hist = self.hist.iloc[:, :-n]
-            self.mask = self.mask.iloc[:, :-n]
+        # slice self down
+        # this may leave us in an unstable state, because
+        # the last column maybe is not entirely True, but
+        # the following append, will fix this
+        self.hist = self.hist.iloc[:, :-n]
+        self.mask = self.mask.iloc[:, :-n]
 
         self.append(s)
         return self
