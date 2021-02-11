@@ -286,6 +286,18 @@ class History:
         """
         return self._constructor(hist=self, copy=deep)
 
+    def __copy__(self, deep: bool = True):
+        return self.copy(deep=deep)
+
+    def __deepcopy__(self, memo=None):
+        """
+        Parameters
+        ----------
+        memo, default None
+            Standard signature. Unused
+        """
+        return self.copy(deep=True)
+
     def __len__(self) -> int:
         return len(self.hist.columns)
 
