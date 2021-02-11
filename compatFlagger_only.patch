@@ -1,0 +1,26 @@
+diff --git a/test/common.py b/test/common.py
+index d5867e94..172d8edd 100644
+--- a/test/common.py
++++ b/test/common.py
+@@ -12,6 +12,7 @@ from saqc.flagger import (
+     CategoricalFlagger,
+     SimpleFlagger,
+     DmpFlagger,
++    CompatFlagger,
+ )
+ 
+ 
+@@ -19,9 +20,10 @@ TESTNODATA = (np.nan, -9999)
+ 
+ 
+ TESTFLAGGER = (
+-    CategoricalFlagger(["NIL", "GOOD", "BAD"]),
+-    SimpleFlagger(),
+-    DmpFlagger(),
++    # CategoricalFlagger(["NIL", "GOOD", "BAD"]),
++    # SimpleFlagger(),
++    # DmpFlagger(),
++    CompatFlagger(),
+ )
+ 
+ def flagAll(data, field, flagger, **kwargs):
