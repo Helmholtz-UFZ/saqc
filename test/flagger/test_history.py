@@ -194,12 +194,11 @@ def __hist():
 
 
 @pytest.mark.parametrize('s, max_val', [
-    (pd.Series(val, index=range(6), dtype=float), max_val)
-    for val, max_val
-    in zip(
-        [0, 1, np.nan, 1, 0],
-        [0, 1, 1, 1, 1]  # expected max-val
-    )
+    (pd.Series(0, index=range(6), dtype=float), 0),
+    (pd.Series(1, index=range(6), dtype=float), 1),
+    (pd.Series(np.nan, index=range(6), dtype=float), 1),
+    (pd.Series(1, index=range(6), dtype=float), 1),
+    (pd.Series(0, index=range(6), dtype=float), 1),
 ])
 def test_append(__hist, s, max_val):
     hist = __hist
@@ -211,12 +210,10 @@ def test_append(__hist, s, max_val):
 # this test append more rows to the resulting
 # FH from the former test
 @pytest.mark.parametrize('s, max_val', [
-    (pd.Series(val, index=range(6), dtype=float), max_val)
-    for val, max_val
-    in zip(
-        [0, 1, np.nan, 0],
-        [0, 1, 1, 0],  # expected max-val
-    )
+    (pd.Series(0, index=range(6), dtype=float), 0),
+    (pd.Series(1, index=range(6), dtype=float), 1),
+    (pd.Series(np.nan, index=range(6), dtype=float), 1),
+    (pd.Series(0, index=range(6), dtype=float), 0),
 ])
 def test_append_force(__hist, s, max_val):
     hist = __hist
