@@ -92,6 +92,7 @@ class Flags:
         result = {}
 
         for obj in data:
+
             if isinstance(obj, tuple):
                 k, item = obj
             else:
@@ -102,6 +103,10 @@ class Flags:
 
             if isinstance(item, pd.Series):
                 item = item.to_frame(name=0)
+            elif isinstance(item, History):
+                pass
+            else:
+                raise TypeError(f"cannot init from {type(data.__name__)} of {type(item.__name__)}")
 
             result[k] = History(item, copy=copy)
 
@@ -140,17 +145,21 @@ class Flags:
     def columns(self, value: pd.Index):
         if not isinstance(value, pd.Index):
             value = pd.Index(value)
+
         if (
                 not value.is_unique
                 or not pd.api.types.is_string_dtype(value)
         ):
             raise TypeError('value must be pd.Index, with unique indices of type str')
+
         if not len(value) == len(self):
             raise ValueError("index must match current index in length")
 
         _data, _cache = {}, {}
+
         for old, new in zip(self.columns, value):
             _data[new] = self._data.pop(old)
+
             if old in self._cache:
                 _cache[new] = self._cache[old]
 
@@ -234,7 +243,7 @@ def init_flags_like(reference: Union[pd.Series, DictLike, Flags], initial_value:
         if not isinstance(item, (pd.Series, History)):
             raise TypeError('items in reference must be of type pd.Series')
 
-        item = pd.DataFrame(UNFLAGGED, index=item.index, columns=[0], dtype=float)
+        item = pd.DataFrame(initial_value, index=item.index, columns=[0], dtype=float)
 
         result[k] = History(item)
 
@@ -244,6 +253,7 @@ def init_flags_like(reference: Union[pd.Series, DictLike, Flags], initial_value:
 if __name__ == '__main__':
     from dios import example_DictOfSeries
 
-    f = init_flags_like(example_DictOfSeries())
+    f = init_flags_like(example_DictOfSeries(), initial_value=-3.)
     print(f)
     print(Flags())
+    print(Flags(example_DictOfSeries().astype(float)))
