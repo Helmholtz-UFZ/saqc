@@ -14,7 +14,7 @@ class History:
     ``append`` is called a new column is appended to the FH. The column
     names are increasing integers starting with 0. After initialisation
     the FH is empty and has no columns at all. If an initial `UNFLAGGED`-
-    column is desired, it must created manually, or passed via the ``hist``
+    column is desired, it must be created manually, or passed via the ``hist``
     parameter. The same way a new FH can be created from an existing one.
 
     To get the worst flags (highest value) that are currently stored in
@@ -22,11 +22,11 @@ class History:
     the worst flag per row.
 
     To counteract the problem, that one may want to force a better flag
-    value than the currently worst, ``append`` provide a ``force`` keyword.
+    value than the current worst, ``append`` provide a ``force`` keyword.
     Internal we need to store the force information in an additional mask.
 
     For more details and a detailed discussion, why this is needed, how this
-    works and possible other implementations, see #GH143 [1].
+    works and possible other implementations, see #GL143 [1].
     
     [1] https://git.ufz.de/rdm-software/saqc/-/issues/143
 
@@ -61,7 +61,7 @@ class History:
             mask = pd.DataFrame()
 
         elif hist is None and mask is not None:
-            raise ValueError("Cannot take 'mask' with no 'hist'")
+            raise ValueError("Cannot take 'mask' without 'hist'")
 
         elif hist is not None and mask is None:
             hist = self._validate_hist(hist)
@@ -87,7 +87,7 @@ class History:
         Notes
         -----
         The index should always be equal to the flags series,
-        this is FH is associated with. If this is messed up
+        the FH is associated with. If this is messed up
         something went wrong in saqc internals or in a user-
         defined test.
 
@@ -223,7 +223,7 @@ class History:
         -----
         The new column number (column name) will be the lowest of
         the squeezed. This ensure that the column numbers are always
-        monotonic increasing.
+        monotonically increasing.
 
         Bear in mind, this works inplace, if a copy is needed, call ``copy`` before.
 
