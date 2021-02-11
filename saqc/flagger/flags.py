@@ -3,20 +3,14 @@
 from __future__ import annotations
 
 import dios
-
+from saqc.common import *
 from saqc.flagger.history import History
-import numpy as np
 import pandas as pd
 from typing import Union, Dict, DefaultDict, Iterable, Tuple, Optional, Type
 
-UNTOUCHED = np.nan
-UNFLAGGED = 0
-DOUBTFUL = 25
-BAD = 99
-
 _KEY = str
 _VAL = Union[pd.Series, History]
-DictLike = Union[
+_DictLike = Union[
     pd.DataFrame,
     dios.DictOfSeries,
     Dict[_KEY, _VAL],
@@ -69,7 +63,7 @@ class Flags:
     make a df    -> flags.to_frame()
     """
 
-    def __init__(self, raw_data: Optional[Union[DictLike, Flags]] = None, copy: bool = False):
+    def __init__(self, raw_data: Optional[Union[_DictLike, Flags]] = None, copy: bool = False):
 
         if raw_data is None:
             raw_data = {}
@@ -89,6 +83,10 @@ class Flags:
         self._cache = {}
 
     def _init_from_raw(self, data, copy) -> Dict[str, History]:
+        """
+        init from dict-like: keys are flag column, values become
+        initial columns of history(s).
+        """
         result = {}
 
         for obj in data:
@@ -160,6 +158,9 @@ class Flags:
     def __len__(self) -> int:
         return len(self._data)
 
+    def __contains__(self, item):
+        return item in self.columns
+
     # ----------------------------------------------------------------------
     # item access
 
@@ -171,7 +172,11 @@ class Flags:
         return self._cache[key].copy()
 
     def __setitem__(self, key: str, value: pd.Series, force=False):
-        # force is internal available only
+        # force-KW is internal available only
+
+        # if nothing happens no-one writes the history books
+        if isinstance(value, pd.Series) and len(value) == 0:
+            return
 
         if key not in self._data:
             hist = History()
@@ -266,7 +271,7 @@ class Flags:
         return str(self.to_dios()).replace('DictOfSeries', type(self).__name__)
 
 
-def init_flags_like(reference: Union[pd.Series, DictLike, Flags], initial_value: float = UNFLAGGED) -> Flags:
+def init_flags_like(reference: Union[pd.Series, _DictLike, Flags], initial_value: float = UNFLAGGED) -> Flags:
     """
     Create empty Flags, from an reference data structure.
 
