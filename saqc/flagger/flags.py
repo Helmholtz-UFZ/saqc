@@ -72,7 +72,6 @@ class Flags:
             raw_data = raw_data._data
 
         # with python 3.7 dicts are insertion-ordered by default
-        self._data: Dict[str, History]
         self._data = self._init_from_raw(raw_data, copy)
 
         # this is a simple cache that reduce the calculation of the flags
@@ -117,7 +116,7 @@ class Flags:
 
     @property
     def _constructor(self) -> Type['Flags']:
-        return Flags
+        return type(self)
 
     # ----------------------------------------------------------------------
     # mata data
@@ -143,7 +142,7 @@ class Flags:
         _data, _cache = {}, {}
 
         for old, new in zip(self.columns, value):
-            _data[new] = self._data.pop(old)
+            _data[new] = self._data[old]
 
             if old in self._cache:
                 _cache[new] = self._cache[old]
@@ -179,13 +178,10 @@ class Flags:
             return
 
         if key not in self._data:
-            hist = History()
-
-        else:
-            hist = self._data[key]
-
-        hist.append(value, force=force)
-        self._cache.pop(key, None)
+            self._data[key] = History()
+        
+        self._data[key].append(value, force=force)
+        self._cache.pop(key, None)     
 
     def force(self, key: str, value: pd.Series) -> Flags:
         """
@@ -209,7 +205,7 @@ class Flags:
         return self
 
     def __delitem__(self, key):
-        del self._data[key]
+        self._data.pop(key)
         self._cache.pop(key, None)
 
     def drop(self, key: str):
@@ -328,11 +324,3 @@ def init_flags_like(reference: Union[pd.Series, _DictLike, Flags], initial_value
 
     return Flags(result)
 
-
-if __name__ == '__main__':
-    from dios import example_DictOfSeries
-
-    f = init_flags_like(example_DictOfSeries(), initial_value=-3.)
-    print(f)
-    print(Flags())
-    print(Flags(example_DictOfSeries().astype(float)))
