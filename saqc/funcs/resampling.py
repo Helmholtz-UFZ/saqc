@@ -458,7 +458,7 @@ def resample(
         Same as `max_invalid_total_d`, only applying for the flags. The flag regarded as "invalid" value,
         is the one passed to empty_intervals_flag (default=``flagger.BAD``).
         Also this is the flag assigned to invalid/empty intervals.
-    max_invalid_total_f : {np.inf, int}, default np.inf
+    max_invalid_consec_f : {np.inf, int}, default np.inf
         Same as `max_invalid_total_f`, only applying onto flags. The flag regarded as "invalid" value, is the one passed
         to empty_intervals_flag (default=flagger.BAD). Also this is the flag assigned to invalid/empty intervals.
     flag_agg_func : Callable, default: max

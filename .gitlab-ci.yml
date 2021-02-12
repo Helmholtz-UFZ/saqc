@@ -43,7 +43,7 @@ pages:
     - pip install -r requirements.txt
     - cd sphinx-doc/
     - pip install -r requirements_sphinx.txt
-    - make html
+    - make doc
     - cp -r _build/html ../public
   artifacts:
     paths:

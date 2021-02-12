@@ -199,7 +199,7 @@ def assignChangePointCluster(data: DictOfSeries, field: str, flagger: BaseFlagge
             stat_func = jit_sf
             thresh_func = jit_tf
             try_to_jit = True
-        except numba.core.errors.TypingError:
+        except (numba.core.errors.TypingError, IndexError):
             try_to_jit = False
             logging.warning('Could not jit passed statistic - omitting jitting!')
 
