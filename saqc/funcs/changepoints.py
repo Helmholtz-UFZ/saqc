@@ -95,8 +95,8 @@ def flagChangePoints(data: DictOfSeries, field: str, flagger: BaseFlagger,
 
 @register(masking='field')
 def assignChangePointCluster(data: DictOfSeries, field: str, flagger: BaseFlagger,
-                             stat_func: Callable[[np.array], np.array],
-                             thresh_func: Callable[[np.array], np.array],
+                             stat_func: Callable[[np.array, np.array], float],
+                             thresh_func: Callable[[np.array, np.array], float],
                              bwd_window: str,
                              min_periods_bwd: Union[str, int],
                              fwd_window: str=None,
