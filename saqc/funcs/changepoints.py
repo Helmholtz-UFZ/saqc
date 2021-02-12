@@ -126,10 +126,10 @@ def assignChangePointCluster(data: DictOfSeries, field: str, flagger: BaseFlagge
         The reference variable, the deviation from wich determines the flagging.
     flagger : saqc.flagger
         A flagger object, holding flags and additional informations related to `data`.
-    stat_func : Callable[numpy.array, numpy.array]
+    stat_func : Callable[[numpy.array, numpy.array], float]
         A function that assigns a value to every twin window. Left window content will be passed to first variable,
         right window content will be passed to the second.
-    thresh_func : Callable[numpy.array, numpy.array]
+    thresh_func : Callable[numpy.array, numpy.array], float]
         A function that determines the value level, exceeding wich qualifies a timestamps stat func value as denoting a
         changepoint.
     bwd_window : str
