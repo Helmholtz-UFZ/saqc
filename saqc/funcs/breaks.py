@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 from dios import DictOfSeries
 import numpy as np
 import pandas as pd
@@ -14,7 +13,7 @@ from saqc.core.register import register
 from saqc.flagger.baseflagger import BaseFlagger
 
 
-@register(masking='field')
+@register(masking='field', module="breaks")
 def flagMissing(data: DictOfSeries, field: str, flagger: BaseFlagger, nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The function flags all values indicating missing data.
@@ -49,7 +48,7 @@ def flagMissing(data: DictOfSeries, field: str, flagger: BaseFlagger, nodata: fl
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='field', module="breaks")
 def flagIsolated(data: DictOfSeries, field: str, flagger: BaseFlagger, gap_window: str, group_window: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
@@ -109,7 +108,7 @@ def flagIsolated(data: DictOfSeries, field: str, flagger: BaseFlagger, gap_windo
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='field', module="breaks")
 def flagJumps(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: float, winsz: str, min_periods: int=1,
               **kwargs):
     """

@@ -1,15 +1,27 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from typing import Optional, Callable, Tuple, Union
+
+import numpy as np
 import pandas as pd
 
+from dios import DictOfSeries
+
 from saqc.core.register import register
-import numpy as np
-import dios
+from saqc.flagger.baseflagger import BaseFlagger
 
 
-@register(masking='field')
-def transform(data, field, flagger, func, partition_freq=None, **kwargs):
+@register(masking='field', module="transformation")
+def transform(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        func: Callable[[pd.Series], pd.Series],
+        partition_freq: Optional[Union[float, str]]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
+
     """
     Function to transform data columns with a transformation that maps series onto series of the same length.
 
@@ -25,7 +37,7 @@ def transform(data, field, flagger, func, partition_freq=None, **kwargs):
         A flagger object, holding flags and additional Informations related to `data`.
     func : Callable[{pd.Series, np.array}, np.array]
         Function to transform data[field] with.
-    partition_freq : {np.inf, float, str}, default np.inf
+    partition_freq : {None, float, str}, default None
         Determines the segmentation of the data into partitions, the transformation is applied on individually
 
         * ``np.inf``: Apply transformation on whole data set at once

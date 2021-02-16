@@ -1,17 +1,31 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+
+from typing import Tuple, Union, Optional, Any, Callable, Sequence
+from typing_extensions import Literal
+
 import numpy as np
 import pandas as pd
 
+from dios import DictOfSeries
+
 from saqc.core.register import register
+from saqc.flagger.baseflagger import BaseFlagger
+
 from saqc.lib.tools import toSequence, evalFreqStr, dropper
 from saqc.lib.ts_operators import interpolateNANs
 
 
-@register(masking='field')
+@register(masking='field', module="interpolation")
 def interpolateByRolling(
-    data, field, flagger, winsz, func=np.median, center=True, min_periods=0, interpol_flag="UNFLAGGED", **kwargs
-):
+        data: DictOfSeries, field: str, flagger: BaseFlagger,
+        winsz: Union[str, int],
+        func: Callable[[pd.Series], float]=np.median,
+        center: bool=True,
+        min_periods: int=0,
+        interpol_flag=Any,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Interpolates missing values (nan values present in the data) by assigning them the aggregation result of
     a window surrounding them.
@@ -75,19 +89,19 @@ def interpolateByRolling(
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='field', module="interpolation")
 def interpolateInvalid(
-    data,
-    field,
-    flagger,
-    method,
-    inter_order=2,
-    inter_limit=2,
-    interpol_flag="UNFLAGGED",
-    downgrade_interpolation=False,
-    not_interpol_flags=None,
+    data: DictOfSeries,
+    field: str,
+    flagger: BaseFlagger,
+    method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
+    inter_order: int=2,
+    inter_limit: int=2,
+    interpol_flag: Any="UNFLAGGED",
+    downgrade_interpolation: bool=False,
+    not_interpol_flags: Optional[Union[Any, Sequence[Any]]]=None,
     **kwargs
-):
+) -> Tuple[DictOfSeries, BaseFlagger]:
 
     """
     Function to interpolate nan values in the data.
@@ -165,21 +179,22 @@ def interpolateInvalid(
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='field', module="interpolation")
 def interpolateIndex(
-        data,
-        field,
-        flagger,
-        freq,
-        method,
-        inter_order=2,
-        to_drop=None,
-        downgrade_interpolation=False,
-        empty_intervals_flag=None,
-        grid_field=None,
-        inter_limit=2,
-        freq_check=None,
-        **kwargs):
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        freq: str,
+        method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
+        inter_order: int=2,
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        downgrade_interpolation: bool=False,
+        empty_intervals_flag: Any=None,
+        grid_field: str=None,
+        inter_limit: int=2,
+        freq_check: Optional[Literal["check", "auto"]]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
 
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).

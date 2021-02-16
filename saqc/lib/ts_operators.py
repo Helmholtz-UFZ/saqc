@@ -276,7 +276,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
 
 
 def aggregate2Freq(
-    data, method, freq, agg_func, fill_value=np.nan, max_invalid_total=np.inf, max_invalid_consec=np.inf
+    data, method, freq, agg_func, fill_value=np.nan, max_invalid_total=None, max_invalid_consec=None
 ):
     # The function aggregates values to an equidistant frequency grid with agg_func.
     # Timestamps that have no values projected on them, get "fill_value" assigned. Also,
@@ -289,7 +289,7 @@ def aggregate2Freq(
     }
 
     # filter data for invalid patterns (since filtering is expensive we pre-check if it is demanded)
-    if (max_invalid_total is not np.inf) | (max_invalid_consec is not np.inf):
+    if (max_invalid_total is not None) | (max_invalid_consec is not None):
         if pd.isnull(fill_value):
             temp_mask = data.isna()
         else:

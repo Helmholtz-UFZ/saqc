@@ -21,7 +21,7 @@ from saqc.lib.tools import detectDeviants
 from saqc.lib.ts_operators import expModelFunc
 
 
-@register(masking='all')
+@register(masking='all', module="drift")
 def flagDriftFromNorm(data: DictOfSeries, field: str, flagger: BaseFlagger,
                       fields: Sequence[str],
                       segment_freq: str,
@@ -130,7 +130,7 @@ def flagDriftFromNorm(data: DictOfSeries, field: str, flagger: BaseFlagger,
     return data, flagger
 
 
-@register(masking='all')
+@register(masking='all', module="drift")
 def flagDriftFromReference(data: DictOfSeries, field: str, flagger: BaseFlagger,
                            fields: Sequence[str],
                            segment_freq: str,
@@ -199,7 +199,7 @@ def flagDriftFromReference(data: DictOfSeries, field: str, flagger: BaseFlagger,
     return data, flagger
 
 
-@register(masking='all')
+@register(masking='all', module="drift")
 def flagDriftFromScaledNorm(data: DictOfSeries, field: str, flagger: BaseFlagger,
                             fields_scale1: Sequence[str],
                             fields_scale2: Sequence[str],
@@ -311,7 +311,7 @@ def flagDriftFromScaledNorm(data: DictOfSeries, field: str, flagger: BaseFlagger
     return data, flagger
 
 
-@register(masking='all')
+@register(masking='all', module="drift")
 def correctExponentialDrift(data: DictOfSeries, field: str, flagger: BaseFlagger,
                             maint_data_field: str, cal_mean: int=5, flag_maint_period: bool=False,
                             **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
@@ -411,7 +411,7 @@ def correctExponentialDrift(data: DictOfSeries, field: str, flagger: BaseFlagger
     return data, flagger
 
 
-@register(masking='all')
+@register(masking='all', module="drift")
 def correctRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
                          cluster_field: str,
                          model: Callable[[np.array, Any], np.array],
@@ -520,7 +520,7 @@ def correctRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
     return data, flagger
 
 
-@register(masking='all')
+@register(masking='all', module="drift")
 def correctOffset(data: DictOfSeries, field: str, flagger: BaseFlagger,
                   max_mean_jump: float,
                   normal_spread: float,
@@ -609,7 +609,7 @@ def _drift_fit(x, shift_target, cal_mean):
     return dataFit, dataShift
 
 
-@register(masking='all')
+@register(masking='all', module="drift")
 def flagRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
                       cluster_field: str,
                       norm_spread: float,
@@ -670,7 +670,7 @@ def flagRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
     return data, flagger
 
 
-@register(masking='all')
+@register(masking='all', module="drift")
 def assignRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
                         cluster_field: str,
                         norm_spread: float,

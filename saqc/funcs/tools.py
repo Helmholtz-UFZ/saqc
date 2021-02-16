@@ -1,16 +1,20 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import dios
+from typing import Optional, Tuple
+from typing_extensions import Literal
+
 import numpy as np
 
-from saqc.core.register import register
+from dios import DictOfSeries
 
+from saqc.core.register import register
+from saqc.flagger.baseflagger import BaseFlagger
 from saqc.lib.tools import periodicMask
 
 
-@register(masking='none')
-def copy(data, field, flagger, newfield, **kwargs):
+@register(masking='none', module="tools")
+def copy(data: DictOfSeries, field: str, flagger: BaseFlagger, new_field: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
     data.
@@ -23,8 +27,8 @@ def copy(data, field, flagger, newfield, **kwargs):
         The fieldname of the data column, you want to fork (copy).
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
-    suffix: str
-        Substring to append to the forked data variables name.
+    new_field: str
+        Target name.
 
     Returns
     -------
@@ -36,18 +40,18 @@ def copy(data, field, flagger, newfield, **kwargs):
         Flags shape may have changed relatively to the flagger input.
     """
 
-    if newfield in flagger.flags.columns.union(data.columns):
+    if new_field in flagger.flags.columns.union(data.columns):
         raise ValueError(f"{field}: field already exist")
 
     flags, extras = flagger.getFlags(field, full=True)
-    newflagger = flagger.replaceField(newfield, flags=flags, **extras)
+    newflagger = flagger.replaceField(new_field, flags=flags, **extras)
     newdata = data.copy()
-    newdata[newfield] = data[field].copy()
+    newdata[new_field] = data[field].copy()
     return newdata, newflagger
 
 
-@register(masking='none')
-def drop(data, field, flagger, **kwargs):
+@register(masking='none', module="tools")
+def drop(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The function drops field from the data dios and the flagger.
 
@@ -76,8 +80,8 @@ def drop(data, field, flagger, **kwargs):
     return data, flagger
 
 
-@register(masking='none')
-def rename(data, field, flagger, new_name, **kwargs):
+@register(masking='none', module="tools")
+def rename(data: DictOfSeries, field: str, flagger: BaseFlagger, new_name: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The function renames field to new name (in both, the flagger and the data).
 
@@ -115,8 +119,17 @@ def rename(data, field, flagger, new_name, **kwargs):
     return data, flagger
 
 
-def mask(data, field, flagger, mode, mask_var=None, period_start=None, period_end=None,
-         include_bounds=True):
+@register(masking='none', module="tools")
+def mask(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        mode: Literal["periodic", "mask_var"],
+        mask_var: Optional[str]=None,
+        period_start: Optional[str]=None,
+        period_end: Optional[str]=None,
+        include_bounds: bool=True
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     This function realizes masking within saqc.
 

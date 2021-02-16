@@ -1,15 +1,31 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+
+from typing import Union, Callable
+
 import numpy as np
 import pandas as pd
 
+from dios import DictOfSeries
+
 from saqc.core.register import register
+from saqc.flagger.baseflagger import BaseFlagger
 from saqc.lib.tools import getFreqDelta
 
 
-@register(masking='field')
-def roll(data, field, flagger, winsz, func=np.mean, eval_flags=True, min_periods=0, center=True,
-         _return_residues=False, **kwargs):
+@register(masking='field', module="rolling")
+def roll(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        winsz: Union[str, int],
+        func: Callable[[pd.Series], float]=np.mean,
+        eval_flags: bool=True,
+        min_periods: int=0,
+        center: bool=True,
+        return_residues=False,
+        **kwargs
+):
     """
         Models the data with the rolling mean and returns the residues.
 
@@ -102,7 +118,7 @@ def roll(data, field, flagger, winsz, func=np.mean, eval_flags=True, min_periods
         except AttributeError:
             means = to_fit.rolling(window=winsz, center=center, closed="both").apply(func)
 
-    if _return_residues:
+    if return_residues:
         means = to_fit - means
 
     data[field] = means

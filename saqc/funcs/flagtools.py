@@ -1,30 +1,30 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from typing import Any, Tuple, Optional, Union
+from typing_extensions import Literal
 
-import dios
-import numpy as np
 import pandas as pd
 
+from dios import DictOfSeries
 
 from saqc.core.register import register
-from dios import DictOfSeries
-from typing import Any
+from saqc.flagger.baseflagger import BaseFlagger
 
 
-@register(masking='field')
-def clearFlags(data, field, flagger, **kwargs):
+@register(masking='field', module="flagtools")
+def clearFlags(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     flagger = flagger.clearFlags(field, **kwargs)
     return data, flagger
 
 
-@register(masking='field')
-def forceFlags(data, field, flagger, flag, **kwargs):
+@register(masking='field', module="flagtools")
+def forceFlags(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Any, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     flagger = flagger.clearFlags(field).setFlags(field, flag=flag, inplace=True, **kwargs)
     return data, flagger
 
 
-@register(masking='field')
-def flagDummy(data, field, flagger, **kwargs):
+@register(masking='field', module="flagtools")
+def flagDummy(data: DictOfSeries, field: str, flagger: BaseFlagger,  **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function does nothing but returning data and flagger.
 
@@ -47,8 +47,8 @@ def flagDummy(data, field, flagger, **kwargs):
     return data, flagger
 
 
-@register(masking='field')
-def flagForceFail(data, field, flagger, **kwargs):
+@register(masking='field', module="flagtools")
+def flagForceFail(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs):
     """
     Function raises a runtime error.
 
@@ -65,8 +65,8 @@ def flagForceFail(data, field, flagger, **kwargs):
     raise RuntimeError("Works as expected :D")
 
 
-@register(masking='field')
-def flagUnflagged(data, field, flagger, **kwargs):
+@register(masking='field', module="flagtools")
+def flagUnflagged(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
     If there is an entry 'flag' in the kwargs dictionary passed, the
@@ -92,18 +92,16 @@ def flagUnflagged(data, field, flagger, **kwargs):
         The flagger object, holding flags and additional Informations related to `data`.
     """
 
-    flag = kwargs.pop('flag', flagger.GOOD)
+    flag = flagger.GOOD if flag is None else flag
     flagger = flagger.setFlags(field, flag=flag, **kwargs)
     return data, flagger
 
 
-@register(masking='field')
-def flagGood(data, field, flagger, **kwargs):
+@register(masking='field', module="flagtools")
+def flagGood(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
 
-    Parameters
-    ----------
     Parameters
     ----------
     data : dios.DictOfSeries
@@ -121,12 +119,17 @@ def flagGood(data, field, flagger, **kwargs):
         The flagger object, holding flags and additional Informations related to `data`.
 
     """
-    kwargs.pop('flag', None)
-    return flagUnflagged(data, field, flagger, **kwargs)
+    return flagUnflagged(data, field, flagger, flag=flag, **kwargs)
 
 
-@register(masking='field')
-def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kwargs):
+@register(masking='field', module="flagtools")
+def flagManual(
+        data: DictOfSeries, field: str, flagger: BaseFlagger,
+        mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
+        mflag: Any = 1,
+        method=Literal["plain", "ontime", "left-open", "right-open"],
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Flag data by given, "manually generated" data.
 
@@ -143,7 +146,7 @@ def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kw
         The fieldname of the column, holding the data-to-be-flagged.
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional informations related to `data`.
-    mdata : {pd.Series, pd.Dataframe, DictOfSeries, str}
+    mdata : {pd.Series, pd.Dataframe, DictOfSeries}
         The "manually generated" data
     mflag : scalar
         The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
@@ -212,12 +215,6 @@ def flagManual(data, field, flagger, mdata, mflag: Any = 1, method="plain", **kw
     Freq: D, dtype: bool
     """
     dat = data[field]
-    if isinstance(mdata, str):
-        # todo import path type in mdata, use
-        #  s = pd.read_csv(mdata, index_col=N, usecol=[N,N,..]) <- use positional
-        #  use a list-arg in config to get the columns
-        #  at last, fall throug to next checks
-        raise NotImplementedError("giving a path is currently not supported")
 
     if isinstance(mdata, (pd.DataFrame, DictOfSeries)):
         mdata = mdata[field]

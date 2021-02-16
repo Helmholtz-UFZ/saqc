@@ -30,7 +30,7 @@ def test_packagedConfig():
 
     data = pd.read_csv(data_path, index_col=0, parse_dates=True,)
     saqc = SaQC(SimpleFlagger(), dios.DictOfSeries(data)).readConfig(config_path)
-    data, flagger = saqc.getResult()
+    saqc.getResult()
 
 
 def test_variableRegex(data):
@@ -45,10 +45,10 @@ def test_variableRegex(data):
     ]
 
     for regex, expected in tests:
-        fobj = writeIO(header + "\n" + f"{regex} ; flagDummy()")
+        fobj = writeIO(header + "\n" + f"{regex} ; flagtools.flagDummy()")
         saqc = SaQC(SimpleFlagger(), data).readConfig(fobj)
-        expansion = saqc._expandFields(saqc._to_call[0], data.columns)
-        result = [f.field for f in expansion]
+        expansion = saqc._expandFields(saqc._to_call[0][0], saqc._to_call[0][2], data.columns)
+        result = [s.field for s, _ in expansion]
         assert np.all(result == expected)
 
 
@@ -58,28 +58,28 @@ def test_inlineComments(data):
     """
     config = f"""
     {F.VARNAME} ; {F.TEST}       ; {F.PLOT}
-    pre2        ; flagDummy() # test ; False # test
+    pre2        ; flagtools.flagDummy() # test ; False # test
     """
     saqc = SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
-    func_dump = saqc._to_call[0]
-    assert func_dump.ctrl.plot is False
-    assert func_dump.func == FUNC_MAP["flagDummy"]["func"]
+    _, control, func = saqc._to_call[0]
+    assert control.plot is False
+    assert func.func == FUNC_MAP["flagtools.flagDummy"].func
 
 
 def test_configReaderLineNumbers(data):
     config = f"""
     {F.VARNAME} ; {F.TEST}
-    #temp1      ; flagDummy()
-    pre1        ; flagDummy()
-    pre2        ; flagDummy()
-    SM          ; flagDummy()
-    #SM         ; flagDummy()
-    # SM1       ; flagDummy()
+    #temp1      ; flagtools.flagDummy()
+    pre1        ; flagtools.flagDummy()
+    pre2        ; flagtools.flagDummy()
+    SM          ; flagtools.flagDummy()
+    #SM         ; flagtools.flagDummy()
+    # SM1       ; flagtools.flagDummy()
 
-    SM1         ; flagDummy()
+    SM1         ; flagtools.flagDummy()
     """
     saqc = SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
-    result = [f.ctrl.lineno for f in saqc._to_call]
+    result = [c.lineno for _, c, _ in saqc._to_call]
     expected = [3, 4, 5, 9]
     assert result == expected
 
@@ -91,14 +91,14 @@ def test_configFile(data):
     config = f"""
     {F.VARNAME} ; {F.TEST}
 
-    #temp1      ; flagDummy()
-    pre1; flagDummy()
-    pre2        ;flagDummy()
-    SM          ; flagDummy()
-    #SM         ; flagDummy()
-    # SM1       ; flagDummy()
+    #temp1      ; flagtools.flagDummy()
+    pre1; flagtools.flagDummy()
+    pre2        ;flagtools.flagDummy()
+    SM          ; flagtools.flagDummy()
+    #SM         ; flagtools.flagDummy()
+    # SM1       ; flagtools.flagDummy()
 
-    SM1;flagDummy()
+    SM1;flagtools.flagDummy()
     """
     SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
 

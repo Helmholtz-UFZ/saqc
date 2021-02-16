@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from operator import mod
 from typing import Tuple
 
 import numpy as np
@@ -14,7 +15,7 @@ from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta
 
 
-@register(masking='field')
+@register(masking='field', module="constants")
 def flagConstants(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: float, window: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     This functions flags plateaus/series of constant values of length `window` if
@@ -69,7 +70,7 @@ def flagConstants(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: 
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='field', module="constants")
 def flagByVariance(
         data: DictOfSeries, field: str, flagger: BaseFlagger,
         window: str="12h", thresh: float=0.0005,
