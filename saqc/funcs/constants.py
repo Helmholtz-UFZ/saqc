@@ -11,7 +11,7 @@ from dios import DictOfSeries
 from saqc.core.register import register
 from saqc.flagger.baseflagger import BaseFlagger
 from saqc.lib.ts_operators import varQC
-from saqc.lib.tools import retrieveTrustworthyOriginal, customRoller
+from saqc.lib.tools import customRoller, getFreqDelta
 
 
 @register(masking='field')
@@ -112,8 +112,11 @@ def flagByVariance(
         Flags values may have changed, relatively to the flagger input.
     """
 
-    dataseries, data_rate = retrieveTrustworthyOriginal(data, field, flagger)
+    dataseries = data[field]
+    data_rate = getFreqDelta(dataseries.index)
 
+    if not data_rate:
+        raise IndexError('Timeseries irregularly sampled!')
     if max_missing is None:
         max_missing = np.inf
     if max_consec_missing is None:
