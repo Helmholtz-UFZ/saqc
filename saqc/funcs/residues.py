@@ -14,14 +14,18 @@ from saqc.funcs.rolling import roll
 from saqc.funcs.curvefit import fitPolynomial
 
 
-@register(masking='field')
+@register(masking='field', module="residues")
 def calculatePolynomialResidues(
-        data: DictOfSeries, field: str, flagger: BaseFlagger,
-        winsz: Union[str, int], polydeg: int,
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        winsz: Union[str, int],
+        polydeg: int,
         numba: Literal[True, False, "auto"]="auto",
         eval_flags: bool=True,
         min_periods: Optional[int]=0,
-        **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function fits a polynomial model to the data and returns the residues.
 
@@ -101,17 +105,20 @@ def calculatePolynomialResidues(
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='field', module="residues")
 def calculateRollingResidues(
-        data: DictOfSeries, field: str, flagger: BaseFlagger,
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
         winsz: Union[str, int],
         func: Callable[[np.array], np.array]=np.mean,
         eval_flags: bool=True,
         min_periods: Optional[int]=0,
         center: bool=True,
-        **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
 
     data, flagger = roll(data, field, flagger, winsz, func=func, eval_flags=eval_flags,
-                         min_periods=min_periods, center=center, _return_residues=True, **kwargs)
+                         min_periods=min_periods, center=center, return_residues=True, **kwargs)
 
     return data, flagger

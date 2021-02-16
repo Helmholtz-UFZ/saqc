@@ -19,7 +19,7 @@ from saqc.lib.ts_operators import polyRollerIrregular, polyRollerNumba, polyRoll
 
 
 
-@register(masking='field')
+@register(masking='field', module="curvefit")
 def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
                   winsz: Union[int, str],
                   polydeg: int,

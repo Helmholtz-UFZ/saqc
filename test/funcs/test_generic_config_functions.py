@@ -49,7 +49,7 @@ def test_missingIdentifier(data, flagger):
     ]
 
     for test in tests:
-        func = _compileGeneric(f"flag(func={test})", flagger)
+        func = _compileGeneric(f"generic.flag(func={test})", flagger)
         with pytest.raises(NameError):
             _execGeneric(flagger, data, func, field="", nodata=np.nan)
 
@@ -81,7 +81,7 @@ def test_typeError(flagger):
 
     for test in tests:
         with pytest.raises(TypeError):
-            _compileGeneric(f"flag(func={test})", flagger)
+            _compileGeneric(f"generic.flag(func={test})", flagger)
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
@@ -100,7 +100,7 @@ def test_comparisonOperators(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flag(func={test})", flagger)
+        func = _compileGeneric(f"generic.flag(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=var1, nodata=np.nan)
         assert np.all(result == expected)
 
@@ -121,7 +121,7 @@ def test_arithmeticOperators(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"process(func={test})", flagger)
+        func = _compileGeneric(f"generic.process(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=var1, nodata=np.nan)
         assert np.all(result == expected)
 
@@ -141,7 +141,7 @@ def test_nonReduncingBuiltins(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"process(func={test})", flagger)
+        func = _compileGeneric(f"generic.process(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=this, nodata=np.nan)
         assert (result == expected).all()
 
@@ -165,7 +165,7 @@ def test_reduncingBuiltins(data, flagger, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"process(func={test})", flagger)
+        func = _compileGeneric(f"generic.process(func={test})", flagger)
         result = _execGeneric(flagger, data, func, field=this.name, nodata=nodata)
         assert result == expected
 
@@ -184,7 +184,7 @@ def test_ismissing(data, flagger, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flag(func={test})", flagger)
+        func = _compileGeneric(f"generic.flag(func={test})", flagger)
         result = _execGeneric(flagger, data, func, this.name, nodata)
         assert np.all(result == expected)
 
@@ -204,7 +204,7 @@ def test_bitOps(data, flagger, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flag(func={test})", flagger)
+        func = _compileGeneric(f"generic.flag(func={test})", flagger)
         result = _execGeneric(flagger, data, func, this, nodata)
         assert np.all(result == expected)
 
@@ -225,7 +225,7 @@ def test_isflagged(data, flagger):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"flag(func={test}, flag=BAD)", flagger)
+        func = _compileGeneric(f"generic.flag(func={test}, flag=BAD)", flagger)
         result = _execGeneric(flagger, data, func, field=None, nodata=np.nan)
         assert np.all(result == expected)
 
@@ -236,8 +236,8 @@ def test_variableAssignments(data, flagger):
 
     config = f"""
     {F.VARNAME}  ; {F.TEST}
-    dummy1       ; process(func=var1 + var2)
-    dummy2       ; flag(func=var1 + var2 > 0)
+    dummy1       ; generic.process(func=var1 + var2)
+    dummy2       ; generic.flag(func=var1 + var2 > 0)
     """
 
     fobj = writeIO(config)
@@ -250,15 +250,15 @@ def test_variableAssignments(data, flagger):
     assert set(result_flagger.getFlags().columns) == set(data.columns) | {"dummy1", "dummy2"}
 
 
-@pytest.mark.xfail(stric=True)
+@pytest.mark.xfail(strict=True)
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 def test_processMultiple(data_diff, flagger):
     var1, var2, *_ = data_diff.columns
 
     config = f"""
     {F.VARNAME} ; {F.TEST}
-    dummy       ; process(func=var1 + 1)
-    dummy       ; process(func=var2 - 1)
+    dummy       ; generic.process(func=var1 + 1)
+    dummy       ; generic.process(func=var2 - 1)
     """
 
     fobj = writeIO(config)
@@ -285,7 +285,7 @@ def test_callableArgumentsUnary(data):
     """
 
     tests = [
-        ("sum", np.sum),
+        ("sum", np.nansum),
         ("std(exp(x))", lambda x: np.std(np.exp(x))),
     ]
 

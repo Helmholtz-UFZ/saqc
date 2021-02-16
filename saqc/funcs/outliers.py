@@ -1,34 +1,41 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import saqc.lib.ts_operators as ts_ops
-import numpy as np
-import pandas as pd
+from typing import Optional, Union, Tuple, Sequence, Callable
+from typing_extensions import Literal
 
-from scipy.optimize import curve_fit
-from saqc.core.register import register
+import numpy as np
 import numpy.polynomial.polynomial as poly
+from scipy.optimize import curve_fit
+import pandas as pd
 import numba
+
+from outliers import smirnov_grubbs
+
+from dios import DictOfSeries
+
+from saqc.core.register import register
+from saqc.flagger.baseflagger import BaseFlagger
 from saqc.lib.tools import (
     customRoller,
     findIndex,
     getFreqDelta
 )
 from saqc.funcs.scores import assignKNNScore
-from outliers import smirnov_grubbs
+import saqc.lib.ts_operators as ts_ops
 
 
-@register(masking='field')
+@register(masking='field', module="outliers")
 def flagByStray(
-    data,
-    field,
-    flagger,
-    partition_freq=None,
-    partition_min=11,
-    iter_start=0.5,
-    alpha=0.05,
+    data: DictOfSeries,
+    field: str,
+    flagger: BaseFlagger,
+    partition_freq: Optional[Union[str, int]]=None,
+    partition_min: int=11,
+    iter_start: float=0.5,
+    alpha: float=0.05,
     **kwargs
-):
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Flag outliers in 1-dimensional (score) data with the STRAY Algorithm.
 
@@ -52,7 +59,7 @@ def flagByStray(
         * Offset String : Apply scoring on successive partitions of temporal extension matching the passed offset
           string
 
-    partition_min : int, default 0
+    partition_min : int, default 11
         Minimum number of periods per partition that have to be present for a valid outlier dettection to be made in
         this partition. (Only of effect, if `partition_freq` is an integer.) Partition min value must always be
         greater then the nn_neighbors value.
@@ -86,7 +93,6 @@ def flagByStray(
         partitions = scores.groupby(grouper_series)
 
     # calculate flags for every partition
-    to_flag = []
     for _, partition in partitions:
         if partition.empty | (partition.shape[0] < partition_min):
             continue
@@ -109,15 +115,23 @@ def flagByStray(
                 break
 
         if trigger_flagging:
-            flagger = flagger.setFlags(field, loc=partition.index[sorted_i[iter_index:]])
+            flagger = flagger.setFlags(field, loc=partition.index[sorted_i[iter_index:]], **kwargs)
 
     return data, flagger
 
 
 def _evalStrayLabels(
-    data, field, flagger, fields, reduction_range, reduction_drop_flagged=False, reduction_thresh=3.5,
-        reduction_min_periods=1, at_least_one=True, **kwargs
-):
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        fields: Sequence[str],
+        reduction_range: Optional[str]=None,
+        reduction_drop_flagged: bool=False,
+        reduction_thresh: float=3.5,
+        reduction_min_periods: int=1,
+        at_least_one: bool=True,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The function "reduces" an observations flag to components of it, by applying MAD (See references)
     test onto every components temporal surrounding.
@@ -319,26 +333,26 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@register(masking='all')
+@register(masking='all', module="outliers")
 def flagMVScores(
-    data,
-    field,
-    flagger,
-    fields,
-    trafo=lambda x: x,
-    alpha=0.05,
-    n_neighbors=10,
-    scoring_func=np.sum,
-    iter_start=0.5,
-    stray_partition=np.inf,
-    stray_partition_min=11,
-    trafo_on_partition=True,
-    reduction_range=None,
-    reduction_drop_flagged=False,
-    reduction_thresh=3.5,
-    reduction_min_periods=1,
-    **kwargs,
-):
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        fields: Sequence[str],
+        trafo: Callable[[pd.Series], pd.Series]=lambda x: x,
+        alpha: float=0.05,
+        n_neighbors: int=10,
+        scoring_func: Callable[[pd.Series], float]=np.sum,
+        iter_start: float=0.5,
+        stray_partition: Optional[Union[str, int]]=None,
+        stray_partition_min: int=11,
+        trafo_on_partition: bool=True,
+        reduction_range: Optional[str]=None,
+        reduction_drop_flagged: bool=False,
+        reduction_thresh: float=3.5,
+        reduction_min_periods: int=1,
+        **kwargs,
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The algorithm implements a 3-step outlier detection procedure for simultaneously flagging of higher dimensional
     data (dimensions > 3).
@@ -377,7 +391,7 @@ def flagMVScores(
         for outliers. If a String is passed, it has to be an offset string and it results in partitioning the data into
         parts of according temporal length. If an integer is passed, the data is simply split up into continous chunks
         of `partition_freq` periods. if ``None`` is passed (default), all the data will be tested in one run.
-    stray_partition_min : int, default 0
+    stray_partition_min : int, default 11
         Only effective when `threshing` = 'stray'.
         Minimum number of periods per partition that have to be present for a valid outlier detection to be made in
         this partition. (Only of effect, if `stray_partition` is an integer.)
@@ -460,21 +474,21 @@ def flagMVScores(
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='field', module="outliers")
 def flagRaise(
-    data,
-    field,
-    flagger,
-    thresh,
-    raise_window,
-    intended_freq,
-    average_window=None,
-    mean_raise_factor=2,
-    min_slope=None,
-    min_slope_weight=0.8,
-    numba_boost=True,
+    data: DictOfSeries,
+    field: str,
+    flagger: BaseFlagger,
+    thresh: float,
+    raise_window: str,
+    intended_freq: str,
+    average_window: Optional[str]=None,
+    mean_raise_factor: float=2.,
+    min_slope: Optional[float]=None,
+    min_slope_weight: float=0.8,
+    numba_boost: bool=True,
     **kwargs,
-):
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The function flags raises and drops in value courses, that exceed a certain threshold
     within a certain timespan.
@@ -626,8 +640,8 @@ def flagRaise(
     return data, flagger
 
 
-@register(masking='field')
-def flagMAD(data, field, flagger, window, z=3.5, **kwargs):
+@register(masking='field', module="outliers")
+def flagMAD(data: DictOfSeries, field: str, flagger: BaseFlagger, window: str, z: float=3.5, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
 
     """
 
@@ -685,8 +699,17 @@ def flagMAD(data, field, flagger, window, z=3.5, **kwargs):
     return data, flagger
 
 
-@register(masking='field')
-def flagOffset(data, field, flagger, thresh, tolerance, window, numba_kickin=200000, **kwargs):
+@register(masking='field', module="outliers")
+def flagOffset(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        thresh: float,
+        tolerance: float,
+        window: Union[int, str],
+        numba_kickin: int=200000,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -713,9 +736,9 @@ def flagOffset(data, field, flagger, thresh, tolerance, window, numba_kickin=200
         The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
     flagger : saqc.flagger.BaseFlagger
         A flagger object, holding flags and additional Informations related to `data`.
-    thresh : float, default 7
+    thresh : float
         Minimum difference between to values, to consider the latter one as a spike. See condition (1)
-    tolerance : float, default 0
+    tolerance : float
         Maximum difference between pre-spike and post-spike values. See condition (2)
     window : {str, int}, default '15min'
         Maximum length of "spiky" value courses. See condition (3). Integer defined window length are only allowed for
@@ -797,8 +820,17 @@ def flagOffset(data, field, flagger, thresh, tolerance, window, numba_kickin=200
     return data, flagger
 
 
-@register(masking='field')
-def flagByGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, check_lagged=False, **kwargs):
+@register(masking='field', module="outliers")
+def flagByGrubbs(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        winsz: Union[str, int],
+        alpha: float=0.05,
+        min_periods: int=8,
+        check_lagged: bool=False,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The function flags values that are regarded outliers due to the grubbs test.
 
@@ -891,8 +923,15 @@ def flagByGrubbs(data, field, flagger, winsz, alpha=0.05, min_periods=8, check_l
     return data, flagger
 
 
-@register(masking='field')
-def flagRange(data, field, flagger, min=-np.inf, max=np.inf, **kwargs):
+@register(masking='field', module="outliers")
+def flagRange(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        min: float=-np.inf,
+        max: float=np.inf,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function flags values not covered by the closed interval [`min`, `max`].
 
@@ -925,8 +964,16 @@ def flagRange(data, field, flagger, min=-np.inf, max=np.inf, **kwargs):
     return data, flagger
 
 
-@register(masking='all')
-def flagCrossStatistic(data, field, flagger, fields, thresh, cross_stat='modZscore', **kwargs):
+@register(masking='all', module="outliers")
+def flagCrossStatistic(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        fields: Sequence[str],
+        thresh: float,
+        cross_stat: Literal["modZscore", "Zscore"]="modZscore",
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function checks for outliers relatively to the "horizontal" input data axis.
 

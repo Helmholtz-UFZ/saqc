@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import ast
+from saqc.core.core import ColumnSelector
 
 import numpy as np
 
@@ -9,7 +10,7 @@ import pandas as pd
 
 from saqc.core.config import Fields as F
 from saqc.core.visitor import ConfigFunctionParser
-from saqc.core.core import Func, FuncCtrl
+from saqc.core.lib import ConfigController
 from saqc.core.register import FUNC_MAP
 
 from saqc.lib.tools import isQuoted
@@ -24,7 +25,7 @@ def _handleEmptyLines(df):
         df = df.reset_index()
         i = (df == F.VARNAME).first_valid_index()
         df.columns = df.iloc[i]
-        df = df.iloc[i + 1 :]
+        df = df.iloc[i + 1:]
 
     # mark empty lines
     mask = (df.isnull() | (df == "")).all(axis=1)
@@ -32,7 +33,7 @@ def _handleEmptyLines(df):
     return df
 
 
-def _handleComments(df):
+def _handleComments(df: pd.DataFrame) -> pd.DataFrame:
     # mark commented lines
     df.loc[df[F.VARNAME].str.startswith(COMMENT)] = EMPTY
 
@@ -58,7 +59,6 @@ def _injectOptionalColumns(df):
 
 
 def _parseConfig(df, flagger):
-
     funcs = []
     for lineno, (_, target, expr, plot) in enumerate(df.itertuples()):
         if target == "None" or pd.isnull(target) or pd.isnull(expr):
@@ -71,21 +71,24 @@ def _parseConfig(df, flagger):
 
         tree = ast.parse(expr, mode="eval")
         func_name, kwargs = ConfigFunctionParser(flagger).parse(tree.body)
-        f = Func(
+        func = FUNC_MAP[func_name]
+
+        selector = ColumnSelector(
             field=kwargs.get("field", target),
             target=target,
-            name=func_name,
-            func=FUNC_MAP[func_name]["func"],
-            kwargs=kwargs,
             regex=regex,
-            ctrl=FuncCtrl(
-                masking=FUNC_MAP[func_name]["masking"],
-                plot=plot,
-                lineno=lineno+2,
-                expr=expr
-            )
         )
-        funcs.append(f)
+
+        control = ConfigController(
+            masking=func.masking,
+            plot=plot,
+            lineno=lineno + 2,
+            expression=expr
+        )
+
+        f = func.bind(**kwargs)
+
+        funcs.append((selector, control, f))
     return funcs
 
 

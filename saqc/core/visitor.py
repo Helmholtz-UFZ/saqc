@@ -43,7 +43,6 @@ RESERVED = {"GOOD", "BAD", "UNFLAGGED", "NODATA"}
 
 
 class ConfigExpressionParser(ast.NodeVisitor):
-
     """
     Generic configuration functions will be rewritten as lambda functions
     and variables that need a look up in `data` will act as arguments, e.g.:
@@ -134,6 +133,7 @@ class ConfigFunctionParser(ast.NodeVisitor):
         ast.Index,
         ast.USub,
         ast.List,
+        ast.Attribute
     )
 
     def __init__(self, flagger):
@@ -157,7 +157,11 @@ class ConfigFunctionParser(ast.NodeVisitor):
         if node.args:
             raise TypeError("only keyword arguments are supported")
 
-        func_name = node.func.id
+        if isinstance(node.func, ast.Attribute):
+            func_name = f"{node.func.value.id}.{node.func.attr}"  # type: ignore
+        else:
+            func_name = node.func.id  # type: ignore
+
         if func_name not in FUNC_MAP:
             raise NameError(f"unknown function '{func_name}'")
 

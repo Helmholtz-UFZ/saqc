@@ -29,12 +29,12 @@ def test_masking(data, flagger):
     mx = max(data[var1]) / 2
 
     qc = SaQC(flagger, data)
-    qc = qc.flagRange(var1, mn, mx)
+    qc = qc.outliers.flagRange(var1, mn, mx)
     # min is not considered because its the smalles possible value.
     # if masking works, `data > max` will be masked,
     # so the following will deliver True for in range (data < max),
     # otherwise False, like an inverse range-test
-    qc = qc.process("dummy", func=lambda var1: var1 >= mn)
+    qc = qc.generic.process("dummy", func=lambda var1: var1 >= mn)
 
     pdata, pflagger = qc.getResult(raw=True)
     out_of_range = pflagger.isFlagged(var1)
@@ -72,7 +72,7 @@ def test_masking_UnmaskingOnDataChange(data, flagger):
     range_mask = (var_data < mn) | (var_data > mx)
 
     qc = SaQC(flagger, data)
-    qc = qc.flagRange(var, mn, mx)
+    qc = qc.outliers.flagRange(var, mn, mx)
     qcD = qc.changeData(var)
     qcF = qc.changeFlags(var)
 
@@ -112,7 +112,7 @@ def test_shapeDiffUnmasking(data, flagger):
     mn, mx = var_data.max() * .25, var_data.max() * .75
 
     qc = SaQC(flagger, data)
-    qc = qc.flagRange(var, mn, mx)
+    qc = qc.outliers.flagRange(var, mn, mx)
     qc = qc.pseudoHarmo(var)
 
     data, flagger = qc.getResult(raw=True)

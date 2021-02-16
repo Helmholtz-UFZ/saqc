@@ -3,23 +3,26 @@
 
 from functools import partial
 from inspect import signature
+from typing import Tuple, Any, Union, Callable
 
-import dios
 import numpy as np
 import pandas as pd
 
+from dios import DictOfSeries
+
 from saqc.core.register import register
 from saqc.core.visitor import ENVIRONMENT
+from saqc.flagger.baseflagger import BaseFlagger
 
 
-def _dslIsFlagged(flagger, var, flag=None, comparator=">="):
+def _dslIsFlagged(flagger: BaseFlagger, var: pd.Series, flag: Any=None, comparator: str=">=") -> Union[pd.Series, DictOfSeries]:
     """
     helper function for `flag`
     """
     return flagger.isFlagged(var.name, flag=flag, comparator=comparator)
 
 
-def _execGeneric(flagger, data, func, field, nodata):
+def _execGeneric(flagger: BaseFlagger, data: DictOfSeries, func: Callable[[pd.Series], pd.Series], field: str, nodata: float) -> pd.Series:
     # TODO:
     # - check series.index compatibility
     # - field is only needed to translate 'this' parameters
@@ -48,8 +51,8 @@ def _execGeneric(flagger, data, func, field, nodata):
     return func(*args)
 
 
-@register(masking='all')
-def process(data, field, flagger, func, nodata=np.nan, **kwargs):
+@register(masking='all', module="generic")
+def process(data: DictOfSeries, field: str, flagger: BaseFlagger, func: Callable[[pd.Series], pd.Series], nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     generate/process data with generically defined functions.
 
@@ -117,8 +120,8 @@ def process(data, field, flagger, func, nodata=np.nan, **kwargs):
     return data, flagger
 
 
-@register(masking='all')
-def flag(data, field, flagger, func, nodata=np.nan, **kwargs):
+@register(masking='all', module="generic")
+def flag(data: DictOfSeries, field: str, flagger: BaseFlagger, func: Callable[[pd.Series], pd.Series], nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     a function to flag a data column by evaluation of a generic expression.
 

@@ -1,18 +1,34 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from saqc.core.modules import base
+from typing import Sequence, Union, Tuple, Optional
+from typing_extensions import Literal
+
 import numpy as np
-import pandas as pd
+
 import dtw
 import pywt
+
 from mlxtend.evaluate import permutation_test
 
+from dios.dios import DictOfSeries
+
 from saqc.core.register import register
+from saqc.flagger.baseflagger import BaseFlagger
 from saqc.lib.tools import customRoller
 
 
-@register(masking='field')
-def flagPatternByWavelet(data, field, flagger, ref_field, widths=(1, 2, 4, 8), waveform='mexh', **kwargs):
+@register(masking='field', module="pattern")
+def flagPatternByDTW(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        ref_field: str,
+        widths: Sequence[int]=(1, 2, 4, 8),
+        waveform: str="mexh",
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Pattern recognition via wavelets.
 
@@ -88,8 +104,16 @@ def flagPatternByWavelet(data, field, flagger, ref_field, widths=(1, 2, 4, 8), w
     return data, flagger
 
 
-@register(masking='field')
-def flagPatternByDTW(data, field, flagger, ref_field, max_distance=0.03, normalize=True, **kwargs):
+@register(masking='field', module="pattern")
+def flagPatternByWavelet(
+        data: DictOfSeries,
+        field: str,
+        flagger: base,
+        ref_field: str,
+        max_distance: float=0.03,
+        normalize: bool=True,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """ Pattern Recognition via Dynamic Time Warping.
 
     The steps are:

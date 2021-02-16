@@ -18,7 +18,7 @@ from saqc.flagger.baseflagger import BaseFlagger
 logger = logging.getLogger("SaQC")
 
 
-@register(masking='field')
+@register(masking='field', module="changepoints")
 def flagChangePoints(data: DictOfSeries, field: str, flagger: BaseFlagger,
                      stat_func: Callable[[np.array], np.array],
                      thresh_func: Callable[[np.array], np.array],
@@ -30,8 +30,6 @@ def flagChangePoints(data: DictOfSeries, field: str, flagger: BaseFlagger,
                      try_to_jit: bool=True,
                      reduce_window: str=None,
                      reduce_func: Callable[[np.array, np.array], np.array]=lambda x, y: x.argmax(),
-                     model_by_resids: bool=False,
-                     assign_cluster: bool=True,
                      **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Flag datapoints, where the parametrization of the process, the data is assumed to generate by, significantly
@@ -93,7 +91,7 @@ def flagChangePoints(data: DictOfSeries, field: str, flagger: BaseFlagger,
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='field', module="changepoints")
 def assignChangePointCluster(data: DictOfSeries, field: str, flagger: BaseFlagger,
                              stat_func: Callable[[np.array, np.array], float],
                              thresh_func: Callable[[np.array, np.array], float],

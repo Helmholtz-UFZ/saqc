@@ -1,15 +1,18 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
-import dios
+from typing import Callable, Tuple, Optional, Union, Any, Sequence
+from typing_extensions import Literal
 
 import numpy as np
 import logging
 
 import pandas as pd
 
+from dios import DictOfSeries
+
 from saqc.core.register import register
+from saqc.flagger.baseflagger import BaseFlagger
 from saqc.funcs.tools import copy, drop, rename
 from saqc.funcs.interpolation import interpolateIndex
 from saqc.lib.tools import dropper, evalFreqStr
@@ -25,14 +28,22 @@ METHOD2ARGS = {
     "inverse_fagg": ("bfill", pd.Timedelta),
     "inverse_bagg": ("ffill", pd.Timedelta),
     "inverse_nagg": ("nearest", lambda x: pd.Timedelta(x) / 2),
-    "match": (None, lambda x: "0min"),
+    "match": (None, lambda _: "0min"),
 }
 
 
-@register(masking='none')
+@register(masking='none', module="resampling")
 def aggregate(
-        data, field, flagger, freq, value_func, flag_func=np.nanmax, method="nagg", to_drop=None, **kwargs
-):
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        freq: str,
+        value_func,
+        flag_func: Callable[[pd.Series], float]=np.nanmax,
+        method: Literal["fagg", "bagg", "nagg"]="nagg",
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     A method to "regularize" data by aggregating (resampling) data at a regular timestamp.
 
@@ -107,8 +118,15 @@ def aggregate(
     return data, flagger
 
 
-@register(masking='none')
-def linear(data, field, flagger, freq, to_drop=None, **kwargs):
+@register(masking='none', module="resampling")
+def linear(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        freq: str,
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     A method to "regularize" data by interpolating linearly the data at regular timestamp.
 
@@ -156,8 +174,17 @@ def linear(data, field, flagger, freq, to_drop=None, **kwargs):
     return data, flagger
 
 
-@register(masking='none')
-def interpolate(data, field, flagger, freq, method, order=1, to_drop=None, **kwargs, ):
+@register(masking='none', module="resampling")
+def interpolate(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        freq: str,
+        method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
+        order: int=1,
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        **kwargs,
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     A method to "regularize" data by interpolating the data at regular timestamp.
 
@@ -225,8 +252,15 @@ def interpolate(data, field, flagger, freq, method, order=1, to_drop=None, **kwa
     return data, flagger
 
 
-@register(masking='none')
-def mapToOriginal(data, field, flagger, method, to_drop=None, **kwargs):
+@register(masking='none', module="resampling")
+def mapToOriginal(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        method: Literal["inverse_fagg", "inverse_bagg", "inverse_nagg", "inverse_fshift", "inverse_bshift", "inverse_nshift", "inverse_interpolation"],
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     The Function function "undoes" regularization, by regaining the original data and projecting the
     flags calculated for the regularized data onto the original ones.
@@ -299,19 +333,38 @@ def mapToOriginal(data, field, flagger, method, to_drop=None, **kwargs):
     return data, flagger
 
 
-@register(masking='none')
-def shift(data, field, flagger, freq, method='nshift', to_drop=None, empty_intervals_flag=None, freq_check=None,
-          **kwargs):
+@register(masking='none', module="resampling")
+def shift(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        freq: str,
+        method: Literal["fshift", "bshift", "nshift"]="nshift",
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        empty_intervals_flag: Optional[str]=None,
+        freq_check: Optional[Literal["check", "auto"]]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
 
     data, flagger = copy(data, field, flagger, field + '_original')
-    data, flagger = _shift(data, field, flagger, freq, method=method, to_drop=to_drop,
-                          empty_intervals_flag=empty_intervals_flag, freq_check=freq_check, **kwargs)
+    data, flagger = _shift(
+        data, field, flagger, freq, method=method, to_drop=to_drop,
+        empty_intervals_flag=empty_intervals_flag, freq_check=freq_check, **kwargs
+    )
     return data, flagger
 
 
-@register(masking='none')
-def _shift(data, field, flagger, freq, method='nshift', to_drop=None, empty_intervals_flag=None, freq_check=None,
-          **kwargs):
+def _shift(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        freq: str,
+        method: Literal["fshift", "bshift", "nshift"]="nshift",
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        empty_intervals_flag: Optional[str]=None,
+        freq_check: Optional[Literal["check", "auto"]]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function to shift data points to regular (equidistant) timestamps.
     Values get shifted according to the keyword passed to the `method` parameter.
@@ -335,7 +388,7 @@ def _shift(data, field, flagger, freq, method='nshift', to_drop=None, empty_inte
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
         An frequency Offset String that will be interpreted as the sampling rate you want the data to be shifted to.
-    method: {'fagg', 'bagg', 'nagg'}, default 'nshift'
+    method: {'fshift', 'bshift', 'nshift'}, default 'nshift'
         Specifies if datapoints get propagated forwards, backwards or to the nearest grid timestamp. See function
         description for more details.
     empty_intervals_flag : {None, str}, default None
@@ -389,25 +442,25 @@ def _shift(data, field, flagger, freq, method='nshift', to_drop=None, empty_inte
     return data, flagger
 
 
-@register(masking='field')
+@register(masking='field', module="resampling")
 def resample(
-    data,
-    field,
-    flagger,
-    freq,
-    agg_func=np.mean,
-    method="bagg",
-    max_invalid_total_d=np.inf,
-    max_invalid_consec_d=np.inf,
-    max_invalid_consec_f=np.inf,
-    max_invalid_total_f=np.inf,
-    flag_agg_func=max,
-    empty_intervals_flag=None,
-    to_drop=None,
-    all_na_2_empty=False,
-    freq_check=None,
-    **kwargs
-):
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        freq: str,
+        agg_func: Callable[[pd.Series], pd.Series]=np.mean,
+        method: Literal["fagg", "bagg", "nagg"]="bagg",
+        max_invalid_total_d: Optional[int]=None,
+        max_invalid_consec_d: Optional[int]=None,
+        max_invalid_consec_f: Optional[int]=None,
+        max_invalid_total_f: Optional[int]=None,
+        flag_agg_func: Callable[[pd.Series], float]=max,
+        empty_intervals_flag: Optional[Any]=None,
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        all_na_2_empty: bool=False,
+        freq_check: Optional[Literal["check", "auto"]]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function to resample the data. Afterwards the data will be sampled at regular (equidistant) timestamps
     (or Grid points). Sampling intervals therefor get aggregated with a function, specifyed by 'agg_func' parameter and
@@ -444,21 +497,21 @@ def resample(
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
         Specifies which intervals to be aggregated for a certain timestamp. (preceding, succeeding or
         "surrounding" interval). See description above for more details.
-    max_invalid_total_d : {np.inf, int}, np.inf
+    max_invalid_total_d : {None, int}, default None
         Maximum number of invalid (nan) datapoints, allowed per resampling interval. If max_invalid_total_d is
         exceeded, the interval gets resampled to nan. By default (``np.inf``), there is no bound to the number of nan
         values in an interval and only intervals containing ONLY nan values or those, containing no values at all,
         get projected onto nan
-    max_invalid_consec_d : {np.inf, int}, default np.inf
+    max_invalid_consec_d : {None, int}, default None
         Maximum number of consecutive invalid (nan) data points, allowed per resampling interval.
         If max_invalid_consec_d is exceeded, the interval gets resampled to nan. By default (np.inf),
         there is no bound to the number of consecutive nan values in an interval and only intervals
         containing ONLY nan values, or those containing no values at all, get projected onto nan.
-    max_invalid_total_f : {np.inf, int}, default np.inf
+    max_invalid_total_f : {None, int}, default None
         Same as `max_invalid_total_d`, only applying for the flags. The flag regarded as "invalid" value,
         is the one passed to empty_intervals_flag (default=``flagger.BAD``).
         Also this is the flag assigned to invalid/empty intervals.
-    max_invalid_consec_f : {np.inf, int}, default np.inf
+    max_invalid_consec_f : {None, int}, default None
         Same as `max_invalid_total_f`, only applying onto flags. The flag regarded as "invalid" value, is the one passed
         to empty_intervals_flag (default=flagger.BAD). Also this is the flag assigned to invalid/empty intervals.
     flag_agg_func : Callable, default: max
@@ -538,8 +591,18 @@ def resample(
     return data, flagger
 
 
-@register(masking='field')
-def reindexFlags(data, field, flagger, method, source, freq=None, to_drop=None, freq_check=None, **kwargs):
+@register(masking='field', module="resampling")
+def reindexFlags(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        method: Literal["inverse_fagg", "inverse_bagg", "inverse_nagg", "inverse_fshift", "inverse_bshift", "inverse_nshift"],
+        source: str,
+        freq: Optional[str]=None,
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        freq_check: Optional[Literal["check", "auto"]]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
 
     """
     The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
@@ -605,6 +668,9 @@ def reindexFlags(data, field, flagger, method, source, freq=None, to_drop=None, 
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
+
+    # TODO: This needs a refactoring
+
     flagscol, metacols = flagger.getFlags(source, full=True)
     if flagscol.empty:
         return data, flagger
@@ -701,5 +767,5 @@ def reindexFlags(data, field, flagger, method, source, freq=None, to_drop=None, 
                 target_metacols[meta_key].index.join(target_metadrops.index, how="outer"))
             target_metacols[meta_key].loc[target_metadrops.index] = target_metadrops.values
 
-    flagger = flagger.setFlags(field, flag=target_flagscol, with_extra=True, **target_metacols)
+    flagger = flagger.setFlags(field, flag=target_flagscol, with_extra=True, **target_metacols, **kwargs)
     return data, flagger

@@ -1,17 +1,38 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from typing import Union, Tuple, Callable, Sequence, Optional
+from typing_extensions import Literal
+
 import numpy as np
 import pandas as pd
 
+from dios import DictOfSeries
+
+from saqc.core.register import register
+from saqc.flagger.baseflagger import BaseFlagger
 from saqc.lib import ts_operators as ts_ops
 from saqc.lib.tools import toSequence
-from saqc.core.register import register
 
 
-@register(masking='all')
-def assignKNNScore(data, field, flagger, fields, n_neighbors=10, trafo=lambda x: x, trafo_on_partition=True,
-                   scoring_func=np.sum, target_field='kNN_scores', partition_freq=np.inf, partition_min=2,
-                   kNN_algorithm='ball_tree', metric='minkowski', p=2, radius=None, **kwargs):
+@register(masking='all', module="scores")
+def assignKNNScore(
+        data: DictOfSeries,
+        field: str,
+        flagger: BaseFlagger,
+        fields: Sequence[str],
+        n_neighbors: int=10,
+        trafo: Callable[[pd.Series], pd.Series]=lambda x: x,
+        trafo_on_partition: bool=True,
+        scoring_func: Callable[[pd.Series], float]=np.sum,
+        target_field: str='kNN_scores',
+        partition_freq: Union[float, str]=np.inf,
+        partition_min: int=2,
+        kNN_algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"]='ball_tree',
+        metric: str='minkowski',
+        p: int=2,
+        radius: Optional[float]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Score datapoints by an aggregation of the dictances to their k nearest neighbors.
 
