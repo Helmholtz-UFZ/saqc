@@ -116,57 +116,6 @@ def inferFrequency(data: pd.Series) -> pd.DateOffset:
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
-def retrieveTrustworthyOriginal(
-    data: dios.DictOfSeries, field: str, flagger=None, level: Any = None
-) -> dios.DictOfSeries:
-    """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
-    differenciating between missng value - nans und fillvalue nans is impossible.
-
-    This function:
-    (1) if flagger is None:
-        (a) estimates the sampling rate of the input dataseries by dropping all nans and then returns the series at the
-            estimated samplng rate.
-
-    (2) if "flagger" is not None but "level" is None:
-        (a) all values are dropped, that are flagged worse then flagger.GOOD. (so unflagged values wont be dropped)
-        (b) estimates the sampling rate of the input dataseries by dropping all nans and then returns the series at the
-            estimated samplng rate.
-    (3) if "flagger" is not None and "level" is not None:
-        (a) all values are dropped, that are flagged worse then level. (so unflagged values wont be dropped)
-        (b) estimates the sampling rate of the input dataseries by dropping all nans and then returns the series at the
-            estimated samplng rate.
-
-    Note, that the passed dataseries should be harmonized to an equidistant
-        frequencie grid (maybe including blow up entries).
-
-    :param data:        DataFrame. The Data frame holding the data containing 'field'.
-    :param field:       String. Fieldname of the column in data, that you want to sample to original sampling rate.
-                        It has to have a harmonic
-    :param flagger:     None or a flagger object.
-    :param level:       Lower bound of flags that are excepted for data. Must be a flag the flagger can handle.
-
-    """
-    dataseries = data[field]
-
-    if flagger is not None:
-        mask = flagger.isFlagged(field, flag=level or flagger.GOOD, comparator="<=")
-        # drop all flags that are suspicious or worse
-        dataseries = dataseries[mask]
-
-    # drop the nan values that may result from any preceeding upsampling of the measurements:
-    dataseries = dataseries.dropna()
-
-    if dataseries.empty:
-        return dataseries, np.nan
-
-    # estimate original data sampling frequencie
-    # (the original series sampling rate may not match data-input sample rate):
-    seconds_rate = dataseries.index.to_series().diff().min().seconds
-    data_rate = pd.tseries.frequencies.to_offset(str(seconds_rate) + "s")
-
-    return dataseries.asfreq(data_rate), data_rate
-
-
 def offset2seconds(offset):
     """Function returns total seconds upon "offset like input
 
