@@ -236,7 +236,7 @@ class SaQC(FuncModules):
                 regex=regex,
             )
 
-            partial = func.bind(*fargs, **{"nodata": self._nodata, **fkwargs})
+            partial = func.bind(*fargs, **{"nodata": self._nodata, "func_name": func.name, **fkwargs})
 
             out = self if inplace else self.copy(deep=True)
             out._to_call.append((locator, control, partial))
@@ -369,7 +369,7 @@ def _warnForUnusedKwargs(func, flagger):
 
     # we need to ignore kwargs that are injected or
     # used to control the flagger
-    ignore = flagger.signature + ('nodata',)
+    ignore = flagger.signature + ("nodata", "func_name")
 
     missing = []
     for kw in func.keywords:
