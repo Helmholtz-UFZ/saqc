@@ -6,16 +6,14 @@ import dios
 from saqc.common import *
 from saqc.flagger.history import History
 import pandas as pd
-from typing import Union, Dict, DefaultDict, Iterable, Tuple, Optional, Type
+from typing import Union, Dict, DefaultDict, Optional, Type
 
-_KEY = str
 _VAL = Union[pd.Series, History]
-_DictLike = Union[
+DictLike = Union[
     pd.DataFrame,
     dios.DictOfSeries,
-    Dict[_KEY, _VAL],
-    DefaultDict[_KEY, _VAL],
-    Iterable[Tuple[_KEY, _VAL]]
+    Dict[str, _VAL],
+    DefaultDict[str, _VAL],
 ]
 
 
@@ -63,7 +61,7 @@ class Flags:
     make a df    -> flags.to_frame()
     """
 
-    def __init__(self, raw_data: Optional[Union[_DictLike, Flags]] = None, copy: bool = False):
+    def __init__(self, raw_data: Optional[Union[DictLike, Flags]] = None, copy: bool = False):
 
         if raw_data is None:
             raw_data = {}
@@ -88,12 +86,7 @@ class Flags:
         """
         result = {}
 
-        for obj in data:
-
-            if isinstance(obj, tuple):
-                k, item = obj
-            else:
-                k, item = obj, data[obj]
+        for k, item in data.items():
 
             if k in result:
                 raise ValueError('raw_data must not have duplicate keys')
@@ -267,7 +260,7 @@ class Flags:
         return str(self.to_dios()).replace('DictOfSeries', type(self).__name__)
 
 
-def init_flags_like(reference: Union[pd.Series, _DictLike, Flags], initial_value: float = UNFLAGGED) -> Flags:
+def init_flags_like(reference: Union[pd.Series, DictLike, Flags], initial_value: float = UNFLAGGED) -> Flags:
     """
     Create empty Flags, from an reference data structure.
 
@@ -301,13 +294,7 @@ def init_flags_like(reference: Union[pd.Series, _DictLike, Flags], initial_value
     if isinstance(reference, pd.Series):
         reference = reference.to_frame('f0')
 
-    for obj in reference:
-
-        # unpack
-        if isinstance(obj, tuple):
-            k, item = obj
-        else:
-            k, item = obj, reference[obj]
+    for k, item in reference.items():
 
         if not isinstance(k, str):
             raise TypeError(f"cannot use {k} as key, currently only string keys are allowed")
