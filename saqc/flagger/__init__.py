@@ -1,5 +1,5 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from .flags import Flagger, init_flags_like
+from .flags import Flagger, initFlagsLike
 from .history import History

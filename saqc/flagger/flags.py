@@ -57,8 +57,8 @@ class Flags:
 
     conversion
     ----------
-    make a dios  -> flags.to_dios()
-    make a df    -> flags.to_frame()
+    make a dios  -> flags.toDios()
+    make a df    -> flags.toFrame()
     """
 
     def __init__(self, raw_data: Optional[Union[DictLike, Flags]] = None, copy: bool = False):
@@ -70,7 +70,7 @@ class Flags:
             raw_data = raw_data._data
 
         # with python 3.7 dicts are insertion-ordered by default
-        self._data = self._init_from_raw(raw_data, copy)
+        self._data = self._initFromRaw(raw_data, copy)
 
         # this is a simple cache that reduce the calculation of the flags
         # from the entire history of a flag column. The _cache is filled
@@ -79,7 +79,7 @@ class Flags:
         # have to much trouble.
         self._cache = {}
 
-    def _init_from_raw(self, data, copy) -> Dict[str, History]:
+    def _initFromRaw(self, data, copy) -> Dict[str, History]:
         """
         init from dict-like: keys are flag column, values become
         initial columns of history(s).
@@ -245,7 +245,7 @@ class Flags:
     # ----------------------------------------------------------------------
     # transformation and representation
 
-    def to_dios(self) -> dios.DictOfSeries:
+    def toDios(self) -> dios.DictOfSeries:
         di = dios.DictOfSeries(columns=self.columns)
 
         for k, v in self._data.items():
@@ -253,14 +253,14 @@ class Flags:
 
         return di.copy()
 
-    def to_frame(self) -> pd.DataFrame:
-        return self.to_dios().to_df()
+    def toFrame(self) -> pd.DataFrame:
+        return self.toDios().to_df()
 
     def __repr__(self) -> str:
-        return str(self.to_dios()).replace('DictOfSeries', type(self).__name__)
+        return str(self.toDios()).replace('DictOfSeries', type(self).__name__)
 
 
-def init_flags_like(reference: Union[pd.Series, DictLike, Flags], initial_value: float = UNFLAGGED) -> Flags:
+def initFlagsLike(reference: Union[pd.Series, DictLike, Flags], initial_value: float = UNFLAGGED) -> Flags:
     """
     Create empty Flags, from an reference data structure.
 

@@ -20,7 +20,7 @@ import timeit
 import inspect
 
 from saqc.common import *
-from saqc.flagger import init_flags_like, Flagger
+from saqc.flagger import initFlagsLike, Flagger
 from saqc.core.lib import APIController, ColumnSelector
 from saqc.core.register import FUNC_MAP, SaQCFunction
 from saqc.core.modules import FuncModules
@@ -123,7 +123,7 @@ class SaQC(FuncModules):
         a flags frame or an already initialised flagger are used.
         """
         if flagger is None:
-            return init_flags_like(data)
+            return initFlagsLike(data)
 
         for c in flagger.columns.union(data.columns):
             if c in flagger:

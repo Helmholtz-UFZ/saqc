@@ -181,7 +181,7 @@ def test_cache():
     assert 'a' not in flags._cache
 
     # cache all
-    flags.to_dios()
+    flags.toDios()
     for c in flags.columns:
         assert c in flags._cache
 
@@ -202,7 +202,7 @@ def _validate_flags_equals_frame(flags, df):
 @pytest.mark.parametrize('data', data)
 def test_to_dios(data: np.array):
     flags = Flags(data)
-    df = flags.to_dios()
+    df = flags.toDios()
 
     assert isinstance(df, dios.DictOfSeries)
     _validate_flags_equals_frame(flags, df)
@@ -211,7 +211,7 @@ def test_to_dios(data: np.array):
 @pytest.mark.parametrize('data', data)
 def test_to_frame(data: np.array):
     flags = Flags(data)
-    df = flags.to_frame()
+    df = flags.toFrame()
 
     assert isinstance(df, pd.DataFrame)
     _validate_flags_equals_frame(flags, df)
