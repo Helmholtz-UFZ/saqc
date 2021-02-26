@@ -306,7 +306,7 @@ def aggregate2Freq(
     # In the following, we check for empty intervals outside resample.apply, because:
     # - resample AND groupBy do insert value zero for empty intervals if resampling with any kind of "sum" application -
     #   we want "fill_value" to be inserted
-    # - we are aggregating data and flags with this function and empty intervals usually would get assigned flagger.BAD
+    # - we are aggregating data and flags with this function and empty intervals usually would get assigned BAD
     #   flag (where resample inserts np.nan or 0)
 
     data_resampler = data.resample(f"{seconds_total:.0f}s", base=base, closed=closed, label=label)

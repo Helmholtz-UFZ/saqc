@@ -20,7 +20,7 @@ import timeit
 import inspect
 
 from saqc.common import *
-from saqc.flagger.flags import init_flags_like, Flagger
+from saqc.flagger import init_flags_like, Flagger
 from saqc.core.lib import APIController, ColumnSelector
 from saqc.core.register import FUNC_MAP, SaQCFunction
 from saqc.core.modules import FuncModules
@@ -164,7 +164,7 @@ class SaQC(FuncModules):
         data, flagger = self._data, self._flagger
 
         for selector, control, function in self._to_call:
-            for sel, func in self._expandFields(selector, function, data.columns.union(flagger._flags.columns)):
+            for sel, func in self._expandFields(selector, function, data.columns.union(flagger.columns)):
                 logger.debug(f"processing: {sel.field}, {func.name}, {func.keywords}")
 
                 t0 = timeit.default_timer()
@@ -213,9 +213,11 @@ class SaQC(FuncModules):
 
         realization = self.evaluate()
         data, flagger = realization._data, realization._flagger
-        if raw is False:
-            return data.to_df(), flagger.toFrame()
-        return data, flagger
+
+        if raw:
+            return data, flagger
+
+        return data.to_df(), flagger.toFrame()
 
     def _wrap(self, func: SaQCFunction):
         def inner(field: str, *fargs, target: str=None, regex: bool=False, to_mask=None, plot: bool=False, inplace: bool=False, **fkwargs) -> SaQC:
@@ -262,7 +264,7 @@ def _saqcCallFunc(locator, controller, function, data, flagger):
     # NOTE:
     # We assure that all columns in data have an equivalent column in flags,
     # we might have more flagger columns though
-    assert data.columns.difference(flagger.getFlags().columns).empty
+    assert data.columns.difference(flagger.columns).empty
 
     field = locator.field
     target = locator.target
@@ -286,7 +288,7 @@ def _saqcCallFunc(locator, controller, function, data, flagger):
     # decorated by `register(masking='none')`, and so `to_mask` is ignored.
     if masking == 'none' and to_mask not in (None, []):
         logging.warning("`to_mask` is given, but the test ignore masking. Please refer to the documentation: TODO")
-    to_mask = flagger.BAD if to_mask is None else to_mask
+    to_mask = BAD if to_mask is None else to_mask
 
     data_in, mask = _maskData(data, flagger, columns, to_mask)
     data_result, flagger_result = function(data_in, field, flagger)

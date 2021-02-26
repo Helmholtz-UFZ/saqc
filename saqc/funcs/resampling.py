@@ -11,6 +11,7 @@ import pandas as pd
 
 from dios import DictOfSeries
 
+from saqc.common import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 from saqc.funcs.tools import copy, drop, rename
@@ -63,7 +64,7 @@ def aggregate(
 
     Note, that, if there is no valid data (exisitng and not-na) available in a sampling interval assigned to a regular
     timestamp by the selected method, nan gets assigned to this timestamp. The associated flag will be of value
-    ``flagger.UNFLAGGED``.
+    ``UNFLAGGED``.
 
     Note: the method will likely and significantly alter values and shape of ``data[field]``. The original data is kept
     in the data dios and assigned to the fieldname ``field + '_original'``.
@@ -88,7 +89,7 @@ def aggregate(
         "surrounding" interval). See description above for more details.
     to_drop : {List[str], str}, default None
         Flagtypes you want to drop before aggregation - effectively excluding values that are flagged
-        with a flag in to_drop from the aggregation process. Default results in flagger.BAD
+        with a flag in to_drop from the aggregation process. Default results in BAD
         values being dropped initially.
 
     Returns
@@ -110,7 +111,7 @@ def aggregate(
         agg_func=value_func,
         flag_agg_func=flag_func,
         method=method,
-        empty_intervals_flag=flagger.UNFLAGGED,
+        empty_intervals_flag=UNFLAGGED,
         to_drop=to_drop,
         all_na_2_empty=True,
         **kwargs,
@@ -140,7 +141,7 @@ def linear(
     Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
     not-na) datapoint preceeding them and one succeeding them within freq range.
     Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
-    ``flagger.UNFLAGGED``.
+    ``UNFLAGGED``.
 
     Parameters
     ----------
@@ -154,7 +155,7 @@ def linear(
         An offset string. The frequency of the grid you want to interpolate your data at.
     to_drop : {List[str], str}, default None
         Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
-        with a flag in to_drop from the interpolation process. Default results in flagger.BAD
+        with a flag in to_drop from the interpolation process. Default results in BAD
         values being dropped initially.
 
     Returns
@@ -169,7 +170,7 @@ def linear(
 
     data, flagger = copy(data, field, flagger, field + '_original')
     data, flagger = interpolateIndex(
-        data, field, flagger, freq, "time", to_drop=to_drop, empty_intervals_flag=flagger.UNFLAGGED, **kwargs
+        data, field, flagger, freq, "time", to_drop=to_drop, empty_intervals_flag=UNFLAGGED, **kwargs
     )
     return data, flagger
 
@@ -204,7 +205,7 @@ def interpolate(
     Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
     not-na) datapoint preceeding them and one succeeding them within freq range.
     Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
-    ``flagger.UNFLAGGED``.
+    ``UNFLAGGED``.
 
     Parameters
     ----------
@@ -224,7 +225,7 @@ def interpolate(
         order.
     to_drop : {List[str], str}, default None
         Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
-        with a flag in `to_drop` from the interpolation process. Default results in ``flagger.BAD``
+        with a flag in `to_drop` from the interpolation process. Default results in ``BAD``
         values being dropped initially.
 
     Returns
@@ -246,7 +247,7 @@ def interpolate(
         method=method,
         inter_order=order,
         to_drop=to_drop,
-        empty_intervals_flag=flagger.UNFLAGGED,
+        empty_intervals_flag=UNFLAGGED,
         **kwargs,
     )
     return data, flagger
@@ -313,7 +314,7 @@ def mapToOriginal(
         details.
     to_drop : {List[str], str}, default None
         Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
-        with a flag in to_drop from the interpolation process. Default results in flagger.BAD
+        with a flag in to_drop from the interpolation process. Default results in BAD
         values being dropped initially.
 
     Returns
@@ -393,10 +394,10 @@ def _shift(
         description for more details.
     empty_intervals_flag : {None, str}, default None
         A Flag, that you want to assign to grid points, where no values are avaible to be shifted to.
-        Default triggers flagger.UNFLAGGED to be assigned.
+        Default triggers UNFLAGGED to be assigned.
     to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before shifting - effectively, excluding values that are flagged
-        with a flag in to_drop from the shifting process. Default - to_drop = None  - results in flagger.BAD
+        with a flag in to_drop from the shifting process. Default - to_drop = None  - results in BAD
         values being dropped initially.
     freq_check : {None, 'check', 'auto'}, default None
 
@@ -419,9 +420,9 @@ def _shift(
     flagscol = flagger.getFlags(field)
 
     if empty_intervals_flag is None:
-        empty_intervals_flag = flagger.UNFLAGGED
+        empty_intervals_flag = UNFLAGGED
 
-    drop_mask = dropper(field, to_drop, flagger, flagger.BAD)
+    drop_mask = dropper(field, to_drop, flagger, BAD)
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
@@ -509,18 +510,18 @@ def resample(
         containing ONLY nan values, or those containing no values at all, get projected onto nan.
     max_invalid_total_f : {None, int}, default None
         Same as `max_invalid_total_d`, only applying for the flags. The flag regarded as "invalid" value,
-        is the one passed to empty_intervals_flag (default=``flagger.BAD``).
+        is the one passed to empty_intervals_flag (default=``BAD``).
         Also this is the flag assigned to invalid/empty intervals.
     max_invalid_consec_f : {None, int}, default None
         Same as `max_invalid_total_f`, only applying onto flags. The flag regarded as "invalid" value, is the one passed
-        to empty_intervals_flag (default=flagger.BAD). Also this is the flag assigned to invalid/empty intervals.
+        to empty_intervals_flag (default=BAD). Also this is the flag assigned to invalid/empty intervals.
     flag_agg_func : Callable, default: max
         The function you want to aggregate the flags with. It should be capable of operating on the flags dtype
         (usually ordered categorical).
     empty_intervals_flag : {None, str}, default None
         A Flag, that you want to assign to invalid intervals. Invalid are those intervals, that contain nan values only,
         or no values at all. Furthermore the empty_intervals_flag is the flag, serving as "invalid" identifyer when
-        checking for `max_total_invalid_f` and `max_consec_invalid_f patterns`. Default triggers ``flagger.BAD`` to be
+        checking for `max_total_invalid_f` and `max_consec_invalid_f patterns`. Default triggers ``BAD`` to be
         assigned.
     to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before resampling - effectively excluding values that are flagged
@@ -547,7 +548,7 @@ def resample(
     datcol = data[field]
     flagscol = flagger.getFlags(field)
     if empty_intervals_flag is None:
-        empty_intervals_flag = flagger.BAD
+        empty_intervals_flag = BAD
 
     drop_mask = dropper(field, to_drop, flagger, [])
     datcol.drop(datcol[drop_mask].index, inplace=True)
@@ -653,7 +654,7 @@ def reindexFlags(
         Defaultly (None), the sampling frequency of source is used.
     to_drop : {None, str, List[str]}, default None
         Flags referring to values that are to drop before flags projection. Relevant only when projecting with an
-        inverted shift method. Defaultly flagger.BAD is listed.
+        inverted shift method. Defaultly BAD is listed.
     freq_check : {None, 'check', 'auto'}, default None
         - None: do not validate frequency-string passed to `freq`
         - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
@@ -720,7 +721,7 @@ def reindexFlags(
         #
         # starting with the dropping and its memorization:
 
-        drop_mask = dropper(field, to_drop, flagger, flagger.BAD)
+        drop_mask = dropper(field, to_drop, flagger, BAD)
         drop_mask |= target_datcol.isna()
         target_flagscol_drops = target_flagscol[drop_mask]
         target_flagscol.drop(drop_mask[drop_mask].index, inplace=True)

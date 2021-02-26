@@ -8,6 +8,7 @@ import pandas as pd
 import dios
 import matplotlib.pyplot as plt
 from typing import List, Dict, Optional
+from saqc.common import *
 from saqc.flagger import Flagger
 
 
@@ -71,7 +72,7 @@ def plotAllHook(
     data, flagger, targets=None, show_info_table: bool = True, annotations: Optional[dios.DictOfSeries] = None,
 ):
     __importHelper()
-    targets = flagger.flags.columns if targets is None else targets
+    targets = flagger.columns if targets is None else targets
     _plotMultipleVariables(
         data_old=None,
         flagger_old=None,
@@ -553,11 +554,11 @@ def _splitByFlag(flags: pd.Series, flagger, var: str):
     """
     n = flags.isna()
     loc = flags.dropna().index
-    g = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator="==")
-    b = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator="==")
-    u = flagger.isFlagged(field=var, loc=loc, flag=flagger.UNFLAGGED, comparator="==")
-    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator="<")
-    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator=">") & s
+    g = flagger.isFlagged(field=var, loc=loc, flag=GOOD, comparator="==")
+    b = flagger.isFlagged(field=var, loc=loc, flag=BAD, comparator="==")
+    u = flagger.isFlagged(field=var, loc=loc, flag=UNFLAGGED, comparator="==")
+    s = flagger.isFlagged(field=var, loc=loc, flag=BAD, comparator="<")
+    s = flagger.isFlagged(field=var, loc=loc, flag=GOOD, comparator=">") & s
     return g[g], s[s], b[b], u[u], n[n]
 
 

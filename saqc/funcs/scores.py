@@ -158,7 +158,7 @@ def assignKNNScore(
 
     score_flagger = flagger.initFlags(score_ser)
 
-    if target_field in flagger._flags.columns:
+    if target_field in flagger.columns:
         flagger = flagger.slice(drop=target_field)
 
     flagger = flagger.merge(score_flagger)

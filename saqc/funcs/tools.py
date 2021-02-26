@@ -40,7 +40,7 @@ def copy(data: DictOfSeries, field: str, flagger: Flagger, new_field: str, **kwa
         Flags shape may have changed relatively to the flagger input.
     """
 
-    if new_field in flagger.flags.columns.union(data.columns):
+    if new_field in flagger.columns.union(data.columns):
         raise ValueError(f"{field}: field already exist")
 
     flags, extras = flagger.getFlags(field, full=True)

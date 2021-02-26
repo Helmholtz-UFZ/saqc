@@ -213,7 +213,7 @@ def assignChangePointCluster(data: DictOfSeries, field: str, flagger: Flagger,
         residues = pd.Series(np.nan, index=data[field].index)
         residues[masked_index] = stat_arr
         data[field] = residues
-        flagger = flagger.setFlags(field, flag=flagger.UNFLAGGED, force=True, **kwargs)
+        flagger = flagger.setFlags(field, flag=UNFLAGGED, force=True, **kwargs)
         return data, flagger
 
     det_index = masked_index[result_arr]
@@ -233,7 +233,7 @@ def assignChangePointCluster(data: DictOfSeries, field: str, flagger: Flagger,
         # (better to start cluster labels with number one)
         cluster += 1
         data[field] = cluster
-        flagger = flagger.setFlags(field, flag=flagger.UNFLAGGED, force=True, **kwargs)
+        flagger = flagger.setFlags(field, flag=UNFLAGGED, force=True, **kwargs)
 
     if flag_changepoints:
         flagger = flagger.setFlags(field, loc=det_index)

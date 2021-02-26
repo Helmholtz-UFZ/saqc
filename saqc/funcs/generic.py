@@ -10,6 +10,7 @@ import pandas as pd
 
 from dios import DictOfSeries
 
+from saqc.common import *
 from saqc.core.register import register
 from saqc.core.visitor import ENVIRONMENT
 from saqc.flagger import Flagger
@@ -42,9 +43,9 @@ def _execGeneric(flagger: Flagger, data: DictOfSeries, func: Callable[[pd.Series
         "mask": lambda cond: data[cond.name].mask(cond),
         "this": field,
         "NODATA": nodata,
-        "GOOD": flagger.GOOD,
-        "BAD": flagger.BAD,
-        "UNFLAGGED": flagger.UNFLAGGED,
+        "GOOD": GOOD,
+        "BAD": BAD,
+        "UNFLAGGED": UNFLAGGED,
         **ENVIRONMENT,
     }
     func.__globals__.update(globs)

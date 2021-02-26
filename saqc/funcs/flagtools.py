@@ -7,6 +7,7 @@ import pandas as pd
 
 from dios import DictOfSeries
 
+from saqc.common import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 
@@ -68,7 +69,7 @@ def flagForceFail(data: DictOfSeries, field: str, flagger: Flagger, **kwargs):
 @register(masking='field', module="flagtools")
 def flagUnflagged(data: DictOfSeries, field: str, flagger: Flagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
-    Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
+    Function sets the GOOD flag to all values flagged better then GOOD.
     If there is an entry 'flag' in the kwargs dictionary passed, the
     function sets the kwargs['flag'] flag to all values flagged better kwargs['flag']
 
@@ -82,7 +83,7 @@ def flagUnflagged(data: DictOfSeries, field: str, flagger: Flagger, flag: Option
         A flagger object, holding flags and additional informations related to `data`.
     kwargs : Dict
         If kwargs contains 'flag' entry, kwargs['flag] is set, if no entry 'flag' is present,
-        'flagger.UNFLAGGED' is set.
+        'UNFLAGGED' is set.
 
     Returns
     -------
@@ -92,7 +93,7 @@ def flagUnflagged(data: DictOfSeries, field: str, flagger: Flagger, flag: Option
         The flagger object, holding flags and additional Informations related to `data`.
     """
 
-    flag = flagger.GOOD if flag is None else flag
+    flag = GOOD if flag is None else flag
     flagger = flagger.setFlags(field, flag=flag, **kwargs)
     return data, flagger
 
@@ -100,7 +101,7 @@ def flagUnflagged(data: DictOfSeries, field: str, flagger: Flagger, flag: Option
 @register(masking='field', module="flagtools")
 def flagGood(data: DictOfSeries, field: str, flagger: Flagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
-    Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
+    Function sets the GOOD flag to all values flagged better then GOOD.
 
     Parameters
     ----------

@@ -9,6 +9,7 @@ import pandas as pd
 
 from dios import DictOfSeries
 
+from saqc.common import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 
@@ -237,7 +238,7 @@ def interpolateIndex(
     empty_intervals_flag : str, default None
         A Flag, that you want to assign to those values in the resulting equidistant sample grid, that were not
         surrounded by valid data in the original dataset, and thus were not interpolated. Default automatically assigns
-        ``flagger.BAD`` flag to those values.
+        ``BAD`` flag to those values.
     grid_field : String, default None
         Use the timestamp of another variable as (not necessarily regular) "grid" to be interpolated.
     inter_limit : Integer, default 2
@@ -266,9 +267,9 @@ def interpolateIndex(
     flagscol = flagger.getFlags(field)
     freq = evalFreqStr(freq, freq_check, datcol.index)
     if empty_intervals_flag is None:
-        empty_intervals_flag = flagger.BAD
+        empty_intervals_flag = BAD
 
-    drop_mask = dropper(field, to_drop, flagger, flagger.BAD)
+    drop_mask = dropper(field, to_drop, flagger, BAD)
     drop_mask |= flagscol.isna()
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
