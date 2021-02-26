@@ -311,3 +311,7 @@ def init_flags_like(reference: Union[pd.Series, DictLike, Flags], initial_value:
 
     return Flags(result)
 
+
+# for now we keep this name
+Flagger = Flags
+

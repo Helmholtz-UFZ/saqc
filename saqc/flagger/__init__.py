@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from .flags import Flagger
+from .history import History
 from saqc.flagger.baseflagger import BaseFlagger
 from saqc.flagger.categoricalflagger import CategoricalFlagger
 from saqc.flagger.simpleflagger import SimpleFlagger

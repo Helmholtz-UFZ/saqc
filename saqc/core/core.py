@@ -10,7 +10,7 @@ TODOS:
 
 import logging
 import copy as stdcopy
-from typing import List, Tuple, Sequence
+from typing import List, Tuple, Sequence, Union
 from typing_extensions import Literal
 
 import pandas as pd
@@ -19,7 +19,8 @@ import numpy as np
 import timeit
 import inspect
 
-from saqc.flagger import BaseFlagger, CategoricalFlagger, SimpleFlagger, DmpFlagger
+from saqc.common import *
+from saqc.flagger.flags import init_flags_like, Flagger
 from saqc.core.lib import APIController, ColumnSelector
 from saqc.core.register import FUNC_MAP, SaQCFunction
 from saqc.core.modules import FuncModules
@@ -49,7 +50,8 @@ def _handleErrors(exc: Exception, field: str, control: APIController, func: SaQC
         raise exc
 
 
-def _prepInput(flagger, data, flags):
+# todo: shouldt this go to Saqc.__init__ ?
+def _prepInput(data, flags):
     dios_like = (dios.DictOfSeries, pd.DataFrame)
 
     if isinstance(data, pd.Series):
@@ -66,30 +68,23 @@ def _prepInput(flagger, data, flags):
     if not hasattr(data.columns, "str"):
         raise TypeError("expected dataframe columns of type string")
 
-    if not isinstance(flagger, BaseFlagger):
-        # NOTE: we should generate that list automatically,
-        #       it won't ever be complete otherwise
-        flaggerlist = [CategoricalFlagger, SimpleFlagger, DmpFlagger]
-        raise TypeError(f"'flagger' must be of type {flaggerlist} or a subclass of {BaseFlagger}")
-
     if flags is not None:
-        if not isinstance(flags, dios_like):
-            raise TypeError("'flags' must be of type dios.DictOfSeries or pd.DataFrame")
 
         if isinstance(flags, pd.DataFrame):
             if isinstance(flags.index, pd.MultiIndex) or isinstance(flags.columns, pd.MultiIndex):
                 raise TypeError("'flags' should not use MultiIndex")
-            flags = dios.to_dios(flags)
 
-        # NOTE: do not test all columns as they not necessarily need to be the same
-        cols = flags.columns & data.columns
-        if not (flags[cols].lengths == data[cols].lengths).all():
-            raise ValueError("the length of 'flags' and 'data' need to be equal")
+        if isinstance(flags, (dios.DictOfSeries, pd.DataFrame, Flagger)):
+            # NOTE: only test common columns, data as well as flags could
+            # have more columns than the respective other.
+            cols = flags.columns & data.columns
+            for c in cols:
+                if not flags[c].index.equals(data[c].index):
+                    raise ValueError(f"the index of 'flags' and 'data' missmatch in column {c}")
 
-    if flagger.initialized:
-        diff = data.columns.difference(flagger.getFlags().columns)
-        if not diff.empty:
-            raise ValueError("Missing columns in 'flagger': '{list(diff)}'")
+        # this also ensures float dtype
+        if not isinstance(flags, Flagger):
+            flags = Flagger(flags, copy=True)
 
     return data, flags
 
@@ -110,31 +105,32 @@ _setup()
 
 class SaQC(FuncModules):
 
-    def __init__(self, flagger, data, flags=None, nodata=np.nan, to_mask=None, error_policy="raise"):
+    def __init__(self, data, flags=None, nodata=np.nan, to_mask=None, error_policy="raise"):
         super().__init__(self)
-        data, flags = _prepInput(flagger, data, flags)
+        data, flagger = _prepInput(data, flags)
         self._data = data
         self._nodata = nodata
         self._to_mask = to_mask
-        self._flagger = self._initFlagger(data, flagger, flags)
+        self._flagger = self._initFlagger(data, flags)
         self._error_policy = error_policy
         # NOTE: will be filled by calls to `_wrap`
         self._to_call: List[Tuple[ColumnSelector, APIController, SaQCFunction]] = []
 
-    def _initFlagger(self, data, flagger, flags):
+    def _initFlagger(self, data, flagger: Union[Flagger, None]):
         """ Init the internal flagger object.
 
         Ensures that all data columns are present and user passed flags from
-        a flags frame and/or an already initialised flagger are used.
-        If columns overlap the passed flagger object is prioritised.
+        a flags frame or an already initialised flagger are used.
         """
-        # ensure all data columns
-        merged = flagger.initFlags(data)
-        if flags is not None:
-            merged = merged.merge(flagger.initFlags(flags=flags), inplace=True)
-        if flagger.initialized:
-            merged = merged.merge(flagger, inplace=True)
-        return merged
+        if flagger is None:
+            return init_flags_like(data)
+
+        for c in flagger.columns.union(data.columns):
+            if c in flagger:
+                continue
+            if c in data:
+                flagger[c] = pd.Series(UNFLAGGED, index=data[c].index, dtype=float)
+        return flagger
 
     def readConfig(self, fname):
         from saqc.core.reader import readConfig
