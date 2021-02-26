@@ -8,23 +8,23 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 
 
 @register(masking='field', module="flagtools")
-def clearFlags(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def clearFlags(data: DictOfSeries, field: str, flagger: Flagger, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     flagger = flagger.clearFlags(field, **kwargs)
     return data, flagger
 
 
 @register(masking='field', module="flagtools")
-def forceFlags(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Any, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def forceFlags(data: DictOfSeries, field: str, flagger: Flagger, flag: Any, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     flagger = flagger.clearFlags(field).setFlags(field, flag=flag, inplace=True, **kwargs)
     return data, flagger
 
 
 @register(masking='field', module="flagtools")
-def flagDummy(data: DictOfSeries, field: str, flagger: BaseFlagger,  **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagDummy(data: DictOfSeries, field: str, flagger: Flagger,  **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     Function does nothing but returning data and flagger.
 
@@ -34,21 +34,21 @@ def flagDummy(data: DictOfSeries, field: str, flagger: BaseFlagger,  **kwargs) -
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
     """
     return data, flagger
 
 
 @register(masking='field', module="flagtools")
-def flagForceFail(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs):
+def flagForceFail(data: DictOfSeries, field: str, flagger: Flagger, **kwargs):
     """
     Function raises a runtime error.
 
@@ -58,7 +58,7 @@ def flagForceFail(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
 
     """
@@ -66,7 +66,7 @@ def flagForceFail(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs
 
 
 @register(masking='field', module="flagtools")
-def flagUnflagged(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagUnflagged(data: DictOfSeries, field: str, flagger: Flagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
     If there is an entry 'flag' in the kwargs dictionary passed, the
@@ -78,7 +78,7 @@ def flagUnflagged(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Op
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
     kwargs : Dict
         If kwargs contains 'flag' entry, kwargs['flag] is set, if no entry 'flag' is present,
@@ -88,7 +88,7 @@ def flagUnflagged(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Op
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
     """
 
@@ -98,7 +98,7 @@ def flagUnflagged(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Op
 
 
 @register(masking='field', module="flagtools")
-def flagGood(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagGood(data: DictOfSeries, field: str, flagger: Flagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
 
@@ -108,14 +108,14 @@ def flagGood(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Optiona
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
 
     """
@@ -124,12 +124,12 @@ def flagGood(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Optiona
 
 @register(masking='field', module="flagtools")
 def flagManual(
-        data: DictOfSeries, field: str, flagger: BaseFlagger,
+        data: DictOfSeries, field: str, flagger: Flagger,
         mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
         mflag: Any = 1,
         method=Literal["plain", "ontime", "left-open", "right-open"],
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Flag data by given, "manually generated" data.
 
@@ -144,7 +144,7 @@ def flagManual(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
     mdata : {pd.Series, pd.Dataframe, DictOfSeries}
         The "manually generated" data

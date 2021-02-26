@@ -10,11 +10,11 @@ from typing import Tuple
 from saqc.lib.tools import groupConsecutives
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 
 
 @register(masking='field', module="breaks")
-def flagMissing(data: DictOfSeries, field: str, flagger: BaseFlagger, nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagMissing(data: DictOfSeries, field: str, flagger: Flagger, nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags all values indicating missing data.
 
@@ -24,7 +24,7 @@ def flagMissing(data: DictOfSeries, field: str, flagger: BaseFlagger, nodata: fl
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     nodata : any, default np.nan
         A value that defines missing data.
@@ -33,7 +33,7 @@ def flagMissing(data: DictOfSeries, field: str, flagger: BaseFlagger, nodata: fl
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -49,7 +49,7 @@ def flagMissing(data: DictOfSeries, field: str, flagger: BaseFlagger, nodata: fl
 
 
 @register(masking='field', module="breaks")
-def flagIsolated(data: DictOfSeries, field: str, flagger: BaseFlagger, gap_window: str, group_window: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagIsolated(data: DictOfSeries, field: str, flagger: Flagger, gap_window: str, group_window: str, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
     large data gaps. A gap is defined as group of missing and/or flagged values.
@@ -67,7 +67,7 @@ def flagIsolated(data: DictOfSeries, field: str, flagger: BaseFlagger, gap_windo
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
     gap_window : str
         The minimum size of the gap before and after a group of valid values, making this group considered an
@@ -80,7 +80,7 @@ def flagIsolated(data: DictOfSeries, field: str, flagger: BaseFlagger, gap_windo
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -109,7 +109,7 @@ def flagIsolated(data: DictOfSeries, field: str, flagger: BaseFlagger, gap_windo
 
 
 @register(masking='field', module="breaks")
-def flagJumps(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: float, winsz: str, min_periods: int=1,
+def flagJumps(data: DictOfSeries, field: str, flagger: Flagger, thresh: float, winsz: str, min_periods: int=1,
               **kwargs):
     """
     Flag datapoints, where the mean of the values significantly changes (where the value course "jumps").

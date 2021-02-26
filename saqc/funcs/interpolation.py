@@ -10,7 +10,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 
 from saqc.lib.tools import toSequence, evalFreqStr, dropper
 from saqc.lib.ts_operators import interpolateNANs
@@ -18,14 +18,14 @@ from saqc.lib.ts_operators import interpolateNANs
 
 @register(masking='field', module="interpolation")
 def interpolateByRolling(
-        data: DictOfSeries, field: str, flagger: BaseFlagger,
+        data: DictOfSeries, field: str, flagger: Flagger,
         winsz: Union[str, int],
         func: Callable[[pd.Series], float]=np.median,
         center: bool=True,
         min_periods: int=0,
         interpol_flag=Any,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Interpolates missing values (nan values present in the data) by assigning them the aggregation result of
     a window surrounding them.
@@ -39,7 +39,7 @@ def interpolateByRolling(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-interpolated.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     winsz : int, str
         The size of the window, the aggregation is computed from. Either counted in periods number (Integer passed),
@@ -60,7 +60,7 @@ def interpolateByRolling(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -93,7 +93,7 @@ def interpolateByRolling(
 def interpolateInvalid(
     data: DictOfSeries,
     field: str,
-    flagger: BaseFlagger,
+    flagger: Flagger,
     method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
     inter_order: int=2,
     inter_limit: int=2,
@@ -101,7 +101,7 @@ def interpolateInvalid(
     downgrade_interpolation: bool=False,
     not_interpol_flags: Optional[Union[Any, Sequence[Any]]]=None,
     **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
 
     """
     Function to interpolate nan values in the data.
@@ -121,7 +121,7 @@ def interpolateInvalid(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-interpolated.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
@@ -145,7 +145,7 @@ def interpolateInvalid(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -183,7 +183,7 @@ def interpolateInvalid(
 def interpolateIndex(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         freq: str,
         method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
         inter_order: int=2,
@@ -194,7 +194,7 @@ def interpolateIndex(
         inter_limit: int=2,
         freq_check: Optional[Literal["check", "auto"]]=None,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
 
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
@@ -216,7 +216,7 @@ def interpolateIndex(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-interpolated.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
         An Offset String, interpreted as the frequency of
@@ -256,7 +256,7 @@ def interpolateIndex(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """

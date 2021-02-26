@@ -15,7 +15,7 @@ from mlxtend.evaluate import permutation_test
 from dios.dios import DictOfSeries
 
 from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 from saqc.lib.tools import customRoller
 
 
@@ -23,12 +23,12 @@ from saqc.lib.tools import customRoller
 def flagPatternByDTW(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         ref_field: str,
         widths: Sequence[int]=(1, 2, 4, 8),
         waveform: str="mexh",
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Pattern recognition via wavelets.
 
@@ -44,7 +44,7 @@ def flagPatternByDTW(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to correct.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     ref_field: str
         The fieldname in `data' which holds the pattern.
@@ -60,7 +60,7 @@ def flagPatternByDTW(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 
@@ -113,7 +113,7 @@ def flagPatternByWavelet(
         max_distance: float=0.03,
         normalize: bool=True,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """ Pattern Recognition via Dynamic Time Warping.
 
     The steps are:
@@ -128,7 +128,7 @@ def flagPatternByWavelet(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to correct.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     ref_field: str
         The fieldname in `data` which holds the pattern.
@@ -145,7 +145,7 @@ def flagPatternByWavelet(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 

@@ -13,13 +13,13 @@ from dios import DictOfSeries
 
 from saqc.core.register import register
 from saqc.lib.tools import customRoller
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 
 logger = logging.getLogger("SaQC")
 
 
 @register(masking='field', module="changepoints")
-def flagChangePoints(data: DictOfSeries, field: str, flagger: BaseFlagger,
+def flagChangePoints(data: DictOfSeries, field: str, flagger: Flagger,
                      stat_func: Callable[[np.array], np.array],
                      thresh_func: Callable[[np.array], np.array],
                      bwd_window: str,
@@ -30,7 +30,7 @@ def flagChangePoints(data: DictOfSeries, field: str, flagger: BaseFlagger,
                      try_to_jit: bool=True,
                      reduce_window: str=None,
                      reduce_func: Callable[[np.array, np.array], np.array]=lambda x, y: x.argmax(),
-                     **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+                     **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     Flag datapoints, where the parametrization of the process, the data is assumed to generate by, significantly
     changes.
@@ -92,7 +92,7 @@ def flagChangePoints(data: DictOfSeries, field: str, flagger: BaseFlagger,
 
 
 @register(masking='field', module="changepoints")
-def assignChangePointCluster(data: DictOfSeries, field: str, flagger: BaseFlagger,
+def assignChangePointCluster(data: DictOfSeries, field: str, flagger: Flagger,
                              stat_func: Callable[[np.array, np.array], float],
                              thresh_func: Callable[[np.array, np.array], float],
                              bwd_window: str,
@@ -106,7 +106,7 @@ def assignChangePointCluster(data: DictOfSeries, field: str, flagger: BaseFlagge
                              model_by_resids: bool=False,
                              flag_changepoints: bool=False,
                              assign_cluster: bool=True,
-                             **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+                             **kwargs) -> Tuple[DictOfSeries, Flagger]:
 
     """
     Assigns label to the data, aiming to reflect continous regimes of the processes the data is assumed to be

@@ -9,12 +9,12 @@ import numpy as np
 from dios import DictOfSeries
 
 from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 from saqc.lib.tools import periodicMask
 
 
 @register(masking='none', module="tools")
-def copy(data: DictOfSeries, field: str, flagger: BaseFlagger, new_field: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def copy(data: DictOfSeries, field: str, flagger: Flagger, new_field: str, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
     data.
@@ -25,7 +25,7 @@ def copy(data: DictOfSeries, field: str, flagger: BaseFlagger, new_field: str, *
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to fork (copy).
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     new_field: str
         Target name.
@@ -35,7 +35,7 @@ def copy(data: DictOfSeries, field: str, flagger: BaseFlagger, new_field: str, *
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         data shape may have changed relatively to the flagger input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags shape may have changed relatively to the flagger input.
     """
@@ -51,7 +51,7 @@ def copy(data: DictOfSeries, field: str, flagger: BaseFlagger, new_field: str, *
 
 
 @register(masking='none', module="tools")
-def drop(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def drop(data: DictOfSeries, field: str, flagger: Flagger, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     The function drops field from the data dios and the flagger.
 
@@ -61,7 +61,7 @@ def drop(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs) -> Tupl
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to drop.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
 
     Returns
@@ -69,7 +69,7 @@ def drop(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs) -> Tupl
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         data shape may have changed relatively to the flagger input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags shape may have changed relatively to the flagger input.
     """
@@ -81,7 +81,7 @@ def drop(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs) -> Tupl
 
 
 @register(masking='none', module="tools")
-def rename(data: DictOfSeries, field: str, flagger: BaseFlagger, new_name: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def rename(data: DictOfSeries, field: str, flagger: Flagger, new_name: str, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     The function renames field to new name (in both, the flagger and the data).
 
@@ -91,7 +91,7 @@ def rename(data: DictOfSeries, field: str, flagger: BaseFlagger, new_name: str, 
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to rename.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     new_name : str
         String, field is to be replaced with.
@@ -100,7 +100,7 @@ def rename(data: DictOfSeries, field: str, flagger: BaseFlagger, new_name: str, 
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
     """
     # store
@@ -123,13 +123,13 @@ def rename(data: DictOfSeries, field: str, flagger: BaseFlagger, new_name: str, 
 def mask(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         mode: Literal["periodic", "mask_var"],
         mask_var: Optional[str]=None,
         period_start: Optional[str]=None,
         period_end: Optional[str]=None,
         include_bounds: bool=True
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     This function realizes masking within saqc.
 
@@ -155,7 +155,7 @@ def mask(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-masked.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     mode : {"periodic", "mask_var"}
         The masking mode.
@@ -184,7 +184,7 @@ def mask(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 

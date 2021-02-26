@@ -8,7 +8,7 @@ import pandas as pd
 import dios
 import matplotlib.pyplot as plt
 from typing import List, Dict, Optional
-from saqc.flagger import BaseFlagger
+from saqc.flagger import Flagger
 
 
 def __importHelper():
@@ -88,8 +88,8 @@ def plotAllHook(
 def plotHook(
     data_old: Optional[dios.DictOfSeries],
     data_new: dios.DictOfSeries,
-    flagger_old: Optional[BaseFlagger],
-    flagger_new: BaseFlagger,
+    flagger_old: Optional[Flagger],
+    flagger_new: Flagger,
     sources: List[str],
     targets: List[str],
     plot_name: str = "",
@@ -119,8 +119,8 @@ def plotHook(
 def _plotMultipleVariables(
     data_old: Optional[dios.DictOfSeries],
     data_new: dios.DictOfSeries,
-    flagger_old: Optional[BaseFlagger],
-    flagger_new: BaseFlagger,
+    flagger_old: Optional[Flagger],
+    flagger_new: Flagger,
     targets: List[str],
     show_info_table: bool = True,
     annotations=None,
@@ -207,7 +207,7 @@ def _plotMultipleVariables(
 
 def simplePlot(
     data: dios.DictOfSeries,
-    flagger: BaseFlagger,
+    flagger: Flagger,
     field: str,
     plot_name=None,
     show_info_table: bool = True,
@@ -232,8 +232,8 @@ def simplePlot(
 def _plotSingleVariable(
     data_old: dios.DictOfSeries,
     data_new: dios.DictOfSeries,
-    flagger_old: BaseFlagger,
-    flagger_new: BaseFlagger,
+    flagger_old: Flagger,
+    flagger_new: Flagger,
     sources: List[str],
     targets: List[str],
     show_reference_data=True,
@@ -354,8 +354,8 @@ def _plotSingleVariable(
 def _getDataFromVar(
     data_old: dios.DictOfSeries,
     data_new: dios.DictOfSeries,
-    flagger_old: BaseFlagger,
-    flagger_new: BaseFlagger,
+    flagger_old: Flagger,
+    flagger_new: Flagger,
     varname: str,
 ):
     """

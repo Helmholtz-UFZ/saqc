@@ -15,7 +15,7 @@ from outliers import smirnov_grubbs
 from dios import DictOfSeries
 
 from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 from saqc.lib.tools import (
     customRoller,
     findIndex,
@@ -29,13 +29,13 @@ import saqc.lib.ts_operators as ts_ops
 def flagByStray(
     data: DictOfSeries,
     field: str,
-    flagger: BaseFlagger,
+    flagger: Flagger,
     partition_freq: Optional[Union[str, int]]=None,
     partition_min: int=11,
     iter_start: float=0.5,
     alpha: float=0.05,
     **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Flag outliers in 1-dimensional (score) data with the STRAY Algorithm.
 
@@ -47,7 +47,7 @@ def flagByStray(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     partition_freq : {None, str, int}, default None
         partition_freq : {np.inf, float, str}, default np.inf
@@ -123,7 +123,7 @@ def flagByStray(
 def _evalStrayLabels(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         fields: Sequence[str],
         reduction_range: Optional[str]=None,
         reduction_drop_flagged: bool=False,
@@ -131,7 +131,7 @@ def _evalStrayLabels(
         reduction_min_periods: int=1,
         at_least_one: bool=True,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     The function "reduces" an observations flag to components of it, by applying MAD (See references)
     test onto every components temporal surrounding.
@@ -142,7 +142,7 @@ def _evalStrayLabels(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the labels to be evaluated.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     fields : list[str]
         A list of strings, holding the column names of the variables, the stray labels shall be
@@ -337,7 +337,7 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
 def flagMVScores(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         fields: Sequence[str],
         trafo: Callable[[pd.Series], pd.Series]=lambda x: x,
         alpha: float=0.05,
@@ -352,7 +352,7 @@ def flagMVScores(
         reduction_thresh: float=3.5,
         reduction_min_periods: int=1,
         **kwargs,
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     The algorithm implements a 3-step outlier detection procedure for simultaneously flagging of higher dimensional
     data (dimensions > 3).
@@ -367,7 +367,7 @@ def flagMVScores(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     fields : List[str]
         List of fieldnames, corresponding to the variables that are to be included into the flagging process.
@@ -419,7 +419,7 @@ def flagMVScores(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -478,7 +478,7 @@ def flagMVScores(
 def flagRaise(
     data: DictOfSeries,
     field: str,
-    flagger: BaseFlagger,
+    flagger: Flagger,
     thresh: float,
     raise_window: str,
     intended_freq: str,
@@ -488,7 +488,7 @@ def flagRaise(
     min_slope_weight: float=0.8,
     numba_boost: bool=True,
     **kwargs,
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags raises and drops in value courses, that exceed a certain threshold
     within a certain timespan.
@@ -506,7 +506,7 @@ def flagRaise(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     thresh : float
         The threshold, for the total rise (thresh > 0), or total drop (thresh < 0), value courses must
@@ -531,7 +531,7 @@ def flagRaise(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -641,7 +641,7 @@ def flagRaise(
 
 
 @register(masking='field', module="outliers")
-def flagMAD(data: DictOfSeries, field: str, flagger: BaseFlagger, window: str, z: float=3.5, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagMAD(data: DictOfSeries, field: str, flagger: Flagger, window: str, z: float=3.5, **kwargs) -> Tuple[DictOfSeries, Flagger]:
 
     """
 
@@ -657,7 +657,7 @@ def flagMAD(data: DictOfSeries, field: str, flagger: BaseFlagger, window: str, z
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     window : str
        Offset string. Denoting the windows size that the "Z-scored" values have to lie in.
@@ -668,7 +668,7 @@ def flagMAD(data: DictOfSeries, field: str, flagger: BaseFlagger, window: str, z
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -703,13 +703,13 @@ def flagMAD(data: DictOfSeries, field: str, flagger: BaseFlagger, window: str, z
 def flagOffset(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         thresh: float,
         tolerance: float,
         window: Union[int, str],
         numba_kickin: int=200000,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     A basic outlier test that is designed to work for harmonized and not harmonized data.
 
@@ -734,7 +734,7 @@ def flagOffset(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     thresh : float
         Minimum difference between to values, to consider the latter one as a spike. See condition (1)
@@ -753,7 +753,7 @@ def flagOffset(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
 
@@ -824,13 +824,13 @@ def flagOffset(
 def flagByGrubbs(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         winsz: Union[str, int],
         alpha: float=0.05,
         min_periods: int=8,
         check_lagged: bool=False,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags values that are regarded outliers due to the grubbs test.
 
@@ -851,7 +851,7 @@ def flagByGrubbs(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     winsz : {int, str}
         The size of the window you want to use for outlier testing. If an integer is passed, the size
@@ -871,7 +871,7 @@ def flagByGrubbs(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 
@@ -927,11 +927,11 @@ def flagByGrubbs(
 def flagRange(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         min: float=-np.inf,
         max: float=np.inf,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Function flags values not covered by the closed interval [`min`, `max`].
 
@@ -941,7 +941,7 @@ def flagRange(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     min : float
         Lower bound for valid data.
@@ -952,7 +952,7 @@ def flagRange(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -968,12 +968,12 @@ def flagRange(
 def flagCrossStatistic(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         fields: Sequence[str],
         thresh: float,
         cross_stat: Literal["modZscore", "Zscore"]="modZscore",
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Function checks for outliers relatively to the "horizontal" input data axis.
 
@@ -994,7 +994,7 @@ def flagCrossStatistic(
         A dictionary of pandas.Series, holding all the data.
     field : str
         A dummy parameter.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
     fields : str
         List of fieldnames in data, determining wich variables are to be included into the flagging process.
@@ -1011,7 +1011,7 @@ def flagCrossStatistic(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the input flagger.
 

@@ -10,13 +10,13 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta
 
 
 @register(masking='field', module="constants")
-def flagConstants(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: float, window: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagConstants(data: DictOfSeries, field: str, flagger: Flagger, thresh: float, window: str, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     This functions flags plateaus/series of constant values of length `window` if
     their maximum total change is smaller than thresh.
@@ -34,7 +34,7 @@ def flagConstants(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: 
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     thresh : float
         Upper bound for the maximum total change of an interval to be flagged constant.
@@ -45,7 +45,7 @@ def flagConstants(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: 
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
     """
@@ -72,10 +72,10 @@ def flagConstants(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: 
 
 @register(masking='field', module="constants")
 def flagByVariance(
-        data: DictOfSeries, field: str, flagger: BaseFlagger,
+        data: DictOfSeries, field: str, flagger: Flagger,
         window: str="12h", thresh: float=0.0005,
         max_missing: int=None, max_consec_missing: int=None, **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
 
     """
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
@@ -89,7 +89,7 @@ def flagByVariance(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     window : str
         Only intervals of minimum size "window" have the chance to get flagged as constant intervals
@@ -108,7 +108,7 @@ def flagByVariance(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
     """

@@ -12,7 +12,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 from saqc.funcs.tools import copy, drop, rename
 from saqc.funcs.interpolation import interpolateIndex
 from saqc.lib.tools import dropper, evalFreqStr
@@ -36,14 +36,14 @@ METHOD2ARGS = {
 def aggregate(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         freq: str,
         value_func,
         flag_func: Callable[[pd.Series], float]=np.nanmax,
         method: Literal["fagg", "bagg", "nagg"]="nagg",
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     A method to "regularize" data by aggregating (resampling) data at a regular timestamp.
 
@@ -74,7 +74,7 @@ def aggregate(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.freq
     freq : str
         The sampling frequency the data is to be aggregated (resampled) at.
@@ -96,7 +96,7 @@ def aggregate(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -122,11 +122,11 @@ def aggregate(
 def linear(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         freq: str,
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     A method to "regularize" data by interpolating linearly the data at regular timestamp.
 
@@ -148,7 +148,7 @@ def linear(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.freq
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
@@ -162,7 +162,7 @@ def linear(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -178,13 +178,13 @@ def linear(
 def interpolate(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         freq: str,
         method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
         order: int=1,
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         **kwargs,
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     A method to "regularize" data by interpolating the data at regular timestamp.
 
@@ -212,7 +212,7 @@ def interpolate(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.freq
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
@@ -232,7 +232,7 @@ def interpolate(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -256,11 +256,11 @@ def interpolate(
 def mapToOriginal(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         method: Literal["inverse_fagg", "inverse_bagg", "inverse_nagg", "inverse_fshift", "inverse_bshift", "inverse_nshift", "inverse_interpolation"],
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     The Function function "undoes" regularization, by regaining the original data and projecting the
     flags calculated for the regularized data onto the original ones.
@@ -305,7 +305,7 @@ def mapToOriginal(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-deharmonized.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.freq
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift',
             'inverse_interpolation'}
@@ -321,7 +321,7 @@ def mapToOriginal(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -337,14 +337,14 @@ def mapToOriginal(
 def shift(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         freq: str,
         method: Literal["fshift", "bshift", "nshift"]="nshift",
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         empty_intervals_flag: Optional[str]=None,
         freq_check: Optional[Literal["check", "auto"]]=None,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
 
     data, flagger = copy(data, field, flagger, field + '_original')
     data, flagger = _shift(
@@ -357,14 +357,14 @@ def shift(
 def _shift(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         freq: str,
         method: Literal["fshift", "bshift", "nshift"]="nshift",
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         empty_intervals_flag: Optional[str]=None,
         freq_check: Optional[Literal["check", "auto"]]=None,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Function to shift data points to regular (equidistant) timestamps.
     Values get shifted according to the keyword passed to the `method` parameter.
@@ -384,7 +384,7 @@ def _shift(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-shifted.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
         An frequency Offset String that will be interpreted as the sampling rate you want the data to be shifted to.
@@ -410,7 +410,7 @@ def _shift(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -446,7 +446,7 @@ def _shift(
 def resample(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         freq: str,
         agg_func: Callable[[pd.Series], pd.Series]=np.mean,
         method: Literal["fagg", "bagg", "nagg"]="bagg",
@@ -460,7 +460,7 @@ def resample(
         all_na_2_empty: bool=False,
         freq_check: Optional[Literal["check", "auto"]]=None,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Function to resample the data. Afterwards the data will be sampled at regular (equidistant) timestamps
     (or Grid points). Sampling intervals therefor get aggregated with a function, specifyed by 'agg_func' parameter and
@@ -488,7 +488,7 @@ def resample(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-resampled.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     freq : str
         An Offset String, that will be interpreted as the frequency you want to resample your data with.
@@ -538,7 +538,7 @@ def resample(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
@@ -595,14 +595,14 @@ def resample(
 def reindexFlags(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         method: Literal["inverse_fagg", "inverse_bagg", "inverse_nagg", "inverse_fshift", "inverse_bshift", "inverse_nshift"],
         source: str,
         freq: Optional[str]=None,
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         freq_check: Optional[Literal["check", "auto"]]=None,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
 
     """
     The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
@@ -642,7 +642,7 @@ def reindexFlags(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to project the source-flags onto.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
         The method used for projection of source flags onto field flags. See description above for more details.
@@ -664,7 +664,7 @@ def reindexFlags(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """

@@ -349,7 +349,7 @@ def _warnForUnusedKwargs(func, flagger):
     ----------
     func: SaqcFunction
         Saqc internal data structure that hold all function info.
-    flagger: saqc.flagger.BaseFlagger
+    flagger: saqc.flagger.Flagger
         Flagger object.
 
     Returns

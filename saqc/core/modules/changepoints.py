@@ -1,15 +1,10 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Callable, Union, Tuple
+from typing import Callable, Union
 from typing_extensions import Literal
-
 import numpy as np
-
-from dios import DictOfSeries
-
 from saqc.core.modules.base import ModuleBase
-from saqc.flagger.baseflagger import BaseFlagger
 
 
 class ChangePoints(ModuleBase):
@@ -28,7 +23,7 @@ class ChangePoints(ModuleBase):
             reduce_window: str = None,
             reduce_func: Callable[[np.array, np.array], np.array] = lambda x, y: x.argmax(),
             **kwargs
-    ) -> Tuple[DictOfSeries, BaseFlagger]:
+    ):
 
         return self.defer("flagChangePoints", locals())
 
@@ -49,6 +44,6 @@ class ChangePoints(ModuleBase):
             flag_changepoints: bool = False,
             assign_cluster: bool = True,
             **kwargs
-    ) -> Tuple[DictOfSeries, BaseFlagger]:
+    ):
 
         return self.defer("assignChangePointCluster", locals())

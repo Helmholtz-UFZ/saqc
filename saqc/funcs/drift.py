@@ -13,7 +13,7 @@ from scipy.spatial.distance import pdist
 from dios import DictOfSeries
 
 from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 from saqc.funcs.resampling import shift
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import drop, copy
@@ -22,14 +22,14 @@ from saqc.lib.ts_operators import expModelFunc
 
 
 @register(masking='all', module="drift")
-def flagDriftFromNorm(data: DictOfSeries, field: str, flagger: BaseFlagger,
+def flagDriftFromNorm(data: DictOfSeries, field: str, flagger: Flagger,
                       fields: Sequence[str],
                       segment_freq: str,
                       norm_spread: float,
                       norm_frac: float=0.5,
                       metric: Callable[[np.array, np.array], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
                       linkage_method: Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]="single",
-                      **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+                      **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags value courses that significantly deviate from a group of normal value courses.
 
@@ -45,7 +45,7 @@ def flagDriftFromNorm(data: DictOfSeries, field: str, flagger: BaseFlagger,
         A dictionary of pandas.Series, holding all the data.
     field : str
         A dummy parameter.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
     fields : str
         List of fieldnames in data, determining which variables are to be included into the flagging process.
@@ -75,7 +75,7 @@ def flagDriftFromNorm(data: DictOfSeries, field: str, flagger: BaseFlagger,
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the input flagger.
 
@@ -131,12 +131,12 @@ def flagDriftFromNorm(data: DictOfSeries, field: str, flagger: BaseFlagger,
 
 
 @register(masking='all', module="drift")
-def flagDriftFromReference(data: DictOfSeries, field: str, flagger: BaseFlagger,
+def flagDriftFromReference(data: DictOfSeries, field: str, flagger: Flagger,
                            fields: Sequence[str],
                            segment_freq: str,
                            thresh: float,
                            metric: Callable[[np.array, np.array], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-                           **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+                           **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags value courses that deviate from a reference course by a margin exceeding a certain threshold.
 
@@ -148,7 +148,7 @@ def flagDriftFromReference(data: DictOfSeries, field: str, flagger: BaseFlagger,
         A dictionary of pandas.Series, holding all the data.
     field : str
         The reference variable, the deviation from wich determines the flagging.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
     fields : str
         List of fieldnames in data, determining wich variables are to be included into the flagging process.
@@ -167,7 +167,7 @@ def flagDriftFromReference(data: DictOfSeries, field: str, flagger: BaseFlagger,
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the input flagger.
 
@@ -200,7 +200,7 @@ def flagDriftFromReference(data: DictOfSeries, field: str, flagger: BaseFlagger,
 
 
 @register(masking='all', module="drift")
-def flagDriftFromScaledNorm(data: DictOfSeries, field: str, flagger: BaseFlagger,
+def flagDriftFromScaledNorm(data: DictOfSeries, field: str, flagger: Flagger,
                             fields_scale1: Sequence[str],
                             fields_scale2: Sequence[str],
                             segment_freq: str,
@@ -208,7 +208,7 @@ def flagDriftFromScaledNorm(data: DictOfSeries, field: str, flagger: BaseFlagger
                             norm_frac: float=0.5,
                             metric: Callable[[np.array, np.array], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
                             linkage_method: Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]="single",
-                            **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+                            **kwargs) -> Tuple[DictOfSeries, Flagger]:
 
 
     """
@@ -312,9 +312,9 @@ def flagDriftFromScaledNorm(data: DictOfSeries, field: str, flagger: BaseFlagger
 
 
 @register(masking='all', module="drift")
-def correctExponentialDrift(data: DictOfSeries, field: str, flagger: BaseFlagger,
+def correctExponentialDrift(data: DictOfSeries, field: str, flagger: Flagger,
                             maint_data_field: str, cal_mean: int=5, flag_maint_period: bool=False,
-                            **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+                            **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     The function fits an exponential model to chunks of data[field].
     It is assumed, that between maintenance events, there is a drift effect shifting the meassurements in a way, that
@@ -351,7 +351,7 @@ def correctExponentialDrift(data: DictOfSeries, field: str, flagger: BaseFlagger
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to correct.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     maint_data_field : str
         The fieldname of the datacolumn holding the maintenance information.
@@ -369,7 +369,7 @@ def correctExponentialDrift(data: DictOfSeries, field: str, flagger: BaseFlagger
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
@@ -412,11 +412,11 @@ def correctExponentialDrift(data: DictOfSeries, field: str, flagger: BaseFlagger
 
 
 @register(masking='all', module="drift")
-def correctRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
+def correctRegimeAnomaly(data: DictOfSeries, field: str, flagger: Flagger,
                          cluster_field: str,
                          model: Callable[[np.array, Any], np.array],
                          regime_transmission: Optional[str]=None,
-                         x_date: bool=False) -> Tuple[DictOfSeries, BaseFlagger]:
+                         x_date: bool=False) -> Tuple[DictOfSeries, Flagger]:
     """
     Function fits the passed model to the different regimes in data[field] and tries to correct
     those values, that have assigned a negative label by data[cluster_field].
@@ -521,14 +521,14 @@ def correctRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
 
 
 @register(masking='all', module="drift")
-def correctOffset(data: DictOfSeries, field: str, flagger: BaseFlagger,
+def correctOffset(data: DictOfSeries, field: str, flagger: Flagger,
                   max_mean_jump: float,
                   normal_spread: float,
                   search_winsz: str,
                   min_periods: int,
                   regime_transmission: Optional[str]=None,
                   **kwargs
-                  ) -> Tuple[DictOfSeries, BaseFlagger]:
+                  ) -> Tuple[DictOfSeries, Flagger]:
     """
 
     Parameters
@@ -610,13 +610,13 @@ def _drift_fit(x, shift_target, cal_mean):
 
 
 @register(masking='all', module="drift")
-def flagRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
+def flagRegimeAnomaly(data: DictOfSeries, field: str, flagger: Flagger,
                       cluster_field: str,
                       norm_spread: float,
                       linkage_method: Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]="single",
                       metric: Callable[[np.array, np.array], float]=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
                       norm_frac: float=0.5,
-                      **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+                      **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     A function to flag values belonging to an anomalous regime regarding modelling regimes of field.
 
@@ -671,7 +671,7 @@ def flagRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
 
 
 @register(masking='all', module="drift")
-def assignRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
+def assignRegimeAnomaly(data: DictOfSeries, field: str, flagger: Flagger,
                         cluster_field: str,
                         norm_spread: float,
                         linkage_method: Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]="single",
@@ -679,7 +679,7 @@ def assignRegimeAnomaly(data: DictOfSeries, field: str, flagger: BaseFlagger,
                         norm_frac: float=0.5,
                         set_cluster: bool=True,
                         set_flags: bool=False,
-                        **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+                        **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     A function to detect values belonging to an anomalous regime regarding modelling regimes of field.
 

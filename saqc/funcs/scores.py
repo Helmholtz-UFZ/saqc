@@ -9,7 +9,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 from saqc.lib import ts_operators as ts_ops
 from saqc.lib.tools import toSequence
 
@@ -18,7 +18,7 @@ from saqc.lib.tools import toSequence
 def assignKNNScore(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flagger: Flagger,
         fields: Sequence[str],
         n_neighbors: int=10,
         trafo: Callable[[pd.Series], pd.Series]=lambda x: x,
@@ -32,7 +32,7 @@ def assignKNNScore(
         p: int=2,
         radius: Optional[float]=None,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Score datapoints by an aggregation of the dictances to their k nearest neighbors.
 

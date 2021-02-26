@@ -12,17 +12,17 @@ from dios import DictOfSeries
 
 from saqc.core.register import register
 from saqc.core.visitor import ENVIRONMENT
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.flagger import Flagger
 
 
-def _dslIsFlagged(flagger: BaseFlagger, var: pd.Series, flag: Any=None, comparator: str=">=") -> Union[pd.Series, DictOfSeries]:
+def _dslIsFlagged(flagger: Flagger, var: pd.Series, flag: Any=None, comparator: str=">=") -> Union[pd.Series, DictOfSeries]:
     """
     helper function for `flag`
     """
     return flagger.isFlagged(var.name, flag=flag, comparator=comparator)
 
 
-def _execGeneric(flagger: BaseFlagger, data: DictOfSeries, func: Callable[[pd.Series], pd.Series], field: str, nodata: float) -> pd.Series:
+def _execGeneric(flagger: Flagger, data: DictOfSeries, func: Callable[[pd.Series], pd.Series], field: str, nodata: float) -> pd.Series:
     # TODO:
     # - check series.index compatibility
     # - field is only needed to translate 'this' parameters
@@ -52,7 +52,7 @@ def _execGeneric(flagger: BaseFlagger, data: DictOfSeries, func: Callable[[pd.Se
 
 
 @register(masking='all', module="generic")
-def process(data: DictOfSeries, field: str, flagger: BaseFlagger, func: Callable[[pd.Series], pd.Series], nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Series], pd.Series], nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     generate/process data with generically defined functions.
 
@@ -73,7 +73,7 @@ def process(data: DictOfSeries, field: str, flagger: BaseFlagger, func: Callable
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, where you want the result from the generic expressions processing to be written to.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     func : Callable
         The data processing function with parameter names that will be
@@ -87,7 +87,7 @@ def process(data: DictOfSeries, field: str, flagger: BaseFlagger, func: Callable
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         The shape of the data may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         The flags shape may have changed relatively to the input flagger.
 
@@ -121,7 +121,7 @@ def process(data: DictOfSeries, field: str, flagger: BaseFlagger, func: Callable
 
 
 @register(masking='all', module="generic")
-def flag(data: DictOfSeries, field: str, flagger: BaseFlagger, func: Callable[[pd.Series], pd.Series], nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Series], pd.Series], nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     a function to flag a data column by evaluation of a generic expression.
 
@@ -147,7 +147,7 @@ def flag(data: DictOfSeries, field: str, flagger: BaseFlagger, func: Callable[[p
     field : str
         The fieldname of the column, where you want the result from the generic expressions evaluation to be projected
         to.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     func : Callable
         The expression that is to be evaluated is passed in form of a callable, with parameter names that will be
@@ -160,7 +160,7 @@ def flag(data: DictOfSeries, field: str, flagger: BaseFlagger, func: Callable[[p
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
+    flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
 
