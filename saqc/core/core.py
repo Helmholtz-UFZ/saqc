@@ -27,7 +27,6 @@ from saqc.core.modules import FuncModules
 from saqc.funcs.tools import copy
 from saqc.lib.plotting import plotHook, plotAllHook
 
-
 logger = logging.getLogger("SaQC")
 
 
@@ -228,12 +227,13 @@ class SaQC(FuncModules):
         return data.to_df(), flagger.toFrame()
 
     def _wrap(self, func: SaQCFunction):
-        def inner(field: str, *fargs, target: str=None, regex: bool=False, to_mask=None, plot: bool=False, inplace: bool=False, **fkwargs) -> SaQC:
+
+        def inner(field: str, *fargs, target: str = None, regex: bool = False, plot: bool = False, inplace: bool = False, **fkwargs) -> SaQC:
+
+            fkwargs.setdefault('to_mask', self._to_mask)
 
             control = APIController(
-                masking=func.masking,
-                to_mask=self._to_mask if to_mask is None else to_mask,
-                plot=plot,
+                plot=plot
             )
 
             locator = ColumnSelector(
@@ -276,113 +276,27 @@ def _saqcCallFunc(locator, controller, function, data, flagger):
 
     field = locator.field
     target = locator.target
-    to_mask = controller.to_mask
-    masking = controller.masking
 
     if (target != field) and (locator.regex is False):
         data, flagger = copy(data, field, flagger, target)
         field = target
 
-    if masking == 'all':
-        columns = data.columns
-    elif masking == 'none':
-        columns = []
-    elif masking == 'field':
-        columns = [field]
-    else:
-        raise ValueError(f"wrong use of `register(masking={masking})`")
-
-    # warn if the user explicitly pass `to_mask=..` to a function that is
-    # decorated by `register(masking='none')`, and so `to_mask` is ignored.
-    if masking == 'none' and to_mask not in (None, []):
-        logging.warning("`to_mask` is given, but the test ignore masking. Please refer to the documentation: TODO")
-    to_mask = [BAD] if to_mask is None else to_mask
-
-    data_in, mask = _maskData(data, flagger, columns, to_mask)
-    data_result, flagger_result = function(data_in, field, flagger)
-    data_result = _unmaskData(data, mask, data_result, flagger_result, to_mask)
+    data_result, flagger_result = function(data, field, flagger)
 
     # we check the passed function-kwargs after the actual call, because now "hard" errors would already have been
     # raised (Eg. `TypeError: got multiple values for argument 'data'`, when the user pass data=...)
-    _warnForUnusedKwargs(function, flagger)
+    _warnForUnusedKwargs(function)
 
     return data_result, flagger_result
 
 
-# todo: solve with outcome of #GL160
-def _getMask(flags: Union[np.array, pd.Series], to_mask: list) -> Union[np.array, pd.Series]:
-    """
-    Return a mask of flags accordingly to `to_mask`.
-    Return type is same as flags.
-    """
-
-    if isinstance(flags, pd.Series):
-        mask = pd.Series(False, index=flags.index, dtype=bool)
-    else:
-        mask = np.zeros_like(flags, dtype=bool)
-
-    for f in to_mask:
-        mask |= flags == f
-
-    return mask
-
-
-# TODO: this is heavily undertested
-def _maskData(data, flagger, columns, to_mask):
-    # we use numpy here because it is faster
-    mask = dios.DictOfSeries(columns=columns)
-    data = data.copy()
-
-    for c in columns:
-        col_mask = _getMask(flagger[c].to_numpy(), to_mask)
-
-        if np.any(col_mask):
-            col_data = data[c].to_numpy(dtype=np.float64)
-            col_data[col_mask] = np.nan
-
-            data[c] = col_data
-            mask[c] = pd.Series(col_mask, index=data[c].index, dtype=bool)
-
-    return data, mask
-
-
-# TODO: this is heavily undertested
-def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
-    # NOTE:
-    # we only need to respect columns, that were masked,
-    # and are also still present in new data.
-    # this throws out:
-    #  - any newly assigned columns
-    #  - columns that were excluded from masking
-    columns = mask_old.dropempty().columns.intersection(data_new.dropempty().columns)
-
-    for col in columns:
-        was_masked = mask_old[col]
-        is_masked = _getMask(flagger_new[col], to_mask)
-
-        # if index changed we just go with the new data.
-        # A test should use `register(masking='none')` if it changes
-        # the index but, does not want to have all NaNs on flagged locations.
-        if was_masked.index.equals(is_masked.index):
-            mask = was_masked.to_numpy() & is_masked.to_numpy() & data_new[col].isna().to_numpy()
-
-            # reapplying old values on masked positions
-            if np.any(mask):
-                data = np.where(mask, data_old[col].to_numpy(), data_new[col].to_numpy())
-                data_new[col] = pd.Series(data=data, index=is_masked.index, dtype=data_old[col].dtype)
-
-    return data_new
-
-
-def _warnForUnusedKwargs(func, flagger):
+def _warnForUnusedKwargs(func):
     """ Warn for unused kwargs, passed to a SaQC.function.
 
     Parameters
     ----------
     func: SaqcFunction
         Saqc internal data structure that hold all function info.
-    flagger: saqc.flagger.Flagger
-        Flagger object.
 
     Returns
     -------
@@ -395,9 +309,8 @@ def _warnForUnusedKwargs(func, flagger):
     """
     sig_kws = inspect.signature(func.func).parameters
 
-    # we need to ignore kwargs that are injected or
-    # used to control the flagger
-    ignore = ("nodata", "func_name", "flag")
+    # we need to ignore kws that are injected or by default hidden in ``**kwargs``
+    ignore = ("nodata", "func_name", "flag", "to_mask")
 
     missing = []
     for kw in func.keywords:
