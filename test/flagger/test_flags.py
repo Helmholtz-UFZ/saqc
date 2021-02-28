@@ -121,7 +121,7 @@ def test_get_flags(data: np.array):
 
 
 @pytest.mark.parametrize('data', data)
-def test_set_flags_and_force(data: np.array):
+def test_set_flags(data: np.array):
     flags = Flags(data)
 
     for c in flags.columns:
@@ -138,15 +138,9 @@ def test_set_flags_and_force(data: np.array):
         new[:] = 8888.
         assert all(flags.history[c].max() == 9999.)
 
-        # no overwrite if flag-values are not worse
+        # flags always overwrite former
         flags[c] = new
         assert len(flags.history[c]) == hlen + 2
-        assert all(flags.history[c].max() == 9999.)
-        assert all(flags.history[c].max() == flags[c])
-
-        # but overwrite with force
-        flags.force(c, new)
-        assert len(flags.history[c]) == hlen + 3
         assert all(flags.history[c].max() == 8888.)
         assert all(flags.history[c].max() == flags[c])
 

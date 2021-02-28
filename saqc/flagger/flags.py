@@ -170,7 +170,7 @@ class Flags:
 
         return self._cache[key].copy()
 
-    def __setitem__(self, key: SelectT, value: ValueT, force=False):
+    def __setitem__(self, key: SelectT, value: ValueT):
         # force-KW is internal available only
 
         if isinstance(key, tuple):
@@ -200,29 +200,8 @@ class Flags:
         if key not in self._data:
             self._data[key] = History()
 
-        self._data[key].append(value, force=force)
+        self._data[key].append(value, force=True)
         self._cache.pop(key, None)
-
-    def force(self, key: str, value: pd.Series) -> Flags:
-        """
-        Overwrite existing flags, regardless if they are better
-        or worse than the existing flags.
-
-        Parameters
-        ----------
-        key : str
-            column name
-
-        value : pandas.Series
-            A series of float flags to force
-
-        Returns
-        -------
-        Flags
-            the same flags object with altered flags, no copy
-        """
-        self.__setitem__(key, value, force=True)
-        return self
 
     def __delitem__(self, key):
         self._data.pop(key)

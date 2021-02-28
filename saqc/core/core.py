@@ -397,7 +397,7 @@ def _warnForUnusedKwargs(func, flagger):
 
     # we need to ignore kwargs that are injected or
     # used to control the flagger
-    ignore = ("nodata", "func_name", "force", "flag")
+    ignore = ("nodata", "func_name", "flag")
 
     missing = []
     for kw in func.keywords:
