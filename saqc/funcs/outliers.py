@@ -961,11 +961,7 @@ def flagRange(
     # using .values is much faster
     datacol = data[field].values
     mask = (datacol < min) | (datacol > max)
-
-    # todo GL162
-    flags = pd.Series(UNTOUCHED, index=data[field].index, dtype=float)
-    flags.loc[mask] = kwargs['flag']  # todo GL161
-    flagger[field] = flags
+    flagger[mask, field] = kwargs['flag']  # todo GL161
     return data, flagger
 
 
