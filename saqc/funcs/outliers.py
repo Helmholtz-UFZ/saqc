@@ -14,6 +14,7 @@ from outliers import smirnov_grubbs
 
 from dios import DictOfSeries
 
+from saqc.common import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 from saqc.lib.tools import (
@@ -957,10 +958,14 @@ def flagRange(
         Flags values may have changed relatively to the flagger input.
     """
 
-    # using .values is very much faster
+    # using .values is much faster
     datacol = data[field].values
     mask = (datacol < min) | (datacol > max)
-    flagger = flagger.setFlags(field, mask, **kwargs)
+
+    # todo GL162
+    flags = pd.Series(UNTOUCHED, index=data[field].index, dtype=float)
+    flags.loc[mask] = kwargs['flag']  # todo GL161
+    flagger[field] = flags
     return data, flagger
 
 

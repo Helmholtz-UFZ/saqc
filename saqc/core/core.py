@@ -77,7 +77,7 @@ def _prepInput(data, flags):
         if isinstance(flags, (dios.DictOfSeries, pd.DataFrame, Flagger)):
             # NOTE: only test common columns, data as well as flags could
             # have more columns than the respective other.
-            cols = flags.columns & data.columns
+            cols = flags.columns.intersection(data.columns)
             for c in cols:
                 if not flags[c].index.equals(data[c].index):
                     raise ValueError(f"the index of 'flags' and 'data' missmatch in column {c}")
@@ -125,12 +125,20 @@ class SaQC(FuncModules):
         if flagger is None:
             return initFlagsLike(data)
 
-        for c in flagger.columns.union(data.columns):
-            if c in flagger:
-                continue
-            if c in data:
-                flagger[c] = pd.Series(UNFLAGGED, index=data[c].index, dtype=float)
+        # add columns that are present in data but not in flagger
+        for c in data.columns.difference(flagger.columns):
+            flagger[c] = pd.Series(UNFLAGGED, index=data[c].index, dtype=float)
+
         return flagger
+
+    def _constructSimple(self) -> SaQC:
+        return SaQC(
+            data=dios.DictOfSeries(),
+            flags=Flagger(),
+            nodata=self._nodata,
+            to_mask=self._to_mask,
+            error_policy=self._error_policy
+        )
 
     def readConfig(self, fname):
         from saqc.core.reader import readConfig
@@ -198,7 +206,7 @@ class SaQC(FuncModules):
 
         # This is way faster for big datasets, than to throw everything in the constructor.
         # Simply because of _initFlagger -> merge() -> mergeDios() over all columns.
-        new = SaQC(SimpleFlagger(), dios.DictOfSeries(), nodata=self._nodata, error_policy=self._error_policy)
+        new = self._constructSimple()
         new._flagger, new._data = flagger, data
         return new
 
@@ -288,7 +296,7 @@ def _saqcCallFunc(locator, controller, function, data, flagger):
     # decorated by `register(masking='none')`, and so `to_mask` is ignored.
     if masking == 'none' and to_mask not in (None, []):
         logging.warning("`to_mask` is given, but the test ignore masking. Please refer to the documentation: TODO")
-    to_mask = BAD if to_mask is None else to_mask
+    to_mask = [BAD] if to_mask is None else to_mask
 
     data_in, mask = _maskData(data, flagger, columns, to_mask)
     data_result, flagger_result = function(data_in, field, flagger)
@@ -301,22 +309,45 @@ def _saqcCallFunc(locator, controller, function, data, flagger):
     return data_result, flagger_result
 
 
+# todo: solve with outcome of #GL160
+def _getMask(flags: Union[np.array, pd.Series], to_mask: list) -> Union[np.array, pd.Series]:
+    """
+    Return a mask of flags accordingly to `to_mask`.
+    Return type is same as flags.
+    """
+
+    if isinstance(flags, pd.Series):
+        mask = pd.Series(False, index=flags.index, dtype=bool)
+    else:
+        mask = np.zeros_like(flags, dtype=bool)
+
+    for f in to_mask:
+        mask |= flags == f
+
+    return mask
+
+
+# TODO: this is heavily undertested
 def _maskData(data, flagger, columns, to_mask):
-    # TODO: this is heavily undertested
-    mask = flagger.isFlagged(field=columns, flag=to_mask, comparator='==')
+    # we use numpy here because it is faster
+    mask = dios.DictOfSeries(columns=columns)
     data = data.copy()
+
     for c in columns:
-        col_mask = mask[c].values
+        col_mask = _getMask(flagger[c].to_numpy(), to_mask)
+
         if np.any(col_mask):
-            col_data = data[c].values.astype(np.float64)
+            col_data = data[c].to_numpy(dtype=np.float64)
             col_data[col_mask] = np.nan
+
             data[c] = col_data
+            mask[c] = pd.Series(col_mask, index=data[c].index, dtype=bool)
+
     return data, mask
 
 
+# TODO: this is heavily undertested
 def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
-    # TODO: this is heavily undertested
-
     # NOTE:
     # we only need to respect columns, that were masked,
     # and are also still present in new data.
@@ -324,22 +355,21 @@ def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
     #  - any newly assigned columns
     #  - columns that were excluded from masking
     columns = mask_old.dropempty().columns.intersection(data_new.dropempty().columns)
-    mask_new = flagger_new.isFlagged(field=columns, flag=to_mask, comparator="==")
 
     for col in columns:
         was_masked = mask_old[col]
-        is_masked = mask_new[col]
+        is_masked = _getMask(flagger_new[col], to_mask)
 
         # if index changed we just go with the new data.
         # A test should use `register(masking='none')` if it changes
         # the index but, does not want to have all NaNs on flagged locations.
         if was_masked.index.equals(is_masked.index):
-            mask = was_masked.values & is_masked.values & data_new[col].isna().values
+            mask = was_masked.to_numpy() & is_masked.to_numpy() & data_new[col].isna().to_numpy()
 
             # reapplying old values on masked positions
             if np.any(mask):
-                data = np.where(mask, data_old[col].values, data_new[col].values)
-                data_new[col] = pd.Series(data=data, index=is_masked.index)
+                data = np.where(mask, data_old[col].to_numpy(), data_new[col].to_numpy())
+                data_new[col] = pd.Series(data=data, index=is_masked.index, dtype=data_old[col].dtype)
 
     return data_new
 
@@ -367,7 +397,7 @@ def _warnForUnusedKwargs(func, flagger):
 
     # we need to ignore kwargs that are injected or
     # used to control the flagger
-    ignore = flagger.signature + ("nodata", "func_name")
+    ignore = ("nodata", "func_name", "force", "flag")
 
     missing = []
     for kw in func.keywords:
