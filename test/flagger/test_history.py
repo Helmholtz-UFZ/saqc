@@ -3,8 +3,6 @@
 import pytest
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_bool_dtype
-from test.common import TESTFLAGGER, initData
 from saqc.flagger.history import History
 
 # see #GH143 combined backtrack

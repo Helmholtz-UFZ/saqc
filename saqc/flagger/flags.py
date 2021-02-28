@@ -6,7 +6,7 @@ import dios
 from saqc.common import *
 from saqc.flagger.history import History
 import pandas as pd
-from typing import Union, Dict, DefaultDict, Optional, Type
+from typing import Union, Dict, DefaultDict, Optional, Type, Tuple, Iterable
 
 _VAL = Union[pd.Series, History]
 DictLike = Union[
@@ -15,6 +15,13 @@ DictLike = Union[
     Dict[str, _VAL],
     DefaultDict[str, _VAL],
 ]
+
+_Field = str
+SelectT = Union[
+    _Field,
+    Tuple[pd.Series, _Field]
+]
+ValueT = Union[pd.Series, Iterable, float]
 
 
 class _HistAccess:
@@ -163,18 +170,38 @@ class Flags:
 
         return self._cache[key].copy()
 
-    def __setitem__(self, key: str, value: pd.Series, force=False):
+    def __setitem__(self, key: SelectT, value: ValueT, force=False):
         # force-KW is internal available only
 
+        if isinstance(key, tuple):
+            if len(key) != 2:
+                raise KeyError("a single 'column' or a tuple of 'mask, column' must be passt")
+            mask, key = key
+
+            # raises (correct) KeyError
+            tmp = pd.Series(UNTOUCHED, index=self._data[key].index, dtype=float)
+            try:
+                tmp[mask] = value
+            except Exception:
+                raise ValueError('bad mask')
+            else:
+                value = tmp
+
+        # technically it would be possible to select a field and set
+        # the entire column to a scalar flag value (float), but it has
+        # a high potential, that this is not intended by the user.
+        if not isinstance(value, pd.Series):
+            raise ValueError("must pass value of type pd.Series")
+
         # if nothing happens no-one writes the history books
-        if isinstance(value, pd.Series) and len(value) == 0:
+        if len(value) == 0:
             return
 
         if key not in self._data:
             self._data[key] = History()
-        
+
         self._data[key].append(value, force=force)
-        self._cache.pop(key, None)     
+        self._cache.pop(key, None)
 
     def force(self, key: str, value: pd.Series) -> Flags:
         """
@@ -314,4 +341,3 @@ def initFlagsLike(reference: Union[pd.Series, DictLike, Flags], initial_value: f
 
 # for now we keep this name
 Flagger = Flags
-
