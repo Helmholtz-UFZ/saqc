@@ -11,7 +11,7 @@ import dios
 from saqc.common import *
 from saqc.core.lib import SaQCFunction
 from saqc.lib.types import FuncReturnT
-from saqc.flagger.flags import Flagger
+from saqc.flagger.flags import Flagger, initFlagsLike
 
 # NOTE:
 # the global SaQC function store,
@@ -32,29 +32,30 @@ class CallCtrl:
     args: tuple
     kwargs: dict
 
-    masking: str = None
+    masking: MaskingStrT = None
     to_mask: List[float] = None
     mask: dios.DictOfSeries = None
 
 
 def register(masking: MaskingStrT = "all", module: Optional[str] = None):
 
-    # this is called once on module import
+    # executed on module import
     def inner(func):
-        func_name = func.__name__
-        if module:
-            func_name = f"{module}.{func_name}"
-        FUNC_MAP[func_name] = SaQCFunction(func_name, func)
 
-        # this is called if a register-decorated function is called,
+        # executed if a register-decorated function is called,
         # nevertheless if it is called plain or via `SaQC.func`.
         @wraps(func)
-        def saqcWrapper(*args, **kwargs):
+        def callWrapper(*args, **kwargs):
             args, kwargs, ctrl = _preCall(func, args, kwargs, masking)
             result = func(*args, **kwargs)
             return _postCall(result, ctrl)
 
-        return saqcWrapper
+        func_name = func.__name__
+        if module:
+            func_name = f"{module}.{func_name}"
+        FUNC_MAP[func_name] = SaQCFunction(func_name, callWrapper)
+
+        return callWrapper
 
     return inner
 
@@ -94,35 +95,65 @@ def _preCall(func: callable, args: tuple, kwargs: dict, masking: MaskingStrT):
         control keyword-arguments passed to `_postCall`
 
     """
+    kwargs.setdefault('to_mask', None)
     data, field, flagger, *args = args
 
     ctrl = CallCtrl(func, data.copy(), field, flagger.copy(), args, kwargs, masking=masking)
+
+    # masking
     ctrl.to_mask = _getToMask(ctrl)
-    columns = _getMaskingColumns(ctrl)
+    columns = _getMaskingColumns(ctrl, ctrl.masking)
     data, ctrl.mask = _maskData(data, flagger, columns, ctrl.to_mask)
+
+    # flags
+    flagger = _prepareFlags(flagger, ctrl)
 
     args = data, field, flagger, *args
     return args, kwargs, ctrl
 
 
-def _getMaskingColumns(ctrl: CallCtrl):
+def _postCall(result, ctrl: CallCtrl) -> FuncReturnT:
+    """
+    Handler that runs after any call to a saqc-function.
+
+    This is called after a call to a saqc-function, nevertheless if it was
+    called via the SaQC-interface or plain by importing and direct calling.
+
+    Parameters
+    ----------
+    result : tuple
+        the result from the called function, namely: data and flagger
+    ctrl : dict
+        control keywords from `_preCall`
+
+    Returns
+    -------
+    data, flagger : dios.DictOfSeries, saqc.flagger.Flagger
+    """
+    data, flagger = result
+    flagger = _restoreFlags(flagger, ctrl)
+    data = _unmaskData(data, ctrl)
+    return data, flagger
+
+
+def _getMaskingColumns(ctrl: CallCtrl, masking: MaskingStrT):
     """
     Raises
     ------
     ValueError: if given masking literal is not supported
     """
-    if ctrl.masking == 'all':
+    if masking == 'all':
         return ctrl.data.columns
-    if ctrl.masking == 'none':
+    if masking == 'none':
         return pd.Index([])
-    if ctrl.masking == 'field':
+    if masking == 'field':
         return pd.Index([ctrl.field])
 
     raise ValueError(f"wrong use of `register(masking={ctrl.masking})`")
 
 
 def _getToMask(ctrl):
-    to_mask = ctrl.kwargs.setdefault('to_mask', None)
+    to_mask = ctrl.kwargs['to_mask']
     _warnForUnusedMasking(ctrl.masking, to_mask)
 
     if to_mask is None:
@@ -150,7 +181,7 @@ def _maskData(data, flagger, columns, to_mask) -> Tuple[dios.DictOfSeries, dios.
     for c in columns:
         col_mask = _getMask(flagger[c].to_numpy(), to_mask)
 
-        if np.any(col_mask):
+        if any(col_mask):
             col_data = data[c].to_numpy(dtype=np.float64)
             col_data[col_mask] = np.nan
 
@@ -175,61 +206,83 @@ def _getMask(flags: Union[np.array, pd.Series], to_mask: list) -> Union[np.array
     for f in to_mask:
         mask |= flags == f
 
-    return mask
+    return ~mask
 
 
-def _postCall(result, ctrl: CallCtrl) -> FuncReturnT:
+def _prepareFlags(flagger: Flagger, ctrl: CallCtrl) -> Flagger:
     """
-    Handler that runs after any call to a saqc-function.
-
-    This is called after a call to a saqc-function, nevertheless if it was
-    called via the SaQC-interface or plain by importing and direct calling.
-
-    Parameters
-    ----------
-    result : tuple
-        the result from the called function, namely: data and flagger
-    ctrl : dict
-        control keywords from `_preCall`
-
-    Returns
-    -------
-    data, flagger : dios.DictOfSeries, saqc.flagger.Flagger
+    Clear flags before each call.
     """
-    data, flagger = result
-    data = _unmaskData(data_old=ctrl.data, mask_old=ctrl.mask,
-                       data_new=data, flagger_new=flagger,
-                       to_mask=ctrl.to_mask)
-    return data, flagger
+    # either the index or the columns itself changed
+    if ctrl.masking == 'none':
+        return flagger
+
+    return initFlagsLike(flagger, initial_value=UNTOUCHED)
+
+
+def _restoreFlags(flagger: Flagger, ctrl: CallCtrl):
+    if ctrl.masking == 'none':
+        ctrl.flagger = flagger
+
+    else:
+        columns = flagger.columns
+        if ctrl.masking == 'field':
+            columns = columns.difference(ctrl.flagger.columns)
+            columns = columns.append(pd.Index([ctrl.field]))
+
+        for c in columns:
+            ctrl.flagger[c] = flagger[c]
+
+    return ctrl.flagger
 
 
 # TODO: this is heavily undertested
-def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask) -> dios.DictOfSeries:
-    # NOTE:
-    # we only need to respect columns, that were masked,
-    # and are also still present in new data.
-    # this throws out:
-    #  - any newly assigned columns
-    #  - columns that were excluded from masking
-    columns = mask_old.columns.intersection(data_new.columns)
+def _unmaskData(data: dios.DictOfSeries, ctrl: CallCtrl) -> dios.DictOfSeries:
+    """
+    Restore the masked data.
 
-    for col in columns:
+    Notes
+    -----
+    Even if this returns data, it work inplace !
+    """
+    if ctrl.masking == 'none':
+        return data
 
-        if mask_old[col].empty or data_new[col].empty:
+    # we have two options to implement this:
+    #
+    # =================================
+    # set new data on old
+    # =================================
+    # col in old, in masked, in new:
+    #    index differ : old <- new (replace column)
+    #    else         : old <- new (set on masked: ``old[masked & new.notna()] = new``)
+    # col in new only : old <- new (create column)
+    # col in old only : old (delete column)
+    #
+    #
+    # =================================
+    # set old data on new (implemented)
+    # =================================
+    # col in old, in masked, in new :
+    #    index differ : new (keep column)
+    #    else         : new <- old (set on masked, ``new[masked & new.isna()] = old``)
+    # col in new only : new (keep column)
+    # col in old only : new (ignore, was deleted)
+
+    old = ctrl  # this alias simplifies reading a lot
+    columns = old.mask.columns.intersection(data.columns)  # in old, in masked, in new
+
+    for c in columns:
+
+        if old.data[c].empty or data[c].empty or old.mask[c].empty:
             continue
 
-        was_masked = mask_old[col]
-        is_masked = _getMask(flagger_new[col], to_mask)
+        if old.data[c].index.equals(data[c].index):
+            restore_old_val = old.mask[c].to_numpy() & data[c].isna().to_numpy()
 
-        # if index changed we just go with the new data.
-        # A test should use `register(masking='none')` if it changes
-        # the index but, does not want to have all NaNs on flagged locations.
-        if was_masked.index.equals(is_masked.index):
-            mask = was_masked.to_numpy() & is_masked.to_numpy() & data_new[col].isna().to_numpy()
+            if any(restore_old_val):
+                ol, nw = old.data[c].to_numpy(), data[c].to_numpy()
+                data.loc[:, c] = np.where(restore_old_val, ol, nw)
 
-            # reapplying old values on masked positions
-            if np.any(mask):
-                data = np.where(mask, data_old[col].to_numpy(), data_new[col].to_numpy())
-                data_new[col] = pd.Series(data=data, index=is_masked.index, dtype=data_old[col].dtype)
+    return data
 
-    return data_new
