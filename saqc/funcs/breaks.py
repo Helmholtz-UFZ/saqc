@@ -1,6 +1,12 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""Detecting breakish changes in timeseries value courses.
+
+This module provides functions to detect and flag  breakish changes in the data value course, like gaps
+(:py:func:`flagMissing`), jumps/drops (:py:func:`flagJumps`) or isolated values (:py:func:`flagIsolated`).
+"""
+
 from dios import DictOfSeries
 import numpy as np
 import pandas as pd
@@ -52,14 +58,9 @@ def flagMissing(data: DictOfSeries, field: str, flagger: Flagger, nodata: float=
 def flagIsolated(data: DictOfSeries, field: str, flagger: Flagger, gap_window: str, group_window: str, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
-    large data gaps. A gap is defined as group of missing and/or flagged values.
+    large data gaps.
 
-    A series of values x_k,x_(k+1),...,x_(k+n), with associated timestamps t_k,t_(k+1),...,t_(k+n),
-    is considered to be isolated, if:
-
-    1. t_(k+1) - t_n < `group_window`
-    2. None of the x_j with 0 < t_k - t_j < `gap_window`, is valid or unflagged (preceeding gap).
-    3. None of the x_j with 0 < t_j - t_(k+n) < `gap_window`, is valid or unflagged (succeding gap).
+    A gap is a timespan containing either no data or invalid (usually `nan`) and flagged data only.
 
     Parameters
     ----------
@@ -83,6 +84,19 @@ def flagIsolated(data: DictOfSeries, field: str, flagger: Flagger, gap_window: s
     flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
+
+    Notes
+    -----
+    A series of values :math:`x_k,x_{k+1},...,x_{k+n}`, with associated timestamps :math:`t_k,t_{k+1},...,t_{k+n}`,
+    is considered to be isolated, if:
+
+    1. :math:`t_{k+1} - t_n <` `group_window`
+    2. None of the :math:`x_j` with :math:`0 < t_k - t_j <` `gap_window`, is valid or unflagged (preceeding gap).
+    3. None of the :math:`x_j` with :math:`0 < t_j - t_(k+n) <` `gap_window`, is valid or unflagged (succeding gap).
+
+    See Also
+    --------
+    :py:func:`flagMissing`
     """
 
     gap_window = pd.tseries.frequencies.to_offset(gap_window)

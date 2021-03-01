@@ -113,22 +113,12 @@ def standardizeByIQR(ts):
     return (ts - np.median(ts)) / iqr(ts, nan_policy="omit")
 
 
-def kNN(in_arr, n_neighbors, algorithm="ball_tree", metric='minkowski', p=2, radius=None):
+def kNN(in_arr, n_neighbors, algorithm="ball_tree", metric='minkowski', p=2):
     # k-nearest-neighbor search
 
     nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm, metric=metric, p=p)\
         .fit(in_arr.reshape(in_arr.shape[0], -1))
-    if radius is None:
-        return nbrs.kneighbors()
-
-    rad_nbrs = nbrs.radius_neighbors(radius=radius)
-    dist = np.zeros((in_arr.shape[0], n_neighbors))
-    dist[:] = np.nan
-    i = 0
-    for k in rad_nbrs[0]:
-        dist[i, 0:len(k)] = k
-        i += 1
-    return dist, np.array([])
+    return nbrs.kneighbors()
 
 
 def maxGap(in_arr):
