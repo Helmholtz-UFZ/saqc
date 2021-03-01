@@ -708,6 +708,7 @@ def flagOffset(
         thresh: float,
         tolerance: float,
         window: Union[int, str],
+        rel_thresh: Optional[float]=None,
         numba_kickin: int=200000,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
@@ -744,6 +745,8 @@ def flagOffset(
     window : {str, int}, default '15min'
         Maximum length of "spiky" value courses. See condition (3). Integer defined window length are only allowed for
         regularly sampled timeseries.
+    rel_thresh : {float, None}, default None
+        Relative threshold.
     numba_kickin : int, default 200000
         When there are detected more than `numba_kickin` incidents of potential spikes,
         the pandas.rolling - part of computation gets "jitted" with numba.
@@ -766,33 +769,62 @@ def flagOffset(
     https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py
 
     """
-
     dataseries = data[field].dropna()
+
+    # using reverted series - because ... long story.
+    ind = dataseries.index
+    rev_ind = ind[0] + ((ind[-1]-ind)[::-1])
+    map_i = pd.Series(ind, index=rev_ind)
+    dataseries = pd.Series(dataseries.values, index=rev_ind)
+
     if isinstance(window, int):
         delta = getFreqDelta(dataseries.index)
         if not delta:
-            raise TypeError('Only offset string defined window sizes allowed for irrgegularly sampled timeseries')
+            raise TypeError('Only offset string defined window sizes allowed for irrgegularily sampled timeseries')
         window = delta * window
 
     # get all the entries preceding a significant jump
-    post_jumps = dataseries.diff().abs() > thresh
+    if thresh:
+        post_jumps = dataseries.diff().abs() > thresh
+    if rel_thresh:
+        s = np.sign(rel_thresh)
+        rel_jumps = s * (dataseries.shift(1).div(dataseries) - 1) > abs(rel_thresh)
+        if thresh:
+            post_jumps = rel_jumps & post_jumps
+        else:
+            post_jumps = rel_jumps
+
     post_jumps = post_jumps[post_jumps]
     if post_jumps.empty:
         return data, flagger
     # get all the entries preceeding a significant jump and its successors within "length" range
     to_roll = post_jumps.reindex(dataseries.index, method="bfill", tolerance=window, fill_value=False).dropna()
 
-    # define spike testing function to roll with:
-    def spikeTester(chunk, thresh=thresh, tol=tolerance):
-        # signum change!!!
-        chunk_stair = (np.sign(chunk[-2] - chunk[-1])*(chunk - chunk[-1]) < thresh)[::-1].cumsum()
-        initial = np.searchsorted(chunk_stair, 2)
-        if initial == len(chunk):
-            return 0
-        if np.abs(chunk[- initial - 1] - chunk[-1]) < tol:
-            return initial - 1
-        else:
-            return 0
+    if not rel_thresh:
+        # define spike testing function to roll with (no  rel_check):
+        def spikeTester(chunk, thresh=thresh, tol=tolerance):
+            # signum change!!!
+            chunk_stair = (np.sign(chunk[-2] - chunk[-1])*(chunk - chunk[-1]) < thresh)[::-1].cumsum()
+            initial = np.searchsorted(chunk_stair, 2)
+            if initial == len(chunk):
+                return 0
+            if np.abs(chunk[- initial - 1] - chunk[-1]) < tol:
+                return initial - 1
+            else:
+                return 0
+    else:
+        def spikeTester(chunk, thresh=abs(rel_thresh), tol=tolerance):
+            jump = chunk[-2] - chunk[-1]
+            thresh = thresh*abs(jump)
+            chunk_stair = (np.sign(jump)*(chunk - chunk[-1]) < thresh)[::-1].cumsum()
+            initial = np.searchsorted(chunk_stair, 2)
+            if initial == len(chunk):
+                return 0
+            if np.abs(chunk[- initial - 1] - chunk[-1]) < tol:
+                return initial - 1
+            else:
+                return 0
+
 
     to_roll = dataseries[to_roll]
     roll_mask = pd.Series(False, index=to_roll.index)
@@ -801,7 +833,7 @@ def flagOffset(
     roller = customRoller(to_roll, window=window, mask=roll_mask, min_periods=2, closed='both')
     engine = None if roll_mask.sum() < numba_kickin else 'numba'
     result = roller.apply(spikeTester, raw=True, engine=engine)
-
+    result.index = map_i[result.index]
     # correct the result: only those values define plateaus, that do not have
     # values at their left starting point, that belong to other plateaus themself:
     def calcResult(result):
