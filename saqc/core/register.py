@@ -33,7 +33,7 @@ class CallCtrl:
     kwargs: dict
 
     masking: MaskingStrT = None
-    to_mask: List[float] = None
+    to_mask: float = None
     mask: dios.DictOfSeries = None
 
 
@@ -157,7 +157,7 @@ def _getToMask(ctrl):
     _warnForUnusedMasking(ctrl.masking, to_mask)
 
     if to_mask is None:
-        to_mask = [UNFLAGGED]
+        to_mask = UNFLAGGED
 
     return to_mask
 
@@ -165,9 +165,10 @@ def _getToMask(ctrl):
 def _warnForUnusedMasking(masking, to_mask):
     # warn if the user explicitly pass `to_mask=..` to a function that is
     # decorated by `register(masking='none')`, by which `to_mask` is ignored
-    if masking == 'none' and to_mask not in (None, []):
-        # todo: see following message
-        logging.warning("`to_mask` is given, but the test ignore masking. Please refer to the documentation: TODO")
+    # TODO: fix warning message
+    if masking == 'none' and to_mask not in (None, np.inf):
+        logging.warning("`to_mask` is given, but the saqc-function ignore masking."
+                        " Please refer to the documentation: TODO")
 
 
 # TODO: this is heavily undertested
@@ -191,22 +192,12 @@ def _maskData(data, flagger, columns, to_mask) -> Tuple[dios.DictOfSeries, dios.
     return data, mask
 
 
-# todo: solve with outcome of #GL160
-def _getMask(flags: Union[np.array, pd.Series], to_mask: list) -> Union[np.array, pd.Series]:
+def _getMask(flags: Union[np.array, pd.Series], to_mask: float) -> Union[np.array, pd.Series]:
     """
     Return a mask of flags accordingly to `to_mask`.
     Return type is same as flags.
     """
-
-    if isinstance(flags, pd.Series):
-        mask = pd.Series(False, index=flags.index, dtype=bool)
-    else:
-        mask = np.zeros_like(flags, dtype=bool)
-
-    for f in to_mask:
-        mask |= flags == f
-
-    return ~mask
+    return flags > to_mask
 
 
 def _prepareFlags(flagger: Flagger, ctrl: CallCtrl) -> Flagger:
@@ -274,15 +265,23 @@ def _unmaskData(data: dios.DictOfSeries, ctrl: CallCtrl) -> dios.DictOfSeries:
 
     for c in columns:
 
+        # ignore
         if old.data[c].empty or data[c].empty or old.mask[c].empty:
             continue
 
-        if old.data[c].index.equals(data[c].index):
-            restore_old_val = old.mask[c].to_numpy() & data[c].isna().to_numpy()
+        # on index changed, we simply ignore the old data
+        if not old.data[c].index.equals(data[c].index):
+            continue
 
-            if any(restore_old_val):
-                ol, nw = old.data[c].to_numpy(), data[c].to_numpy()
-                data.loc[:, c] = np.where(restore_old_val, ol, nw)
+        restore_old_val = old.mask[c].to_numpy() & data[c].isna().to_numpy()
+
+        # we have nothing to restore
+        if not any(restore_old_val):
+            continue
+
+        # restore old values if no new are present
+        ol, nw = old.data[c].to_numpy(), data[c].to_numpy()
+        data.loc[:, c] = np.where(restore_old_val, ol, nw)
 
     return data
 
