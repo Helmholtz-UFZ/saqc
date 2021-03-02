@@ -341,7 +341,7 @@ def _unmaskData(data_old, mask_old, data_new, flagger_new, to_mask):
             # reapplying old values on masked positions
             if np.any(mask):
                 data = np.where(mask, data_old[col].values, data_new[col].values)
-                data_new[col] = pd.Series(data=data, index=is_masked.index)
+                data_new[col] = pd.Series(data=data, index=is_masked.index, dtype=data_old[col].dtype)
 
     return data_new
 
