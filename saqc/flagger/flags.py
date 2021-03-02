@@ -190,6 +190,7 @@ class Flags:
         # technically it would be possible to select a field and set
         # the entire column to a scalar flag value (float), but it has
         # a high potential, that this is not intended by the user.
+        # if desired use ``flagger[:, field] = flag``
         if not isinstance(value, pd.Series):
             raise ValueError("must pass value of type pd.Series")
 

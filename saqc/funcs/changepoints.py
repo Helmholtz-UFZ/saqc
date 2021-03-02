@@ -30,7 +30,7 @@ def flagChangePoints(
         fwd_window: Optional[FreqString]=None,
         min_periods_fwd: Optional[IntegerWindow]=None,
         closed: Literal["right", "left", "both", "neither"]="both",
-        try_to_jit: bool=True,
+        try_to_jit: bool=True,  # todo rm
         reduce_window: FreqString=None,
         reduce_func: Callable[[np.ndarray, np.ndarray], int]=lambda x, _: x.argmax(),
         **kwargs
@@ -107,7 +107,7 @@ def assignChangePointCluster(
         fwd_window: str=None,
         min_periods_fwd: Optional[int]=None,
         closed: Literal["right", "left", "both", "neither"]="both",
-        try_to_jit: bool=True,
+        try_to_jit: bool=True,  # todo: rm
         reduce_window: str=None,
         reduce_func: Callable[[np.ndarray, np.ndarray], float]=lambda x, _: x.argmax(),
         model_by_resids: bool=False,
@@ -205,7 +205,7 @@ def assignChangePointCluster(
             stat_func = jit_sf
             thresh_func = jit_tf
             try_to_jit = True
-        except (numba.core.errors.TypingError, numba.core.errors.UnsupportedError, IndexError):
+        except (numba.TypingError, numba.UnsupportedError, IndexError):
             try_to_jit = False
             logging.warning('Could not jit passed statistic - omitting jitting!')
 
@@ -219,7 +219,7 @@ def assignChangePointCluster(
         residues = pd.Series(np.nan, index=data[field].index)
         residues[masked_index] = stat_arr
         data[field] = residues
-        flagger = flagger.setFlags(field, flag=UNFLAGGED, force=True, **kwargs)
+        flagger[:, field] = UNFLAGGED
         return data, flagger
 
     det_index = masked_index[result_arr]
@@ -239,10 +239,11 @@ def assignChangePointCluster(
         # (better to start cluster labels with number one)
         cluster += 1
         data[field] = cluster
-        flagger = flagger.setFlags(field, flag=UNFLAGGED, force=True, **kwargs)
+        flagger[:, field] = UNFLAGGED
 
     if flag_changepoints:
-        flagger = flagger.setFlags(field, loc=det_index)
+        # todo: does not respect kwargs[flag]
+        flagger[det_index, field] = BAD
     return data, flagger
 
 
