@@ -13,10 +13,18 @@ from saqc.core.register import register
 from saqc.flagger.baseflagger import BaseFlagger
 from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta
+from saqc.lib.types import FreqString, ColumnName
 
 
 @register(masking='field', module="constants")
-def flagConstants(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: float, window: str, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagConstants(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: BaseFlagger,
+        thresh: float,
+        window: FreqString,
+        **kwargs
+) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     This functions flags plateaus/series of constant values of length `window` if
     their maximum total change is smaller than thresh.
@@ -72,9 +80,14 @@ def flagConstants(data: DictOfSeries, field: str, flagger: BaseFlagger, thresh: 
 
 @register(masking='field', module="constants")
 def flagByVariance(
-        data: DictOfSeries, field: str, flagger: BaseFlagger,
-        window: str="12h", thresh: float=0.0005,
-        max_missing: int=None, max_consec_missing: int=None, **kwargs
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: BaseFlagger,
+        window: FreqString="12h",
+        thresh: float=0.0005,
+        max_missing: int=None,
+        max_consec_missing: int=None,
+        **kwargs
 ) -> Tuple[DictOfSeries, BaseFlagger]:
 
     """

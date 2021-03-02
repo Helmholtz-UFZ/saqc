@@ -9,22 +9,23 @@ from dios import DictOfSeries
 
 from saqc.core.register import register
 from saqc.flagger.baseflagger import BaseFlagger
+from saqc.lib.types import ColumnName
 
 
 @register(masking='field', module="flagtools")
-def clearFlags(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def clearFlags(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     flagger = flagger.clearFlags(field, **kwargs)
     return data, flagger
 
 
 @register(masking='field', module="flagtools")
-def forceFlags(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Any, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def forceFlags(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, flag: Any, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     flagger = flagger.clearFlags(field).setFlags(field, flag=flag, inplace=True, **kwargs)
     return data, flagger
 
 
 @register(masking='field', module="flagtools")
-def flagDummy(data: DictOfSeries, field: str, flagger: BaseFlagger,  **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagDummy(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger,  **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function does nothing but returning data and flagger.
 
@@ -48,7 +49,7 @@ def flagDummy(data: DictOfSeries, field: str, flagger: BaseFlagger,  **kwargs) -
 
 
 @register(masking='field', module="flagtools")
-def flagForceFail(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs):
+def flagForceFail(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, **kwargs):
     """
     Function raises a runtime error.
 
@@ -66,7 +67,7 @@ def flagForceFail(data: DictOfSeries, field: str, flagger: BaseFlagger, **kwargs
 
 
 @register(masking='field', module="flagtools")
-def flagUnflagged(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagUnflagged(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
     If there is an entry 'flag' in the kwargs dictionary passed, the
@@ -98,7 +99,7 @@ def flagUnflagged(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Op
 
 
 @register(masking='field', module="flagtools")
-def flagGood(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagGood(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
     """
     Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
 
@@ -124,7 +125,7 @@ def flagGood(data: DictOfSeries, field: str, flagger: BaseFlagger, flag: Optiona
 
 @register(masking='field', module="flagtools")
 def flagManual(
-        data: DictOfSeries, field: str, flagger: BaseFlagger,
+        data: DictOfSeries, field: ColumnName, flagger: BaseFlagger,
         mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
         mflag: Any = 1,
         method=Literal["plain", "ontime", "left-open", "right-open"],
