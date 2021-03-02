@@ -74,7 +74,7 @@ def flagConstants(
     m2 = r.max() - r.min() <= thresh
     mask = m1 | m2
 
-    flagger = flagger.setFlags(field, mask, **kwargs)
+    flagger[mask, field] = kwargs['flag']
     return data, flagger
 
 
@@ -150,5 +150,5 @@ def flagByVariance(
     # result:
     plateaus = (plateaus[plateaus == 1.0]).index
 
-    flagger = flagger.setFlags(field, plateaus, **kwargs)
+    flagger[plateaus, field] = kwargs['flag']
     return data, flagger
