@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 import functools
-from typing import Optional, Tuple, Sequence, Callable, Any, Optional
+from typing import Optional, Tuple, Sequence, Callable, Optional
 from typing_extensions import Literal
 
 import numpy as np
@@ -18,18 +18,26 @@ from saqc.funcs.resampling import shift
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import drop, copy
 from saqc.lib.tools import detectDeviants
+from saqc.lib.types import FreqString, ColumnName, CurveFitter, TimestampColumnName
 from saqc.lib.ts_operators import expModelFunc
 
 
+LinkageString = Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]
+
+
 @register(masking='all', module="drift")
-def flagDriftFromNorm(data: DictOfSeries, field: str, flagger: Flagger,
-                      fields: Sequence[str],
-                      segment_freq: str,
-                      norm_spread: float,
-                      norm_frac: float=0.5,
-                      metric: Callable[[np.array, np.array], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-                      linkage_method: Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]="single",
-                      **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flagDriftFromNorm(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        fields: Sequence[ColumnName],
+        segment_freq: FreqString,
+        norm_spread: float,
+        norm_frac: float=0.5,
+        metric: Callable[[np.ndarray, np.ndarray], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+        linkage_method: LinkageString="single",
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags value courses that significantly deviate from a group of normal value courses.
 
@@ -131,12 +139,16 @@ def flagDriftFromNorm(data: DictOfSeries, field: str, flagger: Flagger,
 
 
 @register(masking='all', module="drift")
-def flagDriftFromReference(data: DictOfSeries, field: str, flagger: Flagger,
-                           fields: Sequence[str],
-                           segment_freq: str,
-                           thresh: float,
-                           metric: Callable[[np.array, np.array], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-                           **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flagDriftFromReference(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        fields: Sequence[ColumnName],
+        segment_freq: FreqString,
+        thresh: float,
+        metric: Callable[[np.ndarray, np.ndarray], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags value courses that deviate from a reference course by a margin exceeding a certain threshold.
 
@@ -200,15 +212,19 @@ def flagDriftFromReference(data: DictOfSeries, field: str, flagger: Flagger,
 
 
 @register(masking='all', module="drift")
-def flagDriftFromScaledNorm(data: DictOfSeries, field: str, flagger: Flagger,
-                            fields_scale1: Sequence[str],
-                            fields_scale2: Sequence[str],
-                            segment_freq: str,
-                            norm_spread: float,
-                            norm_frac: float=0.5,
-                            metric: Callable[[np.array, np.array], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-                            linkage_method: Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]="single",
-                            **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flagDriftFromScaledNorm(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        fields_scale1: Sequence[ColumnName],
+        fields_scale2: Sequence[ColumnName],
+        segment_freq: FreqString,
+        norm_spread: float,
+        norm_frac: float=0.5,
+        metric: Callable[[np.ndarray, np.ndarray], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+        linkage_method: LinkageString="single",
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
 
 
     """
@@ -312,9 +328,15 @@ def flagDriftFromScaledNorm(data: DictOfSeries, field: str, flagger: Flagger,
 
 
 @register(masking='all', module="drift")
-def correctExponentialDrift(data: DictOfSeries, field: str, flagger: Flagger,
-                            maint_data_field: str, cal_mean: int=5, flag_maint_period: bool=False,
-                            **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def correctExponentialDrift(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        maint_data_field: ColumnName,
+        cal_mean: int=5,
+        flag_maint_period: bool=False,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
     The function fits an exponential model to chunks of data[field].
     It is assumed, that between maintenance events, there is a drift effect shifting the meassurements in a way, that
@@ -412,11 +434,15 @@ def correctExponentialDrift(data: DictOfSeries, field: str, flagger: Flagger,
 
 
 @register(masking='all', module="drift")
-def correctRegimeAnomaly(data: DictOfSeries, field: str, flagger: Flagger,
-                         cluster_field: str,
-                         model: Callable[[np.array, Any], np.array],
-                         regime_transmission: Optional[str]=None,
-                         x_date: bool=False) -> Tuple[DictOfSeries, Flagger]:
+def correctRegimeAnomaly(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        cluster_field: ColumnName,
+        model: CurveFitter,
+        regime_transmission: Optional[FreqString]=None,
+        x_date: bool=False
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Function fits the passed model to the different regimes in data[field] and tries to correct
     those values, that have assigned a negative label by data[cluster_field].
@@ -521,14 +547,17 @@ def correctRegimeAnomaly(data: DictOfSeries, field: str, flagger: Flagger,
 
 
 @register(masking='all', module="drift")
-def correctOffset(data: DictOfSeries, field: str, flagger: Flagger,
-                  max_mean_jump: float,
-                  normal_spread: float,
-                  search_winsz: str,
-                  min_periods: int,
-                  regime_transmission: Optional[str]=None,
-                  **kwargs
-                  ) -> Tuple[DictOfSeries, Flagger]:
+def correctOffset(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        max_mean_jump: float,
+        normal_spread: float,
+        search_winsz: FreqString,
+        min_periods: int,
+        regime_transmission: Optional[FreqString]=None,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
 
     Parameters
@@ -567,15 +596,19 @@ def correctOffset(data: DictOfSeries, field: str, flagger: Flagger,
     """
 
     data, flagger = copy(data, field, flagger, field + '_CPcluster')
-    data, flagger = assignChangePointCluster(data, field + '_CPcluster', flagger,
-                                             lambda x, y: np.abs(np.mean(x) - np.mean(y)),
-                                             lambda x, y: max_mean_jump,
-                                             bwd_window=search_winsz,
-                                             min_periods_bwd=min_periods)
+    data, flagger = assignChangePointCluster(
+        data, field + '_CPcluster', flagger,
+        lambda x, y: np.abs(np.mean(x) - np.mean(y)),
+        lambda x, y: max_mean_jump,
+        bwd_window=search_winsz,
+        min_periods_bwd=min_periods
+    )
     data, flagger = assignRegimeAnomaly(data, field, flagger, field + '_CPcluster', normal_spread)
-    data, flagger = correctRegimeAnomaly(data, field, flagger, field + '_CPcluster',
-                                         lambda x, p1: np.array([p1] * x.shape[0]),
-                                         regime_transmission=regime_transmission)
+    data, flagger = correctRegimeAnomaly(
+        data, field, flagger, field + '_CPcluster',
+        lambda x, p1: np.array([p1] * x.shape[0]),
+        regime_transmission=regime_transmission
+    )
     data, flagger = drop(data, field + '_CPcluster', flagger)
 
     return data, flagger
@@ -610,13 +643,17 @@ def _drift_fit(x, shift_target, cal_mean):
 
 
 @register(masking='all', module="drift")
-def flagRegimeAnomaly(data: DictOfSeries, field: str, flagger: Flagger,
-                      cluster_field: str,
-                      norm_spread: float,
-                      linkage_method: Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]="single",
-                      metric: Callable[[np.array, np.array], float]=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-                      norm_frac: float=0.5,
-                      **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flagRegimeAnomaly(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        cluster_field: ColumnName,
+        norm_spread: float,
+        linkage_method: LinkageString="single",
+        metric: Callable[[np.ndarray, np.ndarray], float]=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
+        norm_frac: float=0.5,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
     A function to flag values belonging to an anomalous regime regarding modelling regimes of field.
 
@@ -671,15 +708,19 @@ def flagRegimeAnomaly(data: DictOfSeries, field: str, flagger: Flagger,
 
 
 @register(masking='all', module="drift")
-def assignRegimeAnomaly(data: DictOfSeries, field: str, flagger: Flagger,
-                        cluster_field: str,
-                        norm_spread: float,
-                        linkage_method: Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]="single",
-                        metric: Callable[[np.array, np.array], float]=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-                        norm_frac: float=0.5,
-                        set_cluster: bool=True,
-                        set_flags: bool=False,
-                        **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def assignRegimeAnomaly(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        cluster_field: ColumnName,
+        norm_spread: float,
+        linkage_method: LinkageString="single",
+        metric: Callable[[np.array, np.array], float]=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
+        norm_frac: float=0.5,
+        set_cluster: bool=True,
+        set_flags: bool=False,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
     A function to detect values belonging to an anomalous regime regarding modelling regimes of field.
 

@@ -22,6 +22,7 @@ from saqc.lib.tools import (
     findIndex,
     getFreqDelta
 )
+from saqc.lib.types import ColumnName, FreqString, IntegerWindow
 from saqc.funcs.scores import assignKNNScore
 import saqc.lib.ts_operators as ts_ops
 
@@ -29,9 +30,9 @@ import saqc.lib.ts_operators as ts_ops
 @register(masking='field', module="outliers")
 def flagByStray(
     data: DictOfSeries,
-    field: str,
+    field: ColumnName,
     flagger: Flagger,
-    partition_freq: Optional[Union[str, int]]=None,
+    partition_freq: Optional[Union[IntegerWindow, FreqString]]=None,
     partition_min: int=11,
     iter_start: float=0.5,
     alpha: float=0.05,
@@ -337,18 +338,18 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
 @register(masking='all', module="outliers")
 def flagMVScores(
         data: DictOfSeries,
-        field: str,
+        field: ColumnName,
         flagger: Flagger,
-        fields: Sequence[str],
+        fields: Sequence[ColumnName],
         trafo: Callable[[pd.Series], pd.Series]=lambda x: x,
         alpha: float=0.05,
         n_neighbors: int=10,
         scoring_func: Callable[[pd.Series], float]=np.sum,
         iter_start: float=0.5,
-        stray_partition: Optional[Union[str, int]]=None,
+        stray_partition: Optional[Union[IntegerWindow, FreqString]]=None,
         stray_partition_min: int=11,
         trafo_on_partition: bool=True,
-        reduction_range: Optional[str]=None,
+        reduction_range: Optional[FreqString]=None,
         reduction_drop_flagged: bool=False,
         reduction_thresh: float=3.5,
         reduction_min_periods: int=1,
@@ -477,18 +478,18 @@ def flagMVScores(
 
 @register(masking='field', module="outliers")
 def flagRaise(
-    data: DictOfSeries,
-    field: str,
-    flagger: Flagger,
-    thresh: float,
-    raise_window: str,
-    intended_freq: str,
-    average_window: Optional[str]=None,
-    mean_raise_factor: float=2.,
-    min_slope: Optional[float]=None,
-    min_slope_weight: float=0.8,
-    numba_boost: bool=True,
-    **kwargs,
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        thresh: float,
+        raise_window: FreqString,
+        intended_freq: FreqString,
+        average_window: Optional[FreqString]=None,
+        mean_raise_factor: float=2.,
+        min_slope: Optional[float]=None,
+        min_slope_weight: float=0.8,
+        numba_boost: bool=True,
+        **kwargs,
 ) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags raises and drops in value courses, that exceed a certain threshold
@@ -642,7 +643,7 @@ def flagRaise(
 
 
 @register(masking='field', module="outliers")
-def flagMAD(data: DictOfSeries, field: str, flagger: Flagger, window: str, z: float=3.5, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flagMAD(data: DictOfSeries, field: ColumnName, flagger: Flagger, window: FreqString, z: float=3.5, **kwargs) -> Tuple[DictOfSeries, Flagger]:
 
     """
 
@@ -703,11 +704,11 @@ def flagMAD(data: DictOfSeries, field: str, flagger: Flagger, window: str, z: fl
 @register(masking='field', module="outliers")
 def flagOffset(
         data: DictOfSeries,
-        field: str,
+        field: ColumnName,
         flagger: Flagger,
         thresh: float,
         tolerance: float,
-        window: Union[int, str],
+        window: Union[IntegerWindow, FreqString],
         rel_thresh: Optional[float]=None,
         numba_kickin: int=200000,
         **kwargs
@@ -856,9 +857,9 @@ def flagOffset(
 @register(masking='field', module="outliers")
 def flagByGrubbs(
         data: DictOfSeries,
-        field: str,
+        field: ColumnName,
         flagger: Flagger,
-        winsz: Union[str, int],
+        winsz: Union[FreqString, IntegerWindow],
         alpha: float=0.05,
         min_periods: int=8,
         check_lagged: bool=False,
@@ -959,7 +960,7 @@ def flagByGrubbs(
 @register(masking='field', module="outliers")
 def flagRange(
         data: DictOfSeries,
-        field: str,
+        field: ColumnName,
         flagger: Flagger,
         min: float=-np.inf,
         max: float=np.inf,
@@ -1000,9 +1001,9 @@ def flagRange(
 @register(masking='all', module="outliers")
 def flagCrossStatistic(
         data: DictOfSeries,
-        field: str,
+        field: ColumnName,
         flagger: Flagger,
-        fields: Sequence[str],
+        fields: Sequence[ColumnName],
         thresh: float,
         cross_stat: Literal["modZscore", "Zscore"]="modZscore",
         **kwargs

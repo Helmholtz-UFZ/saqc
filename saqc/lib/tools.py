@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import datetime
 from typing import Sequence, Union, Any, Iterator
 
 import itertools
@@ -35,6 +36,13 @@ def toSequence(value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = No
     if np.isscalar(value):
         value = [value]
     return value
+
+
+def toOffset(freq_string: str, raw: bool = False) -> datetime.timedelta:
+    offset = pd.tseries.frequencies.to_offset(freq_string)
+    if raw:
+        return offset
+    return offset.delta.to_pytimedelta()
 
 
 @nb.jit(nopython=True, cache=True)

@@ -6,7 +6,7 @@ import logging
 import pandas as pd
 import numpy as np
 import numba
-from typing import Callable, Union, Tuple
+from typing import Callable, Union, Tuple, Optional
 from typing_extensions import Literal
 
 from dios import DictOfSeries
@@ -14,23 +14,26 @@ from dios import DictOfSeries
 from saqc.core.register import register
 from saqc.lib.tools import customRoller
 from saqc.flagger import Flagger
+from saqc.lib.types import ColumnName, FreqString, IntegerWindow
 
 logger = logging.getLogger("SaQC")
 
 
 @register(masking='field', module="changepoints")
-def flagChangePoints(data: DictOfSeries, field: str, flagger: Flagger,
-                     stat_func: Callable[[np.array], np.array],
-                     thresh_func: Callable[[np.array], np.array],
-                     bwd_window: str,
-                     min_periods_bwd: Union[str, int],
-                     fwd_window: str=None,
-                     min_periods_fwd: Union[str, int]=None,
-                     closed: Literal["right", "left", "both", "neither"]="both",
-                     try_to_jit: bool=True,
-                     reduce_window: str=None,
-                     reduce_func: Callable[[np.array, np.array], np.array]=lambda x, y: x.argmax(),
-                     **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flagChangePoints(
+        data: DictOfSeries, field: str, flagger: Flagger,
+        stat_func: Callable[[np.ndarray, np.ndarray], float],
+        thresh_func: Callable[[np.ndarray, np.ndarray], float],
+        bwd_window: FreqString,
+        min_periods_bwd: IntegerWindow,
+        fwd_window: Optional[FreqString]=None,
+        min_periods_fwd: Optional[IntegerWindow]=None,
+        closed: Literal["right", "left", "both", "neither"]="both",
+        try_to_jit: bool=True,
+        reduce_window: FreqString=None,
+        reduce_func: Callable[[np.ndarray, np.ndarray], int]=lambda x, _: x.argmax(),
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Flag datapoints, where the parametrization of the process, the data is assumed to generate by, significantly
     changes.
@@ -70,7 +73,7 @@ def flagChangePoints(data: DictOfSeries, field: str, flagger: Flagger,
         will be selected the value with index `reduce_func(x, y)` and the others will be dropped.
         If `reduce_window` is None, the reduction window size equals the
         twin window size, the changepoints have been detected with.
-    reduce_func : Callable[[numpy.array, numpy.array], np.array], default lambda x, y: x.argmax()
+    reduce_func : Callable[[numpy.ndarray, numpy.ndarray], int], default lambda x, y: x.argmax()
         A function that must return an index value upon input of two arrays x and y.
         First input parameter will hold the result from the stat_func evaluation for every
         reduction window. Second input parameter holds the result from the thresh_func evaluation.
@@ -82,31 +85,35 @@ def flagChangePoints(data: DictOfSeries, field: str, flagger: Flagger,
 
     """
 
-    data, flagger = assignChangePointCluster(data, field, flagger, stat_func=stat_func, thresh_func=thresh_func,
-                                             bwd_window=bwd_window, min_periods_bwd=min_periods_bwd,
-                                             fwd_window=fwd_window, min_periods_fwd=min_periods_fwd, closed=closed,
-                                             try_to_jit=try_to_jit, reduce_window=reduce_window,
-                                             reduce_func=reduce_func, flag_changepoints=True, model_by_resids=False,
-                                             assign_cluster=False, **kwargs)
+    data, flagger = assignChangePointCluster(
+        data, field, flagger, stat_func=stat_func, thresh_func=thresh_func,
+        bwd_window=bwd_window, min_periods_bwd=min_periods_bwd,
+        fwd_window=fwd_window, min_periods_fwd=min_periods_fwd, closed=closed,
+        try_to_jit=try_to_jit, reduce_window=reduce_window,
+        reduce_func=reduce_func, flag_changepoints=True, model_by_resids=False,
+        assign_cluster=False, **kwargs
+    )
     return data, flagger
 
 
 @register(masking='field', module="changepoints")
-def assignChangePointCluster(data: DictOfSeries, field: str, flagger: Flagger,
-                             stat_func: Callable[[np.array, np.array], float],
-                             thresh_func: Callable[[np.array, np.array], float],
-                             bwd_window: str,
-                             min_periods_bwd: Union[str, int],
-                             fwd_window: str=None,
-                             min_periods_fwd: Union[str, int]=None,
-                             closed: Literal["right", "left", "both", "neither"]="both",
-                             try_to_jit: bool=True,
-                             reduce_window: str=None,
-                             reduce_func: Callable[[np.array, np.array], np.array]=lambda x, y: x.argmax(),
-                             model_by_resids: bool=False,
-                             flag_changepoints: bool=False,
-                             assign_cluster: bool=True,
-                             **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def assignChangePointCluster(
+        data: DictOfSeries, field: str, flagger: Flagger,
+        stat_func: Callable[[np.array, np.array], float],
+        thresh_func: Callable[[np.array, np.array], float],
+        bwd_window: str,
+        min_periods_bwd: int,
+        fwd_window: str=None,
+        min_periods_fwd: Optional[int]=None,
+        closed: Literal["right", "left", "both", "neither"]="both",
+        try_to_jit: bool=True,
+        reduce_window: str=None,
+        reduce_func: Callable[[np.ndarray, np.ndarray], float]=lambda x, _: x.argmax(),
+        model_by_resids: bool=False,
+        flag_changepoints: bool=False,
+        assign_cluster: bool=True,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
 
     """
     Assigns label to the data, aiming to reflect continous regimes of the processes the data is assumed to be
@@ -132,12 +139,12 @@ def assignChangePointCluster(data: DictOfSeries, field: str, flagger: Flagger,
         changepoint.
     bwd_window : str
         The left (backwards facing) windows temporal extension (freq-string).
-    min_periods_bwd : {str, int}
+    min_periods_bwd : int
         Minimum number of periods that have to be present in a backwards facing window, for a changepoint test to be
         performed.
     fwd_window : {None, str}, default None
         The right (forward facing) windows temporal extension (freq-string).
-    min_periods_fwd : {None, str, int}, default None
+    min_periods_fwd : {None, int}, default None
         Minimum number of periods that have to be present in a forward facing window, for a changepoint test to be
         performed.
     closed : {'right', 'left', 'both', 'neither'}, default 'both'
@@ -197,16 +204,14 @@ def assignChangePointCluster(data: DictOfSeries, field: str, flagger: Flagger,
             stat_func = jit_sf
             thresh_func = jit_tf
             try_to_jit = True
-        except (numba.core.errors.TypingError, IndexError):
+        except (numba.core.errors.TypingError, numba.core.errors.UnsupportedError, IndexError):
             try_to_jit = False
             logging.warning('Could not jit passed statistic - omitting jitting!')
 
     if try_to_jit:
-        stat_arr, thresh_arr = _slidingWindowSearchNumba(data_arr, bwd_start, fwd_end, split, stat_func, thresh_func,
-                                                    check_len)
+        stat_arr, thresh_arr = _slidingWindowSearchNumba(data_arr, bwd_start, fwd_end, split, stat_func, thresh_func, check_len)
     else:
-        stat_arr, thresh_arr = _slidingWindowSearch(data_arr, bwd_start, fwd_end, split, stat_func, thresh_func,
-                                                    check_len)
+        stat_arr, thresh_arr = _slidingWindowSearch(data_arr, bwd_start, fwd_end, split, stat_func, thresh_func, check_len)
     result_arr = stat_arr > thresh_arr
 
     if model_by_resids:
@@ -272,4 +277,5 @@ def _reduceCPCluster(stat_arr, thresh_arr, start, end, obj_func, num_val):
         pos = s + obj_func(x, y) + 1
         out_arr[s:e] = False
         out_arr[pos] = True
+
     return out_arr

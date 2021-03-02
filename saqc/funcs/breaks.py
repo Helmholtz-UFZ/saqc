@@ -1,26 +1,35 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 """Detecting breakish changes in timeseries value courses.
 
 This module provides functions to detect and flag  breakish changes in the data value course, like gaps
 (:py:func:`flagMissing`), jumps/drops (:py:func:`flagJumps`) or isolated values (:py:func:`flagIsolated`).
 """
 
-from dios import DictOfSeries
-import numpy as np
-import pandas as pd
 from typing import Tuple
 
+import numpy as np
+import pandas as pd
+
+from dios import DictOfSeries
 
 from saqc.lib.tools import groupConsecutives
+from saqc.lib.types import FreqString, ColumnName, IntegerWindow
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.core.register import register
 from saqc.flagger import Flagger
 
 
 @register(masking='field', module="breaks")
-def flagMissing(data: DictOfSeries, field: str, flagger: Flagger, nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flagMissing(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        nodata: float=np.nan,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags all values indicating missing data.
 
@@ -55,7 +64,14 @@ def flagMissing(data: DictOfSeries, field: str, flagger: Flagger, nodata: float=
 
 
 @register(masking='field', module="breaks")
-def flagIsolated(data: DictOfSeries, field: str, flagger: Flagger, gap_window: str, group_window: str, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flagIsolated(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        gap_window: FreqString,
+        group_window: FreqString,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
     large data gaps.
@@ -123,8 +139,15 @@ def flagIsolated(data: DictOfSeries, field: str, flagger: Flagger, gap_window: s
 
 
 @register(masking='field', module="breaks")
-def flagJumps(data: DictOfSeries, field: str, flagger: Flagger, thresh: float, winsz: str, min_periods: int=1,
-              **kwargs):
+def flagJumps(
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        thresh: float,
+        winsz: FreqString,
+        min_periods: IntegerWindow=1,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
     Flag datapoints, where the mean of the values significantly changes (where the value course "jumps").
 
@@ -134,7 +157,7 @@ def flagJumps(data: DictOfSeries, field: str, flagger: Flagger, thresh: float, w
         A dictionary of pandas.Series, holding all the data.
     field : str
         The reference variable, the deviation from wich determines the flagging.
-    flagger : saqc.flagger
+    flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
     thresh : float
         The threshold, the mean of the values have to change by, to trigger flagging.
@@ -146,14 +169,16 @@ def flagJumps(data: DictOfSeries, field: str, flagger: Flagger, thresh: float, w
         the mean value obtained from that window is regarded valid.
     """
 
-    data, flagger = assignChangePointCluster(data, field, flagger,
-                                             stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
-                                             thresh_func=lambda x, y: thresh,
-                                             bwd_window=winsz,
-                                             min_periods_bwd=min_periods,
-                                             flag_changepoints=True,
-                                             model_by_resids=False,
-                                             assign_cluster=False,
-                                             **kwargs)
+    data, flagger = assignChangePointCluster(
+        data, field, flagger,
+        stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
+        thresh_func=lambda x, y: thresh,
+        bwd_window=winsz,
+        min_periods_bwd=min_periods,
+        flag_changepoints=True,
+        model_by_resids=False,
+        assign_cluster=False,
+        **kwargs
+    )
 
     return data, flagger

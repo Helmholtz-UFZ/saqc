@@ -111,7 +111,7 @@ def calculateRollingResidues(
         field: str,
         flagger: Flagger,
         winsz: Union[str, int],
-        func: Callable[[np.array], np.array]=np.mean,
+        func: Callable[[np.ndarray], np.ndarray]=np.mean,
         eval_flags: bool=True,
         min_periods: Optional[int]=0,
         center: bool=True,

@@ -40,6 +40,9 @@ class SaQCFunction:
         self.args = args
         self.keywords = keywords
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}.{self.func.__name__}"
+
     def bind(self, *args, **keywords):
         return SaQCFunction(
             self.name, self.func,

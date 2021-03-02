@@ -1,16 +1,30 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import TypeVar, Union
+from typing import TypeVar, Union, NewType
+from typing_extensions import Protocol, Literal
 
 import numpy as np
 import pandas as pd
-import dios
-from saqc.flagger.flags import Flagger
+from dios import DictOfSeries
 
 T = TypeVar("T")
 ArrayLike = TypeVar("ArrayLike", np.ndarray, pd.Series, pd.DataFrame)
-PandasLike = TypeVar("PandasLike", pd.Series, pd.DataFrame, dios.DictOfSeries)
-DiosLikeT = Union[dios.DictOfSeries, pd.DataFrame]
+PandasLike = TypeVar("PandasLike", pd.Series, pd.DataFrame, DictOfSeries)
+DiosLikeT = Union[DictOfSeries, pd.DataFrame]
 
 FuncReturnT = [dios.DictOfSeries, Flagger]
+
+# we only support fixed length offsets
+FreqString = NewType("FreqString", Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"])
+
+# we define a bunch of type aliases, mostly needed to generate appropiate fuzzy data through hypothesis
+ColumnName = NewType("ColumnName", str)
+IntegerWindow = NewType("IntegerWindow", int)
+TimestampColumnName = TypeVar("TimestampColumnName", bound=str)
+
+# needed for deeper typy hinting magic
+class CurveFitter(Protocol):
+    def __call__(self, data: np.ndarray, *params: float) -> np.ndarray:
+        ...
+
