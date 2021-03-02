@@ -59,7 +59,7 @@ extensions = [
     # https://recommonmark.readthedocs.io/en/latest/
     'recommonmark',
     # https://github.com/ryanfox/sphinx-markdown-tables
-    'sphinx_markdown_tables',
+    'sphinx_markdown_tables'
 ]
 
 
@@ -74,6 +74,8 @@ automodsumm_writereprocessed = True
 automodapi_inheritance_diagram = False
 automodapi_toctreedirnm = '_api'
 autosectionlabel_prefix_document = True
+
+autodoc_typehints = "none"
 
 
 # -- Other options -----------------------------------------------------------
