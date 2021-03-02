@@ -188,6 +188,34 @@ def test_set_flags_with_mask(data: np.array):
                 flags[mask, c] = vector
 
 
+@pytest.mark.parametrize('data', data)
+def test_set_flags_with_index(data: np.array):
+    flags = Flags(data)
+
+    for c in flags.columns:
+        var = flags[c]
+        mask = var == UNFLAGGED
+        index = mask[mask].index
+
+        scalar = 222.
+        flags[index, c] = scalar
+        assert all(flags[c].loc[mask] == 222.)
+        assert all(flags[c].loc[~mask] != 222.)
+
+        vector = var.copy()
+        vector[:] = 333.
+        flags[index, c] = vector
+        assert all(flags[c].loc[mask] == 333.)
+        assert all(flags[c].loc[~mask] != 333.)
+
+        # works with any that pandas eat, eg with numpy
+        vector[:] = 444.
+        vector = vector.to_numpy()
+        flags[index, c] = vector
+        assert all(flags[c].loc[mask] == 444.)
+        assert all(flags[c].loc[~mask] != 444.)
+
+
 def test_cache():
     arr = np.array([
         [0, 0, 0, 0],

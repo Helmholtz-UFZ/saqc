@@ -178,8 +178,15 @@ class Flags:
                 raise KeyError("a single 'column' or a tuple of 'mask, column' must be passt")
             mask, key = key
 
-            # raises (correct) KeyError
             tmp = pd.Series(UNTOUCHED, index=self._data[key].index, dtype=float)
+
+            # make a mask from an index, because it seems
+            # that passing an index is a very common workflow
+            if isinstance(mask, pd.Index):
+                mask = pd.Series(True, index=mask, dtype=bool)
+                mask = mask.reindex(tmp.index, fill_value=False)
+
+            # raises (correct) KeyError
             try:
                 tmp[mask] = value
             except Exception:
