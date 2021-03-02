@@ -72,7 +72,6 @@ def roll(
 
     data = data.copy()
     to_fit = data[field]
-    flags = flagger.getFlags(field)
     if to_fit.empty:
         return data, flagger
 
@@ -123,13 +122,10 @@ def roll(
 
     data[field] = means
     if eval_flags:
-        num_cats, codes = flags.factorize()
-        num_cats = pd.Series(num_cats, index=flags.index).rolling(winsz, center=True, min_periods=min_periods).max()
-        nan_samples = num_cats[num_cats.isna()]
-        num_cats.drop(nan_samples.index, inplace=True)
-        to_flag = pd.Series(codes[num_cats.astype(int)], index=num_cats.index)
-        to_flag = to_flag.align(nan_samples)[0]
-        to_flag[nan_samples.index] = flags[nan_samples.index]
-        flagger = flagger.setFlags(field, to_flag.values, **kwargs)
+        # with the new flagger we dont have to care
+        # about to set NaNs to the original flags anymore
+        # todo: we does not get any flags here, because of masking=field
+        worst = flagger[field].rolling(winsz, center=True, min_periods=min_periods).max()
+        flagger[field] = worst
 
     return data, flagger

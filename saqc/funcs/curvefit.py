@@ -18,7 +18,6 @@ from saqc.flagger import Flagger
 from saqc.lib.ts_operators import polyRollerIrregular, polyRollerNumba, polyRoller, polyRollerNoMissingNumba, polyRollerNoMissing
 
 
-
 @register(masking='field', module="curvefit")
 def fitPolynomial(data: DictOfSeries, field: str, flagger: Flagger,
                   winsz: Union[int, str],
@@ -103,11 +102,11 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: Flagger,
         Flags values may have changed relatively to the flagger input.
 
     """
+    # todo: some (rater large) parts are functional similar to saqc.funcs.rolling.roll
     if data[field].empty:
         return data, flagger
     data = data.copy()
     to_fit = data[field]
-    flags = flagger.getFlags(field)
     regular = getFreqDelta(to_fit.index)
     if not regular:
         if isinstance(winsz, int):
@@ -194,13 +193,11 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: Flagger,
 
     data[field] = residues
     if eval_flags:
-        num_cats, codes = flags.factorize()
-        num_cats = pd.Series(num_cats, index=flags.index).rolling(winsz, center=True, min_periods=min_periods).max()
-        nan_samples = num_cats[num_cats.isna()]
-        num_cats.drop(nan_samples.index, inplace=True)
-        to_flag = pd.Series(codes[num_cats.astype(int)], index=num_cats.index)
-        to_flag = to_flag.align(nan_samples)[0]
-        to_flag[nan_samples.index] = flags[nan_samples.index]
-        flagger = flagger.setFlags(field, to_flag.values, **kwargs)
+        # with the new flagger we dont have to care
+        # about to set NaNs to the original flags anymore
+        # todo: we does not get any flags here, because of masking=field
+        worst = flagger[field].rolling(winsz, center=True, min_periods=min_periods).max()
+        flagger[field] = worst
 
     return data, flagger
+
