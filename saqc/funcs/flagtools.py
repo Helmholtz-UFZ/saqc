@@ -8,9 +8,9 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.common import *
+from saqc.lib.types import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
-
 
 
 @register(masking='field', module="flagtools")

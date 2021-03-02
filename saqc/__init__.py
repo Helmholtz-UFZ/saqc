@@ -3,7 +3,8 @@
 
 __version__ = "1.4"
 
-from saqc.core.core import SaQC
+# import order: from small to big
 from saqc.common import *
 from saqc.flagger import *
 from saqc.core.register import register
+from saqc.core.core import SaQC
