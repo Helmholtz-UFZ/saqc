@@ -16,7 +16,7 @@ outlier==0.2
 utils==1.0.1
 outlier-utils==0.0.3
 packaging==20.9
-pandas==1.2.1
+pandas==1.2.2
 pluggy==0.13.1
 pyparsing==2.4.7
 py==1.10.0
