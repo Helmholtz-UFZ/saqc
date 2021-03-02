@@ -308,7 +308,7 @@ def flagDriftFromScaledNorm(
 
     for field1 in fields_scale1:
         for field2 in fields_scale2:
-            slope, intercept, _, _, _ = stats.linregress(data_to_flag[field1], data_to_flag[field2])
+            slope, intercept, *_ = stats.linregress(data_to_flag[field1], data_to_flag[field2])
             convert_slope.append(slope)
             convert_intercept.append(intercept)
 

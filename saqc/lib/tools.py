@@ -441,7 +441,7 @@ def evalFreqStr(freq, check, index):
         if check == 'check':
             f_passed_seconds = pd.Timedelta(f_passed).total_seconds()
             freq_seconds = pd.Timedelta(freq).total_seconds()
-            if (f_passed_seconds != freq_seconds):
+            if f_passed_seconds != freq_seconds:
                 logging.warning(f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed}).")
         elif check == 'auto':
             if freq is None:
