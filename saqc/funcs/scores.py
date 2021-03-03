@@ -8,6 +8,7 @@ import pandas as pd
 
 from dios import DictOfSeries
 
+from saqc.common import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 from saqc.lib import ts_operators as ts_ops
@@ -155,11 +156,10 @@ def assignKNNScore(
 
         score_ser[partition.index] = resids
 
-    # this unconditionally overwrite a column,
-    # may we should fire a warning ? -- palmb
+    # todo: this unconditionally overwrite a column, may we should fire a warning ? -- palmb
     if target_field in flagger.columns:
         flagger.drop(target_field)
-    flagger[target_field] = score_ser
+    flagger[target_field] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)
 
     data[target_field] = score_ser
     return data, flagger
