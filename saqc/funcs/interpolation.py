@@ -13,7 +13,7 @@ from saqc.common import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 
-from saqc.lib.tools import toSequence, evalFreqStr, dropper
+from saqc.lib.tools import toSequence, evalFreqStr, getDropMask
 from saqc.lib.ts_operators import interpolateNANs
 
 
@@ -259,7 +259,7 @@ def interpolateIndex(
     if empty_intervals_flag is None:
         empty_intervals_flag = BAD
 
-    drop_mask = dropper(field, to_drop, flagger, BAD)
+    drop_mask = getDropMask(field, to_drop, flagger, BAD)
     drop_mask |= flagscol.isna()
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan

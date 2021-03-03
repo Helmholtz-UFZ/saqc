@@ -16,7 +16,7 @@ from saqc.core.register import register
 from saqc.flagger import Flagger, initFlagsLike, History
 from saqc.funcs.tools import copy, drop, rename
 from saqc.funcs.interpolation import interpolateIndex
-from saqc.lib.tools import dropper, evalFreqStr
+from saqc.lib.tools import getDropMask, evalFreqStr
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
 from saqc.flagger.flags import applyFunctionOnHistory
 
@@ -43,7 +43,7 @@ def aggregate(
         value_func,
         flag_func: Callable[[pd.Series], float]=np.nanmax,
         method: Literal["fagg", "bagg", "nagg"]="nagg",
-        to_drop: Optional[Union[Any, Sequence[Any]]]=None,  # todo: rm, use to_mask instead
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -344,7 +344,7 @@ def shift(
         method: Literal["fshift", "bshift", "nshift"]="nshift",
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         empty_intervals_flag: Optional[str]=None,
-        freq_check: Optional[Literal["check", "auto"]]=None,  # todo: rm, not a user decision
+        freq_check: Optional[Literal["check", "auto"]]=None,  # todo: not a user decision
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
 
@@ -423,7 +423,7 @@ def _shift(
     if empty_intervals_flag is None:
         empty_intervals_flag = UNFLAGGED
 
-    drop_mask = dropper(field, to_drop, flagger, BAD)
+    drop_mask = getDropMask(field, to_drop, flagger, BAD)
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
@@ -564,7 +564,7 @@ def resample(
     if empty_intervals_flag is None:
         empty_intervals_flag = BAD
 
-    drop_mask = dropper(field, to_drop, flagger, [])
+    drop_mask = getDropMask(field, to_drop, flagger, [])
     datcol.drop(datcol[drop_mask].index, inplace=True)
     freq = evalFreqStr(freq, freq_check, datcol.index)
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
@@ -751,7 +751,7 @@ def reindexFlags(
         #
         # starting with the dropping and its memorization:
 
-        drop_mask = dropper(field, to_drop, flagger, BAD)
+        drop_mask = getDropMask(field, to_drop, flagger, BAD)
         drop_mask |= target_datcol.isna()
         target_flagscol_drops = target_flagscol[drop_mask]
         target_flagscol.drop(drop_mask[drop_mask].index, inplace=True)

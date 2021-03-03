@@ -30,7 +30,7 @@ def flagChangePoints(
         fwd_window: Optional[FreqString]=None,
         min_periods_fwd: Optional[IntegerWindow]=None,
         closed: Literal["right", "left", "both", "neither"]="both",
-        try_to_jit: bool=True,  # todo rm
+        try_to_jit: bool=True,  # todo rm, not a user decision
         reduce_window: FreqString=None,
         reduce_func: Callable[[np.ndarray, np.ndarray], int]=lambda x, _: x.argmax(),
         **kwargs
@@ -107,7 +107,7 @@ def assignChangePointCluster(
         fwd_window: str=None,
         min_periods_fwd: Optional[int]=None,
         closed: Literal["right", "left", "both", "neither"]="both",
-        try_to_jit: bool=True,  # todo: rm
+        try_to_jit: bool=True,  # todo: rm, not a user decision
         reduce_window: str=None,
         reduce_func: Callable[[np.ndarray, np.ndarray], float]=lambda x, _: x.argmax(),
         model_by_resids: bool=False,

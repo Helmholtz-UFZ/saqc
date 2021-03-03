@@ -49,7 +49,7 @@ def _handleErrors(exc: Exception, field: str, control: APIController, func: SaQC
         raise exc
 
 
-# todo: shouldt this go to Saqc.__init__ ?
+# todo: shouldt the code/function go to Saqc.__init__ ?
 def _prepInput(data, flags):
     dios_like = (dios.DictOfSeries, pd.DataFrame)
 
