@@ -12,9 +12,9 @@ __all__ = [
 import numpy as np
 
 UNTOUCHED = np.nan
-UNFLAGGED = 0
-DOUBTFUL = 25
-BAD = 255
+UNFLAGGED = 0.
+DOUBTFUL = 25.
+BAD = 255.
 
 # aliases
 GOOD = UNFLAGGED

@@ -13,17 +13,25 @@ from dios import DictOfSeries
 from saqc.common import *
 from saqc.core.register import register
 from saqc.core.visitor import ENVIRONMENT
-from saqc.flagger import Flagger
+from saqc.flagger import Flagger, initFlagsLike
+
+import operator as op
+
+_OP = {'<': op.lt, '<=': op.le, '==': op.eq, '!=': op.ne, '>': op.gt, '>=': op.ge}
 
 
-def _dslIsFlagged(flagger: Flagger, var: pd.Series, flag: Any=None, comparator: str=">=") -> Union[pd.Series, DictOfSeries]:
+def _dslIsFlagged(
+        flagger: Flagger, var: pd.Series, flag: Any = None, comparator: str = ">="
+) -> Union[pd.Series, DictOfSeries]:
     """
     helper function for `flag`
     """
-    return flagger.isFlagged(var.name, flag=flag, comparator=comparator)
+    comparison = _OP[comparator]
+    return comparison(flagger[var.name], flag)
 
 
-def _execGeneric(flagger: Flagger, data: DictOfSeries, func: Callable[[pd.Series], pd.Series], field: str, nodata: float) -> pd.Series:
+def _execGeneric(flagger: Flagger, data: DictOfSeries, func: Callable[[pd.Series], pd.Series], field: str,
+                 nodata: float) -> pd.Series:
     # TODO:
     # - check series.index compatibility
     # - field is only needed to translate 'this' parameters
@@ -53,7 +61,8 @@ def _execGeneric(flagger: Flagger, data: DictOfSeries, func: Callable[[pd.Series
 
 
 @register(masking='all', module="generic")
-def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Series], pd.Series], nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Series], pd.Series],
+            nodata: float = np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     generate/process data with generically defined functions.
 
@@ -105,24 +114,18 @@ def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd
 
     """
     data[field] = _execGeneric(flagger, data, func, field, nodata).squeeze()
-    # NOTE:
-    # The flags to `field` will be (re-)set to UNFLAGGED
-    # That leads to the following problem:
-    # flagger.merge merges the given flaggers, if
-    # `field` did already exist before the call to `procGeneric`
-    # but with a differing index, we end up with:
-    # len(data[field]) != len(flagger.getFlags(field))
-    # see: test/funcs/test_generic_functions.py::test_procGenericMultiple
 
-    # TODO:
-    # We need a way to simply overwrite a given flagger column, maybe
-    # an optional keyword to merge ?
-    flagger = flagger.merge(flagger.initFlags(data[field]))
+    # todo: the former comment wished to overwrite the column, but i'm not sure -- palmb
+    if field in flagger:
+        flagger.drop(field)
+
+    flagger[field] = initFlagsLike(data[field])[field]
     return data, flagger
 
 
 @register(masking='all', module="generic")
-def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Series], pd.Series], nodata: float=np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Series], pd.Series],
+         nodata: float = np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     a function to flag a data column by evaluation of a generic expression.
 
@@ -206,12 +209,12 @@ def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Se
     if not np.issubdtype(mask.dtype, np.bool_):
         raise TypeError(f"generic expression does not return a boolean array")
 
-    if field not in flagger.getFlags():
-        flagger = flagger.merge(flagger.initFlags(data=pd.Series(index=mask.index, name=field)))
+    if field not in flagger.columns:
+        flagger[field] = pd.Series(UNFLAGGED, index=mask.index, name=field)
 
     # if flagger.getFlags(field).empty:
     #     flagger = flagger.merge(
     #         flagger.initFlags(
     #             data=pd.Series(name=field, index=mask.index, dtype=np.float64)))
-    flagger = flagger.setFlags(field=field, loc=mask, **kwargs)
+    flagger[mask, field] = kwargs['flag']
     return data, flagger
