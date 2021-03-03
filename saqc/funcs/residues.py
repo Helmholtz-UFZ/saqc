@@ -99,10 +99,16 @@ def calculatePolynomialResidues(
         Flags values may have changed relatively to the flagger input.
 
     """
-    data, flagger = fitPolynomial(data, field, flagger, winsz, polydeg, numba=numba, eval_flags=eval_flags,
-                                  min_periods=min_periods, return_residues=True, **kwargs)
-
-    return data, flagger
+    return fitPolynomial(
+        data, field, flagger,
+        winsz=winsz,
+        polydeg=polydeg,
+        numba=numba,
+        eval_flags=eval_flags,
+        min_periods=min_periods,
+        return_residues=True,
+        **kwargs
+    )
 
 
 @register(masking='field', module="residues")
@@ -118,7 +124,14 @@ def calculateRollingResidues(
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
 
-    data, flagger = roll(data, field, flagger, winsz, func=func, eval_flags=eval_flags,
-                         min_periods=min_periods, center=center, return_residues=True, **kwargs)
+    return roll(
+        data, field, flagger,
+        winsz=winsz,
+        func=func,
+        eval_flags=eval_flags,
+        min_periods=min_periods,
+        center=center,
+        return_residues=True,
+        **kwargs
+    )
 
-    return data, flagger

@@ -108,17 +108,18 @@ def assignKNNScore(
 
     References
     ----------
-
     [1] https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html
-
     """
     data = data.copy()
     fields = toSequence(fields)
+
     val_frame = data[fields]
     score_index = val_frame.index_of("shared")
     score_ser = pd.Series(np.nan, index=score_index, name=target_field)
+
     val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
     val_frame.dropna(inplace=True)
+
     if not trafo_on_partition:
         val_frame = val_frame.transform(trafo)
 
@@ -154,11 +155,11 @@ def assignKNNScore(
 
         score_ser[partition.index] = resids
 
-    score_flagger = flagger.initFlags(score_ser)
-
+    # this unconditionally overwrite a column,
+    # may we should fire a warning ? -- palmb
     if target_field in flagger.columns:
-        flagger = flagger.slice(drop=target_field)
+        flagger.drop(target_field)
+    flagger[target_field] = score_ser
 
-    flagger = flagger.merge(score_flagger)
     data[target_field] = score_ser
     return data, flagger
