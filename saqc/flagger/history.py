@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Tuple, Type
 import pandas as pd
 import numpy as np
+from saqc.common import *
 
 
 class History:
@@ -149,7 +150,9 @@ class History:
         -------
         History
         """
-        # internal detail:
+        # Note:
+        # all following code must handle a passed empty series
+
         # ensure continuous increasing columns
         assert 0 <= pos <= len(self)
 
@@ -191,11 +194,8 @@ class History:
         """
         s = self._validate_value(value)
 
-        if s.empty:
-            raise ValueError('Cannot append empty pd.Series')
-
-        if not self.empty and not s.index.equals(self.index):
-            raise ValueError("Index must be equal to FH's index")
+        if len(self) > 0 and not s.index.equals(self.index):
+            raise ValueError("Index must be equal to FlagHistory index")
 
         self._insert(value, pos=len(self), force=force)
         return self
@@ -278,6 +278,28 @@ class History:
             the copied FH
         """
         return self._constructor(hist=self, copy=deep)
+
+    def reindex(self, index: pd.Index, fill_value_last: float = UNFLAGGED) -> History:
+        """
+        Reindex the History. Be careful this alters the past.
+
+        Parameters
+        ----------
+        index : pd.Index
+            the index to reindex to.
+        fill_value_last : float, default 0
+            value to fill nan's (UNTOUCHED) in the last column. Defaults to 0 (UNFLAGGED).
+
+        Returns
+        -------
+        History
+        """
+        self.hist = self.hist.reindex(index=index, copy=False, fill_value=np.nan)
+        self.mask = self.mask.reindex(index=index, copy=False, fill_value=False)
+        # Note: all following code must handle empty frames
+        self.hist.iloc[:, -1:] = self.hist.iloc[:, -1:].fillna(fill_value_last)
+        self.mask.iloc[:, -1:] = True
+        return self
 
     def __copy__(self, deep: bool = True):
         return self.copy(deep=deep)

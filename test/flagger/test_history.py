@@ -102,7 +102,11 @@ def check_invariants(hist):
     # or the entire row is True
     if not hist.empty:
         idxmax = hist.mask.idxmax(axis=1)
+        print(f'idxmax: {idxmax}')
         for row, col in idxmax.items():
+            # this is contra intuitive, it gets the positional (for iloc)
+            row = idxmax.index.get_loc(row)
+
             assert all(hist.mask.iloc[row, :col] == False)
             assert all(hist.mask.iloc[row, col:] == True)
 
@@ -181,6 +185,41 @@ def test_copy(data):
     assert deep.mask is not hist.mask
     assert shallow.hist is hist.hist
     assert shallow.mask is hist.mask
+
+
+@pytest.mark.parametrize('data', data + [None])
+def test_reindex_trivial_cases(data):
+    df = pd.DataFrame(data, dtype=float)
+    orig = History(hist=df)
+
+    # checks
+    for index in [df.index, pd.Index([])]:
+        hist = orig.copy()
+        ref = hist.reindex(index)
+        assert ref is hist  # check if working inplace
+        check_invariants(hist)
+
+
+@pytest.mark.parametrize('data', data + [None])
+def test_reindex_missing_indicees(data):
+    df = pd.DataFrame(data, dtype=float)
+    hist = History(hist=df)
+    index = df.index[1:-1]
+    # checks
+    ref = hist.reindex(index)
+    assert ref is hist  # check if working inplace
+    check_invariants(hist)
+
+
+@pytest.mark.parametrize('data', data + [None])
+def test_reindex_extra_indicees(data):
+    df = pd.DataFrame(data, dtype=float)
+    hist = History(hist=df)
+    index = df.index.append(pd.Index(range(len(df.index), len(df.index) + 5)))
+    # checks
+    ref = hist.reindex(index)
+    assert ref is hist  # check if working inplace
+    check_invariants(hist)
 
 
 @pytest.fixture(scope='module')
