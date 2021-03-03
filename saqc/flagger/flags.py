@@ -275,7 +275,11 @@ class Flags:
         return str(self.toDios()).replace('DictOfSeries', type(self).__name__)
 
 
-def initFlagsLike(reference: Union[pd.Series, DictLike, Flags], initial_value: float = UNFLAGGED) -> Flags:
+def initFlagsLike(
+        reference: Union[pd.Series, DictLike, Flags],
+        initial_value: float = UNFLAGGED,
+        name: str = None,
+) -> Flags:
     """
     Create empty Flags, from an reference data structure.
 
@@ -286,6 +290,12 @@ def initFlagsLike(reference: Union[pd.Series, DictLike, Flags], initial_value: f
 
     initial_value : float, default 0
         value to initialize the columns with
+
+    name : str, default None
+        Only respected if `reference` is of type ``pd.Series``.
+        The column name that is used for the Flags. If ``None``
+        the name of the series itself is taken, if this is also
+        `None`, a ValueError is raised.
 
     Notes
     -----
@@ -307,7 +317,13 @@ def initFlagsLike(reference: Union[pd.Series, DictLike, Flags], initial_value: f
         reference = reference._data
 
     if isinstance(reference, pd.Series):
-        reference = reference.to_frame('f0')
+        if name is None:
+            name = reference.name
+        if name is None:
+            raise ValueError("Either the passed series must be named or a name must be passed")
+        if not isinstance(name, str):
+            raise TypeError(f"name must be str not '{type(name).__name__}'")
+        reference = reference.to_frame(name=name)
 
     for k, item in reference.items():
 
@@ -325,6 +341,43 @@ def initFlagsLike(reference: Union[pd.Series, DictLike, Flags], initial_value: f
         result[k] = History(item)
 
     return Flags(result)
+
+
+def applyFunctionOnHistory(flags: Flags, column, hist_func, hist_kws, mask_func, mask_kws, last_column=None):
+    """
+    Apply function on history.
+
+    Two functions must be given. Both are called for each column in the History. One on History.hist, the
+    other on History.mask. Both take a pd.Series as first arg, which is the column from hist or mask respectively.
+
+    Parameters
+    ----------
+    flags :
+    column :
+    hist_func :
+    hist_kws :
+    mask_func :
+    mask_kws :
+    last_column :
+
+    Returns
+    -------
+
+    """
+    flags = flags.copy()
+    history = flags.history[column]
+    new_history = History()
+    for pos in history.columns:
+        new_history.hist[pos] = hist_func(history.hist[pos], **hist_kws)
+        new_history.mask[pos] = mask_func(history.mask[pos], **mask_kws)
+
+    if last_column is None:
+        new_history.mask.iloc[:, -1:] = True
+    else:
+        new_history.append(last_column, force=True)
+
+    flags.history[column] = new_history
+    return flags
 
 
 # for now we keep this name

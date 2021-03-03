@@ -13,11 +13,12 @@ from dios import DictOfSeries
 
 from saqc.common import *
 from saqc.core.register import register
-from saqc.flagger import Flagger
+from saqc.flagger import Flagger, initFlagsLike, History
 from saqc.funcs.tools import copy, drop, rename
 from saqc.funcs.interpolation import interpolateIndex
 from saqc.lib.tools import dropper, evalFreqStr
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
+from saqc.flagger.flags import applyFunctionOnHistory
 
 logger = logging.getLogger("SaQC")
 
@@ -42,7 +43,7 @@ def aggregate(
         value_func,
         flag_func: Callable[[pd.Series], float]=np.nanmax,
         method: Literal["fagg", "bagg", "nagg"]="nagg",
-        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        to_drop: Optional[Union[Any, Sequence[Any]]]=None,  # todo: rm, use to_mask instead
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -343,7 +344,7 @@ def shift(
         method: Literal["fshift", "bshift", "nshift"]="nshift",
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         empty_intervals_flag: Optional[str]=None,
-        freq_check: Optional[Literal["check", "auto"]]=None,
+        freq_check: Optional[Literal["check", "auto"]]=None,  # todo: rm, not a user decision
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
 
@@ -417,7 +418,7 @@ def _shift(
     """
     data = data.copy()
     datcol = data[field]
-    flagscol = flagger.getFlags(field)
+    flagscol = flagger[field]
 
     if empty_intervals_flag is None:
         empty_intervals_flag = UNFLAGGED
@@ -426,20 +427,33 @@ def _shift(
     drop_mask |= datcol.isna()
     datcol[drop_mask] = np.nan
     datcol.dropna(inplace=True)
-    freq = evalFreqStr(freq, freq_check, datcol.index)
-    if datcol.empty:
-        data[field] = datcol
-        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
-        flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
-        return data, flagger
-
     flagscol.drop(drop_mask[drop_mask].index, inplace=True)
 
-    datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
-    flagscol = shift2Freq(flagscol, method, freq, fill_value=empty_intervals_flag)
+    # create a dummys
+    if datcol.empty:
+        datcol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
+        flagscol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
+
+        # clear the past
+        flagger.history[field] = flagger.history[field].reindex(datcol.index)
+        flagger[field] = flagscol
+
+    # do the shift, we need to process the history manually
+    else:
+        freq = evalFreqStr(freq, freq_check, datcol.index)
+        datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
+
+        # after next 3 lines we leave history in unstable state
+        # but the following append will fix this
+        history = flagger.history[field]
+        history.hist = shift2Freq(history.hist, method, freq, fill_value=UNTOUCHED)
+        history.mask = shift2Freq(history.mask, method, freq, fill_value=False)
+
+        flagscol = shift2Freq(flagscol, method, freq, fill_value=empty_intervals_flag)
+        history.append(flagscol, force=True)
+        flagger.history[field] = history
+
     data[field] = datcol
-    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
-    flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
     return data, flagger
 
 
@@ -546,7 +560,7 @@ def resample(
 
     data = data.copy()
     datcol = data[field]
-    flagscol = flagger.getFlags(field)
+    flagscol = flagger[field]
     if empty_intervals_flag is None:
         empty_intervals_flag = BAD
 
@@ -554,41 +568,56 @@ def resample(
     datcol.drop(datcol[drop_mask].index, inplace=True)
     freq = evalFreqStr(freq, freq_check, datcol.index)
     flagscol.drop(flagscol[drop_mask].index, inplace=True)
-    if all_na_2_empty:
-        if datcol.dropna().empty:
-            datcol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
 
-    if datcol.empty:
-        # for consistency reasons - return empty data/flags column when there is no valid data left
-        # after filtering.
-        data[field] = datcol
-        reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
-        flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
-        return data, flagger
+    # create a dummys
+    if all_na_2_empty and datcol.dropna().empty:
 
-    datcol = aggregate2Freq(
-        datcol,
-        method,
-        freq,
-        agg_func,
-        fill_value=np.nan,
-        max_invalid_total=max_invalid_total_d,
-        max_invalid_consec=max_invalid_consec_d,
-    )
-    flagscol = aggregate2Freq(
-        flagscol,
-        method,
-        freq,
-        flag_agg_func,
-        fill_value=empty_intervals_flag,
-        max_invalid_total=max_invalid_total_f,
-        max_invalid_consec=max_invalid_consec_f,
-    )
+        datcol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
+        flagscol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
 
-    # data/flags reshaping:
+        # clear the past
+        flagger.history[field] = flagger.history[field].reindex(datcol.index)
+        flagger[field] = flagscol
+
+    # do the resampling
+    else:
+        datcol = aggregate2Freq(
+            datcol,
+            method,
+            freq,
+            agg_func,
+            fill_value=np.nan,
+            max_invalid_total=max_invalid_total_d,
+            max_invalid_consec=max_invalid_consec_d,
+        )
+
+        flagscol = aggregate2Freq(
+            flagscol,
+            method,
+            freq,
+            flag_agg_func,
+            fill_value=empty_intervals_flag,
+            max_invalid_total=max_invalid_total_f,
+            max_invalid_consec=max_invalid_consec_f,
+        )
+
+        kws = dict(
+            method=method,
+            freq=freq,
+            agg_func=flag_agg_func,
+            fill_value=UNTOUCHED,
+            max_invalid_total=max_invalid_total_f,
+            max_invalid_consec=max_invalid_consec_f,
+        )
+
+        flagger = applyFunctionOnHistory(
+            flagger, field,
+            hist_func=aggregate2Freq, hist_kws=kws,
+            mask_func=aggregate2Freq, mask_kws=kws,
+            last_column=flagscol
+        )
+
     data[field] = datcol
-    reshaped_flagger = flagger.initFlags(datcol).setFlags(field, flag=flagscol, force=True, inplace=True, **kwargs)
-    flagger = flagger.slice(drop=field).merge(reshaped_flagger, subset=[field], inplace=True)
     return data, flagger
 
 
@@ -671,6 +700,7 @@ def reindexFlags(
     """
 
     # TODO: This needs a refactoring
+    raise NotImplementedError("currently not available - rewrite needed")
 
     flagscol, metacols = flagger.getFlags(source, full=True)
     if flagscol.empty:
