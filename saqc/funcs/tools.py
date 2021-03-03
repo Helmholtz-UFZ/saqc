@@ -8,6 +8,7 @@ import numpy as np
 
 from dios import DictOfSeries
 
+from saqc.common import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 from saqc.lib.tools import periodicMask
@@ -39,15 +40,12 @@ def copy(data: DictOfSeries, field: str, flagger: Flagger, new_field: str, **kwa
         The flagger object, holding flags and additional Informations related to `data`.
         Flags shape may have changed relatively to the flagger input.
     """
-
     if new_field in flagger.columns.union(data.columns):
         raise ValueError(f"{field}: field already exist")
 
-    flags, extras = flagger.getFlags(field, full=True)
-    newflagger = flagger.replaceField(new_field, flags=flags, **extras)
-    newdata = data.copy()
-    newdata[new_field] = data[field].copy()
-    return newdata, newflagger
+    data[new_field] = data[field].copy()
+    flagger.history[new_field] = flagger.history[field]
+    return data, flagger
 
 
 @register(masking='none', module="tools")
@@ -73,10 +71,8 @@ def drop(data: DictOfSeries, field: str, flagger: Flagger, **kwargs) -> Tuple[Di
         The flagger object, holding flags and additional Informations related to `data`.
         Flags shape may have changed relatively to the flagger input.
     """
-
-    data = data.copy()
     del data[field]
-    flagger = flagger.replaceField(field, flags=None)
+    del flagger[field]
     return data, flagger
 
 
@@ -103,19 +99,10 @@ def rename(data: DictOfSeries, field: str, flagger: Flagger, new_name: str, **kw
     flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
     """
-    # store
-    s = data[field]
-    f, e = flagger.getFlags(field, full=True)
-
-    # delete
-    data = data.copy()
+    data[new_name] = data[field]
+    flagger.history[new_name] = flagger.history[field]
     del data[field]
-    flagger = flagger.replaceField(field, flags=None)
-
-    # insert
-    data[new_name] = s
-    flagger = flagger.replaceField(new_name, inplace=True, flags=f, **e)
-
+    del flagger[field]
     return data, flagger
 
 
@@ -128,24 +115,25 @@ def mask(
         mask_var: Optional[str]=None,
         period_start: Optional[str]=None,
         period_end: Optional[str]=None,
-        include_bounds: bool=True
+        include_bounds: bool=True,
+        **kwargs,
 ) -> Tuple[DictOfSeries, Flagger]:
     """
     This function realizes masking within saqc.
 
     Due to some inner saqc mechanics, it is not straight forwardly possible to exclude
-    values or datachunks from flagging routines. This function replaces flags with np.nan
+    values or datachunks from flagging routines. This function replaces flags with UNFLAGGED
     value, wherever values are to get masked. Furthermore, the masked values get replaced by
     np.nan, so that they dont effect calculations.
 
     Here comes a recipe on how to apply a flagging function only on a masked chunk of the variable field:
 
-    1. dublicate "field" in the input data (proc_copy)
-    2. mask the dublicated data (modelling_mask)
+    1. dublicate "field" in the input data (copy)
+    2. mask the dublicated data (mask)
     3. apply the tests you only want to be applied onto the masked data chunks (saqc_tests)
     4. project the flags, calculated on the dublicated and masked data onto the original field data
-        (proc_projectFlags or flagGeneric)
-    5. drop the dublicated data (proc_drop)
+        (projectFlags or flagGeneric)
+    5. drop the dublicated data (drop)
 
     To see an implemented example, checkout flagSeasonalRange in the saqc.functions module
 
@@ -239,6 +227,5 @@ def mask(
         raise ValueError("Keyword passed as masking mode is unknown ({})!".format(mode))
 
     data.aloc[to_mask, field] = np.nan
-    flagger = flagger.setFlags(field, loc=to_mask, flag=np.nan, force=True)
-
+    flagger[to_mask, field] = UNFLAGGED
     return data, flagger
