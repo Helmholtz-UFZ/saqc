@@ -19,7 +19,8 @@ DictLike = Union[
 _Field = str
 SelectT = Union[
     _Field,
-    Tuple[pd.Series, _Field]
+    Tuple[pd.Series, _Field],
+    Tuple[pd.Index, _Field],
 ]
 ValueT = Union[pd.Series, Iterable, float]
 

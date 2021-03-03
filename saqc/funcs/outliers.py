@@ -51,8 +51,8 @@ def flagByStray(
         The fieldname of the column, holding the data-to-be-flagged.
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
-    partition_freq : {None, str, int}, default None
-        partition_freq : {np.inf, float, str}, default np.inf
+
+    partition_freq : str, int, or None, default None
         Determines the segmentation of the data into partitions, the kNN algorithm is
         applied onto individually.
 
@@ -65,10 +65,12 @@ def flagByStray(
         Minimum number of periods per partition that have to be present for a valid outlier dettection to be made in
         this partition. (Only of effect, if `partition_freq` is an integer.) Partition min value must always be
         greater then the nn_neighbors value.
+
     iter_start : float, default 0.5
         Float in [0,1] that determines which percentage of data is considered "normal". 0.5 results in the stray
         algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
         information)
+
     alpha : float, default 0.05
         Level of significance by which it is tested, if a score might be drawn from another distribution, than the
         majority of the data.
@@ -78,9 +80,8 @@ def flagByStray(
     [1] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
         arXiv preprint arXiv:1908.04000.
     """
+    scores = data[field].dropna(inplace=True)
 
-    scores = data[field]
-    scores.dropna(inplace=True)
     if scores.empty:
         return data, flagger
 
@@ -89,6 +90,7 @@ def flagByStray(
 
     if isinstance(partition_freq, str):
         partitions = scores.groupby(pd.Grouper(freq=partition_freq))
+
     else:
         grouper_series = pd.Series(data=np.arange(0, scores.shape[0]), index=scores.index)
         grouper_series = grouper_series.transform(lambda x: int(np.floor(x / partition_freq)))
@@ -96,28 +98,31 @@ def flagByStray(
 
     # calculate flags for every partition
     for _, partition in partitions:
+
         if partition.empty | (partition.shape[0] < partition_min):
             continue
+
         sample_size = partition.shape[0]
+
         sorted_i = partition.values.argsort()
         resids = partition.values[sorted_i]
         gaps = np.append(0, np.diff(resids))
+
         tail_size = int(max(min(50, np.floor(sample_size / 4)), 2))
         tail_indices = np.arange(2, tail_size + 1)
+
         i_start = int(max(np.floor(sample_size * iter_start), 1) + 1)
         ghat = np.array([np.nan] * sample_size)
+
         for i in range(i_start - 1, sample_size):
             ghat[i] = sum((tail_indices / (tail_size - 1)) * gaps[i - tail_indices + 1])
 
         log_alpha = np.log(1 / alpha)
-        trigger_flagging = False
         for iter_index in range(i_start - 1, sample_size):
             if gaps[iter_index] > log_alpha * ghat[iter_index]:
-                trigger_flagging = True
+                index = partition.index[sorted_i[iter_index:]]
+                flagger[index, field] = kwargs['flag']
                 break
-
-        if trigger_flagging:
-            flagger = flagger.setFlags(field, loc=partition.index[sorted_i[iter_index:]], **kwargs)
 
     return data, flagger
 
@@ -167,59 +172,68 @@ def _evalStrayLabels(
         section for more details ([1]).
     at_least_one : bool, default True
         If none of the variables, the outlier label shall be reduced to, is an outlier with regard
-        to the test, all (True) or none (False) of the variables are flagged outliers
+        to the test, all (True) or none (False) of the variables are flagged
 
     References
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
-
     val_frame = data[fields].to_df()
-    stray_detects = flagger.isFlagged()[field]
+    stray_detects = flagger[field] > UNFLAGGED
     stray_detects = stray_detects[stray_detects]
     to_flag_frame = pd.DataFrame(False, columns=fields, index=stray_detects.index)
-    to_flag_index = to_flag_frame.index
+
     if reduction_range is None:
         for field in to_flag_frame.columns:
-            flagger = flagger.setFlags(field, loc=to_flag_index)
+            flagger[to_flag_frame.index, field] = kwargs['flag']
         return data, flagger
 
     for var in fields:
-        for index in enumerate(to_flag_index):
-            index_slice = slice(index[1] - pd.Timedelta(reduction_range), index[1] + pd.Timedelta(reduction_range))
+        for index in enumerate(to_flag_frame.index):
 
+            index_slice = slice(index[1] - pd.Timedelta(reduction_range), index[1] + pd.Timedelta(reduction_range))
             test_slice = val_frame[var][index_slice].dropna()
+
             # check, wheather value under test is sufficiently centered:
-            first_valid = test_slice.first_valid_index()
-            last_valid = test_slice.last_valid_index()
+            first = test_slice.first_valid_index()
+            last = test_slice.last_valid_index()
             min_range = pd.Timedelta(reduction_range)/4
-            polydeg = 2
-            if ((pd.Timedelta(index[1] - first_valid) < min_range) |
-                (pd.Timedelta(last_valid - index[1]) < min_range)):
+
+            if pd.Timedelta(index[1] - first) < min_range or pd.Timedelta(last - index[1]) < min_range:
                 polydeg = 0
-            if reduction_drop_flagged:
-                test_slice = test_slice.drop(to_flag_index, errors='ignore')
-            if test_slice.shape[0] >= reduction_min_periods:
-                x = (test_slice.index.values.astype(float))
-                x_0 = x[0]
-                x = (x - x_0)/10**12
-                polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=polydeg)
-                testval = poly.polyval((float(index[1].to_numpy()) - x_0)/10**12, polyfitted)
-                testval = val_frame[var][index[1]] - testval
-                resids = test_slice.values - poly.polyval(x, polyfitted)
-                med_resids = np.median(resids)
-                MAD = np.median(np.abs(resids - med_resids))
-                crit_val = 0.6745 * (abs(med_resids - testval)) / MAD
-                if crit_val > reduction_thresh:
-                    to_flag_frame.loc[index[1], var] = True
             else:
+                polydeg = 2
+
+            if reduction_drop_flagged:
+                test_slice = test_slice.drop(to_flag_frame.index, errors='ignore')
+
+            if test_slice.shape[0] < reduction_min_periods:
+                to_flag_frame.loc[index[1], var] = True
+                continue
+
+            x = (test_slice.index.values.astype(float))
+            x_0 = x[0]
+            x = (x - x_0)/10**12
+
+            polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=polydeg)
+
+            testval = poly.polyval((float(index[1].to_numpy()) - x_0)/10**12, polyfitted)
+            testval = val_frame[var][index[1]] - testval
+
+            resids = test_slice.values - poly.polyval(x, polyfitted)
+            med_resids = np.median(resids)
+            MAD = np.median(np.abs(resids - med_resids))
+            crit_val = 0.6745 * (abs(med_resids - testval)) / MAD
+
+            if crit_val > reduction_thresh:
                 to_flag_frame.loc[index[1], var] = True
 
     if at_least_one:
         to_flag_frame[~to_flag_frame.any(axis=1)] = True
 
     for field in to_flag_frame.columns:
-        flagger = flagger.setFlags(field, loc=to_flag_frame[field][to_flag_frame[field]].index, **kwargs)
+        col = to_flag_frame[field]
+        flagger[col[col].index, field] = kwargs['flag']
 
     return data, flagger
 
@@ -457,20 +471,31 @@ def flagMVScores(
     outliers. See description of the `threshing` parameter for more details. Although [2] gives a fully detailed
     overview over the `stray` algorithm.
     """
-    data, flagger = assignKNNScore(data, 'dummy', flagger, fields, n_neighbors=n_neighbors, trafo=trafo,
-                                   trafo_on_partition=trafo_on_partition, scoring_func=scoring_func,
-                                   target_field='kNN_scores', partition_freq=stray_partition,
-                                   kNN_algorithm='ball_tree', partition_min=stray_partition_min, **kwargs)
+    data, flagger = assignKNNScore(
+        data, 'dummy', flagger,
+        fields=fields,
+        n_neighbors=n_neighbors,
+        trafo=trafo,
+        trafo_on_partition=trafo_on_partition,
+        scoring_func=scoring_func,
+        target_field='kNN_scores',
+        partition_freq=stray_partition,
+        kNN_algorithm='ball_tree',
+        partition_min=stray_partition_min, **kwargs)
 
-    data, flagger = flagByStray(data, 'kNN_scores', flagger,
-                                partition_freq=stray_partition,
-                                partition_min=stray_partition_min,
-                                iter_start=iter_start,
-                                alpha=alpha, **kwargs)
+    data, flagger = flagByStray(
+        data, 'kNN_scores', flagger,
+        partition_freq=stray_partition,
+        partition_min=stray_partition_min,
+        iter_start=iter_start,
+        alpha=alpha, **kwargs)
 
     data, flagger = _evalStrayLabels(
-        data, 'kNN_scores', flagger, fields, reduction_range=reduction_range,
-        reduction_drop_flagged=reduction_drop_flagged, reduction_thresh=reduction_thresh,
+        data, 'kNN_scores', flagger,
+        fields=fields,
+        reduction_range=reduction_range,
+        reduction_drop_flagged=reduction_drop_flagged,
+        reduction_thresh=reduction_thresh,
         reduction_min_periods=reduction_min_periods, **kwargs)
 
     return data, flagger
@@ -488,7 +513,7 @@ def flagRaise(
         mean_raise_factor: float=2.,
         min_slope: Optional[float]=None,
         min_slope_weight: float=0.8,
-        numba_boost: bool=True,
+        numba_boost: bool=True,  # todo: rm, not a user decision
         **kwargs,
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -637,16 +662,16 @@ def flagRaise(
     # check means against critical raise value:
     to_flag = dataseries >= weighted_rolling_mean + (raise_series / mean_raise_factor)
     to_flag &= raise_series.notna()
-    flagger = flagger.setFlags(field, to_flag[to_flag].index, **kwargs)
+    flagger[to_flag[to_flag].index, field] = kwargs['flag']
 
     return data, flagger
 
 
 @register(masking='field', module="outliers")
-def flagMAD(data: DictOfSeries, field: ColumnName, flagger: Flagger, window: FreqString, z: float=3.5, **kwargs) -> Tuple[DictOfSeries, Flagger]:
-
+def flagMAD(
+        data: DictOfSeries, field: ColumnName, flagger: Flagger, window: FreqString, z: float=3.5, **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
-
     The function represents an implementation of the modyfied Z-score outlier detection method.
 
     See references [1] for more details on the algorithm.
@@ -677,9 +702,8 @@ def flagMAD(data: DictOfSeries, field: ColumnName, flagger: Flagger, window: Fre
     References
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
-
     """
-    d = data[field].copy().mask(flagger.isFlagged(field))
+    d = data[field]
     median = d.rolling(window=window, closed="both").median()
     diff = (d - median).abs()
     mad = diff.rolling(window=window, closed="both").median()
@@ -697,7 +721,7 @@ def flagMAD(data: DictOfSeries, field: ColumnName, flagger: Flagger, window: Fre
         index = mask.index
         mask.loc[index < index[0] + pd.to_timedelta(window)] = False
 
-    flagger = flagger.setFlags(field, mask, **kwargs)
+    flagger[mask, field] = kwargs['flag']
     return data, flagger
 
 
@@ -710,7 +734,7 @@ def flagOffset(
         tolerance: float,
         window: Union[IntegerWindow, FreqString],
         rel_thresh: Optional[float]=None,
-        numba_kickin: int=200000,
+        numba_kickin: int=200000,  # todo: rm, not a user decision
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -780,13 +804,14 @@ def flagOffset(
 
     if isinstance(window, int):
         delta = getFreqDelta(dataseries.index)
+        window = delta * window
         if not delta:
             raise TypeError('Only offset string defined window sizes allowed for irrgegularily sampled timeseries')
-        window = delta * window
 
     # get all the entries preceding a significant jump
     if thresh:
         post_jumps = dataseries.diff().abs() > thresh
+
     if rel_thresh:
         s = np.sign(rel_thresh)
         rel_jumps = s * (dataseries.shift(1).div(dataseries) - 1) > abs(rel_thresh)
@@ -798,34 +823,35 @@ def flagOffset(
     post_jumps = post_jumps[post_jumps]
     if post_jumps.empty:
         return data, flagger
-    # get all the entries preceeding a significant jump and its successors within "length" range
+
+    # get all the entries preceding a significant jump and its successors within "length" range
     to_roll = post_jumps.reindex(dataseries.index, method="bfill", tolerance=window, fill_value=False).dropna()
 
-    if not rel_thresh:
+    if rel_thresh:
+
+        def spikeTester(chunk, thresh=abs(rel_thresh), tol=tolerance):
+            jump = chunk[-2] - chunk[-1]
+            thresh = thresh * abs(jump)
+            chunk_stair = (np.sign(jump) * (chunk - chunk[-1]) < thresh)[::-1].cumsum()
+            initial = np.searchsorted(chunk_stair, 2)
+            if initial == len(chunk):
+                return 0
+            if np.abs(chunk[- initial - 1] - chunk[-1]) < tol:
+                return initial - 1
+            return 0
+
+    else:
+
         # define spike testing function to roll with (no  rel_check):
         def spikeTester(chunk, thresh=thresh, tol=tolerance):
             # signum change!!!
-            chunk_stair = (np.sign(chunk[-2] - chunk[-1])*(chunk - chunk[-1]) < thresh)[::-1].cumsum()
+            chunk_stair = (np.sign(chunk[-2] - chunk[-1]) * (chunk - chunk[-1]) < thresh)[::-1].cumsum()
             initial = np.searchsorted(chunk_stair, 2)
             if initial == len(chunk):
                 return 0
             if np.abs(chunk[- initial - 1] - chunk[-1]) < tol:
                 return initial - 1
-            else:
-                return 0
-    else:
-        def spikeTester(chunk, thresh=abs(rel_thresh), tol=tolerance):
-            jump = chunk[-2] - chunk[-1]
-            thresh = thresh*abs(jump)
-            chunk_stair = (np.sign(jump)*(chunk - chunk[-1]) < thresh)[::-1].cumsum()
-            initial = np.searchsorted(chunk_stair, 2)
-            if initial == len(chunk):
-                return 0
-            if np.abs(chunk[- initial - 1] - chunk[-1]) < tol:
-                return initial - 1
-            else:
-                return 0
-
+            return 0
 
     to_roll = dataseries[to_roll]
     roll_mask = pd.Series(False, index=to_roll.index)
@@ -835,6 +861,7 @@ def flagOffset(
     engine = None if roll_mask.sum() < numba_kickin else 'numba'
     result = roller.apply(spikeTester, raw=True, engine=engine)
     result.index = map_i[result.index]
+
     # correct the result: only those values define plateaus, that do not have
     # values at their left starting point, that belong to other plateaus themself:
     def calcResult(result):
@@ -850,7 +877,7 @@ def flagOffset(
 
     cresult = calcResult(result)
     cresult = cresult[cresult].index
-    flagger = flagger.setFlags(field, cresult, **kwargs)
+    flagger[cresult, field] = kwargs['flag']
     return data, flagger
 
 
@@ -914,9 +941,7 @@ def flagByGrubbs(
     introduction to the grubbs test:
 
     [1] https://en.wikipedia.org/wiki/Grubbs%27s_test_for_outliers
-
     """
-
     data = data.copy()
     datcol = data[field]
     rate = getFreqDelta(datcol.index)
@@ -927,33 +952,38 @@ def flagByGrubbs(
 
     to_group = pd.DataFrame(data={"ts": datcol.index, "data": datcol})
     to_flag = pd.Series(False, index=datcol.index)
+
+    # period number defined test intervals
     if isinstance(winsz, int):
-        # period number defined test intervals
         grouper_series = pd.Series(data=np.arange(0, datcol.shape[0]), index=datcol.index)
         grouper_series_lagged = grouper_series + (winsz / 2)
         grouper_series = grouper_series.transform(lambda x: x // winsz)
         grouper_series_lagged = grouper_series_lagged.transform(lambda x: x // winsz)
         partitions = to_group.groupby(grouper_series)
         partitions_lagged = to_group.groupby(grouper_series_lagged)
+
+    # offset defined test intervals:
     else:
-        # offset defined test intervals:
         partitions = to_group.groupby(pd.Grouper(freq=winsz))
+
     for _, partition in partitions:
         if partition.shape[0] > min_periods:
             detected = smirnov_grubbs.two_sided_test_indices(partition["data"].values, alpha=alpha)
             detected = partition["ts"].iloc[detected]
             to_flag[detected.index] = True
 
-    if check_lagged & isinstance(winsz, int):
+    if isinstance(winsz, int) and check_lagged:
         to_flag_lagged = pd.Series(False, index=datcol.index)
+
         for _, partition in partitions_lagged:
             if partition.shape[0] > min_periods:
                 detected = smirnov_grubbs.two_sided_test_indices(partition["data"].values, alpha=alpha)
                 detected = partition["ts"].iloc[detected]
                 to_flag_lagged[detected.index] = True
-        to_flag = to_flag & to_flag_lagged
 
-    flagger = flagger.setFlags(field, loc=to_flag, **kwargs)
+        to_flag &= to_flag_lagged
+
+    flagger[to_flag, field] = kwargs['flag']
     return data, flagger
 
 
@@ -994,7 +1024,7 @@ def flagRange(
     # using .values is much faster
     datacol = data[field].values
     mask = (datacol < min) | (datacol > max)
-    flagger[mask, field] = kwargs['flag']  # todo GL161
+    flagger[mask, field] = kwargs['flag']
     return data, flagger
 
 
@@ -1057,22 +1087,28 @@ def flagCrossStatistic(
     df = data[fields].loc[data[fields].index_of('shared')].to_df()
 
     if isinstance(cross_stat, str):
+
         if cross_stat == 'modZscore':
             MAD_series = df.subtract(df.median(axis=1), axis=0).abs().median(axis=1)
-            diff_scores = ((0.6745 * (df.subtract(df.median(axis=1), axis=0))).divide(MAD_series, axis=0)).abs()
+            diff_scores = (0.6745 * (df.subtract(df.median(axis=1), axis=0))).divide(MAD_series, axis=0).abs()
+
         elif cross_stat == 'Zscore':
-            diff_scores = (df.subtract(df.mean(axis=1), axis=0)).divide(df.std(axis=1), axis=0).abs()
+            diff_scores = df.subtract(df.mean(axis=1), axis=0).divide(df.std(axis=1), axis=0).abs()
+
         else:
             raise ValueError(cross_stat)
+
     else:
+
         try:
             stat = getattr(df, cross_stat.__name__)(axis=1)
         except AttributeError:
             stat = df.aggregate(cross_stat, axis=1)
+
         diff_scores = df.subtract(stat, axis=0).abs()
 
     mask = diff_scores > thresh
     for var in fields:
-        flagger = flagger.setFlags(var, mask[var], **kwargs)
+        flagger[mask[var], field] = kwargs['flag']
 
     return data, flagger
