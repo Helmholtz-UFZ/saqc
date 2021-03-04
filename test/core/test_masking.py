@@ -12,7 +12,8 @@ from hypothesis.strategies import (
     sampled_from,
 )
 
-from saqc.core.core import _maskData, _unmaskData
+from saqc.common import *
+from saqc.core.register import _maskData, _unmaskData
 
 from test.common import dataFieldFlagger, MAX_EXAMPLES
 

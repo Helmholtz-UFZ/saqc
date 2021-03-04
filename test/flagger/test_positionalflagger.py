@@ -6,8 +6,9 @@ import pytest
 import numpy as np
 
 from test.common import initData
-from saqc.flagger import PositionalFlagger
 
+PositionalFlagger = NotImplemented
+pytest.skip("PositionalFlagger is deprecated.", allow_module_level=True)
 
 @pytest.fixture
 def data():

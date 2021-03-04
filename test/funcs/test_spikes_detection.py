@@ -16,6 +16,8 @@ from saqc.funcs.outliers import (
 )
 
 from test.common import TESTFLAGGER
+from saqc.common import *
+from saqc.flagger import Flagger, initFlagsLike
 
 
 @pytest.fixture(scope="module")
@@ -28,30 +30,27 @@ def spiky_data():
     return dios.DictOfSeries(s), flag_assertion
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_flagMad(spiky_data, flagger):
+def test_flagMad(spiky_data):
     data = spiky_data[0]
     field, *_ = data.columns
-    flagger = flagger.initFlags(data)
-    data, flagger_result = flagMAD(data, field, flagger, "1H")
-    flag_result = flagger_result.getFlags(field)
-    test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
+    flagger = initFlagsLike(data)
+    data, flagger_result = flagMAD(data, field, flagger, "1H", flag=BAD)
+    flag_result = flagger_result[field]
+    test_sum = (flag_result[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_flagSpikesBasic(spiky_data, flagger):
+def test_flagSpikesBasic(spiky_data):
     data = spiky_data[0]
     field, *_ = data.columns
-    flagger = flagger.initFlags(data)
-    data, flagger_result = flagOffset(data, field, flagger, thresh=60, tolerance=10, window="20min")
-    flag_result = flagger_result.getFlags(field)
-    test_sum = (flag_result[spiky_data[1]] == flagger.BAD).sum()
+    flagger = initFlagsLike(data)
+    data, flagger_result = flagOffset(data, field, flagger, thresh=60, tolerance=10, window="20min", flag=BAD)
+    flag_result = flagger_result[field]
+    test_sum = (flag_result[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])
 
 
 # see test/functs/conftest.py for the 'course_N'
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize(
     "dat",
     [
@@ -61,22 +60,22 @@ def test_flagSpikesBasic(spiky_data, flagger):
         pytest.lazy_fixture("course_4"),
     ],
 )
-def test_flagSpikesLimitRaise(dat, flagger):
+def test_flagSpikesLimitRaise(dat):
     data, characteristics = dat()
     field, *_ = data.columns
-    flagger = flagger.initFlags(data)
+    flagger = initFlagsLike(data)
     _, flagger_result = flagRaise(
-        data, field, flagger, thresh=2, intended_freq="10min", raise_window="20min", numba_boost=False
+        data, field, flagger,
+        thresh=2, intended_freq="10min", raise_window="20min", numba_boost=False, flag=BAD
     )
-    assert flagger_result.isFlagged(field)[characteristics["raise"]].all()
-    assert not flagger_result.isFlagged(field)[characteristics["return"]].any()
-    assert not flagger_result.isFlagged(field)[characteristics["drop"]].any()
+    assert np.all(flagger_result[field][characteristics["raise"]] > UNFLAGGED)
+    assert not np.any(flagger_result[field][characteristics["return"]] > UNFLAGGED)
+    assert not np.any(flagger_result[field][characteristics["drop"]] > UNFLAGGED)
 
 
 # see test/functs/conftest.py for the 'course_N'
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
-def test_flagMultivarScores(dat, flagger):
+def test_flagMultivarScores(dat):
     data1, characteristics = dat(periods=1000, initial_level=5, final_level=15, out_val=50)
     data2, characteristics = dat(periods=1000, initial_level=20, final_level=1, out_val=30)
     field = "dummy"
@@ -85,24 +84,26 @@ def test_flagMultivarScores(dat, flagger):
     s1 = pd.Series(data=s1.values, index=s1.index)
     s2 = pd.Series(data=s2.values, index=s1.index)
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
-    flagger = flagger.initFlags(data)
+    flagger = initFlagsLike(data)
     _, flagger_result = flagMVScores(
-        data, field, flagger, fields=fields, trafo=np.log, iter_start=0.95, n_neighbors=10
+        data, field, flagger, fields=fields, trafo=np.log, iter_start=0.95, n_neighbors=10, flag=BAD
     )
     for field in fields:
-        isflagged = flagger_result.isFlagged(field)
+        isflagged = flagger_result[field] > UNFLAGGED
         assert isflagged[characteristics["raise"]].all()
         assert not isflagged[characteristics["return"]].any()
         assert not isflagged[characteristics["drop"]].any()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
-def test_grubbs(dat, flagger):
+def test_grubbs(dat):
     data, char_dict = dat(
-        freq="10min", periods=45, initial_level=0, final_level=0, crowd_size=1, crowd_spacing=3, out_val=-10
+        freq="10min", periods=45,
+        initial_level=0, final_level=0,
+        crowd_size=1, crowd_spacing=3,
+        out_val=-10,
     )
-    flagger = flagger.initFlags(data)
-    data, result_flagger = flagByGrubbs(data, "data", flagger, winsz=20, min_periods=15)
-    assert result_flagger.isFlagged("data")[char_dict["drop"]].all()
+    flagger = initFlagsLike(data)
+    data, result_flagger = flagByGrubbs(data, "data", flagger, winsz=20, min_periods=15, flag=BAD)
+    assert np.all(result_flagger["data"][char_dict["drop"]] > UNFLAGGED)
 

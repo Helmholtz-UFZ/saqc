@@ -8,10 +8,12 @@ import numpy as np
 import pandas as pd
 
 
-from saqc import SaQC, register
+from saqc.common import *
+from saqc.flagger import Flagger, initFlagsLike
 from saqc.funcs import flagRange
 from saqc.lib import plotting as splot
 from test.common import initData, TESTFLAGGER, flagAll
+from saqc import SaQC, register
 
 
 # no logging output needed here
@@ -31,13 +33,12 @@ def data():
 
 
 @pytest.fixture
-def flags(flagger, data, optional):
+def flags(data, optional):
     if not optional:
-        return flagger.initFlags(data[data.columns[::2]])._flags
+        return initFlagsLike(data[data.columns[::2]]).toDios()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_errorHandling(data, flagger):
+def test_errorHandling(data):
 
     @register(masking='field')
     def raisingFunc(data, field, flagger, **kwargs):
@@ -47,18 +48,17 @@ def test_errorHandling(data, flagger):
 
     for policy in ["ignore", "warn"]:
         # NOTE: should not fail, that's all we are testing here
-        SaQC(flagger, data, error_policy=policy).raisingFunc(var1).getResult()
+        SaQC(data, error_policy=policy).raisingFunc(var1).getResult()
 
     with pytest.raises(TypeError):
-        SaQC(flagger, data, error_policy='raise').raisingFunc(var1).getResult()
+        SaQC(data, error_policy='raise').raisingFunc(var1).getResult()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_duplicatedVariable(flagger):
+def test_duplicatedVariable():
     data = initData(1)
     var1 = data.columns[0]
 
-    pdata, pflags = SaQC(flagger, data).flagtools.flagDummy(var1).getResult()
+    pdata, pflags = SaQC(data).flagtools.flagDummy(var1).getResult()
 
     if isinstance(pflags.columns, pd.MultiIndex):
         cols = pflags.columns.get_level_values(0).drop_duplicates()
@@ -67,8 +67,7 @@ def test_duplicatedVariable(flagger):
         assert (pflags.columns == [var1]).all()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_sourceTarget(flagger):
+def test_sourceTarget():
     """
     test implicit assignments
     """
@@ -76,32 +75,29 @@ def test_sourceTarget(flagger):
     var1 = data.columns[0]
     target = "new"
 
-    pdata, pflagger = SaQC(flagger, data).flagAll(field=var1, target=target).getResult(raw=True)
-    pflags = pflagger.isFlagged()
+    pdata, pflagger = SaQC(data).flagAll(field=var1, target=target).getResult(raw=True)
 
     assert (pdata[var1] == pdata[target]).all(axis=None)
-    assert (pflags[var1] == False).all(axis=None)
-    assert (pflags[target] == True).all(axis=None)
+    assert all(pflagger[var1] == UNFLAGGED)
+    assert all(pflagger[target] > UNFLAGGED)
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("optional", OPTIONAL)
-def test_dtypes(data, flagger, flags):
+def test_dtypes(data, flags):
     """
     Test if the categorical dtype is preserved through the core functionality
     """
-    flagger = flagger.initFlags(data)
-    flags = flagger.getFlags()
+    flagger = initFlagsLike(data)
+    flags = flagger.toDios()
     var1, var2 = data.columns[:2]
 
-    pdata, pflagger = SaQC(flagger, data, flags=flags).flagAll(var1).flagAll(var2).getResult(raw=True)
+    pdata, pflagger = SaQC(data, flags=flags).flagAll(var1).flagAll(var2).getResult(raw=True)
 
-    pflags = pflagger.getFlags()
-    assert dict(flags.dtypes) == dict(pflags.dtypes)
+    for c in pflagger.columns:
+        assert pflagger[c].dtype == flagger[c].dtype
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_plotting(data, flagger):
+def test_plotting(data):
     """
     Test if the plotting code runs, does not show any plot.
 
@@ -110,9 +106,9 @@ def test_plotting(data, flagger):
     """
     pytest.importorskip("matplotlib", reason="requires matplotlib")
     field, *_ = data.columns
-    flagger = flagger.initFlags(data)
-    _, flagger_range = flagRange(data, field, flagger, min=10, max=90, flag=flagger.BAD)
-    data_new, flagger_range = flagRange(data, field, flagger_range, min=40, max=60, flag=flagger.GOOD)
+    flagger = initFlagsLike(data)
+    _, flagger_range = flagRange(data, field, flagger, min=10, max=90, flag=BAD)
+    data_new, flagger_range = flagRange(data, field, flagger_range, min=40, max=60, flag=DOUBT)
     splot._interactive = False
     splot._plotSingleVariable(data, data_new, flagger, flagger_range, sources=[], targets=[data_new.columns[0]])
     splot._plotMultipleVariables(data, data_new, flagger, flagger_range, targets=data_new.columns)

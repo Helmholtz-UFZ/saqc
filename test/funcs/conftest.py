@@ -16,7 +16,6 @@ def char_dict():
     }
 
 
-
 @pytest.fixture
 def course_1(char_dict):
     # MONOTONOUSLY ASCENDING/DESCENDING
@@ -24,23 +23,22 @@ def course_1(char_dict):
     # the resulting drop/raise per value equals:  (peak_level - initial_level) / (0.5*(periods-2))
     # periods number better be even!
     def fix_funk(
-        freq="10min",
-        periods=10,
-        initial_level=0,
-        peak_level=10,
-        initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
-        char_dict=char_dict,
-        name='data'
+            freq="10min",
+            periods=10,
+            initial_level=0,
+            peak_level=10,
+            initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
+            char_dict=char_dict,
+            name='data'
     ):
-
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
         left = np.linspace(initial_level, peak_level, int(np.floor(len(t_index) / 2)))
         right = np.linspace(peak_level, initial_level, int(np.ceil(len(t_index) / 2)))
         s = pd.Series(np.append(left, right), index=t_index)
 
-        char_dict["raise"] = s.index[1 : int(np.floor(len(t_index) / 2))]
-        char_dict["drop"] = s.index[int(np.floor(len(t_index) / 2) + 1) :]
-        char_dict["peak"] = s.index[int(np.floor(len(t_index) / 2)) - 1 : int(np.floor(len(t_index) / 2)) + 1]
+        char_dict["raise"] = s.index[1: int(np.floor(len(t_index) / 2))]
+        char_dict["drop"] = s.index[int(np.floor(len(t_index) / 2) + 1):]
+        char_dict["peak"] = s.index[int(np.floor(len(t_index) / 2)) - 1: int(np.floor(len(t_index) / 2)) + 1]
 
         data = DictOfSeries(data=s, columns=[name])
         return data, char_dict
@@ -55,13 +53,13 @@ def course_2(char_dict):
     # one "anomalous" or "outlierish" value of magnitude "out_val" at position "periods/2"
     # number of periods better be even!
     def fix_funk(
-        freq="10min",
-        periods=10,
-        initial_level=0,
-        final_level=2,
-        out_val=5,
-        initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
-        char_dict=char_dict,
+            freq="10min",
+            periods=10,
+            initial_level=0,
+            final_level=2,
+            out_val=5,
+            initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
+            char_dict=char_dict,
     ):
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
         data = np.linspace(initial_level, final_level, int(np.floor(len(t_index))))
@@ -88,19 +86,16 @@ def course_test(char_dict):
     # Test function for pattern detection - same as test pattern for first three values, than constant function
     def fix_funk(freq='1 D',
                  initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), out_val=5, char_dict=char_dict):
-
         t_index = pd.date_range(initial_index, freq=freq, periods=100)
 
         data = pd.Series(data=0, index=t_index)
         data.iloc[2] = out_val
         data.iloc[3] = out_val
 
-
         data = DictOfSeries(data=data, columns=['data'])
         return data, char_dict
 
     return fix_funk
-
 
 
 @pytest.fixture
@@ -113,15 +108,15 @@ def course_3(char_dict):
     # number of periods better be even!
     # chrowd_size * crowd_spacing better be less then freq[minutes].
     def fix_funk(
-        freq="10min",
-        periods=10,
-        initial_level=0,
-        final_level=2,
-        out_val=-5,
-        initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
-        char_dict=char_dict,
-        crowd_size=5,
-        crowd_spacing=1,
+            freq="10min",
+            periods=10,
+            initial_level=0,
+            final_level=2,
+            out_val=-5,
+            initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
+            char_dict=char_dict,
+            crowd_size=5,
+            crowd_spacing=1,
     ):
 
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
@@ -158,19 +153,18 @@ def course_4(char_dict):
     # of periods better be even!
 
     def fix_funk(
-        freq="10min",
-        periods=10,
-        base_level=0,
-        out_val=5,
-        initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
-        char_dict=char_dict,
+            freq="10min",
+            periods=10,
+            base_level=0,
+            out_val=5,
+            initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
+            char_dict=char_dict,
     ):
-
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
         data = pd.Series(data=base_level, index=t_index)
-        data[int(len(t_index) / 2) :: 2] = out_val
-        char_dict["raise"] = t_index[int(len(t_index) / 2) :: 2]
-        char_dict["return"] = t_index[int((len(t_index) / 2) + 1) :: 2]
+        data[int(len(t_index) / 2):: 2] = out_val
+        char_dict["raise"] = t_index[int(len(t_index) / 2):: 2]
+        char_dict["return"] = t_index[int((len(t_index) / 2) + 1):: 2]
 
         data = DictOfSeries(data=data, columns=["data"])
         return data, char_dict
@@ -187,13 +181,13 @@ def course_5(char_dict):
     # periods better be greater 5
 
     def fix_funk(
-        freq="10min",
-        periods=10,
-        nan_slice=slice(0, None, 5),
-        initial_level=0,
-        final_level=10,
-        initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
-        char_dict=char_dict,
+            freq="10min",
+            periods=10,
+            nan_slice=slice(0, None, 5),
+            initial_level=0,
+            final_level=10,
+            initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0),
+            char_dict=char_dict,
     ):
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
         values = np.linspace(initial_level, final_level, periods)
@@ -205,5 +199,3 @@ def course_5(char_dict):
         return data, char_dict
 
     return fix_funk
-
-

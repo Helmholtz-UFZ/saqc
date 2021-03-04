@@ -24,29 +24,22 @@ from hypothesis.strategies._internal.types import _global_type_lookup
 
 from dios import DictOfSeries
 
+from saqc.common import *
 from saqc.core.register import FUNC_MAP
 from saqc.core.lib import SaQCFunction
 from saqc.lib.types import FreqString, ColumnName, IntegerWindow
-from saqc.flagger import (
-    CategoricalFlagger,
-    SimpleFlagger,
-    DmpFlagger,
-)
+from saqc.flagger import Flagger, initFlagsLike
 
 
 TESTNODATA = (np.nan, -9999)
-
-
-TESTFLAGGER = (
-    CategoricalFlagger(["NIL", "GOOD", "BAD"]),
-    SimpleFlagger(),
-    DmpFlagger(),
-)
+TESTFLAGGER = (Flagger(),)
 
 
 def flagAll(data, field, flagger, **kwargs):
     # NOTE: remember to rename flag -> flag_values
-    return data, flagger.setFlags(field=field, flag=flagger.BAD)
+    flagger.copy()
+    flagger[:, field] = BAD
+    return data, flagger
 
 
 def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq=None, rows=None):
@@ -125,10 +118,10 @@ def flaggers(draw, data):
     initialize a flagger and set some flags
     """
     # flagger = draw(sampled_from(TESTFLAGGER)).initFlags(data)
-    flagger = draw(sampled_from([SimpleFlagger()])).initFlags(data)
+    flagger = initFlagsLike(data)
     for col, srs in data.items():
         loc_st = lists(sampled_from(sorted(srs.index)), unique=True, max_size=len(srs)-1)
-        flagger = flagger.setFlags(field=col, loc=draw(loc_st))
+        flagger[draw(loc_st), col] = BAD
     return flagger
 
 

@@ -12,7 +12,6 @@ from saqc.core.config import Fields as F
 from test.common import initData, writeIO
 
 from saqc.core.core import SaQC
-from saqc.flagger import SimpleFlagger
 from saqc.core.register import FUNC_MAP, register
 
 
@@ -29,7 +28,7 @@ def test_packagedConfig():
     data_path = path / "data.csv"
 
     data = pd.read_csv(data_path, index_col=0, parse_dates=True,)
-    saqc = SaQC(SimpleFlagger(), dios.DictOfSeries(data)).readConfig(config_path)
+    saqc = SaQC(dios.DictOfSeries(data)).readConfig(config_path)
     saqc.getResult()
 
 
@@ -46,7 +45,7 @@ def test_variableRegex(data):
 
     for regex, expected in tests:
         fobj = writeIO(header + "\n" + f"{regex} ; flagtools.flagDummy()")
-        saqc = SaQC(SimpleFlagger(), data).readConfig(fobj)
+        saqc = SaQC(data).readConfig(fobj)
         expansion = saqc._expandFields(saqc._to_call[0][0], saqc._to_call[0][2], data.columns)
         result = [s.field for s, _ in expansion]
         assert np.all(result == expected)
@@ -60,7 +59,7 @@ def test_inlineComments(data):
     {F.VARNAME} ; {F.TEST}       ; {F.PLOT}
     pre2        ; flagtools.flagDummy() # test ; False # test
     """
-    saqc = SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
+    saqc = SaQC(data).readConfig(writeIO(config))
     _, control, func = saqc._to_call[0]
     assert control.plot is False
     assert func.func == FUNC_MAP["flagtools.flagDummy"].func
@@ -78,7 +77,7 @@ def test_configReaderLineNumbers(data):
 
     SM1         ; flagtools.flagDummy()
     """
-    saqc = SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
+    saqc = SaQC(data).readConfig(writeIO(config))
     result = [c.lineno for _, c, _ in saqc._to_call]
     expected = [3, 4, 5, 9]
     assert result == expected
@@ -100,7 +99,7 @@ def test_configFile(data):
 
     SM1;flagtools.flagDummy()
     """
-    SaQC(SimpleFlagger(), data).readConfig(writeIO(config))
+    SaQC(data).readConfig(writeIO(config))
 
 
 def test_configChecks(data):
@@ -122,7 +121,7 @@ def test_configChecks(data):
     for test, expected in tests:
         fobj = writeIO(header + "\n" + test)
         with pytest.raises(expected):
-            SaQC(SimpleFlagger(), data).readConfig(fobj).getResult()
+            SaQC(data).readConfig(fobj).getResult()
 
 
 def test_supportedArguments(data):
@@ -151,4 +150,4 @@ def test_supportedArguments(data):
 
     for test in tests:
         fobj = writeIO(header + "\n" + test)
-        SaQC(SimpleFlagger(), data).readConfig(fobj)
+        SaQC(data).readConfig(fobj)

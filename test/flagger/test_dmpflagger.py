@@ -8,7 +8,9 @@ import pandas as pd
 import pytest
 
 from test.common import initData
-from saqc.flagger import DmpFlagger
+
+DmpFlagger = NotImplemented
+pytest.skip("DmpFlagger is deprecated.", allow_module_level=True)
 
 
 @pytest.fixture
