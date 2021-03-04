@@ -80,7 +80,7 @@ def flagByStray(
     [1] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
         arXiv preprint arXiv:1908.04000.
     """
-    scores = data[field].dropna(inplace=True)
+    scores = data[field].dropna()
 
     if scores.empty:
         return data, flagger
@@ -1109,6 +1109,6 @@ def flagCrossStatistic(
 
     mask = diff_scores > thresh
     for var in fields:
-        flagger[mask[var], field] = kwargs['flag']
+        flagger[mask[var], var] = kwargs['flag']
 
     return data, flagger

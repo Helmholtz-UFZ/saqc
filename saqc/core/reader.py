@@ -80,7 +80,6 @@ def _parseConfig(df, flagger):
         )
 
         control = ConfigController(
-            masking=func.masking,
             plot=plot,
             lineno=lineno + 2,
             expression=expr

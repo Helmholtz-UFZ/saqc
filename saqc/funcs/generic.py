@@ -125,7 +125,7 @@ def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd
 
 @register(masking='all', module="generic")
 def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Series], pd.Series],
-         nodata: float = np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+         nodata: float = np.nan, flag=BAD, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     a function to flag a data column by evaluation of a generic expression.
 
@@ -216,5 +216,5 @@ def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Se
     #     flagger = flagger.merge(
     #         flagger.initFlags(
     #             data=pd.Series(name=field, index=mask.index, dtype=np.float64)))
-    flagger[mask, field] = kwargs['flag']
+    flagger[mask, field] = flag
     return data, flagger

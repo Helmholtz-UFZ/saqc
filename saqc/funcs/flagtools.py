@@ -67,7 +67,8 @@ def clearFlags(data: DictOfSeries, field: ColumnName, flagger: Flagger, **kwargs
 
     Returns
     -------
-    data, flagger: DictOfSeries, Flagger
+    data : DictOfSeries
+    flagger : Flagger
 
     See Also
     --------
