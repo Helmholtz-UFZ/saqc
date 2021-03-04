@@ -406,14 +406,14 @@ def _getDataFromVar(
         All infos are projected to the data locations.
     """
     var = varname
-    assert var in flagger_new.flags
-    flags_new: pd.Series = flagger_new.flags[var]
+    assert var in flagger_new.columns
+    flags_new: pd.Series = flagger_new[var]
     plotdict = _getPlotdict(data_new, flags_new, flagger_new, var)
     ref_plotdict = None
 
     # prepare flags
-    if flagger_old is not None and var in flagger_old.flags:
-        flags_old = flagger_old.flags[var]
+    if flagger_old is not None and var in flagger_old.columns:
+        flags_old = flagger_old[var]
         ref_plotdict = _getPlotdict(data_old, flags_old, flagger_old, var)
 
         # check flags-index changes:
@@ -428,12 +428,12 @@ def _getDataFromVar(
 
             # calculate old-flags and update flags, like BADs,
             # to show only freshly new set values
-            unflagged = plotdict["unflagged"]
+            unflagged = plotdict.get("unflagged", pd.Series(dtype=float))
             diff = unchanged.index.difference(unflagged.index)
             plotdict["old-flags"] = unchanged.loc[diff]
             for field in ["bad", "suspicious", "good"]:
-                data = plotdict[field]
-                isect = changed.index & data.index
+                data = plotdict.get(field, pd.Series(dtype=float))
+                isect = changed.index.intersection(data.index)
                 plotdict[field] = data.loc[isect]
 
     return plotdict, ref_plotdict
@@ -540,7 +540,7 @@ def _splitOldAndNew(old: pd.Series, new: pd.Series):
         of locations seen from new. This means, the rest marks locations, that
         are present(!) in new, but its data differs from old.
     """
-    idx = old.index & new.index
+    idx = old.index.intersection(new.index)
     both_nan = old.loc[idx].isna() & new.loc[idx].isna()
     mask = (new.loc[idx] == old[idx]) | both_nan
     old_idx = mask[mask].index
@@ -553,12 +553,10 @@ def _splitByFlag(flags: pd.Series, flagger, var: str):
     Splits flags in the five distinct bins: GOOD, SUSPICIOUS, BAD, UNFLAGGED and NaNs.
     """
     n = flags.isna()
-    loc = flags.dropna().index
-    g = flagger.isFlagged(field=var, loc=loc, flag=GOOD, comparator="==")
-    b = flagger.isFlagged(field=var, loc=loc, flag=BAD, comparator="==")
-    u = flagger.isFlagged(field=var, loc=loc, flag=UNFLAGGED, comparator="==")
-    s = flagger.isFlagged(field=var, loc=loc, flag=BAD, comparator="<")
-    s = flagger.isFlagged(field=var, loc=loc, flag=GOOD, comparator=">") & s
+    b = flags >= BAD
+    g = flags < UNFLAGGED
+    u = flags == UNFLAGGED
+    s = (flags > UNFLAGGED) & (flags < BAD)
     return g[g], s[s], b[b], u[u], n[n]
 
 
