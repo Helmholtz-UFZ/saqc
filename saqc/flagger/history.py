@@ -160,7 +160,7 @@ class History:
             self.mask[pos] = pd.Series(True, index=s.index, dtype=bool)
 
         if force:
-            touched = np.isfinite(s)
+            touched = s.notna()
             self.mask.iloc[touched, :pos] = False
 
         self.hist[pos] = s
@@ -287,7 +287,7 @@ class History:
         ----------
         index : pd.Index
             the index to reindex to.
-        fill_value_last : float, default 0
+        fill_value_last : float, default UNFLAGGED
             value to fill nan's (UNTOUCHED) in the last column. Defaults to 0 (UNFLAGGED).
 
         Returns
