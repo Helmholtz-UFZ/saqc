@@ -155,7 +155,7 @@ def interpolateInvalid(
     )
     interpolated = data[field].isna() & inter_data.notna()
 
-    # todo: remove with version 2.0
+    # TODO: remove with version 2.0
     if not_interpol_flags is not None:
         raise ValueError("'not_interpol_flags' is deprecated")
 
@@ -179,7 +179,7 @@ def interpolateIndex(
         empty_intervals_flag: Any=None,
         grid_field: str=None,
         inter_limit: int=2,
-        freq_check: Optional[Literal["check", "auto"]]=None,  # todo: rm not a user decision
+        freq_check: Optional[Literal["check", "auto"]]=None,  # TODO: rm not a user decision
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
 

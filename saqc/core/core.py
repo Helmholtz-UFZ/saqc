@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-"""
-TODOS:
-  - integrate plotting into the api
-  - `data` and `flagger` as arguments to `getResult`
-"""
+# TODO:
+#  - integrate plotting into the api
+#  - `data` and `flagger` as arguments to `getResult`
 
 import logging
 import copy as stdcopy
@@ -49,7 +47,7 @@ def _handleErrors(exc: Exception, field: str, control: APIController, func: SaQC
         raise exc
 
 
-# todo: shouldt the code/function go to Saqc.__init__ ?
+# TODO: shouldt the code/function go to Saqc.__init__ ?
 def _prepInput(data, flags):
     dios_like = (dios.DictOfSeries, pd.DataFrame)
 

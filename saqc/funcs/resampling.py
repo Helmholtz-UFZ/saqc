@@ -344,7 +344,7 @@ def shift(
         method: Literal["fshift", "bshift", "nshift"]="nshift",
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         empty_intervals_flag: Optional[str]=None,
-        freq_check: Optional[Literal["check", "auto"]]=None,  # todo: not a user decision
+        freq_check: Optional[Literal["check", "auto"]]=None,  # TODO: not a user decision
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
 

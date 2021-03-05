@@ -84,7 +84,7 @@ def test_forceFlags(data, field):
     assert all(flagger[field] == DOUBT)
 
 
-# todo: @luenensc: i dont get the test -- palmb
+# TODO: @luenensc: i dont get the test -- palmb
 def test_flagIsolated(data, field):
     flagger = initFlagsLike(data)
 

@@ -124,7 +124,8 @@ def roll(
     if eval_flags:
         # with the new flagger we dont have to care
         # about to set NaNs to the original flags anymore
-        # todo: we does not get any flags here, because of masking=field
+        
+        # TODO: we does not get any flags here, because of masking=field
         worst = flagger[field].rolling(winsz, center=True, min_periods=min_periods).max()
         flagger[field] = worst
 

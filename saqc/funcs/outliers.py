@@ -513,7 +513,7 @@ def flagRaise(
         mean_raise_factor: float=2.,
         min_slope: Optional[float]=None,
         min_slope_weight: float=0.8,
-        numba_boost: bool=True,  # todo: rm, not a user decision
+        numba_boost: bool=True,  # TODO: rm, not a user decision
         **kwargs,
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -734,7 +734,7 @@ def flagOffset(
         tolerance: float,
         window: Union[IntegerWindow, FreqString],
         rel_thresh: Optional[float]=None,
-        numba_kickin: int=200000,  # todo: rm, not a user decision
+        numba_kickin: int=200000,  # TODO: rm, not a user decision
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """

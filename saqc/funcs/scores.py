@@ -156,7 +156,7 @@ def assignKNNScore(
 
         score_ser[partition.index] = resids
 
-    # todo: this unconditionally overwrite a column, may we should fire a warning ? -- palmb
+    # TODO: this unconditionally overwrite a column, may we should fire a warning ? -- palmb
     if target_field in flagger.columns:
         flagger.drop(target_field)
     flagger[target_field] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)

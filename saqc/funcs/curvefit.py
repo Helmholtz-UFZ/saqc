@@ -102,7 +102,7 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: Flagger,
         Flags values may have changed relatively to the flagger input.
 
     """
-    # todo: some (rater large) parts are functional similar to saqc.funcs.rolling.roll
+    # TODO: some (rater large) parts are functional similar to saqc.funcs.rolling.roll
     if data[field].empty:
         return data, flagger
     data = data.copy()
@@ -195,7 +195,7 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: Flagger,
     if eval_flags:
         # with the new flagger we dont have to care
         # about to set NaNs to the original flags anymore
-        # todo: we does not get any flags here, because of masking=field
+        # TODO: we does not get any flags here, because of masking=field
         worst = flagger[field].rolling(winsz, center=True, min_periods=min_periods).max()
         flagger[field] = worst
 

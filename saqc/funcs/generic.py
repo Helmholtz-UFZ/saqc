@@ -115,7 +115,7 @@ def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd
     """
     data[field] = _execGeneric(flagger, data, func, field, nodata).squeeze()
 
-    # todo: the former comment wished to overwrite the column, but i'm not sure -- palmb
+    # TODO: the former comment wished to overwrite the column, but i'm not sure -- palmb
     if field in flagger:
         flagger.drop(field)
 

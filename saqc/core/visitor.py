@@ -40,7 +40,7 @@ ENVIRONMENT = {
     "zLog": ts_ops.zeroLog,
 }
 
-# todo: how does a user pass flags now
+# TODO: how does a user pass flags now
 RESERVED = {"GOOD", "BAD", "UNFLAGGED", "NODATA"}
 
 

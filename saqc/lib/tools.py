@@ -308,7 +308,7 @@ def isQuoted(string):
     return bool(re.search(r"'.*'|\".*\"", string))
 
 
-# todo: GL167
+# TODO: GL167
 def getDropMask(field, to_drop, flagger, default):
     drop_mask = pd.Series(False, index=flagger[field].index)
     if to_drop is None:

@@ -14,7 +14,7 @@ class ColumnSelector:
     regex: bool
 
 
-# todo: this seems obsolete
+# TODO: this seems obsolete
 @dataclass
 class APIController:
     plot: bool
