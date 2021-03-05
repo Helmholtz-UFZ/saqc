@@ -13,6 +13,7 @@ from hypothesis.strategies import (
 )
 
 from saqc.common import *
+from saqc.flagger import Flagger, initFlagsLike
 from saqc.core.register import _maskData, _unmaskData
 
 from test.common import dataFieldFlagger, MAX_EXAMPLES
@@ -27,9 +28,10 @@ def test_maskingMasksData(data_field_flagger):
     """
     test if flagged values are replaced by np.nan
     """
+    flagger: Flagger
     data_in, field, flagger = data_field_flagger
-    data_masked, _ = _maskData(data_in, flagger, columns=[field], to_mask=flagger.BAD)
-    assert data_masked.aloc[flagger.isFlagged(flagger.BAD)].isna().all(axis=None)
+    data_masked, _ = _maskData(data_in, flagger, columns=[field], to_mask=BAD)
+    assert data_masked.aloc[flagger.toDios() == BAD].isna().all(axis=None)
 
 
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
@@ -42,9 +44,9 @@ def test_dataMutationPreventsUnmasking(data_field_flagger):
     filler = -9999
 
     data_in, field, flagger = data_field_flagger
-    data_masked, mask = _maskData(data_in, flagger, columns=[field], to_mask=flagger.BAD)
+    data_masked, mask = _maskData(data_in, flagger, columns=[field], to_mask=BAD)
     data_masked[field] = filler
-    data_out = _unmaskData(data_in, mask, data_masked, flagger, to_mask=flagger.BAD)
+    data_out = _unmaskData(data_in, mask, data_masked, flagger, to_mask=BAD)
     assert (data_out[field] == filler).all(axis=None)
 
 
@@ -56,10 +58,10 @@ def test_flaggerMutationPreventsUnmasking(data_field_flagger):
     if `flagger` is mutated after `_maskData`, `_unmaskData` should be a no-op
     """
     data_in, field, flagger = data_field_flagger
-    data_masked, mask = _maskData(data_in, flagger, columns=[field], to_mask=flagger.BAD)
-    flagger = flagger.setFlags(field, flag=flagger.UNFLAGGED, force=True)
-    data_out = _unmaskData(data_in, mask, data_masked, flagger, to_mask=flagger.BAD)
-    assert (data_out.loc[flagger.isFlagged(field, flag=flagger.BAD), field].isna()).all(axis=None)
+    data_masked, mask = _maskData(data_in, flagger, columns=[field], to_mask=BAD)
+    flagger = flagger[field] = UNFLAGGED
+    data_out = _unmaskData(data_in, mask, data_masked, flagger, to_mask=BAD)
+    assert (data_out.loc[flagger[field] == BAD, field].isna()).all(axis=None)
 
 
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
@@ -74,17 +76,17 @@ def test_reshapingPreventsUnmasking(data_field_flagger):
     filler = -1111
 
     data_in, field, flagger = data_field_flagger
-    data_masked, mask = _maskData(data_in, flagger, columns=[field], to_mask=flagger.BAD)
+    data_masked, mask = _maskData(data_in, flagger, columns=[field], to_mask=BAD)
 
     # mutate indexes of `data` and `flagger`
     index = data_masked[field].index.to_series()
     index.iloc[-len(data_masked[field])//2:] += pd.Timedelta("7.5Min")
     data_masked[field] = pd.Series(data=filler, index=index)
-    flags = flagger.getFlags()
-    flags[field] = pd.Series(data=flags[field].values, index=index)
-    flagger = flagger.initFlags(flags=flags)
 
-    data_out = _unmaskData(data_in, mask, data_masked, flagger, to_mask=flagger.BAD)
+    flagger.drop(field)
+    flagger[field] = pd.Series(data=flagger[field].values, index=index)
+
+    data_out = _unmaskData(data_in, mask, data_masked, flagger, to_mask=BAD)
     assert (data_out[field] == filler).all(axis=None)
 
 
@@ -95,8 +97,8 @@ def test_unmaskingInvertsMasking(data_field_flagger):
     unmasking data should invert the masking
     """
     data_in, field, flagger = data_field_flagger
-    data_masked, mask = _maskData(data_in, flagger, columns=[field], to_mask=flagger.BAD)
-    data_out = _unmaskData(data_in, mask, data_masked, flagger, to_mask=flagger.BAD)
+    data_masked, mask = _maskData(data_in, flagger, columns=[field], to_mask=BAD)
+    data_out = _unmaskData(data_in, mask, data_masked, flagger, to_mask=BAD)
     assert data_in.to_df().equals(data_out.to_df())
 
 

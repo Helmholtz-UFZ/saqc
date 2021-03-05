@@ -16,6 +16,7 @@ from saqc.funcs.drift import correctOffset
 from saqc.funcs.interpolation import interpolateByRolling, interpolateInvalid, interpolateIndex
 from saqc.funcs.resampling import resample
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
+from saqc.common import *
 
 from test.common import TESTFLAGGER
 
@@ -27,13 +28,13 @@ def test_rollingInterpolateMissing(course_5, flagger):
     data = dios.DictOfSeries(data)
     flagger = flagger.initFlags(data)
     dataInt, *_ = interpolateByRolling(
-        data, field, flagger, 3, func=np.median, center=True, min_periods=0, interpol_flag="UNFLAGGED"
+        data, field, flagger, 3, func=np.median, center=True, min_periods=0, interpol_flag=UNFLAGGED
     )
     # import pdb
     # pdb.set_trace()
     assert dataInt[field][characteristics["missing"]].notna().all()
     dataInt, *_ = interpolateByRolling(
-        data, field, flagger, 3, func=np.nanmean, center=False, min_periods=3, interpol_flag="UNFLAGGED"
+        data, field, flagger, 3, func=np.nanmean, center=False, min_periods=3, interpol_flag=UNFLAGGED
     )
     assert dataInt[field][characteristics["missing"]].isna().all()
 

@@ -7,6 +7,7 @@ from typing_extensions import Literal
 import numpy as np
 import pandas as pd
 
+from saqc.common import *
 from saqc.core.modules.base import ModuleBase
 
 
@@ -30,9 +31,9 @@ class Interpolation(ModuleBase):
             method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
             inter_order: int = 2,
             inter_limit: int = 2,
-            interpol_flag: Any = "UNFLAGGED",
+            interpol_flag: float = UNFLAGGED,
             downgrade_interpolation: bool = False,
-            not_interpol_flags: Optional[Union[Any, Sequence[Any]]] = None,
+            not_interpol_flags: Optional[Union[float, Sequence[float]]] = None,
             **kwargs
     ):
         return self.defer("interpolateInvalid", locals())
@@ -59,7 +60,7 @@ class Interpolation(ModuleBase):
             method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
             inter_order: int = 2,
             inter_limit: int = 2,
-            interpol_flag: Any = "UNFLAGGED",
+            interpol_flag: float = UNFLAGGED,
             downgrade_interpolation: bool = False,
             not_interpol_flags: Optional[Union[Any, Sequence[Any]]] = None,
             **kwargs

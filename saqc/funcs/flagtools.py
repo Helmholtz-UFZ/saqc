@@ -16,7 +16,7 @@ import warnings
 
 @register(masking='field', module="flagtools")
 def forceFlags(
-        data: DictOfSeries, field: ColumnName, flagger: Flagger, flag: float, **kwargs
+        data: DictOfSeries, field: ColumnName, flagger: Flagger, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
     Set whole column to a flag value.
@@ -29,7 +29,7 @@ def forceFlags(
         columns name that holds the data
     flagger : Flagger
         flagger object
-    flag : float
+    flag : float, default BAD
         flag to set
     kwargs : dict
         unused
@@ -80,12 +80,10 @@ def clearFlags(data: DictOfSeries, field: ColumnName, flagger: Flagger, **kwargs
 
 @register(masking='field', module="flagtools")
 def flagUnflagged(
-        data: DictOfSeries, field: ColumnName, flagger: Flagger, flag: float, **kwargs
+        data: DictOfSeries, field: ColumnName, flagger: Flagger, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
-    Function sets the GOOD flag to all values flagged better then GOOD.
-    If there is an entry 'flag' in the kwargs dictionary passed, the
-    function sets the kwargs['flag'] flag to all values flagged better kwargs['flag']
+    Function sets a flag at all unflagged positions.
 
     Parameters
     ----------
@@ -95,7 +93,7 @@ def flagUnflagged(
         The fieldname of the column, holding the data-to-be-flagged.
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
-    flag : float
+    flag : float, default BAD
         flag value to set, has NO default
     kwargs : Dict
         unused
@@ -118,9 +116,9 @@ def flagUnflagged(
 
 
 @register(masking='field', module="flagtools")
-def flagGood(data: DictOfSeries, field: ColumnName, flagger: Flagger, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flagGood(data: DictOfSeries, field: ColumnName, flagger: Flagger, flag=BAD, **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
-    Function sets the GOOD flag to all values flagged better then GOOD.
+    Function sets the GOOD flag at all unflagged positions.
 
     Parameters
     ----------

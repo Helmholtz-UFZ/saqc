@@ -163,7 +163,7 @@ def assignChangePointCluster(
         reduction window. Second input parameter holds the result from the thresh_func evaluation.
         The default reduction function just selects the value that maximizes the stat_func.
     flag_changepoints : bool, default False
-        If true, the points, where there is a change in data modelling regime detected get flagged bad.
+        If true, the points, where there is a change in data modelling regime detected get flagged BAD.
     model_by_resids : bool, default False
         If True, the data is replaced by the stat_funcs results instead of regime labels.
     assign_cluster : bool, default True

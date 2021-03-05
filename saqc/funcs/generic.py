@@ -21,7 +21,7 @@ _OP = {'<': op.lt, '<=': op.le, '==': op.eq, '!=': op.ne, '>': op.gt, '>=': op.g
 
 
 def _dslIsFlagged(
-        flagger: Flagger, var: pd.Series, flag: Any = None, comparator: str = ">="
+        flagger: Flagger, var: pd.Series, flag: float = UNFLAGGED, comparator: str = ">"
 ) -> Union[pd.Series, DictOfSeries]:
     """
     helper function for `flag`
@@ -187,10 +187,11 @@ def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Se
     >>> lambda level: isflagged(level)
 
     You can furthermore specify a flagging level, you want to compare the flags to. For example, for flagging
-    'temperature', if 'level' is flagged at a level named 'doubtfull' or worse, use:
+    'temperature', if 'level' is flagged at a level named DOUBTFUL or worse, use:
 
-    >>> lambda level: isflagged(level, flag='doubtfull', comparator='<=')
+    >>> lambda level: isflagged(level, flag=DOUBTFUL, comparator='>')
 
+    # TODO : fix text
     If you are unsure about the used flaggers flagging level names, you can use the reserved key words BAD, UNFLAGGED
     and GOOD, to refer to the worst (BAD), best(GOOD) or unflagged (UNFLAGGED) flagging levels. For example.
 

@@ -52,9 +52,8 @@ def interpolateByRolling(
     min_periods : int
         Minimum number of valid (not np.nan) values that have to be available in a window for its aggregation to be
         computed.
-    flag : float, default 0
+    flag : float, default UNFLAGGED
         Flag that is to be inserted for the interpolated values. If ``None`` no flags are set.
-        Defaults to ``0`` aka. ``UNFLAGGED``.
 
     Returns
     -------
@@ -127,9 +126,8 @@ def interpolateInvalid(
         order.
     inter_limit : int, default 2
         Maximum number of consecutive 'nan' values allowed for a gap to be interpolated.
-    flag : float or None, default 0
+    flag : float or None, default UNFLAGGED
         Flag that is to be inserted for the interpolated values. If ``None`` no flags are set.
-        Defaults to ``0`` aka. ``UNFLAGGED``.
     downgrade_interpolation : bool, default False
         If interpolation can not be performed at `inter_order`, because not enough values are present or the order
         is not implemented for the passed method, automatically try to interpolate at ``inter_order-1``.

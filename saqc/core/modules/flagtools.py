@@ -8,6 +8,7 @@ import pandas as pd
 
 from dios.dios import DictOfSeries
 from saqc.core.modules.base import ModuleBase
+from saqc.common import *
 
 
 class FlagTools(ModuleBase):
@@ -15,7 +16,7 @@ class FlagTools(ModuleBase):
     def clearFlags(self, field: str, **kwargs):
         return self.defer("clearFlags", locals())
 
-    def forceFlags(self, field: str, flag: Any, **kwargs):
+    def forceFlags(self, field: str, flag: float = BAD, **kwargs):
         return self.defer("forceFlags", locals())
 
     def flagDummy(self, field: str, **kwargs):
@@ -24,10 +25,10 @@ class FlagTools(ModuleBase):
     def flagForceFail(self, field: str, **kwargs):
         return self.defer("flagForceFail", locals())
 
-    def flagUnflagged(self, field: str, flag: Optional[Any] = None, **kwargs):
+    def flagUnflagged(self, field: str, flag: float = BAD, **kwargs):
         return self.defer("flagUnflagged", locals())
 
-    def flagGood(self, field: str, flag: Optional[Any] = None, **kwargs):
+    def flagGood(self, field: str, flag: float = BAD, **kwargs):
         return self.defer("flagGood", locals())
 
     def flagManual(

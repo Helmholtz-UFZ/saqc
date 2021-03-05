@@ -394,7 +394,7 @@ def correctExponentialDrift(
         The number of values the mean is computed over, for obtaining the value level directly after and
         directly before maintenance event. This values are needed for shift calibration. (see above description)
     flag_maint_period : bool, default False
-        Wheather or not to flag BAD the values directly obtained while maintenance.
+        Whether or not to flag the values obtained while maintenance.
 
     Returns
     -------

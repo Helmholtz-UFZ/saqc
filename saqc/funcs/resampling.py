@@ -363,7 +363,7 @@ def _shift(
         freq: str,
         method: Literal["fshift", "bshift", "nshift"]="nshift",
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
-        empty_intervals_flag: Optional[str]=None,
+        empty_intervals_flag: float = UNFLAGGED,
         freq_check: Optional[Literal["check", "auto"]]=None,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
@@ -393,9 +393,8 @@ def _shift(
     method: {'fshift', 'bshift', 'nshift'}, default 'nshift'
         Specifies if datapoints get propagated forwards, backwards or to the nearest grid timestamp. See function
         description for more details.
-    empty_intervals_flag : {None, str}, default None
-        A Flag, that you want to assign to grid points, where no values are avaible to be shifted to.
-        Default triggers UNFLAGGED to be assigned.
+    empty_intervals_flag : float, default UNFLAGGED
+        The Flag, that is assigned to grid points, if no values are available to be shifted to.
     to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before shifting - effectively, excluding values that are flagged
         with a flag in to_drop from the shifting process. Default - to_drop = None  - results in BAD
@@ -419,9 +418,6 @@ def _shift(
     data = data.copy()
     datcol = data[field]
     flagscol = flagger[field]
-
-    if empty_intervals_flag is None:
-        empty_intervals_flag = UNFLAGGED
 
     drop_mask = getDropMask(field, to_drop, flagger, BAD)
     drop_mask |= datcol.isna()
@@ -470,7 +466,7 @@ def resample(
         max_invalid_consec_f: Optional[int]=None,
         max_invalid_total_f: Optional[int]=None,
         flag_agg_func: Callable[[pd.Series], float]=max,
-        empty_intervals_flag: Optional[Any]=None,
+        empty_intervals_flag: float = BAD,
         to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         all_na_2_empty: bool=False,
         freq_check: Optional[Literal["check", "auto"]]=None,
@@ -528,15 +524,14 @@ def resample(
         Also this is the flag assigned to invalid/empty intervals.
     max_invalid_consec_f : {None, int}, default None
         Same as `max_invalid_total_f`, only applying onto flags. The flag regarded as "invalid" value, is the one passed
-        to empty_intervals_flag (default=BAD). Also this is the flag assigned to invalid/empty intervals.
+        to empty_intervals_flag. Also this is the flag assigned to invalid/empty intervals.
     flag_agg_func : Callable, default: max
         The function you want to aggregate the flags with. It should be capable of operating on the flags dtype
         (usually ordered categorical).
-    empty_intervals_flag : {None, str}, default None
+    empty_intervals_flag : float, default BAD
         A Flag, that you want to assign to invalid intervals. Invalid are those intervals, that contain nan values only,
         or no values at all. Furthermore the empty_intervals_flag is the flag, serving as "invalid" identifyer when
-        checking for `max_total_invalid_f` and `max_consec_invalid_f patterns`. Default triggers ``BAD`` to be
-        assigned.
+        checking for `max_total_invalid_f` and `max_consec_invalid_f patterns`.
     to_drop : {None, str, List[str]}, default None
         Flags that refer to values you want to drop before resampling - effectively excluding values that are flagged
         with a flag in to_drop from the resampling process - this means that they also will not be counted in the
@@ -561,8 +556,6 @@ def resample(
     data = data.copy()
     datcol = data[field]
     flagscol = flagger[field]
-    if empty_intervals_flag is None:
-        empty_intervals_flag = BAD
 
     drop_mask = getDropMask(field, to_drop, flagger, [])
     datcol.drop(datcol[drop_mask].index, inplace=True)
