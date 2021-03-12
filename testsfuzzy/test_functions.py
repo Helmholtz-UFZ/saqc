@@ -1,14 +1,12 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from saqc.core.register import FUNC_MAP
 
 from hypothesis import given, settings
-from hypothesis.strategies import (
-    data,
-)
+from hypothesis.strategies import data
 
-from test.common import MAX_EXAMPLES, functionKwargs
+from saqc.core.register import FUNC_MAP
+from testsfuzzy.init import MAX_EXAMPLES, functionKwargs
 
 
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
@@ -23,12 +21,15 @@ def callWontBreak(drawer, func_name: str):
 # ------
 
 # NOTE:
-# needs a more alaborated test, as it calls into
+# needs a more elaborated test, as it calls into
 # `changepoints.assignChangePointClusters`
-# def test_breaks_flagJumps():
-#     callWontBreak("breaks.flagJumps")
-# def test_breaks_flagIsolated():
-#     callWontBreak("breaks.flagIsolated")
+def test_breaks_flagJumps():
+    callWontBreak("breaks.flagJumps")
+
+
+def test_breaks_flagIsolated():
+    callWontBreak("breaks.flagIsolated")
+
 
 def test_breaks_flagMissing():
     callWontBreak("breaks.flagMissing")
@@ -40,6 +41,7 @@ def test_breaks_flagMissing():
 def test_constats_flagConstats():
     callWontBreak("constants.flagConstants")
 
+
 def test_constants_flagByVariance():
     callWontBreak("constants.flagByVariance")
 
@@ -50,48 +52,58 @@ def test_constants_flagByVariance():
 def test_flagtools_clearFlags():
     callWontBreak("flagtools.clearFlags")
 
+
 def test_flagtools_forceFlags():
     callWontBreak("flagtools.clearFlags")
+
 
 # NOTE:
 # all of the following tests fail to sample data for `flag=typing.Any`
 # with the new flagger in place this should be easy to fix
-# def test_flagtools_flagGood():
-#     callWontBreak("flagtools.flagGood")
+def test_flagtools_flagGood():
+    callWontBreak("flagtools.flagGood")
 
-# def test_flagtools_flagUnflagged():
-#     callWontBreak("flagtools.flagUnflagged")
 
-# def test_flagtools_flagManual():
-#     callWontBreak("flagtools.flagManual")
+def test_flagtools_flagUnflagged():
+    callWontBreak("flagtools.flagUnflagged")
+
+
+def test_flagtools_flagManual():
+    callWontBreak("flagtools.flagManual")
 
 
 # outliers
 # --------
 
 # NOTE: needs a more elaborated test, I guess
-# def test_outliers_flagByStray():
-#     callWontBreak("outliers.flagByStray")
+def test_outliers_flagByStray():
+    callWontBreak("outliers.flagByStray")
+
 
 # NOTE: fails in a strategy, maybe `Sequence[ColumnName]`
-# def test_outliers_flagMVScores():
-#     callWontBreak("outliers.flagMVScores")
+def test_outliers_flagMVScores():
+    callWontBreak("outliers.flagMVScores")
+
 
 # NOTE:
 # fails as certain combinations of frquency strings don't make sense
 # a more elaborate test is needed
-# def test_outliers_flagRaise():
-#     callWontBreak("outliers.flagRaise")
+def test_outliers_flagRaise():
+    callWontBreak("outliers.flagRaise")
+
 
 def test_outliers_flagMAD():
     callWontBreak("outliers.flagMAD")
 
+
 def test_outliers_flagByGrubbs():
     callWontBreak("outliers.flagByGrubbs")
+
 
 def test_outliers_flagRange():
     callWontBreak("outliers.flagRange")
 
+
 # NOTE: fails in a strategy, maybe `Sequence[ColumnName]`
-# def test_outliers_flagCrossStatistic():
-#     callWontBreak("outliers.flagCrossStatistic")
+def test_outliers_flagCrossStatistic():
+    callWontBreak("outliers.flagCrossStatistic")

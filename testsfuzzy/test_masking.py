@@ -16,7 +16,7 @@ from saqc.common import *
 from saqc.flagger import Flagger, initFlagsLike
 from saqc.core.register import _maskData, _unmaskData
 
-from test.common import dataFieldFlagger, MAX_EXAMPLES
+from testsfuzzy.init import dataFieldFlagger, MAX_EXAMPLES
 
 
 logging.disable(logging.CRITICAL)
