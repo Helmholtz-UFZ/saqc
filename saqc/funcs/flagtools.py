@@ -75,6 +75,10 @@ def clearFlags(data: DictOfSeries, field: ColumnName, flagger: Flagger, **kwargs
     forceFlags : set whole column to a flag value
     flagUnflagged : set flag value at all unflagged positions
     """
+    if 'flag' in kwargs:
+        flag = kwargs.pop('flag')
+        warnings.warn(f'`flag={flag}` is ignored here.')
+
     return forceFlags(data, field, flagger, flag=UNFLAGGED, **kwargs)
 
 
