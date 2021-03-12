@@ -6,9 +6,9 @@ import pandas as pd
 import dios
 
 from saqc.common import *
-from saqc.flagger import Flagger, initFlagsLike
+from saqc.flagger import initFlagsLike
 from saqc.funcs.pattern import *
-from test.common import initData
+from tests.common import initData
 
 
 @pytest.fixture

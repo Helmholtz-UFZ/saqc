@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # see test/functs/fixtures.py for global fixtures "course_..."
-import pytest
-import numpy as np
-import pandas as pd
 import dios
-from test.fixtures import *
+from tests.fixtures import *
 
 from saqc.funcs.outliers import (
     flagMAD,
@@ -16,7 +13,7 @@ from saqc.funcs.outliers import (
     flagByGrubbs,
 )
 from saqc.common import *
-from saqc.flagger import Flagger, initFlagsLike
+from saqc.flagger import initFlagsLike
 
 
 @pytest.fixture(scope="module")

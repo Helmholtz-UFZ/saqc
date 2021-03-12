@@ -7,7 +7,7 @@ from pandas.api.types import is_bool_dtype
 
 import dios
 
-from test.common import TESTFLAGGER, initData
+from tests.common import TESTFLAGGER, initData
 
 
 pytestmark = pytest.mark.skip('old flagger tests - rewrite needed')

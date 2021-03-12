@@ -8,7 +8,7 @@ from saqc.common import *
 from saqc.funcs.constants import flagConstants, flagByVariance
 from saqc.flagger import initFlagsLike
 
-from test.common import initData
+from tests.common import initData
 
 
 @pytest.fixture

@@ -6,7 +6,7 @@ from hypothesis import given, settings
 from hypothesis.strategies import data, from_type
 
 from saqc.core.register import FUNC_MAP
-from testsfuzzy.init import MAX_EXAMPLES, functionKwargs
+from tests.fuzzy.init import MAX_EXAMPLES, functionKwargs
 
 
 @settings(max_examples=MAX_EXAMPLES, deadline=None)

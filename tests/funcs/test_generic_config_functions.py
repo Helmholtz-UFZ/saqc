@@ -15,7 +15,7 @@ from saqc.core.register import register
 from saqc.funcs.generic import _execGeneric
 from saqc import SaQC
 
-from test.common import TESTNODATA, initData, writeIO
+from tests.common import TESTNODATA, initData, writeIO
 
 
 @pytest.fixture

@@ -6,17 +6,12 @@ import logging
 import pandas as pd
 
 from hypothesis import given, settings
-from hypothesis.strategies import (
-    sampled_from,
-    composite,
-    sampled_from,
-)
 
 from saqc.common import *
-from saqc.flagger import Flagger, initFlagsLike
+from saqc.flagger import Flagger
 from saqc.core.register import _maskData, _unmaskData
 
-from testsfuzzy.init import dataFieldFlagger, MAX_EXAMPLES
+from tests.fuzzy.init import dataFieldFlagger, MAX_EXAMPLES
 
 
 logging.disable(logging.CRITICAL)

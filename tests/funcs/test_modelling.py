@@ -4,16 +4,13 @@
 
 # see test/functs/fixtures.py for global fixtures "course_..."
 
-import pytest
-import numpy as np
-import pandas as pd
 import dios
 
 from saqc.funcs.tools import mask
 from saqc.funcs.residues import calculatePolynomialResidues, calculateRollingResidues
 
-from test.fixtures import *
-from test.common import TESTFLAGGER
+from tests.fixtures import *
+from tests.common import TESTFLAGGER
 
 TF = TESTFLAGGER[:1]
 

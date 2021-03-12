@@ -1,13 +1,10 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pytest
-import pandas as pd
-import numpy as np
 import dios
 
 from saqc.common import *
-from saqc.flagger import Flagger, initFlagsLike
+from saqc.flagger import initFlagsLike
 from saqc.funcs.drift import flagDriftFromNorm, flagDriftFromReference, flagDriftFromScaledNorm
 from saqc.funcs.outliers import flagCrossStatistic, flagRange
 from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
@@ -15,8 +12,8 @@ from saqc.funcs.tools import drop, copy, mask
 from saqc.funcs.resampling import reindexFlags
 from saqc.funcs.breaks import flagIsolated
 
-from test.fixtures import *
-from test.common import initData
+from tests.fixtures import *
+from tests.common import initData
 
 
 @pytest.fixture

@@ -11,7 +11,7 @@ from saqc.core.config import Fields as F
 from saqc.core.core import SaQC
 from saqc.core.register import FUNC_MAP, register
 
-from test.common import initData, writeIO
+from tests.common import initData, writeIO
 
 
 @pytest.fixture

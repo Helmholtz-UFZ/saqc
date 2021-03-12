@@ -4,9 +4,6 @@
 
 # see test/functs/fixtures.py for global fixtures "course_..."
 
-import pytest
-import numpy as np
-import pandas as pd
 import dios
 
 from saqc.common import *
@@ -16,8 +13,8 @@ from saqc.funcs.interpolation import interpolateByRolling, interpolateInvalid, i
 from saqc.funcs.resampling import resample
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
 
-from test.fixtures import *
-from test.common import TESTFLAGGER
+from tests.fixtures import *
+from tests.common import TESTFLAGGER
 
 
 @pytest.mark.parametrize("flagger", TESTFLAGGER)

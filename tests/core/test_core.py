@@ -7,12 +7,12 @@ import numpy as np
 import pandas as pd
 
 from saqc.common import *
-from saqc.flagger import Flagger, initFlagsLike
+from saqc.flagger import initFlagsLike
 from saqc.funcs import flagRange
 from saqc.lib import plotting as splot
 from saqc import SaQC, register
 
-from test.common import initData, flagAll
+from tests.common import initData, flagAll
 
 # no logging output needed here
 # -> can this be configured on the test runner level?

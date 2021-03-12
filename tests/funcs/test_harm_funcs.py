@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import dios
 
-from test.common import TESTFLAGGER
+from tests.common import TESTFLAGGER
 
 from saqc.funcs.resampling import (
     linear,
