@@ -4,9 +4,11 @@
 import pytest
 import numpy as np
 
+from saqc.common import *
 from saqc.funcs.constants import flagConstants, flagByVariance
+from saqc.flagger import initFlagsLike
 
-from test.common import initData, initFlagsLike, BAD
+from test.common import initData
 
 
 @pytest.fixture

@@ -2,22 +2,21 @@
 # -*- coding: utf-8 -*-
 
 
-# see test/functs/conftest.py for global fixtures "course_..."
+# see test/functs/fixtures.py for global fixtures "course_..."
 
 import pytest
 import numpy as np
 import pandas as pd
 import dios
 
-from saqc.funcs.transformation import (
-    transform
-)
+from saqc.common import *
+from saqc.funcs.transformation import transform
 from saqc.funcs.drift import correctOffset
 from saqc.funcs.interpolation import interpolateByRolling, interpolateInvalid, interpolateIndex
 from saqc.funcs.resampling import resample
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
-from saqc.common import *
 
+from test.fixtures import *
 from test.common import TESTFLAGGER
 
 

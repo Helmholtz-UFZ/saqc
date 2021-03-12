@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
-# see test/functs/conftest.py for global fixtures "course_..."
+# see test/functs/fixtures.py for global fixtures "course_..."
 import pytest
-
 import numpy as np
 import pandas as pd
 import dios

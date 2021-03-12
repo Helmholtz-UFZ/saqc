@@ -2,19 +2,18 @@
 # -*- coding: utf-8 -*-
 
 
-# see test/functs/conftest.py for global fixtures "course_..."
+# see test/functs/fixtures.py for global fixtures "course_..."
 
 import pytest
-
 import numpy as np
 import pandas as pd
 import dios
 
-from test.common import TESTFLAGGER
-
-
 from saqc.funcs.tools import mask
 from saqc.funcs.residues import calculatePolynomialResidues, calculateRollingResidues
+
+from test.fixtures import *
+from test.common import TESTFLAGGER
 
 TF = TESTFLAGGER[:1]
 
@@ -45,8 +44,8 @@ def test_modelling_rollingMean_forRegular(dat, flagger):
     data, _ = dat(freq="10min", periods=30, initial_level=0, final_level=100, out_val=-100)
     data = dios.DictOfSeries(data)
     flagger = flagger.initFlags(data)
-    calculateRollingResidues(data, "data", flagger, 5,  func=np.mean, eval_flags=True, min_periods=0, center=True)
-    calculateRollingResidues(data, "data", flagger, 5,  func=np.mean, eval_flags=True, min_periods=0, center=False)
+    calculateRollingResidues(data, "data", flagger, 5, func=np.mean, eval_flags=True, min_periods=0, center=True)
+    calculateRollingResidues(data, "data", flagger, 5, func=np.mean, eval_flags=True, min_periods=0, center=False)
 
 
 @pytest.mark.parametrize("flagger", TF)

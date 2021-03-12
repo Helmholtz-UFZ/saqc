@@ -4,12 +4,13 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from saqc import BAD, UNFLAGGED
+from saqc.common import *
+from saqc.flagger.flags import Flags
+
 from test.flagger.test_history import (
     History,
     is_equal as hist_equal,
 )
-from saqc.flagger.flags import Flags
 
 _data = [
 
@@ -181,11 +182,17 @@ def test_set_flags_with_mask(data: np.array):
         assert all(flags[c].loc[mask] == 444.)
         assert all(flags[c].loc[~mask] != 444.)
 
-        # test length miss-match
-        if len(vector):
-            vector = vector[:-1]
+        # test length miss-match (mask)
+        if len(mask) > 1:
+            wrong_len = mask[:-1]
             with pytest.raises(ValueError):
-                flags[mask, c] = vector
+                flags[wrong_len, c] = vector
+
+        # test length miss-match (value)
+        if len(vector) > 1:
+            wrong_len = vector[:-1]
+            with pytest.raises(ValueError):
+                flags[mask, c] = wrong_len
 
 
 @pytest.mark.parametrize('data', data)
@@ -214,6 +221,12 @@ def test_set_flags_with_index(data: np.array):
         flags[index, c] = vector
         assert all(flags[c].loc[mask] == 444.)
         assert all(flags[c].loc[~mask] != 444.)
+
+        # test length miss-match (value)
+        if len(vector) > 1:
+            wrong_len = vector[:-1]
+            with pytest.raises(ValueError):
+                flags[index, c] = wrong_len
 
 
 def test_cache():

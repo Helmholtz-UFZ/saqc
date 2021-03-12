@@ -14,7 +14,9 @@ from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
 from saqc.funcs.tools import drop, copy, mask
 from saqc.funcs.resampling import reindexFlags
 from saqc.funcs.breaks import flagIsolated
-from test.common import initData, TESTFLAGGER
+
+from test.fixtures import *
+from test.common import initData
 
 
 @pytest.fixture
@@ -37,7 +39,6 @@ def test_flagRange(data, field):
 
 
 def test_flagSesonalRange(data, field):
-    # prepare
     data.iloc[::2] = 0
     data.iloc[1::2] = 50
     nyears = len(data[field].index.year.unique())
@@ -84,27 +85,35 @@ def test_forceFlags(data, field):
     assert all(flagger[field] == DOUBT)
 
 
-# TODO: @luenensc: i dont get the test -- palmb
 def test_flagIsolated(data, field):
     flagger = initFlagsLike(data)
 
     data.iloc[1:3, 0] = np.nan
     data.iloc[4:5, 0] = np.nan
+    flagger[data[field].index[5:6], field] = BAD
     data.iloc[11:13, 0] = np.nan
     data.iloc[15:17, 0] = np.nan
 
-    s = data[field].iloc[5:6]
-    flagger[s.index, field] = BAD
+    #              data  flags
+    # 2016-01-01   0.0   -inf
+    # 2016-01-02   NaN   -inf
+    # 2016-01-03   NaN   -inf
+    # 2016-01-04   3.0   -inf
+    # 2016-01-05   NaN   -inf
+    # 2016-01-06   5.0  255.0
+    # 2016-01-07   6.0   -inf
+    # 2016-01-08   7.0   -inf
+    #         ..    ..     ..
 
     _, flagger_result = flagIsolated(data, field, flagger, group_window="1D", gap_window="2.1D", flag=BAD)
 
-    assert flagger_result[field][slice(3, 6, 2)].all()
+    assert flagger_result[field].iloc[[3, 5]].all()
 
     data, flagger_result = flagIsolated(
         data, field, flagger_result,
         group_window="2D", gap_window="2.1D", continuation_range="1.1D", flag=BAD
     )
-    assert flagger_result[field][[3, 5, 13, 14]].all()
+    assert flagger_result[field].iloc[[3, 5, 13, 14]].all()
 
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])

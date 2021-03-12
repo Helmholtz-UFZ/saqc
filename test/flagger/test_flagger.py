@@ -10,6 +10,9 @@ import dios
 from test.common import TESTFLAGGER, initData
 
 
+pytestmark = pytest.mark.skip('old flagger tests - rewrite needed')
+
+
 def _getDataset(rows, cols):
     return initData(cols=cols, rows=rows, start_date="2011-01-01", end_date="2011-01-10")
 

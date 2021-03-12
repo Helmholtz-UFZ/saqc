@@ -2,10 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-
 import pandas as pd
-
-from dios import dios
+import dios
 
 from saqc.common import *
 from saqc.flagger import Flagger, initFlagsLike

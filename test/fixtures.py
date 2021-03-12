@@ -5,6 +5,11 @@ import pandas as pd
 from dios import DictOfSeries
 
 
+# TODO: this is odd
+#  Why not simple fixtures with talking-names,
+#  that also take parameter, if needed
+
+
 @pytest.fixture
 def char_dict():
     return {
@@ -18,10 +23,13 @@ def char_dict():
 
 @pytest.fixture
 def course_1(char_dict):
-    # MONOTONOUSLY ASCENDING/DESCENDING
-    # values , that monotonously ascend towards a peak level, and thereafter do monotonously decrease
-    # the resulting drop/raise per value equals:  (peak_level - initial_level) / (0.5*(periods-2))
-    # periods number better be even!
+    """
+    MONOTONOUSLY ASCENDING/DESCENDING
+
+    values , that monotonously ascend towards a peak level, and thereafter do monotonously decrease
+    the resulting drop/raise per value equals:  (peak_level - initial_level) / (0.5*(periods-2))
+    periods number better be even!
+    """
     def fix_funk(
             freq="10min",
             periods=10,
@@ -48,10 +56,14 @@ def course_1(char_dict):
 
 @pytest.fixture
 def course_2(char_dict):
+    """
+    SINGLE_SPIKE
+
+    values , that linearly  develop over the whole timeseries, from "initial_level" to "final_level", exhibiting
+    one "anomalous" or "outlierish" value of magnitude "out_val" at position "periods/2"
+    number of periods better be even!
+    """
     # SINGLE_SPIKE
-    # values , that linearly  develop over the whole timeseries, from "initial_level" to "final_level", exhibiting
-    # one "anomalous" or "outlierish" value of magnitude "out_val" at position "periods/2"
-    # number of periods better be even!
     def fix_funk(
             freq="10min",
             periods=10,
@@ -83,7 +95,11 @@ def course_2(char_dict):
 
 @pytest.fixture
 def course_test(char_dict):
-    # Test function for pattern detection - same as test pattern for first three values, than constant function
+    """
+    Test function for pattern detection
+
+    same as test pattern for first three values, than constant function
+    """
     def fix_funk(freq='1 D',
                  initial_index=pd.Timestamp(2000, 1, 1, 0, 0, 0), out_val=5, char_dict=char_dict):
         t_index = pd.date_range(initial_index, freq=freq, periods=100)
@@ -100,13 +116,16 @@ def course_test(char_dict):
 
 @pytest.fixture
 def course_3(char_dict):
-    # CROWD IN A PIT/CROWD ON A SUMMIT
-    # values , that linearly  develop over the whole timeseries, from "initial_level" to "final_level", exhibiting
-    # a "crowd" of "anomalous" or "outlierish" values of magnitude "out_val".
-    # The "crowd/group" of anomalous values starts at position "periods/2" and continues with an additional amount
-    # of "crowd_size" values, that are each spaced "crowd_spacing" minutes from there predecessors.
-    # number of periods better be even!
-    # chrowd_size * crowd_spacing better be less then freq[minutes].
+    """
+    CROWD IN A PIT/CROWD ON A SUMMIT
+
+    values , that linearly  develop over the whole timeseries, from "initial_level" to "final_level", exhibiting
+    a "crowd" of "anomalous" or "outlierish" values of magnitude "out_val".
+    The "crowd/group" of anomalous values starts at position "periods/2" and continues with an additional amount
+    of "crowd_size" values, that are each spaced "crowd_spacing" minutes from there predecessors.
+    number of periods better be even!
+    chrowd_size * crowd_spacing better be less then freq[minutes].
+    """
     def fix_funk(
             freq="10min",
             periods=10,
@@ -148,9 +167,13 @@ def course_3(char_dict):
 
 @pytest.fixture
 def course_4(char_dict):
-    # TEETH (ROW OF SPIKES) values , that remain on value level "base_level" and than begin exposing an outlierish or
-    # spikey value of magnitude "out_val" every second timestep, starting at periods/2, with the first spike. number
-    # of periods better be even!
+    """
+    TEETH (ROW OF SPIKES) values
+
+    , that remain on value level "base_level" and than begin exposing an outlierish or
+    spikey value of magnitude "out_val" every second timestep, starting at periods/2, with the first spike. number
+    of periods better be even!
+    """
 
     def fix_funk(
             freq="10min",
@@ -174,11 +197,14 @@ def course_4(char_dict):
 
 @pytest.fixture
 def course_5(char_dict):
-    # NAN_holes
-    # values , that ascend from initial_level to final_level linearly and have missing data(=nan)
-    # at posiiotns "nan_slice", (=a slice or a list, for iloc indexing)
-    # periods better be even!
-    # periods better be greater 5
+    """
+    NAN_holes
+
+    values , that ascend from initial_level to final_level linearly and have missing data(=nan)
+    at positions "nan_slice", (=a slice or a list, for iloc indexing)
+    periods better be even!
+    periods better be greater 5
+    """
 
     def fix_funk(
             freq="10min",

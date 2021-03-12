@@ -3,6 +3,7 @@
 import pytest
 import numpy as np
 import pandas as pd
+
 from saqc.flagger.history import History
 
 # see #GH143 combined backtrack

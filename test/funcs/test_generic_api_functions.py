@@ -8,10 +8,11 @@ import pandas as pd
 
 from saqc.common import *
 from saqc.core.register import register
-from saqc import SaQC
 from saqc.funcs.tools import mask
+from saqc import SaQC
 
 from test.common import initData, flagAll
+
 
 register(masking='field')(flagAll)
 

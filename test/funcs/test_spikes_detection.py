@@ -1,11 +1,12 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# see test/functs/conftest.py for global fixtures "course_..."
+# see test/functs/fixtures.py for global fixtures "course_..."
 import pytest
 import numpy as np
 import pandas as pd
 import dios
+from test.fixtures import *
 
 from saqc.funcs.outliers import (
     flagMAD,
@@ -14,8 +15,6 @@ from saqc.funcs.outliers import (
     flagMVScores,
     flagByGrubbs,
 )
-
-from test.common import TESTFLAGGER
 from saqc.common import *
 from saqc.flagger import Flagger, initFlagsLike
 
@@ -50,7 +49,7 @@ def test_flagSpikesBasic(spiky_data):
     assert test_sum == len(spiky_data[1])
 
 
-# see test/functs/conftest.py for the 'course_N'
+# see test/functs/fixtures.py for the 'course_N'
 @pytest.mark.parametrize(
     "dat",
     [
@@ -73,7 +72,7 @@ def test_flagSpikesLimitRaise(dat):
     assert not np.any(flagger_result[field][characteristics["drop"]] > UNFLAGGED)
 
 
-# see test/functs/conftest.py for the 'course_N'
+# see test/functs/fixtures.py for the 'course_N'
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
 def test_flagMultivarScores(dat):
     data1, characteristics = dat(periods=1000, initial_level=5, final_level=15, out_val=50)
