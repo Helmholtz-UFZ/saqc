@@ -2,22 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import ast
-
 import pytest
 import numpy as np
 import pandas as pd
-
-from dios import DictOfSeries
-
-from test.common import TESTFLAGGER, TESTNODATA, initData, writeIO
+import dios
 
 from saqc.common import *
 from saqc.flagger import Flagger, initFlagsLike
 from saqc.core.visitor import ConfigFunctionParser
 from saqc.core.config import Fields as F
 from saqc.core.register import register
-from saqc import SaQC
 from saqc.funcs.generic import _execGeneric
+from saqc import SaQC
+
+from test.common import TESTNODATA, initData, writeIO
 
 
 @pytest.fixture
@@ -32,7 +30,7 @@ def data_diff():
     col1 = data[data.columns[1]]
     mid = len(col0) // 2
     offset = len(col0) // 8
-    return DictOfSeries(data={col0.name: col0.iloc[: mid + offset], col1.name: col1.iloc[mid - offset :],})
+    return dios.DictOfSeries(data={col0.name: col0.iloc[: mid + offset], col1.name: col1.iloc[mid - offset :],})
 
 
 def _compileGeneric(expr, flagger):
@@ -41,8 +39,8 @@ def _compileGeneric(expr, flagger):
     return kwargs["func"]
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_missingIdentifier(data, flagger):
+def test_missingIdentifier(data):
+    flagger = Flagger()
 
     # NOTE:
     # - the error is only raised at runtime during parsing would be better
@@ -57,9 +55,8 @@ def test_missingIdentifier(data, flagger):
             _execGeneric(flagger, data, func, field="", nodata=np.nan)
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_syntaxError(flagger):
-
+def test_syntaxError():
+    flagger = Flagger()
     tests = [
         "range(x=5",
         "rangex=5)",
@@ -106,8 +103,7 @@ def test_comparisonOperators(data):
         assert np.all(result == expected)
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_arithmeticOperators(data, flagger):
+def test_arithmeticOperators(data):
     flagger = initFlagsLike(data)
     var1, *_ = data.columns
     this = data[var1]
@@ -127,8 +123,7 @@ def test_arithmeticOperators(data, flagger):
         assert np.all(result == expected)
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_nonReduncingBuiltins(data, flagger):
+def test_nonReduncingBuiltins(data):
     flagger = initFlagsLike(data)
     var1, *_ = data.columns
     this = var1
@@ -147,10 +142,8 @@ def test_nonReduncingBuiltins(data, flagger):
         assert (result == expected).all()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("nodata", TESTNODATA)
-def test_reduncingBuiltins(data, flagger, nodata):
-
+def test_reduncingBuiltins(data, nodata):
     data.loc[::4] = nodata
     flagger = initFlagsLike(data)
     var1 = data.columns[0]
@@ -171,10 +164,10 @@ def test_reduncingBuiltins(data, flagger, nodata):
         assert result == expected
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("nodata", TESTNODATA)
-def test_ismissing(data, flagger, nodata):
+def test_ismissing(data, nodata):
 
+    flagger = initFlagsLike(data)
     data.iloc[: len(data) // 2, 0] = np.nan
     data.iloc[(len(data) // 2) + 1 :, 0] = -9999
     this = data.iloc[:, 0]
@@ -190,9 +183,8 @@ def test_ismissing(data, flagger, nodata):
         assert np.all(result == expected)
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("nodata", TESTNODATA)
-def test_bitOps(data, flagger, nodata):
+def test_bitOps(data, nodata):
     var1, var2, *_ = data.columns
     this = var1
 
@@ -220,14 +212,26 @@ def test_isflagged(data):
         (f"isflagged({var1})", flagger[var1] > UNFLAGGED),
         (f"isflagged({var1}, flag=BAD)", flagger[var1] >= BAD),
         (f"isflagged({var1}, UNFLAGGED, '==')", flagger[var1] == UNFLAGGED),
-        (f"~isflagged({var2})", ~(flagger[var2] > UNFLAGGED)),
-        (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & ~(flagger[var2] > UNFLAGGED)),
+        (f"~isflagged({var2})", flagger[var2] == UNFLAGGED),
+        (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & (flagger[var2] == UNFLAGGED)),
     ]
 
-    for test, expected in tests:
-        func = _compileGeneric(f"generic.flag(func={test}, flag=BAD)", flagger)
-        result = _execGeneric(flagger, data, func, field=None, nodata=np.nan)
-        assert np.all(result == expected)
+    for i, (test, expected) in enumerate(tests):
+        try:
+            func = _compileGeneric(f"generic.flag(func={test}, flag=BAD)", flagger)
+            result = _execGeneric(flagger, data, func, field=None, nodata=np.nan)
+            assert np.all(result == expected)
+        except Exception:
+            print(i, test)
+            raise
+
+    # test bad combination
+    for comp in ['>', '>=', '==', '!=', '<', '<=']:
+        fails = f"isflagged({var1}, comparator='{comp}')"
+
+        func = _compileGeneric(f"generic.flag(func={fails}, flag=BAD)", flagger)
+        with pytest.raises(ValueError):
+            _execGeneric(flagger, data, func, field=None, nodata=np.nan)
 
 
 def test_variableAssignments(data):
@@ -249,6 +253,7 @@ def test_variableAssignments(data):
     assert set(result_flagger.columns) == set(data.columns) | {"dummy1", "dummy2"}
 
 
+# TODO: why this must(!) fail ? - a comment would be helpful
 @pytest.mark.xfail(strict=True)
 def test_processMultiple(data_diff):
     var1, var2, *_ = data_diff.columns

@@ -21,13 +21,33 @@ _OP = {'<': op.lt, '<=': op.le, '==': op.eq, '!=': op.ne, '>': op.gt, '>=': op.g
 
 
 def _dslIsFlagged(
-        flagger: Flagger, var: pd.Series, flag: float = UNFLAGGED, comparator: str = ">"
+        flagger: Flagger, var: pd.Series, flag: float = None, comparator: str = None
 ) -> Union[pd.Series, DictOfSeries]:
     """
     helper function for `flag`
+
+    Param Combinations
+    ------------------
+    - ``isflagged('var')``              : show me (anything) flagged
+    - ``isflagged('var', DOUBT)``       : show me ``flags >= DOUBT``
+    - ``isflagged('var', DOUBT, '==')`` : show me ``flags == DOUBT``
+
+    Raises
+    ------
+    ValueError: if `comparator` is passed but no `flag` vaule. Eg. ``isflagged('var', comparator='>=')``
     """
-    comparison = _OP[comparator]
-    return comparison(flagger[var.name], flag)
+    if flag is None:
+        if comparator is not None:
+            raise ValueError('if `comparator` is used, explicitly pass a `flag` level.')
+        flag = UNFLAGGED
+        comparator = '>'
+
+    # default
+    if comparator is None:
+        comparator = '>='
+
+    _op = _OP[comparator]
+    return _op(flagger[var.name], flag)
 
 
 def _execGeneric(flagger: Flagger, data: DictOfSeries, func: Callable[[pd.Series], pd.Series], field: str,
