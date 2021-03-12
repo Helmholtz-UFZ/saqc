@@ -28,8 +28,6 @@ from saqc.lib.types import FreqString, ColumnName, IntegerWindow
 from saqc.flagger import Flagger, initFlagsLike
 
 MAX_EXAMPLES = 50
-
-
 # MAX_EXAMPLES = 100000
 
 
