@@ -16,9 +16,10 @@ from saqc.core.register import register
 from saqc.flagger import Flagger, initFlagsLike, History
 from saqc.funcs.tools import copy, drop, rename
 from saqc.funcs.interpolation import interpolateIndex
-from saqc.lib.tools import getDropMask, evalFreqStr
+from saqc.lib.tools import getDropMask, evalFreqStr, getFreqDelta
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
-from saqc.flagger.flags import applyFunctionOnHistory
+from saqc.flagger.flags import applyFunctionOnHistory, mergeHistoryByFunc
+from saqc.lib.rolling import customRoller
 
 logger = logging.getLogger("SaQC")
 
@@ -564,7 +565,9 @@ def resample(
 
     # create a dummys
     if all_na_2_empty and datcol.dropna().empty:
-
+        # Todo: This needs discussion. It makes possible, that different harmonized variables,
+        #  resulting from the harmonization of the same logger, have differing timestamps!
+        #  (Same holds for starting/ending nan-chunk truncation)
         datcol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
         flagscol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
 
@@ -614,7 +617,59 @@ def resample(
     return data, flagger
 
 
-@register(masking='field', module="resampling")
+def _getChunkBounds(target_datcol, flagscol, freq):
+    chunk_end = target_datcol.reindex(flagscol.index, method='bfill', tolerance=freq)
+    chunk_start = target_datcol.reindex(flagscol.index, method='ffill', tolerance=freq)
+    ignore_flags = (chunk_end.isna() | chunk_start.isna())
+    return ignore_flags
+
+
+def _inverseInterpolation(target_flagscol, source_col=None, freq=None, chunk_bounds=None):
+    source_col = source_col.copy()
+    source_col[chunk_bounds] = np.nan
+    backprojected = source_col.reindex(target_flagscol.index, method="bfill", tolerance=freq)
+    fwrdprojected = source_col.reindex(target_flagscol.index, method="ffill", tolerance=freq)
+    b_replacement_mask = (backprojected > target_flagscol) & (backprojected >= fwrdprojected)
+    f_replacement_mask = (fwrdprojected > target_flagscol) & (fwrdprojected > backprojected)
+    target_flagscol.loc[b_replacement_mask] = backprojected.loc[b_replacement_mask]
+    target_flagscol.loc[f_replacement_mask] = fwrdprojected.loc[f_replacement_mask]
+    return target_flagscol
+
+
+def _inverseAggregation(target_flagscol, source_col=None, freq=None, method=None):
+    source_col = source_col.reindex(target_flagscol.index, method=method, tolerance=freq)
+    replacement_mask = source_col > target_flagscol
+    target_flagscol.loc[replacement_mask] = source_col.loc[replacement_mask]
+    return target_flagscol
+
+
+def _inverseShift(target_flagscol, source_col=None, freq=None, method=None, drop_mask=None):
+    target_flagscol_drops = target_flagscol[drop_mask]
+    target_flagscol.drop(drop_mask[drop_mask].index, inplace=True)
+    flags_merged = pd.merge_asof(
+        source_col,
+        pd.Series(target_flagscol.index.values, index=target_flagscol.index, name="pre_index"),
+        left_index=True,
+        right_index=True,
+        tolerance=freq,
+        direction=method,
+    )
+    flags_merged.dropna(subset=["pre_index"], inplace=True)
+    flags_merged = flags_merged.set_index(["pre_index"]).squeeze()
+
+    # write flags to target
+    replacement_mask = flags_merged > target_flagscol.loc[flags_merged.index]
+    target_flagscol.loc[replacement_mask[replacement_mask].index] = flags_merged.loc[replacement_mask]
+
+    # reinsert drops
+    target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))
+    target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
+
+    return target_flagscol
+
+
+
+@register(masking='none', module="resampling")
 def reindexFlags(
         data: DictOfSeries,
         field: str,
@@ -622,8 +677,7 @@ def reindexFlags(
         method: Literal["inverse_fagg", "inverse_bagg", "inverse_nagg", "inverse_fshift", "inverse_bshift", "inverse_nshift"],
         source: str,
         freq: Optional[str]=None,
-        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
-        freq_check: Optional[Literal["check", "auto"]]=None,
+        to_mask: Optional[Union[Any, Sequence[Any]]]=BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
 
@@ -674,14 +728,9 @@ def reindexFlags(
     freq : {None, str},default None
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
-    to_drop : {None, str, List[str]}, default None
+    to_mask : {None, str, List[str]}, default None
         Flags referring to values that are to drop before flags projection. Relevant only when projecting with an
         inverted shift method. Defaultly BAD is listed.
-    freq_check : {None, 'check', 'auto'}, default None
-        - None: do not validate frequency-string passed to `freq`
-        - 'check': estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
-            if no uniform sampling rate could be estimated
-        - 'auto': estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -692,104 +741,41 @@ def reindexFlags(
         Flags values and shape may have changed relatively to the flagger input.
     """
 
-    # TODO: This needs a refactoring
-    raise NotImplementedError("currently not available - rewrite needed")
+    if to_mask is None:
+        to_mask = BAD
 
-    flagscol, metacols = flagger.getFlags(source, full=True)
+    flagscol = flagger[source]
     if flagscol.empty:
         return data, flagger
+
+    if freq is None:
+        freq = getFreqDelta(flagscol.index)
+        if freq is None and not method=='match':
+            raise ValueError('To project irregularly sampled data, either use method="match", or pass custom '
+                             'projection range to freq parameter')
+
     target_datcol = data[field]
-    target_flagscol, target_metacols = flagger.getFlags(field, full=True)
-
-    if (freq is None) and (method != "match"):
-        freq_check = 'auto'
-
-    freq = evalFreqStr(freq, freq_check, flagscol.index)
-
+    target_flagscol = flagger[field]
+    append_dummy = pd.Series(np.nan, target_flagscol.index)
     if method[-13:] == "interpolation":
-        backprojected = flagscol.reindex(target_flagscol.index, method="bfill", tolerance=freq)
-        fwrdprojected = flagscol.reindex(target_flagscol.index, method="ffill", tolerance=freq)
-        b_replacement_mask = (backprojected > target_flagscol) & (backprojected >= fwrdprojected)
-        f_replacement_mask = (fwrdprojected > target_flagscol) & (fwrdprojected > backprojected)
-        target_flagscol.loc[b_replacement_mask] = backprojected.loc[b_replacement_mask]
-        target_flagscol.loc[f_replacement_mask] = fwrdprojected.loc[f_replacement_mask]
+        ignore = _getChunkBounds(target_datcol, flagscol, freq)
+        merge_func = _inverseInterpolation
+        merge_dict = dict(freq=freq, chunk_bounds=ignore)
 
-        backprojected_meta = {}
-        fwrdprojected_meta = {}
-        for meta_key in target_metacols.keys():
-            backprojected_meta[meta_key] = metacols[meta_key].reindex(target_metacols[meta_key].index, method='bfill',
-                                                                      tolerance=freq)
-            fwrdprojected_meta[meta_key] = metacols[meta_key].reindex(target_metacols[meta_key].index, method='ffill',
-                                                                      tolerance=freq)
-            target_metacols[meta_key].loc[b_replacement_mask] = backprojected_meta[meta_key].loc[b_replacement_mask]
-            target_metacols[meta_key].loc[f_replacement_mask] = fwrdprojected_meta[meta_key].loc[f_replacement_mask]
 
     if method[-3:] == "agg" or method == "match":
-        # Aggregation - Inversion
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
-        flagscol = flagscol.reindex(target_flagscol.index, method=projection_method, tolerance=tolerance)
-        replacement_mask = flagscol > target_flagscol
-        target_flagscol.loc[replacement_mask] = flagscol.loc[replacement_mask]
-        for meta_key in target_metacols.keys():
-            metacols[meta_key] = metacols[meta_key].reindex(target_metacols[meta_key].index, method=projection_method,
-                                                            tolerance=tolerance)
-            target_metacols[meta_key].loc[replacement_mask] = metacols[meta_key].loc[replacement_mask]
+        merge_func = _inverseAggregation
+        merge_dict = dict(freq=tolerance, method=projection_method)
+
 
     if method[-5:] == "shift":
-        # NOTE: although inverting a simple shift seems to be a less complex operation, it has quite some
-        # code assigned to it and appears to be more verbose than inverting aggregation -
-        # that owes itself to the problem of BAD/invalid values blocking a proper
-        # shift inversion and having to be outsorted before shift inversion and re-inserted afterwards.
-        #
-        # starting with the dropping and its memorization:
-
-        drop_mask = getDropMask(field, to_drop, flagger, BAD)
-        drop_mask |= target_datcol.isna()
-        target_flagscol_drops = target_flagscol[drop_mask]
-        target_flagscol.drop(drop_mask[drop_mask].index, inplace=True)
-
-        # shift inversion
+        drop_mask = (target_datcol.isna() | target_flagscol >= to_mask)
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
-        flags_merged = pd.merge_asof(
-            flagscol,
-            pd.Series(target_flagscol.index.values, index=target_flagscol.index, name="pre_index"),
-            left_index=True,
-            right_index=True,
-            tolerance=tolerance,
-            direction=projection_method,
-        )
-        flags_merged.dropna(subset=["pre_index"], inplace=True)
-        flags_merged = flags_merged.set_index(["pre_index"]).squeeze()
+        merge_func = _inverseShift
+        merge_dict = dict(freq=tolerance, method=projection_method, drop_mask=drop_mask)
 
-        # write flags to target
-        replacement_mask = flags_merged > target_flagscol.loc[flags_merged.index]
-        target_flagscol.loc[replacement_mask[replacement_mask].index] = flags_merged.loc[replacement_mask]
-
-        # reinsert drops
-        target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))
-        target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
-
-        for meta_key in target_metacols.keys():
-            target_metadrops = target_metacols[meta_key][drop_mask]
-            target_metacols[meta_key].drop(drop_mask[drop_mask].index, inplace=True)
-            meta_merged = pd.merge_asof(
-                metacols[meta_key],
-                pd.Series(target_metacols[meta_key].index.values, index=target_metacols[meta_key].index,
-                          name="pre_index"),
-                left_index=True,
-                right_index=True,
-                tolerance=tolerance,
-                direction=projection_method,
-            )
-            meta_merged.dropna(subset=["pre_index"], inplace=True)
-            meta_merged = meta_merged.set_index(["pre_index"]).squeeze()
-            # reinsert drops
-            target_metacols[meta_key][replacement_mask[replacement_mask].index] = meta_merged[replacement_mask]
-            target_metacols[meta_key] = target_metacols[meta_key].reindex(
-                target_metacols[meta_key].index.join(target_metadrops.index, how="outer"))
-            target_metacols[meta_key].loc[target_metadrops.index] = target_metadrops.values
-
-    flagger = flagger.setFlags(field, flag=target_flagscol, with_extra=True, **target_metacols, **kwargs)
+    flagger = mergeHistoryByFunc(flagger, field, source, merge_func, merge_dict, last_column=append_dummy)
     return data, flagger

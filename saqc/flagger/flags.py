@@ -376,5 +376,48 @@ def applyFunctionOnHistory(flags: Flags, column, hist_func, hist_kws, mask_func,
     return flags
 
 
+def mergeHistoryByFunc(flags: Flags, field, source, merge_func, merge_func_kws, last_column=None):
+    """
+    Merges the information of one history (source) into the other (field). (Without altering fields indices)
+
+    Field indices remain unchanged. The merge is performed, via manipulating the field history values
+    column wise according to `merge_func`.
+
+
+    Parameters
+    ----------
+    flags
+    field
+    source
+    merge_func
+    merge_func_kws
+    last_column
+
+    Returns
+    -------
+
+    """
+    flags = flags.copy()
+    target_history = flags.history[field]
+    source_history = flags.history[source]
+    new_target_history = History()
+    import pdb
+    pdb.set_trace()
+    for k in target_history.hist.columns:
+        col_args_h = dict(source_col=source_history.hist[k])
+        col_args_m = dict(source_col=source_history.mask[k])
+        col_args_h.update(merge_func_kws)
+        col_args_m.update(merge_func_kws)
+        new_target_history.hist[k] = merge_func(target_history.hist[k], **col_args_h)
+        new_target_history.mask[k] = merge_func(target_history.mask[k], **col_args_m)
+
+    if last_column is None:
+        new_target_history.mask.iloc[:, -1:] = True
+    else:
+        new_target_history.append(last_column, force=True)
+
+    flags.history[field] = new_target_history
+    return flags
+
 # for now we keep this name
 Flagger = Flags

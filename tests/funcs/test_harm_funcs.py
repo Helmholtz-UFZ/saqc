@@ -2,13 +2,15 @@
 # -*- coding: utf-8 -*-
 
 
-# see test/functs/fixtures.py for global fixtures "course_..."
+# see test/functs/conftest.py for global fixtures "course_..."
 import pytest
 import numpy as np
 import pandas as pd
 import dios
 
-from tests.common import TESTFLAGGER
+from test.common import TESTFLAGGER
+from saqc.flagger import Flagger, initFlagsLike
+from saqc.common import BAD
 
 from saqc.funcs.resampling import (
     linear,
@@ -42,16 +44,18 @@ def data():
 @pytest.mark.parametrize("flagger", TESTFLAGGER)
 @pytest.mark.parametrize("reshaper", RESHAPERS)
 def test_harmSingleVarIntermediateFlagging(data, flagger, reshaper):
-    flagger = flagger.initFlags(data)
+    flagger = initFlagsLike(data)
     # make pre harm copies:
     pre_data = data.copy()
-    pre_flags = flagger.getFlags()
+    pre_flags = flagger['data']
     freq = "15min"
     assert len(data.columns) == 1
     field = data.columns[0]
     data, flagger = linear(data, "data", flagger, freq)
     # flag something bad
-    flagger = flagger.setFlags("data", loc=data[field].index[3:4])
+    f_ser = pd.Series(data=[-np.inf] * len(data[field]), index=data[field].index)
+    f_ser[3:4] = BAD
+    flagger[field] = f_ser
     data, flagger = mapToOriginal(data, "data", flagger, method="inverse_" + reshaper)
     d = data[field]
     if reshaper == "nagg":

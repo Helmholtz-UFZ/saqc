@@ -179,7 +179,7 @@ def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     return np.nanmean(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)])
 
 
-def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolation=False, return_chunk_bounds=False):
+def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolation=False):
     """
     The function interpolates nan-values (and nan-grids) in timeseries data. It can be passed all the method keywords
     from the pd.Series.interpolate method and will than apply this very methods. Note, that the inter_limit keyword
@@ -198,12 +198,6 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
     :param downgrade_interpolation:  Boolean. Default False. If True:
                                     If a data chunk not contains enough values for interpolation of the order "order",
                                     the highest order possible will be selected for that chunks interpolation.
-    :param return_chunk_bounds:     Boolean. Default False. If True:
-                                    Additionally to the interpolated data, the start and ending points of data chunks
-                                    not containing no series consisting of more then "inter_limit" nan values,
-                                    are calculated and returned.
-                                    (This option fits requirements of the "interpolateNANs" functions use in the
-                                    context of saqc harmonization mainly.)
 
     :return:
     """
@@ -217,13 +211,6 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         gap_mask = (
             gap_mask.replace(True, np.nan).fillna(method="bfill", limit=inter_limit).replace(np.nan, True).astype(bool)
         )
-
-    if return_chunk_bounds:
-        # start end ending points of interpolation chunks have to be memorized to block their flagging:
-        chunk_switches = gap_mask.astype(int).diff()
-        chunk_starts = chunk_switches[chunk_switches == -1].index
-        chunk_ends = chunk_switches[(chunk_switches.shift(-1) == 1)].index
-        chunk_bounds = chunk_starts.join(chunk_ends, how="outer", sort=True)
 
     pre_index = data.index
     data = data[gap_mask]
@@ -260,9 +247,8 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         data = data.squeeze(axis=1)
         data.name = dat_name
     data = data.reindex(pre_index)
-    if return_chunk_bounds:
-        return data, chunk_bounds
-    else: return data
+
+    return data
 
 
 def aggregate2Freq(
