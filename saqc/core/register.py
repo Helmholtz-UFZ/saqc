@@ -7,6 +7,7 @@ import dataclasses
 import numpy as np
 import pandas as pd
 import dios
+import warnings
 
 from saqc.common import *
 from saqc.core.lib import SaQCFunction
@@ -33,7 +34,7 @@ class CallCtrl:
     kwargs: dict
 
     masking: MaskingStrT = None
-    to_mask: float = None
+    mthresh: float = None
     mask: dios.DictOfSeries = None
 
 
@@ -41,18 +42,18 @@ def register(masking: MaskingStrT = "all", module: Optional[str] = None):
 
     # executed on module import
     def inner(func):
+        func_name = func.__name__
+        if module:
+            func_name = f"{module}.{func_name}"
 
         # executed if a register-decorated function is called,
         # nevertheless if it is called plain or via `SaQC.func`.
         @wraps(func)
         def callWrapper(*args, **kwargs):
-            args, kwargs, ctrl = _preCall(func, args, kwargs, masking)
+            args, kwargs, ctrl = _preCall(func, args, kwargs, masking, func_name)
             result = func(*args, **kwargs)
-            return _postCall(result, ctrl)
+            return _postCall(result, ctrl, func_name)
 
-        func_name = func.__name__
-        if module:
-            func_name = f"{module}.{func_name}"
         FUNC_MAP[func_name] = SaQCFunction(func_name, callWrapper)
 
         return callWrapper
@@ -60,7 +61,7 @@ def register(masking: MaskingStrT = "all", module: Optional[str] = None):
     return inner
 
 
-def _preCall(func: callable, args: tuple, kwargs: dict, masking: MaskingStrT):
+def _preCall(func: callable, args: tuple, kwargs: dict, masking: MaskingStrT, fname: str):
     """
     Handler that runs before any call to a saqc-function.
 
@@ -95,24 +96,27 @@ def _preCall(func: callable, args: tuple, kwargs: dict, masking: MaskingStrT):
         control keyword-arguments passed to `_postCall`
 
     """
-    kwargs.setdefault('to_mask', None)
+    mthresh = _getMaskingThresh(masking, kwargs, fname)
+    kwargs['to_mask'] = mthresh
+
     data, field, flagger, *args = args
+    ctrl = CallCtrl(func, data.copy(), field, flagger.copy(), args, kwargs, masking=masking, mthresh=mthresh)
 
-    ctrl = CallCtrl(func, data.copy(), field, flagger.copy(), args, kwargs, masking=masking)
+    # handle data - masking
+    columns = _getMaskingColumns(data, field, masking)
+    data, mask = _maskData(data, flagger, columns, mthresh)
 
-    # masking
-    ctrl.to_mask = _getToMask(ctrl)
-    columns = _getMaskingColumns(ctrl, ctrl.masking)
-    data, ctrl.mask = _maskData(data, flagger, columns, ctrl.to_mask)
+    # store mask
+    ctrl.mask = mask
 
-    # flags
-    flagger = _prepareFlags(flagger, ctrl)
+    # handle flags - clearing
+    flagger = _prepareFlags(flagger, masking)
 
     args = data, field, flagger, *args
     return args, kwargs, ctrl
 
 
-def _postCall(result, ctrl: CallCtrl) -> FuncReturnT:
+def _postCall(result, ctrl: CallCtrl, fname: str) -> FuncReturnT:
     """
     Handler that runs after any call to a saqc-function.
 
@@ -123,8 +127,12 @@ def _postCall(result, ctrl: CallCtrl) -> FuncReturnT:
     ----------
     result : tuple
         the result from the called function, namely: data and flagger
+
     ctrl : dict
         control keywords from `_preCall`
+
+    fname : str
+        Name of the (just) called saqc-function
 
     Returns
     -------
@@ -136,51 +144,89 @@ def _postCall(result, ctrl: CallCtrl) -> FuncReturnT:
     return data, flagger
 
 
-def _getMaskingColumns(ctrl: CallCtrl, masking: MaskingStrT):
+def _getMaskingColumns(data: dios.DictOfSeries, field: str, masking: MaskingStrT):
     """
+    Returns
+    -------
+    columns: pd.Index
+        Data columns that need to be masked.
+
     Raises
     ------
     ValueError: if given masking literal is not supported
     """
     if masking == 'all':
-        return ctrl.data.columns
+        return data.columns
     if masking == 'none':
         return pd.Index([])
     if masking == 'field':
-        return pd.Index([ctrl.field])
+        return pd.Index([field])
 
     raise ValueError(f"wrong use of `register(masking={ctrl.masking})`")
 
 
-def _getToMask(ctrl):
-    to_mask = ctrl.kwargs['to_mask']
-    _warnForUnusedMasking(ctrl.masking, to_mask)
+def _getMaskingThresh(masking, kwargs, fname):
+    """
+    Check the correct usage of the `to_mask` keyword, iff passed, otherwise return a default.
 
-    if to_mask is None:
-        to_mask = UNFLAGGED
+    Parameters
+    ----------
+    masking : str
+        The function-scope masking keyword a saqc-function is decorated with.
+    kwargs : dict
+        The kwargs that will be passed to the saqc-function, possibly contain ``to_mask``.
+    fname : str
+        The name of the saqc-function to be called later (not here), to use in meaningful
+         error messages
 
-    return to_mask
+    Returns
+    -------
+    threshold: float
+        All data gets masked, if the flags are equal or worse than the threshold.
 
+    Notes
+    -----
+    If ``to_mask`` is **not** in the kwargs, the threshold defaults to
+     - ``-np.inf``
+    If boolean ``to_mask`` is found in the kwargs, the threshold defaults to
+     - ``-np.inf``, if ``True``
+     - ``+np.inf``, if ``False``
+    If a floatish ``to_mask`` is found in the kwargs, this value is taken as the threshold.
+    """
+    if 'to_mask' not in kwargs:
+        return UNFLAGGED
 
-def _warnForUnusedMasking(masking, to_mask):
-    # warn if the user explicitly pass `to_mask=..` to a function that is
-    # decorated by `register(masking='none')`, by which `to_mask` is ignored
-    # TODO: fix warning message
-    if masking == 'none' and to_mask not in (None, np.inf):
-        logging.warning("`to_mask` is given, but the saqc-function ignore masking."
-                        " Please refer to the documentation: TODO")
+    thresh = kwargs['to_mask']
+
+    if not isinstance(thresh, (bool, float, int)):
+        raise TypeError(f"'to_mask' must be of type bool or float")
+
+    if masking == 'none' and thresh not in (False, np.inf):
+        # TODO: fix warning reference to docu
+        warnings.warn(f"the saqc-function {fname!r} ignore masking and therefore does not evaluate the passed "
+                      f"'to_mask'-keyword. Please refer to the documentation: TODO")
+
+    if thresh is True:  # masking ON
+        thresh = UNFLAGGED
+
+    if thresh is False:  # masking OFF
+        thresh = np.inf
+
+    thresh = float(thresh)  # handle int
+
+    return thresh
 
 
 # TODO: this is heavily undertested
-def _maskData(data, flagger, columns, to_mask) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
+def _maskData(data, flagger, columns, thresh) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
     """
-    Mask data with Nans by flags, according to masking and to_mask.
+    Mask data with Nans by flags worse that a threshold and according to masking keyword in decorator.
     """
     mask = dios.DictOfSeries(columns=columns)
 
     # we use numpy here because it is faster
     for c in columns:
-        col_mask = _getMask(flagger[c].to_numpy(), to_mask)
+        col_mask = _getMask(flagger[c].to_numpy(), thresh)
 
         if any(col_mask):
             col_data = data[c].to_numpy(dtype=np.float64)
@@ -192,20 +238,22 @@ def _maskData(data, flagger, columns, to_mask) -> Tuple[dios.DictOfSeries, dios.
     return data, mask
 
 
-def _getMask(flags: Union[np.array, pd.Series], to_mask: float) -> Union[np.array, pd.Series]:
+def _getMask(flags: Union[np.array, pd.Series], thresh: float) -> Union[np.array, pd.Series]:
     """
-    Return a mask of flags accordingly to `to_mask`.
-    Return type is same as flags.
+    Return a mask of flags accordingly to `thresh`. Return type is same as flags.
     """
-    return flags > to_mask
+    if thresh == UNFLAGGED:
+        return flags > UNFLAGGED
+
+    return flags >= thresh
 
 
-def _prepareFlags(flagger: Flagger, ctrl: CallCtrl) -> Flagger:
+def _prepareFlags(flagger: Flagger, masking) -> Flagger:
     """
     Clear flags before each call.
     """
-    # either the index or the columns itself changed
-    if ctrl.masking == 'none':
+    # Either the index or the columns itself changed
+    if masking == 'none':
         return flagger
 
     return initFlagsLike(flagger, initial_value=UNTOUCHED)
@@ -213,18 +261,23 @@ def _prepareFlags(flagger: Flagger, ctrl: CallCtrl) -> Flagger:
 
 def _restoreFlags(flagger: Flagger, ctrl: CallCtrl):
     if ctrl.masking == 'none':
-        ctrl.flagger = flagger
+        return flagger
 
-    else:
-        columns = flagger.columns
-        if ctrl.masking == 'field':
-            columns = columns.difference(ctrl.flagger.columns)
-            columns = columns.append(pd.Index([ctrl.field]))
+    result = ctrl.flagger
 
-        for c in columns:
-            ctrl.flagger[c] = flagger[c]
+    columns = flagger.columns
+    # take field column and all possibly newly added columns
+    if ctrl.masking == 'field':
+        columns = columns.difference(ctrl.flagger.columns)
+        columns = columns.append(pd.Index([ctrl.field]))
 
-    return ctrl.flagger
+    for c in columns:
+        # this implicitly squash the new-flagger history (RHS) to a single column, which than is appended to
+        # the old history (LHS). The new-flagger history possibly consist of multiple columns, one for each
+        # time flags was set to the flagger.
+        result[c] = flagger[c]
+
+    return result
 
 
 # TODO: this is heavily undertested
@@ -273,15 +326,15 @@ def _unmaskData(data: dios.DictOfSeries, ctrl: CallCtrl) -> dios.DictOfSeries:
         if not old.data[c].index.equals(data[c].index):
             continue
 
-        restore_old_val = old.mask[c].to_numpy() & data[c].isna().to_numpy()
+        restore_old_mask = old.mask[c].to_numpy() & data[c].isna().to_numpy()
 
         # we have nothing to restore
-        if not any(restore_old_val):
+        if not any(restore_old_mask):
             continue
 
         # restore old values if no new are present
-        ol, nw = old.data[c].to_numpy(), data[c].to_numpy()
-        data.loc[:, c] = np.where(restore_old_val, ol, nw)
+        v_old, v_new = old.data[c].to_numpy(), data[c].to_numpy()
+        data.loc[:, c] = np.where(restore_old_mask, v_old, v_new)
 
     return data
 

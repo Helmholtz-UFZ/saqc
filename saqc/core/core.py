@@ -228,7 +228,8 @@ class SaQC(FuncModules):
 
         def inner(field: str, *fargs, target: str = None, regex: bool = False, plot: bool = False, inplace: bool = False, **fkwargs) -> SaQC:
 
-            fkwargs.setdefault('to_mask', self._to_mask)
+            if self._to_mask is not None:
+                fkwargs.setdefault('to_mask', self._to_mask)
 
             control = APIController(
                 plot=plot
