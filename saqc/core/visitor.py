@@ -6,7 +6,7 @@ import ast
 import numpy as np
 import pandas as pd
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.core.register import FUNC_MAP
 import saqc.lib.ts_operators as ts_ops
 

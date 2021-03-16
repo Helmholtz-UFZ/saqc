@@ -5,7 +5,7 @@ import pytest
 import pandas as pd
 import dios
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.flagger import initFlagsLike
 from saqc.funcs.pattern import *
 from tests.common import initData

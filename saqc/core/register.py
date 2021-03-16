@@ -9,7 +9,7 @@ import pandas as pd
 import dios
 import warnings
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.core.lib import SaQCFunction
 from saqc.lib.types import FuncReturnT
 from saqc.flagger.flags import Flagger, initFlagsLike

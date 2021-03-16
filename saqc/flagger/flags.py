@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import dios
-from saqc.common import *
+from saqc.constants import *
 from saqc.flagger.history import History
 import pandas as pd
 from typing import Union, Dict, DefaultDict, Optional, Type, Tuple, Iterable

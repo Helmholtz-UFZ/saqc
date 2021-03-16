@@ -8,7 +8,7 @@ import pandas as pd
 
 from dios.dios import DictOfSeries
 from saqc.core.modules.base import ModuleBase
-from saqc.common import *
+from saqc.constants import *
 
 
 class FlagTools(ModuleBase):

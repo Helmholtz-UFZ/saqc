@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Tuple, Type
 import pandas as pd
 import numpy as np
-from saqc.common import *
+from saqc.constants import *
 
 
 class History:

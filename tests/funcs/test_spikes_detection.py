@@ -12,7 +12,7 @@ from saqc.funcs.outliers import (
     flagMVScores,
     flagByGrubbs,
 )
-from saqc.common import *
+from saqc.constants import *
 from saqc.flagger import initFlagsLike
 
 

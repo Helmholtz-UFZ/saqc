@@ -14,7 +14,7 @@ from outliers import smirnov_grubbs
 
 from dios import DictOfSeries
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 from saqc.lib.tools import (

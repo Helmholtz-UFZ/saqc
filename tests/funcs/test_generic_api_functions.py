@@ -4,7 +4,7 @@
 import pytest
 import pandas as pd
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.core.register import register
 from saqc.funcs.tools import mask
 from saqc import SaQC

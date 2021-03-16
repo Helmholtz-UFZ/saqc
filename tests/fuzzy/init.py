@@ -21,7 +21,7 @@ from hypothesis.strategies import (
 from hypothesis.extra.numpy import arrays, from_dtype
 from hypothesis.strategies._internal.types import _global_type_lookup
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.core.register import FUNC_MAP
 from saqc.core.lib import SaQCFunction
 from saqc.lib.types import FreqString, ColumnName, IntegerWindow

@@ -3,7 +3,7 @@
 
 import dios
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.flagger import initFlagsLike
 from saqc.funcs.drift import flagDriftFromNorm, flagDriftFromReference, flagDriftFromScaledNorm
 from saqc.funcs.outliers import flagCrossStatistic, flagRange

@@ -6,7 +6,7 @@
 
 import dios
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.funcs.transformation import transform
 from saqc.funcs.drift import correctOffset
 from saqc.funcs.interpolation import interpolateByRolling, interpolateInvalid, interpolateIndex

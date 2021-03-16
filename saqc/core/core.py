@@ -17,7 +17,7 @@ import numpy as np
 import timeit
 import inspect
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.flagger import initFlagsLike, Flagger
 from saqc.core.lib import APIController, ColumnSelector
 from saqc.core.register import FUNC_MAP, SaQCFunction

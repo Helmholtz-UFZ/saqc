@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import dios
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.flagger import Flagger, initFlagsLike
 
 

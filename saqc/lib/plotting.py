@@ -8,7 +8,7 @@ import pandas as pd
 import dios
 import matplotlib.pyplot as plt
 from typing import List, Dict, Optional
-from saqc.common import *
+from saqc.constants import *
 from saqc.flagger import Flagger
 
 

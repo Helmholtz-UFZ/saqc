@@ -7,7 +7,7 @@ import pandas as pd
 
 from hypothesis import given, settings
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.flagger import Flagger
 from saqc.core.register import _maskData, _unmaskData
 

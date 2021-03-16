@@ -11,7 +11,7 @@ from typing_extensions import Literal
 
 from dios import DictOfSeries
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.core.register import register
 from saqc.lib.tools import customRoller
 from saqc.flagger import Flagger

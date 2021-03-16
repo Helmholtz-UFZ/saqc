@@ -9,7 +9,7 @@ import pandas as pd
 
 from dios import DictOfSeries
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 

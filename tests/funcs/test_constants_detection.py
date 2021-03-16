@@ -4,7 +4,7 @@
 import pytest
 import numpy as np
 
-from saqc.common import *
+from saqc.constants import *
 from saqc.funcs.constants import flagConstants, flagByVariance
 from saqc.flagger import initFlagsLike
 
