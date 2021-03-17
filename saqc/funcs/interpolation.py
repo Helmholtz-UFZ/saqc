@@ -101,7 +101,6 @@ def interpolateInvalid(
         flag: float = UNFLAGGED,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
-
     """
     Function to interpolate nan values in the data.
 
@@ -185,15 +184,15 @@ def interpolateIndex(
         field: str,
         flagger: Flagger,
         freq: str,
-        method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-                        "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
-        inter_order: int=2,
-        downgrade_interpolation: bool=False,
-        inter_limit: int=2,
-        to_mask: Optional[Union[Any, Sequence[Any]]]=BAD,
+        method: Literal[
+            "linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
+            "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"
+        ],
+        inter_order: int = 2,
+        downgrade_interpolation: bool = False,
+        inter_limit: int = 2,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
-
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
 
@@ -244,19 +243,18 @@ def interpolateIndex(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
-
-    if to_mask is None:
-        to_mask = BAD
-
-    datcol = data[field]
-    flagscol = flagger[field]
-    if datcol.empty:
+    if data[field].empty:
         return data, flagger
+
+    datcol = data[field].copy()
+    flagscol = flagger[field]
 
     start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
     grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
 
-    datcol = datcol.copy()
+    # always injected by register
+    to_mask = kwargs['to_mask']
+
     datcol.drop(flagscol[flagscol >= to_mask].index, inplace=True)
     datcol.dropna(inplace=True)
     dat_index = datcol.index

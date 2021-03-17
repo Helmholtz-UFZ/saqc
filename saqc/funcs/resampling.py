@@ -23,7 +23,6 @@ from saqc.lib.rolling import customRoller
 
 logger = logging.getLogger("SaQC")
 
-
 METHOD2ARGS = {
     "inverse_fshift": ("backward", pd.Timedelta),
     "inverse_bshift": ("forward", pd.Timedelta),
@@ -565,9 +564,7 @@ def resample(
 
     # create a dummys
     if all_na_2_empty and datcol.dropna().empty:
-        # Todo: This needs discussion. It makes possible, that different harmonized variables,
-        #  resulting from the harmonization of the same logger, have differing timestamps!
-        #  (Same holds for starting/ending nan-chunk truncation)
+        # Todo: This needs discussion. See issue #GL170
         datcol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
         flagscol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
 
@@ -668,7 +665,6 @@ def _inverseShift(target_flagscol, source_col=None, freq=None, method=None, drop
     return target_flagscol
 
 
-
 @register(masking='none', module="resampling")
 def reindexFlags(
         data: DictOfSeries,
@@ -676,11 +672,9 @@ def reindexFlags(
         flagger: Flagger,
         method: Literal["inverse_fagg", "inverse_bagg", "inverse_nagg", "inverse_fshift", "inverse_bshift", "inverse_nshift"],
         source: str,
-        freq: Optional[str]=None,
-        to_mask: Optional[Union[Any, Sequence[Any]]]=BAD,
+        freq: Optional[str] = None,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
-
     """
     The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
     source flags projected on them, they get overridden with this associated source flag value.
@@ -728,9 +722,6 @@ def reindexFlags(
     freq : {None, str},default None
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
-    to_mask : {None, str, List[str]}, default None
-        Flags referring to values that are to drop before flags projection. Relevant only when projecting with an
-        inverted shift method. Defaultly BAD is listed.
 
     Returns
     -------
@@ -740,17 +731,13 @@ def reindexFlags(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
-
-    if to_mask is None:
-        to_mask = BAD
-
     flagscol = flagger[source]
     if flagscol.empty:
         return data, flagger
 
     if freq is None:
         freq = getFreqDelta(flagscol.index)
-        if freq is None and not method=='match':
+        if freq is None and not method == 'match':
             raise ValueError('To project irregularly sampled data, either use method="match", or pass custom '
                              'projection range to freq parameter')
 
@@ -762,15 +749,14 @@ def reindexFlags(
         merge_func = _inverseInterpolation
         merge_dict = dict(freq=freq, chunk_bounds=ignore)
 
-
     if method[-3:] == "agg" or method == "match":
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
         merge_func = _inverseAggregation
         merge_dict = dict(freq=tolerance, method=projection_method)
 
-
     if method[-5:] == "shift":
+        to_mask = kwargs['to_mask']
         drop_mask = (target_datcol.isna() | target_flagscol >= to_mask)
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
