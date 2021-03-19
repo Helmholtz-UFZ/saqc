@@ -136,6 +136,7 @@ def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd
     data[field] = _execGeneric(flagger, data, func, field, nodata).squeeze()
 
     # TODO: the former comment wished to overwrite the column, but i'm not sure -- palmb
+    #   see #GL177
     if field in flagger:
         flagger.drop(field)
 
@@ -146,6 +147,7 @@ def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd
 @register(masking='all', module="generic")
 def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Series], pd.Series],
          nodata: float = np.nan, flag=BAD, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+    # TODO : fix docstring, check if all still works
     """
     a function to flag a data column by evaluation of a generic expression.
 
@@ -211,7 +213,6 @@ def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Se
 
     >>> lambda level: isflagged(level, flag=DOUBTFUL, comparator='>')
 
-    # TODO : fix text
     If you are unsure about the used flaggers flagging level names, you can use the reserved key words BAD, UNFLAGGED
     and GOOD, to refer to the worst (BAD), best(GOOD) or unflagged (UNFLAGGED) flagging levels. For example.
 
