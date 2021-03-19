@@ -31,11 +31,7 @@ class _HistAccess:
         self.obj = obj
 
     def __getitem__(self, key: str) -> History:
-        # we don't know, what the user wants. Although we're not
-        # encouraging inplace modification of the history, the
-        # user may do it, so we remove the cached column here.
-        self.obj._cache.pop(key, None)
-        return self.obj._data[key]
+        return self.obj._data[key].copy()
 
     def __setitem__(self, key: str, value: Union[History, pd.DataFrame]):
         if not isinstance(value, History):

@@ -44,6 +44,7 @@ def copy(data: DictOfSeries, field: str, flagger: Flagger, new_field: str, **kwa
         raise ValueError(f"{field}: field already exist")
 
     data[new_field] = data[field].copy()
+    # implicit copy in history access
     flagger.history[new_field] = flagger.history[field]
     return data, flagger
 
