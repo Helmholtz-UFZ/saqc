@@ -284,7 +284,7 @@ def _restoreFlags(flagger: Flagger, old_state: CallState):
         columns = columns.difference(old_state.flagger.columns)
         columns = columns.append(pd.Index([old_state.field]))
 
-    out = old_state.flagger
+    out = old_state.flagger.copy()
     for c in columns:
         # this implicitly squash the new-flagger history (RHS) to a single column, which than is appended to
         # the old history (LHS). The new-flagger history possibly consist of multiple columns, one for each
