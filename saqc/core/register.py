@@ -237,7 +237,7 @@ def _maskData(data, flagger, columns, thresh) -> Tuple[dios.DictOfSeries, dios.D
 
     # we use numpy here because it is faster
     for c in columns:
-        col_mask = _getMask(flagger[c].to_numpy(), thresh)
+        col_mask = isflagged(flagger[c].to_numpy(), thresh)
 
         if any(col_mask):
             col_data = data[c].to_numpy(dtype=np.float64)
@@ -249,7 +249,7 @@ def _maskData(data, flagger, columns, thresh) -> Tuple[dios.DictOfSeries, dios.D
     return data, mask
 
 
-def _getMask(flags: Union[np.array, pd.Series], thresh: float) -> Union[np.array, pd.Series]:
+def isflagged(flags: Union[np.array, pd.Series], thresh: float) -> Union[np.array, pd.Series]:
     """
     Return a mask of flags accordingly to `thresh`. Return type is same as flags.
     """
