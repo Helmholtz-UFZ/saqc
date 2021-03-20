@@ -61,9 +61,9 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
         else:
             raise NotImplementedError('untested test case')
 
-        assert all(flagger[field].iloc[start:end])
-        assert all(~flagger[field].iloc[:start])
-        assert all(~flagger[field].iloc[end:])
+        assert all(flagger[field].iloc[start:end] > UNFLAGGED)
+        assert all(~flagger[field].iloc[:start] == UNFLAGGED)
+        assert all(~flagger[field].iloc[end:] == UNFLAGGED)
 
     elif 'shift' in reshaper:
         if reshaper == "nshift":
@@ -77,6 +77,9 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
 
         flagged = flagger[field] > UNFLAGGED
         assert all(flagged == exp)
+
+    elif reshaper == 'interpolation':
+        pytest.skip('no testcase for interpolation')
 
     else:
         raise NotImplementedError('untested test case')

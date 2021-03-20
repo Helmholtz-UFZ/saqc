@@ -203,7 +203,7 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
     """
     inter_limit = int(inter_limit)
     data = pd.Series(data).copy()
-    gap_mask = (data.rolling(inter_limit, min_periods=0).apply(lambda x: np.sum(np.isnan(x)), raw=True)) != inter_limit
+    gap_mask = data.isna().rolling(inter_limit, min_periods=0).sum() != inter_limit
 
     if inter_limit == 2:
         gap_mask = gap_mask & gap_mask.shift(-1, fill_value=True)

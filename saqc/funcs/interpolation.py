@@ -10,21 +10,26 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.register import register
+from saqc.core.register import register, isflagged
 from saqc.flagger import Flagger
 from saqc.flagger.flags import applyFunctionOnHistory
 
 from saqc.lib.tools import toSequence, evalFreqStr, getDropMask
 from saqc.lib.ts_operators import interpolateNANs
 
+_SUPPORTED_METHODS = Literal[
+    "linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
+    "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"
+]
+
 
 @register(masking='field', module="interpolation")
 def interpolateByRolling(
         data: DictOfSeries, field: str, flagger: Flagger,
         winsz: Union[str, int],
-        func: Callable[[pd.Series], float]=np.median,
-        center: bool=True,
-        min_periods: int=0,
+        func: Callable[[pd.Series], float] = np.median,
+        center: bool = True,
+        min_periods: int = 0,
         flag: float = UNFLAGGED,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
@@ -93,10 +98,10 @@ def interpolateInvalid(
         data: DictOfSeries,
         field: str,
         flagger: Flagger,
-        method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
-        inter_order: int=2,
-        inter_limit: int=2,
-        downgrade_interpolation: bool=False,
+        method: _SUPPORTED_METHODS,
+        inter_order: int = 2,
+        inter_limit: int = 2,
+        downgrade_interpolation: bool = False,
         not_interpol_flags=None,
         flag: float = UNFLAGGED,
         **kwargs
@@ -165,7 +170,7 @@ def interpolateInvalid(
     return data, flagger
 
 
-def _overlap_rs(x, freq='1min', fill_value=-np.inf):
+def _overlap_rs(x, freq='1min', fill_value=UNFLAGGED):
     end = x.index[-1].ceil(freq)
     x = x.resample(freq).max()
     x = x.combine(x.shift(1, fill_value=fill_value), max)
@@ -184,10 +189,7 @@ def interpolateIndex(
         field: str,
         flagger: Flagger,
         freq: str,
-        method: Literal[
-            "linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-            "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"
-        ],
+        method: _SUPPORTED_METHODS,
         inter_order: int = 2,
         downgrade_interpolation: bool = False,
         inter_limit: int = 2,
@@ -252,23 +254,19 @@ def interpolateIndex(
     start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
     grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
 
-    # always injected by register
-    to_mask = kwargs['to_mask']
+    flagged = isflagged(flagscol, kwargs['to_mask'])
 
-    datcol.drop(flagscol[flagscol >= to_mask].index, inplace=True)
-    datcol.dropna(inplace=True)
-    dat_index = datcol.index
+    # drop all points that hold no relevant grid information
+    datcol = datcol[~flagged].dropna()
 
     # account for annoying case of subsequent frequency aligned values,
     # that differ exactly by the margin of 2*freq
-    gaps = ((dat_index[1:] - dat_index[:-1]) == 2*pd.Timedelta(freq))
-    gaps = dat_index[1:][gaps]
-    aligned_gaps = gaps.join(grid_index, how='inner')
-    if not aligned_gaps.empty:
-        aligned_gaps = aligned_gaps.shift(-1, freq)
+    gaps = datcol.index[1:] - datcol.index[:-1] == 2 * pd.Timedelta(freq)
+    gaps = datcol.index[1:][gaps]
+    gaps = gaps.intersection(grid_index).shift(-1, freq)
 
     # prepare grid interpolation:
-    datcol = datcol.reindex(datcol.index.join(grid_index, how="outer",))
+    datcol = datcol.reindex(datcol.index.union(grid_index))
 
     # do the grid interpolation
     inter_data = interpolateNANs(
@@ -280,18 +278,17 @@ def interpolateIndex(
     )
 
     # override falsely interpolated values:
-    inter_data[aligned_gaps] = np.nan
+    inter_data[gaps] = np.nan
 
     # store interpolated grid
     data[field] = inter_data[grid_index]
 
     # flags reshaping
-    flagscol.drop(flagscol[flagscol >= to_mask].index, inplace=True)
+    flagscol = flagscol[~flagged]
 
     flagscol = _overlap_rs(flagscol, freq, UNFLAGGED)
     flagger = applyFunctionOnHistory(
-        flagger,
-        field,
+        flagger, field,
         hist_func=_overlap_rs, hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
         mask_func=_overlap_rs, mask_kws=dict(freq=freq, fill_value=False),
         last_column=flagscol

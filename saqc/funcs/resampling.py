@@ -12,7 +12,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.register import register
+from saqc.core.register import register, isflagged
 from saqc.flagger import Flagger, initFlagsLike, History
 from saqc.funcs.tools import copy, drop, rename
 from saqc.funcs.interpolation import interpolateIndex
@@ -329,7 +329,7 @@ def mapToOriginal(
     """
 
     newfield = str(field) + '_original'
-    data, flagger = reindexFlags(data, newfield, flagger, method, source=field, to_drop=to_drop, **kwargs)
+    data, flagger = reindexFlags(data, newfield, flagger, method, source=field, to_mask=False)
     data, flagger = drop(data, field, flagger)
     data, flagger = rename(data, newfield, flagger, field)
     return data, flagger
@@ -756,8 +756,7 @@ def reindexFlags(
         merge_dict = dict(freq=tolerance, method=projection_method)
 
     if method[-5:] == "shift":
-        to_mask = kwargs['to_mask']
-        drop_mask = (target_datcol.isna() | target_flagscol >= to_mask)
+        drop_mask = (target_datcol.isna() | isflagged(target_flagscol, kwargs['to_mask']))
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
         merge_func = _inverseShift
