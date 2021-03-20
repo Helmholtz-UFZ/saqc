@@ -454,7 +454,8 @@ def correctRegimeAnomaly(
         cluster_field: ColumnName,
         model: CurveFitter,
         regime_transmission: Optional[FreqString]=None,
-        x_date: bool=False
+        x_date: bool=False,
+        **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
     Function fits the passed model to the different regimes in data[field] and tries to correct

@@ -7,6 +7,7 @@
 import dios
 
 from saqc.constants import *
+from saqc.flagger import initFlagsLike
 from saqc.funcs.transformation import transform
 from saqc.funcs.drift import correctOffset
 from saqc.funcs.interpolation import interpolateByRolling, interpolateInvalid, interpolateIndex
@@ -14,15 +15,13 @@ from saqc.funcs.resampling import resample
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
 
 from tests.fixtures import *
-from tests.common import TESTFLAGGER
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_rollingInterpolateMissing(course_5, flagger):
+def test_rollingInterpolateMissing(course_5):
     data, characteristics = course_5(periods=10, nan_slice=[5, 6])
     field = data.columns[0]
     data = dios.DictOfSeries(data)
-    flagger = flagger.initFlags(data)
+    flagger = initFlagsLike(data)
     dataInt, *_ = interpolateByRolling(
         data, field, flagger, 3, func=np.median, center=True, min_periods=0, interpol_flag=UNFLAGGED
     )
@@ -35,12 +34,11 @@ def test_rollingInterpolateMissing(course_5, flagger):
     assert dataInt[field][characteristics["missing"]].isna().all()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_interpolateMissing(course_5, flagger):
+def test_interpolateMissing(course_5):
     data, characteristics = course_5(periods=10, nan_slice=[5])
     field = data.columns[0]
     data = dios.DictOfSeries(data)
-    flagger = flagger.initFlags(data)
+    flagger = initFlagsLike(data)
     dataLin, *_ = interpolateInvalid(data, field, flagger, method="linear")
     dataPoly, *_ = interpolateInvalid(data, field, flagger, method="polynomial")
     assert dataLin[field][characteristics["missing"]].notna().all()
@@ -54,12 +52,11 @@ def test_interpolateMissing(course_5, flagger):
     assert dataLin3[field][characteristics["missing"]].notna().all()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_transform(course_5, flagger):
+def test_transform(course_5):
     data, characteristics = course_5(periods=10, nan_slice=[5, 6])
     field = data.columns[0]
     data = dios.DictOfSeries(data)
-    flagger = flagger.initFlags(data)
+    flagger = initFlagsLike(data)
     data1, *_ = transform(data, field, flagger, func=linearInterpolation)
     assert data1[field][characteristics["missing"]].isna().all()
     data1, *_ = transform(data, field, flagger, func=lambda x: linearInterpolation(x, inter_limit=3))
@@ -70,35 +67,32 @@ def test_transform(course_5, flagger):
     assert data1[field][characteristics["missing"]].notna().all()
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_resample(course_5, flagger):
+def test_resample(course_5):
     data, characteristics = course_5(freq="1min", periods=30, nan_slice=[1, 11, 12, 22, 24, 26])
     field = data.columns[0]
     data = dios.DictOfSeries(data)
-    flagger = flagger.initFlags(data)
+    flagger = initFlagsLike(data)
     data1, *_ = resample(data, field, flagger, "10min", np.mean, max_invalid_total_d=2, max_invalid_consec_d=1)
     assert ~np.isnan(data1[field].iloc[0])
     assert np.isnan(data1[field].iloc[1])
     assert np.isnan(data1[field].iloc[2])
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_interpolateGrid(course_5, course_3, flagger):
+def test_interpolateGrid(course_5, course_3):
     data, _ = course_5()
     data_grid, characteristics = course_3()
     data['grid'] = data_grid.to_df()
     # data = dios.DictOfSeries(data)
-    flagger = flagger.initFlags(data)
+    flagger = initFlagsLike(data)
     dataInt, *_ = interpolateIndex(data, 'data', flagger, '1h', 'time', grid_field='grid', inter_limit=10)
 
 
-@pytest.mark.parametrize("flagger", TESTFLAGGER)
-def test_offsetCorrecture(flagger):
+def test_offsetCorrecture():
     data = pd.Series(0, index=pd.date_range('2000', freq='1d', periods=100), name='dat')
     data.iloc[30:40] = -100
     data.iloc[70:80] = 100
     data = dios.DictOfSeries(data)
-    flagger = flagger.initFlags(data)
-    data, flagger = correctOffset(data, 'dat', flagger, 40, 20, '3d', 1)
+    flagger = initFlagsLike(data)
+    data, _ = correctOffset(data, 'dat', flagger, 40, 20, '3d', 1)
     assert (data == 0).all()[0]
 

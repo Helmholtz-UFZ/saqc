@@ -401,8 +401,8 @@ def mergeHistoryByFunc(flags: Flags, field, source, merge_func, merge_func_kws, 
     target_history = flags.history[field]
     source_history = flags.history[source]
     new_target_history = History()
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     for k in target_history.hist.columns:
         col_args_h = dict(source_col=source_history.hist[k])
         col_args_m = dict(source_col=source_history.mask[k])
