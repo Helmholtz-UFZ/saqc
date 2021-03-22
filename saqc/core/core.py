@@ -139,7 +139,7 @@ class SaQC(FuncModules):
     def readConfig(self, fname):
         from saqc.core.reader import readConfig
         out = stdcopy.deepcopy(self)
-        out._to_call.extend(readConfig(fname, self._flagger))
+        out._to_call.extend(readConfig(fname, self._flagger, self._nodata))
         return out
 
     def _expandFields(self, selector: ColumnSelector, func: SaQCFunction, variables: pd.Index) -> Sequence[Tuple[ColumnSelector, SaQCFunction]]:
@@ -176,12 +176,10 @@ class SaQC(FuncModules):
                     data_result, flagger_result = _saqcCallFunc(sel, control, func, data, flagger)
                 except Exception as e:
                     t1 = timeit.default_timer()
-                    logger.debug(f"{func.name} failed after {t1 - t0} sec")
                     _handleErrors(e, sel.field, control, func, self._error_policy)
                     continue
                 else:
                     t1 = timeit.default_timer()
-                    logger.debug(f"{func.name} finished after {t1 - t0} sec")
 
                 if control.plot:
                     plotHook(
