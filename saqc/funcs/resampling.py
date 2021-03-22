@@ -601,7 +601,8 @@ def _inverseShift(source_col, freq=None, method=None, drop_mask=None, target_fla
         direction=method,
     )
     flags_merged.dropna(subset=["pre_index"], inplace=True)
-    target_flagscol = flags_merged.set_index(["pre_index"]).squeeze()
+    flags_merged = flags_merged.set_index(["pre_index"]).squeeze()
+    target_flagscol[flags_merged.index] = flags_merged.values
 
     # reinsert drops
     source_col = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))

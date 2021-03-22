@@ -16,6 +16,8 @@ from saqc.funcs.resampling import (
     mapToOriginal,
 )
 
+from tests.common import checkDataFlaggerInvariants
+
 
 @pytest.fixture
 def data():
@@ -33,6 +35,74 @@ def data():
     return data
 
 
+@pytest.mark.parametrize('func, kws', [
+    ('linear', dict()),
+    ('shift', dict(method="nshift")),
+    ('interpolate', dict(method="spline")),
+    ('aggregate', dict(value_func=np.nansum, method="nagg")),
+])
+def test_wrapper(data, func, kws):
+    field = 'data'
+    freq = "15min"
+    flagger = initFlagsLike(data)
+
+    import saqc
+    func = getattr(saqc.funcs, func)
+    data, flagger = func(data, field, flagger, freq, **kws)
+
+    # check minimal requirements
+    checkDataFlaggerInvariants(data, flagger, field)
+    assert data[field].index.freq == pd.Timedelta(freq)
+
+
+@pytest.mark.parametrize("method", ["time", "polynomial"])
+def test_gridInterpolation(data, method):
+    freq = "15min"
+    field = 'data'
+    data = data[field]
+    data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
+    data = dios.DictOfSeries(data)
+    flagger = initFlagsLike(data)
+
+    # we are just testing if the interpolation gets passed to the series without causing an error:
+    res = interpolate(data, field, flagger, freq, method=method, downcast_interpolation=True)
+
+    if method == "polynomial":
+        res = interpolate(data, field, flagger, freq, order=2, method=method, downcast_interpolation=True)
+        res = interpolate(data, field, flagger, freq, order=10, method=method, downcast_interpolation=True)
+
+    # check minimal requirements
+    rdata, rflagger = res
+    checkDataFlaggerInvariants(rdata, rflagger, field, identical=False)
+    assert rdata[field].index.freq == pd.Timedelta(freq)
+
+
+@pytest.mark.parametrize('func, kws', [
+    ('linear', dict()),
+    ('shift', dict(method="nshift")),
+    ('interpolate', dict(method="spline")),
+    ('aggregate', dict(value_func=np.nansum, method="nagg")),
+])
+def test_flagsSurviveReshaping(func, kws):
+    """
+    flagging -> reshaping -> test (flags also was reshaped correctly)
+    """
+    pass
+
+
+def test_flagsSurviveInverseReshaping():
+    """
+    inverse reshaping -> flagging -> test (flags also was reshaped correctly)"""
+    pass
+
+
+def test_flagsSurviveBackprojection():
+    """
+    flagging -> reshaping -> inverse reshaping -> test (flags == original-flags)
+    """
+    pass
+
+
 @pytest.mark.parametrize("reshaper", ["nshift", "fshift", "bshift", "nagg", "bagg", "fagg", "interpolation"])
 def test_harmSingleVarIntermediateFlagging(data, reshaper):
     flagger = initFlagsLike(data)
@@ -42,6 +112,8 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
     pre_flagger = flagger.copy()
 
     data, flagger = linear(data, field, flagger, freq="15min")
+    checkDataFlaggerInvariants(data, flagger, field, identical=True)
+    assert data[field].index.freq == pd.Timedelta('15min')
 
     # flag something bad
     flagger[data[field].index[3:4], field] = BAD
@@ -62,8 +134,8 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
             raise NotImplementedError('untested test case')
 
         assert all(flagger[field].iloc[start:end] > UNFLAGGED)
-        assert all(~flagger[field].iloc[:start] == UNFLAGGED)
-        assert all(~flagger[field].iloc[end:] == UNFLAGGED)
+        assert all(flagger[field].iloc[:start] == UNFLAGGED)
+        assert all(flagger[field].iloc[end:] == UNFLAGGED)
 
     elif 'shift' in reshaper:
         if reshaper == "nshift":
@@ -96,14 +168,18 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
 def test_harmSingleVarInterpolationAgg(data, params, expected):
     flagger = initFlagsLike(data)
     field = 'data'
+
     pre_data = data.copy()
     pre_flaggger = flagger.copy()
     method, freq = params
 
     data_harm, flagger_harm = aggregate(data, field, flagger, freq, value_func=np.sum, method=method)
+    checkDataFlaggerInvariants(data_harm, flagger_harm, field, identical=True)
+    assert data_harm[field].index.freq == pd.Timedelta(freq)
     assert data_harm[field].equals(expected)
 
     data_deharm, flagger_deharm = mapToOriginal(data_harm, "data", flagger_harm, method="inverse_" + method)
+    checkDataFlaggerInvariants(data_harm, flagger_harm, field, identical=True)
     assert data_deharm[field].equals(pre_data[field])
     assert flagger_deharm[field].equals(pre_flaggger[field])
 
@@ -111,14 +187,14 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
 @pytest.mark.parametrize(
     'params, expected',
     [
-        (("fshift", "15Min"), pd.Series(data=[np.nan, -37.5, -25.0, 0.0, 37.5, 50.0], index=pd.date_range("2010-12-31 23:45:00", "2011-01-01 01:00:00", freq="15Min"))),
-        (("fshift", "30Min"), pd.Series(data=[np.nan, -37.5, 0.0, 50.0], index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"))),
         (("bshift", "15Min"), pd.Series(data=[-50.0, -37.5, -25.0, 12.5, 37.5, 50.0], index=pd.date_range("2010-12-31 23:45:00", "2011-01-01 01:00:00", freq="15Min"))),
-        (("bshift", "30Min"), pd.Series(data=[-50.0, -37.5, 12.5, 50.0], index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"))),
+        (("fshift", "15Min"), pd.Series(data=[np.nan, -37.5, -25.0, 0.0, 37.5, 50.0], index=pd.date_range("2010-12-31 23:45:00", "2011-01-01 01:00:00", freq="15Min"))),
         (("nshift", "15min"), pd.Series(data=[np.nan, -37.5, -25.0, 12.5, 37.5, 50.0], index=pd.date_range("2010-12-31 23:45:00", "2011-01-01 01:00:00", freq="15Min"))),
+        (("bshift", "30Min"), pd.Series(data=[-50.0, -37.5, 12.5, 50.0], index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"))),
+        (("fshift", "30Min"), pd.Series(data=[np.nan, -37.5, 0.0, 50.0], index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"))),
         (("nshift", "30min"), pd.Series(data=[np.nan, -37.5, 12.5, 50.0], index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"))),
     ])
-def  test_harmSingleVarInterpolationShift(data, params, expected):
+def test_harmSingleVarInterpolationShift(data, params, expected):
     flagger = initFlagsLike(data)
     field = 'data'
     pre_data = data.copy()
@@ -132,37 +208,4 @@ def  test_harmSingleVarInterpolationShift(data, params, expected):
     assert data_deharm[field].equals(pre_data[field])
     assert flagger_deharm[field].equals(pre_flagger[field])
 
-
-@pytest.mark.parametrize("method", ["time", "polynomial"])
-def test_gridInterpolation(data, method):
-    freq = "15min"
-    field = 'data'
-    data = data[field]
-    data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
-    data = dios.DictOfSeries(data)
-    flagger = initFlagsLike(data)
-
-    # we are just testing if the interpolation gets passed to the series without causing an error:
-    interpolate(data, field, flagger, freq, method=method, downcast_interpolation=True)
-
-    if method == "polynomial":
-        interpolate(data, field, flagger, freq, order=2, method=method, downcast_interpolation=True)
-        interpolate(data, field, flagger, freq, order=10, method=method, downcast_interpolation=True)
-
-
-@pytest.mark.parametrize('func, kws', [
-    ('linear', dict(to_drop=None)),
-    ('shift', dict(method="nshift", to_drop=None)),
-    ('interpolate', dict(method="spline")),
-    ('aggregate', dict(value_func=np.nansum, method="nagg", to_drop=None)),
-])
-def test_wrapper(data, func, kws):
-    # we are only testing, whether the wrappers do pass processing:
-    field = 'data'
-    freq = "15min"
-    flagger = initFlagsLike(data)
-
-    import saqc
-    func = getattr(saqc.funcs, func)
-    func(data, field, flagger, freq, **kws)
 

@@ -42,3 +42,49 @@ def writeIO(content):
     return f
 
 
+def checkDataFlaggerInvariants(data, flagger, field, identical=True):
+    """
+    Check all invariants that must hold at any point for
+        * field
+        * data
+        * flagger
+        * data[field]
+        * flagger[field]
+        * data[field].index
+        * flagger[field].index
+        * between data and flagger
+        * between data[field] and flagger[field]
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        data container
+    flagger : Flags
+        flags container
+    field : str
+        the field in question
+    identical : bool, default True
+        whether to check indexes of data and flagger to be
+        identical (True, default) of just for equality.
+    """
+    assert isinstance(data, dios.DictOfSeries)
+    assert isinstance(flagger, Flagger)
+
+    # all columns in data are in flagger
+    assert data.columns.difference(flagger.columns).empty
+
+    # ------------------------------------------------------------------------
+    # below here, we just check on and with field
+    # ------------------------------------------------------------------------
+    assert field in data
+    assert field in flagger
+
+    assert flagger[field].dtype == float
+
+    # `pd.Index.identical` also check index attributes like `freq`
+    if identical:
+        assert data[field].index.identical(flagger[field].index)
+    else:
+        assert data[field].index.equals(flagger[field].index)
+
+
