@@ -150,13 +150,19 @@ def test_gridInterpolation(data, method):
         interpolate(data, field, flagger, freq, order=10, method=method, downcast_interpolation=True)
 
 
-def test_wrapper(data):
+@pytest.mark.parametrize('func, kws', [
+    ('linear', dict(to_drop=None)),
+    ('shift', dict(method="nshift", to_drop=None)),
+    ('interpolate', dict(method="spline")),
+    ('aggregate', dict(value_func=np.nansum, method="nagg", to_drop=None)),
+])
+def test_wrapper(data, func, kws):
     # we are only testing, whether the wrappers do pass processing:
     field = 'data'
     freq = "15min"
     flagger = initFlagsLike(data)
 
-    linear(data, field, flagger, freq, to_drop=None)
-    aggregate(data, field, flagger, freq, value_func=np.nansum, method="nagg", to_drop=None)
-    shift(data, field, flagger, freq, method="nshift", to_drop=None)
-    interpolate(data, field, flagger, freq, method="spline")
+    import saqc
+    func = getattr(saqc.funcs, func)
+    func(data, field, flagger, freq, **kws)
+

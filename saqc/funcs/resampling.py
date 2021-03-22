@@ -18,7 +18,7 @@ from saqc.funcs.tools import copy, drop, rename
 from saqc.funcs.interpolation import interpolateIndex
 from saqc.lib.tools import getDropMask, evalFreqStr, getFreqDelta
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
-from saqc.flagger.flags import applyFunctionOnHistory, mergeHistoryByFunc
+from saqc.flagger.flags import applyFunctionOnHistory, appendHistory
 from saqc.lib.rolling import customRoller
 
 logger = logging.getLogger("SaQC")
@@ -341,70 +341,43 @@ def shift(
         field: str,
         flagger: Flagger,
         freq: str,
-        method: Literal["fshift", "bshift", "nshift"]="nshift",
-        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
-        empty_intervals_flag: Optional[str]=None,
-        freq_check: Optional[Literal["check", "auto"]]=None,  # TODO: not a user decision
-        **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
-
-    data, flagger = copy(data, field, flagger, field + '_original')
-    data, flagger = _shift(
-        data, field, flagger, freq, method=method, to_drop=to_drop,
-        empty_intervals_flag=empty_intervals_flag, freq_check=freq_check, **kwargs
-    )
-    return data, flagger
-
-
-def _shift(
-        data: DictOfSeries,
-        field: str,
-        flagger: Flagger,
-        freq: str,
-        method: Literal["fshift", "bshift", "nshift"]="nshift",
-        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
-        empty_intervals_flag: float = UNFLAGGED,
-        freq_check: Optional[Literal["check", "auto"]]=None,
+        method: Literal["fshift", "bshift", "nshift"] = "nshift",
+        freq_check: Optional[Literal["check", "auto"]] = None,  # TODO: not a user decision
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
-    Function to shift data points to regular (equidistant) timestamps.
-    Values get shifted according to the keyword passed to the `method` parameter.
-
-    * ``'nshift'``: every grid point gets assigned the nearest value in its range. (range = +/- 0.5 * `freq`)
-    * ``'bshift'``:  every grid point gets assigned its first succeeding value - if there is one available in the
-      succeeding sampling interval.
-    * ``'fshift'``:  every grid point gets assigned its ultimately preceeding value - if there is one available in
-      the preceeding sampling interval.
-
-    Note: all data nans get excluded defaultly from shifting. If `to_drop` is ``None``, - all *BAD* flagged values get
-    excluded as well.
+    Function to shift data and flags to a regular (equidistant) timestamp grid, according to ``method``.
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
+
     field : str
         The fieldname of the column, holding the data-to-be-shifted.
+
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
+
     freq : str
         An frequency Offset String that will be interpreted as the sampling rate you want the data to be shifted to.
-    method: {'fshift', 'bshift', 'nshift'}, default 'nshift'
-        Specifies if datapoints get propagated forwards, backwards or to the nearest grid timestamp. See function
-        description for more details.
-    empty_intervals_flag : float, default UNFLAGGED
-        The Flag, that is assigned to grid points, if no values are available to be shifted to.
-    to_drop : {None, str, List[str]}, default None
-        Flags that refer to values you want to drop before shifting - effectively, excluding values that are flagged
-        with a flag in to_drop from the shifting process. Default - to_drop = None  - results in BAD
-        values being dropped initially.
+
+    method : {'fshift', 'bshift', 'nshift'}, default 'nshift'
+        Specifies how misaligned data-points get propagated to a grid timestamp.
+        Following choices are available:
+
+        * 'nshift' : every grid point gets assigned the nearest value in its range. (range = +/- 0.5 * `freq`)
+        * 'bshift' : every grid point gets assigned its first succeeding value, if one is available in
+          the succeeding sampling interval.
+        * 'fshift' : every grid point gets assigned its ultimately preceding value, if one is available in
+          the preceeding sampling interval.
+
     freq_check : {None, 'check', 'auto'}, default None
 
-        * ``None``: do not validate frequency-string passed to `freq`
-        * ``'check'``: estimate frequency and log a warning if estimate miss matches frequency string passed to `freq`,
+        * ``None`` : do not validate frequency-string passed to `freq`
+        * 'check' : estimate frequency and log a warning if estimate miss matches frequency string passed to `freq`,
           or if no uniform sampling rate could be estimated
-        * ``'auto'``: estimate frequency and use estimate. (Ignores `freq` parameter.)
+        * 'auto' : estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
     -------
@@ -415,45 +388,51 @@ def _shift(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
-    data = data.copy()
+    data, flagger = copy(data, field, flagger, field + '_original')
+    return _shift(data, field, flagger, freq, method=method, freq_check=freq_check, **kwargs)
+
+
+def _shift(
+        data: DictOfSeries,
+        field: str,
+        flagger: Flagger,
+        freq: str,
+        method: Literal["fshift", "bshift", "nshift"] = "nshift",
+        freq_check: Optional[Literal["check", "auto"]] = None,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
+    """
+    Function to shift data points to regular (equidistant) timestamps.
+
+    See Also
+    --------
+    shift : Main caller, docstring
+    """
+    flagged = isflagged(flagger[field], kwargs['to_mask'])
     datcol = data[field]
-    flagscol = flagger[field]
+    datcol[flagged] = np.nan
+    freq = evalFreqStr(freq, freq_check, datcol.index)
 
-    drop_mask = getDropMask(field, to_drop, flagger, BAD)
-    drop_mask |= datcol.isna()
-    datcol[drop_mask] = np.nan
-    datcol.dropna(inplace=True)
-    flagscol.drop(drop_mask[drop_mask].index, inplace=True)
+    # do the shift
+    datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
 
-    # create a dummys
-    if datcol.empty:
-        datcol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
-        flagscol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
+    # do the shift on the history
+    history = flagger.history[field]
+    history.hist = shift2Freq(history.hist, method, freq, fill_value=UNTOUCHED)
+    history.mask = shift2Freq(history.mask, method, freq, fill_value=False)
 
-        # clear the past
-        flagger.history[field] = flagger.history[field].reindex(datcol.index)
-        flagger[field] = flagscol
+    # The last 2 lines left the history in an unstable state, Also we want to
+    # append a dummy column, that represent the 'shift' in the history.
+    # Luckily the append also fix the unstable state - noice.
+    dummy = pd.Series(UNTOUCHED, index=datcol.index, dtype=float)
+    history.append(dummy, force=True)
 
-    # do the shift, we need to process the history manually
-    else:
-        freq = evalFreqStr(freq, freq_check, datcol.index)
-        datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
-
-        # after next 3 lines we leave history in unstable state
-        # but the following append will fix this
-        history = flagger.history[field]
-        history.hist = shift2Freq(history.hist, method, freq, fill_value=UNTOUCHED)
-        history.mask = shift2Freq(history.mask, method, freq, fill_value=False)
-
-        flagscol = shift2Freq(flagscol, method, freq, fill_value=empty_intervals_flag)
-        history.append(flagscol, force=True)
-        flagger.history[field] = history
-
+    flagger.history[field] = history
     data[field] = datcol
     return data, flagger
 
 
-@register(masking='field', module="resampling")
+@register(masking='none', module="resampling")
 def resample(
         data: DictOfSeries,
         field: str,
@@ -466,9 +445,6 @@ def resample(
         max_invalid_consec_f: Optional[int]=None,
         max_invalid_total_f: Optional[int]=None,
         flag_agg_func: Callable[[pd.Series], float]=max,
-        empty_intervals_flag: float = BAD,
-        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
-        all_na_2_empty: bool=False,
         freq_check: Optional[Literal["check", "auto"]]=None,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
@@ -497,45 +473,48 @@ def resample(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
+
     field : str
         The fieldname of the column, holding the data-to-be-resampled.
+
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
+
     freq : str
         An Offset String, that will be interpreted as the frequency you want to resample your data with.
+
     agg_func : Callable
         The function you want to use for aggregation.
+
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
         Specifies which intervals to be aggregated for a certain timestamp. (preceding, succeeding or
         "surrounding" interval). See description above for more details.
+
     max_invalid_total_d : {None, int}, default None
         Maximum number of invalid (nan) datapoints, allowed per resampling interval. If max_invalid_total_d is
         exceeded, the interval gets resampled to nan. By default (``np.inf``), there is no bound to the number of nan
         values in an interval and only intervals containing ONLY nan values or those, containing no values at all,
         get projected onto nan
+
     max_invalid_consec_d : {None, int}, default None
         Maximum number of consecutive invalid (nan) data points, allowed per resampling interval.
         If max_invalid_consec_d is exceeded, the interval gets resampled to nan. By default (np.inf),
         there is no bound to the number of consecutive nan values in an interval and only intervals
         containing ONLY nan values, or those containing no values at all, get projected onto nan.
+
     max_invalid_total_f : {None, int}, default None
         Same as `max_invalid_total_d`, only applying for the flags. The flag regarded as "invalid" value,
         is the one passed to empty_intervals_flag (default=``BAD``).
         Also this is the flag assigned to invalid/empty intervals.
+
     max_invalid_consec_f : {None, int}, default None
         Same as `max_invalid_total_f`, only applying onto flags. The flag regarded as "invalid" value, is the one passed
         to empty_intervals_flag. Also this is the flag assigned to invalid/empty intervals.
+
     flag_agg_func : Callable, default: max
         The function you want to aggregate the flags with. It should be capable of operating on the flags dtype
         (usually ordered categorical).
-    empty_intervals_flag : float, default BAD
-        A Flag, that you want to assign to invalid intervals. Invalid are those intervals, that contain nan values only,
-        or no values at all. Furthermore the empty_intervals_flag is the flag, serving as "invalid" identifyer when
-        checking for `max_total_invalid_f` and `max_consec_invalid_f patterns`.
-    to_drop : {None, str, List[str]}, default None
-        Flags that refer to values you want to drop before resampling - effectively excluding values that are flagged
-        with a flag in to_drop from the resampling process - this means that they also will not be counted in the
-        the `max_consec`/`max_total evaluation`. `to_drop` = ``None`` results in NO flags being dropped initially.
+
     freq_check : {None, 'check', 'auto'}, default None
 
         * ``None``: do not validate frequency-string passed to `freq`
@@ -552,63 +531,38 @@ def resample(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
-
-    data = data.copy()
+    flagged = isflagged(flagger[field], kwargs['to_mask'])
     datcol = data[field]
-    flagscol = flagger[field]
-
-    drop_mask = getDropMask(field, to_drop, flagger, [])
-    datcol.drop(datcol[drop_mask].index, inplace=True)
+    datcol[flagged] = np.nan
     freq = evalFreqStr(freq, freq_check, datcol.index)
-    flagscol.drop(flagscol[drop_mask].index, inplace=True)
 
-    # create a dummys
-    if all_na_2_empty and datcol.dropna().empty:
-        # Todo: This needs discussion. See issue #GL170
-        datcol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
-        flagscol = pd.Series([], index=pd.DatetimeIndex([]), name=field)
+    datcol = aggregate2Freq(
+        datcol,
+        method,
+        freq,
+        agg_func,
+        fill_value=np.nan,
+        max_invalid_total=max_invalid_total_d,
+        max_invalid_consec=max_invalid_consec_d,
+    )
 
-        # clear the past
-        flagger.history[field] = flagger.history[field].reindex(datcol.index)
-        flagger[field] = flagscol
+    dummy = pd.Series(UNTOUCHED, index=datcol.index, dtype=float)
 
-    # do the resampling
-    else:
-        datcol = aggregate2Freq(
-            datcol,
-            method,
-            freq,
-            agg_func,
-            fill_value=np.nan,
-            max_invalid_total=max_invalid_total_d,
-            max_invalid_consec=max_invalid_consec_d,
-        )
+    kws = dict(
+        method=method,
+        freq=freq,
+        agg_func=flag_agg_func,
+        fill_value=UNTOUCHED,
+        max_invalid_total=max_invalid_total_f,
+        max_invalid_consec=max_invalid_consec_f,
+    )
 
-        flagscol = aggregate2Freq(
-            flagscol,
-            method,
-            freq,
-            flag_agg_func,
-            fill_value=empty_intervals_flag,
-            max_invalid_total=max_invalid_total_f,
-            max_invalid_consec=max_invalid_consec_f,
-        )
-
-        kws = dict(
-            method=method,
-            freq=freq,
-            agg_func=flag_agg_func,
-            fill_value=UNTOUCHED,
-            max_invalid_total=max_invalid_total_f,
-            max_invalid_consec=max_invalid_consec_f,
-        )
-
-        flagger = applyFunctionOnHistory(
-            flagger, field,
-            hist_func=aggregate2Freq, hist_kws=kws,
-            mask_func=aggregate2Freq, mask_kws=kws,
-            last_column=flagscol
-        )
+    flagger = applyFunctionOnHistory(
+        flagger, field,
+        hist_func=aggregate2Freq, hist_kws=kws,
+        mask_func=aggregate2Freq, mask_kws=kws,
+        last_column=dummy
+    )
 
     data[field] = datcol
     return data, flagger
@@ -621,28 +575,23 @@ def _getChunkBounds(target_datcol, flagscol, freq):
     return ignore_flags
 
 
-def _inverseInterpolation(target_flagscol, source_col=None, freq=None, chunk_bounds=None):
+def _inverseInterpolation(source_col, freq=None, chunk_bounds=None, target_flagscol=None):
     source_col = source_col.copy()
-    source_col[chunk_bounds] = np.nan
+    if len(chunk_bounds) > 0:
+        source_col[chunk_bounds] = np.nan
     backprojected = source_col.reindex(target_flagscol.index, method="bfill", tolerance=freq)
     fwrdprojected = source_col.reindex(target_flagscol.index, method="ffill", tolerance=freq)
-    b_replacement_mask = (backprojected > target_flagscol) & (backprojected >= fwrdprojected)
-    f_replacement_mask = (fwrdprojected > target_flagscol) & (fwrdprojected > backprojected)
-    target_flagscol.loc[b_replacement_mask] = backprojected.loc[b_replacement_mask]
-    target_flagscol.loc[f_replacement_mask] = fwrdprojected.loc[f_replacement_mask]
-    return target_flagscol
+    return pd.concat([backprojected, fwrdprojected], axis=1).max(axis=1)
 
 
-def _inverseAggregation(target_flagscol, source_col=None, freq=None, method=None):
-    source_col = source_col.reindex(target_flagscol.index, method=method, tolerance=freq)
-    replacement_mask = source_col > target_flagscol
-    target_flagscol.loc[replacement_mask] = source_col.loc[replacement_mask]
-    return target_flagscol
+def _inverseAggregation(source_col, freq=None, method=None, target_flagscol=None):
+    return source_col.reindex(target_flagscol.index, method=method, tolerance=freq)
 
 
-def _inverseShift(target_flagscol, source_col=None, freq=None, method=None, drop_mask=None):
+
+def _inverseShift(source_col, freq=None, method=None, drop_mask=None, target_flagscol=None):
     target_flagscol_drops = target_flagscol[drop_mask]
-    target_flagscol.drop(drop_mask[drop_mask].index, inplace=True)
+    target_flagscol = target_flagscol.drop(drop_mask[drop_mask].index)
     flags_merged = pd.merge_asof(
         source_col,
         pd.Series(target_flagscol.index.values, index=target_flagscol.index, name="pre_index"),
@@ -652,17 +601,13 @@ def _inverseShift(target_flagscol, source_col=None, freq=None, method=None, drop
         direction=method,
     )
     flags_merged.dropna(subset=["pre_index"], inplace=True)
-    flags_merged = flags_merged.set_index(["pre_index"]).squeeze()
-
-    # write flags to target
-    replacement_mask = flags_merged > target_flagscol.loc[flags_merged.index]
-    target_flagscol.loc[replacement_mask[replacement_mask].index] = flags_merged.loc[replacement_mask]
+    target_flagscol = flags_merged.set_index(["pre_index"]).squeeze()
 
     # reinsert drops
-    target_flagscol = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))
-    target_flagscol.loc[target_flagscol_drops.index] = target_flagscol_drops.values
+    source_col = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))
+    source_col.loc[target_flagscol_drops.index] = target_flagscol_drops.values
 
-    return target_flagscol
+    return source_col
 
 
 @register(masking='none', module="resampling")
@@ -743,24 +688,27 @@ def reindexFlags(
 
     target_datcol = data[field]
     target_flagscol = flagger[field]
-    append_dummy = pd.Series(np.nan, target_flagscol.index)
+    blank_dummy = pd.Series(np.nan, target_flagscol.index)
     if method[-13:] == "interpolation":
         ignore = _getChunkBounds(target_datcol, flagscol, freq)
         merge_func = _inverseInterpolation
-        merge_dict = dict(freq=freq, chunk_bounds=ignore)
+        merge_dict = dict(freq=freq, chunk_bounds=ignore, target_flagscol=blank_dummy)
+        mask_dict = {**merge_dict, 'chunk_bounds':[]}
 
     if method[-3:] == "agg" or method == "match":
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
         merge_func = _inverseAggregation
-        merge_dict = dict(freq=tolerance, method=projection_method)
+        merge_dict = mask_dict = dict(freq=tolerance, method=projection_method, target_flagscol=blank_dummy)
 
     if method[-5:] == "shift":
         drop_mask = (target_datcol.isna() | isflagged(target_flagscol, kwargs['to_mask']))
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
         merge_func = _inverseShift
-        merge_dict = dict(freq=tolerance, method=projection_method, drop_mask=drop_mask)
+        merge_dict = mask_dict = dict(freq=tolerance, method=projection_method, drop_mask=drop_mask, target_flagscol=blank_dummy)
 
-    flagger = mergeHistoryByFunc(flagger, field, source, merge_func, merge_dict, last_column=append_dummy)
+    tmp_flagger = applyFunctionOnHistory(flagger, source, merge_func, merge_dict, merge_func, mask_dict,
+                                     last_column=blank_dummy)
+    flagger = appendHistory(flagger, field, tmp_flagger.history[source])
     return data, flagger
