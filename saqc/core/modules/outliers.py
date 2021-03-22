@@ -67,6 +67,7 @@ class Outliers(ModuleBase):
             thresh: float,
             tolerance: float,
             window: str,
+            rel_thresh: Optional[float]=None,
             numba_kickin: int = 200000,
             **kwargs
     ):
