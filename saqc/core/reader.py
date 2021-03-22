@@ -56,7 +56,7 @@ def _injectOptionalColumns(df):
     return df
 
 
-def _parseConfig(df, flags):
+def _parseConfig(df, flags, nodata):
     funcs = []
     for lineno, (_, target, expr, plot) in enumerate(df.itertuples()):
         if target == "None" or pd.isnull(target) or pd.isnull(expr):
@@ -83,13 +83,13 @@ def _parseConfig(df, flags):
             expression=expr
         )
 
-        f = func.bind(**kwargs)
+        f = func.bind(**{"nodata": nodata, **kwargs})
 
         funcs.append((selector, control, f))
     return funcs
 
 
-def readConfig(fname, flags):
+def readConfig(fname, flags, nodata):
     df = pd.read_csv(
         fname,
         sep=r"\s*;\s*",
@@ -108,4 +108,4 @@ def readConfig(fname, flags):
     df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
     df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: "", np.nan: ""})
     df = df.astype({F.PLOT: bool})
-    return _parseConfig(df, flags)
+    return _parseConfig(df, flags, nodata)
