@@ -8,6 +8,7 @@ import pandas as pd
 from dios import DictOfSeries
 from typing_extensions import Literal
 
+from saqc.constants import *
 from saqc import Flagger
 from saqc.core.modules.base import ModuleBase
 from saqc.lib.types import IntegerWindow, FreqString, ColumnName
@@ -22,6 +23,7 @@ class Outliers(ModuleBase):
             partition_min: int = 11,
             iter_start: float = 0.5,
             alpha: float = 0.05,
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagByStray", locals())
@@ -42,6 +44,7 @@ class Outliers(ModuleBase):
             reduction_drop_flagged: bool = False,  # TODO: still a case ?
             reduction_thresh: float = 3.5,
             reduction_min_periods: int = 1,
+            flag: float = BAD,
             **kwargs,
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagMVScores", locals())
@@ -57,12 +60,18 @@ class Outliers(ModuleBase):
             min_slope: Optional[float] = None,
             min_slope_weight: float = 0.8,
             numba_boost: bool = True,  # TODO: rm, not a user decision
+            flag: float = BAD,
             **kwargs,
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagRaise", locals())
 
     def flagMAD(
-            self, field: ColumnName, window: FreqString, z: float = 3.5, **kwargs
+            self, 
+            field: ColumnName,
+            window: FreqString,
+            z: float = 3.5,
+            flag: float = BAD,
+            **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagMAD", locals())
 
@@ -74,6 +83,7 @@ class Outliers(ModuleBase):
             window: Union[IntegerWindow, FreqString],
             rel_thresh: Optional[float] = None,
             numba_kickin: int = 200000,  # TODO: rm, not a user decision
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagOffset", locals())
@@ -85,6 +95,7 @@ class Outliers(ModuleBase):
             alpha: float = 0.05,
             min_periods: int = 8,
             check_lagged: bool = False,
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagByGrubbs", locals())
@@ -94,6 +105,7 @@ class Outliers(ModuleBase):
             field: ColumnName,
             min: float = -np.inf,
             max: float = np.inf,
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagRange", locals())
@@ -104,6 +116,7 @@ class Outliers(ModuleBase):
             fields: Sequence[ColumnName],
             thresh: float,
             cross_stat: Literal["modZscore", "Zscore"] = "modZscore",
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagCrossStatistic", locals())

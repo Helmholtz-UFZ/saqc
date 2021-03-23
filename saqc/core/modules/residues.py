@@ -7,6 +7,7 @@ import numpy as np
 from dios import DictOfSeries
 from typing_extensions import Literal
 
+from saqc.constants import *
 from saqc import Flagger
 from saqc.core.modules.base import ModuleBase
 
@@ -21,6 +22,7 @@ class Residues(ModuleBase):
             numba: Literal[True, False, "auto"] = "auto",  # TODO: rm, not a a user decision
             eval_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
             min_periods: Optional[int] = 0,
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("calculatePolynomialResidues", locals())
@@ -33,6 +35,7 @@ class Residues(ModuleBase):
             eval_flags: bool = True,
             min_periods: Optional[int] = 0,
             center: bool = True,
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("calculateRollingResidues", locals())

@@ -8,6 +8,7 @@ import pandas as pd
 from dios import DictOfSeries
 from typing_extensions import Literal
 
+from saqc.constants import *
 from saqc import Flagger
 from saqc.core.modules.base import ModuleBase
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
@@ -22,6 +23,7 @@ class Resampling(ModuleBase):
             value_func,
             flag_func: Callable[[pd.Series], float] = np.nanmax,
             method: Literal["fagg", "bagg", "nagg"] = "nagg",
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("aggregate", locals())

@@ -1,17 +1,19 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-import functools
-from typing import Optional, Tuple, Sequence, Callable, Optional
-from typing_extensions import Literal
 
 import numpy as np
 import pandas as pd
+import functools
+from dios import DictOfSeries
+
+from typing import Optional, Tuple, Sequence, Callable, Optional
+from typing_extensions import Literal
+
 from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
 
-from dios import DictOfSeries
-
+from saqc.constants import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 from saqc.funcs.resampling import shift
@@ -35,6 +37,7 @@ def flagDriftFromNorm(
         norm_frac: float = 0.5,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
         linkage_method: LinkageString = "single",
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -76,7 +79,8 @@ def flagDriftFromNorm(
         The keyword gets passed on to scipy.hierarchy.linkage. See its documentation to learn more about the different
         keywords (References [1]).
         See wikipedia for an introduction to hierarchical clustering (References [2]).
-    kwargs
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -122,7 +126,6 @@ def flagDriftFromNorm(
     Introduction to Hierarchical clustering:
         [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
     """
-
     data_to_flag = data[fields].to_df()
     data_to_flag.dropna(inplace=True)
 
@@ -135,7 +138,7 @@ def flagDriftFromNorm(
         drifters = detectDeviants(segment[1], metric, norm_spread, norm_frac, linkage_method, 'variables')
 
         for var in drifters:
-            flagger[segment[1].index, fields[var]] = kwargs['flag']
+            flagger[segment[1].index, fields[var]] = flag
 
     return data, flagger
 
@@ -149,6 +152,7 @@ def flagDriftFromReference(
         segment_freq: FreqString,
         thresh: float,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -175,7 +179,8 @@ def flagDriftFromReference(
         A distance function. It should be a function of 2 1-dimensional arrays and return a float scalar value.
         This value is interpreted as the distance of the two input arrays. The default is the averaged manhatten metric.
         See the Notes section to get an idea of why this could be a good choice.
-    kwargs
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -211,7 +216,7 @@ def flagDriftFromReference(
             dist = metric(segment[1].iloc[:, i].values, segment[1].loc[:, field].values)
 
             if dist > thresh:
-                flagger[segment[1].index, fields[i]] = kwargs['flag']
+                flagger[segment[1].index, fields[i]] = flag
 
     return data, flagger
 
@@ -228,6 +233,7 @@ def flagDriftFromScaledNorm(
         norm_frac: float = 0.5,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
         linkage_method: LinkageString = "single",
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -277,7 +283,8 @@ def flagDriftFromScaledNorm(
         The keyword gets passed on to scipy.hierarchy.linkage. See its documentation to learn more about the different
         keywords (References [1]).
         See wikipedia for an introduction to hierarchical clustering (References [2]).
-    kwargs
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -327,7 +334,7 @@ def flagDriftFromScaledNorm(
         drifters = detectDeviants(segment[1], metric, norm_spread, norm_frac, linkage_method, 'variables')
 
         for var in drifters:
-            flagger[segment[1].index, fields[var]] = kwargs['flag']
+            flagger[segment[1].index, fields[var]] = flag
 
     return data, flagger
 
@@ -340,6 +347,7 @@ def correctExponentialDrift(
         maint_data_field: ColumnName,
         cal_mean: int = 5,
         flag_maint_period: bool = False,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -390,6 +398,8 @@ def correctExponentialDrift(
         directly before maintenance event. This values are needed for shift calibration. (see above description)
     flag_maint_period : bool, default False
         Whether or not to flag the values obtained while maintenance.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -436,7 +446,7 @@ def correctExponentialDrift(
         to_flag = drift_frame["drift_group"]
         to_flag = to_flag.drop(to_flag[: maint_data.index[0]].index)
         to_flag = to_flag.dropna()
-        flagger[to_flag, field] = kwargs['flag']
+        flagger[to_flag, field] = flag
 
     return data, flagger
 
@@ -486,7 +496,6 @@ def correctRegimeAnomaly(
         unreliability of data near the changepoints of regimes.
     x_date : bool, default False
         If True, use "seconds from epoch" as x input to the model func, instead of "seconds from regime start".
-
 
     Returns
     -------
@@ -592,7 +601,6 @@ def correctOffset(
         start and right before the end of any regime is ignored when calculating a regimes mean for data correcture.
         This is to account for the unrelyability of data near the changepoints of regimes.
 
-
     Returns
     -------
     data : dios.DictOfSeries
@@ -600,7 +608,6 @@ def correctOffset(
         Data values may have changed relatively to the data input.
     flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
-
     """
     data, flagger = copy(data, field, flagger, field + '_CPcluster')
     data, flagger = assignChangePointCluster(
@@ -659,6 +666,7 @@ def flagRegimeAnomaly(
         linkage_method: LinkageString = "single",
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
         norm_frac: float = 0.5,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -695,6 +703,8 @@ def flagRegimeAnomaly(
     norm_frac : float
         Has to be in [0,1]. Determines the minimum percentage of samples,
         the "normal" group has to comprise to be the normal group actually.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -714,6 +724,7 @@ def flagRegimeAnomaly(
         norm_frac=norm_frac,
         set_cluster=False,
         set_flags=True,
+        flag=flag,
         **kwargs
     )
 
@@ -730,6 +741,7 @@ def assignRegimeAnomaly(
         norm_frac: float = 0.5,
         set_cluster: bool = True,
         set_flags: bool = False,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -775,10 +787,11 @@ def assignRegimeAnomaly(
     set_flags : bool, default True
         Wheather or not to flag abnormal values (do not flag them, if you want to correct them
         afterwards, becasue flagged values usually are not visible in further tests.).
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
-
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     flagger : saqc.flagger.Flagger
@@ -792,7 +805,7 @@ def assignRegimeAnomaly(
 
     if set_flags:
         for p in plateaus:
-            flagger[cluster_dios.iloc[:, p].index, field] = kwargs['flags']
+            flagger[cluster_dios.iloc[:, p].index, field] = flag
 
     if set_cluster:
         for p in plateaus:

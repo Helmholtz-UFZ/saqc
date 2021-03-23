@@ -9,6 +9,7 @@ import pandas as pd
 
 from dios import DictOfSeries
 
+from saqc.constants import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 from saqc.lib.ts_operators import varQC
@@ -23,6 +24,7 @@ def flagConstants(
         flagger: Flagger,
         thresh: float,
         window: FreqString,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -48,6 +50,8 @@ def flagConstants(
         Upper bound for the maximum total change of an interval to be flagged constant.
     window : str
         Lower bound for the size of an interval to be flagged constant.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -73,7 +77,7 @@ def flagConstants(
     m2 = r.max() - r.min() <= thresh
     mask = m1 | m2
 
-    flagger[mask, field] = kwargs['flag']
+    flagger[mask, field] = flag
     return data, flagger
 
 
@@ -82,10 +86,11 @@ def flagByVariance(
         data: DictOfSeries,
         field: ColumnName,
         flagger: Flagger,
-        window: FreqString="12h",
-        thresh: float=0.0005,
-        max_missing: int=None,
-        max_consec_missing: int=None,
+        window: FreqString = "12h",
+        thresh: float = 0.0005,
+        max_missing: int = None,
+        max_consec_missing: int = None,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -114,6 +119,8 @@ def flagByVariance(
         Maximum number of consecutive nan values allowed in an interval to retrieve a
         valid  variance from it. (Intervals with a number of nans exceeding
         "max_consec_missing" have no chance to get flagged a plateau!)
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -154,5 +161,5 @@ def flagByVariance(
     # result:
     plateaus = (plateaus[plateaus == 1.0]).index
 
-    flagger[plateaus, field] = kwargs['flag']
+    flagger[plateaus, field] = flag
     return data, flagger

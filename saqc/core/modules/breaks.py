@@ -5,6 +5,7 @@ from typing import Tuple
 import numpy as np
 from dios import DictOfSeries
 
+from saqc.constants import *
 from saqc import Flagger
 from saqc.core.modules.base import ModuleBase
 from saqc.lib.types import FreqString, IntegerWindow, ColumnName
@@ -16,6 +17,7 @@ class Breaks(ModuleBase):
             self, 
             field: ColumnName,
             nodata: float = np.nan,
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagMissing", locals())
@@ -25,6 +27,7 @@ class Breaks(ModuleBase):
             field: ColumnName,
             gap_window: FreqString,
             group_window: FreqString,
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagIsolated", locals())
@@ -35,6 +38,7 @@ class Breaks(ModuleBase):
             thresh: float,
             winsz: FreqString,
             min_periods: IntegerWindow = 1,
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagJumps", locals())

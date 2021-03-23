@@ -8,6 +8,7 @@ import numpy as np
 
 from dios import DictOfSeries
 
+from saqc.constants import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 from saqc.funcs.rolling import roll
@@ -24,6 +25,7 @@ def calculatePolynomialResidues(
         numba: Literal[True, False, "auto"] = "auto",  # TODO: rm, not a a user decision
         eval_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
         min_periods: Optional[int] = 0,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -88,6 +90,8 @@ def calculatePolynomialResidues(
         fit to be performed. If there are not enough values, np.nan gets assigned. Default (0) results in fitting
         regardless of the number of values present (results in overfitting for too sparse intervals). To automatically
         set the minimum number of periods to the number of values in an offset defined window size, pass np.nan.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -107,6 +111,7 @@ def calculatePolynomialResidues(
         eval_flags=eval_flags,
         min_periods=min_periods,
         return_residues=True,
+        flag=flag,
         **kwargs
     )
 
@@ -121,6 +126,7 @@ def calculateRollingResidues(
         eval_flags: bool = True,
         min_periods: Optional[int] = 0,
         center: bool = True,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """ TODO: docstring needed"""
@@ -132,5 +138,6 @@ def calculateRollingResidues(
         min_periods=min_periods,
         center=center,
         return_residues=True,
+        flag=flag,
         **kwargs
     )

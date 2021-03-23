@@ -76,6 +76,7 @@ def clearFlags(data: DictOfSeries, field: ColumnName, flagger: Flagger, **kwargs
     flagUnflagged : set flag value at all unflagged positions
     """
     if 'flag' in kwargs:
+        kwargs = {**kwargs}  # copy
         flag = kwargs.pop('flag')
         warnings.warn(f'`flag={flag}` is ignored here.')
 
@@ -98,7 +99,7 @@ def flagUnflagged(
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional informations related to `data`.
     flag : float, default BAD
-        flag value to set, has NO default
+        flag value to set
     kwargs : Dict
         unused
 
@@ -149,7 +150,8 @@ def flagManual(
         data: DictOfSeries, field: ColumnName, flagger: Flagger,
         mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
         mflag: Any = 1,
-        method=Literal["plain", "ontime", "left-open", "right-open"],
+        method: Literal["plain", "ontime", "left-open", "right-open"] = 'plain',
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -172,6 +174,7 @@ def flagManual(
         The "manually generated" data
     mflag : scalar
         The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
+
     method : {'plain', 'ontime', 'left-open', 'right-open'}, default plain
         Defines how mdata is projected on data. Except for the 'plain' method, the methods assume mdata to have an
         index.
@@ -182,6 +185,9 @@ def flagManual(
           The intervals are defined by any two consecutive timestamps t_1 and 1_2 in mdata.
           the value at t_1 gets projected onto all data timestamps t with t_1 <= t < t_2.
         * 'left-open': like 'right-open', but the projected interval now covers all t with t_1 < t <= t_2.
+
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -277,7 +283,7 @@ def flagManual(
     mask = mdata == mflag
     mask = mask.reindex(dat.index).fillna(False)
 
-    flagger[mask, field] = kwargs['flag']
+    flagger[mask, field] = flag
     return data, flagger
 
 

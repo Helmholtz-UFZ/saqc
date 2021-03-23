@@ -8,6 +8,7 @@ import pywt
 from mlxtend.evaluate import permutation_test
 from dios.dios import DictOfSeries
 
+from saqc.constants import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 from saqc.lib.tools import customRoller
@@ -19,8 +20,9 @@ def flagPatternByDTW(
         field: str,
         flagger: Flagger,
         ref_field: str,
-        widths: Sequence[int]=(1, 2, 4, 8),
-        waveform: str="mexh",
+        widths: Sequence[int] = (1, 2, 4, 8),
+        waveform: str = "mexh",
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -46,6 +48,8 @@ def flagPatternByDTW(
         Widths for wavelet decomposition. [1] recommends a dyadic scale. Default: (1,2,4,8)
     waveform: str.
         Wavelet to be used for decomposition. Default: 'mexh'. See [2] for a list.
+    flag : float, default BAD
+        flag to set.
 
     kwargs
 
@@ -94,7 +98,7 @@ def flagPatternByDTW(
     sz = len(ref)
     mask = customRoller(dat, window=sz, min_periods=sz).apply(isPattern, raw=True)
 
-    flagger[mask, field] = kwargs['flag']
+    flagger[mask, field] = flag
     return data, flagger
 
 
@@ -104,8 +108,9 @@ def flagPatternByWavelet(
         field: str,
         flagger: Flagger,
         ref_field: str,
-        max_distance: float=0.03,
-        normalize: bool=True,
+        max_distance: float = 0.03,
+        normalize: bool = True,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """ Pattern Recognition via Dynamic Time Warping.
@@ -130,9 +135,8 @@ def flagPatternByWavelet(
         Maximum dtw-distance between partition and pattern, so that partition is recognized as pattern. Default: 0.03
     normalize: boolean.
         Normalizing dtw-distance (see [1]). Default: True
-
-
-    kwargs
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -166,5 +170,5 @@ def flagPatternByWavelet(
     sz = len(ref)
     mask = customRoller(dat, window=sz, min_periods=sz).apply(isPattern, raw=True)
 
-    flagger[mask, field] = kwargs['flag']
+    flagger[mask, field] = flag
     return data, flagger

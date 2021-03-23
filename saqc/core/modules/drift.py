@@ -6,6 +6,7 @@ from typing import Sequence, Callable, Optional, Tuple
 import numpy as np
 from scipy.spatial.distance import pdist
 
+from saqc.constants import *
 from saqc.core.modules.base import ModuleBase
 from saqc.funcs import LinkageString, DictOfSeries, Flagger
 from saqc.lib.types import ColumnName, FreqString, CurveFitter
@@ -21,6 +22,7 @@ class Drift(ModuleBase):
             norm_frac: float = 0.5,
             metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
             linkage_method: LinkageString = "single",
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagDriftFromNorm", locals())
@@ -32,6 +34,7 @@ class Drift(ModuleBase):
             segment_freq: FreqString,
             thresh: float,
             metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagDriftFromReference", locals())
@@ -46,6 +49,7 @@ class Drift(ModuleBase):
             norm_frac: float = 0.5,
             metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
             linkage_method: LinkageString = "single",
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagDriftFromScaledNorm", locals())
@@ -56,6 +60,7 @@ class Drift(ModuleBase):
             maint_data_field: ColumnName,
             cal_mean: int = 5,
             flag_maint_period: bool = False,
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("correctExponentialDrift", locals())

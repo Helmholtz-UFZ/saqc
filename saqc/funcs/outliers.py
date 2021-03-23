@@ -36,6 +36,7 @@ def flagByStray(
         partition_min: int = 11,
         iter_start: float = 0.5,
         alpha: float = 0.05,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -74,6 +75,9 @@ def flagByStray(
     alpha : float, default 0.05
         Level of significance by which it is tested, if a score might be drawn from another distribution, than the
         majority of the data.
+
+    flag : float, default BAD
+        flag to set.
 
     References
     ----------
@@ -121,7 +125,7 @@ def flagByStray(
         for iter_index in range(i_start - 1, sample_size):
             if gaps[iter_index] > log_alpha * ghat[iter_index]:
                 index = partition.index[sorted_i[iter_index:]]
-                flagger[index, field] = kwargs['flag']
+                flagger[index, field] = flag
                 break
 
     return data, flagger
@@ -137,6 +141,7 @@ def _evalStrayLabels(
         reduction_thresh: float = 3.5,
         reduction_min_periods: int = 1,
         at_least_one: bool = True,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -173,6 +178,8 @@ def _evalStrayLabels(
     at_least_one : bool, default True
         If none of the variables, the outlier label shall be reduced to, is an outlier with regard
         to the test, all (True) or none (False) of the variables are flagged
+    flag : float, default BAD
+        flag to set.
 
     References
     ----------
@@ -185,7 +192,7 @@ def _evalStrayLabels(
 
     if reduction_range is None:
         for field in to_flag_frame.columns:
-            flagger[to_flag_frame.index, field] = kwargs['flag']
+            flagger[to_flag_frame.index, field] = flag
         return data, flagger
 
     for var in fields:
@@ -233,7 +240,7 @@ def _evalStrayLabels(
 
     for field in to_flag_frame.columns:
         col = to_flag_frame[field]
-        flagger[col[col].index, field] = kwargs['flag']
+        flagger[col[col].index, field] = flag
 
     return data, flagger
 
@@ -367,6 +374,7 @@ def flagMVScores(
         reduction_drop_flagged: bool = False,  # TODO: still a case ?
         reduction_thresh: float = 3.5,
         reduction_min_periods: int = 1,
+        flag: float = BAD,
         **kwargs,
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -430,6 +438,8 @@ def flagMVScores(
         Only effective when `reduction_range` is not ``None``.
         Minimum number of meassurements necessarily present in a reduction interval for reduction actually to be
         performed.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -488,7 +498,9 @@ def flagMVScores(
         partition_freq=stray_partition,
         partition_min=stray_partition_min,
         iter_start=iter_start,
-        alpha=alpha, **kwargs)
+        alpha=alpha,
+        flag=flag,
+        **kwargs)
 
     data, flagger = _evalStrayLabels(
         data, 'kNN_scores', flagger,
@@ -496,7 +508,9 @@ def flagMVScores(
         reduction_range=reduction_range,
         reduction_drop_flagged=reduction_drop_flagged,
         reduction_thresh=reduction_thresh,
-        reduction_min_periods=reduction_min_periods, **kwargs)
+        reduction_min_periods=reduction_min_periods,
+        flag=flag,
+        **kwargs)
 
     return data, flagger
 
@@ -514,6 +528,7 @@ def flagRaise(
         min_slope: Optional[float] = None,
         min_slope_weight: float = 0.8,
         numba_boost: bool = True,  # TODO: rm, not a user decision
+        flag: float = BAD,
         **kwargs,
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -553,6 +568,9 @@ def flagRaise(
     min_slope_weight : float, default 0.8
         See third condition listed in the notes below.
     numba_boost : bool, default True
+        deprecated ?
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -662,14 +680,20 @@ def flagRaise(
     # check means against critical raise value:
     to_flag = dataseries >= weighted_rolling_mean + (raise_series / mean_raise_factor)
     to_flag &= raise_series.notna()
-    flagger[to_flag[to_flag].index, field] = kwargs['flag']
+    flagger[to_flag[to_flag].index, field] = flag
 
     return data, flagger
 
 
 @register(masking='field', module="outliers")
 def flagMAD(
-        data: DictOfSeries, field: ColumnName, flagger: Flagger, window: FreqString, z: float = 3.5, **kwargs
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        window: FreqString,
+        z: float = 3.5,
+        flag: float = BAD,
+        **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
     The function represents an implementation of the modyfied Z-score outlier detection method.
@@ -690,6 +714,8 @@ def flagMAD(
        Offset string. Denoting the windows size that the "Z-scored" values have to lie in.
     z: float, default 3.5
         The value the Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -721,7 +747,7 @@ def flagMAD(
         index = mask.index
         mask.loc[index < index[0] + pd.to_timedelta(window)] = False
 
-    flagger[mask, field] = kwargs['flag']
+    flagger[mask, field] = flag
     return data, flagger
 
 
@@ -735,6 +761,7 @@ def flagOffset(
         window: Union[IntegerWindow, FreqString],
         rel_thresh: Optional[float] = None,
         numba_kickin: int = 200000,  # TODO: rm, not a user decision
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -776,7 +803,8 @@ def flagOffset(
         When there are detected more than `numba_kickin` incidents of potential spikes,
         the pandas.rolling - part of computation gets "jitted" with numba.
         Default value hast proven to be around the break even point between "jit-boost" and "jit-costs".
-
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -877,7 +905,7 @@ def flagOffset(
 
     cresult = calcResult(result)
     cresult = cresult[cresult].index
-    flagger[cresult, field] = kwargs['flag']
+    flagger[cresult, field] = flag
     return data, flagger
 
 
@@ -890,6 +918,7 @@ def flagByGrubbs(
         alpha: float = 0.05,
         min_periods: int = 8,
         check_lagged: bool = False,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -927,6 +956,8 @@ def flagByGrubbs(
         If True, every value gets checked twice for being an outlier. Ones in the initial rolling window and one more
         time in a rolling window that is lagged by half the windows delimeter (winsz/2). Recommended for avoiding false
         positives at the window edges. Only available when rolling with integer defined window size.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -983,7 +1014,7 @@ def flagByGrubbs(
 
         to_flag &= to_flag_lagged
 
-    flagger[to_flag, field] = kwargs['flag']
+    flagger[to_flag, field] = flag
     return data, flagger
 
 
@@ -994,6 +1025,7 @@ def flagRange(
         flagger: Flagger,
         min: float = -np.inf,
         max: float = np.inf,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -1011,6 +1043,8 @@ def flagRange(
         Lower bound for valid data.
     max : float
         Upper bound for valid data.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -1024,7 +1058,7 @@ def flagRange(
     # using .values is much faster
     datacol = data[field].values
     mask = (datacol < min) | (datacol > max)
-    flagger[mask, field] = kwargs['flag']
+    flagger[mask, field] = flag
     return data, flagger
 
 
@@ -1036,6 +1070,7 @@ def flagCrossStatistic(
         fields: Sequence[ColumnName],
         thresh: float,
         cross_stat: Literal["modZscore", "Zscore"] = "modZscore",
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -1070,6 +1105,9 @@ def flagCrossStatistic(
         * ``'modZscore'``: Median based "sigma"-ish approach. See Referenecs [1].
         * ``'Zscore'``: Score values by how many times the standard deviation they differ from the median.
           See References [1]
+
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -1109,6 +1147,6 @@ def flagCrossStatistic(
 
     mask = diff_scores > thresh
     for var in fields:
-        flagger[mask[var], var] = kwargs['flag']
+        flagger[mask[var], var] = flag
 
     return data, flagger

@@ -13,10 +13,21 @@ from saqc.core.modules.base import ModuleBase
 
 class Generic(ModuleBase):
 
-    def process(self, field: str, func: Callable[[pd.Series], pd.Series],
-                nodata: float = np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+    def process(
+            self, 
+            field: str,
+            func: Callable[[pd.Series], pd.Series],
+            nodata: float = np.nan,
+            **kwargs
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("process", locals())
 
-    def flag(self, field: str, func: Callable[[pd.Series], pd.Series],
-             nodata: float = np.nan, flag=BAD, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+    def flag(
+            self, 
+            field: str,
+            func: Callable[[pd.Series], pd.Series],
+            nodata: float = np.nan,
+            flag: float = BAD,
+            **kwargs
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flag", locals())

@@ -81,8 +81,14 @@ def _execGeneric(flagger: Flagger, data: DictOfSeries, func: Callable[[pd.Series
 
 
 @register(masking='all', module="generic")
-def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Series], pd.Series],
-            nodata: float = np.nan, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def process(
+        data: DictOfSeries,
+        field: str,
+        flagger: Flagger,
+        func: Callable[[pd.Series], pd.Series],
+        nodata: float = np.nan,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     """
     generate/process data with generically defined functions.
 
@@ -131,7 +137,6 @@ def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd
     You also can pass numpy and pandas functions:
 
     >>> lambda temperature, uncertainty: np.round(temperature) * np.sqrt(uncertainty)
-
     """
     data[field] = _execGeneric(flagger, data, func, field, nodata).squeeze()
 
@@ -145,8 +150,15 @@ def process(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd
 
 
 @register(masking='all', module="generic")
-def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Series], pd.Series],
-         nodata: float = np.nan, flag=BAD, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+def flag(
+        data: DictOfSeries,
+        field: str,
+        flagger: Flagger,
+        func: Callable[[pd.Series], pd.Series],
+        nodata: float = np.nan,
+        flag: float = BAD,
+        **kwargs
+) -> Tuple[DictOfSeries, Flagger]:
     # TODO : fix docstring, check if all still works
     """
     a function to flag a data column by evaluation of a generic expression.
@@ -181,6 +193,8 @@ def flag(data: DictOfSeries, field: str, flagger: Flagger, func: Callable[[pd.Se
         See the examples section to learn more.
     nodata : any, default np.nan
         The value that indicates missing/invalid data
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------

@@ -43,6 +43,7 @@ def aggregate(
         value_func,
         flag_func: Callable[[pd.Series], float] = np.nanmax,
         method: Literal["fagg", "bagg", "nagg"] = "nagg",
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -94,6 +95,10 @@ def aggregate(
         Specifies which intervals to be aggregated for a certain timestamp. (preceeding, succeeding or
         "surrounding" interval). See description above for more details.
 
+    flag : float, default BAD
+        flag to set.
+
+
     Returns
     -------
     data : dios.DictOfSeries
@@ -106,7 +111,13 @@ def aggregate(
 
     data, flagger = copy(data, field, flagger, field + '_original')
     return resample(
-        data, field, flagger, freq=freq, agg_func=value_func, flag_agg_func=flag_func, method=method, **kwargs
+        data, field, flagger,
+        freq=freq,
+        agg_func=value_func,
+        flag_agg_func=flag_func,
+        method=method,
+        flag=flag,
+        **kwargs
     )
 
 
@@ -674,7 +685,7 @@ def reindexFlags(
 
     target_datcol = data[field]
     target_flagscol = flagger[field]
-    dummy = pd.Series(np.nan, target_flagscol.index)
+    dummy = pd.Series(np.nan, target_flagscol.index, dtype=float)
 
     if method[-13:] == "interpolation":
         ignore = _getChunkBounds(target_datcol, flagscol, freq)

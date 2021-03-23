@@ -41,7 +41,8 @@ class FlagTools(ModuleBase):
             self, field: ColumnName, 
             mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
             mflag: Any = 1,
-            method=Literal["plain", "ontime", "left-open", "right-open"],
+            method: Literal["plain", "ontime", "left-open", "right-open"] = 'plain',
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagManual", locals())

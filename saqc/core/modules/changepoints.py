@@ -7,6 +7,7 @@ import numpy as np
 from dios import DictOfSeries
 from typing_extensions import Literal
 
+from saqc.constants import *
 from saqc import Flagger
 from saqc.core.modules.base import ModuleBase
 from saqc.lib.types import FreqString, IntegerWindow
@@ -26,6 +27,7 @@ class ChangePoints(ModuleBase):
             try_to_jit: bool = True,  # TODO rm, not a user decision
             reduce_window: FreqString = None,
             reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagChangePoints", locals())
@@ -45,6 +47,7 @@ class ChangePoints(ModuleBase):
             model_by_resids: bool = False,
             flag_changepoints: bool = False,
             assign_cluster: bool = True,
+            flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("assignChangePointCluster", locals())

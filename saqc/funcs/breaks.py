@@ -16,6 +16,7 @@ import pandas.tseries.frequencies
 
 from dios import DictOfSeries
 
+from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
 from saqc.lib.types import FreqString, ColumnName, IntegerWindow
 from saqc.funcs.changepoints import assignChangePointCluster
@@ -29,6 +30,7 @@ def flagMissing(
         field: ColumnName,
         flagger: Flagger,
         nodata: float = np.nan,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -44,6 +46,8 @@ def flagMissing(
         A flagger object, holding flags and additional Informations related to `data`.
     nodata : any, default np.nan
         A value that defines missing data.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -59,7 +63,7 @@ def flagMissing(
     else:
         mask = datacol == nodata
 
-    flagger[mask, field] = kwargs['flag']
+    flagger[mask, field] = flag
     return data, flagger
 
 
@@ -70,6 +74,7 @@ def flagIsolated(
         flagger: Flagger,
         gap_window: FreqString,
         group_window: FreqString,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -92,6 +97,8 @@ def flagIsolated(
     group_window : str
         The maximum temporal extension allowed for a group that is isolated by gaps of size 'gap_window',
         to be actually flagged as isolated group. See condition (1).
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -130,7 +137,7 @@ def flagIsolated(
                     if right.all():
                         flags[start:stop] = True
 
-    flagger[mask, field] = kwargs['flag']
+    flagger[mask, field] = flag
     return data, flagger
 
 
@@ -142,6 +149,7 @@ def flagJumps(
         thresh: float,
         winsz: FreqString,
         min_periods: IntegerWindow = 1,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -163,6 +171,8 @@ def flagJumps(
     min_periods : int, default 1
         Minimum number of periods that have to be present in a window of size `winsz`, so that
         the mean value obtained from that window is regarded valid.
+    flag : float, default BAD
+        flag to set.
     """
     return assignChangePointCluster(
         data, field, flagger,
@@ -173,6 +183,6 @@ def flagJumps(
         flag_changepoints=True,
         model_by_resids=False,
         assign_cluster=False,
+        flag=flag,
         **kwargs
     )
-

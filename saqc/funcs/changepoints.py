@@ -33,6 +33,7 @@ def flagChangePoints(
         try_to_jit: bool = True,  # TODO rm, not a user decision
         reduce_window: FreqString = None,
         reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -79,19 +80,31 @@ def flagChangePoints(
         First input parameter will hold the result from the stat_func evaluation for every
         reduction window. Second input parameter holds the result from the thresh_func evaluation.
         The default reduction function just selects the value that maximizes the stat_func.
-
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
-
     """
     return assignChangePointCluster(
-        data, field, flagger, stat_func=stat_func, thresh_func=thresh_func,
-        bwd_window=bwd_window, min_periods_bwd=min_periods_bwd,
-        fwd_window=fwd_window, min_periods_fwd=min_periods_fwd, closed=closed,
-        try_to_jit=try_to_jit, reduce_window=reduce_window,
-        reduce_func=reduce_func, flag_changepoints=True, model_by_resids=False,
-        assign_cluster=False, **kwargs
+        data,
+        field,
+        flagger,
+        stat_func=stat_func,
+        thresh_func=thresh_func,
+        bwd_window=bwd_window,
+        min_periods_bwd=min_periods_bwd,
+        fwd_window=fwd_window,
+        min_periods_fwd=min_periods_fwd,
+        closed=closed,
+        try_to_jit=try_to_jit,
+        reduce_window=reduce_window,
+        reduce_func=reduce_func,
+        flag_changepoints=True,
+        model_by_resids=False,
+        assign_cluster=False,
+        flag=flag,
+        **kwargs
     )
 
 
@@ -111,6 +124,7 @@ def assignChangePointCluster(
         model_by_resids: bool = False,
         flag_changepoints: bool = False,
         assign_cluster: bool = True,
+        flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -160,15 +174,16 @@ def assignChangePointCluster(
         reduction window. Second input parameter holds the result from the thresh_func evaluation.
         The default reduction function just selects the value that maximizes the stat_func.
     flag_changepoints : bool, default False
-        If true, the points, where there is a change in data modelling regime detected get flagged BAD.
+        If true, the points, where there is a change in data modelling regime detected gets flagged.
     model_by_resids : bool, default False
         If True, the data is replaced by the stat_funcs results instead of regime labels.
     assign_cluster : bool, default True
         Is set to False, if called by function that oly wants to calculate flags.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
-
     """
     data = data.copy()
     data_ser = data[field].dropna()
@@ -242,8 +257,7 @@ def assignChangePointCluster(
         flagger[:, field] = UNFLAGGED
 
     if flag_changepoints:
-        # TODO: does not respect kwargs[flag]
-        flagger[det_index, field] = BAD
+        flagger[det_index, field] = flag
     return data, flagger
 
 

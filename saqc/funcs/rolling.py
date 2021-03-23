@@ -5,9 +5,9 @@ from typing import Union, Callable
 
 import numpy as np
 import pandas as pd
-
 from dios import DictOfSeries
 
+from saqc.constants import *
 from saqc.core.register import register
 from saqc.flagger import Flagger
 from saqc.lib.tools import getFreqDelta
@@ -24,6 +24,7 @@ def roll(
         min_periods: int=0,
         center: bool=True,
         return_residues=False,  # TODO: this should not be public, a wrapper would be better
+        flag: float = BAD,
         **kwargs
 ):
     """
@@ -59,6 +60,8 @@ def roll(
     center : bool, default True
         Wheather or not to center the window the mean is calculated of around the reference value. If False,
         the reference value is placed to the right of the window (classic rolling mean with lag.)
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
@@ -69,7 +72,6 @@ def roll(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
-
     data = data.copy()
     to_fit = data[field]
     if to_fit.empty:
@@ -122,9 +124,6 @@ def roll(
 
     data[field] = means
     if eval_flags:
-        # with the new flagger we dont have to care
-        # about to set NaNs to the original flags anymore
-        
         # TODO: we does not get any flags here, because of masking=field
         worst = flagger[field].rolling(winsz, center=True, min_periods=min_periods).max()
         flagger[field] = worst
