@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import warnings
 from functools import partial
 from pathlib import Path
 
@@ -11,18 +12,18 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
+from saqc.constants import *
 from saqc.core import SaQC
-from saqc.flagger import CategoricalFlagger
-from saqc.flagger.dmpflagger import DmpFlagger
 
 
 logger = logging.getLogger("SaQC")
 
 
-FLAGGERS = {
-    "numeric": CategoricalFlagger([-1, 0, 1]),
-    "category": CategoricalFlagger(["NIL", "OK", "BAD"]),
-    "dmp": DmpFlagger(),
+SCHEMES = {
+    None: None,
+    "numeric": NotImplemented,
+    "category": NotImplemented,
+    "dmp": NotImplemented,
 }
 
 
@@ -72,7 +73,7 @@ def writeData(writer_dict, df, fname):
 )
 @click.option("-o", "--outfile", type=click.Path(exists=False), help="path to the output file")
 @click.option(
-    "--flagger", default="category", type=click.Choice(FLAGGERS.keys()), help="the flagging scheme to use",
+    "--flagger", default=None, type=click.Choice(SCHEMES.keys()), help="the flagging scheme to use",
 )
 @click.option("--nodata", default=np.nan, help="nodata value")
 @click.option(
@@ -81,27 +82,25 @@ def writeData(writer_dict, df, fname):
 @click.option("--fail/--no-fail", default=True, help="whether to stop the program run on errors")
 def main(config, data, flagger, outfile, nodata, log_level, fail):
 
+    if SCHEMES[flagger] is NotImplemented:
+        warnings.warn("flagger is currently not supported")
+
     _setup_logging(log_level)
     reader, writer = setupIO(nodata)
 
     data = readData(reader, data)
 
-    saqc = SaQC(flagger=FLAGGERS[flagger], data=data, nodata=nodata, error_policy="raise" if fail else "warn",)
+    saqc = SaQC(data=data, nodata=nodata, error_policy="raise" if fail else "warn",)
 
     data_result, flagger_result = saqc.readConfig(config).getResult(raw=True)
 
     if outfile:
         data_result = data_result.to_df()
-        flags = flagger_result.flags.to_df()
-        flags_flagged = flagger_result.isFlagged().to_df()
+        flags = flagger_result.toFrame()
+        unflagged = (flags == UNFLAGGED) | flags.isna()
+        flags[unflagged] = GOOD
 
-        flags_out = flags.where((flags.isnull() | flags_flagged), flagger_result.GOOD)
-        fields = {"data": data_result, "flags": flags_out}
-
-        if isinstance(flagger_result, DmpFlagger):
-            fields["quality_flag"] = fields.pop("flags")
-            fields["quality_comment"] = flagger_result.comments.to_df()
-            fields["quality_cause"] = flagger_result.causes.to_df()
+        fields = {"data": data_result, "flags": flags}
 
         out = (
             pd.concat(fields.values(), axis=1, keys=fields.keys())

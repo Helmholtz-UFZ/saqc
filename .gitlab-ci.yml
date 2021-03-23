@@ -1,20 +1,27 @@
+# ===========================================================
+# preparation
+# ===========================================================
+
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
-
 default:
   image: python:3.8
+  before_script:
+    - pip install --upgrade pip
+    - pip install pytest
+    - pip install -r requirements.txt
 
 
-before_script:
-  - pip install --upgrade pip
-  - pip install pytest
-  - pip install -r requirements.txt
-
+# ===========================================================
+# normal jobs (non scheduled)
+# ===========================================================
 
 # test saqc with python 3.7
 python37:
   stage: test
+  except:
+    - schedules
   image: python:3.7
   script:
     - pytest tests/core tests/flagger tests/funcs
@@ -24,31 +31,19 @@ python37:
 # test saqc with python 3.8
 python38:
   stage: test
+  except:
+    - schedules
   script:
     - pytest tests/core tests/flagger tests/funcs
     - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
-# test lib saqc
-testLib:
-  stage: test
-  script:
-    - pytest tests/lib
-
-
-# fuzzy testing saqc
-fuzzy:
-  allow_failure: true
-  stage: test
-  script:
-    - pytest tests/fuzzy
-
-
 # make (visual) coverage in gitlab merge request diff's
 coverage:
-  allow_failure: true
   stage: test
-
+  except:
+    - schedules
+  allow_failure: true
   script:
     - pip install pytest-cov coverage
     - pytest --cov=saqc tests/core tests/flagger tests/funcs
@@ -67,6 +62,10 @@ coverage:
 # make html docu with sphinx
 pages:
   stage: deploy
+  only:
+    - develop
+  except:
+    - schedules
   script:
     - cd sphinx-doc/
     - pip install -r requirements_sphinx.txt
@@ -75,5 +74,26 @@ pages:
   artifacts:
     paths:
       - public
+
+
+# ===========================================================
+# scheduled jobs
+# ===========================================================
+
+# fuzzy testing saqc
+fuzzy:
+  stage: test
   only:
-    - develop
+    - schedules
+  script:
+    - pytest tests/fuzzy
+
+
+# test lib saqc
+testLib:
+  stage: test
+  only:
+    - schedules
+  script:
+    - pytest tests/lib
+

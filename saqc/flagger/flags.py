@@ -424,5 +424,6 @@ def appendHistory(flags: Flags, column, append_hist):
     flags.history[column] = new_history
     return flags
 
+
 # for now we keep this name
 Flagger = Flags
