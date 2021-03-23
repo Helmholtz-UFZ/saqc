@@ -1,82 +1,84 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Sequence, Callable, Any, Optional
-from typing_extensions import Literal
+from typing import Sequence, Callable, Optional, Tuple
 
 import numpy as np
 from scipy.spatial.distance import pdist
 
 from saqc.core.modules.base import ModuleBase
+from saqc.funcs import LinkageString, DictOfSeries, Flagger
+from saqc.lib.types import ColumnName, FreqString, CurveFitter
 
 
 class Drift(ModuleBase):
     def flagDriftFromNorm(
-            self,
-            field: str,
-            fields: Sequence[str],
-            segment_freq: str,
+            self, 
+            field: ColumnName,
+            fields: Sequence[ColumnName],
+            segment_freq: FreqString,
             norm_spread: float,
-            norm_frac: float=0.5,
-            metric: Callable[[np.array, np.array], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-            linkage_method: Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]="single",
+            norm_frac: float = 0.5,
+            metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+            linkage_method: LinkageString = "single",
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagDriftFromNorm", locals())
 
     def flagDriftFromReference(
-            self,
-            field: str,
-            fields: Sequence[str],
-            segment_freq: str,
+            self, 
+            field: ColumnName,
+            fields: Sequence[ColumnName],
+            segment_freq: FreqString,
             thresh: float,
-            metric: Callable[[np.array, np.array], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+            metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagDriftFromReference", locals())
 
     def flagDriftFromScaledNorm(
-            self,
-            field: str,
-            fields_scale1: Sequence[str],
-            fields_scale2: Sequence[str],
-            segment_freq: str,
+            self, 
+            field: ColumnName,
+            fields_scale1: Sequence[ColumnName],
+            fields_scale2: Sequence[ColumnName],
+            segment_freq: FreqString,
             norm_spread: float,
-            norm_frac: float=0.5,
-            metric: Callable[[np.array, np.array], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-            linkage_method: Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]="single",
+            norm_frac: float = 0.5,
+            metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+            linkage_method: LinkageString = "single",
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagDriftFromScaledNorm", locals())
 
     def correctExponentialDrift(
-            self,
-            field: str,
-            maint_data_field: str,
+            self, 
+            field: ColumnName,
+            maint_data_field: ColumnName,
             cal_mean: int = 5,
             flag_maint_period: bool = False,
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("correctExponentialDrift", locals())
 
     def correctRegimeAnomaly(
-            self,
-            field: str,
-            cluster_field: str,
-            model: Callable[[np.array, Any], np.array],
-            regime_transmission: Optional[str] = None,
-            x_date: bool = False
-    ):
+            self, 
+            field: ColumnName,
+            cluster_field: ColumnName,
+            model: CurveFitter,
+            regime_transmission: Optional[FreqString] = None,
+            x_date: bool = False,
+            **kwargs
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("correctRegimeAnomaly", locals())
 
     def correctOffset(
-            self,
-            field: str,
+            self, 
+            field: ColumnName,
             max_mean_jump: float,
             normal_spread: float,
-            search_winsz: str,
+            search_winsz: FreqString,
             min_periods: int,
-            regime_transmission: Optional[str] = None,
+            regime_transmission: Optional[FreqString] = None,
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("correctOffset", locals())

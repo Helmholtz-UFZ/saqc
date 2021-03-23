@@ -1,18 +1,40 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from typing import Tuple
 
 import numpy as np
+from dios import DictOfSeries
 
+from saqc import Flagger
 from saqc.core.modules.base import ModuleBase
+from saqc.lib.types import FreqString, IntegerWindow, ColumnName
 
 
 class Breaks(ModuleBase):
 
-    def flagMissing(self, field: str, nodata=np.nan, **kwargs):
+    def flagMissing(
+            self, 
+            field: ColumnName,
+            nodata: float = np.nan,
+            **kwargs
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagMissing", locals())
 
-    def flagIsolated(self, field: str, gap_window: str, group_window: str, **kwargs):
+    def flagIsolated(
+            self, 
+            field: ColumnName,
+            gap_window: FreqString,
+            group_window: FreqString,
+            **kwargs
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagIsolated", locals())
 
-    def flagJumps(self, field: str, thresh: float, winsz: str, min_periods: int = 1, **kwargs):
+    def flagJumps(
+            self, 
+            field: ColumnName,
+            thresh: float,
+            winsz: FreqString,
+            min_periods: IntegerWindow = 1,
+            **kwargs
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("flagJumps", locals())

@@ -1,72 +1,73 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Optional, Union, Any, Sequence, Callable
-from typing_extensions import Literal
+from typing import Optional, Callable, Tuple
 
 import numpy as np
 import pandas as pd
+from dios import DictOfSeries
+from typing_extensions import Literal
 
+from saqc import Flagger
 from saqc.core.modules.base import ModuleBase
+from saqc.funcs.interpolation import _SUPPORTED_METHODS
 
 
 class Resampling(ModuleBase):
 
     def aggregate(
-            self,
+            self, 
             field: str,
             freq: str,
             value_func,
-            flag_func: Callable[[pd.Series], pd.Series] = np.nanmax,
+            flag_func: Callable[[pd.Series], float] = np.nanmax,
             method: Literal["fagg", "bagg", "nagg"] = "nagg",
-            to_drop: Optional[Union[Any, Sequence[Any]]] = None,
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("aggregate", locals())
 
     def linear(
-            self,
+            self, 
             field: str,
             freq: str,
-            to_drop: Optional[Union[Any, Sequence[Any]]] = None,
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("linear", locals())
 
     def interpolate(
-            self,
+            self, 
             field: str,
             freq: str,
-            method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
+            method: _SUPPORTED_METHODS,
             order: int = 1,
-            to_drop: Optional[Union[Any, Sequence[Any]]] = None,
             **kwargs,
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("interpolate", locals())
 
     def mapToOriginal(
-            self,
+            self, 
             field: str,
-            method: Literal["inverse_fagg", "inverse_bagg", "inverse_nagg", "inverse_fshift", "inverse_bshift", "inverse_nshift", "inverse_interpolation"],
-            to_drop: Optional[Union[Any, Sequence[Any]]] = None,
+            method: Literal[
+                "inverse_fagg", "inverse_bagg", "inverse_nagg",
+                "inverse_fshift", "inverse_bshift", "inverse_nshift",
+                "inverse_interpolation"
+            ],
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("mapToOriginal", locals())
 
     def shift(
-            self,
+            self, 
             field: str,
             freq: str,
             method: Literal["fshift", "bshift", "nshift"] = "nshift",
-            to_drop: Optional[Union[Any, Sequence[Any]]] = None,
-            empty_intervals_flag: Optional[str] = None,
-            freq_check: Optional[Literal["check", "auto"]] = None,
+            freq_check: Optional[Literal["check", "auto"]] = None,  # TODO: not a user decision
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("shift", locals())
 
     def resample(
-            self,
+            self, 
             field: str,
             freq: str,
             agg_func: Callable[[pd.Series], pd.Series] = np.mean,
@@ -75,23 +76,21 @@ class Resampling(ModuleBase):
             max_invalid_consec_d: Optional[int] = None,
             max_invalid_consec_f: Optional[int] = None,
             max_invalid_total_f: Optional[int] = None,
-            flag_agg_func: Callable[[pd.Series], pd.Series] = max,
-            empty_intervals_flag: Optional[Any] = None,
-            to_drop: Optional[Union[Any, Sequence[Any]]] = None,
-            all_na_2_empty: bool = False,
+            flag_agg_func: Callable[[pd.Series], float] = max,
             freq_check: Optional[Literal["check", "auto"]] = None,
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("resample", locals())
 
     def reindexFlags(
-            self,
+            self, 
             field: str,
-            method: Literal["inverse_fagg", "inverse_bagg", "inverse_nagg", "inverse_fshift", "inverse_bshift", "inverse_nshift"],
+            method: Literal[
+                "inverse_fagg", "inverse_bagg", "inverse_nagg",
+                "inverse_fshift", "inverse_bshift", "inverse_nshift"
+            ],
             source: str,
             freq: Optional[str] = None,
-            to_drop: Optional[Union[Any, Sequence[Any]]] = None,
-            freq_check: Optional[Literal["check", "auto"]] = None,
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flagger]:
         return self.defer("reindexFlags", locals())
