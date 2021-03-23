@@ -7,6 +7,7 @@ The module gathers all kinds of timeseries tranformations.
 import logging
 
 import re
+from typing import Union
 
 import pandas as pd
 import numpy as np
@@ -252,12 +253,13 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
 
 
 def aggregate2Freq(
-    data, method, freq, agg_func, fill_value=np.nan, max_invalid_total=None, max_invalid_consec=None
+    data: pd.Series, method, freq, agg_func, fill_value=np.nan, max_invalid_total=None, max_invalid_consec=None
 ):
-    # The function aggregates values to an equidistant frequency grid with agg_func.
-    # Timestamps that have no values projected on them, get "fill_value" assigned. Also,
-    # "fill_value" serves as replacement for "invalid" intervals
-
+    """
+    The function aggregates values to an equidistant frequency grid with agg_func.
+    Timestamps that gets no values projected, get filled with the fill-value. It
+    also serves as a replacement for "invalid" intervals.
+    """
     methods = {
         "nagg": lambda seconds_total: (seconds_total/2, "left", "left"),
         "bagg": lambda _: (0, "left", "left"),
@@ -309,9 +311,11 @@ def aggregate2Freq(
     return data
 
 
-def shift2Freq(data, method, freq, fill_value=np.nan):
-    # shift timestamps backwards/forwards in order to allign them with an equidistant
-    # frequencie grid.
+def shift2Freq(data: Union[pd.Series, pd.DataFrame], method: str, freq: str, fill_value):
+    """
+    shift timestamps backwards/forwards in order to align them with an equidistant
+    frequency grid. Resulting Nan's are replaced with the fill-value.
+    """
 
     methods = {
         "fshift": lambda freq: ("ffill", pd.Timedelta(freq)),

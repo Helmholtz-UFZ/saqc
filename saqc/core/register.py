@@ -49,7 +49,8 @@ def register(masking: MaskingStrT = "all", module: Optional[str] = None):
         # executed if a register-decorated function is called,
         # nevertheless if it is called plain or via `SaQC.func`.
         @wraps(func)
-        def callWrapper(*args, **kwargs):
+        def callWrapper(data, field, flagger, *args, **kwargs):
+            args = data, field, flagger, *args
             args, kwargs, old_state = _preCall(func, args, kwargs, masking, func_name)
             result = func(*args, **kwargs)
             return _postCall(result, old_state)

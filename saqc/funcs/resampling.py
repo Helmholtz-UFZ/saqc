@@ -568,33 +568,43 @@ def resample(
     return data, flagger
 
 
-def _getChunkBounds(target_datcol, flagscol, freq):
-    chunk_end = target_datcol.reindex(flagscol.index, method='bfill', tolerance=freq)
-    chunk_start = target_datcol.reindex(flagscol.index, method='ffill', tolerance=freq)
+def _getChunkBounds(target: pd.Series, flagscol: pd.Series, freq: str):
+    chunk_end = target.reindex(flagscol.index, method='bfill', tolerance=freq)
+    chunk_start = target.reindex(flagscol.index, method='ffill', tolerance=freq)
     ignore_flags = (chunk_end.isna() | chunk_start.isna())
     return ignore_flags
 
 
-def _inverseInterpolation(source_col, freq=None, chunk_bounds=None, target_flagscol=None):
-    source_col = source_col.copy()
+def _inverseInterpolation(source: pd.Series, target: pd.Series, freq: str, chunk_bounds) -> pd.Series:
+    """
+    Do a inverse interpolation.
+    """
+    source = source.copy()
     if len(chunk_bounds) > 0:
-        source_col[chunk_bounds] = np.nan
-    backprojected = source_col.reindex(target_flagscol.index, method="bfill", tolerance=freq)
-    fwrdprojected = source_col.reindex(target_flagscol.index, method="ffill", tolerance=freq)
+        source[chunk_bounds] = np.nan
+    backprojected = source.reindex(target.index, method="bfill", tolerance=freq)
+    fwrdprojected = source.reindex(target.index, method="ffill", tolerance=freq)
     return pd.concat([backprojected, fwrdprojected], axis=1).max(axis=1)
 
 
-def _inverseAggregation(source_col, freq=None, method=None, target_flagscol=None):
-    return source_col.reindex(target_flagscol.index, method=method, tolerance=freq)
+def _inverseAggregation(
+        source: Union[pd.Series, pd.DataFrame],
+        target: Union[pd.Series, pd.DataFrame],
+        freq: str,
+        method: str,
+):
+    return source.reindex(target.index, method=method, tolerance=freq)
 
 
+def _inverseShift(source: pd.Series, target: pd.Series, drop_mask: pd.Series,
+                  freq: str, method: str, fill_value) -> pd.Series:
+    dtype = source.dtype
 
-def _inverseShift(source_col, freq=None, method=None, drop_mask=None, target_flagscol=None):
-    target_flagscol_drops = target_flagscol[drop_mask]
-    target_flagscol = target_flagscol.drop(drop_mask[drop_mask].index)
+    target_drops = target[drop_mask]
+    target = target[~drop_mask]
     flags_merged = pd.merge_asof(
-        source_col,
-        pd.Series(target_flagscol.index.values, index=target_flagscol.index, name="pre_index"),
+        source,
+        target.index.to_series(name='pre_index'),
         left_index=True,
         right_index=True,
         tolerance=freq,
@@ -602,13 +612,13 @@ def _inverseShift(source_col, freq=None, method=None, drop_mask=None, target_fla
     )
     flags_merged.dropna(subset=["pre_index"], inplace=True)
     flags_merged = flags_merged.set_index(["pre_index"]).squeeze()
-    target_flagscol[flags_merged.index] = flags_merged.values
+    target[flags_merged.index] = flags_merged.values
 
     # reinsert drops
-    source_col = target_flagscol.reindex(target_flagscol.index.join(target_flagscol_drops.index, how="outer"))
-    source_col.loc[target_flagscol_drops.index] = target_flagscol_drops.values
+    source = target.reindex(target.index.union(target_drops.index))
+    source.loc[target_drops.index] = target_drops.values
 
-    return source_col
+    return source.fillna(fill_value).astype(dtype, copy=False)
 
 
 @register(masking='none', module="resampling")
@@ -689,27 +699,33 @@ def reindexFlags(
 
     target_datcol = data[field]
     target_flagscol = flagger[field]
-    blank_dummy = pd.Series(np.nan, target_flagscol.index)
+    dummy = pd.Series(np.nan, target_flagscol.index)
+
     if method[-13:] == "interpolation":
         ignore = _getChunkBounds(target_datcol, flagscol, freq)
-        merge_func = _inverseInterpolation
-        merge_dict = dict(freq=freq, chunk_bounds=ignore, target_flagscol=blank_dummy)
-        mask_dict = {**merge_dict, 'chunk_bounds':[]}
+        func = _inverseInterpolation
+        func_kws = dict(freq=freq, chunk_bounds=ignore, target=dummy)
+        mask_kws = {**func_kws, 'chunk_bounds': []}
 
-    if method[-3:] == "agg" or method == "match":
+    elif method[-3:] == "agg" or method == "match":
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
-        merge_func = _inverseAggregation
-        merge_dict = mask_dict = dict(freq=tolerance, method=projection_method, target_flagscol=blank_dummy)
+        func = _inverseAggregation
+        func_kws = dict(freq=tolerance, method=projection_method, target=dummy)
+        mask_kws = func_kws
 
-    if method[-5:] == "shift":
+    elif method[-5:] == "shift":
         drop_mask = (target_datcol.isna() | isflagged(target_flagscol, kwargs['to_mask']))
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
-        merge_func = _inverseShift
-        merge_dict = mask_dict = dict(freq=tolerance, method=projection_method, drop_mask=drop_mask, target_flagscol=blank_dummy)
+        func = _inverseShift
+        kws = dict(freq=tolerance, method=projection_method, drop_mask=drop_mask,  target=dummy)
+        func_kws = {**kws, 'fill_value': UNTOUCHED}
+        mask_kws = {**kws, 'fill_value': False}
 
-    tmp_flagger = applyFunctionOnHistory(flagger, source, merge_func, merge_dict, merge_func, mask_dict,
-                                     last_column=blank_dummy)
+    else:
+        raise ValueError(f"unknown method {method}")
+
+    tmp_flagger = applyFunctionOnHistory(flagger, source, func, func_kws, func, mask_kws, last_column=dummy)
     flagger = appendHistory(flagger, field, tmp_flagger.history[source])
     return data, flagger

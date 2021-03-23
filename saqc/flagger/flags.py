@@ -36,6 +36,12 @@ class _HistAccess:
     def __setitem__(self, key: str, value: Union[History, pd.DataFrame]):
         if not isinstance(value, History):
             value = History(value)
+
+        if not isinstance(value, History):
+            raise TypeError("Not a History")
+
+        History._validate_hist_with_mask(value.hist, value.mask)
+
         self.obj._data[key] = value
         self.obj._cache.pop(key, None)
 
@@ -339,7 +345,9 @@ def initFlagsLike(
     return Flags(result)
 
 
-def applyFunctionOnHistory(flags: Flags, column, hist_func, hist_kws, mask_func, mask_kws, last_column=None):
+def applyFunctionOnHistory(
+        flags: Flags, column, hist_func, hist_kws, mask_func, mask_kws, last_column=None, func_handle_df=False
+):
     """
     Apply function on history.
 
@@ -355,6 +363,7 @@ def applyFunctionOnHistory(flags: Flags, column, hist_func, hist_kws, mask_func,
     mask_func :
     mask_kws :
     last_column :
+    func_handle_df :
 
     Returns
     -------
@@ -363,14 +372,27 @@ def applyFunctionOnHistory(flags: Flags, column, hist_func, hist_kws, mask_func,
     flags = flags.copy()
     history = flags.history[column]
     new_history = History()
-    for pos in history.columns:
-        new_history.hist[pos] = hist_func(history.hist[pos], **hist_kws)
-        new_history.mask[pos] = mask_func(history.mask[pos], **mask_kws)
 
+    if func_handle_df:
+        history.hist = hist_func(history.hist, **hist_kws)
+        history.mask = hist_func(history.mask, **mask_kws)
+
+    else:
+        for pos in history.columns:
+            new_history.hist[pos] = hist_func(history.hist[pos], **hist_kws)
+            new_history.mask[pos] = mask_func(history.mask[pos], **mask_kws)
+
+    # handle unstable state
     if last_column is None:
         new_history.mask.iloc[:, -1:] = True
     else:
+        if isinstance(last_column, str) and last_column == 'dummy':
+            last_column = pd.Series(UNTOUCHED, index=new_history.mask.index, dtype=float)
+
         new_history.append(last_column, force=True)
+
+    # assure a boolean mask
+    new_history.mask = new_history.mask.fillna(False).astype(bool)
 
     flags.history[column] = new_history
     return flags

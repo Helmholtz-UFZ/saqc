@@ -6,6 +6,7 @@
 
 import dios
 
+from saqc import BAD, UNFLAGGED
 from saqc.flagger import initFlagsLike
 from saqc.funcs.tools import mask
 from saqc.funcs.residues import calculatePolynomialResidues, calculateRollingResidues
@@ -46,23 +47,35 @@ def test_modelling_mask(dat):
     data, _ = dat()
     data = dios.DictOfSeries(data)
     flagger = initFlagsLike(data)
-    data_seasonal, flagger_seasonal = mask(data, "data", flagger, mode='periodic', period_start="20:00",
-                                           period_end="40:00", include_bounds=False)
-    flaggs = flagger_seasonal["data"]
-    assert flaggs[np.logical_and(20 <= flaggs.index.minute, 40 >= flaggs.index.minute)].isna().all()
-    data_seasonal, flagger_seasonal = mask(data, "data", flagger, mode='periodic', period_start="15:00:00",
-                                           period_end="02:00:00")
-    flaggs = flagger_seasonal["data"]
-    assert flaggs[np.logical_and(15 <= flaggs.index.hour, 2 >= flaggs.index.hour)].isna().all()
-    data_seasonal, flagger_seasonal = mask(data, "data", flagger, mode='periodic', period_start="03T00:00:00",
-                                           period_end="10T00:00:00")
-    flaggs = flagger_seasonal["data"]
-    assert flaggs[np.logical_and(3 <= flaggs.index.hour, 10 >= flaggs.index.hour)].isna().all()
+    field = "data"
+
+    # set flags everywhere to test unflagging
+    flagger[:, field] = BAD
+
+    common = dict(data=data, field=field, flagger=flagger, mode='periodic')
+    data_seasonal, flagger_seasonal = mask(**common, period_start="20:00", period_end="40:00", include_bounds=False)
+    flags = flagger_seasonal[field]
+    m = (20 <= flags.index.minute) & (flags.index.minute <= 40)
+    assert all(flagger_seasonal[field][m] == UNFLAGGED)
+    assert all(data_seasonal[field][m].isna())
+
+    data_seasonal, flagger_seasonal = mask(**common, period_start="15:00:00", period_end="02:00:00")
+    flags = flagger_seasonal[field]
+    m = (15 <= flags.index.hour) & (flags.index.hour <= 2)
+    assert all(flagger_seasonal[field][m] == UNFLAGGED)
+    assert all(data_seasonal[field][m].isna())
+
+    data_seasonal, flagger_seasonal = mask(**common, period_start="03T00:00:00", period_end="10T00:00:00")
+    flags = flagger_seasonal[field]
+    m = (3 <= flags.index.hour) & (flags.index.hour <= 10)
+    assert all(flagger_seasonal[field][m] == UNFLAGGED)
+    assert all(data_seasonal[field][m].isna())
 
     mask_ser = pd.Series(False, index=data["data"].index)
     mask_ser[::5] = True
     data["mask_ser"] = mask_ser
     flagger = initFlagsLike(data)
     data_masked, flagger_masked = mask(data, "data", flagger, mode='mask_var', mask_var="mask_ser")
-    flaggs = flagger_masked["data"]
-    assert flaggs[data_masked['mask_ser']].isna().all()
+    m = mask_ser
+    assert all(flagger_masked[field][m] == UNFLAGGED)
+    assert all(data_masked[field][m].isna())

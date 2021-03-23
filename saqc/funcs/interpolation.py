@@ -34,31 +34,35 @@ def interpolateByRolling(
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
-    Interpolates missing values (nan values present in the data) by assigning them the aggregation result of
-    a window surrounding them.
-
-    Note, that in the current implementation, center=True can only be used with integer window sizes - furthermore
-    note, that integer window sizes can yield screwed aggregation results for not-harmonized or irregular data.
+    Interpolates nan-values in the data by assigning them the aggregation result of the window surrounding them.
 
     Parameters
     ----------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        The data container.
+
     field : str
-        The fieldname of the column, holding the data-to-be-interpolated.
+        Name of the column, holding the data-to-be-interpolated.
+
     flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+        A flagger object, holding flags and additional Information related to `data`.
+
     winsz : int, str
-        The size of the window, the aggregation is computed from. Either counted in periods number (Integer passed),
-        or defined by a total temporal extension (offset String passed).
+        The size of the window, the aggregation is computed from. An integer define the number of periods to be used,
+        an string is interpreted as an offset. ( see `pandas.rolling` for more information).
+        Integer windows may result in screwed aggregations if called on none-harmonized or irregular data.
+
     func : Callable
         The function used for aggregation.
+
     center : bool, default True
-        Wheather or not the window, the aggregation is computed of, is centered around the value to be interpolated.
+        Center the window around the value. Can only be used with integer windows, otherwise it is silently ignored.
+
     min_periods : int
         Minimum number of valid (not np.nan) values that have to be available in a window for its aggregation to be
         computed.
-    flag : float, default UNFLAGGED
+
+    flag : float or None, default UNFLAGGED
         Flag that is to be inserted for the interpolated values. If ``None`` no flags are set.
 
     Returns
@@ -83,7 +87,7 @@ def interpolateByRolling(
         rolled = roller.apply(func)
 
     na_mask = datcol.isna()
-    interpolated = na_mask & ~rolled.isna()
+    interpolated = na_mask & rolled.notna()
     datcol[na_mask] = rolled[na_mask]
     data[field] = datcol
 
@@ -102,7 +106,6 @@ def interpolateInvalid(
         inter_order: int = 2,
         inter_limit: int = 2,
         downgrade_interpolation: bool = False,
-        not_interpol_flags=None,
         flag: float = UNFLAGGED,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
@@ -112,32 +115,36 @@ def interpolateInvalid(
     There are available all the interpolation methods from the pandas.interpolate method and they are applicable by
     the very same key words, that you would pass to the ``pd.Series.interpolate``'s method parameter.
 
-    Note, that the `inter_limit` keyword really restricts the interpolation to chunks, not containing more than
-    `inter_limit` successive nan entries.
-
     Parameters
     ----------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        The data container.
+
     field : str
-        The fieldname of the column, holding the data-to-be-interpolated.
+        Name of the column, holding the data-to-be-interpolated.
+
     flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+        A flagger object, holding flags and additional Information related to `data`.
+
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-        "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
-        The interpolation method you want to apply.
+        "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}
+        The interpolation method to use.
+
     inter_order : int, default 2
         If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
         order.
+
     inter_limit : int, default 2
-        Maximum number of consecutive 'nan' values allowed for a gap to be interpolated.
+        Maximum number of consecutive 'nan' values allowed for a gap to be interpolated. This really restricts the
+        interpolation to chunks, containing not more than `inter_limit` successive nan entries.
+
     flag : float or None, default UNFLAGGED
-        Flag that is to be inserted for the interpolated values. If ``None`` no flags are set.
+        Flag that is set for interpolated values. If ``None``, no flags are set at all.
+
     downgrade_interpolation : bool, default False
-        If interpolation can not be performed at `inter_order`, because not enough values are present or the order
-        is not implemented for the passed method, automatically try to interpolate at ``inter_order-1``.
-    not_interpol_flags : None
-        deprecated
+        If `True` and the interpolation can not be performed at current order, retry with a lower order.
+        This can happen, because the chosen ``method`` does not support the passed ``inter_order``, or
+        simply because not enough values are present in a interval.
 
     Returns
     -------
@@ -148,8 +155,6 @@ def interpolateInvalid(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
-
-    data = data.copy()
     inter_data = interpolateNANs(
         data[field],
         method,
@@ -159,10 +164,6 @@ def interpolateInvalid(
     )
     interpolated = data[field].isna() & inter_data.notna()
 
-    # TODO: remove with version 2.0
-    if not_interpol_flags is not None:
-        raise ValueError("'not_interpol_flags' is deprecated")
-
     if flag is not None:
         flagger[interpolated, field] = flag
 
@@ -170,17 +171,14 @@ def interpolateInvalid(
     return data, flagger
 
 
-def _overlap_rs(x, freq='1min', fill_value=UNFLAGGED):
-    end = x.index[-1].ceil(freq)
-    x = x.resample(freq).max()
-    x = x.combine(x.shift(1, fill_value=fill_value), max)
-    # we are appending last regular grid entry (if necessary), to conserve integrity of groups of regularized
-    # timestamps originating all from the same logger.
-    try:
-        x = x.append(pd.Series([fill_value], index=[end]), verify_integrity=True)
-    except ValueError:
-        pass
-    return x
+def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
+    dtype = data.dtype
+    end = data.index[-1].ceil(freq)
+    data = data.resample(freq).max()
+    data = data.combine(data.shift(1, fill_value=fill_value), max)
+    if end not in data:
+        data.loc[end] = fill_value
+    return data.fillna(fill_value).astype(dtype)
 
 
 @register(masking='none', module="interpolation")
@@ -191,8 +189,8 @@ def interpolateIndex(
         freq: str,
         method: _SUPPORTED_METHODS,
         inter_order: int = 2,
-        downgrade_interpolation: bool = False,
         inter_limit: int = 2,
+        downgrade_interpolation: bool = False,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -201,40 +199,38 @@ def interpolateIndex(
     Note, that the interpolation will only be calculated, for grid timestamps that have a preceding AND a succeeding
     valid data value within "freq" range.
 
-    Note, that the function differs from proc_interpolateMissing, by returning a whole new data set, only containing
-    samples at the interpolated, equidistant timestamps (of frequency "freq").
-
-    Note, it is possible to interpolate unregular "grids" (with no frequencies). In fact, any date index
-    can be target of the interpolation. Just pass the field name of the variable, holding the index
-    you want to interpolate, to "grid_field". 'freq' is then use to determine the maximum gap size for
-    a grid point to be interpolated.
-
-    Note, that intervals, not having an interpolation value assigned (thus, evaluate to np.nan), get UNFLAGGED assigned.
-
     Parameters
     ----------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        The data container.
+
     field : str
-        The fieldname of the column, holding the data-to-be-interpolated.
+        Name of the column, holding the data-to-be-interpolated.
+
     flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+        A flagger object, holding flags and additional Information related to `data`.
+
     freq : str
         An Offset String, interpreted as the frequency of
         the grid you want to interpolate your data at.
+
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
-    inter_order : integer, default 2
+
+    inter_order : int, default 2
         If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
         order.
+
+    inter_limit : int, default 2
+        Maximum number of consecutive 'nan' values allowed for a gap to be interpolated. This really restricts the
+        interpolation to chunks, containing not more than `inter_limit` successive nan entries.
+
     downgrade_interpolation : bool, default False
-        If interpolation can not be performed at `inter_order` - (not enough values or not implemented at this order) -
-        automatically try to interpolate at order `inter_order` :math:`- 1`.
-    inter_limit : Integer, default 2
-        Maximum number of consecutive Grid values allowed for interpolation. If set
-        to *n*, chunks of *n* and more consecutive grid values, where there is no value in between, wont be
-        interpolated.
+        If `True` and the interpolation can not be performed at current order, retry with a lower order.
+        This can happen, because the chosen ``method`` does not support the passed ``inter_order``, or
+        simply because not enough values are present in a interval.
+
 
     Returns
     -------
@@ -254,7 +250,7 @@ def interpolateIndex(
     start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
     grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
 
-    flagged = isflagged(flagscol, kwargs['to_mask'])
+    flagged = isflagged(flagger[field], kwargs['to_mask'])
 
     # drop all points that hold no relevant grid information
     datcol = datcol[~flagged].dropna()
@@ -286,12 +282,15 @@ def interpolateIndex(
     # flags reshaping
     flagscol = flagscol[~flagged]
 
-    flagscol = _overlap_rs(flagscol, freq, UNFLAGGED)
+    flagscol = _resampleOverlapping(flagscol, freq, UNFLAGGED)
+    dummy = pd.Series(UNTOUCHED, index=data[field].index, dtype=float)
+
+    # do the reshaping on the history
     flagger = applyFunctionOnHistory(
         flagger, field,
-        hist_func=_overlap_rs, hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
-        mask_func=_overlap_rs, mask_kws=dict(freq=freq, fill_value=False),
-        last_column=flagscol
+        hist_func=_resampleOverlapping, hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
+        mask_func=_resampleOverlapping, mask_kws=dict(freq=freq, fill_value=False),
+        last_column='dummy'
     )
 
     return data, flagger

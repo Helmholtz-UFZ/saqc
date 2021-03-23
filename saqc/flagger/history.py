@@ -333,13 +333,14 @@ class History:
     # validation
     #
 
-    def _validate_hist_with_mask(self, obj: pd.DataFrame, mask: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    @staticmethod
+    def _validate_hist_with_mask(obj: pd.DataFrame, mask: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         check type, columns, index, dtype and if the mask fits the obj.
         """
 
         # check hist
-        self._validate_hist(obj)
+        History._validate_hist(obj)
 
         # check mask
         if not isinstance(mask, pd.DataFrame):
@@ -360,7 +361,8 @@ class History:
 
         return obj, mask
 
-    def _validate_hist(self, obj: pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def _validate_hist(obj: pd.DataFrame) -> pd.DataFrame:
         """
         check type, columns, dtype of obj.
         """
@@ -379,7 +381,8 @@ class History:
 
         return obj
 
-    def _validate_value(self, obj: pd.Series) -> pd.Series:
+    @staticmethod
+    def _validate_value(obj: pd.Series) -> pd.Series:
         """
         index is not checked !
         """
