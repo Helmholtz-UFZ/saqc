@@ -387,7 +387,7 @@ def applyFunctionOnHistory(
         new_history.mask.iloc[:, -1:] = True
     else:
         if isinstance(last_column, str) and last_column == 'dummy':
-            last_column = pd.Series(UNTOUCHED, index=new_history.mask.index, dtype=float)
+            last_column = pd.Series(UNTOUCHED, index=new_history.index, dtype=float)
 
         new_history.append(last_column, force=True)
 

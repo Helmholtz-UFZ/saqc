@@ -15,8 +15,8 @@ from saqc.constants import *
 from saqc.core.register import register, isflagged
 from saqc.flagger import Flagger, initFlagsLike, History
 from saqc.funcs.tools import copy, drop, rename
-from saqc.funcs.interpolation import interpolateIndex
-from saqc.lib.tools import getDropMask, evalFreqStr, getFreqDelta
+from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
+from saqc.lib.tools import evalFreqStr, getFreqDelta
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
 from saqc.flagger.flags import applyFunctionOnHistory, appendHistory
 from saqc.lib.rolling import customRoller
@@ -41,9 +41,8 @@ def aggregate(
         flagger: Flagger,
         freq: str,
         value_func,
-        flag_func: Callable[[pd.Series], float]=np.nanmax,
-        method: Literal["fagg", "bagg", "nagg"]="nagg",
-        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        flag_func: Callable[[pd.Series], float] = np.nanmax,
+        method: Literal["fagg", "bagg", "nagg"] = "nagg",
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -74,24 +73,26 @@ def aggregate(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
+
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
+
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.freq
+
     freq : str
         The sampling frequency the data is to be aggregated (resampled) at.
+
     value_func : Callable
         The function you want to use for aggregation.
+
     flag_func : Callable
         The function you want to aggregate the flags with. It should be capable of operating on the flags dtype
         (usually ordered categorical).
+
     method : {'fagg', 'bagg', 'nagg'}, default 'nagg'
         Specifies which intervals to be aggregated for a certain timestamp. (preceeding, succeeding or
         "surrounding" interval). See description above for more details.
-    to_drop : {List[str], str}, default None
-        Flagtypes you want to drop before aggregation - effectively excluding values that are flagged
-        with a flag in to_drop from the aggregation process. Default results in BAD
-        values being dropped initially.
 
     Returns
     -------
@@ -104,20 +105,9 @@ def aggregate(
     """
 
     data, flagger = copy(data, field, flagger, field + '_original')
-    data, flagger = resample(
-        data,
-        field,
-        flagger,
-        freq,
-        agg_func=value_func,
-        flag_agg_func=flag_func,
-        method=method,
-        empty_intervals_flag=UNFLAGGED,
-        to_drop=to_drop,
-        all_na_2_empty=True,
-        **kwargs,
+    return resample(
+        data, field, flagger, freq=freq, agg_func=value_func, flag_agg_func=flag_func, method=method, **kwargs
     )
-    return data, flagger
 
 
 @register(masking='none', module="resampling")
@@ -126,7 +116,6 @@ def linear(
         field: str,
         flagger: Flagger,
         freq: str,
-        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -148,16 +137,15 @@ def linear(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
+
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
+
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.freq
+
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
-    to_drop : {List[str], str}, default None
-        Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
-        with a flag in to_drop from the interpolation process. Default results in BAD
-        values being dropped initially.
 
     Returns
     -------
@@ -170,10 +158,7 @@ def linear(
     """
 
     data, flagger = copy(data, field, flagger, field + '_original')
-    data, flagger = interpolateIndex(
-        data, field, flagger, freq, "time", to_drop=to_drop, empty_intervals_flag=UNFLAGGED, **kwargs
-    )
-    return data, flagger
+    return interpolateIndex(data, field, flagger, freq, "time", **kwargs)
 
 
 @register(masking='none', module="resampling")
@@ -182,9 +167,8 @@ def interpolate(
         field: str,
         flagger: Flagger,
         freq: str,
-        method: Literal["linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric", "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"],
-        order: int=1,
-        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        method: _SUPPORTED_METHODS,
+        order: int = 1,
         **kwargs,
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -212,22 +196,23 @@ def interpolate(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
+
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
+
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.freq
+
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
+
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-        "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
+        "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}
         The interpolation method you want to apply.
+
     order : int, default 1
         If your selected interpolation method can be performed at different *orders* - here you pass the desired
         order.
-    to_drop : {List[str], str}, default None
-        Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
-        with a flag in `to_drop` from the interpolation process. Default results in ``BAD``
-        values being dropped initially.
 
     Returns
     -------
@@ -240,18 +225,7 @@ def interpolate(
     """
 
     data, flagger = copy(data, field, flagger, field + '_original')
-    data, flagger = interpolateIndex(
-        data,
-        field,
-        flagger,
-        freq,
-        method=method,
-        inter_order=order,
-        to_drop=to_drop,
-        empty_intervals_flag=UNFLAGGED,
-        **kwargs,
-    )
-    return data, flagger
+    return interpolateIndex(data, field, flagger, freq, method=method, inter_order=order, **kwargs)
 
 
 @register(masking='none', module="resampling")
@@ -259,8 +233,11 @@ def mapToOriginal(
         data: DictOfSeries,
         field: str,
         flagger: Flagger,
-        method: Literal["inverse_fagg", "inverse_bagg", "inverse_nagg", "inverse_fshift", "inverse_bshift", "inverse_nshift", "inverse_interpolation"],
-        to_drop: Optional[Union[Any, Sequence[Any]]]=None,
+        method: Literal[
+            "inverse_fagg", "inverse_bagg", "inverse_nagg",
+            "inverse_fshift", "inverse_bshift", "inverse_nshift",
+            "inverse_interpolation"
+        ],
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -305,18 +282,17 @@ def mapToOriginal(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
+
     field : str
         The fieldname of the column, holding the data-to-be-deharmonized.
+
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.freq
+
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift',
             'inverse_interpolation'}
         The method used for projection of regularized flags onto original flags. See description above for more
         details.
-    to_drop : {List[str], str}, default None
-        Flagtypes you want to drop before interpolation - effectively excluding values that are flagged
-        with a flag in to_drop from the interpolation process. Default results in BAD
-        values being dropped initially.
 
     Returns
     -------
@@ -327,12 +303,10 @@ def mapToOriginal(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
-
     newfield = str(field) + '_original'
     data, flagger = reindexFlags(data, newfield, flagger, method, source=field, to_mask=False)
     data, flagger = drop(data, field, flagger)
-    data, flagger = rename(data, newfield, flagger, field)
-    return data, flagger
+    return rename(data, newfield, flagger, field)
 
 
 @register(masking='none', module="resampling")
@@ -438,14 +412,14 @@ def resample(
         field: str,
         flagger: Flagger,
         freq: str,
-        agg_func: Callable[[pd.Series], pd.Series]=np.mean,
-        method: Literal["fagg", "bagg", "nagg"]="bagg",
-        max_invalid_total_d: Optional[int]=None,
-        max_invalid_consec_d: Optional[int]=None,
-        max_invalid_consec_f: Optional[int]=None,
-        max_invalid_total_f: Optional[int]=None,
-        flag_agg_func: Callable[[pd.Series], float]=max,
-        freq_check: Optional[Literal["check", "auto"]]=None,
+        agg_func: Callable[[pd.Series], pd.Series] = np.mean,
+        method: Literal["fagg", "bagg", "nagg"] = "bagg",
+        max_invalid_total_d: Optional[int] = None,
+        max_invalid_consec_d: Optional[int] = None,
+        max_invalid_consec_f: Optional[int] = None,
+        max_invalid_total_f: Optional[int] = None,
+        flag_agg_func: Callable[[pd.Series], float] = max,
+        freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -546,8 +520,6 @@ def resample(
         max_invalid_consec=max_invalid_consec_d,
     )
 
-    dummy = pd.Series(UNTOUCHED, index=datcol.index, dtype=float)
-
     kws = dict(
         method=method,
         freq=freq,
@@ -561,7 +533,7 @@ def resample(
         flagger, field,
         hist_func=aggregate2Freq, hist_kws=kws,
         mask_func=aggregate2Freq, mask_kws=kws,
-        last_column=dummy
+        last_column='dummy'
     )
 
     data[field] = datcol
@@ -576,9 +548,6 @@ def _getChunkBounds(target: pd.Series, flagscol: pd.Series, freq: str):
 
 
 def _inverseInterpolation(source: pd.Series, target: pd.Series, freq: str, chunk_bounds) -> pd.Series:
-    """
-    Do a inverse interpolation.
-    """
     source = source.copy()
     if len(chunk_bounds) > 0:
         source[chunk_bounds] = np.nan
@@ -626,7 +595,10 @@ def reindexFlags(
         data: DictOfSeries,
         field: str,
         flagger: Flagger,
-        method: Literal["inverse_fagg", "inverse_bagg", "inverse_nagg", "inverse_fshift", "inverse_bshift", "inverse_nshift"],
+        method: Literal[
+            "inverse_fagg", "inverse_bagg", "inverse_nagg",
+            "inverse_fshift", "inverse_bshift", "inverse_nshift"
+        ],
         source: str,
         freq: Optional[str] = None,
         **kwargs
@@ -667,14 +639,19 @@ def reindexFlags(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
+
     field : str
         The fieldname of the data column, you want to project the source-flags onto.
+
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
+
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
         The method used for projection of source flags onto field flags. See description above for more details.
+
     source : str
         The source source of flags projection.
+
     freq : {None, str},default None
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
@@ -688,8 +665,6 @@ def reindexFlags(
         Flags values and shape may have changed relatively to the flagger input.
     """
     flagscol = flagger[source]
-    if flagscol.empty:
-        return data, flagger
 
     if freq is None:
         freq = getFreqDelta(flagscol.index)
@@ -719,7 +694,7 @@ def reindexFlags(
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
         func = _inverseShift
-        kws = dict(freq=tolerance, method=projection_method, drop_mask=drop_mask,  target=dummy)
+        kws = dict(freq=tolerance, method=projection_method, drop_mask=drop_mask, target=dummy)
         func_kws = {**kws, 'fill_value': UNTOUCHED}
         mask_kws = {**kws, 'fill_value': False}
 

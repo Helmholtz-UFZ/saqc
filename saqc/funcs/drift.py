@@ -21,7 +21,6 @@ from saqc.lib.tools import detectDeviants
 from saqc.lib.types import FreqString, ColumnName, CurveFitter, TimestampColumnName
 from saqc.lib.ts_operators import expModelFunc
 
-
 LinkageString = Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]
 
 
@@ -33,9 +32,9 @@ def flagDriftFromNorm(
         fields: Sequence[ColumnName],
         segment_freq: FreqString,
         norm_spread: float,
-        norm_frac: float=0.5,
-        metric: Callable[[np.ndarray, np.ndarray], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-        linkage_method: LinkageString="single",
+        norm_frac: float = 0.5,
+        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+        linkage_method: LinkageString = "single",
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -149,7 +148,7 @@ def flagDriftFromReference(
         fields: Sequence[ColumnName],
         segment_freq: FreqString,
         thresh: float,
-        metric: Callable[[np.ndarray, np.ndarray], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -193,7 +192,6 @@ def flagDriftFromReference(
     That is, why, the "averaged manhatten metric" is set as the metric default, since it corresponds to the
     averaged value distance, two timeseries have (as opposed by euclidean, for example).
     """
-
     data_to_flag = data[fields].to_df()
     data_to_flag.dropna(inplace=True)
 
@@ -227,13 +225,11 @@ def flagDriftFromScaledNorm(
         fields_scale2: Sequence[ColumnName],
         segment_freq: FreqString,
         norm_spread: float,
-        norm_frac: float=0.5,
-        metric: Callable[[np.ndarray, np.ndarray], float]=lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-        linkage_method: LinkageString="single",
+        norm_frac: float = 0.5,
+        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
+        linkage_method: LinkageString = "single",
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
-
-
     """
     The function linearly rescales one set of variables to another set of variables with a different scale and then
     flags value courses that significantly deviate from a group of normal value courses.
@@ -298,7 +294,6 @@ def flagDriftFromScaledNorm(
     Introduction to Hierarchical clustering:
         [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
     """
-
     fields = list(fields_scale1) + list(fields_scale2)
     data_to_flag = data[fields].to_df()
     data_to_flag.dropna(inplace=True)
@@ -343,8 +338,8 @@ def correctExponentialDrift(
         field: ColumnName,
         flagger: Flagger,
         maint_data_field: ColumnName,
-        cal_mean: int=5,
-        flag_maint_period: bool=False,
+        cal_mean: int = 5,
+        flag_maint_period: bool = False,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -420,7 +415,7 @@ def correctExponentialDrift(
     for k in range(0, maint_data.shape[0] - 1):
         # assign group numbers for the timespans in between one maintenance ending and the beginning of the next
         # maintenance time itself remains np.nan assigned
-        drift_frame.loc[maint_data.values[k] : pd.Timestamp(maint_data.index[k + 1]), "drift_group"] = k
+        drift_frame.loc[maint_data.values[k]: pd.Timestamp(maint_data.index[k + 1]), "drift_group"] = k
 
     # define target values for correction
     drift_grouper = drift_frame.groupby("drift_group")
@@ -453,8 +448,8 @@ def correctRegimeAnomaly(
         flagger: Flagger,
         cluster_field: ColumnName,
         model: CurveFitter,
-        regime_transmission: Optional[FreqString]=None,
-        x_date: bool=False,
+        regime_transmission: Optional[FreqString] = None,
+        x_date: bool = False,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -501,7 +496,6 @@ def correctRegimeAnomaly(
     flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
     """
-
     cluster_ser = data[cluster_field]
     unique_successive = pd.unique(cluster_ser.values)
     data_ser = data[field]
@@ -515,10 +509,10 @@ def correctRegimeAnomaly(
     for label, regime in regimes:
         if x_date is False:
             # get seconds data:
-            xdata = (regime.index - regime.index[0]).to_numpy(dtype=float)*10**(-9)
+            xdata = (regime.index - regime.index[0]).to_numpy(dtype=float) * 10 ** (-9)
         else:
             # get seconds from epoch data
-            xdata = regime.index.to_numpy(dtype=float)*10**(-9)
+            xdata = regime.index.to_numpy(dtype=float) * 10 ** (-9)
         ydata = regime.values
         valid_mask = ~np.isnan(ydata)
         if regime_transmission is not None:
@@ -533,7 +527,8 @@ def correctRegimeAnomaly(
         x_mask[label] = valid_mask
 
     first_normal = unique_successive > 0
-    first_valid = np.array([~pd.isna(para_dict[unique_successive[i]]).any() for i in range(0, unique_successive.shape[0])])
+    first_valid = np.array(
+        [~pd.isna(para_dict[unique_successive[i]]).any() for i in range(0, unique_successive.shape[0])])
     first_valid = np.where(first_normal & first_valid)[0][0]
     last_valid = 1
 
@@ -543,7 +538,7 @@ def correctRegimeAnomaly(
             xdata = x_dict[unique_successive[k]]
             ypara = para_dict[unique_successive[k]]
             if k > 0:
-                target_para = para_dict[unique_successive[k-last_valid]]
+                target_para = para_dict[unique_successive[k - last_valid]]
             else:
                 # first regime has no "last valid" to its left, so we use first valid to the right:
                 target_para = para_dict[unique_successive[k + first_valid]]
@@ -569,11 +564,10 @@ def correctOffset(
         normal_spread: float,
         search_winsz: FreqString,
         min_periods: int,
-        regime_transmission: Optional[FreqString]=None,
+        regime_transmission: Optional[FreqString] = None,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
-
     Parameters
     ----------
     data : dios.DictOfSeries
@@ -608,7 +602,6 @@ def correctOffset(
         The flagger object, holding flags and additional Informations related to `data`.
 
     """
-
     data, flagger = copy(data, field, flagger, field + '_CPcluster')
     data, flagger = assignChangePointCluster(
         data, field + '_CPcluster', flagger,
@@ -663,9 +656,9 @@ def flagRegimeAnomaly(
         flagger: Flagger,
         cluster_field: ColumnName,
         norm_spread: float,
-        linkage_method: LinkageString="single",
-        metric: Callable[[np.ndarray, np.ndarray], float]=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-        norm_frac: float=0.5,
+        linkage_method: LinkageString = "single",
+        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
+        norm_frac: float = 0.5,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -711,9 +704,7 @@ def flagRegimeAnomaly(
     flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
-
     """
-
     return assignRegimeAnomaly(
         data, field, flagger,
         cluster_field,
@@ -734,11 +725,11 @@ def assignRegimeAnomaly(
         flagger: Flagger,
         cluster_field: ColumnName,
         norm_spread: float,
-        linkage_method: LinkageString="single",
-        metric: Callable[[np.array, np.array], float]=lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-        norm_frac: float=0.5,
-        set_cluster: bool=True,
-        set_flags: bool=False,
+        linkage_method: LinkageString = "single",
+        metric: Callable[[np.array, np.array], float] = lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
+        norm_frac: float = 0.5,
+        set_cluster: bool = True,
+        set_flags: bool = False,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -793,9 +784,7 @@ def assignRegimeAnomaly(
     flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
-
     """
-
     series = data[cluster_field]
     cluster = np.unique(series)
     cluster_dios = DictOfSeries({i: data[field][series == i] for i in cluster})

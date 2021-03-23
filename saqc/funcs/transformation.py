@@ -18,10 +18,9 @@ def transform(
         field: str,
         flagger: Flagger,
         func: Callable[[pd.Series], pd.Series],
-        partition_freq: Optional[Union[float, str]]=None,
+        partition_freq: Optional[Union[float, str]] = None,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
-
     """
     Function to transform data columns with a transformation that maps series onto series of the same length.
 
@@ -75,5 +74,3 @@ def transform(
 
     data[field] = val_ser
     return data, flagger
-
-

@@ -13,8 +13,6 @@ from saqc.constants import *
 from saqc.core.register import register, isflagged
 from saqc.flagger import Flagger
 from saqc.flagger.flags import applyFunctionOnHistory
-
-from saqc.lib.tools import toSequence, evalFreqStr, getDropMask
 from saqc.lib.ts_operators import interpolateNANs
 
 _SUPPORTED_METHODS = Literal[
@@ -172,6 +170,7 @@ def interpolateInvalid(
 
 
 def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
+    """TODO: docstring needed"""
     dtype = data.dtype
     end = data.index[-1].ceil(freq)
     data = data.resample(freq).max()
@@ -245,7 +244,6 @@ def interpolateIndex(
         return data, flagger
 
     datcol = data[field].copy()
-    flagscol = flagger[field]
 
     start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
     grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
@@ -278,12 +276,6 @@ def interpolateIndex(
 
     # store interpolated grid
     data[field] = inter_data[grid_index]
-
-    # flags reshaping
-    flagscol = flagscol[~flagged]
-
-    flagscol = _resampleOverlapping(flagscol, freq, UNFLAGGED)
-    dummy = pd.Series(UNTOUCHED, index=data[field].index, dtype=float)
 
     # do the reshaping on the history
     flagger = applyFunctionOnHistory(

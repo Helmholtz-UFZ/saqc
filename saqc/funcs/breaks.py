@@ -53,7 +53,6 @@ def flagMissing(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
     """
-
     datacol = data[field]
     if np.isnan(nodata):
         mask = datacol.isna()
@@ -114,7 +113,6 @@ def flagIsolated(
     --------
     :py:func:`flagMissing`
     """
-
     gap_window = pd.tseries.frequencies.to_offset(gap_window)
     group_window = pd.tseries.frequencies.to_offset(group_window)
 
@@ -166,8 +164,7 @@ def flagJumps(
         Minimum number of periods that have to be present in a window of size `winsz`, so that
         the mean value obtained from that window is regarded valid.
     """
-
-    data, flagger = assignChangePointCluster(
+    return assignChangePointCluster(
         data, field, flagger,
         stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
         thresh_func=lambda x, y: thresh,
@@ -179,4 +176,3 @@ def flagJumps(
         **kwargs
     )
 
-    return data, flagger

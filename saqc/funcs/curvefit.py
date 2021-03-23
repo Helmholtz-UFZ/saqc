@@ -8,24 +8,24 @@ from typing_extensions import Literal
 import numpy as np
 import pandas as pd
 
-
 from dios import DictOfSeries
 
 from saqc.core.register import register
 
 from saqc.lib.tools import getFreqDelta
 from saqc.flagger import Flagger
-from saqc.lib.ts_operators import polyRollerIrregular, polyRollerNumba, polyRoller, polyRollerNoMissingNumba, polyRollerNoMissing
+from saqc.lib.ts_operators import polyRollerIrregular, polyRollerNumba, polyRoller, polyRollerNoMissingNumba, \
+    polyRollerNoMissing
 
 
 @register(masking='field', module="curvefit")
 def fitPolynomial(data: DictOfSeries, field: str, flagger: Flagger,
                   winsz: Union[int, str],
                   polydeg: int,
-                  numba: Literal[True, False, "auto"]="auto",
-                  eval_flags: bool=True,
-                  min_periods: int=0,
-                  return_residues: bool=False,
+                  numba: Literal[True, False, "auto"] = "auto",
+                  eval_flags: bool = True,
+                  min_periods: int = 0,
+                  return_residues: bool = False,
                   **kwargs) -> Tuple[DictOfSeries, Flagger]:
     """
     Function fits a polynomial model to the data and returns the fitted data curve.
@@ -100,7 +100,6 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: Flagger,
     flagger : saqc.flagger.Flagger
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values may have changed relatively to the flagger input.
-
     """
     # TODO: some (rater large) parts are functional similar to saqc.funcs.rolling.roll
     if data[field].empty:
@@ -127,8 +126,8 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: Flagger,
         temp = residues.copy()
         for k in centers_iloc.iteritems():
             residues.iloc[k[1]] = temp[k[0]]
-        residues[residues.index[0] : residues.index[centers_iloc[0]]] = np.nan
-        residues[residues.index[centers_iloc[-1]] : residues.index[-1]] = np.nan
+        residues[residues.index[0]: residues.index[centers_iloc[0]]] = np.nan
+        residues[residues.index[centers_iloc[-1]]: residues.index[-1]] = np.nan
     else:
         if isinstance(winsz, str):
             winsz = pd.Timedelta(winsz) // regular
@@ -200,4 +199,3 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: Flagger,
         flagger[field] = worst
 
     return data, flagger
-

@@ -29,14 +29,14 @@ import saqc.lib.ts_operators as ts_ops
 
 @register(masking='field', module="outliers")
 def flagByStray(
-    data: DictOfSeries,
-    field: ColumnName,
-    flagger: Flagger,
-    partition_freq: Optional[Union[IntegerWindow, FreqString]]=None,
-    partition_min: int=11,
-    iter_start: float=0.5,
-    alpha: float=0.05,
-    **kwargs
+        data: DictOfSeries,
+        field: ColumnName,
+        flagger: Flagger,
+        partition_freq: Optional[Union[IntegerWindow, FreqString]] = None,
+        partition_min: int = 11,
+        iter_start: float = 0.5,
+        alpha: float = 0.05,
+        **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
     Flag outliers in 1-dimensional (score) data with the STRAY Algorithm.
@@ -132,11 +132,11 @@ def _evalStrayLabels(
         field: str,
         flagger: Flagger,
         fields: Sequence[str],
-        reduction_range: Optional[str]=None,
-        reduction_drop_flagged: bool=False,
-        reduction_thresh: float=3.5,
-        reduction_min_periods: int=1,
-        at_least_one: bool=True,
+        reduction_range: Optional[str] = None,
+        reduction_drop_flagged: bool = False,  # TODO: still a case ?
+        reduction_thresh: float = 3.5,
+        reduction_min_periods: int = 1,
+        at_least_one: bool = True,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -197,7 +197,7 @@ def _evalStrayLabels(
             # check, wheather value under test is sufficiently centered:
             first = test_slice.first_valid_index()
             last = test_slice.last_valid_index()
-            min_range = pd.Timedelta(reduction_range)/4
+            min_range = pd.Timedelta(reduction_range) / 4
 
             if pd.Timedelta(index[1] - first) < min_range or pd.Timedelta(last - index[1]) < min_range:
                 polydeg = 0
@@ -213,11 +213,11 @@ def _evalStrayLabels(
 
             x = (test_slice.index.values.astype(float))
             x_0 = x[0]
-            x = (x - x_0)/10**12
+            x = (x - x_0) / 10 ** 12
 
             polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=polydeg)
 
-            testval = poly.polyval((float(index[1].to_numpy()) - x_0)/10**12, polyfitted)
+            testval = poly.polyval((float(index[1].to_numpy()) - x_0) / 10 ** 12, polyfitted)
             testval = val_frame[var][index[1]] - testval
 
             resids = test_slice.values - poly.polyval(x, polyfitted)
@@ -316,7 +316,7 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
     upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
     resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
     upper_tail_hist, bins = np.histogram(
-        resids[resids_tail_index:iter_index], bins=binz[upper_tail_index : iter_max_bin_index + 1]
+        resids[resids_tail_index:iter_index], bins=binz[upper_tail_index: iter_max_bin_index + 1]
     )
 
     while (test_val < crit_val) & (iter_index < resids.size - 1):
@@ -331,7 +331,7 @@ def _expFit(val_frame, scoring_method="kNNMaxGap", n_neighbors=10, iter_start=0.
             upper_tail_hist[-1] += 1
             iter_max_bin_index = new_iter_max_bin_index
             upper_tail_index_new = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
-            upper_tail_hist = upper_tail_hist[upper_tail_index_new - upper_tail_index :]
+            upper_tail_hist = upper_tail_hist[upper_tail_index_new - upper_tail_index:]
             upper_tail_index = upper_tail_index_new
 
         # fitting
@@ -355,18 +355,18 @@ def flagMVScores(
         field: ColumnName,
         flagger: Flagger,
         fields: Sequence[ColumnName],
-        trafo: Callable[[pd.Series], pd.Series]=lambda x: x,
-        alpha: float=0.05,
-        n_neighbors: int=10,
-        scoring_func: Callable[[pd.Series], float]=np.sum,
-        iter_start: float=0.5,
-        stray_partition: Optional[Union[IntegerWindow, FreqString]]=None,
-        stray_partition_min: int=11,
-        trafo_on_partition: bool=True,
-        reduction_range: Optional[FreqString]=None,
-        reduction_drop_flagged: bool=False,
-        reduction_thresh: float=3.5,
-        reduction_min_periods: int=1,
+        trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
+        alpha: float = 0.05,
+        n_neighbors: int = 10,
+        scoring_func: Callable[[pd.Series], float] = np.sum,
+        iter_start: float = 0.5,
+        stray_partition: Optional[Union[IntegerWindow, FreqString]] = None,
+        stray_partition_min: int = 11,
+        trafo_on_partition: bool = True,
+        reduction_range: Optional[FreqString] = None,
+        reduction_drop_flagged: bool = False,  # TODO: still a case ?
+        reduction_thresh: float = 3.5,
+        reduction_min_periods: int = 1,
         **kwargs,
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -509,11 +509,11 @@ def flagRaise(
         thresh: float,
         raise_window: FreqString,
         intended_freq: FreqString,
-        average_window: Optional[FreqString]=None,
-        mean_raise_factor: float=2.,
-        min_slope: Optional[float]=None,
-        min_slope_weight: float=0.8,
-        numba_boost: bool=True,  # TODO: rm, not a user decision
+        average_window: Optional[FreqString] = None,
+        mean_raise_factor: float = 2.,
+        min_slope: Optional[float] = None,
+        min_slope_weight: float = 0.8,
+        numba_boost: bool = True,  # TODO: rm, not a user decision
         **kwargs,
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -624,23 +624,23 @@ def flagRaise(
     # "unflag" values of insufficient deviation to their predecessors
     if min_slope is not None:
         w_mask = (
-            pd.Series(dataseries.index).diff().dt.total_seconds() / intended_freq.total_seconds()
-        ) > min_slope_weight
+                         pd.Series(dataseries.index).diff().dt.total_seconds() / intended_freq.total_seconds()
+                 ) > min_slope_weight
         slope_mask = np.abs(dataseries.diff()) < min_slope
         to_unflag = raise_series.notna() & w_mask.values & slope_mask
         raise_series[to_unflag] = np.nan
 
     # calculate and apply the weighted mean weights (pseudo-harmonization):
     weights = (
-        pd.Series(dataseries.index).diff(periods=2).shift(-1).dt.total_seconds() / intended_freq.total_seconds() / 2
+            pd.Series(dataseries.index).diff(periods=2).shift(-1).dt.total_seconds() / intended_freq.total_seconds() / 2
     )
 
     weights.iloc[0] = 0.5 + (dataseries.index[1] - dataseries.index[0]).total_seconds() / (
-        intended_freq.total_seconds() * 2
+            intended_freq.total_seconds() * 2
     )
 
     weights.iloc[-1] = 0.5 + (dataseries.index[-1] - dataseries.index[-2]).total_seconds() / (
-        intended_freq.total_seconds() * 2
+            intended_freq.total_seconds() * 2
     )
 
     weights[weights > 1.5] = 1.5
@@ -669,7 +669,7 @@ def flagRaise(
 
 @register(masking='field', module="outliers")
 def flagMAD(
-        data: DictOfSeries, field: ColumnName, flagger: Flagger, window: FreqString, z: float=3.5, **kwargs
+        data: DictOfSeries, field: ColumnName, flagger: Flagger, window: FreqString, z: float = 3.5, **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
     The function represents an implementation of the modyfied Z-score outlier detection method.
@@ -733,8 +733,8 @@ def flagOffset(
         thresh: float,
         tolerance: float,
         window: Union[IntegerWindow, FreqString],
-        rel_thresh: Optional[float]=None,
-        numba_kickin: int=200000,  # TODO: rm, not a user decision
+        rel_thresh: Optional[float] = None,
+        numba_kickin: int = 200000,  # TODO: rm, not a user decision
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -798,7 +798,7 @@ def flagOffset(
 
     # using reverted series - because ... long story.
     ind = dataseries.index
-    rev_ind = ind[0] + ((ind[-1]-ind)[::-1])
+    rev_ind = ind[0] + ((ind[-1] - ind)[::-1])
     map_i = pd.Series(ind, index=rev_ind)
     dataseries = pd.Series(dataseries.values, index=rev_ind)
 
@@ -887,9 +887,9 @@ def flagByGrubbs(
         field: ColumnName,
         flagger: Flagger,
         winsz: Union[FreqString, IntegerWindow],
-        alpha: float=0.05,
-        min_periods: int=8,
-        check_lagged: bool=False,
+        alpha: float = 0.05,
+        min_periods: int = 8,
+        check_lagged: bool = False,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -992,8 +992,8 @@ def flagRange(
         data: DictOfSeries,
         field: ColumnName,
         flagger: Flagger,
-        min: float=-np.inf,
-        max: float=np.inf,
+        min: float = -np.inf,
+        max: float = np.inf,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -1035,7 +1035,7 @@ def flagCrossStatistic(
         flagger: Flagger,
         fields: Sequence[ColumnName],
         thresh: float,
-        cross_stat: Literal["modZscore", "Zscore"]="modZscore",
+        cross_stat: Literal["modZscore", "Zscore"] = "modZscore",
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """

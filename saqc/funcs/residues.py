@@ -21,9 +21,9 @@ def calculatePolynomialResidues(
         flagger: Flagger,
         winsz: Union[str, int],
         polydeg: int,
-        numba: Literal[True, False, "auto"]="auto",
-        eval_flags: bool=True,
-        min_periods: Optional[int]=0,
+        numba: Literal[True, False, "auto"] = "auto",  # TODO: rm, not a a user decision
+        eval_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
+        min_periods: Optional[int] = 0,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
     """
@@ -117,13 +117,13 @@ def calculateRollingResidues(
         field: str,
         flagger: Flagger,
         winsz: Union[str, int],
-        func: Callable[[np.ndarray], np.ndarray]=np.mean,
-        eval_flags: bool=True,
-        min_periods: Optional[int]=0,
-        center: bool=True,
+        func: Callable[[np.ndarray], np.ndarray] = np.mean,
+        eval_flags: bool = True,
+        min_periods: Optional[int] = 0,
+        center: bool = True,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
-
+    """ TODO: docstring needed"""
     return roll(
         data, field, flagger,
         winsz=winsz,
@@ -134,4 +134,3 @@ def calculateRollingResidues(
         return_residues=True,
         **kwargs
     )
-

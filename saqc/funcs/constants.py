@@ -41,7 +41,7 @@ def flagConstants(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
-        The fieldname of the column, holding the data-to-be-flagged.
+        Name of the column, holding the data-to-be-flagged.
     flagger : saqc.flagger.Flagger
         A flagger object, holding flags and additional Informations related to `data`.
     thresh : float
@@ -57,10 +57,9 @@ def flagConstants(
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
     """
-
-    d = data[field]
     if not isinstance(window, str):
         raise TypeError('window must be offset string.')
+    d = data[field]
 
     # min_periods=2 ensures that at least two non-nan values are present
     # in each window and also min() == max() == d[i] is not possible.
@@ -89,7 +88,6 @@ def flagByVariance(
         max_consec_missing: int=None,
         **kwargs
 ) -> Tuple[DictOfSeries, Flagger]:
-
     """
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
@@ -125,21 +123,27 @@ def flagByVariance(
         The flagger object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flagger input.
     """
-
     dataseries = data[field]
-    data_rate = getFreqDelta(dataseries.index)
 
-    if not data_rate:
+    delta = getFreqDelta(dataseries.index)
+    if not delta:
         raise IndexError('Timeseries irregularly sampled!')
+
     if max_missing is None:
         max_missing = np.inf
+
     if max_consec_missing is None:
         max_consec_missing = np.inf
-    min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(data_rate)))
 
-    plateaus = dataseries.rolling(window=window, min_periods=min_periods).apply(
-        lambda x: True if varQC(x, max_missing, max_consec_missing) <= thresh else np.nan, raw=False,
-    )
+    min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(delta)))
+
+    def var_below_thresh(s: pd.Series):
+        if varQC(s, max_missing, max_consec_missing) <= thresh:
+            return True
+        return np.nan
+
+    rolling = dataseries.rolling(window=window, min_periods=min_periods)
+    plateaus = rolling.apply(var_below_thresh, raw=False)
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
