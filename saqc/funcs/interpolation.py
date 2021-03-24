@@ -12,7 +12,7 @@ from dios import DictOfSeries
 from saqc.constants import *
 from saqc.core.register import register, isflagged
 from saqc.flagger import Flagger
-from saqc.flagger.flags import applyFunctionOnHistory
+from saqc.flagger.history import applyFunctionOnHistory
 from saqc.lib.ts_operators import interpolateNANs
 
 _SUPPORTED_METHODS = Literal[
@@ -278,8 +278,8 @@ def interpolateIndex(
     data[field] = inter_data[grid_index]
 
     # do the reshaping on the history
-    flagger = applyFunctionOnHistory(
-        flagger, field,
+    flagger.history[field] = applyFunctionOnHistory(
+        flagger.history[field],
         hist_func=_resampleOverlapping, hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
         mask_func=_resampleOverlapping, mask_kws=dict(freq=freq, fill_value=False),
         last_column='dummy'

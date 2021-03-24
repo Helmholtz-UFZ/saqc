@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
-from typing import Tuple, Type
+from typing import Tuple, Type, Union, Literal
 import pandas as pd
 import numpy as np
 from saqc.constants import *
@@ -420,8 +420,6 @@ def appendNewerHistory(original: History, newer: History) -> History:
     -------
     History with appended columns
     """
-    original = original.copy()
-
     if not original.index.equals(newer.index):
         raise ValueError("Index of histories does not match")
 
@@ -432,6 +430,78 @@ def appendNewerHistory(original: History, newer: History) -> History:
     original.mask.loc[:, append_mask.columns] = append_mask
 
     assert original.columns.equals(pd.Index(range(len(original.columns))))
+
     return original
 
+
+def applyFunctionOnHistory(
+        history: History,
+        hist_func: callable,
+        hist_kws: dict,
+        mask_func: callable,
+        mask_kws: dict,
+        last_column: Union[pd.Series, Literal['dummy'], None] = None,
+        func_handle_df: bool = False,
+):
+    """
+    Apply function on each column in history.
+
+    Two functions must be given. Both are called for each column in the History unless ``func_handle_df=True`` is
+    given. One is called on ``History.hist``, the other on ``History.mask``.
+    Both function must take a pd.Series as first arg, which is the column from hist or mask respectively. If
+    ``func_handle_df=True`` each functions must take a ``pd.DataFrame`` as first argument, holding all columns
+    at once. The function must return same type as first argument.
+
+    Parameters
+    ----------
+    history : History
+        History object to alter
+    hist_func : callable
+        function to apply on `History.hist` (flags DataFrame)
+    hist_kws : dict
+        hist-function keywords dict
+    mask_func : callable
+        function to apply on `History.mask` (force mask DataFrame)
+    mask_kws : dict
+        mask-function keywords dict
+    last_column : pd.Series or None, default None
+        The last column to apply. If None, no extra column is appended.
+    func_handle_df : bool
+        If `True`, the whole History{.hist, .mask} are passed to the given functions, thus the
+        function must handle `pd.Dataframes` as first input. If `False`, each column is passed
+        separately, thus the functions must handle those.
+
+    Notes
+    -----
+    After the functions are called, all `NaN`'s in `History.mask` are replaced with `False`,
+    and the `.mask` is casted to bool, to ensure a consistent History.
+
+    Returns
+    -------
+    history with altered columns
+    """
+    new_history = History()
+
+    if func_handle_df:
+        history.hist = hist_func(history.hist, **hist_kws)
+        history.mask = hist_func(history.mask, **mask_kws)
+
+    else:
+        for pos in history.columns:
+            new_history.hist[pos] = hist_func(history.hist[pos], **hist_kws)
+            new_history.mask[pos] = mask_func(history.mask[pos], **mask_kws)
+
+    # handle unstable state
+    if last_column is None:
+        new_history.mask.iloc[:, -1:] = True
+    else:
+        if isinstance(last_column, str) and last_column == 'dummy':
+            last_column = pd.Series(UNTOUCHED, index=new_history.index, dtype=float)
+
+        new_history.append(last_column, force=True)
+
+    # assure a boolean mask
+    new_history.mask = new_history.mask.fillna(False).astype(bool)
+
+    return new_history
 

@@ -13,8 +13,8 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.core.register import register, isflagged
-from saqc.flagger.history import appendNewerHistory
-from saqc.flagger.flags import Flagger, applyFunctionOnHistory
+from saqc.flagger.history import appendNewerHistory, applyFunctionOnHistory
+from saqc.flagger.flags import Flagger
 from saqc.funcs.tools import copy, drop, rename
 from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
 from saqc.lib.tools import evalFreqStr, getFreqDelta
@@ -540,8 +540,8 @@ def resample(
         max_invalid_consec=max_invalid_consec_f,
     )
 
-    flagger = applyFunctionOnHistory(
-        flagger, field,
+    flagger.history[field] = applyFunctionOnHistory(
+        flagger.history[field],
         hist_func=aggregate2Freq, hist_kws=kws,
         mask_func=aggregate2Freq, mask_kws=kws,
         last_column='dummy'
@@ -712,7 +712,6 @@ def reindexFlags(
     else:
         raise ValueError(f"unknown method {method}")
 
-    tmp_flagger = applyFunctionOnHistory(flagger, source, func, func_kws, func, mask_kws, last_column=dummy)
-    new_hist = appendNewerHistory(flagger.history[field], tmp_flagger.history[source])
-    flagger.history[field] = new_hist
+    history = applyFunctionOnHistory(flagger.history[source], func, func_kws, func, mask_kws, last_column=dummy)
+    flagger.history[field] = appendNewerHistory(flagger.history[field], history)
     return data, flagger
