@@ -393,3 +393,45 @@ class History:
             raise ValueError('dtype must be float')
 
         return obj
+
+
+def appendNewerHistory(original: History, newer: History) -> History:
+    """
+    Append all newer columns of a history to an other History.
+
+    The first N columns in the newer History are discarded, where N is the
+    number of columns in the original history.
+
+    The Histories must have same indexes, otherwise a `ValueError` is raised.
+
+    Parameters
+    ----------
+    original : History
+        The original History
+
+    newer : History
+        The newer History
+
+    Raises
+    ------
+    ValueError : if indexes of histories does not match.
+
+    Returns
+    -------
+    History with appended columns
+    """
+    original = original.copy()
+
+    if not original.index.equals(newer.index):
+        raise ValueError("Index of histories does not match")
+
+    n = len(original.columns)
+    append_hist = newer.hist.iloc[:, n:]
+    append_mask = newer.mask.iloc[:, n:]
+    original.hist.loc[:, append_hist.columns] = append_hist
+    original.mask.loc[:, append_mask.columns] = append_mask
+
+    assert original.columns.equals(pd.Index(range(len(original.columns))))
+    return original
+
+

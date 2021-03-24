@@ -356,18 +356,33 @@ def applyFunctionOnHistory(
 
     Parameters
     ----------
-    flags :
-    column :
-    hist_func :
-    hist_kws :
-    mask_func :
-    mask_kws :
-    last_column :
-    func_handle_df :
+    flags : Flags
+        Flags object holding the History in question
+    column : str
+        name of the column holding the history in question
+    hist_func : callable
+        function to apply on `History.hist` (flags)
+    hist_kws : dict
+        hist-function keywords dict
+    mask_func : callable
+        function to apply on `History.mask` (force mask)
+    mask_kws : dict
+        mask-function keywords dict
+    last_column : pd.Series or None, default None
+        The last column to apply. If None, no extra column is appended.
+    func_handle_df : bool
+        If `True`, the whole History{.hist, .mask} are passed to the given functions, thus the
+        function must handle `pd.Dataframes` as first input. If `False`, each column is passed
+        separately, thus the functions must handle those.
+
+    Notes
+    -----
+    After the functions are called, all `NaN`'s in `History.mask` are replaced with `False`,
+    and the `.mask` is casted to bool, to ensure a consistent History.
 
     Returns
     -------
-
+    Copy of Flags with altered History (in column)
     """
     flags = flags.copy()
     history = flags.history[column]
@@ -394,33 +409,6 @@ def applyFunctionOnHistory(
     # assure a boolean mask
     new_history.mask = new_history.mask.fillna(False).astype(bool)
 
-    flags.history[column] = new_history
-    return flags
-
-
-def appendHistory(flags: Flags, column, append_hist):
-    """
-    Function, specialized for used in deharm context.
-
-
-    Parameters
-    ----------
-    flags
-    field
-    source
-    merge_func
-    merge_func_kws
-    last_column
-
-    Returns
-    -------
-
-    """
-    flags = flags.copy()
-    new_history = flags.history[column]
-    for app_k in [k for k in append_hist.columns if k not in new_history.columns]:
-        new_history.hist[app_k] = append_hist.hist[app_k]
-        new_history.mask[app_k] = append_hist.mask[app_k]
     flags.history[column] = new_history
     return flags
 

@@ -13,12 +13,12 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.core.register import register, isflagged
-from saqc.flagger import Flagger, initFlagsLike, History
+from saqc.flagger.history import appendNewerHistory
+from saqc.flagger.flags import Flagger, applyFunctionOnHistory
 from saqc.funcs.tools import copy, drop, rename
 from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
 from saqc.lib.tools import evalFreqStr, getFreqDelta
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
-from saqc.flagger.flags import applyFunctionOnHistory, appendHistory
 from saqc.lib.rolling import customRoller
 
 logger = logging.getLogger("SaQC")
@@ -713,5 +713,6 @@ def reindexFlags(
         raise ValueError(f"unknown method {method}")
 
     tmp_flagger = applyFunctionOnHistory(flagger, source, func, func_kws, func, mask_kws, last_column=dummy)
-    flagger = appendHistory(flagger, field, tmp_flagger.history[source])
+    new_hist = appendNewerHistory(flagger.history[field], tmp_flagger.history[source])
+    flagger.history[field] = new_hist
     return data, flagger
