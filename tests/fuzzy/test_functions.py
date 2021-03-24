@@ -14,11 +14,6 @@ from tests.fuzzy.init import MAX_EXAMPLES, functionKwargs
 def callWontBreak(drawer, func_name: str):
     func = FUNC_MAP[func_name]
     kwargs = drawer.draw(functionKwargs(func))
-
-    # TODO: workaround until `flag` is explicitly exposed in signature
-    flag = drawer.draw(from_type(float))
-    kwargs.setdefault('flag', flag)
-
     func(**kwargs)
 
 
