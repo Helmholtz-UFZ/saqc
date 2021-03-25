@@ -433,7 +433,7 @@ def correctExponentialDrift(
 
     for k, group in drift_grouper:
         dataSeries = group[to_correct.name]
-        dataFit, dataShiftTarget = _drift_fit(dataSeries, shift_targets.loc[k, :][0], cal_mean)
+        dataFit, dataShiftTarget = _driftFit(dataSeries, shift_targets.loc[k, :][0], cal_mean)
         dataFit = pd.Series(dataFit, index=group.index)
         dataShiftTarget = pd.Series(dataShiftTarget, index=group.index)
         dataShiftVektor = dataShiftTarget - dataFit
@@ -628,7 +628,7 @@ def correctOffset(
     return data, flagger
 
 
-def _drift_fit(x, shift_target, cal_mean):
+def _driftFit(x, shift_target, cal_mean):
     x_index = x.index - x.index[0]
     x_data = x_index.total_seconds().values
     x_data = x_data / x_data[-1]

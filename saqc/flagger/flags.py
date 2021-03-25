@@ -40,7 +40,7 @@ class _HistAccess:
         if not isinstance(value, History):
             raise TypeError("Not a History")
 
-        History._validate_hist_with_mask(value.hist, value.mask)
+        History._validateHistWithMask(value.hist, value.mask)
 
         self.obj._data[key] = value
         self.obj._cache.pop(key, None)

@@ -27,7 +27,7 @@ SCHEMES = {
 }
 
 
-def _setup_logging(loglvl):
+def _setupLogging(loglvl):
     logger.setLevel(loglvl)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("[%(asctime)s][%(name)s][%(levelname)s]: %(message)s")
@@ -85,7 +85,7 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
     if SCHEMES[flagger] is NotImplemented:
         warnings.warn("flagger is currently not supported")
 
-    _setup_logging(log_level)
+    _setupLogging(log_level)
     reader, writer = setupIO(nodata)
 
     data = readData(reader, data)

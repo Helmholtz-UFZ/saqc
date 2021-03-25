@@ -65,11 +65,11 @@ class History:
             raise ValueError("Cannot take 'mask' without 'hist'")
 
         elif hist is not None and mask is None:
-            hist = self._validate_hist(hist)
+            hist = self._validateHist(hist)
             mask = pd.DataFrame(True, index=hist.index, columns=hist.columns)
 
         else:
-            hist, mask = self._validate_hist_with_mask(hist, mask)
+            hist, mask = self._validateHistWithMask(hist, mask)
 
         if copy:
             hist = hist.copy()
@@ -207,7 +207,7 @@ class History:
         if isinstance(value, History):
             return self._appendHistory(value, force=force)
 
-        value = self._validate_value(value)
+        value = self._validateValue(value)
         if len(self) > 0 and not value.index.equals(self.index):
             raise ValueError("Index must be equal to history index")
 
@@ -239,7 +239,7 @@ class History:
         -----
         This ignores the column names of the passed History.
         """
-        self._validate_hist_with_mask(value.hist, value.mask)
+        self._validateHistWithMask(value.hist, value.mask)
         if len(self) > 0 and not value.index.equals(self.index):
             raise ValueError("Index must be equal to history index")
 
@@ -394,13 +394,13 @@ class History:
     #
 
     @staticmethod
-    def _validate_hist_with_mask(obj: pd.DataFrame, mask: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def _validateHistWithMask(obj: pd.DataFrame, mask: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         check type, columns, index, dtype and if the mask fits the obj.
         """
 
         # check hist
-        History._validate_hist(obj)
+        History._validateHist(obj)
 
         # check mask
         if not isinstance(mask, pd.DataFrame):
@@ -422,7 +422,7 @@ class History:
         return obj, mask
 
     @staticmethod
-    def _validate_hist(obj: pd.DataFrame) -> pd.DataFrame:
+    def _validateHist(obj: pd.DataFrame) -> pd.DataFrame:
         """
         check type, columns, dtype of obj.
         """
@@ -442,7 +442,7 @@ class History:
         return obj
 
     @staticmethod
-    def _validate_value(obj: pd.Series) -> pd.Series:
+    def _validateValue(obj: pd.Series) -> pd.Series:
         """
         index is not checked !
         """
