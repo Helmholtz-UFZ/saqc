@@ -86,10 +86,10 @@ def test_dtypes(data, flags):
     Test if the categorical dtype is preserved through the core functionality
     """
     flagger = initFlagsLike(data)
-    flags = flagger.toDios()
+    flags_raw = flagger.toDios()
     var1, var2 = data.columns[:2]
 
-    pdata, pflagger = SaQC(data, flags=flags).flagAll(var1).flagAll(var2).getResult(raw=True)
+    pdata, pflagger = SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).getResult(raw=True)
 
     for c in pflagger.columns:
         assert pflagger[c].dtype == flagger[c].dtype

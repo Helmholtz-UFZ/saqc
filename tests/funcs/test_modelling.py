@@ -54,20 +54,20 @@ def test_modelling_mask(dat):
 
     common = dict(data=data, field=field, flagger=flagger, mode='periodic')
     data_seasonal, flagger_seasonal = mask(**common, period_start="20:00", period_end="40:00", include_bounds=False)
-    flags = flagger_seasonal[field]
-    m = (20 <= flags.index.minute) & (flags.index.minute <= 40)
+    flagscol = flagger_seasonal[field]
+    m = (20 <= flagscol.index.minute) & (flagscol.index.minute <= 40)
     assert all(flagger_seasonal[field][m] == UNFLAGGED)
     assert all(data_seasonal[field][m].isna())
 
     data_seasonal, flagger_seasonal = mask(**common, period_start="15:00:00", period_end="02:00:00")
-    flags = flagger_seasonal[field]
-    m = (15 <= flags.index.hour) & (flags.index.hour <= 2)
+    flagscol = flagger_seasonal[field]
+    m = (15 <= flagscol.index.hour) & (flagscol.index.hour <= 2)
     assert all(flagger_seasonal[field][m] == UNFLAGGED)
     assert all(data_seasonal[field][m].isna())
 
     data_seasonal, flagger_seasonal = mask(**common, period_start="03T00:00:00", period_end="10T00:00:00")
-    flags = flagger_seasonal[field]
-    m = (3 <= flags.index.hour) & (flags.index.hour <= 10)
+    flagscol = flagger_seasonal[field]
+    m = (3 <= flagscol.index.hour) & (flagscol.index.hour <= 10)
     assert all(flagger_seasonal[field][m] == UNFLAGGED)
     assert all(data_seasonal[field][m].isna())
 

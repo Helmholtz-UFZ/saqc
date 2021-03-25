@@ -23,8 +23,8 @@ def test_constants_flagBasic(data):
     field, *_ = data.columns
     flagger = initFlagsLike(data)
     data, flagger_result = flagConstants(data, field, flagger, window="15Min", thresh=0.1, flag=BAD)
-    flags = flagger_result[field]
-    assert np.all(flags[expected] == BAD)
+    flagscol = flagger_result[field]
+    assert np.all(flagscol[expected] == BAD)
 
 
 def test_constants_flagVarianceBased(data):

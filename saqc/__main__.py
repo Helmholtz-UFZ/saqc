@@ -95,12 +95,12 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
     data_result, flagger_result = saqc.readConfig(config).getResult(raw=True)
 
     if outfile:
-        data_result = data_result.to_df()
-        flags = flagger_result.toFrame()
-        unflagged = (flags == UNFLAGGED) | flags.isna()
-        flags[unflagged] = GOOD
+        data_frame = data_result.to_df()
+        flags_frame = flagger_result.toFrame()
+        unflagged = (flags_frame == UNFLAGGED) | flags_frame.isna()
+        flags_frame[unflagged] = GOOD
 
-        fields = {"data": data_result, "flags": flags}
+        fields = {"data": data_frame, "flags": flags_frame}
 
         out = (
             pd.concat(fields.values(), axis=1, keys=fields.keys())

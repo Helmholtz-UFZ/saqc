@@ -124,7 +124,7 @@ def flagIsolated(
 
     mask = data[field].isna()
 
-    flags = pd.Series(data=0, index=mask.index, dtype=bool)
+    bools = pd.Series(data=0, index=mask.index, dtype=bool)
     for srs in groupConsecutives(mask):
         if np.all(~srs):
             start = srs.index[0]
@@ -134,7 +134,7 @@ def flagIsolated(
                 if left.all():
                     right = mask[stop: stop + gap_window].iloc[1:]
                     if right.all():
-                        flags[start:stop] = True
+                        bools[start:stop] = True
 
     flagger[mask, field] = flag
     return data, flagger

@@ -249,14 +249,14 @@ def _maskData(data, flagger, columns, thresh) -> Tuple[dios.DictOfSeries, dios.D
     return data, mask
 
 
-def _isflagged(flags: Union[np.array, pd.Series], thresh: float) -> Union[np.array, pd.Series]:
+def _isflagged(flagscol: Union[np.array, pd.Series], thresh: float) -> Union[np.array, pd.Series]:
     """
     Return a mask of flags accordingly to `thresh`. Return type is same as flags.
     """
     if thresh == UNFLAGGED:
-        return flags > UNFLAGGED
+        return flagscol > UNFLAGGED
 
-    return flags >= thresh
+    return flagscol >= thresh
 
 
 def _prepareFlags(flagger: Flagger, masking) -> Flagger:
