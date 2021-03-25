@@ -10,7 +10,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.register import register, isflagged
+from saqc.core.register import register, _isflagged
 from saqc.flagger import Flagger
 from saqc.flagger.history import applyFunctionOnHistory
 from saqc.lib.ts_operators import interpolateNANs
@@ -248,7 +248,7 @@ def interpolateIndex(
     start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
     grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
 
-    flagged = isflagged(flagger[field], kwargs['to_mask'])
+    flagged = _isflagged(flagger[field], kwargs['to_mask'])
 
     # drop all points that hold no relevant grid information
     datcol = datcol[~flagged].dropna()

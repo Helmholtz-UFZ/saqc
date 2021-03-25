@@ -12,7 +12,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.register import register, isflagged
+from saqc.core.register import register, _isflagged
 from saqc.flagger.history import applyFunctionOnHistory
 from saqc.flagger.flags import Flagger
 from saqc.funcs.tools import copy, drop, rename
@@ -393,7 +393,7 @@ def _shift(
     --------
     shift : Main caller, docstring
     """
-    flagged = isflagged(flagger[field], kwargs['to_mask'])
+    flagged = _isflagged(flagger[field], kwargs['to_mask'])
     datcol = data[field]
     datcol[flagged] = np.nan
     freq = evalFreqStr(freq, freq_check, datcol.index)
@@ -516,7 +516,7 @@ def resample(
         The flagger object, holding flags and additional Informations related to `data`.
         Flags values and shape may have changed relatively to the flagger input.
     """
-    flagged = isflagged(flagger[field], kwargs['to_mask'])
+    flagged = _isflagged(flagger[field], kwargs['to_mask'])
     datcol = data[field]
     datcol[flagged] = np.nan
     freq = evalFreqStr(freq, freq_check, datcol.index)
@@ -701,7 +701,7 @@ def reindexFlags(
         mask_kws = func_kws
 
     elif method[-5:] == "shift":
-        drop_mask = (target_datcol.isna() | isflagged(target_flagscol, kwargs['to_mask']))
+        drop_mask = (target_datcol.isna() | _isflagged(target_flagscol, kwargs['to_mask']))
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
         func = _inverseShift
