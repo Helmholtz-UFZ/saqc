@@ -104,7 +104,7 @@ class SaQC(FuncModules):
 
     def __init__(self, data, flags=None, nodata=np.nan, to_mask=None, error_policy="raise"):
         super().__init__(self)
-        data, flagger = _prepInput(data, flags)
+        data, flags = _prepInput(data, flags)
         self._data = data
         self._nodata = nodata
         self._to_mask = to_mask
