@@ -167,37 +167,97 @@ class History:
 
         return self
 
-    def append(self, value: pd.Series, force=False) -> History:
+    def append(self, value: Union[pd.Series, History], force=False) -> History:
         """
         Create a new FH column and insert given pd.Series to it.
 
         Parameters
         ----------
-        value : pd.Series
-            the data to append. Must have dtype float and the index must
-            match the index of the FH.
+        value : pd.Series or History
+            The data to append. Must have dtype float and the index must
+            match the index of the History.
 
         force : bool, default False
-            if True the internal mask is updated in a way that the currently
-            set value (series values) will be returned if ``History.max()``
-            is called. This apply for all valid values (not ``np.Nan`` and
-            not ``-np.inf``).
+
+            If ``value`` is a ``pd.Series``:
+
+                - ``force=True`` : the internal mask is updated in a way that the currently
+                  set values gets the highest priority in the current history.
+                  This means, these values are guaranteed to be returned if ``History.max()``
+                  is called, until newer possibly higher flags are set. Bear in mind
+                  that this never apply for `Nan`-values.
+                - ``force=False`` : values are not treated special.
+
+            If ``value`` is a ``History``:
+
+                - ``force=True`` : All columns are appended to the existing history.
+                - ``force=False`` : Only columns that are `newer` are appended. This means
+                  the first ``N`` columns of the passed history are discarded, where ``N`` is the
+                  number of existing columns in the current history.
+
+        Returns
+        -------
+        history with appended series
 
         Raises
         ------
         ValueError: on index miss-match or wrong dtype
         TypeError: if value is not pd.Series
+        """
+        if isinstance(value, History):
+            return self._appendHistory(value, force=force)
+
+        value = self._validate_value(value)
+        if len(self) > 0 and not value.index.equals(self.index):
+            raise ValueError("Index must be equal to history index")
+
+        self._insert(value, pos=len(self), force=force)
+        return self
+
+    def _appendHistory(self, value: History, force: bool = False):
+        """
+        Append multiple columns of a history to self.
+
+        Parameters
+        ----------
+        value : History
+            Holding the columns to append
+        force : bool
+            If False, the first `N` columns in the passed History are discarded, where
+            `N` is the number of columns in the original history.
+            If ``force=True`` all columns are appended.
 
         Returns
         -------
-        History: FH with appended series
+        History with appended columns.
+
+        Raises
+        ------
+        ValueError : If the index of the passed history does not match.
+
+        Notes
+        -----
+        This ignores the column names of the passed History.
         """
-        s = self._validate_value(value)
+        self._validate_hist_with_mask(value.hist, value.mask)
+        if len(self) > 0 and not value.index.equals(self.index):
+            raise ValueError("Index must be equal to history index")
 
-        if len(self) > 0 and not s.index.equals(self.index):
-            raise ValueError("Index must be equal to FlagHistory index")
+        n = len(self.columns)
+        value_hist = value.hist
+        value_mask = value.mask
 
-        self._insert(value, pos=len(self), force=force)
+        if not force:
+            value_hist = value_hist.iloc[:, n:]
+            value_mask = value_mask.iloc[:, n:]
+
+        # rename columns, to avoid ``pd.DataFrame.loc`` become confused
+        columns = pd.Index(range(n, len(value_hist.columns) + 1))
+        value_hist.columns = columns
+        value_mask.columns = columns
+
+        self.hist.loc[:, columns] = value_hist.copy()
+        self.mask.loc[:, columns] = value_mask.copy()
         return self
 
     def squeeze(self, n: int) -> History:
@@ -393,45 +453,6 @@ class History:
             raise ValueError('dtype must be float')
 
         return obj
-
-
-def appendNewerHistory(original: History, newer: History) -> History:
-    """
-    Append all newer columns of a history to an other History.
-
-    The first N columns in the newer History are discarded, where N is the
-    number of columns in the original history.
-
-    The Histories must have same indexes, otherwise a `ValueError` is raised.
-
-    Parameters
-    ----------
-    original : History
-        The original History
-
-    newer : History
-        The newer History
-
-    Raises
-    ------
-    ValueError : if indexes of histories does not match.
-
-    Returns
-    -------
-    History with appended columns
-    """
-    if not original.index.equals(newer.index):
-        raise ValueError("Index of histories does not match")
-
-    n = len(original.columns)
-    append_hist = newer.hist.iloc[:, n:]
-    append_mask = newer.mask.iloc[:, n:]
-    original.hist.loc[:, append_hist.columns] = append_hist
-    original.mask.loc[:, append_mask.columns] = append_mask
-
-    assert original.columns.equals(pd.Index(range(len(original.columns))))
-
-    return original
 
 
 def applyFunctionOnHistory(

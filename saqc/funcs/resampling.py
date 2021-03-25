@@ -13,7 +13,7 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.core.register import register, isflagged
-from saqc.flagger.history import appendNewerHistory, applyFunctionOnHistory
+from saqc.flagger.history import applyFunctionOnHistory
 from saqc.flagger.flags import Flagger
 from saqc.funcs.tools import copy, drop, rename
 from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
@@ -713,5 +713,5 @@ def reindexFlags(
         raise ValueError(f"unknown method {method}")
 
     history = applyFunctionOnHistory(flagger.history[source], func, func_kws, func, mask_kws, last_column=dummy)
-    flagger.history[field] = appendNewerHistory(flagger.history[field], history)
+    flagger.history[field] = flagger.history[field].append(history, force=False)
     return data, flagger
