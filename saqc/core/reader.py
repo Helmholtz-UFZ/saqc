@@ -56,7 +56,7 @@ def _injectOptionalColumns(df):
     return df
 
 
-def _parseConfig(df, flagger):
+def _parseConfig(df, flags):
     funcs = []
     for lineno, (_, target, expr, plot) in enumerate(df.itertuples()):
         if target == "None" or pd.isnull(target) or pd.isnull(expr):
@@ -68,7 +68,7 @@ def _parseConfig(df, flagger):
             target = target[1:-1]
 
         tree = ast.parse(expr, mode="eval")
-        func_name, kwargs = ConfigFunctionParser(flagger).parse(tree.body)
+        func_name, kwargs = ConfigFunctionParser(flags).parse(tree.body)
         func = FUNC_MAP[func_name]
 
         selector = ColumnSelector(
@@ -89,7 +89,7 @@ def _parseConfig(df, flagger):
     return funcs
 
 
-def readConfig(fname, flagger):
+def readConfig(fname, flags):
     df = pd.read_csv(
         fname,
         sep=r"\s*;\s*",
@@ -108,4 +108,4 @@ def readConfig(fname, flagger):
     df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
     df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: "", np.nan: ""})
     df = df.astype({F.PLOT: bool})
-    return _parseConfig(df, flagger)
+    return _parseConfig(df, flags)

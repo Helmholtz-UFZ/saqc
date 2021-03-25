@@ -29,9 +29,9 @@ def spiky_data():
 def test_flagMad(spiky_data):
     data = spiky_data[0]
     field, *_ = data.columns
-    flagger = initFlagsLike(data)
-    data, flagger_result = flagMAD(data, field, flagger, "1H", flag=BAD)
-    flag_result = flagger_result[field]
+    flags = initFlagsLike(data)
+    data, flags_result = flagMAD(data, field, flags, "1H", flag=BAD)
+    flag_result = flags_result[field]
     test_sum = (flag_result[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])
 
@@ -39,9 +39,9 @@ def test_flagMad(spiky_data):
 def test_flagSpikesBasic(spiky_data):
     data = spiky_data[0]
     field, *_ = data.columns
-    flagger = initFlagsLike(data)
-    data, flagger_result = flagOffset(data, field, flagger, thresh=60, tolerance=10, window="20min", flag=BAD)
-    flag_result = flagger_result[field]
+    flags = initFlagsLike(data)
+    data, flags_result = flagOffset(data, field, flags, thresh=60, tolerance=10, window="20min", flag=BAD)
+    flag_result = flags_result[field]
     test_sum = (flag_result[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])
 
@@ -59,14 +59,14 @@ def test_flagSpikesBasic(spiky_data):
 def test_flagSpikesLimitRaise(dat):
     data, characteristics = dat()
     field, *_ = data.columns
-    flagger = initFlagsLike(data)
-    _, flagger_result = flagRaise(
-        data, field, flagger,
+    flags = initFlagsLike(data)
+    _, flags_result = flagRaise(
+        data, field, flags,
         thresh=2, intended_freq="10min", raise_window="20min", numba_boost=False, flag=BAD
     )
-    assert np.all(flagger_result[field][characteristics["raise"]] > UNFLAGGED)
-    assert not np.any(flagger_result[field][characteristics["return"]] > UNFLAGGED)
-    assert not np.any(flagger_result[field][characteristics["drop"]] > UNFLAGGED)
+    assert np.all(flags_result[field][characteristics["raise"]] > UNFLAGGED)
+    assert not np.any(flags_result[field][characteristics["return"]] > UNFLAGGED)
+    assert not np.any(flags_result[field][characteristics["drop"]] > UNFLAGGED)
 
 
 # see test/functs/fixtures.py for the 'course_N'
@@ -80,12 +80,12 @@ def test_flagMultivarScores(dat):
     s1 = pd.Series(data=s1.values, index=s1.index)
     s2 = pd.Series(data=s2.values, index=s1.index)
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
-    flagger = initFlagsLike(data)
-    _, flagger_result = flagMVScores(
-        data, field, flagger, fields=fields, trafo=np.log, iter_start=0.95, n_neighbors=10, flag=BAD
+    flags = initFlagsLike(data)
+    _, flags_result = flagMVScores(
+        data, field, flags, fields=fields, trafo=np.log, iter_start=0.95, n_neighbors=10, flag=BAD
     )
     for field in fields:
-        isflagged = flagger_result[field] > UNFLAGGED
+        isflagged = flags_result[field] > UNFLAGGED
         assert isflagged[characteristics["raise"]].all()
         assert not isflagged[characteristics["return"]].any()
         assert not isflagged[characteristics["drop"]].any()
@@ -99,7 +99,7 @@ def test_grubbs(dat):
         crowd_size=1, crowd_spacing=3,
         out_val=-10,
     )
-    flagger = initFlagsLike(data)
-    data, result_flagger = flagByGrubbs(data, "data", flagger, winsz=20, min_periods=15, flag=BAD)
-    assert np.all(result_flagger["data"][char_dict["drop"]] > UNFLAGGED)
+    flags = initFlagsLike(data)
+    data, result_flags = flagByGrubbs(data, "data", flags, winsz=20, min_periods=15, flag=BAD)
+    assert np.all(result_flags["data"][char_dict["drop"]] > UNFLAGGED)
 

@@ -137,7 +137,7 @@ class ConfigFunctionParser(ast.NodeVisitor):
         ast.Attribute
     )
 
-    def __init__(self, flagger):
+    def __init__(self, flags):
 
         self.kwargs = {}
         self.environment = {

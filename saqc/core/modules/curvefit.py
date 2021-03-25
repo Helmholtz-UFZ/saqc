@@ -6,7 +6,7 @@ from dios import DictOfSeries
 from typing_extensions import Literal
 
 from saqc.constants import *
-from saqc.core import Flags as Flagger
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
@@ -22,5 +22,5 @@ class Curvefit(ModuleBase):
             return_residues: bool = False,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("fitPolynomial", locals())

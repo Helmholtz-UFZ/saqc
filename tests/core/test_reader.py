@@ -106,8 +106,8 @@ def test_configChecks(data):
     var1, _, var3, *_ = data.columns
 
     @register(masking="none")
-    def flagFunc(data, field, flagger, arg, opt_arg=None, **kwargs):
-        return data, flagger
+    def flagFunc(data, field, flags, arg, opt_arg=None, **kwargs):
+        return data, flags
 
     header = f"{F.VARNAME};{F.TEST}"
     tests = [
@@ -131,8 +131,8 @@ def test_supportedArguments(data):
     # TODO: necessary?
 
     @register(masking='field')
-    def func(data, field, flagger, kwarg, **kwargs):
-        return data, flagger
+    def func(data, field, flags, kwarg, **kwargs):
+        return data, flags
 
     var1 = data.columns[0]
 

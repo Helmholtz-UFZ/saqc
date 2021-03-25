@@ -7,7 +7,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags as Flagger
+from saqc.core import register, Flags
 from saqc.lib.tools import toSequence
 import saqc.lib.ts_operators as ts_ops
 
@@ -16,7 +16,7 @@ import saqc.lib.ts_operators as ts_ops
 def assignKNNScore(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         fields: Sequence[str],
         n_neighbors: int = 10,
         trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
@@ -29,7 +29,7 @@ def assignKNNScore(
         metric: str = 'minkowski',
         p: int = 2,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     TODO: docstring need a rework
     Score datapoints by an aggregation of the dictances to their k nearest neighbors.
@@ -57,8 +57,8 @@ def assignKNNScore(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The reference variable, the deviation from wich determines the flagging.
-    flagger : saqc.flagger
-        A flagger object, holding flags and additional informations related to `data`.fields
+    flags : saqc.flags
+        A flags object, holding flags and additional informations related to `data`.fields
     n_neighbors : int, default 10
         The number of nearest neighbors to which the distance is comprised in every datapoints scoring calculation.
     trafo : Callable[np.array, np.array], default lambda x: x
@@ -123,7 +123,7 @@ def assignKNNScore(
         val_frame = val_frame.transform(trafo)
 
     if val_frame.empty:
-        return data, flagger
+        return data, flags
 
     # partitioning
     if not partition_freq:
@@ -155,9 +155,9 @@ def assignKNNScore(
         score_ser[partition.index] = resids
 
     # TODO: this unconditionally overwrite a column, may we should fire a warning ? -- palmb
-    if target_field in flagger.columns:
-        flagger.drop(target_field)
-    flagger[target_field] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)
+    if target_field in flags.columns:
+        flags.drop(target_field)
+    flags[target_field] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)
 
     data[target_field] = score_ser
-    return data, flagger
+    return data, flags

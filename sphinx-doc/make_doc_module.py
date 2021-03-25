@@ -83,7 +83,7 @@ def parse_func_dcstrings(m_paths):
                 continue
             dcstr = rm_section(dcstr, 'Returns')
             dcstr = rm_parameter(dcstr, 'data')
-            dcstr = rm_parameter(dcstr, 'flagger')
+            dcstr = rm_parameter(dcstr, 'flags')
             parameters = get_parameter(dcstr)
             parameters = [f"{p[0]}={p[1]}" if p[1] else p[0] for p in parameters]
             signature = f"def {func.name}({', '.join(parameters)}):"

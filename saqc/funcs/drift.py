@@ -15,7 +15,7 @@ from scipy.spatial.distance import pdist
 
 from saqc.constants import *
 from saqc.core.register import register
-from saqc.core import Flags as Flagger
+from saqc.core import Flags
 from saqc.funcs.resampling import shift
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import drop, copy
@@ -30,7 +30,7 @@ LinkageString = Literal["single", "complete", "average", "weighted", "centroid",
 def flagDriftFromNorm(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         fields: Sequence[ColumnName],
         segment_freq: FreqString,
         norm_spread: float,
@@ -39,7 +39,7 @@ def flagDriftFromNorm(
         linkage_method: LinkageString = "single",
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags value courses that significantly deviate from a group of normal value courses.
 
@@ -55,8 +55,8 @@ def flagDriftFromNorm(
         A dictionary of pandas.Series, holding all the data.
     field : str
         A dummy parameter.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional informations related to `data`.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
     fields : str
         List of fieldnames in data, determining which variables are to be included into the flagging process.
     segment_freq : str
@@ -86,9 +86,9 @@ def flagDriftFromNorm(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the input flagger.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values may have changed relatively to the input flags.
 
     Notes
     -----
@@ -138,23 +138,23 @@ def flagDriftFromNorm(
         drifters = detectDeviants(segment[1], metric, norm_spread, norm_frac, linkage_method, 'variables')
 
         for var in drifters:
-            flagger[segment[1].index, fields[var]] = flag
+            flags[segment[1].index, fields[var]] = flag
 
-    return data, flagger
+    return data, flags
 
 
 @register(masking='all', module="drift")
 def flagDriftFromReference(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         fields: Sequence[ColumnName],
         segment_freq: FreqString,
         thresh: float,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags value courses that deviate from a reference course by a margin exceeding a certain threshold.
 
@@ -166,8 +166,8 @@ def flagDriftFromReference(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The reference variable, the deviation from wich determines the flagging.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional informations related to `data`.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
     fields : str
         List of fieldnames in data, determining wich variables are to be included into the flagging process.
     segment_freq : str
@@ -186,9 +186,9 @@ def flagDriftFromReference(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the input flagger.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values may have changed relatively to the input flags.
 
     Notes
     -----
@@ -216,16 +216,16 @@ def flagDriftFromReference(
             dist = metric(segment[1].iloc[:, i].values, segment[1].loc[:, field].values)
 
             if dist > thresh:
-                flagger[segment[1].index, fields[i]] = flag
+                flags[segment[1].index, fields[i]] = flag
 
-    return data, flagger
+    return data, flags
 
 
 @register(masking='all', module="drift")
 def flagDriftFromScaledNorm(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         fields_scale1: Sequence[ColumnName],
         fields_scale2: Sequence[ColumnName],
         segment_freq: FreqString,
@@ -235,7 +235,7 @@ def flagDriftFromScaledNorm(
         linkage_method: LinkageString = "single",
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     The function linearly rescales one set of variables to another set of variables with a different scale and then
     flags value courses that significantly deviate from a group of normal value courses.
@@ -255,8 +255,8 @@ def flagDriftFromScaledNorm(
         A dictionary of pandas.Series, holding all the data.
     field : str
         A dummy parameter.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional informations related to `data`.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
     fields_scale1 : str
         List of fieldnames in data to be included into the flagging process which are scaled according to scaling
         scheme 1.
@@ -290,9 +290,9 @@ def flagDriftFromScaledNorm(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the input flagger.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values may have changed relatively to the input flags.
 
     References
     ----------
@@ -334,22 +334,22 @@ def flagDriftFromScaledNorm(
         drifters = detectDeviants(segment[1], metric, norm_spread, norm_frac, linkage_method, 'variables')
 
         for var in drifters:
-            flagger[segment[1].index, fields[var]] = flag
+            flags[segment[1].index, fields[var]] = flag
 
-    return data, flagger
+    return data, flags
 
 
 @register(masking='all', module="drift")
 def correctExponentialDrift(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         maint_data_field: ColumnName,
         cal_mean: int = 5,
         flag_maint_period: bool = False,
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     The function fits an exponential model to chunks of data[field].
     It is assumed, that between maintenance events, there is a drift effect shifting the meassurements in a way, that
@@ -386,8 +386,8 @@ def correctExponentialDrift(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to correct.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     maint_data_field : str
         The fieldname of the datacolumn holding the maintenance information.
         The maint data is to expected to have following form:
@@ -406,13 +406,12 @@ def correctExponentialDrift(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
     """
     # 1: extract fit intervals:
     if data[maint_data_field].empty:
-        return data, flagger
+        return data, flags
 
     data = data.copy()
     to_correct = data[field]
@@ -446,22 +445,22 @@ def correctExponentialDrift(
         to_flag = drift_frame["drift_group"]
         to_flag = to_flag.drop(to_flag[: maint_data.index[0]].index)
         to_flag = to_flag.dropna()
-        flagger[to_flag, field] = flag
+        flags[to_flag, field] = flag
 
-    return data, flagger
+    return data, flags
 
 
 @register(masking='all', module="drift")
 def correctRegimeAnomaly(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         cluster_field: ColumnName,
         model: CurveFitter,
         regime_transmission: Optional[FreqString] = None,
         x_date: bool = False,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function fits the passed model to the different regimes in data[field] and tries to correct
     those values, that have assigned a negative label by data[cluster_field].
@@ -480,8 +479,8 @@ def correctRegimeAnomaly(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to correct.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store flags of the data.
     cluster_field : str
         A string denoting the field in data, holding the cluster label for the data you want to correct.
     model : Callable
@@ -502,8 +501,8 @@ def correctRegimeAnomaly(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        The quality flags of data
     """
     cluster_ser = data[cluster_field]
     unique_successive = pd.unique(cluster_ser.values)
@@ -561,21 +560,21 @@ def correctRegimeAnomaly(
             last_valid = 1
 
     data[field] = data_ser
-    return data, flagger
+    return data, flags
 
 
 @register(masking='all', module="drift")
 def correctOffset(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         max_mean_jump: float,
         normal_spread: float,
         search_winsz: FreqString,
         min_periods: int,
         regime_transmission: Optional[FreqString] = None,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Parameters
     ----------
@@ -583,8 +582,8 @@ def correctOffset(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to correct.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store flags of the data.
     max_mean_jump : float
         when searching for changepoints in mean - this is the threshold a mean difference in the
         sliding window search must exceed to trigger changepoint detection.
@@ -606,26 +605,26 @@ def correctOffset(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        The quality flags of data
     """
-    data, flagger = copy(data, field, flagger, field + '_CPcluster')
-    data, flagger = assignChangePointCluster(
-        data, field + '_CPcluster', flagger,
+    data, flags = copy(data, field, flags, field + '_CPcluster')
+    data, flags = assignChangePointCluster(
+        data, field + '_CPcluster', flags,
         lambda x, y: np.abs(np.mean(x) - np.mean(y)),
         lambda x, y: max_mean_jump,
         bwd_window=search_winsz,
         min_periods_bwd=min_periods
     )
-    data, flagger = assignRegimeAnomaly(data, field, flagger, field + '_CPcluster', normal_spread)
-    data, flagger = correctRegimeAnomaly(
-        data, field, flagger, field + '_CPcluster',
+    data, flags = assignRegimeAnomaly(data, field, flags, field + '_CPcluster', normal_spread)
+    data, flags = correctRegimeAnomaly(
+        data, field, flags, field + '_CPcluster',
         lambda x, p1: np.array([p1] * x.shape[0]),
         regime_transmission=regime_transmission
     )
-    data, flagger = drop(data, field + '_CPcluster', flagger)
+    data, flags = drop(data, field + '_CPcluster', flags)
 
-    return data, flagger
+    return data, flags
 
 
 def _driftFit(x, shift_target, cal_mean):
@@ -660,7 +659,7 @@ def _driftFit(x, shift_target, cal_mean):
 def flagRegimeAnomaly(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         cluster_field: ColumnName,
         norm_spread: float,
         linkage_method: LinkageString = "single",
@@ -668,7 +667,7 @@ def flagRegimeAnomaly(
         norm_frac: float = 0.5,
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     A function to flag values belonging to an anomalous regime regarding modelling regimes of field.
 
@@ -689,8 +688,8 @@ def flagRegimeAnomaly(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store flags of the data.
     cluster_field : str
         The name of the column in data, holding the cluster labels for the samples in field. (has to be indexed
         equal to field)
@@ -711,12 +710,12 @@ def flagRegimeAnomaly(
 
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional informations related to `data`.
-        Flags values may have changed, relatively to the flagger input.
+    flags : saqc.Flags
+        The flags object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flags input.
     """
     return assignRegimeAnomaly(
-        data, field, flagger,
+        data, field, flags,
         cluster_field,
         norm_spread,
         linkage_method=linkage_method,
@@ -733,7 +732,7 @@ def flagRegimeAnomaly(
 def assignRegimeAnomaly(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         cluster_field: ColumnName,
         norm_spread: float,
         linkage_method: LinkageString = "single",
@@ -743,7 +742,7 @@ def assignRegimeAnomaly(
         set_flags: bool = False,
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     A function to detect values belonging to an anomalous regime regarding modelling regimes of field.
 
@@ -767,8 +766,8 @@ def assignRegimeAnomaly(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store flags of the data.
     cluster_field : str
         The name of the column in data, holding the cluster labels for the samples in field. (has to be indexed
         equal to field)
@@ -794,9 +793,9 @@ def assignRegimeAnomaly(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional informations related to `data`.
-        Flags values may have changed, relatively to the flagger input.
+    flags : saqc.Flags
+        The flags object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flags input.
     """
     series = data[cluster_field]
     cluster = np.unique(series)
@@ -805,7 +804,7 @@ def assignRegimeAnomaly(
 
     if set_flags:
         for p in plateaus:
-            flagger[cluster_dios.iloc[:, p].index, field] = flag
+            flags[cluster_dios.iloc[:, p].index, field] = flag
 
     if set_cluster:
         for p in plateaus:
@@ -813,4 +812,4 @@ def assignRegimeAnomaly(
                 series[series == cluster[p]] = -cluster[p]
 
     data[cluster_field] = series
-    return data, flagger
+    return data, flags

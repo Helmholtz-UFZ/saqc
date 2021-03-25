@@ -6,7 +6,7 @@ import numpy as np
 
 from saqc.constants import *
 from saqc.funcs.constants import flagConstants, flagByVariance
-from saqc.core import initFlagsLike, Flags as Flagger
+from saqc.core import initFlagsLike, Flags
 
 from tests.common import initData
 
@@ -21,18 +21,18 @@ def data():
 def test_constants_flagBasic(data):
     expected = np.arange(5, 22)
     field, *_ = data.columns
-    flagger = initFlagsLike(data)
-    data, flagger_result = flagConstants(data, field, flagger, window="15Min", thresh=0.1, flag=BAD)
-    flagscol = flagger_result[field]
+    flags = initFlagsLike(data)
+    data, flags_result = flagConstants(data, field, flags, window="15Min", thresh=0.1, flag=BAD)
+    flagscol = flags_result[field]
     assert np.all(flagscol[expected] == BAD)
 
 
 def test_constants_flagVarianceBased(data):
     expected = np.arange(5, 25)
     field, *_ = data.columns
-    flagger = initFlagsLike(data)
-    data, flagger_result1 = flagByVariance(data, field, flagger, window="1h", flag=BAD)
+    flags = initFlagsLike(data)
+    data, flags_result1 = flagByVariance(data, field, flags, window="1h", flag=BAD)
 
-    flag_result1 = flagger_result1[field]
+    flag_result1 = flags_result1[field]
     test_sum = (flag_result1[expected] == BAD).sum()
     assert test_sum == len(expected)

@@ -8,7 +8,7 @@ import pandas as pd
 from dios import DictOfSeries
 from typing_extensions import Literal
 
-from saqc.core import Flags as Flagger
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
@@ -29,5 +29,5 @@ class Scores(ModuleBase):
             metric: str = 'minkowski',
             p: int = 2,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("assignKNNScore", locals())

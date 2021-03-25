@@ -8,7 +8,7 @@ from dios import DictOfSeries
 from typing_extensions import Literal
 
 from saqc.constants import *
-from saqc.core import Flags as Flagger
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
@@ -24,7 +24,7 @@ class Residues(ModuleBase):
             min_periods: Optional[int] = 0,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("calculatePolynomialResidues", locals())
 
     def calculateRollingResidues(
@@ -37,5 +37,5 @@ class Residues(ModuleBase):
             center: bool = True,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("calculateRollingResidues", locals())

@@ -9,7 +9,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags as Flagger
+from saqc.core import register, Flags
 from saqc.core.register import _isflagged
 from saqc.core.history import applyFunctionOnHistory
 from saqc.lib.tools import evalFreqStr, getFreqDelta
@@ -35,14 +35,14 @@ METHOD2ARGS = {
 def aggregate(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         freq: str,
         value_func,
         flag_func: Callable[[pd.Series], float] = np.nanmax,
         method: Literal["fagg", "bagg", "nagg"] = "nagg",
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     A method to "regularize" data by aggregating (resampling) data at a regular timestamp.
 
@@ -75,8 +75,8 @@ def aggregate(
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
 
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.freq
+    flags : saqc.Flags
+        Container to store quality flags to data.  freq
 
     freq : str
         The sampling frequency the data is to be aggregated (resampled) at.
@@ -101,14 +101,14 @@ def aggregate(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values and shape may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values and shape may have changed relatively to the flags input.
     """
 
-    data, flagger = copy(data, field, flagger, field + '_original')
+    data, flags = copy(data, field, flags, field + '_original')
     return resample(
-        data, field, flagger,
+        data, field, flags,
         freq=freq,
         agg_func=value_func,
         flag_agg_func=flag_func,
@@ -122,10 +122,10 @@ def aggregate(
 def linear(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         freq: str,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     A method to "regularize" data by interpolating linearly the data at regular timestamp.
 
@@ -149,8 +149,8 @@ def linear(
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
 
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.freq
+    flags : saqc.Flags
+        Container to store flags of the data.  freq
 
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
@@ -160,25 +160,25 @@ def linear(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values and shape may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values and shape may have changed relatively to the flags input.
     """
 
-    data, flagger = copy(data, field, flagger, field + '_original')
-    return interpolateIndex(data, field, flagger, freq, "time", **kwargs)
+    data, flags = copy(data, field, flags, field + '_original')
+    return interpolateIndex(data, field, flags, freq, "time", **kwargs)
 
 
 @register(masking='none', module="resampling")
 def interpolate(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         freq: str,
         method: _SUPPORTED_METHODS,
         order: int = 1,
         **kwargs,
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     A method to "regularize" data by interpolating the data at regular timestamp.
 
@@ -208,8 +208,8 @@ def interpolate(
     field : str
         The fieldname of the column, holding the data-to-be-regularized.
 
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.freq
+    flags : saqc.Flags
+        Container to store flags of the data.  freq
 
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
@@ -227,27 +227,27 @@ def interpolate(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values and shape may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values and shape may have changed relatively to the flags input.
     """
 
-    data, flagger = copy(data, field, flagger, field + '_original')
-    return interpolateIndex(data, field, flagger, freq, method=method, inter_order=order, **kwargs)
+    data, flags = copy(data, field, flags, field + '_original')
+    return interpolateIndex(data, field, flags, freq, method=method, inter_order=order, **kwargs)
 
 
 @register(masking='none', module="resampling")
 def mapToOriginal(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         method: Literal[
             "inverse_fagg", "inverse_bagg", "inverse_nagg",
             "inverse_fshift", "inverse_bshift", "inverse_nshift",
             "inverse_interpolation"
         ],
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     The Function function "undoes" regularization, by regaining the original data and projecting the
     flags calculated for the regularized data onto the original ones.
@@ -294,8 +294,8 @@ def mapToOriginal(
     field : str
         The fieldname of the column, holding the data-to-be-deharmonized.
 
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.freq
+    flags : saqc.Flags
+        Container to store flags of the data.  freq
 
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift',
             'inverse_interpolation'}
@@ -307,26 +307,26 @@ def mapToOriginal(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values and shape may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values and shape may have changed relatively to the flags input.
     """
     newfield = str(field) + '_original'
-    data, flagger = reindexFlags(data, newfield, flagger, method, source=field, to_mask=False)
-    data, flagger = drop(data, field, flagger)
-    return rename(data, newfield, flagger, field)
+    data, flags = reindexFlags(data, newfield, flags, method, source=field, to_mask=False)
+    data, flags = drop(data, field, flags)
+    return rename(data, newfield, flags, field)
 
 
 @register(masking='none', module="resampling")
 def shift(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         freq: str,
         method: Literal["fshift", "bshift", "nshift"] = "nshift",
         freq_check: Optional[Literal["check", "auto"]] = None,  # TODO: not a user decision
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function to shift data and flags to a regular (equidistant) timestamp grid, according to ``method``.
 
@@ -338,8 +338,8 @@ def shift(
     field : str
         The fieldname of the column, holding the data-to-be-shifted.
 
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store flags of the data.
 
     freq : str
         An frequency Offset String that will be interpreted as the sampling rate you want the data to be shifted to.
@@ -366,23 +366,23 @@ def shift(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values and shape may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values and shape may have changed relatively to the flags input.
     """
-    data, flagger = copy(data, field, flagger, field + '_original')
-    return _shift(data, field, flagger, freq, method=method, freq_check=freq_check, **kwargs)
+    data, flags = copy(data, field, flags, field + '_original')
+    return _shift(data, field, flags, freq, method=method, freq_check=freq_check, **kwargs)
 
 
 def _shift(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         freq: str,
         method: Literal["fshift", "bshift", "nshift"] = "nshift",
         freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function to shift data points to regular (equidistant) timestamps.
 
@@ -390,7 +390,7 @@ def _shift(
     --------
     shift : Main caller, docstring
     """
-    flagged = _isflagged(flagger[field], kwargs['to_mask'])
+    flagged = _isflagged(flags[field], kwargs['to_mask'])
     datcol = data[field]
     datcol[flagged] = np.nan
     freq = evalFreqStr(freq, freq_check, datcol.index)
@@ -399,7 +399,7 @@ def _shift(
     datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
 
     # do the shift on the history
-    history = flagger.history[field]
+    history = flags.history[field]
     history.hist = shift2Freq(history.hist, method, freq, fill_value=UNTOUCHED)
     history.mask = shift2Freq(history.mask, method, freq, fill_value=False)
 
@@ -409,16 +409,16 @@ def _shift(
     dummy = pd.Series(UNTOUCHED, index=datcol.index, dtype=float)
     history.append(dummy, force=True)
 
-    flagger.history[field] = history
+    flags.history[field] = history
     data[field] = datcol
-    return data, flagger
+    return data, flags
 
 
 @register(masking='none', module="resampling")
 def resample(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         freq: str,
         agg_func: Callable[[pd.Series], pd.Series] = np.mean,
         method: Literal["fagg", "bagg", "nagg"] = "bagg",
@@ -429,7 +429,7 @@ def resample(
         flag_agg_func: Callable[[pd.Series], float] = max,
         freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function to resample the data. Afterwards the data will be sampled at regular (equidistant) timestamps
     (or Grid points). Sampling intervals therefor get aggregated with a function, specifyed by 'agg_func' parameter and
@@ -459,8 +459,8 @@ def resample(
     field : str
         The fieldname of the column, holding the data-to-be-resampled.
 
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store flags of the data.
 
     freq : str
         An Offset String, that will be interpreted as the frequency you want to resample your data with.
@@ -509,11 +509,11 @@ def resample(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values and shape may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values and shape may have changed relatively to the flags input.
     """
-    flagged = _isflagged(flagger[field], kwargs['to_mask'])
+    flagged = _isflagged(flags[field], kwargs['to_mask'])
     datcol = data[field]
     datcol[flagged] = np.nan
     freq = evalFreqStr(freq, freq_check, datcol.index)
@@ -537,15 +537,15 @@ def resample(
         max_invalid_consec=max_invalid_consec_f,
     )
 
-    flagger.history[field] = applyFunctionOnHistory(
-        flagger.history[field],
+    flags.history[field] = applyFunctionOnHistory(
+        flags.history[field],
         hist_func=aggregate2Freq, hist_kws=kws,
         mask_func=aggregate2Freq, mask_kws=kws,
         last_column='dummy'
     )
 
     data[field] = datcol
-    return data, flagger
+    return data, flags
 
 
 def _getChunkBounds(target: pd.Series, flagscol: pd.Series, freq: str):
@@ -602,7 +602,7 @@ def _inverseShift(source: pd.Series, target: pd.Series, drop_mask: pd.Series,
 def reindexFlags(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         method: Literal[
             "inverse_fagg", "inverse_bagg", "inverse_nagg",
             "inverse_fshift", "inverse_bshift", "inverse_nshift"
@@ -610,7 +610,7 @@ def reindexFlags(
         source: str,
         freq: Optional[str] = None,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
     source flags projected on them, they get overridden with this associated source flag value.
@@ -651,8 +651,8 @@ def reindexFlags(
     field : str
         The fieldname of the data column, you want to project the source-flags onto.
 
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store flags of the data.
 
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
         The method used for projection of source flags onto field flags. See description above for more details.
@@ -668,11 +668,11 @@ def reindexFlags(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values and shape may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values and shape may have changed relatively to the flags input.
     """
-    flagscol = flagger[source]
+    flagscol = flags[source]
 
     if freq is None:
         freq = getFreqDelta(flagscol.index)
@@ -681,7 +681,7 @@ def reindexFlags(
                              'projection range to freq parameter')
 
     target_datcol = data[field]
-    target_flagscol = flagger[field]
+    target_flagscol = flags[field]
     dummy = pd.Series(np.nan, target_flagscol.index, dtype=float)
 
     if method[-13:] == "interpolation":
@@ -709,6 +709,6 @@ def reindexFlags(
     else:
         raise ValueError(f"unknown method {method}")
 
-    history = applyFunctionOnHistory(flagger.history[source], func, func_kws, func, mask_kws, last_column=dummy)
-    flagger.history[field] = flagger.history[field].append(history, force=False)
-    return data, flagger
+    history = applyFunctionOnHistory(flags.history[source], func, func_kws, func, mask_kws, last_column=dummy)
+    flags.history[field] = flags.history[field].append(history, force=False)
+    return data, flags

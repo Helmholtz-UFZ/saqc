@@ -28,12 +28,12 @@ def test_flagPattern_wavelet():
     pattern = data.iloc[1:6]
 
     data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
-    flagger = initFlagsLike(data, name='data')
-    data, flagger = flagPatternByDTW(data, "data", flagger, ref_field="pattern_data", flag=BAD)
+    flags = initFlagsLike(data, name='data')
+    data, flags = flagPatternByDTW(data, "data", flags, ref_field="pattern_data", flag=BAD)
 
-    assert all(flagger["data"][1:6])
-    assert any(flagger["data"][:1])
-    assert any(flagger["data"][7:])
+    assert all(flags["data"][1:6])
+    assert any(flags["data"][:1])
+    assert any(flags["data"][7:])
 
 
 @pytest.mark.skip(reason='faulty implementation - will get fixed by GL-MR191')
@@ -43,9 +43,9 @@ def test_flagPattern_dtw():
     pattern = data.iloc[1:6]
 
     data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
-    flagger = initFlagsLike(data, name='data')
-    data, flagger = flagPatternByWavelet(data, "data", flagger, ref_field="pattern_data", flag=BAD)
+    flags = initFlagsLike(data, name='data')
+    data, flags = flagPatternByWavelet(data, "data", flags, ref_field="pattern_data", flag=BAD)
 
-    assert all(flagger["data"][1:6])
-    assert any(flagger["data"][:1])
-    assert any(flagger["data"][7:])
+    assert all(flags["data"][1:6])
+    assert any(flags["data"][:1])
+    assert any(flags["data"][7:])

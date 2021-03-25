@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import dios
 
-from saqc.core import initFlagsLike, Flags as Flagger
+from saqc.core import initFlagsLike, Flags
 from saqc.constants import BAD, UNFLAGGED
 from saqc.funcs.resampling import (
     linear,
@@ -16,7 +16,7 @@ from saqc.funcs.resampling import (
     mapToOriginal,
 )
 
-from tests.common import checkDataFlaggerInvariants
+from tests.common import checkDataFlagsInvariants
 
 
 @pytest.fixture
@@ -44,14 +44,14 @@ def data():
 def test_wrapper(data, func, kws):
     field = 'data'
     freq = "15min"
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
 
     import saqc
     func = getattr(saqc.funcs, func)
-    data, flagger = func(data, field, flagger, freq, **kws)
+    data, flags = func(data, field, flags, freq, **kws)
 
     # check minimal requirements
-    checkDataFlaggerInvariants(data, flagger, field)
+    checkDataFlagsInvariants(data, flags, field)
     assert data[field].index.freq == pd.Timedelta(freq)
 
 
@@ -62,18 +62,18 @@ def test_gridInterpolation(data, method):
     data = data[field]
     data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
     data = dios.DictOfSeries(data)
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
 
     # we are just testing if the interpolation gets passed to the series without causing an error:
-    res = interpolate(data, field, flagger, freq, method=method, downcast_interpolation=True)
+    res = interpolate(data, field, flags, freq, method=method, downcast_interpolation=True)
 
     if method == "polynomial":
-        res = interpolate(data, field, flagger, freq, order=2, method=method, downcast_interpolation=True)
-        res = interpolate(data, field, flagger, freq, order=10, method=method, downcast_interpolation=True)
+        res = interpolate(data, field, flags, freq, order=2, method=method, downcast_interpolation=True)
+        res = interpolate(data, field, flags, freq, order=10, method=method, downcast_interpolation=True)
 
     # check minimal requirements
-    rdata, rflagger = res
-    checkDataFlaggerInvariants(rdata, rflagger, field, identical=False)
+    rdata, rflags = res
+    checkDataFlagsInvariants(rdata, rflags, field, identical=False)
     assert rdata[field].index.freq == pd.Timedelta(freq)
 
 
@@ -105,23 +105,23 @@ def test_flagsSurviveBackprojection():
 
 @pytest.mark.parametrize("reshaper", ["nshift", "fshift", "bshift", "nagg", "bagg", "fagg", "interpolation"])
 def test_harmSingleVarIntermediateFlagging(data, reshaper):
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
     field = 'data'
 
     pre_data = data.copy()
-    pre_flagger = flagger.copy()
+    pre_flags = flags.copy()
 
-    data, flagger = linear(data, field, flagger, freq="15min")
-    checkDataFlaggerInvariants(data, flagger, field, identical=True)
+    data, flags = linear(data, field, flags, freq="15min")
+    checkDataFlagsInvariants(data, flags, field, identical=True)
     assert data[field].index.freq == pd.Timedelta('15min')
 
     # flag something bad
-    flagger[data[field].index[3:4], field] = BAD
-    data, flagger = mapToOriginal(data, field, flagger, method="inverse_" + reshaper)
+    flags[data[field].index[3:4], field] = BAD
+    data, flags = mapToOriginal(data, field, flags, method="inverse_" + reshaper)
 
-    assert len(data[field]) == len(flagger[field])
+    assert len(data[field]) == len(flags[field])
     assert data[field].equals(pre_data[field])
-    assert flagger[field].index.equals(pre_flagger[field].index)
+    assert flags[field].index.equals(pre_flags[field].index)
 
     if 'agg' in reshaper:
         if reshaper == "nagg":
@@ -133,9 +133,9 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
         else:
             raise NotImplementedError('untested test case')
 
-        assert all(flagger[field].iloc[start:end] > UNFLAGGED)
-        assert all(flagger[field].iloc[:start] == UNFLAGGED)
-        assert all(flagger[field].iloc[end:] == UNFLAGGED)
+        assert all(flags[field].iloc[start:end] > UNFLAGGED)
+        assert all(flags[field].iloc[:start] == UNFLAGGED)
+        assert all(flags[field].iloc[end:] == UNFLAGGED)
 
     elif 'shift' in reshaper:
         if reshaper == "nshift":
@@ -147,7 +147,7 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
         else:
             raise NotImplementedError('untested test case')
 
-        flagged = flagger[field] > UNFLAGGED
+        flagged = flags[field] > UNFLAGGED
         assert all(flagged == exp)
 
     elif reshaper == 'interpolation':
@@ -166,22 +166,22 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
         (("bagg", "30Min"), pd.Series(data=[-50.0, -75.0, 50.0, 50.0], index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30min"))),
     ])
 def test_harmSingleVarInterpolationAgg(data, params, expected):
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
     field = 'data'
 
     pre_data = data.copy()
-    pre_flaggger = flagger.copy()
+    pre_flaggger = flags.copy()
     method, freq = params
 
-    data_harm, flagger_harm = aggregate(data, field, flagger, freq, value_func=np.sum, method=method)
-    checkDataFlaggerInvariants(data_harm, flagger_harm, field, identical=True)
+    data_harm, flags_harm = aggregate(data, field, flags, freq, value_func=np.sum, method=method)
+    checkDataFlagsInvariants(data_harm, flags_harm, field, identical=True)
     assert data_harm[field].index.freq == pd.Timedelta(freq)
     assert data_harm[field].equals(expected)
 
-    data_deharm, flagger_deharm = mapToOriginal(data_harm, "data", flagger_harm, method="inverse_" + method)
-    checkDataFlaggerInvariants(data_harm, flagger_harm, field, identical=True)
+    data_deharm, flags_deharm = mapToOriginal(data_harm, "data", flags_harm, method="inverse_" + method)
+    checkDataFlagsInvariants(data_harm, flags_harm, field, identical=True)
     assert data_deharm[field].equals(pre_data[field])
-    assert flagger_deharm[field].equals(pre_flaggger[field])
+    assert flags_deharm[field].equals(pre_flaggger[field])
 
 
 @pytest.mark.parametrize(
@@ -195,17 +195,17 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
         (("nshift", "30min"), pd.Series(data=[np.nan, -37.5, 12.5, 50.0], index=pd.date_range("2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"))),
     ])
 def test_harmSingleVarInterpolationShift(data, params, expected):
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
     field = 'data'
     pre_data = data.copy()
-    pre_flagger = flagger.copy()
+    pre_flags = flags.copy()
     method, freq = params
 
-    data_harm, flagger_harm = shift(data, field, flagger, freq, method=method)
+    data_harm, flags_harm = shift(data, field, flags, freq, method=method)
     assert data_harm[field].equals(expected)
 
-    data_deharm, flagger_deharm = mapToOriginal(data_harm, "data", flagger_harm, method="inverse_" + method)
+    data_deharm, flags_deharm = mapToOriginal(data_harm, "data", flags_harm, method="inverse_" + method)
     assert data_deharm[field].equals(pre_data[field])
-    assert flagger_deharm[field].equals(pre_flagger[field])
+    assert flags_deharm[field].equals(pre_flags[field])
 
 

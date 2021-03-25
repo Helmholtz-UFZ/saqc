@@ -25,7 +25,7 @@ from saqc.constants import *
 from saqc.core.register import FUNC_MAP
 from saqc.core.lib import SaQCFunction
 from saqc.lib.types import FreqString, ColumnName, IntegerWindow
-from saqc.core import initFlagsLike, Flags as Flagger
+from saqc.core import initFlagsLike, Flags
 
 MAX_EXAMPLES = 50
 # MAX_EXAMPLES = 100000
@@ -77,15 +77,15 @@ def columnNames(draw):
 
 
 @composite
-def flaggers(draw, data):
+def flagses(draw, data):
     """
-    initialize a flagger and set some flags
+    initialize a flags and set some flags
     """
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
     for col, srs in data.items():
         loc_st = lists(sampled_from(sorted(srs.index)), unique=True, max_size=len(srs) - 1)
-        flagger[draw(loc_st), col] = BAD
-    return flagger
+        flags[draw(loc_st), col] = BAD
+    return flags
 
 
 @composite
@@ -116,11 +116,11 @@ def frequencyStrings(draw, _):
 
 
 @composite
-def dataFieldFlagger(draw):
+def dataFieldFlags(draw):
     data = draw(dioses())
     field = draw(sampled_from(sorted(data.columns)))
-    flagger = draw(flaggers(data))
-    return data, field, flagger
+    flags = draw(flagses(data))
+    return data, field, flags
 
 
 @composite
@@ -138,7 +138,7 @@ def functionKwargs(draw, func: SaQCFunction):
     kwargs = {
         "data": data,
         "field": field,
-        "flagger": draw(flaggers(data))
+        "flags": draw(flagses(data))
     }
 
     column_name_strategy = lambda _: sampled_from(sorted(c for c in data.columns if c != field))
@@ -149,7 +149,7 @@ def functionKwargs(draw, func: SaQCFunction):
     register_type_strategy(IntegerWindow, interger_window_strategy)
 
     for k, v in get_type_hints(func.func).items():
-        if k not in {"data", "field", "flagger", "return"}:
+        if k not in {"data", "field", "flags", "return"}:
             value = draw(from_type(v))
             # if v is TimestampColumnName:
             #     value = draw(columnNames())

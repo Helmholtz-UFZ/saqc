@@ -6,18 +6,18 @@ import numpy as np
 import pandas as pd
 from dios import DictOfSeries
 
-from saqc.core import register, Flags as Flagger
+from saqc.core import register, Flags
 
 
 @register(masking='field', module="transformation")
 def transform(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         func: Callable[[pd.Series], pd.Series],
         partition_freq: Optional[Union[float, str]] = None,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function to transform data columns with a transformation that maps series onto series of the same length.
 
@@ -29,8 +29,8 @@ def transform(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-transformed.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     func : Callable[{pd.Series, np.array}, np.array]
         Function to transform data[field] with.
     partition_freq : {None, float, str}, default None
@@ -46,8 +46,8 @@ def transform(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        The quality flags of data
     """
 
     data = data.copy()
@@ -70,4 +70,4 @@ def transform(
         val_ser[partition.index] = func(partition)
 
     data[field] = val_ser
-    return data, flagger
+    return data, flags

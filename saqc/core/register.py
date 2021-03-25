@@ -10,7 +10,7 @@ import warnings
 
 from saqc.constants import *
 from saqc.core.lib import SaQCFunction
-from saqc.core.flags import initFlagsLike, Flags as Flagger
+from saqc.core.flags import initFlagsLike, Flags
 from saqc.lib.types import FuncReturnT
 
 # NOTE:
@@ -26,7 +26,7 @@ class CallState:
     func: callable
 
     data: dios.DictOfSeries
-    flagger: Flagger
+    flags: Flags
     field: str
 
     args: tuple
@@ -48,8 +48,8 @@ def register(masking: MaskingStrT = "all", module: Optional[str] = None):
         # executed if a register-decorated function is called,
         # nevertheless if it is called plain or via `SaQC.func`.
         @wraps(func)
-        def callWrapper(data, field, flagger, *args, **kwargs):
-            args = data, field, flagger, *args
+        def callWrapper(data, field, flags, *args, **kwargs):
+            args = data, field, flags, *args
             args, kwargs, old_state = _preCall(func, args, kwargs, masking, func_name)
             result = func(*args, **kwargs)
             return _postCall(result, old_state)
@@ -99,25 +99,25 @@ def _preCall(func: callable, args: tuple, kwargs: dict, masking: MaskingStrT, fn
     mthresh = _getMaskingThresh(masking, kwargs, fname)
     kwargs['to_mask'] = mthresh
 
-    data, field, flagger, *args = args
+    data, field, flags, *args = args
 
     # handle data - masking
     columns = _getMaskingColumns(data, field, masking)
-    masked_data, mask = _maskData(data, flagger, columns, mthresh)
+    masked_data, mask = _maskData(data, flags, columns, mthresh)
 
     # store current state
     state = CallState(
         func=func,
-        data=data, flagger=flagger, field=field,
+        data=data, flags=flags, field=field,
         args=args, kwargs=kwargs,
         masking=masking, mthresh=mthresh,
         mask=mask
     )
 
     # handle flags - clearing
-    prepped_flagger = _prepareFlags(flagger, masking)
+    prepped_flags = _prepareFlags(flags, masking)
 
-    args = masked_data, field, prepped_flagger, *args
+    args = masked_data, field, prepped_flags, *args
     return args, kwargs, state
 
 
@@ -131,19 +131,19 @@ def _postCall(result, old_state: CallState) -> FuncReturnT:
     Parameters
     ----------
     result : tuple
-        the result from the called function, namely: data and flagger
+        the result from the called function, namely: data and flags
 
     old_state : dict
         control keywords from `_preCall`
 
     Returns
     -------
-    data, flagger : dios.DictOfSeries, saqc.flagger.Flagger
+    data, flags : dios.DictOfSeries, saqc.Flags
     """
-    data, flagger = result
-    flagger = _restoreFlags(flagger, old_state)
+    data, flags = result
+    flags = _restoreFlags(flags, old_state)
     data = _unmaskData(data, old_state)
-    return data, flagger
+    return data, flags
 
 
 def _getMaskingColumns(data: dios.DictOfSeries, field: str, masking: MaskingStrT):
@@ -220,7 +220,7 @@ def _getMaskingThresh(masking, kwargs, fname):
 
 
 # TODO: this is heavily undertested
-def _maskData(data, flagger, columns, thresh) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
+def _maskData(data, flags, columns, thresh) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
     """
     Mask data with Nans by flags worse that a threshold and according to ``masking`` keyword
     from the functions decorator.
@@ -237,7 +237,7 @@ def _maskData(data, flagger, columns, thresh) -> Tuple[dios.DictOfSeries, dios.D
 
     # we use numpy here because it is faster
     for c in columns:
-        col_mask = _isflagged(flagger[c].to_numpy(), thresh)
+        col_mask = _isflagged(flags[c].to_numpy(), thresh)
 
         if any(col_mask):
             col_data = data[c].to_numpy(dtype=np.float64)
@@ -259,37 +259,37 @@ def _isflagged(flagscol: Union[np.array, pd.Series], thresh: float) -> Union[np.
     return flagscol >= thresh
 
 
-def _prepareFlags(flagger: Flagger, masking) -> Flagger:
+def _prepareFlags(flags: Flags, masking) -> Flags:
     """
     Prepare flags before each call. Always returns a copy.
 
     Currently this only clears the flags, but in future,
-    this should be sliced the flagger to the columns, that
+    this should be sliced the flags to the columns, that
     the saqc-function needs.
     """
     # Either the index or the columns itself changed
     if masking == 'none':
-        return flagger.copy()
+        return flags.copy()
 
-    return initFlagsLike(flagger, initial_value=UNTOUCHED)
+    return initFlagsLike(flags, initial_value=UNTOUCHED)
 
 
-def _restoreFlags(flagger: Flagger, old_state: CallState):
+def _restoreFlags(flags: Flags, old_state: CallState):
     if old_state.masking == 'none':
-        return flagger
+        return flags
 
-    columns = flagger.columns
+    columns = flags.columns
     # take field column and all possibly newly added columns
     if old_state.masking == 'field':
-        columns = columns.difference(old_state.flagger.columns)
+        columns = columns.difference(old_state.flags.columns)
         columns = columns.append(pd.Index([old_state.field]))
 
-    out = old_state.flagger.copy()
+    out = old_state.flags.copy()
     for c in columns:
-        # this implicitly squash the new-flagger history (RHS) to a single column, which than is appended to
-        # the old history (LHS). The new-flagger history possibly consist of multiple columns, one for each
-        # time flags was set to the flagger.
-        out[c] = flagger[c]
+        # this implicitly squash the new flags history (RHS) to a single column, which than is appended to
+        # the old history (LHS). The new flags history possibly consist of multiple columns, one for each
+        # time a series or scalar was passed to the flags.
+        out[c] = flags[c]
 
     return out
 

@@ -7,7 +7,7 @@ import pandas as pd
 from saqc.constants import *
 from saqc.core.flags import Flags
 
-from tests.flagger.test_history import (
+from tests.core.test_history import (
     History,
     is_equal as hist_equal,
 )

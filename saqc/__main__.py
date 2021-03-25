@@ -83,7 +83,7 @@ def writeData(writer_dict, df, fname):
 def main(config, data, flagger, outfile, nodata, log_level, fail):
 
     if SCHEMES[flagger] is NotImplemented:
-        warnings.warn("flagger is currently not supported")
+        warnings.warn("--flagger is deprecated", DeprecationWarning)
 
     _setupLogging(log_level)
     reader, writer = setupIO(nodata)
@@ -92,11 +92,11 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
 
     saqc = SaQC(data=data, nodata=nodata, error_policy="raise" if fail else "warn",)
 
-    data_result, flagger_result = saqc.readConfig(config).getResult(raw=True)
+    data_result, flags_result = saqc.readConfig(config).getResult(raw=True)
 
     if outfile:
         data_frame = data_result.to_df()
-        flags_frame = flagger_result.toFrame()
+        flags_frame = flags_result.toFrame()
         unflagged = (flags_frame == UNFLAGGED) | flags_frame.isna()
         flags_frame[unflagged] = GOOD
 

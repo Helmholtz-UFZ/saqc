@@ -20,18 +20,18 @@ from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
 from saqc.lib.types import FreqString, ColumnName, IntegerWindow
 from saqc.funcs.changepoints import assignChangePointCluster
-from saqc.core import register, Flags as Flagger
+from saqc.core import register, Flags
 
 
 @register(masking='field', module="breaks")
 def flagMissing(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         nodata: float = np.nan,
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags all values indicating missing data.
 
@@ -41,8 +41,8 @@ def flagMissing(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     nodata : any, default np.nan
         A value that defines missing data.
     flag : float, default BAD
@@ -52,9 +52,8 @@ def flagMissing(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
     """
     datacol = data[field]
     if np.isnan(nodata):
@@ -62,20 +61,20 @@ def flagMissing(
     else:
         mask = datacol == nodata
 
-    flagger[mask, field] = flag
-    return data, flagger
+    flags[mask, field] = flag
+    return data, flags
 
 
 @register(masking='field', module="breaks")
 def flagIsolated(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         gap_window: FreqString,
         group_window: FreqString,
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
     large data gaps.
@@ -88,8 +87,8 @@ def flagIsolated(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.Flagger
-        A flagger object
+    flags : saqc.Flags
+        A flags object
     gap_window : str
         The minimum size of the gap before and after a group of valid values, making this group considered an
         isolated group. See condition (2) and (3)
@@ -103,8 +102,8 @@ def flagIsolated(
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional information related to `data`.
+    flags : saqc.Flags
+        The flags object, holding flags and additional information related to `data`.
 
     Notes
     -----
@@ -136,21 +135,21 @@ def flagIsolated(
                     if right.all():
                         bools[start:stop] = True
 
-    flagger[mask, field] = flag
-    return data, flagger
+    flags[mask, field] = flag
+    return data, flags
 
 
 @register(masking='field', module="breaks")
 def flagJumps(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: Flagger,
+        flags: Flags,
         thresh: float,
         winsz: FreqString,
         min_periods: IntegerWindow = 1,
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Flag datapoints, where the mean of the values significantly changes (where the value course "jumps").
 
@@ -160,8 +159,8 @@ def flagJumps(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The reference variable, the deviation from wich determines the flagging.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional informations related to `data`.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
     thresh : float
         The threshold, the mean of the values have to change by, to trigger flagging.
     winsz : str
@@ -174,7 +173,7 @@ def flagJumps(
         flag to set.
     """
     return assignChangePointCluster(
-        data, field, flagger,
+        data, field, flags,
         stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
         thresh_func=lambda x, y: thresh,
         bwd_window=winsz,

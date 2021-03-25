@@ -7,7 +7,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags as Flagger
+from saqc.core import register, Flags
 from saqc.lib.tools import getFreqDelta
 
 
@@ -15,7 +15,7 @@ from saqc.lib.tools import getFreqDelta
 def roll(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         winsz: Union[str, int],
         func: Callable[[pd.Series], float]=np.mean,
         eval_flags: bool=True,  # TODO: not applicable anymore
@@ -37,8 +37,8 @@ def roll(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-modelled.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     winsz : {int, str}
         The size of the window you want to roll with. If an integer is passed, the size
         refers to the number of periods for every fitting window. If an offset string is passed,
@@ -66,14 +66,13 @@ def roll(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
     """
     data = data.copy()
     to_fit = data[field]
     if to_fit.empty:
-        return data, flagger
+        return data, flags
 
     regular = getFreqDelta(to_fit.index)
     # starting with the annoying case: finding the rolling interval centers of not-harmonized input time series:
@@ -123,7 +122,7 @@ def roll(
     data[field] = means
     if eval_flags:
         # TODO: we does not get any flags here, because of masking=field
-        worst = flagger[field].rolling(winsz, center=True, min_periods=min_periods).max()
-        flagger[field] = worst
+        worst = flags[field].rolling(winsz, center=True, min_periods=min_periods).max()
+        flags[field] = worst
 
-    return data, flagger
+    return data, flags

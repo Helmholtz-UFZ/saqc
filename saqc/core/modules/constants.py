@@ -5,7 +5,7 @@ from typing import Tuple
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import Flags as Flagger
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 from saqc.lib.types import FreqString, ColumnName
 
@@ -21,7 +21,7 @@ class Constants(ModuleBase):
             max_consec_missing: int = None,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("flagByVariance", locals())
 
     def flagConstants(
@@ -31,5 +31,5 @@ class Constants(ModuleBase):
             window: FreqString,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("flagConstants", locals())

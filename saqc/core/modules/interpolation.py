@@ -8,7 +8,7 @@ import pandas as pd
 from dios import DictOfSeries
 from typing_extensions import Literal
 
-from saqc.core import Flags as Flagger
+from saqc.core import Flags
 from saqc.constants import *
 from saqc.core.modules.base import ModuleBase
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
@@ -24,7 +24,7 @@ class Interpolation(ModuleBase):
             min_periods: int = 0,
             flag: float = UNFLAGGED,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("interpolateByRolling", locals())
 
     def interpolateInvalid(
@@ -36,7 +36,7 @@ class Interpolation(ModuleBase):
             downgrade_interpolation: bool = False,
             flag: float = UNFLAGGED,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("interpolateInvalid", locals())
 
     def interpolateIndex(
@@ -48,6 +48,6 @@ class Interpolation(ModuleBase):
             inter_limit: int = 2,
             downgrade_interpolation: bool = False,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("interpolateIndex", locals())
 

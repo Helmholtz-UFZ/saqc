@@ -39,7 +39,7 @@ def flags(data, optional):
 def test_errorHandling(data):
 
     @register(masking='field')
-    def raisingFunc(data, field, flagger, **kwargs):
+    def raisingFunc(data, field, flags, **kwargs):
         raise TypeError
 
     var1 = data.columns[0]
@@ -73,11 +73,11 @@ def test_sourceTarget():
     var1 = data.columns[0]
     target = "new"
 
-    pdata, pflagger = SaQC(data).flagAll(field=var1, target=target).getResult(raw=True)
+    pdata, pflags = SaQC(data).flagAll(field=var1, target=target).getResult(raw=True)
 
     assert (pdata[var1] == pdata[target]).all(axis=None)
-    assert all(pflagger[var1] == UNFLAGGED)
-    assert all(pflagger[target] > UNFLAGGED)
+    assert all(pflags[var1] == UNFLAGGED)
+    assert all(pflags[target] > UNFLAGGED)
 
 
 @pytest.mark.parametrize("optional", OPTIONAL)
@@ -85,14 +85,14 @@ def test_dtypes(data, flags):
     """
     Test if the categorical dtype is preserved through the core functionality
     """
-    flagger = initFlagsLike(data)
-    flags_raw = flagger.toDios()
+    flags = initFlagsLike(data)
+    flags_raw = flags.toDios()
     var1, var2 = data.columns[:2]
 
-    pdata, pflagger = SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).getResult(raw=True)
+    pdata, pflags = SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).getResult(raw=True)
 
-    for c in pflagger.columns:
-        assert pflagger[c].dtype == flagger[c].dtype
+    for c in pflags.columns:
+        assert pflags[c].dtype == flags[c].dtype
 
 
 def test_plotting(data):
@@ -104,10 +104,10 @@ def test_plotting(data):
     """
     pytest.importorskip("matplotlib", reason="requires matplotlib")
     field, *_ = data.columns
-    flagger = initFlagsLike(data)
-    _, flagger_range = flagRange(data, field, flagger, min=10, max=90, flag=BAD)
-    data_new, flagger_range = flagRange(data, field, flagger_range, min=40, max=60, flag=DOUBT)
+    flags = initFlagsLike(data)
+    _, flags_range = flagRange(data, field, flags, min=10, max=90, flag=BAD)
+    data_new, flags_range = flagRange(data, field, flags_range, min=40, max=60, flag=DOUBT)
     splot._interactive = False
-    splot._plotSingleVariable(data, data_new, flagger, flagger_range, sources=[], targets=[data_new.columns[0]])
-    splot._plotMultipleVariables(data, data_new, flagger, flagger_range, targets=data_new.columns)
+    splot._plotSingleVariable(data, data_new, flags, flags_range, sources=[], targets=[data_new.columns[0]])
+    splot._plotMultipleVariables(data, data_new, flags, flags_range, targets=data_new.columns)
     splot._interactive = True

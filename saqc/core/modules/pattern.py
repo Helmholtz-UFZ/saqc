@@ -6,7 +6,7 @@ from typing import Sequence, Tuple
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import Flags as Flagger
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
@@ -20,7 +20,7 @@ class Pattern(ModuleBase):
             waveform: str = "mexh",
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("flagPatternByDTW", locals())
 
     def flagPatternByWavelet(
@@ -31,5 +31,5 @@ class Pattern(ModuleBase):
             normalize: bool = True,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("flagPatternByWavelet", locals())

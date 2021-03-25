@@ -28,9 +28,9 @@ def field(data):
 
 def test_flagRange(data, field):
     min, max = 10, 90
-    flagger = initFlagsLike(data)
-    data, flagger = flagRange(data, field, flagger, min=min, max=max, flag=BAD)
-    flagged = flagger[field] > UNFLAGGED
+    flags = initFlagsLike(data)
+    data, flags = flagRange(data, field, flags, min=min, max=max, flag=BAD)
+    flagged = flags[field] > UNFLAGGED
     expected = (data[field] < min) | (data[field] > max)
     assert all(flagged == expected)
 
@@ -47,47 +47,47 @@ def test_flagSesonalRange(data, field):
     ]
 
     for test, expected in tests:
-        flagger = initFlagsLike(data)
+        flags = initFlagsLike(data)
         newfield = f"{field}_masked"
         start = f"{test['startmonth']:02}-{test['startday']:02}T00:00:00"
         end = f"{test['endmonth']:02}-{test['endday']:02}T00:00:00"
 
-        data, flagger = copy(data, field, flagger, field + "_masked")
-        data, flagger = mask(
-            data, newfield, flagger,
+        data, flags = copy(data, field, flags, field + "_masked")
+        data, flags = mask(
+            data, newfield, flags,
             mode='periodic', period_start=start, period_end=end, include_bounds=True, flag=BAD
         )
-        data, flagger = flagRange(data, newfield, flagger, min=test['min'], max=test['max'], flag=BAD)
-        data, flagger = reindexFlags(data, field, flagger, method='match', source=newfield, flag=BAD)
-        data, flagger = drop(data, newfield, flagger)
-        flagged = flagger[field] > UNFLAGGED
+        data, flags = flagRange(data, newfield, flags, min=test['min'], max=test['max'], flag=BAD)
+        data, flags = reindexFlags(data, field, flags, method='match', source=newfield, flag=BAD)
+        data, flags = drop(data, newfield, flags)
+        flagged = flags[field] > UNFLAGGED
         assert flagged.sum() == expected
 
 
 def test_clearFlags(data, field):
-    flagger = initFlagsLike(data)
-    flagger[:, field] = BAD
-    assert all(flagger[field] == BAD)
+    flags = initFlagsLike(data)
+    flags[:, field] = BAD
+    assert all(flags[field] == BAD)
 
-    _, flagger = clearFlags(data, field, flagger)
-    assert all(flagger[field] == UNFLAGGED)
+    _, flags = clearFlags(data, field, flags)
+    assert all(flags[field] == UNFLAGGED)
 
 
 def test_forceFlags(data, field):
-    flagger = initFlagsLike(data)
-    flagger[:, field] = BAD
-    assert all(flagger[field] == BAD)
+    flags = initFlagsLike(data)
+    flags[:, field] = BAD
+    assert all(flags[field] == BAD)
 
-    _, flagger = forceFlags(data, field, flagger, flag=DOUBT)
-    assert all(flagger[field] == DOUBT)
+    _, flags = forceFlags(data, field, flags, flag=DOUBT)
+    assert all(flags[field] == DOUBT)
 
 
 def test_flagIsolated(data, field):
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
 
     data.iloc[1:3, 0] = np.nan
     data.iloc[4:5, 0] = np.nan
-    flagger[data[field].index[5:6], field] = BAD
+    flags[data[field].index[5:6], field] = BAD
     data.iloc[11:13, 0] = np.nan
     data.iloc[15:17, 0] = np.nan
 
@@ -102,15 +102,15 @@ def test_flagIsolated(data, field):
     # 2016-01-08   7.0   -inf
     #         ..    ..     ..
 
-    _, flagger_result = flagIsolated(data, field, flagger, group_window="1D", gap_window="2.1D", flag=BAD)
+    _, flags_result = flagIsolated(data, field, flags, group_window="1D", gap_window="2.1D", flag=BAD)
 
-    assert flagger_result[field].iloc[[3, 5]].all()
+    assert flags_result[field].iloc[[3, 5]].all()
 
-    data, flagger_result = flagIsolated(
-        data, field, flagger_result,
+    data, flags_result = flagIsolated(
+        data, field, flags_result,
         group_window="2D", gap_window="2.1D", continuation_range="1.1D", flag=BAD
     )
-    assert flagger_result[field].iloc[[3, 5, 13, 14]].all()
+    assert flags_result[field].iloc[[3, 5, 13, 14]].all()
 
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])
@@ -123,16 +123,16 @@ def test_flagCrossScoring(dat):
     s1 = pd.Series(data=s1.values, index=s1.index)
     s2 = pd.Series(data=s2.values, index=s1.index)
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
-    flagger = initFlagsLike(data)
-    _, flagger_result = flagCrossStatistic(data, field, flagger, fields=fields, thresh=3, cross_stat=np.mean, flag=BAD)
+    flags = initFlagsLike(data)
+    _, flags_result = flagCrossStatistic(data, field, flags, fields=fields, thresh=3, cross_stat=np.mean, flag=BAD)
     for field in fields:
-        isflagged = flagger_result[field] > UNFLAGGED
+        isflagged = flags_result[field] > UNFLAGGED
         assert isflagged[characteristics["raise"]].all()
 
 
 def test_flagManual(data, field):
-    flagger = initFlagsLike(data)
-    args = data, field, flagger
+    flags = initFlagsLike(data)
+    args = data, field, flags
     dat = data[field]
 
     mdata = pd.Series("lala", index=dat.index)
@@ -220,31 +220,31 @@ def test_flagDriftFromNormal(dat):
     data['d4'] = 3 + 4 * data['d1']
     data['d5'] = 3 + 4 * data['d1']
 
-    flagger = initFlagsLike(data)
-    data_norm, flagger_norm = flagDriftFromNorm(
-        data, 'dummy', flagger,
+    flags = initFlagsLike(data)
+    data_norm, flags_norm = flagDriftFromNorm(
+        data, 'dummy', flags,
         ['d1', 'd2', 'd3'],
         segment_freq="200min",
         norm_spread=5,
         flag=BAD,
     )
 
-    data_ref, flagger_ref = flagDriftFromReference(
-        data, 'd1', flagger,
+    data_ref, flags_ref = flagDriftFromReference(
+        data, 'd1', flags,
         ['d1', 'd2', 'd3'],
         segment_freq="3D",
         thresh=20,
         flag=BAD,
     )
 
-    data_scale, flagger_scale = flagDriftFromScaledNorm(
-        data, 'dummy', flagger,
+    data_scale, flags_scale = flagDriftFromScaledNorm(
+        data, 'dummy', flags,
         ['d1', 'd3'], ['d4', 'd5'],
         segment_freq="3D",
         thresh=20,
         norm_spread=5,
         flag=BAD,
     )
-    assert all(flagger_norm['d3'] > UNFLAGGED)
-    assert all(flagger_ref['d3'] > UNFLAGGED)
-    assert all(flagger_scale['d3'] > UNFLAGGED)
+    assert all(flags_norm['d3'] > UNFLAGGED)
+    assert all(flags_ref['d3'] > UNFLAGGED)
+    assert all(flags_scale['d3'] > UNFLAGGED)

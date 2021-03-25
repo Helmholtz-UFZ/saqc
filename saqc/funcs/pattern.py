@@ -9,7 +9,7 @@ from mlxtend.evaluate import permutation_test
 from dios.dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags as Flagger
+from saqc.core import register, Flags
 from saqc.lib.tools import customRoller
 
 
@@ -17,13 +17,13 @@ from saqc.lib.tools import customRoller
 def flagPatternByDTW(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         ref_field: str,
         widths: Sequence[int] = (1, 2, 4, 8),
         waveform: str = "mexh",
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Pattern recognition via wavelets.
 
@@ -39,8 +39,8 @@ def flagPatternByDTW(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to correct.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     ref_field: str
         The fieldname in `data' which holds the pattern.
     widths: tuple of int
@@ -57,9 +57,9 @@ def flagPatternByDTW(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values may have changed relatively to the flags input.
 
 
     References
@@ -97,21 +97,21 @@ def flagPatternByDTW(
     sz = len(ref)
     mask = customRoller(dat, window=sz, min_periods=sz).apply(isPattern, raw=True)
 
-    flagger[mask, field] = flag
-    return data, flagger
+    flags[mask, field] = flag
+    return data, flags
 
 
 @register(masking='field', module="pattern")
 def flagPatternByWavelet(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         ref_field: str,
         max_distance: float = 0.03,
         normalize: bool = True,
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """ Pattern Recognition via Dynamic Time Warping.
 
     The steps are:
@@ -126,8 +126,8 @@ def flagPatternByWavelet(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the data column, you want to correct.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     ref_field: str
         The fieldname in `data` which holds the pattern.
     max_distance: float
@@ -142,9 +142,9 @@ def flagPatternByWavelet(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values may have changed relatively to the flags input.
 
 
     References
@@ -169,5 +169,5 @@ def flagPatternByWavelet(
     sz = len(ref)
     mask = customRoller(dat, window=sz, min_periods=sz).apply(isPattern, raw=True)
 
-    flagger[mask, field] = flag
-    return data, flagger
+    flags[mask, field] = flag
+    return data, flags

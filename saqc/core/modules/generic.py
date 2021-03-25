@@ -8,7 +8,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import Flags as Flagger
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
@@ -20,7 +20,7 @@ class Generic(ModuleBase):
             func: Callable[[pd.Series], pd.Series],
             nodata: float = np.nan,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("process", locals())
 
     def flag(
@@ -30,5 +30,5 @@ class Generic(ModuleBase):
             nodata: float = np.nan,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("flag", locals())

@@ -8,7 +8,7 @@ from scipy.spatial.distance import pdist
 
 from saqc.constants import *
 from saqc.core.modules.base import ModuleBase
-from saqc.funcs import LinkageString, DictOfSeries, Flagger
+from saqc.funcs import LinkageString, DictOfSeries, Flags
 from saqc.lib.types import ColumnName, FreqString, CurveFitter
 
 
@@ -24,7 +24,7 @@ class Drift(ModuleBase):
             linkage_method: LinkageString = "single",
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("flagDriftFromNorm", locals())
 
     def flagDriftFromReference(
@@ -36,7 +36,7 @@ class Drift(ModuleBase):
             metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("flagDriftFromReference", locals())
 
     def flagDriftFromScaledNorm(
@@ -51,7 +51,7 @@ class Drift(ModuleBase):
             linkage_method: LinkageString = "single",
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("flagDriftFromScaledNorm", locals())
 
     def correctExponentialDrift(
@@ -62,7 +62,7 @@ class Drift(ModuleBase):
             flag_maint_period: bool = False,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("correctExponentialDrift", locals())
 
     def correctRegimeAnomaly(
@@ -73,7 +73,7 @@ class Drift(ModuleBase):
             regime_transmission: Optional[FreqString] = None,
             x_date: bool = False,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("correctRegimeAnomaly", locals())
 
     def correctOffset(
@@ -85,5 +85,5 @@ class Drift(ModuleBase):
             min_periods: int,
             regime_transmission: Optional[FreqString] = None,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("correctOffset", locals())

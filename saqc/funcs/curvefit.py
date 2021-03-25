@@ -9,7 +9,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags as Flagger
+from saqc.core import register, Flags
 from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import (
     polyRollerIrregular,
@@ -24,7 +24,7 @@ from saqc.lib.ts_operators import (
 def fitPolynomial(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         winsz: Union[int, str],
         polydeg: int,
         numba: Literal[True, False, "auto"] = "auto",
@@ -33,7 +33,7 @@ def fitPolynomial(
         return_residues: bool = False,
         flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function fits a polynomial model to the data and returns the fitted data curve.
 
@@ -74,8 +74,8 @@ def fitPolynomial(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-modelled.
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     winsz : {str, int}
         The size of the window you want to use for fitting. If an integer is passed, the size
         refers to the number of periods for every fitting window. If an offset string is passed,
@@ -106,13 +106,12 @@ def fitPolynomial(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
     """
     # TODO: some (rater large) parts are functional similar to saqc.funcs.rolling.roll
     if data[field].empty:
-        return data, flagger
+        return data, flags
     data = data.copy()
     to_fit = data[field]
     regular = getFreqDelta(to_fit.index)
@@ -202,7 +201,7 @@ def fitPolynomial(
     data[field] = residues
     if eval_flags:
         # TODO: we does not get any flags here, because of masking=field
-        worst = flagger[field].rolling(winsz, center=True, min_periods=min_periods).max()
-        flagger[field] = worst
+        worst = flags[field].rolling(winsz, center=True, min_periods=min_periods).max()
+        flags[field] = worst
 
-    return data, flagger
+    return data, flags

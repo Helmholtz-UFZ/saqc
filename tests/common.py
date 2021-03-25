@@ -7,18 +7,17 @@ import pandas as pd
 import dios
 
 from saqc.constants import *
-from saqc.core import initFlagsLike, Flags as Flagger
+from saqc.core import initFlagsLike, Flags
 
 
 TESTNODATA = (np.nan, -9999)
-TESTFLAGGER = (Flagger(),)
 
 
-def flagAll(data, field, flagger, **kwargs):
+def flagAll(data, field, flags, **kwargs):
     # NOTE: remember to rename flag -> flag_values
-    flagger.copy()
-    flagger[:, field] = BAD
-    return data, flagger
+    flags.copy()
+    flags[:, field] = BAD
+    return data, flags
 
 
 def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq=None, rows=None):
@@ -42,49 +41,49 @@ def writeIO(content):
     return f
 
 
-def checkDataFlaggerInvariants(data, flagger, field, identical=True):
+def checkDataFlagsInvariants(data, flags, field, identical=True):
     """
     Check all invariants that must hold at any point for
         * field
         * data
-        * flagger
+        * flags
         * data[field]
-        * flagger[field]
+        * flags[field]
         * data[field].index
-        * flagger[field].index
-        * between data and flagger
-        * between data[field] and flagger[field]
+        * flags[field].index
+        * between data and flags
+        * between data[field] and flags[field]
 
     Parameters
     ----------
     data : dios.DictOfSeries
         data container
-    flagger : Flags
+    flags : Flags
         flags container
     field : str
         the field in question
     identical : bool, default True
-        whether to check indexes of data and flagger to be
+        whether to check indexes of data and flags to be
         identical (True, default) of just for equality.
     """
     assert isinstance(data, dios.DictOfSeries)
-    assert isinstance(flagger, Flagger)
+    assert isinstance(flags, Flags)
 
-    # all columns in data are in flagger
-    assert data.columns.difference(flagger.columns).empty
+    # all columns in data are in flags
+    assert data.columns.difference(flags.columns).empty
 
     # ------------------------------------------------------------------------
     # below here, we just check on and with field
     # ------------------------------------------------------------------------
     assert field in data
-    assert field in flagger
+    assert field in flags
 
-    assert flagger[field].dtype == float
+    assert flags[field].dtype == float
 
     # `pd.Index.identical` also check index attributes like `freq`
     if identical:
-        assert data[field].index.identical(flagger[field].index)
+        assert data[field].index.identical(flags[field].index)
     else:
-        assert data[field].index.equals(flagger[field].index)
+        assert data[field].index.equals(flags[field].index)
 
 

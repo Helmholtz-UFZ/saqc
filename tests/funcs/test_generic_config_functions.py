@@ -8,7 +8,7 @@ import pandas as pd
 import dios
 
 from saqc.constants import *
-from saqc.core import initFlagsLike, Flags as Flagger
+from saqc.core import initFlagsLike, Flags
 from saqc.core.visitor import ConfigFunctionParser
 from saqc.core.config import Fields as F
 from saqc.core.register import register
@@ -33,14 +33,14 @@ def data_diff():
     return dios.DictOfSeries(data={col0.name: col0.iloc[: mid + offset], col1.name: col1.iloc[mid - offset :],})
 
 
-def _compileGeneric(expr, flagger):
+def _compileGeneric(expr, flags):
     tree = ast.parse(expr, mode="eval")
-    _, kwargs = ConfigFunctionParser(flagger).parse(tree.body)
+    _, kwargs = ConfigFunctionParser(flags).parse(tree.body)
     return kwargs["func"]
 
 
 def test_missingIdentifier(data):
-    flagger = Flagger()
+    flags = Flags()
 
     # NOTE:
     # - the error is only raised at runtime during parsing would be better
@@ -50,13 +50,13 @@ def test_missingIdentifier(data):
     ]
 
     for test in tests:
-        func = _compileGeneric(f"generic.flag(func={test})", flagger)
+        func = _compileGeneric(f"generic.flag(func={test})", flags)
         with pytest.raises(NameError):
-            _execGeneric(flagger, data, func, field="", nodata=np.nan)
+            _execGeneric(flags, data, func, field="", nodata=np.nan)
 
 
 def test_syntaxError():
-    flagger = Flagger()
+    flags = Flags()
     tests = [
         "range(x=5",
         "rangex=5)",
@@ -65,7 +65,7 @@ def test_syntaxError():
 
     for test in tests:
         with pytest.raises(SyntaxError):
-            _compileGeneric(f"flag(func={test})", flagger)
+            _compileGeneric(f"flag(func={test})", flags)
 
 
 def test_typeError():
@@ -73,18 +73,18 @@ def test_typeError():
     test that forbidden constructs actually throw an error
     TODO: find a few more cases or get rid of the test
     """
-    flagger = Flagger()
+    flags = Flags()
 
     # : think about cases that should be forbidden
     tests = ("lambda x: x * 2",)
 
     for test in tests:
         with pytest.raises(TypeError):
-            _compileGeneric(f"generic.flag(func={test})", flagger)
+            _compileGeneric(f"generic.flag(func={test})", flags)
 
 
 def test_comparisonOperators(data):
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
     var1, var2, *_ = data.columns
     this = var1
 
@@ -98,13 +98,13 @@ def test_comparisonOperators(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.flag(func={test})", flagger)
-        result = _execGeneric(flagger, data, func, field=var1, nodata=np.nan)
+        func = _compileGeneric(f"generic.flag(func={test})", flags)
+        result = _execGeneric(flags, data, func, field=var1, nodata=np.nan)
         assert np.all(result == expected)
 
 
 def test_arithmeticOperators(data):
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
     var1, *_ = data.columns
     this = data[var1]
 
@@ -118,13 +118,13 @@ def test_arithmeticOperators(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.process(func={test})", flagger)
-        result = _execGeneric(flagger, data, func, field=var1, nodata=np.nan)
+        func = _compileGeneric(f"generic.process(func={test})", flags)
+        result = _execGeneric(flags, data, func, field=var1, nodata=np.nan)
         assert np.all(result == expected)
 
 
 def test_nonReduncingBuiltins(data):
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
     var1, *_ = data.columns
     this = var1
     mean = data[var1].mean()
@@ -137,15 +137,15 @@ def test_nonReduncingBuiltins(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.process(func={test})", flagger)
-        result = _execGeneric(flagger, data, func, field=this, nodata=np.nan)
+        func = _compileGeneric(f"generic.process(func={test})", flags)
+        result = _execGeneric(flags, data, func, field=this, nodata=np.nan)
         assert (result == expected).all()
 
 
 @pytest.mark.parametrize("nodata", TESTNODATA)
 def test_reduncingBuiltins(data, nodata):
     data.loc[::4] = nodata
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
     var1 = data.columns[0]
     this = data.iloc[:, 0]
 
@@ -159,15 +159,15 @@ def test_reduncingBuiltins(data, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.process(func={test})", flagger)
-        result = _execGeneric(flagger, data, func, field=this.name, nodata=nodata)
+        func = _compileGeneric(f"generic.process(func={test})", flags)
+        result = _execGeneric(flags, data, func, field=this.name, nodata=nodata)
         assert result == expected
 
 
 @pytest.mark.parametrize("nodata", TESTNODATA)
 def test_ismissing(data, nodata):
 
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
     data.iloc[: len(data) // 2, 0] = np.nan
     data.iloc[(len(data) // 2) + 1 :, 0] = -9999
     this = data.iloc[:, 0]
@@ -178,8 +178,8 @@ def test_ismissing(data, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.flag(func={test})", flagger)
-        result = _execGeneric(flagger, data, func, this.name, nodata)
+        func = _compileGeneric(f"generic.flag(func={test})", flags)
+        result = _execGeneric(flags, data, func, this.name, nodata)
         assert np.all(result == expected)
 
 
@@ -188,7 +188,7 @@ def test_bitOps(data, nodata):
     var1, var2, *_ = data.columns
     this = var1
 
-    flagger = initFlagsLike(data)
+    flags = initFlagsLike(data)
 
     tests = [
         ("~(this > mean(this))", ~(data[this] > np.nanmean(data[this]))),
@@ -197,29 +197,29 @@ def test_bitOps(data, nodata):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.flag(func={test})", flagger)
-        result = _execGeneric(flagger, data, func, this, nodata)
+        func = _compileGeneric(f"generic.flag(func={test})", flags)
+        result = _execGeneric(flags, data, func, this, nodata)
         assert np.all(result == expected)
 
 
 def test_isflagged(data):
 
     var1, var2, *_ = data.columns
-    flagger = initFlagsLike(data)
-    flagger[data[var1].index[::2], var1] = BAD
+    flags = initFlagsLike(data)
+    flags[data[var1].index[::2], var1] = BAD
 
     tests = [
-        (f"isflagged({var1})", flagger[var1] > UNFLAGGED),
-        (f"isflagged({var1}, flag=BAD)", flagger[var1] >= BAD),
-        (f"isflagged({var1}, UNFLAGGED, '==')", flagger[var1] == UNFLAGGED),
-        (f"~isflagged({var2})", flagger[var2] == UNFLAGGED),
-        (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & (flagger[var2] == UNFLAGGED)),
+        (f"isflagged({var1})", flags[var1] > UNFLAGGED),
+        (f"isflagged({var1}, flag=BAD)", flags[var1] >= BAD),
+        (f"isflagged({var1}, UNFLAGGED, '==')", flags[var1] == UNFLAGGED),
+        (f"~isflagged({var2})", flags[var2] == UNFLAGGED),
+        (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & (flags[var2] == UNFLAGGED)),
     ]
 
     for i, (test, expected) in enumerate(tests):
         try:
-            func = _compileGeneric(f"generic.flag(func={test}, flag=BAD)", flagger)
-            result = _execGeneric(flagger, data, func, field=None, nodata=np.nan)
+            func = _compileGeneric(f"generic.flag(func={test}, flag=BAD)", flags)
+            result = _execGeneric(flags, data, func, field=None, nodata=np.nan)
             assert np.all(result == expected)
         except Exception:
             print(i, test)
@@ -229,9 +229,9 @@ def test_isflagged(data):
     for comp in ['>', '>=', '==', '!=', '<', '<=']:
         fails = f"isflagged({var1}, comparator='{comp}')"
 
-        func = _compileGeneric(f"generic.flag(func={fails}, flag=BAD)", flagger)
+        func = _compileGeneric(f"generic.flag(func={fails}, flag=BAD)", flags)
         with pytest.raises(ValueError):
-            _execGeneric(flagger, data, func, field=None, nodata=np.nan)
+            _execGeneric(flags, data, func, field=None, nodata=np.nan)
 
 
 def test_variableAssignments(data):
@@ -245,12 +245,12 @@ def test_variableAssignments(data):
 
     fobj = writeIO(config)
     saqc = SaQC(data).readConfig(fobj)
-    result_data, result_flagger = saqc.getResult(raw=True)
+    result_data, result_flags = saqc.getResult(raw=True)
 
     assert set(result_data.columns) == set(data.columns) | {
         "dummy1",
     }
-    assert set(result_flagger.columns) == set(data.columns) | {"dummy1", "dummy2"}
+    assert set(result_flags.columns) == set(data.columns) | {"dummy1", "dummy2"}
 
 
 # TODO: why this must(!) fail ? - a comment would be helpful
@@ -266,8 +266,8 @@ def test_processMultiple(data_diff):
 
     fobj = writeIO(config)
     saqc = SaQC(data_diff).readConfig(fobj)
-    result_data, result_flagger = saqc.getResult()
-    assert len(result_data["dummy"]) == len(result_flagger["dummy"])
+    result_data, result_flags = saqc.getResult()
+    assert len(result_data["dummy"]) == len(result_flags["dummy"])
 
 
 def test_callableArgumentsUnary(data):
@@ -275,7 +275,7 @@ def test_callableArgumentsUnary(data):
     window = 5
 
     @register(masking='field')
-    def testFuncUnary(data, field, flagger, func, **kwargs):
+    def testFuncUnary(data, field, flags, func, **kwargs):
         data[field] = data[field].rolling(window=window).apply(func)
         return data, initFlagsLike(data)
 
@@ -304,7 +304,7 @@ def test_callableArgumentsBinary(data):
     var1, var2 = data.columns[:2]
 
     @register(masking='field')
-    def testFuncBinary(data, field, flagger, func, **kwargs):
+    def testFuncBinary(data, field, flags, func, **kwargs):
         data[field] = func(data[var1], data[var2])
         return data, initFlagsLike(data)
 

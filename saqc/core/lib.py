@@ -50,9 +50,9 @@ class SaQCFunction:
             **{**self.keywords, **keywords}
         )
 
-    def __call__(self, data, field, flagger, *args, **keywords):
+    def __call__(self, data, field, flags, *args, **keywords):
         keywords = {**self.keywords, **keywords}
-        return self.func(data, field, flagger, *self.args, *args, **keywords)
+        return self.func(data, field, flags, *self.args, *args, **keywords)
 
     def errorMessage(self) -> str:
         return f"function: {self.name}\narguments: {self.args}\nkeywords: {self.keywords}"

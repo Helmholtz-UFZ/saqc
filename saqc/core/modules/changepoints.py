@@ -8,7 +8,7 @@ from dios import DictOfSeries
 from typing_extensions import Literal
 
 from saqc.constants import *
-from saqc.core import Flags as Flagger
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 from saqc.lib.types import FreqString, IntegerWindow
 
@@ -29,7 +29,7 @@ class ChangePoints(ModuleBase):
             reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("flagChangePoints", locals())
 
     def assignChangePointCluster(
@@ -49,5 +49,5 @@ class ChangePoints(ModuleBase):
             assign_cluster: bool = True,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("assignChangePointCluster", locals())

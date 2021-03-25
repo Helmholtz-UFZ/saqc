@@ -7,7 +7,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags as Flagger
+from saqc.core import register, Flags
 from saqc.core.register import _isflagged
 from saqc.core.history import applyFunctionOnHistory
 from saqc.lib.ts_operators import interpolateNANs
@@ -20,14 +20,14 @@ _SUPPORTED_METHODS = Literal[
 
 @register(masking='field', module="interpolation")
 def interpolateByRolling(
-        data: DictOfSeries, field: str, flagger: Flagger,
+        data: DictOfSeries, field: str, flags: Flags,
         winsz: Union[str, int],
         func: Callable[[pd.Series], float] = np.median,
         center: bool = True,
         min_periods: int = 0,
         flag: float = UNFLAGGED,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Interpolates nan-values in the data by assigning them the aggregation result of the window surrounding them.
 
@@ -39,8 +39,8 @@ def interpolateByRolling(
     field : str
         Name of the column, holding the data-to-be-interpolated.
 
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Information related to `data`.
+    flags : saqc.Flags
+        A flags object, holding flags and additional Information related to `data`.
 
     winsz : int, str
         The size of the window, the aggregation is computed from. An integer define the number of periods to be used,
@@ -65,9 +65,8 @@ def interpolateByRolling(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
     """
 
     data = data.copy()
@@ -87,23 +86,23 @@ def interpolateByRolling(
     data[field] = datcol
 
     if flag is not None:
-        flagger[interpolated, field] = flag
+        flags[interpolated, field] = flag
 
-    return data, flagger
+    return data, flags
 
 
 @register(masking='field', module="interpolation")
 def interpolateInvalid(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         method: _SUPPORTED_METHODS,
         inter_order: int = 2,
         inter_limit: int = 2,
         downgrade_interpolation: bool = False,
         flag: float = UNFLAGGED,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function to interpolate nan values in the data.
 
@@ -118,8 +117,8 @@ def interpolateInvalid(
     field : str
         Name of the column, holding the data-to-be-interpolated.
 
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Information related to `data`.
+    flags : saqc.Flags
+        A flags object, holding flags and additional Information related to `data`.
 
     method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}
@@ -146,9 +145,8 @@ def interpolateInvalid(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
     """
     inter_data = interpolateNANs(
         data[field],
@@ -160,10 +158,10 @@ def interpolateInvalid(
     interpolated = data[field].isna() & inter_data.notna()
 
     if flag is not None:
-        flagger[interpolated, field] = flag
+        flags[interpolated, field] = flag
 
     data[field] = inter_data
-    return data, flagger
+    return data, flags
 
 
 def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
@@ -181,14 +179,14 @@ def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
 def interpolateIndex(
         data: DictOfSeries,
         field: str,
-        flagger: Flagger,
+        flags: Flags,
         freq: str,
         method: _SUPPORTED_METHODS,
         inter_order: int = 2,
         inter_limit: int = 2,
         downgrade_interpolation: bool = False,
         **kwargs
-) -> Tuple[DictOfSeries, Flagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
 
@@ -203,8 +201,8 @@ def interpolateIndex(
     field : str
         Name of the column, holding the data-to-be-interpolated.
 
-    flagger : saqc.flagger.Flagger
-        A flagger object, holding flags and additional Information related to `data`.
+    flags : saqc.Flags
+        A flags object, holding flags and additional Information related to `data`.
 
     freq : str
         An Offset String, interpreted as the frequency of
@@ -233,19 +231,19 @@ def interpolateIndex(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values and shape may have changed relatively to the data input.
-    flagger : saqc.flagger.Flagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values and shape may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values and shape may have changed relatively to the flags input.
     """
     if data[field].empty:
-        return data, flagger
+        return data, flags
 
     datcol = data[field].copy()
 
     start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
     grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
 
-    flagged = _isflagged(flagger[field], kwargs['to_mask'])
+    flagged = _isflagged(flags[field], kwargs['to_mask'])
 
     # drop all points that hold no relevant grid information
     datcol = datcol[~flagged].dropna()
@@ -275,11 +273,11 @@ def interpolateIndex(
     data[field] = inter_data[grid_index]
 
     # do the reshaping on the history
-    flagger.history[field] = applyFunctionOnHistory(
-        flagger.history[field],
+    flags.history[field] = applyFunctionOnHistory(
+        flags.history[field],
         hist_func=_resampleOverlapping, hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
         mask_func=_resampleOverlapping, mask_kws=dict(freq=freq, fill_value=False),
         last_column='dummy'
     )
 
-    return data, flagger
+    return data, flags

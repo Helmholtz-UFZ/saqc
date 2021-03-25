@@ -4,7 +4,7 @@ from __future__ import annotations
 
 # TODO:
 #  - integrate plotting into the api
-#  - `data` and `flagger` as arguments to `getResult`
+#  - `data` and `flags` as arguments to `getResult`
 
 import logging
 import copy as stdcopy
@@ -18,7 +18,7 @@ import timeit
 import inspect
 
 from saqc.constants import *
-from saqc.core.flags import initFlagsLike, Flags as Flagger
+from saqc.core.flags import initFlagsLike, Flags
 from saqc.core.lib import APIController, ColumnSelector
 from saqc.core.register import FUNC_MAP, SaQCFunction
 from saqc.core.modules import FuncModules
@@ -71,7 +71,7 @@ def _prepInput(data, flags):
             if isinstance(flags.index, pd.MultiIndex) or isinstance(flags.columns, pd.MultiIndex):
                 raise TypeError("'flags' should not use MultiIndex")
 
-        if isinstance(flags, (dios.DictOfSeries, pd.DataFrame, Flagger)):
+        if isinstance(flags, (dios.DictOfSeries, pd.DataFrame, Flags)):
             # NOTE: only test common columns, data as well as flags could
             # have more columns than the respective other.
             cols = flags.columns.intersection(data.columns)
@@ -80,8 +80,8 @@ def _prepInput(data, flags):
                     raise ValueError(f"the index of 'flags' and 'data' missmatch in column {c}")
 
         # this also ensures float dtype
-        if not isinstance(flags, Flagger):
-            flags = Flagger(flags, copy=True)
+        if not isinstance(flags, Flags):
+            flags = Flags(flags, copy=True)
 
     return data, flags
 
@@ -108,30 +108,31 @@ class SaQC(FuncModules):
         self._data = data
         self._nodata = nodata
         self._to_mask = to_mask
-        self._flagger = self._initFlagger(data, flags)
+        self._flags = self._initFlags(data, flags)
         self._error_policy = error_policy
         # NOTE: will be filled by calls to `_wrap`
         self._to_call: List[Tuple[ColumnSelector, APIController, SaQCFunction]] = []
 
-    def _initFlagger(self, data, flagger: Union[Flagger, None]):
-        """ Init the internal flagger object.
+    def _initFlags(self, data, flags: Union[Flags, None]):
+        """ Init the internal Flags-object.
 
-        Ensures that all data columns are present and user passed flags from
-        a flags frame or an already initialised flagger are used.
+        Ensures that all data columns are present and user passed
+        flags from a frame or an already initialised Flags-object
+        are used.
         """
-        if flagger is None:
+        if flags is None:
             return initFlagsLike(data)
 
-        # add columns that are present in data but not in flagger
-        for c in data.columns.difference(flagger.columns):
-            flagger[c] = pd.Series(UNFLAGGED, index=data[c].index, dtype=float)
+        # add columns that are present in data but not in flags
+        for c in data.columns.difference(flags.columns):
+            flags[c] = pd.Series(UNFLAGGED, index=data[c].index, dtype=float)
 
-        return flagger
+        return flags
 
     def _constructSimple(self) -> SaQC:
         return SaQC(
             data=dios.DictOfSeries(),
-            flags=Flagger(),
+            flags=Flags(),
             nodata=self._nodata,
             to_mask=self._to_mask,
             error_policy=self._error_policy
@@ -140,7 +141,7 @@ class SaQC(FuncModules):
     def readConfig(self, fname):
         from saqc.core.reader import readConfig
         out = stdcopy.deepcopy(self)
-        out._to_call.extend(readConfig(fname, self._flagger))
+        out._to_call.extend(readConfig(fname, self._flags))
         return out
 
     def _expandFields(self, selector: ColumnSelector, func: SaQCFunction, variables: pd.Index) -> Sequence[Tuple[ColumnSelector, SaQCFunction]]:
@@ -166,15 +167,15 @@ class SaQC(FuncModules):
 
         # NOTE: It would be nicer to separate the plotting into an own
         #       method instead of intermingling it with the computation
-        data, flagger = self._data, self._flagger
+        data, flags = self._data, self._flags
 
         for selector, control, function in self._to_call:
-            for sel, func in self._expandFields(selector, function, data.columns.union(flagger.columns)):
+            for sel, func in self._expandFields(selector, function, data.columns.union(flags.columns)):
                 logger.debug(f"processing: {sel.field}, {func.name}, {func.keywords}")
 
                 t0 = timeit.default_timer()
                 try:
-                    data_result, flagger_result = _saqcCallFunc(sel, control, func, data, flagger)
+                    data_result, flags_result = _saqcCallFunc(sel, control, func, data, flags)
                 except Exception as e:
                     t1 = timeit.default_timer()
                     logger.debug(f"{func.name} failed after {t1 - t0} sec")
@@ -188,23 +189,23 @@ class SaQC(FuncModules):
                     plotHook(
                         data_old=data,
                         data_new=data_result,
-                        flagger_old=flagger,
-                        flagger_new=flagger_result,
+                        flagger_old=flags,
+                        flagger_new=flags_result,
                         sources=[],
                         targets=[sel.field],
                         plot_name=func.name,
                     )
 
                 data = data_result
-                flagger = flagger_result
+                flags = flags_result
 
         if any([control.plot for _, control, _ in self._to_call]):
-            plotAllHook(data, flagger)
+            plotAllHook(data, flags)
 
         # This is way faster for big datasets, than to throw everything in the constructor.
-        # Simply because of _initFlagger -> merge() -> mergeDios() over all columns.
+        # Simply because of _initFlags -> merge() -> mergeDios() over all columns.
         new = self._constructSimple()
-        new._flagger, new._data = flagger, data
+        new._flags, new._data = flags, data
         return new
 
     def getResult(self, raw=False):
@@ -213,16 +214,16 @@ class SaQC(FuncModules):
 
         Returns
         -------
-        data, flagger: (DictOfSeries, DictOfSeries)
+        data, flags: (DictOfSeries, DictOfSeries)
         """
 
         realization = self.evaluate()
-        data, flagger = realization._data, realization._flagger
+        data, flags = realization._data, realization._flags
 
         if raw:
-            return data, flagger
+            return data, flags
 
-        return data.to_df(), flagger.toFrame()
+        return data.to_df(), flags.toFrame()
 
     def _wrap(self, func: SaQCFunction):
 
@@ -267,26 +268,26 @@ class SaQC(FuncModules):
         return stdcopy.copy(self)
 
 
-def _saqcCallFunc(locator, controller, function, data, flagger):
+def _saqcCallFunc(locator, controller, function, data, flags):
     # NOTE:
     # We assure that all columns in data have an equivalent column in flags,
-    # we might have more flagger columns though
-    assert data.columns.difference(flagger.columns).empty
+    # we might have more flags columns though
+    assert data.columns.difference(flags.columns).empty
 
     field = locator.field
     target = locator.target
 
     if (target != field) and (locator.regex is False):
-        data, flagger = copy(data, field, flagger, target)
+        data, flags = copy(data, field, flags, target)
         field = target
 
-    data_result, flagger_result = function(data, field, flagger)
+    data_result, flags_result = function(data, field, flags)
 
     # we check the passed function-kwargs after the actual call, because now "hard" errors would already have been
     # raised (Eg. `TypeError: got multiple values for argument 'data'`, when the user pass data=...)
     _warnForUnusedKwargs(function)
 
-    return data_result, flagger_result
+    return data_result, flags_result
 
 
 def _warnForUnusedKwargs(func):

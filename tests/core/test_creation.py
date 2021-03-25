@@ -6,7 +6,7 @@ import dios
 
 
 def test_init():
-    from saqc import SaQC, Flags as Flagger
+    from saqc import SaQC, Flags
 
     arr = np.array([
         [0, 1, 2],
@@ -16,5 +16,5 @@ def test_init():
     qc = SaQC(data)
 
     assert isinstance(qc, SaQC)
-    assert isinstance(qc._flagger, Flagger)
+    assert isinstance(qc._flags, Flags)
     assert isinstance(qc._data, dios.DictOfSeries)

@@ -6,18 +6,18 @@ from typing import Optional, Tuple
 from dios import DictOfSeries
 from typing_extensions import Literal
 
-from saqc.core import Flags as Flagger
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
 class Tools(ModuleBase):
-    def copy(self, field: str, new_field: str, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+    def copy(self, field: str, new_field: str, **kwargs) -> Tuple[DictOfSeries, Flags]:
         return self.defer("copy", locals())
 
-    def drop(self, field: str, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+    def drop(self, field: str, **kwargs) -> Tuple[DictOfSeries, Flags]:
         return self.defer("drop", locals())
 
-    def rename(self, field: str, new_name: str, **kwargs) -> Tuple[DictOfSeries, Flagger]:
+    def rename(self, field: str, new_name: str, **kwargs) -> Tuple[DictOfSeries, Flags]:
         return self.defer("rename", locals())
 
     def mask(
@@ -29,5 +29,5 @@ class Tools(ModuleBase):
             period_end: Optional[str]=None,
             include_bounds: bool=True,
             **kwargs,
-    ) -> Tuple[DictOfSeries, Flagger]:
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("mask", locals())
