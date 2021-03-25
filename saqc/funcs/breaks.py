@@ -20,8 +20,7 @@ from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
 from saqc.lib.types import FreqString, ColumnName, IntegerWindow
 from saqc.funcs.changepoints import assignChangePointCluster
-from saqc.core.register import register
-from saqc.flagger import Flagger
+from saqc.core import register, Flags as Flagger
 
 
 @register(masking='field', module="breaks")

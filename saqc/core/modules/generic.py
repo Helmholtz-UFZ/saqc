@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 from dios import DictOfSeries
 
-from saqc import Flagger, BAD
+from saqc.constants import *
+from saqc.core import Flags as Flagger
 from saqc.core.modules.base import ModuleBase
 
 

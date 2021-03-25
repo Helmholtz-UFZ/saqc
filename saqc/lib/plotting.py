@@ -9,7 +9,7 @@ import dios
 import matplotlib.pyplot as plt
 from typing import List, Dict, Optional
 from saqc.constants import *
-from saqc.flagger import Flagger
+from saqc.core import Flags as Flagger
 
 
 def __importHelper():

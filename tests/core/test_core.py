@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from saqc.constants import *
-from saqc.flagger import initFlagsLike
+from saqc.core import initFlagsLike
 from saqc.funcs import flagRange
 from saqc.lib import plotting as splot
 from saqc import SaQC, register

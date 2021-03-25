@@ -18,7 +18,7 @@ import timeit
 import inspect
 
 from saqc.constants import *
-from saqc.flagger import initFlagsLike, Flagger
+from saqc.core.flags import initFlagsLike, Flags as Flagger
 from saqc.core.lib import APIController, ColumnSelector
 from saqc.core.register import FUNC_MAP, SaQCFunction
 from saqc.core.modules import FuncModules

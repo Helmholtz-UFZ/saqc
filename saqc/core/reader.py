@@ -2,18 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import ast
-from saqc.core.core import ColumnSelector
-
 import numpy as np
-
 import pandas as pd
 
+from saqc.core.core import ColumnSelector
 from saqc.core.config import Fields as F
 from saqc.core.visitor import ConfigFunctionParser
 from saqc.core.lib import ConfigController
 from saqc.core.register import FUNC_MAP
-
 from saqc.lib.tools import isQuoted
+
 
 COMMENT = "#"
 EMPTY = "None"

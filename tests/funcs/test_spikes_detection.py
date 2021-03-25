@@ -13,7 +13,7 @@ from saqc.funcs.outliers import (
     flagByGrubbs,
 )
 from saqc.constants import *
-from saqc.flagger import initFlagsLike
+from saqc.core import initFlagsLike
 
 
 @pytest.fixture(scope="module")

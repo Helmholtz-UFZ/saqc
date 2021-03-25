@@ -11,9 +11,8 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.register import register
+from saqc.core import register, initFlagsLike, Flags as Flagger
 from saqc.core.visitor import ENVIRONMENT
-from saqc.flagger import Flagger, initFlagsLike
 
 import operator as op
 

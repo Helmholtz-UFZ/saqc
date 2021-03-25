@@ -7,7 +7,7 @@ import pandas as pd
 import dios
 
 from saqc.constants import *
-from saqc.flagger import Flagger, initFlagsLike
+from saqc.core import initFlagsLike, Flags as Flagger
 
 
 TESTNODATA = (np.nan, -9999)

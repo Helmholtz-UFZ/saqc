@@ -3,14 +3,11 @@
 
 from typing import Optional, Tuple
 from typing_extensions import Literal
-
 import numpy as np
-
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.register import register
-from saqc.flagger import Flagger
+from saqc.core import register, Flags as Flagger
 from saqc.lib.tools import periodicMask
 
 

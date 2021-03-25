@@ -7,7 +7,7 @@
 import dios
 
 from saqc import BAD, UNFLAGGED
-from saqc.flagger import initFlagsLike
+from saqc.core import initFlagsLike
 from saqc.funcs.tools import mask
 from saqc.funcs.residues import calculatePolynomialResidues, calculateRollingResidues
 

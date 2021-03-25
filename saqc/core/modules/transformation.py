@@ -6,7 +6,7 @@ from typing import Callable, Optional, Union, Tuple
 import pandas as pd
 from dios import DictOfSeries
 
-from saqc import Flagger
+from saqc.core import Flags as Flagger
 from saqc.core.modules.base import ModuleBase
 
 

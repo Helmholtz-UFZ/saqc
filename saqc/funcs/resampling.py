@@ -1,25 +1,22 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Callable, Tuple, Optional, Union, Any, Sequence
+from typing import Callable, Tuple, Optional, Union
 from typing_extensions import Literal
-
-import numpy as np
 import logging
-
+import numpy as np
 import pandas as pd
-
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.register import register, _isflagged
-from saqc.flagger.history import applyFunctionOnHistory
-from saqc.flagger.flags import Flagger
-from saqc.funcs.tools import copy, drop, rename
-from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
+from saqc.core import register, Flags as Flagger
+from saqc.core.register import _isflagged
+from saqc.core.history import applyFunctionOnHistory
 from saqc.lib.tools import evalFreqStr, getFreqDelta
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
-from saqc.lib.rolling import customRoller
+from saqc.funcs.tools import copy, drop, rename
+from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
+
 
 logger = logging.getLogger("SaQC")
 

@@ -2,15 +2,12 @@
 # -*- coding: utf-8 -*-
 from typing import Any, Tuple, Optional, Union
 from typing_extensions import Literal
-
 import pandas as pd
-
 from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.lib.types import *
-from saqc.core.register import register
-from saqc.flagger import Flagger
+from saqc.core import register, Flags as Flagger
 import warnings
 
 

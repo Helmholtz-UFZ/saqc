@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import dios
 
-from saqc.flagger import Flagger, initFlagsLike
+from saqc.core import initFlagsLike, Flags as Flagger
 from saqc.constants import BAD, UNFLAGGED
 from saqc.funcs.resampling import (
     linear,

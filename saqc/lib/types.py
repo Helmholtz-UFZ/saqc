@@ -15,18 +15,18 @@ __all__ = [
 
 from typing import TypeVar, Union, NewType
 from typing_extensions import Protocol, Literal
-
 import numpy as np
 import pandas as pd
 from dios import DictOfSeries
-from saqc import Flagger
+from saqc.core.flags import Flags
+
 
 T = TypeVar("T")
 ArrayLike = TypeVar("ArrayLike", np.ndarray, pd.Series, pd.DataFrame)
 PandasLike = TypeVar("PandasLike", pd.Series, pd.DataFrame, DictOfSeries)
 DiosLikeT = Union[DictOfSeries, pd.DataFrame]
 
-FuncReturnT = [DictOfSeries, Flagger]
+FuncReturnT = [DictOfSeries, Flags]
 
 # we only support fixed length offsets
 FreqString = NewType("FreqString", Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"])
@@ -35,6 +35,7 @@ FreqString = NewType("FreqString", Literal["D", "H", "T", "min", "S", "L", "ms",
 ColumnName = NewType("ColumnName", str)
 IntegerWindow = NewType("IntegerWindow", int)
 TimestampColumnName = TypeVar("TimestampColumnName", bound=str)
+
 
 # needed for deeper typy hinting magic
 class CurveFitter(Protocol):

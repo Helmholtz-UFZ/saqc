@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from saqc.constants import *
-from saqc.flagger.flags import Flags
+from saqc.core.flags import Flags
 
 from tests.flagger.test_history import (
     History,

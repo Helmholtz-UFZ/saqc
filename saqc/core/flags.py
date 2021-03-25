@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-import dios
-from saqc.constants import *
-from saqc.flagger.history import History
 import pandas as pd
+import dios
 from typing import Union, Dict, DefaultDict, Optional, Type, Tuple, Iterable
+
+from saqc.constants import *
+from saqc.core.history import History
+
 
 _VAL = Union[pd.Series, History]
 DictLike = Union[
@@ -343,7 +345,3 @@ def initFlagsLike(
         result[k] = History(item)
 
     return Flags(result)
-
-
-# for now we keep this name
-Flagger = Flags

@@ -6,7 +6,7 @@ from typing import Sequence, Tuple
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc import Flagger
+from saqc.core import Flags as Flagger
 from saqc.core.modules.base import ModuleBase
 
 

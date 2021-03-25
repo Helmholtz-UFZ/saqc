@@ -2,14 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from typing import Optional, Callable, Tuple, Union
-
 import numpy as np
 import pandas as pd
-
 from dios import DictOfSeries
 
-from saqc.core.register import register
-from saqc.flagger import Flagger
+from saqc.core import register, Flags as Flagger
 
 
 @register(masking='field', module="transformation")

@@ -8,7 +8,7 @@ import pandas as pd
 from hypothesis import given, settings
 
 from saqc.constants import *
-from saqc.flagger import Flagger
+from saqc.core import Flags as Flagger
 from saqc.core.register import _maskData, _unmaskData
 
 from tests.fuzzy.init import dataFieldFlagger, MAX_EXAMPLES

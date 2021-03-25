@@ -1,18 +1,15 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-import warnings
-from typing import Tuple, Union, Optional, Any, Callable, Sequence
+from typing import Tuple, Union, Callable
 from typing_extensions import Literal
-
 import numpy as np
 import pandas as pd
-
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.register import register, _isflagged
-from saqc.flagger import Flagger
-from saqc.flagger.history import applyFunctionOnHistory
+from saqc.core import register, Flags as Flagger
+from saqc.core.register import _isflagged
+from saqc.core.history import applyFunctionOnHistory
 from saqc.lib.ts_operators import interpolateNANs
 
 _SUPPORTED_METHODS = Literal[

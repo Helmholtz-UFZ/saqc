@@ -12,9 +12,9 @@ import pandas as pd
 from scipy import fft
 import logging
 import dios
-
 import collections
 from scipy.cluster.hierarchy import linkage, fcluster
+
 from saqc.lib.types import T
 
 # keep this for external imports

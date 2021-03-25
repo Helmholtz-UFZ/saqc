@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import ast
-
 import numpy as np
 import pandas as pd
 

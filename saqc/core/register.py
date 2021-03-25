@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-import logging
-from typing import Dict, Optional, Union, Tuple, List
+from typing import Dict, Optional, Union, Tuple
 from typing_extensions import Literal
 from functools import wraps
 import dataclasses
@@ -11,8 +10,8 @@ import warnings
 
 from saqc.constants import *
 from saqc.core.lib import SaQCFunction
+from saqc.core.flags import initFlagsLike, Flags as Flagger
 from saqc.lib.types import FuncReturnT
-from saqc.flagger.flags import Flagger, initFlagsLike
 
 # NOTE:
 # the global SaQC function store,

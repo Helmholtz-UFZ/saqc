@@ -2,17 +2,14 @@
 # -*- coding: utf-8 -*-
 from typing import Union, Tuple, Callable, Sequence, Optional
 from typing_extensions import Literal
-
 import numpy as np
 import pandas as pd
-
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.register import register
-from saqc.flagger import Flagger
-from saqc.lib import ts_operators as ts_ops
+from saqc.core import register, Flags as Flagger
 from saqc.lib.tools import toSequence
+import saqc.lib.ts_operators as ts_ops
 
 
 @register(masking='all', module="scores")

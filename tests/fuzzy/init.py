@@ -25,7 +25,7 @@ from saqc.constants import *
 from saqc.core.register import FUNC_MAP
 from saqc.core.lib import SaQCFunction
 from saqc.lib.types import FreqString, ColumnName, IntegerWindow
-from saqc.flagger import Flagger, initFlagsLike
+from saqc.core import initFlagsLike, Flags as Flagger
 
 MAX_EXAMPLES = 50
 # MAX_EXAMPLES = 100000

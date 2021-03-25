@@ -6,7 +6,7 @@ import dios
 
 
 def test_init():
-    from saqc import SaQC, Flagger
+    from saqc import SaQC, Flags as Flagger
 
     arr = np.array([
         [0, 1, 2],

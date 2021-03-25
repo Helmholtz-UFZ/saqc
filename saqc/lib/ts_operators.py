@@ -5,14 +5,11 @@
 The module gathers all kinds of timeseries tranformations.
 """
 import logging
-
 import re
 from typing import Union
-
 import pandas as pd
 import numpy as np
 import numba as nb
-
 from sklearn.neighbors import NearestNeighbors
 from scipy.stats import iqr, median_abs_deviation
 import numpy.polynomial.polynomial as poly

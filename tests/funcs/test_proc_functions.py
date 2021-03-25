@@ -7,7 +7,7 @@
 import dios
 
 from saqc.constants import *
-from saqc.flagger import initFlagsLike
+from saqc.core import initFlagsLike
 from saqc.funcs.transformation import transform
 from saqc.funcs.drift import correctOffset
 from saqc.funcs.interpolation import interpolateByRolling, interpolateInvalid, interpolateIndex

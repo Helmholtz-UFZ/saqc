@@ -3,26 +3,18 @@
 
 from typing import Optional, Union, Tuple, Sequence, Callable
 from typing_extensions import Literal
-
+import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
-from scipy.optimize import curve_fit
 import pandas as pd
-import numba
-
-from outliers import smirnov_grubbs
-
 from dios import DictOfSeries
+from outliers import smirnov_grubbs
+from scipy.optimize import curve_fit
 
 from saqc.constants import *
-from saqc.core.register import register
-from saqc.flagger import Flagger
-from saqc.lib.tools import (
-    customRoller,
-    findIndex,
-    getFreqDelta
-)
+from saqc.core import register, Flags as Flagger
 from saqc.lib.types import ColumnName, FreqString, IntegerWindow
+from saqc.lib.tools import customRoller, findIndex, getFreqDelta
 from saqc.funcs.scores import assignKNNScore
 import saqc.lib.ts_operators as ts_ops
 

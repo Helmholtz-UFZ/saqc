@@ -12,9 +12,8 @@ from typing_extensions import Literal
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.register import register
 from saqc.lib.tools import customRoller
-from saqc.flagger import Flagger
+from saqc.core import register, Flags as Flagger
 from saqc.lib.types import ColumnName, FreqString, IntegerWindow
 
 logger = logging.getLogger("SaQC")

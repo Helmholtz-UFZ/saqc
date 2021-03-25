@@ -8,7 +8,7 @@ import pandas as pd
 import dios
 
 from saqc.constants import *
-from saqc.flagger import Flagger, initFlagsLike
+from saqc.core import initFlagsLike, Flags as Flagger
 from saqc.core.visitor import ConfigFunctionParser
 from saqc.core.config import Fields as F
 from saqc.core.register import register

@@ -15,7 +15,7 @@ from scipy.spatial.distance import pdist
 
 from saqc.constants import *
 from saqc.core.register import register
-from saqc.flagger import Flagger
+from saqc.core import Flags as Flagger
 from saqc.funcs.resampling import shift
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import drop, copy

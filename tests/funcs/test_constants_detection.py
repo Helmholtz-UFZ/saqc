@@ -6,7 +6,7 @@ import numpy as np
 
 from saqc.constants import *
 from saqc.funcs.constants import flagConstants, flagByVariance
-from saqc.flagger import initFlagsLike
+from saqc.core import initFlagsLike, Flags as Flagger
 
 from tests.common import initData
 
