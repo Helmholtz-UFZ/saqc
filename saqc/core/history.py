@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
-from typing import Tuple, Type, Union, Literal
+from typing import Tuple, Type, Union
+from typing_extensions import Literal
 import pandas as pd
 import numpy as np
 from saqc.constants import *
