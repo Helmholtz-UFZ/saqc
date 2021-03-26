@@ -202,15 +202,15 @@ class History:
 
         Raises
         ------
-        ValueError: on index miss-match or wrong dtype
         TypeError: if value is not pd.Series
+        ValueError: on index miss-match or wrong dtype
         """
         if isinstance(value, History):
             return self._appendHistory(value, force=force)
 
         value = self._validateValue(value)
         if len(self) > 0 and not value.index.equals(self.index):
-            raise ValueError("Index must be equal to history index")
+            raise ValueError("Index does not match")
 
         self._insert(value, pos=len(self), force=force)
         return self
@@ -242,7 +242,7 @@ class History:
         """
         self._validateHistWithMask(value.hist, value.mask)
         if len(self) > 0 and not value.index.equals(self.index):
-            raise ValueError("Index must be equal to history index")
+            raise ValueError("Index does not match")
 
         n = len(self.columns)
         value_hist = value.hist

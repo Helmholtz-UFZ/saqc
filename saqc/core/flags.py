@@ -50,27 +50,116 @@ class _HistAccess:
 
 class Flags:
     """
-    flags manipulation
-    ------------------
-    insert new    -> flags['new'] = pd.Series(...)
-    set items     -> flags['v1'] = pd.Series(...)
-    get items     -> v0 = flags['v0']
-    delete items  -> del flags['v0']  / drop('v0')
+    Saqc's flags container.
 
-    metadata
+    This container class holds the quality flags associated with the data. It hold key-value pairs, where
+    the key is the name of the column and the value is a ``pandas.Series`` of flags. The index of the series
+    and the key-value pair can be assumed to be immutable, which means, only the *values* of the series can
+    be change, once the series exist.
+    In other words: **an existing column can not be overwritten by a column with a different index.**
+
+    The flags can be accessed via ``__getitem__`` and ``__setitem__``, in real life known as the `[]`-operator.
+
+    For the curious:
+        Under the hood, the series are stored in a `history`, which allows the advanced user to retrieve all flags
+        once was set in this object, but in the most cases this is irrelevant. For simplicity one can safely assume,
+        that this class works just stores the flag-series one sets.
+
+    See Also
     --------
-    reading columns     -> flags.columns
-    renaming column(s)  -> flags.columns = pd.Index(['a', 'b', 'c'])
+    initFlagsLike : create a Flags instance, with same dimensions as a reference object.
+    History : class that actually store the flags
 
-    history
-    -------
-    get history  -> flags.history['v0']
-    set history  -> flags.history['v0'] = History(...)
+    Examples
+    --------
+    We create an empty instance, by calling ``Flags`` without any arguments and then add a column to it.
 
-    conversion
-    ----------
-    make a dios  -> flags.toDios()
-    make a df    -> flags.toFrame()
+    >>> from saqc.constants import UNFLAGGED, BAD, DOUBT, UNTOUCHED
+    >>> flags = Flags()
+    >>> flags
+    Empty Flags
+    Columns: []
+    >>> flags['v0'] = pd.Series([BAD,BAD,UNFLAGGED], dtype=float)
+    >>> flags
+          v0 |
+    ======== |
+    0  255.0 |
+    1  255.0 |
+    2   -inf |
+
+    Once the column exist, we cannot overwrite it anymore, with a different series.
+
+    >>> flags['v0'] = pd.Series([666.], dtype=float)
+    Traceback (most recent call last):
+      some file path ...
+    ValueError: Index does not match
+
+    But if we pass a series, which index match it will work,
+    because the series now is interpreted as value-to-set.
+
+    >>> flags['v0'] = pd.Series([DOUBT,UNTOUCHED,DOUBT], dtype=float)
+    >>> flags
+          v0 |
+    ======== |
+    0   25.0 |
+    1  255.0 |
+    2   25.0 |
+
+    As we see above, the column now holds a combination from the values from the
+    first and the second set. This is, because the special constant ``UNTOUCHED``,
+    an alias for ``numpy.nan`` was used. We can inspect all the updates that was 
+    made by looking in the history.
+
+    >>> flags.history['v0']
+            0       1
+    0  (255.0)   25.0
+    1   255.0     nan
+    2   (-inf)   25.0
+
+    As we see now, the second call sets ``25.0`` and shadows (represented by the parentheses) ``(255.0)`` in the
+    first row and ``(-inf)`` in the last, but in the second row ``255.0`` still is valid, because it was
+    `not touched` by the set.
+
+    It is also possible to set values by a mask, which can be interpreted as condidional setting.
+    Imagine we want to `reset` all flags to ``0.`` if the existing flags are lower that ``255.``.
+
+    >>> mask = flags['v0'] < BAD
+    >>> mask
+    0     True
+    1    False
+    2     True
+    dtype: bool
+    >>> flags[mask, 'v0'] = 0
+    >>> flags
+          v0 |
+    ======== |
+    0    0.0 |
+    1  255.0 |
+    2    0.0 |
+
+    The objects you can pass as a row selector (``flags[rows, column]``) are:
+
+    - boolen arraylike, with or without index. Must have same length than the undeliing series.
+    - slices working on the index
+    - ``pd.Index``, which must be a subset of the existing index
+
+    For example, to set `all` values to a scalar value, use a Null-slice:
+
+    >>> flags[:, 'v0'] = 99.0
+    >>> flags
+         v0 |
+    ======= |
+    0  99.0 |
+    1  99.0 |
+    2  99.0 |
+
+    After all calls presented here, the history look like this:
+
+    >>> flags.history['v0']
+            0       1      2       3
+    0  (255.0)  (25.0)  (0.0)   99.0
+    1  (255.0)   (nan)  (nan)   99.0
+    2   (-inf)  (25.0)  (0.0)   99.0
     """
 
     def __init__(self, raw_data: Optional[Union[DictLike, Flags]] = None, copy: bool = False):
@@ -128,10 +217,26 @@ class Flags:
 
     @property
     def columns(self) -> pd.Index:
+        """
+        Column index of the flags container
+
+        Returns
+        -------
+        columns: pd.Index
+            The columns index
+        """
         return pd.Index(self._data.keys())
 
     @columns.setter
     def columns(self, value: pd.Index):
+        """
+        Set new columns names.
+
+        Parameters
+        ----------
+        value : pd.Index
+            New column names
+        """
         if not isinstance(value, pd.Index):
             value = pd.Index(value)
 
@@ -157,6 +262,14 @@ class Flags:
 
     @property
     def empty(self) -> bool:
+        """
+        True if flags has no columns.
+
+        Returns
+        -------
+        bool
+            ``True`` if the container has no columns, otherwise ``False``.
+        """
         return len(self._data) == 0
 
     def __len__(self) -> int:
@@ -231,8 +344,7 @@ class Flags:
 
         Returns
         -------
-        Flags
-            the same flags object with dropeed column, no copy
+        flags object with dropped column, not a copy
         """
         self.__delitem__(key)
 
@@ -241,12 +353,41 @@ class Flags:
 
     @property
     def history(self) -> _HistAccess:
+        """
+        Accessor for the flags history.
+
+        To get a copy of the current history use ``flags.history['var']``.
+        To set a new history use ``flags.history['var'] = value``.
+        The passed value must be a instance of History or must be convertible to a history.
+
+        Returns
+        -------
+        history : History
+            Accessor for the flags history
+
+        See Also
+        --------
+        saqc.core.History : History storage class.
+        """
         return _HistAccess(self)
 
     # ----------------------------------------------------------------------
     # copy
 
     def copy(self, deep=True):
+        """
+        Copy the flags container.
+
+        Parameters
+        ----------
+        deep : bool, default True
+            If False, a new reference to the Flags container is returned,
+            otherwise the underlying data is also copied.
+
+        Returns
+        -------
+        copy of flags
+        """
         return self._constructor(self, copy=deep)
 
     def __copy__(self, deep=True):
@@ -265,6 +406,13 @@ class Flags:
     # transformation and representation
 
     def toDios(self) -> dios.DictOfSeries:
+        """
+        Transform the flags container to a ``dios.DictOfSeries``.
+
+        Returns
+        -------
+        dios.DictOfSeries
+        """
         di = dios.DictOfSeries(columns=self.columns)
 
         for k, v in self._data.items():
@@ -273,6 +421,13 @@ class Flags:
         return di.copy()
 
     def toFrame(self) -> pd.DataFrame:
+        """
+        Transform the flags container to a ``pd.DataFrame``.
+
+        Returns
+        -------
+        pd.DataFrame
+        """
         return self.toDios().to_df()
 
     def __repr__(self) -> str:
