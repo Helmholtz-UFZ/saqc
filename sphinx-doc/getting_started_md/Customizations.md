@@ -24,13 +24,17 @@ SaQC provides two ways to integrate custom routines into the system:
 In order to make a function usable within the evaluation framework of SaQC the following interface is needed:
 
 ```python
+import pandas
+import dios
+import saqc
+
 def yourTestFunction(
    data: pandas.DataFrame,
    field: str,
-   flagger: saqc.flagger.BaseFlagger,
-   *args: Any,
-   **kwargs: Any
-   ) -> (dios.DictOfSeries, saqc.flagger.BaseFlagger)
+   flags: saqc.Flags,
+   *args,
+   **kwargs
+   ) -> (dios.DictOfSeries, saqc.Flags)
 ```
 
 #### Argument Descriptions
@@ -39,21 +43,21 @@ def yourTestFunction(
 |-----------|--------------------------------------------------------------------------------------------------|
 | `data`    | The actual dataset.                                                                               |
 | `field`   | The field/column within `data`, that function is processing.                              |
-| `flagger` | An instance of a flagger, responsible for the translation of test results into quality attributes. |
+| `flags`   | An instance of Flags, responsible for the translation of test results into quality attributes. |
 | `args`    | Any other arguments needed to parameterize the function.                                          |
 | `kwargs`  | Any other keyword arguments needed to parameterize the function.                                  |
 
 ### Integrate into SaQC
-In order make your function available to the system it needs to be registered. We provide the decorator 
-[`register`](saqc/functions/register.py) in the module `saqc.functions.register` to integrate your 
+In order make your function available to the system it needs to be registered. We provide a decorator 
+[`register`](saqc/functions/register.py) with saqc, to integrate your 
 test functions into SaQC. Here is a complete dummy example:
 
 ```python
-from saqc.functions.register import register
+from saqc import register
 
-@register
-def yourTestFunction(data, field, flagger, *args, **kwargs):
-    return data, flagger
+@register()
+def yourTestFunction(data, field, flags, *args, **kwargs):
+    return data, flags
 ```
 
 ### Example

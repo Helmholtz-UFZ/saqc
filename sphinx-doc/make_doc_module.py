@@ -9,23 +9,25 @@ import pickle
 
 new_line_re = "(\r\n|[\r\n])"
 
-doc_mod_structure = {'BasicFlagging': ['outliers.flagRange',
-                                       'breaks.flagMissing'],
-                     'BasicFlagging_dcstring': '',
-                     'AdvancedFlagging': ['pattern.flagPatternByDTW',
-                                          'outliers.flagOffset'],
-                     'AdvancedFlagging_dcstring': ''}
+doc_mod_structure = {
+    'BasicFlagging': ['outliers.flagRange', 'breaks.flagMissing'],
+    'BasicFlagging_dcstring': '',
+    'AdvancedFlagging': ['pattern.flagPatternByDTW', 'outliers.flagOffset'],
+    'AdvancedFlagging_dcstring': ''
+}
 
 
 def rm_section(dcstring, section, _return_section=False):
     """
     Detects a section in a docstring and (default) removes it, or (_return_section=True) returns it
     """
-    section_re = (f'{new_line_re}(?P<s_name>[^\n\r]{{2,}}){new_line_re}(?P<s_dash>-{{2,}}){new_line_re}')
+    section_re = f'{new_line_re}(?P<s_name>[^\n\r]{{2,}}){new_line_re}(?P<s_dash>-{{2,}}){new_line_re}'
     triggers = re.finditer(section_re, dcstring)
-    matches = [(trigger.groupdict()['s_name'], trigger.span()) for trigger in triggers if
-                len(trigger.groupdict()['s_name']) == len(trigger.groupdict()['s_dash'])] + \
-              [(None, (len(dcstring), None))]
+    matches = [
+                  (trigger.groupdict()['s_name'], trigger.span())
+                  for trigger in triggers
+                  if len(trigger.groupdict()['s_name']) == len(trigger.groupdict()['s_dash'])
+              ] + [(None, (len(dcstring), None))]
     sections = [m[0] for m in matches]
     starts = ends = 0
     if section in sections:
@@ -50,7 +52,7 @@ def rm_parameter(dcstring, parameter):
             start = re.search(p[0], dcstring).span()[0]
             try:
                 end = dcstring.find(next(paramatches)[0])
-            except(StopIteration):
+            except StopIteration:
                 end = len(re.sub(new_line_re + '$', '', dcstring))
 
     return dcstring[0:start] + dcstring[end:]
@@ -100,7 +102,6 @@ def parse_func_dcstrings(m_paths):
     return func_dict
 
 
-
 def parse_module_dcstrings(m_paths):
     mod_dict = {}
     for m in m_paths:
@@ -137,20 +138,19 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
 
 @click.command()
 @click.option(
-    "-p", "--pckpath", type=str,  required=True, default="saqc/funcs",
+    "-p", "--pckpath", type=str, required=True, default="saqc/funcs",
     help="Relative path to the package to be documented (relative to sphinx root)."
 )
 @click.option(
-    "-t", "--targetpath", type=str,  required=True, default="docs/intro_modules",
+    "-t", "--targetpath", type=str, required=True, default="docs/intro_modules",
     help="Output folder path (relative to sphinx root). Will be overridden if already existent."
 )
 @click.option(
-    "-sr", "--sphinxroot", type=str,  required=True, default='..', help="Relative path to the sphinx root."
+    "-sr", "--sphinxroot", type=str, required=True, default='..', help="Relative path to the sphinx root."
 )
 @click.option(
-    "-mo", "--mode", type=str,  required=True, default='intro_doc', help="either 'intro_doc' or 'module_doc'."
+    "-mo", "--mode", type=str, required=True, default='intro_doc', help="either 'intro_doc' or 'module_doc'."
 )
-
 def main(pckpath, targetpath, sphinxroot, mode):
     root_path = os.path.abspath(sphinxroot)
     pkg_path = os.path.join(root_path, pckpath)
@@ -183,7 +183,7 @@ def main(pckpath, targetpath, sphinxroot, mode):
                     doc_struct[module + '_dcstring'] = mod_dict[module]
         make_doc_module(targetpath, func_dict, doc_struct)
     if mode == 'module_doc':
-        doc_struct = {m:[] for m in modules}
+        doc_struct = {m: [] for m in modules}
         for dm in func_dict.keys():
             module = re.search('([^ .]*)\.[^ ]*$', dm).group(1)
             doc_struct[module].append(dm)

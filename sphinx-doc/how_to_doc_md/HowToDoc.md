@@ -109,11 +109,11 @@ But mostly the following sections are sufficient:
             ^
     ```
 
-## Flagger, data, field, etc.
+## Flags, data, field, etc.
 
 use this:
 ```py
-def foo(data, field, flagger):
+def foo(data, field, flags):
     """
     data : dios.DictOfSeries
 	A saqc-data object.
@@ -121,8 +121,8 @@ def foo(data, field, flagger):
     field : str
 	A field denoting a column in data.
 
-    flagger : saqc.flagger.BaseFlagger
-	A saqc-flagger object.
+    flags : saqc.Flags
+	A Flags object.
     """
 ```
 

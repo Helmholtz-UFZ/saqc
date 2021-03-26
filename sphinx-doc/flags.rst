@@ -1,8 +1,8 @@
 
-Flagger
+Flags
 =======
 
-.. automodapi:: saqc.flagger
+.. automodapi:: saqc.core.flags
    :include-all-objects:
    :no-heading:
 
