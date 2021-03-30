@@ -1,14 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Sequence, Callable, Union, Tuple
+from typing import Sequence, Callable, Union
 
 import numpy as np
 import pandas as pd
-from dios import DictOfSeries
 from typing_extensions import Literal
 
-from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
@@ -29,5 +28,5 @@ class Scores(ModuleBase):
             metric: str = 'minkowski',
             p: int = 2,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("assignKNNScore", locals())

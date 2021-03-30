@@ -1,34 +1,33 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Callable, Tuple
+from typing import Callable
 
 import numpy as np
 import pandas as pd
-from dios import DictOfSeries
 
-from saqc.constants import *
-from saqc.core import Flags
+from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
 
 
 class Generic(ModuleBase):
 
     def process(
-            self, 
+            self,
             field: str,
             func: Callable[[pd.Series], pd.Series],
             nodata: float = np.nan,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("process", locals())
 
     def flag(
-            self, 
+            self,
             field: str,
             func: Callable[[pd.Series], pd.Series],
             nodata: float = np.nan,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flag", locals())

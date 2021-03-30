@@ -1,14 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Optional, Union, Callable, Tuple
+from typing import Optional, Union, Callable
 
 import numpy as np
-from dios import DictOfSeries
 from typing_extensions import Literal
 
-from saqc.constants import *
-from saqc.core import Flags
+from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
 
 
@@ -24,7 +23,7 @@ class Residues(ModuleBase):
             min_periods: Optional[int] = 0,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("calculatePolynomialResidues", locals())
 
     def calculateRollingResidues(
@@ -37,5 +36,5 @@ class Residues(ModuleBase):
             center: bool = True,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("calculateRollingResidues", locals())
