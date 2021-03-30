@@ -309,6 +309,16 @@ class History:
         self.append(s)
         return self
 
+    def idxmax(self) -> pd.Series:
+        """
+        Get the index of the maximum value per row of the FH.
+
+        Returns
+        -------
+        pd.Series: maximum values
+        """
+        return self.hist[self.mask].idxmax(axis=1)
+
     def max(self) -> pd.Series:
         """
         Get the maximum value per row of the FH.
