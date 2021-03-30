@@ -2,18 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import ast
-from saqc.core.core import ColumnSelector
-
 import numpy as np
-
 import pandas as pd
 
+from saqc.core.core import ColumnSelector
 from saqc.core.config import Fields as F
 from saqc.core.visitor import ConfigFunctionParser
 from saqc.core.lib import ConfigController
 from saqc.core.register import FUNC_MAP
-
 from saqc.lib.tools import isQuoted
+
 
 COMMENT = "#"
 EMPTY = "None"
@@ -58,7 +56,7 @@ def _injectOptionalColumns(df):
     return df
 
 
-def _parseConfig(df, flagger, nodata):
+def _parseConfig(df, flags, nodata):
     funcs = []
     for lineno, (_, target, expr, plot) in enumerate(df.itertuples()):
         if target == "None" or pd.isnull(target) or pd.isnull(expr):
@@ -70,7 +68,7 @@ def _parseConfig(df, flagger, nodata):
             target = target[1:-1]
 
         tree = ast.parse(expr, mode="eval")
-        func_name, kwargs = ConfigFunctionParser(flagger).parse(tree.body)
+        func_name, kwargs = ConfigFunctionParser(flags).parse(tree.body)
         func = FUNC_MAP[func_name]
 
         selector = ColumnSelector(
@@ -80,19 +78,18 @@ def _parseConfig(df, flagger, nodata):
         )
 
         control = ConfigController(
-            masking=func.masking,
             plot=plot,
             lineno=lineno + 2,
             expression=expr
         )
 
-        f = func.bind(**{"nodata": nodata, "func_name": func.name, **kwargs})
+        f = func.bind(**{"nodata": nodata, **kwargs})
 
         funcs.append((selector, control, f))
     return funcs
 
 
-def readConfig(fname, flagger, nodata):
+def readConfig(fname, flags, nodata):
     df = pd.read_csv(
         fname,
         sep=r"\s*;\s*",
@@ -111,4 +108,4 @@ def readConfig(fname, flagger, nodata):
     df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
     df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: "", np.nan: ""})
     df = df.astype({F.PLOT: bool})
-    return _parseConfig(df, flagger, nodata)
+    return _parseConfig(df, flags, nodata)

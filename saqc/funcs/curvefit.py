@@ -4,30 +4,36 @@
 from math import floor
 from typing import Tuple, Union
 from typing_extensions import Literal
-
 import numpy as np
 import pandas as pd
-
-
 from dios import DictOfSeries
 
-from saqc.core.register import register
-
+from saqc.constants import *
+from saqc.core import register, Flags
 from saqc.lib.tools import getFreqDelta
-from saqc.flagger.baseflagger import BaseFlagger
-from saqc.lib.ts_operators import polyRollerIrregular, polyRollerNumba, polyRoller, polyRollerNoMissingNumba, polyRollerNoMissing
-
+from saqc.lib.ts_operators import (
+    polyRollerIrregular,
+    polyRollerNumba,
+    polyRoller,
+    polyRollerNoMissingNumba,
+    polyRollerNoMissing
+)
 
 
 @register(masking='field', module="curvefit")
-def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
-                  winsz: Union[int, str],
-                  polydeg: int,
-                  numba: Literal[True, False, "auto"]="auto",
-                  eval_flags: bool=True,
-                  min_periods: int=0,
-                  return_residues: bool=False,
-                  **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def fitPolynomial(
+        data: DictOfSeries,
+        field: str,
+        flags: Flags,
+        winsz: Union[int, str],
+        polydeg: int,
+        numba: Literal[True, False, "auto"] = "auto",
+        eval_flags: bool = True,
+        min_periods: int = 0,
+        return_residues: bool = False,
+        flag: float = BAD,
+        **kwargs
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function fits a polynomial model to the data and returns the fitted data curve.
 
@@ -68,8 +74,8 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-modelled.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     winsz : {str, int}
         The size of the window you want to use for fitting. If an integer is passed, the size
         refers to the number of periods for every fitting window. If an offset string is passed,
@@ -92,22 +98,22 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
         set the minimum number of periods to the number of values in an offset defined window size, pass np.nan.
     return_residues : bool, default False
         Internal parameter. Makes the method return the residues instead of the fit.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
-
+    flags : saqc.Flags
+        The quality flags of data
     """
+    # TODO: some (rater large) parts are functional similar to saqc.funcs.rolling.roll
     if data[field].empty:
-        return data, flagger
+        return data, flags
     data = data.copy()
     to_fit = data[field]
-    flags = flagger.getFlags(field)
     regular = getFreqDelta(to_fit.index)
     if not regular:
         if isinstance(winsz, int):
@@ -128,8 +134,8 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
         temp = residues.copy()
         for k in centers_iloc.iteritems():
             residues.iloc[k[1]] = temp[k[0]]
-        residues[residues.index[0] : residues.index[centers_iloc[0]]] = np.nan
-        residues[residues.index[centers_iloc[-1]] : residues.index[-1]] = np.nan
+        residues[residues.index[0]: residues.index[centers_iloc[0]]] = np.nan
+        residues[residues.index[centers_iloc[-1]]: residues.index[-1]] = np.nan
     else:
         if isinstance(winsz, str):
             winsz = pd.Timedelta(winsz) // regular
@@ -151,8 +157,8 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
                     lambda x, y: x[y], raw=True, args=(center_index,)
                 )
 
-            # we need a missing value marker that is not nan, because nan values dont get passed by pandas rolling
-            # method
+            # we need a missing value marker that is not nan,
+            # because nan values dont get passed by pandas rolling method
             miss_marker = to_fit.min()
             miss_marker = np.floor(miss_marker - 1)
             na_mask = to_fit.isna()
@@ -194,13 +200,8 @@ def fitPolynomial(data: DictOfSeries, field: str, flagger: BaseFlagger,
 
     data[field] = residues
     if eval_flags:
-        num_cats, codes = flags.factorize()
-        num_cats = pd.Series(num_cats, index=flags.index).rolling(winsz, center=True, min_periods=min_periods).max()
-        nan_samples = num_cats[num_cats.isna()]
-        num_cats.drop(nan_samples.index, inplace=True)
-        to_flag = pd.Series(codes[num_cats.astype(int)], index=num_cats.index)
-        to_flag = to_flag.align(nan_samples)[0]
-        to_flag[nan_samples.index] = flags[nan_samples.index]
-        flagger = flagger.setFlags(field, to_flag.values, **kwargs)
+        # TODO: we does not get any flags here, because of masking=field
+        worst = flags[field].rolling(winsz, center=True, min_periods=min_periods).max()
+        flags[field] = worst
 
-    return data, flagger
+    return data, flags

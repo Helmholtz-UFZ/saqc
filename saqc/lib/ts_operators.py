@@ -5,13 +5,11 @@
 The module gathers all kinds of timeseries tranformations.
 """
 import logging
-
 import re
-
+from typing import Union
 import pandas as pd
 import numpy as np
 import numba as nb
-
 from sklearn.neighbors import NearestNeighbors
 from scipy.stats import iqr, median_abs_deviation
 import numpy.polynomial.polynomial as poly
@@ -179,7 +177,7 @@ def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     return np.nanmean(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)])
 
 
-def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolation=False, return_chunk_bounds=False):
+def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolation=False):
     """
     The function interpolates nan-values (and nan-grids) in timeseries data. It can be passed all the method keywords
     from the pd.Series.interpolate method and will than apply this very methods. Note, that the inter_limit keyword
@@ -198,18 +196,12 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
     :param downgrade_interpolation:  Boolean. Default False. If True:
                                     If a data chunk not contains enough values for interpolation of the order "order",
                                     the highest order possible will be selected for that chunks interpolation.
-    :param return_chunk_bounds:     Boolean. Default False. If True:
-                                    Additionally to the interpolated data, the start and ending points of data chunks
-                                    not containing no series consisting of more then "inter_limit" nan values,
-                                    are calculated and returned.
-                                    (This option fits requirements of the "interpolateNANs" functions use in the
-                                    context of saqc harmonization mainly.)
 
     :return:
     """
     inter_limit = int(inter_limit)
     data = pd.Series(data).copy()
-    gap_mask = (data.rolling(inter_limit, min_periods=0).apply(lambda x: np.sum(np.isnan(x)), raw=True)) != inter_limit
+    gap_mask = data.isna().rolling(inter_limit, min_periods=0).sum() != inter_limit
 
     if inter_limit == 2:
         gap_mask = gap_mask & gap_mask.shift(-1, fill_value=True)
@@ -217,13 +209,6 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         gap_mask = (
             gap_mask.replace(True, np.nan).fillna(method="bfill", limit=inter_limit).replace(np.nan, True).astype(bool)
         )
-
-    if return_chunk_bounds:
-        # start end ending points of interpolation chunks have to be memorized to block their flagging:
-        chunk_switches = gap_mask.astype(int).diff()
-        chunk_starts = chunk_switches[chunk_switches == -1].index
-        chunk_ends = chunk_switches[(chunk_switches.shift(-1) == 1)].index
-        chunk_bounds = chunk_starts.join(chunk_ends, how="outer", sort=True)
 
     pre_index = data.index
     data = data[gap_mask]
@@ -260,18 +245,18 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         data = data.squeeze(axis=1)
         data.name = dat_name
     data = data.reindex(pre_index)
-    if return_chunk_bounds:
-        return data, chunk_bounds
-    else: return data
+
+    return data
 
 
 def aggregate2Freq(
-    data, method, freq, agg_func, fill_value=np.nan, max_invalid_total=None, max_invalid_consec=None
+    data: pd.Series, method, freq, agg_func, fill_value=np.nan, max_invalid_total=None, max_invalid_consec=None
 ):
-    # The function aggregates values to an equidistant frequency grid with agg_func.
-    # Timestamps that have no values projected on them, get "fill_value" assigned. Also,
-    # "fill_value" serves as replacement for "invalid" intervals
-
+    """
+    The function aggregates values to an equidistant frequency grid with agg_func.
+    Timestamps that gets no values projected, get filled with the fill-value. It
+    also serves as a replacement for "invalid" intervals.
+    """
     methods = {
         "nagg": lambda seconds_total: (seconds_total/2, "left", "left"),
         "bagg": lambda _: (0, "left", "left"),
@@ -279,8 +264,8 @@ def aggregate2Freq(
     }
 
     # filter data for invalid patterns (since filtering is expensive we pre-check if it is demanded)
-    if (max_invalid_total is not None) | (max_invalid_consec is not None):
-        if pd.isnull(fill_value):
+    if max_invalid_total is not None or max_invalid_consec is not None:
+        if pd.isna(fill_value):
             temp_mask = data.isna()
         else:
             temp_mask = data == fill_value
@@ -296,7 +281,7 @@ def aggregate2Freq(
     # In the following, we check for empty intervals outside resample.apply, because:
     # - resample AND groupBy do insert value zero for empty intervals if resampling with any kind of "sum" application -
     #   we want "fill_value" to be inserted
-    # - we are aggregating data and flags with this function and empty intervals usually would get assigned flagger.BAD
+    # - we are aggregating data and flags with this function and empty intervals usually would get assigned BAD
     #   flag (where resample inserts np.nan or 0)
 
     data_resampler = data.resample(f"{seconds_total:.0f}s", base=base, closed=closed, label=label)
@@ -313,8 +298,8 @@ def aggregate2Freq(
     except AttributeError:
         data = data_resampler.apply(agg_func)
 
-    # since loffset keyword of pandas.resample "discharges" after one use of the resampler (pandas logic) - we correct the
-    # resampled labels offset manually, if necessary.
+    # since loffset keyword of pandas.resample "discharges" after one use of the resampler (pandas logic),
+    # we correct the resampled labels offset manually, if necessary.
     if method == "nagg":
         data.index = data.index.shift(freq=pd.Timedelta(freq) / 2)
         empty_intervals.index = empty_intervals.index.shift(freq=pd.Timedelta(freq) / 2)
@@ -323,9 +308,11 @@ def aggregate2Freq(
     return data
 
 
-def shift2Freq(data, method, freq, fill_value=np.nan):
-    # shift timestamps backwards/forwards in order to allign them with an equidistant
-    # frequencie grid.
+def shift2Freq(data: Union[pd.Series, pd.DataFrame], method: str, freq: str, fill_value):
+    """
+    shift timestamps backwards/forwards in order to align them with an equidistant
+    frequency grid. Resulting Nan's are replaced with the fill-value.
+    """
 
     methods = {
         "fshift": lambda freq: ("ffill", pd.Timedelta(freq)),

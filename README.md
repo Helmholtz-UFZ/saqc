@@ -81,17 +81,16 @@ The following snippet implements the same configuration given above through
 the Python-API:
 
 ```python
-import saqc.funcs.outliers
-from saqc import SaQC, SimpleFlagger
+import numpy as np
+from saqc import SaQC
 
-saqc = saqc = (SaQC(SimpleFlagger(), data)
+saqc = (SaQC(data)
         .shiftToFreq("SM2", freq="15Min")
         .flagMissing("SM2", nodata=np.nan)
         .flagRange("SM(1|2)+", regex=True, min=10, max=60)
         .flagMad("SM2", window="30d", z=3.5))
 
-
-data, flagger = saqc.getResult()
+data, flags = saqc.getResult()
 ```
 
 ## Installation

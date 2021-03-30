@@ -2,56 +2,90 @@
 # -*- coding: utf-8 -*-
 from typing import Any, Tuple, Optional, Union
 from typing_extensions import Literal
-
 import pandas as pd
-
 from dios import DictOfSeries
 
-from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
-from saqc.lib.types import ColumnName
+from saqc.constants import *
+from saqc.lib.types import *
+from saqc.core import register, Flags
+import warnings
 
 
 @register(masking='field', module="flagtools")
-def clearFlags(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
-    flagger = flagger.clearFlags(field, **kwargs)
-    return data, flagger
-
-
-@register(masking='field', module="flagtools")
-def forceFlags(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, flag: Any, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
-    flagger = flagger.clearFlags(field).setFlags(field, flag=flag, inplace=True, **kwargs)
-    return data, flagger
-
-
-@register(masking='field', module="flagtools")
-def flagDummy(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger,  **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def forceFlags(
+        data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
+) -> Tuple[DictOfSeries, Flags]:
     """
-    Function does nothing but returning data and flagger.
+    Set whole column to a flag value.
 
     Parameters
     ----------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+    data : DictOfSeries
+        data container
     field : str
-        The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional informations related to `data`.
+        columns name that holds the data
+    flags : saqc.Flags
+        flags object
+    flag : float, default BAD
+        flag to set
+    kwargs : dict
+        unused
 
     Returns
     -------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
-        The flagger object, holding flags and additional Informations related to `data`.
+    data : DictOfSeries
+    flags : saqc.Flags
+
+    See Also
+    --------
+    clearFlags : set whole column to UNFLAGGED
+    flagUnflagged : set flag value at all unflagged positions
     """
-    return data, flagger
+    flags[:, field] = flag
+    return data, flags
+
+
+# masking='none' is sufficient because call is redirected
+@register(masking='none', module="flagtools")
+def clearFlags(data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs) -> Tuple[DictOfSeries, Flags]:
+    """
+    Set whole column to UNFLAGGED.
+
+    Parameters
+    ----------
+    data : DictOfSeries
+        data container
+    field : str
+        columns name that holds the data
+    flags : saqc.Flags
+        flags object
+    kwargs : dict
+        unused
+
+    Returns
+    -------
+    data : DictOfSeries
+    flags : saqc.Flags
+
+    See Also
+    --------
+    forceFlags : set whole column to a flag value
+    flagUnflagged : set flag value at all unflagged positions
+    """
+    if 'flag' in kwargs:
+        kwargs = {**kwargs}  # copy
+        flag = kwargs.pop('flag')
+        warnings.warn(f'`flag={flag}` is ignored here.')
+
+    return forceFlags(data, field, flags, flag=UNFLAGGED, **kwargs)
 
 
 @register(masking='field', module="flagtools")
-def flagForceFail(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, **kwargs):
+def flagUnflagged(
+        data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
+) -> Tuple[DictOfSeries, Flags]:
     """
-    Function raises a runtime error.
+    Function sets a flag at all unflagged positions.
 
     Parameters
     ----------
@@ -59,49 +93,34 @@ def flagForceFail(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, *
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional informations related to `data`.
-
-    """
-    raise RuntimeError("Works as expected :D")
-
-
-@register(masking='field', module="flagtools")
-def flagUnflagged(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
-    """
-    Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
-    If there is an entry 'flag' in the kwargs dictionary passed, the
-    function sets the kwargs['flag'] flag to all values flagged better kwargs['flag']
-
-    Parameters
-    ----------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    field : str
-        The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional informations related to `data`.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
+    flag : float, default BAD
+        flag value to set
     kwargs : Dict
-        If kwargs contains 'flag' entry, kwargs['flag] is set, if no entry 'flag' is present,
-        'flagger.UNFLAGGED' is set.
+        unused
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
-        The flagger object, holding flags and additional Informations related to `data`.
-    """
+    flags : saqc.Flags
+        The quality flags of data
 
-    flag = flagger.GOOD if flag is None else flag
-    flagger = flagger.setFlags(field, flag=flag, **kwargs)
-    return data, flagger
+    See Also
+    --------
+    clearFlags : set whole column to UNFLAGGED
+    forceFlags : set whole column to a flag value
+    """
+    unflagged = flags[field].isna() | (flags[field] == UNFLAGGED)
+    flags[unflagged, field] = flag
+    return data, flags
 
 
 @register(masking='field', module="flagtools")
-def flagGood(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, flag: Optional[Any]=None, **kwargs) -> Tuple[DictOfSeries, BaseFlagger]:
+def flagGood(data: DictOfSeries, field: ColumnName, flags: Flags, flag=BAD, **kwargs) -> Tuple[DictOfSeries, Flags]:
     """
-    Function sets the flagger.GOOD flag to all values flagged better then flagger.GOOD.
+    Function sets the GOOD flag at all unflagged positions.
 
     Parameters
     ----------
@@ -109,28 +128,29 @@ def flagGood(data: DictOfSeries, field: ColumnName, flagger: BaseFlagger, flag: 
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional informations related to `data`.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
-        The flagger object, holding flags and additional Informations related to `data`.
-
+    flags : saqc.Flags
+        The quality flags of data
     """
-    return flagUnflagged(data, field, flagger, flag=flag, **kwargs)
+    warnings.warn("'flagGood' is deprecated and does nothing, use 'flagUnflagged' instead", DeprecationWarning)
+    return data, flags
 
 
 @register(masking='field', module="flagtools")
 def flagManual(
-        data: DictOfSeries, field: ColumnName, flagger: BaseFlagger,
+        data: DictOfSeries, field: ColumnName, flags: Flags,
         mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
         mflag: Any = 1,
-        method=Literal["plain", "ontime", "left-open", "right-open"],
+        method: Literal["plain", "ontime", "left-open", "right-open"] = 'plain',
+        flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Flag data by given, "manually generated" data.
 
@@ -145,12 +165,13 @@ def flagManual(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional informations related to `data`.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
     mdata : {pd.Series, pd.Dataframe, DictOfSeries}
         The "manually generated" data
     mflag : scalar
         The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
+
     method : {'plain', 'ontime', 'left-open', 'right-open'}, default plain
         Defines how mdata is projected on data. Except for the 'plain' method, the methods assume mdata to have an
         index.
@@ -162,9 +183,13 @@ def flagManual(
           the value at t_1 gets projected onto all data timestamps t with t_1 <= t < t_2.
         * 'left-open': like 'right-open', but the projected interval now covers all t with t_1 < t <= t_2.
 
+    flag : float, default BAD
+        flag to set.
+
     Returns
     -------
-    data, flagger: original data, modified flagger
+    data : original data
+    flags : modified flags
 
     Examples
     --------
@@ -179,8 +204,8 @@ def flagManual(
     On *dayly* data, with the 'ontime' method, only the provided timestamnps are used.
     Bear in mind that only exact timestamps apply, any offset will result in ignoring
     the timestamp.
-    >>> _, fl = flagManual(data, field, flagger, mdata, mflag=1, method='ontime')
-    >>> fl.isFlagged(field)
+    >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='ontime')
+    >>> fl[field] > UNFLAGGED
     2000-01-31    False
     2000-02-01    True
     2000-02-02    False
@@ -192,8 +217,8 @@ def flagManual(
     Freq: D, dtype: bool
 
     With the 'right-open' method, the mdata is forward fill:
-    >>> _, fl = flagManual(data, field, flagger, mdata, mflag=1, method='right-open')
-    >>> fl.isFlagged(field)
+    >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='right-open')
+    >>> fl[field] > UNFLAGGED
     2000-01-31    False
     2000-02-01    True
     2000-02-02    True
@@ -204,8 +229,8 @@ def flagManual(
     Freq: D, dtype: bool
 
     With the 'left-open' method, backward filling is used:
-    >>> _, fl = flagManual(data, field, flagger, mdata, mflag=1, method='left-open')
-    >>> fl.isFlagged(field)
+    >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='left-open')
+    >>> fl[field] > UNFLAGGED
     2000-01-31    False
     2000-02-01    False
     2000-02-02    True
@@ -225,13 +250,19 @@ def flagManual(
         raise ValueError("mdata has no index")
 
     if method == "plain":
+
         if hasindex:
             mdata = mdata.to_numpy()
+
         if len(mdata) != len(dat):
             raise ValueError("mdata must have same length then data")
+
         mdata = pd.Series(mdata, index=dat.index)
+
+    # reindex will do the job later
     elif method == "ontime":
-        pass  # reindex will do the job later
+        pass
+
     elif method in ["left-open", "right-open"]:
         mdata = mdata.reindex(dat.index.union(mdata.index))
 
@@ -242,10 +273,59 @@ def flagManual(
         # <--t0](<--t1](<-- (bfill)
         if method == "left-open":
             mdata = mdata.bfill()
+
     else:
         raise ValueError(method)
 
     mask = mdata == mflag
     mask = mask.reindex(dat.index).fillna(False)
-    flagger = flagger.setFlags(field=field, loc=mask, **kwargs)
-    return data, flagger
+
+    flags[mask, field] = flag
+    return data, flags
+
+
+@register(masking='none', module="flagtools")
+def flagDummy(data: DictOfSeries, field: ColumnName, flags: Flags,  **kwargs) -> Tuple[DictOfSeries, Flags]:
+    """
+    Function does nothing but returning data and flags.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flags : saqc.Flags
+        The quality flags of data
+    """
+    return data, flags
+
+
+@register(masking='none', module="flagtools")
+def flagForceFail(data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs):
+    """
+    Function raises a runtime error.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
+
+    Raises
+    ------
+    RuntimeError : always
+    """
+    raise RuntimeError("Works as expected :D")
+
+

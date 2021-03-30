@@ -3,13 +3,11 @@
 
 from typing import Tuple, Union, Optional, Callable
 from typing_extensions import Literal
-
 import numpy as np
-
 from dios import DictOfSeries
 
-from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.constants import *
+from saqc.core import register, Flags
 from saqc.funcs.rolling import roll
 from saqc.funcs.curvefit import fitPolynomial
 
@@ -18,14 +16,15 @@ from saqc.funcs.curvefit import fitPolynomial
 def calculatePolynomialResidues(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flags: Flags,
         winsz: Union[str, int],
         polydeg: int,
-        numba: Literal[True, False, "auto"]="auto",
-        eval_flags: bool=True,
-        min_periods: Optional[int]=0,
+        numba: Literal[True, False, "auto"] = "auto",  # TODO: rm, not a a user decision
+        eval_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
+        min_periods: Optional[int] = 0,
+        flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function fits a polynomial model to the data and returns the residues.
 
@@ -66,8 +65,8 @@ def calculatePolynomialResidues(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-modelled.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     winsz : {str, int}
         The size of the window you want to use for fitting. If an integer is passed, the size
         refers to the number of periods for every fitting window. If an offset string is passed,
@@ -88,37 +87,54 @@ def calculatePolynomialResidues(
         fit to be performed. If there are not enough values, np.nan gets assigned. Default (0) results in fitting
         regardless of the number of values present (results in overfitting for too sparse intervals). To automatically
         set the minimum number of periods to the number of values in an offset defined window size, pass np.nan.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
-    flagger : saqc.flagger.BaseFlagger
-        The flagger object, holding flags and additional Informations related to `data`.
-        Flags values may have changed relatively to the flagger input.
+    flags : saqc.Flags
+        The quality flags of data
+        Flags values may have changed relatively to the flags input.
 
     """
-    data, flagger = fitPolynomial(data, field, flagger, winsz, polydeg, numba=numba, eval_flags=eval_flags,
-                                  min_periods=min_periods, return_residues=True, **kwargs)
-
-    return data, flagger
+    return fitPolynomial(
+        data, field, flags,
+        winsz=winsz,
+        polydeg=polydeg,
+        numba=numba,
+        eval_flags=eval_flags,
+        min_periods=min_periods,
+        return_residues=True,
+        flag=flag,
+        **kwargs
+    )
 
 
 @register(masking='field', module="residues")
 def calculateRollingResidues(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flags: Flags,
         winsz: Union[str, int],
-        func: Callable[[np.ndarray], np.ndarray]=np.mean,
-        eval_flags: bool=True,
-        min_periods: Optional[int]=0,
-        center: bool=True,
+        func: Callable[[np.ndarray], np.ndarray] = np.mean,
+        eval_flags: bool = True,
+        min_periods: Optional[int] = 0,
+        center: bool = True,
+        flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
-
-    data, flagger = roll(data, field, flagger, winsz, func=func, eval_flags=eval_flags,
-                         min_periods=min_periods, center=center, return_residues=True, **kwargs)
-
-    return data, flagger
+) -> Tuple[DictOfSeries, Flags]:
+    """ TODO: docstring needed"""
+    return roll(
+        data, field, flags,
+        winsz=winsz,
+        func=func,
+        eval_flags=eval_flags,
+        min_periods=min_periods,
+        center=center,
+        return_residues=True,
+        flag=flag,
+        **kwargs
+    )

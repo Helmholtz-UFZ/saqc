@@ -14,14 +14,13 @@ class ColumnSelector:
     regex: bool
 
 
+# TODO: this seems obsolete
 @dataclass
 class APIController:
-    masking: Literal["none", "field", "all"]
     plot: bool
-    to_mask: Any = None  # flagger.FLAG constants or a list of those
 
     def errorMessage(self):
-        return f"masking: {self.masking}\nto_mask: {self.to_mask}"
+        return ""
 
 
 @dataclass
@@ -35,9 +34,8 @@ class ConfigController(APIController):
 
 class SaQCFunction:
 
-    def __init__(self, name, masking, function, *args, **keywords):
+    def __init__(self, name, function, *args, **keywords):
         self.name = name
-        self.masking = masking
         self.func = function
         self.args = args
         self.keywords = keywords
@@ -47,13 +45,14 @@ class SaQCFunction:
 
     def bind(self, *args, **keywords):
         return SaQCFunction(
-            self.name, self.masking, self.func,
-            *(self.args + args), **{**self.keywords, **keywords}
+            self.name, self.func,
+            *(self.args + args),
+            **{**self.keywords, **keywords}
         )
 
-    def __call__(self, data, field, flagger, *args, **keywords):
+    def __call__(self, data, field, flags, *args, **keywords):
         keywords = {**self.keywords, **keywords}
-        return self.func(data, field, flagger, *self.args, *args, **keywords)
+        return self.func(data, field, flags, *self.args, *args, **keywords)
 
     def errorMessage(self) -> str:
         return f"function: {self.name}\narguments: {self.args}\nkeywords: {self.keywords}"

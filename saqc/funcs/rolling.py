@@ -2,14 +2,12 @@
 # -*- coding: utf-8 -*-
 
 from typing import Union, Callable
-
 import numpy as np
 import pandas as pd
-
 from dios import DictOfSeries
 
-from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.constants import *
+from saqc.core import register, Flags
 from saqc.lib.tools import getFreqDelta
 
 
@@ -17,64 +15,64 @@ from saqc.lib.tools import getFreqDelta
 def roll(
         data: DictOfSeries,
         field: str,
-        flagger: BaseFlagger,
+        flags: Flags,
         winsz: Union[str, int],
         func: Callable[[pd.Series], float]=np.mean,
-        eval_flags: bool=True,
+        eval_flags: bool=True,  # TODO: not applicable anymore
         min_periods: int=0,
         center: bool=True,
-        return_residues=False,
+        return_residues=False,  # TODO: this should not be public, a wrapper would be better
+        flag: float = BAD,
         **kwargs
 ):
     """
-        Models the data with the rolling mean and returns the residues.
+    Models the data with the rolling mean and returns the residues.
 
-        Note, that the residues will be stored to the `field` field of the input data, so that the data that is modelled
-        gets overridden.
+    Note, that the residues will be stored to the `field` field of the input data, so that the data that is modelled
+    gets overridden.
 
-        Parameters
-        ----------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
-        field : str
-            The fieldname of the column, holding the data-to-be-modelled.
-        flagger : saqc.flagger.BaseFlagger
-            A flagger object, holding flags and additional Informations related to `data`.
-        winsz : {int, str}
-            The size of the window you want to roll with. If an integer is passed, the size
-            refers to the number of periods for every fitting window. If an offset string is passed,
-            the size refers to the total temporal extension.
-            For regularly sampled timeseries, the period number will be casted down to an odd number if
-            center = True.
-        func : Callable[np.array, float], default np.mean
-            Function to apply on the rolling window and obtain the curve fit value.
-        eval_flags : bool, default True
-            Wheather or not to assign new flags to the calculated residuals. If True, a residual gets assigned the worst
-            flag present in the interval, the data for its calculation was obtained from.
-            Currently not implemented in combination with not-harmonized timeseries.
-        min_periods : int, default 0
-            The minimum number of periods, that has to be available in every values fitting surrounding for the mean
-            fitting to be performed. If there are not enough values, np.nan gets assigned. Default (0) results in fitting
-            regardless of the number of values present.
-        center : bool, default True
-            Wheather or not to center the window the mean is calculated of around the reference value. If False,
-            the reference value is placed to the right of the window (classic rolling mean with lag.)
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-modelled.
+    flags : saqc.Flags
+        Container to store quality flags to data.
+    winsz : {int, str}
+        The size of the window you want to roll with. If an integer is passed, the size
+        refers to the number of periods for every fitting window. If an offset string is passed,
+        the size refers to the total temporal extension.
+        For regularly sampled timeseries, the period number will be casted down to an odd number if
+        center = True.
+    func : Callable[np.array, float], default np.mean
+        Function to apply on the rolling window and obtain the curve fit value.
+    eval_flags : bool, default True
+        Wheather or not to assign new flags to the calculated residuals. If True, a residual gets assigned the worst
+        flag present in the interval, the data for its calculation was obtained from.
+        Currently not implemented in combination with not-harmonized timeseries.
+    min_periods : int, default 0
+        The minimum number of periods, that has to be available in every values fitting surrounding for the mean
+        fitting to be performed. If there are not enough values, np.nan gets assigned. Default (0) results in fitting
+        regardless of the number of values present.
+    center : bool, default True
+        Wheather or not to center the window the mean is calculated of around the reference value. If False,
+        the reference value is placed to the right of the window (classic rolling mean with lag.)
+    flag : float, default BAD
+        flag to set.
 
-        Returns
-        -------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
-            Data values may have changed relatively to the data input.
-        flagger : saqc.flagger.BaseFlagger
-            The flagger object, holding flags and additional Informations related to `data`.
-            Flags values may have changed relatively to the flagger input.
-        """
-
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+        Data values may have changed relatively to the data input.
+    flags : saqc.Flags
+        The quality flags of data
+    """
     data = data.copy()
     to_fit = data[field]
-    flags = flagger.getFlags(field)
     if to_fit.empty:
-        return data, flagger
+        return data, flags
 
     regular = getFreqDelta(to_fit.index)
     # starting with the annoying case: finding the rolling interval centers of not-harmonized input time series:
@@ -123,13 +121,8 @@ def roll(
 
     data[field] = means
     if eval_flags:
-        num_cats, codes = flags.factorize()
-        num_cats = pd.Series(num_cats, index=flags.index).rolling(winsz, center=True, min_periods=min_periods).max()
-        nan_samples = num_cats[num_cats.isna()]
-        num_cats.drop(nan_samples.index, inplace=True)
-        to_flag = pd.Series(codes[num_cats.astype(int)], index=num_cats.index)
-        to_flag = to_flag.align(nan_samples)[0]
-        to_flag[nan_samples.index] = flags[nan_samples.index]
-        flagger = flagger.setFlags(field, to_flag.values, **kwargs)
+        # TODO: we does not get any flags here, because of masking=field
+        worst = flags[field].rolling(winsz, center=True, min_periods=min_periods).max()
+        flags[field] = worst
 
-    return data, flagger
+    return data, flags

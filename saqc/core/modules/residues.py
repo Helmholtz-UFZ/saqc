@@ -1,36 +1,41 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Optional, Union, Callable
-from typing_extensions import Literal
+from typing import Optional, Union, Callable, Tuple
 
 import numpy as np
+from dios import DictOfSeries
+from typing_extensions import Literal
 
+from saqc.constants import *
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
 class Residues(ModuleBase):
 
     def calculatePolynomialResidues(
-            self,
+            self, 
             field: str,
             winsz: Union[str, int],
             polydeg: int,
-            numba: Literal[True, False, "auto"] = "auto",
-            eval_flags: bool = True,
+            numba: Literal[True, False, "auto"] = "auto",  # TODO: rm, not a a user decision
+            eval_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
             min_periods: Optional[int] = 0,
+            flag: float = BAD,
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("calculatePolynomialResidues", locals())
 
     def calculateRollingResidues(
-            self,
+            self, 
             field: str,
             winsz: Union[str, int],
-            func: Callable[[np.array], np.array] = np.mean,
+            func: Callable[[np.ndarray], np.ndarray] = np.mean,
             eval_flags: bool = True,
             min_periods: Optional[int] = 0,
             center: bool = True,
+            flag: float = BAD,
             **kwargs
-    ):
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("calculateRollingResidues", locals())

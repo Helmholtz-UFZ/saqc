@@ -12,9 +12,9 @@ import pandas as pd
 from scipy import fft
 import logging
 import dios
-
 import collections
 from scipy.cluster.hierarchy import linkage, fcluster
+
 from saqc.lib.types import T
 
 # keep this for external imports
@@ -308,16 +308,6 @@ def isQuoted(string):
     return bool(re.search(r"'.*'|\".*\"", string))
 
 
-def dropper(field, to_drop, flagger, default):
-    drop_mask = pd.Series(False, flagger.getFlags(field).index)
-    if to_drop is None:
-        to_drop = default
-    to_drop = toSequence(to_drop)
-    if len(to_drop) > 0:
-        drop_mask |= flagger.isFlagged(field, flag=to_drop)
-    return drop_mask
-
-
 def mutateIndex(index, old_name, new_name):
     pos = index.get_loc(old_name)
     index = index.drop(index[pos])
@@ -441,7 +431,7 @@ def evalFreqStr(freq, check, index):
         if check == 'check':
             f_passed_seconds = pd.Timedelta(f_passed).total_seconds()
             freq_seconds = pd.Timedelta(freq).total_seconds()
-            if (f_passed_seconds != freq_seconds):
+            if f_passed_seconds != freq_seconds:
                 logging.warning(f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed}).")
         elif check == 'auto':
             if freq is None:

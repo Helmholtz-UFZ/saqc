@@ -1,15 +1,18 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import Union
+from typing import Union, Tuple
 
+from dios import DictOfSeries
 from typing_extensions import Literal
 
+from saqc.constants import *
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
 class Curvefit(ModuleBase):
     def fitPolynomial(
-            self,
+            self, 
             field: str,
             winsz: Union[int, str],
             polydeg: int,
@@ -17,5 +20,7 @@ class Curvefit(ModuleBase):
             eval_flags: bool = True,
             min_periods: int = 0,
             return_residues: bool = False,
-            **kwargs):
+            flag: float = BAD,
+            **kwargs
+    ) -> Tuple[DictOfSeries, Flags]:
         return self.defer("fitPolynomial", locals())

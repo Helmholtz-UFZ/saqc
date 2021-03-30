@@ -8,7 +8,8 @@ import pandas as pd
 import dios
 import matplotlib.pyplot as plt
 from typing import List, Dict, Optional
-from saqc.flagger import BaseFlagger
+from saqc.constants import *
+from saqc.core import Flags as Flagger
 
 
 def __importHelper():
@@ -71,7 +72,7 @@ def plotAllHook(
     data, flagger, targets=None, show_info_table: bool = True, annotations: Optional[dios.DictOfSeries] = None,
 ):
     __importHelper()
-    targets = flagger.flags.columns if targets is None else targets
+    targets = flagger.columns if targets is None else targets
     _plotMultipleVariables(
         data_old=None,
         flagger_old=None,
@@ -88,8 +89,8 @@ def plotAllHook(
 def plotHook(
     data_old: Optional[dios.DictOfSeries],
     data_new: dios.DictOfSeries,
-    flagger_old: Optional[BaseFlagger],
-    flagger_new: BaseFlagger,
+    flagger_old: Optional[Flagger],
+    flagger_new: Flagger,
     sources: List[str],
     targets: List[str],
     plot_name: str = "",
@@ -119,8 +120,8 @@ def plotHook(
 def _plotMultipleVariables(
     data_old: Optional[dios.DictOfSeries],
     data_new: dios.DictOfSeries,
-    flagger_old: Optional[BaseFlagger],
-    flagger_new: BaseFlagger,
+    flagger_old: Optional[Flagger],
+    flagger_new: Flagger,
     targets: List[str],
     show_info_table: bool = True,
     annotations=None,
@@ -207,7 +208,7 @@ def _plotMultipleVariables(
 
 def simplePlot(
     data: dios.DictOfSeries,
-    flagger: BaseFlagger,
+    flagger: Flagger,
     field: str,
     plot_name=None,
     show_info_table: bool = True,
@@ -232,8 +233,8 @@ def simplePlot(
 def _plotSingleVariable(
     data_old: dios.DictOfSeries,
     data_new: dios.DictOfSeries,
-    flagger_old: BaseFlagger,
-    flagger_new: BaseFlagger,
+    flagger_old: Flagger,
+    flagger_new: Flagger,
     sources: List[str],
     targets: List[str],
     show_reference_data=True,
@@ -354,8 +355,8 @@ def _plotSingleVariable(
 def _getDataFromVar(
     data_old: dios.DictOfSeries,
     data_new: dios.DictOfSeries,
-    flagger_old: BaseFlagger,
-    flagger_new: BaseFlagger,
+    flagger_old: Flagger,
+    flagger_new: Flagger,
     varname: str,
 ):
     """
@@ -405,14 +406,14 @@ def _getDataFromVar(
         All infos are projected to the data locations.
     """
     var = varname
-    assert var in flagger_new.flags
-    flags_new: pd.Series = flagger_new.flags[var]
+    assert var in flagger_new.columns
+    flags_new: pd.Series = flagger_new[var]
     plotdict = _getPlotdict(data_new, flags_new, flagger_new, var)
     ref_plotdict = None
 
     # prepare flags
-    if flagger_old is not None and var in flagger_old.flags:
-        flags_old = flagger_old.flags[var]
+    if flagger_old is not None and var in flagger_old.columns:
+        flags_old = flagger_old[var]
         ref_plotdict = _getPlotdict(data_old, flags_old, flagger_old, var)
 
         # check flags-index changes:
@@ -427,12 +428,12 @@ def _getDataFromVar(
 
             # calculate old-flags and update flags, like BADs,
             # to show only freshly new set values
-            unflagged = plotdict["unflagged"]
+            unflagged = plotdict.get("unflagged", pd.Series(dtype=float))
             diff = unchanged.index.difference(unflagged.index)
             plotdict["old-flags"] = unchanged.loc[diff]
             for field in ["bad", "suspicious", "good"]:
-                data = plotdict[field]
-                isect = changed.index & data.index
+                data = plotdict.get(field, pd.Series(dtype=float))
+                isect = changed.index.intersection(data.index)
                 plotdict[field] = data.loc[isect]
 
     return plotdict, ref_plotdict
@@ -539,7 +540,7 @@ def _splitOldAndNew(old: pd.Series, new: pd.Series):
         of locations seen from new. This means, the rest marks locations, that
         are present(!) in new, but its data differs from old.
     """
-    idx = old.index & new.index
+    idx = old.index.intersection(new.index)
     both_nan = old.loc[idx].isna() & new.loc[idx].isna()
     mask = (new.loc[idx] == old[idx]) | both_nan
     old_idx = mask[mask].index
@@ -552,12 +553,10 @@ def _splitByFlag(flags: pd.Series, flagger, var: str):
     Splits flags in the five distinct bins: GOOD, SUSPICIOUS, BAD, UNFLAGGED and NaNs.
     """
     n = flags.isna()
-    loc = flags.dropna().index
-    g = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator="==")
-    b = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator="==")
-    u = flagger.isFlagged(field=var, loc=loc, flag=flagger.UNFLAGGED, comparator="==")
-    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.BAD, comparator="<")
-    s = flagger.isFlagged(field=var, loc=loc, flag=flagger.GOOD, comparator=">") & s
+    b = flags >= BAD
+    g = flags < UNFLAGGED
+    u = flags == UNFLAGGED
+    s = (flags > UNFLAGGED) & (flags < BAD)
     return g[g], s[s], b[b], u[u], n[n]
 
 

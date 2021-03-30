@@ -9,8 +9,8 @@ import pandas as pd
 
 from dios import DictOfSeries
 
-from saqc.core.register import register
-from saqc.flagger.baseflagger import BaseFlagger
+from saqc.constants import *
+from saqc.core import register, Flags
 from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta
 from saqc.lib.types import FreqString, ColumnName
@@ -20,11 +20,12 @@ from saqc.lib.types import FreqString, ColumnName
 def flagConstants(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: BaseFlagger,
+        flags: Flags,
         thresh: float,
         window: FreqString,
+        flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
+) -> Tuple[DictOfSeries, Flags]:
     """
     This functions flags plateaus/series of constant values of length `window` if
     their maximum total change is smaller than thresh.
@@ -41,26 +42,27 @@ def flagConstants(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
-        The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional Informations related to `data`.
+        Name of the column, holding the data-to-be-flagged.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     thresh : float
         Upper bound for the maximum total change of an interval to be flagged constant.
     window : str
         Lower bound for the size of an interval to be flagged constant.
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
-        The flagger object, holding flags and additional informations related to `data`.
-        Flags values may have changed, relatively to the flagger input.
+    flags : saqc.Flags
+        The flags object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flags input.
     """
-
-    d = data[field]
     if not isinstance(window, str):
         raise TypeError('window must be offset string.')
+    d = data[field]
 
     # min_periods=2 ensures that at least two non-nan values are present
     # in each window and also min() == max() == d[i] is not possible.
@@ -74,22 +76,22 @@ def flagConstants(
     m2 = r.max() - r.min() <= thresh
     mask = m1 | m2
 
-    flagger = flagger.setFlags(field, mask, **kwargs)
-    return data, flagger
+    flags[mask, field] = flag
+    return data, flags
 
 
 @register(masking='field', module="constants")
 def flagByVariance(
         data: DictOfSeries,
         field: ColumnName,
-        flagger: BaseFlagger,
-        window: FreqString="12h",
-        thresh: float=0.0005,
-        max_missing: int=None,
-        max_consec_missing: int=None,
+        flags: Flags,
+        window: FreqString = "12h",
+        thresh: float = 0.0005,
+        max_missing: int = None,
+        max_consec_missing: int = None,
+        flag: float = BAD,
         **kwargs
-) -> Tuple[DictOfSeries, BaseFlagger]:
-
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
@@ -102,8 +104,8 @@ def flagByVariance(
         A dictionary of pandas.Series, holding all the data.
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
-    flagger : saqc.flagger.BaseFlagger
-        A flagger object, holding flags and additional Informations related to `data`.
+    flags : saqc.Flags
+        Container to store quality flags to data.
     window : str
         Only intervals of minimum size "window" have the chance to get flagged as constant intervals
     thresh : float
@@ -116,39 +118,47 @@ def flagByVariance(
         Maximum number of consecutive nan values allowed in an interval to retrieve a
         valid  variance from it. (Intervals with a number of nans exceeding
         "max_consec_missing" have no chance to get flagged a plateau!)
+    flag : float, default BAD
+        flag to set.
 
     Returns
     -------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    flagger : saqc.flagger.BaseFlagger
-        The flagger object, holding flags and additional informations related to `data`.
-        Flags values may have changed, relatively to the flagger input.
+    flags : saqc.Flags
+        The flags object, holding flags and additional informations related to `data`.
+        Flags values may have changed, relatively to the flags input.
     """
-
     dataseries = data[field]
-    data_rate = getFreqDelta(dataseries.index)
 
-    if not data_rate:
+    delta = getFreqDelta(dataseries.index)
+    if not delta:
         raise IndexError('Timeseries irregularly sampled!')
+
     if max_missing is None:
         max_missing = np.inf
+
     if max_consec_missing is None:
         max_consec_missing = np.inf
-    min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(data_rate)))
 
-    plateaus = dataseries.rolling(window=window, min_periods=min_periods).apply(
-        lambda x: True if varQC(x, max_missing, max_consec_missing) <= thresh else np.nan, raw=False,
-    )
+    min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(delta)))
+
+    def var_below_thresh(s: pd.Series):
+        if varQC(s, max_missing, max_consec_missing) <= thresh:
+            return True
+        return np.nan
+
+    rolling = dataseries.rolling(window=window, min_periods=min_periods)
+    plateaus = rolling.apply(var_below_thresh, raw=False)
 
     # are there any candidates for beeing flagged plateau-ish
     if plateaus.sum() == 0:
-        return data, flagger
+        return data, flags
 
     plateaus.fillna(method="bfill", limit=min_periods - 1, inplace=True)
 
     # result:
     plateaus = (plateaus[plateaus == 1.0]).index
 
-    flagger = flagger.setFlags(field, plateaus, **kwargs)
-    return data, flagger
+    flags[plateaus, field] = flag
+    return data, flags
