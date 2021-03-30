@@ -28,6 +28,8 @@ DiosLikeT = Union[DictOfSeries, pd.DataFrame]
 
 FuncReturnT = [DictOfSeries, Flags]
 
+UserFlag = Union[str, float, int]
+
 # we only support fixed length offsets
 FreqString = NewType("FreqString", Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"])
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import copy as stdcopy
 from typing import List, Tuple, Sequence, Union
+from dios.dios import DictOfSeries
 from typing_extensions import Literal
 
 import pandas as pd
@@ -24,6 +25,10 @@ from saqc.core.register import FUNC_MAP, SaQCFunction
 from saqc.core.modules import FuncModules
 from saqc.funcs.tools import copy
 from saqc.lib.plotting import plotHook, plotAllHook
+from saqc.core.translator import FloatTranslator, Translator
+from saqc.lib.types import UserFlag
+from saqc.constants import BAD
+
 
 logger = logging.getLogger("SaQC")
 
@@ -102,7 +107,7 @@ _setup()
 
 class SaQC(FuncModules):
 
-    def __init__(self, data, flags=None, nodata=np.nan, to_mask=None, error_policy="raise"):
+    def __init__(self, data, flags=None, translator: Translator=None, nodata=np.nan, to_mask=None, error_policy="raise"):
         super().__init__(self)
         data, flags = _prepInput(data, flags)
         self._data = data
@@ -110,6 +115,9 @@ class SaQC(FuncModules):
         self._to_mask = to_mask
         self._flags = self._initFlags(data, flags)
         self._error_policy = error_policy
+        if translator is None:
+            translator = FloatTranslator()
+        self._translator = translator
         # NOTE: will be filled by calls to `_wrap`
         self._to_call: List[Tuple[ColumnSelector, APIController, SaQCFunction]] = []
 
@@ -206,9 +214,9 @@ class SaQC(FuncModules):
         new._flags, new._data = flags, data
         return new
 
-    def getResult(self, raw=False):
+    def getResult(self, raw=False) -> Union[Tuple[DictOfSeries, Flags], Tuple[pd.DataFrame, pd.DataFrame]]:
         """
-        Realized the registered calculations and return the results
+        Realize the registered calculations and return the results
 
         Returns
         -------
@@ -221,11 +229,11 @@ class SaQC(FuncModules):
         if raw:
             return data, flags
 
-        return data.to_df(), flags.toFrame()
+        return data.to_df(), self._translator.backward(flags, self._to_call)
 
     def _wrap(self, func: SaQCFunction):
 
-        def inner(field: str, *fargs, target: str = None, regex: bool = False, plot: bool = False, inplace: bool = False, **fkwargs) -> SaQC:
+        def inner(field: str, *fargs, target: str=None, regex: bool=False, flag: UserFlag=BAD, plot: bool=False, inplace: bool=False, **fkwargs) -> SaQC:
 
             if self._to_mask is not None:
                 fkwargs.setdefault('to_mask', self._to_mask)
@@ -240,7 +248,10 @@ class SaQC(FuncModules):
                 regex=regex,
             )
 
-            partial = func.bind(*fargs, **{"nodata": self._nodata, **fkwargs})
+            partial = func.bind(
+                *fargs,
+                **{"nodata": self._nodata, "flag": self._translator.forward(flag), **fkwargs}
+            )
 
             out = self if inplace else self.copy(deep=True)
             out._to_call.append((locator, control, partial))
