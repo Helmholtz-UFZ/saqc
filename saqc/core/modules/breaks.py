@@ -1,13 +1,11 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import Tuple
+from __future__ import annotations
 
 import numpy as np
-from dios import DictOfSeries
 
-from saqc.constants import *
+from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
-from saqc.core import Flags
 from saqc.lib.types import FreqString, IntegerWindow, ColumnName
 
 
@@ -19,7 +17,7 @@ class Breaks(ModuleBase):
             nodata: float = np.nan,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagMissing", locals())
 
     def flagIsolated(
@@ -29,7 +27,7 @@ class Breaks(ModuleBase):
             group_window: FreqString,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagIsolated", locals())
 
     def flagJumps(
@@ -40,5 +38,5 @@ class Breaks(ModuleBase):
             min_periods: IntegerWindow = 1,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagJumps", locals())

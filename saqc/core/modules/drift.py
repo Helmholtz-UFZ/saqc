@@ -1,14 +1,15 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Sequence, Callable, Optional, Tuple
+from typing import Sequence, Callable, Optional
 
 import numpy as np
 from scipy.spatial.distance import pdist
 
-from saqc.constants import *
+from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
-from saqc.funcs import LinkageString, DictOfSeries, Flags
+from saqc.funcs import LinkageString
 from saqc.lib.types import ColumnName, FreqString, CurveFitter
 
 
@@ -24,7 +25,7 @@ class Drift(ModuleBase):
             linkage_method: LinkageString = "single",
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagDriftFromNorm", locals())
 
     def flagDriftFromReference(
@@ -36,7 +37,7 @@ class Drift(ModuleBase):
             metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagDriftFromReference", locals())
 
     def flagDriftFromScaledNorm(
@@ -51,7 +52,7 @@ class Drift(ModuleBase):
             linkage_method: LinkageString = "single",
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagDriftFromScaledNorm", locals())
 
     def correctExponentialDrift(
@@ -62,7 +63,7 @@ class Drift(ModuleBase):
             flag_maint_period: bool = False,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("correctExponentialDrift", locals())
 
     def correctRegimeAnomaly(
@@ -73,7 +74,7 @@ class Drift(ModuleBase):
             regime_transmission: Optional[FreqString] = None,
             x_date: bool = False,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("correctRegimeAnomaly", locals())
 
     def correctOffset(
@@ -85,5 +86,5 @@ class Drift(ModuleBase):
             min_periods: int,
             regime_transmission: Optional[FreqString] = None,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("correctOffset", locals())

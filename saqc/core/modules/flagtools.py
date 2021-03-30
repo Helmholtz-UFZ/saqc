@@ -1,29 +1,29 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Any, Union, Tuple
+from typing import Any, Union
 
 import pandas as pd
 from dios.dios import DictOfSeries
 from typing_extensions import Literal
 
-from saqc.core import Flags
-from saqc.constants import *
+from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
 from saqc.lib.types import ColumnName
 
 
 class FlagTools(ModuleBase):
 
-    def clearFlags(self, field: ColumnName, **kwargs) -> Tuple[DictOfSeries, Flags]:
+    def clearFlags(self, field: ColumnName, **kwargs) -> SaQC:
         return self.defer("clearFlags", locals())
 
     def forceFlags(
             self, field: ColumnName, flag: float = BAD, **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("forceFlags", locals())
 
-    def flagDummy(self, field: ColumnName,  **kwargs) -> Tuple[DictOfSeries, Flags]:
+    def flagDummy(self, field: ColumnName,  **kwargs) -> SaQC:
         return self.defer("flagDummy", locals())
 
     def flagForceFail(self, field: ColumnName, **kwargs):
@@ -31,10 +31,10 @@ class FlagTools(ModuleBase):
 
     def flagUnflagged(
             self, field: ColumnName, flag: float = BAD, **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagUnflagged", locals())
 
-    def flagGood(self, field: ColumnName, flag=BAD, **kwargs) -> Tuple[DictOfSeries, Flags]:
+    def flagGood(self, field: ColumnName, flag=BAD, **kwargs) -> SaQC:
         return self.defer("flagGood", locals())
 
     def flagManual(
@@ -44,5 +44,5 @@ class FlagTools(ModuleBase):
             method: Literal["plain", "ontime", "left-open", "right-open"] = 'plain',
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagManual", locals())

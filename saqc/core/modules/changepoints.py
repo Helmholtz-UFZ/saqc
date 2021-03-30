@@ -1,14 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 import numpy as np
-from dios import DictOfSeries
 from typing_extensions import Literal
 
-from saqc.constants import *
-from saqc.core import Flags
+from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
 from saqc.lib.types import FreqString, IntegerWindow
 
@@ -16,7 +15,7 @@ from saqc.lib.types import FreqString, IntegerWindow
 class ChangePoints(ModuleBase):
 
     def flagChangePoints(
-            self, field: str, 
+            self, field: str,
             stat_func: Callable[[np.ndarray, np.ndarray], float],
             thresh_func: Callable[[np.ndarray, np.ndarray], float],
             bwd_window: FreqString,
@@ -29,11 +28,11 @@ class ChangePoints(ModuleBase):
             reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagChangePoints", locals())
 
     def assignChangePointCluster(
-            self, field: str, 
+            self, field: str,
             stat_func: Callable[[np.array, np.array], float],
             thresh_func: Callable[[np.array, np.array], float],
             bwd_window: str,
@@ -49,5 +48,5 @@ class ChangePoints(ModuleBase):
             assign_cluster: bool = True,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("assignChangePointCluster", locals())

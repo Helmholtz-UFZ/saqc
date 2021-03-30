@@ -1,12 +1,11 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Callable, Optional, Union, Tuple
+from typing import Callable, Optional, Union
 
 import pandas as pd
-from dios import DictOfSeries
 
-from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
@@ -18,5 +17,5 @@ class Transformation(ModuleBase):
             func: Callable[[pd.Series], pd.Series],
             partition_freq: Optional[Union[float, str]] = None,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("transform", locals())

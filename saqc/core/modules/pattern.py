@@ -1,12 +1,10 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Sequence, Tuple
+from typing import Sequence
 
-from dios import DictOfSeries
-
-from saqc.constants import *
-from saqc.core import Flags
+from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
 
 
@@ -20,7 +18,7 @@ class Pattern(ModuleBase):
             waveform: str = "mexh",
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagPatternByDTW", locals())
 
     def flagPatternByWavelet(
@@ -31,5 +29,5 @@ class Pattern(ModuleBase):
             normalize: bool = True,
             flag: float = BAD,
             **kwargs
-    ) -> Tuple[DictOfSeries, Flags]:
+    ) -> SaQC:
         return self.defer("flagPatternByWavelet", locals())
