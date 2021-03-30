@@ -103,7 +103,6 @@ def check_invariants(hist):
     # or the entire row is True
     if not hist.empty:
         idxmax = hist.mask.idxmax(axis=1)
-        print(f'idxmax: {idxmax}')
         for row, col in idxmax.items():
             # this is contra intuitive, it gets the positional (for iloc)
             row = idxmax.index.get_loc(row)
@@ -286,4 +285,3 @@ def test_squeeze():
 
         # result does not change
         assert all(hist.max() == exp)
-        print(hist)

@@ -23,6 +23,7 @@ SelectT = Union[
     _Field,
     Tuple[pd.Series, _Field],
     Tuple[pd.Index, _Field],
+    Tuple[slice, _Field],
 ]
 ValueT = Union[pd.Series, Iterable, float]
 

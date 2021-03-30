@@ -14,7 +14,7 @@ from saqc.lib.types import FreqString, IntegerWindow, ColumnName
 class Breaks(ModuleBase):
 
     def flagMissing(
-            self, 
+            self,
             field: ColumnName,
             nodata: float = np.nan,
             flag: float = BAD,
@@ -23,7 +23,7 @@ class Breaks(ModuleBase):
         return self.defer("flagMissing", locals())
 
     def flagIsolated(
-            self, 
+            self,
             field: ColumnName,
             gap_window: FreqString,
             group_window: FreqString,
@@ -33,11 +33,11 @@ class Breaks(ModuleBase):
         return self.defer("flagIsolated", locals())
 
     def flagJumps(
-            self, 
+            self,
             field: ColumnName,
             thresh: float,
             winsz: FreqString,
-            min_periods: IntegerWindow = 1,
+            min_periods: IntegerWindow=1,
             flag: float = BAD,
             **kwargs
     ) -> Tuple[DictOfSeries, Flags]:
