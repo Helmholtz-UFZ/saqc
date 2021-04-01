@@ -60,10 +60,6 @@ def test_flagtools_forceFlags():
 # NOTE:
 # all of the following tests fail to sample data for `flag=typing.Any`
 # with the new flagger in place this should be easy to fix
-def test_flagtools_flagGood():
-    callWontBreak("flagtools.flagGood")
-
-
 def test_flagtools_flagUnflagged():
     callWontBreak("flagtools.flagUnflagged")
 

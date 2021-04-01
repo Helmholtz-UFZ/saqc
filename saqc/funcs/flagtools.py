@@ -1,12 +1,12 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import Any, Tuple, Optional, Union
+from typing import Any, Tuple, Union
 from typing_extensions import Literal
 import pandas as pd
 from dios import DictOfSeries
 
-from saqc.constants import *
-from saqc.lib.types import *
+from saqc.constants import BAD, UNFLAGGED
+from saqc.lib.types import ColumnName
 from saqc.core import register, Flags
 import warnings
 
@@ -114,31 +114,6 @@ def flagUnflagged(
     """
     unflagged = flags[field].isna() | (flags[field] == UNFLAGGED)
     flags[unflagged, field] = flag
-    return data, flags
-
-
-@register(masking='field', module="flagtools")
-def flagGood(data: DictOfSeries, field: ColumnName, flags: Flags, flag=BAD, **kwargs) -> Tuple[DictOfSeries, Flags]:
-    """
-    Function sets the GOOD flag at all unflagged positions.
-
-    Parameters
-    ----------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    field : str
-        The fieldname of the column, holding the data-to-be-flagged.
-    flags : saqc.Flags
-        A flags object, holding flags and additional informations related to `data`.
-
-    Returns
-    -------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    flags : saqc.Flags
-        The quality flags of data
-    """
-    warnings.warn("'flagGood' is deprecated and does nothing, use 'flagUnflagged' instead", DeprecationWarning)
     return data, flags
 
 
@@ -306,26 +281,3 @@ def flagDummy(data: DictOfSeries, field: ColumnName, flags: Flags,  **kwargs) ->
         The quality flags of data
     """
     return data, flags
-
-
-@register(masking='none', module="flagtools")
-def flagForceFail(data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs):
-    """
-    Function raises a runtime error.
-
-    Parameters
-    ----------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-    field : str
-        The fieldname of the column, holding the data-to-be-flagged.
-    flags : saqc.Flags
-        A flags object, holding flags and additional informations related to `data`.
-
-    Raises
-    ------
-    RuntimeError : always
-    """
-    raise RuntimeError("Works as expected :D")
-
-

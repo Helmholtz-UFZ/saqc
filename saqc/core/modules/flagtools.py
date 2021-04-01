@@ -26,19 +26,13 @@ class FlagTools(ModuleBase):
     def flagDummy(self, field: ColumnName,  **kwargs) -> SaQC:
         return self.defer("flagDummy", locals())
 
-    def flagForceFail(self, field: ColumnName, **kwargs):
-        return self.defer("flagForceFail", locals())
-
     def flagUnflagged(
             self, field: ColumnName, flag: float = BAD, **kwargs
     ) -> SaQC:
         return self.defer("flagUnflagged", locals())
 
-    def flagGood(self, field: ColumnName, flag=BAD, **kwargs) -> SaQC:
-        return self.defer("flagGood", locals())
-
     def flagManual(
-            self, field: ColumnName, 
+            self, field: ColumnName,
             mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
             mflag: Any = 1,
             method: Literal["plain", "ontime", "left-open", "right-open"] = 'plain',
