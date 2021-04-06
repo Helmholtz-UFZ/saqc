@@ -4,6 +4,7 @@
 import numpy as np
 import pandas as pd
 import functools
+import inspect
 from dios import DictOfSeries
 
 from typing import Optional, Tuple, Sequence, Callable, Optional
@@ -21,7 +22,7 @@ from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import drop, copy
 from saqc.lib.tools import detectDeviants
 from saqc.lib.types import FreqString, ColumnName, CurveFitter, TimestampColumnName
-from saqc.lib.ts_operators import expModelFunc
+from saqc.lib.ts_operators import expModelFunc, expDriftModel, linearDriftModel
 
 LinkageString = Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]
 
@@ -343,45 +344,21 @@ def flagDriftFromScaledNorm(
 
 
 @register(masking='all', module="drift")
-def correctExponentialDrift(
+def correctDrift(
         data: DictOfSeries,
         field: ColumnName,
         flags: Flags,
         maint_data_field: ColumnName,
+        driftModel: Callable[..., float],
         cal_mean: int = 5,
         flag_maint_period: bool = False,
         flag: float = BAD,
         **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The function fits an exponential model to chunks of data[field].
-    It is assumed, that between maintenance events, there is a drift effect shifting the meassurements in a way, that
-    can be described by the model M:
+    The function corrects drifting behavior.
 
-    M(t, a, b, c) = a + b(exp(c*t))
-
-    Where as the values y_0 and y_1, describing the mean value directly after the last maintenance event (y_0) and
-    directly before the next maintenance event (y_1), impose the following additional conditions on the drift model:.
-
-    M(0, a, b, c) = y0
-    M(1, a, b, c) = y1
-
-    Solving the equation, one obtains the one-parameter Model:
-
-    M_drift(t, c) = y0 + [(y1 - y0)/(exp(c) - )] * (exp(c*t) - 1)
-
-    For every datachunk in between maintenance events.
-
-    After having found the optimal parameter c*, the correction is performed by bending the fitted curve M_drift(t, c*),
-    in a way that it matches y2 at t=1 (,with y2 being the mean value observed directly after the end of the next
-    maintenance event).
-    This bended curve is given by:
-
-    M_shift(t, c*) = M(t, y0, [(y1 - y0)/(exp(c*) - )], c*)
-
-    And the new values at t are computed via:
-
-    new_vals(t) = old_vals(t) + M_shift(t) - M_drift(t)
+    See the Notes section for an overview over the correction algorithm.
 
     Parameters
     ----------
@@ -392,10 +369,17 @@ def correctExponentialDrift(
     flags : saqc.Flags
         Container to store quality flags to data.
     maint_data_field : str
-        The fieldname of the datacolumn holding the maintenance information.
+        The fieldname of the datacolumn holding the support-points information.
         The maint data is to expected to have following form:
         The series' timestamp itself represents the beginning of a
         maintenance event, wheras the values represent the endings of the maintenance intervals.
+    driftModel : Callable
+        A modelfunction describing the drift behavior, that is to be corrected.
+        The model function must always contain the keyword parameters 'origin' and 'target'.
+        The starting parameter must always be the parameter, by wich the data is passed to the model.
+        After the data parameter, there can occure an arbitrary number of model calibration arguments in
+        the signature.
+        See the Notes section for an extensive description.
     cal_mean : int, default 5
         The number of values the mean is computed over, for obtaining the value level directly after and
         directly before maintenance event. This values are needed for shift calibration. (see above description)
@@ -411,6 +395,47 @@ def correctExponentialDrift(
         Data values may have changed relatively to the data input.
     flags : saqc.Flags
         The quality flags of data
+
+    Notes
+    -----
+    It is assumed, that between support points, there is a drift effect shifting the meassurements in a way, that
+    can be described, by a model function M(t, *p, origin, target). (With 0<=t<=1, p being a parameter set, and origin,
+    target being floats).
+
+    Note, that its possible for the model to have no free parameters p at all. (linear drift mainly)
+
+    The drift model, directly after the last support point (t=0),
+    should evaluate to the origin - calibration level (origin), and directly before the next support point
+    (t=1), it should evaluate to the target calibration level (target).
+
+    M(0, *p, origin, target) = origin
+    M(1, *p, origin, target) = target
+
+    The model is than fitted to any data chunk in between support points, by optimizing the parameters p*, and
+    thus, obtaining optimal parameterset P*.
+
+    The new values at t are computed via:
+
+    new_vals(t) = old_vals(t) + M(t, *P, origin, target) - M_drift(t, *P, origin, new_target)
+
+    Wheras new_target represents the value level immediately after the nex support point.
+
+    Examples
+    --------
+    Some examples of meaningful driftmodels.
+
+    Linear drift modell (no free parameters).
+
+    >>> M = lambda t, origin, target: origin + t*target
+
+    exponential drift model (exponential raise!)
+
+    >>> expFunc = lambda t, a, b, c: a + b * (np.exp(c * x) - 1)
+    >>> M = lambda t, p, origin, target: expFunc(t, (target - origin) / (np.exp(abs(c)) - 1), abs(c))
+
+    Exponential and linear driftmodels are part of the ts_operators library, under the names
+    expDriftModel and linearDriftModel.
+
     """
     # 1: extract fit intervals:
     if data[maint_data_field].empty:
@@ -434,12 +459,12 @@ def correctExponentialDrift(
     shift_targets = drift_grouper.aggregate(lambda x: x[:cal_mean].mean()).shift(-1)
 
     for k, group in drift_grouper:
-        dataSeries = group[to_correct.name]
-        dataFit, dataShiftTarget = _driftFit(dataSeries, shift_targets.loc[k, :][0], cal_mean)
-        dataFit = pd.Series(dataFit, index=group.index)
-        dataShiftTarget = pd.Series(dataShiftTarget, index=group.index)
-        dataShiftVektor = dataShiftTarget - dataFit
-        shiftedData = dataSeries + dataShiftVektor
+        data_series = group[to_correct.name]
+        data_fit, data_shiftTarget = _driftFit(data_series, shift_targets.loc[k, :][0], cal_mean, driftModel)
+        data_fit = pd.Series(data_fit, index=group.index)
+        data_shiftTarget = pd.Series(data_shiftTarget, index=group.index)
+        data_shiftVektor = data_shiftTarget - data_fit
+        shiftedData = data_series + data_shiftVektor
         to_correct[shiftedData.index] = shiftedData
 
     data[field] = to_correct
@@ -630,7 +655,7 @@ def correctOffset(
     return data, flags
 
 
-def _driftFit(x, shift_target, cal_mean):
+def _driftFit(x, shift_target, cal_mean, driftModel):
     x_index = x.index - x.index[0]
     x_data = x_index.total_seconds().values
     x_data = x_data / x_data[-1]
@@ -638,24 +663,23 @@ def _driftFit(x, shift_target, cal_mean):
     origin_mean = np.mean(y_data[:cal_mean])
     target_mean = np.mean(y_data[-cal_mean:])
 
-    def modelWrapper(x, c, a=origin_mean, target_mean=target_mean):
-        # final fitted curves val = target mean
-        b = (target_mean - a) / (np.exp(c) - 1)
-        return expModelFunc(x, a, b, c)
-
-    dataFitFunc = functools.partial(modelWrapper, a=origin_mean, target_mean=target_mean)
-
+    dataFitFunc = functools.partial(driftModel, origin=origin_mean, target=target_mean)
+    # if drift model has free parameters:
     try:
-        fitParas, *_ = curve_fit(dataFitFunc, x_data, y_data, bounds=([0], [np.inf]))
-        dataFit = dataFitFunc(x_data, fitParas[0])
-        b_val = (shift_target - origin_mean) / (np.exp(fitParas[0]) - 1)
-        dataShiftFunc = functools.partial(expModelFunc, a=origin_mean, b=b_val, c=fitParas[0])
-        dataShift = dataShiftFunc(x_data)
+            # try fitting free parameters
+            fit_paras, *_ = curve_fit(dataFitFunc, x_data, y_data)
+            data_fit = dataFitFunc(x_data, *fit_paras)
+            data_shift = driftModel(x_data, *fit_paras, origin=origin_mean, target=shift_target)
     except RuntimeError:
-        dataFit = np.array([0] * len(x_data))
-        dataShift = np.array([0] * len(x_data))
+            # if fit fails -> make no correction
+            data_fit = np.array([0] * len(x_data))
+            data_shift = np.array([0] * len(x_data))
+    # when there are no free parameters in the model:
+    except ValueError:
+        data_fit = dataFitFunc(x_data)
+        data_shift = driftModel(x_data, origin=origin_mean, target=shift_target)
 
-    return dataFit, dataShift
+    return data_fit, data_shift
 
 
 @register(masking='all', module="drift")
