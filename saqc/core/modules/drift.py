@@ -55,7 +55,7 @@ class Drift(ModuleBase):
     ) -> SaQC:
         return self.defer("flagDriftFromScaledNorm", locals())
 
-    def correctExponentialDrift(
+    def correctDrift(
             self, 
             field: ColumnName,
             maint_data_field: ColumnName,
@@ -64,7 +64,7 @@ class Drift(ModuleBase):
             flag: float = BAD,
             **kwargs
     ) -> SaQC:
-        return self.defer("correctExponentialDrift", locals())
+        return self.defer("correctDrift", locals())
 
     def correctRegimeAnomaly(
             self, 
