@@ -532,9 +532,9 @@ def applyFunctionOnHistory(
 
         new_history.append(last_column, force=True)
 
-    # assure a boolean mask
+    # assure a boolean mask and UNFLAGGED column
     new_history.mask = new_history.mask.fillna(False).astype(bool)
-    new_history.hist[0] = UNFLAGGED
+    new_history.hist.loc[:, :0] = UNFLAGGED
 
     return new_history
 
