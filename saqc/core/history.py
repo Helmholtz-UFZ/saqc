@@ -534,6 +534,7 @@ def applyFunctionOnHistory(
 
     # assure a boolean mask
     new_history.mask = new_history.mask.fillna(False).astype(bool)
+    new_history.hist[0] = UNFLAGGED
 
     return new_history
 

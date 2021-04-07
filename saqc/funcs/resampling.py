@@ -405,7 +405,7 @@ def _shift(
 
     # The last 2 lines left the history in an unstable state, Also we want to
     # append a dummy column, that represent the 'shift' in the history.
-    # Luckily the append also fix the unstable state - noice.
+    history.hist[0] = UNFLAGGED
     dummy = pd.Series(UNTOUCHED, index=datcol.index, dtype=float)
     history.append(dummy, force=True)
 
