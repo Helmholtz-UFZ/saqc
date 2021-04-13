@@ -23,14 +23,14 @@ from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.core import register, Flags
 
 
-@register(masking='field', module="breaks")
+@register(masking="field", module="breaks")
 def flagMissing(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        nodata: float = np.nan,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    nodata: float = np.nan,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags all values indicating missing data.
@@ -65,15 +65,15 @@ def flagMissing(
     return data, flags
 
 
-@register(masking='field', module="breaks")
+@register(masking="field", module="breaks")
 def flagIsolated(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        gap_window: FreqString,
-        group_window: FreqString,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    gap_window: FreqString,
+    group_window: FreqString,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
@@ -129,9 +129,9 @@ def flagIsolated(
             start = srs.index[0]
             stop = srs.index[-1]
             if stop - start <= group_window:
-                left = mask[start - gap_window: start].iloc[:-1]
+                left = mask[start - gap_window : start].iloc[:-1]
                 if left.all():
-                    right = mask[stop: stop + gap_window].iloc[1:]
+                    right = mask[stop : stop + gap_window].iloc[1:]
                     if right.all():
                         bools[start:stop] = True
 
@@ -139,16 +139,16 @@ def flagIsolated(
     return data, flags
 
 
-@register(masking='field', module="breaks")
+@register(masking="field", module="breaks")
 def flagJumps(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        thresh: float,
-        winsz: FreqString,
-        min_periods: IntegerWindow = 1,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    thresh: float,
+    winsz: FreqString,
+    min_periods: IntegerWindow = 1,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flag datapoints, where the mean of the values significantly changes (where the value course "jumps").
@@ -173,7 +173,9 @@ def flagJumps(
         flag to set.
     """
     return assignChangePointCluster(
-        data, field, flags,
+        data,
+        field,
+        flags,
         stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
         thresh_func=lambda x, y: thresh,
         bwd_window=winsz,

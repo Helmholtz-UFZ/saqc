@@ -1,16 +1,16 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 __all__ = [
-    'T',
-    'ArrayLike',
-    'PandasLike',
-    'DiosLikeT',
-    'FuncReturnT',
-    'FreqString',
-    'ColumnName',
-    'IntegerWindow',
-    'TimestampColumnName',
-    'CurveFitter',
+    "T",
+    "ArrayLike",
+    "PandasLike",
+    "DiosLikeT",
+    "FuncReturnT",
+    "FreqString",
+    "ColumnName",
+    "IntegerWindow",
+    "TimestampColumnName",
+    "CurveFitter",
 ]
 
 from typing import TypeVar, Union, NewType
@@ -31,7 +31,9 @@ FuncReturnT = [DictOfSeries, Flags]
 UserFlag = Union[str, float, int]
 
 # we only support fixed length offsets
-FreqString = NewType("FreqString", Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"])
+FreqString = NewType(
+    "FreqString", Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"]
+)
 
 # we define a bunch of type aliases, mostly needed to generate appropiate fuzzy data through hypothesis
 ColumnName = NewType("ColumnName", str)
@@ -43,4 +45,3 @@ TimestampColumnName = TypeVar("TimestampColumnName", bound=str)
 class CurveFitter(Protocol):
     def __call__(self, data: np.ndarray, *params: float) -> np.ndarray:
         ...
-

@@ -5,7 +5,11 @@ import dios
 
 from saqc.constants import *
 from saqc.core import initFlagsLike
-from saqc.funcs.drift import flagDriftFromNorm, flagDriftFromReference, flagDriftFromScaledNorm
+from saqc.funcs.drift import (
+    flagDriftFromNorm,
+    flagDriftFromReference,
+    flagDriftFromScaledNorm,
+)
 from saqc.funcs.outliers import flagCrossStatistic, flagRange
 from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
 from saqc.funcs.tools import drop, copy, mask
@@ -41,9 +45,28 @@ def test_flagSesonalRange(data, field):
     nyears = len(data[field].index.year.unique())
 
     tests = [
-        ({"min": 1, "max": 100, "startmonth": 7, "startday": 1, "endmonth": 8, "endday": 31, }, 31 * 2 * nyears // 2,),
         (
-        {"min": 1, "max": 100, "startmonth": 12, "startday": 16, "endmonth": 1, "endday": 15, }, 31 * nyears // 2 + 1,),
+            {
+                "min": 1,
+                "max": 100,
+                "startmonth": 7,
+                "startday": 1,
+                "endmonth": 8,
+                "endday": 31,
+            },
+            31 * 2 * nyears // 2,
+        ),
+        (
+            {
+                "min": 1,
+                "max": 100,
+                "startmonth": 12,
+                "startday": 16,
+                "endmonth": 1,
+                "endday": 15,
+            },
+            31 * nyears // 2 + 1,
+        ),
     ]
 
     for test, expected in tests:
@@ -54,11 +77,21 @@ def test_flagSesonalRange(data, field):
 
         data, flags = copy(data, field, flags, field + "_masked")
         data, flags = mask(
-            data, newfield, flags,
-            mode='periodic', period_start=start, period_end=end, include_bounds=True, flag=BAD
+            data,
+            newfield,
+            flags,
+            mode="periodic",
+            period_start=start,
+            period_end=end,
+            include_bounds=True,
+            flag=BAD,
         )
-        data, flags = flagRange(data, newfield, flags, min=test['min'], max=test['max'], flag=BAD)
-        data, flags = reindexFlags(data, field, flags, method='match', source=newfield, flag=BAD)
+        data, flags = flagRange(
+            data, newfield, flags, min=test["min"], max=test["max"], flag=BAD
+        )
+        data, flags = reindexFlags(
+            data, field, flags, method="match", source=newfield, flag=BAD
+        )
         data, flags = drop(data, newfield, flags)
         flagged = flags[field] > UNFLAGGED
         assert flagged.sum() == expected
@@ -102,13 +135,20 @@ def test_flagIsolated(data, field):
     # 2016-01-08   7.0   -inf
     #         ..    ..     ..
 
-    _, flags_result = flagIsolated(data, field, flags, group_window="1D", gap_window="2.1D", flag=BAD)
+    _, flags_result = flagIsolated(
+        data, field, flags, group_window="1D", gap_window="2.1D", flag=BAD
+    )
 
     assert flags_result[field].iloc[[3, 5]].all()
 
     data, flags_result = flagIsolated(
-        data, field, flags_result,
-        group_window="2D", gap_window="2.1D", continuation_range="1.1D", flag=BAD
+        data,
+        field,
+        flags_result,
+        group_window="2D",
+        gap_window="2.1D",
+        continuation_range="1.1D",
+        flag=BAD,
     )
     assert flags_result[field].iloc[[3, 5, 13, 14]].all()
 
@@ -124,7 +164,9 @@ def test_flagCrossScoring(dat):
     s2 = pd.Series(data=s2.values, index=s1.index)
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flags = initFlagsLike(data)
-    _, flags_result = flagCrossStatistic(data, field, flags, fields=fields, thresh=3, cross_stat=np.mean, flag=BAD)
+    _, flags_result = flagCrossStatistic(
+        data, field, flags, fields=fields, thresh=3, cross_stat=np.mean, flag=BAD
+    )
     for field in fields:
         isflagged = flags_result[field] > UNFLAGGED
         assert isflagged[characteristics["raise"]].all()
@@ -154,7 +196,9 @@ def test_flagManual(data, field):
         assert isflagged[isflagged].index.equals(index_exp)
 
     # flag not exist in mdata
-    _, fl = flagManual(*args, mdata=mdata, mflag="i do not exist", method="ontime", flag=BAD)
+    _, fl = flagManual(
+        *args, mdata=mdata, mflag="i do not exist", method="ontime", flag=BAD
+    )
     isflagged = fl[field] > UNFLAGGED
     assert isflagged[isflagged].index.equals(pd.DatetimeIndex([]))
 
@@ -214,37 +258,44 @@ def test_flagManual(data, field):
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
 def test_flagDriftFromNormal(dat):
-    data = dat(periods=200, peak_level=5, name='d1')[0]
-    data['d2'] = dat(periods=200, peak_level=10, name='d2')[0]['d2']
-    data['d3'] = dat(periods=200, peak_level=100, name='d3')[0]['d3']
-    data['d4'] = 3 + 4 * data['d1']
-    data['d5'] = 3 + 4 * data['d1']
+    data = dat(periods=200, peak_level=5, name="d1")[0]
+    data["d2"] = dat(periods=200, peak_level=10, name="d2")[0]["d2"]
+    data["d3"] = dat(periods=200, peak_level=100, name="d3")[0]["d3"]
+    data["d4"] = 3 + 4 * data["d1"]
+    data["d5"] = 3 + 4 * data["d1"]
 
     flags = initFlagsLike(data)
     data_norm, flags_norm = flagDriftFromNorm(
-        data, 'dummy', flags,
-        ['d1', 'd2', 'd3'],
+        data,
+        "dummy",
+        flags,
+        ["d1", "d2", "d3"],
         segment_freq="200min",
         norm_spread=5,
         flag=BAD,
     )
 
     data_ref, flags_ref = flagDriftFromReference(
-        data, 'd1', flags,
-        ['d1', 'd2', 'd3'],
+        data,
+        "d1",
+        flags,
+        ["d1", "d2", "d3"],
         segment_freq="3D",
         thresh=20,
         flag=BAD,
     )
 
     data_scale, flags_scale = flagDriftFromScaledNorm(
-        data, 'dummy', flags,
-        ['d1', 'd3'], ['d4', 'd5'],
+        data,
+        "dummy",
+        flags,
+        ["d1", "d3"],
+        ["d4", "d5"],
         segment_freq="3D",
         thresh=20,
         norm_spread=5,
         flag=BAD,
     )
-    assert all(flags_norm['d3'] > UNFLAGGED)
-    assert all(flags_ref['d3'] > UNFLAGGED)
-    assert all(flags_scale['d3'] > UNFLAGGED)
+    assert all(flags_norm["d3"] > UNFLAGGED)
+    assert all(flags_ref["d3"] > UNFLAGGED)
+    assert all(flags_scale["d3"] > UNFLAGGED)

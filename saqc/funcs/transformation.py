@@ -9,14 +9,14 @@ from dios import DictOfSeries
 from saqc.core import register, Flags
 
 
-@register(masking='field', module="transformation")
+@register(masking="field", module="transformation")
 def transform(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        func: Callable[[pd.Series], pd.Series],
-        partition_freq: Optional[Union[float, str]] = None,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    func: Callable[[pd.Series], pd.Series],
+    partition_freq: Optional[Union[float, str]] = None,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to transform data columns with a transformation that maps series onto series of the same length.

@@ -19,13 +19,13 @@ class Tools(ModuleBase):
         return self.defer("rename", locals())
 
     def mask(
-            self, 
-            field: str,
-            mode: Literal["periodic", "mask_var"],
-            mask_var: Optional[str]=None,
-            period_start: Optional[str]=None,
-            period_end: Optional[str]=None,
-            include_bounds: bool=True,
-            **kwargs,
+        self,
+        field: str,
+        mode: Literal["periodic", "mask_var"],
+        mask_var: Optional[str] = None,
+        period_start: Optional[str] = None,
+        period_end: Optional[str] = None,
+        include_bounds: bool = True,
+        **kwargs,
     ) -> SaQC:
         return self.defer("mask", locals())

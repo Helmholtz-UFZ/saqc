@@ -30,7 +30,12 @@ def data_diff():
     col1 = data[data.columns[1]]
     mid = len(col0) // 2
     offset = len(col0) // 8
-    return dios.DictOfSeries(data={col0.name: col0.iloc[: mid + offset], col1.name: col1.iloc[mid - offset :],})
+    return dios.DictOfSeries(
+        data={
+            col0.name: col0.iloc[: mid + offset],
+            col1.name: col1.iloc[mid - offset :],
+        }
+    )
 
 
 def _compileGeneric(expr, flags):
@@ -133,7 +138,10 @@ def test_nonReduncingBuiltins(data):
         (f"abs({this})", np.abs(data[this])),
         (f"log({this})", np.log(data[this])),
         (f"exp({this})", np.exp(data[this])),
-        (f"ismissing(mask({this} < {mean}))", data[this].mask(data[this] < mean).isna()),
+        (
+            f"ismissing(mask({this} < {mean}))",
+            data[this].mask(data[this] < mean).isna(),
+        ),
     ]
 
     for test, expected in tests:
@@ -213,7 +221,10 @@ def test_isflagged(data):
         (f"isflagged({var1}, flag=BAD)", flags[var1] >= BAD),
         (f"isflagged({var1}, UNFLAGGED, '==')", flags[var1] == UNFLAGGED),
         (f"~isflagged({var2})", flags[var2] == UNFLAGGED),
-        (f"~({var2}>999) & (~isflagged({var2}))", ~(data[var2] > 999) & (flags[var2] == UNFLAGGED)),
+        (
+            f"~({var2}>999) & (~isflagged({var2}))",
+            ~(data[var2] > 999) & (flags[var2] == UNFLAGGED),
+        ),
     ]
 
     for i, (test, expected) in enumerate(tests):
@@ -226,7 +237,7 @@ def test_isflagged(data):
             raise
 
     # test bad combination
-    for comp in ['>', '>=', '==', '!=', '<', '<=']:
+    for comp in [">", ">=", "==", "!=", "<", "<="]:
         fails = f"isflagged({var1}, comparator='{comp}')"
 
         func = _compileGeneric(f"generic.flag(func={fails}, flag=BAD)", flags)
@@ -274,7 +285,7 @@ def test_callableArgumentsUnary(data):
 
     window = 5
 
-    @register(masking='field')
+    @register(masking="field")
     def testFuncUnary(data, field, flags, func, **kwargs):
         data[field] = data[field].rolling(window=window).apply(func)
         return data, initFlagsLike(data)
@@ -303,7 +314,7 @@ def test_callableArgumentsUnary(data):
 def test_callableArgumentsBinary(data):
     var1, var2 = data.columns[:2]
 
-    @register(masking='field')
+    @register(masking="field")
     def testFuncBinary(data, field, flags, func, **kwargs):
         data[field] = func(data[var1], data[var2])
         return data, initFlagsLike(data)

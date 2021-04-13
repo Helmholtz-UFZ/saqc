@@ -40,7 +40,9 @@ def test_flagSpikesBasic(spiky_data):
     data = spiky_data[0]
     field, *_ = data.columns
     flags = initFlagsLike(data)
-    data, flags_result = flagOffset(data, field, flags, thresh=60, tolerance=10, window="20min", flag=BAD)
+    data, flags_result = flagOffset(
+        data, field, flags, thresh=60, tolerance=10, window="20min", flag=BAD
+    )
     flag_result = flags_result[field]
     test_sum = (flag_result[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])
@@ -61,8 +63,14 @@ def test_flagSpikesLimitRaise(dat):
     field, *_ = data.columns
     flags = initFlagsLike(data)
     _, flags_result = flagRaise(
-        data, field, flags,
-        thresh=2, intended_freq="10min", raise_window="20min", numba_boost=False, flag=BAD
+        data,
+        field,
+        flags,
+        thresh=2,
+        intended_freq="10min",
+        raise_window="20min",
+        numba_boost=False,
+        flag=BAD,
     )
     assert np.all(flags_result[field][characteristics["raise"]] > UNFLAGGED)
     assert not np.any(flags_result[field][characteristics["return"]] > UNFLAGGED)
@@ -72,8 +80,12 @@ def test_flagSpikesLimitRaise(dat):
 # see test/functs/fixtures.py for the 'course_N'
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
 def test_flagMultivarScores(dat):
-    data1, characteristics = dat(periods=1000, initial_level=5, final_level=15, out_val=50)
-    data2, characteristics = dat(periods=1000, initial_level=20, final_level=1, out_val=30)
+    data1, characteristics = dat(
+        periods=1000, initial_level=5, final_level=15, out_val=50
+    )
+    data2, characteristics = dat(
+        periods=1000, initial_level=20, final_level=1, out_val=30
+    )
     field = "dummy"
     fields = ["data1", "data2"]
     s1, s2 = data1.squeeze(), data2.squeeze()
@@ -82,7 +94,14 @@ def test_flagMultivarScores(dat):
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flags = initFlagsLike(data)
     _, flags_result = flagMVScores(
-        data, field, flags, fields=fields, trafo=np.log, iter_start=0.95, n_neighbors=10, flag=BAD
+        data,
+        field,
+        flags,
+        fields=fields,
+        trafo=np.log,
+        iter_start=0.95,
+        n_neighbors=10,
+        flag=BAD,
     )
     for field in fields:
         isflagged = flags_result[field] > UNFLAGGED
@@ -94,12 +113,16 @@ def test_flagMultivarScores(dat):
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
 def test_grubbs(dat):
     data, char_dict = dat(
-        freq="10min", periods=45,
-        initial_level=0, final_level=0,
-        crowd_size=1, crowd_spacing=3,
+        freq="10min",
+        periods=45,
+        initial_level=0,
+        final_level=0,
+        crowd_size=1,
+        crowd_spacing=3,
         out_val=-10,
     )
     flags = initFlagsLike(data)
-    data, result_flags = flagByGrubbs(data, "data", flags, winsz=20, min_periods=15, flag=BAD)
+    data, result_flags = flagByGrubbs(
+        data, "data", flags, winsz=20, min_periods=15, flag=BAD
+    )
     assert np.all(result_flags["data"][char_dict["drop"]] > UNFLAGGED)
-

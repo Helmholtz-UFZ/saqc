@@ -13,20 +13,35 @@ from saqc.core.history import applyFunctionOnHistory
 from saqc.lib.ts_operators import interpolateNANs
 
 _SUPPORTED_METHODS = Literal[
-    "linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-    "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"
+    "linear",
+    "time",
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "spline",
+    "barycentric",
+    "polynomial",
+    "krogh",
+    "piecewise_polynomial",
+    "spline",
+    "pchip",
+    "akima",
 ]
 
 
-@register(masking='field', module="interpolation")
+@register(masking="field", module="interpolation")
 def interpolateByRolling(
-        data: DictOfSeries, field: str, flags: Flags,
-        winsz: Union[str, int],
-        func: Callable[[pd.Series], float] = np.median,
-        center: bool = True,
-        min_periods: int = 0,
-        flag: float = UNFLAGGED,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    winsz: Union[str, int],
+    func: Callable[[pd.Series], float] = np.median,
+    center: bool = True,
+    min_periods: int = 0,
+    flag: float = UNFLAGGED,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Interpolates nan-values in the data by assigning them the aggregation result of the window surrounding them.
@@ -91,17 +106,17 @@ def interpolateByRolling(
     return data, flags
 
 
-@register(masking='field', module="interpolation")
+@register(masking="field", module="interpolation")
 def interpolateInvalid(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        method: _SUPPORTED_METHODS,
-        inter_order: int = 2,
-        inter_limit: int = 2,
-        downgrade_interpolation: bool = False,
-        flag: float = UNFLAGGED,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    method: _SUPPORTED_METHODS,
+    inter_order: int = 2,
+    inter_limit: int = 2,
+    downgrade_interpolation: bool = False,
+    flag: float = UNFLAGGED,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to interpolate nan values in the data.
@@ -153,7 +168,7 @@ def interpolateInvalid(
         method,
         order=inter_order,
         inter_limit=inter_limit,
-        downgrade_interpolation=downgrade_interpolation
+        downgrade_interpolation=downgrade_interpolation,
     )
     interpolated = data[field].isna() & inter_data.notna()
 
@@ -175,17 +190,17 @@ def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
     return data.fillna(fill_value).astype(dtype)
 
 
-@register(masking='none', module="interpolation")
+@register(masking="none", module="interpolation")
 def interpolateIndex(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        freq: str,
-        method: _SUPPORTED_METHODS,
-        inter_order: int = 2,
-        inter_limit: int = 2,
-        downgrade_interpolation: bool = False,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    freq: str,
+    method: _SUPPORTED_METHODS,
+    inter_order: int = 2,
+    inter_limit: int = 2,
+    downgrade_interpolation: bool = False,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
@@ -243,7 +258,7 @@ def interpolateIndex(
     start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
     grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
 
-    flagged = _isflagged(flags[field], kwargs['to_mask'])
+    flagged = _isflagged(flags[field], kwargs["to_mask"])
 
     # drop all points that hold no relevant grid information
     datcol = datcol[~flagged].dropna()
@@ -275,9 +290,11 @@ def interpolateIndex(
     # do the reshaping on the history
     flags.history[field] = applyFunctionOnHistory(
         flags.history[field],
-        hist_func=_resampleOverlapping, hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
-        mask_func=_resampleOverlapping, mask_kws=dict(freq=freq, fill_value=False),
-        last_column='dummy'
+        hist_func=_resampleOverlapping,
+        hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
+        mask_func=_resampleOverlapping,
+        mask_kws=dict(freq=freq, fill_value=False),
+        last_column="dummy",
     )
 
     return data, flags

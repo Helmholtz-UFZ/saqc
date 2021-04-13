@@ -12,22 +12,21 @@ from saqc.core.modules.base import ModuleBase
 
 
 class Generic(ModuleBase):
-
     def process(
-            self,
-            field: str,
-            func: Callable[[pd.Series], pd.Series],
-            nodata: float = np.nan,
-            **kwargs
+        self,
+        field: str,
+        func: Callable[[pd.Series], pd.Series],
+        nodata: float = np.nan,
+        **kwargs
     ) -> SaQC:
         return self.defer("process", locals())
 
     def flag(
-            self,
-            field: str,
-            func: Callable[[pd.Series], pd.Series],
-            nodata: float = np.nan,
-            flag: float = BAD,
-            **kwargs
+        self,
+        field: str,
+        func: Callable[[pd.Series], pd.Series],
+        nodata: float = np.nan,
+        flag: float = BAD,
+        **kwargs
     ) -> SaQC:
         return self.defer("flag", locals())

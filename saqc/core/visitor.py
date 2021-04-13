@@ -134,7 +134,7 @@ class ConfigFunctionParser(ast.NodeVisitor):
         ast.Index,
         ast.USub,
         ast.List,
-        ast.Attribute
+        ast.Attribute,
     )
 
     def __init__(self, flags):
@@ -207,7 +207,7 @@ class ConfigFunctionParser(ast.NodeVisitor):
         co = compile(
             ast.fix_missing_locations(ast.Interactive(body=[vnode])),
             "<ast>",
-            mode="single"
+            mode="single",
         )
         # NOTE: only pass a copy to not clutter the self.environment
         exec(co, {**self.environment}, self.kwargs)

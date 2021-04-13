@@ -29,7 +29,6 @@ ValueT = Union[pd.Series, Iterable, float]
 
 
 class _HistAccess:
-
     def __init__(self, obj: Flags):
         self.obj = obj
 
@@ -108,7 +107,7 @@ class Flags:
 
     As we see above, the column now holds a combination from the values from the
     first and the second set. This is, because the special constant ``UNTOUCHED``,
-    an alias for ``numpy.nan`` was used. We can inspect all the updates that was 
+    an alias for ``numpy.nan`` was used. We can inspect all the updates that was
     made by looking in the history.
 
     >>> flags.history['v0']
@@ -163,7 +162,9 @@ class Flags:
     2   (-inf)  (25.0)  (0.0)   99.0
     """
 
-    def __init__(self, raw_data: Optional[Union[DictLike, Flags]] = None, copy: bool = False):
+    def __init__(
+        self, raw_data: Optional[Union[DictLike, Flags]] = None, copy: bool = False
+    ):
 
         if raw_data is None:
             raw_data = {}
@@ -191,7 +192,7 @@ class Flags:
         for k, item in data.items():
 
             if k in result:
-                raise ValueError('raw_data must not have duplicate keys')
+                raise ValueError("raw_data must not have duplicate keys")
 
             # No, means no ! (copy)
             if isinstance(item, History) and not copy:
@@ -203,14 +204,16 @@ class Flags:
             elif isinstance(item, History):
                 pass
             else:
-                raise TypeError(f"cannot init from {type(data.__name__)} of {type(item.__name__)}")
+                raise TypeError(
+                    f"cannot init from {type(data.__name__)} of {type(item.__name__)}"
+                )
 
             result[k] = History(item, copy=copy)
 
         return result
 
     @property
-    def _constructor(self) -> Type['Flags']:
+    def _constructor(self) -> Type["Flags"]:
         return type(self)
 
     # ----------------------------------------------------------------------
@@ -241,11 +244,8 @@ class Flags:
         if not isinstance(value, pd.Index):
             value = pd.Index(value)
 
-        if (
-                not value.is_unique
-                or not pd.api.types.is_string_dtype(value)
-        ):
-            raise TypeError('value must be pd.Index, with unique indices of type str')
+        if not value.is_unique or not pd.api.types.is_string_dtype(value):
+            raise TypeError("value must be pd.Index, with unique indices of type str")
 
         if not len(value) == len(self):
             raise ValueError("index must match current index in length")
@@ -294,7 +294,9 @@ class Flags:
 
         if isinstance(key, tuple):
             if len(key) != 2:
-                raise KeyError("a single 'column' or a tuple of 'mask, column' must be passt")
+                raise KeyError(
+                    "a single 'column' or a tuple of 'mask, column' must be passt"
+                )
             mask, key = key
 
             tmp = pd.Series(UNTOUCHED, index=self._data[key].index, dtype=float)
@@ -309,7 +311,7 @@ class Flags:
             try:
                 tmp[mask] = value
             except Exception:
-                raise ValueError('bad mask')
+                raise ValueError("bad mask")
             else:
                 value = tmp
 
@@ -432,13 +434,13 @@ class Flags:
         return self.toDios().to_df()
 
     def __repr__(self) -> str:
-        return str(self.toDios()).replace('DictOfSeries', type(self).__name__)
+        return str(self.toDios()).replace("DictOfSeries", type(self).__name__)
 
 
 def initFlagsLike(
-        reference: Union[pd.Series, DictLike, Flags],
-        initial_value: float = UNFLAGGED,
-        name: str = None,
+    reference: Union[pd.Series, DictLike, Flags],
+    initial_value: float = UNFLAGGED,
+    name: str = None,
 ) -> Flags:
     """
     Create empty Flags, from an reference data structure.
@@ -480,7 +482,9 @@ def initFlagsLike(
         if name is None:
             name = reference.name
         if name is None:
-            raise ValueError("Either the passed series must be named or a name must be passed")
+            raise ValueError(
+                "Either the passed series must be named or a name must be passed"
+            )
         if not isinstance(name, str):
             raise TypeError(f"name must be str not '{type(name).__name__}'")
         reference = reference.to_frame(name=name)
@@ -488,13 +492,15 @@ def initFlagsLike(
     for k, item in reference.items():
 
         if not isinstance(k, str):
-            raise TypeError(f"cannot use {k} as key, currently only string keys are allowed")
+            raise TypeError(
+                f"cannot use {k} as key, currently only string keys are allowed"
+            )
 
         if k in result:
-            raise ValueError('reference must not have duplicate keys')
+            raise ValueError("reference must not have duplicate keys")
 
         if not isinstance(item, (pd.Series, History)):
-            raise TypeError('items in reference must be of type pd.Series')
+            raise TypeError("items in reference must be of type pd.Series")
 
         item = pd.DataFrame(initial_value, index=item.index, columns=[0], dtype=float)
 

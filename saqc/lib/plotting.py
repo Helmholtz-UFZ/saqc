@@ -55,11 +55,17 @@ _plotstyle: Dict[str, dict] = {
     "unflagged": dict(marker=".", ls="none", c="silver", label="UNFLAGGED"),
     "good": dict(marker=".", fillstyle="none", ls="none", c="seagreen", label="GOOD"),
     "bad": dict(marker=".", fillstyle="none", ls="none", c="firebrick", label="BAD"),
-    "suspicious": dict(marker=".", fillstyle="none", ls="none", c="gold", label="SUSPICIOUS"),
-    "old-flags": dict(marker=".", fillstyle="none", ls="none", c="black", label="old-flags"),
+    "suspicious": dict(
+        marker=".", fillstyle="none", ls="none", c="gold", label="SUSPICIOUS"
+    ),
+    "old-flags": dict(
+        marker=".", fillstyle="none", ls="none", c="black", label="old-flags"
+    ),
     # data
     "data": dict(c="silver", ls="-", label="data"),
-    "data-nans": dict(marker=".", fillstyle="none", ls="none", c="lightsteelblue", label="NaN"),
+    "data-nans": dict(
+        marker=".", fillstyle="none", ls="none", c="lightsteelblue", label="NaN"
+    ),
 }
 
 
@@ -69,7 +75,11 @@ def _show():
 
 
 def plotAllHook(
-    data, flagger, targets=None, show_info_table: bool = True, annotations: Optional[dios.DictOfSeries] = None,
+    data,
+    flagger,
+    targets=None,
+    show_info_table: bool = True,
+    annotations: Optional[dios.DictOfSeries] = None,
 ):
     __importHelper()
     targets = flagger.columns if targets is None else targets
@@ -110,7 +120,9 @@ def plotHook(
     )
 
     if len(targets) == 1:
-        _plotSingleVariable(**args, sources=sources, show_reference_data=True, plot_name=plot_name)
+        _plotSingleVariable(
+            **args, sources=sources, show_reference_data=True, plot_name=plot_name
+        )
     else:
         _plotMultipleVariables(**args)
 
@@ -171,7 +183,7 @@ def _plotMultipleVariables(
         sharex=True,
         tight_layout=True,
         squeeze=False,
-        gridspec_kw=gs_kw if show_tab else {}
+        gridspec_kw=gs_kw if show_tab else {},
     )
 
     # plot max. 4 plots per figure
@@ -303,7 +315,10 @@ def _plotSingleVariable(
             logging.warning(f"plotting: only first 4 of {slen} sources are shown.")
             slen = 4
 
-    fig = plt.figure(constrained_layout=True, figsize=_figsize,)
+    fig = plt.figure(
+        constrained_layout=True,
+        figsize=_figsize,
+    )
     outer_gs = fig.add_gridspec(ncols=1, nrows=nrows)
     gs_count = 0
     allaxs = []
@@ -422,7 +437,9 @@ def _getDataFromVar(
         # though the calculations would work.
         if flags_old.index.equals(flags_new.index):
             unchanged, changed = _splitOldAndNew(flags_old, flags_new)
-            unchanged, changed = _projectFlagsOntoData([unchanged, changed], plotdict["data"])
+            unchanged, changed = _projectFlagsOntoData(
+                [unchanged, changed], plotdict["data"]
+            )
             plotdict["unchanged"] = unchanged
             plotdict["changed"] = changed
 
@@ -601,7 +618,9 @@ def _plotDataWithTable(fig, gs, pdict, show_tab=True):
         _plotInfoTable()
     """
     if show_tab:
-        plot_gs, tab_gs = gs.subgridspec(ncols=2, nrows=1, width_ratios=_layout_data_to_table_ratio)
+        plot_gs, tab_gs = gs.subgridspec(
+            ncols=2, nrows=1, width_ratios=_layout_data_to_table_ratio
+        )
         ax = fig.add_subplot(tab_gs)
         _plotInfoTable(ax, pdict, _plotstyle, len(pdict["data"]))
         ax = fig.add_subplot(plot_gs)
@@ -648,9 +667,9 @@ def _plotFromDicts(ax, plotdict, styledict):
 def _annotate(ax, plotdict, txtseries: pd.Series):
     for x, txt in txtseries.iteritems():
         try:
-            y = plotdict['data'].loc[x]
+            y = plotdict["data"].loc[x]
             if np.isnan(y):
-                y = plotdict['data-nans'].loc[x]
+                y = plotdict["data-nans"].loc[x]
         except KeyError:
             continue
         ax.annotate(txt, xy=(x, y), rotation=45)

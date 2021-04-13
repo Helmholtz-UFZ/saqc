@@ -59,7 +59,10 @@ def derivative(ts, unit="1min"):
 
 def deltaT(ts, unit="1min"):
     # calculates series of time gaps in ts
-    return ts.index.to_series().diff().dt.total_seconds() / pd.Timedelta(unit).total_seconds()
+    return (
+        ts.index.to_series().diff().dt.total_seconds()
+        / pd.Timedelta(unit).total_seconds()
+    )
 
 
 def difference(ts):
@@ -111,11 +114,12 @@ def standardizeByIQR(ts):
     return (ts - np.median(ts)) / iqr(ts, nan_policy="omit")
 
 
-def kNN(in_arr, n_neighbors, algorithm="ball_tree", metric='minkowski', p=2):
+def kNN(in_arr, n_neighbors, algorithm="ball_tree", metric="minkowski", p=2):
     # k-nearest-neighbor search
 
-    nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm, metric=metric, p=p)\
-        .fit(in_arr.reshape(in_arr.shape[0], -1))
+    nbrs = NearestNeighbors(
+        n_neighbors=n_neighbors, algorithm=algorithm, metric=metric, p=p
+    ).fit(in_arr.reshape(in_arr.shape[0], -1))
     return nbrs.kneighbors()
 
 
@@ -166,18 +170,26 @@ def validationTrafo(data, max_nan_total, max_nan_consec):
 
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    return np.nanstd(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)], ddof=1)
+    return np.nanstd(
+        data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)], ddof=1
+    )
 
 
 def varQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    return np.nanvar(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)], ddof=1)
+    return np.nanvar(
+        data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)], ddof=1
+    )
 
 
 def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    return np.nanmean(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)])
+    return np.nanmean(
+        data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)]
+    )
 
 
-def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolation=False):
+def interpolateNANs(
+    data, method, order=2, inter_limit=2, downgrade_interpolation=False
+):
     """
     The function interpolates nan-values (and nan-grids) in timeseries data. It can be passed all the method keywords
     from the pd.Series.interpolate method and will than apply this very methods. Note, that the inter_limit keyword
@@ -207,7 +219,10 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
         gap_mask = gap_mask & gap_mask.shift(-1, fill_value=True)
     else:
         gap_mask = (
-            gap_mask.replace(True, np.nan).fillna(method="bfill", limit=inter_limit).replace(np.nan, True).astype(bool)
+            gap_mask.replace(True, np.nan)
+            .fillna(method="bfill", limit=inter_limit)
+            .replace(np.nan, True)
+            .astype(bool)
         )
 
     pre_index = data.index
@@ -215,7 +230,9 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
 
     if method in ["linear", "time"]:
 
-        data.interpolate(method=method, inplace=True, limit=inter_limit - 1, limit_area="inside")
+        data.interpolate(
+            method=method, inplace=True, limit=inter_limit - 1, limit_area="inside"
+        )
 
     else:
         dat_name = data.name
@@ -250,7 +267,13 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
 
 
 def aggregate2Freq(
-    data: pd.Series, method, freq, agg_func, fill_value=np.nan, max_invalid_total=None, max_invalid_consec=None
+    data: pd.Series,
+    method,
+    freq,
+    agg_func,
+    fill_value=np.nan,
+    max_invalid_total=None,
+    max_invalid_consec=None,
 ):
     """
     The function aggregates values to an equidistant frequency grid with agg_func.
@@ -258,7 +281,7 @@ def aggregate2Freq(
     also serves as a replacement for "invalid" intervals.
     """
     methods = {
-        "nagg": lambda seconds_total: (seconds_total/2, "left", "left"),
+        "nagg": lambda seconds_total: (seconds_total / 2, "left", "left"),
         "bagg": lambda _: (0, "left", "left"),
         "fagg": lambda _: (0, "right", "right"),
     }
@@ -271,7 +294,9 @@ def aggregate2Freq(
             temp_mask = data == fill_value
 
         temp_mask = temp_mask.groupby(pd.Grouper(freq=freq)).transform(
-            validationTrafo, max_nan_total=max_invalid_total, max_nan_consec=max_invalid_consec
+            validationTrafo,
+            max_nan_total=max_invalid_total,
+            max_nan_consec=max_invalid_consec,
         )
         data[temp_mask] = fill_value
 
@@ -284,7 +309,9 @@ def aggregate2Freq(
     # - we are aggregating data and flags with this function and empty intervals usually would get assigned BAD
     #   flag (where resample inserts np.nan or 0)
 
-    data_resampler = data.resample(f"{seconds_total:.0f}s", base=base, closed=closed, label=label)
+    data_resampler = data.resample(
+        f"{seconds_total:.0f}s", base=base, closed=closed, label=label
+    )
 
     empty_intervals = data_resampler.count() == 0
     # great performance gain can be achieved, when avoiding .apply and using pd.resampler
@@ -292,7 +319,7 @@ def aggregate2Freq(
     try:
         check_name = re.sub("^nan", "", agg_func.__name__)
         # a nasty special case: if function "count" was passed, we not want empty intervals to be replaced by nan:
-        if check_name == 'count':
+        if check_name == "count":
             empty_intervals[:] = False
         data = getattr(data_resampler, check_name)()
     except AttributeError:
@@ -308,7 +335,9 @@ def aggregate2Freq(
     return data
 
 
-def shift2Freq(data: Union[pd.Series, pd.DataFrame], method: str, freq: str, fill_value):
+def shift2Freq(
+    data: Union[pd.Series, pd.DataFrame], method: str, freq: str, fill_value
+):
     """
     shift timestamps backwards/forwards in order to align them with an equidistant
     frequency grid. Resulting Nan's are replaced with the fill-value.
@@ -317,15 +346,18 @@ def shift2Freq(data: Union[pd.Series, pd.DataFrame], method: str, freq: str, fil
     methods = {
         "fshift": lambda freq: ("ffill", pd.Timedelta(freq)),
         "bshift": lambda freq: ("bfill", pd.Timedelta(freq)),
-        "nshift": lambda freq: ("nearest", pd.Timedelta(freq)/2),
+        "nshift": lambda freq: ("nearest", pd.Timedelta(freq) / 2),
     }
     direction, tolerance = methods[method](freq)
     target_ind = pd.date_range(
-        start=data.index[0].floor(freq), end=data.index[-1].ceil(freq),
+        start=data.index[0].floor(freq),
+        end=data.index[-1].ceil(freq),
         freq=freq,
-        name=data.index.name
+        name=data.index.name,
     )
-    return data.reindex(target_ind, method=direction, tolerance=tolerance, fill_value=fill_value)
+    return data.reindex(
+        target_ind, method=direction, tolerance=tolerance, fill_value=fill_value
+    )
 
 
 @nb.njit
@@ -420,7 +452,7 @@ def expDriftModel(x, c, origin=None, target=None):
 
 
 def linearDriftModel(x, origin=None, target=None):
-    return origin + x*target
+    return origin + x * target
 
 
 def linearInterpolation(data, inter_limit=2):
@@ -428,4 +460,6 @@ def linearInterpolation(data, inter_limit=2):
 
 
 def polynomialInterpolation(data, inter_limit=2, inter_order=2):
-    return interpolateNANs(data, "polynomial", inter_limit=inter_limit, order=inter_order)
+    return interpolateNANs(
+        data, "polynomial", inter_limit=inter_limit, order=inter_order
+    )

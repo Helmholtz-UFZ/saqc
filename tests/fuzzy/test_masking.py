@@ -23,7 +23,9 @@ def test_maskingMasksData(data_field_flags):
     test if flagged values are replaced by np.nan
     """
     data_in, field, flags = data_field_flags
-    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)  # thresh UNFLAGGED | np.inf
+    data_masked, mask = _maskData(
+        data_in, flags, columns=[field], thresh=UNFLAGGED
+    )  # thresh UNFLAGGED | np.inf
     assert data_masked.loc[mask[field], field].isna().all()
     assert (flags[field][mask[field]] > UNFLAGGED).all()
 
@@ -31,7 +33,7 @@ def test_maskingMasksData(data_field_flags):
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
 @given(data_field_flags=dataFieldFlags())
 def test_dataMutationPreventsUnmasking(data_field_flags):
-    """ test if (un)masking works as expected on data-changes.
+    """test if (un)masking works as expected on data-changes.
 
     if `data` is mutated after `_maskData`, `_unmaskData` should be a no-op
     """
@@ -41,10 +43,14 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     state = CallState(
         func=None,
-        data=data_in, flags=flags, field=field,
-        args=None, kwargs=None,
-        masking="field", mthresh=UNFLAGGED,
-        mask=mask
+        data=data_in,
+        flags=flags,
+        field=field,
+        args=None,
+        kwargs=None,
+        masking="field",
+        mthresh=UNFLAGGED,
+        mask=mask,
     )
 
     data_masked[field] = filler
@@ -55,7 +61,7 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
 @given(data_field_flags=dataFieldFlags())
 def test_flagsMutationPreventsUnmasking(data_field_flags):
-    """ test if (un)masking works as expected on flags-changes.
+    """test if (un)masking works as expected on flags-changes.
 
     if `flags` is mutated after `_maskData`, `_unmaskData` should be a no-op
     """
@@ -63,10 +69,14 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     state = CallState(
         func=None,
-        data=data_in, flags=flags, field=field,
-        args=None, kwargs=None,
-        masking="field", mthresh=UNFLAGGED,
-        mask=mask
+        data=data_in,
+        flags=flags,
+        field=field,
+        args=None,
+        kwargs=None,
+        masking="field",
+        mthresh=UNFLAGGED,
+        mask=mask,
     )
     flags[:, field] = UNFLAGGED
     data_out = _unmaskData(data_masked, state)
@@ -76,7 +86,7 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
 @given(data_field_flags=dataFieldFlags())
 def test_reshapingPreventsUnmasking(data_field_flags):
-    """ test if (un)masking works as expected on index-changes.
+    """test if (un)masking works as expected on index-changes.
 
     If the index of data (and flags) change in the func, the unmasking,
     should not reapply original data, instead take the new data (and flags) as is.
@@ -88,14 +98,18 @@ def test_reshapingPreventsUnmasking(data_field_flags):
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     state = CallState(
         func=None,
-        data=data_in, flags=flags, field=field,
-        args=None, kwargs=None,
-        masking="field", mthresh=UNFLAGGED,
-        mask=mask
+        data=data_in,
+        flags=flags,
+        field=field,
+        args=None,
+        kwargs=None,
+        masking="field",
+        mthresh=UNFLAGGED,
+        mask=mask,
     )
     # mutate indexes of `data` and `flags`
     index = data_masked[field].index.to_series()
-    index.iloc[-len(data_masked[field])//2:] += pd.Timedelta("7.5Min")
+    index.iloc[-len(data_masked[field]) // 2 :] += pd.Timedelta("7.5Min")
     data_masked[field] = pd.Series(data=filler, index=index)
 
     fflags = flags[field]
@@ -116,10 +130,14 @@ def test_unmaskingInvertsMasking(data_field_flags):
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     state = CallState(
         func=None,
-        data=data_in, flags=flags, field=field,
-        args=None, kwargs=None,
-        masking="field", mthresh=UNFLAGGED,
-        mask=mask
+        data=data_in,
+        flags=flags,
+        field=field,
+        args=None,
+        kwargs=None,
+        masking="field",
+        mthresh=UNFLAGGED,
+        mask=mask,
     )
     data_out = _unmaskData(data_masked, state)
     assert pd.DataFrame.equals(

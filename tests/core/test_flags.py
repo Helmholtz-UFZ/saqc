@@ -13,29 +13,30 @@ from tests.core.test_history import (
 )
 
 _data = [
-
     np.array([[]]),
     np.zeros((1, 1)),
     np.zeros((3, 4)),
     np.ones((3, 4)),
     np.ones((3, 4)) * np.nan,
-
-    np.array([
-        [0, 0, 0, 0],
-        [0, 1, 2, 3],
-        [0, 1, 2, 3],
-    ]),
-
-    np.array([
-        [0, 0, 0, 0],
-        [0, 1, np.nan, 3],
-        [0, 1, 2, 3],
-    ]),
+    np.array(
+        [
+            [0, 0, 0, 0],
+            [0, 1, 2, 3],
+            [0, 1, 2, 3],
+        ]
+    ),
+    np.array(
+        [
+            [0, 0, 0, 0],
+            [0, 1, np.nan, 3],
+            [0, 1, 2, 3],
+        ]
+    ),
 ]
 
 data = []
 for d in _data:
-    columns = list('abcdefgh')[:d.shape[1]]
+    columns = list("abcdefgh")[: d.shape[1]]
     df = pd.DataFrame(d, dtype=float, columns=columns)
     dis = dios.DictOfSeries(df)
     di = {}
@@ -45,7 +46,7 @@ for d in _data:
     data.append(dis)
 
 
-@pytest.mark.parametrize('data', data)
+@pytest.mark.parametrize("data", data)
 def test_init(data: np.array):
     flags = Flags(data)
     assert isinstance(flags, Flags)
@@ -58,7 +59,7 @@ def is_equal(f1, f2):
         assert hist_equal(f1.history[c], f2.history[c])
 
 
-@pytest.mark.parametrize('data', data)
+@pytest.mark.parametrize("data", data)
 def test_copy(data: np.array):
     flags = Flags(data)
     shallow = flags.copy(deep=False)
@@ -82,7 +83,7 @@ def test_copy(data: np.array):
         assert deep._data[c] is not flags._data[c]
 
 
-@pytest.mark.parametrize('data', data)
+@pytest.mark.parametrize("data", data)
 def test_flags_history(data: np.array):
     flags = Flags(data)
 
@@ -96,13 +97,13 @@ def test_flags_history(data: np.array):
     for c in flags.columns:
         hist = flags.history[c]
         hlen = len(hist)
-        hist.append(pd.Series(888., index=hist.index, dtype=float))
+        hist.append(pd.Series(888.0, index=hist.index, dtype=float))
         flags.history[c] = hist
         assert isinstance(hist, History)
         assert len(hist) == hlen + 1
 
 
-@pytest.mark.parametrize('data', data)
+@pytest.mark.parametrize("data", data)
 def test_get_flags(data: np.array):
     flags = Flags(data)
 
@@ -117,40 +118,40 @@ def test_get_flags(data: np.array):
         assert var is not flags[c]
 
         # in particular, a deep copy
-        var[:] = 9999.
+        var[:] = 9999.0
         assert all(flags[c] != var)
 
 
-@pytest.mark.parametrize('data', data)
+@pytest.mark.parametrize("data", data)
 def test_set_flags(data: np.array):
     flags = Flags(data)
 
     for c in flags.columns:
         var = flags[c]
         hlen = len(flags.history[c])
-        new = pd.Series(9999., index=var.index, dtype=float)
+        new = pd.Series(9999.0, index=var.index, dtype=float)
 
         flags[c] = new
         assert len(flags.history[c]) == hlen + 1
-        assert all(flags.history[c].max() == 9999.)
+        assert all(flags.history[c].max() == 9999.0)
         assert all(flags.history[c].max() == flags[c])
 
         # check if deep-copied correctly
-        new[:] = 8888.
-        assert all(flags.history[c].max() == 9999.)
+        new[:] = 8888.0
+        assert all(flags.history[c].max() == 9999.0)
 
         # flags always overwrite former
         flags[c] = new
         assert len(flags.history[c]) == hlen + 2
-        assert all(flags.history[c].max() == 8888.)
+        assert all(flags.history[c].max() == 8888.0)
         assert all(flags.history[c].max() == flags[c])
 
         # check if deep-copied correctly
-        new[:] = 7777.
-        assert all(flags.history[c].max() == 8888.)
+        new[:] = 7777.0
+        assert all(flags.history[c].max() == 8888.0)
 
 
-@pytest.mark.parametrize('data', data)
+@pytest.mark.parametrize("data", data)
 def test_set_flags_with_mask(data: np.array):
     flags = Flags(data)
 
@@ -158,29 +159,29 @@ def test_set_flags_with_mask(data: np.array):
         var = flags[c]
         mask = var == UNFLAGGED
 
-        scalar = 222.
+        scalar = 222.0
         flags[mask, c] = scalar
-        assert all(flags[c].loc[mask] == 222.)
-        assert all(flags[c].loc[~mask] != 222.)
+        assert all(flags[c].loc[mask] == 222.0)
+        assert all(flags[c].loc[~mask] != 222.0)
 
         # scalar without mask is not allowed, because
         # it holds to much potential to set the whole
         # column unintentionally.
         with pytest.raises(ValueError):
-            flags[c] = 888.
+            flags[c] = 888.0
 
         vector = var.copy()
-        vector[:] = 333.
+        vector[:] = 333.0
         flags[mask, c] = vector
-        assert all(flags[c].loc[mask] == 333.)
-        assert all(flags[c].loc[~mask] != 333.)
+        assert all(flags[c].loc[mask] == 333.0)
+        assert all(flags[c].loc[~mask] != 333.0)
 
         # works with any that pandas eat, eg with numpy
-        vector[:] = 444.
+        vector[:] = 444.0
         vector = vector.to_numpy()
         flags[mask, c] = vector
-        assert all(flags[c].loc[mask] == 444.)
-        assert all(flags[c].loc[~mask] != 444.)
+        assert all(flags[c].loc[mask] == 444.0)
+        assert all(flags[c].loc[~mask] != 444.0)
 
         # test length miss-match (mask)
         if len(mask) > 1:
@@ -195,7 +196,7 @@ def test_set_flags_with_mask(data: np.array):
                 flags[mask, c] = wrong_len
 
 
-@pytest.mark.parametrize('data', data)
+@pytest.mark.parametrize("data", data)
 def test_set_flags_with_index(data: np.array):
     flags = Flags(data)
 
@@ -204,23 +205,23 @@ def test_set_flags_with_index(data: np.array):
         mask = var == UNFLAGGED
         index = mask[mask].index
 
-        scalar = 222.
+        scalar = 222.0
         flags[index, c] = scalar
-        assert all(flags[c].loc[mask] == 222.)
-        assert all(flags[c].loc[~mask] != 222.)
+        assert all(flags[c].loc[mask] == 222.0)
+        assert all(flags[c].loc[~mask] != 222.0)
 
         vector = var.copy()
-        vector[:] = 333.
+        vector[:] = 333.0
         flags[index, c] = vector
-        assert all(flags[c].loc[mask] == 333.)
-        assert all(flags[c].loc[~mask] != 333.)
+        assert all(flags[c].loc[mask] == 333.0)
+        assert all(flags[c].loc[~mask] != 333.0)
 
         # works with any that pandas eat, eg with numpy
-        vector[:] = 444.
+        vector[:] = 444.0
         vector = vector.to_numpy()
         flags[index, c] = vector
-        assert all(flags[c].loc[mask] == 444.)
-        assert all(flags[c].loc[~mask] != 444.)
+        assert all(flags[c].loc[mask] == 444.0)
+        assert all(flags[c].loc[~mask] != 444.0)
 
         # test length miss-match (value)
         if len(vector) > 1:
@@ -230,24 +231,26 @@ def test_set_flags_with_index(data: np.array):
 
 
 def test_cache():
-    arr = np.array([
-        [0, 0, 0, 0],
-        [0, 1, 2, 3],
-        [0, 1, 2, 3],
-    ])
-    data = pd.DataFrame(arr, dtype=float, columns=list('abcd'))
+    arr = np.array(
+        [
+            [0, 0, 0, 0],
+            [0, 1, 2, 3],
+            [0, 1, 2, 3],
+        ]
+    )
+    data = pd.DataFrame(arr, dtype=float, columns=list("abcd"))
     flags = Flags(data)
 
     # cache empty
     assert flags._cache == {}
 
     # invoke caching
-    flags['a']
-    assert 'a' in flags._cache
+    flags["a"]
+    assert "a" in flags._cache
 
     # clears cache
-    flags['a'] = pd.Series([0, 0, 0], dtype=float)
-    assert 'a' not in flags._cache
+    flags["a"] = pd.Series([0, 0, 0], dtype=float)
+    assert "a" not in flags._cache
 
     # cache all
     flags.toDios()
@@ -255,7 +258,7 @@ def test_cache():
         assert c in flags._cache
 
     # cache survive renaming
-    flags.columns = list('xyzq')
+    flags.columns = list("xyzq")
     for c in flags.columns:
         assert c in flags._cache
 
@@ -268,7 +271,7 @@ def _validate_flags_equals_frame(flags, df):
         assert df[c].equals(flags[c])  # respects nan's
 
 
-@pytest.mark.parametrize('data', data)
+@pytest.mark.parametrize("data", data)
 def test_to_dios(data: np.array):
     flags = Flags(data)
     df = flags.toDios()
@@ -277,7 +280,7 @@ def test_to_dios(data: np.array):
     _validate_flags_equals_frame(flags, df)
 
 
-@pytest.mark.parametrize('data', data)
+@pytest.mark.parametrize("data", data)
 def test_to_frame(data: np.array):
     flags = Flags(data)
     df = flags.toFrame()

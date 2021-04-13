@@ -31,17 +31,17 @@ METHOD2ARGS = {
 }
 
 
-@register(masking='none', module="resampling")
+@register(masking="none", module="resampling")
 def aggregate(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        freq: str,
-        value_func,
-        flag_func: Callable[[pd.Series], float] = np.nanmax,
-        method: Literal["fagg", "bagg", "nagg"] = "nagg",
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    freq: str,
+    value_func,
+    flag_func: Callable[[pd.Series], float] = np.nanmax,
+    method: Literal["fagg", "bagg", "nagg"] = "nagg",
+    flag: float = BAD,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     A method to "regularize" data by aggregating (resampling) data at a regular timestamp.
@@ -106,25 +106,23 @@ def aggregate(
         Flags values and shape may have changed relatively to the flags input.
     """
 
-    data, flags = copy(data, field, flags, field + '_original')
+    data, flags = copy(data, field, flags, field + "_original")
     return resample(
-        data, field, flags,
+        data,
+        field,
+        flags,
         freq=freq,
         agg_func=value_func,
         flag_agg_func=flag_func,
         method=method,
         flag=flag,
-        **kwargs
+        **kwargs,
     )
 
 
-@register(masking='none', module="resampling")
+@register(masking="none", module="resampling")
 def linear(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        freq: str,
-        **kwargs
+    data: DictOfSeries, field: str, flags: Flags, freq: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     A method to "regularize" data by interpolating linearly the data at regular timestamp.
@@ -165,19 +163,19 @@ def linear(
         Flags values and shape may have changed relatively to the flags input.
     """
 
-    data, flags = copy(data, field, flags, field + '_original')
+    data, flags = copy(data, field, flags, field + "_original")
     return interpolateIndex(data, field, flags, freq, "time", **kwargs)
 
 
-@register(masking='none', module="resampling")
+@register(masking="none", module="resampling")
 def interpolate(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        freq: str,
-        method: _SUPPORTED_METHODS,
-        order: int = 1,
-        **kwargs,
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    freq: str,
+    method: _SUPPORTED_METHODS,
+    order: int = 1,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     A method to "regularize" data by interpolating the data at regular timestamp.
@@ -232,21 +230,27 @@ def interpolate(
         Flags values and shape may have changed relatively to the flags input.
     """
 
-    data, flags = copy(data, field, flags, field + '_original')
-    return interpolateIndex(data, field, flags, freq, method=method, inter_order=order, **kwargs)
+    data, flags = copy(data, field, flags, field + "_original")
+    return interpolateIndex(
+        data, field, flags, freq, method=method, inter_order=order, **kwargs
+    )
 
 
-@register(masking='none', module="resampling")
+@register(masking="none", module="resampling")
 def mapToOriginal(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        method: Literal[
-            "inverse_fagg", "inverse_bagg", "inverse_nagg",
-            "inverse_fshift", "inverse_bshift", "inverse_nshift",
-            "inverse_interpolation"
-        ],
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    method: Literal[
+        "inverse_fagg",
+        "inverse_bagg",
+        "inverse_nagg",
+        "inverse_fshift",
+        "inverse_bshift",
+        "inverse_nshift",
+        "inverse_interpolation",
+    ],
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The Function function "undoes" regularization, by regaining the original data and projecting the
@@ -311,21 +315,23 @@ def mapToOriginal(
         The quality flags of data
         Flags values and shape may have changed relatively to the flags input.
     """
-    newfield = str(field) + '_original'
-    data, flags = reindexFlags(data, newfield, flags, method, source=field, to_mask=False)
+    newfield = str(field) + "_original"
+    data, flags = reindexFlags(
+        data, newfield, flags, method, source=field, to_mask=False
+    )
     data, flags = drop(data, field, flags)
     return rename(data, newfield, flags, field)
 
 
-@register(masking='none', module="resampling")
+@register(masking="none", module="resampling")
 def shift(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        freq: str,
-        method: Literal["fshift", "bshift", "nshift"] = "nshift",
-        freq_check: Optional[Literal["check", "auto"]] = None,  # TODO: not a user decision
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    freq: str,
+    method: Literal["fshift", "bshift", "nshift"] = "nshift",
+    freq_check: Optional[Literal["check", "auto"]] = None,  # TODO: not a user decision
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to shift data and flags to a regular (equidistant) timestamp grid, according to ``method``.
@@ -370,18 +376,20 @@ def shift(
         The quality flags of data
         Flags values and shape may have changed relatively to the flags input.
     """
-    data, flags = copy(data, field, flags, field + '_original')
-    return _shift(data, field, flags, freq, method=method, freq_check=freq_check, **kwargs)
+    data, flags = copy(data, field, flags, field + "_original")
+    return _shift(
+        data, field, flags, freq, method=method, freq_check=freq_check, **kwargs
+    )
 
 
 def _shift(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        freq: str,
-        method: Literal["fshift", "bshift", "nshift"] = "nshift",
-        freq_check: Optional[Literal["check", "auto"]] = None,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    freq: str,
+    method: Literal["fshift", "bshift", "nshift"] = "nshift",
+    freq_check: Optional[Literal["check", "auto"]] = None,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to shift data points to regular (equidistant) timestamps.
@@ -390,7 +398,7 @@ def _shift(
     --------
     shift : Main caller, docstring
     """
-    flagged = _isflagged(flags[field], kwargs['to_mask'])
+    flagged = _isflagged(flags[field], kwargs["to_mask"])
     datcol = data[field]
     datcol[flagged] = np.nan
     freq = evalFreqStr(freq, freq_check, datcol.index)
@@ -414,21 +422,21 @@ def _shift(
     return data, flags
 
 
-@register(masking='none', module="resampling")
+@register(masking="none", module="resampling")
 def resample(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        freq: str,
-        agg_func: Callable[[pd.Series], pd.Series] = np.mean,
-        method: Literal["fagg", "bagg", "nagg"] = "bagg",
-        max_invalid_total_d: Optional[int] = None,
-        max_invalid_consec_d: Optional[int] = None,
-        max_invalid_consec_f: Optional[int] = None,
-        max_invalid_total_f: Optional[int] = None,
-        flag_agg_func: Callable[[pd.Series], float] = max,
-        freq_check: Optional[Literal["check", "auto"]] = None,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    freq: str,
+    agg_func: Callable[[pd.Series], pd.Series] = np.mean,
+    method: Literal["fagg", "bagg", "nagg"] = "bagg",
+    max_invalid_total_d: Optional[int] = None,
+    max_invalid_consec_d: Optional[int] = None,
+    max_invalid_consec_f: Optional[int] = None,
+    max_invalid_total_f: Optional[int] = None,
+    flag_agg_func: Callable[[pd.Series], float] = max,
+    freq_check: Optional[Literal["check", "auto"]] = None,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to resample the data. Afterwards the data will be sampled at regular (equidistant) timestamps
@@ -513,7 +521,7 @@ def resample(
         The quality flags of data
         Flags values and shape may have changed relatively to the flags input.
     """
-    flagged = _isflagged(flags[field], kwargs['to_mask'])
+    flagged = _isflagged(flags[field], kwargs["to_mask"])
     datcol = data[field]
     datcol[flagged] = np.nan
     freq = evalFreqStr(freq, freq_check, datcol.index)
@@ -539,9 +547,11 @@ def resample(
 
     flags.history[field] = applyFunctionOnHistory(
         flags.history[field],
-        hist_func=aggregate2Freq, hist_kws=kws,
-        mask_func=aggregate2Freq, mask_kws=kws,
-        last_column='dummy'
+        hist_func=aggregate2Freq,
+        hist_kws=kws,
+        mask_func=aggregate2Freq,
+        mask_kws=kws,
+        last_column="dummy",
     )
 
     data[field] = datcol
@@ -549,13 +559,15 @@ def resample(
 
 
 def _getChunkBounds(target: pd.Series, flagscol: pd.Series, freq: str):
-    chunk_end = target.reindex(flagscol.index, method='bfill', tolerance=freq)
-    chunk_start = target.reindex(flagscol.index, method='ffill', tolerance=freq)
-    ignore_flags = (chunk_end.isna() | chunk_start.isna())
+    chunk_end = target.reindex(flagscol.index, method="bfill", tolerance=freq)
+    chunk_start = target.reindex(flagscol.index, method="ffill", tolerance=freq)
+    ignore_flags = chunk_end.isna() | chunk_start.isna()
     return ignore_flags
 
 
-def _inverseInterpolation(source: pd.Series, target: pd.Series, freq: str, chunk_bounds) -> pd.Series:
+def _inverseInterpolation(
+    source: pd.Series, target: pd.Series, freq: str, chunk_bounds
+) -> pd.Series:
     source = source.copy()
     if len(chunk_bounds) > 0:
         source[chunk_bounds] = np.nan
@@ -565,23 +577,29 @@ def _inverseInterpolation(source: pd.Series, target: pd.Series, freq: str, chunk
 
 
 def _inverseAggregation(
-        source: Union[pd.Series, pd.DataFrame],
-        target: Union[pd.Series, pd.DataFrame],
-        freq: str,
-        method: str,
+    source: Union[pd.Series, pd.DataFrame],
+    target: Union[pd.Series, pd.DataFrame],
+    freq: str,
+    method: str,
 ):
     return source.reindex(target.index, method=method, tolerance=freq)
 
 
-def _inverseShift(source: pd.Series, target: pd.Series, drop_mask: pd.Series,
-                  freq: str, method: str, fill_value) -> pd.Series:
+def _inverseShift(
+    source: pd.Series,
+    target: pd.Series,
+    drop_mask: pd.Series,
+    freq: str,
+    method: str,
+    fill_value,
+) -> pd.Series:
     dtype = source.dtype
 
     target_drops = target[drop_mask]
     target = target[~drop_mask]
     flags_merged = pd.merge_asof(
         source,
-        target.index.to_series(name='pre_index'),
+        target.index.to_series(name="pre_index"),
         left_index=True,
         right_index=True,
         tolerance=freq,
@@ -598,18 +616,22 @@ def _inverseShift(source: pd.Series, target: pd.Series, drop_mask: pd.Series,
     return source.fillna(fill_value).astype(dtype, copy=False)
 
 
-@register(masking='none', module="resampling")
+@register(masking="none", module="resampling")
 def reindexFlags(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        method: Literal[
-            "inverse_fagg", "inverse_bagg", "inverse_nagg",
-            "inverse_fshift", "inverse_bshift", "inverse_nshift"
-        ],
-        source: str,
-        freq: Optional[str] = None,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    method: Literal[
+        "inverse_fagg",
+        "inverse_bagg",
+        "inverse_nagg",
+        "inverse_fshift",
+        "inverse_bshift",
+        "inverse_nshift",
+    ],
+    source: str,
+    freq: Optional[str] = None,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
@@ -676,9 +698,11 @@ def reindexFlags(
 
     if freq is None:
         freq = getFreqDelta(flagscol.index)
-        if freq is None and not method == 'match':
-            raise ValueError('To project irregularly sampled data, either use method="match", or pass custom '
-                             'projection range to freq parameter')
+        if freq is None and not method == "match":
+            raise ValueError(
+                'To project irregularly sampled data, either use method="match", or pass custom '
+                "projection range to freq parameter"
+            )
 
     target_datcol = data[field]
     target_flagscol = flags[field]
@@ -688,7 +712,7 @@ def reindexFlags(
         ignore = _getChunkBounds(target_datcol, flagscol, freq)
         func = _inverseInterpolation
         func_kws = dict(freq=freq, chunk_bounds=ignore, target=dummy)
-        mask_kws = {**func_kws, 'chunk_bounds': []}
+        mask_kws = {**func_kws, "chunk_bounds": []}
 
     elif method[-3:] == "agg" or method == "match":
         projection_method = METHOD2ARGS[method][0]
@@ -698,17 +722,23 @@ def reindexFlags(
         mask_kws = func_kws
 
     elif method[-5:] == "shift":
-        drop_mask = (target_datcol.isna() | _isflagged(target_flagscol, kwargs['to_mask']))
+        drop_mask = target_datcol.isna() | _isflagged(
+            target_flagscol, kwargs["to_mask"]
+        )
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
         func = _inverseShift
-        kws = dict(freq=tolerance, method=projection_method, drop_mask=drop_mask, target=dummy)
-        func_kws = {**kws, 'fill_value': UNTOUCHED}
-        mask_kws = {**kws, 'fill_value': False}
+        kws = dict(
+            freq=tolerance, method=projection_method, drop_mask=drop_mask, target=dummy
+        )
+        func_kws = {**kws, "fill_value": UNTOUCHED}
+        mask_kws = {**kws, "fill_value": False}
 
     else:
         raise ValueError(f"unknown method {method}")
 
-    history = applyFunctionOnHistory(flags.history[source], func, func_kws, func, mask_kws, last_column=dummy)
+    history = applyFunctionOnHistory(
+        flags.history[source], func, func_kws, func, mask_kws, last_column=dummy
+    )
     flags.history[field] = flags.history[field].append(history, force=False)
     return data, flags

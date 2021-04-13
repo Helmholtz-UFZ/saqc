@@ -11,19 +11,19 @@ from saqc.core import register, Flags
 from saqc.lib.tools import getFreqDelta
 
 
-@register(masking='field', module="rolling")
+@register(masking="field", module="rolling")
 def roll(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        winsz: Union[str, int],
-        func: Callable[[pd.Series], float]=np.mean,
-        eval_flags: bool=True,  # TODO: not applicable anymore
-        min_periods: int=0,
-        center: bool=True,
-        return_residues=False,  # TODO: this should not be public, a wrapper would be better
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    winsz: Union[str, int],
+    func: Callable[[pd.Series], float] = np.mean,
+    eval_flags: bool = True,  # TODO: not applicable anymore
+    min_periods: int = 0,
+    center: bool = True,
+    return_residues=False,  # TODO: this should not be public, a wrapper would be better
+    flag: float = BAD,
+    **kwargs
 ):
     """
     Models the data with the rolling mean and returns the residues.
@@ -83,25 +83,39 @@ def roll(
                 'sample series when rolling with "center=True".'
             )
         # get interval centers
-        centers = np.floor((to_fit.rolling(pd.Timedelta(winsz) / 2, closed="both", min_periods=min_periods).count()))
+        centers = np.floor(
+            (
+                to_fit.rolling(
+                    pd.Timedelta(winsz) / 2, closed="both", min_periods=min_periods
+                ).count()
+            )
+        )
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
-        roller = to_fit.rolling(pd.Timedelta(winsz), closed="both", min_periods=min_periods)
+        roller = to_fit.rolling(
+            pd.Timedelta(winsz), closed="both", min_periods=min_periods
+        )
         try:
             means = getattr(roller, func.__name__)()
         except AttributeError:
-            means = to_fit.rolling(pd.Timedelta(winsz), closed="both", min_periods=min_periods).apply(func)
+            means = to_fit.rolling(
+                pd.Timedelta(winsz), closed="both", min_periods=min_periods
+            ).apply(func)
 
         def center_func(x, y=centers):
             pos = x.index[int(len(x) - y[x.index[-1]])]
             return y.index.get_loc(pos)
 
-        centers_iloc = centers.rolling(winsz, closed="both").apply(center_func, raw=False).astype(int)
+        centers_iloc = (
+            centers.rolling(winsz, closed="both")
+            .apply(center_func, raw=False)
+            .astype(int)
+        )
         temp = means.copy()
         for k in centers_iloc.iteritems():
             means.iloc[k[1]] = temp[k[0]]
         # last values are false, due to structural reasons:
-        means[means.index[centers_iloc[-1]]: means.index[-1]] = np.nan
+        means[means.index[centers_iloc[-1]] : means.index[-1]] = np.nan
 
     # everything is more easy if data[field] is harmonized:
     else:
@@ -114,7 +128,9 @@ def roll(
         try:
             means = getattr(roller, func.__name__)()
         except AttributeError:
-            means = to_fit.rolling(window=winsz, center=center, closed="both").apply(func)
+            means = to_fit.rolling(window=winsz, center=center, closed="both").apply(
+                func
+            )
 
     if return_residues:
         means = to_fit - means

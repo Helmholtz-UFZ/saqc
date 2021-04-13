@@ -13,16 +13,16 @@ from saqc.core import register, Flags
 from saqc.lib.tools import customRoller
 
 
-@register(masking='field', module="pattern")
+@register(masking="field", module="pattern")
 def flagPatternByDTW(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        ref_field: str,
-        widths: Sequence[int] = (1, 2, 4, 8),
-        waveform: str = "mexh",
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    ref_field: str,
+    widths: Sequence[int] = (1, 2, 4, 8),
+    waveform: str = "mexh",
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Pattern recognition via wavelets.
@@ -88,7 +88,9 @@ def flagPatternByDTW(
         for i in range(len_width):
             x = wavepower_ref[i]
             y = wavepower_chunk[i]
-            pval = permutation_test(x, y, method='approximate', num_rounds=200, func=func, seed=0)
+            pval = permutation_test(
+                x, y, method="approximate", num_rounds=200, func=func, seed=0
+            )
             if min(pval, 1 - pval) > 0.01:
                 return True
         return False
@@ -101,18 +103,18 @@ def flagPatternByDTW(
     return data, flags
 
 
-@register(masking='field', module="pattern")
+@register(masking="field", module="pattern")
 def flagPatternByWavelet(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        ref_field: str,
-        max_distance: float = 0.03,
-        normalize: bool = True,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    ref_field: str,
+    max_distance: float = 0.03,
+    normalize: bool = True,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
-    """ Pattern Recognition via Dynamic Time Warping.
+    """Pattern Recognition via Dynamic Time Warping.
 
     The steps are:
      1. work on chunks returned by a moving window

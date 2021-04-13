@@ -24,25 +24,32 @@ from saqc.lib.tools import detectDeviants
 from saqc.lib.types import FreqString, ColumnName, CurveFitter, TimestampColumnName
 from saqc.lib.ts_operators import expModelFunc, expDriftModel, linearDriftModel
 
-LinkageString = Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]
+LinkageString = Literal[
+    "single", "complete", "average", "weighted", "centroid", "median", "ward"
+]
 
 
-LinkageString = Literal["single", "complete", "average", "weighted", "centroid", "median", "ward"]
+LinkageString = Literal[
+    "single", "complete", "average", "weighted", "centroid", "median", "ward"
+]
 
 
-@register(masking='all', module="drift")
+@register(masking="all", module="drift")
 def flagDriftFromNorm(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        fields: Sequence[ColumnName],
-        segment_freq: FreqString,
-        norm_spread: float,
-        norm_frac: float = 0.5,
-        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-        linkage_method: LinkageString = "single",
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    fields: Sequence[ColumnName],
+    segment_freq: FreqString,
+    norm_spread: float,
+    norm_frac: float = 0.5,
+    metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
+        np.array([x, y]), metric="cityblock"
+    )
+    / len(x),
+    linkage_method: LinkageString = "single",
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags value courses that significantly deviate from a group of normal value courses.
@@ -139,7 +146,9 @@ def flagDriftFromNorm(
         if segment[1].shape[0] <= 1:
             continue
 
-        drifters = detectDeviants(segment[1], metric, norm_spread, norm_frac, linkage_method, 'variables')
+        drifters = detectDeviants(
+            segment[1], metric, norm_spread, norm_frac, linkage_method, "variables"
+        )
 
         for var in drifters:
             flags[segment[1].index, fields[var]] = flag
@@ -147,17 +156,20 @@ def flagDriftFromNorm(
     return data, flags
 
 
-@register(masking='all', module="drift")
+@register(masking="all", module="drift")
 def flagDriftFromReference(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        fields: Sequence[ColumnName],
-        segment_freq: FreqString,
-        thresh: float,
-        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    fields: Sequence[ColumnName],
+    segment_freq: FreqString,
+    thresh: float,
+    metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
+        np.array([x, y]), metric="cityblock"
+    )
+    / len(x),
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags value courses that deviate from a reference course by a margin exceeding a certain threshold.
@@ -225,20 +237,23 @@ def flagDriftFromReference(
     return data, flags
 
 
-@register(masking='all', module="drift")
+@register(masking="all", module="drift")
 def flagDriftFromScaledNorm(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        fields_scale1: Sequence[ColumnName],
-        fields_scale2: Sequence[ColumnName],
-        segment_freq: FreqString,
-        norm_spread: float,
-        norm_frac: float = 0.5,
-        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(np.array([x, y]), metric='cityblock') / len(x),
-        linkage_method: LinkageString = "single",
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    fields_scale1: Sequence[ColumnName],
+    fields_scale2: Sequence[ColumnName],
+    segment_freq: FreqString,
+    norm_spread: float,
+    norm_frac: float = 0.5,
+    metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
+        np.array([x, y]), metric="cityblock"
+    )
+    / len(x),
+    linkage_method: LinkageString = "single",
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function linearly rescales one set of variables to another set of variables with a different scale and then
@@ -314,7 +329,9 @@ def flagDriftFromScaledNorm(
 
     for field1 in fields_scale1:
         for field2 in fields_scale2:
-            slope, intercept, *_ = stats.linregress(data_to_flag[field1], data_to_flag[field2])
+            slope, intercept, *_ = stats.linregress(
+                data_to_flag[field1], data_to_flag[field2]
+            )
             convert_slope.append(slope)
             convert_intercept.append(intercept)
 
@@ -335,7 +352,9 @@ def flagDriftFromScaledNorm(
         if segment[1].shape[0] <= 1:
             continue
 
-        drifters = detectDeviants(segment[1], metric, norm_spread, norm_frac, linkage_method, 'variables')
+        drifters = detectDeviants(
+            segment[1], metric, norm_spread, norm_frac, linkage_method, "variables"
+        )
 
         for var in drifters:
             flags[segment[1].index, fields[var]] = flag
@@ -343,17 +362,17 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-@register(masking='all', module="drift")
+@register(masking="all", module="drift")
 def correctDrift(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        maint_data_field: ColumnName,
-        driftModel: Callable[..., float],
-        cal_mean: int = 5,
-        flag_maint_period: bool = False,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    maint_data_field: ColumnName,
+    driftModel: Callable[..., float],
+    cal_mean: int = 5,
+    flag_maint_period: bool = False,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function corrects drifting behavior.
@@ -452,7 +471,9 @@ def correctDrift(
     for k in range(0, maint_data.shape[0] - 1):
         # assign group numbers for the timespans in between one maintenance ending and the beginning of the next
         # maintenance time itself remains np.nan assigned
-        drift_frame.loc[maint_data.values[k]: pd.Timestamp(maint_data.index[k + 1]), "drift_group"] = k
+        drift_frame.loc[
+            maint_data.values[k] : pd.Timestamp(maint_data.index[k + 1]), "drift_group"
+        ] = k
 
     # define target values for correction
     drift_grouper = drift_frame.groupby("drift_group")
@@ -460,7 +481,9 @@ def correctDrift(
 
     for k, group in drift_grouper:
         data_series = group[to_correct.name]
-        data_fit, data_shiftTarget = _driftFit(data_series, shift_targets.loc[k, :][0], cal_mean, driftModel)
+        data_fit, data_shiftTarget = _driftFit(
+            data_series, shift_targets.loc[k, :][0], cal_mean, driftModel
+        )
         data_fit = pd.Series(data_fit, index=group.index)
         data_shiftTarget = pd.Series(data_shiftTarget, index=group.index)
         data_shiftVektor = data_shiftTarget - data_fit
@@ -478,16 +501,16 @@ def correctDrift(
     return data, flags
 
 
-@register(masking='all', module="drift")
+@register(masking="all", module="drift")
 def correctRegimeAnomaly(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        cluster_field: ColumnName,
-        model: CurveFitter,
-        regime_transmission: Optional[FreqString] = None,
-        x_date: bool = False,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    cluster_field: ColumnName,
+    model: CurveFitter,
+    regime_transmission: Optional[FreqString] = None,
+    x_date: bool = False,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function fits the passed model to the different regimes in data[field] and tries to correct
@@ -552,8 +575,8 @@ def correctRegimeAnomaly(
         ydata = regime.values
         valid_mask = ~np.isnan(ydata)
         if regime_transmission is not None:
-            valid_mask &= (xdata > xdata[0] + regime_transmission)
-            valid_mask &= (xdata < xdata[-1] - regime_transmission)
+            valid_mask &= xdata > xdata[0] + regime_transmission
+            valid_mask &= xdata < xdata[-1] - regime_transmission
         try:
             p, *_ = curve_fit(model, xdata[valid_mask], ydata[valid_mask])
         except (RuntimeError, ValueError):
@@ -564,12 +587,18 @@ def correctRegimeAnomaly(
 
     first_normal = unique_successive > 0
     first_valid = np.array(
-        [~pd.isna(para_dict[unique_successive[i]]).any() for i in range(0, unique_successive.shape[0])])
+        [
+            ~pd.isna(para_dict[unique_successive[i]]).any()
+            for i in range(0, unique_successive.shape[0])
+        ]
+    )
     first_valid = np.where(first_normal & first_valid)[0][0]
     last_valid = 1
 
     for k in range(0, unique_successive.shape[0]):
-        if unique_successive[k] < 0 & (not pd.isna(para_dict[unique_successive[k]]).any()):
+        if unique_successive[k] < 0 & (
+            not pd.isna(para_dict[unique_successive[k]]).any()
+        ):
             ydata = data_ser[regimes.groups[unique_successive[k]]].values
             xdata = x_dict[unique_successive[k]]
             ypara = para_dict[unique_successive[k]]
@@ -591,17 +620,17 @@ def correctRegimeAnomaly(
     return data, flags
 
 
-@register(masking='all', module="drift")
+@register(masking="all", module="drift")
 def correctOffset(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        max_mean_jump: float,
-        normal_spread: float,
-        search_winsz: FreqString,
-        min_periods: int,
-        regime_transmission: Optional[FreqString] = None,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    max_mean_jump: float,
+    normal_spread: float,
+    search_winsz: FreqString,
+    min_periods: int,
+    regime_transmission: Optional[FreqString] = None,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Parameters
@@ -636,21 +665,28 @@ def correctOffset(
     flags : saqc.Flags
         The quality flags of data
     """
-    data, flags = copy(data, field, flags, field + '_CPcluster')
+    data, flags = copy(data, field, flags, field + "_CPcluster")
     data, flags = assignChangePointCluster(
-        data, field + '_CPcluster', flags,
+        data,
+        field + "_CPcluster",
+        flags,
         lambda x, y: np.abs(np.mean(x) - np.mean(y)),
         lambda x, y: max_mean_jump,
         bwd_window=search_winsz,
-        min_periods_bwd=min_periods
+        min_periods_bwd=min_periods,
     )
-    data, flags = assignRegimeAnomaly(data, field, flags, field + '_CPcluster', normal_spread)
+    data, flags = assignRegimeAnomaly(
+        data, field, flags, field + "_CPcluster", normal_spread
+    )
     data, flags = correctRegimeAnomaly(
-        data, field, flags, field + '_CPcluster',
+        data,
+        field,
+        flags,
+        field + "_CPcluster",
         lambda x, p1: np.array([p1] * x.shape[0]),
-        regime_transmission=regime_transmission
+        regime_transmission=regime_transmission,
     )
-    data, flags = drop(data, field + '_CPcluster', flags)
+    data, flags = drop(data, field + "_CPcluster", flags)
 
     return data, flags
 
@@ -666,14 +702,16 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
     dataFitFunc = functools.partial(driftModel, origin=origin_mean, target=target_mean)
     # if drift model has free parameters:
     try:
-            # try fitting free parameters
-            fit_paras, *_ = curve_fit(dataFitFunc, x_data, y_data)
-            data_fit = dataFitFunc(x_data, *fit_paras)
-            data_shift = driftModel(x_data, *fit_paras, origin=origin_mean, target=shift_target)
+        # try fitting free parameters
+        fit_paras, *_ = curve_fit(dataFitFunc, x_data, y_data)
+        data_fit = dataFitFunc(x_data, *fit_paras)
+        data_shift = driftModel(
+            x_data, *fit_paras, origin=origin_mean, target=shift_target
+        )
     except RuntimeError:
-            # if fit fails -> make no correction
-            data_fit = np.array([0] * len(x_data))
-            data_shift = np.array([0] * len(x_data))
+        # if fit fails -> make no correction
+        data_fit = np.array([0] * len(x_data))
+        data_shift = np.array([0] * len(x_data))
     # when there are no free parameters in the model:
     except ValueError:
         data_fit = dataFitFunc(x_data)
@@ -682,18 +720,20 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
     return data_fit, data_shift
 
 
-@register(masking='all', module="drift")
+@register(masking="all", module="drift")
 def flagRegimeAnomaly(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        cluster_field: ColumnName,
-        norm_spread: float,
-        linkage_method: LinkageString = "single",
-        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-        norm_frac: float = 0.5,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    cluster_field: ColumnName,
+    norm_spread: float,
+    linkage_method: LinkageString = "single",
+    metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(
+        np.nanmean(x) - np.nanmean(y)
+    ),
+    norm_frac: float = 0.5,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     A function to flag values belonging to an anomalous regime regarding modelling regimes of field.
@@ -742,7 +782,9 @@ def flagRegimeAnomaly(
         Flags values may have changed, relatively to the flags input.
     """
     return assignRegimeAnomaly(
-        data, field, flags,
+        data,
+        field,
+        flags,
         cluster_field,
         norm_spread,
         linkage_method=linkage_method,
@@ -755,20 +797,22 @@ def flagRegimeAnomaly(
     )
 
 
-@register(masking='all', module="drift")
+@register(masking="all", module="drift")
 def assignRegimeAnomaly(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        cluster_field: ColumnName,
-        norm_spread: float,
-        linkage_method: LinkageString = "single",
-        metric: Callable[[np.array, np.array], float] = lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-        norm_frac: float = 0.5,
-        set_cluster: bool = True,
-        set_flags: bool = False,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    cluster_field: ColumnName,
+    norm_spread: float,
+    linkage_method: LinkageString = "single",
+    metric: Callable[[np.array, np.array], float] = lambda x, y: np.abs(
+        np.nanmean(x) - np.nanmean(y)
+    ),
+    norm_frac: float = 0.5,
+    set_cluster: bool = True,
+    set_flags: bool = False,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     A function to detect values belonging to an anomalous regime regarding modelling regimes of field.
@@ -827,7 +871,9 @@ def assignRegimeAnomaly(
     series = data[cluster_field]
     cluster = np.unique(series)
     cluster_dios = DictOfSeries({i: data[field][series == i] for i in cluster})
-    plateaus = detectDeviants(cluster_dios, metric, norm_spread, norm_frac, linkage_method, 'samples')
+    plateaus = detectDeviants(
+        cluster_dios, metric, norm_spread, norm_frac, linkage_method, "samples"
+    )
 
     if set_flags:
         for p in plateaus:

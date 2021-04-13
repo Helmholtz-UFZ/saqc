@@ -12,23 +12,23 @@ from saqc.lib.tools import toSequence
 import saqc.lib.ts_operators as ts_ops
 
 
-@register(masking='all', module="scores")
+@register(masking="all", module="scores")
 def assignKNNScore(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        fields: Sequence[str],
-        n_neighbors: int = 10,
-        trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
-        trafo_on_partition: bool = True,
-        scoring_func: Callable[[pd.Series], float] = np.sum,
-        target_field: str = 'kNN_scores',
-        partition_freq: Union[float, str] = np.inf,
-        partition_min: int = 2,
-        kNN_algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = 'ball_tree',
-        metric: str = 'minkowski',
-        p: int = 2,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    fields: Sequence[str],
+    n_neighbors: int = 10,
+    trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
+    trafo_on_partition: bool = True,
+    scoring_func: Callable[[pd.Series], float] = np.sum,
+    target_field: str = "kNN_scores",
+    partition_freq: Union[float, str] = np.inf,
+    partition_min: int = 2,
+    kNN_algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
+    metric: str = "minkowski",
+    p: int = 2,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     TODO: docstring need a rework
@@ -132,7 +132,9 @@ def assignKNNScore(
     if isinstance(partition_freq, str):
         grouper = pd.Grouper(freq=partition_freq)
     else:
-        grouper = pd.Series(data=np.arange(0, val_frame.shape[0]), index=val_frame.index)
+        grouper = pd.Series(
+            data=np.arange(0, val_frame.shape[0]), index=val_frame.index
+        )
         grouper = grouper.transform(lambda x: int(np.floor(x / partition_freq)))
 
     partitions = val_frame.groupby(grouper)
@@ -146,7 +148,9 @@ def assignKNNScore(
 
         sample_size = partition.shape[0]
         nn_neighbors = min(n_neighbors - 1, max(sample_size, 2))
-        dist, *_ = ts_ops.kNN(partition.values, nn_neighbors, algorithm=kNN_algorithm, metric=metric, p=p)
+        dist, *_ = ts_ops.kNN(
+            partition.values, nn_neighbors, algorithm=kNN_algorithm, metric=metric, p=p
+        )
         try:
             resids = getattr(dist, scoring_func.__name__)(axis=1)
         except AttributeError:

@@ -12,18 +12,18 @@ from saqc.funcs.rolling import roll
 from saqc.funcs.curvefit import fitPolynomial
 
 
-@register(masking='field', module="residues")
+@register(masking="field", module="residues")
 def calculatePolynomialResidues(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        winsz: Union[str, int],
-        polydeg: int,
-        numba: Literal[True, False, "auto"] = "auto",  # TODO: rm, not a a user decision
-        eval_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
-        min_periods: Optional[int] = 0,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    winsz: Union[str, int],
+    polydeg: int,
+    numba: Literal[True, False, "auto"] = "auto",  # TODO: rm, not a a user decision
+    eval_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
+    min_periods: Optional[int] = 0,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function fits a polynomial model to the data and returns the residues.
@@ -101,7 +101,9 @@ def calculatePolynomialResidues(
 
     """
     return fitPolynomial(
-        data, field, flags,
+        data,
+        field,
+        flags,
         winsz=winsz,
         polydeg=polydeg,
         numba=numba,
@@ -113,22 +115,24 @@ def calculatePolynomialResidues(
     )
 
 
-@register(masking='field', module="residues")
+@register(masking="field", module="residues")
 def calculateRollingResidues(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        winsz: Union[str, int],
-        func: Callable[[np.ndarray], np.ndarray] = np.mean,
-        eval_flags: bool = True,
-        min_periods: Optional[int] = 0,
-        center: bool = True,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    winsz: Union[str, int],
+    func: Callable[[np.ndarray], np.ndarray] = np.mean,
+    eval_flags: bool = True,
+    min_periods: Optional[int] = 0,
+    center: bool = True,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """ TODO: docstring needed"""
     return roll(
-        data, field, flags,
+        data,
+        field,
+        flags,
         winsz=winsz,
         func=func,
         eval_flags=eval_flags,

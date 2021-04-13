@@ -16,11 +16,11 @@ from saqc.core.visitor import ENVIRONMENT
 
 import operator as op
 
-_OP = {'<': op.lt, '<=': op.le, '==': op.eq, '!=': op.ne, '>': op.gt, '>=': op.ge}
+_OP = {"<": op.lt, "<=": op.le, "==": op.eq, "!=": op.ne, ">": op.gt, ">=": op.ge}
 
 
 def _dslIsFlagged(
-        flags: Flags, var: pd.Series, flag: float = None, comparator: str = None
+    flags: Flags, var: pd.Series, flag: float = None, comparator: str = None
 ) -> Union[pd.Series, DictOfSeries]:
     """
     helper function for `flag`
@@ -37,20 +37,25 @@ def _dslIsFlagged(
     """
     if flag is None:
         if comparator is not None:
-            raise ValueError('if `comparator` is used, explicitly pass a `flag` level.')
+            raise ValueError("if `comparator` is used, explicitly pass a `flag` level.")
         flag = UNFLAGGED
-        comparator = '>'
+        comparator = ">"
 
     # default
     if comparator is None:
-        comparator = '>='
+        comparator = ">="
 
     _op = _OP[comparator]
     return _op(flags[var.name], flag)
 
 
-def _execGeneric(flags: Flags, data: DictOfSeries, func: Callable[[pd.Series], pd.Series], field: str,
-                 nodata: float) -> pd.Series:
+def _execGeneric(
+    flags: Flags,
+    data: DictOfSeries,
+    func: Callable[[pd.Series], pd.Series],
+    field: str,
+    nodata: float,
+) -> pd.Series:
     # TODO:
     # - check series.index compatibility
     # - field is only needed to translate 'this' parameters
@@ -79,14 +84,14 @@ def _execGeneric(flags: Flags, data: DictOfSeries, func: Callable[[pd.Series], p
     return func(*args)
 
 
-@register(masking='all', module="generic")
+@register(masking="all", module="generic")
 def process(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        func: Callable[[pd.Series], pd.Series],
-        nodata: float = np.nan,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    func: Callable[[pd.Series], pd.Series],
+    nodata: float = np.nan,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     generate/process data with generically defined functions.
@@ -148,15 +153,15 @@ def process(
     return data, flags
 
 
-@register(masking='all', module="generic")
+@register(masking="all", module="generic")
 def flag(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        func: Callable[[pd.Series], pd.Series],
-        nodata: float = np.nan,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    func: Callable[[pd.Series], pd.Series],
+    nodata: float = np.nan,
+    flag: float = BAD,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     # TODO : fix docstring, check if all still works
     """

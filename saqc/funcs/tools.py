@@ -11,8 +11,10 @@ from saqc.core import register, Flags
 from saqc.lib.tools import periodicMask
 
 
-@register(masking='none', module="tools")
-def copy(data: DictOfSeries, field: str, flags: Flags, new_field: str, **kwargs) -> Tuple[DictOfSeries, Flags]:
+@register(masking="none", module="tools")
+def copy(
+    data: DictOfSeries, field: str, flags: Flags, new_field: str, **kwargs
+) -> Tuple[DictOfSeries, Flags]:
     """
     The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
     data.
@@ -46,8 +48,10 @@ def copy(data: DictOfSeries, field: str, flags: Flags, new_field: str, **kwargs)
     return data, flags
 
 
-@register(masking='none', module="tools")
-def drop(data: DictOfSeries, field: str, flags: Flags, **kwargs) -> Tuple[DictOfSeries, Flags]:
+@register(masking="none", module="tools")
+def drop(
+    data: DictOfSeries, field: str, flags: Flags, **kwargs
+) -> Tuple[DictOfSeries, Flags]:
     """
     The function drops field from the data dios and the flags.
 
@@ -74,8 +78,10 @@ def drop(data: DictOfSeries, field: str, flags: Flags, **kwargs) -> Tuple[DictOf
     return data, flags
 
 
-@register(masking='none', module="tools")
-def rename(data: DictOfSeries, field: str, flags: Flags, new_name: str, **kwargs) -> Tuple[DictOfSeries, Flags]:
+@register(masking="none", module="tools")
+def rename(
+    data: DictOfSeries, field: str, flags: Flags, new_name: str, **kwargs
+) -> Tuple[DictOfSeries, Flags]:
     """
     The function renames field to new name (in both, the flags and the data).
 
@@ -104,17 +110,17 @@ def rename(data: DictOfSeries, field: str, flags: Flags, new_name: str, **kwargs
     return data, flags
 
 
-@register(masking='none', module="tools")
+@register(masking="none", module="tools")
 def mask(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        mode: Literal["periodic", "mask_var"],
-        mask_var: Optional[str]=None,
-        period_start: Optional[str]=None,
-        period_end: Optional[str]=None,
-        include_bounds: bool=True,
-        **kwargs,
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    mode: Literal["periodic", "mask_var"],
+    mask_var: Optional[str] = None,
+    period_start: Optional[str] = None,
+    period_end: Optional[str] = None,
+    include_bounds: bool = True,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     This function realizes masking within saqc.
@@ -216,9 +222,9 @@ def mask(
     data = data.copy()
     datcol_idx = data[field].index
 
-    if mode == 'periodic':
+    if mode == "periodic":
         to_mask = periodicMask(datcol_idx, period_start, period_end, include_bounds)
-    elif mode == 'mask_var':
+    elif mode == "mask_var":
         idx = data[mask_var].index.intersection(datcol_idx)
         to_mask = data.loc[idx, mask_var]
     else:

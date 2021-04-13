@@ -20,7 +20,9 @@ def flagAll(data, field, flags, **kwargs):
     return data, flags
 
 
-def initData(cols=2, start_date="2017-01-01", end_date="2017-12-31", freq=None, rows=None):
+def initData(
+    cols=2, start_date="2017-01-01", end_date="2017-12-31", freq=None, rows=None
+):
     if rows is None:
         freq = freq or "1h"
 
@@ -85,5 +87,3 @@ def checkDataFlagsInvariants(data, flags, field, identical=True):
         assert data[field].index.identical(flags[field].index)
     else:
         assert data[field].index.equals(flags[field].index)
-
-
