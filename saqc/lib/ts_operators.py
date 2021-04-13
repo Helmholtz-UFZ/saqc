@@ -445,13 +445,13 @@ def expModelFunc(x, a=0, b=0, c=0):
     return a + b * (np.exp(c * x) - 1)
 
 
-def expDriftModel(x, c, origin=None, target=None):
+def expDriftModel(x, c, origin, target):
     c = abs(c)
     b = (target - origin) / (np.exp(c) - 1)
     return expModelFunc(x, origin, b, c)
 
 
-def linearDriftModel(x, origin=None, target=None):
+def linearDriftModel(x, origin, target):
     return origin + x * target
 
 
