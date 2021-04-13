@@ -23,8 +23,8 @@ def callWontBreak(drawer, func_name: str):
 # NOTE:
 # needs a more elaborated test, as it calls into
 # `changepoints.assignChangePointClusters`
-def test_breaks_flagJumps():
-    callWontBreak("breaks.flagJumps")
+# def test_breaks_flagJumps():
+#     callWontBreak("breaks.flagJumps")
 
 
 def test_breaks_flagIsolated():
