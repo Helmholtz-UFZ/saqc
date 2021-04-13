@@ -44,15 +44,14 @@ def dioses(draw, min_cols=1):
     #   the integer->float->integer type conversion in _maskData/_unmaskData.
 
     cols = draw(lists(columnNames(), unique=True, min_size=min_cols))
-    columns = {
-        c: draw(dataSeries(min_size=3))
-        for c in cols
-    }
+    columns = {c: draw(dataSeries(min_size=3)) for c in cols}
     return dios.DictOfSeries(columns)
 
 
 @composite
-def dataSeries(draw, min_size=0, max_size=100, dtypes=("float32", "float64", "int32", "int64")):
+def dataSeries(
+    draw, min_size=0, max_size=100, dtypes=("float32", "float64", "int32", "int64")
+):
     if np.isscalar(dtypes):
         dtypes = (dtypes,)
 
@@ -83,7 +82,9 @@ def flagses(draw, data):
     """
     flags = initFlagsLike(data)
     for col, srs in data.items():
-        loc_st = lists(sampled_from(sorted(srs.index)), unique=True, max_size=len(srs) - 1)
+        loc_st = lists(
+            sampled_from(sorted(srs.index)), unique=True, max_size=len(srs) - 1
+        )
         flags[draw(loc_st), col] = BAD
     return flags
 
@@ -135,14 +136,14 @@ def functionKwargs(draw, func: SaQCFunction):
     data = draw(dioses())
     field = draw(sampled_from(sorted(data.columns)))
 
-    kwargs = {
-        "data": data,
-        "field": field,
-        "flags": draw(flagses(data))
-    }
+    kwargs = {"data": data, "field": field, "flags": draw(flagses(data))}
 
-    column_name_strategy = lambda _: sampled_from(sorted(c for c in data.columns if c != field))
-    interger_window_strategy = lambda _: integers(min_value=1, max_value=len(data[field]) - 1)
+    column_name_strategy = lambda _: sampled_from(
+        sorted(c for c in data.columns if c != field)
+    )
+    interger_window_strategy = lambda _: integers(
+        min_value=1, max_value=len(data[field]) - 1
+    )
 
     register_type_strategy(FreqString, frequencyStrings)
     register_type_strategy(ColumnName, column_name_strategy)

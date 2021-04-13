@@ -30,7 +30,9 @@ def assertScalar(name, value, optional=False):
         raise ValueError(f"'{name}' needs to be a scalar")
 
 
-def toSequence(value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = None) -> Sequence[T]:
+def toSequence(
+    value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = None
+) -> Sequence[T]:
     if value is None:
         value = default
     if np.isscalar(value):
@@ -199,6 +201,7 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
     When inclusive_selection="season", all above examples work the same way, only that you now
     determine wich values NOT TO mask (=wich values are to constitute the "seasons").
     """
+
     def _replaceBuilder(stamp):
         keys = ("second", "minute", "hour", "day", "month", "year")
         stamp_list = map(int, re.split(r"[-T:]", stamp)[::-1])
@@ -219,22 +222,27 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
     end_replacer = _replaceBuilder(season_end)
 
     if pd.Timestamp(start_replacer(dtindex)) <= pd.Timestamp(end_replacer(dtindex)):
+
         def _selector(x, base_bool=include_bounds):
-            x[start_replacer(x.index):end_replacer(x.index)] = not base_bool
-            return x
-    else:
-        def _selector(x, base_bool=include_bounds):
-            x[:end_replacer(x.index)] = not base_bool
-            x[start_replacer(x.index):] = not base_bool
+            x[start_replacer(x.index) : end_replacer(x.index)] = not base_bool
             return x
 
-    freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
+    else:
+
+        def _selector(x, base_bool=include_bounds):
+            x[: end_replacer(x.index)] = not base_bool
+            x[start_replacer(x.index) :] = not base_bool
+            return x
+
+    freq = "1" + "mmmhhhdddMMMYYY"[len(season_start)]
     return mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
 
 
 def assertDictOfSeries(df: Any, argname: str = "arg") -> None:
     if not isinstance(df, dios.DictOfSeries):
-        raise TypeError(f"{argname} must be of type dios.DictOfSeries, {type(df)} was given")
+        raise TypeError(
+            f"{argname} must be of type dios.DictOfSeries, {type(df)} was given"
+        )
 
 
 def assertSeries(srs: Any, argname: str = "arg") -> None:
@@ -315,8 +323,16 @@ def mutateIndex(index, old_name, new_name):
     return index
 
 
-def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", optimize=True,
-                      min_energy=0.2, max_freqs=10, bins=None):
+def estimateFrequency(
+    index,
+    delta_precision=-1,
+    max_rate="10s",
+    min_rate="1D",
+    optimize=True,
+    min_energy=0.2,
+    max_freqs=10,
+    bins=None,
+):
 
     """
     Function to estimate the sampling rate of an index.
@@ -371,23 +387,27 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     """
     index_n = index.to_numpy(float)
     if index.empty:
-        return 'empty', []
+        return "empty", []
 
-    index_n = (index_n - index_n[0])*10**(-9 + delta_precision)
-    delta = np.zeros(int(index_n[-1])+1)
+    index_n = (index_n - index_n[0]) * 10 ** (-9 + delta_precision)
+    delta = np.zeros(int(index_n[-1]) + 1)
     delta[index_n.astype(int)] = 1
     if optimize:
         delta_f = np.abs(fft.rfft(delta, fft.next_fast_len(len(delta))))
     else:
         delta_f = np.abs(fft.rfft(delta))
 
-    len_f = len(delta_f)*2
-    min_energy = delta_f[0]*min_energy
+    len_f = len(delta_f) * 2
+    min_energy = delta_f[0] * min_energy
     # calc/assign low/high freq cut offs (makes life easier):
-    min_rate_i = int(len_f/(pd.Timedelta(min_rate).total_seconds()*(10**delta_precision)))
+    min_rate_i = int(
+        len_f / (pd.Timedelta(min_rate).total_seconds() * (10 ** delta_precision))
+    )
     delta_f[:min_rate_i] = 0
-    max_rate_i = int(len_f/(pd.Timedelta(max_rate).total_seconds()*(10**delta_precision)))
-    hf_cutoff = min(max_rate_i, len_f//2)
+    max_rate_i = int(
+        len_f / (pd.Timedelta(max_rate).total_seconds() * (10 ** delta_precision))
+    )
+    hf_cutoff = min(max_rate_i, len_f // 2)
     delta_f[hf_cutoff:] = 0
     delta_f[delta_f < min_energy] = 0
 
@@ -395,54 +415,66 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     freqs = []
     f_i = np.argmax(delta_f)
     while (f_i > 0) & (len(freqs) < max_freqs):
-        f = (len_f / f_i)/(60*10**(delta_precision))
+        f = (len_f / f_i) / (60 * 10 ** (delta_precision))
         freqs.append(f)
-        for i in range(1, hf_cutoff//f_i + 1):
-            delta_f[(i*f_i) - min_rate_i:(i*f_i) + min_rate_i] = 0
+        for i in range(1, hf_cutoff // f_i + 1):
+            delta_f[(i * f_i) - min_rate_i : (i * f_i) + min_rate_i] = 0
         f_i = np.argmax(delta_f)
 
     if len(freqs) == 0:
         return None, []
 
     if bins is None:
-        r = range(0, int(pd.Timedelta(min_rate).total_seconds()/60))
+        r = range(0, int(pd.Timedelta(min_rate).total_seconds() / 60))
         bins = [0, 0.1, 0.2, 0.3, 0.4] + [i + 0.5 for i in r]
 
     f_hist, bins = np.histogram(freqs, bins=bins)
     freqs = np.ceil(bins[:-1][f_hist >= 1])
-    gcd_freq = np.gcd.reduce((10*freqs).astype(int))/10
+    gcd_freq = np.gcd.reduce((10 * freqs).astype(int)) / 10
 
-    return str(int(gcd_freq)) + 'min', [str(int(i)) + 'min' for i in freqs]
+    return str(int(gcd_freq)) + "min", [str(int(i)) + "min" for i in freqs]
 
 
 def evalFreqStr(freq, check, index):
-    if check in ['check', 'auto']:
+    if check in ["check", "auto"]:
         f_passed = freq
         freq = index.inferred_freq
         freqs = [freq]
         if freq is None:
             freq, freqs = estimateFrequency(index)
         if freq is None:
-            logging.warning('Sampling rate could not be estimated.')
+            logging.warning("Sampling rate could not be estimated.")
         if len(freqs) > 1:
-            logging.warning(f"Sampling rate seems to be not uniform!."
-                            f"Detected: {freqs}")
+            logging.warning(
+                f"Sampling rate seems to be not uniform!." f"Detected: {freqs}"
+            )
 
-        if check == 'check':
+        if check == "check":
             f_passed_seconds = pd.Timedelta(f_passed).total_seconds()
             freq_seconds = pd.Timedelta(freq).total_seconds()
             if f_passed_seconds != freq_seconds:
-                logging.warning(f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed}).")
-        elif check == 'auto':
+                logging.warning(
+                    f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed})."
+                )
+        elif check == "auto":
             if freq is None:
-                raise ValueError('Frequency estimation for non-empty series failed with no fall back frequency passed.')
+                raise ValueError(
+                    "Frequency estimation for non-empty series failed with no fall back frequency passed."
+                )
             f_passed = freq
     else:
         f_passed = freq
     return f_passed
 
 
-def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single', population='variables'):
+def detectDeviants(
+    data,
+    metric,
+    norm_spread,
+    norm_frac,
+    linkage_method="single",
+    population="variables",
+):
     """
     Helper function for carrying out the repeatedly upcoming task,
     of detecting variables a group of variables.
@@ -491,17 +523,19 @@ def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'
 
     condensed = np.abs(dist_mat[tuple(zip(*combs))])
     Z = linkage(condensed, method=linkage_method)
-    cluster = fcluster(Z, norm_spread, criterion='distance')
-    if population == 'variables':
+    cluster = fcluster(Z, norm_spread, criterion="distance")
+    if population == "variables":
         counts = collections.Counter(cluster)
         pop_num = var_num
-    elif population == 'samples':
-        counts = {cluster[j]: 0 for j in range(0,var_num)}
+    elif population == "samples":
+        counts = {cluster[j]: 0 for j in range(0, var_num)}
         for c in range(var_num):
             counts[cluster[c]] += data.iloc[:, c].dropna().shape[0]
         pop_num = np.sum(list(counts.values()))
     else:
-        raise ValueError("Not a valid normality criteria keyword passed. Pass either 'variables' or 'population'.")
+        raise ValueError(
+            "Not a valid normality criteria keyword passed. Pass either 'variables' or 'population'."
+        )
     norm_cluster = -1
 
     for item in counts.items():
@@ -526,7 +560,7 @@ def getFreqDelta(index):
     (``None`` will also be returned for pd.RangeIndex type.)
 
     """
-    delta = getattr(index, 'freq', None)
+    delta = getattr(index, "freq", None)
     if delta is None and not index.empty:
         i = pd.date_range(index[0], index[-1], len(index))
         if i.equals(index):

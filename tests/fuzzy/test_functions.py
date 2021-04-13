@@ -38,6 +38,7 @@ def test_breaks_flagMissing():
 # constants
 # ---------
 
+
 def test_constats_flagConstats():
     callWontBreak("constants.flagConstants")
 
@@ -48,6 +49,7 @@ def test_constants_flagByVariance():
 
 # flagtools
 # ---------
+
 
 def test_flagtools_clearFlags():
     callWontBreak("flagtools.clearFlags")

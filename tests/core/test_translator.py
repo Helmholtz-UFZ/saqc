@@ -19,7 +19,11 @@ from saqc.core.flags import Flags
 
 def _genTranslators():
     for dtype in (str, float, int):
-        flags = {dtype(-2): UNFLAGGED, dtype(-1): BAD, **{dtype(f*10): float(f) for f in range(10)}}
+        flags = {
+            dtype(-2): UNFLAGGED,
+            dtype(-1): BAD,
+            **{dtype(f * 10): float(f) for f in range(10)},
+        }
         translator = Translator(flags)
         yield flags, translator
 
@@ -29,7 +33,9 @@ def _genFlags(data: Dict[str, Union[Sequence, pd.Series]]) -> Flags:
     flags = DictOfSeries()
     for k, v in data.items():
         if not isinstance(v, pd.Series):
-            v = pd.Series(v, index=pd.date_range("2012-01-01", freq="1D", periods=len(v)))
+            v = pd.Series(
+                v, index=pd.date_range("2012-01-01", freq="1D", periods=len(v))
+            )
         flags[k] = v
 
     return Flags(flags)
@@ -87,9 +93,17 @@ def test_dmpTranslator():
         (_Selector("var2"), None, _Function("flagFoo")),
     ]
     tflags = translator.backward(flags, to_call)
-    assert set(tflags.columns.get_level_values(1)) == {"quality_flag", "quality_comment", "quality_cause"}
-    assert (tflags.loc[:, ("var1", "quality_comment")] == '{"test": "flagBar"}').all(axis=None)
-    assert (tflags.loc[:, ("var2", "quality_comment")] == '{"test": "flagFoo"}').all(axis=None)
+    assert set(tflags.columns.get_level_values(1)) == {
+        "quality_flag",
+        "quality_comment",
+        "quality_cause",
+    }
+    assert (tflags.loc[:, ("var1", "quality_comment")] == '{"test": "flagBar"}').all(
+        axis=None
+    )
+    assert (tflags.loc[:, ("var2", "quality_comment")] == '{"test": "flagFoo"}').all(
+        axis=None
+    )
 
 
 def test_positionalTranslator():
@@ -113,7 +127,7 @@ def test_positionalTranslatorIntegration():
     col = data.columns[0]
 
     saqc = SaQC(data=data, translator=PositionalTranslator())
-    saqc = (saqc
-            .breaks.flagMissing(col, flag=2)
-            .outliers.flagRange(col, min=3, max=10, flag=2))
+    saqc = saqc.breaks.flagMissing(col, flag=2).outliers.flagRange(
+        col, min=3, max=10, flag=2
+    )
     data, flags = saqc.getResult()

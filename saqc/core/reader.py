@@ -23,7 +23,7 @@ def _handleEmptyLines(df):
         df = df.reset_index()
         i = (df == F.VARNAME).first_valid_index()
         df.columns = df.iloc[i]
-        df = df.iloc[i + 1:]
+        df = df.iloc[i + 1 :]
 
     # mark empty lines
     mask = (df.isnull() | (df == "")).all(axis=1)
@@ -77,11 +77,7 @@ def _parseConfig(df, flags, nodata):
             regex=regex,
         )
 
-        control = ConfigController(
-            plot=plot,
-            lineno=lineno + 2,
-            expression=expr
-        )
+        control = ConfigController(plot=plot, lineno=lineno + 2, expression=expr)
 
         f = func.bind(**{"nodata": nodata, **kwargs})
 

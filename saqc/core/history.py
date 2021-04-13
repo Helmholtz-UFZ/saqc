@@ -29,7 +29,7 @@ class History:
 
     For more details and a detailed discussion, why this is needed, how this
     works and possible other implementations, see #GL143 [1].
-    
+
     [1] https://git.ufz.de/rdm-software/saqc/-/issues/143
 
     Parameters
@@ -47,7 +47,9 @@ class History:
         If True, the input data is copied, otherwise not.
     """
 
-    def __init__(self, hist: pd.DataFrame = None, mask: pd.DataFrame = None, copy: bool = False):
+    def __init__(
+        self, hist: pd.DataFrame = None, mask: pd.DataFrame = None, copy: bool = False
+    ):
 
         # this is a hidden _feature_ and not exposed by the type
         # of the hist parameter and serve as a fastpath for internal
@@ -330,7 +332,7 @@ class History:
         return self.hist[self.mask].max(axis=1)
 
     @property
-    def _constructor(self) -> Type['History']:
+    def _constructor(self) -> Type["History"]:
         return History
 
     def copy(self, deep=True) -> History:
@@ -390,13 +392,13 @@ class History:
     def __repr__(self):
 
         if self.empty:
-            return str(self.hist).replace('DataFrame', 'History')
+            return str(self.hist).replace("DataFrame", "History")
 
         repr = self.hist.astype(str)
         m = self.mask
 
-        repr[m] = ' ' + repr[m] + ' '
-        repr[~m] = '(' + repr[~m] + ')'
+        repr[m] = " " + repr[m] + " "
+        repr[~m] = "(" + repr[~m] + ")"
 
         return str(repr)[1:]
 
@@ -405,7 +407,9 @@ class History:
     #
 
     @staticmethod
-    def _validateHistWithMask(obj: pd.DataFrame, mask: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def _validateHistWithMask(
+        obj: pd.DataFrame, mask: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         check type, columns, index, dtype and if the mask fits the obj.
         """
@@ -415,13 +419,17 @@ class History:
 
         # check mask
         if not isinstance(mask, pd.DataFrame):
-            raise TypeError(f"'mask' must be of type pd.DataFrame, but {type(mask).__name__} was given")
+            raise TypeError(
+                f"'mask' must be of type pd.DataFrame, but {type(mask).__name__} was given"
+            )
 
         if any(mask.dtypes != bool):
             raise ValueError("dtype of all columns in 'mask' must be bool")
 
         if not mask.empty and not mask.iloc[:, -1].all():
-            raise ValueError("the values in the last column in mask must be 'True' everywhere.")
+            raise ValueError(
+                "the values in the last column in mask must be 'True' everywhere."
+            )
 
         # check combination of hist and mask
         if not obj.columns.equals(mask.columns):
@@ -439,16 +447,20 @@ class History:
         """
 
         if not isinstance(obj, pd.DataFrame):
-            raise TypeError(f"'hist' must be of type pd.DataFrame, but {type(obj).__name__} was given")
+            raise TypeError(
+                f"'hist' must be of type pd.DataFrame, but {type(obj).__name__} was given"
+            )
 
         if any(obj.dtypes != float):
-            raise ValueError('dtype of all columns in hist must be float')
+            raise ValueError("dtype of all columns in hist must be float")
 
         if not obj.empty and (
-                not obj.columns.equals(pd.Index(range(len(obj.columns))))
-                or obj.columns.dtype != int
+            not obj.columns.equals(pd.Index(range(len(obj.columns))))
+            or obj.columns.dtype != int
         ):
-            raise ValueError("column names must be continuous increasing int's, starting with 0.")
+            raise ValueError(
+                "column names must be continuous increasing int's, starting with 0."
+            )
 
         return obj
 
@@ -458,22 +470,24 @@ class History:
         index is not checked !
         """
         if not isinstance(obj, pd.Series):
-            raise TypeError(f'value must be of type pd.Series, but {type(obj).__name__} was given')
+            raise TypeError(
+                f"value must be of type pd.Series, but {type(obj).__name__} was given"
+            )
 
         if not obj.dtype == float:
-            raise ValueError('dtype must be float')
+            raise ValueError("dtype must be float")
 
         return obj
 
 
 def applyFunctionOnHistory(
-        history: History,
-        hist_func: callable,
-        hist_kws: dict,
-        mask_func: callable,
-        mask_kws: dict,
-        last_column: Union[pd.Series, Literal['dummy'], None] = None,
-        func_handle_df: bool = False,
+    history: History,
+    hist_func: callable,
+    hist_kws: dict,
+    mask_func: callable,
+    mask_kws: dict,
+    last_column: Union[pd.Series, Literal["dummy"], None] = None,
+    func_handle_df: bool = False,
 ):
     """
     Apply function on each column in history.
@@ -527,7 +541,7 @@ def applyFunctionOnHistory(
     if last_column is None:
         new_history.mask.iloc[:, -1:] = True
     else:
-        if isinstance(last_column, str) and last_column == 'dummy':
+        if isinstance(last_column, str) and last_column == "dummy":
             last_column = pd.Series(UNTOUCHED, index=new_history.index, dtype=float)
 
         new_history.append(last_column, force=True)
@@ -537,4 +551,3 @@ def applyFunctionOnHistory(
     new_history.hist.loc[:, :0] = UNFLAGGED
 
     return new_history
-

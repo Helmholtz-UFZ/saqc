@@ -16,23 +16,23 @@ from saqc.lib.ts_operators import (
     polyRollerNumba,
     polyRoller,
     polyRollerNoMissingNumba,
-    polyRollerNoMissing
+    polyRollerNoMissing,
 )
 
 
-@register(masking='field', module="curvefit")
+@register(masking="field", module="curvefit")
 def fitPolynomial(
-        data: DictOfSeries,
-        field: str,
-        flags: Flags,
-        winsz: Union[int, str],
-        polydeg: int,
-        numba: Literal[True, False, "auto"] = "auto",
-        eval_flags: bool = True,
-        min_periods: int = 0,
-        return_residues: bool = False,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    winsz: Union[int, str],
+    polydeg: int,
+    numba: Literal[True, False, "auto"] = "auto",
+    eval_flags: bool = True,
+    min_periods: int = 0,
+    return_residues: bool = False,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function fits a polynomial model to the data and returns the fitted data curve.
@@ -117,25 +117,36 @@ def fitPolynomial(
     regular = getFreqDelta(to_fit.index)
     if not regular:
         if isinstance(winsz, int):
-            raise NotImplementedError("Integer based window size is not supported for not-harmonized" "sample series.")
+            raise NotImplementedError(
+                "Integer based window size is not supported for not-harmonized"
+                "sample series."
+            )
         # get interval centers
-        centers = (to_fit.rolling(pd.Timedelta(winsz) / 2, closed="both", min_periods=min_periods).count()).floor()
+        centers = (
+            to_fit.rolling(
+                pd.Timedelta(winsz) / 2, closed="both", min_periods=min_periods
+            ).count()
+        ).floor()
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
-        residues = to_fit.rolling(pd.Timedelta(winsz), closed="both", min_periods=min_periods).apply(
-            polyRollerIrregular, args=(centers, polydeg)
-        )
+        residues = to_fit.rolling(
+            pd.Timedelta(winsz), closed="both", min_periods=min_periods
+        ).apply(polyRollerIrregular, args=(centers, polydeg))
 
         def center_func(x, y=centers):
             pos = x.index[int(len(x) - y[x.index[-1]])]
             return y.index.get_loc(pos)
 
-        centers_iloc = centers.rolling(winsz, closed="both").apply(center_func, raw=False).astype(int)
+        centers_iloc = (
+            centers.rolling(winsz, closed="both")
+            .apply(center_func, raw=False)
+            .astype(int)
+        )
         temp = residues.copy()
         for k in centers_iloc.iteritems():
             residues.iloc[k[1]] = temp[k[0]]
-        residues[residues.index[0]: residues.index[centers_iloc[0]]] = np.nan
-        residues[residues.index[centers_iloc[-1]]: residues.index[-1]] = np.nan
+        residues[residues.index[0] : residues.index[centers_iloc[0]]] = np.nan
+        residues[residues.index[centers_iloc[-1]] : residues.index[-1]] = np.nan
     else:
         if isinstance(winsz, str):
             winsz = pd.Timedelta(winsz) // regular
@@ -153,9 +164,9 @@ def fitPolynomial(
         center_index = winsz // 2
         if min_periods < winsz:
             if min_periods > 0:
-                to_fit = to_fit.rolling(winsz, min_periods=min_periods, center=True).apply(
-                    lambda x, y: x[y], raw=True, args=(center_index,)
-                )
+                to_fit = to_fit.rolling(
+                    winsz, min_periods=min_periods, center=True
+                ).apply(lambda x, y: x[y], raw=True, args=(center_index,))
 
             # we need a missing value marker that is not nan,
             # because nan values dont get passed by pandas rolling method
@@ -175,7 +186,9 @@ def fitPolynomial(
                 residues = residues.shift(-int(center_index))
             else:
                 residues = to_fit.rolling(winsz, center=True).apply(
-                    polyRoller, args=(miss_marker, val_range, center_index, polydeg), raw=True
+                    polyRoller,
+                    args=(miss_marker, val_range, center_index, polydeg),
+                    raw=True,
                 )
             residues[na_mask] = np.nan
         else:
@@ -192,7 +205,9 @@ def fitPolynomial(
                 residues = residues.shift(-int(center_index))
             else:
                 residues = to_fit.rolling(winsz, center=True).apply(
-                    polyRollerNoMissing, args=(val_range, center_index, polydeg), raw=True
+                    polyRollerNoMissing,
+                    args=(val_range, center_index, polydeg),
+                    raw=True,
                 )
 
     if return_residues:

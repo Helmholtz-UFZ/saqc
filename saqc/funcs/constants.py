@@ -16,15 +16,15 @@ from saqc.lib.tools import customRoller, getFreqDelta
 from saqc.lib.types import FreqString, ColumnName
 
 
-@register(masking='field', module="constants")
+@register(masking="field", module="constants")
 def flagConstants(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        thresh: float,
-        window: FreqString,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    thresh: float,
+    window: FreqString,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     This functions flags plateaus/series of constant values of length `window` if
@@ -61,7 +61,7 @@ def flagConstants(
         Flags values may have changed, relatively to the flags input.
     """
     if not isinstance(window, str):
-        raise TypeError('window must be offset string.')
+        raise TypeError("window must be offset string.")
     d = data[field]
 
     # min_periods=2 ensures that at least two non-nan values are present
@@ -80,17 +80,17 @@ def flagConstants(
     return data, flags
 
 
-@register(masking='field', module="constants")
+@register(masking="field", module="constants")
 def flagByVariance(
-        data: DictOfSeries,
-        field: ColumnName,
-        flags: Flags,
-        window: FreqString = "12h",
-        thresh: float = 0.0005,
-        max_missing: int = None,
-        max_consec_missing: int = None,
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    window: FreqString = "12h",
+    thresh: float = 0.0005,
+    max_missing: int = None,
+    max_consec_missing: int = None,
+    flag: float = BAD,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
@@ -133,7 +133,7 @@ def flagByVariance(
 
     delta = getFreqDelta(dataseries.index)
     if not delta:
-        raise IndexError('Timeseries irregularly sampled!')
+        raise IndexError("Timeseries irregularly sampled!")
 
     if max_missing is None:
         max_missing = np.inf

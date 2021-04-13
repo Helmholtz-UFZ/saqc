@@ -11,9 +11,9 @@ from saqc.core import register, Flags
 import warnings
 
 
-@register(masking='field', module="flagtools")
+@register(masking="field", module="flagtools")
 def forceFlags(
-        data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
+    data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Set whole column to a flag value.
@@ -46,8 +46,10 @@ def forceFlags(
 
 
 # masking='none' is sufficient because call is redirected
-@register(masking='none', module="flagtools")
-def clearFlags(data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs) -> Tuple[DictOfSeries, Flags]:
+@register(masking="none", module="flagtools")
+def clearFlags(
+    data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs
+) -> Tuple[DictOfSeries, Flags]:
     """
     Set whole column to UNFLAGGED.
 
@@ -72,17 +74,17 @@ def clearFlags(data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs) ->
     forceFlags : set whole column to a flag value
     flagUnflagged : set flag value at all unflagged positions
     """
-    if 'flag' in kwargs:
+    if "flag" in kwargs:
         kwargs = {**kwargs}  # copy
-        flag = kwargs.pop('flag')
-        warnings.warn(f'`flag={flag}` is ignored here.')
+        flag = kwargs.pop("flag")
+        warnings.warn(f"`flag={flag}` is ignored here.")
 
     return forceFlags(data, field, flags, flag=UNFLAGGED, **kwargs)
 
 
-@register(masking='field', module="flagtools")
+@register(masking="field", module="flagtools")
 def flagUnflagged(
-        data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
+    data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function sets a flag at all unflagged positions.
@@ -117,14 +119,16 @@ def flagUnflagged(
     return data, flags
 
 
-@register(masking='field', module="flagtools")
+@register(masking="field", module="flagtools")
 def flagManual(
-        data: DictOfSeries, field: ColumnName, flags: Flags,
-        mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
-        mflag: Any = 1,
-        method: Literal["plain", "ontime", "left-open", "right-open"] = 'plain',
-        flag: float = BAD,
-        **kwargs
+    data: DictOfSeries,
+    field: ColumnName,
+    flags: Flags,
+    mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
+    mflag: Any = 1,
+    method: Literal["plain", "ontime", "left-open", "right-open"] = "plain",
+    flag: float = BAD,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flag data by given, "manually generated" data.
@@ -259,8 +263,10 @@ def flagManual(
     return data, flags
 
 
-@register(masking='none', module="flagtools")
-def flagDummy(data: DictOfSeries, field: ColumnName, flags: Flags,  **kwargs) -> Tuple[DictOfSeries, Flags]:
+@register(masking="none", module="flagtools")
+def flagDummy(
+    data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs
+) -> Tuple[DictOfSeries, Flags]:
     """
     Function does nothing but returning data and flags.
 

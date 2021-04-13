@@ -61,7 +61,9 @@ def register(masking: MaskingStrT = "all", module: Optional[str] = None):
     return inner
 
 
-def _preCall(func: callable, args: tuple, kwargs: dict, masking: MaskingStrT, fname: str):
+def _preCall(
+    func: callable, args: tuple, kwargs: dict, masking: MaskingStrT, fname: str
+):
     """
     Handler that runs before any call to a saqc-function.
 
@@ -97,7 +99,7 @@ def _preCall(func: callable, args: tuple, kwargs: dict, masking: MaskingStrT, fn
 
     """
     mthresh = _getMaskingThresh(masking, kwargs, fname)
-    kwargs['to_mask'] = mthresh
+    kwargs["to_mask"] = mthresh
 
     data, field, flags, *args = args
 
@@ -108,10 +110,14 @@ def _preCall(func: callable, args: tuple, kwargs: dict, masking: MaskingStrT, fn
     # store current state
     state = CallState(
         func=func,
-        data=data, flags=flags, field=field,
-        args=args, kwargs=kwargs,
-        masking=masking, mthresh=mthresh,
-        mask=mask
+        data=data,
+        flags=flags,
+        field=field,
+        args=args,
+        kwargs=kwargs,
+        masking=masking,
+        mthresh=mthresh,
+        mask=mask,
     )
 
     # handle flags - clearing
@@ -157,11 +163,11 @@ def _getMaskingColumns(data: dios.DictOfSeries, field: str, masking: MaskingStrT
     ------
     ValueError: if given masking literal is not supported
     """
-    if masking == 'all':
+    if masking == "all":
         return data.columns
-    if masking == 'none':
+    if masking == "none":
         return pd.Index([])
-    if masking == 'field':
+    if masking == "field":
         return pd.Index([field])
 
     raise ValueError(f"wrong use of `register(masking={masking})`")
@@ -195,18 +201,20 @@ def _getMaskingThresh(masking, kwargs, fname):
      - ``+np.inf``, if ``False``
     If a floatish ``to_mask`` is found in the kwargs, this value is taken as the threshold.
     """
-    if 'to_mask' not in kwargs:
+    if "to_mask" not in kwargs:
         return UNFLAGGED
 
-    thresh = kwargs['to_mask']
+    thresh = kwargs["to_mask"]
 
     if not isinstance(thresh, (bool, float, int)):
         raise TypeError(f"'to_mask' must be of type bool or float")
 
-    if masking == 'none' and thresh not in (False, np.inf):
+    if masking == "none" and thresh not in (False, np.inf):
         # TODO: fix warning reference to docu
-        warnings.warn(f"the saqc-function {fname!r} ignore masking and therefore does not evaluate the passed "
-                      f"'to_mask'-keyword. Please refer to the documentation: TODO")
+        warnings.warn(
+            f"the saqc-function {fname!r} ignore masking and therefore does not evaluate the passed "
+            f"'to_mask'-keyword. Please refer to the documentation: TODO"
+        )
 
     if thresh is True:  # masking ON
         thresh = UNFLAGGED
@@ -220,7 +228,9 @@ def _getMaskingThresh(masking, kwargs, fname):
 
 
 # TODO: this is heavily undertested
-def _maskData(data, flags, columns, thresh) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
+def _maskData(
+    data, flags, columns, thresh
+) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
     """
     Mask data with Nans by flags worse that a threshold and according to ``masking`` keyword
     from the functions decorator.
@@ -249,7 +259,9 @@ def _maskData(data, flags, columns, thresh) -> Tuple[dios.DictOfSeries, dios.Dic
     return data, mask
 
 
-def _isflagged(flagscol: Union[np.array, pd.Series], thresh: float) -> Union[np.array, pd.Series]:
+def _isflagged(
+    flagscol: Union[np.array, pd.Series], thresh: float
+) -> Union[np.array, pd.Series]:
     """
     Return a mask of flags accordingly to `thresh`. Return type is same as flags.
     """
@@ -268,19 +280,19 @@ def _prepareFlags(flags: Flags, masking) -> Flags:
     the saqc-function needs.
     """
     # Either the index or the columns itself changed
-    if masking == 'none':
+    if masking == "none":
         return flags.copy()
 
     return initFlagsLike(flags, initial_value=UNTOUCHED)
 
 
 def _restoreFlags(flags: Flags, old_state: CallState):
-    if old_state.masking == 'none':
+    if old_state.masking == "none":
         return flags
 
     columns = flags.columns
     # take field column and all possibly newly added columns
-    if old_state.masking == 'field':
+    if old_state.masking == "field":
         columns = columns.difference(old_state.flags.columns)
         columns = columns.append(pd.Index([old_state.field]))
 
@@ -303,7 +315,7 @@ def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSer
     -----
     Even if this returns data, it work inplace !
     """
-    if old_state.masking == 'none':
+    if old_state.masking == "none":
         return data
 
     # we have two options to implement this:
@@ -327,7 +339,9 @@ def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSer
     # col in new only : new (keep column)
     # col in old only : new (ignore, was deleted)
 
-    columns = old_state.mask.columns.intersection(data.columns)  # in old, in masked, in new
+    columns = old_state.mask.columns.intersection(
+        data.columns
+    )  # in old, in masked, in new
 
     for c in columns:
 
@@ -350,4 +364,3 @@ def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSer
         data.loc[:, c] = np.where(restore_old_mask, old, new)
 
     return data
-

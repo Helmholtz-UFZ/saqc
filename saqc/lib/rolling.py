@@ -30,14 +30,23 @@ from pandas.core.window.indexers import calculate_variable_window_bounds
 from pandas.core.window.rolling import Rolling, Window
 
 
-def is_slice(k): return isinstance(k, slice)
+def is_slice(k):
+    return isinstance(k, slice)
 
 
 class _CustomBaseIndexer(BaseIndexer):
     is_datetimelike = None
 
-    def __init__(self, index_array, window_size, center=False, forward=False,
-                 expand=False, step=None, mask=None):
+    def __init__(
+        self,
+        index_array,
+        window_size,
+        center=False,
+        forward=False,
+        expand=False,
+        step=None,
+        mask=None,
+    ):
         super().__init__()
         self.index_array = index_array
         self.window_size = window_size
@@ -61,19 +70,21 @@ class _CustomBaseIndexer(BaseIndexer):
         if is_integer(self.step) or self.step is None:
             self.step = slice(None, None, self.step or None)
         if not is_slice(self.step):
-            raise TypeError('step must be integer or slice.')
+            raise TypeError("step must be integer or slice.")
         if self.step == slice(None):
             self.step = None
 
         if self.skip is not None:
             if len(self.index_array) != len(self.skip):
-                raise ValueError('mask must have same length as data to roll over.')
+                raise ValueError("mask must have same length as data to roll over.")
             self.skip = np.array(self.skip)
             if self.skip.dtype != bool:
-                raise TypeError('mask must have boolean values only.')
+                raise TypeError("mask must have boolean values only.")
             self.skip = ~self.skip
 
-    def get_window_bounds(self, num_values=0, min_periods=None, center=None, closed=None):
+    def get_window_bounds(
+        self, num_values=0, min_periods=None, center=None, closed=None
+    ):
         if min_periods is None:
             assert self.is_datetimelike is False
             min_periods = 1
@@ -188,7 +199,7 @@ class _FixedWindowDirectionIndexer(_CustomBaseIndexer):
     def _bw(self, num_values=0, offset=0):
         start = np.arange(-self.window_size, num_values + offset, dtype="int64") + 1
         end = start + self.window_size
-        start[:self.window_size] = 0
+        start[: self.window_size] = 0
         return start, end
 
     def _fw(self, num_values=0, offset=0):
@@ -209,8 +220,8 @@ class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
         ws_bw, ws_fw = self._get_center_window_sizes(center, self.window_size)
         if center:
             c1 = c2 = closed
-            if closed == 'neither':
-                c1, c2 = 'right', 'left'
+            if closed == "neither":
+                c1, c2 = "right", "left"
 
             start, _ = self._bw(num_values, ws_bw, c1)
             _, end = self._fw(num_values, ws_fw, c2)
@@ -248,23 +259,38 @@ class _VariableWindowDirectionIndexer(_CustomBaseIndexer):
 
     def _bw(self, num_values, window_size, closed):
         arr = self.index_array
-        start, end = calculate_variable_window_bounds(num_values, window_size, None, None, closed, arr)
+        start, end = calculate_variable_window_bounds(
+            num_values, window_size, None, None, closed, arr
+        )
         return start, end
 
     def _fw(self, num_values, window_size, closed):
         arr = self.index_array[::-1]
-        s, _ = calculate_variable_window_bounds(num_values, window_size, None, None, closed, arr)
+        s, _ = calculate_variable_window_bounds(
+            num_values, window_size, None, None, closed, arr
+        )
         start = np.arange(num_values)
         end = num_values - s[::-1]
 
-        if closed in ['left', 'neither']:
+        if closed in ["left", "neither"]:
             start += 1
         return start, end
 
 
-def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
-                 center=False, win_type=None, on=None, axis=0, closed=None,
-                 forward=False, expand=True, step=None, mask=None) -> Union[Rolling, Window]:
+def customRoller(
+    obj,
+    window,
+    min_periods=None,  # aka minimum non-nan values
+    center=False,
+    win_type=None,
+    on=None,
+    axis=0,
+    closed=None,
+    forward=False,
+    expand=True,
+    step=None,
+    mask=None,
+) -> Union[Rolling, Window]:
     """
     A custom rolling implementation, using pandas as base.
 
@@ -294,7 +320,7 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
         For a DataFrame, a datetime-like column or MultiIndex level on which to calculate the rolling window,
         rather than the DataFrame’s index. Provided integer column is ignored and excluded from result since
         an integer index is not used to calculate the rolling window.
-    
+
     axis : int or str, default 0
 
     closed : str, default None
@@ -346,7 +372,9 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     # center is the only param from the pandas rolling implementation
     # that we advance, namely we allow center=True on dt-indexed data
     # that's why we take it as ours
-    theirs = dict(min_periods=min_periods, win_type=win_type, on=on, axis=axis, closed=closed)
+    theirs = dict(
+        min_periods=min_periods, win_type=win_type, on=on, axis=axis, closed=closed
+    )
     ours = dict(center=center, forward=forward, expand=expand, step=step, mask=mask)
     assert len(theirs) + len(ours) == num_params, "not all params covert (!)"
 
@@ -359,7 +387,11 @@ def customRoller(obj, window, min_periods=None,  # aka minimum non-nan values
     except Exception:
         raise
 
-    indexer = _VariableWindowDirectionIndexer if x.is_freq_type else _FixedWindowDirectionIndexer
+    indexer = (
+        _VariableWindowDirectionIndexer
+        if x.is_freq_type
+        else _FixedWindowDirectionIndexer
+    )
     indexer = indexer(index_array=x._on.asi8, window_size=x.window, **ours)
 
     # Centering is fully done in our own indexers. So we do not pass center to rolling(). Especially because

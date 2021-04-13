@@ -5,7 +5,6 @@ from saqc.core.register import FUNC_MAP
 
 
 class ModuleBase:
-
     def __init__(self, obj):
         self.obj = obj
 

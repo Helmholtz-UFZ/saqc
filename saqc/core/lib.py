@@ -29,11 +29,13 @@ class ConfigController(APIController):
     expression: Optional[str] = None
 
     def errorMessage(self):
-        return f"line: {self.lineno}\nexpression: {self.expression}" + super().errorMessage()
+        return (
+            f"line: {self.lineno}\nexpression: {self.expression}"
+            + super().errorMessage()
+        )
 
 
 class SaQCFunction:
-
     def __init__(self, name, function, *args, **keywords):
         self.name = name
         self.func = function
@@ -45,9 +47,7 @@ class SaQCFunction:
 
     def bind(self, *args, **keywords):
         return SaQCFunction(
-            self.name, self.func,
-            *(self.args + args),
-            **{**self.keywords, **keywords}
+            self.name, self.func, *(self.args + args), **{**self.keywords, **keywords}
         )
 
     def __call__(self, data, field, flags, *args, **keywords):
@@ -55,4 +55,6 @@ class SaQCFunction:
         return self.func(data, field, flags, *self.args, *args, **keywords)
 
     def errorMessage(self) -> str:
-        return f"function: {self.name}\narguments: {self.args}\nkeywords: {self.keywords}"
+        return (
+            f"function: {self.name}\narguments: {self.args}\nkeywords: {self.keywords}"
+        )

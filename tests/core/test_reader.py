@@ -26,7 +26,11 @@ def test_packagedConfig():
     config_path = path / "config_ci.csv"
     data_path = path / "data.csv"
 
-    data = pd.read_csv(data_path, index_col=0, parse_dates=True,)
+    data = pd.read_csv(
+        data_path,
+        index_col=0,
+        parse_dates=True,
+    )
     saqc = SaQC(dios.DictOfSeries(data)).readConfig(config_path)
     saqc.getResult()
 
@@ -45,7 +49,9 @@ def test_variableRegex(data):
     for regex, expected in tests:
         fobj = writeIO(header + "\n" + f"{regex} ; flagtools.flagDummy()")
         saqc = SaQC(data).readConfig(fobj)
-        expansion = saqc._expandFields(saqc._to_call[0][0], saqc._to_call[0][2], data.columns)
+        expansion = saqc._expandFields(
+            saqc._to_call[0][0], saqc._to_call[0][2], data.columns
+        )
         result = [s.field for s, _ in expansion]
         assert np.all(result == expected)
 
@@ -130,7 +136,7 @@ def test_supportedArguments(data):
 
     # TODO: necessary?
 
-    @register(masking='field')
+    @register(masking="field")
     def func(data, field, flags, kwarg, **kwargs):
         return data, flags
 

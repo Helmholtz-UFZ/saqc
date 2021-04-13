@@ -22,7 +22,7 @@ logging.disable(logging.CRITICAL)
 OPTIONAL = [False, True]
 
 
-register(masking='field')(flagAll)
+register(masking="field")(flagAll)
 
 
 @pytest.fixture
@@ -37,8 +37,7 @@ def flags(data, optional):
 
 
 def test_errorHandling(data):
-
-    @register(masking='field')
+    @register(masking="field")
     def raisingFunc(data, field, flags, **kwargs):
         raise TypeError
 
@@ -49,7 +48,7 @@ def test_errorHandling(data):
         SaQC(data, error_policy=policy).raisingFunc(var1).getResult()
 
     with pytest.raises(TypeError):
-        SaQC(data, error_policy='raise').raisingFunc(var1).getResult()
+        SaQC(data, error_policy="raise").raisingFunc(var1).getResult()
 
 
 def test_duplicatedVariable():
@@ -89,7 +88,9 @@ def test_dtypes(data, flags):
     flags_raw = flags.toDios()
     var1, var2 = data.columns[:2]
 
-    pdata, pflags = SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).getResult(raw=True)
+    pdata, pflags = (
+        SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).getResult(raw=True)
+    )
 
     for c in pflags.columns:
         assert pflags[c].dtype == flags[c].dtype
@@ -106,8 +107,14 @@ def test_plotting(data):
     field, *_ = data.columns
     flags = initFlagsLike(data)
     _, flags_range = flagRange(data, field, flags, min=10, max=90, flag=BAD)
-    data_new, flags_range = flagRange(data, field, flags_range, min=40, max=60, flag=DOUBT)
+    data_new, flags_range = flagRange(
+        data, field, flags_range, min=40, max=60, flag=DOUBT
+    )
     splot._interactive = False
-    splot._plotSingleVariable(data, data_new, flags, flags_range, sources=[], targets=[data_new.columns[0]])
-    splot._plotMultipleVariables(data, data_new, flags, flags_range, targets=data_new.columns)
+    splot._plotSingleVariable(
+        data, data_new, flags, flags_range, sources=[], targets=[data_new.columns[0]]
+    )
+    splot._plotMultipleVariables(
+        data, data_new, flags, flags_range, targets=data_new.columns
+    )
     splot._interactive = True

@@ -33,13 +33,19 @@ from saqc.constants import BAD
 logger = logging.getLogger("SaQC")
 
 
-def _handleErrors(exc: Exception, field: str, control: APIController, func: SaQCFunction, policy: Literal["ignore", "warn", "raise"]):
+def _handleErrors(
+    exc: Exception,
+    field: str,
+    control: APIController,
+    func: SaQCFunction,
+    policy: Literal["ignore", "warn", "raise"],
+):
     message = "\n".join(
         [
             f"Exception:\n{type(exc).__name__}: {exc}",
             f"field: {field}",
             f"{func.errorMessage()}",
-            f"{control.errorMessage()}"
+            f"{control.errorMessage()}",
         ]
     )
 
@@ -60,10 +66,14 @@ def _prepInput(data, flags):
         data = data.to_frame()
 
     if not isinstance(data, dios_like):
-        raise TypeError("'data' must be of type pd.Series, pd.DataFrame or dios.DictOfSeries")
+        raise TypeError(
+            "'data' must be of type pd.Series, pd.DataFrame or dios.DictOfSeries"
+        )
 
     if isinstance(data, pd.DataFrame):
-        if isinstance(data.index, pd.MultiIndex) or isinstance(data.columns, pd.MultiIndex):
+        if isinstance(data.index, pd.MultiIndex) or isinstance(
+            data.columns, pd.MultiIndex
+        ):
             raise TypeError("'data' should not use MultiIndex")
         data = dios.to_dios(data)
 
@@ -73,7 +83,9 @@ def _prepInput(data, flags):
     if flags is not None:
 
         if isinstance(flags, pd.DataFrame):
-            if isinstance(flags.index, pd.MultiIndex) or isinstance(flags.columns, pd.MultiIndex):
+            if isinstance(flags.index, pd.MultiIndex) or isinstance(
+                flags.columns, pd.MultiIndex
+            ):
                 raise TypeError("'flags' should not use MultiIndex")
 
         if isinstance(flags, (dios.DictOfSeries, pd.DataFrame, Flags)):
@@ -82,7 +94,9 @@ def _prepInput(data, flags):
             cols = flags.columns.intersection(data.columns)
             for c in cols:
                 if not flags[c].index.equals(data[c].index):
-                    raise ValueError(f"the index of 'flags' and 'data' missmatch in column {c}")
+                    raise ValueError(
+                        f"the index of 'flags' and 'data' missmatch in column {c}"
+                    )
 
         # this also ensures float dtype
         if not isinstance(flags, Flags):
@@ -106,8 +120,15 @@ _setup()
 
 
 class SaQC(FuncModules):
-
-    def __init__(self, data, flags=None, translator: Translator=None, nodata=np.nan, to_mask=None, error_policy="raise"):
+    def __init__(
+        self,
+        data,
+        flags=None,
+        translator: Translator = None,
+        nodata=np.nan,
+        to_mask=None,
+        error_policy="raise",
+    ):
         super().__init__(self)
         data, flags = _prepInput(data, flags)
         self._data = data
@@ -122,7 +143,7 @@ class SaQC(FuncModules):
         self._to_call: List[Tuple[ColumnSelector, APIController, SaQCFunction]] = []
 
     def _initFlags(self, data, flags: Union[Flags, None]):
-        """ Init the internal Flags-object.
+        """Init the internal Flags-object.
 
         Ensures that all data columns are present and user passed
         flags from a frame or an already initialised Flags-object
@@ -143,22 +164,32 @@ class SaQC(FuncModules):
             flags=Flags(),
             nodata=self._nodata,
             to_mask=self._to_mask,
-            error_policy=self._error_policy
+            error_policy=self._error_policy,
         )
 
     def readConfig(self, fname):
         from saqc.core.reader import readConfig
+
         out = stdcopy.deepcopy(self)
         out._to_call.extend(readConfig(fname, self._flags, self._nodata))
         return out
 
-    def _expandFields(self, selector: ColumnSelector, func: SaQCFunction, variables: pd.Index) -> Sequence[Tuple[ColumnSelector, SaQCFunction]]:
+    def _expandFields(
+        self, selector: ColumnSelector, func: SaQCFunction, variables: pd.Index
+    ) -> Sequence[Tuple[ColumnSelector, SaQCFunction]]:
         if not selector.regex:
             return [(selector, func)]
 
         out = []
         for field in variables[variables.str.match(selector.field)]:
-            out.append((ColumnSelector(field=field, target=selector.target, regex=selector.regex), func))
+            out.append(
+                (
+                    ColumnSelector(
+                        field=field, target=selector.target, regex=selector.regex
+                    ),
+                    func,
+                )
+            )
         return out
 
     def evaluate(self):
@@ -178,12 +209,16 @@ class SaQC(FuncModules):
         data, flags = self._data, self._flags
 
         for selector, control, function in self._to_call:
-            for sel, func in self._expandFields(selector, function, data.columns.union(flags.columns)):
+            for sel, func in self._expandFields(
+                selector, function, data.columns.union(flags.columns)
+            ):
                 logger.debug(f"processing: {sel.field}, {func.name}, {func.keywords}")
 
                 t0 = timeit.default_timer()
                 try:
-                    data_result, flags_result = _saqcCallFunc(sel, control, func, data, flags)
+                    data_result, flags_result = _saqcCallFunc(
+                        sel, control, func, data, flags
+                    )
                 except Exception as e:
                     t1 = timeit.default_timer()
                     _handleErrors(e, sel.field, control, func, self._error_policy)
@@ -214,7 +249,9 @@ class SaQC(FuncModules):
         new._flags, new._data = flags, data
         return new
 
-    def getResult(self, raw=False) -> Union[Tuple[DictOfSeries, Flags], Tuple[pd.DataFrame, pd.DataFrame]]:
+    def getResult(
+        self, raw=False
+    ) -> Union[Tuple[DictOfSeries, Flags], Tuple[pd.DataFrame, pd.DataFrame]]:
         """
         Realize the registered calculations and return the results
 
@@ -232,15 +269,21 @@ class SaQC(FuncModules):
         return data.to_df(), self._translator.backward(flags, self._to_call)
 
     def _wrap(self, func: SaQCFunction):
-
-        def inner(field: str, *fargs, target: str=None, regex: bool=False, flag: UserFlag=BAD, plot: bool=False, inplace: bool=False, **fkwargs) -> SaQC:
+        def inner(
+            field: str,
+            *fargs,
+            target: str = None,
+            regex: bool = False,
+            flag: UserFlag = BAD,
+            plot: bool = False,
+            inplace: bool = False,
+            **fkwargs,
+        ) -> SaQC:
 
             if self._to_mask is not None:
-                fkwargs.setdefault('to_mask', self._to_mask)
+                fkwargs.setdefault("to_mask", self._to_mask)
 
-            control = APIController(
-                plot=plot
-            )
+            control = APIController(plot=plot)
 
             locator = ColumnSelector(
                 field=field,
@@ -250,7 +293,11 @@ class SaQC(FuncModules):
 
             partial = func.bind(
                 *fargs,
-                **{"nodata": self._nodata, "flag": self._translator.forward(flag), **fkwargs}
+                **{
+                    "nodata": self._nodata,
+                    "flag": self._translator.forward(flag),
+                    **fkwargs,
+                },
             )
 
             out = self if inplace else self.copy(deep=True)
@@ -300,7 +347,7 @@ def _saqcCallFunc(locator, controller, function, data, flags):
 
 
 def _warnForUnusedKwargs(func):
-    """ Warn for unused kwargs, passed to a SaQC.function.
+    """Warn for unused kwargs, passed to a SaQC.function.
 
     Parameters
     ----------
@@ -330,5 +377,5 @@ def _warnForUnusedKwargs(func):
             missing.append(kw)
 
     if missing:
-        missing = ', '.join(missing)
+        missing = ", ".join(missing)
         logging.warning(f"Unused argument(s): {missing}")

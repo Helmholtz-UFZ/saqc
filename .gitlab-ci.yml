@@ -10,6 +10,7 @@ default:
   before_script:
     - pip install --upgrade pip
     - pip install pytest
+    - pip install black
     - pip install -r requirements.txt
 
 
@@ -37,6 +38,11 @@ python38:
     - pytest tests/core tests/funcs
     - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
+# check if everthing is properly formatted
+black:
+  stage: test
+  script:
+    - black --check saqc/ tests/
 
 # make (visual) coverage in gitlab merge request diff's
 coverage:
