@@ -24,7 +24,7 @@ python37:
     - schedules
   image: python:3.7
   script:
-    - pytest tests/core tests/funcs tests/integration
+    - pytest tests/core tests/funcs tests/integration dios/test
     - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
@@ -34,7 +34,7 @@ python38:
   except:
     - schedules
   script:
-    - pytest tests/core tests/funcs tests/integration
+    - pytest tests/core tests/funcs tests/integration dios/test
     - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
@@ -54,7 +54,7 @@ black:
   stage: test
   script:
     - pip install black
-    - black --check saqc/ tests/
+    - black --check .
 
 
 # make (visual) coverage in gitlab merge request diff's

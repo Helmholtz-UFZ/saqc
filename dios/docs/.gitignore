@@ -1,0 +1,8 @@
+# ignore everything
+_api
+_build
+_static
+*.automodsumm
+
+
+
