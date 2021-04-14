@@ -9,24 +9,39 @@ def parse_imports(path):
     modules = []
     file = open(path)
     lines = file.readlines()
-    for node in ast.iter_child_nodes(ast.parse(''.join(lines))):
+    for node in ast.iter_child_nodes(ast.parse("".join(lines))):
         if isinstance(node, ast.ImportFrom) | isinstance(node, ast.Import):
-            modules += [x.name for x in node.names] + [x.asname for x in node.names if x.asname is not None]
+            modules += [x.name for x in node.names] + [
+                x.asname for x in node.names if x.asname is not None
+            ]
     file.close()
     return modules
 
 
 @click.command()
 @click.option(
-    "-p", "--pckpath", type=str, required=True, default="saqc/funcs",
-    help="Relative path to the package to be documented (relative to sphinx root)."
+    "-p",
+    "--pckpath",
+    type=str,
+    required=True,
+    default="saqc/funcs",
+    help="Relative path to the package to be documented (relative to sphinx root).",
 )
 @click.option(
-    "-t", "--targetpath", type=str, required=True, default="sphinx-doc/internal_doc_rst",
-    help="Output folder path (relative to sphinx root). Will be overridden if already existent."
+    "-t",
+    "--targetpath",
+    type=str,
+    required=True,
+    default="sphinx-doc/internal_doc_rst",
+    help="Output folder path (relative to sphinx root). Will be overridden if already existent.",
 )
 @click.option(
-    "-sr", "--sphinxroot", type=str, required=True, default='..', help="Relative path to the sphinx root."
+    "-sr",
+    "--sphinxroot",
+    type=str,
+    required=True,
+    default="..",
+    help="Relative path to the sphinx root.",
 )
 def main(pckpath, targetpath, sphinxroot):
     root_path = os.path.abspath(sphinxroot)
@@ -44,14 +59,23 @@ def main(pckpath, targetpath, sphinxroot):
     os.mkdir(targetpath)
 
     for module in modules:
-        imports = parse_imports(os.path.join(pkg_path, f'{module}.py'))
-        skiplist = [f'\t:skip: {k}' for k in imports]
+        imports = parse_imports(os.path.join(pkg_path, f"{module}.py"))
+        skiplist = [f"\t:skip: {k}" for k in imports]
         section = [module] + ["=" * len(module)]
-        automodapi_directive = [".. automodapi:: " + pckpath.replace('/', '.') + '.' + module]
-        no_heading = [f'\t:no-heading:']
-        to_write = emptyline + section + emptyline + automodapi_directive + skiplist + no_heading
-        to_write = "".join([f'{k}\r\n' for k in to_write])
-        with open(os.path.join(targetpath, f'{module}.rst'), 'w+') as f:
+        automodapi_directive = [
+            ".. automodapi:: " + pckpath.replace("/", ".") + "." + module
+        ]
+        no_heading = [f"\t:no-heading:"]
+        to_write = (
+            emptyline
+            + section
+            + emptyline
+            + automodapi_directive
+            + skiplist
+            + no_heading
+        )
+        to_write = "".join([f"{k}\r\n" for k in to_write])
+        with open(os.path.join(targetpath, f"{module}.rst"), "w+") as f:
             f.write(to_write)
 
 

@@ -13,8 +13,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://git.ufz.de/rdm-software/saqc",
-    packages=find_packages(),
-    python_requires='>=3.7',
+    packages=find_packages(exclude=("tests",)),
+    python_requires=">=3.7, <3.10",
     install_requires=[
         "numpy",
         "pandas",
@@ -24,13 +24,14 @@ setup(
         "matplotlib",
         "click",
         "pyarrow",
-        "dios",
         "typing_extensions",
         "outlier-utils",
         "dtw",
         "PyWavelets",
         "mlxtend",
     ],
-    license="GPLv3",
-    entry_points={"console_scripts": ["saqc=saqc.__main__:main"],},
+    license_files=("LICENSE.md",),
+    entry_points={
+        "console_scripts": ["saqc=saqc.__main__:main"],
+    },
 )
