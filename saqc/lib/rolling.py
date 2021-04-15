@@ -382,10 +382,7 @@ def customRoller(
     # closed not allowed for integer windows, index is monotonic (in- or decreasing), if freq-based
     # windows can be transformed to nanoseconds (eg. fails for `1y` - it could have 364 or 365 days), etc.
     # Also it converts window and the index to numpy-arrays (so we don't have to do it :D).
-    try:
-        x = obj.rolling(window, **theirs)
-    except Exception:
-        raise
+    x = obj.rolling(window, **theirs)
 
     indexer = (
         _VariableWindowDirectionIndexer
