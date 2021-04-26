@@ -93,7 +93,7 @@ class _DiosBase:
                     _throw_MixedItype_err_or_warn(self.itype)
 
     def _init_insert_data(self, data, columns, index):
-        """ Insert items of a iterable in self"""
+        """Insert items of a iterable in self"""
 
         if pdextra.is_iterator(data):
             data = list(data)
@@ -174,7 +174,7 @@ class _DiosBase:
         self._data.at[col] = val.copy(deep=True)
 
     def __getitem__(self, key):
-        """ dios[key] -> dios/series """
+        """dios[key] -> dios/series"""
         # scalar        -> select a column
         # slice         -> select rows (on all columns)
         # bool dios     -> select columns, select rows
@@ -217,7 +217,7 @@ class _DiosBase:
         return new
 
     def _getitem_bool_dios(self, key):
-        """ Select items by a boolean dios-like drop un-selected indices. """
+        """Select items by a boolean dios-like drop un-selected indices."""
 
         if not _is_bool_dios_like(key):
             raise ValueError("Must pass DictOfSeries with boolean values only")
@@ -236,7 +236,7 @@ class _DiosBase:
         return new
 
     def __setitem__(self, key, value):
-        """ dios[key] = value """
+        """dios[key] = value"""
         key = list(key) if pdextra.is_iterator(key) else key
         if isinstance(key, tuple):
             raise KeyError(f"{key}. tuples are not allowed")
@@ -333,7 +333,7 @@ class _DiosBase:
 
     @property
     def columns(self):
-        """ The column labels of the DictOfSeries """
+        """The column labels of the DictOfSeries"""
         return self._data.index
 
     @columns.setter

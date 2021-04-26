@@ -578,7 +578,7 @@ def _splitByFlag(flags: pd.Series, flagger, var: str):
 
 
 def _projectFlagsOntoData(idxlist: List[pd.Series], data: pd.Series):
-    """ Project flags to a xy-location, based on data. """
+    """Project flags to a xy-location, based on data."""
     res = []
     for item in idxlist:
         res.append(data.loc[item.index])
