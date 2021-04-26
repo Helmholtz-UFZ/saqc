@@ -293,7 +293,7 @@ def interpolateIndex(
         hist_func=_resampleOverlapping,
         hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
         mask_func=_resampleOverlapping,
-        mask_kws=dict(freq=freq, fill_value=False),
+        mask_kws=dict(freq=freq, fill_value=True),
         last_column="dummy",
     )
 
