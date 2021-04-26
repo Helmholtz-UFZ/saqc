@@ -6,6 +6,7 @@ import dios
 import numpy as np
 import pandas as pd
 from typing import get_type_hints
+from contextlib import contextmanager
 
 from hypothesis.strategies import (
     lists,
@@ -131,6 +132,18 @@ def functionCalls(draw, module: str = None):
     return func, kwargs
 
 
+@contextmanager
+def applyStrategies(strategies: dict):
+
+    for dtype, strategy in strategies.items():
+        register_type_strategy(dtype, strategy)
+
+    yield
+
+    for dtype in strategies.keys():
+        del _global_type_lookup[dtype]
+
+
 @composite
 def functionKwargs(draw, func: SaQCFunction):
     data = draw(dioses())
@@ -138,31 +151,21 @@ def functionKwargs(draw, func: SaQCFunction):
 
     kwargs = {"data": data, "field": field, "flags": draw(flagses(data))}
 
-    column_name_strategy = lambda _: sampled_from(
-        sorted(c for c in data.columns if c != field)
-    )
-    interger_window_strategy = lambda _: integers(
-        min_value=1, max_value=len(data[field]) - 1
-    )
+    i64 = np.iinfo("int64")
 
-    register_type_strategy(FreqString, frequencyStrings)
-    register_type_strategy(ColumnName, column_name_strategy)
-    register_type_strategy(IntegerWindow, interger_window_strategy)
+    strategies = {
+        FreqString: frequencyStrings,
+        ColumnName: lambda _: sampled_from(
+            sorted(c for c in data.columns if c != field)
+        ),
+        IntegerWindow: lambda _: integers(min_value=1, max_value=len(data[field]) - 1),
+        int: lambda _: integers(min_value=i64.min + 1, max_value=i64.max - 1),
+    }
 
-    for k, v in get_type_hints(func.func).items():
-        if k not in {"data", "field", "flags", "return"}:
-            value = draw(from_type(v))
-            # if v is TimestampColumnName:
-            #     value = draw(columnNames())
-            #     # we don't want to overwrite 'field'
-            #     assume(value != field)
-            #     # let's generate and add a timestamp column
-            #     data[value] = draw(dataSeries(dtypes="datetime64[ns]", length=len(data[field])))
-            #     # data[value] = draw(dataSeries(dtypes="datetime64[ns]"))
-            kwargs[k] = value
-
-    del _global_type_lookup[FreqString]
-    del _global_type_lookup[ColumnName]
-    del _global_type_lookup[IntegerWindow]
+    with applyStrategies(strategies):
+        for k, v in get_type_hints(func.func).items():
+            if k not in {"data", "field", "flags", "return"}:
+                value = draw(from_type(v))
+                kwargs[k] = value
 
     return kwargs

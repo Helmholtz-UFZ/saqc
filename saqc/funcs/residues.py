@@ -128,7 +128,7 @@ def calculateRollingResidues(
     flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
-    """ TODO: docstring needed"""
+    """TODO: docstring needed"""
     return roll(
         data,
         field,
