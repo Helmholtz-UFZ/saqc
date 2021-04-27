@@ -12,6 +12,7 @@ import numpy as np
 import numba as nb
 from sklearn.neighbors import NearestNeighbors
 from scipy.stats import iqr, median_abs_deviation
+from scipy.signal import filtfilt, butter
 import numpy.polynomial.polynomial as poly
 
 logger = logging.getLogger("SaQC")
@@ -358,6 +359,38 @@ def shift2Freq(
     return data.reindex(
         target_ind, method=direction, tolerance=tolerance, fill_value=fill_value
     )
+
+
+def butterFilter(
+    x, cutoff, nyq=0.5, filter_order=2, fill_method="linear", filter_type="low"
+):
+    """
+    Applies butterworth filter.
+    `x` is expected to be regularly sampled.
+
+    Parameters
+    ----------
+    x: pd.Series
+        input timeseries
+    cutoff: float
+        The cutoff-frequency, expressed in multiples of the sampling rate.
+    nyq: float
+        The niquist-frequency. expressed in multiples if the sampling rate.
+    fill_method: Literal[‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘spline’, ‘barycentric’, ‘polynomial’]
+        Fill method to be applied on the data before filtering (butterfilter cant handle ''np.nan''). See
+        documentation of pandas.Series.interpolate method for details on the methods associated with the different
+        keywords.
+
+
+    Returns
+    -------
+    """
+    na_mask = x.isna()
+    x = x.interpolate(fill_method).interpolate("ffill").interpolate("bfill")
+    b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
+    y = pd.Series(filtfilt(b, a, x), x.index, name=x.name)
+    y[na_mask] = np.nan
+    return y
 
 
 @nb.njit

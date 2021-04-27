@@ -19,3 +19,4 @@ from saqc.funcs.scores import *
 from saqc.funcs.tools import *
 from saqc.funcs.transformation import *
 from saqc.funcs.flagtools import *
+from saqc.funcs.noise import *
