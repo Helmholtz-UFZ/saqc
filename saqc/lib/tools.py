@@ -3,8 +3,8 @@
 
 import re
 import datetime
-from typing import Sequence, Union, Any, Iterator
-
+from typing import Sequence, Union, Any, Iterator, Callable
+import operator
 import itertools
 import numpy as np
 import numba as nb
@@ -14,6 +14,8 @@ import logging
 import dios
 import collections
 from scipy.cluster.hierarchy import linkage, fcluster
+from saqc.lib.types import ColumnName, FreqString, PositiveInt, PositiveFloat, Literal
+
 
 from saqc.lib.types import T
 
@@ -566,3 +568,55 @@ def getFreqDelta(index):
         if i.equals(index):
             return i[1] - i[0]
     return delta
+
+
+def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply"):
+    """
+    For the repeating task of applying build in (accelerated) methods/funcs (`apply_obj`),
+    of rolling/resampling - like objects (`in_obj`) ,
+    if those build-ins are available, or pass the method/func to the objects apply-like method, otherwise.
+
+    """
+    try:
+        out = getattr(in_obj, getattr(apply_obj, attr_access))()
+    except AttributeError:
+        out = getattr(in_obj, attr_or)(apply_obj)
+
+    return out
+
+
+def statPass(
+    datcol: pd.Series,
+    stat: Callable[[np.array, pd.Series], float],
+    winsz: pd.Timedelta,
+    thresh: PositiveFloat,
+    comparator: Callable[[float, float], bool],
+    sub_winsz: pd.Timedelta = None,
+    sub_thresh: PositiveFloat = None,
+    min_periods: PositiveInt = None,
+):
+    """
+    Check `datcol`, if it contains chunks of length `winsz`, exceeding `thresh` with
+    regard to `stat` and `comparator`:
+
+    (check, if: `comparator`(stat`(*chunk*), `thresh`)
+
+    If yes, subsequently check, if all (maybe overlapping) *sub-chunks* of *chunk*, with length `sub_winsz`,
+    satisfy, `comparator`(`stat`(*sub_chunk*), `sub_thresh`)
+    """
+    stat_parent = datcol.rolling(winsz, min_periods=min_periods)
+    stat_parent = getApply(stat_parent, stat)
+    exceeds = comparator(stat_parent, thresh)
+    if sub_winsz:
+        stat_sub = datcol.rolling(sub_winsz)
+        stat_sub = getApply(stat_sub, stat)
+        min_stat = stat_sub.rolling(winsz - sub_winsz, closed="both").min()
+        exceeding_sub = comparator(min_stat, sub_thresh)
+        exceeds = exceeding_sub & exceeds
+
+    to_set = pd.Series(False, index=exceeds.index)
+    for g in exceeds.groupby(by=exceeds.values):
+        if g[0]:
+            to_set[g[1].index[0] - winsz : g[1].index[-1]] = True
+
+    return to_set

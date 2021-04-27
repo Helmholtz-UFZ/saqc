@@ -73,7 +73,7 @@ class DictOfSeries(_DiosBase):
 
     @property
     def indexes(self):
-        """ Return pandas.Series with the indexes of all columns. """
+        """Return pandas.Series with the indexes of all columns."""
         return self.for_each("index")
 
     @property
@@ -87,12 +87,12 @@ class DictOfSeries(_DiosBase):
 
     @property
     def dtypes(self):
-        """ Return pandas.Series with the dtypes of all columns. """
+        """Return pandas.Series with the dtypes of all columns."""
         return self.for_each("dtype")
 
     @property
     def lengths(self):
-        """ Return pandas.Series with the lenght of all columns. """
+        """Return pandas.Series with the lenght of all columns."""
         return self._data.apply(len)
 
     @property
@@ -626,7 +626,7 @@ class DictOfSeries(_DiosBase):
         return res if res.is_unique else res.unique()
 
     def squeeze(self, axis=None):
-        """ Squeeze a 1-dimensional axis objects into scalars. """
+        """Squeeze a 1-dimensional axis objects into scalars."""
         if axis in [0, "index"]:
             if (self.lengths == 1).all():
                 return self._data.apply(pd.Series.squeeze)
@@ -644,23 +644,23 @@ class DictOfSeries(_DiosBase):
         raise ValueError(axis)
 
     def dropna(self, inplace=False):
-        """ Return a bolean array that is `True` if the value is a Nan-value """
+        """Return a bolean array that is `True` if the value is a Nan-value"""
         data = self.for_each("dropna", inplace=inplace)
         if inplace:
             return
         return self._construct_like_self(data=data, fastpath=True)
 
     def dropempty(self):
-        """ Drop empty columns. Return copy. """
+        """Drop empty columns. Return copy."""
         return self.loc[:, self.notempty()]
 
     def astype(self, dtype, copy=True, errors="raise"):
-        """ Cast the data to the given data type. """
+        """Cast the data to the given data type."""
         data = self.for_each("astype", dtype=dtype, copy=copy, errors=errors)
         return self._construct_like_self(data=data, fastpath=True)
 
     def _mask_or_where(self, cond, other=np.nan, inplace=False, mask=True):
-        """ helper to mask/where """
+        """helper to mask/where"""
         data = self if inplace else self.copy()
 
         if callable(other):
@@ -826,7 +826,7 @@ class DictOfSeries(_DiosBase):
 
     @property
     def debugDf(self):
-        """ Alias for ``to_df()`` as property, for debugging purpose."""
+        """Alias for ``to_df()`` as property, for debugging purpose."""
         return self.to_df()
 
     def min(self, axis=0, skipna=True):
@@ -882,7 +882,7 @@ class DictOfSeries(_DiosBase):
             return False
 
     def isin(self, values):
-        """ Return a boolean dios, that indicates if the corresponding value is in the given array-like. """
+        """Return a boolean dios, that indicates if the corresponding value is in the given array-like."""
         data = self.for_each("isin", values=values)
         return self._construct_like_self(data=data, fastpath=True)
 
@@ -1006,23 +1006,23 @@ class DictOfSeries(_DiosBase):
         raise ValueError(axis)
 
     def isempty(self):
-        """ Returns a boolean Series, which indicates if an column is empty """
+        """Returns a boolean Series, which indicates if an column is empty"""
         return self.for_each("empty").astype(bool)
 
     def notempty(self):
-        """ Returns a boolean Series, which indicates if an column is not empty """
+        """Returns a boolean Series, which indicates if an column is not empty"""
         return ~self.isempty()
 
     def isdata(self):
-        """ Alias for ``notna(drop_empty=True)``. """
+        """Alias for ``notna(drop_empty=True)``."""
         return self.notna(drop_empty=True)
 
     def isnull(self, drop_empty=False):
-        """ Alias for ``isna()`` """
+        """Alias for ``isna()``"""
         return self.isna(drop_empty=drop_empty)
 
     def notnull(self, drop_empty=False):
-        """ Alias, see ``notna()``. """
+        """Alias, see ``notna()``."""
         return self.notna(drop_empty=drop_empty)
 
     def to_dios(self):

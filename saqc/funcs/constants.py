@@ -6,13 +6,14 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
+import operator
 
 from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.core import register, Flags
 from saqc.lib.ts_operators import varQC
-from saqc.lib.tools import customRoller, getFreqDelta
+from saqc.lib.tools import customRoller, getFreqDelta, statPass
 from saqc.lib.types import FreqString, ColumnName
 
 
@@ -130,7 +131,6 @@ def flagByVariance(
         Flags values may have changed, relatively to the flags input.
     """
     dataseries = data[field]
-
     delta = getFreqDelta(dataseries.index)
     if not delta:
         raise IndexError("Timeseries irregularly sampled!")
@@ -142,23 +142,15 @@ def flagByVariance(
         max_consec_missing = np.inf
 
     min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(delta)))
+    window = pd.Timedelta(window)
+    to_set = statPass(
+        dataseries,
+        lambda x: varQC(x, max_missing, max_consec_missing),
+        window,
+        thresh,
+        operator.lt,
+        min_periods=min_periods,
+    )
 
-    def var_below_thresh(s: pd.Series):
-        if varQC(s, max_missing, max_consec_missing) <= thresh:
-            return True
-        return np.nan
-
-    rolling = dataseries.rolling(window=window, min_periods=min_periods)
-    plateaus = rolling.apply(var_below_thresh, raw=False)
-
-    # are there any candidates for beeing flagged plateau-ish
-    if plateaus.sum() == 0:
-        return data, flags
-
-    plateaus.fillna(method="bfill", limit=min_periods - 1, inplace=True)
-
-    # result:
-    plateaus = (plateaus[plateaus == 1.0]).index
-
-    flags[plateaus, field] = flag
+    flags[to_set[to_set].index, field] = flag
     return data, flags

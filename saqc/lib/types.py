@@ -11,6 +11,8 @@ __all__ = [
     "IntegerWindow",
     "TimestampColumnName",
     "CurveFitter",
+    "PositiveFloat",
+    "PositiveInt",
 ]
 
 from typing import TypeVar, Union, NewType
@@ -39,6 +41,8 @@ FreqString = NewType(
 ColumnName = NewType("ColumnName", str)
 IntegerWindow = NewType("IntegerWindow", int)
 TimestampColumnName = TypeVar("TimestampColumnName", bound=str)
+PositiveFloat = NewType("PositiveFloat", float)
+PositiveInt = NewType("PositiveInt", int)
 
 
 # needed for deeper typy hinting magic

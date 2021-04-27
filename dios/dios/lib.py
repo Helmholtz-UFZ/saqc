@@ -70,7 +70,7 @@ class ObjItype(__Itype):
 
 
 def is_itype(obj, itype):
-    """ Check if obj is a instance of the given itype or its str-alias was given"""
+    """Check if obj is a instance of the given itype or its str-alias was given"""
 
     # todo: iter through itype as it could be a tuple, if called like ``is_itype(o, (t1,t2))``
 
@@ -86,7 +86,7 @@ def is_itype(obj, itype):
 
 
 def is_itype_subtype(obj, itype):
-    """ Check if obj is a subclass or a instance of a subclass of the given itype"""
+    """Check if obj is a subclass or a instance of a subclass of the given itype"""
 
     # user gave a subtype, like ``pd.DatetimeIndex``
     if type(obj) == type and issubclass(obj, itype.subtypes):
@@ -100,7 +100,7 @@ def is_itype_subtype(obj, itype):
 
 
 def is_itype_like(obj, itype):
-    """ Check if obj is a subclass or a instance of the given itype or any of its subtypes"""
+    """Check if obj is a subclass or a instance of the given itype or any of its subtypes"""
     return is_itype(obj, itype) or is_itype_subtype(obj, itype)
 
 

@@ -409,7 +409,7 @@ def _shift(
     # do the shift on the history
     history = flags.history[field]
     history.hist = shift2Freq(history.hist, method, freq, fill_value=UNTOUCHED)
-    history.mask = shift2Freq(history.mask, method, freq, fill_value=False)
+    history.mask = shift2Freq(history.mask, method, freq, fill_value=True)
 
     # The last 2 lines left the history in an unstable state, Also we want to
     # append a dummy column, that represent the 'shift' in the history.

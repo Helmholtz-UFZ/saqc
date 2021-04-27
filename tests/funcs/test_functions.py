@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import dios
+import pandas as pd
+import numpy as np
 
+from saqc.funcs.noise import flagByStatLowPass
 from saqc.constants import *
 from saqc.core import initFlagsLike
 from saqc.funcs.drift import (
@@ -28,6 +31,20 @@ def data():
 @pytest.fixture
 def field(data):
     return data.columns[0]
+
+
+def test_statPass():
+    data = pd.Series(0, index=pd.date_range("2000", "2001", freq="1D"), name="data")
+    noise = [-1, 1] * 10
+    data[100:120] = noise
+    data[200:210] = noise[:10]
+    data = dios.DictOfSeries(data)
+    flags = initFlagsLike(data)
+    data, flags = flagByStatLowPass(
+        data, "data", flags, np.std, "20D", 0.999, "5D", 0.999, 0, flag=BAD
+    )
+    assert (flags["data"] == BAD).sum() == 21
+    assert (flags["data"][200:210] < BAD).all()
 
 
 def test_flagRange(data, field):
