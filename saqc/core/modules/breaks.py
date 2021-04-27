@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+from dios import DictOfSeries
 
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
