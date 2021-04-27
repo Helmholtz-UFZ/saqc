@@ -50,7 +50,7 @@ def test_variableRegex(data):
         fobj = writeIO(header + "\n" + f"{regex} ; flagtools.flagDummy()")
         saqc = SaQC(data).readConfig(fobj)
         expansion = saqc._expandFields(
-            saqc._to_call[0][0], saqc._to_call[0][2], data.columns
+            saqc._planned[0][0], saqc._planned[0][2], data.columns
         )
         result = [s.field for s, _ in expansion]
         assert np.all(result == expected)
@@ -65,7 +65,7 @@ def test_inlineComments(data):
     pre2        ; flagtools.flagDummy() # test ; False # test
     """
     saqc = SaQC(data).readConfig(writeIO(config))
-    _, control, func = saqc._to_call[0]
+    _, control, func = saqc._planned[0]
     assert control.plot is False
     assert func.func == FUNC_MAP["flagtools.flagDummy"].func
 
@@ -83,7 +83,7 @@ def test_configReaderLineNumbers(data):
     SM1         ; flagtools.flagDummy()
     """
     saqc = SaQC(data).readConfig(writeIO(config))
-    result = [c.lineno for _, c, _ in saqc._to_call]
+    result = [c.lineno for _, c, _ in saqc._planned]
     expected = [3, 4, 5, 9]
     assert result == expected
 

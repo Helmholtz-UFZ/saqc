@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Optional, Union, Callable, Sequence, Tuple
+from typing import Optional, Union, Callable, Sequence
 
 import numpy as np
 import pandas as pd
