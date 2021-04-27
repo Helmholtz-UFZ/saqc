@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from saqc.core.modules.breaks import Breaks
+from saqc.core.modules.noise import Noise
 from saqc.core.modules.changepoints import ChangePoints
 from saqc.core.modules.constants import Constants
 from saqc.core.modules.curvefit import Curvefit
@@ -30,6 +31,7 @@ class FuncModules:
         self.flagtools = FlagTools(obj)
         self.generic = Generic(obj)
         self.interpolation = Interpolation(obj)
+        self.noise = Noise(obj)
         self.outliers = Outliers(obj)
         self.pattern = Pattern(obj)
         self.resampling = Resampling(obj)
