@@ -11,38 +11,31 @@ __all__ = [
     "IntegerWindow",
     "TimestampColumnName",
     "CurveFitter",
-    "ExternalFlag",
-    "CallStack",
-    "CalledStack",
     "PositiveFloat",
     "PositiveInt",
 ]
 
-from typing import TypeVar, Union, NewType, List, Tuple, Optional
+from typing import TypeVar, Union, NewType
 from typing_extensions import Protocol, Literal
 import numpy as np
 import pandas as pd
 from dios import DictOfSeries
 from saqc.core.flags import Flags
-from saqc.core.lib import SaQCFunction, ColumnSelector, APIController
 
 
 T = TypeVar("T")
 ArrayLike = TypeVar("ArrayLike", np.ndarray, pd.Series, pd.DataFrame)
-PandasLike = Union[pd.Series, pd.DataFrame, DictOfSeries]
+PandasLike = TypeVar("PandasLike", pd.Series, pd.DataFrame, DictOfSeries)
 DiosLikeT = Union[DictOfSeries, pd.DataFrame]
 
-FuncReturnT = Tuple[DictOfSeries, Flags]
+FuncReturnT = [DictOfSeries, Flags]
 
-ExternalFlag = Union[str, float, int]
+UserFlag = Union[str, float, int]
 
 # we only support fixed length offsets
 FreqString = NewType(
     "FreqString", Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"]
 )
-
-CallGraph = List[Tuple[ColumnSelector, APIController, SaQCFunction]]
-MaterializedGraph = List[Tuple[ColumnSelector, Optional[SaQCFunction]]]
 
 # we define a bunch of type aliases, mostly needed to generate appropiate fuzzy data through hypothesis
 ColumnName = NewType("ColumnName", str)
@@ -51,7 +44,8 @@ TimestampColumnName = TypeVar("TimestampColumnName", bound=str)
 PositiveFloat = NewType("PositiveFloat", float)
 PositiveInt = NewType("PositiveInt", int)
 
-# needed for deeper type hinting magic
+
+# needed for deeper typy hinting magic
 class CurveFitter(Protocol):
     def __call__(self, data: np.ndarray, *params: float) -> np.ndarray:
         ...

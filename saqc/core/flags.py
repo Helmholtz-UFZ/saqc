@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from __future__ import annotations
-from dios.dios import DictOfSeries
 
 import pandas as pd
 import dios
@@ -202,13 +201,11 @@ class Flags:
 
             if isinstance(item, pd.Series):
                 item = item.to_frame(name=0)
-            elif isinstance(item, dios.DictOfSeries):
-                item = item.to_df()
-            elif isinstance(item, (History, pd.DataFrame)):
+            elif isinstance(item, History):
                 pass
             else:
                 raise TypeError(
-                    f"cannot init from '{type(data).__name__}' of '{type(item).__name__}'"
+                    f"cannot init from {type(data.__name__)} of {type(item.__name__)}"
                 )
 
             result[k] = History(item, copy=copy)
@@ -220,7 +217,7 @@ class Flags:
         return type(self)
 
     # ----------------------------------------------------------------------
-    # meta data
+    # mata data
 
     @property
     def columns(self) -> pd.Index:
@@ -293,7 +290,7 @@ class Flags:
         return self._cache[key].copy()
 
     def __setitem__(self, key: SelectT, value: ValueT):
-        # force-KW is only internally available
+        # force-KW is internal available only
 
         if isinstance(key, tuple):
             if len(key) != 2:
@@ -323,10 +320,7 @@ class Flags:
         # a high potential, that this is not intended by the user.
         # if desired use ``flags[:, field] = flag``
         if not isinstance(value, pd.Series):
-            raise ValueError(
-                "expected a value of type 'pd.Series', "
-                "if a scalar should be set, please use 'flags[:, field] = flag'"
-            )
+            raise ValueError("must pass value of type pd.Series")
 
         # if nothing happens no-one writes the history books
         if len(value) == 0:
@@ -489,7 +483,7 @@ def initFlagsLike(
             name = reference.name
         if name is None:
             raise ValueError(
-                "either the passed pd.Series must be named or a name must be passed"
+                "Either the passed series must be named or a name must be passed"
             )
         if not isinstance(name, str):
             raise TypeError(f"name must be str not '{type(name).__name__}'")
@@ -499,10 +493,12 @@ def initFlagsLike(
 
         if not isinstance(k, str):
             raise TypeError(
-                f"cannot use '{k}' as a column name, currently only string keys are allowed"
+                f"cannot use {k} as key, currently only string keys are allowed"
             )
+
         if k in result:
-            raise ValueError("reference must not have duplicate column names")
+            raise ValueError("reference must not have duplicate keys")
+
         if not isinstance(item, (pd.Series, History)):
             raise TypeError("items in reference must be of type pd.Series")
 

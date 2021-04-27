@@ -185,7 +185,7 @@ def _getMaskingThresh(masking, kwargs, fname):
         The kwargs that will be passed to the saqc-function, possibly contain ``to_mask``.
     fname : str
         The name of the saqc-function to be called later (not here), to use in meaningful
-        error messages
+         error messages
 
     Returns
     -------
@@ -212,7 +212,7 @@ def _getMaskingThresh(masking, kwargs, fname):
     if masking == "none" and thresh not in (False, np.inf):
         # TODO: fix warning reference to docu
         warnings.warn(
-            f"the saqc-function {fname!r} ignores masking and therefore does not evaluate the passed "
+            f"the saqc-function {fname!r} ignore masking and therefore does not evaluate the passed "
             f"'to_mask'-keyword. Please refer to the documentation: TODO"
         )
 
