@@ -130,11 +130,15 @@ is just the computation of the variables difference for any timestep.
 i_saqc = i_saqc.generic.process('incidents_residues', func=lambda incidents, incidents_model:incidents - incidents_model)
 ```
 
-Next, we score the residues simply by normalization:
+Next, we score the residues simply by computing their [Z-scores](https://en.wikipedia.org/wiki/Standard_score).
 
 ```python
-i_saqc = i_saqc.tools.copy('incidents_residues', 'incidents_scores')
-i_saqc = i_saqc.rolling.roll(winsz='27D', func=lambda x: (x - x.mean())/x.std())
+i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_mean', winsz='27D', 
+                             func=np.mean)
+i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_std', winsz='27D', 
+                             func=np.std)
+i_saqc = i_saqc.generic.process(field='incidents_scores', 
+                                func=lambda This, residues_mean, residues_std: (This - residues_mean)/residues_std )
 ```
 
 
