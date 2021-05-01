@@ -8,7 +8,7 @@ numpy==1.20.2
 outlier-utils==0.0.3
 pandas==1.2.3
 pyarrow==3.0.0
-pytest==6.2.2
+pytest==6.2.3
 pytest-lazy-fixture==0.6.3
 PyWavelets==1.1.1
 scikit-learn==0.24.1
