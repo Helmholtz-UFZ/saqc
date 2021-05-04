@@ -255,7 +255,7 @@ class History:
             value_mask = value_mask.iloc[:, n:]
 
         # rename columns, to avoid ``pd.DataFrame.loc`` become confused
-        columns = pd.Index(range(n, len(value_hist.columns) + 1))
+        columns = pd.Index(range(n, n + len(value_hist.columns)))
         value_hist.columns = columns
         value_mask.columns = columns
 
