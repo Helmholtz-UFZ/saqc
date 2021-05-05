@@ -15,12 +15,11 @@ The data represents incidents of SARS-CoV-2 infections, on a daily basis, as rep
 In June, an extreme spike can be observed. This spike relates to an incidence of so called "superspreading" in a local
 [meat factory](https://www.heise.de/tp/features/Superspreader-bei-Toennies-identifiziert-4852400.html).
   
-For the sake of modelling the Corona disease, it can be of advantage, to filter the data for such extreme events, since
+For the sake of modelling the spread of Covid, it can be of advantage, to filter the data for such extreme events, since
 they may not be consistent with underlying distributional assumptions and thus interfere with the parameter learning 
 process of the modelling.
 
-To just introduce into some basic `SaQC` workflows, we will concentrate on classic variance based outlier detection 
-approaches.
+To just introduce into some basic `SaQC` workflows, we will concentrate on classic variance based outlier detection approaches.
 
 ## Preparation
 We, initially want to import the relevant packages. 
@@ -59,37 +58,36 @@ i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_model')
 The copy method has 2 parameters - the `field` parameter controlls the name of the variable to
 copy, the `new_field` parameter holds the new column name of the duplicated variable. 
 
-Easiest thing to do, would be to apply some rolling mean
+Easiest thing to do, would be, to apply some rolling mean
 model via the :py:func:`saqc.rolling.roll <docs.func_modules.rolling.roll>` method.
 
 ```python
 i_saqc = i_saqc.rolling.roll(field='incidents_model', func=np.mean, winsz='13D')
 ```
 
-We chose the rolling window to have a sice of 13 days.
-You can pass arbitrary functions to the rolling method. for example, you could go for the 
-`median` instead. this would be done via:
+Then `winsz` parameter controlls the size of the rolling window. It can be fed any so called [date alias](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases) string. We chose the rolling window to have a 13 days span.
+You can pass arbitrary functions to the `func` parameter, to be applid to calculate every single windows "score". For example, you could go for the `median` instead of the `mean`. 
+
+We calculate another model curve for the `"incidents"` data with the `np.mean` function from the `numpy` library. To not have to copy the original `incidents` variable everytime, we want to process it, we can make use of a shortcut by using the `target` parameter.
 
 ```python
-i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_median')
-i_saqc = i_saqc.rolling.roll(field='incidents_median', func=np.median, winsz='13D')
+i_saqc = i_saqc.rolling.roll(field='incidents', target='incidents_median', func=np.median, winsz='13D')
 ```
+The `target` parameter can be passed to an function. It will determine the result of the function to be written to the data under the fieldname specified by it. If there already exists a field with the name passed to `target`, the data stored to this field will will be overridden.
 
 Another common approach, is, to fit polynomials of certain degrees to the data. This could, of course, also be applied 
-via a functions passed to the rolling method - since this can get computationally expensive easily, for greater data sets, 
-SaQC offers a build-in polynomial fit function 
+via a function passed to the rolling method - since this can get computationally expensive easily, for greater data sets, *SaQC* offers a build-in polynomial fit function 
 :py:func:`saqc.curvefit.fitPolynomial <docs.func_modules.curvefit.fitPolynomial>`:
 
 ```python
-i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_polynomial')
-i_saqc = i_saqc.curvefit.fitPolynomial(field='incidents_polynomial', polydeg=2 ,winsz='13D')
+i_saqc = i_saqc.curvefit.fitPolynomial(field='incidents', target='incidents_polynomial', polydeg=2 ,winsz='13D')
 ```
 
 If you want to apply a completely arbitrary function to your data, without rolling, for example
 a smoothing filter from the [scipy.signal](https://docs.scipy.org/doc/scipy/reference/signal.html) 
 module, you would simply have to wrap the desired function up into a function of a single
-array-like variable. To wrap the scipy butterworth filter into a forward-backward application,
-you would need to define a function:
+array-like variable. To wrap the scipy butterworth filter for example, into a forward-backward application,
+you would need to define a function first:
 
 ```python
 def butterFilter(x, filter_order, nyq, cutoff, filter_type):
@@ -97,18 +95,17 @@ def butterFilter(x, filter_order, nyq, cutoff, filter_type):
     return filtfilt(b, a, x)
 ```
 
-Than you can wrap it up with a lambda function and pass it to the 
+Than you can wrap it up with a lambda function, so it only has one free parameter and pass it to the 
 :py:func:`saqc.transformation.transform <docs.func_modules.transformation.transform>` 
-methods func argument.
+methods `func` argument.
 
 ```python
-func=lambda x: butterFilter(x, cutoff=0.1, nyq=0.5, filter_order=2)
+wrapped_func=lambda x: butterFilter(x, cutoff=0.1, nyq=0.5, filter_order=2)
 i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_lowPass')
-i_saqc = i_saqc.transformation.transform(field='incidents_lowPass',func=func)
+i_saqc = i_saqc.transformation.transform(field='incidents_lowPass', wrapped_func=func)
 ```
 
-You can check out the modelling results. Therefor we evaluate the qeued manipualations to the saqc object and return the 
-results.
+You can check out the modelling results. Therefor we evaluate the qeued manipualations to the saqc object and return the results.
 
 ```python
 i_saqc = i_saqc.evaluate()
