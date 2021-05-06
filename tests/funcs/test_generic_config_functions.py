@@ -264,11 +264,7 @@ def test_variableAssignments(data):
     assert set(result_flags.columns) == set(data.columns) | {"dummy1", "dummy2"}
 
 
-# TODO: why this must(!) fail ? - a comment would be helpful
-@pytest.mark.xfail(strict=True)
 def test_processMultiple(data_diff):
-    var1, var2, *_ = data_diff.columns
-
     config = f"""
     {F.VARNAME} ; {F.TEST}
     dummy       ; generic.process(func=var1 + 1)

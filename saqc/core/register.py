@@ -11,7 +11,7 @@ import warnings
 from saqc.constants import *
 from saqc.core.lib import SaQCFunction
 from saqc.core.flags import initFlagsLike, Flags
-from saqc.lib.types import FuncReturnT
+
 
 # NOTE:
 # the global SaQC function store,
@@ -19,6 +19,7 @@ from saqc.lib.types import FuncReturnT
 FUNC_MAP: Dict[str, SaQCFunction] = {}
 
 MaskingStrT = Literal["all", "field", "none"]
+FuncReturnT = Tuple[dios.DictOfSeries, Flags]
 
 
 @dataclasses.dataclass
@@ -185,7 +186,7 @@ def _getMaskingThresh(masking, kwargs, fname):
         The kwargs that will be passed to the saqc-function, possibly contain ``to_mask``.
     fname : str
         The name of the saqc-function to be called later (not here), to use in meaningful
-         error messages
+        error messages
 
     Returns
     -------
@@ -212,7 +213,7 @@ def _getMaskingThresh(masking, kwargs, fname):
     if masking == "none" and thresh not in (False, np.inf):
         # TODO: fix warning reference to docu
         warnings.warn(
-            f"the saqc-function {fname!r} ignore masking and therefore does not evaluate the passed "
+            f"the saqc-function {fname!r} ignores masking and therefore does not evaluate the passed "
             f"'to_mask'-keyword. Please refer to the documentation: TODO"
         )
 
@@ -283,7 +284,7 @@ def _prepareFlags(flags: Flags, masking) -> Flags:
     if masking == "none":
         return flags.copy()
 
-    return initFlagsLike(flags, initial_value=UNTOUCHED)
+    return initFlagsLike(flags)
 
 
 def _restoreFlags(flags: Flags, old_state: CallState):
@@ -298,10 +299,17 @@ def _restoreFlags(flags: Flags, old_state: CallState):
 
     out = old_state.flags.copy()
     for c in columns:
-        # this implicitly squash the new flags history (RHS) to a single column, which than is appended to
-        # the old history (LHS). The new flags history possibly consist of multiple columns, one for each
-        # time a series or scalar was passed to the flags.
-        out[c] = flags[c]
+        # this implicitly squash the new flags history (RHS)
+        # to a single column, which than is appended to the
+        # old history (LHS). The new flags history possibly
+        # consists of multiple columns, one for each time a
+        # series or scalar was passed to the flags.
+        if len(flags.history[c].columns) > 1 or c not in out:
+            # We only want to assign a new column to our history
+            # if something changed on the RHS, or if a new variable
+            # appeared. Otherwise blow up our history with dummy
+            # columns
+            out[c] = flags[c]
 
     return out
 
