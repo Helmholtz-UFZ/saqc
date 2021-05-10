@@ -167,14 +167,46 @@ Also, as a result, all the values are centered and we dont have to care about wi
 i_saqc = i_saqc.processGeneric(fields=['incidents_residues','incidents_mean','incidents_std'], target='incidents_scores', func=lambda x,y,z: abs((x-y) / z))
 ```
 
-## Setting Flags
+Lets evaluate the residues calculation and have a look at the resulting scores:
+```python
+i_saqc = i_saqc.evaluate()
+i_saqc.show('incidents_scores')
+```
 
 
+## Setting Flag und unsetting Flags
 
+We can now implement the common rule of thumb, that any Z-score value above 3, may indicate an outlierish data point, by:
 
+```python
+i_saqc = i_saqc.flagRange('incidents_scores', max=3).evaluate()
+```
 
+Now flags have been calculated for the scores:
 
+```python
+i_saqc.show('incidents_scores')
+```
 
+We now could project those flags onto our original incidents timeseries:
 
+```python
+i_saqc = i_saqc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: isFlagged(x))
+```
+
+Note, that we could have skipped the range flagging step, by including the lowpassing in our generic expression:
+
+```python
+i_saqc = i_saqc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: x > 3)
+```
+
+Lets check the result:
+
+```python
+i_saqc = i_saqc.evaluate
+i_saqc.show('incidents')
+```
+
+Obveously, there are some flags set, that relate to 
 
 
