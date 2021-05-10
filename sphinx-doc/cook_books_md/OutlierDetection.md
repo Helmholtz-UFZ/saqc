@@ -207,6 +207,15 @@ i_saqc = i_saqc.evaluate
 i_saqc.show('incidents')
 ```
 
-Obveously, there are some flags set, that relate to 
+Obveously, there are some flags set, that relate to minor incidents spikes relatively to there surrounding, but may not relate to global extreme values. Especially the left most flag seems not to relate to an extreme event at all. There is a lot of possibillities to tackle the issue. For example, we could try to impose the additional condition, that an outlier must relate to a sufficiently large residue. 
 
+**TODO: (following doesnt work)**
+```python
+i_saqc.generic.flag(field='incidents','incidents_residues', target='incidents', func=lambda x,y: isflagged(x) & (y < 200), flag=-np.inf)
+```
 
+Note, that we could have skipped the unflagging step as well, by including the minimum condition for the residues in the initial generic expression as well, via:
+
+```python
+i_saqc = i_saqc.flagGeneric(field=['incidents_scores', 'incidents_residues'], target='incidents', func=lambda x, y: (x > 3) & (y < 200))
+```
