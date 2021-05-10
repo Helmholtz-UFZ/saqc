@@ -42,12 +42,18 @@ import pandas as pd
 i_data = pd.read_csv(data_path)
 i_data.index = pd.DatetimeIndex(i_data.index)
 i_saqc = saqc.SaQC(data=i_data)
-``` 
+```
+
+We can look at the data, via:
+
+```python
+saqc.show('incidents')
+```
 
 ## Modelling
 
 First, we want to model our data, to obtain a stationary, residuish variable with zero mean.
-In SaQC, the results of data processing functions, defaultly overrides the processed data column. 
+In SaQC, the results of data processing function, defaultly overrides the processed data column. 
 So, if we want to transform our input data and reuse the original data later on, we need to duplicate 
 it first, with the :py:func:`saqc.tools.copy <docs.func_modules.outliers.flagRange>` method:
 
@@ -128,15 +134,45 @@ i_saqc = i_saqc.generic.process('incidents_residues', func=lambda incidents, inc
 ```
 
 Next, we score the residues simply by computing their [Z-scores](https://en.wikipedia.org/wiki/Standard_score).
+The Z-score of a point $`x`$, relative to its surrounding $`D`$, evaluates to $`Z(x) = \frac{x - \mu(D)}{\sigma(D)}`$.
+
+So, if we would like to roll with a window of a fixed size of 27 periods through the data and calculate the Z score for the point lying in the center of every window, we would define our function `z_score`:
+
+```python
+z_score = lambda D: abs((D[14] - np.mean(D)) / np.std(D)) 
+```
+
+And than do:
+
+```python
+i_saqc.rolling.roll(field='incidents_residues', target='incidents_scores', func=z_scores, winsz='13D')
+```
+
+The problem with this attempt, is, that it might get really slow for large data sets, because our function `z_scores` does not get decomposed into optimized building blocks - since it is a black box within `saqc`. Also, it relies on every window having a fixed number of values. otherwise, `D[14]` might not always be the value in the middle of the window, or it might not even exist, and an error will be thrown. 
+
+If you want to accelerate your calculations and make them much more stable, it might be useful to decompose the scoring into seperate `rolling` calls. 
+
+To make use of the fact, that `saqc`s rolling method trys to call optimized built-ins, and also, that it the return value of the rolling method is centered by default - we could calculate the series of the residues Mean and standard deviation seperately: 
 
 ```python
 i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_mean', winsz='27D', 
                              func=np.mean)
 i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_std', winsz='27D', 
                              func=np.std)
-i_saqc = i_saqc.generic.process(field='incidents_scores', 
-                                func=lambda This, residues_mean, residues_std: (This - residues_mean)/residues_std )
 ```
+This will be noticably faster, since `saqc` dispatches the rolling with the basic numpy statistic methods to an optimized pandas built-in.
+Also, as a result, all the values are centered and we dont have to care about window center indices, when we generate the *Z scores* form the series. 
+
+```python
+i_saqc = i_saqc.processGeneric(fields=['incidents_residues','incidents_mean','incidents_std'], target='incidents_scores', func=lambda x,y,z: abs((x-y) / z))
+```
+
+## Setting Flags
+
+
+
+
+
 
 
 
