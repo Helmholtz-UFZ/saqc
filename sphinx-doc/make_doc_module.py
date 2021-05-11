@@ -198,6 +198,7 @@ def main(pckpath, targetpath, sphinxroot, mode):
     mod_dict = parse_module_dcstrings(module_paths)
     func_dict = parse_func_dcstrings(module_paths)
     if mode == "intro_doc":
+        doc_mod_structure = {'SaQCFunctions': [f for f in func_dict.keys()], 'SaQCFunctions_dcstring': ''}
         make_doc_module(targetpath, func_dict, doc_mod_structure)
     if mode == "registered_doc":
         doc_struct = {}

@@ -37,8 +37,8 @@ doc:
 	# make the html build
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	# format docstring module domain strings to correct adresses
-	python make_html_headings_proppa.py -b "sphinx-doc/_build/html/_api" -p "docs/func_modules" -sr ".."
-	python make_html_headings_proppa.py -b "sphinx-doc/_build/html/_api" -p "docs/intro_modules" -sr ".."
+	#python make_html_headings_proppa.py -b "sphinx-doc/_build/html/_api" -p "docs/func_modules" -sr ".."
+	#python make_html_headings_proppa.py -b "sphinx-doc/_build/html/_api" -p "docs/intro_modules" -sr ".."
     # clear fake modules/intermediate rest files
 	rm -r getting_started_md_m2r
 	rm -r how_to_doc_md_m2r
