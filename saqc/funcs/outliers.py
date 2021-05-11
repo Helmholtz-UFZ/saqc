@@ -896,7 +896,7 @@ def flagOffset(
 
     if rel_thresh:
         s = np.sign(rel_thresh)
-        rel_jumps = s * (dataseries.shift(1).div(dataseries) - 1) > abs(rel_thresh)
+        rel_jumps = s * (dataseries.shift(1) - dataseries).div(dataseries.abs()) > abs(rel_thresh)
         if thresh:
             post_jumps = rel_jumps & post_jumps
         else:
