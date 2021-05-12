@@ -63,7 +63,7 @@ extensions = [
 
 
 # -- Params of the extensions ------------------------------------------------
-
+add_module_names = False
 numpydoc_show_class_members = False
 
 automodsumm_inherited_members = True

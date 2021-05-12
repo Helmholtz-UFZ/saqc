@@ -44,56 +44,55 @@ i_data.index = pd.DatetimeIndex(i_data.index)
 i_saqc = saqc.SaQC(data=i_data)
 ```
 
-We can look at the data, via:
+With evaluating :py:attr:`saqc.fields`, we can check out the variables, present in the data.
 
 ```python
-saqc.show('incidents')
+>>> saqc.fields
+['incidents']
+```
+So, the only data present, is the *incidents* dataset. We can have a look at the data and obtain the above plot through:
+```python
+>>> saqc.show('incidents')
 ```
 
 ## Modelling
 
 First, we want to model our data, to obtain a stationary, residuish variable with zero mean.
-In SaQC, the results of data processing function, defaultly overrides the processed data column. 
-So, if we want to transform our input data and reuse the original data later on, we need to duplicate 
-it first, with the :py:func:`copy <Functions.saqc.copy>` method:
-
-```python
-i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_model')
-```
-
-The copy method has 2 parameters - the `field` parameter controlls the name of the variable to
-copy, the `new_field` parameter holds the new column name of the duplicated variable. 
-
 Easiest thing to do, would be, to apply some rolling mean
-model via the :py:func:`saqc.rolling.roll <docs.func_modules.rolling.roll>` method.
+model via the :py:func:`saqc.rolling <Functions.saqc.roll>` method.
 
 ```python
-i_saqc = i_saqc.rolling.roll(field='incidents_model', func=np.mean, winsz='13D')
+>>> i_saqc = i_saqc.rolling.roll(field='incidents', target='incidents_mean', func=np.mean, winsz='13D')
 ```
 
-Then `winsz` parameter controlls the size of the rolling window. It can be fed any so called [date alias](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases) string. We chose the rolling window to have a 13 days span.
-You can pass arbitrary functions to the `func` parameter, to be applid to calculate every single windows "score". For example, you could go for the `median` instead of the `mean`. 
-
-We calculate another model curve for the `"incidents"` data with the `np.mean` function from the `numpy` library. To not have to copy the original `incidents` variable everytime, we want to process it, we can make use of a shortcut by using the `target` parameter.
+The `field` parameter is passed the variable name, we want to calculate the rolling mean of. 
+The `target` parameter holds the name, we want to store the results of the calculation to. 
+The `winsz` parameter controlls the size of the rolling window. It can be fed any so called [date alias](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases) string. We chose the rolling window to have a 13 days span.
+You can pass arbitrary function objects to the `func` parameter, to be applied to calculate every single windows "score". 
+For example, you could go for the `median` instead of the `mean`. The numpy library provides a [median](https://numpy.org/doc/stable/reference/generated/numpy.median.html) function
+under the name `ǹp.median`. We just calculate another model curve for the `"incidents"` data with the `np.mean` function from the `numpy` library.
 
 ```python
-i_saqc = i_saqc.rolling.roll(field='incidents', target='incidents_median', func=np.median, winsz='13D')
+>>> i_saqc = i_saqc.rolling.roll(field='incidents', target='incidents_median', func=np.median, winsz='13D')
 ```
-The `target` parameter can be passed to an function. It will determine the result of the function to be written to the data under the fieldname specified by it. If there already exists a field with the name passed to `target`, the data stored to this field will will be overridden.
 
-Another common approach, is, to fit polynomials of certain degrees to the data. This could, of course, also be applied 
-via a function passed to the rolling method - since this can get computationally expensive easily, for greater data sets, *SaQC* offers a build-in polynomial fit function 
-:py:func:`saqc.curvefit.fitPolynomial <docs.func_modules.curvefit.fitPolynomial>`:
+We chose another target for the median calculation, to not override our results from the rolling mean calculation. 
+The `target` parameter can be passed to any function. It will determine the result of the function to be written to the 
+data under the fieldname specified by it. If there already exists a field with the name passed to `target`, the data stored to this field will be overridden.
+
+Another common approach, is, to fit polynomials of certain degrees to the data. This could, of course, also be achieved 
+by passing a function to the rolling method. Since this can get computationally expensive easily, for greater data sets, 
+`SaQC` provides a build-in polynomial fit function: 
+:py:func:`saqc.fitPolynomial <Functions.saqc.fitPolynomial>`:
 
 ```python
-i_saqc = i_saqc.curvefit.fitPolynomial(field='incidents', target='incidents_polynomial', polydeg=2 ,winsz='13D')
+>>> i_saqc = i_saqc.fitPolynomial(field='incidents', target='incidents_polynomial', polydeg=2 ,winsz='13D')
 ```
 
-If you want to apply a completely arbitrary function to your data, without rolling, for example
-a smoothing filter from the [scipy.signal](https://docs.scipy.org/doc/scipy/reference/signal.html) 
-module, you would simply have to wrap the desired function up into a function of a single
-array-like variable. To wrap the scipy butterworth filter for example, into a forward-backward application,
-you would need to define a function first:
+If you want to apply a completely arbitrary function to your data, without pre-chunking it by a rolling window, 
+you can make use of the more general :py:func:`saqc.processGeneric <Functions.saqc.process>` function.
+Lets apply a smoothing filter from the [scipy.signal](https://docs.scipy.org/doc/scipy/reference/signal.html) 
+module. We wrap the filter generator up into a function first:
 
 ```python
 def butterFilter(x, filter_order, nyq, cutoff, filter_type):
@@ -101,25 +100,23 @@ def butterFilter(x, filter_order, nyq, cutoff, filter_type):
     return filtfilt(b, a, x)
 ```
 
-Than you can wrap it up with a lambda function, so it only has one free parameter and pass it to the 
-:py:func:`saqc.transformation.transform <docs.func_modules.transformation.transform>` 
-methods `func` argument.
+Than we can pass it on to the :py:func:`saqc.processGeneric <Functions.saqc.process>` methods `func` argument. ([Here](sphinx-doc/getting_started_md/GenericFunctions.md) can
+be found some more information on the generic Functions)
 
 ```python
-wrapped_func=lambda x: butterFilter(x, cutoff=0.1, nyq=0.5, filter_order=2)
-i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_lowPass')
-i_saqc = i_saqc.transformation.transform(field='incidents_lowPass', wrapped_func=func)
+i_saqc = i_saqc.processGeneric(field='incidents', target='incidents_lowPass', func=lambda x: butterFilter(x, cutoff=0.1, nyq=0.5, filter_order=2))
 ```
 
-You can check out the modelling results. Therefor we evaluate the qeued manipualations to the saqc object and return the results.
+Now, we evaluate the data processings qeued to the saqc object, and return the results.
 
 ```python
-i_saqc = i_saqc.evaluate()
-result_data, _ saqc.getResult()
-result_data.plot()
+>>> i_saqc = i_saqc.evaluate()
+>>> result_data, _ saqc.getResult()
+>>> result_data.plot()
 ```
 
 ![](../ressources/images/cbooks_incidents2.png)
+
 
 ## Residues calculation
 

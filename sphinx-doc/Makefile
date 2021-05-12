@@ -8,9 +8,10 @@ SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
 
-# sphinx build controll
+# sphinx build controll:
+# Function documentations will be acessible through: FUNCTIONS.saqc
 FUNCTIONS     = Functions
-A			  = bla bli blu
+# List of folders containing markdown content to include into the build
 MDLIST		  = getting_started_md how_to_doc_md cook_books_md
 # Put it first so that "make" without argument is like "make help".
 help:
