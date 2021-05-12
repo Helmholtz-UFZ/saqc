@@ -8,6 +8,8 @@ SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
 
+# sphinx build controll
+FUNCTIONS     = Functions
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -16,32 +18,28 @@ help:
 
 # clean sphinx generated stuff
 clean:
-	rm -rf _build _static _api
+	rm -rf _build _static
 	rm -f *.automodsumm
 	rm -f func_modules/*.automodsumm
 	rm -f intro_modules/*.automodsumm
-	rm -rf ../docs
+	rm -rf ../$(FUNCTIONS)
 	mkdir _static
+	rm -r getting_started_md_m2r how_to_doc_md_m2r
 
 # trigger (saqc) customized documentation pipeline
 doc:
-	# generate fake modules to b documented by sphinx
-	python make_doc_module.py -p "saqc/funcs" -t "docs/intro_modules" -sr ".." -mo "intro_doc"
-	python make_doc_module.py -p "saqc/funcs" -t "docs/func_modules" -sr ".." -mo "registered_doc"
-	# make rest files from fake modules
-	python make_doc_rst.py -p "docs/intro_modules" -t "sphinx-doc/intro_modules" -sr ".."
-	python make_doc_rst.py -p "docs/func_modules" -t "sphinx-doc/func_modules" -sr ".."
+	# generate parent fake module for the functions to be documented
+	python make_doc_module.py -p "saqc/funcs" -t "$(FUNCTIONS)" -sr ".."
+	# make rest files from fake module
+	python make_doc_rst.py -p "$(FUNCTIONS)" -t "sphinx-doc/$(FUNCTIONS)" -sr ".."
 	# make rest folders from markdown folders
 	python make_md_to_rst.py -p "sphinx-doc/getting_started_md" -sr ".."
 	python make_md_to_rst.py -p "sphinx-doc/how_to_doc_md" -sr ".."
 	# make the html build
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-	# format docstring module domain strings to correct adresses
-	#python make_html_headings_proppa.py -b "sphinx-doc/_build/html/_api" -p "docs/func_modules" -sr ".."
-	#python make_html_headings_proppa.py -b "sphinx-doc/_build/html/_api" -p "docs/intro_modules" -sr ".."
     # clear fake modules/intermediate rest files
-	rm -r getting_started_md_m2r
-	rm -r how_to_doc_md_m2r
+	#rm -r getting_started_md_m2r
+	#rm -r how_to_doc_md_m2r
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

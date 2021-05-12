@@ -27,24 +27,12 @@ Flagging Functions
 Flagging Functions
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :glob:
    :titlesonly:
 
-   intro_modules/*
+   Functions/*
 
-
-Func Modules
-============
-
-Function modules
-
-.. toctree::
-   :maxdepth: 3
-   :glob:
-   :titlesonly:
-
-   func_modules/*
 
 
 Indices and tables

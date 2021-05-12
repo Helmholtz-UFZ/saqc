@@ -9,14 +9,6 @@ import pickle
 
 new_line_re = "(\r\n|[\r\n])"
 
-doc_mod_structure = {
-    "BasicFlagging": ["outliers.flagRange", "breaks.flagMissing"],
-    "BasicFlagging_dcstring": "",
-    "AdvancedFlagging": ["pattern.flagPatternByDTW", "outliers.flagOffset"],
-    "AdvancedFlagging_dcstring": "",
-}
-
-
 def rm_section(dcstring, section, _return_section=False):
     """
     Detects a section in a docstring and (default) removes it, or (_return_section=True) returns it
@@ -176,8 +168,9 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
     "--mode",
     type=str,
     required=True,
-    default="intro_doc",
-    help="either 'intro_doc' or 'module_doc'.",
+    default="Functions",
+    help="either 'Functions' or 'module_doc' or 'registered_doc' (All but 'Functions' is deprecated and will be remove "
+         "soon).",
 )
 def main(pckpath, targetpath, sphinxroot, mode):
     root_path = os.path.abspath(sphinxroot)
@@ -197,9 +190,10 @@ def main(pckpath, targetpath, sphinxroot, mode):
     module_paths = [os.path.join(pkg_path, f"{m}.py") for m in modules]
     mod_dict = parse_module_dcstrings(module_paths)
     func_dict = parse_func_dcstrings(module_paths)
-    if mode == "intro_doc":
-        doc_mod_structure = {'SaQCFunctions': [f for f in func_dict.keys()], 'SaQCFunctions_dcstring': ''}
+    if mode == "Functions":
+        doc_mod_structure = {'saqc': [f for f in func_dict.keys()], 'saqc_dcstring': ''}
         make_doc_module(targetpath, func_dict, doc_mod_structure)
+    # DEPRECATED DOC MODE
     if mode == "registered_doc":
         doc_struct = {}
         for dm in func_dict.keys():
@@ -211,6 +205,7 @@ def main(pckpath, targetpath, sphinxroot, mode):
                     doc_struct[module] = [dm]
                     doc_struct[module + "_dcstring"] = mod_dict[module]
         make_doc_module(targetpath, func_dict, doc_struct)
+    # DEPRECATED DOC MODE
     if mode == "module_doc":
         doc_struct = {m: [] for m in modules}
         for dm in func_dict.keys():
