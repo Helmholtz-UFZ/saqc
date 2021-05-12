@@ -68,6 +68,7 @@ class Drift(ModuleBase):
         self,
         field: ColumnName,
         maint_data_field: ColumnName,
+        driftModel: Callable[..., float],
         cal_mean: int = 5,
         flag_maint_period: bool = False,
         flag: float = BAD,

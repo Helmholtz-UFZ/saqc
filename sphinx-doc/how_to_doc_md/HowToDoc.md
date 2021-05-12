@@ -26,94 +26,17 @@ The documents and the docstrings then are collected and rendered using [sphinx](
 - For one liner docstrings, please keep the closing `"""` on the same line. 
   [[PEP8](https://www.python.org/dev/peps/pep-0008/#documentation-strings)]
 
-### Numpy Style
+### Pandas Style
 
-We use NumPy-style docstrings. Like this:
-
-```python
-def diag(v, k=0):
-    """
-    Extract a diagonal or construct a diagonal array.
-
-    See the more detailed documentation for ``numpy.diagonal`` if you use this
-    function to extract a diagonal and wish to write to the resulting array;
-    whether it returns a copy or a view depends on what version of numpy you
-    are using.
-
-    Parameters
-    ----------
-    v : array_like
-        If `v` is a 2-D array, return a copy of its `k`-th diagonal.
-        If `v` is a 1-D array, return a 2-D array with `v` on the `k`-th
-        diagonal.
-    k : int, optional
-        Diagonal in question. The default is 0. Use `k>0` for diagonals
-        above the main diagonal, and `k<0` for diagonals below the main
-        diagonal.
-
-    Returns
-    -------
-    out : ndarray
-        The extracted diagonal or constructed diagonal array.
-
-    See Also
-    --------
-    diagonal : Return specified diagonals.
-    diagflat : Create a 2-D array with the flattened input as a diagonal.
-    trace : Sum along diagonals.
-    triu : Upper triangle of an array.
-    tril : Lower triangle of an array.
-
-    Examples
-    --------
-    >>> x = np.arange(9).reshape((3,3))
-    >>> x
-    array([[0, 1, 2],
-           [3, 4, 5],
-           [6, 7, 8]])
-    >>> np.diag(x)
-    array([0, 4, 8])
-    >>> np.diag(x, k=1)
-    array([1, 5])
-    >>> np.diag(x, k=-1)
-    array([3, 7])
-    >>> np.diag(np.diag(x))
-    array([[0, 0, 0],
-           [0, 4, 0],
-           [0, 0, 8]])
-    """
-```
+We use [Pandas-style](https://pandas.pydata.org/pandas-docs/stable/development/contributing_docstring.html) docstrings:
 
 
-For a description of the sections read the [numpydoc docstring guide](https://numpydoc.readthedocs.io/en/latest/format.html). 
-For a more descriptive, fully fledged example see [here](https://numpydoc.readthedocs.io/en/latest/example.html#example). Please use the official type hints, as defined in the [standard library module](https://docs.python.org/3/library/typing.html) `typing` wherever data type information is given.
-But mostly the following sections are sufficient:
-1. **Always give a *One-line summary***
-2. optionally use *Extended summary*
-2. **Always give the *Parameters* Section** with `typing` conform type descriptions
-3. **Always give the *Returns* Section** with `typing` conform type descriptions
-2. optionally use *See Also*
-2. optionally use *Notes*
-2. optionally use *Examples*
-3. every other Section is even more optional :P
-5. And **always check if the `-----` has the same length** as the word it underlines. Seriously, otherwise sphinx will mock, and its really no fun to find and correct these !.
-    ```
-    See Also
-    --------
-    ``` 
-    That's is ok, but following is **not**
 
-    ```
-    See Also
-    ---------
-            ^
-    ```
-
-## Flags, data, field, etc.
+## Flagger, data, field, etc.
 
 use this:
 ```py
-def foo(data, field, flags):
+def foo(data, field, flagger):
     """
     data : dios.DictOfSeries
 	A saqc-data object.
@@ -121,8 +44,8 @@ def foo(data, field, flags):
     field : str
 	A field denoting a column in data.
 
-    flags : saqc.Flags
-	A Flags object.
+    flagger : saqc.flagger.BaseFlagger
+	A saqc-flagger object.
     """
 ```
 
