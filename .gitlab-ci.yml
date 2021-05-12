@@ -82,7 +82,7 @@ coverage:
 pages:
   stage: deploy
   only:
-    - develop
+    - cookBux
   except:
     - schedules
   script:
