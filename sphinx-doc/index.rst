@@ -20,6 +20,13 @@ Getting Started
 
    getting_started_md_m2r/GettingStarted
 
+Cook Books
+==========
+
+.. toctree::
+   :maxdepth: 2
+
+   cook_books_md_m2r/OutlierDetection
 
 Flagging Functions
 ==================

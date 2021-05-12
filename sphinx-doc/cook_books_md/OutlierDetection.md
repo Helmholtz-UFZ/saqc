@@ -55,7 +55,7 @@ saqc.show('incidents')
 First, we want to model our data, to obtain a stationary, residuish variable with zero mean.
 In SaQC, the results of data processing function, defaultly overrides the processed data column. 
 So, if we want to transform our input data and reuse the original data later on, we need to duplicate 
-it first, with the :py:func:`saqc.tools.copy <docs.func_modules.outliers.flagRange>` method:
+it first, with the :py:func:`copy <Functions.saqc.copy>` method:
 
 ```python
 i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_model')

@@ -125,14 +125,16 @@ whereas the `:func:` part determines the role, the object is documented as. See 
 
 * Since the documentation generates an own module structure to document the functions, linking to the documented functions is a bit hacky:
 
-- Functions: to link to any function in the 'saqc.funcs' module - you will have to link the rest file it is documented in. All functions from the function module can be linked via replacing the 'saqc.funcs' part of the module path by 'docs.func_modules':
+- Functions: to link to any functions docstring in its plain form (no module/class path)  - you will have to link the rest file it is documented in. All functions from the function module can be linked via 'Functions.saqc':
 
 - For example, 'saqc.funcs.outliers.flagRange' is linked via:
 ```python
-:py:func:`docs.func_modules.outliers.flagRange`
+:py:func:`Functions.saqc.flagRange`
 ```
 
-To hide the temporal module structure and/or make transparent the intended module structure, use named links, like so:
+To hide the module structure and/or make transparent the intended module structure, use named links, like so:
 ```python
-:py:func:`saqc.outliers.flagRange <docs.func_modules.outliers.flagRange>`
+:py:func:`saqc.flagRange <Functions.saqc.flagRange>`
 ```
+
+If you are insecure how to access/link any documented objects, check out the *_api* folder in the [repository](https://git.ufz.de/rdm-software/saqc/-/tree/develop/sphinx-doc).

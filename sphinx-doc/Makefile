@@ -10,21 +10,23 @@ BUILDDIR      = _build
 
 # sphinx build controll
 FUNCTIONS     = Functions
+A			  = bla bli blu
+MDLIST		  = getting_started_md how_to_doc_md cook_books_md
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 .PHONY: help Makefile clean
 
+test:
+	for k in $(MDLIST); do echo sphinx-doc/"$$k"; done
+
 # clean sphinx generated stuff
 clean:
 	rm -rf _build _static
-	rm -f *.automodsumm
-	rm -f func_modules/*.automodsumm
-	rm -f intro_modules/*.automodsumm
 	rm -rf ../$(FUNCTIONS)
 	mkdir _static
-	rm -r getting_started_md_m2r how_to_doc_md_m2r
+	for k in $(MDLIST); do rm -r "$$k"_m2r; done
 
 # trigger (saqc) customized documentation pipeline
 doc:
@@ -33,13 +35,9 @@ doc:
 	# make rest files from fake module
 	python make_doc_rst.py -p "$(FUNCTIONS)" -t "sphinx-doc/$(FUNCTIONS)" -sr ".."
 	# make rest folders from markdown folders
-	python make_md_to_rst.py -p "sphinx-doc/getting_started_md" -sr ".."
-	python make_md_to_rst.py -p "sphinx-doc/how_to_doc_md" -sr ".."
+	for k in $(MDLIST); do python make_md_to_rst.py -p sphinx-doc/"$$k" -sr ".."; done
 	# make the html build
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-    # clear fake modules/intermediate rest files
-	#rm -r getting_started_md_m2r
-	#rm -r how_to_doc_md_m2r
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
