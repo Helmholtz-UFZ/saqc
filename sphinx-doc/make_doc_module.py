@@ -9,6 +9,7 @@ import pickle
 
 new_line_re = "(\r\n|[\r\n])"
 
+
 def rm_section(dcstring, section, _return_section=False):
     """
     Detects a section in a docstring and (default) removes it, or (_return_section=True) returns it
@@ -170,7 +171,7 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
     required=True,
     default="Functions",
     help="either 'Functions' or 'module_doc' or 'registered_doc' (All but 'Functions' is deprecated and will be remove "
-         "soon).",
+    "soon).",
 )
 def main(pckpath, targetpath, sphinxroot, mode):
     root_path = os.path.abspath(sphinxroot)
@@ -191,7 +192,7 @@ def main(pckpath, targetpath, sphinxroot, mode):
     mod_dict = parse_module_dcstrings(module_paths)
     func_dict = parse_func_dcstrings(module_paths)
     if mode == "Functions":
-        doc_mod_structure = {'saqc': [f for f in func_dict.keys()], 'saqc_dcstring': ''}
+        doc_mod_structure = {"saqc": [f for f in func_dict.keys()], "saqc_dcstring": ""}
         make_doc_module(targetpath, func_dict, doc_mod_structure)
     # DEPRECATED DOC MODE
     if mode == "registered_doc":
