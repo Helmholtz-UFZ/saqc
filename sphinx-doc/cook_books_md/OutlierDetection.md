@@ -142,7 +142,7 @@ z_score = lambda D: abs((D[14] - np.mean(D)) / np.std(D))
 And than do:
 
 ```python
-i_saqc.rolling.roll(field='incidents_residues', target='incidents_scores', func=z_scores, winsz='13D')
+i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='incidents_scores', func=z_scores, winsz='13D')
 ```
 
 The problem with this attempt, is, that it might get really slow for large data sets, because our function `z_scores` does not get decomposed into optimized building blocks - since it is a black box within `saqc`. Also, it relies on every window having a fixed number of values. otherwise, `D[14]` might not always be the value in the middle of the window, or it might not even exist, and an error will be thrown. 
@@ -170,7 +170,6 @@ i_saqc = i_saqc.evaluate()
 i_saqc.show('incidents_scores')
 ```
 
-
 ## Setting Flag und unsetting Flags
 
 We can now implement the common rule of thumb, that any Z-score value above 3, may indicate an outlierish data point, 
@@ -185,6 +184,8 @@ Now flags have been calculated for the scores:
 ```python
 >>> i_saqc.show('incidents_scores')
 ```
+
+![](../ressources/images/cbooks_scores.png)
 
 We now can project those flags onto our original incidents timeseries:
 
@@ -204,8 +205,16 @@ Lets check the results:
 >>> i_saqc = i_saqc.evaluate()
 >>> i_saqc.show('incidents')
 ```
+![](../ressources/images/cbooks_incidentsOverflagged.png)
 
-Obveously, there are some flags set, that relate to minor incidents spikes relatively to there surrounding, but may not relate to global extreme values. Especially the left most flag seems not to relate to an extreme event at all. There is a lot of possibillities to tackle the issue. For example, we could try to impose the additional condition, that an outlier must relate to a sufficiently large residue. 
+Obveously, there are some flags set, that relate to minor incidents spikes relatively to there surrounding, but may not relate to global extreme values. Especially the left most flag seems not to relate to an extreme event at all. 
+There are a lot of possibilities to tackle the issue. Lets look at the residues:
+```python
+>>> i_saqc.show('incidents_residues')
+```
+![](../ressources/images/cbooks_incidents_residues.png)
+
+We could try to impose the additional condition, that an outlier must relate to a sufficiently large residue.
 
 ```python
 >>> i_saqc.flagGeneric(field=['incidents','incidents_residues'], func=lambda x,y: isflagged(x) & (y < 200), flag=-np.inf)
@@ -218,5 +227,8 @@ the initial generic expression, via:
 >>> i_saqc = i_saqc.flagGeneric(field=['incidents_scores', 'incidents_residues'], target='incidents', func=lambda x, y: (x > 3) & (y < 200))
 ```
 
+Now the flags result seems as intended:
+
+![](../ressources/images/cbooks_incidents_correctFlagged.png)
 
 
