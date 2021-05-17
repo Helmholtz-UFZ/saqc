@@ -170,6 +170,9 @@ i_saqc = i_saqc.evaluate()
 i_saqc.show('incidents_scores')
 ```
 
+![](../ressources/images/cbook_incidents_scoresUnflagged.png)
+
+
 ## Setting Flag und unsetting Flags
 
 We can now implement the common rule of thumb, that any Z-score value above 3, may indicate an outlierish data point, 
