@@ -1,4 +1,4 @@
-# Basic Outlier Detection Workflows
+# Basic Outlier Flagging
 
 ## Data 
 
@@ -121,7 +121,7 @@ Now, we evaluate the data processings qeued to the saqc object, and return the r
 ## Residues calculation
 
 We want to evaluate the residues of the model, in order to score the outlierish-nes of every point. 
-First, we retrieve the residues via the :py:func:`saqc.generic.process <docs.func_modules.generic.process>` method.
+First, we retrieve the residues via the :py:func:`saqc.generic.process <Functions.saqc.process>` method.
 The method generates a new variable, resulting from the processing of other variables. It automatically
 generates the field name it gets passed - so we do not have to generate new variable beforehand. The function we apply 
 is just the computation of the variables difference for any timestep.
@@ -173,7 +173,8 @@ i_saqc.show('incidents_scores')
 
 ## Setting Flag und unsetting Flags
 
-We can now implement the common rule of thumb, that any Z-score value above 3, may indicate an outlierish data point, by:
+We can now implement the common rule of thumb, that any Z-score value above 3, may indicate an outlierish data point, 
+by applying the `saqc.flagRange <Functions.saqc.flagRange>` with:
 
 ```python
 i_saqc = i_saqc.flagRange('incidents_scores', max=3).evaluate()
@@ -182,37 +183,40 @@ i_saqc = i_saqc.flagRange('incidents_scores', max=3).evaluate()
 Now flags have been calculated for the scores:
 
 ```python
-i_saqc.show('incidents_scores')
+>>> i_saqc.show('incidents_scores')
 ```
 
-We now could project those flags onto our original incidents timeseries:
+We now can project those flags onto our original incidents timeseries:
 
 ```python
-i_saqc = i_saqc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: isFlagged(x))
+>>> i_saqc = i_saqc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: isFlagged(x))
 ```
 
 Note, that we could have skipped the range flagging step, by including the lowpassing in our generic expression:
 
 ```python
-i_saqc = i_saqc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: x > 3)
+>>> i_saqc = i_saqc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: x > 3)
 ```
 
-Lets check the result:
+Lets check the results:
 
 ```python
-i_saqc = i_saqc.evaluate
-i_saqc.show('incidents')
+>>> i_saqc = i_saqc.evaluate()
+>>> i_saqc.show('incidents')
 ```
 
 Obveously, there are some flags set, that relate to minor incidents spikes relatively to there surrounding, but may not relate to global extreme values. Especially the left most flag seems not to relate to an extreme event at all. There is a lot of possibillities to tackle the issue. For example, we could try to impose the additional condition, that an outlier must relate to a sufficiently large residue. 
 
-**TODO: (following doesnt work)**
 ```python
-i_saqc.generic.flag(field='incidents','incidents_residues', target='incidents', func=lambda x,y: isflagged(x) & (y < 200), flag=-np.inf)
+>>> i_saqc.flagGeneric(field=['incidents','incidents_residues'], func=lambda x,y: isflagged(x) & (y < 200), flag=-np.inf)
 ```
 
-Note, that we could have skipped the unflagging step as well, by including the minimum condition for the residues in the initial generic expression as well, via:
+Note, that we could have skipped the unflagging step as well, by including the minimum condition for the residues in 
+the initial generic expression, via:
 
 ```python
-i_saqc = i_saqc.flagGeneric(field=['incidents_scores', 'incidents_residues'], target='incidents', func=lambda x, y: (x > 3) & (y < 200))
+>>> i_saqc = i_saqc.flagGeneric(field=['incidents_scores', 'incidents_residues'], target='incidents', func=lambda x, y: (x > 3) & (y < 200))
 ```
+
+
+
