@@ -41,7 +41,6 @@ Flagging Functions
    Functions/*
 
 
-
 Indices and tables
 ==================
 
