@@ -24,7 +24,7 @@ Cook Books
 ==========
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    cook_books_md_m2r/OutlierDetection
 
