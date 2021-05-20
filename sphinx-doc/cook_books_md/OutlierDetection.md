@@ -1,9 +1,9 @@
 # Outlier Detection and Flagging
 
-The tutorial aims to introduce the usage of `SaQC` methods in order to detect outliers in an uni-variate set up.
+The tutorial aims to introduce the usage of `saqc` methods in order to detect outliers in an uni-variate set up.
 The tutorial guides through the following steps:
 
-1. We checkout and load the example data set. Also we initialise an :py:class:`SaQC <saqc.core.core.SaQC>` object.
+1. We checkout and load the example data set. Subsequently, we initialise an :py:class:`SaQC <saqc.core.core.SaQC>` object.
    * [Preparation](#Preparation)
        * [Data](#Data)
        * [Initialisation](#Initialisation)
@@ -13,7 +13,7 @@ The tutorial guides through the following steps:
        * [Rolling Mean](#Rolling-Mean)
        * [Rolling Median](#Rolling-Median)
        * [Polynomial Fit](#Polynomial-Fit)
-       * [Custom Models](#Custom Models)
+       * [Custom Models](#Custom-Models)
    * [Evaluation and Visualisation](#Evaluation-and-Visualisation)
    
 3. We will see how we can obtain residues and scores from the calculated model curves. 
@@ -364,7 +364,7 @@ Notice, that we passed the desired flag level to the :py:attr:`flag` keyword in 
 "unflagging" instead of the usual flagging. The :py:attr:`flag` keyword can be passed to all the functions
 and defaults to the selected translation schemes :py:const:`bad <saqc.constants.BAD>` flag level. 
 
-Evaluation and showing proofs the tweaking did indead improve the flagging result:
+Evaluation and showing proofs the tweaking did in deed improve the flagging result:
 ```python
 >>> i_saqc = i_saqc.evaluate()
 >>> i_saqc.show()
@@ -374,7 +374,7 @@ Evaluation and showing proofs the tweaking did indead improve the flagging resul
 ### Including multiple Conditions
 
 If we do not want to first set flags, only to remove the majority of them in the next step, we also
-could circumvent the [unflagging](#Unflagging) step, by adding to the call to :py:func:`saqc.flagRange <Functions.flagRange>` the condition for the residues having to be above *20*
+could circumvent the [unflagging](#Unflagging) step, by adding to the call to :py:func:`saqc.flagRange <Functions.saqc.flagRange>` the condition for the residues having to be above *20*
 
 ```python
 >>> i_saqc = i_saqc.flagGeneric(field=['incidents_scores', 'incidents_residues'], target='incidents', func=lambda x, y: (x > 3) & (y > 20))
