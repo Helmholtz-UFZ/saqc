@@ -279,6 +279,8 @@ def _prepareFlags(flags: Flags, masking) -> Flags:
     Currently this only clears the flags, but in future,
     this should be sliced the flags to the columns, that
     the saqc-function needs.
+
+    Always return a copy of flags or a new flags-frame.
     """
     # Either the index or the columns itself changed
     if masking == "none":
@@ -288,6 +290,21 @@ def _prepareFlags(flags: Flags, masking) -> Flags:
 
 
 def _restoreFlags(flags: Flags, old_state: CallState):
+    """
+    Generate flags from the temporary result-flags and the original flags.
+
+    Parameters
+    ----------
+    flags : Flags
+        The flags-frame, which is the result from a saqc-function
+
+    old_state : CallState
+        The state before the saqc-function was called
+
+    Returns
+    -------
+    Flags
+    """
     if old_state.masking == "none":
         return flags
 
@@ -298,18 +315,27 @@ def _restoreFlags(flags: Flags, old_state: CallState):
         columns = columns.append(pd.Index([old_state.field]))
 
     out = old_state.flags.copy()
+
+    # this implicitly squash the new flags history (RHS)
+    # to a single column, which than is appended to the
+    # old history (LHS). The new flags history possibly
+    # consists of multiple columns, one for each time a
+    # series or scalar was passed to the flags.
     for c in columns:
-        # this implicitly squash the new flags history (RHS)
-        # to a single column, which than is appended to the
-        # old history (LHS). The new flags history possibly
-        # consists of multiple columns, one for each time a
-        # series or scalar was passed to the flags.
-        if len(flags.history[c].columns) > 1 or c not in out:
-            # We only want to assign a new column to our history
-            # if something changed on the RHS, or if a new variable
-            # appeared. Otherwise blow up our history with dummy
-            # columns
+
+        if c not in out:
             out[c] = flags[c]
+
+        # Guard to avoid adding the dummy column only (`UNFLAGGED`-column).
+        if len(flags.history[c].columns) <= 1:
+            continue
+
+        # We reset the dummy column, which make the initial
+        # UNFLAGGED column completely transparent, so we can 'see'
+        # which positions the current test really touched.
+        h = flags.history[c]
+        h.hist[0] = UNTOUCHED
+        out[c] = h.max()
 
     return out
 
