@@ -33,8 +33,6 @@ clean:
 doc:
 	# generate parent fake module for the functions to be documented
 	python make_doc_module.py -p "saqc/funcs" -t "$(FUNCTIONS)" -sr ".."
-	# make rest files from fake module
-	python make_doc_rst.py -p "$(FUNCTIONS)" -t "sphinx-doc/$(FUNCTIONS)" -sr ".."
 	# make rest folders from markdown folders
 	for k in $(MDLIST); do python make_md_to_rst.py -p sphinx-doc/"$$k" -sr ".."; done
 	# make the html build

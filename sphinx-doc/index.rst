@@ -26,7 +26,7 @@ Tutorials and Topics
 .. toctree::
    :maxdepth: 1
 
-   cook_books_md_m2r/dataRegularisation
+   cook_books_md_m2r/DataRegularisation
    cook_books_md_m2r/OutlierDetection
 
 
@@ -40,7 +40,7 @@ Flagging Functions
    :glob:
    :titlesonly:
 
-   Functions/*
+   moduleAPIs/saqcFunctions
 
 
 Indices and tables
