@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import warnings
 from functools import partial
 from pathlib import Path
 
@@ -12,18 +11,16 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from saqc.constants import *
-from saqc.core import SaQC
+from saqc.core import SaQC, FloatTranslator, DmpTranslator, PositionalTranslator
 
 
 logger = logging.getLogger("SaQC")
 
 
 SCHEMES = {
-    None: None,
-    "numeric": NotImplemented,
-    "category": NotImplemented,
-    "dmp": NotImplemented,
+    "float": FloatTranslator,
+    "positional": PositionalTranslator,
+    "dmp": DmpTranslator,
 }
 
 
@@ -89,7 +86,7 @@ def writeData(writer_dict, df, fname):
     "-o", "--outfile", type=click.Path(exists=False), help="path to the output file"
 )
 @click.option(
-    "--flagger",
+    "--scheme",
     default=None,
     type=click.Choice(SCHEMES.keys()),
     help="the flagging scheme to use",
@@ -104,10 +101,7 @@ def writeData(writer_dict, df, fname):
 @click.option(
     "--fail/--no-fail", default=True, help="whether to stop the program run on errors"
 )
-def main(config, data, flagger, outfile, nodata, log_level, fail):
-
-    if SCHEMES[flagger] is NotImplemented:
-        warnings.warn("--flagger is deprecated", DeprecationWarning)
+def main(config, data, scheme, outfile, nodata, log_level, fail):
 
     _setupLogging(log_level)
     reader, writer = setupIO(nodata)
@@ -117,25 +111,27 @@ def main(config, data, flagger, outfile, nodata, log_level, fail):
     saqc = SaQC(
         data=data,
         nodata=nodata,
+        scheme=SCHEMES[scheme or "float"](),
         error_policy="raise" if fail else "warn",
     )
 
-    data_result, flags_result = saqc.readConfig(config).getResult(raw=True)
+    data_result, flags_result = saqc.readConfig(config).getResult()
 
     if outfile:
-        data_frame = data_result.to_df()
-        flags_frame = flags_result.toFrame()
-        unflagged = (flags_frame == UNFLAGGED) | flags_frame.isna()
-        flags_frame[unflagged] = GOOD
 
-        fields = {"data": data_frame, "flags": flags_frame}
-
-        out = (
-            pd.concat(fields.values(), axis=1, keys=fields.keys())
-            .reorder_levels(order=[1, 0], axis=1)
-            .sort_index(axis=1, level=0, sort_remaining=False)
+        data_result.columns = pd.MultiIndex.from_product(
+            [data_result.columns.tolist(), ["data"]]
         )
-        out.columns = out.columns.rename(["", ""])
+
+        if not isinstance(flags_result.columns, pd.MultiIndex):
+            flags_result.columns = pd.MultiIndex.from_product(
+                [flags_result.columns.tolist(), ["flags"]]
+            )
+
+        out = pd.concat([data_result, flags_result], axis=1).sort_index(
+            axis=1, level=0, sort_remaining=False
+        )
+
         writeData(writer, out, outfile)
 
 

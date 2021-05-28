@@ -875,6 +875,8 @@ def flagOffset(
 
     """
     dataseries = data[field].dropna()
+    if dataseries.empty:
+        return data, flags
 
     # using reverted series - because ... long story.
     ind = dataseries.index

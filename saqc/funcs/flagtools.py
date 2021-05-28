@@ -82,7 +82,7 @@ def clearFlags(
     return forceFlags(data, field, flags, flag=UNFLAGGED, **kwargs)
 
 
-@register(masking="field", module="flagtools")
+@register(masking="none", module="flagtools")
 def flagUnflagged(
     data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
