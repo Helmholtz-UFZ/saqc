@@ -124,7 +124,7 @@ This is default behavior to all the :doc:`regularisations <../Functions/regulari
 The number of datapoints  (displayed at the bottom of the table columns) has changed through the
 transformation as well. That change stems from 2 sources mainly:
 
-Firstly, if there is no data point within an interval of the passed frequency, that could be shifted to match a multiple
+Firstly, if there is no [valid](#valid-data) data point available within an interval of the passed frequency, that could be shifted to match a multiple
 of the frequency, a `NaN` value gets inserted to represent the fact, that at this position there is data missing.
 
 Second, if there are multiple values present, within an interval with size according to the passed `freq`, this values
@@ -205,7 +205,7 @@ Date Time                        | Date Time                                 |
 2021-03-20 08:50:00          NaN |                                           | 
 ```
 
-Since there is no data available, for example in the interval from `2021-03-20 07:55:00` to `2021-03-20 08:05:00` - the new value 
+Since there is no valid data available, for example, in the interval from `2021-03-20 07:55:00` to `2021-03-20 08:05:00` - the new value 
 for the regular timestamp `2021-03-20 08:00:00`, that lies in the center of this interval, is `NaN`. 
 
 ## aggregation freq=20 Hz (resample)
@@ -256,10 +256,77 @@ As it is with the [shift](#shift) functionality, a `method` keyword controlls, w
 aggregation result of the interval in between 2 regular timestamps gets assigned to the left (=`bagg`) or to the
 right (`fagg`) boundary timestamp.
 
+Also, analogous to to the shift functionality, intervals of size `freq`, that do 
+not contain any [valid](#valid) data that could be aggregated, get `ǹp.nan` assigned. 
+
+### valid
+
+Note, that not only missing and `ǹp.nan` values are considered *not valid*, but flagged data as well.
+So, to exclude certain values from the aggregation, flagging them before resampling
+will effectively remove them from the resampling process. See chapter 
+[flagging and resampling](#flagging-and-resampling).
+
 ## interpolation 
 
-Another common way of obtaining regular timestamps is interpolation.
+Another common way of obtaining regular timestamps, is, the interpolation of data at regular timestamps.
+In the pool of :doc:`regularisation <function_cats/regularisation>` methods, is available the 
+:py:func:`saqc.interpolate <Functions.saqc.interpolate>` method.
 
+Lets apply a linear interpolation onto the dataset. To access
+linear interpolation, we pass the `method` parameter the string `"time"`. This 
+applies an interpolation, that is sensitive to the difference in temporal gaps
+(as opposed by `"linear"`, wich expects all the gaps to be equal). Get an overview
+of the possible interpolation methods in the :py:func:`saqc.interpolate <Functions.saqc.interpolate>`
+documentation. Lets check the results:
+
+```python
+>>> saqc = saqc.interpolate('SoilMoisture', target='SoilMoisture_linear', freq='10min', method='time')
+>>> saqc = saqc.evaluate()
+>>> saqc.getResult()[0]
+
+                    SoilMoisture |                       SoilMoisture_linear | 
+================================ | ========================================= | 
+Date Time                        | Date Time                                 | 
+2021-01-01 00:00:00          NaN | 2021-01-01 00:09:07             23.429701 | 
+2021-01-01 00:10:00    23.429899 | 2021-01-01 00:18:55             23.431900 | 
+2021-01-01 00:20:00    23.422067 | 2021-01-01 00:28:42             23.343100 | 
+2021-01-01 00:30:00    23.360782 | 2021-01-01 00:38:30             23.476400 | 
+2021-01-01 00:40:00    23.455997 | 2021-01-01 00:48:18             23.343100 | 
+2021-01-01 00:50:00    23.335415 | 2021-01-01 00:58:06             23.298800 | 
+2021-01-01 01:00:00    23.315977 | 2021-01-01 01:07:54             23.387400 | 
+2021-01-01 01:10:00    23.377891 | 2021-01-01 01:17:41             23.343100 | 
+2021-01-01 01:20:00    23.332627 | 2021-01-01 01:27:29             23.298800 | 
+2021-01-01 01:30:00    23.310176 | 2021-01-01 01:37:17             23.343100 | 
+                          ... | ...                                   ... | 
+2021-03-20 07:20:00   154.723105 | 2021-03-20 05:07:02            137.271500 | 
+2021-03-20 07:30:00          NaN | 2021-03-20 05:21:35            138.194107 | 
+2021-03-20 07:40:00          NaN | 2021-03-20 05:41:59            154.116806 | 
+2021-03-20 07:50:00   165.195497 | 2021-03-20 06:03:09            150.567505 | 
+2021-03-20 08:00:00          NaN | 2021-03-20 06:58:10            145.027496 | 
+2021-03-20 08:10:00          NaN | 2021-03-20 07:13:49            152.883102 | 
+2021-03-20 08:20:00          NaN | 2021-03-20 07:26:16            156.587906 | 
+2021-03-20 08:30:00          NaN | 2021-03-20 07:40:37            166.146194 | 
+2021-03-20 08:40:00          NaN | 2021-03-20 07:54:59            164.690598 |                             
+2021-03-20 08:50:00          NaN | 2021-03-20 08:40:41            155.318893 |
+[11286]                            [10607]                                     
+```
+
+The regularisation by interpolation is strict in the sence, that regular timestamps *only* get 
+interpolated, if they have at least one [valid](#valid) data value preceeding them *and* one
+succeeding them *within* the given frequency range (wich is controlled by `freq` keyword.).
+
+Thats why, you have no interpolation value at `2021-03-20 07:30:00` - since it is preceeded
+by a [valid](#valid) value at `2021-03-20 07:26:16`, but there is no [valid](#valid) value
+available in between the succeeding *10* minutes interval from `2021-03-20 07:30:00` to `2021-03-20 07:30:00`.
+
+On the other hand, there is an interpolated value assigned to `2021-03-20 07:50:00`, it is preceeded by
+a [valid](#valid) value at `2021-03-20 07:40:37` and one succeeding at `2021-03-20 07:54:59`.
+
+This behavior is intended to reflect the sparsity of the original data in the
+regularized data set. The behavior can be circumvented by applying the more general
+:py:func:`saqc.interpolateIndex <Functions.saqc.interpolateIndex>`.
+
+Note, that there is a wrapper available for linear interpolation: :py:func:`saqc.linear <Functions.saqc.linear>`.
 
 # flags and regularisation
 
