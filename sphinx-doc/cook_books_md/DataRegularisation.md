@@ -282,7 +282,7 @@ documentation. Lets check the results:
 ```python
 >>> saqc = saqc.interpolate('SoilMoisture', target='SoilMoisture_linear', freq='10min', method='time')
 >>> saqc = saqc.evaluate()
->>> saqc.getResult()[0]
+>>> saqc.getResult(raw=True)[0]
 
                     SoilMoisture |                       SoilMoisture_linear | 
 ================================ | ========================================= | 
@@ -329,6 +329,44 @@ regularized data set. The behavior can be circumvented by applying the more gene
 Note, that there is a wrapper available for linear interpolation: :py:func:`saqc.linear <Functions.saqc.linear>`.
 
 # flags and regularisation
+
+Since data, that is flagged by a level higher or equal to the passed `to_mask` value (default=BAD), 
+is not regarded [valid](#valid), it can be of advantage to flag data before regularisation to effectively exclude it
+from the resulting regularily sampled data set. Lets see an example for the *SoilMoisture* data set.
+
+```python
+>>> saqc = saqc.linear('SoilMoisture', target='SoilMoisture_linear', freq='10min')
+>>> saqc = saqc.evaluate()
+>>> d = saqc.getResult(raw=True)[0]
+>>> d['2021-01-01 15:00:00':'2021-01-01 16:00:00']
+       
+             SoilMoisture_linear |                              SoilMoisture | 
+================================ | ========================================= | 
+Date Time                        | Date Time                                 | 
+2021-01-01 15:00:00    23.341182 | 2021-01-01 15:00:51               23.3410 | 
+2021-01-01 15:10:00    23.342964 | 2021-01-01 15:10:38               23.3431 | 
+2021-01-01 15:20:00    23.341092 | 2021-01-01 15:20:26               23.3410 | 
+2021-01-01 15:30:00    23.341000 | 2021-01-01 15:30:14               23.3410 | 
+2021-01-01 15:40:00  -119.512446 | 2021-01-01 15:40:02             -120.0000 | 
+2021-01-01 15:50:00    23.299553 | 2021-01-01 15:49:50               23.2988 | 
+```
+
+At `2021-01-01 15:40:02` the original data, exhibits a meassurement value
+of `-120` - which is obveously not a valid data point, regarding the fact that *SoilMoisture* meassurements
+should be percentage values in between *0* and *100*.
+
+Since we dont exclude the value from interpolation, it gets included in the interpolation
+process for the regular timstamp at `2021-01-01 15:40:00` - wich, as a result, also exhibits
+a non - sence value of *-119.512446*. We could now flag the resulting regular dataset and
+exclude this calculated non sence value from further processing and analysis. 
+But this would mean, that we would have a small data gap at this point.
+
+We can circumvent having that gap, by flagging that value before interpolation. This
+works, because there is actually another, now valid value, available in the interval
+in between `2021-01-01 15:40:00` and `2021-01-01 15:50:00`, that can serve as right pillow point
+for the interpolation at `2021-01-01 15:40:00`. So lets flag all the values smaller than *0*
+with the :py:func:`saqc.flagRange <Functions.saqc.flagRange>` method and after this
+do the interpolation.
 
 - see problem with data[95] - flag before interpolation
 
