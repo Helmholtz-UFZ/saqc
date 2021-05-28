@@ -464,8 +464,9 @@ def correctDrift(
     to_correct = data[field]
     maint_data = data[maint_data_field]
 
-    d = {"drift_group": np.nan, to_correct.name: to_correct.values}
-    drift_frame = pd.DataFrame(d, index=to_correct.index)
+    to_correct_clean = to_correct.dropna()
+    d = {"drift_group": np.nan, to_correct.name: to_correct_clean.values}
+    drift_frame = pd.DataFrame(d, index=to_correct_clean.index)
 
     # group the drift frame
     for k in range(0, maint_data.shape[0] - 1):
