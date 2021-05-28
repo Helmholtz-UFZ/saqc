@@ -210,13 +210,6 @@ def _getMaskingThresh(masking, kwargs, fname):
     if not isinstance(thresh, (bool, float, int)):
         raise TypeError(f"'to_mask' must be of type bool or float")
 
-    if masking == "none" and thresh not in (False, np.inf):
-        # TODO: fix warning reference to docu
-        warnings.warn(
-            f"the saqc-function {fname!r} ignores masking and therefore does not evaluate the passed "
-            f"'to_mask'-keyword. Please refer to the documentation: TODO"
-        )
-
     if thresh is True:  # masking ON
         thresh = UNFLAGGED
 
@@ -250,7 +243,7 @@ def _maskData(
     for c in columns:
         col_mask = _isflagged(flags[c].to_numpy(), thresh)
 
-        if any(col_mask):
+        if col_mask.any():
             col_data = data[c].to_numpy(dtype=np.float64)
             col_data[col_mask] = np.nan
 
@@ -390,7 +383,7 @@ def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSer
         restore_old_mask = old_state.mask[c].to_numpy() & data[c].isna().to_numpy()
 
         # we have nothing to restore
-        if not any(restore_old_mask):
+        if not restore_old_mask.any():
             continue
 
         # restore old values if no new are present

@@ -126,16 +126,21 @@ def flagIsolated(
     bools = pd.Series(data=0, index=mask.index, dtype=bool)
     for srs in groupConsecutives(mask):
         if np.all(~srs):
+            # we found a chunk of non-nan values
             start = srs.index[0]
             stop = srs.index[-1]
             if stop - start <= group_window:
+                # the chunk is large enough
                 left = mask[start - gap_window : start].iloc[:-1]
                 if left.all():
+                    # the section before our chunk is nan-only
                     right = mask[stop : stop + gap_window].iloc[1:]
                     if right.all():
+                        # the section after our chunk is nan-only
+                        # -> we found a chunk of isolated non-values
                         bools[start:stop] = True
 
-    flags[mask, field] = flag
+    flags[bools, field] = flag
     return data, flags
 
 

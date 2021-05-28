@@ -3,15 +3,16 @@
 
 from functools import partial
 from inspect import signature
-from typing import Tuple, Any, Union, Callable
+from typing import Tuple, Union, Callable
 
 import numpy as np
 import pandas as pd
 
 from dios import DictOfSeries
 
-from saqc.constants import *
-from saqc.core import register, initFlagsLike, Flags
+from saqc.constants import GOOD, BAD, UNFLAGGED
+from saqc.core.flags import initFlagsLike, Flags
+from saqc.core.register import register, _maskData
 from saqc.core.visitor import ENVIRONMENT
 
 import operator as op
@@ -84,13 +85,14 @@ def _execGeneric(
     return func(*args)
 
 
-@register(masking="all", module="generic")
+@register(masking="none", module="generic")
 def process(
     data: DictOfSeries,
     field: str,
     flags: Flags,
     func: Callable[[pd.Series], pd.Series],
     nodata: float = np.nan,
+    to_mask: float = UNFLAGGED,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -142,18 +144,20 @@ def process(
 
     >>> lambda temperature, uncertainty: np.round(temperature) * np.sqrt(uncertainty)
     """
-    data[field] = _execGeneric(flags, data, func, field, nodata).squeeze()
+    # we get the data unmasked in order to also receive flags,
+    # so let's do to the masking manually
+    data_masked, _ = _maskData(data, flags, data.columns, to_mask)
+    data[field] = _execGeneric(flags, data_masked, func, field, nodata).squeeze()
 
-    # TODO: the former comment wished to overwrite the column, but i'm not sure -- palmb
-    #   see #GL177
     if field in flags:
         flags.drop(field)
 
     flags[field] = initFlagsLike(data[field])[field]
+
     return data, flags
 
 
-@register(masking="all", module="generic")
+@register(masking="none", module="generic")
 def flag(
     data: DictOfSeries,
     field: str,
@@ -161,6 +165,7 @@ def flag(
     func: Callable[[pd.Series], pd.Series],
     nodata: float = np.nan,
     flag: float = BAD,
+    to_mask: float = UNFLAGGED,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     # TODO : fix docstring, check if all still works
@@ -240,21 +245,16 @@ def flag(
 
     >>> lambda level: np.sqrt(level) > 7
     """
-    # NOTE:
-    # The naming of the func parameter is pretty confusing
-    # as it actually holds the result of a generic expression
-    mask = _execGeneric(flags, data, func, field, nodata).squeeze()
+    # we get the data unmasked, in order to also receive flags,
+    # so let's do to the masking manually
+    data_masked, _ = _maskData(data, flags, data.columns, to_mask)
+
+    mask = _execGeneric(flags, data_masked, func, field, nodata).squeeze()
     if np.isscalar(mask):
         raise TypeError(f"generic expression does not return an array")
     if not np.issubdtype(mask.dtype, np.bool_):
         raise TypeError(f"generic expression does not return a boolean array")
 
-    if field not in flags.columns:
-        flags[field] = pd.Series(UNFLAGGED, index=mask.index, name=field)
+    flags[field] = mask.replace({False: UNFLAGGED, True: BAD})
 
-    # if flags.getFlags(field).empty:
-    #     flags = flags.merge(
-    #         flags.initFlags(
-    #             data=pd.Series(name=field, index=mask.index, dtype=np.float64)))
-    flags[mask, field] = flag
     return data, flags

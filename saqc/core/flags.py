@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-
 from __future__ import annotations
 
 import pandas as pd
 import dios
-from typing import Union, Dict, DefaultDict, Optional, Type, Tuple, Iterable
+from typing import Mapping, Union, Dict, DefaultDict, Optional, Type, Tuple, Iterable
 
 from saqc.constants import *
 from saqc.core.history import History
@@ -25,7 +24,7 @@ SelectT = Union[
     Tuple[pd.Index, _Field],
     Tuple[slice, _Field],
 ]
-ValueT = Union[pd.Series, Iterable, float]
+ValueT = Union[pd.Series, "Flags", Iterable, float]
 
 
 class _HistAccess:
@@ -43,9 +42,9 @@ class _HistAccess:
             raise TypeError("Not a History")
 
         History._validateHistWithMask(value.hist, value.mask)
+        self.obj._validateHistForFlags(value)
 
         self.obj._data[key] = value
-        self.obj._cache.pop(key, None)
 
 
 class Flags:
@@ -170,19 +169,15 @@ class Flags:
             raw_data = {}
 
         if isinstance(raw_data, Flags):
-            raw_data = raw_data._data
+            if copy:
+                raw_data = raw_data.copy()
+            self._data = raw_data._data
 
-        # with python 3.7 dicts are insertion-ordered by default
-        self._data = self._initFromRaw(raw_data, copy)
+        else:
+            self._data = self._initFromRaw(raw_data, copy)
 
-        # this is a simple cache that reduce the calculation of the flags
-        # from the entire history of a flag column. The _cache is filled
-        # with __getitem__ and cleared on any write access to self_data.
-        # There are not to may write access possibilities here so we don't
-        # have to much trouble.
-        self._cache = {}
-
-    def _initFromRaw(self, data, copy) -> Dict[str, History]:
+    @staticmethod
+    def _initFromRaw(data: Mapping, copy: bool) -> Dict[str, History]:
         """
         init from dict-like: keys are flag column, values become
         initial columns of history(s).
@@ -191,33 +186,53 @@ class Flags:
 
         for k, item in data.items():
 
+            if not isinstance(k, str):
+                raise ValueError("column names must be string")
             if k in result:
                 raise ValueError("raw_data must not have duplicate keys")
 
-            # No, means no ! (copy)
-            if isinstance(item, History) and not copy:
+            # a passed History is not altered. So if the passed History
+            # does not fit for Flags, we fail hard.
+            if isinstance(item, History):
+                Flags._validateHistForFlags(item, colname=k)
+                if copy:
+                    item = item.copy()
                 result[k] = item
                 continue
-
-            if isinstance(item, pd.Series):
-                item = item.to_frame(name=0)
-            elif isinstance(item, History):
-                pass
-            else:
+            if not isinstance(item, pd.Series):
                 raise TypeError(
-                    f"cannot init from {type(data.__name__)} of {type(item.__name__)}"
+                    f"cannot init from '{type(data).__name__}' of '{type(item).__name__}'"
                 )
 
-            result[k] = History(item, copy=copy)
+            # make a UNFLAGGED-column and then append the actual item
+            result[k] = _simpleHist(item.index).append(item, force=True)
 
         return result
+
+    @staticmethod
+    def _validateHistForFlags(history: History, colname=None):
+        if history.empty:
+            return history
+
+        errm = f"History "
+        if colname:
+            errm += f"of column {colname} "
+
+        if (history.hist[0] != UNFLAGGED).any():
+            raise ValueError(errm + "missing an UNFLAGGED-column at first position")
+
+        # this ensures that the mask does not shadow UNFLAGGED with a NaN.
+        if history.max().hasnans:
+            raise ValueError(errm + "is not valid (result of max() contains NaNs)")
+
+        return history
 
     @property
     def _constructor(self) -> Type["Flags"]:
         return type(self)
 
     # ----------------------------------------------------------------------
-    # mata data
+    # meta data
 
     @property
     def columns(self) -> pd.Index:
@@ -250,16 +265,12 @@ class Flags:
         if not len(value) == len(self):
             raise ValueError("index must match current index in length")
 
-        _data, _cache = {}, {}
+        _data = {}
 
         for old, new in zip(self.columns, value):
             _data[new] = self._data[old]
 
-            if old in self._cache:
-                _cache[new] = self._cache[old]
-
         self._data = _data
-        self._cache = _cache
 
     @property
     def empty(self) -> bool:
@@ -283,14 +294,10 @@ class Flags:
     # item access
 
     def __getitem__(self, key: str) -> pd.Series:
-
-        if key not in self._cache:
-            self._cache[key] = self._data[key].max()
-
-        return self._cache[key].copy()
+        return self._data[key].max()
 
     def __setitem__(self, key: SelectT, value: ValueT):
-        # force-KW is internal available only
+        # force-KW is only internally available
 
         if isinstance(key, tuple):
             if len(key) != 2:
@@ -320,21 +327,22 @@ class Flags:
         # a high potential, that this is not intended by the user.
         # if desired use ``flags[:, field] = flag``
         if not isinstance(value, pd.Series):
-            raise ValueError("must pass value of type pd.Series")
+            raise ValueError(
+                "expected a value of type 'pd.Series', "
+                "if a scalar should be set, please use 'flags[:, field] = flag'"
+            )
 
         # if nothing happens no-one writes the history books
         if len(value) == 0:
             return
 
         if key not in self._data:
-            self._data[key] = History()
+            self._data[key] = _simpleHist(value.index)
 
         self._data[key].append(value, force=True)
-        self._cache.pop(key, None)
 
     def __delitem__(self, key):
         self._data.pop(key)
-        self._cache.pop(key, None)
 
     def drop(self, key: str):
         """
@@ -391,7 +399,9 @@ class Flags:
         -------
         copy of flags
         """
-        return self._constructor(self, copy=deep)
+        new = self._constructor()
+        new._data = {c: h.copy() if deep else h for c, h in self._data.items()}
+        return new
 
     def __copy__(self, deep=True):
         return self.copy(deep=deep)
@@ -418,8 +428,8 @@ class Flags:
         """
         di = dios.DictOfSeries(columns=self.columns)
 
-        for k, v in self._data.items():
-            di[k] = self[k]  # use cache
+        for k in self._data.keys():
+            di[k] = self[k]
 
         return di.copy()
 
@@ -439,7 +449,6 @@ class Flags:
 
 def initFlagsLike(
     reference: Union[pd.Series, DictLike, Flags],
-    initial_value: float = UNFLAGGED,
     name: str = None,
 ) -> Flags:
     """
@@ -450,23 +459,20 @@ def initFlagsLike(
     reference : pd.DataFrame, pd.Series, dios.DictOfSeries, dict of pd.Series
         The reference structure to initialize for.
 
-    initial_value : float, default 0
-        value to initialize the columns with
-
     name : str, default None
         Only respected if `reference` is of type ``pd.Series``.
         The column name that is used for the Flags. If ``None``
-        the name of the series itself is taken, if this is also
-        `None`, a ValueError is raised.
+        the name of the series itself is taken, if it is unset,
+        a ValueError is raised.
 
     Notes
     -----
     Implementation detail:
 
     The resulting Flags has not necessarily the exact same (inner) dimensions as the reference.
-    This may happen, if the passed structure, already holds History objects. Those are
+    This may happen, if the passed structure already holds History objects. Those are
     reduced 1D-DataFrame (1-column-History). Nevertheless the returned flags are perfectly suitable
-    to be used in Saqc as flags container along with the passed reference structure (data).
+    to be used in SaQC as flags container along with the passed reference structure (data).
 
     Returns
     -------
@@ -483,7 +489,7 @@ def initFlagsLike(
             name = reference.name
         if name is None:
             raise ValueError(
-                "Either the passed series must be named or a name must be passed"
+                "either the passed pd.Series must be named or a name must be passed"
             )
         if not isinstance(name, str):
             raise TypeError(f"name must be str not '{type(name).__name__}'")
@@ -493,17 +499,24 @@ def initFlagsLike(
 
         if not isinstance(k, str):
             raise TypeError(
-                f"cannot use {k} as key, currently only string keys are allowed"
+                f"cannot use '{k}' as a column name, currently only string keys are allowed"
             )
-
         if k in result:
-            raise ValueError("reference must not have duplicate keys")
-
+            raise ValueError("reference must not have duplicate column names")
         if not isinstance(item, (pd.Series, History)):
             raise TypeError("items in reference must be of type pd.Series")
 
-        item = pd.DataFrame(initial_value, index=item.index, columns=[0], dtype=float)
-
-        result[k] = History(item)
+        result[k] = _simpleHist(item.index)
 
     return Flags(result)
+
+
+def _simpleHist(index) -> History:
+    """
+    Make a single columned History from an index and an initial value.
+
+    Notes
+    -----
+    For internal use only.
+    """
+    return History(pd.DataFrame(UNFLAGGED, index=index, columns=[0], dtype=float))

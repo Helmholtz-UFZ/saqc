@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 
 
