@@ -127,6 +127,7 @@ class SaQC(FuncModules):
         scheme: Translator = None,
         nodata=np.nan,
         error_policy="raise",
+        lazy=False,
     ):
         super().__init__(self)
         data, flags = _prepInput(data, flags)
@@ -134,6 +135,7 @@ class SaQC(FuncModules):
         self._nodata = nodata
         self._flags = self._initFlags(data, flags)
         self._error_policy = error_policy
+        self._lazy = lazy
         self._translator = scheme or FloatTranslator()
 
         # NOTE:
@@ -196,7 +198,9 @@ class SaQC(FuncModules):
 
         out = stdcopy.deepcopy(self)
         out._planned.extend(readConfig(fname, self._data, self._nodata))
-        return out
+        if self._lazy:
+            return out
+        return out.evaluate()
 
     def evaluate(self):
         """
@@ -305,7 +309,10 @@ class SaQC(FuncModules):
                 )
                 out._planned.append((locator, control, partial))
 
-            return out
+            if self._lazy:
+                return out
+
+            return out.evaluate()
 
         return inner
 
