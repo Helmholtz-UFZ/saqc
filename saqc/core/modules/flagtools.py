@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Union
 
 import pandas as pd
-from dios.dios import DictOfSeries
+from dios import DictOfSeries
 from typing_extensions import Literal
 
 from saqc.constants import BAD

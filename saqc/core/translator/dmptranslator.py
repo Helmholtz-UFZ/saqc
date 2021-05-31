@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import annotations
-from dios.dios.dios import DictOfSeries
+from dios import DictOfSeries
 
 import json
 from typing import List, Tuple

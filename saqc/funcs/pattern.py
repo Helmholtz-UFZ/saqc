@@ -6,7 +6,7 @@ import numpy as np
 import dtw
 import pywt
 from mlxtend.evaluate import permutation_test
-from dios.dios import DictOfSeries
+from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.core import register, Flags
