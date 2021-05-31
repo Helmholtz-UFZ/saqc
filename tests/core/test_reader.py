@@ -49,10 +49,7 @@ def test_variableRegex(data):
     for regex, expected in tests:
         fobj = writeIO(header + "\n" + f"{regex} ; flagtools.flagDummy()")
         saqc = SaQC(data).readConfig(fobj)
-        expansion = saqc._expandFields(
-            saqc._planned[0][0], saqc._planned[0][2], data.columns
-        )
-        result = [s.field for s, _ in expansion]
+        result = [s.field for s, _, _ in saqc._planned]
         assert np.all(result == expected)
 
 

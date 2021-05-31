@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import copy as stdcopy
+from saqc.lib.tools import toSequence
 from typing import Tuple, Sequence, Union, Optional
 from typing_extensions import Literal
 import inspect
@@ -194,26 +195,7 @@ class SaQC(FuncModules):
         from saqc.core.reader import readConfig
 
         out = stdcopy.deepcopy(self)
-        out._planned.extend(readConfig(fname, self._flags, self._nodata))
-        return out
-
-    @staticmethod
-    def _expandFields(
-        selector: ColumnSelector, func: SaQCFunction, variables: pd.Index
-    ) -> Sequence[Tuple[ColumnSelector, SaQCFunction]]:
-        if not selector.regex:
-            return [(selector, func)]
-
-        out = []
-        for field in variables[variables.str.match(selector.field)]:
-            out.append(
-                (
-                    ColumnSelector(
-                        field=field, target=selector.target, regex=selector.regex
-                    ),
-                    func,
-                )
-            )
+        out._planned.extend(readConfig(fname, self._data, self._nodata))
         return out
 
     def evaluate(self):
@@ -233,38 +215,36 @@ class SaQC(FuncModules):
         data, flags = self._data, self._flags
         computed: MaterializedGraph = []
         for selector, control, function in self._planned:
-            for sel, func in self._expandFields(
-                selector, function, data.columns.union(flags.columns)
-            ):
-                logger.debug(f"processing: {sel.field}, {func.name}, {func.keywords}")
+            logger.debug(
+                f"processing: {selector.field}, {function.name}, {function.keywords}"
+            )
+            try:
+                data_result, flags_result = _saqcCallFunc(
+                    selector, control, function, data, flags
+                )
+                # we check the passed function-kwargs after the actual call,
+                # because now "hard" errors would already have been raised
+                # (eg. `TypeError: got multiple values for argument 'data'`,
+                # when the user pass data=...)
+                _warnForUnusedKwargs(function, self._translator)
+                computed.append((selector, function))
+            except Exception as e:
+                _handleErrors(e, selector.field, control, function, self._error_policy)
+                continue
 
-                try:
-                    data_result, flags_result = _saqcCallFunc(
-                        sel, control, func, data, flags
-                    )
-                    # we check the passed function-kwargs after the actual call,
-                    # because now "hard" errors would already have been raised
-                    # (eg. `TypeError: got multiple values for argument 'data'`,
-                    # when the user pass data=...)
-                    _warnForUnusedKwargs(function, self._translator)
-                    computed.append((sel, func))
-                except Exception as e:
-                    _handleErrors(e, sel.field, control, func, self._error_policy)
-                    continue
+            if control.plot:
+                plotHook(
+                    data_old=data,
+                    data_new=data_result,
+                    flagger_old=flags,
+                    flagger_new=flags_result,
+                    sources=[],
+                    targets=[selector.field],
+                    plot_name=function.name,
+                )
 
-                if control.plot:
-                    plotHook(
-                        data_old=data,
-                        data_new=data_result,
-                        flagger_old=flags,
-                        flagger_new=flags_result,
-                        sources=[],
-                        targets=[sel.field],
-                        plot_name=func.name,
-                    )
-
-                data = data_result
-                flags = flags_result
+            data = data_result
+            flags = flags_result
 
         if any([control.plot for _, control, _ in self._planned]):
             plotAllHook(data, flags)
@@ -304,23 +284,26 @@ class SaQC(FuncModules):
             **fkwargs,
         ) -> SaQC:
 
+            if regex and target is not None:
+                raise ValueError("explicit `target` not supported with `regex=True`")
+
             fkwargs.setdefault("to_mask", self._translator.TO_MASK)
 
+            out = self if inplace else self.copy(deep=True)
+
             control = APIController(plot=plot)
-
-            locator = ColumnSelector(
-                field=field,
-                target=target if target is not None else field,
-                regex=regex,
-            )
-
             partial = func.bind(
                 *fargs,
                 **{"nodata": self._nodata, "flag": self._translator(flag), **fkwargs},
             )
 
-            out = self if inplace else self.copy(deep=True)
-            out._planned.append((locator, control, partial))
+            fields = self._data.columns.str.match(field) if regex else toSequence(field)
+            for field in fields:
+                locator = ColumnSelector(
+                    field=field,
+                    target=target if target is not None else field,
+                )
+                out._planned.append((locator, control, partial))
 
             return out
 
@@ -352,7 +335,7 @@ def _saqcCallFunc(locator, controller, function, data, flags):
     field = locator.field
     target = locator.target
 
-    if (target != field) and (locator.regex is False):
+    if target != field:
         data, flags = copy(data, field, flags, target)
         field = target
 

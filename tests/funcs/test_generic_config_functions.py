@@ -40,7 +40,7 @@ def data_diff():
 
 def _compileGeneric(expr, flags):
     tree = ast.parse(expr, mode="eval")
-    _, kwargs = ConfigFunctionParser(flags).parse(tree.body)
+    _, kwargs = ConfigFunctionParser().parse(tree.body)
     return kwargs["func"]
 
 

@@ -9,10 +9,9 @@ from typing_extensions import Literal
 
 
 class ColumnSelector:
-    def __init__(self, field, target=None, regex=False):
+    def __init__(self, field, target=None):
         self.field = field
         self.target = target or field
-        self.regex = regex
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.field})"

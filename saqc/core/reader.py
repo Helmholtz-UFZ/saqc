@@ -10,7 +10,7 @@ from saqc.core.config import Fields as F
 from saqc.core.visitor import ConfigFunctionParser
 from saqc.core.lib import ConfigController
 from saqc.core.register import FUNC_MAP
-from saqc.lib.tools import isQuoted
+from saqc.lib.tools import isQuoted, toSequence
 
 
 COMMENT = "#"
@@ -56,36 +56,37 @@ def _injectOptionalColumns(df):
     return df
 
 
-def _parseConfig(df, flags, nodata):
+def _parseConfig(df, data, nodata):
     funcs = []
     for lineno, (_, target, expr, plot) in enumerate(df.itertuples()):
         if target == "None" or pd.isnull(target) or pd.isnull(expr):
             continue
 
-        regex = False
         if isQuoted(target):
-            regex = True
             target = target[1:-1]
+            target = data.columns[data.columns.str.match(target)]
 
         tree = ast.parse(expr, mode="eval")
-        func_name, kwargs = ConfigFunctionParser(flags).parse(tree.body)
+        func_name, kwargs = ConfigFunctionParser().parse(tree.body)
         func = FUNC_MAP[func_name]
-
-        selector = ColumnSelector(
-            field=kwargs.get("field", target),
-            target=target,
-            regex=regex,
-        )
 
         control = ConfigController(plot=plot, lineno=lineno + 2, expression=expr)
 
         f = func.bind(**{"nodata": nodata, **kwargs})
 
-        funcs.append((selector, control, f))
+        targets = toSequence(target)
+
+        for target in targets:
+            selector = ColumnSelector(
+                field=kwargs.get("field", target),
+                target=target,
+            )
+            funcs.append((selector, control, f))
+
     return funcs
 
 
-def readConfig(fname, flags, nodata):
+def readConfig(fname, data, nodata):
     df = pd.read_csv(
         fname,
         sep=r"\s*;\s*",
@@ -104,4 +105,4 @@ def readConfig(fname, flags, nodata):
     df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
     df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: "", np.nan: ""})
     df = df.astype({F.PLOT: bool})
-    return _parseConfig(df, flags, nodata)
+    return _parseConfig(df, data, nodata)
