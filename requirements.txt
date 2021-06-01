@@ -1,4 +1,4 @@
-Click==7.1.2
+Click==8.0.1
 dtw==1.4.0
 hypothesis==6.10.1
 matplotlib==3.4.1
