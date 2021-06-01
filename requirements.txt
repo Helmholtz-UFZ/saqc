@@ -1,7 +1,7 @@
 Click==7.1.2
 dtw==1.4.0
 hypothesis==6.10.1
-matplotlib==3.4.1
+matplotlib==3.4.2
 mlxtend==0.18.0
 numba==0.53.1
 numpy==1.20.3
