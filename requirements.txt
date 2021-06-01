@@ -4,7 +4,7 @@ hypothesis==6.10.1
 matplotlib==3.4.1
 mlxtend==0.18.0
 numba==0.53.1
-numpy==1.20.2
+numpy==1.20.3
 outlier-utils==0.0.3
 pyarrow==4.0.1
 pandas==1.2.4
