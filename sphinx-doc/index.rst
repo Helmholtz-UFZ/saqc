@@ -2,23 +2,15 @@
 SaQC documentation
 ==================
 
-Saqc is a great tool to clean data from rubbish.
-
 .. toctree::
    :hidden:
    :maxdepth: 1
 
    Repository <https://git.ufz.de/rdm-software/saqc>
    Documentation Guide <how_to_doc_md_m2r/HowToDoc>
+   Package API <moduleAPIs/saqcInit>
 
 
-Getting Started
-===============
-
-.. toctree::
-   :maxdepth: 2
-
-   getting_started_md_m2r/GettingStarted
 
 Tutorials and Topics
 ====================
@@ -26,23 +18,36 @@ Tutorials and Topics
 .. toctree::
    :maxdepth: 1
 
+   getting_started_md_m2r/GettingStarted
    cook_books_md_m2r/DataRegularisation
    cook_books_md_m2r/OutlierDetection
 
 
-Flagging Functions
-==================
-
 Functions
+=========
 
 .. toctree::
    :maxdepth: 1
    :glob:
    :titlesonly:
 
-   moduleAPIs/saqcFunctions
+   All Functions <moduleAPIs/saqcFunctions>
+   generic Functions <function_cats/generic>
+   regularisation Functions <function_cats/regularisation>
 
 
+Python Package
+==============
+.. toctree::
+   :maxdepth: 2
+   :glob:
+   :titlesonly:
+
+   SaQC init <moduleAPIs/saqcInit>
+
+
+
+:py:mod:`~saqc.constants.BAD`
 
 Indices and tables
 ==================

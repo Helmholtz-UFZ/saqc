@@ -106,6 +106,12 @@ In pycharm one can activate autogeneration of numpy doc style like so:
 :py:meth: `saqc.SaQC.show` 
 ```   
 
+* The Flags object and/or its content is available via: 
+  
+```
+:py:class: `saqc.Flags` 
+```   
+
 ## Linking to function categories
 
 To link to a group of functions, you might generate a rest landing page for that link and add it to 
