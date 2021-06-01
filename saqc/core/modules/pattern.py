@@ -6,6 +6,7 @@ from typing import Sequence
 
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
+import saqc
 
 
 class Pattern(ModuleBase):
@@ -17,7 +18,7 @@ class Pattern(ModuleBase):
         waveform: str = "mexh",
         flag: float = BAD,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("flagPatternByDTW", locals())
 
     def flagPatternByWavelet(
@@ -28,5 +29,5 @@ class Pattern(ModuleBase):
         normalize: bool = True,
         flag: float = BAD,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("flagPatternByWavelet", locals())

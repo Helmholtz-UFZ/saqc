@@ -9,6 +9,7 @@ import pandas as pd
 
 from saqc.constants import UNFLAGGED
 from saqc.core.modules.base import ModuleBase
+import saqc
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
 
 
@@ -22,7 +23,7 @@ class Interpolation(ModuleBase):
         min_periods: int = 0,
         flag: float = UNFLAGGED,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("interpolateByRolling", locals())
 
     def interpolateInvalid(
@@ -34,7 +35,7 @@ class Interpolation(ModuleBase):
         downgrade_interpolation: bool = False,
         flag: float = UNFLAGGED,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("interpolateInvalid", locals())
 
     def interpolateIndex(
@@ -46,5 +47,5 @@ class Interpolation(ModuleBase):
         inter_limit: int = 2,
         downgrade_interpolation: bool = False,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("interpolateIndex", locals())

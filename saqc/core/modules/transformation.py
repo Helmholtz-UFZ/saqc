@@ -7,6 +7,7 @@ from typing import Callable, Optional, Union
 import pandas as pd
 
 from saqc.core.modules.base import ModuleBase
+import saqc
 
 
 class Transformation(ModuleBase):
@@ -16,5 +17,5 @@ class Transformation(ModuleBase):
         func: Callable[[pd.Series], pd.Series],
         partition_freq: Optional[Union[float, str]] = None,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("transform", locals())

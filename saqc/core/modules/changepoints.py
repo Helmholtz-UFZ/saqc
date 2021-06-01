@@ -9,6 +9,7 @@ from typing_extensions import Literal
 
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
+import saqc
 from saqc.lib.types import FreqString, IntegerWindow
 
 
@@ -28,7 +29,7 @@ class ChangePoints(ModuleBase):
         reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
         flag: float = BAD,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("flagChangePoints", locals())
 
     def assignChangePointCluster(
@@ -51,5 +52,5 @@ class ChangePoints(ModuleBase):
         assign_cluster: bool = True,
         flag: float = BAD,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("assignChangePointCluster", locals())
