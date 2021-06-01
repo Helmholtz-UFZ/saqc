@@ -33,7 +33,7 @@ Tutorials and Topics
 Flagging Functions
 ==================
 
-Flagging Functions
+Functions
 
 .. toctree::
    :maxdepth: 1
@@ -41,6 +41,8 @@ Flagging Functions
    :titlesonly:
 
    moduleAPIs/saqcFunctions
+
+:py:mod:`constants <saqc.constants>`
 
 
 Indices and tables

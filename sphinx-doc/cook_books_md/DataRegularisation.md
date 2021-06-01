@@ -1,22 +1,27 @@
 # Data Regularisation
 
-The tutorial aims to introduce the usage of `SaQC` methods in order to obtain regularly sampled data derivates.
-from given timeseris data input. Regularly sampled timeseries data, is data, that has constant temporal spacing between subsequent 
-datapoints.
+The tutorial aims to introduce the usage of `SaQC` methods, in order to obtain regularly sampled data derivatives
+from given time series data input. Regularly sampled time series data, is data, that that exhibits a constant temporal 
+spacing in between subsequent data points.
 
-## Data
+## Why
 
-Usually, meassurement data does not come in regularly sampled timeseries. The reasons on the other hand, why one would
-like to have timeseries data, that exhibits a constant temporal gap size
-in between subsequent meassurements, are manifold. 
-The 2 foremost important ones, may be, that statistics, such as mean and standard deviation 
-usually presupposes the set of data points, they are computed of, to
-be of "equal" weights.
-The second reason is, that, relating data of different sources to another, is impossible, if one
-has not a mapping at hand, that relates the different meassurement times to each other.
+Often, measurement data does not come in regularly sampled time series. The reasons, why one usually would
+like to have time series data, that exhibits a constant temporal gap size
+in between subsequent measurements, are manifold. 
+
+The 2 foremost important ones, may be, that statistics, such as *mean* and *standard deviation* 
+usually presuppose the set of data points, they are computed of, to
+be equally weighted. 
+
+The second reason, is, that, relating data of different sources to another, is impossible, if one
+has not a mapping at hand, that relates the different date time indices to each other. One easy and intuitive
+way of constructing such a mapping, is to just resample all data at the same (regular) timestamp.
+
+## Tutorial data
 
 The following [dataset](../ressources/data/SoilMoisture.csv) of Soil Moisture meassurements may serve as 
-explainatory data:
+example data set:
 
 ![](../ressources/images/cbooks_SoilMoisture.png)
 
@@ -28,10 +33,11 @@ data = pd.read_csv(data_path, col_index=1)
 data.index = pd.DatetimeIndex(data.index)
 ```
 
-Now lets check out the data s timestamps
+Now lets check out the imported data`s timestamps:
 
 ```python
 >>> data
+
                      SoilMoisture
 Date Time                        
 2021-01-01 00:09:07     23.429701
@@ -46,24 +52,32 @@ Date Time
 2021-03-20 07:54:59    164.690598
 2021-03-20 08:40:41    155.318893
 [10607 rows x 1 columns]
-
 ```
 
-So, the data seems to start with an intended sampling rate of about *10* minutes. Where, at the end, the interval seems to 
-have changed to somewhat *15* minutes. Finding out about the proper sampling a series should be regularized to is a
-a subject that wont be covered here. Usually the intended sampling rate of sensor data is known from the specification.
-If thats not the case, and if there seem to be more than one candidates, a rough rule of thumb to mitigate data loss, 
-may be to go for the smallest rate.
+The data series seems to start with a sampling rate of roughly *10* minutes. 
+Somewhere the sampling rate changes, and at the end it seems to exhibit an intended sampling 
+rate of *15* minutes.
 
-So lets transform the meassurements timestamps to have a regular *10* minutes frequency. In order to do so, 
-we have to decide what to do with the associated data points. 
+Finding out about the proper sampling a series should be regularized to, is a subject on its own and wont be covered 
+here. Usually, the intended sampling rate of sensor data is known from the specification of the sensor.
 
-Basically there are three possibilities: We could keep the values as they are, and thus, 
-just [shift](#Shift) them in time to match the equidistant *10* minutes frequency grid. Or, we could calculate new, 
-synthetic meassurement values for the regular timestamps, via an [interpolation](#Interpolation) method. Or we could
-apply some [aggregation](#Resampling) to up- or downsample the data. 
+If that is not the case, and if there seem to be more than one candidates for a rate regularisation, a rough rule of 
+thumb, aiming at minimisation of data loss and data manipulation, may be, 
+to go for the smallest rate seemingly present in the data.
 
-## Shift
+## Regularisations
+
+So lets transform the measurements timestamps to have a regular *10* minutes frequency. In order to do so, 
+we have to decide what to do with each time stamps associated data, when we alter the timestamps value.
+
+Basically, there are three types of :doc:`regularisation <function_cats/regularisation>` methods: 
+
+1. We could keep the values as they are, and thus, 
+   just [shift](#Shift) them in time to match the equidistant *10* minutes frequency grid, we want the data to exhibit. 
+2. We could calculate new, synthetic data values for the regular timestamps, via an [interpolation](#Interpolation) method. 
+3. We could apply some [aggregation](#Resampling) to up- or down sample the data. 
+
+### Shift
 
 Lets apply a simple shift via the :py:func:`saqc.shift <Functions.saqc.shift>` method.
 
@@ -71,18 +85,31 @@ Lets apply a simple shift via the :py:func:`saqc.shift <Functions.saqc.shift>` m
 saqc = saqc.shift('SoilMoisture', target='SoilMoisture_bshift', freq='10min', method='bshift')
 ```
 
-* We selected a new target field to store the shifted data to, to not override our original data.
-* We passed the `freq` keyword of the intended sampling frequency in terms of a 
-[date alias](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases) string. 
-* With the `method` keyword, we determined the direction of the shift. We passed it the string `bshift` - 
-which applies a *backwards* shift, so meassurements get shifted backwards, until they match a timestamp
+#### Target parameter
+
+We selected a new `target` field, to store the shifted data to a new field, so that our original data wouldnt be 
+overridden.
+  
+#### Freq parameter
+
+We passed the `freq` keyword of the intended sampling frequency in terms of a 
+[date alias](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases) string. All of
+the :doc:`regularisation <function_cats/regularisation>` methods have such a frequency keyword,
+and it just determines the sampling rate, the resulting regular timeseries will have.
+
+#### Shifting Method
+
+With the `method` keyword, we determined the direction of the shift. We passed it the string `bshift` - 
+which applies a *backwards* shift, so data points get shifted *backwards*, until they match a timestamp
 that is a multiple of *10* minutes. (See :py:func:`saqc.shift <Functions.saqc.shift>` documentation for more
 details on the keywords.) 
   
-Lets see how the data is now sampled. Therefore, we use the `raw` output from the 
+Lets see, how the data is now sampled. Therefore, we use the `raw` output from the 
 :py:meth:`saqc.getResult <saqc.core.core.SaQC>` method. This will prevent the methods output from
-being merged to a `pandas.DataFrame` object and the changes from the resampling will be easier 
-comprehendable from one look.:
+being merged to a `pandas.DataFrame` object, and the changes from the resampling will be easier 
+comprehensible from one look.:
+
+#### Shifted data
 
 ```python
 >>> saqc = saqc.evaluate()
@@ -114,29 +141,52 @@ Date Time                        | Date Time                                 |
 2021-03-20 08:40:00   155.318893 | 2021-03-20 07:54:59            164.690598 | 
 [11286]                            [10607]     
 ```
-We see the first and last *10* datapoints of both, the original data timeseries and the shifted one.
+We see, the first and last *10* datapoints of both, the original data time series and the shifted one.
 
 Obveously, the shifted data series now exhibits a regular sampling rate of *10* minutes, with the index
 ranging from the latest timestamp, that is a multiple of *10* minutes and preceeds the initial timestamp
 of the original data, up to the first *10* minutes multiple, that succeeds the last original datas timestamp.
 This is default behavior to all the :doc:`regularisations <../Functions/regularisation>` provided by `saqc`.
 
+## Data Loss and Empty Intervals
+
 The number of datapoints  (displayed at the bottom of the table columns) has changed through the
 transformation as well. That change stems from 2 sources mainly:
 
-Firstly, if there is no [valid](#valid-data) data point available within an interval of the passed frequency, that could be shifted to match a multiple
-of the frequency, a `NaN` value gets inserted to represent the fact, that at this position there is data missing.
+### Empty Intervals
 
-Second, if there are multiple values present, within an interval with size according to the passed `freq`, this values
-get reduced to one single value, that will get associated with the intervals timestamp.
+If there is no [valid](#valid-data) data point available within an interval of the passed frequency, 
+that could be shifted to match a multiple of the frequency, a `NaN` value gets inserted to represent the fact, 
+that in the interval that is represented by that date time index, there was data missing.
+
+### Valid Data
+
+Data points are referred to, as *valid*, in context of a regularisation, if:
+
+1. the data points value is not `NaN`
+
+2. the *flag* of that datapoint has a value lower than the value passed to the methods
+   `to_mask` keyword - since this keyword defaults to the highest flag level available, 
+   defaultly, all data flagged :py:const:`~saqc.constants.BAD`, is considered invalid by that method.
+
+Note, that, from point *2* above, it follows, that flagging data values 
+before regularisation, will effectively exclude them from the regularistaion process. See chapter 
+[flagging and resampling](#flagging-and-resampling) for an example of this effect and how it can help
+control [data reduction](#data-reduction).
+
+### data reduction
+
+If there are multiple values present within an interval with size according to the passed frequency alias passed to 
+`freq`, this values get reduced to one single value, that will get assigned to the timestamp associated with the 
+interval.
 
 This reduction depends on the selected :doc:`regularisation <../Functions/regularisation>` method.
 
-We applied a backwards :py:func:`shift <Functions.saqc.shift>` with a *10* minutes frequency,
-so the the first value, encountered after any multiple of *10* minutes, gets shifted backwards to be aligned with
+For example, [above](#shift), we applied a backwards :py:func:`shift <Functions.saqc.shift>` with a *10* minutes frequency.
+As a result, the first value, encountered after any multiple of *10* minutes, gets shifted backwards to be aligned with
 the desired frequency and any other value in that *10* minutes interval just gets discarded.
 
-See the below chunk of our processed *SoilMoisture* data set to get an idea of the effect. There are 2 meassurements
+See the below chunk of our processed *SoilMoisture* data set to get an idea of the effect. There are 2 measurements
 within the *10* minutes interval ranging from `2021-01-01 07:30:00` to `2021-01-01 07:40:00` present
 in the original data - and only the first of the two reappears in the shifted data set, as representation
 for that interval.
@@ -154,6 +204,8 @@ Date Time                        | Date Time                                 |
 2021-01-01 07:40:00      23.3431 | 2021-01-01 07:39:53               23.3853 |
 2021-01-01 07:50:00      23.3874 | 2021-01-01 07:49:41               23.3431 |
 ```
+
+### Minimize Shifting Distance
 
 Notice, how, for example, the data point for `2021-01-01 07:49:41` gets shifted all the way back, to 
 `2021-01-01 07:40:00` - although, shifting it forward to `07:40:00` would be less a manipulation, since this timestamp
@@ -182,7 +234,8 @@ Date Time                        | Date Time                                 |
 Now, any timestamp got assigned, the value that is nearest to it, *if* there is one valid data value available in the
 interval surrounding that timestamp with a range of half the frequency. In our example, this would mean, the regular 
 timestamp would get assigned the nearest value of all the values, that preceed or succeed it by less than *5* minutes. 
-Maybe check out, what happens with the chunk of the final 2 hours of our shifted *Soil Moisture* dataset to get an idea.
+
+Maybe check out, what happens with the chunk of the final 2 hours of our shifted *Soil Moisture* dataset, to get an idea.
 
 ```python
 >>> data_result['2021-03-20 07:00:00']
@@ -208,7 +261,7 @@ Date Time                        | Date Time                                 |
 Since there is no valid data available, for example, in the interval from `2021-03-20 07:55:00` to `2021-03-20 08:05:00` - the new value 
 for the regular timestamp `2021-03-20 08:00:00`, that lies in the center of this interval, is `NaN`. 
 
-## aggregation freq=20 Hz (resample)
+## Aggregation
 
 If we want to comprise several values by aggregation and assign the result to the new regular timestamp, instead of
 selecting a single one, we can do this, with the :py:func:`saqc.resample <Functions.saqc.resample>` method.
@@ -248,27 +301,26 @@ Date Time                        | Date Time                             |
 [10607]                            [5643]                            
 ```
 
+### Aggregation functions
+
 You can pass arbitrary function objects to the `agg_func` parameter, to be applied to calculate every intervals result,
 as long as this function returns a scalar *float* value upon an array-like input. (So `np.median` would be propper
 for calculating the median, `sum`, for assigning the value sum, and so on.)
 
+### Aggregation method
+
 As it is with the [shift](#shift) functionality, a `method` keyword controlls, weather the 
-aggregation result of the interval in between 2 regular timestamps gets assigned to the left (=`bagg`) or to the
+aggregation result for the interval in between 2 regular timestamps gets assigned to the left (=`bagg`) or to the 
 right (`fagg`) boundary timestamp.
 
-Also, analogous to to the shift functionality, intervals of size `freq`, that do 
-not contain any [valid](#valid) data that could be aggregated, get `ǹp.nan` assigned. 
+* Also, analogous to to the shift functionality, intervals of size `freq`, that do 
+  not contain any [valid](#valid) data, that could be aggregated, get `ǹp.nan` assigned. 
+  
 
-### valid
-
-Note, that not only missing and `ǹp.nan` values are considered *not valid*, but flagged data as well.
-So, to exclude certain values from the aggregation, flagging them before resampling
-will effectively remove them from the resampling process. See chapter 
-[flagging and resampling](#flagging-and-resampling).
-
-## interpolation 
+## Interpolation 
 
 Another common way of obtaining regular timestamps, is, the interpolation of data at regular timestamps.
+
 In the pool of :doc:`regularisation <function_cats/regularisation>` methods, is available the 
 :py:func:`saqc.interpolate <Functions.saqc.interpolate>` method.
 
@@ -311,11 +363,13 @@ Date Time                        | Date Time                                 |
 [11286]                            [10607]                                     
 ```
 
-The regularisation by interpolation is strict in the sence, that regular timestamps *only* get 
-interpolated, if they have at least one [valid](#valid) data value preceeding them *and* one
-succeeding them *within* the given frequency range (wich is controlled by `freq` keyword.).
+### Interpolation and Data Sparsity
 
-Thats why, you have no interpolation value at `2021-03-20 07:30:00` - since it is preceeded
+The regularisation by interpolation is strict in the sense, that regular timestamps *only* get 
+interpolated, if they have at least one [valid](#Valid Data) data value preceeding them *and* one
+succeeding them *within* the given frequency range (wich is controlled by the `freq` keyword.).
+
+Thats, why, you have no interpolation value at `2021-03-20 07:30:00` - bacause it is preceeded
 by a [valid](#valid) value at `2021-03-20 07:26:16`, but there is no [valid](#valid) value
 available in between the succeeding *10* minutes interval from `2021-03-20 07:30:00` to `2021-03-20 07:30:00`.
 
@@ -326,13 +380,16 @@ This behavior is intended to reflect the sparsity of the original data in the
 regularized data set. The behavior can be circumvented by applying the more general
 :py:func:`saqc.interpolateIndex <Functions.saqc.interpolateIndex>`.
 
+#### Linear Interpolation
+
 Note, that there is a wrapper available for linear interpolation: :py:func:`saqc.linear <Functions.saqc.linear>`.
 
-# flags and regularisation
+## Flags and Regularisation
 
-Since data, that is flagged by a level higher or equal to the passed `to_mask` value (default=BAD), 
-is not regarded [valid](#valid), it can be of advantage to flag data before regularisation to effectively exclude it
-from the resulting regularily sampled data set. Lets see an example for the *SoilMoisture* data set.
+Since data, that is flagged by a level higher or equal to the passed `to_mask` value 
+(default=:py:const:~saqc.constants.BAD), is not regarded [valid](#Valid Data) by the applied function, 
+it can be of advantage, to flag data before regularisation in order to effectively exclude it
+from the resulting regularly sampled data set. Lets see an example for the *SoilMoisture* data set.
 
 ```python
 >>> saqc = saqc.linear('SoilMoisture', target='SoilMoisture_linear', freq='10min')
@@ -351,28 +408,40 @@ Date Time                        | Date Time                                 |
 2021-01-01 15:50:00    23.299553 | 2021-01-01 15:49:50               23.2988 | 
 ```
 
-At `2021-01-01 15:40:02` the original data, exhibits a meassurement value
-of `-120` - which is obveously not a valid data point, regarding the fact that *SoilMoisture* meassurements
+At `2021-01-01 15:40:02` the original data exhibits a measurement value
+of `-120` - which is obviously not a valid data point, regarding the fact, that *SoilMoisture* measurements
 should be percentage values in between *0* and *100*.
 
 Since we dont exclude the value from interpolation, it gets included in the interpolation
 process for the regular timstamp at `2021-01-01 15:40:00` - wich, as a result, also exhibits
 a non - sence value of *-119.512446*. We could now flag the resulting regular dataset and
 exclude this calculated non sence value from further processing and analysis. 
-But this would mean, that we would have a small data gap at this point.
+
+But, this would mean, that we would have a small data gap at this point.
 
 We can circumvent having that gap, by flagging that value before interpolation. This
 works, because there is actually another, now valid value, available in the interval
 in between `2021-01-01 15:40:00` and `2021-01-01 15:50:00`, that can serve as right pillow point
 for the interpolation at `2021-01-01 15:40:00`. So lets flag all the values smaller than *0*
-with the :py:func:`saqc.flagRange <Functions.saqc.flagRange>` method and after this
+with the :py:func:`saqc.flagRange <Functions.saqc.flagRange>` method and after this,
 do the interpolation.
 
-- see problem with data[95] - flag before interpolation
+```python
+>>> saqc = saqc.outliers.flagRange('SoilMoisture', min=0)
+>>> saqc = saqc.resampling.interpolate('SoilMoisture', freq='10min', method='time')
+>>> saqc.getResult(raw=True)[0]['2021-01-01T07:00:00':'2021-01-01T08:00:00']
+
+                    SoilMoisture |                     SoilMoisture_original | 
+================================ | ========================================= | 
+Date Time                        | Date Time                                 | 
+2021-01-01 15:00:00    23.341182 | 2021-01-01 15:00:51               23.3410 | 
+2021-01-01 15:10:00    23.342964 | 2021-01-01 15:10:38               23.3431 | 
+2021-01-01 15:20:00    23.341092 | 2021-01-01 15:20:26               23.3410 | 
+2021-01-01 15:30:00    23.341000 | 2021-01-01 15:30:14               23.3410 | 
+2021-01-01 15:40:00    23.319971 | 2021-01-01 15:40:02             -120.0000 | 
+2021-01-01 15:50:00    23.299553 | 2021-01-01 15:49:50               23.2988 |
+```
 
 ## back projection of flags
 
-- all
-- last
-
-## wrapper
+ToDo
