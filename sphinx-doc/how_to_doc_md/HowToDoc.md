@@ -74,6 +74,7 @@ In pycharm one can activate autogeneration of numpy doc style like so:
 * Do not include lines *only* containing two or more `-` signs, except it is the underscore line of the section heading (otherwise resulting html representation could be messed up)
 
 ## hyperlinking docstrings
+
 * Most straight forward way to make documented code content available / linkable, is, adding a rest file containing an
   automodapi directive to the folder `moduleAPIs` - check out the files it already contains as example.
   * adding ``.. automodapi:: foo.bar``, will make the module `foo.bar` and all its content `foo.bar.X` referable by the 
@@ -104,6 +105,19 @@ In pycharm one can activate autogeneration of numpy doc style like so:
 :py:class: `saqc.SaQC` 
 :py:meth: `saqc.SaQC.show` 
 ```   
+
+## Linking to function categories
+
+To link to a group of functions, you might generate a rest landing page for that link and add it to 
+the `function_cats` folder. It already contains the landing pages for the :doc:`generic <../function_cats/generic>` 
+functions and the :doc:`regularisation <../function_cats/regularisation>` functions.
+Those can be linked via relative paths to the `function_cats` folder. From this file, located in `sphinx-doc/how_to_doc`,
+the linking is realized by:
+
+```python
+:doc:`regularisation <../function_cats/regularistaion>`
+:doc:`generic <../function_cats/generic>`
+```
 
 ## Adding Markdown content to the Documentation
 

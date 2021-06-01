@@ -180,7 +180,7 @@ If there are multiple values present within an interval with size according to t
 `freq`, this values get reduced to one single value, that will get assigned to the timestamp associated with the 
 interval.
 
-This reduction depends on the selected :doc:`regularisation <../Functions/regularisation>` method.
+This reduction depends on the selected :doc:`regularisation <../function_cats/regularisation>` method.
 
 For example, [above](#shift), we applied a backwards :py:func:`shift <Functions.saqc.shift>` with a *10* minutes frequency.
 As a result, the first value, encountered after any multiple of *10* minutes, gets shifted backwards to be aligned with
