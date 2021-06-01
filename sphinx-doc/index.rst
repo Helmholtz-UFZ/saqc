@@ -9,7 +9,7 @@ Saqc is a great tool to clean data from rubbish.
    :maxdepth: 1
 
    Repository <https://git.ufz.de/rdm-software/saqc>
-   Documentation Guide <how_to_doc_m2r/HowToDoc>
+   Documentation Guide <how_to_doc_md_m2r/HowToDoc>
 
 
 Getting Started
@@ -42,7 +42,6 @@ Functions
 
    moduleAPIs/saqcFunctions
 
-:py:mod:`constants <saqc.constants>`
 
 
 Indices and tables

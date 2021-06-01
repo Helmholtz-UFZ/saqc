@@ -61,10 +61,11 @@ In pycharm one can activate autogeneration of numpy doc style like so:
 
 ### Docstring formatting pitfalls
 
-* Latex is included via :math:\`latex_code\`
-  
-  * note, the backticks surrounding the actual code
-  * Latex commands need to be signified with **double**    backlash! (``\\mu`` instead of ``\mu``)
+* Latex is included via 
+```
+:math:`<latex_code>`
+```
+* Latex commands need to be signified with **double**   backlash! (``\\mu`` instead of ``\mu``)
 
 * Nested lists need to be all of the same kind (either   numbered or marked - otherwise result is salad) 
 * List items covering several lines in the docstring have to be all aligned - (so, not only the superfluent ones, but ALL, including the first one - otherwise result is salad)
@@ -72,36 +73,80 @@ In pycharm one can activate autogeneration of numpy doc style like so:
 * Most formatting signifiers are not allowed to start or end with a space. (so no :math: \`1+1 \`, \` var2\`, \`\` a=1 \`\`, ...)
 * Do not include lines *only* containing two or more `-` signs, except it is the underscore line of the section heading (otherwise resulting html representation could be messed up)
 
+## hyperlinking docstrings
+* Most straight forward way to make documented code content available / linkable, is, adding a rest file containing an
+  automodapi directive to the folder `moduleAPIs` - check out the files it already contains as example.
+  * adding ``.. automodapi:: foo.bar``, will make the module `foo.bar` and all its content `foo.bar.X` referable by the 
+    module path.
+    
+* Cite/link via the py domain roles. Link content `bar`, that is registered to the API with the adress `foo.bar` and 
+  shall be represented by the name `link_name`, via: 
+```  
+:py:role:`link_name <foo.bar>`
+```    
+* check out the *_api* folder in the [repository](https://git.ufz.de/rdm-software/saqc/-/tree/develop/sphinx-doc) to get an
+  overview of already registered paths. Most important may be:
+  
+* constants are available via `saqc.constants` - for example:
+``` 
+:py:const:`~saqc.constants.BAD` 
+```  
+
+* Functions are available via the "fake"  module `Functions.saqc` - for example: 
+  
+``` 
+:py:func:`saqc.flagRange <saqc.Functions.flagRange>` 
+``` 
+  
+* The saqc object and/or its content is available via: 
+  
+```
+:py:class: `saqc.SaQC` 
+:py:meth: `saqc.SaQC.show` 
+```   
+
 ## Adding Markdown content to the Documentation
 
-* If you generate cookbooks and/or tutorials in markdown and want them to be integrated in the sphinx doc - there are some obstaclish thingies to care for
+- By linking the markdown file "foo/bar.md", or any folder that contains markdown files directly, 
+  you can trigger sphinx - `recommonmark`, which is fine for not-too complex markdown documents. 
+  
+* Especially, if you have multiple markdown files that are mutually linked and/or, contain tables of certain fencieness (tables with figures),
+  you will have to take some minor extra steps:
+  
+- You will have to gather all markdown files in subfolders of "sphinx-doc" directory (you can have multiple subfolders). 
 
-- You will have to gather all markdown files in subfolders of "sphinx-doc". 
+- To include a folder named `foo` of markdown files in the documentation, or refer to content in `foo`, you will have 
+  to append the folder name to the MDLIST variable in the Makefile:
 
-- To include a folder named 'foo_md' of markdown files in the documentation, you will have to add the following line to the Makefile:
+- The markdown files must be in one of the subfolders listed in MDLIST - they cant be gathered in nested subfolders. 
 
-```python
-python make_md_to_rst.py -p "sphinx-doc/gfoo_md"
-```
+- You can not link to sections in other markdown files, that contain the `-` character (sorry).
 
-- The markdown files must be in that subfolders - they cant be gathered in nested subfolders. 
+- The Section structure/ordering must be consistent in the ReST sence (otherwise they wont appear - thats also required if you use plain `recommonmark`
 
-- You can not link to sections in other markdown files, that contain the `-` character.
+- You can link to ressources - like pictures and include them in the markdown, if the pictures are in (possibly another) folder in `\sphinx-doc` and the paths to this ressources are given relatively!
 
-- The Section structure/ordering must be consistent in the ReST sence (otherwise they wont appear)
+- You can include a markdown file in a rest document, by appending '_m2r' to the folder name when linking it path_wise. 
+  So, to include the markdown file 'foo/bar.md' in a toc tree for example - you would do something like:
 
-- You can link to ressources - like pictures and include them in the markdown, if the pictures are in (possibly another) folder in `\sphinx-doc` and the pathes to this ressources are given relatively!
-
-- You can include a markdown file in a rest document, by appending '_m2r' to the folder name. So to include the markdown file 'foo_md/bar.md' in a toc tree for example - you would do something like:
 ```python
 .. toctree::
    :hidden:
    :maxdepth: 1
 
-   foo_md_m2r/bar
+   foo_m2r/bar
 ```
 
-- If you want to hyperlink/include other sources from the sphinx documentation that are rest-files, you will not be able to include them in a way, that they will appear in you markdown rendering. - however - there is the slightly hacky possibillity to just include the respective rest directives. This will mess up your markdown code - meaning that you will have those rest snippets flying around, but when the markdown file gets converted to the rest file and build into the sphinx html build, the linked sources will be integrated properly. The syntax is as follows:
+## Linking ReST sources in markdown documentation
+
+- If you want to hyperlink/include other sources from the sphinx documentation that are rest-files (and docstrings), 
+  you will not be able to include them in a way, that they will appear in you markdown rendering. - however - there is 
+  the posibillity to just include the respective rest directives (see directive/link [examples](#hyperlinking-docstrings)). 
+  
+- This will mess up your markdown code - meaning that you will have 
+  those rest snippets flying around, but when the markdown file gets converted to the rest file and build into the 
+  sphinx html build, the linked sources will be integrated properly. The syntax for linking rest sources is as 
+  follows as follows:
 
 - to include the link to the rest source `functions.rst` in the folder `foo`, under the name `bar`, you would need to insert: 
 ```python
@@ -109,32 +154,15 @@ python make_md_to_rst.py -p "sphinx-doc/gfoo_md"
 ```
 
 - to link to a section with name `foo` in a rest source named `bumm.rst`, under the name `bar`, you would just insert: 
-```python
+```
 :ref:`bar <relative/path/from/sphinx/root/bumm:foo>`
 ``` 
 
 - in that manner you might be able to smuggle most rest directives through into the resulting html build. Especially if you want to link to the docstrings of certain (domain specific) objects. Lets say you want to link to the *function* `saqc.funcs.flagRange` under the name `ranger` - you just include:
 
-```python
+```
 :py:func:`Ranger <saqc.funcs.flagRange>`
 ```
 
 whereas the `:func:` part determines the role, the object is documented as. See [this page](https://www.sphinx-doc.org/en/master/#ref-role) for an overview of the available roles
 
-## Refering to documented Functions
-
-* Since the documentation generates an own module structure to document the functions, linking to the documented functions is a bit hacky:
-
-- Functions: to link to any functions docstring in its plain form (no module/class path)  - you will have to link the rest file it is documented in. All functions from the function module can be linked via 'Functions.saqc':
-
-- For example, 'saqc.funcs.outliers.flagRange' is linked via:
-```python
-:py:func:`Functions.saqc.flagRange`
-```
-
-To hide the module structure and/or make transparent the intended module structure, use named links, like so:
-```python
-:py:func:`saqc.flagRange <Functions.saqc.flagRange>`
-```
-
-If you are insecure how to access/link any documented objects, check out the *_api* folder in the [repository](https://git.ufz.de/rdm-software/saqc/-/tree/develop/sphinx-doc).
