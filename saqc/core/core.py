@@ -8,13 +8,16 @@ from __future__ import annotations
 
 import logging
 import copy as stdcopy
+
 from saqc.lib.tools import toSequence
 from typing import Tuple, Union, Optional
 from typing_extensions import Literal
-import inspect
 
 import pandas as pd
 import numpy as np
+
+import inspect
+import matplotlib
 
 from dios import DictOfSeries, to_dios
 
@@ -22,10 +25,23 @@ from saqc.core.flags import initFlagsLike, Flags
 from saqc.core.lib import APIController, ColumnSelector
 from saqc.core.register import FUNC_MAP, SaQCFunction
 from saqc.core.modules import FuncModules
-from saqc.lib.plotting import plotHook, plotAllHook
+
 from saqc.core.translator.basetranslator import Translator, FloatTranslator
 from saqc.lib.types import ExternalFlag, CallGraph, MaterializedGraph, PandasLike
+
 from saqc.constants import BAD
+from saqc.lib.plotting import makeFig
+
+from saqc.core.translator.basetranslator import Translator, FloatTranslator
+from saqc.lib.types import (
+    ExternalFlag,
+    CallGraph,
+    MaterializedGraph,
+    PandasLike,
+    FreqString,
+)
+from saqc.lib.tools import toSequence
+
 
 logger = logging.getLogger("SaQC")
 
@@ -235,22 +251,8 @@ class SaQC(FuncModules):
                 _handleErrors(e, selector.field, control, function, self._error_policy)
                 continue
 
-            if control.plot:
-                plotHook(
-                    data_old=data,
-                    data_new=data_result,
-                    flagger_old=flags,
-                    flagger_new=flags_result,
-                    sources=[],
-                    targets=[selector.field],
-                    plot_name=function.name,
-                )
-
             data = data_result
             flags = flags_result
-
-        if any([control.plot for _, control, _ in self._planned]):
-            plotAllHook(data, flags)
 
         return self._construct(
             _flags=flags, _data=data, _computed=self._computed + computed
@@ -282,7 +284,6 @@ class SaQC(FuncModules):
             target: str = None,
             regex: bool = False,
             flag: ExternalFlag = BAD,
-            plot: bool = False,
             inplace: bool = False,
             **fkwargs,
         ) -> SaQC:
@@ -294,7 +295,7 @@ class SaQC(FuncModules):
 
             out = self if inplace else self.copy(deep=True)
 
-            control = APIController(plot=plot)
+            control = APIController()
             partial = func.bind(
                 *fargs,
                 **{"nodata": self._nodata, "flag": self._translator(flag), **fkwargs},

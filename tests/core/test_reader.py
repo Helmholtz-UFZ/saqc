@@ -37,7 +37,7 @@ def test_packagedConfig():
 
 def test_variableRegex(data):
 
-    header = f"{F.VARNAME};{F.TEST};{F.PLOT}"
+    header = f"{F.VARNAME};{F.TEST}"
     tests = [
         ("'.*'", data.columns),
         ("'var(1|2)'", [c for c in data.columns if c[-1] in ("1", "2")]),
@@ -58,12 +58,12 @@ def test_inlineComments(data):
     adresses issue #3
     """
     config = f"""
-    {F.VARNAME} ; {F.TEST}       ; {F.PLOT}
-    pre2        ; flagtools.flagDummy() # test ; False # test
+    {F.VARNAME} ; {F.TEST}       
+    pre2        ; flagtools.flagDummy() # test 
     """
+
     saqc = SaQC(data, lazy=True).readConfig(writeIO(config))
     _, control, func = saqc._planned[0]
-    assert control.plot is False
     assert func.func == FUNC_MAP["flagtools.flagDummy"].func
 
 

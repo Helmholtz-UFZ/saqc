@@ -284,7 +284,7 @@ def test_callHistoryYieldsSameResults():
     saqc2 = SaQC(data=data)
 
     # convert the call history into an excution plan and inject into a blank SaQC object
-    saqc2._planned = [(s, APIController(plot=False), f) for s, f in graph]
+    saqc2._planned = [(s, APIController(), f) for s, f in graph]
     # replay the functions
     _, flags2 = saqc2.getResult()
 

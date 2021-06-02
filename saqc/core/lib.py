@@ -20,8 +20,6 @@ class ColumnSelector:
 # TODO: this seems obsolete
 @dataclass
 class APIController:
-    plot: bool
-
     def errorMessage(self):
         return ""
 

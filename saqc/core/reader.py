@@ -58,7 +58,7 @@ def _injectOptionalColumns(df):
 
 def _parseConfig(df, data, nodata):
     funcs = []
-    for lineno, (_, target, expr, plot) in enumerate(df.itertuples()):
+    for lineno, (_, target, expr) in enumerate(df.itertuples()):
         if target == "None" or pd.isnull(target) or pd.isnull(expr):
             continue
 
@@ -70,7 +70,7 @@ def _parseConfig(df, data, nodata):
         func_name, kwargs = ConfigFunctionParser().parse(tree.body)
         func = FUNC_MAP[func_name]
 
-        control = ConfigController(plot=plot, lineno=lineno + 2, expression=expr)
+        control = ConfigController(lineno=lineno + 2, expression=expr)
 
         f = func.bind(**{"nodata": nodata, **kwargs})
 
@@ -98,11 +98,8 @@ def readConfig(fname, data, nodata):
     )
 
     df = _handleEmptyLines(df)
-    df = _injectOptionalColumns(df)
     df = _handleComments(df)
 
     df[F.VARNAME] = df[F.VARNAME].replace(r"^\s*$", np.nan, regex=True)
     df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
-    df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: "", np.nan: ""})
-    df = df.astype({F.PLOT: bool})
     return _parseConfig(df, data, nodata)

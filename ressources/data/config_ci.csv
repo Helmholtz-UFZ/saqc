@@ -1,8 +1,8 @@
-varname ; test                                                 ; plot
-#-------; -----------------------------------------------------; -----
-SM2     ; resampling.shift(freq="15Min")                       ; False
-'.*'    ; outliers.flagRange(min=10, max=60)                   ; False
-SM2     ; breaks.flagMissing(nodata=NAN)                       ; False
-SM2     ; outliers.flagRange(min=10, max=60)                   ; False
-SM2     ; outliers.flagMAD(window="30d", z=3.5)                ; False
+varname ; test
+#-------; -----------------------------------------------------
+SM2     ; resampling.shift(freq="15Min")
+'.*'    ; outliers.flagRange(min=10, max=60)
+SM2     ; breaks.flagMissing(nodata=NAN)
+SM2     ; outliers.flagRange(min=10, max=60)
+SM2     ; outliers.flagMAD(window="30d", z=3.5)
 Dummy   ; generic.flag(func=(isflagged(SM1) | isflagged(SM2)))
