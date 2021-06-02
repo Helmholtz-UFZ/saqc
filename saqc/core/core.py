@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import copy as stdcopy
 from saqc.lib.tools import toSequence
-from typing import Tuple, Sequence, Union, Optional
+from typing import Tuple, Union, Optional
 from typing_extensions import Literal
 import inspect
 
@@ -22,7 +22,6 @@ from saqc.core.flags import initFlagsLike, Flags
 from saqc.core.lib import APIController, ColumnSelector
 from saqc.core.register import FUNC_MAP, SaQCFunction
 from saqc.core.modules import FuncModules
-from saqc.funcs.tools import copy
 from saqc.lib.plotting import plotHook, plotAllHook
 from saqc.core.translator.basetranslator import Translator, FloatTranslator
 from saqc.lib.types import ExternalFlag, CallGraph, MaterializedGraph, PandasLike
@@ -222,10 +221,10 @@ class SaQC(FuncModules):
             logger.debug(
                 f"processing: {selector.field}, {function.name}, {function.keywords}"
             )
+            assert data.columns.difference(flags.columns).empty
+
             try:
-                data_result, flags_result = _saqcCallFunc(
-                    selector, control, function, data, flags
-                )
+                data_result, flags_result = function(data, selector.field, flags)
                 # we check the passed function-kwargs after the actual call,
                 # because now "hard" errors would already have been raised
                 # (eg. `TypeError: got multiple values for argument 'data'`,
@@ -303,11 +302,19 @@ class SaQC(FuncModules):
 
             fields = self._data.columns.str.match(field) if regex else toSequence(field)
             for field in fields:
-                locator = ColumnSelector(
-                    field=field,
-                    target=target if target is not None else field,
-                )
-                out._planned.append((locator, control, partial))
+                target = target if target is not None else field
+                if field != target:
+                    copy_func = FUNC_MAP["tools.copy"]
+                    out._planned.append(
+                        (
+                            ColumnSelector(field, target),
+                            control,
+                            copy_func.bind(new_field=target),
+                        )
+                    )
+                    field = target
+
+                out._planned.append((ColumnSelector(field, target), control, partial))
 
             if self._lazy:
                 return out
@@ -331,24 +338,6 @@ class SaQC(FuncModules):
         if deep:
             return stdcopy.deepcopy(self)
         return stdcopy.copy(self)
-
-
-def _saqcCallFunc(locator, controller, function, data, flags):
-    # NOTE:
-    # We assure that all columns in data have an equivalent column in flags,
-    # we might have more flags columns though
-    assert data.columns.difference(flags.columns).empty
-
-    field = locator.field
-    target = locator.target
-
-    if target != field:
-        data, flags = copy(data, field, flags, target)
-        field = target
-
-    data_result, flags_result = function(data, field, flags)
-
-    return data_result, flags_result
 
 
 def _warnForUnusedKwargs(func, translator: Translator):
