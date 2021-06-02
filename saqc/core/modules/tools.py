@@ -33,3 +33,17 @@ class Tools(ModuleBase):
         **kwargs,
     ) -> saqc.SaQC:
         return self.defer("mask", locals())
+
+    def plot(
+        self,
+        field: str,
+        save_path: str,
+        max_gap: Optional[FreqString] = None,
+        stats: Optional[bool] = False,
+        plot_kwargs: Optional[dict] = {},
+        fig_kwargs: Optional[dict] = {"figsize": (16, 9)},
+        stats_dict: Optional[dict] = {},
+        save_kwargs: Optional[dict] = {},
+        **kwargs,
+    ) -> SaQC:
+        return self.defer("plot", locals())

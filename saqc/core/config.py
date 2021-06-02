@@ -7,5 +7,4 @@ class Fields:
     START = "start_date"
     END = "end_date"
     TEST = "test"
-    PLOT = "plot"
     LINENUMBER = "line"

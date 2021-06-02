@@ -5,6 +5,8 @@ import logging
 import pytest
 import numpy as np
 import pandas as pd
+import dios
+
 
 from saqc.constants import *
 from saqc.core import initFlagsLike
@@ -94,27 +96,3 @@ def test_dtypes(data, flags):
 
     for c in pflags.columns:
         assert pflags[c].dtype == flags[c].dtype
-
-
-def test_plotting(data):
-    """
-    Test if the plotting code runs, does not show any plot.
-
-    NOTE:
-    This test is ignored if matplotlib is not available on the test-system
-    """
-    pytest.importorskip("matplotlib", reason="requires matplotlib")
-    field, *_ = data.columns
-    flags = initFlagsLike(data)
-    _, flags_range = flagRange(data, field, flags, min=10, max=90, flag=BAD)
-    data_new, flags_range = flagRange(
-        data, field, flags_range, min=40, max=60, flag=DOUBT
-    )
-    splot._interactive = False
-    splot._plotSingleVariable(
-        data, data_new, flags, flags_range, sources=[], targets=[data_new.columns[0]]
-    )
-    splot._plotMultipleVariables(
-        data, data_new, flags, flags_range, targets=data_new.columns
-    )
-    splot._interactive = True

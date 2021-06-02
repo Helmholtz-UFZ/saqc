@@ -164,4 +164,5 @@ def assignKNNScore(
     flags[target_field] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)
 
     data[target_field] = score_ser
+
     return data, flags
