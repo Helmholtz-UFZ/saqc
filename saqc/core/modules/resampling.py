@@ -10,6 +10,7 @@ from typing_extensions import Literal
 
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
+import saqc
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
 
 
@@ -23,10 +24,10 @@ class Resampling(ModuleBase):
         method: Literal["fagg", "bagg", "nagg"] = "nagg",
         flag: float = BAD,
         **kwargs,
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("aggregate", locals())
 
-    def linear(self, field: str, freq: str, **kwargs) -> SaQC:
+    def linear(self, field: str, freq: str, **kwargs) -> saqc.SaQC:
         return self.defer("linear", locals())
 
     def interpolate(
@@ -36,7 +37,7 @@ class Resampling(ModuleBase):
         method: _SUPPORTED_METHODS,
         order: int = 1,
         **kwargs,
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("interpolate", locals())
 
     def mapToOriginal(
@@ -52,7 +53,7 @@ class Resampling(ModuleBase):
             "inverse_interpolation",
         ],
         **kwargs,
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("mapToOriginal", locals())
 
     def shift(
@@ -64,7 +65,7 @@ class Resampling(ModuleBase):
             Literal["check", "auto"]
         ] = None,  # TODO: not a user decision
         **kwargs,
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("shift", locals())
 
     def resample(
@@ -80,7 +81,7 @@ class Resampling(ModuleBase):
         flag_agg_func: Callable[[pd.Series], float] = max,
         freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs,
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("resample", locals())
 
     def reindexFlags(
@@ -97,5 +98,5 @@ class Resampling(ModuleBase):
         source: str,
         freq: Optional[str] = None,
         **kwargs,
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("reindexFlags", locals())

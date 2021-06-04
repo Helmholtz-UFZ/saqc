@@ -2,10 +2,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import numpy as np
+import numpy
+import pandas as pd
+from typing import Callable
 
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
+import saqc
 from saqc.lib.types import FreqString, IntegerWindow, ColumnName
 from saqc.lib.types import ColumnName, FreqString, PositiveInt, PositiveFloat
 
@@ -21,5 +24,5 @@ class Noise(ModuleBase):
         sub_thresh: PositiveFloat = None,
         min_periods: PositiveInt = None,
         flag: float = BAD,
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("flagByStatLowPass", locals())

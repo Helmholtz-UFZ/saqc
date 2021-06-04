@@ -14,10 +14,20 @@ import logging
 import dios
 import collections
 from scipy.cluster.hierarchy import linkage, fcluster
-from saqc.lib.types import ColumnName, FreqString, PositiveInt, PositiveFloat, Literal
-
+from saqc.lib.types import (
+    ColumnName,
+    FreqString,
+    PositiveInt,
+    PositiveFloat,
+    Literal,
+    DictOfSeries,
+)
+from saqc.core import Flags
+import matplotlib as mpl
+from typing import Optional, Tuple
 
 from saqc.lib.types import T
+import matplotlib.pyplot as plt
 
 # keep this for external imports
 from saqc.lib.rolling import customRoller

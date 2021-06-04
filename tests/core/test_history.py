@@ -87,7 +87,9 @@ def check_invariants(hist):
     assert isinstance(hist, History)
     assert isinstance(hist.hist, pd.DataFrame)
     assert isinstance(hist.mask, pd.DataFrame)
-    assert all(hist.hist.dtypes == float)
+    assert all(
+        [isinstance(dtype, (float, pd.CategoricalDtype)) for dtype in hist.hist.dtypes]
+    )
     assert all(hist.mask.dtypes == bool)
     assert hist.hist.columns.equals(hist.mask.columns)
     assert hist.columns is hist.hist.columns
@@ -186,7 +188,10 @@ def test_copy(data):
 
     assert deep.hist is not hist.hist
     assert deep.mask is not hist.mask
-    assert shallow.hist is hist.hist
+    # we need to convert to and from categoricals in order
+    # to allow all operations on `History`, that way we loose
+    # the identity
+    # assert shallow.hist is hist.hist
     assert shallow.mask is hist.mask
 
 

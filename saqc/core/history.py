@@ -78,7 +78,7 @@ class History:
             hist = hist.copy()
             mask = mask.copy()
 
-        self.hist = hist
+        self.hist = hist.astype("category", copy=copy)
         self.mask = mask
 
     @property
@@ -166,11 +166,13 @@ class History:
             touched = s.notna()
             self.mask.iloc[touched, :pos] = False
 
-        self.hist[pos] = s
+        self.hist[pos] = s.astype("category")
 
         return self
 
-    def append(self, value: Union[pd.Series, History], force=False) -> History:
+    def append(
+        self, value: Union[pd.Series, pd.DataFrame, History], force=False
+    ) -> History:
         """
         Create a new FH column and insert given pd.Series to it.
 
@@ -210,11 +212,15 @@ class History:
         if isinstance(value, History):
             return self._appendHistory(value, force=force)
 
-        value = self._validateValue(value)
-        if len(self) > 0 and not value.index.equals(self.index):
-            raise ValueError("Index does not match")
+        if isinstance(value, pd.Series):
+            value = value.to_frame()
 
-        self._insert(value, pos=len(self), force=force)
+        for _, val in value.items():
+            val = self._validateValue(val)
+            if len(self) > 0 and not val.index.equals(self.index):
+                raise ValueError("Index does not match")
+
+            self._insert(val, pos=len(self), force=force)
         return self
 
     def _appendHistory(self, value: History, force: bool = False):
@@ -247,8 +253,9 @@ class History:
             raise ValueError("Index does not match")
 
         n = len(self.columns)
-        value_hist = value.hist
-        value_mask = value.mask
+        # don't overwrite the `.columns` of the input down the line
+        value_hist = value.hist.copy(deep=False)
+        value_mask = value.mask.copy(deep=False)
 
         if not force:
             value_hist = value_hist.iloc[:, n:]
@@ -259,7 +266,10 @@ class History:
         value_hist.columns = columns
         value_mask.columns = columns
 
-        self.hist.loc[:, columns] = value_hist.copy()
+        # clear the current mask
+        self.mask.loc[(~value_mask & value_hist.notna()).any(axis="columns")] = False
+
+        self.hist.loc[:, columns] = value_hist.astype("category")
         self.mask.loc[:, columns] = value_mask.copy()
         return self
 
@@ -305,7 +315,7 @@ class History:
         # this may leave us in an unstable state, because
         # the last column maybe is not entirely True, but
         # the following append, will fix this
-        self.hist = self.hist.iloc[:, :-n]
+        self.hist = self.hist.iloc[:, :-n].astype("category")
         self.mask = self.mask.iloc[:, :-n]
 
         self.append(s)
@@ -319,7 +329,7 @@ class History:
         -------
         pd.Series: maximum values
         """
-        return self.hist[self.mask].idxmax(axis=1)
+        return self.hist[self.mask].astype(float).idxmax(axis=1)
 
     def max(self) -> pd.Series:
         """
@@ -350,7 +360,13 @@ class History:
         copy : History
             the copied FH
         """
-        return self._constructor(hist=self, copy=deep)
+        new = self._constructor()
+        new.hist = self.hist
+        new.mask = self.mask
+        if deep:
+            new.hist = new.hist.copy()
+            new.mask = new.mask.copy()
+        return new
 
     def reindex(self, index: pd.Index, fill_value_last: float = UNFLAGGED) -> History:
         """
@@ -367,11 +383,18 @@ class History:
         -------
         History
         """
-        self.hist = self.hist.reindex(index=index, copy=False, fill_value=np.nan)
-        self.mask = self.mask.reindex(index=index, copy=False, fill_value=False)
+        hist = self.hist.astype(float).reindex(
+            index=index, copy=False, fill_value=np.nan
+        )
+        mask = self.mask.astype(bool).reindex(index=index, copy=False, fill_value=False)
+
         # Note: all following code must handle empty frames
-        self.hist.iloc[:, -1:] = self.hist.iloc[:, -1:].fillna(fill_value_last)
-        self.mask.iloc[:, -1:] = True
+        hist.iloc[:, -1:] = hist.iloc[:, -1:].fillna(fill_value_last)
+        mask.iloc[:, -1:] = True
+
+        self.mask = mask.astype(bool)
+        self.hist.hist = hist.astype("category")
+
         return self
 
     def __copy__(self, deep: bool = True):
@@ -423,7 +446,7 @@ class History:
                 f"'mask' must be of type pd.DataFrame, but {type(mask).__name__} was given"
             )
 
-        if any(mask.dtypes != bool):
+        if (mask.dtypes != bool).any():
             raise ValueError("dtype of all columns in 'mask' must be bool")
 
         if not mask.empty and not mask.iloc[:, -1].all():
@@ -451,8 +474,10 @@ class History:
                 f"'hist' must be of type pd.DataFrame, but {type(obj).__name__} was given"
             )
 
-        if any(obj.dtypes != float):
-            raise ValueError("dtype of all columns in hist must be float")
+        if obj.dtypes.isin([float, pd.Categorical]).any() is False:
+            raise ValueError(
+                "dtype of all columns in hist must be float or categorical"
+            )
 
         if not obj.empty and (
             not obj.columns.equals(pd.Index(range(len(obj.columns))))
@@ -474,8 +499,8 @@ class History:
                 f"value must be of type pd.Series, but {type(obj).__name__} was given"
             )
 
-        if not obj.dtype == float:
-            raise ValueError("dtype must be float")
+        if not ((obj.dtype == float) or isinstance(obj.dtype, pd.CategoricalDtype)):
+            raise ValueError("dtype must be float or categorical")
 
         return obj
 
@@ -529,12 +554,17 @@ def applyFunctionOnHistory(
     new_history = History()
 
     if func_handle_df:
-        history.hist = hist_func(history.hist, **hist_kws)
+        # we need to pass the data as floats as functions may fail with Categorical
+        history.hist = hist_func(history.hist.astype(float), **hist_kws).astype(
+            "category"
+        )
         history.mask = hist_func(history.mask, **mask_kws)
 
     else:
         for pos in history.columns:
-            new_history.hist[pos] = hist_func(history.hist[pos], **hist_kws)
+            new_history.hist[pos] = hist_func(
+                history.hist[pos].astype(float), **hist_kws
+            ).astype("category")
             new_history.mask[pos] = mask_func(history.mask[pos], **mask_kws)
 
     # handle unstable state
@@ -544,7 +574,7 @@ def applyFunctionOnHistory(
         if isinstance(last_column, str) and last_column == "dummy":
             last_column = pd.Series(UNTOUCHED, index=new_history.index, dtype=float)
 
-        new_history.append(last_column, force=True)
+        new_history.append(last_column.astype("category"), force=True)
 
     # assure a boolean mask and UNFLAGGED column
     new_history.mask = new_history.mask.fillna(True).astype(bool)

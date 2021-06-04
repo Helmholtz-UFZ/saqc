@@ -1,3 +1,4 @@
+
 # Outlier Detection and Flagging
 
 The tutorial aims to introduce the usage of `saqc` methods in order to detect outliers in an uni-variate set up.
@@ -44,9 +45,10 @@ It can be downloaded from the saqc git [repository](https://git.ufz.de/rdm-softw
 The data represents incidents of SARS-CoV-2 infections, on a daily basis, as reported by the 
 [RKI](https://www.rki.de/DE/Home/homepage_node.html) in 2020.
 
+
 In June, an extreme spike can be observed. This spike relates to an incidence of so called "superspreading" in a local
 [meat factory](https://www.heise.de/tp/features/Superspreader-bei-Toennies-identifiziert-4852400.html).
-  
+
 For the sake of modelling the spread of Covid, it can be of advantage, to filter the data for such extreme events, since
 they may not be consistent with underlying distributional assumptions and thus interfere with the parameter learning 
 process of the modelling. Also it can help to learn about the conditions severely facilitating infection rates.
@@ -152,6 +154,7 @@ module. We wrap the filter generator up into a function first:
 
 ```python
 from scipy.signal import filtfilt, butter
+
 def butterFilter(x, filter_order, nyq, cutoff, filter_type):
     b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
     return filtfilt(b, a, x)
@@ -383,6 +386,7 @@ could circumvent the [unflagging](#Unflagging) step, by adding to the call to :p
 ```
 
 ![](../ressources/images/cbooks_incidents_correctFlagged.png)
+
 
 
 

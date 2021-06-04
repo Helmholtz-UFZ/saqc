@@ -9,6 +9,7 @@ import pandas as pd
 
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
+import saqc
 
 
 class Generic(ModuleBase):
@@ -18,7 +19,7 @@ class Generic(ModuleBase):
         func: Callable[[pd.Series], pd.Series],
         nodata: float = np.nan,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("process", locals())
 
     def flag(
@@ -28,5 +29,5 @@ class Generic(ModuleBase):
         nodata: float = np.nan,
         flag: float = BAD,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("flag", locals())

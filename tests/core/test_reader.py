@@ -37,7 +37,7 @@ def test_packagedConfig():
 
 def test_variableRegex(data):
 
-    header = f"{F.VARNAME};{F.TEST};{F.PLOT}"
+    header = f"{F.VARNAME};{F.TEST}"
     tests = [
         ("'.*'", data.columns),
         ("'var(1|2)'", [c for c in data.columns if c[-1] in ("1", "2")]),
@@ -48,11 +48,8 @@ def test_variableRegex(data):
 
     for regex, expected in tests:
         fobj = writeIO(header + "\n" + f"{regex} ; flagtools.flagDummy()")
-        saqc = SaQC(data).readConfig(fobj)
-        expansion = saqc._expandFields(
-            saqc._to_call[0][0], saqc._to_call[0][2], data.columns
-        )
-        result = [s.field for s, _ in expansion]
+        saqc = SaQC(data, lazy=True).readConfig(fobj)
+        result = [s.field for s, _, _ in saqc._planned]
         assert np.all(result == expected)
 
 
@@ -61,12 +58,12 @@ def test_inlineComments(data):
     adresses issue #3
     """
     config = f"""
-    {F.VARNAME} ; {F.TEST}       ; {F.PLOT}
-    pre2        ; flagtools.flagDummy() # test ; False # test
+    {F.VARNAME} ; {F.TEST}       
+    pre2        ; flagtools.flagDummy() # test 
     """
-    saqc = SaQC(data).readConfig(writeIO(config))
-    _, control, func = saqc._to_call[0]
-    assert control.plot is False
+
+    saqc = SaQC(data, lazy=True).readConfig(writeIO(config))
+    _, control, func = saqc._planned[0]
     assert func.func == FUNC_MAP["flagtools.flagDummy"].func
 
 
@@ -82,8 +79,8 @@ def test_configReaderLineNumbers(data):
 
     SM1         ; flagtools.flagDummy()
     """
-    saqc = SaQC(data).readConfig(writeIO(config))
-    result = [c.lineno for _, c, _ in saqc._to_call]
+    saqc = SaQC(data, lazy=True).readConfig(writeIO(config))
+    result = [c.lineno for _, c, _ in saqc._planned]
     expected = [3, 4, 5, 9]
     assert result == expected
 

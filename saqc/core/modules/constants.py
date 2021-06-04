@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
+import saqc
 from saqc.lib.types import FreqString, ColumnName
 
 
@@ -17,7 +18,7 @@ class Constants(ModuleBase):
         max_consec_missing: int = None,
         flag: float = BAD,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("flagByVariance", locals())
 
     def flagConstants(
@@ -27,5 +28,5 @@ class Constants(ModuleBase):
         window: FreqString,
         flag: float = BAD,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("flagConstants", locals())

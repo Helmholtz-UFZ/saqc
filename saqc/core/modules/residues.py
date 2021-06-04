@@ -9,6 +9,7 @@ from typing_extensions import Literal
 
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
+import saqc
 
 
 class Residues(ModuleBase):
@@ -22,7 +23,7 @@ class Residues(ModuleBase):
         min_periods: Optional[int] = 0,
         flag: float = BAD,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("calculatePolynomialResidues", locals())
 
     def calculateRollingResidues(
@@ -35,5 +36,5 @@ class Residues(ModuleBase):
         center: bool = True,
         flag: float = BAD,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("calculateRollingResidues", locals())

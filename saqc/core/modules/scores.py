@@ -8,7 +8,9 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
+from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
+import saqc
 
 
 class Scores(ModuleBase):
@@ -27,5 +29,5 @@ class Scores(ModuleBase):
         metric: str = "minkowski",
         p: int = 2,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("assignKNNScore", locals())

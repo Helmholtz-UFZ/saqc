@@ -8,6 +8,7 @@ import pandas as pd
 
 from saqc.constants import *
 from saqc.core.modules.base import ModuleBase
+import saqc
 
 
 class Rolling(ModuleBase):

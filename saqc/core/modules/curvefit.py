@@ -3,10 +3,12 @@
 from __future__ import annotations
 from typing import Union
 
+from dios import DictOfSeries
 from typing_extensions import Literal
 
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
+import saqc
 
 
 class Curvefit(ModuleBase):
@@ -21,5 +23,5 @@ class Curvefit(ModuleBase):
         return_residues: bool = False,
         flag: float = BAD,
         **kwargs
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("fitPolynomial", locals())

@@ -6,4 +6,12 @@ __version__ = "1.4"
 
 # import order: from small to big
 from saqc.constants import *
-from saqc.core import register, initFlagsLike, Flags, SaQC
+from saqc.core import (
+    register,
+    initFlagsLike,
+    Flags,
+    SaQC,
+    FloatTranslator,
+    DmpTranslator,
+    PositionalTranslator,
+)
