@@ -8,14 +8,8 @@ import dios
 
 from saqc.core import initFlagsLike, Flags
 from saqc.constants import BAD, UNFLAGGED
-from saqc.funcs.resampling import (
-    linear,
-    interpolate,
-    shift,
-    aggregate,
-    mapToOriginal,
-)
-
+from saqc.funcs.resampling import linear, interpolate, shift, reindexFlags, resample
+from saqc.funcs.tools import copy, drop
 from tests.common import checkDataFlagsInvariants
 
 
@@ -43,7 +37,7 @@ def data():
         ("linear", dict()),
         ("shift", dict(method="nshift")),
         ("interpolate", dict(method="spline")),
-        ("aggregate", dict(value_func=np.nansum, method="nagg")),
+        ("resample", dict(agg_func=np.nansum, method="nagg")),
     ],
 )
 def test_wrapper(data, func, kws):
@@ -139,14 +133,17 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
 
     pre_data = data.copy()
     pre_flags = flags.copy()
-
-    data, flags = linear(data, field, flags, freq="15min")
-    checkDataFlagsInvariants(data, flags, field, identical=True)
-    assert data[field].index.freq == pd.Timedelta("15min")
+    data, flags = copy(data, field, flags, field + "_interpolated")
+    data, flags = linear(data, field + "_interpolated", flags, freq="15min")
+    checkDataFlagsInvariants(data, flags, field + "_interpolated", identical=True)
+    assert data[field + "_interpolated"].index.freq == pd.Timedelta("15min")
 
     # flag something bad
-    flags[data[field].index[3:4], field] = BAD
-    data, flags = mapToOriginal(data, field, flags, method="inverse_" + reshaper)
+    flags[data[field + "_interpolated"].index[3:4], field + "_interpolated"] = BAD
+    data, flags = reindexFlags(
+        data, field, flags, method="inverse_" + reshaper, source=field + "_interpolated"
+    )
+    data, flags = drop(data, field + "_interpolated", flags)
 
     assert len(data[field]) == len(flags[field])
     assert data[field].equals(pre_data[field])
@@ -230,22 +227,25 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
 def test_harmSingleVarInterpolationAgg(data, params, expected):
     flags = initFlagsLike(data)
     field = "data"
+    h_field = "data_harm"
 
     pre_data = data.copy()
     pre_flaggger = flags.copy()
     method, freq = params
 
-    data_harm, flags_harm = aggregate(
-        data, field, flags, freq, value_func=np.sum, method=method
+    data_harm, flags_harm = copy(data, "data", flags, "data_harm")
+    data_harm, flags_harm = resample(
+        data_harm, h_field, flags_harm, freq, agg_func=np.sum, method=method
     )
-    checkDataFlagsInvariants(data_harm, flags_harm, field, identical=True)
-    assert data_harm[field].index.freq == pd.Timedelta(freq)
-    assert data_harm[field].equals(expected)
+    checkDataFlagsInvariants(data_harm, flags_harm, h_field, identical=True)
+    assert data_harm[h_field].index.freq == pd.Timedelta(freq)
+    assert data_harm[h_field].equals(expected)
 
-    data_deharm, flags_deharm = mapToOriginal(
-        data_harm, "data", flags_harm, method="inverse_" + method
+    data_deharm, flags_deharm = reindexFlags(
+        data_harm, field, flags_harm, source=h_field, method="inverse_" + method
     )
-    checkDataFlagsInvariants(data_harm, flags_harm, field, identical=True)
+    data_deharm, flags_deharm = drop(data_deharm, h_field, flags_deharm)
+    checkDataFlagsInvariants(data_deharm, flags_deharm, field, identical=True)
     assert data_deharm[field].equals(pre_data[field])
     assert flags_deharm[field].equals(pre_flaggger[field])
 
@@ -312,15 +312,18 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
 def test_harmSingleVarInterpolationShift(data, params, expected):
     flags = initFlagsLike(data)
     field = "data"
+    h_field = "data_harm"
     pre_data = data.copy()
     pre_flags = flags.copy()
     method, freq = params
 
-    data_harm, flags_harm = shift(data, field, flags, freq, method=method)
-    assert data_harm[field].equals(expected)
+    data_harm, flags_harm = copy(data, "data", flags, "data_harm")
+    data_harm, flags_harm = shift(data_harm, h_field, flags_harm, freq, method=method)
+    assert data_harm[h_field].equals(expected)
 
-    data_deharm, flags_deharm = mapToOriginal(
-        data_harm, "data", flags_harm, method="inverse_" + method
+    data_deharm, flags_deharm = reindexFlags(
+        data_harm, field, flags_harm, source=h_field, method="inverse_" + method
     )
+    data_deharm, flags_deharm = drop(data_deharm, h_field, flags_deharm)
     assert data_deharm[field].equals(pre_data[field])
     assert flags_deharm[field].equals(pre_flags[field])
