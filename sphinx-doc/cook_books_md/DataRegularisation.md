@@ -1,10 +1,41 @@
 # Data Regularisation
 
 The tutorial aims to introduce the usage of `SaQC` methods, in order to obtain regularly sampled data derivatives
-from given time series data input. Regularly sampled time series data, is data, that that exhibits a constant temporal 
+from given time series data input. Regularly sampled time series data, is data, that exhibits a constant temporal 
 spacing in between subsequent data points.
 
-## Why
+The tutorial guides through the following steps: 
+
+1. Initially, we introduce and motivate regularisation techniques and we do import the tutorial data.
+    * [Why Regularisation](#Why-Regularisation)
+    * [Tutorial Data](#Tutorial-Data)
+    
+2. We will get an overview over the main [Regularisation](#regularisations) methods, starting with the shift.
+   * [Shift](#shift)
+     * [Target Parameter](#target-parameter)
+       * [Freq Parameter](#freq-parameter)
+       * [Method Parameter](#shifting-method)
+       * [Valid Data](#Valid-Data)
+       
+3. We introduce the notion of *valid* data and see how sparse intervals and those with multiple values interact with 
+   regularisation.
+    * [Data Loss and Empty Intervals](#data-loss-and-empty-intervals)
+      * [Empty Intervals](#empty-intervals)
+        * [Valid Data](#valid-data)
+        * [Data Reduction](#data-reduction)
+        * [Minimize Shifting](#minimize-shifting-distance)
+    
+4. We use the Aggregation and the Interpolation method.
+    * [Aggregation](#aggregation)
+        * [Function Parameter](#aggregation-functions)
+        * [Method Parameter](#aggregation-method)
+    * [Interpolation](#interpolation)
+        * [Representing Data Sparsity](#interpolation-and-data-sparsity)
+    
+5. We see how regularisation interacts with Flags.
+    * [Flags and Regularisation](#flags-and-regularisation)
+
+## Why Regularisation
 
 Often, measurement data does not come in regularly sampled time series. The reasons, why one usually would
 like to have time series data, that exhibits a constant temporal gap size
@@ -18,7 +49,7 @@ The second reason, is, that, relating data of different sources to another, is i
 has not a mapping at hand, that relates the different date time indices to each other. One easy and intuitive
 way of constructing such a mapping, is to just resample all data at the same (regular) timestamp.
 
-## Tutorial data
+## Tutorial Data
 
 The following [dataset](../ressources/data/SoilMoisture.csv) of Soil Moisture meassurements may serve as 
 example data set:
@@ -77,7 +108,7 @@ Basically, there are three types of :doc:`regularisation <function_cats/regulari
 2. We could calculate new, synthetic data values for the regular timestamps, via an [interpolation](#Interpolation) method. 
 3. We could apply some [aggregation](#Resampling) to up- or down sample the data. 
 
-### Shift
+## Shift
 
 Lets apply a simple shift via the :py:func:`saqc.shift <Functions.saqc.shift>` method.
 
@@ -85,19 +116,19 @@ Lets apply a simple shift via the :py:func:`saqc.shift <Functions.saqc.shift>` m
 saqc = saqc.shift('SoilMoisture', target='SoilMoisture_bshift', freq='10min', method='bshift')
 ```
 
-#### Target parameter
+### Target parameter
 
 We selected a new `target` field, to store the shifted data to a new field, so that our original data wouldnt be 
 overridden.
   
-#### Freq parameter
+### Freq parameter
 
 We passed the `freq` keyword of the intended sampling frequency in terms of a 
 [date alias](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases) string. All of
 the :doc:`regularisation <function_cats/regularisation>` methods have such a frequency keyword,
 and it just determines the sampling rate, the resulting regular timeseries will have.
 
-#### Shifting Method
+### Shifting Method
 
 With the `method` keyword, we determined the direction of the shift. We passed it the string `bshift` - 
 which applies a *backwards* shift, so data points get shifted *backwards*, until they match a timestamp
@@ -109,7 +140,7 @@ Lets see, how the data is now sampled. Therefore, we use the `raw` output from t
 being merged to a `pandas.DataFrame` object, and the changes from the resampling will be easier 
 comprehensible from one look.:
 
-#### Shifted data
+### Shifted data
 
 ```python
 >>> saqc = saqc.evaluate()

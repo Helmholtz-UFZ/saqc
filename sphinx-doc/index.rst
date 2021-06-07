@@ -46,9 +46,6 @@ Python Package
    SaQC init <moduleAPIs/saqcInit>
 
 
-
-:py:mod:`~saqc.constants.BAD`
-
 Indices and tables
 ==================
 
