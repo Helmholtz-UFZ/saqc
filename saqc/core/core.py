@@ -2,22 +2,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-# TODO:
-#  - integrate plotting into the api
-#  - `data` and `flags` as arguments to `getResult`
-
 import logging
+import inspect
 import copy as stdcopy
-
-from saqc.lib.tools import toSequence
 from typing import Tuple, Union, Optional
 from typing_extensions import Literal
 
 import pandas as pd
 import numpy as np
-
-import inspect
-import matplotlib
 
 from dios import DictOfSeries, to_dios
 
@@ -25,22 +17,15 @@ from saqc.core.flags import initFlagsLike, Flags
 from saqc.core.lib import APIController, ColumnSelector
 from saqc.core.register import FUNC_MAP, SaQCFunction
 from saqc.core.modules import FuncModules
-
 from saqc.core.translator.basetranslator import Translator, FloatTranslator
-from saqc.lib.types import ExternalFlag, CallGraph, MaterializedGraph, PandasLike
-
 from saqc.constants import BAD
-from saqc.lib.plotting import makeFig
-
-from saqc.core.translator.basetranslator import Translator, FloatTranslator
+from saqc.lib.tools import toSequence
 from saqc.lib.types import (
     ExternalFlag,
     CallGraph,
     MaterializedGraph,
     PandasLike,
-    FreqString,
 )
-from saqc.lib.tools import toSequence
 
 
 logger = logging.getLogger("SaQC")
@@ -301,6 +286,7 @@ class SaQC(FuncModules):
                 **{"nodata": self._nodata, "flag": self._translator(flag), **fkwargs},
             )
 
+            # expand regular expressions
             fields = self._data.columns.str.match(field) if regex else toSequence(field)
             for field in fields:
                 target = target if target is not None else field
