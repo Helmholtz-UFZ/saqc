@@ -14,6 +14,7 @@ from saqc.core import Flags
 from saqc.lib.types import DiosLikeT, FreqString
 from saqc.core.translator import DmpTranslator
 
+
 STATSDICT = {
     "values total": lambda x, y, z: len(x),
     "invalid total (=NaN)": lambda x, y, z: x.isna().sum(),
@@ -29,11 +30,10 @@ def makeFig(
     flags: Flags,
     level: float,
     max_gap: Optional[FreqString] = None,
-    interactive: Optional[bool] = False,
-    stats: Optional[bool] = False,
-    plot_kwargs: Optional[dict] = {"stats": True, "history": False},
-    fig_kwargs: Optional[dict] = {"figsize": (16, 9)},
-    stats_dict: Optional[dict] = {},
+    stats: bool = False,
+    plot_kwargs: Optional[dict] = None,
+    fig_kwargs: Optional[dict] = None,
+    stats_dict: Optional[dict] = None,
 ):
     """
     Returns a figure object, containing data graph with flag marks for field.
@@ -42,38 +42,48 @@ def makeFig(
     ----------
     data : {pd.DataFrame, dios.DictOfSeries}
         data
+
     flags : {pd.DataFrame, dios.DictOfSeries, saqc.flagger}
         Flags or flagger object
+
     field : str
         Name of the variable-to-plot
-    level : {str, float, None}
+
+    level : str, float, default None
         Flaglevel above wich flagged values should be displayed.
-    max_gap : {None, str}, default None:
-        If None, all the points in the data will be connected, resulting in long linear lines, where continous chunks
-        of data is missing. (nans in the data get dropped before plotting.)
-        If an Offset string is passed, only points that have a distance below `max_gap` get connected via the plotting
-        line.
-    interactive : bool, default False
-        Determines if figure-showing should be suppressed upon figure generation.
+
+    max_gap : str, default None
+        If None, all the points in the data will be connected, resulting in long linear
+        lines, where continous chunks of data is missing. Nans in the data get dropped
+        before plotting. If an Offset string is passed, only points that have a distance
+        below `max_gap` get connected via the plotting line.
+
     stats : bool, default False
         Whether to include statistics table in plot.
 
-    plot_kwargs : dict, default {}
-        Keyword arguments controlling plot generation. Will be passed on to the ``Matplotlib.axes.Axes.set()`` property
-        batch setter for the axes showing the data plot. The most relevant of those properties might be "ylabel",
+    plot_kwargs : dict, default None
+        Keyword arguments controlling plot generation. Will be passed on to the
+        ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
+        data plot. The most relevant of those properties might be "ylabel",
         "title" and "ylim".
         In Addition, following options are available:
 
-        * {'slice': s} property, that determines a chunk of the data to be plotted / processed. `s` can be anything,
-          that is a valid argument to the ``pandas.Series.__getitem__`` method.
+        * {'slice': s} property, that determines a chunk of the data to be plotted /
+            processed. `s` can be anything,
+            that is a valid argument to the ``pandas.Series.__getitem__`` method.
         * {'history': str}
-            * str="all": All the flags are plotted with colored dots, refering to the tests they originate from
-            * str="valid": - same as 'all' - but only plots those flags, that are not removed by later tests
-    fig_kwargs : dict, default {"figsize": (16, 9)}
-        Keyword arguments controlling figure generation.
-    stats_dict: Optional[dict] = {}
-        Dictionary of additional statisticts to write to the statistics table accompanying the data plot.
-        (Only relevant if `stats`=True). An entry to the stats_dict has to be of the form:
+            * str="all": All the flags are plotted with colored dots, refering to the
+                tests they originate from
+            * str="valid": - same as 'all' - but only plots those flags, that are not
+                removed by later tests
+    fig_kwargs : dict, default None
+        Keyword arguments controlling figure generation. None defaults to
+        {"figsize": (16, 9)}
+
+    stats_dict: dict, default None
+        (Only relevant if `stats`=True).
+        Dictionary of additional statisticts to write to the statistics table
+        accompanying the data plot. An entry to the stats_dict has to be of the form:
 
         * {"stat_name": lambda x, y, z: func(x, y, z)}
 
@@ -105,8 +115,12 @@ def makeFig(
 
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
-    if not interactive:
-        mpl.use("Agg")
+    if plot_kwargs is None:
+        plot_kwargs = {"history": False}
+    if fig_kwargs is None:
+        fig_kwargs = {}
+    if stats_dict is None:
+        stats_dict = {}
 
     # data retrieval
     d = data[field]
