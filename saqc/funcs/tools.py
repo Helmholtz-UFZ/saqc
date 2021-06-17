@@ -2,16 +2,22 @@
 # -*- coding: utf-8 -*-
 
 from typing import Optional, Tuple
+
 from typing_extensions import Literal
 import numpy as np
 from dios import DictOfSeries
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import pickle
 
 from saqc.lib.types import FreqString
 from saqc.constants import *
 from saqc.core import register, Flags
 from saqc.lib.tools import periodicMask
 from saqc.lib.plotting import makeFig
-import pickle
+
+_MPL_DEFAULT_BACKEND = mpl.get_backend()
 
 
 @register(masking="none", module="tools")
@@ -243,58 +249,80 @@ def plot(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    save_path: Optional[str] = "",
+    save_path: Optional[str] = None,
     max_gap: Optional[FreqString] = None,
-    stats: Optional[bool] = False,
-    plot_kwargs: Optional[dict] = {},
-    fig_kwargs: Optional[dict] = {"figsize": (16, 9)},
-    stats_dict: Optional[dict] = {},
-    save_kwargs: Optional[dict] = {},
+    stats: bool = False,
+    plot_kwargs: Optional[dict] = None,
+    fig_kwargs: Optional[dict] = None,
+    stats_dict: Optional[dict] = None,
+    save_kwargs: Optional[dict] = None,
     **kwargs,
 ):
     """
     Stores or shows a figure object, containing data graph with flag marks for field.
 
+    There are two modes, 'interactive' and 'store' mode, wich is determind via the
+    ``save_path`` keyword. In interactive mode (default) the plot is shown at runtime
+    and the execution stops until the plot window is closed manually by a user. In
+    store mode the generated plot is stored to disk and no manually interaction is
+    needed.
+
     Parameters
     ----------
     data : {pd.DataFrame, dios.DictOfSeries}
         data
+
     field : str
         Name of the variable-to-plot
+
     flags : {pd.DataFrame, dios.DictOfSeries, saqc.flagger}
         Flags or flagger object
-    save_path : str, default ''
-        Path to the location where the figure shall be stored to. If '' is passed, interactive mode is accessed instead
-        of figure storage.
-    max_gap : {None, str}, default None:
-        If None, all the points in the data will be connected, resulting in long linear lines, where continous chunks
-        of data is missing. (nans in the data get dropped before plotting.)
-        If an Offset string is passed, only points that have a distance below `max_gap` get connected via the plotting
-        line.
+
+    save_path : str, default None
+        If ``None`` is passed, interactive mode is entered; plots are shown immediatly
+        and a user need to close them manually before execution continues.
+        If a filepath is passed instead, store-mode is entered and
+        the plot is stored unter the passed location.
+
+    max_gap : str, default None
+        If None, all the points in the data will be connected, resulting in long linear
+        lines, where continous chunks of data is missing. Nans in the data get dropped
+        before plotting. If an Offset string is passed, only points that have a distance
+        below `max_gap` get connected via the plotting line.
+
     stats : bool, default False
         Whether to include statistics table in plot.
-    plot_kwargs : dict, default {}
-        Keyword arguments controlling plot generation. Will be passed on to the ``Matplotlib.axes.Axes.set()`` property
-        batch setter for the axes showing the data plot. The most relevant of those properties might be "ylabel",
-        "title" and "ylim".
-        In Addition, following options are available:
 
-        * {'slice': s} property, that determines a chunk of the data to be plotted / processed. `s` can be anything,
-          that is a valid argument to the ``pandas.Series.__getitem__`` method.
+    plot_kwargs : dict, default None
+        Keyword arguments controlling plot generation. Will be passed on to the
+        ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
+        data plot. The most relevant of those properties might be "ylabel", "title" and
+        "ylim". In Addition, following options are available:
+
+        * {'slice': s} property, that determines a chunk of the data to be plotted /
+            processed. `s` can be anything, that is a valid argument to the
+            ``pandas.Series.__getitem__`` method.
         * {'history': str}
-            * str="all": All the flags are plotted with colored dots, refering to the tests they originate from
-            * str="valid": - same as 'all' - but only plots those flags, that are not removed by later tests
+            * str="all": All the flags are plotted with colored dots, refering to the
+                tests they originate from
+            * str="valid": - same as 'all' - but only plots those flags, that are not
+                removed by later tests
 
-    fig_kwargs : dict, default {"figsize": (16, 9)}
-        Keyword arguments controlling figure generation.
+    fig_kwargs : dict, default None
+        Keyword arguments controlling figure generation. In interactive mode,
+        ``None`` defaults to ``{"figsize": (16, 9)}`` to ensure a proper figure size,
+        in store-mode ``None`` defaults to a empty dictionary.
+
     save_kwargs : dict, default {}
-        Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling the figure storing.
-        NOTE: To store an pickle, that can be used to regain an interactive figure window, use the option
-        {'pickle': True}. This will result in all the other save_kwargs to be ignored.
-        To enter interactive mode for a pickled figure, simply do: pickle.load(open(savepath,'w')).show()
-    stats_dict: Optional[dict] = {}
-        Dictionary of additional statisticts to write to the statistics table accompanying the data plot.
-        (Only relevant if `stats`=True). An entry to the stats_dict has to be of the form:
+        Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
+        the figure storing. To store an pickle object of the figure, use the option
+        ``{'pickle': True}``, but note that all other save_kwargs are ignored then.
+        Reopen with: ``pickle.load(open(savepath,'w')).show()``
+
+    stats_dict: dict, default None
+        (Only relevant if `stats`=True)
+        Dictionary of additional statisticts to write to the statistics table
+        accompanying the data plot. An entry to the stats_dict has to be of the form:
 
         * {"stat_name": lambda x, y, z: func(x, y, z)}
 
@@ -316,14 +344,24 @@ def plot(
 
     >>> func = lambda x, y, z: x.isna().sum()
 
-    Percentage of values, flagged greater than passed flag (always round float results to avoid table cell overflow):
+    Percentage of values, flagged greater than passed flag (always round float results
+    to avoid table cell overflow):
 
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
-    if not save_path:
-        interactive = True
+    interactive = save_path is None
+
+    if save_kwargs is None:
+        save_kwargs = {}
+
+    if interactive:
+        mpl.use(_MPL_DEFAULT_BACKEND)
+
     else:
-        interactive = False
+        mpl.use("Agg")
+        # ensure a proper size in stored plot
+        if fig_kwargs is None:
+            fig_kwargs = {"figsize": (16, 9)}
 
     fig = makeFig(
         data=data,
@@ -331,17 +369,20 @@ def plot(
         flags=flags,
         level=kwargs["flag"],
         max_gap=max_gap,
-        interactive=interactive,
         stats=stats,
         plot_kwargs=plot_kwargs,
         fig_kwargs=fig_kwargs,
         stats_dict=stats_dict,
     )
-    pickle = save_kwargs.pop("pickle", False)
-    if save_path:
-        if pickle:
+
+    if interactive:
+        plt.show()
+
+    else:
+        if save_kwargs.pop("pickle", False):
             with open(save_path, "wb") as f:
                 pickle.dump(fig, f)
         else:
             fig.savefig(save_path, **save_kwargs)
+
     return data, flags
