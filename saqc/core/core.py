@@ -287,7 +287,12 @@ class SaQC(FuncModules):
             )
 
             # expand regular expressions
-            fields = self._data.columns.str.match(field) if regex else toSequence(field)
+            if regex:
+                fields = self._data.columns.str.match(field)
+                fields = self._data.columns[fields]
+            else:
+                fields = toSequence(field)
+
             for field in fields:
                 target = target if target is not None else field
                 if field != target:
