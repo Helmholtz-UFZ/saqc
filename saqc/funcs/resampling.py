@@ -42,9 +42,6 @@ def linear(
 
     Interpolated values will get assigned the worst flag within freq-range.
 
-    Note: the method will likely and significantly alter values and shape of ``data[field]``. The original data is kept
-    in the data dios and assigned to the fieldname ``field + '_original'``.
-
     Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
     not-na) datapoint preceeding them and one succeeding them within freq range.
     Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
@@ -100,9 +97,6 @@ def interpolate(
     Note, that, to perform a timestamp aware, linear interpolation, you have to pass ``'time'`` as `method`,
     and NOT ``'linear'``.
 
-    Note: the `method` will likely and significantly alter values and shape of ``data[field]``. The original data is
-    kept in the data dios and assigned to the fieldname ``field + '_original'``.
-
     Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
     not-na) datapoint preceeding them and one succeeding them within freq range.
     Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
@@ -140,7 +134,6 @@ def interpolate(
         Flags values and shape may have changed relatively to the flags input.
     """
 
-    data, flags = copy(data, field, flags, field + "_original")
     return interpolateIndex(
         data, field, flags, freq, method=method, inter_order=order, **kwargs
     )
