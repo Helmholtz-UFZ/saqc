@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Tuple
 
+import numpy as np
 import pandas as pd
 
 from saqc.core.flags import (
@@ -91,12 +92,11 @@ class PositionalTranslator(Translator):
             # Concatenate the single flag values. There are faster and more
             # complicated approaches (see former `PositionalFlagger`), but
             # this method shouldn't be called that often
-            tflags = (
-                thist.astype(int).astype(str).apply(lambda x: x.sum(), axis="columns")
-            )
-            out[field] = "9"
-            if not tflags.empty:
-                # take care for the default columns
-                out[field] += tflags.str.slice(start=1)
+            ncols = thist.shape[-1] - 1
+            init = 9 * 10 ** ncols
+            bases = 10 ** np.arange(ncols, -1, -1)
+
+            tflags = init + (thist * bases).sum(axis=1)
+            out[field] = tflags
 
         return pd.DataFrame(out).fillna(-9999).astype(int)
