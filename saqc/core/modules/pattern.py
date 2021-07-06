@@ -14,8 +14,8 @@ class Pattern(ModuleBase):
         self,
         field: str,
         ref_field: str,
-        widths: Sequence[int] = (1, 2, 4, 8),
-        waveform: str = "mexh",
+        max_distance: float = 0.0,
+        normalize=True,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
@@ -25,8 +25,8 @@ class Pattern(ModuleBase):
         self,
         field: str,
         ref_field: str,
-        max_distance: float = 0.03,
-        normalize: bool = True,
+        widths: Sequence[int] = (1, 2, 4, 8),
+        waveform: str = "mexh",
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
