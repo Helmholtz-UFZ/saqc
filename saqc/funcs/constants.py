@@ -69,13 +69,13 @@ def flagConstants(
     # in each window and also min() == max() == d[i] is not possible.
     kws = dict(window=window, min_periods=2, expand=False)
 
-    # find all consecutive constant values in one direction...
-    r = customRoller(d, **kws)
-    m1 = r.max() - r.min() <= thresh
-    # and in the other
-    r = customRoller(d, forward=True, **kws)
-    m2 = r.max() - r.min() <= thresh
-    mask = m1 | m2
+    # 1. find starting points of consecutive constant values as a boolean mask
+    # 2. fill the whole window with True's
+    rolling = customRoller(d, **kws)
+    starting_points_mask = rolling.max() - rolling.min() <= thresh
+    rolling = customRoller(starting_points_mask, **kws, forward=True)
+    # mimic any()
+    mask = rolling.sum() > 0
 
     flags[mask, field] = flag
     return data, flags
