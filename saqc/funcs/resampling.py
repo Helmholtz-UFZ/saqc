@@ -192,8 +192,11 @@ def shift(
         The quality flags of data
         Flags values and shape may have changed relatively to the flags input.
     """
-    flagged = _isflagged(flags[field], kwargs["to_mask"])
     datcol = data[field]
+    if datcol.empty:
+        return data, flags
+
+    flagged = _isflagged(flags[field], kwargs["to_mask"])
     datcol[flagged] = np.nan
     freq = evalFreqStr(freq, freq_check, datcol.index)
 
@@ -489,6 +492,13 @@ def reindexFlags(
         Flags values and shape may have changed relatively to the flags input.
     """
     flagscol = flags[source]
+    target_datcol = data[field]
+    target_flagscol = flags[field]
+
+    if target_datcol.empty or flagscol.empty:
+        return data, flags
+
+    dummy = pd.Series(np.nan, target_flagscol.index, dtype=float)
 
     if freq is None:
         freq = getFreqDelta(flagscol.index)
@@ -497,10 +507,6 @@ def reindexFlags(
                 'To project irregularly sampled data, either use method="match", or pass custom '
                 "projection range to freq parameter"
             )
-
-    target_datcol = data[field]
-    target_flagscol = flags[field]
-    dummy = pd.Series(np.nan, target_flagscol.index, dtype=float)
 
     if method[-13:] == "interpolation":
         ignore = _getChunkBounds(target_datcol, flagscol, freq)

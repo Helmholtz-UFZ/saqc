@@ -29,7 +29,7 @@ def test_constants_flagBasic(data):
     flagscol = flags_result[field]
     assert np.all(flagscol[5:25] == BAD)
     assert np.all(flagscol[:5] == UNFLAGGED)
-    assert np.all(flagscol[25+1:] == UNFLAGGED)
+    assert np.all(flagscol[25 + 1 :] == UNFLAGGED)
 
 
 def test_constants_flagVarianceBased(data):
@@ -41,4 +41,4 @@ def test_constants_flagVarianceBased(data):
     flagscol = flags_result1[field]
     assert np.all(flagscol[5:25] == BAD)
     assert np.all(flagscol[:5] == UNFLAGGED)
-    assert np.all(flagscol[25+1:] == UNFLAGGED)
+    assert np.all(flagscol[25 + 1 :] == UNFLAGGED)

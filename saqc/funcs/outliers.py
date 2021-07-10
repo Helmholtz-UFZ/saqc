@@ -782,6 +782,9 @@ def flagMAD(
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
     d = data[field]
+    if d.empty:
+        return data, flags
+
     median = d.rolling(window=window, closed="both").median()
     diff = (d - median).abs()
     mad = diff.rolling(window=window, closed="both").median()
