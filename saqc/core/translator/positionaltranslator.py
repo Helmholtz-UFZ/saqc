@@ -88,7 +88,7 @@ class PositionalTranslator(Translator):
         """
         out = {}
         for field in flags.columns:
-            thist = flags.history[field].hist.replace(self._BACKWARD)
+            thist = flags.history[field].hist.replace(self._BACKWARD).astype(int)
             # Concatenate the single flag values. There are faster and more
             # complicated approaches (see former `PositionalFlagger`), but
             # this method shouldn't be called that often
