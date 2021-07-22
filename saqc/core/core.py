@@ -119,6 +119,24 @@ def _setup():
 _setup()
 
 
+class Accessor:
+    def __init__(self, obj: Union[DictOfSeries, pd.DataFrame, Flags]):
+        self._obj = obj
+
+    def __getitem__(self, key):
+        return self._obj[key]
+
+    @property
+    def columns(self):
+        return self._obj.columns
+
+    def __len__(self):
+        return len(self.columns)
+
+    def __repr__(self):
+        return self._obj.__repr__()
+
+
 class SaQC(FuncModules):
     def __init__(
         self,
@@ -192,6 +210,14 @@ class SaQC(FuncModules):
                 raise AttributeError(f"failed to set unknown attribute: {k}")
             setattr(out, k, v)
         return out
+
+    @property
+    def data(self) -> Accessor:
+        return Accessor(self.evaluate()._data)
+
+    @property
+    def flags(self) -> Accessor:
+        return Accessor(self.evaluate()._flags)
 
     def readConfig(self, fname):
         from saqc.core.reader import readConfig
