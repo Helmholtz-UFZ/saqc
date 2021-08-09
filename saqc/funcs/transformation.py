@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 from dios import DictOfSeries
 
-from saqc.core import register, Flags
+from saqc.core import flagging, Flags
 
 
-@register(masking="field", module="transformation")
+@flagging(masking="field", module="transformation")
 def transform(
     data: DictOfSeries,
     field: str,

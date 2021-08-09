@@ -2,24 +2,44 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import annotations
-from dios import DictOfSeries
 
 import json
-from typing import List, Tuple
+from saqc.core.history import History
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from saqc.core.lib import SaQCFunction, ColumnSelector
 from saqc.core.flags import (
     Flags,
     UNFLAGGED,
+    UNTOUCHED,
     GOOD,
     DOUBTFUL,
     BAD,
 )
-from saqc.lib.types import MaterializedGraph
-from saqc.core.translator.basetranslator import Translator, ForwardMap
+from saqc.core.translator.basetranslator import BackwardMap, Translator, ForwardMap
+
+
+_QUALITY_CAUSES = [
+    "",
+    "BATTERY_LOW",
+    "BELOW_MINIMUM",
+    "ABOVE_MAXIMUM",
+    "BELOW_OR_ABOVE_MIN_MAX",
+    "ISOLATED_SPIKE",
+    "DEFECTIVE_SENSOR",
+    "LEFT_CENSORED_DATA",
+    "RIGHT_CENSORED_DATA",
+    "OTHER",
+    "AUTOFLAGGED",
+]
+
+_QUALITY_LABELS = [
+    "quality_flag",
+    "quality_cause",
+    "quality_comment",
+]
 
 
 class DmpTranslator(Translator):
@@ -29,7 +49,7 @@ class DmpTranslator(Translator):
     the UFZ - Datamanagementportal
     """
 
-    ARGUMENTS = {"comment": "", "cause": ""}
+    ARGUMENTS = {"comment": "", "cause": "AUTOFLAGGED"}
 
     _FORWARD: ForwardMap = {
         "NIL": UNFLAGGED,
@@ -38,208 +58,157 @@ class DmpTranslator(Translator):
         "BAD": BAD,
     }
 
-    _QUALITY_CAUSES = {
-        "BATTERY_LOW",
-        "BELOW_MINIMUM",
-        "ABOVE_MAXIMUM",
-        "BELOW_OR_ABOVE_MIN_MAX",
-        "ISOLATED_SPIKE",
-        "DEFECTIVE_SENSOR",
-        "LEFT_CENSORED_DATA",
-        "RIGHT_CENSORED_DATA",
-        "OTHER",
-        "AUTO_FLAGGED",
+    _BACKWARD: BackwardMap = {
+        UNFLAGGED: "NIL",
+        UNTOUCHED: "NIL",
+        GOOD: "OK",
+        DOUBTFUL: "DOUBTFUL",
+        BAD: "BAD",
     }
 
     def __init__(self):
-        raise NotImplementedError
-        super().__init__(
-            forward=self._FORWARD, backward={v: k for k, v in self._FORWARD.items()}
-        )
+        super().__init__(forward=self._FORWARD, backward=self._BACKWARD)
 
-    @staticmethod
-    def _getFieldFunctions(
-        field: str, call_stack: MaterializedGraph
-    ) -> List[SaQCFunction]:
-        """
-        Return the names of all functions called on `field`
-
-        Parameters
-        ----------
-        field: str
-            variable/column name
-
-        call_stack : List
-            The saqc functions called to generate the given `flags` (i.e. `SaQC._computed`)
-
-        Note
-        ----
-        Could (and maybe should) be implemented as a method of `CallGraph`
-
-        Currently we work around the issue, that we keep track of the
-        computations we do on a variable using the variable name, but also
-        allow mutations of that name (i.e. our key) through `tools.rename`
-        in a somewhat hacky way. There are better ideas, to solve this (i.e.
-        global function pointers), but for the moment this has to do the trick
-        """
-        # backtrack name changes and let's look, if our field
-        # originally had another name
-        for sel, func in call_stack[::-1]:
-            if func.name == "tools.rename":
-                new_name = func.keywords.get("new_name") or func.args[3]
-                if new_name == field:
-                    field = sel.field
-
-        out = [SaQCFunction(name="")]
-        for sel, func in call_stack:
-            if sel.field == field:
-                out.append(func)
-                # forward track name changes
-                if func.name == "tools.rename":
-                    field = func.keywords.get("new_name") or func.args[3]
-
-        return out
-
-    def forward(self, flags: pd.DataFrame) -> Tuple[Flags, MaterializedGraph]:
+    def forward(self, df: pd.DataFrame) -> Flags:
         """
         Translate from 'extrnal flags' to 'internal flags'
 
         Parameters
         ----------
-        flags : pd.DataFrame
+        df : pd.DataFrame
             The external flags to translate
 
         Returns
         -------
         Flags object
         """
-        cols = flags.columns
-        if not isinstance(cols, pd.MultiIndex):
-            raise TypeError("DMP-Flags need mult-index columns")
-        col_labels = {"quality_flag", "quality_comment", "quality_cause"}
-        if set(cols.get_level_values(1)) != col_labels:
-            raise TypeError(
-                f"DMP-Flags expect the labels '{list(col_labels)}' in the secondary level"
-            )
 
-        qflags = flags.xs(key="quality_flag", axis="columns", level=1)
+        self.validityCheck(df)
 
-        # We want to build a call graph from the given flags and as the DMP flags
-        # contain the name of last function that set a certain flag, we want to
-        # leverage this information
-        graph: MaterializedGraph = []
+        data = {}
 
-        for field in qflags.columns:
+        for field in df.columns.get_level_values(0):
 
-            # extract relevant information from the comments
-            data = pd.DataFrame(
-                flags.loc[:, (field, "quality_comment")].apply(json.loads).to_list(),
-                index=flags.index,
-            )
-            data["causes"] = flags.loc[:, (field, "quality_cause")]
+            field_flags = df[field]
+            field_history = History(field_flags.index)
 
-            loc = ColumnSelector(field=field, target="field", regex=False)
+            for (flag, cause, comment), values in field_flags.groupby(_QUALITY_LABELS):
+                try:
+                    comment = json.loads(comment)
+                except json.decoder.JSONDecodeError:
+                    comment = {"test": "unknown", "comment": ""}
 
-            # we can't infer information about the ordering of function calls,
-            # so we order the history by appearance
-            # for _, group in data.fillna("").groupby(["test", "comment", "causes"]):
-            for _, group in data.loc[data["test"].replace("", np.nan).notna()].groupby(
-                ["test", "comment", "causes"]
-            ):
-                fname, comment, cause = group.iloc[0]
-                func = SaQCFunction(
-                    name=fname,
-                    function=Translator._generateInitFunction(
-                        field, qflags.loc[group.index]
-                    ),
-                    comment=comment,
-                    cause=cause,
-                )
-                graph.append((loc, func))
+                histcol = pd.Series(UNTOUCHED, index=field_flags.index)
+                histcol.loc[values.index] = self(flag)
 
-        tflags, _ = super().forward(qflags)
-        return tflags, graph
+                meta = {
+                    "func": comment["test"],
+                    "keywords": {"comment": comment["comment"], "cause": cause},
+                }
+                field_history.append(histcol, force=True, meta=meta)
 
-    def backward(self, flags: Flags, call_graph: MaterializedGraph) -> pd.DataFrame:
+            data[str(field)] = field_history
+
+        return Flags(data)
+
+    def backward(self, flags: Flags) -> pd.DataFrame:
         """
         Translate from 'internal flags' to 'external flags'
 
         Parameters
         ----------
-        flags : pd.DataFrame
-            The external flags to translate
-        call_stack : List
-            The saqc functions called to generate the given `flags` (i.e. `SaQC._computed`)
+        flags : The external flags to translate
 
         Returns
         -------
-        pd.DataFrame
+        translated flags
         """
-        tflags = super().backward(flags, call_graph)
+        tflags = super().backward(flags)
 
-        out = {}
+        out = pd.DataFrame(
+            index=tflags.index,
+            columns=pd.MultiIndex.from_product([tflags.columns, _QUALITY_LABELS]),
+        )
+
         for field in tflags.columns:
-            flag_call_history = self._getFieldFunctions(field, call_graph)
-            flag_pos = flags.history[field].idxmax()
-            comments, causes = [], []
-            # NOTE:
-            # Strangely enough, this loop withstood all my efforts
-            # to speed it up through vectorization - the simple
-            # loop always outperformed even careful `pd.DataFrame.apply`
-            # versions. The latest try is left as a comment below.
-            for p in flag_pos:
-                func = flag_call_history[p]
-                cause = func.keywords.get("cause", self.ARGUMENTS["cause"])
+            df = pd.DataFrame(
+                {
+                    "quality_flag": tflags[field],
+                    "quality_cause": self.ARGUMENTS["cause"],
+                    "quality_comment": self.ARGUMENTS["comment"],
+                }
+            )
+
+            history = flags.history[field]
+
+            for col in history.columns:
+
+                # NOTE:
+                # I really dislike the fact, that the implementationd
+                # detail `mask`, leaks into the translator. For the
+                # the limited time available it is a pragmatic solution
+                # however...
+                h, m = history.hist[col], history.mask[col]
+                h[~m | (h == UNFLAGGED)] = np.nan
+                valid = h.notna()
+
+                # extract from meta
+                meta = history.meta[col]
+                keywords = meta.get("keywords", {})
                 comment = json.dumps(
                     {
-                        "test": func.name,
-                        "comment": func.keywords.get(
-                            "comment", self.ARGUMENTS["comment"]
-                        ),
+                        "test": meta.get("func", "unknown"),
+                        "comment": keywords.get("comment", self.ARGUMENTS["comment"]),
                     }
                 )
-                causes.append(cause)
-                comments.append(comment)
+                cause = keywords.get("cause", self.ARGUMENTS["cause"])
+                df.loc[valid, "quality_comment"] = comment
+                df.loc[valid, "quality_cause"] = cause
 
-            # DMP quality_cause needs some special care as only certain values
-            # and combinations are allowed.
-            # See: https://wiki.intranet.ufz.de/wiki/dmp/index.php/Qualit%C3%A4tsflags
-            causes = pd.Series(causes, index=flags[field].index)
-            causes[
-                (causes == self.ARGUMENTS["cause"]) & (flags[field] > GOOD)
-            ] = "OTHER"
-            if not ((causes == "") | causes.isin(self._QUALITY_CAUSES)).all():
-                raise ValueError(
-                    f"quality causes needs to be one of {self._QUALITY_CAUSES}"
-                )
+                out[field] = df
 
-            var_flags = {
-                "quality_flag": tflags[field],
-                "quality_comment": pd.Series(comments, index=flags[field].index),
-                "quality_cause": causes,
-            }
-            out[field] = pd.DataFrame(var_flags)
-        return pd.concat(out, axis="columns")
+        self.validityCheck(out)
+        return out
 
-        # for field in tflags.columns:
-        #     call_history = []
-        #     for func in self._getFieldFunctions(field, call_graph):
-        #         func_info = {
-        #             "cause": func.keywords.get("cause", self.ARGUMENTS["comment"]),
-        #             "comment": json.dumps({
-        #                 "test": func.name,
-        #                 "comment": func.keywords.get("comment", self.ARGUMENTS["comment"]),
-        #             })
-        #          }
-        #         call_history.append(func_info)
+    @classmethod
+    def validityCheck(cls, df: pd.DataFrame) -> None:
+        """
+        Check wether the given causes and comments are valid.
 
-        #     functions = pd.DataFrame(call_history)
-        #     flag_pos = flags.history[field].idxmax()
+        Parameters
+        ----------
+        df : external flags
+        """
 
-        #     var_flags = {
-        #         "quality_flag": tflags[field].reset_index(drop=True),
-        #         "quality_comment": functions.loc[flag_pos, "comment"].reset_index(drop=True),
-        #         "quality_cause": functions.loc[flag_pos, "cause"].reset_index(drop=True),
-        #     }
-        #     out[field] = pd.DataFrame(var_flags, index=flag_pos.index)
-        # return pd.concat(out, axis="columns")
+        cols = df.columns
+        if not isinstance(cols, pd.MultiIndex):
+            raise TypeError("DMP-Flags need multi-index columns")
+
+        if not cols.get_level_values(1).isin(_QUALITY_LABELS).all(axis=None):
+            raise TypeError(
+                f"DMP-Flags expect the labels {list(_QUALITY_LABELS)} in the secondary level"
+            )
+
+        flags = df.xs(axis="columns", level=1, key="quality_flag")
+        causes = df.xs(axis="columns", level=1, key="quality_cause")
+        comments = df.xs(axis="columns", level=1, key="quality_comment")
+
+        if not flags.isin(cls._FORWARD.keys()).all(axis=None):
+            raise ValueError(
+                f"invalid quality flag(s) found, only the following values are supported: {set(cls._FORWARD.keys())}"
+            )
+
+        if not causes.isin(_QUALITY_CAUSES).all(axis=None):
+            raise ValueError(
+                f"invalid quality cause(s) found, only the following values are supported: {_QUALITY_CAUSES}"
+            )
+
+        if (~flags.isin(("OK", "NIL")) & (causes == "")).any(axis=None):
+            raise ValueError(
+                "quality flags other than 'OK and 'NIL' need a non-empty quality cause"
+            )
+
+        if ((causes == "OTHER") & (comments == "")).any(None):
+            raise ValueError(
+                "quality comment 'OTHER' needs a non-empty quality comment"
+            )

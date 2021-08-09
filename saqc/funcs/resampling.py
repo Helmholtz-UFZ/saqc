@@ -9,12 +9,11 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags
+from saqc.core import processing, Flags
 from saqc.core.register import _isflagged
-from saqc.core.history import applyFunctionOnHistory
 from saqc.lib.tools import evalFreqStr, getFreqDelta
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
-from saqc.funcs.tools import copy, drop, rename
+from saqc.funcs.tools import copy
 from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
 
 
@@ -31,7 +30,7 @@ METHOD2ARGS = {
 }
 
 
-@register(masking="none", module="resampling")
+@processing(module="resampling")
 def linear(
     data: DictOfSeries, field: str, flags: Flags, freq: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -74,7 +73,7 @@ def linear(
     return interpolateIndex(data, field, flags, freq, "time", **kwargs)
 
 
-@register(masking="none", module="resampling")
+@processing(module="resampling")
 def interpolate(
     data: DictOfSeries,
     field: str,
@@ -139,7 +138,7 @@ def interpolate(
     )
 
 
-@register(masking="none", module="resampling")
+@processing(module="resampling")
 def shift(
     data: DictOfSeries,
     field: str,
@@ -205,21 +204,24 @@ def shift(
 
     # do the shift on the history
     history = flags.history[field]
-    history.hist = shift2Freq(history.hist, method, freq, fill_value=UNTOUCHED)
-    history.mask = shift2Freq(history.mask, method, freq, fill_value=True)
 
-    # The last 2 lines left the history in an unstable state, Also we want to
-    # append a dummy column, that represent the 'shift' in the history.
-    history.hist.loc[:, :0] = UNFLAGGED
-    dummy = pd.Series(UNTOUCHED, index=datcol.index, dtype=float)
-    history.append(dummy, force=True)
+    kws = dict(method=method, freq=freq)
+    history = history.apply(
+        index=datcol.index,
+        func_handle_df=True,
+        copy=False,
+        hist_func=shift2Freq,
+        hist_kws={**kws, "fill_value": UNTOUCHED},
+        mask_func=shift2Freq,
+        mask_kws={**kws, "fill_value": True},
+    )
 
     flags.history[field] = history
     data[field] = datcol
     return data, flags
 
 
-@register(masking="none", module="resampling")
+@processing(module="resampling")
 def resample(
     data: DictOfSeries,
     field: str,
@@ -236,25 +238,30 @@ def resample(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Function to resample the data. Afterwards the data will be sampled at regular (equidistant) timestamps
-    (or Grid points). Sampling intervals therefor get aggregated with a function, specifyed by 'agg_func' parameter and
-    the result gets projected onto the new timestamps with a method, specified by "method". The following method
-    (keywords) are available:
+    Function to resample the data.
 
-    * ``'nagg'``: all values in the range (+/- `freq`/2) of a grid point get aggregated with agg_func and assigned to it.
-    * ``'bagg'``: all values in a sampling interval get aggregated with agg_func and the result gets assigned to the last
-      grid point.
-    * ``'fagg'``: all values in a sampling interval get aggregated with agg_func and the result gets assigned to the next
-      grid point.
+    The data will be sampled at regular (equidistant) timestamps aka. Grid points.
+    Sampling intervals therefore get aggregated with a function, specified by
+    'agg_func' parameter and the result gets projected onto the new timestamps with a
+    method, specified by "method". The following method (keywords) are available:
+
+    * ``'nagg'``: all values in the range (+/- `freq`/2) of a grid point get
+        aggregated with agg_func and assigned to it.
+    * ``'bagg'``: all values in a sampling interval get aggregated with agg_func and
+        the result gets assigned to the last grid point.
+    * ``'fagg'``: all values in a sampling interval get aggregated with agg_func and
+        the result gets assigned to the next grid point.
 
 
-    Note, that. if possible, functions passed to agg_func will get projected internally onto pandas.resample methods,
-    wich results in some reasonable performance boost - however, for this to work, you should pass functions that have
-    the __name__ attribute initialised and the according methods name assigned to it.
-    Furthermore, you shouldnt pass numpys nan-functions
-    (``nansum``, ``nanmean``,...) because those for example, have ``__name__ == 'nansum'`` and they will thus not
-    trigger ``resample.func()``, but the slower ``resample.apply(nanfunc)``. Also, internally, no nans get passed to
-    the functions anyway, so that there is no point in passing the nan functions.
+    Note, that. if possible, functions passed to agg_func will get projected
+    internally onto pandas.resample methods, wich results in some reasonable
+    performance boost - however, for this to work, you should pass functions that
+    have the __name__ attribute initialised and the according methods name assigned
+    to it. Furthermore, you shouldnt pass numpys nan-functions (``nansum``,
+    ``nanmean``,...) because those for example, have ``__name__ == 'nansum'`` and
+    they will thus not trigger ``resample.func()``, but the slower ``resample.apply(
+    nanfunc)``. Also, internally, no nans get passed to the functions anyway,
+    so that there is no point in passing the nan functions.
 
     Parameters
     ----------
@@ -268,45 +275,50 @@ def resample(
         Container to store flags of the data.
 
     freq : str
-        An Offset String, that will be interpreted as the frequency you want to resample your data with.
+        An Offset String, that will be interpreted as the frequency you want to
+        resample your data with.
 
     agg_func : Callable
         The function you want to use for aggregation.
 
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
-        Specifies which intervals to be aggregated for a certain timestamp. (preceding, succeeding or
-        "surrounding" interval). See description above for more details.
+        Specifies which intervals to be aggregated for a certain timestamp. (preceding,
+        succeeding or "surrounding" interval). See description above for more details.
 
     max_invalid_total_d : {None, int}, default None
-        Maximum number of invalid (nan) datapoints, allowed per resampling interval. If max_invalid_total_d is
-        exceeded, the interval gets resampled to nan. By default (``np.inf``), there is no bound to the number of nan
-        values in an interval and only intervals containing ONLY nan values or those, containing no values at all,
-        get projected onto nan
+        Maximum number of invalid (nan) datapoints, allowed per resampling interval.
+        If max_invalid_total_d is exceeded, the interval gets resampled to nan. By
+        default ( ``np.inf``), there is no bound to the number of nan values in an
+        interval and only intervals containing ONLY nan values or those, containing
+        no values at all, get projected onto nan
 
     max_invalid_consec_d : {None, int}, default None
-        Maximum number of consecutive invalid (nan) data points, allowed per resampling interval.
-        If max_invalid_consec_d is exceeded, the interval gets resampled to nan. By default (np.inf),
-        there is no bound to the number of consecutive nan values in an interval and only intervals
-        containing ONLY nan values, or those containing no values at all, get projected onto nan.
+        Maximum number of consecutive invalid (nan) data points, allowed per
+        resampling interval. If max_invalid_consec_d is exceeded, the interval gets
+        resampled to nan. By default (np.inf), there is no bound to the number of
+        consecutive nan values in an interval and only intervals containing ONLY nan
+        values, or those containing no values at all, get projected onto nan.
 
     max_invalid_total_f : {None, int}, default None
-        Same as `max_invalid_total_d`, only applying for the flags. The flag regarded as "invalid" value,
-        is the one passed to empty_intervals_flag (default=``BAD``).
-        Also this is the flag assigned to invalid/empty intervals.
+        Same as `max_invalid_total_d`, only applying for the flags. The flag regarded
+        as "invalid" value, is the one passed to empty_intervals_flag (
+        default=``BAD``). Also this is the flag assigned to invalid/empty intervals.
 
     max_invalid_consec_f : {None, int}, default None
-        Same as `max_invalid_total_f`, only applying onto flags. The flag regarded as "invalid" value, is the one passed
-        to empty_intervals_flag. Also this is the flag assigned to invalid/empty intervals.
+        Same as `max_invalid_total_f`, only applying onto flags. The flag regarded as
+        "invalid" value, is the one passed to empty_intervals_flag. Also this is the
+        flag assigned to invalid/empty intervals.
 
     flag_agg_func : Callable, default: max
-        The function you want to aggregate the flags with. It should be capable of operating on the flags dtype
-        (usually ordered categorical).
+        The function you want to aggregate the flags with. It should be capable of
+        operating on the flags dtype (usually ordered categorical).
 
     freq_check : {None, 'check', 'auto'}, default None
 
         * ``None``: do not validate frequency-string passed to `freq`
-        * ``'check'``: estimate frequency and log a warning if estimate miss matchs frequency string passed to 'freq', or
-          if no uniform sampling rate could be estimated
+        * ``'check'``: estimate frequency and log a warning if estimate miss matchs
+            frequency string passed to 'freq', or if no uniform sampling rate could be
+            estimated
         * ``'auto'``: estimate frequency and use estimate. (Ignores `freq` parameter.)
 
     Returns
@@ -342,16 +354,17 @@ def resample(
         max_invalid_consec=max_invalid_consec_f,
     )
 
-    flags.history[field] = applyFunctionOnHistory(
-        flags.history[field],
+    history = flags.history[field].apply(
+        index=datcol.index,
         hist_func=aggregate2Freq,
-        hist_kws=kws,
         mask_func=aggregate2Freq,
-        mask_kws=kws,
-        last_column="dummy",
+        hist_kws=kws,
+        mask_kws={**kws, "agg_func": any, "fill_value": True},
+        copy=False,
     )
 
     data[field] = datcol
+    flags.history[field] = history
     return data, flags
 
 
@@ -413,7 +426,7 @@ def _inverseShift(
     return source.fillna(fill_value).astype(dtype, copy=False)
 
 
-@register(masking="none", module="resampling")
+@processing(module="resampling")
 def reindexFlags(
     data: DictOfSeries,
     field: str,
@@ -504,8 +517,8 @@ def reindexFlags(
         freq = getFreqDelta(flagscol.index)
         if freq is None and not method == "match":
             raise ValueError(
-                'To project irregularly sampled data, either use method="match", or pass custom '
-                "projection range to freq parameter"
+                'To project irregularly sampled data, either use method="match", or '
+                "pass custom projection range to freq parameter."
             )
 
     if method[-13:] == "interpolation":
@@ -537,8 +550,8 @@ def reindexFlags(
     else:
         raise ValueError(f"unknown method {method}")
 
-    history = applyFunctionOnHistory(
-        flags.history[source], func, func_kws, func, mask_kws, last_column=dummy
+    history = flags.history[source].apply(
+        dummy.index, func, func_kws, func, mask_kws, copy=False
     )
     flags.history[field] = flags.history[field].append(history, force=False)
     return data, flags

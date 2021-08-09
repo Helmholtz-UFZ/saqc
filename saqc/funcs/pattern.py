@@ -8,11 +8,11 @@ import pywt
 from mlxtend.evaluate import permutation_test
 
 from saqc.constants import *
-from saqc.core.register import register
+from saqc.core.register import flagging
 from saqc.lib.tools import customRoller
 
 
-@register(masking="field", module="pattern")
+@flagging(masking="field", module="pattern")
 def flagPatternByWavelet(
     data,
     field,
@@ -180,7 +180,7 @@ def calculateDistanceByDTW(
     return distances.reindex(index=data.index)  # reinsert NaNs
 
 
-@register(masking="field", module="pattern")
+@flagging(masking="field", module="pattern")
 def flagPatternByDTW(
     data, field, flags, ref_field, max_distance=0.0, normalize=True, flag=BAD, **kwargs
 ):

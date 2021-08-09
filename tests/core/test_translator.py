@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+from saqc.core.register import FUNC_MAP
 from typing import Dict, Union, Sequence
 
 import numpy as np
@@ -67,7 +68,7 @@ def test_backwardTranslation():
     for _, translator in _genTranslators():
         keys = tuple(translator._backward.keys())
         flags = _genFlags({field: np.array(keys)})
-        translated = translator.backward(flags, None)
+        translated = translator.backward(flags)
         expected = set(translator._backward.values())
         assert not (set(translated[field]) - expected)
 
@@ -79,35 +80,32 @@ def test_backwardTranslationFail():
         # add an scheme invalid value to the flags
         flags = _genFlags({field: np.array(keys + (max(keys) + 1,))})
         with pytest.raises(ValueError):
-            translator.backward(flags, None)
+            translator.backward(flags)
 
 
-@pytest.mark.skip(reason="dmp translator implementation is currently blocked")
 def test_dmpTranslator():
 
     translator = DmpTranslator()
+    # generate a bunch of dummy flags
     keys = np.array(tuple(translator._backward.keys()) * 50)
     flags = _genFlags({"var1": keys, "var2": keys, "var3": keys})
     flags[:, "var1"] = BAD
     flags[:, "var1"] = DOUBTFUL
     flags[:, "var2"] = BAD
 
-    to_call = [
-        # the initial columns
-        (ColumnSelector("var1"), SaQCFunction("flagInit", flagDummy)),
-        (ColumnSelector("var2"), SaQCFunction("flagInit", flagDummy)),
-        (
-            ColumnSelector("var3"),
-            SaQCFunction("flagInit", flagDummy, comment="initial flags"),
-        ),
-        (ColumnSelector("var1"), SaQCFunction("flagFoo", flagDummy)),
-        (
-            ColumnSelector("var1"),
-            SaQCFunction("flagBar", flagDummy, comment="I did it"),
-        ),
-        (ColumnSelector("var2"), SaQCFunction("flagFoo", flagDummy)),
-    ]
-    tflags = translator.backward(flags, to_call)
+    history1 = flags.history["var1"]
+    history1.meta[1].update({"func": "flagFoo", "keywords": {"cause": "AUTOFLAGGED"}})
+    history1.meta[2].update({"func": "flagBar", "keywords": {"comment": "I did it"}})
+    flags.history["var1"] = history1
+
+    history2 = flags.history["var2"]
+    history2.meta[-1].update(
+        {"func": "flagFoo", "keywords": {"cause": "BELOW_OR_ABOVE_MIN_MAX"}}
+    )
+    flags.history["var2"] = history2
+
+    tflags = translator.backward(flags)
+
     assert set(tflags.columns.get_level_values(1)) == {
         "quality_flag",
         "quality_comment",
@@ -119,25 +117,29 @@ def test_dmpTranslator():
         tflags.loc[:, ("var1", "quality_comment")]
         == '{"test": "flagBar", "comment": "I did it"}'
     ).all(axis=None)
-    assert (tflags.loc[:, ("var1", "quality_cause")] == "OTHER").all(axis=None)
+
+    assert (tflags.loc[:, ("var1", "quality_cause")] == "AUTOFLAGGED").all(axis=None)
 
     assert (tflags.loc[:, ("var2", "quality_flag")] == "BAD").all(axis=None)
     assert (
         tflags.loc[:, ("var2", "quality_comment")]
         == '{"test": "flagFoo", "comment": ""}'
     ).all(axis=None)
-    assert (tflags.loc[:, ("var2", "quality_cause")] == "OTHER").all(axis=None)
+    assert (tflags.loc[:, ("var2", "quality_cause")] == "BELOW_OR_ABOVE_MIN_MAX").all(
+        axis=None
+    )
 
     assert (
         tflags.loc[flags["var3"] == BAD, ("var3", "quality_comment")]
-        == '{"test": "flagInit", "comment": "initial flags"}'
+        == '{"test": "unknown", "comment": ""}'
     ).all(axis=None)
-    assert (tflags.loc[flags["var3"] == BAD, ("var3", "quality_cause")] == "OTHER").all(
-        axis=None
-    )
-    assert (tflags.loc[flags["var3"] < DOUBTFUL, ("var3", "quality_cause")] == "").all(
-        axis=None
-    )
+    assert (
+        tflags.loc[flags["var3"] == BAD, ("var3", "quality_cause")] == "AUTOFLAGGED"
+    ).all(axis=None)
+    assert (
+        tflags.loc[flags["var3"] == UNFLAGGED, ("var3", "quality_cause")]
+        == "AUTOFLAGGED"
+    ).all(axis=None)
 
 
 def test_positionalTranslator():
@@ -147,7 +149,7 @@ def test_positionalTranslator():
     flags[1::3, "var1"] = DOUBTFUL
     flags[2::3, "var1"] = BAD
 
-    tflags = translator.backward(flags, None)  # type: ignore
+    tflags = translator.backward(flags)
     assert (tflags["var2"].replace(-9999, np.nan).dropna() == 90).all(axis=None)
     assert (tflags["var1"].iloc[1::3] == 90210).all(axis=None)
     assert (tflags["var1"].iloc[2::3] == 90002).all(axis=None)
@@ -168,14 +170,13 @@ def test_positionalTranslatorIntegration():
     for field in flags.columns:
         assert flags[field].astype(str).str.match("^9[012]*$").all()
 
-    round_trip = translator.backward(*translator.forward(flags))
+    round_trip = translator.backward(translator.forward(flags))
 
     assert (flags.values == round_trip.values).all()
     assert (flags.index == round_trip.index).all()
     assert (flags.columns == round_trip.columns).all()
 
 
-@pytest.mark.skip(reason="dmp translator implementation is currently blocked")
 def test_dmpTranslatorIntegration():
 
     data = initData(1)
@@ -188,15 +189,15 @@ def test_dmpTranslatorIntegration():
 
     qflags = flags.xs("quality_flag", axis="columns", level=1)
     qfunc = flags.xs("quality_comment", axis="columns", level=1).applymap(
-        lambda v: json.loads(v)["test"]
+        lambda v: json.loads(v)["test"] if v else ""
     )
     qcause = flags.xs("quality_cause", axis="columns", level=1)
 
     assert qflags.isin(translator._forward.keys()).all(axis=None)
     assert qfunc.isin({"", "breaks.flagMissing", "outliers.flagRange"}).all(axis=None)
-    assert (qcause[qflags[col] == "BAD"] == "OTHER").all(axis=None)
+    assert (qcause[qflags[col] == "BAD"] == "AUTOFLAGGED").all(axis=None)
 
-    round_trip = translator.backward(*translator.forward(flags))
+    round_trip = translator.backward(translator.forward(flags))
 
     assert round_trip.xs("quality_flag", axis="columns", level=1).equals(qflags)
 
@@ -209,23 +210,20 @@ def test_dmpTranslatorIntegration():
     )
 
 
-@pytest.mark.skip(reason="dmp translator implementation is currently blocked")
-def test_dmpValidCause():
+def test_dmpValidCombinations():
     data = initData(1)
     col = data.columns[0]
 
     translator = DmpTranslator()
     saqc = SaQC(data=data, scheme=translator)
-    saqc = saqc.outliers.flagRange(col, min=3, max=10, cause="SOMETHING_STUPID")
-    with pytest.raises(ValueError):
-        data, flags = saqc.getResult()
 
-    saqc = saqc.outliers.flagRange(col, min=3, max=10, cause="BELOW_OR_ABOVE_MIN_MAX")
-    data, flags = saqc.getResult()
-    qflags = flags.xs("quality_flag", axis="columns", level=1)
-    qcause = flags.xs("quality_cause", axis="columns", level=1)
-    assert (qcause[qflags[col] == "BAD"] == "BELOW_OR_ABOVE_MIN_MAX").all(axis=None)
-    assert (qcause[qflags[col] != "BAD"] == "").all(axis=None)
+    with pytest.raises(ValueError):
+        saqc.outliers.flagRange(
+            col, min=3, max=10, cause="SOMETHING_STUPID"
+        ).getResult()
+
+    with pytest.raises(ValueError):
+        saqc.outliers.flagRange(col, min=3, max=10, cause="").getResult()
 
 
 def _buildupSaQCObjects():
@@ -258,37 +256,39 @@ def test_translationPreservesFlags():
     _, flags2 = saqc2.getResult(raw=True)
 
     for k in flags2.columns:
-        got = flags2.history[k].hist.iloc[:, 1:]
+        got = flags2.history[k].hist
 
-        f1hist = flags1.history[k].hist.iloc[:, 1:]
+        f1hist = flags1.history[k].hist
         expected = pd.concat([f1hist, f1hist], axis="columns")
         expected.columns = got.columns
 
         assert expected.equals(got)
 
 
-def test_callHistoryYieldsSameResults():
+def test_reproducibleMetadata():
 
     # a simple SaQC run
     data = initData(3)
     col = data.columns[0]
-    saqc1 = SaQC(data=data)
+    saqc1 = SaQC(data=data, lazy=True)
     saqc1 = saqc1.breaks.flagMissing(col, to_mask=False).outliers.flagRange(
         col, min=3, max=10, to_mask=False
     )
     _, flags1 = saqc1.getResult(raw=True)
 
-    # generate a dummy call history from flags
-    translator = FloatTranslator()
-    graph = translator.buildGraph(flags1)
-    saqc2 = SaQC(data=data)
+    saqc2 = SaQC(data=data, lazy=True)
 
-    # convert the call history into an excution plan and inject into a blank SaQC object
-    saqc2._planned = [(s, APIController(), f) for s, f in graph]
-    # replay the functions
-    _, flags2 = saqc2.getResult()
+    # convert the history meta data into an excution plan...
+    graph = []
+    for m in flags1.history[col].meta:
+        func = FUNC_MAP[m["func"]].bind(*m["args"], **m["keywords"])
+        graph.append((ColumnSelector(col), APIController(), func))
+    # ... and inject into a blank SaQC object
+    saqc2._planned = graph
+    # ... replay the functions
+    _, flags2 = saqc2.getResult(raw=True)
 
-    assert flags2.equals(flags1.toFrame())
+    assert flags2.toFrame().equals(flags1.toFrame())
 
 
 def test_multicallsPreserveHistory():
@@ -298,8 +298,8 @@ def test_multicallsPreserveHistory():
 
     # check, that the `History` is duplicated
     for col in flags2.columns:
-        hist1 = flags1.history[col].hist.loc[:, 1:]
-        hist2 = flags2.history[col].hist.loc[:, 1:]
+        hist1 = flags1.history[col].hist
+        hist2 = flags2.history[col].hist
 
         hist21 = hist2.iloc[:, : len(hist1.columns)]
         hist22 = hist2.iloc[:, len(hist1.columns) :]
@@ -311,8 +311,6 @@ def test_multicallsPreserveHistory():
         assert hist1.equals(hist22)
         assert hist21.equals(hist22)
 
-    assert len(saqc2._computed) == len(saqc1._computed) * 2
-
 
 def test_positionalMulitcallsPreserveState():
 
@@ -321,41 +319,10 @@ def test_positionalMulitcallsPreserveState():
     translator = PositionalTranslator()
     _, flags1 = saqc1.getResult(raw=True)
     _, flags2 = saqc2.getResult(raw=True)
-    tflags1 = translator.backward(flags1, saqc1._computed).astype(str)
-    tflags2 = translator.backward(flags2, saqc2._computed).astype(str)
+    tflags1 = translator.backward(flags1).astype(str)
+    tflags2 = translator.backward(flags2).astype(str)
 
     for k in flags2.columns:
         expected = tflags1[k].str.slice(start=1) * 2
         got = tflags2[k].str.slice(start=1)
         assert expected.equals(got)
-
-
-@pytest.mark.skip(reason="dmp translator implementation is currently blocked")
-def test_smpTranslatorHandlesRenames():
-
-    data = initData(3)
-
-    this: str = data.columns[0]
-    other: str = this + "_new"
-
-    saqc = (
-        SaQC(data=data)
-        .outliers.flagRange(this, min=1, max=10)
-        .tools.rename(this, other)
-        .breaks.flagMissing(other, min=4, max=6)
-    )
-    saqc = saqc.evaluate()
-
-    this_funcs = DmpTranslator._getFieldFunctions(this, saqc._computed)
-    other_funcs = DmpTranslator._getFieldFunctions(other, saqc._computed)
-
-    assert [f.name for f in this_funcs] == [
-        "",
-        "outliers.flagRange",
-        "tools.rename",
-        "breaks.flagMissing",
-    ]
-
-    # we skip the first function in both lists, as they are dummy functions
-    # inserted to allow a proper replay of all function calls
-    assert this_funcs[1:] == other_funcs[1:]
