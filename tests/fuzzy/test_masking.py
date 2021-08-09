@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from saqc.core.lib import SaQCFunction
 
 import pandas as pd
 
@@ -42,12 +43,13 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
     data_in, field, flags = data_field_flags
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     state = CallState(
-        func=None,
+        func=lambda x: x,
+        func_name="",
         data=data_in,
         flags=flags,
         field=field,
-        args=None,
-        kwargs=None,
+        args=(),
+        kwargs={},
         masking="field",
         mthresh=UNFLAGGED,
         mask=mask,
@@ -68,12 +70,13 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
     data_in, field, flags = data_field_flags
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     state = CallState(
-        func=None,
+        func=lambda x: x,
+        func_name="",
         data=data_in,
         flags=flags,
         field=field,
-        args=None,
-        kwargs=None,
+        args=(),
+        kwargs={},
         masking="field",
         mthresh=UNFLAGGED,
         mask=mask,
@@ -97,12 +100,13 @@ def test_reshapingPreventsUnmasking(data_field_flags):
     data_in, field, flags = data_field_flags
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     state = CallState(
-        func=None,
+        func=lambda x: x,
+        func_name="",
         data=data_in,
         flags=flags,
         field=field,
-        args=None,
-        kwargs=None,
+        args=(),
+        kwargs={},
         masking="field",
         mthresh=UNFLAGGED,
         mask=mask,
@@ -129,12 +133,13 @@ def test_unmaskingInvertsMasking(data_field_flags):
     data_in, field, flags = data_field_flags
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     state = CallState(
-        func=None,
+        func=lambda x: x,
+        func_name="",
         data=data_in,
         flags=flags,
         field=field,
-        args=None,
-        kwargs=None,
+        args=(),
+        kwargs={},
         masking="field",
         mthresh=UNFLAGGED,
         mask=mask,

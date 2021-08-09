@@ -15,7 +15,7 @@ from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
 
 from saqc.constants import *
-from saqc.core.register import register
+from saqc.core.register import flagging
 from saqc.core import Flags
 from saqc.funcs.resampling import shift
 from saqc.funcs.changepoints import assignChangePointCluster
@@ -34,7 +34,7 @@ LinkageString = Literal[
 ]
 
 
-@register(masking="all", module="drift")
+@flagging(masking="all", module="drift")
 def flagDriftFromNorm(
     data: DictOfSeries,
     field: ColumnName,
@@ -156,7 +156,7 @@ def flagDriftFromNorm(
     return data, flags
 
 
-@register(masking="all", module="drift")
+@flagging(masking="all", module="drift")
 def flagDriftFromReference(
     data: DictOfSeries,
     field: ColumnName,
@@ -237,7 +237,7 @@ def flagDriftFromReference(
     return data, flags
 
 
-@register(masking="all", module="drift")
+@flagging(masking="all", module="drift")
 def flagDriftFromScaledNorm(
     data: DictOfSeries,
     field: ColumnName,
@@ -362,7 +362,7 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-@register(masking="all", module="drift")
+@flagging(masking="all", module="drift")
 def correctDrift(
     data: DictOfSeries,
     field: ColumnName,
@@ -502,7 +502,7 @@ def correctDrift(
     return data, flags
 
 
-@register(masking="all", module="drift")
+@flagging(masking="all", module="drift")
 def correctRegimeAnomaly(
     data: DictOfSeries,
     field: ColumnName,
@@ -621,7 +621,7 @@ def correctRegimeAnomaly(
     return data, flags
 
 
-@register(masking="all", module="drift")
+@flagging(masking="all", module="drift")
 def correctOffset(
     data: DictOfSeries,
     field: ColumnName,
@@ -721,7 +721,7 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
     return data_fit, data_shift
 
 
-@register(masking="all", module="drift")
+@flagging(masking="all", module="drift")
 def flagRegimeAnomaly(
     data: DictOfSeries,
     field: ColumnName,
@@ -798,7 +798,7 @@ def flagRegimeAnomaly(
     )
 
 
-@register(masking="all", module="drift")
+@flagging(masking="all", module="drift")
 def assignRegimeAnomaly(
     data: DictOfSeries,
     field: ColumnName,

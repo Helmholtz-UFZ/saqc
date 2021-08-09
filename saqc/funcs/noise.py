@@ -6,12 +6,12 @@ import operator
 from dios import DictOfSeries
 from typing import Callable
 from saqc.constants import *
-from saqc.core import register, Flags
+from saqc.core import flagging, Flags
 from saqc.lib.types import ColumnName, FreqString, PositiveInt, PositiveFloat, Literal
 from saqc.lib.tools import statPass
 
 
-@register(masking="field", module="noise")
+@flagging(masking="field", module="noise")
 def flagByStatLowPass(
     data: DictOfSeries,
     field: ColumnName,

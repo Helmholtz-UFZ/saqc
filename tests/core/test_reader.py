@@ -9,7 +9,7 @@ from pathlib import Path
 
 from saqc.core.config import Fields as F
 from saqc.core.core import SaQC
-from saqc.core.register import FUNC_MAP, register
+from saqc.core.register import FUNC_MAP, flagging
 
 from tests.common import initData, writeIO
 
@@ -108,7 +108,7 @@ def test_configChecks(data):
 
     var1, _, var3, *_ = data.columns
 
-    @register(masking="none")
+    @flagging(masking="none")
     def flagFunc(data, field, flags, arg, opt_arg=None, **kwargs):
         return data, flags
 
@@ -133,7 +133,7 @@ def test_supportedArguments(data):
 
     # TODO: necessary?
 
-    @register(masking="field")
+    @flagging(masking="field")
     def func(data, field, flags, kwarg, **kwargs):
         return data, flags
 

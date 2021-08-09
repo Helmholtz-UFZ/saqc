@@ -12,14 +12,14 @@ from outliers import smirnov_grubbs
 from scipy.optimize import curve_fit
 
 from saqc.constants import *
-from saqc.core import register, Flags
+from saqc.core import flagging, Flags
 from saqc.lib.types import ColumnName, FreqString, IntegerWindow
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta
 from saqc.funcs.scores import assignKNNScore
 import saqc.lib.ts_operators as ts_ops
 
 
-@register(masking="field", module="outliers")
+@flagging(masking="field", module="outliers")
 def flagByStray(
     data: DictOfSeries,
     field: ColumnName,
@@ -383,7 +383,7 @@ def _expFit(
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@register(masking="all", module="outliers")
+@flagging(masking="all", module="outliers")
 def flagMVScores(
     data: DictOfSeries,
     field: ColumnName,
@@ -552,7 +552,7 @@ def flagMVScores(
     return data, flags
 
 
-@register(masking="field", module="outliers")
+@flagging(masking="field", module="outliers")
 def flagRaise(
     data: DictOfSeries,
     field: ColumnName,
@@ -737,7 +737,7 @@ def flagRaise(
     return data, flags
 
 
-@register(masking="field", module="outliers")
+@flagging(masking="field", module="outliers")
 def flagMAD(
     data: DictOfSeries,
     field: ColumnName,
@@ -806,7 +806,7 @@ def flagMAD(
     return data, flags
 
 
-@register(masking="field", module="outliers")
+@flagging(masking="field", module="outliers")
 def flagOffset(
     data: DictOfSeries,
     field: ColumnName,
@@ -976,7 +976,7 @@ def flagOffset(
     return data, flags
 
 
-@register(masking="field", module="outliers")
+@flagging(masking="field", module="outliers")
 def flagByGrubbs(
     data: DictOfSeries,
     field: ColumnName,
@@ -1091,7 +1091,7 @@ def flagByGrubbs(
     return data, flags
 
 
-@register(masking="field", module="outliers")
+@flagging(masking="field", module="outliers")
 def flagRange(
     data: DictOfSeries,
     field: ColumnName,
@@ -1134,7 +1134,7 @@ def flagRange(
     return data, flags
 
 
-@register(masking="all", module="outliers")
+@flagging(masking="all", module="outliers")
 def flagCrossStatistic(
     data: DictOfSeries,
     field: ColumnName,

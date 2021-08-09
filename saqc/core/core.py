@@ -23,7 +23,6 @@ from saqc.lib.tools import toSequence
 from saqc.lib.types import (
     ExternalFlag,
     CallGraph,
-    MaterializedGraph,
     PandasLike,
 )
 
@@ -162,9 +161,6 @@ class SaQC(FuncModules):
         # with regular expressions, we can't just reuse the original execution
         # plan to infer all translation related information.
         self._planned: CallGraph = []  # will be filled by calls to `_wrap`
-        self._computed: MaterializedGraph = self._translator.buildGraph(
-            self._flags
-        )  # will be filled in `evaluate`
 
     @staticmethod
     def _initFlags(data: DictOfSeries, flags: Optional[Flags]) -> Flags:
@@ -240,10 +236,7 @@ class SaQC(FuncModules):
         An updated SaQC Object incorporating the requested computations
         """
 
-        # NOTE: It would be nicer to separate the plotting into an own
-        #       method instead of intermingling it with the computation
         data, flags = self._data, self._flags
-        computed: MaterializedGraph = []
         for selector, control, function in self._planned:
             logger.debug(
                 f"processing: {selector.field}, {function.name}, {function.keywords}"
@@ -257,7 +250,6 @@ class SaQC(FuncModules):
                 # (eg. `TypeError: got multiple values for argument 'data'`,
                 # when the user pass data=...)
                 _warnForUnusedKwargs(function, self._translator)
-                computed.append((selector, function))
             except Exception as e:
                 _handleErrors(e, selector.field, control, function, self._error_policy)
                 continue
@@ -265,9 +257,7 @@ class SaQC(FuncModules):
             data = data_result
             flags = flags_result
 
-        return self._construct(
-            _flags=flags, _data=data, _computed=self._computed + computed
-        )
+        return self._construct(_flags=flags, _data=data)
 
     def getResult(
         self, raw=False
@@ -286,7 +276,7 @@ class SaQC(FuncModules):
         if raw:
             return data, flags
 
-        return data.to_df(), self._translator.backward(flags, realization._computed)
+        return data.to_df(), self._translator.backward(flags)
 
     def _wrap(self, func: SaQCFunction):
         def inner(
