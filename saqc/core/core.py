@@ -5,7 +5,8 @@ from __future__ import annotations
 import logging
 import inspect
 import copy as stdcopy
-from typing import Tuple, Union, Optional, Literal
+from typing import Tuple, Union, Optional
+from typing_extensions import Literal
 
 import pandas as pd
 import numpy as np

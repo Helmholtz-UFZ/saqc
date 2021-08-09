@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import Any, Tuple, Union, Literal
+from typing import Any, Tuple, Union
+from typing_extensions import Literal
 import pandas as pd
 from dios import DictOfSeries
 

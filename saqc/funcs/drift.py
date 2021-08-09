@@ -7,7 +7,8 @@ import functools
 import inspect
 from dios import DictOfSeries
 
-from typing import Optional, Tuple, Sequence, Callable, Optional, Literal
+from typing import Optional, Tuple, Sequence, Callable, Optional
+from typing_extensions import Literal
 
 from scipy import stats
 from scipy.optimize import curve_fit

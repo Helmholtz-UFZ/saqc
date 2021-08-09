@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Optional, Union, Tuple, Sequence, Callable, Literal
+from typing import Optional, Union, Tuple, Sequence, Callable
+from typing_extensions import Literal
 import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly

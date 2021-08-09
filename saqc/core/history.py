@@ -4,7 +4,8 @@ from __future__ import annotations
 from copy import deepcopy, copy
 import itertools
 
-from typing import Dict, Tuple, Type, Union, List, Any, Literal
+from typing import Dict, Tuple, Type, Union, List, Any
+from typing_extensions import Literal
 import pandas as pd
 import numpy as np
 
