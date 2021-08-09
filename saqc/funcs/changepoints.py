@@ -6,8 +6,7 @@ import logging
 import pandas as pd
 import numpy as np
 import numba
-from typing import Callable, Union, Tuple, Optional
-from typing_extensions import Literal
+from typing import Callable, Union, Tuple, Optional, Literal
 
 from dios import DictOfSeries
 

@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from math import floor
-from typing import Tuple, Union
-from typing_extensions import Literal
+from typing import Tuple, Union, Literal
 import numpy as np
 import pandas as pd
 from dios import DictOfSeries

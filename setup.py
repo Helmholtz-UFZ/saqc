@@ -24,7 +24,6 @@ setup(
         "matplotlib",
         "click",
         "pyarrow",
-        "typing_extensions",
         "outlier-utils",
         "dtw",
         "PyWavelets",

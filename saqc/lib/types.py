@@ -17,8 +17,7 @@ __all__ = [
     "MaterializedGraph",
 ]
 
-from typing import TypeVar, Union, NewType, List, Tuple, Optional
-from typing_extensions import Protocol, Literal
+from typing import TypeVar, Union, NewType, List, Tuple, Optional, Protocol, Literal
 import numpy as np
 import pandas as pd
 from dios import DictOfSeries

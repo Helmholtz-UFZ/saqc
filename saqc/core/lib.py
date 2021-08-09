@@ -4,8 +4,7 @@
 from dataclasses import dataclass
 import functools
 
-from typing import Optional, Any
-from typing_extensions import Literal
+from typing import Optional, Any, Literal
 
 
 class ColumnSelector:

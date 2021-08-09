@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Optional, Callable
+from typing import Optional, Callable, Literal
 
 import numpy as np
 import pandas as pd
-from typing_extensions import Literal
 
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase

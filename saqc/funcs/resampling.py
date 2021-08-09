@@ -1,8 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Callable, Tuple, Optional, Union
-from typing_extensions import Literal
+from typing import Callable, Tuple, Optional, Union, Literal
 import logging
 import numpy as np
 import pandas as pd

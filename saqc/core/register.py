@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-from typing import Dict, Optional, Union, Tuple, Callable
-from typing_extensions import Literal
+from typing import Dict, Optional, Union, Tuple, Callable, Literal
 from functools import wraps
 import dataclasses
 import numpy as np

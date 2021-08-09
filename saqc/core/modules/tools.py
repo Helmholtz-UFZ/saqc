@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Literal
 
 from dios import DictOfSeries
-from typing_extensions import Literal
 
 from saqc.lib.types import FreqString
 from saqc.core import Flags
