@@ -438,6 +438,7 @@ def reindexFlags(
         "inverse_fshift",
         "inverse_bshift",
         "inverse_nshift",
+        "inverse_interpolation"
     ],
     source: str,
     freq: Optional[str] = None,
