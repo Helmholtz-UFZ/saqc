@@ -1,6 +1,6 @@
 
-generic functions
-=================
+generic
+=======
 
-* :py:func:`flagGeneric <Functions.saqc.flag>`
-* :py:func:`processGeneric <Functions.saqc.processs>`
+* :py:func:`generic.flag <Functions.saqc.flag>`
+* :py:func:`generic.process <Functions.saqc.processs>`

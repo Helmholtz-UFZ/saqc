@@ -32,8 +32,9 @@ Functions
    :titlesonly:
 
    All Functions <moduleAPIs/saqcFunctions>
-   generic Functions <function_cats/generic>
-   regularisation Functions <function_cats/regularisation>
+   generic <function_cats/generic>
+   resampling <function_cats/resampling>
+   tools <function_cats/tools>
 
 
 Python Package
