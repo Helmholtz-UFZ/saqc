@@ -15,18 +15,6 @@ from saqc.funcs.interpolation import _SUPPORTED_METHODS
 
 
 class Resampling(ModuleBase):
-    def aggregate(
-        self,
-        field: str,
-        freq: str,
-        value_func,
-        flag_func: Callable[[pd.Series], float] = np.nanmax,
-        method: Literal["fagg", "bagg", "nagg"] = "nagg",
-        flag: float = BAD,
-        **kwargs,
-    ) -> saqc.SaQC:
-        return self.defer("aggregate", locals())
-
     def linear(self, field: str, freq: str, **kwargs) -> saqc.SaQC:
         return self.defer("linear", locals())
 
@@ -39,22 +27,6 @@ class Resampling(ModuleBase):
         **kwargs,
     ) -> saqc.SaQC:
         return self.defer("interpolate", locals())
-
-    def mapToOriginal(
-        self,
-        field: str,
-        method: Literal[
-            "inverse_fagg",
-            "inverse_bagg",
-            "inverse_nagg",
-            "inverse_fshift",
-            "inverse_bshift",
-            "inverse_nshift",
-            "inverse_interpolation",
-        ],
-        **kwargs,
-    ) -> saqc.SaQC:
-        return self.defer("mapToOriginal", locals())
 
     def shift(
         self,

@@ -11,13 +11,13 @@ import operator
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags
+from saqc.core import flagging, Flags
 from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta, statPass
 from saqc.lib.types import FreqString, ColumnName
 
 
-@register(masking="field", module="constants")
+@flagging(masking="field", module="constants")
 def flagConstants(
     data: DictOfSeries,
     field: ColumnName,
@@ -69,19 +69,19 @@ def flagConstants(
     # in each window and also min() == max() == d[i] is not possible.
     kws = dict(window=window, min_periods=2, expand=False)
 
-    # find all consecutive constant values in one direction...
-    r = customRoller(d, **kws)
-    m1 = r.max() - r.min() <= thresh
-    # and in the other
-    r = customRoller(d, forward=True, **kws)
-    m2 = r.max() - r.min() <= thresh
-    mask = m1 | m2
+    # 1. find starting points of consecutive constant values as a boolean mask
+    # 2. fill the whole window with True's
+    rolling = customRoller(d, **kws)
+    starting_points_mask = rolling.max() - rolling.min() <= thresh
+    rolling = customRoller(starting_points_mask, **kws, forward=True)
+    # mimic any()
+    mask = rolling.sum() > 0
 
     flags[mask, field] = flag
     return data, flags
 
 
-@register(masking="field", module="constants")
+@flagging(masking="field", module="constants")
 def flagByVariance(
     data: DictOfSeries,
     field: ColumnName,

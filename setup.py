@@ -1,12 +1,11 @@
 from setuptools import setup, find_packages
-import saqc
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
     name="saqc",
-    version=saqc.__version__,
+    version="1.4",
     author="Bert Palm, David Schaefer, Peter Luenenschloss, Lennard Schmidt",
     author_email="david.schaefer@ufz.de",
     description="Data quality checking and processing tool/framework",

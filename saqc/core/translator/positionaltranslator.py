@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Tuple
 
+import numpy as np
 import pandas as pd
 
 from saqc.core.flags import (
     Flags,
-    _simpleHist,
+    History,
     UNTOUCHED,
     UNFLAGGED,
     GOOD,
@@ -37,7 +38,7 @@ class PositionalTranslator(Translator):
     def __init__(self):
         super().__init__(forward=self._FORWARD, backward=self._BACKWARD)
 
-    def forward(self, flags: pd.DataFrame) -> Tuple[Flags, MaterializedGraph]:
+    def forward(self, flags: pd.DataFrame) -> Flags:
         """
         Translate from 'external flags' to 'internal flags'
 
@@ -60,16 +61,16 @@ class PositionalTranslator(Translator):
                 index=field_flags.index,
             ).astype(int)
 
-            # the exploded values + the an initial column are the History of `field`
+            # the exploded values form the History of `field`
             fflags = super()._translate(df, self._FORWARD)
-            field_history = _simpleHist(field_flags.index).append(fflags.to_df())
-            data[field] = field_history
+            field_history = History(field_flags.index)
+            for _, s in fflags.items():
+                field_history.append(s, force=True)
+            data[str(field)] = field_history
 
-        tflags = Flags(data)
-        graph = self.buildGraph(tflags)
-        return tflags, graph
+        return Flags(data)
 
-    def backward(self, flags: Flags, call_stack: MaterializedGraph) -> pd.DataFrame:
+    def backward(self, flags: Flags) -> pd.DataFrame:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -77,9 +78,6 @@ class PositionalTranslator(Translator):
         ----------
         flags : pd.DataFrame
             The external flags to translate
-        call_stack : List
-            The saqc functions called to generate the given `flags` (i.e. `SaQC._computed`)
-            `call_stack` is not evaluated here.
 
         Returns
         -------
@@ -91,12 +89,11 @@ class PositionalTranslator(Translator):
             # Concatenate the single flag values. There are faster and more
             # complicated approaches (see former `PositionalFlagger`), but
             # this method shouldn't be called that often
-            tflags = (
-                thist.astype(int).astype(str).apply(lambda x: x.sum(), axis="columns")
-            )
-            out[field] = "9"
-            if not tflags.empty:
-                # take care for the default columns
-                out[field] += tflags.str.slice(start=1)
+            ncols = thist.shape[-1]
+            init = 9 * 10 ** ncols
+            bases = 10 ** np.arange(ncols - 1, -1, -1)
+
+            tflags = init + (thist * bases).sum(axis=1)
+            out[field] = tflags
 
         return pd.DataFrame(out).fillna(-9999).astype(int)

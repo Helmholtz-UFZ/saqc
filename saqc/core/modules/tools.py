@@ -7,6 +7,7 @@ from typing import Optional, Tuple
 from dios import DictOfSeries
 from typing_extensions import Literal
 
+from saqc.lib.types import FreqString
 from saqc.core import Flags
 from saqc.core.modules.base import ModuleBase
 import saqc
@@ -37,13 +38,13 @@ class Tools(ModuleBase):
     def plot(
         self,
         field: str,
-        save_path: str,
+        save_path: Optional[str] = None,
         max_gap: Optional[FreqString] = None,
-        stats: Optional[bool] = False,
-        plot_kwargs: Optional[dict] = {},
-        fig_kwargs: Optional[dict] = {"figsize": (16, 9)},
-        stats_dict: Optional[dict] = {},
-        save_kwargs: Optional[dict] = {},
+        stats: bool = False,
+        plot_kwargs: Optional[dict] = None,
+        fig_kwargs: Optional[dict] = None,
+        stats_dict: Optional[dict] = None,
+        save_kwargs: Optional[dict] = None,
         **kwargs,
-    ) -> SaQC:
+    ) -> saqc.SaQC:
         return self.defer("plot", locals())

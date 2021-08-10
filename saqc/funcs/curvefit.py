@@ -9,7 +9,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags
+from saqc.core import flagging, Flags
 from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import (
     polyRollerIrregular,
@@ -20,7 +20,7 @@ from saqc.lib.ts_operators import (
 )
 
 
-@register(masking="field", module="curvefit")
+@flagging(masking="field", module="curvefit")
 def fitPolynomial(
     data: DictOfSeries,
     field: str,

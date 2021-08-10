@@ -5,14 +5,11 @@ import logging
 import pytest
 import numpy as np
 import pandas as pd
-import dios
 
 
 from saqc.constants import *
 from saqc.core import initFlagsLike
-from saqc.funcs import flagRange
-from saqc.lib import plotting as splot
-from saqc import SaQC, register
+from saqc import SaQC, flagging
 
 from tests.common import initData, flagAll
 
@@ -24,7 +21,7 @@ logging.disable(logging.CRITICAL)
 OPTIONAL = [False, True]
 
 
-register(masking="field")(flagAll)
+flagging(masking="field")(flagAll)
 
 
 @pytest.fixture
@@ -39,7 +36,7 @@ def flags(data, optional):
 
 
 def test_errorHandling(data):
-    @register(masking="field")
+    @flagging(masking="field")
     def raisingFunc(data, field, flags, **kwargs):
         raise TypeError
 

@@ -11,7 +11,7 @@ from saqc.constants import *
 from saqc.core import initFlagsLike, Flags
 from saqc.core.visitor import ConfigFunctionParser
 from saqc.core.config import Fields as F
-from saqc.core.register import register
+from saqc.core.register import flagging
 from saqc.funcs.generic import _execGeneric
 from saqc import SaQC
 
@@ -281,7 +281,7 @@ def test_callableArgumentsUnary(data):
 
     window = 5
 
-    @register(masking="field")
+    @flagging(masking="field")
     def testFuncUnary(data, field, flags, func, **kwargs):
         data[field] = data[field].rolling(window=window).apply(func)
         return data, initFlagsLike(data)
@@ -310,7 +310,7 @@ def test_callableArgumentsUnary(data):
 def test_callableArgumentsBinary(data):
     var1, var2 = data.columns[:2]
 
-    @register(masking="field")
+    @flagging(masking="field")
     def testFuncBinary(data, field, flags, func, **kwargs):
         data[field] = func(data[var1], data[var2])
         return data, initFlagsLike(data)

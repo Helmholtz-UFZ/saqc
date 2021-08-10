@@ -17,7 +17,6 @@ class ColumnSelector:
         return f"{self.__class__.__name__}({self.field})"
 
 
-# TODO: this seems obsolete
 @dataclass
 class APIController:
     def errorMessage(self):

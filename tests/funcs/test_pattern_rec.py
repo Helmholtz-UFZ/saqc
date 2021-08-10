@@ -21,28 +21,11 @@ def field(data):
     return data.columns[0]
 
 
-@pytest.mark.skip(reason="faulty implementation - will get fixed by GL-MR191")
+@pytest.mark.skip(reason="faulty implementation - wait for #GL216")
 def test_flagPattern_wavelet():
     data = pd.Series(0, index=pd.date_range(start="2000", end="2001", freq="1d"))
-    data.iloc[2:4] = 7
-    pattern = data.iloc[1:6]
-
-    data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
-    flags = initFlagsLike(data, name="data")
-    data, flags = flagPatternByDTW(
-        data, "data", flags, ref_field="pattern_data", flag=BAD
-    )
-
-    assert all(flags["data"][1:6])
-    assert any(flags["data"][:1])
-    assert any(flags["data"][7:])
-
-
-@pytest.mark.skip(reason="faulty implementation - will get fixed by GL-MR191")
-def test_flagPattern_dtw():
-    data = pd.Series(0, index=pd.date_range(start="2000", end="2001", freq="1d"))
-    data.iloc[2:4] = 7
-    pattern = data.iloc[1:6]
+    data.iloc[10:18] = [0, 5, 6, 7, 6, 8, 5, 0]
+    pattern = data.iloc[10:18]
 
     data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
     flags = initFlagsLike(data, name="data")
@@ -50,6 +33,26 @@ def test_flagPattern_dtw():
         data, "data", flags, ref_field="pattern_data", flag=BAD
     )
 
-    assert all(flags["data"][1:6])
-    assert any(flags["data"][:1])
-    assert any(flags["data"][7:])
+    assert all(flags["data"].iloc[10:18] == BAD)
+    assert all(flags["data"].iloc[:9] == UNFLAGGED)
+    assert all(flags["data"].iloc[18:] == UNFLAGGED)
+
+
+def test_flagPattern_dtw():
+    data = pd.Series(0, index=pd.date_range(start="2000", end="2001", freq="1d"))
+    data.iloc[10:18] = [0, 5, 6, 7, 6, 8, 5, 0]
+    pattern = data.iloc[10:18]
+
+    data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
+    flags = initFlagsLike(data, name="data")
+    data, flags = flagPatternByDTW(
+        data, "data", flags, ref_field="pattern_data", flag=BAD
+    )
+
+    assert all(flags["data"].iloc[10:18] == BAD)
+    assert all(flags["data"].iloc[:9] == UNFLAGGED)
+    assert all(flags["data"].iloc[18:] == UNFLAGGED)
+
+    # visualize:
+    # data['data'].plot()
+    # ((flags['data']>0) *5.).plot()

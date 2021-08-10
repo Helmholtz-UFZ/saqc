@@ -21,22 +21,25 @@ def data():
 
 
 def test_constants_flagBasic(data):
-    expected = np.arange(5, 22)
     field, *_ = data.columns
     flags = initFlagsLike(data)
     data, flags_result = flagConstants(
         data, field, flags, window="15Min", thresh=0.1, flag=BAD
     )
     flagscol = flags_result[field]
-    assert np.all(flagscol[expected] == BAD)
+    assert np.all(flagscol[5:25] == BAD)
+    assert np.all(flagscol[:5] == UNFLAGGED)
+    assert np.all(flagscol[25 + 1 :] == UNFLAGGED)
 
 
+@pytest.mark.skip(reason="see Issue: https://git.ufz.de/rdm-software/saqc/-/issues/220")
 def test_constants_flagVarianceBased(data):
     expected = np.arange(5, 25)
     field, *_ = data.columns
     flags = initFlagsLike(data)
     data, flags_result1 = flagByVariance(data, field, flags, window="1h", flag=BAD)
 
-    flag_result1 = flags_result1[field]
-    test_sum = (flag_result1[expected] == BAD).sum()
-    assert test_sum == len(expected)
+    flagscol = flags_result1[field]
+    assert np.all(flagscol[5:25] == BAD)
+    assert np.all(flagscol[:5] == UNFLAGGED)
+    assert np.all(flagscol[25 + 1 :] == UNFLAGGED)

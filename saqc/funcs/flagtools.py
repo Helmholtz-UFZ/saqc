@@ -7,11 +7,11 @@ from dios import DictOfSeries
 
 from saqc.constants import BAD, UNFLAGGED
 from saqc.lib.types import ColumnName
-from saqc.core import register, Flags
+from saqc.core import flagging, processing, Flags
 import warnings
 
 
-@register(masking="field", module="flagtools")
+@flagging(masking="field", module="flagtools")
 def forceFlags(
     data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -46,7 +46,7 @@ def forceFlags(
 
 
 # masking='none' is sufficient because call is redirected
-@register(masking="none", module="flagtools")
+@flagging(masking="none", module="flagtools")
 def clearFlags(
     data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -69,6 +69,14 @@ def clearFlags(
     data : DictOfSeries
     flags : saqc.Flags
 
+    Notes
+    -----
+    This function ignores the ``to_mask`` keyword, because the data is not relevant
+    for processing.
+    A warning is triggered if the ``flag`` keyword is given, because the flags are
+    always set to `UNFLAGGED`.
+
+
     See Also
     --------
     forceFlags : set whole column to a flag value
@@ -82,7 +90,7 @@ def clearFlags(
     return forceFlags(data, field, flags, flag=UNFLAGGED, **kwargs)
 
 
-@register(masking="none", module="flagtools")
+@flagging(masking="none", module="flagtools")
 def flagUnflagged(
     data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -109,6 +117,11 @@ def flagUnflagged(
     flags : saqc.Flags
         The quality flags of data
 
+    Notes
+    -----
+    This function ignores the ``to_mask`` keyword, because the data is not relevant
+    for processing.
+
     See Also
     --------
     clearFlags : set whole column to UNFLAGGED
@@ -119,7 +132,7 @@ def flagUnflagged(
     return data, flags
 
 
-@register(masking="field", module="flagtools")
+@flagging(masking="field", module="flagtools")
 def flagManual(
     data: DictOfSeries,
     field: ColumnName,
@@ -263,7 +276,7 @@ def flagManual(
     return data, flags
 
 
-@register(masking="none", module="flagtools")
+@flagging(module="flagtools")
 def flagDummy(
     data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:

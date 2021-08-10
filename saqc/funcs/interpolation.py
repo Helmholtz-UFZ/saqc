@@ -7,9 +7,8 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags
+from saqc.core import flagging, processing, Flags
 from saqc.core.register import _isflagged
-from saqc.core.history import applyFunctionOnHistory
 from saqc.lib.ts_operators import interpolateNANs
 
 _SUPPORTED_METHODS = Literal[
@@ -31,7 +30,7 @@ _SUPPORTED_METHODS = Literal[
 ]
 
 
-@register(masking="field", module="interpolation")
+@flagging(masking="field", module="interpolation")
 def interpolateByRolling(
     data: DictOfSeries,
     field: str,
@@ -106,7 +105,7 @@ def interpolateByRolling(
     return data, flags
 
 
-@register(masking="field", module="interpolation")
+@flagging(masking="field", module="interpolation")
 def interpolateInvalid(
     data: DictOfSeries,
     field: str,
@@ -190,7 +189,7 @@ def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
     return data.fillna(fill_value).astype(dtype)
 
 
-@register(masking="none", module="interpolation")
+@processing(module="interpolation")
 def interpolateIndex(
     data: DictOfSeries,
     field: str,
@@ -287,14 +286,14 @@ def interpolateIndex(
     # store interpolated grid
     data[field] = inter_data[grid_index]
 
-    # do the reshaping on the history
-    flags.history[field] = applyFunctionOnHistory(
-        flags.history[field],
+    history = flags.history[field].apply(
+        index=data[field].index,
         hist_func=_resampleOverlapping,
-        hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
         mask_func=_resampleOverlapping,
+        hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
         mask_kws=dict(freq=freq, fill_value=True),
-        last_column="dummy",
+        copy=False,
     )
 
+    flags.history[field] = history
     return data, flags
