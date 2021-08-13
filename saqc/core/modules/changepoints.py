@@ -28,7 +28,7 @@ class ChangePoints(ModuleBase):
         reduce_window: FreqString = None,
         reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
         flag: float = BAD,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self.defer("flagChangePoints", locals())
 
@@ -51,6 +51,6 @@ class ChangePoints(ModuleBase):
         flag_changepoints: bool = False,
         assign_cluster: bool = True,
         flag: float = BAD,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self.defer("assignChangePointCluster", locals())

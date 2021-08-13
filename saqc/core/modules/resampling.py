@@ -33,9 +33,7 @@ class Resampling(ModuleBase):
         field: str,
         freq: str,
         method: Literal["fshift", "bshift", "nshift"] = "nshift",
-        freq_check: Optional[
-            Literal["check", "auto"]
-        ] = None,  # TODO: not a user decision
+        freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs,
     ) -> saqc.SaQC:
         return self.defer("shift", locals())
@@ -66,6 +64,7 @@ class Resampling(ModuleBase):
             "inverse_fshift",
             "inverse_bshift",
             "inverse_nshift",
+            "inverse_interpolation",
         ],
         source: str,
         freq: Optional[str] = None,

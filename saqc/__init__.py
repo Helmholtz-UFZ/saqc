@@ -9,8 +9,8 @@ from saqc.core import (
     flagging,
     initFlagsLike,
     Flags,
-    SaQC,
     FloatTranslator,
     DmpTranslator,
     PositionalTranslator,
+    SaQC,
 )
