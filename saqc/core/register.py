@@ -39,7 +39,6 @@ class CallState:
 
 
 def processing(module: Optional[str] = None):
-
     # executed on module import
     def inner(func):
         func_name = func.__name__
@@ -58,7 +57,6 @@ def processing(module: Optional[str] = None):
 
 
 def flagging(masking: MaskingStrT = "all", module: Optional[str] = None):
-
     # executed on module import
     def inner(func):
         func_name = func.__name__
@@ -324,65 +322,63 @@ def _restoreFlags(flags: Flags, old_state: CallState):
     -------
     Flags
     """
-    columns = flags.columns
+    out = old_state.flags.copy()
+    meta = {
+        "func": old_state.func_name,
+        "args": old_state.args,
+        "keywords": old_state.kwargs,
+    }
+    new_columns = flags.columns.difference(old_state.flags.columns)
 
-    if old_state.masking == "all":
-        pass
-
-    # The function processed a copy of the original flags and may or may not added some
-    # columns. So we take only new history columns and define new flags with it, which
-    # are enriched with meta later
-    elif old_state.masking == "none":
-        flags = flags.copy(deep=False)
-
-        for c in flags.columns:
-            # if a new field (aka. variable) was inserted, we take the full history and
-            # no slicing is needed, which is the hidden else-case.
-            if c in old_state.flags.columns:
-                l = len(old_state.flags.history[c].columns)
-                flags.history[c] = _sliceHistory(flags.history[c], slice(l, None))
-
-    # take field column and all possibly newly added columns
+    # masking == 'none'
+    # - no data was masked (no relevance here, but help understanding)
+    # - the saqc-function got a copy of the whole flags frame with all full histories
+    #   (but is not allowed to change them; we have -> @processing for this case)
+    # - the saqc-function appended none or some columns to the each history
+    #
+    # masking == 'all'
+    # - all data was masked by flags (no relevance here, but help understanding)
+    # - the saqc-function got a complete new flags frame, with empty Histories
+    # - the saqc-function appended none or some columns to the each history
+    #
+    # masking == 'field'
+    # - some data columns were masked by flags (no relevance here)
+    # - the saqc-function got a complete new flags frame, with empty Histories
+    # - the saqc-function appended none or some columns to the each history
+    # Note: actually the flags SHOULD have been cleared only at the field (as the
+    # masking-parameter implies) but the current implementation in `_prepareFlags`
+    # clear all columns. Nevertheless the following code only update the field (and new
+    # columns) and not all columns.
+    if old_state.masking == "none":
+        columns = flags.columns
+    elif old_state.masking == "all":
+        columns = flags.columns
     elif old_state.masking == "field":
-        columns = columns.difference(old_state.flags.columns)
-        columns = columns.append(pd.Index([old_state.field]))
-
+        columns = pd.Index([old_state.field])
     else:
         raise RuntimeError(old_state.masking)
 
-    out = old_state.flags.copy()
+    for c in columns.union(new_columns):
 
-    # this implicitly squash the new flags history (RHS) to a single column, which than
-    # is appended to the old history (LHS). Thus because the new flags history possibly
-    # consists of multiple columns, one for each time a series or scalar was passed to
-    # the flags.
-    for c in columns:
+        if c in new_columns:
+            history = flags.history[c]
+            out.history[c] = History(index=history.index)  # ensure existence
+        # New columns was appended to the old history, but we want to have the new
+        # columns only. If old and new are the same (nothing was appended), we end up
+        # having a empty history, whats handled later correctly
+        elif old_state.masking == "none":
+            sl = slice(len(old_state.flags.history[c].columns), None)
+            history = _sliceHistory(flags.history[c], sl)
+        else:
+            history = flags.history[c]
 
-        h = flags.history[c]
-        hmax = h.max(raw=True)
+        squeezed = flags.history[c].max(raw=True)
 
-        # # handle empty case (i.e. test didn't set any flags, can happen on early returns),
-        # # to prevent a missing (empty) flags column
-        # if h.empty:
-        #     out.history[c] = h.copy()
-        #     continue
+        # nothing to update
+        if history.empty or (squeezed == UNTOUCHED).all():
+            continue
 
-        # # if nothing was touched we have no need to clutter the history
-        # if (hmax == UNTOUCHED).all():
-        #     continue
-
-        out[c] = hmax
-
-        # we enrich the (already existing !) empty meta with some infos
-        history = out.history[c]
-        history.meta[-1].update(
-            {
-                "func": old_state.func_name,
-                "args": old_state.args,
-                "keywords": old_state.kwargs,
-            }
-        )
-        out.history[c] = history
+        out.history[c] = out.history[c].append(squeezed, force=True, meta=meta)
 
     return out
 
