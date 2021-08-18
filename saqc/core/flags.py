@@ -309,7 +309,10 @@ class Flags:
             try:
                 tmp[mask] = value
             except Exception:
-                raise ValueError("bad mask")
+                raise ValueError(
+                    f"bad mask. cannot use mask of length {len(mask)} on "
+                    f"data of length {len(tmp)}"
+                )
             else:
                 value = tmp
 

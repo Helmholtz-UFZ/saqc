@@ -1226,6 +1226,9 @@ def flagCrossStatistic(
         diff_scores = df.subtract(stat, axis=0).abs()
 
     mask = diff_scores > thresh
+    if mask.empty:
+        return data, flags
+
     for var in fields:
         flags[mask[var], var] = flag
 
