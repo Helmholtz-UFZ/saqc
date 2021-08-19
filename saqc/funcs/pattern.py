@@ -182,7 +182,15 @@ def calculateDistanceByDTW(
 
 @flagging(masking="field", module="pattern")
 def flagPatternByDTW(
-    data, field, flags, ref_field, max_distance=0.0, normalize=True, flag=BAD, **kwargs
+    data,
+    field,
+    flags,
+    ref_field,
+    max_distance=0.0,
+    normalize=True,
+    plot=False,
+    flag=BAD,
+    **kwargs
 ):
     """Pattern Recognition via Dynamic Time Warping.
 
@@ -219,6 +227,15 @@ def flagPatternByDTW(
         processing. The distances then refer to the mean distance per datapoint,
         expressed in the datas units.
 
+    plot: bool, default False
+        Show a calibration plot, which can be quite helpful to find the right threshold
+        for `max_distance`. It works best with `normalize=True`. Do not use in automatic
+        setups / pipelines. The plot show three lines:
+            - data: the data the function was called on
+            - distances: the calculated distances by the algorithm
+            - indicator: have to distinct levels: `0` and the value of `max_distance`.
+              If `max_distance` is `0.0` it defaults to `1`. Everywhere where the
+              indicator is not `0` the data will be flagged.
 
     Returns
     -------
@@ -259,6 +276,13 @@ def flagPatternByDTW(
     # Propagate True's to size of pattern.
     rolling = customRoller(minima, window=winsz)
     mask = rolling.sum() > 0
+
+    if plot:
+        df = pd.DataFrame()
+        df["data"] = dat
+        df["distances"] = distances
+        df["indicator"] = mask.astype(float) * (max_distance or 1)
+        df.plot()
 
     flags[mask, field] = flag
     return data, flags
