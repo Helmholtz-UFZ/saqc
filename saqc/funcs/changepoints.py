@@ -13,13 +13,13 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.lib.tools import customRoller
-from saqc.core import register, Flags
+from saqc.core import flagging, Flags
 from saqc.lib.types import ColumnName, FreqString, IntegerWindow
 
 logger = logging.getLogger("SaQC")
 
 
-@register(masking="field", module="changepoints")
+@flagging(masking="field", module="changepoints")
 def flagChangePoints(
     data: DictOfSeries,
     field: str,
@@ -109,7 +109,7 @@ def flagChangePoints(
     )
 
 
-@register(masking="field", module="changepoints")
+@flagging(masking="field", module="changepoints")
 def assignChangePointCluster(
     data: DictOfSeries,
     field: str,

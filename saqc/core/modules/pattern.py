@@ -11,23 +11,11 @@ import saqc
 
 class Pattern(ModuleBase):
     def flagPatternByDTW(
-        self,
-        field: str,
-        ref_field: str,
-        max_distance: float = 0.0,
-        normalize=True,
-        flag: float = BAD,
-        **kwargs
+        self, field, ref_field, max_distance=0.0, normalize=True, flag=BAD, **kwargs
     ) -> saqc.SaQC:
         return self.defer("flagPatternByDTW", locals())
 
     def flagPatternByWavelet(
-        self,
-        field: str,
-        ref_field: str,
-        widths: Sequence[int] = (1, 2, 4, 8),
-        waveform: str = "mexh",
-        flag: float = BAD,
-        **kwargs
+        self, field, ref_field, widths=(1, 2, 4, 8), waveform="mexh", flag=BAD, **kwargs
     ) -> saqc.SaQC:
         return self.defer("flagPatternByWavelet", locals())

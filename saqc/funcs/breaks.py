@@ -20,10 +20,10 @@ from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
 from saqc.lib.types import FreqString, ColumnName, IntegerWindow
 from saqc.funcs.changepoints import assignChangePointCluster
-from saqc.core import register, Flags
+from saqc.core import flagging, Flags
 
 
-@register(masking="field", module="breaks")
+@flagging(masking="field", module="breaks")
 def flagMissing(
     data: DictOfSeries,
     field: ColumnName,
@@ -65,7 +65,7 @@ def flagMissing(
     return data, flags
 
 
-@register(masking="field", module="breaks")
+@flagging(masking="field", module="breaks")
 def flagIsolated(
     data: DictOfSeries,
     field: ColumnName,
@@ -144,7 +144,7 @@ def flagIsolated(
     return data, flags
 
 
-@register(masking="field", module="breaks")
+@flagging(masking="field", module="breaks")
 def flagJumps(
     data: DictOfSeries,
     field: ColumnName,

@@ -12,7 +12,7 @@ from dios import DictOfSeries
 
 from saqc.constants import GOOD, BAD, UNFLAGGED
 from saqc.core.flags import initFlagsLike, Flags
-from saqc.core.register import register, _maskData
+from saqc.core.register import flagging, processing, _maskData
 from saqc.core.visitor import ENVIRONMENT
 
 import operator as op
@@ -85,7 +85,7 @@ def _execGeneric(
     return func(*args)
 
 
-@register(masking="none", module="generic")
+@processing(module="generic")
 def process(
     data: DictOfSeries,
     field: str,
@@ -157,7 +157,7 @@ def process(
     return data, flags
 
 
-@register(masking="none", module="generic")
+@flagging(masking="none", module="generic")
 def flag(
     data: DictOfSeries,
     field: str,
@@ -255,6 +255,6 @@ def flag(
     if not np.issubdtype(mask.dtype, np.bool_):
         raise TypeError(f"generic expression does not return a boolean array")
 
-    flags[field] = mask.replace({False: UNFLAGGED, True: BAD})
+    flags[field] = mask.replace({False: UNFLAGGED, True: flag})
 
     return data, flags

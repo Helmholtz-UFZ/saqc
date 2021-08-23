@@ -9,7 +9,7 @@ import pandas as pd
 
 from saqc.core.flags import (
     Flags,
-    _simpleHist,
+    History,
     UNTOUCHED,
     UNFLAGGED,
     GOOD,
@@ -38,7 +38,7 @@ class PositionalTranslator(Translator):
     def __init__(self):
         super().__init__(forward=self._FORWARD, backward=self._BACKWARD)
 
-    def forward(self, flags: pd.DataFrame) -> Tuple[Flags, MaterializedGraph]:
+    def forward(self, flags: pd.DataFrame) -> Flags:
         """
         Translate from 'external flags' to 'internal flags'
 
@@ -61,16 +61,16 @@ class PositionalTranslator(Translator):
                 index=field_flags.index,
             ).astype(int)
 
-            # the exploded values + the an initial column are the History of `field`
+            # the exploded values form the History of `field`
             fflags = super()._translate(df, self._FORWARD)
-            field_history = _simpleHist(field_flags.index).append(fflags.to_df())
-            data[field] = field_history
+            field_history = History(field_flags.index)
+            for _, s in fflags.items():
+                field_history.append(s, force=True)
+            data[str(field)] = field_history
 
-        tflags = Flags(data)
-        graph = self.buildGraph(tflags)
-        return tflags, graph
+        return Flags(data)
 
-    def backward(self, flags: Flags, call_stack: MaterializedGraph) -> pd.DataFrame:
+    def backward(self, flags: Flags) -> pd.DataFrame:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -78,9 +78,6 @@ class PositionalTranslator(Translator):
         ----------
         flags : pd.DataFrame
             The external flags to translate
-        call_stack : List
-            The saqc functions called to generate the given `flags` (i.e. `SaQC._computed`)
-            `call_stack` is not evaluated here.
 
         Returns
         -------
@@ -92,9 +89,9 @@ class PositionalTranslator(Translator):
             # Concatenate the single flag values. There are faster and more
             # complicated approaches (see former `PositionalFlagger`), but
             # this method shouldn't be called that often
-            ncols = thist.shape[-1] - 1
+            ncols = thist.shape[-1]
             init = 9 * 10 ** ncols
-            bases = 10 ** np.arange(ncols, -1, -1)
+            bases = 10 ** np.arange(ncols - 1, -1, -1)
 
             tflags = init + (thist * bases).sum(axis=1)
             out[field] = tflags

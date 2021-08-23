@@ -24,7 +24,7 @@ SelectT = Union[
     Tuple[pd.Index, _Field],
     Tuple[slice, _Field],
 ]
-ValueT = Union[pd.Series, "Flags", Iterable, float]
+ValueT = Union[pd.Series, Iterable, float]
 
 
 class _HistAccess:
@@ -34,16 +34,11 @@ class _HistAccess:
     def __getitem__(self, key: str) -> History:
         return self.obj._data[key].copy()
 
-    def __setitem__(self, key: str, value: Union[History, pd.DataFrame]):
-        if not isinstance(value, History):
-            value = History(value)
-
+    def __setitem__(self, key: str, value: History):
         if not isinstance(value, History):
             raise TypeError("Not a History")
 
-        History._validateHistWithMask(value.hist, value.mask)
         self.obj._validateHistForFlags(value)
-
         self.obj._data[key] = value
 
 
@@ -204,8 +199,7 @@ class Flags:
                     f"cannot init from '{type(data).__name__}' of '{type(item).__name__}'"
                 )
 
-            # make a UNFLAGGED-column and then append the actual item
-            result[k] = _simpleHist(item.index).append(item, force=True)
+            result[k] = History(item.index).append(item, force=True)
 
         return result
 
@@ -217,9 +211,6 @@ class Flags:
         errm = f"History "
         if colname:
             errm += f"of column {colname} "
-
-        if (history.hist[0] != UNFLAGGED).any():
-            raise ValueError(errm + "missing an UNFLAGGED-column at first position")
 
         # this ensures that the mask does not shadow UNFLAGGED with a NaN.
         if history.max().hasnans:
@@ -318,7 +309,10 @@ class Flags:
             try:
                 tmp[mask] = value
             except Exception:
-                raise ValueError("bad mask")
+                raise ValueError(
+                    f"bad mask. cannot use mask of length {len(mask)} on "
+                    f"data of length {len(tmp)}"
+                )
             else:
                 value = tmp
 
@@ -337,9 +331,9 @@ class Flags:
             return
 
         if key not in self._data:
-            self._data[key] = _simpleHist(value.index)
+            self._data[key] = History(value.index)
 
-        self._data[key].append(value, force=True)
+        self._data[key].append(value, force=True, meta=None)
 
     def __delitem__(self, key):
         self._data.pop(key)
@@ -506,17 +500,6 @@ def initFlagsLike(
         if not isinstance(item, (pd.Series, History)):
             raise TypeError("items in reference must be of type pd.Series")
 
-        result[k] = _simpleHist(item.index)
+        result[k] = History(item.index)
 
     return Flags(result)
-
-
-def _simpleHist(index) -> History:
-    """
-    Make a single columned History from an index and an initial value.
-
-    Notes
-    -----
-    For internal use only.
-    """
-    return History(pd.DataFrame(UNFLAGGED, index=index, columns=[0], dtype=float))

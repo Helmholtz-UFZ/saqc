@@ -64,7 +64,8 @@ def test_gridInterpolation(data, method):
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
 
-    # we are just testing if the interpolation gets passed to the series without causing an error:
+    # we are just testing if the interpolation gets passed to the series without
+    # causing an error:
     res = interpolate(
         data, field, flags, freq, method=method, downcast_interpolation=True
     )
@@ -320,10 +321,13 @@ def test_harmSingleVarInterpolationShift(data, params, expected):
     data_harm, flags_harm = copy(data, "data", flags, "data_harm")
     data_harm, flags_harm = shift(data_harm, h_field, flags_harm, freq, method=method)
     assert data_harm[h_field].equals(expected)
+    checkDataFlagsInvariants(data_harm, flags_harm, field, identical=True)
 
     data_deharm, flags_deharm = reindexFlags(
         data_harm, field, flags_harm, source=h_field, method="inverse_" + method
     )
+    checkDataFlagsInvariants(data_deharm, flags_deharm, field, identical=True)
+
     data_deharm, flags_deharm = drop(data_deharm, h_field, flags_deharm)
     assert data_deharm[field].equals(pre_data[field])
     assert flags_deharm[field].equals(pre_flags[field])

@@ -4,7 +4,8 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from saqc.core.history import History
+from saqc.core.history import History, createHistoryFromData
+from tests.common import dummyHistory
 
 # see #GH143 combined backtrack
 # (adjusted to current implementation)
@@ -87,14 +88,16 @@ def check_invariants(hist):
     assert isinstance(hist, History)
     assert isinstance(hist.hist, pd.DataFrame)
     assert isinstance(hist.mask, pd.DataFrame)
+    assert isinstance(hist.meta, list)
     assert all(
         [isinstance(dtype, (float, pd.CategoricalDtype)) for dtype in hist.hist.dtypes]
     )
     assert all(hist.mask.dtypes == bool)
+    assert all([isinstance(e, dict) for e in hist.meta])
     assert hist.hist.columns.equals(hist.mask.columns)
     assert hist.columns is hist.hist.columns
     assert hist.index is hist.hist.index
-    assert len(hist) == len(hist.columns)
+    assert len(hist) == len(hist.columns) == len(hist.meta)
 
     # advanced
     assert hist.columns.equals(pd.Index(range(len(hist))))
@@ -128,31 +131,18 @@ def is_equal(hist1: History, hist2: History):
 def test_init(data: np.array):
     # init
     df = pd.DataFrame(data, dtype=float)
-    hist = History(hist=df)
-
+    hist = History(df.index)
     check_invariants(hist)
-
-    # shape would fail
-    if data is not None:
-        assert len(hist.index) == data.shape[0]
-        assert len(hist.columns) == data.shape[1]
-        assert hist.mask.all(axis=None)
-
-    # check fastpath
-    fast = History(hist=hist)
-    check_invariants(fast)
-
-    assert is_equal(hist, fast)
 
 
 @pytest.mark.parametrize("data", data + [None])
-def test_init_with_mask(data: np.array):
+def test_createHistory(data: np.array):
     # init
     df = pd.DataFrame(data, dtype=float)
     mask = pd.DataFrame(data, dtype=bool)
-    if not mask.empty:
-        mask.iloc[:, -1] = True
-    hist = History(hist=df, mask=mask)
+    mask[:] = True
+    meta = [{}] * len(df.columns)
+    hist = createHistoryFromData(df, mask, meta)
 
     check_invariants(hist)
 
@@ -160,19 +150,15 @@ def test_init_with_mask(data: np.array):
     if data is not None:
         assert len(hist.index) == data.shape[0]
         assert len(hist.columns) == data.shape[1]
-
-    # check fastpath
-    fast = History(hist=hist)
-    check_invariants(fast)
-
-    assert is_equal(hist, fast)
 
 
 @pytest.mark.parametrize("data", data + [None])
 def test_copy(data):
     # init
     df = pd.DataFrame(data, dtype=float)
-    hist = History(hist=df)
+    hist = History(df.index)
+    for _, s in df.items():
+        hist.append(s)
     shallow = hist.copy(deep=False)
     deep = hist.copy(deep=True)
 
@@ -188,17 +174,17 @@ def test_copy(data):
 
     assert deep.hist is not hist.hist
     assert deep.mask is not hist.mask
-    # we need to convert to and from categoricals in order
-    # to allow all operations on `History`, that way we loose
-    # the identity
-    # assert shallow.hist is hist.hist
+    assert deep.meta is not hist.meta
+
+    assert shallow.hist is hist.hist
     assert shallow.mask is hist.mask
+    assert shallow.meta is hist.meta
 
 
 @pytest.mark.parametrize("data", data + [None])
 def test_reindex_trivial_cases(data):
     df = pd.DataFrame(data, dtype=float)
-    orig = History(hist=df)
+    orig = dummyHistory(hist=df)
 
     # checks
     for index in [df.index, pd.Index([])]:
@@ -211,7 +197,7 @@ def test_reindex_trivial_cases(data):
 @pytest.mark.parametrize("data", data + [None])
 def test_reindex_missing_indicees(data):
     df = pd.DataFrame(data, dtype=float)
-    hist = History(hist=df)
+    hist = dummyHistory(hist=df)
     index = df.index[1:-1]
     # checks
     ref = hist.reindex(index)
@@ -222,7 +208,7 @@ def test_reindex_missing_indicees(data):
 @pytest.mark.parametrize("data", data + [None])
 def test_reindex_extra_indicees(data):
     df = pd.DataFrame(data, dtype=float)
-    hist = History(hist=df)
+    hist = dummyHistory(hist=df)
     index = df.index.append(pd.Index(range(len(df.index), len(df.index) + 5)))
     # checks
     ref = hist.reindex(index)
@@ -230,12 +216,36 @@ def test_reindex_extra_indicees(data):
     check_invariants(hist)
 
 
+@pytest.mark.parametrize(
+    "s, meta",
+    [
+        (pd.Series(0, index=range(6), dtype=float), None),
+        (pd.Series(0, index=range(6), dtype=float), {}),
+        (pd.Series(1, index=range(6), dtype=float), {"foo": "bar"}),
+    ],
+)
+def test_append_with_meta(s, meta):
+    hist = History(s.index)
+    hist.append(s, meta=meta)
+    check_invariants(hist)
+
+    if meta is None:
+        meta = {}
+
+    assert hist.meta[0] is not meta
+    assert hist.meta == [meta]
+
+    hist.append(s, meta=meta)
+    check_invariants(hist)
+    assert hist.meta == [meta, meta]
+
+
 @pytest.fixture(scope="module")
 def __hist():
     # this FH is filled by
     #  - test_append
     #  - test_append_force
-    return History()
+    return History(index=pd.Index(range(6)))
 
 
 @pytest.mark.parametrize(
@@ -271,31 +281,3 @@ def test_append_force(__hist, s, max_val):
     hist.append(s, force=True)
     check_invariants(hist)
     assert all(hist.max() == max_val)
-
-
-def test_squeeze():
-    # init
-    d, m, exp = example2
-    d = pd.DataFrame(d, dtype=float)
-    m = pd.DataFrame(m, dtype=bool)
-    orig = History(hist=d, mask=m)
-
-    check_invariants(orig)
-    assert all(orig.max() == exp)
-
-    # checks
-
-    for n in range(len(orig) + 1):
-        hist = orig.copy()
-        hist.squeeze(n)
-
-        check_invariants(hist)
-
-        # squeeze for less then 2 rows does nothing
-        if n < 2:
-            assert is_equal(hist, orig)
-        else:
-            assert len(hist) == len(orig) - n + 1
-
-        # result does not change
-        assert all(hist.max() == exp)

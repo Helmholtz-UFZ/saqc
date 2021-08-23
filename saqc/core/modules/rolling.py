@@ -6,7 +6,7 @@ from typing import Union, Callable
 import numpy as np
 import pandas as pd
 
-from saqc.constants import *
+from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
 import saqc
 

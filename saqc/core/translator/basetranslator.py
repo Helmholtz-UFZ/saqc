@@ -3,8 +3,7 @@
 
 from __future__ import annotations
 
-from saqc.core.lib import SaQCFunction, ColumnSelector
-from typing import Dict, Optional, Union, Any, Tuple, Callable
+from typing import Dict, Union, Any
 
 import numpy as np
 import pandas as pd
@@ -16,7 +15,7 @@ from saqc.core.flags import (
     UNFLAGGED,
     BAD,
 )
-from saqc.lib.types import ExternalFlag, MaterializedGraph, DiosLikeT
+from saqc.lib.types import ExternalFlag
 
 
 ForwardMap = Dict[ExternalFlag, float]
@@ -123,65 +122,10 @@ class Translator:
         if flag not in self._forward:
             if flag not in self._backward:
                 raise ValueError(f"invalid flag: {flag}")
-            return (
-                flag
-            )  # type:  # ignore -> if flag is in `self._backward` it is of type float
+            return float(flag)
         return self._forward[flag]
 
-    @staticmethod
-    def _generateInitFunction(
-        flag_name: str, history: pd.Series
-    ) -> Callable[[DictOfSeries, str, Flags, Any], Tuple[DictOfSeries, Flags]]:
-        # NOTE:
-        # Close over `flags_column` and `history_column`
-        # to immitate the original function application,
-        # that we cannot replicate directly because of
-        # lacking information.
-        # I am not entirely sure, if closing over
-        # `flag_column` is really necessary or if we
-        # even should close over `flags`
-        def mapFlags(data: DictOfSeries, field: str, flags: Flags, **kwargs):
-            flags[history.index, flag_name] = history
-            return data, flags
-
-        return mapFlags
-
-    @staticmethod
-    def buildGraph(flags: Flags) -> MaterializedGraph:
-        """
-        build a call graph from the external flags
-
-        Build an `MaterializedGraph`, that can be used
-        in replays of the original `SaQC` run yielding the
-        same result for the same input data set.
-
-        As we usually don't have enough information (i.e. SaQC
-        function name and all used parameters) we generate dummy
-        functions here. These dummy functions unconditionally set
-        the `field` to the provided flags.
-
-        Parameters
-        ----------
-        flags : flags to generate a call graph for
-        """
-        out = []
-        for flag_name in flags.columns:
-            # skip the default column
-            for _, hist_column in tuple(flags.history[flag_name].hist.items())[1:]:
-                out.append(
-                    (
-                        ColumnSelector(flag_name),
-                        SaQCFunction(
-                            name="initFlags",
-                            function=Translator._generateInitFunction(
-                                flag_name, hist_column
-                            ),
-                        ),
-                    )
-                )
-        return out
-
-    def forward(self, flags: pd.DataFrame) -> Tuple[Flags, MaterializedGraph]:
+    def forward(self, flags: pd.DataFrame) -> Flags:
         """
         Translate from 'external flags' to 'internal flags'
 
@@ -194,10 +138,9 @@ class Translator:
         -------
         Flags object
         """
-        tflags = Flags(self._translate(flags, self._forward))
-        return tflags, self.buildGraph(tflags)
+        return Flags(self._translate(flags, self._forward))
 
-    def backward(self, flags: Flags, call_graph: MaterializedGraph) -> pd.DataFrame:
+    def backward(self, flags: Flags) -> pd.DataFrame:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -205,10 +148,6 @@ class Translator:
         ----------
         flags : pd.DataFrame
             The external flags to translate
-        call_stack : List
-            The saqc functions called to generate the given `flags` (i.e. `SaQC._computed`)
-            `call_stack` is not evaluated here, it's presence only ensures, that subclasses
-            have access to it.
 
         Returns
         -------
