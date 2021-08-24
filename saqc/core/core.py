@@ -213,7 +213,7 @@ class SaQC(FuncModules):
 
     @property
     def flags(self) -> Accessor:
-        return Accessor(self.evaluate()._flags)
+        return Accessor(self._translator.backward(self.evaluate()._flags))
 
     def readConfig(self, fname):
         from saqc.core.reader import readConfig
