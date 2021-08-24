@@ -56,7 +56,7 @@ def _injectOptionalColumns(df):
     return df
 
 
-def _parseConfig(df, data, nodata):
+def _parseConfig(df, translator, data, nodata):
     funcs = []
     for lineno, (_, target, expr) in enumerate(df.itertuples()):
         if target == "None" or pd.isnull(target) or pd.isnull(expr):
@@ -72,7 +72,12 @@ def _parseConfig(df, data, nodata):
 
         control = ConfigController(lineno=lineno + 2, expression=expr)
 
-        f = func.bind(**{"nodata": nodata, **kwargs})
+        if "flag" in kwargs:
+            kwargs["flag"] = translator(kwargs["flag"])
+
+        partial = func.bind(
+            **{"nodata": nodata, "to_mask": translator.TO_MASK, **kwargs}
+        )
 
         targets = toSequence(target)
 
@@ -81,12 +86,12 @@ def _parseConfig(df, data, nodata):
                 field=kwargs.get("field", target),
                 target=target,
             )
-            funcs.append((selector, control, f))
+            funcs.append((selector, control, partial))
 
     return funcs
 
 
-def readConfig(fname, data, nodata):
+def readConfig(fname, translator, data, nodata):
     df = pd.read_csv(
         fname,
         sep=r"\s*;\s*",
@@ -102,4 +107,4 @@ def readConfig(fname, data, nodata):
 
     df[F.VARNAME] = df[F.VARNAME].replace(r"^\s*$", np.nan, regex=True)
     df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
-    return _parseConfig(df, data, nodata)
+    return _parseConfig(df, translator, data, nodata)

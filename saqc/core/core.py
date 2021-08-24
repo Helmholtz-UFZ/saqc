@@ -219,7 +219,9 @@ class SaQC(FuncModules):
         from saqc.core.reader import readConfig
 
         out = stdcopy.deepcopy(self)
-        out._planned.extend(readConfig(fname, self._data, self._nodata))
+        out._planned.extend(
+            readConfig(fname, self._translator, self._data, self._nodata)
+        )
         if self._lazy:
             return out
         return out.evaluate()
@@ -297,9 +299,17 @@ class SaQC(FuncModules):
             out = self if inplace else self.copy(deep=True)
 
             control = APIController()
+            # NOTE:
+            # changes here are likely to be necessary in
+            # `saqc.core.reader._parseConfig` as well
             partial = func.bind(
                 *fargs,
-                **{"nodata": self._nodata, "flag": self._translator(flag), **fkwargs},
+                **{
+                    "nodata": self._nodata,
+                    "flag": self._translator(flag),
+                    "to_mask": self._translator.TO_MASK,
+                    **fkwargs,
+                },
             )
 
             # expand regular expressions

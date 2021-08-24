@@ -26,6 +26,8 @@ class PositionalTranslator(Translator):
     Implements the translation from and to the flagging scheme implemented by CHS
     """
 
+    TO_MASK = DOUBTFUL
+
     _FORWARD: ForwardMap = {0: UNFLAGGED, 1: DOUBTFUL, 2: BAD}
     _BACKWARD: BackwardMap = {
         UNTOUCHED: 0,
