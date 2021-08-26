@@ -20,16 +20,22 @@ from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
 from saqc.lib.types import FreqString, ColumnName, IntegerWindow
 from saqc.funcs.changepoints import assignChangePointCluster
-from saqc.core import flagging, Flags
+from saqc.core.flags import Flags
+from saqc.core.history import History
+from saqc.core.register import _isflagged, flagging
 
 
-@flagging(masking="field", module="breaks")
+# NOTE:
+# masking="none" as we otherwise might interprete
+# the masked values as missing data
+@flagging(masking="none", module="breaks")
 def flagMissing(
     data: DictOfSeries,
     field: ColumnName,
     flags: Flags,
     nodata: float = np.nan,
     flag: float = BAD,
+    to_mask: float = UNFLAGGED,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -55,11 +61,14 @@ def flagMissing(
     flags : saqc.Flags
         The quality flags of data
     """
+
     datacol = data[field]
+
     if np.isnan(nodata):
         mask = datacol.isna()
     else:
         mask = datacol == nodata
+    mask = ~_isflagged(flags[field], to_mask) & mask
 
     flags[mask, field] = flag
     return data, flags
