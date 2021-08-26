@@ -10,6 +10,7 @@ from pathlib import Path
 from saqc.core.config import Fields as F
 from saqc.core.core import SaQC
 from saqc.core.register import FUNC_MAP, flagging
+from saqc.constants import UNTOUCHED
 
 from tests.common import initData, writeIO
 
@@ -110,6 +111,7 @@ def test_configChecks(data):
 
     @flagging(masking="none")
     def flagFunc(data, field, flags, arg, opt_arg=None, **kwargs):
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     header = f"{F.VARNAME};{F.TEST}"
@@ -135,6 +137,7 @@ def test_supportedArguments(data):
 
     @flagging(masking="field")
     def func(data, field, flags, kwarg, **kwargs):
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     var1 = data.columns[0]

@@ -458,6 +458,7 @@ def correctDrift(
     """
     # 1: extract fit intervals:
     if data[maint_data_field].empty:
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     data = data.copy()
