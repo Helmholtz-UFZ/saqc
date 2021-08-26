@@ -123,6 +123,7 @@ def assignKNNScore(
         val_frame = val_frame.transform(trafo)
 
     if val_frame.empty:
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     # partitioning

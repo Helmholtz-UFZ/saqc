@@ -375,7 +375,7 @@ def _restoreFlags(flags: Flags, old_state: CallState):
         squeezed = flags.history[c].max(raw=True)
 
         # nothing to update
-        if history.empty or (squeezed == UNTOUCHED).all():
+        if history.empty:
             continue
 
         out.history[c] = out.history[c].append(squeezed, force=True, meta=meta)

@@ -72,6 +72,7 @@ def roll(
     data = data.copy()
     to_fit = data[field]
     if to_fit.empty:
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     regular = getFreqDelta(to_fit.index)

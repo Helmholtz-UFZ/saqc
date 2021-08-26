@@ -79,6 +79,7 @@ def flagByStray(
     scores = data[field].dropna()
 
     if scores.empty:
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     if not partition_freq:
@@ -676,6 +677,7 @@ def flagRaise(
         raise_series = raise_series.apply(raise_check, args=(thresh,), raw=True)
 
     if raise_series.isna().all():
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     # "unflag" values of insufficient deviation to their predecessors
@@ -783,6 +785,7 @@ def flagMAD(
     """
     d = data[field]
     if d.empty:
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     median = d.rolling(window=window, closed="both").median()
@@ -879,6 +882,7 @@ def flagOffset(
     """
     dataseries = data[field].dropna()
     if dataseries.empty:
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     # using reverted series - because ... long story.
@@ -911,6 +915,7 @@ def flagOffset(
 
     post_jumps = post_jumps[post_jumps]
     if post_jumps.empty:
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     # get all the entries preceding a significant jump and its successors within "length" range
@@ -1227,6 +1232,7 @@ def flagCrossStatistic(
 
     mask = diff_scores > thresh
     if mask.empty:
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     for var in fields:
