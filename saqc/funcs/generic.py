@@ -255,7 +255,11 @@ def flag(
     if not np.issubdtype(mask.dtype, np.bool_):
         raise TypeError(f"generic expression does not return a boolean array")
 
-    m = ~_isflagged(flags[field], to_mask) & mask
-    flags[m, field] = flag
+    if field not in flags:
+        flags[field] = pd.Series(data=UNFLAGGED, index=mask.index, name=field)
+
+    mask = ~_isflagged(flags[field], to_mask) & mask
+
+    flags[mask, field] = flag
 
     return data, flags
