@@ -26,9 +26,16 @@ class PositionalTranslator(Translator):
     Implements the translation from and to the flagging scheme implemented by CHS
     """
 
-    TO_MASK = DOUBTFUL
+    TO_MASK = DOUBTFUL + 1
 
-    _FORWARD: ForwardMap = {0: UNFLAGGED, 1: DOUBTFUL, 2: BAD}
+    _FORWARD: ForwardMap = {
+        -6: UNFLAGGED,
+        -5: UNFLAGGED,
+        -2: UNFLAGGED,
+        0: UNFLAGGED,
+        1: DOUBTFUL,
+        2: BAD,
+    }
     _BACKWARD: BackwardMap = {
         UNTOUCHED: 0,
         UNFLAGGED: 0,
@@ -88,9 +95,7 @@ class PositionalTranslator(Translator):
         out = {}
         for field in flags.columns:
             thist = flags.history[field].hist.replace(self._BACKWARD).astype(int)
-            # Concatenate the single flag values. There are faster and more
-            # complicated approaches (see former `PositionalFlagger`), but
-            # this method shouldn't be called that often
+            # concatenate the single flag values
             ncols = thist.shape[-1]
             init = 9 * 10 ** ncols
             bases = 10 ** np.arange(ncols - 1, -1, -1)
