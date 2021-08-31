@@ -15,7 +15,7 @@ from saqc.core.register import flagging
 from saqc.funcs.generic import _execGeneric
 from saqc import SaQC
 
-from tests.common import TESTNODATA, initData, writeIO
+from tests.common import initData, writeIO
 
 
 @pytest.fixture
@@ -51,13 +51,13 @@ def test_missingIdentifier(data):
     # - the error is only raised at runtime during parsing would be better
     tests = [
         "fff(var2) < 5",
-        "var3 != NODATA",
+        "var3 != 42",
     ]
 
     for test in tests:
         func = _compileGeneric(f"generic.flag(func={test})", flags)
         with pytest.raises(NameError):
-            _execGeneric(flags, data, func, field="", nodata=np.nan)
+            _execGeneric(flags, data, func, field="")
 
 
 def test_syntaxError():
@@ -104,7 +104,7 @@ def test_comparisonOperators(data):
 
     for test, expected in tests:
         func = _compileGeneric(f"generic.flag(func={test})", flags)
-        result = _execGeneric(flags, data, func, field=var1, nodata=np.nan)
+        result = _execGeneric(flags, data, func, field=var1)
         assert np.all(result == expected)
 
 
@@ -124,7 +124,7 @@ def test_arithmeticOperators(data):
 
     for test, expected in tests:
         func = _compileGeneric(f"generic.process(func={test})", flags)
-        result = _execGeneric(flags, data, func, field=var1, nodata=np.nan)
+        result = _execGeneric(flags, data, func, field=var1)
         assert np.all(result == expected)
 
 
@@ -146,13 +146,12 @@ def test_nonReduncingBuiltins(data):
 
     for test, expected in tests:
         func = _compileGeneric(f"generic.process(func={test})", flags)
-        result = _execGeneric(flags, data, func, field=this, nodata=np.nan)
+        result = _execGeneric(flags, data, func, field=this)
         assert (result == expected).all()
 
 
-@pytest.mark.parametrize("nodata", TESTNODATA)
-def test_reduncingBuiltins(data, nodata):
-    data.loc[::4] = nodata
+def test_reduncingBuiltins(data):
+    data.loc[::4] = np.nan
     flags = initFlagsLike(data)
     var1 = data.columns[0]
     this = data.iloc[:, 0]
@@ -168,12 +167,11 @@ def test_reduncingBuiltins(data, nodata):
 
     for test, expected in tests:
         func = _compileGeneric(f"generic.process(func={test})", flags)
-        result = _execGeneric(flags, data, func, field=this.name, nodata=nodata)
+        result = _execGeneric(flags, data, func, field=this.name)
         assert result == expected
 
 
-@pytest.mark.parametrize("nodata", TESTNODATA)
-def test_ismissing(data, nodata):
+def test_ismissing(data):
 
     flags = initFlagsLike(data)
     data.iloc[: len(data) // 2, 0] = np.nan
@@ -181,18 +179,17 @@ def test_ismissing(data, nodata):
     this = data.iloc[:, 0]
 
     tests = [
-        (f"ismissing({this.name})", (pd.isnull(this) | (this == nodata))),
-        (f"~ismissing({this.name})", (pd.notnull(this) & (this != nodata))),
+        (f"ismissing({this.name})", pd.isnull(this)),
+        (f"~ismissing({this.name})", pd.notnull(this)),
     ]
 
     for test, expected in tests:
         func = _compileGeneric(f"generic.flag(func={test})", flags)
-        result = _execGeneric(flags, data, func, this.name, nodata)
+        result = _execGeneric(flags, data, func, this.name)
         assert np.all(result == expected)
 
 
-@pytest.mark.parametrize("nodata", TESTNODATA)
-def test_bitOps(data, nodata):
+def test_bitOps(data):
     var1, var2, *_ = data.columns
     this = var1
 
@@ -206,7 +203,7 @@ def test_bitOps(data, nodata):
 
     for test, expected in tests:
         func = _compileGeneric(f"generic.flag(func={test})", flags)
-        result = _execGeneric(flags, data, func, this, nodata)
+        result = _execGeneric(flags, data, func, this)
         assert np.all(result == expected)
 
 
@@ -230,7 +227,7 @@ def test_isflagged(data):
     for i, (test, expected) in enumerate(tests):
         try:
             func = _compileGeneric(f"generic.flag(func={test}, flag=BAD)", flags)
-            result = _execGeneric(flags, data, func, field=None, nodata=np.nan)
+            result = _execGeneric(flags, data, func, field=None)
             assert np.all(result == expected)
         except Exception:
             print(i, test)
@@ -242,7 +239,7 @@ def test_isflagged(data):
 
         func = _compileGeneric(f"generic.flag(func={fails}, flag=BAD)", flags)
         with pytest.raises(ValueError):
-            _execGeneric(flags, data, func, field=None, nodata=np.nan)
+            _execGeneric(flags, data, func, field=None)
 
 
 def test_variableAssignments(data):

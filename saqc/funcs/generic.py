@@ -55,7 +55,6 @@ def _execGeneric(
     data: DictOfSeries,
     func: Callable[[pd.Series], pd.Series],
     field: str,
-    nodata: float,
 ) -> pd.Series:
     # TODO:
     # - check series.index compatibility
@@ -72,10 +71,9 @@ def _execGeneric(
 
     globs = {
         "isflagged": partial(_dslIsFlagged, flags),
-        "ismissing": lambda var: ((var == nodata) | pd.isnull(var)),
+        "ismissing": lambda var: pd.isnull(var),
         "mask": lambda cond: data[cond.name].mask(cond),
         "this": field,
-        "NODATA": nodata,
         "GOOD": GOOD,
         "BAD": BAD,
         "UNFLAGGED": UNFLAGGED,
@@ -91,7 +89,6 @@ def process(
     field: str,
     flags: Flags,
     func: Callable[[pd.Series], pd.Series],
-    nodata: float = np.nan,
     to_mask: float = UNFLAGGED,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -106,7 +103,7 @@ def process(
         Than, for every timestamp t_i that occurs in at least one of the timeseries data[f_j] (outer join),
         The value v_i is computed via:
         v_i = data([f_1][t_i], data[f_2][t_i], ..., data[f_K][t_i]), if all data[f_j][t_i] do exist
-        v_i = `nodata`, if at least one of the data[f_j][t_i] is missing.
+        v_i = `np.nan`, if at least one of the data[f_j][t_i] is missing.
     2.  The result is stored to data[field] (gets generated if not present)
 
     Parameters
@@ -121,8 +118,6 @@ def process(
         The data processing function with parameter names that will be
         interpreted as data column entries.
         See the examples section to learn more.
-    nodata : any, default np.nan
-        The value that indicates missing/invalid data
 
     Returns
     -------
@@ -147,7 +142,7 @@ def process(
     # we get the data unmasked in order to also receive flags,
     # so let's do to the masking manually
     data_masked, _ = _maskData(data, flags, data.columns, to_mask)
-    data[field] = _execGeneric(flags, data_masked, func, field, nodata).squeeze()
+    data[field] = _execGeneric(flags, data_masked, func, field).squeeze()
 
     if field in flags:
         flags.drop(field)
@@ -163,7 +158,6 @@ def flag(
     field: str,
     flags: Flags,
     func: Callable[[pd.Series], pd.Series],
-    nodata: float = np.nan,
     flag: float = BAD,
     to_mask: float = UNFLAGGED,
     **kwargs,
@@ -200,8 +194,6 @@ def flag(
         The expression that is to be evaluated is passed in form of a callable, with parameter names that will be
         interpreted as data column entries. The Callable must return an boolen array like.
         See the examples section to learn more.
-    nodata : any, default np.nan
-        The value that indicates missing/invalid data
     flag : float, default BAD
         flag to set.
 
@@ -249,7 +241,7 @@ def flag(
     # so let's do to the masking manually
     data_masked, _ = _maskData(data, flags, data.columns, to_mask)
 
-    mask = _execGeneric(flags, data_masked, func, field, nodata).squeeze()
+    mask = _execGeneric(flags, data_masked, func, field).squeeze()
     if np.isscalar(mask):
         raise TypeError(f"generic expression does not return an array")
     if not np.issubdtype(mask.dtype, np.bool_):

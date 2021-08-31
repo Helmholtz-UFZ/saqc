@@ -12,9 +12,7 @@ from saqc.lib.types import FreqString, IntegerWindow, ColumnName
 
 
 class Breaks(ModuleBase):
-    def flagMissing(
-        self, field: ColumnName, nodata: float = np.nan, flag: float = BAD, **kwargs
-    ) -> saqc.SaQC:
+    def flagMissing(self, field: ColumnName, flag: float = BAD, **kwargs) -> saqc.SaQC:
         return self.defer("flagMissing", locals())
 
     def flagIsolated(

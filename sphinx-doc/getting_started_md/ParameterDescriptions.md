@@ -32,4 +32,3 @@ and might range from numerical values to string constants.
 | Alias    | Description  |
 | ----     | ----         |
 | `NAN`    | Not a number |
-| `NODATA` | Missing data |
