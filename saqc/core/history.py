@@ -25,10 +25,6 @@ class History:
     the FH, we provide a ``max()`` method. It returns a pd.Series indicating
     the worst flag per row.
 
-    To counteract the problem, that one may want to force a better flag
-    value than the current worst, ``append`` provide a ``force`` keyword.
-    Internal we need to store the force information in an additional mask.
-
     For more details and a detailed discussion, why this is needed, how this
     works and possible other implementations, see #GL143 [1].
 
@@ -47,7 +43,6 @@ class History:
     def __init__(self, index: pd.Index):
 
         self.hist = pd.DataFrame(index=index)
-        self.mask = pd.DataFrame(index=index)
         self.meta = []
 
     @property
@@ -96,11 +91,9 @@ class History:
         bool
             If History is empty, return True, if not return False.
         """
-        # we take self.mask here, because it cannot have NaN's,
-        # but self.hist could have -> see pd.DataFrame.empty
-        return self.mask.empty
+        return len(self) == 0
 
-    def _insert(self, s: pd.Series, pos: int, force=False) -> History:
+    def _insert(self, s: pd.Series, pos: int) -> History:
         """
         Insert data at an arbitrary position in the FH.
 
@@ -114,10 +107,6 @@ class History:
         pos : int
             the position to insert
 
-        force : bool, default False
-            if True the internal mask is updated accordingly that the values overwrite
-            any earlier values in the FH.
-
         Returns
         -------
         History
@@ -128,20 +117,11 @@ class History:
         # ensure continuous increasing columns
         assert 0 <= pos <= len(self)
 
-        if pos == len(self):  # append
-            self.mask[pos] = pd.Series(True, index=s.index, dtype=bool)
-
-        if force:
-            touched = s.notna()
-            self.mask.iloc[touched, :pos] = False
-
         self.hist[pos] = s.astype("category")
 
         return self
 
-    def append(
-        self, value: Union[pd.Series, History], force: bool = False, meta: dict = None
-    ) -> History:
+    def append(self, value: Union[pd.Series, History], meta: dict = None) -> History:
         """
         Create a new FH column and insert given pd.Series to it.
 
@@ -150,24 +130,6 @@ class History:
         value : pd.Series or History
             The data to append. Must have dtype float and the index must
             match the index of the History.
-
-        force : bool, default False
-
-            If ``value`` is a ``pd.Series``:
-
-                - ``force=True`` : the internal mask is updated in a way that the currently
-                  set values gets the highest priority in the current history.
-                  This means, these values are guaranteed to be returned if ``History.max()``
-                  is called, until newer possibly higher flags are set. Bear in mind
-                  that this never apply for `Nan`-values.
-                - ``force=False`` : values are not treated special.
-
-            If ``value`` is a ``History``:
-
-                - ``force=True`` : All columns are appended to the existing history.
-                - ``force=False`` : Only columns that are `newer` are appended. This means
-                  the first ``N`` columns of the passed history are discarded, where ``N`` is the
-                  number of existing columns in the current history.
 
         meta : dict, default None
             metadata dictionary to store with the series. Ignored if ``value`` is of
@@ -183,7 +145,7 @@ class History:
         ValueError: on index miss-match or wrong dtype
         """
         if isinstance(value, History):
-            return self._appendHistory(value, force=force)
+            return self._appendHistory(value)
 
         if not isinstance(value, pd.Series):
             raise TypeError("'value' is not a pd.Series")
@@ -198,11 +160,11 @@ class History:
         if not val.index.equals(self.index):
             raise ValueError("Index does not match")
 
-        self._insert(val, pos=len(self), force=force)
+        self._insert(val, pos=len(self))
         self.meta.append(deepcopy(meta))
         return self
 
-    def _appendHistory(self, value: History, force: bool = False):
+    def _appendHistory(self, value: History):
         """
         Append multiple columns of a history to self.
 
@@ -210,10 +172,6 @@ class History:
         ----------
         value : History
             Holding the columns to append
-        force : bool
-            If False, the first `N` columns in the passed History are discarded, where
-            `N` is the number of columns in the original history.
-            If ``force=True`` all columns are appended.
 
         Returns
         -------
@@ -227,47 +185,24 @@ class History:
         -----
         This ignores the column names of the passed History.
         """
-        self._validate(value.hist, value.mask, value.meta)
+        self._validate(value.hist, value.meta)
         if not value.index.equals(self.index):
             raise ValueError("Index does not match")
 
         n = len(self.columns)
         # don't overwrite the `.columns` of the input down the line
         value_hist = value.hist.copy(deep=False)
-        value_mask = value.mask.copy(deep=False)
         value_meta = deepcopy(value.meta)
-
-        if not force:
-            value_hist = value_hist.iloc[:, n:]
-            value_mask = value_mask.iloc[:, n:]
-            value_meta = value_meta[n:]
 
         # rename columns, to avoid ``pd.DataFrame.loc`` become confused
         columns = pd.Index(range(n, n + len(value_hist.columns)))
         value_hist.columns = columns
-        value_mask.columns = columns
-
-        # clear the current mask
-        self.mask.loc[(~value_mask & value_hist.notna()).any(axis="columns")] = False
 
         hist = self.hist.astype(float)
         hist.loc[:, columns] = value_hist.astype(float)
         self.hist = hist.astype("category", copy=True)
-        self.mask.loc[:, columns] = value_mask.copy()
         self.meta += value_meta
         return self
-
-    def idxmax(self) -> pd.Series:
-        """
-        Get the index of the maximum value per row of the FH.
-
-        Returns
-        -------
-        pd.Series: maximum values
-        """
-        if self.mask.empty:
-            return pd.Series(np.nan, index=self.index)
-        return self.hist[self.mask].astype(float).idxmax(axis=1)
 
     def max(self, raw=False) -> pd.Series:
         """
@@ -277,7 +212,19 @@ class History:
         -------
         pd.Series: maximum values
         """
-        result = self.hist[self.mask].max(axis=1)
+
+        result = self.hist.astype(float)
+        if result.empty:
+            result = pd.DataFrame(data=UNTOUCHED, index=self.hist.index, columns=[0])
+        if len(result.columns) > 1:
+            # `fillna` acts like 'axis="index"' if the DataFrame has only one column.
+            # a pandas bug?
+            result = result.fillna(method="ffill", axis="columns").loc[
+                :, result.columns[-1]
+            ]
+        if isinstance(result, pd.DataFrame):
+            result = result.squeeze(axis="columns")
+
         if raw:
             return result
         else:
@@ -302,13 +249,10 @@ class History:
         hist = self.hist.astype(float).reindex(
             index=index, copy=False, fill_value=np.nan
         )
-        mask = self.mask.astype(bool).reindex(index=index, copy=False, fill_value=False)
 
         # Note: all following code must handle empty frames
         hist.iloc[:, -1:] = hist.iloc[:, -1:].fillna(fill_value_last)
-        mask.iloc[:, -1:] = True
 
-        self.mask = mask.astype(bool)
         self.hist = hist.astype("category")
 
         return self
@@ -316,22 +260,17 @@ class History:
     def apply(
         self,
         index: pd.Index,
-        hist_func: callable,
-        hist_kws: dict,
-        mask_func: callable,
-        mask_kws: dict,
+        func: callable,
+        func_kws: dict,
         func_handle_df: bool = False,
         copy: bool = True,
     ):
         """
         Apply a function on each column in history.
 
-        Two functions must be given. Both are called for each column in the History
-        unless ``func_handle_df=True`` is given. One is called on ``History.hist``,
-        the other on ``History.mask``. Both function must take a `pd.Series` as first
-        arg, which is a column from `hist` respectively `mask`. If
-        ``func_handle_df=True`` each functions take a ``pd.DataFrame`` as first
-        argument, holding all columns at once.
+        The function must take a `pd.Series` as first arg, which is a column from
+        `hist`. If ``func_handle_df=True`` each functions take a ``pd.DataFrame``
+        as first argument, holding all columns at once.
         Bear in mind:
         - the functions mustn't alter the passed objects
         - the functions are not allowed to add or remove columns
@@ -353,47 +292,30 @@ class History:
         hist_kws : dict
             hist-function keywords dict
 
-        mask_func : callable
-            function to apply on `History.mask` (force mask DataFrame)
-
-        mask_kws : dict
-            mask-function keywords dict
-
         func_handle_df : bool, default False
-            If `True`, the Dataframe under `History`.hist, respectively  `History.mask`
-            is passed to the given functions, thus both(!) function must handle
-            `pd.Dataframes` as first input. If `False`, each column is passed separately,
-            thus the functions must handle those.
+            If `True`, the Dataframe under `History`.hist is passed to the given functions,
+            thus the function must handle `pd.Dataframes` as first input. If `False`, each
+            column is passed separately, thus the function must handle those.
 
         copy : bool, default True
             If False, alter the underlying history, otherwise return a copy.
 
-        Notes
-        -----
-        After the functions are called, all `NaN`'s in `History.mask` are replaced by
-        `False`, and the `.mask` is casted to bool, to ensure a consistent History.
 
         Returns
         -------
         history with altered columns
         """
         hist = pd.DataFrame(index=index)
-        mask = pd.DataFrame(index=index)
 
         if func_handle_df:
             # we need to pass the data as floats as functions may fail with Categorical
-            hist = hist_func(self.hist.astype(float), **hist_kws)
-            mask = mask_func(self.mask, **mask_kws)
+            hist = func(self.hist.astype(float), **func_kws)
 
         else:
             for pos in self.columns:
-                hist[pos] = hist_func(self.hist[pos].astype(float), **hist_kws)
-                mask[pos] = mask_func(self.mask[pos], **mask_kws)
+                hist[pos] = func(self.hist[pos].astype(float), **func_kws)
 
-        # handle unstable state
-        mask.iloc[:, -1:] = True
-
-        History._validate(hist, mask, self.meta)
+        History._validate(hist, self.meta)
 
         if copy:
             history = History(index=None)  # noqa
@@ -402,7 +324,6 @@ class History:
             history = self
 
         history.hist = hist.astype("category")
-        history.mask = mask.fillna(True).astype(bool)
 
         return history
 
@@ -435,10 +356,6 @@ class History:
             return str(self.hist).replace("DataFrame", "History")
 
         r = self.hist.astype(str)
-        m = self.mask
-
-        r[m] = " " + r[m] + " "
-        r[~m] = "(" + r[~m] + ")"
 
         return str(r)[1:]
 
@@ -447,11 +364,9 @@ class History:
     #
 
     @staticmethod
-    def _validate(
-        hist: pd.DataFrame, mask: pd.DataFrame, meta: List[Any]
-    ) -> Tuple[pd.DataFrame, pd.DataFrame, List]:
+    def _validate(hist: pd.DataFrame, meta: List[Any]) -> Tuple[pd.DataFrame, List]:
         """
-        check type, columns, index, dtype of hist and mask and if the meta fits also.
+        check type, columns, index, dtype of hist and if the meta fits also
         """
 
         # check hist
@@ -478,20 +393,6 @@ class History:
                 "column names must be continuous increasing int's, starting with 0."
             )
 
-        # check mask
-        if not isinstance(mask, pd.DataFrame):
-            raise TypeError(
-                f"'mask' must be of type pd.DataFrame, but is of type {type(mask).__name__}"
-            )
-
-        if not (mask.dtypes == bool).all():
-            raise ValueError("dtype of every columns in 'mask' must be bool")
-
-        if not mask.empty and not mask.iloc[:, -1].all():
-            raise ValueError(
-                "the values in the last column in mask must be 'True' everywhere."
-            )
-
         # check meta
         if not isinstance(meta, list):
             raise TypeError(
@@ -500,19 +401,13 @@ class History:
         if not all([isinstance(e, dict) for e in meta]):
             raise TypeError("All elements in meta must be of type 'dict'")
 
-        # check combinations of hist and mask and meta
-        if not hist.columns.equals(mask.columns):
-            raise ValueError("'hist' and 'mask' must have the same columns")
-
-        if not hist.index.equals(mask.index):
-            raise ValueError("'hist' and 'mask' must have the same index")
-
+        # check combinations of hist and meta
         if not len(hist.columns) == len(meta):
             raise ValueError(
                 "'meta' must have as many entries as columns exist in hist"
             )
 
-        return hist, mask, meta
+        return hist, meta
 
     @staticmethod
     def _validateValue(obj: pd.Series) -> pd.Series:
@@ -532,7 +427,6 @@ class History:
 
 def createHistoryFromData(
     hist: pd.DataFrame,
-    mask: pd.DataFrame,
     meta: List[Dict],
     copy: bool = False,
 ):
@@ -543,14 +437,6 @@ def createHistoryFromData(
     ----------
     hist : pd.Dataframe
         Data that define the flags of the history.
-
-    mask : pd.Dataframe
-        The mask holding the boolean force values. The following
-        points must hold:
-
-        * columns must be equal to the columns of `hist`
-        * the last column must be entirely `True`
-        * at most one change from False to True is allowed per row
 
     meta : List of dict
         A list holding meta information for each column, therefore it must
@@ -571,15 +457,13 @@ def createHistoryFromData(
     -------
     History
     """
-    History._validate(hist, mask, meta)
+    History._validate(hist, meta)
 
     if copy:
         hist = hist.copy()
-        mask = mask.copy()
         meta = deepcopy(meta)
 
     history = History(index=None)  # noqa
     history.hist = hist.astype("category", copy=False)
-    history.mask = mask
     history.meta = meta
     return history

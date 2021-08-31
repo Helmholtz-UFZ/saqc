@@ -74,7 +74,7 @@ class PositionalTranslator(Translator):
             fflags = super()._translate(df, self._FORWARD)
             field_history = History(field_flags.index)
             for _, s in fflags.items():
-                field_history.append(s, force=True)
+                field_history.append(s)
             data[str(field)] = field_history
 
         return Flags(data)

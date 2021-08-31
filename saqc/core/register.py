@@ -57,7 +57,13 @@ def processing(module: Optional[str] = None):
 
 
 def flagging(masking: MaskingStrT = "all", module: Optional[str] = None):
+
     # executed on module import
+    if masking not in ("all", "field", "none"):
+        raise ValueError(
+            f"invalid masking argument '{masking}', choose one of ('all', 'field', 'none')"
+        )
+
     def inner(func):
         func_name = func.__name__
         if module:
@@ -334,7 +340,7 @@ def _restoreFlags(flags: Flags, old_state: CallState):
     # - no data was masked (no relevance here, but help understanding)
     # - the saqc-function got a copy of the whole flags frame with all full histories
     #   (but is not allowed to change them; we have -> @processing for this case)
-    # - the saqc-function appended none or some columns to the each history
+    # - the saqc-function appended none or some columns to each history
     #
     # masking == 'all'
     # - all data was masked by flags (no relevance here, but help understanding)
@@ -342,43 +348,46 @@ def _restoreFlags(flags: Flags, old_state: CallState):
     # - the saqc-function appended none or some columns to the each history
     #
     # masking == 'field'
-    # - some data columns were masked by flags (no relevance here)
-    # - the saqc-function got a complete new flags frame, with empty Histories
-    # - the saqc-function appended none or some columns to the each history
-    # Note: actually the flags SHOULD have been cleared only at the field (as the
+    # - the column `field` was masked by flags (no relevance here)
+    # - the saqc-function got a complete new flags frame, with empty `History`s
+    # - the saqc-function appended none or some columns to none or some `History`s
+    #
+    # NOTE:
+    # Actually the flags SHOULD have been cleared only at the `field` (as the
     # masking-parameter implies) but the current implementation in `_prepareFlags`
-    # clear all columns. Nevertheless the following code only update the field (and new
-    # columns) and not all columns.
-    if old_state.masking == "none":
+    # clears all columns. Nevertheless the following code only update the `field`
+    # (and new columns) and not all columns.
+
+    if old_state.masking in ("none", "all"):
         columns = flags.columns
-    elif old_state.masking == "all":
-        columns = flags.columns
-    elif old_state.masking == "field":
+    else:  # field
         columns = pd.Index([old_state.field])
-    else:
-        raise RuntimeError(old_state.masking)
 
     for c in columns.union(new_columns):
 
         if c in new_columns:
             history = flags.history[c]
             out.history[c] = History(index=history.index)  # ensure existence
-        # New columns was appended to the old history, but we want to have the new
+        # new columns were appended to the old history, but we want to have the new
         # columns only. If old and new are the same (nothing was appended), we end up
-        # having a empty history, whats handled later correctly
+        # having a empty history and that is handled later correctly
         elif old_state.masking == "none":
             sl = slice(len(old_state.flags.history[c].columns), None)
             history = _sliceHistory(flags.history[c], sl)
         else:
             history = flags.history[c]
 
-        squeezed = flags.history[c].max(raw=True)
-
-        # nothing to update
+        # NOTE:
+        # nothing to update -> i.e. a function did not set any flags at all
+        # this has implications for function writers: early returns out of
+        # functions before `flags.__getitem__` was called at least once make,
+        # the function call invisable to the flags/history machinery and might
+        # break translation schemes such as the `PositionalTranslator`
         if history.empty:
             continue
 
-        out.history[c] = out.history[c].append(squeezed, force=True, meta=meta)
+        squeezed = history.max(raw=True)
+        out.history[c] = out.history[c].append(squeezed, meta=meta)
 
     return out
 
@@ -440,7 +449,6 @@ def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSer
 
 
 def _sliceHistory(history: History, sl: slice) -> History:
-    history.mask = history.mask.iloc[:, sl]
     history.hist = history.hist.iloc[:, sl]
     history.meta = history.meta[sl]
     return history

@@ -210,10 +210,8 @@ def shift(
         index=datcol.index,
         func_handle_df=True,
         copy=False,
-        hist_func=shift2Freq,
-        hist_kws={**kws, "fill_value": UNTOUCHED},
-        mask_func=shift2Freq,
-        mask_kws={**kws, "fill_value": True},
+        func=shift2Freq,
+        func_kws={**kws, "fill_value": UNTOUCHED},
     )
 
     flags.history[field] = history
@@ -356,10 +354,8 @@ def resample(
 
     history = flags.history[field].apply(
         index=datcol.index,
-        hist_func=aggregate2Freq,
-        mask_func=aggregate2Freq,
-        hist_kws=kws,
-        mask_kws={**kws, "agg_func": any, "fill_value": True},
+        func=aggregate2Freq,
+        func_kws=kws,
         copy=False,
     )
 
@@ -526,14 +522,12 @@ def reindexFlags(
         ignore = _getChunkBounds(target_datcol, flagscol, freq)
         func = _inverseInterpolation
         func_kws = dict(freq=freq, chunk_bounds=ignore, target=dummy)
-        mask_kws = {**func_kws, "chunk_bounds": []}
 
     elif method[-3:] == "agg" or method == "match":
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
         func = _inverseAggregation
         func_kws = dict(freq=tolerance, method=projection_method, target=dummy)
-        mask_kws = func_kws
 
     elif method[-5:] == "shift":
         drop_mask = target_datcol.isna() | _isflagged(
@@ -546,13 +540,10 @@ def reindexFlags(
             freq=tolerance, method=projection_method, drop_mask=drop_mask, target=dummy
         )
         func_kws = {**kws, "fill_value": UNTOUCHED}
-        mask_kws = {**kws, "fill_value": False}
 
     else:
         raise ValueError(f"unknown method {method}")
 
-    history = flags.history[source].apply(
-        dummy.index, func, func_kws, func, mask_kws, copy=False
-    )
-    flags.history[field] = flags.history[field].append(history, force=False)
+    history = flags.history[source].apply(dummy.index, func, func_kws, copy=False)
+    flags.history[field] = flags.history[field].append(history)
     return data, flags

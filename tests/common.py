@@ -34,20 +34,14 @@ def initData(
     return di
 
 
-def dummyHistory(
-    hist: pd.DataFrame = None, mask: pd.DataFrame = None, meta: list = None
-):
+def dummyHistory(hist: pd.DataFrame = None, meta: list = None):
     if hist is None:
         return History()
-
-    if mask is None:
-        mask = hist.copy()
-        mask[:] = True
 
     if meta is None:
         meta = [{}] * len(hist.columns)
 
-    return createHistoryFromData(hist, mask, meta, copy=True)
+    return createHistoryFromData(hist, meta, copy=True)
 
 
 def writeIO(content):
