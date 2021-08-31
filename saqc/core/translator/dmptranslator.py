@@ -105,7 +105,7 @@ class DmpTranslator(Translator):
                     "func": comment["test"],
                     "keywords": {"comment": comment["comment"], "cause": cause},
                 }
-                field_history.append(histcol, force=True, meta=meta)
+                field_history.append(histcol, meta=meta)
 
             data[str(field)] = field_history
 
@@ -143,14 +143,7 @@ class DmpTranslator(Translator):
 
             for col in history.columns:
 
-                # NOTE:
-                # I really dislike the fact, that the implementationd
-                # detail `mask`, leaks into the translator. For the
-                # the limited time available it is a pragmatic solution
-                # however...
-                h, m = history.hist[col], history.mask[col]
-                h[~m | (h == UNFLAGGED)] = np.nan
-                valid = h.notna()
+                valid = history.hist[col] != UNFLAGGED
 
                 # extract from meta
                 meta = history.meta[col]

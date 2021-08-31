@@ -288,10 +288,8 @@ def interpolateIndex(
 
     history = flags.history[field].apply(
         index=data[field].index,
-        hist_func=_resampleOverlapping,
-        mask_func=_resampleOverlapping,
-        hist_kws=dict(freq=freq, fill_value=UNFLAGGED),
-        mask_kws=dict(freq=freq, fill_value=True),
+        func=_resampleOverlapping,
+        func_kws=dict(freq=freq, fill_value=UNFLAGGED),
         copy=False,
     )
 
