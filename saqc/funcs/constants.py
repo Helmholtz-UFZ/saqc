@@ -75,7 +75,7 @@ def flagConstants(
     starting_points_mask = rolling.max() - rolling.min() <= thresh
     rolling = customRoller(starting_points_mask, **kws, forward=True)
     # mimic any()
-    mask = rolling.sum() > 0
+    mask = (rolling.sum() > 0) & d.notna()
 
     flags[mask, field] = flag
     return data, flags
