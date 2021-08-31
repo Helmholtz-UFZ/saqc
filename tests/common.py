@@ -7,10 +7,8 @@ import pandas as pd
 import dios
 
 from saqc.constants import *
-from saqc.core import initFlagsLike, Flags
+from saqc.core import Flags
 from saqc.core.history import History, createHistoryFromData
-
-TESTNODATA = (np.nan, -9999)
 
 
 def flagAll(data, field, flags, **kwargs):

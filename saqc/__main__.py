@@ -110,7 +110,6 @@ def main(config, data, scheme, outfile, nodata, log_level, fail):
 
     saqc = SaQC(
         data=data,
-        nodata=nodata,
         scheme=SCHEMES[scheme or "float"](),
         error_policy="raise" if fail else "warn",
     )

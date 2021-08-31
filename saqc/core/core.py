@@ -142,14 +142,12 @@ class SaQC(FuncModules):
         data,
         flags=None,
         scheme: Translator = None,
-        nodata=np.nan,
         error_policy="raise",
         lazy=False,
     ):
         super().__init__(self)
         data, flags = _prepInput(data, flags)
         self._data = data
-        self._nodata = nodata
         self._flags = self._initFlags(data, flags)
         self._error_policy = error_policy
         self._lazy = lazy
@@ -197,7 +195,6 @@ class SaQC(FuncModules):
         out = SaQC(
             data=DictOfSeries(),
             flags=Flags(),
-            nodata=self._nodata,
             error_policy=self._error_policy,
             scheme=self._translator,
         )
@@ -219,9 +216,7 @@ class SaQC(FuncModules):
         from saqc.core.reader import readConfig
 
         out = stdcopy.deepcopy(self)
-        out._planned.extend(
-            readConfig(fname, self._translator, self._data, self._nodata)
-        )
+        out._planned.extend(readConfig(fname, self._translator, self._data))
         if self._lazy:
             return out
         return out.evaluate()
@@ -305,7 +300,6 @@ class SaQC(FuncModules):
             partial = func.bind(
                 *fargs,
                 **{
-                    "nodata": self._nodata,
                     "flag": self._translator(flag),
                     "to_mask": self._translator.TO_MASK,
                     **fkwargs,
@@ -378,7 +372,7 @@ def _warnForUnusedKwargs(func, translator: Translator):
     sig_kws = inspect.signature(func.func).parameters
 
     # we need to ignore kws that are injected or by default hidden in ``**kwargs``
-    ignore = ("nodata", "to_mask")
+    ignore = ("to_mask",)
 
     missing = []
     for kw in func.keywords:

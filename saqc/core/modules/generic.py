@@ -17,7 +17,6 @@ class Generic(ModuleBase):
         self,
         field: str,
         func: Callable[[pd.Series], pd.Series],
-        nodata: float = np.nan,
         to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
@@ -27,7 +26,6 @@ class Generic(ModuleBase):
         self,
         field: str,
         func: Callable[[pd.Series], pd.Series],
-        nodata: float = np.nan,
         flag: float = BAD,
         to_mask: float = UNFLAGGED,
         **kwargs,

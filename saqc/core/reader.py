@@ -47,16 +47,7 @@ def _handleComments(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _injectOptionalColumns(df):
-    # inject optional columns
-    if F.PLOT not in df:
-        empty = (df == EMPTY).all(axis=1)
-        df[F.PLOT] = "False"
-        df[empty] = EMPTY
-    return df
-
-
-def _parseConfig(df, translator, data, nodata):
+def _parseConfig(df, translator, data):
     funcs = []
     for lineno, (_, target, expr) in enumerate(df.itertuples()):
         if target == "None" or pd.isnull(target) or pd.isnull(expr):
@@ -75,9 +66,7 @@ def _parseConfig(df, translator, data, nodata):
         if "flag" in kwargs:
             kwargs["flag"] = translator(kwargs["flag"])
 
-        partial = func.bind(
-            **{"nodata": nodata, "to_mask": translator.TO_MASK, **kwargs}
-        )
+        partial = func.bind(**{"to_mask": translator.TO_MASK, **kwargs})
 
         targets = toSequence(target)
 
@@ -91,7 +80,7 @@ def _parseConfig(df, translator, data, nodata):
     return funcs
 
 
-def readConfig(fname, translator, data, nodata):
+def readConfig(fname, translator, data):
     df = pd.read_csv(
         fname,
         sep=r"\s*;\s*",
@@ -107,4 +96,4 @@ def readConfig(fname, translator, data, nodata):
 
     df[F.VARNAME] = df[F.VARNAME].replace(r"^\s*$", np.nan, regex=True)
     df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
-    return _parseConfig(df, translator, data, nodata)
+    return _parseConfig(df, translator, data)

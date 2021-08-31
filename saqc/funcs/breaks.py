@@ -33,7 +33,6 @@ def flagMissing(
     data: DictOfSeries,
     field: ColumnName,
     flags: Flags,
-    nodata: float = np.nan,
     flag: float = BAD,
     to_mask: float = UNFLAGGED,
     **kwargs
@@ -49,8 +48,6 @@ def flagMissing(
         The fieldname of the column, holding the data-to-be-flagged.
     flags : saqc.Flags
         Container to store quality flags to data.
-    nodata : any, default np.nan
-        A value that defines missing data.
     flag : float, default BAD
         flag to set.
 
@@ -63,11 +60,8 @@ def flagMissing(
     """
 
     datacol = data[field]
+    mask = datacol.isna()
 
-    if np.isnan(nodata):
-        mask = datacol.isna()
-    else:
-        mask = datacol == nodata
     mask = ~_isflagged(flags[field], to_mask) & mask
 
     flags[mask, field] = flag
