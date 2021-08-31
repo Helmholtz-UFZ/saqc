@@ -12,7 +12,7 @@ from dios import DictOfSeries
 
 from saqc.constants import GOOD, BAD, UNFLAGGED
 from saqc.core.flags import initFlagsLike, Flags
-from saqc.core.register import flagging, processing, _maskData
+from saqc.core.register import flagging, processing, _maskData, _isflagged
 from saqc.core.visitor import ENVIRONMENT
 
 import operator as op
@@ -255,6 +255,7 @@ def flag(
     if not np.issubdtype(mask.dtype, np.bool_):
         raise TypeError(f"generic expression does not return a boolean array")
 
-    flags[field] = mask.replace({False: UNFLAGGED, True: flag})
+    m = ~_isflagged(flags[field], to_mask) & mask
+    flags[m, field] = flag
 
     return data, flags
