@@ -3,7 +3,7 @@ dtw==1.4.0
 hypothesis==6.17.4
 matplotlib==3.4.3
 mlxtend==0.18.0
-numba==0.53.1
+numba==0.54.0
 numpy==1.21.2
 outlier-utils==0.0.3
 pyarrow==4.0.1
