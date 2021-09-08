@@ -13,8 +13,8 @@ from saqc.core import processing, Flags
 from saqc.core.register import _isflagged
 from saqc.lib.tools import evalFreqStr, getFreqDelta
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
-from saqc.funcs.tools import copy
 from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
+import saqc.funcs.tools as tools
 
 
 logger = logging.getLogger("SaQC")
@@ -438,6 +438,7 @@ def reindexFlags(
     ],
     source: str,
     freq: Optional[str] = None,
+    drop: Optional[bool] = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -493,6 +494,9 @@ def reindexFlags(
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
 
+    drop : default False
+        If set to `True`, the `source` column will be removed
+
     Returns
     -------
     data : dios.DictOfSeries
@@ -546,4 +550,8 @@ def reindexFlags(
 
     history = flags.history[source].apply(dummy.index, func, func_kws, copy=False)
     flags.history[field] = flags.history[field].append(history)
+
+    if drop:
+        data, flags = tools.drop(data=data, flags=flags, field=source)
+
     return data, flags
