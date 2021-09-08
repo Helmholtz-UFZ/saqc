@@ -136,10 +136,8 @@ def test_dmpTranslator():
     assert (
         tflags.loc[flags["var3"] == BAD, ("var3", "quality_cause")] == "AUTOFLAGGED"
     ).all(axis=None)
-    assert (
-        tflags.loc[flags["var3"] == UNFLAGGED, ("var3", "quality_cause")]
-        == "AUTOFLAGGED"
-    ).all(axis=None)
+    mask = flags["var3"] == UNFLAGGED
+    assert (tflags.loc[mask, ("var3", "quality_cause")] == "AUTOFLAGGED").all(axis=None)
 
 
 def test_positionalTranslator():

@@ -33,7 +33,7 @@ class Translator:
     'forward' translation  from 'user flags' -> 'internal flags' needs to be
     provided.
     Optionally a second `dict` can be passed to map 'internal flags' -> 'user flags',
-    if the latter is not given, this 'backwards' translation will inferred as
+    if the latter is not given, this 'backward' translation will inferred as
     the inverse of the 'forward' translation.
 
     The translation mechanism imposes a few restrictions:
@@ -140,7 +140,9 @@ class Translator:
         """
         return Flags(self._translate(flags, self._forward))
 
-    def backward(self, flags: Flags) -> pd.DataFrame:
+    def backward(
+        self, flags: Flags, raw: bool = False
+    ) -> Union[pd.DataFrame, DictOfSeries]:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -153,7 +155,10 @@ class Translator:
         -------
         pd.DataFrame
         """
-        return self._translate(flags, self._backward).to_df()
+        out = self._translate(flags, self._backward)
+        if not raw:
+            out = out.to_df()
+        return out
 
 
 class FloatTranslator(Translator):
