@@ -156,8 +156,8 @@ class DmpTranslator(Translator):
                     }
                 )
                 cause = keywords.get("cause", self.ARGUMENTS["cause"])
-                df["quality_comment"] = comment
-                df["quality_cause"] = cause
+                df.loc[valid, "quality_comment"] = comment
+                df.loc[valid, "quality_cause"] = cause
 
             out[field] = df.reindex(out.index)
 
