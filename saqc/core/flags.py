@@ -326,10 +326,6 @@ class Flags:
                 "if a scalar should be set, please use 'flags[:, field] = flag'"
             )
 
-        # if nothing happens no-one writes the history books
-        if len(value) == 0:
-            return
-
         if key not in self._data:
             self._data[key] = History(value.index)
 
