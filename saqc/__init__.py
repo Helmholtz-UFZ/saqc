@@ -13,6 +13,7 @@ from saqc.core import (
     FloatTranslator,
     DmpTranslator,
     PositionalTranslator,
+    SimpleTranslator,
     SaQC,
     fromConfig,
 )

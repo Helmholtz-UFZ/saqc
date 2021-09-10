@@ -13,7 +13,9 @@ from dios import DictOfSeries
 from saqc.core.flags import (
     Flags,
     UNFLAGGED,
+    UNTOUCHED,
     BAD,
+    GOOD,
 )
 from saqc.lib.types import ExternalFlag
 
@@ -175,3 +177,27 @@ class FloatTranslator(Translator):
 
     def __init__(self):
         super().__init__(self._MAP, self._MAP)
+
+
+class SimpleTranslator(Translator):
+
+    """
+    Acts as the default Translator, provides a changeable subset of the
+    internal float flags
+    """
+
+    _FORWARD = {
+        "UNFLAGGED": -np.inf,
+        "BAD": BAD,
+        "OK": GOOD,
+    }
+
+    _BACKWARD = {
+        UNFLAGGED: "UNFLAGGED",
+        UNTOUCHED: "UNFLAGGED",
+        BAD: "BAD",
+        GOOD: "OK",
+    }
+
+    def __init__(self):
+        super().__init__(forward=self._FORWARD, backward=self._BACKWARD)

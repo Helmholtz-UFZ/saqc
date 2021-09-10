@@ -11,13 +11,20 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from saqc.core import fromConfig, FloatTranslator, DmpTranslator, PositionalTranslator
+from saqc.core import (
+    fromConfig,
+    FloatTranslator,
+    DmpTranslator,
+    PositionalTranslator,
+    SimpleTranslator,
+)
 
 
 logger = logging.getLogger("SaQC")
 
 
 SCHEMES = {
+    "simple": SimpleTranslator,
     "float": FloatTranslator,
     "positional": PositionalTranslator,
     "dmp": DmpTranslator,
