@@ -14,4 +14,5 @@ from saqc.core import (
     DmpTranslator,
     PositionalTranslator,
     SaQC,
+    fromConfig,
 )

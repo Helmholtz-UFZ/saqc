@@ -14,7 +14,7 @@ import numpy as np
 from dios import DictOfSeries, to_dios
 
 from saqc.core.flags import initFlagsLike, Flags
-from saqc.core.lib import APIController, ColumnSelector
+from saqc.core.lib import ColumnSelector
 from saqc.core.register import FUNC_MAP, SaQCFunction
 from saqc.core.modules import FuncModules
 from saqc.core.translator.basetranslator import Translator, FloatTranslator
@@ -33,7 +33,6 @@ logger = logging.getLogger("SaQC")
 def _handleErrors(
     exc: Exception,
     field: str,
-    control: APIController,
     func: SaQCFunction,
     policy: Literal["ignore", "warn", "raise"],
 ):
@@ -42,7 +41,6 @@ def _handleErrors(
             f"Exception:\n{type(exc).__name__}: {exc}",
             f"field: {field}",
             f"{func.errorMessage()}",
-            f"{control.errorMessage()}",
         ]
     )
 
@@ -152,12 +150,6 @@ class SaQC(FuncModules):
         self._error_policy = error_policy
         self._lazy = lazy
         self._translator = scheme or FloatTranslator()
-
-        # NOTE:
-        # We need two lists to represent the future and the past computations
-        # on a `SaQC`-Object. Due to the dynamic nature of field expansion
-        # with regular expressions, we can't just reuse the original execution
-        # plan to infer all translation related information.
         self._planned: CallGraph = []  # will be filled by calls to `_wrap`
 
     @staticmethod
@@ -212,15 +204,6 @@ class SaQC(FuncModules):
     def flags(self) -> Accessor:
         return Accessor(self._translator.backward(self.evaluate()._flags))
 
-    def readConfig(self, fname):
-        from saqc.core.reader import readConfig
-
-        out = stdcopy.deepcopy(self)
-        out._planned.extend(readConfig(fname, self._translator, self._data))
-        if self._lazy:
-            return out
-        return out.evaluate()
-
     def evaluate(self):
         """
         Realize all the registered calculations and return a updated SaQC Object
@@ -234,7 +217,7 @@ class SaQC(FuncModules):
         """
 
         data, flags = self._data, self._flags
-        for selector, control, function in self._planned:
+        for selector, function in self._planned:
             logger.debug(
                 f"processing: {selector.field}, {function.name}, {function.keywords}"
             )
@@ -248,7 +231,7 @@ class SaQC(FuncModules):
                 # when the user pass data=...)
                 _warnForUnusedKwargs(function, self._translator)
             except Exception as e:
-                _handleErrors(e, selector.field, control, function, self._error_policy)
+                _handleErrors(e, selector.field, function, self._error_policy)
                 continue
 
             data = data_result
@@ -293,7 +276,6 @@ class SaQC(FuncModules):
 
             out = self if inplace else self.copy(deep=True)
 
-            control = APIController()
             # NOTE:
             # changes here are likely to be necessary in
             # `saqc.core.reader._parseConfig` as well
@@ -310,23 +292,22 @@ class SaQC(FuncModules):
             if regex:
                 fields = self._data.columns.str.match(field)
                 fields = self._data.columns[fields]
+                targets = fields
             else:
-                fields = toSequence(field)
+                fields, targets = toSequence(field), toSequence(target, default=field)
 
-            for field in fields:
-                target = target if target is not None else field
+            for field, target in zip(fields, targets):
                 if field != target:
                     copy_func = FUNC_MAP["tools.copy"]
                     out._planned.append(
                         (
                             ColumnSelector(field, target),
-                            control,
                             copy_func.bind(new_field=target),
                         )
                     )
                     field = target
 
-                out._planned.append((ColumnSelector(field, target), control, partial))
+                out._planned.append((ColumnSelector(field, target), partial))
 
             if self._lazy:
                 return out

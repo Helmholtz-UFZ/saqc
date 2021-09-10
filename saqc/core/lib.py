@@ -2,10 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from dataclasses import dataclass
-import functools
-
-from typing import Optional, Any
-from typing_extensions import Literal
 
 
 class ColumnSelector:
@@ -15,24 +11,6 @@ class ColumnSelector:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.field})"
-
-
-@dataclass
-class APIController:
-    def errorMessage(self):
-        return ""
-
-
-@dataclass
-class ConfigController(APIController):
-    lineno: Optional[int] = None
-    expression: Optional[str] = None
-
-    def errorMessage(self):
-        return (
-            f"line: {self.lineno}\nexpression: {self.expression}"
-            + super().errorMessage()
-        )
 
 
 class SaQCFunction:

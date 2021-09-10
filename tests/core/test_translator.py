@@ -13,17 +13,14 @@ import pytest
 from dios import DictOfSeries
 
 from saqc.constants import UNFLAGGED, BAD, DOUBTFUL
-from saqc.core import translator
 from saqc.core.translator import (
-    FloatTranslator,
     PositionalTranslator,
     Translator,
     DmpTranslator,
 )
 from saqc.core.flags import Flags
 from saqc.core.core import SaQC
-from saqc.core.lib import APIController, SaQCFunction, ColumnSelector
-from saqc.funcs.flagtools import flagDummy
+from saqc.core.lib import ColumnSelector
 
 from tests.common import initData
 
@@ -280,7 +277,7 @@ def test_reproducibleMetadata():
     graph = []
     for m in flags1.history[col].meta:
         func = FUNC_MAP[m["func"]].bind(*m["args"], **m["keywords"])
-        graph.append((ColumnSelector(col), APIController(), func))
+        graph.append((ColumnSelector(col), func))
     # ... and inject into a blank SaQC object
     saqc2._planned = graph
     # ... replay the functions

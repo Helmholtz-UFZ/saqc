@@ -17,12 +17,12 @@ __all__ = [
     "MaterializedGraph",
 ]
 
-from typing import TypeVar, Union, NewType, List, Tuple, Optional
+from typing import TypeVar, Union, NewType, List, Tuple
 from typing_extensions import Protocol, Literal
 import numpy as np
 import pandas as pd
 from dios import DictOfSeries
-from saqc.core.lib import SaQCFunction, ColumnSelector, APIController
+from saqc.core.lib import SaQCFunction, ColumnSelector
 
 
 T = TypeVar("T")
@@ -38,7 +38,7 @@ FreqString = NewType(
     "FreqString", Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"]
 )
 
-CallGraph = List[Tuple[ColumnSelector, APIController, SaQCFunction]]
+CallGraph = List[Tuple[ColumnSelector, SaQCFunction]]
 MaterializedGraph = List[Tuple[ColumnSelector, SaQCFunction]]
 
 # we define a bunch of type aliases, mostly needed to generate appropiate fuzzy data through hypothesis
