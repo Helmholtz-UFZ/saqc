@@ -50,7 +50,7 @@ class DmpTranslator(Translator):
     the UFZ - Datamanagementportal
     """
 
-    ARGUMENTS = {"comment": "", "cause": "AUTOFLAGGED"}
+    ARGUMENTS = {"comment": "", "cause": "OTHER"}
 
     _FORWARD: ForwardMap = {
         "NIL": UNFLAGGED,
@@ -136,8 +136,8 @@ class DmpTranslator(Translator):
             df = pd.DataFrame(
                 {
                     "quality_flag": tflags[field],
-                    "quality_cause": self.ARGUMENTS["cause"],
-                    "quality_comment": self.ARGUMENTS["comment"],
+                    "quality_cause": "",
+                    "quality_comment": "",
                 }
             )
 
@@ -208,5 +208,5 @@ class DmpTranslator(Translator):
 
             if ((causes == "OTHER") & (comments == "")).any(None):
                 raise ValueError(
-                    "quality comment 'OTHER' needs a non-empty quality comment"
+                    "quality cause 'OTHER' needs a non-empty quality comment"
                 )

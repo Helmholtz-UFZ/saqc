@@ -41,7 +41,7 @@ def _genTranslators():
 
 def _genFlags(data: Dict[str, Union[Sequence, pd.Series]]) -> Flags:
 
-    flags = DictOfSeries()
+    flags = Flags()
     for k, v in data.items():
         if not isinstance(v, pd.Series):
             v = pd.Series(
@@ -49,7 +49,7 @@ def _genFlags(data: Dict[str, Union[Sequence, pd.Series]]) -> Flags:
             )
         flags[k] = v
 
-    return Flags(flags)
+    return flags
 
 
 def test_forwardTranslation():
@@ -118,7 +118,7 @@ def test_dmpTranslator():
         == '{"test": "flagBar", "comment": "I did it"}'
     ).all(axis=None)
 
-    assert (tflags.loc[:, ("var1", "quality_cause")] == "AUTOFLAGGED").all(axis=None)
+    assert (tflags.loc[:, ("var1", "quality_cause")] == "OTHER").all(axis=None)
 
     assert (tflags.loc[:, ("var2", "quality_flag")] == "BAD").all(axis=None)
     assert (
@@ -133,11 +133,11 @@ def test_dmpTranslator():
         tflags.loc[flags["var3"] == BAD, ("var3", "quality_comment")]
         == '{"test": "unknown", "comment": ""}'
     ).all(axis=None)
-    assert (
-        tflags.loc[flags["var3"] == BAD, ("var3", "quality_cause")] == "AUTOFLAGGED"
-    ).all(axis=None)
+    assert (tflags.loc[flags["var3"] == BAD, ("var3", "quality_cause")] == "OTHER").all(
+        axis=None
+    )
     mask = flags["var3"] == UNFLAGGED
-    assert (tflags.loc[mask, ("var3", "quality_cause")] == "AUTOFLAGGED").all(axis=None)
+    assert (tflags.loc[mask, ("var3", "quality_cause")] == "").all(axis=None)
 
 
 def test_positionalTranslator():
@@ -193,7 +193,7 @@ def test_dmpTranslatorIntegration():
 
     assert qflags.isin(translator._forward.keys()).all(axis=None)
     assert qfunc.isin({"", "breaks.flagMissing", "outliers.flagRange"}).all(axis=None)
-    assert (qcause[qflags[col] == "BAD"] == "AUTOFLAGGED").all(axis=None)
+    assert (qcause[qflags[col] == "BAD"] == "OTHER").all(axis=None)
 
     round_trip = translator.backward(translator.forward(flags))
 
