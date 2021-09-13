@@ -212,18 +212,11 @@ class History:
         -------
         pd.Series: maximum values
         """
-
         result = self.hist.astype(float)
         if result.empty:
             result = pd.DataFrame(data=UNTOUCHED, index=self.hist.index, columns=[0])
-        if len(result.columns) > 1:
-            # `fillna` acts like 'axis="index"' if the DataFrame has only one column.
-            # a pandas bug?
-            result = result.fillna(method="ffill", axis="columns").loc[
-                :, result.columns[-1]
-            ]
-        if isinstance(result, pd.DataFrame):
-            result = result.squeeze(axis="columns")
+
+        result = result.ffill(axis=1).iloc[:, -1]
 
         if raw:
             return result
