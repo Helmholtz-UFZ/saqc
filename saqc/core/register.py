@@ -6,16 +6,14 @@ import dataclasses
 import numpy as np
 import pandas as pd
 import dios
-import saqc.core.history
 
 from saqc.constants import *
-from saqc.core.lib import SaQCFunction
 from saqc.core.flags import initFlagsLike, Flags, History
 
 # NOTE:
 # the global SaQC function store,
 # will be filled by calls to register
-FUNC_MAP: Dict[str, SaQCFunction] = {}
+FUNC_MAP: Dict[str, Callable] = {}
 
 MaskingStrT = Literal["all", "field", "none"]
 FuncReturnT = Tuple[dios.DictOfSeries, Flags]
@@ -50,7 +48,7 @@ def processing(module: Optional[str] = None):
             kwargs["to_mask"] = _getMaskingThresh(kwargs)
             return func(data, field, flags, *args, **kwargs)
 
-        FUNC_MAP[func_name] = SaQCFunction(func_name, callWrapper)
+        FUNC_MAP[func_name] = callWrapper
         return callWrapper
 
     return inner
@@ -78,7 +76,7 @@ def flagging(masking: MaskingStrT = "all", module: Optional[str] = None):
             result = func(*args, **kwargs)
             return _postCall(result, old_state)
 
-        FUNC_MAP[func_name] = SaQCFunction(func_name, callWrapper)
+        FUNC_MAP[func_name] = callWrapper
         callWrapper._module = module
         callWrapper._masking = masking
 

@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from saqc.core.lib import SaQCFunction
 
 import pandas as pd
 

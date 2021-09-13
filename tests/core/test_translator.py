@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import json
-from saqc.core.register import FUNC_MAP
 from typing import Dict, Union, Sequence
 
 import numpy as np
@@ -20,7 +19,6 @@ from saqc.core.translator import (
 )
 from saqc.core.flags import Flags
 from saqc.core.core import SaQC
-from saqc.core.lib import ColumnSelector
 
 from tests.common import initData
 
@@ -238,7 +236,6 @@ def _buildupSaQCObjects():
         saqc = saqc.outliers.flagRange(
             field=col, min=5, max=6, to_mask=False
         ).outliers.flagRange(col, min=3, max=10, to_mask=False)
-        saqc = saqc.evaluate()
         flags = saqc._flags
         out.append(saqc)
     return out
@@ -258,32 +255,6 @@ def test_translationPreservesFlags():
         expected.columns = got.columns
 
         assert expected.equals(got)
-
-
-def test_reproducibleMetadata():
-
-    # a simple SaQC run
-    data = initData(3)
-    col = data.columns[0]
-    saqc1 = SaQC(data=data, lazy=True)
-    saqc1 = saqc1.breaks.flagMissing(col, to_mask=False).outliers.flagRange(
-        col, min=3, max=10, to_mask=False
-    )
-    _, flags1 = saqc1.getResult(raw=True)
-
-    saqc2 = SaQC(data=data, lazy=True)
-
-    # convert the history meta data into an excution plan...
-    graph = []
-    for m in flags1.history[col].meta:
-        func = FUNC_MAP[m["func"]].bind(*m["args"], **m["keywords"])
-        graph.append((ColumnSelector(col), func))
-    # ... and inject into a blank SaQC object
-    saqc2._planned = graph
-    # ... replay the functions
-    _, flags2 = saqc2.getResult(raw=True)
-
-    assert flags2.toFrame().equals(flags1.toFrame())
 
 
 def test_multicallsPreserveHistory():

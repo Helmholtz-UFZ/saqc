@@ -61,7 +61,7 @@ def fromConfig(fname, *args, **kwargs):
     saqc = SaQC(*args, **kwargs)
     config = readFile(fname)
 
-    for lineno, field, expr in config.itertuples():
+    for _, field, expr in config.itertuples():
 
         regex = False
         if isQuoted(field):
