@@ -145,10 +145,7 @@ def _preCall(
         mask=mask,
     )
 
-    # handle flags - clearing
-    prepped_flags = _prepareFlags(flags, masking)
-
-    args = masked_data, field, prepped_flags, *args
+    args = masked_data, field, flags.copy(), *args
     return args, kwargs, state
 
 
@@ -293,23 +290,6 @@ def _isflagged(
     return flagscol >= thresh
 
 
-def _prepareFlags(flags: Flags, masking) -> Flags:
-    """
-    Prepare flags before each call. Always returns a copy.
-
-    Currently this only clears the flags, but in future,
-    this should be sliced the flags to the columns, that
-    the saqc-function needs.
-
-    Always return a copy of flags or a new flags-frame.
-    """
-    # Either the index or the columns itself changed
-    if masking == "none":
-        return flags.copy()
-
-    return initFlagsLike(flags)
-
-
 def _restoreFlags(flags: Flags, old_state: CallState):
     """
     Generate flags from the temporary result-flags and the original flags.
@@ -361,31 +341,32 @@ def _restoreFlags(flags: Flags, old_state: CallState):
     else:  # field
         columns = pd.Index([old_state.field])
 
-    for c in columns.union(new_columns):
+    for col in columns.union(new_columns):
 
-        if c in new_columns:
-            history = flags.history[c]
-            out.history[c] = History(index=history.index)  # ensure existence
-        # new columns were appended to the old history, but we want to have the new
-        # columns only. If old and new are the same (nothing was appended), we end up
-        # having a empty history and that is handled later correctly
-        elif old_state.masking == "none":
-            sl = slice(len(old_state.flags.history[c].columns), None)
-            history = _sliceHistory(flags.history[c], sl)
-        else:
-            history = flags.history[c]
+        if col not in out:  # ensure existence
+            out.history[col] = History(index=flags.history[col].index)
+
+        old_history = out.history[col]
+        new_history = flags.history[col]
+
+        # We only want to add new columns, that were appended during the last function
+        # call. If no such columns exist, we end up with an empty new_history.
+        start = 0
+        if col in old_history.columns:
+            start = len(old_history.columns)
+        new_history = _sliceHistory(new_history, slice(start, None))
 
         # NOTE:
-        # nothing to update -> i.e. a function did not set any flags at all
-        # this has implications for function writers: early returns out of
-        # functions before `flags.__getitem__` was called at least once make,
-        # the function call invisable to the flags/history machinery and might
+        # Nothing to update -> i.e. a function did not set any flags at all.
+        # This has implications for function writers: early returns out of
+        # functions before `flags.__getitem__` was called once, make the
+        # function call invisable to the flags/history machinery and likely
         # break translation schemes such as the `PositionalTranslator`
-        if history.empty:
+        if new_history.empty:
             continue
 
-        squeezed = history.max(raw=True)
-        out.history[c] = out.history[c].append(squeezed, meta=meta)
+        squeezed = new_history.max(raw=True)
+        out.history[col] = out.history[col].append(squeezed, meta=meta)
 
     return out
 
