@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import inspect
 import copy as stdcopy
-from typing import Tuple, Union, Optional
+from typing import Any, Callable, Tuple, Union, Optional
 from typing_extensions import Literal
 
 import pandas as pd
@@ -14,15 +14,14 @@ import numpy as np
 from dios import DictOfSeries, to_dios
 
 from saqc.core.flags import initFlagsLike, Flags
-from saqc.core.lib import ColumnSelector
-from saqc.core.register import FUNC_MAP, SaQCFunction
+from saqc.core.register import FUNC_MAP
 from saqc.core.modules import FuncModules
 from saqc.core.translator.basetranslator import Translator, FloatTranslator
 from saqc.constants import BAD
 from saqc.lib.tools import toSequence
 from saqc.lib.types import (
+    ColumnName,
     ExternalFlag,
-    CallGraph,
     PandasLike,
 )
 
@@ -33,14 +32,14 @@ logger = logging.getLogger("SaQC")
 def _handleErrors(
     exc: Exception,
     field: str,
-    func: SaQCFunction,
+    func: Callable,
     policy: Literal["ignore", "warn", "raise"],
 ):
     message = "\n".join(
         [
             f"Exception:\n{type(exc).__name__}: {exc}",
             f"field: {field}",
-            f"{func.errorMessage()}",
+            f"{func.__name__}",
         ]
     )
 
@@ -141,16 +140,14 @@ class SaQC(FuncModules):
         flags=None,
         scheme: Translator = None,
         error_policy="raise",
-        lazy=False,
     ):
         super().__init__(self)
         data, flags = _prepInput(data, flags)
         self._data = data
         self._flags = self._initFlags(data, flags)
         self._error_policy = error_policy
-        self._lazy = lazy
         self._translator = scheme or FloatTranslator()
-        self._planned: CallGraph = []  # will be filled by calls to `_wrap`
+        self.called = []
 
     @staticmethod
     def _initFlags(data: DictOfSeries, flags: Optional[Flags]) -> Flags:
@@ -198,46 +195,11 @@ class SaQC(FuncModules):
 
     @property
     def data(self) -> Accessor:
-        return Accessor(self.evaluate()._data)
+        return Accessor(self._data)
 
     @property
     def flags(self) -> Accessor:
-        return Accessor(self._translator.backward(self.evaluate()._flags))
-
-    def evaluate(self):
-        """
-        Realize all the registered calculations and return a updated SaQC Object
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        An updated SaQC Object incorporating the requested computations
-        """
-
-        data, flags = self._data, self._flags
-        for selector, function in self._planned:
-            logger.debug(
-                f"processing: {selector.field}, {function.name}, {function.keywords}"
-            )
-            assert data.columns.difference(flags.columns).empty
-
-            try:
-                data_result, flags_result = function(data, selector.field, flags)
-                # we check the passed function-kwargs after the actual call,
-                # because now "hard" errors would already have been raised
-                # (eg. `TypeError: got multiple values for argument 'data'`,
-                # when the user pass data=...)
-                _warnForUnusedKwargs(function, self._translator)
-            except Exception as e:
-                _handleErrors(e, selector.field, function, self._error_policy)
-                continue
-
-            data = data_result
-            flags = flags_result
-
-        return self._construct(_flags=flags, _data=data)
+        return Accessor(self._translator.backward(self._flags))
 
     def getResult(
         self, raw=False
@@ -250,43 +212,32 @@ class SaQC(FuncModules):
         data, flags: (DictOfSeries, DictOfSeries)
         """
 
-        realization = self.evaluate()
-        data, flags = realization._data, realization._flags
+        data, flags = self._data, self._flags
 
         if raw:
             return data, flags
 
         return data.to_df(), self._translator.backward(flags)
 
-    def _wrap(self, func: SaQCFunction):
+    def _wrap(self, func: Callable):
         def inner(
             field: str,
-            *fargs,
+            *args,
             target: str = None,
             regex: bool = False,
             flag: ExternalFlag = BAD,
             inplace: bool = False,
-            **fkwargs,
+            **kwargs,
         ) -> SaQC:
 
             if regex and target is not None:
                 raise ValueError("explicit `target` not supported with `regex=True`")
 
-            fkwargs.setdefault("to_mask", self._translator.TO_MASK)
-
-            out = self if inplace else self.copy(deep=True)
-
-            # NOTE:
-            # changes here are likely to be necessary in
-            # `saqc.core.reader._parseConfig` as well
-            partial = func.bind(
-                *fargs,
-                **{
-                    "flag": self._translator(flag),
-                    "to_mask": self._translator.TO_MASK,
-                    **fkwargs,
-                },
-            )
+            kwargs = {
+                "flag": self._translator(flag),
+                "to_mask": self._translator.TO_MASK,
+                **kwargs,
+            }
 
             # expand regular expressions
             if regex:
@@ -296,25 +247,56 @@ class SaQC(FuncModules):
             else:
                 fields, targets = toSequence(field), toSequence(target, default=field)
 
+            out = self if inplace else self.copy(deep=True)
+
             for field, target in zip(fields, targets):
                 if field != target:
-                    copy_func = FUNC_MAP["tools.copy"]
-                    out._planned.append(
-                        (
-                            ColumnSelector(field, target),
-                            copy_func.bind(new_field=target),
-                        )
+                    out = out._callFunction(
+                        FUNC_MAP["tools.copy"],
+                        data=out._data,
+                        flags=out._flags,
+                        field=field,
+                        new_field=target,
                     )
                     field = target
 
-                out._planned.append((ColumnSelector(field, target), partial))
-
-            if self._lazy:
-                return out
-
-            return out.evaluate()
+                out = out._callFunction(
+                    func,
+                    data=out._data,
+                    flags=out._flags,
+                    field=field,
+                    *args,
+                    **kwargs,
+                )
+            return out
 
         return inner
+
+    def _callFunction(
+        self,
+        function: Callable,
+        data: DictOfSeries,
+        flags: Flags,
+        field: ColumnName,
+        *args: Any,
+        **kwargs: Any,
+    ) -> SaQC:
+
+        assert data.columns.difference(flags.columns).empty
+
+        try:
+            data, flags = function(data=data, flags=flags, field=field, *args, **kwargs)
+            # we check the passed function-kwargs after the actual call,
+            # because now "hard" errors would already have been raised
+            # (eg. `TypeError: got multiple values for argument 'data'`,
+            # when the user pass data=...)
+            _warnForUnusedKwargs(function, kwargs, self._translator)
+        except Exception as e:
+            _handleErrors(e, field, function, self._error_policy)
+
+        planned = self.called + [(field, (function, args, kwargs))]
+
+        return self._construct(_data=data, _flags=flags, called=planned)
 
     def __getattr__(self, key):
         """
@@ -333,7 +315,7 @@ class SaQC(FuncModules):
         return stdcopy.copy(self)
 
 
-def _warnForUnusedKwargs(func, translator: Translator):
+def _warnForUnusedKwargs(func, keywords, translator: Translator):
     """Warn for unused kwargs, passed to a SaQC.function.
 
     Parameters
@@ -350,13 +332,13 @@ def _warnForUnusedKwargs(func, translator: Translator):
     A single warning via the logging module is thrown, if any number of
     missing kws are detected, naming each missing kw.
     """
-    sig_kws = inspect.signature(func.func).parameters
+    sig_kws = inspect.signature(func).parameters
 
     # we need to ignore kws that are injected or by default hidden in ``**kwargs``
     ignore = ("to_mask",)
 
     missing = []
-    for kw in func.keywords:
+    for kw in keywords:
         # there is no need to check for
         # `kw in [KEYWORD_ONLY, VAR_KEYWORD or POSITIONAL_OR_KEYWORD]`
         # because this would have raised an error beforehand.

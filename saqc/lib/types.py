@@ -22,14 +22,11 @@ from typing_extensions import Protocol, Literal
 import numpy as np
 import pandas as pd
 from dios import DictOfSeries
-from saqc.core.lib import SaQCFunction, ColumnSelector
-
 
 T = TypeVar("T")
 ArrayLike = TypeVar("ArrayLike", np.ndarray, pd.Series, pd.DataFrame)
 PandasLike = Union[pd.Series, pd.DataFrame, DictOfSeries]
 DiosLikeT = Union[DictOfSeries, pd.DataFrame]
-
 
 ExternalFlag = Union[str, float, int]
 
@@ -37,9 +34,6 @@ ExternalFlag = Union[str, float, int]
 FreqString = NewType(
     "FreqString", Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"]
 )
-
-CallGraph = List[Tuple[ColumnSelector, SaQCFunction]]
-MaterializedGraph = List[Tuple[ColumnSelector, SaQCFunction]]
 
 # we define a bunch of type aliases, mostly needed to generate appropiate fuzzy data through hypothesis
 ColumnName = NewType("ColumnName", str)

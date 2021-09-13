@@ -36,4 +36,3 @@ def test_makeFig():
     d_saqc = d_saqc.tools.plot(
         field="data", save_path=dummy_path, plot_kwargs={"slice": "2000-10"}, stats=True
     )
-    d_saqc.evaluate()

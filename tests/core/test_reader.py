@@ -48,8 +48,8 @@ def test_variableRegex(data):
 
     for regex, expected in tests:
         fobj = writeIO(header + "\n" + f"{regex} ; flagtools.flagDummy()")
-        saqc = fromConfig(fobj, data=data, lazy=True)
-        result = [s.field for s, _ in saqc._planned]
+        saqc = fromConfig(fobj, data=data)
+        result = [field for field, _ in saqc.called]
         assert np.all(result == expected)
 
 
@@ -62,9 +62,9 @@ def test_inlineComments(data):
     pre2        ; flagtools.flagDummy() # test
     """
 
-    saqc = fromConfig(writeIO(config), data, lazy=True)
-    _, func = saqc._planned[0]
-    assert func.func == FUNC_MAP["flagtools.flagDummy"].func
+    saqc = fromConfig(writeIO(config), data)
+    _, func = saqc.called[0]
+    assert func[0] == FUNC_MAP["flagtools.flagDummy"]
 
 
 def test_configReaderLineNumbers(data):

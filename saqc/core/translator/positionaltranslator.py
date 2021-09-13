@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Tuple
-
 import numpy as np
 import pandas as pd
 
@@ -16,7 +14,6 @@ from saqc.core.flags import (
     DOUBTFUL,
     BAD,
 )
-from saqc.lib.types import MaterializedGraph
 from saqc.core.translator.basetranslator import Translator, ForwardMap, BackwardMap
 
 
