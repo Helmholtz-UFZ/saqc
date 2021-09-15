@@ -4,22 +4,22 @@ __author__ = "Bert Palm"
 __email__ = "bert.palm@ufz.de"
 __copyright__ = "Copyright 2020, Helmholtz-Zentrum für Umweltforschung GmbH - UFZ"
 
-# We need to implement the
-# - calculation/skipping of min_periods,
-# because `calculate_center_offset` does ignore those and we cannot rely on rolling(min_periods), as
-# pointed out in customRoller. Also we need to implement
-# - centering of windows for fixed windows,
-# for variable windows this is not allowed (similar to pandas).
-# The close-param, for variable windows is already implemented in `calculate_center_offset`,
-# and we dont allow it for fixed windows (similar to pandas). We also want to
-# - fix the strange ramp-up behavior,
-# which occur if the window is shifted in the data but yet is not fully inside the data. In this
-# case we want to spit out nan's instead of results calculated by less than window-size many values.
-# This is slightly different than the min_periods parameter, because this mainly should control Nan-behavior
-# for fixed windows, and minimum needed observations (also excluding Nans) in a offset window, but should not apply
-# if window-size many values couldn't be even possible due to technical reasons. This is mainly because one
-# cannot know (except one knows the exact (and fixed) frequency) the number(!) of observations that can occur in a
-# given offset window. That's why rolling should spit out Nan's as long as the window is not fully shifted in the data.
+# We need to implement the - calculation/skipping of min_periods, because
+# `calculate_center_offset` does ignore those and we cannot rely on rolling(
+# min_periods), as pointed out in customRoller. Also we need to implement - centering
+# of windows for fixed windows, for variable windows this is not allowed (similar to
+# pandas). The close-param, for variable windows is already implemented in
+# `calculate_center_offset`, and we dont allow it for fixed windows (similar to
+# pandas). We also want to - fix the strange ramp-up behavior, which occur if the
+# window is shifted in the data but yet is not fully inside the data. In this case we
+# want to spit out nan's instead of results calculated by less than window-size many
+# values. This is slightly different than the min_periods parameter, because this
+# mainly should control Nan-behavior for fixed windows, and minimum needed
+# observations (also excluding Nans) in a offset window, but should not apply if
+# window-size many values couldn't be even possible due to technical reasons. This is
+# mainly because one cannot know (except one knows the exact (and fixed) frequency)
+# the number(!) of observations that can occur in a given offset window. That's why
+# rolling should spit out Nan's as long as the window is not fully shifted in the data.
 
 import numpy as np
 from typing import Union
@@ -378,10 +378,11 @@ def customRoller(
     ours = dict(center=center, forward=forward, expand=expand, step=step, mask=mask)
     assert len(theirs) + len(ours) == num_params, "not all params covert (!)"
 
-    # use .rolling to do all the checks like if closed is one of [left, right, neither, both],
-    # closed not allowed for integer windows, index is monotonic (in- or decreasing), if freq-based
-    # windows can be transformed to nanoseconds (eg. fails for `1y` - it could have 364 or 365 days), etc.
-    # Also it converts window and the index to numpy-arrays (so we don't have to do it :D).
+    # use .rolling to do all the checks like if closed is one of [left, right,
+    # neither, both], closed not allowed for integer windows, index is monotonic (in-
+    # or decreasing), if freq-based windows can be transformed to nanoseconds (eg.
+    # fails for `1y` - it could have 364 or 365 days), etc. Also it converts window
+    # and the index to numpy-arrays (so we don't have to do it :D).
     x = obj.rolling(window, **theirs)
 
     indexer = (
@@ -391,20 +392,24 @@ def customRoller(
     )
     indexer = indexer(index_array=x._on.asi8, window_size=x.window, **ours)
 
-    # Centering is fully done in our own indexers. So we do not pass center to rolling(). Especially because
-    # we also allow centering on dt-based indexes. Also centering would fail in forward windows, because of
-    # pandas internal centering magic (append nans at the end of array, later cut values from beginning of the
-    # result).
-    # min_periods is also quite tricky. Especially if None is passed. For dt-based windows min_periods defaults to 1
-    # and is set during rolling setup (-> if r=obj.rolling() is called). For numeric windows instead, it keeps None
-    # during setup and defaults to indexer.window_size if a rolling-method is called (-> if r.sum()). Thats a bit
-    # odd and quite hard to find. So we are good if we pass the already calculated x.min_periods as this will just
-    # hold the correct initialised or not initialised value. (It gets even trickier if one evaluates which value is
-    # actually passed to the function that actually thrown them out; i leave that to the reader to find out. start
-    # @ pandas.core.window.rolling:_Window._apply)
-    # Lastly, it is necessary to pass min_periods at all (!) and do not set it to a fix value (1, 0, None,...). This
-    # is, because we cannot throw out values by ourself in the indexer, because min_periods also evaluates NA values
-    # in its count and we have no control over the actual values, just their indexes.
+    # Centering is fully done in our own indexers. So we do not pass center to
+    # rolling(). Especially because we also allow centering on dt-based indexes. Also
+    # centering would fail in forward windows, because of pandas internal centering
+    # magic (append nans at the end of array, later cut values from beginning of the
+    # result). min_periods is also quite tricky. Especially if None is passed. For
+    # dt-based windows min_periods defaults to 1 and is set during rolling setup (->
+    # if r=obj.rolling() is called). For numeric windows instead, it keeps None
+    # during setup and defaults to indexer.window_size if a rolling-method is called
+    # (-> if r.sum()). Thats a bit odd and quite hard to find. So we are good if we
+    # pass the already calculated x.min_periods as this will just hold the correct
+    # initialised or not initialised value. (It gets even trickier if one evaluates
+    # which value is actually passed to the function that actually thrown them out; i
+    # leave that to the reader to find out. start @
+    # pandas.core.window.rolling:_Window._apply) Lastly, it is necessary to pass
+    # min_periods at all (!) and do not set it to a fix value (1, 0, None,...). This
+    # is, because we cannot throw out values by ourself in the indexer, because
+    # min_periods also evaluates NA values in its count and we have no control over
+    # the actual values, just their indexes.
     theirs.update(min_periods=x.min_periods)
     roller = obj.rolling(indexer, center=None, **theirs)
 
