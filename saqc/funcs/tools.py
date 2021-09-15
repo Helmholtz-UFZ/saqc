@@ -367,7 +367,7 @@ def plot(
         data=data,
         field=field,
         flags=flags,
-        level=kwargs.get('flag', BAD),
+        level=kwargs.get("flag", BAD),
         max_gap=max_gap,
         stats=stats,
         plot_kwargs=plot_kwargs,

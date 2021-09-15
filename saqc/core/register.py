@@ -342,6 +342,8 @@ def _restoreFlags(flags: Flags, old_state: CallState):
         columns = pd.Index([old_state.field])
 
     for col in columns.union(new_columns):
+        # if old_state.func_name == "breaks.flagMissing" and old_state.field == "H1_Voltage":
+        #     import ipdb; ipdb.set_trace()
 
         if col not in out:  # ensure existence
             out.history[col] = History(index=flags.history[col].index)
@@ -351,9 +353,7 @@ def _restoreFlags(flags: Flags, old_state: CallState):
 
         # We only want to add new columns, that were appended during the last function
         # call. If no such columns exist, we end up with an empty new_history.
-        start = 0
-        if col in old_history.columns:
-            start = len(old_history.columns)
+        start = len(old_history.columns)
         new_history = _sliceHistory(new_history, slice(start, None))
 
         # NOTE:
