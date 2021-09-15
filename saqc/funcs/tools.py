@@ -310,8 +310,8 @@ def plot(
 
     fig_kwargs : dict, default None
         Keyword arguments controlling figure generation. In interactive mode,
-        ``None`` defaults to ``{"figsize": (16, 9)}`` to ensure a proper figure size,
-        in store-mode ``None`` defaults to a empty dictionary.
+        ``None`` defaults to ``{"figsize": (16, 9)}`` to ensure a proper figure size
+        in store-mode.
 
     save_kwargs : dict, default {}
         Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
@@ -367,7 +367,7 @@ def plot(
         data=data,
         field=field,
         flags=flags,
-        level=kwargs["flag"],
+        level=kwargs.get('flag', BAD),
         max_gap=max_gap,
         stats=stats,
         plot_kwargs=plot_kwargs,

@@ -220,11 +220,12 @@ class SaQC(FuncModules):
         return data.to_df(), self._translator.backward(flags)
 
     def _wrap(self, func: Callable):
-        """ Enrich a function by special saqc-functionality.
+        """Enrich a function by special saqc-functionality.
 
         For each saqc function this realize
             - the source-target workflow,
             - regex's in field,
+            - use default of translator for ``to_mask`` if not specified by user,
             - translation of ``flag`` and
             - working inplace.
         Therefore it adds the following keywords to each saqc function:
@@ -232,12 +233,13 @@ class SaQC(FuncModules):
 
         The returned function returns a Saqc object.
         """
+
         def inner(
             field: str,
             *args,
             target: str = None,
             regex: bool = False,
-            flag: ExternalFlag = BAD,
+            flag: ExternalFlag = None,
             inplace: bool = False,
             **kwargs,
         ) -> SaQC:
@@ -245,13 +247,11 @@ class SaQC(FuncModules):
             if regex and target is not None:
                 raise ValueError("explicit `target` not supported with `regex=True`")
 
-            # kwargs['flag'] = self._translator(flag)
-            # kwargs.setdefault('to_mask', self._translator.TO_MASK)
-            kwargs = {
-                "flag": self._translator(flag),
-                "to_mask": self._translator.TO_MASK,
-                **kwargs,
-            }
+            kwargs.setdefault("to_mask", self._translator.TO_MASK)
+
+            # translation
+            if flag is not None:
+                kwargs["flag"] = self._translator(flag)
 
             # expand regular expressions
             if regex:
