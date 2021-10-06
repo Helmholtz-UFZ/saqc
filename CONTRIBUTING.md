@@ -16,6 +16,47 @@ We implement the following naming conventions:
 - Functions: camelCase
 - Variables/Arguments: snake_case
 
+### Public functions signature
+general naming of argument
+-----------------------
+
+first, its not necessary to have *talking* arg-names, in contrast to variable names in 
+code. This is, because one always must read the documentation. To use and parameterize a function,
+just by guessing the meaning of the argument names and not read the docs, 
+will almost never work. thats why, we dont have the obligation to make names (very) 
+talkative.
+
+second, because of the nature of a function (to have a *simple* way to use complex code), 
+its common to use simple and short names. This means, to omit any *irrelevant* information. 
+
+For example if we have a function that fit a polynomial on some data with three arguments.
+Lets say we have:
+ - the data input, 
+ - a threshold that defines a cutoff point for a calculation on a polynomial and
+ - a third argument. 
+
+one could name the args `data, poly_cutoff_threshold, ...`, but much better names would 
+be `data, thresh, ...`, because a caller dont need the extra information, 
+stuffed in the name. 
+If the third argument is also some kind of threshold, 
+one can use `data, cutoff, thresh`, because the *thresh-* information of the `cutoff` 
+parameter is not crucial and the caller knows that this is a threshold from the docstring.
+
+third, underscores give a nice feedback if one doing wrong or over complex. 
+No underscore is fine, one underscore is ok, if the information is *really necessary* (see above), 
+but if one use two or more underscores, one should think of a better naming, 
+or omit some information. 
+Sure, seldom but sometimes it is necessary to use 2 underscores, but we consider it as bad style.
+Using 3 or more underscores, is not allowed unless have write an reasoning and get it
+signed by at least as many core developers as underscores one want to use.
+
+
+In short the naming should *give a very, very rough idea* of the purpose of the argument, 
+but not *explain* the usage or the purpose. 
+It is not a shame to name a parameter just `n` or `alpha` etc. if for example the algorithm 
+(from the paper etc.) name it alike. 
+
+
 ### Test Functions
 - testnames: [testmodule_]flagTestName
  
