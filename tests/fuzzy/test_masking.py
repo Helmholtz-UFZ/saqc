@@ -26,8 +26,8 @@ def test_maskingMasksData(data_field_flags):
     data_masked, mask = _maskData(
         data_in, flags, columns=[field], thresh=UNFLAGGED
     )  # thresh UNFLAGGED | np.inf
-    assert data_masked.loc[mask[field], field].isna().all()
-    assert (flags[field][mask[field]] > UNFLAGGED).all()
+    assert data_masked[field].iloc[mask[field].index].isna().all()
+    assert (flags[field].iloc[mask[field].index] > UNFLAGGED).all()
 
 
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
@@ -44,7 +44,6 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
     state = CallState(
         func=lambda x: x,
         func_name="",
-        data=data_in,
         flags=flags,
         field=field,
         args=(),
@@ -71,7 +70,6 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
     state = CallState(
         func=lambda x: x,
         func_name="",
-        data=data_in,
         flags=flags,
         field=field,
         args=(),
@@ -101,7 +99,6 @@ def test_reshapingPreventsUnmasking(data_field_flags):
     state = CallState(
         func=lambda x: x,
         func_name="",
-        data=data_in,
         flags=flags,
         field=field,
         args=(),
@@ -134,7 +131,6 @@ def test_unmaskingInvertsMasking(data_field_flags):
     state = CallState(
         func=lambda x: x,
         func_name="",
-        data=data_in,
         flags=flags,
         field=field,
         args=(),

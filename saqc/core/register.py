@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from typing import Dict, Optional, Union, Tuple, Callable
+from typing import Dict, Optional, Union, Tuple, Callable, Sequence
 from typing_extensions import Literal
 from functools import wraps
 import dataclasses
@@ -24,7 +24,6 @@ class CallState:
     func: Callable
     func_name: str
 
-    data: dios.DictOfSeries
     flags: Flags
     field: str
 
@@ -135,7 +134,6 @@ def _preCall(
     state = CallState(
         func=func,
         func_name=fname,
-        data=data,
         flags=flags,
         field=field,
         args=args,
@@ -244,40 +242,6 @@ def _getMaskingThresh(kwargs):
     return thresh
 
 
-# TODO: this is heavily undertested
-def _maskData(
-    data, flags, columns, thresh
-) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
-    """
-    Mask data with Nans, if the flags are worse than a threshold.
-
-        - mask only passed `columns` (preselected by `masking`-kw from decorator)
-        - copies data in any case
-
-    Returns
-    -------
-    masked : dios.DictOfSeries
-        masked data, same dim as original
-    mask : dios.DictOfSeries
-        boolean dios of same dim as `masked`. True, where data was masked, elsewhere False.
-    """
-    mask = dios.DictOfSeries(columns=columns)
-    data = data.copy()
-
-    # we use numpy here because it is faster
-    for c in columns:
-        col_mask = _isflagged(flags[c].to_numpy(), thresh)
-
-        if col_mask.any():
-            col_data = data[c].to_numpy(dtype=np.float64)
-            col_data[col_mask] = np.nan
-
-            data[c] = col_data
-            mask[c] = pd.Series(col_mask, index=data[c].index, dtype=bool)
-
-    return data, mask
-
-
 def _isflagged(
     flagscol: Union[np.array, pd.Series], thresh: float
 ) -> Union[np.array, pd.Series]:
@@ -342,8 +306,6 @@ def _restoreFlags(flags: Flags, old_state: CallState):
         columns = pd.Index([old_state.field])
 
     for col in columns.union(new_columns):
-        # if old_state.func_name == "breaks.flagMissing" and old_state.field == "H1_Voltage":
-        #     import ipdb; ipdb.set_trace()
 
         if col not in out:  # ensure existence
             out.history[col] = History(index=flags.history[col].index)
@@ -371,7 +333,38 @@ def _restoreFlags(flags: Flags, old_state: CallState):
     return out
 
 
-# TODO: this is heavily undertested
+def _maskData(
+    data: dios.DictOfSeries, flags: Flags, columns: Sequence[str], thresh: float
+) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
+    """
+    Mask data with Nans, if the flags are worse than a threshold.
+        - mask only passed `columns` (preselected by `masking`-kw from decorator)
+
+    Returns
+    -------
+    masked : dios.DictOfSeries
+        masked data, same dim as original
+    mask : dios.DictOfSeries
+        dios holding iloc-data-pairs for every column in `data`
+    """
+    mask = dios.DictOfSeries(columns=columns)
+    data = data.copy()
+
+    # we use numpy here because it is faster
+    for c in columns:
+        col_mask = _isflagged(flags[c].to_numpy(), thresh)
+
+        if col_mask.any():
+            col_data = data[c].to_numpy(dtype=np.float64)
+
+            mask[c] = pd.Series(col_data[col_mask], index=np.where(col_mask)[0])
+
+            col_data[col_mask] = np.nan
+            data[c] = col_data
+
+    return data, mask
+
+
 def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSeries:
     """
     Restore the masked data.
@@ -411,18 +404,16 @@ def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSer
     for c in columns:
 
         # ignore
-        if old_state.data[c].empty or data[c].empty or old_state.mask[c].empty:
+        if data[c].empty or old_state.mask[c].empty:
             continue
 
-        restore_old_mask = old_state.mask[c].to_numpy() & data[c].isna().to_numpy()
-
-        # we have nothing to restore
-        if not restore_old_mask.any():
+        # get the positions of values to unmask
+        candidates = old_state.mask[c]
+        # if the mask was removed during the function call, don't replace
+        unmask = candidates[data[c].iloc[candidates.index].isna().to_numpy()]
+        if unmask.empty:
             continue
-
-        # restore old values if no new are present
-        old, new = old_state.data[c].to_numpy(), data[c].to_numpy()
-        data.loc[:, c] = np.where(restore_old_mask, old, new)
+        data[c].iloc[unmask.index] = unmask
 
     return data
 
