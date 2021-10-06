@@ -16,9 +16,7 @@ We implement the following naming conventions:
 - Functions: camelCase
 - Variables/Arguments: snake_case
 
-### Public functions signature
-general naming of argument
------------------------
+### Argument names in public functions signatures
 
 first, its not necessary to have *talking* arg-names, in contrast to variable names in 
 code. This is, because one always must read the documentation. To use and parameterize a function,
