@@ -236,7 +236,7 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
 
     data_harm, flags_harm = copy(data, "data", flags, "data_harm")
     data_harm, flags_harm = resample(
-        data_harm, h_field, flags_harm, freq, agg_func=np.sum, method=method
+        data_harm, h_field, flags_harm, freq, func=np.sum, method=method
     )
     checkDataFlagsInvariants(data_harm, flags_harm, h_field, identical=True)
     assert data_harm[h_field].index.freq == pd.Timedelta(freq)

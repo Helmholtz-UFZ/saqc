@@ -19,14 +19,14 @@ class Drift(ModuleBase):
         self,
         field: ColumnName,
         fields: Sequence[ColumnName],
-        segment_freq: FreqString,
-        norm_spread: float,
-        norm_frac: float = 0.5,
+        freq: FreqString,
+        spread: float,
+        frac: float = 0.5,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
             np.array([x, y]), metric="cityblock"
         )
         / len(x),
-        linkage_method: LinkageString = "single",
+        method: LinkageString = "single",
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
@@ -36,7 +36,7 @@ class Drift(ModuleBase):
         self,
         field: ColumnName,
         fields: Sequence[ColumnName],
-        segment_freq: FreqString,
+        freq: FreqString,
         thresh: float,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
             np.array([x, y]), metric="cityblock"
@@ -50,16 +50,16 @@ class Drift(ModuleBase):
     def flagDriftFromScaledNorm(
         self,
         field: ColumnName,
-        fields_scale1: Sequence[ColumnName],
-        fields_scale2: Sequence[ColumnName],
-        segment_freq: FreqString,
-        norm_spread: float,
-        norm_frac: float = 0.5,
+        set_1: Sequence[ColumnName],
+        set_2: Sequence[ColumnName],
+        freq: FreqString,
+        spread: float,
+        frac: float = 0.5,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
             np.array([x, y]), metric="cityblock"
         )
         / len(x),
-        linkage_method: LinkageString = "single",
+        method: LinkageString = "single",
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
@@ -68,10 +68,10 @@ class Drift(ModuleBase):
     def correctDrift(
         self,
         field: ColumnName,
-        maint_data_field: ColumnName,
-        driftModel: Callable[..., float],
-        cal_mean: int = 5,
-        flag_maint_period: bool = False,
+        maintenance_field: ColumnName,
+        model: Callable[..., float],
+        cal_range: int = 5,
+        set_flags: bool = False,  # Todo: remove, user should use flagManual
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
@@ -82,8 +82,8 @@ class Drift(ModuleBase):
         field: ColumnName,
         cluster_field: ColumnName,
         model: CurveFitter,
-        regime_transmission: Optional[FreqString] = None,
-        x_date: bool = False,
+        tolerance: Optional[FreqString] = None,
+        epoch: bool = False,
         **kwargs
     ) -> saqc.SaQC:
         return self.defer("correctRegimeAnomaly", locals())
@@ -91,11 +91,11 @@ class Drift(ModuleBase):
     def correctOffset(
         self,
         field: ColumnName,
-        max_mean_jump: float,
-        normal_spread: float,
-        search_winsz: FreqString,
+        max_jump: float,
+        spread: float,
+        window: FreqString,
         min_periods: int,
-        regime_transmission: Optional[FreqString] = None,
+        tolerance: Optional[FreqString] = None,
         **kwargs
     ) -> saqc.SaQC:
         return self.defer("correctOffset", locals())

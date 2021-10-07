@@ -88,8 +88,8 @@ def flagByVariance(
     flags: Flags,
     window: FreqString = "12h",
     thresh: float = 0.0005,
-    max_missing: int = None,
-    max_consec_missing: int = None,
+    maxna: int = None,
+    maxna_group: int = None,
     flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -111,14 +111,11 @@ def flagByVariance(
         Only intervals of minimum size "window" have the chance to get flagged as constant intervals
     thresh : float
         The upper bound, the variance of an interval must not exceed, if the interval wants to be flagged a plateau.
-    max_missing : {None, int}, default None
-        Maximum number of nan values tolerated in an interval, for retrieving a valid
-        variance from it. (Intervals with a number of nans exceeding "max_missing"
-        have no chance to get flagged a plateau!)
-    max_consec_missing : {None, int}, default None
-        Maximum number of consecutive nan values allowed in an interval to retrieve a
-        valid  variance from it. (Intervals with a number of nans exceeding
-        "max_consec_missing" have no chance to get flagged a plateau!)
+    maxna : int, default None
+        Maximum number of NaNs tolerated in an interval. If more NaNs are present, the
+        interval is not flagged as plateau.
+    maxna_group : int, default None
+        Same as `maxna` but for consecutive NaNs.
     flag : float, default BAD
         flag to set.
 
@@ -135,17 +132,17 @@ def flagByVariance(
     if not delta:
         raise IndexError("Timeseries irregularly sampled!")
 
-    if max_missing is None:
-        max_missing = np.inf
+    if maxna is None:
+        maxna = np.inf
 
-    if max_consec_missing is None:
-        max_consec_missing = np.inf
+    if maxna_group is None:
+        max_consecutive = np.inf
 
     min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(delta)))
     window = pd.Timedelta(window)
     to_set = statPass(
         dataseries,
-        lambda x: varQC(x, max_missing, max_consec_missing),
+        lambda x: varQC(x, maxna, maxna_group),
         window,
         thresh,
         operator.lt,

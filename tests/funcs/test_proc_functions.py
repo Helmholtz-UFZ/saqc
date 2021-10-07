@@ -62,15 +62,9 @@ def test_interpolateMissing(course_5):
     assert dataLin[field][characteristics["missing"]].notna().all()
     assert dataPoly[field][characteristics["missing"]].notna().all()
     data, characteristics = course_5(periods=10, nan_slice=[5, 6, 7])
-    dataLin1, *_ = interpolateInvalid(
-        data, field, flags, method="linear", inter_limit=2
-    )
-    dataLin2, *_ = interpolateInvalid(
-        data, field, flags, method="linear", inter_limit=3
-    )
-    dataLin3, *_ = interpolateInvalid(
-        data, field, flags, method="linear", inter_limit=4
-    )
+    dataLin1, *_ = interpolateInvalid(data, field, flags, method="linear", limit=2)
+    dataLin2, *_ = interpolateInvalid(data, field, flags, method="linear", limit=3)
+    dataLin3, *_ = interpolateInvalid(data, field, flags, method="linear", limit=4)
     assert dataLin1[field][characteristics["missing"]].isna().all()
     assert dataLin2[field][characteristics["missing"]].isna().all()
     assert dataLin3[field][characteristics["missing"]].notna().all()
@@ -109,8 +103,8 @@ def test_resample(course_5):
         flags,
         "10min",
         np.mean,
-        max_invalid_total_d=2,
-        max_invalid_consec_d=1,
+        maxna=2,
+        maxna_group=1,
     )
     assert ~np.isnan(data1[field].iloc[0])
     assert np.isnan(data1[field].iloc[1])
@@ -124,7 +118,7 @@ def test_interpolateGrid(course_5, course_3):
     # data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
     dataInt, *_ = interpolateIndex(
-        data, "data", flags, "1h", "time", grid_field="grid", inter_limit=10
+        data, "data", flags, "1h", "time", grid_field="grid", limit=10
     )
 
 

@@ -18,8 +18,8 @@ class Outliers(ModuleBase):
     def flagByStray(
         self,
         field: ColumnName,
-        partition_freq: Optional[Union[IntegerWindow, FreqString]] = None,
-        partition_min: int = 11,
+        freq: Optional[Union[IntegerWindow, FreqString]] = None,
+        min_periods: int = 11,
         iter_start: float = 0.5,
         alpha: float = 0.05,
         flag: float = BAD,
@@ -33,16 +33,16 @@ class Outliers(ModuleBase):
         fields: Sequence[ColumnName],
         trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
         alpha: float = 0.05,
-        n_neighbors: int = 10,
-        scoring_func: Callable[[pd.Series], float] = np.sum,
+        n: int = 10,
+        func: Callable[[pd.Series], float] = np.sum,
         iter_start: float = 0.5,
-        stray_partition: Optional[Union[IntegerWindow, FreqString]] = None,
-        stray_partition_min: int = 11,
-        trafo_on_partition: bool = True,
-        reduction_range: Optional[FreqString] = None,
-        reduction_drop_flagged: bool = False,  # TODO: still a case ?
-        reduction_thresh: float = 3.5,
-        reduction_min_periods: int = 1,
+        partition: Optional[Union[IntegerWindow, FreqString]] = None,
+        partition_min: int = 11,
+        partition_trafo: bool = True,
+        stray_range: Optional[FreqString] = None,
+        drop_flagged: bool = False,  # TODO: still a case ?
+        thresh: float = 3.5,
+        min_periods: int = 1,
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
@@ -53,12 +53,11 @@ class Outliers(ModuleBase):
         field: ColumnName,
         thresh: float,
         raise_window: FreqString,
-        intended_freq: FreqString,
+        freq: FreqString,
         average_window: Optional[FreqString] = None,
-        mean_raise_factor: float = 2.0,
-        min_slope: Optional[float] = None,
-        min_slope_weight: float = 0.8,
-        numba_boost: bool = True,  # TODO: rm, not a user decision
+        raise_factor: float = 2.0,
+        slope: Optional[float] = None,
+        weight: float = 0.8,
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
@@ -80,8 +79,7 @@ class Outliers(ModuleBase):
         thresh: float,
         tolerance: float,
         window: Union[IntegerWindow, FreqString],
-        rel_thresh: Optional[float] = None,
-        numba_kickin: int = 200000,  # TODO: rm, not a user decision
+        thresh_relative: Optional[float] = None,
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
@@ -90,10 +88,10 @@ class Outliers(ModuleBase):
     def flagByGrubbs(
         self,
         field: ColumnName,
-        winsz: Union[FreqString, IntegerWindow],
+        window: Union[FreqString, IntegerWindow],
         alpha: float = 0.05,
         min_periods: int = 8,
-        check_lagged: bool = False,
+        pedantic: bool = False,
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
@@ -114,7 +112,7 @@ class Outliers(ModuleBase):
         field: ColumnName,
         fields: Sequence[ColumnName],
         thresh: float,
-        cross_stat: Literal["modZscore", "Zscore"] = "modZscore",
+        method: Literal["modZscore", "Zscore"] = "modZscore",
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:

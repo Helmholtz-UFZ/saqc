@@ -30,7 +30,7 @@ def test_flagPattern_wavelet():
     data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
     flags = initFlagsLike(data, name="data")
     data, flags = flagPatternByWavelet(
-        data, "data", flags, ref_field="pattern_data", flag=BAD
+        data, "data", flags, reference="pattern_data", flag=BAD
     )
 
     assert all(flags["data"].iloc[10:18] == BAD)
@@ -46,7 +46,7 @@ def test_flagPattern_dtw():
     data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
     flags = initFlagsLike(data, name="data")
     data, flags = flagPatternByDTW(
-        data, "data", flags, ref_field="pattern_data", flag=BAD
+        data, "data", flags, reference="pattern_data", flag=BAD
     )
 
     assert all(flags["data"].iloc[10:18] == BAD)

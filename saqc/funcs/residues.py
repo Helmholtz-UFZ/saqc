@@ -17,10 +17,9 @@ def calculatePolynomialResidues(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    winsz: Union[str, int],
-    polydeg: int,
-    numba: Literal[True, False, "auto"] = "auto",  # TODO: rm, not a a user decision
-    eval_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
+    window: Union[str, int],
+    order: int,
+    set_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
     min_periods: Optional[int] = 0,
     flag: float = BAD,
     **kwargs
@@ -28,8 +27,8 @@ def calculatePolynomialResidues(
     """
     Function fits a polynomial model to the data and returns the residues.
 
-    The residue for value x is calculated by fitting a polynomial of degree "polydeg" to a data slice
-    of size "winsz", wich has x at its center.
+    The residue for value x is calculated by fitting a polynomial of degree "order" to a data slice
+    of size "window", wich has x at its center.
 
     Note, that the residues will be stored to the `field` field of the input data, so that the original data, the
     polynomial is fitted to, gets overridden.
@@ -45,7 +44,7 @@ def calculatePolynomialResidues(
 
     (1) If you know your data to have no significant number of missing values, or if you do not want to
         calculate residues for windows containing missing values any way, performance can be increased by setting
-        min_periods=winsz.
+        min_periods=window.
 
     (2) If your data consists of more then around 200000 samples, setting numba=True, will boost the
         calculations up to a factor of 5 (for samplesize > 300000) - however for lower sample sizes,
@@ -57,7 +56,7 @@ def calculatePolynomialResidues(
     (1) Harmonization/resampling of your data will have a noticable impact on polyfittings performance - since
         numba_boost doesnt apply for irregularly sampled data in the current implementation.
 
-    Note, that in the current implementation, the initial and final winsz/2 values do not get fitted.
+    Note, that in the current implementation, the initial and final window/2 values do not get fitted.
 
     Parameters
     ----------
@@ -67,19 +66,15 @@ def calculatePolynomialResidues(
         The fieldname of the column, holding the data-to-be-modelled.
     flags : saqc.Flags
         Container to store quality flags to data.
-    winsz : {str, int}
+    window : {str, int}
         The size of the window you want to use for fitting. If an integer is passed, the size
         refers to the number of periods for every fitting window. If an offset string is passed,
         the size refers to the total temporal extension. The window will be centered around the vaule-to-be-fitted.
         For regularly sampled timeseries the period number will be casted down to an odd number if
         even.
-    polydeg : int
+    order : int
         The degree of the polynomial used for fitting
-    numba : {True, False, "auto"}, default "auto"
-        Wheather or not to apply numbas just-in-time compilation onto the poly fit function. This will noticably
-        increase the speed of calculation, if the sample size is sufficiently high.
-        If "auto" is selected, numba compatible fit functions get applied for data consisiting of > 200000 samples.
-    eval_flags : bool, default True
+    set_flags : bool, default True
         Wheather or not to assign new flags to the calculated residuals. If True, a residual gets assigned the worst
         flag present in the interval, the data for its calculation was obtained from.
     min_periods : {int, None}, default 0
@@ -104,10 +99,9 @@ def calculatePolynomialResidues(
         data,
         field,
         flags,
-        winsz=winsz,
-        polydeg=polydeg,
-        numba=numba,
-        eval_flags=eval_flags,
+        window=window,
+        order=order,
+        set_flags=set_flags,
         min_periods=min_periods,
         return_residues=True,
         flag=flag,
@@ -120,9 +114,9 @@ def calculateRollingResidues(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    winsz: Union[str, int],
+    window: Union[str, int],
     func: Callable[[np.ndarray], np.ndarray] = np.mean,
-    eval_flags: bool = True,
+    set_flags: bool = True,
     min_periods: Optional[int] = 0,
     center: bool = True,
     flag: float = BAD,
@@ -133,9 +127,9 @@ def calculateRollingResidues(
         data,
         field,
         flags,
-        winsz=winsz,
+        window=window,
         func=func,
-        eval_flags=eval_flags,
+        set_flags=set_flags,
         min_periods=min_periods,
         center=center,
         return_residues=True,

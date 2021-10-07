@@ -42,13 +42,13 @@ class Resampling(ModuleBase):
         self,
         field: str,
         freq: str,
-        agg_func: Callable[[pd.Series], pd.Series] = np.mean,
+        func: Callable[[pd.Series], pd.Series] = np.mean,
         method: Literal["fagg", "bagg", "nagg"] = "bagg",
-        max_invalid_total_d: Optional[int] = None,
-        max_invalid_consec_d: Optional[int] = None,
-        max_invalid_consec_f: Optional[int] = None,
-        max_invalid_total_f: Optional[int] = None,
-        flag_agg_func: Callable[[pd.Series], float] = max,
+        maxna: Optional[int] = None,
+        maxna_group: Optional[int] = None,
+        maxna_flags: Optional[int] = None,  # TODO: still a case ??
+        maxna_group_flags: Optional[int] = None,
+        flag_func: Callable[[pd.Series], float] = max,
         freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs,
     ) -> saqc.SaQC:
@@ -68,6 +68,7 @@ class Resampling(ModuleBase):
         ],
         source: str,
         freq: Optional[str] = None,
+        drop: Optional[bool] = False,
         **kwargs,
     ) -> saqc.SaQC:
         return self.defer("reindexFlags", locals())

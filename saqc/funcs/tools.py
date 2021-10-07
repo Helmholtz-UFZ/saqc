@@ -124,11 +124,11 @@ def mask(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    mode: Literal["periodic", "mask_var"],
-    mask_var: Optional[str] = None,
-    period_start: Optional[str] = None,
-    period_end: Optional[str] = None,
-    include_bounds: bool = True,
+    mode: Literal["periodic", "mask_field"],
+    mask_field: Optional[str] = None,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+    closed: bool = True,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -160,24 +160,24 @@ def mask(
         Container to store flags of the data.
     mode : {"periodic", "mask_var"}
         The masking mode.
-        - "periodic": parameters "period_start", "period_end" are evaluated to generate a periodical mask
+        - "periodic": parameters "period_start", "end" are evaluated to generate a periodical mask
         - "mask_var": data[mask_var] is expected to be a boolean valued timeseries and is used as mask.
-    mask_var : {None, str}, default None
+    mask_field : {None, str}, default None
         Only effective if mode == "mask_var"
         Fieldname of the column, holding the data that is to be used as mask. (must be moolean series)
         Neither the series` length nor its labels have to match data[field]`s index and length. An inner join of the
         indices will be calculated and values get masked where the values of the inner join are "True".
-    period_start : {None, str}, default None
+    start : {None, str}, default None
         Only effective if mode == "seasonal"
         String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
-        Has to be of same length as `period_end` parameter.
+        Has to be of same length as `end` parameter.
         See examples section below for some examples.
-    period_end : {None, str}, default None
+    end : {None, str}, default None
         Only effective if mode == "periodic"
         String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
-        Has to be of same length as `period_end` parameter.
+        Has to be of same length as `end` parameter.
         See examples section below for some examples.
-    include_bounds : boolean
+    closed : boolean
         Wheather or not to include the mask defining bounds to the mask.
 
     Returns
@@ -192,7 +192,7 @@ def mask(
 
     Examples
     --------
-    The `period_start` and `period_end` parameters provide a conveniant way to generate seasonal / date-periodic masks.
+    The `period_start` and `end` parameters provide a conveniant way to generate seasonal / date-periodic masks.
     They have to be strings of the forms: "mm-ddTHH:MM:SS", "ddTHH:MM:SS" , "HH:MM:SS", "MM:SS" or "SS"
     (mm=month, dd=day, HH=hour, MM=minute, SS=second)
     Single digit specifications have to be given with leading zeros.
@@ -201,29 +201,29 @@ def mask(
     For example:
 
     >>> period_start = "01T15:00:00"
-    >>> period_end = "13T17:30:00"
+    >>> end = "13T17:30:00"
 
     Will result in all values sampled between 15:00 at the first and  17:30 at the 13th of every month get masked
 
     >>> period_start = "01:00"
-    >>> period_end = "04:00"
+    >>> end = "04:00"
 
     All the values between the first and 4th minute of every hour get masked.
 
     >>> period_start = "01-01T00:00:00"
-    >>> period_end = "01-03T00:00:00"
+    >>> end = "01-03T00:00:00"
 
     Mask january and february of evcomprosed in theery year. masking is inclusive always, so in this case the mask will
     include 00:00:00 at the first of march. To exclude this one, pass:
 
     >>> period_start = "01-01T00:00:00"
-    >>> period_end = "02-28T23:59:59"
+    >>> end = "02-28T23:59:59"
 
     To mask intervals that lap over a seasons frame, like nights, or winter, exchange sequence of season start and
     season end. For example, to mask night hours between 22:00:00 in the evening and 06:00:00 in the morning, pass:
 
     >>> period_start = "22:00:00"
-    >>> period_end = "06:00:00"
+    >>> end = "06:00:00"
 
     When inclusive_selection="season", all above examples work the same way, only that you now
     determine wich values NOT TO mask (=wich values are to constitute the "seasons").
@@ -232,10 +232,10 @@ def mask(
     datcol_idx = data[field].index
 
     if mode == "periodic":
-        to_mask = periodicMask(datcol_idx, period_start, period_end, include_bounds)
-    elif mode == "mask_var":
-        idx = data[mask_var].index.intersection(datcol_idx)
-        to_mask = data.loc[idx, mask_var]
+        to_mask = periodicMask(datcol_idx, start, end, closed)
+    elif mode == "mask_field":
+        idx = data[mask_field].index.intersection(datcol_idx)
+        to_mask = data.loc[idx, mask_field]
     else:
         raise ValueError("Keyword passed as masking mode is unknown ({})!".format(mode))
 
@@ -249,13 +249,13 @@ def plot(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    save_path: Optional[str] = None,
+    path: Optional[str] = None,
     max_gap: Optional[FreqString] = None,
     stats: bool = False,
     plot_kwargs: Optional[dict] = None,
     fig_kwargs: Optional[dict] = None,
     stats_dict: Optional[dict] = None,
-    save_kwargs: Optional[dict] = None,
+    store_kwargs: Optional[dict] = None,
     **kwargs,
 ):
     """
@@ -278,7 +278,7 @@ def plot(
     flags : {pd.DataFrame, dios.DictOfSeries, saqc.flagger}
         Flags or flagger object
 
-    save_path : str, default None
+    path : str, default None
         If ``None`` is passed, interactive mode is entered; plots are shown immediatly
         and a user need to close them manually before execution continues.
         If a filepath is passed instead, store-mode is entered and
@@ -313,10 +313,10 @@ def plot(
         ``None`` defaults to ``{"figsize": (16, 9)}`` to ensure a proper figure size
         in store-mode.
 
-    save_kwargs : dict, default {}
+    store_kwargs : dict, default {}
         Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
         the figure storing. To store an pickle object of the figure, use the option
-        ``{'pickle': True}``, but note that all other save_kwargs are ignored then.
+        ``{'pickle': True}``, but note that all other store_kwargs are ignored then.
         Reopen with: ``pickle.load(open(savepath,'w')).show()``
 
     stats_dict: dict, default None
@@ -349,10 +349,10 @@ def plot(
 
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
-    interactive = save_path is None
+    interactive = path is None
 
-    if save_kwargs is None:
-        save_kwargs = {}
+    if store_kwargs is None:
+        store_kwargs = {}
 
     if interactive:
         mpl.use(_MPL_DEFAULT_BACKEND)
@@ -379,10 +379,10 @@ def plot(
         plt.show()
 
     else:
-        if save_kwargs.pop("pickle", False):
-            with open(save_path, "wb") as f:
+        if store_kwargs.pop("pickle", False):
+            with open(path, "wb") as f:
                 pickle.dump(fig, f)
         else:
-            fig.savefig(save_path, **save_kwargs)
+            fig.savefig(path, **store_kwargs)
 
     return data, flags

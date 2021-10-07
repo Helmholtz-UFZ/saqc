@@ -63,7 +63,7 @@ Easiest thing to do, would be to apply some rolling mean
 model via the :py:func:`saqc.rolling.roll <docs.func_modules.rolling.roll>` method.
 
 ```python
-i_saqc = i_saqc.rolling.roll(field='incidents_model', func=np.mean, winsz='13D')
+i_saqc = i_saqc.rolling.roll(field='incidents_model', func=np.mean, window='13D')
 ```
 
 We chose the rolling window to have a sice of 13 days.
@@ -72,7 +72,7 @@ You can pass arbitrary functions to the rolling method. for example, you could g
 
 ```python
 i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_median')
-i_saqc = i_saqc.rolling.roll(field='incidents_median', func=np.median, winsz='13D')
+i_saqc = i_saqc.rolling.roll(field='incidents_median', func=np.median, window='13D')
 ```
 
 Another common approach, is, to fit polynomials of certain degrees to the data. This could, of course, also be applied 
@@ -82,7 +82,8 @@ SaQC offers a build-in polynomial fit function
 
 ```python
 i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_polynomial')
-i_saqc = i_saqc.curvefit.fitPolynomial(field='incidents_polynomial', polydeg=2 ,winsz='13D')
+i_saqc = i_saqc.curvefit.fitPolynomial(field='incidents_polynomial', order=2,
+                                       winsz='13D')
 ```
 
 If you want to apply a completely arbitrary function to your data, without rolling, for example
@@ -133,12 +134,15 @@ i_saqc = i_saqc.generic.process('incidents_residues', func=lambda incidents, inc
 Next, we score the residues simply by computing their [Z-scores](https://en.wikipedia.org/wiki/Standard_score).
 
 ```python
-i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_mean', winsz='27D', 
+i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_mean',
+                             window='27D',
                              func=np.mean)
-i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_std', winsz='27D', 
+i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_std',
+                             window='27D',
                              func=np.std)
-i_saqc = i_saqc.generic.process(field='incidents_scores', 
-                                func=lambda This, residues_mean, residues_std: (This - residues_mean)/residues_std )
+i_saqc = i_saqc.generic.process(field='incidents_scores',
+                                func=lambda This, residues_mean, residues_std: (
+                                                                                           This - residues_mean) / residues_std)
 ```
 
 

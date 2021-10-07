@@ -25,10 +25,9 @@ def fitPolynomial(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    winsz: Union[int, str],
-    polydeg: int,
-    numba: Literal[True, False, "auto"] = "auto",
-    eval_flags: bool = True,
+    window: Union[int, str],
+    order: int,
+    set_flags: bool = True,
     min_periods: int = 0,
     return_residues: bool = False,
     flag: float = BAD,
@@ -37,15 +36,14 @@ def fitPolynomial(
     """
     Function fits a polynomial model to the data and returns the fitted data curve.
 
-    The fit is calculated by fitting a polynomial of degree `polydeg` to a data slice
-    of size `winsz`, that has x at its center.
+    The fit is calculated by fitting a polynomial of degree `order` to a data slice
+    of size `window`, that has x at its center.
 
     Note, that the resulting fit is stored to the `field` field of the input data, so that the original data, the
     polynomial is fitted to, gets overridden.
 
     Note, that, if data[field] is not alligned to an equidistant frequency grid, the window size passed,
-    has to be an offset string. Also numba boost options don`t apply for irregularly sampled
-    timeseries.
+    has to be an offset string.
 
     Note, that calculating the residues tends to be quite costy, because a function fitting is perfomed for every
     sample. To improve performance, consider the following possibillities:
@@ -54,19 +52,9 @@ def fitPolynomial(
 
     (1) If you know your data to have no significant number of missing values, or if you do not want to
         calculate residues for windows containing missing values any way, performance can be increased by setting
-        min_periods=winsz.
+        min_periods=window.
 
-    (2) If your data consists of more then around 200000 samples, setting numba=True, will boost the
-        calculations up to a factor of 5 (for samplesize > 300000) - however for lower sample sizes,
-        numba will slow down the calculations, also, up to a factor of 5, for sample_size < 50000.
-        By default (numba='auto'), numba is set to true, if the data sample size exceeds 200000.
-
-    in case your data is not sampled at an equidistant frequency grid:
-
-    (1) Harmonization/resampling of your data will have a noticable impact on polyfittings performance - since
-        numba_boost doesnt apply for irregularly sampled data in the current implementation.
-
-    Note, that in the current implementation, the initial and final winsz/2 values do not get fitted.
+    Note, that in the current implementation, the initial and final window/2 values do not get fitted.
 
     Parameters
     ----------
@@ -76,20 +64,16 @@ def fitPolynomial(
         The fieldname of the column, holding the data-to-be-modelled.
     flags : saqc.Flags
         Container to store quality flags to data.
-    winsz : {str, int}
+    window : {str, int}
         The size of the window you want to use for fitting. If an integer is passed, the size
         refers to the number of periods for every fitting window. If an offset string is passed,
         the size refers to the total temporal extension. The window will be centered around the vaule-to-be-fitted.
         For regularly sampled timeseries the period number will be casted down to an odd number if
         even.
-    polydeg : int
+    order : int
         The degree of the polynomial used for fitting
-    numba : {True, False, "auto"}, default "auto"
-        Wheather or not to apply numbas just-in-time compilation onto the poly fit function. This will noticably
-        increase the speed of calculation, if the sample size is sufficiently high.
-        If "auto" is selected, numba compatible fit functions get applied for data consisiting of > 200000 samples.
-    eval_flags : bool, default True
-        Wheather or not to assign new flags to the calculated residuals. If True, a residual gets assigned the worst
+    set_flags : bool, default True
+        Whether or not to assign new flags to the calculated residuals. If True, a residual gets assigned the worst
         flag present in the interval, the data for its calculation was obtained from.
     min_periods : {int, None}, default 0
         The minimum number of periods, that has to be available in every values fitting surrounding for the polynomial
@@ -117,7 +101,7 @@ def fitPolynomial(
     to_fit = data[field]
     regular = getFreqDelta(to_fit.index)
     if not regular:
-        if isinstance(winsz, int):
+        if isinstance(window, int):
             raise NotImplementedError(
                 "Integer based window size is not supported for not-harmonized"
                 "sample series."
@@ -125,21 +109,21 @@ def fitPolynomial(
         # get interval centers
         centers = (
             to_fit.rolling(
-                pd.Timedelta(winsz) / 2, closed="both", min_periods=min_periods
+                pd.Timedelta(window) / 2, closed="both", min_periods=min_periods
             ).count()
         ).floor()
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
         residues = to_fit.rolling(
-            pd.Timedelta(winsz), closed="both", min_periods=min_periods
-        ).apply(polyRollerIrregular, args=(centers, polydeg))
+            pd.Timedelta(window), closed="both", min_periods=min_periods
+        ).apply(polyRollerIrregular, args=(centers, order))
 
         def center_func(x, y=centers):
             pos = x.index[int(len(x) - y[x.index[-1]])]
             return y.index.get_loc(pos)
 
         centers_iloc = (
-            centers.rolling(winsz, closed="both")
+            centers.rolling(window, closed="both")
             .apply(center_func, raw=False)
             .astype(int)
         )
@@ -149,24 +133,23 @@ def fitPolynomial(
         residues[residues.index[0] : residues.index[centers_iloc[0]]] = np.nan
         residues[residues.index[centers_iloc[-1]] : residues.index[-1]] = np.nan
     else:
-        if isinstance(winsz, str):
-            winsz = pd.Timedelta(winsz) // regular
-        if winsz % 2 == 0:
-            winsz = int(winsz - 1)
+        if isinstance(window, str):
+            window = pd.Timedelta(window) // regular
+        if window % 2 == 0:
+            window = int(window - 1)
         if min_periods is None:
-            min_periods = winsz
-        if numba == "auto":
-            if to_fit.shape[0] < 200000:
-                numba = False
-            else:
-                numba = True
+            min_periods = window
+        if to_fit.shape[0] < 200000:
+            numba = False
+        else:
+            numba = True
 
-        val_range = np.arange(0, winsz)
-        center_index = winsz // 2
-        if min_periods < winsz:
+        val_range = np.arange(0, window)
+        center_index = window // 2
+        if min_periods < window:
             if min_periods > 0:
                 to_fit = to_fit.rolling(
-                    winsz, min_periods=min_periods, center=True
+                    window, min_periods=min_periods, center=True
                 ).apply(lambda x, y: x[y], raw=True, args=(center_index,))
 
             # we need a missing value marker that is not nan,
@@ -176,9 +159,9 @@ def fitPolynomial(
             na_mask = to_fit.isna()
             to_fit[na_mask] = miss_marker
             if numba:
-                residues = to_fit.rolling(winsz).apply(
+                residues = to_fit.rolling(window).apply(
                     polyRollerNumba,
-                    args=(miss_marker, val_range, center_index, polydeg),
+                    args=(miss_marker, val_range, center_index, order),
                     raw=True,
                     engine="numba",
                     engine_kwargs={"no_python": True},
@@ -186,18 +169,18 @@ def fitPolynomial(
                 # due to a tiny bug - rolling with center=True doesnt work when using numba engine.
                 residues = residues.shift(-int(center_index))
             else:
-                residues = to_fit.rolling(winsz, center=True).apply(
+                residues = to_fit.rolling(window, center=True).apply(
                     polyRoller,
-                    args=(miss_marker, val_range, center_index, polydeg),
+                    args=(miss_marker, val_range, center_index, order),
                     raw=True,
                 )
             residues[na_mask] = np.nan
         else:
             # we only fit fully populated intervals:
             if numba:
-                residues = to_fit.rolling(winsz).apply(
+                residues = to_fit.rolling(window).apply(
                     polyRollerNoMissingNumba,
-                    args=(val_range, center_index, polydeg),
+                    args=(val_range, center_index, order),
                     engine="numba",
                     engine_kwargs={"no_python": True},
                     raw=True,
@@ -205,9 +188,9 @@ def fitPolynomial(
                 # due to a tiny bug - rolling with center=True doesnt work when using numba engine.
                 residues = residues.shift(-int(center_index))
             else:
-                residues = to_fit.rolling(winsz, center=True).apply(
+                residues = to_fit.rolling(window, center=True).apply(
                     polyRollerNoMissing,
-                    args=(val_range, center_index, polydeg),
+                    args=(val_range, center_index, order),
                     raw=True,
                 )
 
@@ -215,9 +198,9 @@ def fitPolynomial(
         residues = to_fit - residues
 
     data[field] = residues
-    if eval_flags:
+    if set_flags:
         # TODO: we does not get any flags here, because of masking=field
-        worst = flags[field].rolling(winsz, center=True, min_periods=min_periods).max()
+        worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()
         flags[field] = worst
 
     return data, flags

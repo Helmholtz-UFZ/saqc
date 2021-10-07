@@ -67,7 +67,7 @@ def test_flagSpikesLimitRaise(dat):
         field,
         flags,
         thresh=2,
-        intended_freq="10min",
+        freq="10min",
         raise_window="20min",
         numba_boost=False,
         flag=BAD,
@@ -100,7 +100,7 @@ def test_flagMultivarScores(dat):
         fields=fields,
         trafo=np.log,
         iter_start=0.95,
-        n_neighbors=10,
+        n=10,
         flag=BAD,
     )
     for field in fields:
@@ -123,6 +123,6 @@ def test_grubbs(dat):
     )
     flags = initFlagsLike(data)
     data, result_flags = flagByGrubbs(
-        data, "data", flags, winsz=20, min_periods=15, flag=BAD
+        data, "data", flags, window=20, min_periods=15, flag=BAD
     )
     assert np.all(result_flags["data"][char_dict["drop"]] > UNFLAGGED)

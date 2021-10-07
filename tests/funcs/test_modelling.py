@@ -54,7 +54,7 @@ def test_modelling_rollingMean_forRegular(dat):
         flags,
         5,
         func=np.mean,
-        eval_flags=True,
+        set_flags=True,
         min_periods=0,
         center=True,
     )
@@ -64,7 +64,7 @@ def test_modelling_rollingMean_forRegular(dat):
         flags,
         5,
         func=np.mean,
-        eval_flags=True,
+        set_flags=True,
         min_periods=0,
         center=False,
     )
@@ -82,23 +82,21 @@ def test_modelling_mask(dat):
 
     common = dict(data=data, field=field, flags=flags, mode="periodic")
     data_seasonal, flags_seasonal = mask(
-        **common, period_start="20:00", period_end="40:00", include_bounds=False
+        **common, start="20:00", end="40:00", closed=False
     )
     flagscol = flags_seasonal[field]
     m = (20 <= flagscol.index.minute) & (flagscol.index.minute <= 40)
     assert all(flags_seasonal[field][m] == UNFLAGGED)
     assert all(data_seasonal[field][m].isna())
 
-    data_seasonal, flags_seasonal = mask(
-        **common, period_start="15:00:00", period_end="02:00:00"
-    )
+    data_seasonal, flags_seasonal = mask(**common, start="15:00:00", end="02:00:00")
     flagscol = flags_seasonal[field]
     m = (15 <= flagscol.index.hour) & (flagscol.index.hour <= 2)
     assert all(flags_seasonal[field][m] == UNFLAGGED)
     assert all(data_seasonal[field][m].isna())
 
     data_seasonal, flags_seasonal = mask(
-        **common, period_start="03T00:00:00", period_end="10T00:00:00"
+        **common, start="03T00:00:00", end="10T00:00:00"
     )
     flagscol = flags_seasonal[field]
     m = (3 <= flagscol.index.hour) & (flagscol.index.hour <= 10)
@@ -110,7 +108,7 @@ def test_modelling_mask(dat):
     data["mask_ser"] = mask_ser
     flags = initFlagsLike(data)
     data_masked, flags_masked = mask(
-        data, "data", flags, mode="mask_var", mask_var="mask_ser"
+        data, "data", flags, mode="mask_field", mask_field="mask_ser"
     )
     m = mask_ser
     assert all(flags_masked[field][m] == UNFLAGGED)

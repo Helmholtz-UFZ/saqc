@@ -15,7 +15,7 @@ class Transformation(ModuleBase):
         self,
         field: str,
         func: Callable[[pd.Series], pd.Series],
-        partition_freq: Optional[Union[float, str]] = None,
+        freq: Optional[Union[float, str]] = None,
         **kwargs
     ) -> saqc.SaQC:
         return self.defer("transform", locals())
