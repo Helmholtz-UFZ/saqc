@@ -59,8 +59,8 @@ It is not a shame to name a parameter just `n` or `alpha` etc. if for example th
 - testnames: [testmodule_]flagTestName
  
 ## Formatting
-We use (black)[https://black.readthedocs.io/en/stable/] with a line length if 120 characters.
-Within the `SaQC` root directory run `black -l 120`.
+We use (black)[https://black.readthedocs.io/en/stable/] in its default settings.
+Within the `saqc` root directory run `black .`.
 
 ## Imports
 Only absolute imports are accepted.
