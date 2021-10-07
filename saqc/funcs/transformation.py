@@ -15,7 +15,7 @@ def transform(
     field: str,
     flags: Flags,
     func: Callable[[pd.Series], pd.Series],
-    partition_freq: Optional[Union[float, str]] = None,
+    freq: Optional[Union[float, str]] = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -33,7 +33,7 @@ def transform(
         Container to store quality flags to data.
     func : Callable[{pd.Series, np.array}, np.array]
         Function to transform data[field] with.
-    partition_freq : {None, float, str}, default None
+    freq : {None, float, str}, default None
         Determines the segmentation of the data into partitions, the transformation is applied on individually
 
         * ``np.inf``: Apply transformation on whole data set at once
@@ -53,14 +53,14 @@ def transform(
     data = data.copy()
     val_ser = data[field]
     # partitioning
-    if not partition_freq:
-        partition_freq = val_ser.shape[0]
+    if not freq:
+        freq = val_ser.shape[0]
 
-    if isinstance(partition_freq, str):
-        grouper = pd.Grouper(freq=partition_freq)
+    if isinstance(freq, str):
+        grouper = pd.Grouper(freq=freq)
     else:
         grouper = pd.Series(data=np.arange(0, val_ser.shape[0]), index=val_ser.index)
-        grouper = grouper.transform(lambda x: int(np.floor(x / partition_freq)))
+        grouper = grouper.transform(lambda x: int(np.floor(x / freq)))
 
     partitions = val_ser.groupby(grouper)
 

@@ -16,9 +16,9 @@ def roll(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    winsz: Union[str, int],
+    window: Union[str, int],
     func: Callable[[pd.Series], float] = np.mean,
-    eval_flags: bool = True,  # TODO: not applicable anymore
+    set_flags: bool = True,  # TODO: not applicable anymore
     min_periods: int = 0,
     center: bool = True,
     return_residues=False,  # TODO: this should not be public, a wrapper would be better
@@ -39,7 +39,7 @@ def roll(
         The fieldname of the column, holding the data-to-be-modelled.
     flags : saqc.Flags
         Container to store quality flags to data.
-    winsz : {int, str}
+    window : {int, str}
         The size of the window you want to roll with. If an integer is passed, the size
         refers to the number of periods for every fitting window. If an offset string is passed,
         the size refers to the total temporal extension.
@@ -47,7 +47,7 @@ def roll(
         center = True.
     func : Callable[np.array, float], default np.mean
         Function to apply on the rolling window and obtain the curve fit value.
-    eval_flags : bool, default True
+    set_flags : bool, default True
         Wheather or not to assign new flags to the calculated residuals. If True, a residual gets assigned the worst
         flag present in the interval, the data for its calculation was obtained from.
         Currently not implemented in combination with not-harmonized timeseries.
@@ -78,7 +78,7 @@ def roll(
     regular = getFreqDelta(to_fit.index)
     # starting with the annoying case: finding the rolling interval centers of not-harmonized input time series:
     if center and not regular:
-        if isinstance(winsz, int):
+        if isinstance(window, int):
             raise NotImplementedError(
                 "Integer based window size is not supported for not-harmonized"
                 'sample series when rolling with "center=True".'
@@ -87,20 +87,20 @@ def roll(
         centers = np.floor(
             (
                 to_fit.rolling(
-                    pd.Timedelta(winsz) / 2, closed="both", min_periods=min_periods
+                    pd.Timedelta(window) / 2, closed="both", min_periods=min_periods
                 ).count()
             )
         )
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
         roller = to_fit.rolling(
-            pd.Timedelta(winsz), closed="both", min_periods=min_periods
+            pd.Timedelta(window), closed="both", min_periods=min_periods
         )
         try:
             means = getattr(roller, func.__name__)()
         except AttributeError:
             means = to_fit.rolling(
-                pd.Timedelta(winsz), closed="both", min_periods=min_periods
+                pd.Timedelta(window), closed="both", min_periods=min_periods
             ).apply(func)
 
         def center_func(x, y=centers):
@@ -108,7 +108,7 @@ def roll(
             return y.index.get_loc(pos)
 
         centers_iloc = (
-            centers.rolling(winsz, closed="both")
+            centers.rolling(window, closed="both")
             .apply(center_func, raw=False)
             .astype(int)
         )
@@ -120,16 +120,16 @@ def roll(
 
     # everything is more easy if data[field] is harmonized:
     else:
-        if isinstance(winsz, str):
-            winsz = pd.Timedelta(winsz) // regular
-        if (winsz % 2 == 0) & center:
-            winsz = int(winsz - 1)
+        if isinstance(window, str):
+            window = pd.Timedelta(window) // regular
+        if (window % 2 == 0) & center:
+            window = int(window - 1)
 
-        roller = to_fit.rolling(window=winsz, center=center, closed="both")
+        roller = to_fit.rolling(window=window, center=center, closed="both")
         try:
             means = getattr(roller, func.__name__)()
         except AttributeError:
-            means = to_fit.rolling(window=winsz, center=center, closed="both").apply(
+            means = to_fit.rolling(window=window, center=center, closed="both").apply(
                 func
             )
 
@@ -137,9 +137,9 @@ def roll(
         means = to_fit - means
 
     data[field] = means
-    if eval_flags:
+    if set_flags:
         # TODO: we does not get any flags here, because of masking=field
-        worst = flags[field].rolling(winsz, center=True, min_periods=min_periods).max()
+        worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()
         flags[field] = worst
 
     return data, flags

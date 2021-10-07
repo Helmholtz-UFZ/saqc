@@ -26,13 +26,13 @@ def test_makeFig():
     # not interactive, no storing
     dummy_path = ""
 
-    d_saqc = d_saqc.tools.plot(field="data", save_path="")
+    d_saqc = d_saqc.tools.plot(field="data", path="")
     d_saqc = d_saqc.tools.plot(
-        field="data", save_path=dummy_path, plot_kwargs={"history": "valid"}, stats=True
+        field="data", path=dummy_path, plot_kwargs={"history": "valid"}, stats=True
     )
     d_saqc = d_saqc.tools.plot(
-        field="data", save_path=dummy_path, plot_kwargs={"history": "all"}
+        field="data", path=dummy_path, plot_kwargs={"history": "all"}
     )
     d_saqc = d_saqc.tools.plot(
-        field="data", save_path=dummy_path, plot_kwargs={"slice": "2000-10"}, stats=True
+        field="data", path=dummy_path, plot_kwargs={"slice": "2000-10"}, stats=True
     )

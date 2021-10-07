@@ -14,8 +14,8 @@ class Constants(ModuleBase):
         field: ColumnName,
         window: FreqString = "12h",
         thresh: float = 0.0005,
-        max_missing: int = None,
-        max_consec_missing: int = None,
+        maxna: int = None,
+        maxna_group: int = None,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:

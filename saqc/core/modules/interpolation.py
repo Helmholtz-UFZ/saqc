@@ -17,7 +17,7 @@ class Interpolation(ModuleBase):
     def interpolateByRolling(
         self,
         field: str,
-        winsz: Union[str, int],
+        window: Union[str, int],
         func: Callable[[pd.Series], float] = np.median,
         center: bool = True,
         min_periods: int = 0,
@@ -30,9 +30,9 @@ class Interpolation(ModuleBase):
         self,
         field: str,
         method: _SUPPORTED_METHODS,
-        inter_order: int = 2,
-        inter_limit: int = 2,
-        downgrade_interpolation: bool = False,
+        order: int = 2,
+        limit: int = 2,
+        downgrade: bool = False,
         flag: float = UNFLAGGED,
         **kwargs
     ) -> saqc.SaQC:
@@ -43,9 +43,9 @@ class Interpolation(ModuleBase):
         field: str,
         freq: str,
         method: _SUPPORTED_METHODS,
-        inter_order: int = 2,
-        inter_limit: int = 2,
-        downgrade_interpolation: bool = False,
+        order: int = 2,
+        limit: int = 2,
+        downgrade: bool = False,
         **kwargs
     ) -> saqc.SaQC:
         return self.defer("interpolateIndex", locals())
