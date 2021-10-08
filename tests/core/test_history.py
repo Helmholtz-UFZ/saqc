@@ -19,15 +19,6 @@ example1 = (
             [0, 99, np.nan, np.nan, 25],
         ]
     ),
-    # mask
-    np.array(
-        [
-            [0, 0, 0, 1],
-            [1, 1, 1, 1],
-            [1, 1, 1, 1],
-            [1, 1, 1, 1],
-        ]
-    ),
     # expected from max()
     np.array([99, 25, 25, 25]),
 )
@@ -41,15 +32,6 @@ example2 = (
             [0, np.nan, 99, np.nan],
             [0, np.nan, np.nan, np.nan],
             [0, np.nan, np.nan, 0],
-        ]
-    ),
-    # mask
-    np.array(
-        [
-            [0, 0, 0, 1],
-            [1, 1, 1, 1],
-            [1, 1, 1, 1],
-            [0, 0, 0, 1],
         ]
     ),
     # expected from max()
@@ -87,14 +69,11 @@ def check_invariants(hist):
     # basics
     assert isinstance(hist, History)
     assert isinstance(hist.hist, pd.DataFrame)
-    assert isinstance(hist.mask, pd.DataFrame)
     assert isinstance(hist.meta, list)
     assert all(
         [isinstance(dtype, (float, pd.CategoricalDtype)) for dtype in hist.hist.dtypes]
     )
-    assert all(hist.mask.dtypes == bool)
     assert all([isinstance(e, dict) for e in hist.meta])
-    assert hist.hist.columns.equals(hist.mask.columns)
     assert hist.columns is hist.hist.columns
     assert hist.index is hist.hist.index
     assert len(hist) == len(hist.columns) == len(hist.meta)
@@ -102,29 +81,13 @@ def check_invariants(hist):
     # advanced
     assert hist.columns.equals(pd.Index(range(len(hist))))
     assert isinstance(hist.max(), pd.Series)
-    assert hist.mask.empty or hist.mask.iloc[:, -1].all()
-
-    # False propagation
-
-    # for each row this must hold:
-    # either the row has one change (False->True)
-    # or the entire row is True
-    if not hist.empty:
-        idxmax = hist.mask.idxmax(axis=1)
-        for row, col in idxmax.items():
-            # this is contra intuitive, it gets the positional (for iloc)
-            row = idxmax.index.get_loc(row)
-
-            assert all(hist.mask.iloc[row, :col] == False)
-            assert all(hist.mask.iloc[row, col:] == True)
 
 
 def is_equal(hist1: History, hist2: History):
     """
-    Check if two FH are (considered) equal, namely
-    have equal 'hist' and equal 'mask'.
+    Check if two FH are (considered) equal, namely have equal 'hist'
     """
-    return hist1.hist.equals(hist2.hist) and hist1.mask.equals(hist2.mask)
+    return hist1.hist.equals(hist2.hist)
 
 
 @pytest.mark.parametrize("data", data + [None])
@@ -139,10 +102,8 @@ def test_init(data: np.array):
 def test_createHistory(data: np.array):
     # init
     df = pd.DataFrame(data, dtype=float)
-    mask = pd.DataFrame(data, dtype=bool)
-    mask[:] = True
     meta = [{}] * len(df.columns)
-    hist = createHistoryFromData(df, mask, meta)
+    hist = createHistoryFromData(df, meta)
 
     check_invariants(hist)
 
@@ -173,11 +134,9 @@ def test_copy(data):
     assert is_equal(deep, shallow)
 
     assert deep.hist is not hist.hist
-    assert deep.mask is not hist.mask
     assert deep.meta is not hist.meta
 
     assert shallow.hist is hist.hist
-    assert shallow.mask is hist.mask
     assert shallow.meta is hist.meta
 
 
@@ -248,23 +207,6 @@ def __hist():
     return History(index=pd.Index(range(6)))
 
 
-@pytest.mark.parametrize(
-    "s, max_val",
-    [
-        (pd.Series(0, index=range(6), dtype=float), 0),
-        (pd.Series(1, index=range(6), dtype=float), 1),
-        (pd.Series(np.nan, index=range(6), dtype=float), 1),
-        (pd.Series(1, index=range(6), dtype=float), 1),
-        (pd.Series(0, index=range(6), dtype=float), 1),
-    ],
-)
-def test_append(__hist, s, max_val):
-    hist = __hist
-    hist.append(s, force=False)
-    check_invariants(hist)
-    assert all(hist.max() == max_val)
-
-
 # this test append more rows to the resulting
 # FH from the former test
 @pytest.mark.parametrize(
@@ -278,6 +220,6 @@ def test_append(__hist, s, max_val):
 )
 def test_append_force(__hist, s, max_val):
     hist = __hist
-    hist.append(s, force=True)
+    hist.append(s)
     check_invariants(hist)
     assert all(hist.max() == max_val)

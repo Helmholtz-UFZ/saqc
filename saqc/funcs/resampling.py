@@ -13,8 +13,8 @@ from saqc.core import processing, Flags
 from saqc.core.register import _isflagged
 from saqc.lib.tools import evalFreqStr, getFreqDelta
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
-from saqc.funcs.tools import copy
 from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
+import saqc.funcs.tools as tools
 
 
 logger = logging.getLogger("SaQC")
@@ -134,7 +134,7 @@ def interpolate(
     """
 
     return interpolateIndex(
-        data, field, flags, freq, method=method, inter_order=order, **kwargs
+        data, field, flags, freq, method=method, order=order, **kwargs
     )
 
 
@@ -210,10 +210,8 @@ def shift(
         index=datcol.index,
         func_handle_df=True,
         copy=False,
-        hist_func=shift2Freq,
-        hist_kws={**kws, "fill_value": UNTOUCHED},
-        mask_func=shift2Freq,
-        mask_kws={**kws, "fill_value": True},
+        func=shift2Freq,
+        func_kws={**kws, "fill_value": UNTOUCHED},
     )
 
     flags.history[field] = history
@@ -227,13 +225,13 @@ def resample(
     field: str,
     flags: Flags,
     freq: str,
-    agg_func: Callable[[pd.Series], pd.Series] = np.mean,
+    func: Callable[[pd.Series], pd.Series] = np.mean,
     method: Literal["fagg", "bagg", "nagg"] = "bagg",
-    max_invalid_total_d: Optional[int] = None,
-    max_invalid_consec_d: Optional[int] = None,
-    max_invalid_consec_f: Optional[int] = None,
-    max_invalid_total_f: Optional[int] = None,
-    flag_agg_func: Callable[[pd.Series], float] = max,
+    maxna: Optional[int] = None,
+    maxna_group: Optional[int] = None,
+    maxna_flags: Optional[int] = None,  # TODO: still a case ??
+    maxna_group_flags: Optional[int] = None,
+    flag_func: Callable[[pd.Series], float] = max,
     freq_check: Optional[Literal["check", "auto"]] = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -278,38 +276,31 @@ def resample(
         An Offset String, that will be interpreted as the frequency you want to
         resample your data with.
 
-    agg_func : Callable
+    func : Callable
         The function you want to use for aggregation.
 
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
         Specifies which intervals to be aggregated for a certain timestamp. (preceding,
         succeeding or "surrounding" interval). See description above for more details.
 
-    max_invalid_total_d : {None, int}, default None
-        Maximum number of invalid (nan) datapoints, allowed per resampling interval.
-        If max_invalid_total_d is exceeded, the interval gets resampled to nan. By
-        default ( ``np.inf``), there is no bound to the number of nan values in an
-        interval and only intervals containing ONLY nan values or those, containing
-        no values at all, get projected onto nan
+    maxna : {None, int}, default None
+        Maximum number NaNs in a resampling interval. If maxna is exceeded, the interval
+        is set entirely to NaN.
 
-    max_invalid_consec_d : {None, int}, default None
-        Maximum number of consecutive invalid (nan) data points, allowed per
-        resampling interval. If max_invalid_consec_d is exceeded, the interval gets
-        resampled to nan. By default (np.inf), there is no bound to the number of
-        consecutive nan values in an interval and only intervals containing ONLY nan
-        values, or those containing no values at all, get projected onto nan.
+    maxna_group : {None, int}, default None
+        Same as `maxna` but for consecutive NaNs.
 
-    max_invalid_total_f : {None, int}, default None
-        Same as `max_invalid_total_d`, only applying for the flags. The flag regarded
+    maxna_flags : {None, int}, default None
+        Same as `max_invalid`, only applying for the flags. The flag regarded
         as "invalid" value, is the one passed to empty_intervals_flag (
         default=``BAD``). Also this is the flag assigned to invalid/empty intervals.
 
-    max_invalid_consec_f : {None, int}, default None
-        Same as `max_invalid_total_f`, only applying onto flags. The flag regarded as
+    maxna_group_flags : {None, int}, default None
+        Same as `maxna_flags`, only applying onto flags. The flag regarded as
         "invalid" value, is the one passed to empty_intervals_flag. Also this is the
         flag assigned to invalid/empty intervals.
 
-    flag_agg_func : Callable, default: max
+    flag_func : Callable, default: max
         The function you want to aggregate the flags with. It should be capable of
         operating on the flags dtype (usually ordered categorical).
 
@@ -339,27 +330,25 @@ def resample(
         datcol,
         method,
         freq,
-        agg_func,
+        func,
         fill_value=np.nan,
-        max_invalid_total=max_invalid_total_d,
-        max_invalid_consec=max_invalid_consec_d,
+        max_invalid_total=maxna,
+        max_invalid_consec=maxna_group,
     )
 
     kws = dict(
         method=method,
         freq=freq,
-        agg_func=flag_agg_func,
+        agg_func=flag_func,
         fill_value=UNTOUCHED,
-        max_invalid_total=max_invalid_total_f,
-        max_invalid_consec=max_invalid_consec_f,
+        max_invalid_total=maxna_flags,
+        max_invalid_consec=maxna_group_flags,
     )
 
     history = flags.history[field].apply(
         index=datcol.index,
-        hist_func=aggregate2Freq,
-        mask_func=aggregate2Freq,
-        hist_kws=kws,
-        mask_kws={**kws, "agg_func": any, "fill_value": True},
+        func=aggregate2Freq,
+        func_kws=kws,
         copy=False,
     )
 
@@ -442,6 +431,7 @@ def reindexFlags(
     ],
     source: str,
     freq: Optional[str] = None,
+    drop: Optional[bool] = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -497,6 +487,9 @@ def reindexFlags(
         The freq determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of source is used.
 
+    drop : default False
+        If set to `True`, the `source` column will be removed
+
     Returns
     -------
     data : dios.DictOfSeries
@@ -526,14 +519,12 @@ def reindexFlags(
         ignore = _getChunkBounds(target_datcol, flagscol, freq)
         func = _inverseInterpolation
         func_kws = dict(freq=freq, chunk_bounds=ignore, target=dummy)
-        mask_kws = {**func_kws, "chunk_bounds": []}
 
     elif method[-3:] == "agg" or method == "match":
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
         func = _inverseAggregation
         func_kws = dict(freq=tolerance, method=projection_method, target=dummy)
-        mask_kws = func_kws
 
     elif method[-5:] == "shift":
         drop_mask = target_datcol.isna() | _isflagged(
@@ -546,13 +537,14 @@ def reindexFlags(
             freq=tolerance, method=projection_method, drop_mask=drop_mask, target=dummy
         )
         func_kws = {**kws, "fill_value": UNTOUCHED}
-        mask_kws = {**kws, "fill_value": False}
 
     else:
         raise ValueError(f"unknown method {method}")
 
-    history = flags.history[source].apply(
-        dummy.index, func, func_kws, func, mask_kws, copy=False
-    )
-    flags.history[field] = flags.history[field].append(history, force=False)
+    history = flags.history[source].apply(dummy.index, func, func_kws, copy=False)
+    flags.history[field] = flags.history[field].append(history)
+
+    if drop:
+        data, flags = tools.drop(data=data, flags=flags, field=source)
+
     return data, flags

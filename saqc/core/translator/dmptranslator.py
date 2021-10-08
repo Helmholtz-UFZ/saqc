@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 import json
-from saqc.core.history import History
 from typing import Any
+from functools import reduce
 
 import numpy as np
 import pandas as pd
 
+from saqc.core.history import History
 from saqc.core.flags import (
     Flags,
     UNFLAGGED,
@@ -49,7 +50,7 @@ class DmpTranslator(Translator):
     the UFZ - Datamanagementportal
     """
 
-    ARGUMENTS = {"comment": "", "cause": "AUTOFLAGGED"}
+    ARGUMENTS = {"comment": "", "cause": "OTHER"}
 
     _FORWARD: ForwardMap = {
         "NIL": UNFLAGGED,
@@ -71,7 +72,7 @@ class DmpTranslator(Translator):
 
     def forward(self, df: pd.DataFrame) -> Flags:
         """
-        Translate from 'extrnal flags' to 'internal flags'
+        Translate from 'external flags' to 'internal flags'
 
         Parameters
         ----------
@@ -105,7 +106,7 @@ class DmpTranslator(Translator):
                     "func": comment["test"],
                     "keywords": {"comment": comment["comment"], "cause": cause},
                 }
-                field_history.append(histcol, force=True, meta=meta)
+                field_history.append(histcol, meta=meta)
 
             data[str(field)] = field_history
 
@@ -123,34 +124,27 @@ class DmpTranslator(Translator):
         -------
         translated flags
         """
-        tflags = super().backward(flags)
+        tflags = super().backward(flags, raw=True)
 
         out = pd.DataFrame(
-            index=tflags.index,
-            columns=pd.MultiIndex.from_product([tflags.columns, _QUALITY_LABELS]),
+            index=reduce(lambda x, y: x.union(y), tflags.indexes).sort_values(),
+            columns=pd.MultiIndex.from_product([flags.columns, _QUALITY_LABELS]),
         )
 
         for field in tflags.columns:
+
             df = pd.DataFrame(
                 {
                     "quality_flag": tflags[field],
-                    "quality_cause": self.ARGUMENTS["cause"],
-                    "quality_comment": self.ARGUMENTS["comment"],
+                    "quality_cause": "",
+                    "quality_comment": "",
                 }
             )
 
             history = flags.history[field]
-
             for col in history.columns:
 
-                # NOTE:
-                # I really dislike the fact, that the implementationd
-                # detail `mask`, leaks into the translator. For the
-                # the limited time available it is a pragmatic solution
-                # however...
-                h, m = history.hist[col], history.mask[col]
-                h[~m | (h == UNFLAGGED)] = np.nan
-                valid = h.notna()
+                valid = (history.hist[col] != UNFLAGGED) & history.hist[col].notna()
 
                 # extract from meta
                 meta = history.meta[col]
@@ -165,7 +159,7 @@ class DmpTranslator(Translator):
                 df.loc[valid, "quality_comment"] = comment
                 df.loc[valid, "quality_cause"] = cause
 
-                out[field] = df
+            out[field] = df.reindex(out.index)
 
         self.validityCheck(out)
         return out
@@ -189,26 +183,30 @@ class DmpTranslator(Translator):
                 f"DMP-Flags expect the labels {list(_QUALITY_LABELS)} in the secondary level"
             )
 
-        flags = df.xs(axis="columns", level=1, key="quality_flag")
-        causes = df.xs(axis="columns", level=1, key="quality_cause")
-        comments = df.xs(axis="columns", level=1, key="quality_comment")
+        for field in df.columns.get_level_values(0):
 
-        if not flags.isin(cls._FORWARD.keys()).all(axis=None):
-            raise ValueError(
-                f"invalid quality flag(s) found, only the following values are supported: {set(cls._FORWARD.keys())}"
-            )
+            # we might have NaN injected by DictOfSeries -> DataFrame conversions
+            field_df = df[field].dropna(how="all", axis="index")
+            flags = field_df["quality_flag"]
+            causes = field_df["quality_cause"]
+            comments = field_df["quality_comment"]
 
-        if not causes.isin(_QUALITY_CAUSES).all(axis=None):
-            raise ValueError(
-                f"invalid quality cause(s) found, only the following values are supported: {_QUALITY_CAUSES}"
-            )
+            if not flags.isin(cls._FORWARD.keys()).all(axis=None):
+                raise ValueError(
+                    f"invalid quality flag(s) found, only the following values are supported: {set(cls._FORWARD.keys())}"
+                )
 
-        if (~flags.isin(("OK", "NIL")) & (causes == "")).any(axis=None):
-            raise ValueError(
-                "quality flags other than 'OK and 'NIL' need a non-empty quality cause"
-            )
+            if not causes.isin(_QUALITY_CAUSES).all(axis=None):
+                raise ValueError(
+                    f"invalid quality cause(s) found, only the following values are supported: {_QUALITY_CAUSES}"
+                )
 
-        if ((causes == "OTHER") & (comments == "")).any(None):
-            raise ValueError(
-                "quality comment 'OTHER' needs a non-empty quality comment"
-            )
+            if (~flags.isin(("OK", "NIL")) & (causes == "")).any(axis=None):
+                raise ValueError(
+                    "quality flags other than 'OK and 'NIL' need a non-empty quality cause"
+                )
+
+            if ((causes == "OTHER") & (comments == "")).any(None):
+                raise ValueError(
+                    "quality cause 'OTHER' needs a non-empty quality comment"
+                )

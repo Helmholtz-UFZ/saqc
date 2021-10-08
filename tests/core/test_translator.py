@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import json
-from saqc.core.register import FUNC_MAP
 from typing import Dict, Union, Sequence
 
 import numpy as np
@@ -13,17 +12,13 @@ import pytest
 from dios import DictOfSeries
 
 from saqc.constants import UNFLAGGED, BAD, DOUBTFUL
-from saqc.core import translator
 from saqc.core.translator import (
-    FloatTranslator,
     PositionalTranslator,
     Translator,
     DmpTranslator,
 )
 from saqc.core.flags import Flags
 from saqc.core.core import SaQC
-from saqc.core.lib import APIController, SaQCFunction, ColumnSelector
-from saqc.funcs.flagtools import flagDummy
 
 from tests.common import initData
 
@@ -41,7 +36,7 @@ def _genTranslators():
 
 def _genFlags(data: Dict[str, Union[Sequence, pd.Series]]) -> Flags:
 
-    flags = DictOfSeries()
+    flags = Flags()
     for k, v in data.items():
         if not isinstance(v, pd.Series):
             v = pd.Series(
@@ -49,7 +44,7 @@ def _genFlags(data: Dict[str, Union[Sequence, pd.Series]]) -> Flags:
             )
         flags[k] = v
 
-    return Flags(flags)
+    return flags
 
 
 def test_forwardTranslation():
@@ -118,7 +113,7 @@ def test_dmpTranslator():
         == '{"test": "flagBar", "comment": "I did it"}'
     ).all(axis=None)
 
-    assert (tflags.loc[:, ("var1", "quality_cause")] == "AUTOFLAGGED").all(axis=None)
+    assert (tflags.loc[:, ("var1", "quality_cause")] == "OTHER").all(axis=None)
 
     assert (tflags.loc[:, ("var2", "quality_flag")] == "BAD").all(axis=None)
     assert (
@@ -133,13 +128,11 @@ def test_dmpTranslator():
         tflags.loc[flags["var3"] == BAD, ("var3", "quality_comment")]
         == '{"test": "unknown", "comment": ""}'
     ).all(axis=None)
-    assert (
-        tflags.loc[flags["var3"] == BAD, ("var3", "quality_cause")] == "AUTOFLAGGED"
-    ).all(axis=None)
-    assert (
-        tflags.loc[flags["var3"] == UNFLAGGED, ("var3", "quality_cause")]
-        == "AUTOFLAGGED"
-    ).all(axis=None)
+    assert (tflags.loc[flags["var3"] == BAD, ("var3", "quality_cause")] == "OTHER").all(
+        axis=None
+    )
+    mask = flags["var3"] == UNFLAGGED
+    assert (tflags.loc[mask, ("var3", "quality_cause")] == "").all(axis=None)
 
 
 def test_positionalTranslator():
@@ -195,7 +188,7 @@ def test_dmpTranslatorIntegration():
 
     assert qflags.isin(translator._forward.keys()).all(axis=None)
     assert qfunc.isin({"", "breaks.flagMissing", "outliers.flagRange"}).all(axis=None)
-    assert (qcause[qflags[col] == "BAD"] == "AUTOFLAGGED").all(axis=None)
+    assert (qcause[qflags[col] == "BAD"] == "OTHER").all(axis=None)
 
     round_trip = translator.backward(translator.forward(flags))
 
@@ -240,10 +233,9 @@ def _buildupSaQCObjects():
     out = []
     for _ in range(2):
         saqc = SaQC(data=data, flags=flags)
-        saqc = saqc.breaks.flagMissing(col, to_mask=False).outliers.flagRange(
-            col, min=3, max=10, to_mask=False
-        )
-        saqc = saqc.evaluate()
+        saqc = saqc.outliers.flagRange(
+            field=col, min=5, max=6, to_mask=False
+        ).outliers.flagRange(col, min=3, max=10, to_mask=False)
         flags = saqc._flags
         out.append(saqc)
     return out
@@ -263,32 +255,6 @@ def test_translationPreservesFlags():
         expected.columns = got.columns
 
         assert expected.equals(got)
-
-
-def test_reproducibleMetadata():
-
-    # a simple SaQC run
-    data = initData(3)
-    col = data.columns[0]
-    saqc1 = SaQC(data=data, lazy=True)
-    saqc1 = saqc1.breaks.flagMissing(col, to_mask=False).outliers.flagRange(
-        col, min=3, max=10, to_mask=False
-    )
-    _, flags1 = saqc1.getResult(raw=True)
-
-    saqc2 = SaQC(data=data, lazy=True)
-
-    # convert the history meta data into an excution plan...
-    graph = []
-    for m in flags1.history[col].meta:
-        func = FUNC_MAP[m["func"]].bind(*m["args"], **m["keywords"])
-        graph.append((ColumnSelector(col), APIController(), func))
-    # ... and inject into a blank SaQC object
-    saqc2._planned = graph
-    # ... replay the functions
-    _, flags2 = saqc2.getResult(raw=True)
-
-    assert flags2.toFrame().equals(flags1.toFrame())
 
 
 def test_multicallsPreserveHistory():

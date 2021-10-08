@@ -58,11 +58,11 @@ dataset and the routines to inspect, quality control and/or process them.
 The content of such a configuration could look like this:
 
 ```
-varname    ; test                                
+varname    ; test
 #----------;------------------------------------
-SM2        ; shiftToFreq(freq="15Min")       
-SM2        ; flagMissing(nodata=NAN)             
-'SM(1|2)+' ; flagRange(min=10, max=60)           
+SM2        ; shiftToFreq(freq="15Min")
+SM2        ; flagMissing()
+'SM(1|2)+' ; flagRange(min=10, max=60)
 SM2        ; flagMad(window="30d", z=3.5)
 ```
 
@@ -86,7 +86,7 @@ from saqc import SaQC
 
 saqc = (SaQC(data)
         .shiftToFreq("SM2", freq="15Min")
-        .flagMissing("SM2", nodata=np.nan)
+        .flagMissing("SM2")
         .flagRange("SM(1|2)+", regex=True, min=10, max=60)
         .flagMad("SM2", window="30d", z=3.5))
 

@@ -199,7 +199,7 @@ class Flags:
                     f"cannot init from '{type(data).__name__}' of '{type(item).__name__}'"
                 )
 
-            result[k] = History(item.index).append(item, force=True)
+            result[k] = History(item.index).append(item)
 
         return result
 
@@ -309,7 +309,10 @@ class Flags:
             try:
                 tmp[mask] = value
             except Exception:
-                raise ValueError("bad mask")
+                raise ValueError(
+                    f"bad mask. cannot use mask of length {len(mask)} on "
+                    f"data of length {len(tmp)}"
+                )
             else:
                 value = tmp
 
@@ -323,14 +326,10 @@ class Flags:
                 "if a scalar should be set, please use 'flags[:, field] = flag'"
             )
 
-        # if nothing happens no-one writes the history books
-        if len(value) == 0:
-            return
-
         if key not in self._data:
             self._data[key] = History(value.index)
 
-        self._data[key].append(value, force=True, meta=None)
+        self._data[key].append(value, meta=None)
 
     def __delitem__(self, key):
         self._data.pop(key)

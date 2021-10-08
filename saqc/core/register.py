@@ -1,21 +1,19 @@
 #!/usr/bin/env python
-from typing import Dict, Optional, Union, Tuple, Callable
+from typing import Dict, Optional, Union, Tuple, Callable, Sequence
 from typing_extensions import Literal
 from functools import wraps
 import dataclasses
 import numpy as np
 import pandas as pd
 import dios
-import saqc.core.history
 
 from saqc.constants import *
-from saqc.core.lib import SaQCFunction
 from saqc.core.flags import initFlagsLike, Flags, History
 
 # NOTE:
 # the global SaQC function store,
 # will be filled by calls to register
-FUNC_MAP: Dict[str, SaQCFunction] = {}
+FUNC_MAP: Dict[str, Callable] = {}
 
 MaskingStrT = Literal["all", "field", "none"]
 FuncReturnT = Tuple[dios.DictOfSeries, Flags]
@@ -26,7 +24,6 @@ class CallState:
     func: Callable
     func_name: str
 
-    data: dios.DictOfSeries
     flags: Flags
     field: str
 
@@ -39,7 +36,6 @@ class CallState:
 
 
 def processing(module: Optional[str] = None):
-
     # executed on module import
     def inner(func):
         func_name = func.__name__
@@ -51,7 +47,7 @@ def processing(module: Optional[str] = None):
             kwargs["to_mask"] = _getMaskingThresh(kwargs)
             return func(data, field, flags, *args, **kwargs)
 
-        FUNC_MAP[func_name] = SaQCFunction(func_name, callWrapper)
+        FUNC_MAP[func_name] = callWrapper
         return callWrapper
 
     return inner
@@ -60,6 +56,11 @@ def processing(module: Optional[str] = None):
 def flagging(masking: MaskingStrT = "all", module: Optional[str] = None):
 
     # executed on module import
+    if masking not in ("all", "field", "none"):
+        raise ValueError(
+            f"invalid masking argument '{masking}', choose one of ('all', 'field', 'none')"
+        )
+
     def inner(func):
         func_name = func.__name__
         if module:
@@ -74,7 +75,7 @@ def flagging(masking: MaskingStrT = "all", module: Optional[str] = None):
             result = func(*args, **kwargs)
             return _postCall(result, old_state)
 
-        FUNC_MAP[func_name] = SaQCFunction(func_name, callWrapper)
+        FUNC_MAP[func_name] = callWrapper
         callWrapper._module = module
         callWrapper._masking = masking
 
@@ -133,7 +134,6 @@ def _preCall(
     state = CallState(
         func=func,
         func_name=fname,
-        data=data,
         flags=flags,
         field=field,
         args=args,
@@ -143,10 +143,7 @@ def _preCall(
         mask=mask,
     )
 
-    # handle flags - clearing
-    prepped_flags = _prepareFlags(flags, masking)
-
-    args = masked_data, field, prepped_flags, *args
+    args = masked_data, field, flags.copy(), *args
     return args, kwargs, state
 
 
@@ -245,40 +242,6 @@ def _getMaskingThresh(kwargs):
     return thresh
 
 
-# TODO: this is heavily undertested
-def _maskData(
-    data, flags, columns, thresh
-) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
-    """
-    Mask data with Nans, if the flags are worse than a threshold.
-
-        - mask only passed `columns` (preselected by `masking`-kw from decorator)
-        - copies data in any case
-
-    Returns
-    -------
-    masked : dios.DictOfSeries
-        masked data, same dim as original
-    mask : dios.DictOfSeries
-        boolean dios of same dim as `masked`. True, where data was masked, elsewhere False.
-    """
-    mask = dios.DictOfSeries(columns=columns)
-    data = data.copy()
-
-    # we use numpy here because it is faster
-    for c in columns:
-        col_mask = _isflagged(flags[c].to_numpy(), thresh)
-
-        if col_mask.any():
-            col_data = data[c].to_numpy(dtype=np.float64)
-            col_data[col_mask] = np.nan
-
-            data[c] = col_data
-            mask[c] = pd.Series(col_mask, index=data[c].index, dtype=bool)
-
-    return data, mask
-
-
 def _isflagged(
     flagscol: Union[np.array, pd.Series], thresh: float
 ) -> Union[np.array, pd.Series]:
@@ -289,23 +252,6 @@ def _isflagged(
         return flagscol > UNFLAGGED
 
     return flagscol >= thresh
-
-
-def _prepareFlags(flags: Flags, masking) -> Flags:
-    """
-    Prepare flags before each call. Always returns a copy.
-
-    Currently this only clears the flags, but in future,
-    this should be sliced the flags to the columns, that
-    the saqc-function needs.
-
-    Always return a copy of flags or a new flags-frame.
-    """
-    # Either the index or the columns itself changed
-    if masking == "none":
-        return flags.copy()
-
-    return initFlagsLike(flags)
 
 
 def _restoreFlags(flags: Flags, old_state: CallState):
@@ -324,70 +270,101 @@ def _restoreFlags(flags: Flags, old_state: CallState):
     -------
     Flags
     """
-    columns = flags.columns
-
-    if old_state.masking == "all":
-        pass
-
-    # The function processed a copy of the original flags and may or may not added some
-    # columns. So we take only new history columns and define new flags with it, which
-    # are enriched with meta later
-    elif old_state.masking == "none":
-        flags = flags.copy(deep=False)
-
-        for c in flags.columns:
-            # if a new field (aka. variable) was inserted, we take the full history and
-            # no slicing is needed, which is the hidden else-case.
-            if c in old_state.flags.columns:
-                l = len(old_state.flags.history[c].columns)
-                flags.history[c] = _sliceHistory(flags.history[c], slice(l, None))
-
-    # take field column and all possibly newly added columns
-    elif old_state.masking == "field":
-        columns = columns.difference(old_state.flags.columns)
-        columns = columns.append(pd.Index([old_state.field]))
-
-    else:
-        raise RuntimeError(old_state.masking)
-
     out = old_state.flags.copy()
+    meta = {
+        "func": old_state.func_name,
+        "args": old_state.args,
+        "keywords": old_state.kwargs,
+    }
+    new_columns = flags.columns.difference(old_state.flags.columns)
 
-    # this implicitly squash the new flags history (RHS) to a single column, which than
-    # is appended to the old history (LHS). Thus because the new flags history possibly
-    # consists of multiple columns, one for each time a series or scalar was passed to
-    # the flags.
-    for c in columns:
+    # masking == 'none'
+    # - no data was masked (no relevance here, but help understanding)
+    # - the saqc-function got a copy of the whole flags frame with all full histories
+    #   (but is not allowed to change them; we have -> @processing for this case)
+    # - the saqc-function appended none or some columns to each history
+    #
+    # masking == 'all'
+    # - all data was masked by flags (no relevance here, but help understanding)
+    # - the saqc-function got a complete new flags frame, with empty Histories
+    # - the saqc-function appended none or some columns to the each history
+    #
+    # masking == 'field'
+    # - the column `field` was masked by flags (no relevance here)
+    # - the saqc-function got a complete new flags frame, with empty `History`s
+    # - the saqc-function appended none or some columns to none or some `History`s
+    #
+    # NOTE:
+    # Actually the flags SHOULD have been cleared only at the `field` (as the
+    # masking-parameter implies) but the current implementation in `_prepareFlags`
+    # clears all columns. Nevertheless the following code only update the `field`
+    # (and new columns) and not all columns.
 
-        h = flags.history[c]
-        hmax = h.max(raw=True)
+    if old_state.masking in ("none", "all"):
+        columns = flags.columns
+    else:  # field
+        columns = pd.Index([old_state.field])
 
-        # # handle empty case (i.e. test didn't set any flags, can happen on early returns),
-        # # to prevent a missing (empty) flags column
-        # if h.empty:
-        #     out.history[c] = h.copy()
-        #     continue
+    for col in columns.union(new_columns):
 
-        # # if nothing was touched we have no need to clutter the history
-        # if (hmax == UNTOUCHED).all():
-        #     continue
+        if col not in out:  # ensure existence
+            out.history[col] = History(index=flags.history[col].index)
 
-        out[c] = hmax
+        old_history = out.history[col]
+        new_history = flags.history[col]
 
-        # we enrich the (already existing !) empty meta with some infos
-        history = out.history[c]
-        history.meta[-1].update(
-            {
-                "func": old_state.func_name,
-                "args": old_state.args,
-                "keywords": old_state.kwargs,
-            }
-        )
-        out.history[c] = history
+        # We only want to add new columns, that were appended during the last function
+        # call. If no such columns exist, we end up with an empty new_history.
+        start = len(old_history.columns)
+        new_history = _sliceHistory(new_history, slice(start, None))
+
+        # NOTE:
+        # Nothing to update -> i.e. a function did not set any flags at all.
+        # This has implications for function writers: early returns out of
+        # functions before `flags.__getitem__` was called once, make the
+        # function call invisable to the flags/history machinery and likely
+        # break translation schemes such as the `PositionalTranslator`
+        if new_history.empty:
+            continue
+
+        squeezed = new_history.max(raw=True)
+        out.history[col] = out.history[col].append(squeezed, meta=meta)
 
     return out
 
 
-# TODO: this is heavily undertested
+def _maskData(
+    data: dios.DictOfSeries, flags: Flags, columns: Sequence[str], thresh: float
+) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
+    """
+    Mask data with Nans, if the flags are worse than a threshold.
+        - mask only passed `columns` (preselected by `masking`-kw from decorator)
+
+    Returns
+    -------
+    masked : dios.DictOfSeries
+        masked data, same dim as original
+    mask : dios.DictOfSeries
+        dios holding iloc-data-pairs for every column in `data`
+    """
+    mask = dios.DictOfSeries(columns=columns)
+    data = data.copy()
+
+    # we use numpy here because it is faster
+    for c in columns:
+        col_mask = _isflagged(flags[c].to_numpy(), thresh)
+
+        if col_mask.any():
+            col_data = data[c].to_numpy(dtype=np.float64)
+
+            mask[c] = pd.Series(col_data[col_mask], index=np.where(col_mask)[0])
+
+            col_data[col_mask] = np.nan
+            data[c] = col_data
+
+    return data, mask
+
+
 def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSeries:
     """
     Restore the masked data.
@@ -427,24 +404,21 @@ def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSer
     for c in columns:
 
         # ignore
-        if old_state.data[c].empty or data[c].empty or old_state.mask[c].empty:
+        if data[c].empty or old_state.mask[c].empty:
             continue
 
-        restore_old_mask = old_state.mask[c].to_numpy() & data[c].isna().to_numpy()
-
-        # we have nothing to restore
-        if not restore_old_mask.any():
+        # get the positions of values to unmask
+        candidates = old_state.mask[c]
+        # if the mask was removed during the function call, don't replace
+        unmask = candidates[data[c].iloc[candidates.index].isna().to_numpy()]
+        if unmask.empty:
             continue
-
-        # restore old values if no new are present
-        old, new = old_state.data[c].to_numpy(), data[c].to_numpy()
-        data.loc[:, c] = np.where(restore_old_mask, old, new)
+        data[c].iloc[unmask.index] = unmask
 
     return data
 
 
 def _sliceHistory(history: History, sl: slice) -> History:
-    history.mask = history.mask.iloc[:, sl]
     history.hist = history.hist.iloc[:, sl]
     history.meta = history.meta[sl]
     return history

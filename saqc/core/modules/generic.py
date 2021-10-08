@@ -7,7 +7,7 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 
-from saqc.constants import BAD
+from saqc.constants import UNFLAGGED, BAD
 from saqc.core.modules.base import ModuleBase
 import saqc
 
@@ -17,8 +17,8 @@ class Generic(ModuleBase):
         self,
         field: str,
         func: Callable[[pd.Series], pd.Series],
-        nodata: float = np.nan,
-        **kwargs
+        to_mask: float = UNFLAGGED,
+        **kwargs,
     ) -> saqc.SaQC:
         return self.defer("process", locals())
 
@@ -26,8 +26,8 @@ class Generic(ModuleBase):
         self,
         field: str,
         func: Callable[[pd.Series], pd.Series],
-        nodata: float = np.nan,
         flag: float = BAD,
-        **kwargs
+        to_mask: float = UNFLAGGED,
+        **kwargs,
     ) -> saqc.SaQC:
         return self.defer("flag", locals())

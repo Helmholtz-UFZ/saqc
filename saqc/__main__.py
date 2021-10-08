@@ -11,13 +11,20 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from saqc.core import SaQC, FloatTranslator, DmpTranslator, PositionalTranslator
+from saqc.core import (
+    fromConfig,
+    FloatTranslator,
+    DmpTranslator,
+    PositionalTranslator,
+    SimpleTranslator,
+)
 
 
 logger = logging.getLogger("SaQC")
 
 
 SCHEMES = {
+    "simple": SimpleTranslator,
     "float": FloatTranslator,
     "positional": PositionalTranslator,
     "dmp": DmpTranslator,
@@ -108,14 +115,14 @@ def main(config, data, scheme, outfile, nodata, log_level, fail):
 
     data = readData(reader, data)
 
-    saqc = SaQC(
+    saqc = fromConfig(
+        config,
         data=data,
-        nodata=nodata,
         scheme=SCHEMES[scheme or "float"](),
         error_policy="raise" if fail else "warn",
     )
 
-    data_result, flags_result = saqc.readConfig(config).getResult()
+    data_result, flags_result = saqc.getResult()
 
     if outfile:
 

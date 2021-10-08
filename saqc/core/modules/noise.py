@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import numpy
+import numpy as np
 import pandas as pd
 from typing import Callable
 
@@ -17,12 +17,13 @@ class Noise(ModuleBase):
     def flagByStatLowPass(
         self,
         field: ColumnName,
-        stat: Callable[[numpy.array, pd.Series], float],
-        winsz: FreqString,
+        func: Callable[[np.array, pd.Series], float],
+        window: FreqString,
         thresh: PositiveFloat,
-        sub_winsz: FreqString = None,
+        sub_window: FreqString = None,
         sub_thresh: PositiveFloat = None,
         min_periods: PositiveInt = None,
         flag: float = BAD,
+        **kwargs
     ) -> saqc.SaQC:
         return self.defer("flagByStatLowPass", locals())

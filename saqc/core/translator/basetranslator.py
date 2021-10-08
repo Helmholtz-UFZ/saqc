@@ -13,7 +13,9 @@ from dios import DictOfSeries
 from saqc.core.flags import (
     Flags,
     UNFLAGGED,
+    UNTOUCHED,
     BAD,
+    GOOD,
 )
 from saqc.lib.types import ExternalFlag
 
@@ -33,7 +35,7 @@ class Translator:
     'forward' translation  from 'user flags' -> 'internal flags' needs to be
     provided.
     Optionally a second `dict` can be passed to map 'internal flags' -> 'user flags',
-    if the latter is not given, this 'backwards' translation will inferred as
+    if the latter is not given, this 'backward' translation will inferred as
     the inverse of the 'forward' translation.
 
     The translation mechanism imposes a few restrictions:
@@ -140,7 +142,9 @@ class Translator:
         """
         return Flags(self._translate(flags, self._forward))
 
-    def backward(self, flags: Flags) -> pd.DataFrame:
+    def backward(
+        self, flags: Flags, raw: bool = False
+    ) -> Union[pd.DataFrame, DictOfSeries]:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -153,7 +157,10 @@ class Translator:
         -------
         pd.DataFrame
         """
-        return self._translate(flags, self._backward).to_df()
+        out = self._translate(flags, self._backward)
+        if not raw:
+            out = out.to_df()
+        return out
 
 
 class FloatTranslator(Translator):
@@ -170,3 +177,27 @@ class FloatTranslator(Translator):
 
     def __init__(self):
         super().__init__(self._MAP, self._MAP)
+
+
+class SimpleTranslator(Translator):
+
+    """
+    Acts as the default Translator, provides a changeable subset of the
+    internal float flags
+    """
+
+    _FORWARD = {
+        "UNFLAGGED": -np.inf,
+        "BAD": BAD,
+        "OK": GOOD,
+    }
+
+    _BACKWARD = {
+        UNFLAGGED: "UNFLAGGED",
+        UNTOUCHED: "UNFLAGGED",
+        BAD: "BAD",
+        GOOD: "OK",
+    }
+
+    def __init__(self):
+        super().__init__(forward=self._FORWARD, backward=self._BACKWARD)

@@ -8,10 +8,13 @@ __version__ = "1.4"
 from saqc.constants import *
 from saqc.core import (
     flagging,
+    processing,
     initFlagsLike,
     Flags,
-    SaQC,
     FloatTranslator,
     DmpTranslator,
     PositionalTranslator,
+    SimpleTranslator,
+    SaQC,
+    fromConfig,
 )

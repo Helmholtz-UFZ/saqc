@@ -39,17 +39,18 @@ ENVIRONMENT = {
     "zLog": ts_ops.zeroLog,
 }
 
-# TODO: how does a user pass flags now
-RESERVED = {"GOOD", "BAD", "UNFLAGGED", "NODATA"}
+# TODO:
+# get from saqc.constants
+RESERVED = {"GOOD", "BAD", "UNFLAGGED"}
 
 
 class ConfigExpressionParser(ast.NodeVisitor):
     """
     Generic configuration functions will be rewritten as lambda functions
     and variables that need a look up in `data` will act as arguments, e.g.:
-      `flagGeneric(func=(x != NODATA) & (y < 3))`
+      `flagGeneric(func=(x != 4) & (y < 3))`
       will be rewritten to
-      `lambda x, y: (x != NODATA) & (y < 3)`
+      `lambda x, y: (x != 4) & (y < 3)`
 
     The main purpose of this class is to identify all such lambda arguments
     and check the given expression for accordance with the restrictions

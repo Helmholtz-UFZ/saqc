@@ -7,9 +7,9 @@ import pandas as pd
 import dios
 from pathlib import Path
 
-from saqc.core.config import Fields as F
-from saqc.core.core import SaQC
+from saqc.core.reader import fromConfig, readFile
 from saqc.core.register import FUNC_MAP, flagging
+from saqc.constants import UNTOUCHED
 
 from tests.common import initData, writeIO
 
@@ -31,13 +31,13 @@ def test_packagedConfig():
         index_col=0,
         parse_dates=True,
     )
-    saqc = SaQC(dios.DictOfSeries(data)).readConfig(config_path)
+    saqc = fromConfig(config_path, data)
     saqc.getResult()
 
 
 def test_variableRegex(data):
 
-    header = f"{F.VARNAME};{F.TEST}"
+    header = f"varname;test"
     tests = [
         ("'.*'", data.columns),
         ("'var(1|2)'", [c for c in data.columns if c[-1] in ("1", "2")]),
@@ -48,8 +48,8 @@ def test_variableRegex(data):
 
     for regex, expected in tests:
         fobj = writeIO(header + "\n" + f"{regex} ; flagtools.flagDummy()")
-        saqc = SaQC(data, lazy=True).readConfig(fobj)
-        result = [s.field for s, _, _ in saqc._planned]
+        saqc = fromConfig(fobj, data=data)
+        result = [field for field, _ in saqc.called]
         assert np.all(result == expected)
 
 
@@ -58,18 +58,18 @@ def test_inlineComments(data):
     adresses issue #3
     """
     config = f"""
-    {F.VARNAME} ; {F.TEST}       
-    pre2        ; flagtools.flagDummy() # test 
+    varname ; test
+    pre2        ; flagtools.flagDummy() # test
     """
 
-    saqc = SaQC(data, lazy=True).readConfig(writeIO(config))
-    _, control, func = saqc._planned[0]
-    assert func.func == FUNC_MAP["flagtools.flagDummy"].func
+    saqc = fromConfig(writeIO(config), data)
+    _, func = saqc.called[0]
+    assert func[0] == FUNC_MAP["flagtools.flagDummy"]
 
 
 def test_configReaderLineNumbers(data):
     config = f"""
-    {F.VARNAME} ; {F.TEST}
+    varname ; test
     #temp1      ; flagtools.flagDummy()
     pre1        ; flagtools.flagDummy()
     pre2        ; flagtools.flagDummy()
@@ -79,10 +79,9 @@ def test_configReaderLineNumbers(data):
 
     SM1         ; flagtools.flagDummy()
     """
-    saqc = SaQC(data, lazy=True).readConfig(writeIO(config))
-    result = [c.lineno for _, c, _ in saqc._planned]
-    expected = [3, 4, 5, 9]
-    assert result == expected
+    planned = readFile(writeIO(config))
+    expected = [4, 5, 6, 10]
+    assert (planned.index == expected).all()
 
 
 def test_configFile(data):
@@ -90,7 +89,7 @@ def test_configFile(data):
     # check that the reader accepts different whitespace patterns
 
     config = f"""
-    {F.VARNAME} ; {F.TEST}
+    varname ; test
 
     #temp1      ; flagtools.flagDummy()
     pre1; flagtools.flagDummy()
@@ -101,7 +100,7 @@ def test_configFile(data):
 
     SM1;flagtools.flagDummy()
     """
-    SaQC(data).readConfig(writeIO(config))
+    fromConfig(writeIO(config), data)
 
 
 def test_configChecks(data):
@@ -110,9 +109,10 @@ def test_configChecks(data):
 
     @flagging(masking="none")
     def flagFunc(data, field, flags, arg, opt_arg=None, **kwargs):
+        flags[:, field] = UNTOUCHED
         return data, flags
 
-    header = f"{F.VARNAME};{F.TEST}"
+    header = f"varname;test"
     tests = [
         (f"{var1};flagFunc(mn=0)", TypeError),  # bad argument name
         (f"{var1};flagFunc()", TypeError),  # not enough arguments
@@ -123,7 +123,7 @@ def test_configChecks(data):
     for test, expected in tests:
         fobj = writeIO(header + "\n" + test)
         with pytest.raises(expected):
-            SaQC(data).readConfig(fobj).getResult()
+            fromConfig(fobj, data=data).evaluate()
 
 
 def test_supportedArguments(data):
@@ -135,11 +135,12 @@ def test_supportedArguments(data):
 
     @flagging(masking="field")
     def func(data, field, flags, kwarg, **kwargs):
+        flags[:, field] = UNTOUCHED
         return data, flags
 
     var1 = data.columns[0]
 
-    header = f"{F.VARNAME};{F.TEST}"
+    header = f"varname;test"
     tests = [
         f"{var1};func(kwarg=NAN)",
         f"{var1};func(kwarg='str')",
@@ -152,4 +153,4 @@ def test_supportedArguments(data):
 
     for test in tests:
         fobj = writeIO(header + "\n" + test)
-        SaQC(data).readConfig(fobj)
+        fromConfig(fobj, data)

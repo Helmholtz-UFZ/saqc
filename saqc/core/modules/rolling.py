@@ -6,7 +6,7 @@ from typing import Union, Callable
 import numpy as np
 import pandas as pd
 
-from saqc.constants import *
+from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
 import saqc
 
@@ -15,9 +15,9 @@ class Rolling(ModuleBase):
     def roll(
         self,
         field: str,
-        winsz: Union[str, int],
+        window: Union[str, int],
         func: Callable[[pd.Series], float] = np.mean,
-        eval_flags: bool = True,  # TODO: not applicable anymore
+        set_flags: bool = True,  # TODO: not applicable anymore
         min_periods: int = 0,
         center: bool = True,
         return_residues=False,  # TODO: this should not be public, a wrapper would be better

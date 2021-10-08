@@ -36,6 +36,6 @@ class FlagTools(ModuleBase):
         mflag: Any = 1,
         method: Literal["plain", "ontime", "left-open", "right-open"] = "plain",
         flag: float = BAD,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self.defer("flagManual", locals())

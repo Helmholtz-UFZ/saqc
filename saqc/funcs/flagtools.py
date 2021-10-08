@@ -82,6 +82,7 @@ def clearFlags(
     forceFlags : set whole column to a flag value
     flagUnflagged : set flag value at all unflagged positions
     """
+    # NOTE: do we really need this?
     if "flag" in kwargs:
         kwargs = {**kwargs}  # copy
         flag = kwargs.pop("flag")

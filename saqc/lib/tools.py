@@ -91,9 +91,9 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
     + There is no way to provide a step size, i.e. to not start the
       next rolling window at the very next row in the DataFrame/Series
     + The inconsistent bahaviour with numerical vs frequency based
-      window sizes. When winsz is an integer, all windows are equally
-      large (winsz=5 -> windows contain 5 elements), but variable in
-      size, when the winsz is a frequency string (winsz="2D" ->
+      window sizes. When window is an integer, all windows are equally
+      large (window=5 -> windows contain 5 elements), but variable in
+      size, when the window is a frequency string (window="2D" ->
       window grows from size 1 during the first iteration until it
       covers the given frequency). Especially the bahaviour with
       frequency strings is quite unfortunate when calling methods
@@ -494,7 +494,7 @@ def detectDeviants(
     "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed
     in respect to a certain metric and linkage method.
 
-    In addition, only a group is considered "normal" if it contains more then `norm_frac` percent of the
+    In addition, only a group is considered "normal" if it contains more then `frac` percent of the
     variables in "fields".
 
     Note, that the function also can be used to detect anormal regimes in a variable by assigning the different regimes
@@ -606,13 +606,13 @@ def statPass(
     min_periods: PositiveInt = None,
 ):
     """
-    Check `datcol`, if it contains chunks of length `winsz`, exceeding `thresh` with
-    regard to `stat` and `comparator`:
+    Check `datcol`, if it contains chunks of length `window`, exceeding `thresh` with
+    regard to `func` and `comparator`:
 
-    (check, if: `comparator`(stat`(*chunk*), `thresh`)
+    (check, if: `comparator`(func`(*chunk*), `thresh`)
 
-    If yes, subsequently check, if all (maybe overlapping) *sub-chunks* of *chunk*, with length `sub_winsz`,
-    satisfy, `comparator`(`stat`(*sub_chunk*), `sub_thresh`)
+    If yes, subsequently check, if all (maybe overlapping) *sub-chunks* of *chunk*, with length `sub_window`,
+    satisfy, `comparator`(`func`(*sub_chunk*), `sub_thresh`)
     """
     stat_parent = datcol.rolling(winsz, min_periods=min_periods)
     stat_parent = getApply(stat_parent, stat)

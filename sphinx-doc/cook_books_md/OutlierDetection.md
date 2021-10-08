@@ -105,7 +105,11 @@ Easiest thing to do, would be, to apply some rolling mean
 model via the method :py:func:`saqc.roll <Functions.saqc.roll>`.
 
 ```python
+<<<<<<< HEAD
 >>> i_saqc = i_saqc.roll(field='incidents', target='incidents_mean', func=np.mean, winsz='13D')
+=======
+i_saqc = i_saqc.rolling.roll(field='incidents_model', func=np.mean, window='13D')
+>>>>>>> develop
 ```
 
 The :py:attr:`field` parameter is passed the variable name, we want to calculate the rolling mean of. 
@@ -119,7 +123,12 @@ For example, you could go for the *median* instead of the *mean*. The numpy libr
 under the name `ǹp.median`. We just calculate another model curve for the `"incidents"` data with the `np.median` function from the `numpy` library.
 
 ```python
+<<<<<<< HEAD
 >>> i_saqc = i_saqc.roll(field='incidents', target='incidents_median', func=np.median, winsz='13D')
+=======
+i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_median')
+i_saqc = i_saqc.rolling.roll(field='incidents_median', func=np.median, window='13D')
+>>>>>>> develop
 ```
 
 We chose another :py:attr:`target` value for the rolling *median* calculation, in order to not override our results from 
@@ -138,7 +147,13 @@ Another common approach, is, to fit polynomials of certain degrees to the data.
 :py:class:`SaQC <saqc.core.core.SaQC>` provides the polynomial fit function :py:func:`saqc.fitPolynomial <Functions.saqc.fitPolynomial>`:
 
 ```python
+<<<<<<< HEAD
 >>> i_saqc = i_saqc.fitPolynomial(field='incidents', target='incidents_polynomial', polydeg=2 ,winsz='13D')
+=======
+i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_polynomial')
+i_saqc = i_saqc.curvefit.fitPolynomial(field='incidents_polynomial', order=2,
+                                       winsz='13D')
+>>>>>>> develop
 ```
 
 It also takes a :py:attr:`winsz` parameter, determining the size of the fitting window. 
@@ -253,10 +268,15 @@ into seperate calls to the :py:func: `saqc.roll <Functions.saqc.roll>` function,
 residues *mean* and *standard deviation* seperately:
 
 ```python
-i_saqc = i_saqc.roll(field='incidents_residues', target='residues_mean', winsz='27D', 
+i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_mean',
+                             window='27D',
                              func=np.mean)
-i_saqc = i_saqc.roll(field='incidents_residues', target='residues_std', winsz='27D', 
+i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_std',
+                             window='27D',
                              func=np.std)
+i_saqc = i_saqc.generic.process(field='incidents_scores',
+                                func=lambda This, residues_mean, residues_std: (
+                                                                                           This - residues_mean) / residues_std)
 ```
 
 With huge datasets, this will be noticably faster, compared to the method presented [initially](#Scores), 
