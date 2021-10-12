@@ -1,10 +1,10 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
 import re
 import datetime
 import itertools
+import warnings
 from typing import Sequence, Union, Any, Iterator, Callable
 
 import numpy as np
@@ -21,9 +21,6 @@ from saqc.lib.types import T
 # keep this for external imports
 # TODO: fix the external imports
 from saqc.lib.rolling import customRoller
-
-
-logger = logging.getLogger("SaQC")
 
 
 def assertScalar(name, value, optional=False):
@@ -446,9 +443,9 @@ def evalFreqStr(freq, check, index):
         if freq is None:
             freq, freqs = estimateFrequency(index)
         if freq is None:
-            logging.warning("Sampling rate could not be estimated.")
+            warnings.warn("Sampling rate could not be estimated.")
         if len(freqs) > 1:
-            logging.warning(
+            warnings.warn(
                 f"Sampling rate seems to be not uniform!." f"Detected: {freqs}"
             )
 
@@ -456,7 +453,7 @@ def evalFreqStr(freq, check, index):
             f_passed_seconds = pd.Timedelta(f_passed).total_seconds()
             freq_seconds = pd.Timedelta(freq).total_seconds()
             if f_passed_seconds != freq_seconds:
-                logging.warning(
+                warnings.warn(
                     f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed})."
                 )
         elif check == "auto":

@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import logging
 import inspect
+import warnings
 import copy as stdcopy
 from typing import Any, Callable, Tuple, Union, Optional
-from typing_extensions import Literal
 
 import pandas as pd
 import numpy as np
@@ -310,8 +309,7 @@ def _warnForUnusedKwargs(func, keywords, translator: Translator):
 
     Notes
     -----
-    A single warning via the logging module is thrown, if any number of
-    missing kws are detected, naming each missing kw.
+    A single warning is thrown, if any number of missing kws are detected, naming each missing kw.
     """
     sig_kws = inspect.signature(func).parameters
 
@@ -328,4 +326,4 @@ def _warnForUnusedKwargs(func, keywords, translator: Translator):
 
     if missing:
         missing = ", ".join(missing)
-        logging.warning(f"Unused argument(s): {missing}")
+        warnings.warn(f"Unused argument(s): {missing}")
