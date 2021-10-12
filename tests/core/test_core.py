@@ -42,12 +42,8 @@ def test_errorHandling(data):
 
     var1 = data.columns[0]
 
-    for policy in ["ignore", "warn"]:
-        # NOTE: should not fail, that's all we are testing here
-        SaQC(data, error_policy=policy).raisingFunc(var1).getResult()
-
     with pytest.raises(TypeError):
-        SaQC(data, error_policy="raise").raisingFunc(var1).getResult()
+        SaQC(data).raisingFunc(var1).getResult()
 
 
 def test_duplicatedVariable():
