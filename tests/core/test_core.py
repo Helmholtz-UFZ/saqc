@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
 import pytest
 import numpy as np
 import pandas as pd
@@ -12,10 +11,6 @@ from saqc.core import initFlagsLike
 from saqc import SaQC, flagging
 
 from tests.common import initData, flagAll
-
-# no logging output needed here
-# -> can this be configured on the test runner level?
-logging.disable(logging.CRITICAL)
 
 
 OPTIONAL = [False, True]

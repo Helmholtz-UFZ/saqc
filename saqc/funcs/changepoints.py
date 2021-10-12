@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import logging
-
 import pandas as pd
 import numpy as np
 import numba
@@ -17,8 +15,6 @@ from saqc.constants import *
 from saqc.lib.tools import customRoller
 from saqc.core import flagging, Flags
 from saqc.lib.types import FreqString
-
-logger = logging.getLogger("SaQC")
 
 
 @flagging(masking="field", module="changepoints")

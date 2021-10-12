@@ -3,7 +3,6 @@
 
 from typing import Callable, Tuple, Optional, Union
 from typing_extensions import Literal
-import logging
 import numpy as np
 import pandas as pd
 from dios import DictOfSeries
@@ -16,8 +15,6 @@ from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
 from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
 import saqc.funcs.tools as tools
 
-
-logger = logging.getLogger("SaQC")
 
 METHOD2ARGS = {
     "inverse_fshift": ("backward", pd.Timedelta),
