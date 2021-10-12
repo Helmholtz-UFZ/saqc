@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Callable, Optional, Tuple
+from typing import Callable, Tuple
 
 import numpy as np
 from typing_extensions import Literal
@@ -10,7 +10,7 @@ from typing_extensions import Literal
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
 import saqc
-from saqc.lib.types import FreqString, IntegerWindow
+from saqc.lib.types import FreqString
 
 
 class ChangePoints(ModuleBase):
@@ -20,7 +20,7 @@ class ChangePoints(ModuleBase):
         stat_func: Callable[[np.ndarray, np.ndarray], float],
         thresh_func: Callable[[np.ndarray, np.ndarray], float],
         window: FreqString | Tuple[FreqString, FreqString],
-        min_periods: IntegerWindow | Tuple[IntegerWindow, IntegerWindow],
+        min_periods: int | Tuple[int, int],
         closed: Literal["right", "left", "both", "neither"] = "both",
         reduce_window: FreqString = None,
         reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),

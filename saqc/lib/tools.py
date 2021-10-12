@@ -1,36 +1,27 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import logging
 import re
 import datetime
-from typing import Sequence, Union, Any, Iterator, Callable
-import operator
 import itertools
+from typing import Sequence, Union, Any, Iterator, Callable
+
 import numpy as np
 import numba as nb
 import pandas as pd
 from scipy import fft
-import logging
+
 import dios
 import collections
 from scipy.cluster.hierarchy import linkage, fcluster
-from saqc.lib.types import (
-    ColumnName,
-    FreqString,
-    PositiveInt,
-    PositiveFloat,
-    Literal,
-    DictOfSeries,
-)
-from saqc.core import Flags
-import matplotlib as mpl
-from typing import Optional, Tuple
 
 from saqc.lib.types import T
-import matplotlib.pyplot as plt
 
 # keep this for external imports
+# TODO: fix the external imports
 from saqc.lib.rolling import customRoller
+
 
 logger = logging.getLogger("SaQC")
 
@@ -599,11 +590,11 @@ def statPass(
     datcol: pd.Series,
     stat: Callable[[np.array, pd.Series], float],
     winsz: pd.Timedelta,
-    thresh: PositiveFloat,
+    thresh: float,
     comparator: Callable[[float, float], bool],
     sub_winsz: pd.Timedelta = None,
-    sub_thresh: PositiveFloat = None,
-    min_periods: PositiveInt = None,
+    sub_thresh: float = None,
+    min_periods: int = None,
 ):
     """
     Check `datcol`, if it contains chunks of length `window`, exceeding `thresh` with

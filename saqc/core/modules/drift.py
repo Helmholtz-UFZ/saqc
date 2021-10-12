@@ -11,14 +11,14 @@ from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
 import saqc
 from saqc.funcs import LinkageString
-from saqc.lib.types import ColumnName, FreqString, CurveFitter
+from saqc.lib.types import FreqString, CurveFitter
 
 
 class Drift(ModuleBase):
     def flagDriftFromNorm(
         self,
-        field: ColumnName,
-        fields: Sequence[ColumnName],
+        field: str,
+        fields: Sequence[str],
         freq: FreqString,
         spread: float,
         frac: float = 0.5,
@@ -34,8 +34,8 @@ class Drift(ModuleBase):
 
     def flagDriftFromReference(
         self,
-        field: ColumnName,
-        fields: Sequence[ColumnName],
+        field: str,
+        fields: Sequence[str],
         freq: FreqString,
         thresh: float,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
@@ -49,9 +49,9 @@ class Drift(ModuleBase):
 
     def flagDriftFromScaledNorm(
         self,
-        field: ColumnName,
-        set_1: Sequence[ColumnName],
-        set_2: Sequence[ColumnName],
+        field: str,
+        set_1: Sequence[str],
+        set_2: Sequence[str],
         freq: FreqString,
         spread: float,
         frac: float = 0.5,
@@ -67,8 +67,8 @@ class Drift(ModuleBase):
 
     def correctDrift(
         self,
-        field: ColumnName,
-        maintenance_field: ColumnName,
+        field: str,
+        maintenance_field: str,
         model: Callable[..., float],
         cal_range: int = 5,
         set_flags: bool = False,  # Todo: remove, user should use flagManual
@@ -79,8 +79,8 @@ class Drift(ModuleBase):
 
     def correctRegimeAnomaly(
         self,
-        field: ColumnName,
-        cluster_field: ColumnName,
+        field: str,
+        cluster_field: str,
         model: CurveFitter,
         tolerance: Optional[FreqString] = None,
         epoch: bool = False,
@@ -90,7 +90,7 @@ class Drift(ModuleBase):
 
     def correctOffset(
         self,
-        field: ColumnName,
+        field: str,
         max_jump: float,
         spread: float,
         window: FreqString,

@@ -24,7 +24,7 @@ from hypothesis.strategies._internal.types import _global_type_lookup
 
 from saqc.constants import *
 from saqc.core.register import FUNC_MAP
-from saqc.lib.types import FreqString, ColumnName, IntegerWindow
+from saqc.lib.types import FreqString
 from saqc.core import initFlagsLike
 
 MAX_EXAMPLES = 50

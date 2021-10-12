@@ -17,10 +17,8 @@ from saqc.core.flags import initFlagsLike, Flags
 from saqc.core.register import FUNC_MAP
 from saqc.core.modules import FuncModules
 from saqc.core.translator.basetranslator import Translator, FloatTranslator
-from saqc.constants import BAD
 from saqc.lib.tools import toSequence
 from saqc.lib.types import (
-    ColumnName,
     ExternalFlag,
     PandasLike,
 )
@@ -263,7 +261,7 @@ class SaQC(FuncModules):
         function: Callable,
         data: DictOfSeries,
         flags: Flags,
-        field: ColumnName,
+        field: str,
         *args: Any,
         **kwargs: Any,
     ) -> SaQC:
