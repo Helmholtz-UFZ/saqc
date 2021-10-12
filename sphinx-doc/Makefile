@@ -12,7 +12,7 @@ BUILDDIR      = _build
 # Function documentations will be acessible through: FUNCTIONS.saqc
 FUNCTIONS     = Functions
 # List of folders containing markdown content to include into the build
-MDLIST		  = getting_started_md how_to_doc_md cook_books_md
+MDLIST		  = getting_started_md how_to_doc_md cook_books_md misc_md
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

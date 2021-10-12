@@ -21,6 +21,7 @@ Tutorials and Topics
    getting_started_md_m2r/GettingStarted
    cook_books_md_m2r/DataRegularisation
    cook_books_md_m2r/OutlierDetection
+   cook_books_md_m2r/MultivariateFlagging
 
 
 Functions

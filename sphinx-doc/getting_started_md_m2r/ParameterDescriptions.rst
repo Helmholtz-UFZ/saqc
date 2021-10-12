@@ -61,6 +61,4 @@ Numerical Constants
      - Description
    * - ``NAN``
      - Not a number
-   * - ``NODATA``
-     - Missing data
 
