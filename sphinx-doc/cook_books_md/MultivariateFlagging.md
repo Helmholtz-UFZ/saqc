@@ -47,4 +47,4 @@ Basically following the *oddWater* procedure, as suggested in *Talagala, P.D. et
 ## Postprocessing
 
 * (Flags reduction onto subspaces)
-* Back projection of calculated flags from resampled Data onto original data via :py:func: `mapToOriginal <Functions.saqc.assignKNNScores>`
+* Back projection of calculated flags from resampled Data onto original data via :py:func: `mapToOriginal <Functions.saqc.mapToOriginal>`
