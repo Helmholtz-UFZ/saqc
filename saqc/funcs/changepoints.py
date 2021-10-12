@@ -7,7 +7,8 @@ import logging
 import pandas as pd
 import numpy as np
 import numba
-from typing import Callable, Union, Tuple, Optional
+
+from typing import Callable, Tuple
 from typing_extensions import Literal
 
 from dios import DictOfSeries
@@ -15,7 +16,7 @@ from dios import DictOfSeries
 from saqc.constants import *
 from saqc.lib.tools import customRoller
 from saqc.core import flagging, Flags
-from saqc.lib.types import ColumnName, FreqString, IntegerWindow
+from saqc.lib.types import FreqString
 
 logger = logging.getLogger("SaQC")
 
@@ -28,7 +29,7 @@ def flagChangePoints(
     stat_func: Callable[[np.ndarray, np.ndarray], float],
     thresh_func: Callable[[np.ndarray, np.ndarray], float],
     window: FreqString | Tuple[FreqString, FreqString],
-    min_periods: IntegerWindow | Tuple[IntegerWindow, IntegerWindow],
+    min_periods: int | Tuple[int, int],
     closed: Literal["right", "left", "both", "neither"] = "both",
     reduce_window: FreqString = None,
     reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),

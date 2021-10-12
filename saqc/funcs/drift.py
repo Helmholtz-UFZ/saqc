@@ -1,28 +1,26 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from typing import Optional, Tuple, Sequence, Callable, Optional
+from typing_extensions import Literal
+
 import numpy as np
 import pandas as pd
 import functools
-import inspect
-from dios import DictOfSeries
-
-from typing import Optional, Tuple, Sequence, Callable, Optional
-from typing_extensions import Literal
 
 from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
 
+from dios import DictOfSeries
 from saqc.constants import *
 from saqc.core.register import flagging
 from saqc.core import Flags
-from saqc.funcs.resampling import shift
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import drop, copy
 from saqc.lib.tools import detectDeviants
-from saqc.lib.types import FreqString, ColumnName, CurveFitter, TimestampColumnName
-from saqc.lib.ts_operators import expModelFunc, expDriftModel, linearDriftModel
+from saqc.lib.types import FreqString, CurveFitter
+
 
 LinkageString = Literal[
     "single", "complete", "average", "weighted", "centroid", "median", "ward"
@@ -32,9 +30,9 @@ LinkageString = Literal[
 @flagging(masking="all", module="drift")
 def flagDriftFromNorm(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    fields: Sequence[ColumnName],
+    fields: Sequence[str],
     freq: FreqString,
     spread: float,
     frac: float = 0.5,
@@ -152,9 +150,9 @@ def flagDriftFromNorm(
 @flagging(masking="all", module="drift")
 def flagDriftFromReference(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    fields: Sequence[ColumnName],
+    fields: Sequence[str],
     freq: FreqString,
     thresh: float,
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
@@ -233,10 +231,10 @@ def flagDriftFromReference(
 @flagging(masking="all", module="drift")
 def flagDriftFromScaledNorm(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    set_1: Sequence[ColumnName],
-    set_2: Sequence[ColumnName],
+    set_1: Sequence[str],
+    set_2: Sequence[str],
     freq: FreqString,
     spread: float,
     frac: float = 0.5,
@@ -370,9 +368,9 @@ def flagDriftFromScaledNorm(
 @flagging(masking="all", module="drift")
 def correctDrift(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    maintenance_field: ColumnName,
+    maintenance_field: str,
     model: Callable[..., float],
     cal_range: int = 5,
     set_flags: bool = False,  # Todo: remove, user should use flagManual
@@ -511,9 +509,9 @@ def correctDrift(
 @flagging(masking="all", module="drift")
 def correctRegimeAnomaly(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    cluster_field: ColumnName,
+    cluster_field: str,
     model: CurveFitter,
     tolerance: Optional[FreqString] = None,
     epoch: bool = False,
@@ -630,7 +628,7 @@ def correctRegimeAnomaly(
 @flagging(masking="all", module="drift")
 def correctOffset(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     max_jump: float,
     spread: float,
@@ -728,9 +726,9 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
 @flagging(masking="all", module="drift")
 def flagRegimeAnomaly(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    cluster_field: ColumnName,
+    cluster_field: str,
     spread: float,
     method: LinkageString = "single",
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(
@@ -805,9 +803,9 @@ def flagRegimeAnomaly(
 @flagging(masking="all", module="drift")
 def assignRegimeAnomaly(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    cluster_field: ColumnName,
+    cluster_field: str,
     spread: float,
     method: LinkageString = "single",
     metric: Callable[[np.array, np.array], float] = lambda x, y: np.abs(

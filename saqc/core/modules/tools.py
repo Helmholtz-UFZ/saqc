@@ -2,15 +2,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Optional, Tuple
-
-from dios import DictOfSeries
+from typing import Optional
 from typing_extensions import Literal
 
-from saqc.lib.types import FreqString
-from saqc.core import Flags
-from saqc.core.modules.base import ModuleBase
 import saqc
+from saqc.lib.types import FreqString
+from saqc.core.modules.base import ModuleBase
 
 
 class Tools(ModuleBase):

@@ -11,9 +11,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pickle
 
-from saqc.lib.types import FreqString
 from saqc.constants import *
-from saqc.core import flagging, processing, Flags
+from saqc.lib.types import FreqString
+from saqc.core import processing, Flags
 from saqc.lib.tools import periodicMask
 from saqc.lib.plotting import makeFig
 

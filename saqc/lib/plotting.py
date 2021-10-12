@@ -1,18 +1,14 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
+from typing import Optional
 
-import numpy as np
 import pandas as pd
-import dios
-import matplotlib.pyplot as plt
 import matplotlib as mpl
-from typing import List, Dict, Optional
+
 from saqc.constants import *
 from saqc.core import Flags
 from saqc.lib.types import DiosLikeT, FreqString
-from saqc.core.translator import DmpTranslator
 
 
 STATSDICT = {

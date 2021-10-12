@@ -6,14 +6,13 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import BAD, UNFLAGGED
-from saqc.lib.types import ColumnName
 from saqc.core import flagging, processing, Flags
 import warnings
 
 
 @flagging(masking="field", module="flagtools")
 def forceFlags(
-    data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
+    data: DictOfSeries, field: str, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Set whole column to a flag value.
@@ -48,7 +47,7 @@ def forceFlags(
 # masking='none' is sufficient because call is redirected
 @flagging(masking="none", module="flagtools")
 def clearFlags(
-    data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs
+    data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Set whole column to UNFLAGGED.
@@ -93,7 +92,7 @@ def clearFlags(
 
 @flagging(masking="none", module="flagtools")
 def flagUnflagged(
-    data: DictOfSeries, field: ColumnName, flags: Flags, flag: float = BAD, **kwargs
+    data: DictOfSeries, field: str, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function sets a flag at all unflagged positions.
@@ -136,7 +135,7 @@ def flagUnflagged(
 @flagging(masking="field", module="flagtools")
 def flagManual(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
     mflag: Any = 1,
@@ -279,7 +278,7 @@ def flagManual(
 
 @flagging(module="flagtools")
 def flagDummy(
-    data: DictOfSeries, field: ColumnName, flags: Flags, **kwargs
+    data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function does nothing but returning data and flags.
