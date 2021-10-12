@@ -348,7 +348,6 @@ def _maskData(
         dios holding iloc-data-pairs for every column in `data`
     """
     mask = dios.DictOfSeries(columns=columns)
-    data = data.copy()
 
     # we use numpy here because it is faster
     for c in columns:

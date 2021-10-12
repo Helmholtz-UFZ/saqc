@@ -26,37 +26,13 @@ from saqc.lib.types import (
 )
 
 
-logger = logging.getLogger("SaQC")
-
-
-def _handleErrors(
-    exc: Exception,
-    field: str,
-    func: Callable,
-    policy: Literal["ignore", "warn", "raise"],
-):
-    message = "\n".join(
-        [
-            f"Exception:\n{type(exc).__name__}: {exc}",
-            f"field: {field}",
-            f"{func.__name__}",
-        ]
-    )
-
-    if policy == "ignore":
-        logger.debug(message)
-    elif policy == "warn":
-        logger.warning(message)
-    else:
-        logger.error(message)
-        raise exc
-
-
-# TODO: shouldt the code/function go to Saqc.__init__ ?
+# TODO: shouldn't the code/function go to SaQC.__init__ ?
 def _prepInput(
     data: PandasLike, flags: Optional[Union[DictOfSeries, pd.DataFrame, Flags]]
 ) -> Tuple[DictOfSeries, Optional[Flags]]:
     dios_like = (DictOfSeries, pd.DataFrame)
+
+    data = stdcopy.deepcopy(data)
 
     if isinstance(data, pd.Series):
         data = data.to_frame()
@@ -139,13 +115,11 @@ class SaQC(FuncModules):
         data,
         flags=None,
         scheme: Translator = None,
-        error_policy="raise",
     ):
         super().__init__(self)
         data, flags = _prepInput(data, flags)
         self._data = data
         self._flags = self._initFlags(data, flags)
-        self._error_policy = error_policy
         self._translator = scheme or FloatTranslator()
         self.called = []
 
@@ -184,7 +158,6 @@ class SaQC(FuncModules):
         out = SaQC(
             data=DictOfSeries(),
             flags=Flags(),
-            error_policy=self._error_policy,
             scheme=self._translator,
         )
         for k, v in injectables.items():
@@ -240,7 +213,6 @@ class SaQC(FuncModules):
             target: str = None,
             regex: bool = False,
             flag: ExternalFlag = None,
-            inplace: bool = False,
             **kwargs,
         ) -> SaQC:
 
@@ -261,7 +233,7 @@ class SaQC(FuncModules):
             else:
                 fields, targets = toSequence(field), toSequence(target, default=field)
 
-            out = self if inplace else self.copy(deep=True)
+            out = self
 
             for field, target in zip(fields, targets):
                 if field != target:
@@ -298,15 +270,12 @@ class SaQC(FuncModules):
 
         assert data.columns.difference(flags.columns).empty
 
-        try:
-            data, flags = function(data=data, flags=flags, field=field, *args, **kwargs)
-            # we check the passed function-kwargs after the actual call,
-            # because now "hard" errors would already have been raised
-            # (eg. `TypeError: got multiple values for argument 'data'`,
-            # when the user pass data=...)
-            _warnForUnusedKwargs(function, kwargs, self._translator)
-        except Exception as e:
-            _handleErrors(e, field, function, self._error_policy)
+        data, flags = function(data=data, flags=flags, field=field, *args, **kwargs)
+        # we check the passed function-kwargs after the actual call,
+        # because now "hard" errors would already have been raised
+        # (eg. `TypeError: got multiple values for argument 'data'`,
+        # when the user pass data=...)
+        _warnForUnusedKwargs(function, kwargs, self._translator)
 
         planned = self.called + [(field, (function, args, kwargs))]
 
