@@ -40,6 +40,7 @@ class Tools(ModuleBase):
         stats: bool = False,
         plot_kwargs: Optional[dict] = None,
         fig_kwargs: Optional[dict] = None,
+        scatter_kwargs: Optional[dict] = None,
         stats_dict: Optional[dict] = None,
         store_kwargs: Optional[dict] = None,
         **kwargs,
