@@ -139,9 +139,8 @@ def process(
 
     >>> lambda temperature, uncertainty: np.round(temperature) * np.sqrt(uncertainty)
     """
-    # we get the data unmasked in order to also receive flags,
-    # so let's do to the masking manually
-    data_masked, _ = _maskData(data, flags, data.columns, to_mask)
+
+    data_masked, _ = _maskData(data.copy(), flags, data.columns, to_mask)
     data[field] = _execGeneric(flags, data_masked, func, field).squeeze()
 
     if field in flags:
@@ -152,7 +151,7 @@ def process(
     return data, flags
 
 
-@flagging(masking="none", module="generic")
+@flagging(masking="all", module="generic")
 def flag(
     data: DictOfSeries,
     field: str,
@@ -239,9 +238,9 @@ def flag(
     """
     # we get the data unmasked, in order to also receive flags,
     # so let's do to the masking manually
-    data_masked, _ = _maskData(data, flags, data.columns, to_mask)
+    # data_masked, _ = _maskData(data, flags, data.columns, to_mask)
 
-    mask = _execGeneric(flags, data_masked, func, field).squeeze()
+    mask = _execGeneric(flags, data, func, field).squeeze()
     if np.isscalar(mask):
         raise TypeError(f"generic expression does not return an array")
     if not np.issubdtype(mask.dtype, np.bool_):
