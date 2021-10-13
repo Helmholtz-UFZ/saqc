@@ -3,9 +3,12 @@
 
 from typing import Optional
 from typing_extensions import Literal
+from saqc.lib.tools import toSequence
 import pandas as pd
 import numpy as np
 import matplotlib as mpl
+import itertools
+import matplotlib.pyplot as plt
 
 from saqc.constants import *
 from saqc.core import Flags
@@ -29,8 +32,7 @@ def makeFig(
     max_gap: Optional[FreqString] = None,
     stats: bool = False,
     history: Optional[Literal["valid", "complete"]] = "valid",
-    s: Optional[slice] = None,
-    plot_kwargs: Optional[dict] = None,
+    ax_kwargs: Optional[dict] = None,
     fig_kwargs: Optional[dict] = None,
     scatter_kwargs: Optional[dict] = None,
     stats_dict: Optional[dict] = None,
@@ -61,12 +63,12 @@ def makeFig(
     stats : bool, default False
         Whether to include statistics table in plot.
 
-    plot_kwargs : dict, default None
+    ax_kwargs : dict, default None
         Keyword arguments controlling plot generation. Will be passed on to the
         ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
         data plot. The most relevant of those properties might be "ylabel",
-        "title" and "ylim".
-        In Addition, following options are available:
+        "title" and in addition: "ylim".
+        The "ylim" keyword can be passed a slice object with date offset entries.
 
     fig_kwargs : dict, default None
         Keyword arguments controlling figure generation. None defaults to
@@ -107,8 +109,8 @@ def makeFig(
 
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
-    if plot_kwargs is None:
-        plot_kwargs = {}
+    if ax_kwargs is None:
+        ax_kwargs = {}
     if fig_kwargs is None:
         fig_kwargs = {}
     if scatter_kwargs is None:
@@ -119,7 +121,7 @@ def makeFig(
     # data retrieval
     d = data[field]
     # data slicing:
-    s = plot_kwargs.pop("slice", slice(None))
+    s = ax_kwargs.pop("ylim", slice(None))
     d = d[s]
     flags_vals = flags[field][s]
     flags_hist = flags.history[field].hist.loc[s]
@@ -154,7 +156,7 @@ def makeFig(
         flags_meta,
         history,
         level,
-        plot_kwargs,
+        ax_kwargs,
         scatter_kwargs,
         na_mask,
     )
@@ -191,14 +193,20 @@ def _plotVarWithFlags(
     flags_meta,
     history,
     level,
-    plot_kwargs,
+    ax_kwargs,
     scatter_kwargs,
     na_mask,
 ):
     ax.set_title(datser.name)
-    ax.plot(datser)
-    ax.set(**plot_kwargs)
+    ax.plot(datser, color="black")
+    ax.set(**ax_kwargs)
     if history:
+        shape_cycle = scatter_kwargs.pop("marker", "o")
+        shape_cycle = itertools.cycle(toSequence(shape_cycle))
+        color_cycle = scatter_kwargs.pop(
+            "color", plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        )
+        color_cycle = itertools.cycle(toSequence(color_cycle))
         for i in flags_hist.columns:
             scatter_kwargs.update({"label": flags_meta[i]["func"].split(".")[-1]})
             flags_i = flags_hist[i].astype(float)
@@ -208,10 +216,14 @@ def _plotVarWithFlags(
                 # only plot those flags, that do not get altered later on:
                 mask = flags_i.eq(flags_vals)
                 flags_i[~mask] = np.nan
-                # Skip plot, if the test didnt have no effect onto the allover flagging result. This avoids
+                # Skip plot, if the test did not have no effect on the all over flagging result. This avoids
                 # legend overflow
                 if ~(flags_i >= level).any():
                     continue
+
+                scatter_kwargs.update(
+                    {"color": next(color_cycle), "marker": next(shape_cycle)}
+                )
                 _plotFlags(
                     ax,
                     datser,

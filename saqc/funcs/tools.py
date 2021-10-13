@@ -254,7 +254,7 @@ def plot(
     stats: bool = False,
     history: Optional[Literal["valid", "complete"]] = "valid",
     s: Optional[slice] = None,
-    plot_kwargs: Optional[dict] = None,
+    ax_kwargs: Optional[dict] = None,
     fig_kwargs: Optional[dict] = None,
     scatter_kwargs: Optional[dict] = None,
     stats_dict: Optional[dict] = None,
@@ -307,11 +307,15 @@ def plot(
         Parameter, that determines a chunk of the data to be plotted /
         processed. `s` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
 
-    plot_kwargs : dict, default None
+    ax_kwargs : dict, default None
+        ax_kwargs : dict, default None
         Keyword arguments controlling plot generation. Will be passed on to the
         ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
-        data plot. The most relevant of those properties might be "ylabel", "title" and
-        "ylim".
+        data plot. The most relevant of those properties might be "ylabel",
+        "title" and in addition: "ylim".
+        The "ylim" keyword can be passed a slice object with date offset entries to controll figure
+        scope.
+
 
     fig_kwargs : dict, default None
         Keyword arguments controlling figure generation. In interactive mode,
@@ -322,6 +326,8 @@ def plot(
         Keyword arguments controlling the appearance of the dots, marking flagged values.
         Dict just gets passed on to the matplotlib.pyplot.scatter method. Keywords of interest may be:
         ``"alpha"`` (transparancy), ``"marker"`` (marker appearance) and ``"s"`` (dot size).
+        The ``"marker"`` and ``"color"`` keywords can also be passed lists, that the plotting routine will then cycle
+        through.
 
     store_kwargs : dict, default {}
         Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
@@ -381,8 +387,7 @@ def plot(
         max_gap=max_gap,
         stats=stats,
         history=history,
-        s=s,
-        plot_kwargs=plot_kwargs,
+        ax_kwargs=ax_kwargs,
         fig_kwargs=fig_kwargs,
         scatter_kwargs=scatter_kwargs,
         stats_dict=stats_dict,
