@@ -4,6 +4,7 @@
 from typing import Optional
 
 import pandas as pd
+import numpy as np
 import matplotlib as mpl
 
 from saqc.constants import *
@@ -205,13 +206,21 @@ def _plotVarWithFlags(
     if history:
         for i in flags_hist.columns:
             scatter_kwargs.update({"label": flags_meta[i]["func"].split(".")[-1]})
+            flags_i = flags_hist[i].astype(float)
             if history == "all":
-                _plotFlags(ax, datser, flags_hist[i], na_mask, level, scatter_kwargs)
+                _plotFlags(ax, datser, flags_i, na_mask, level, scatter_kwargs)
             if history == "valid":
+                # only plot those flags, that do not get altered later on:
+                mask = flags_i.eq(flags_vals)
+                flags_i[~mask] = np.nan
+                # Skip plot, if the test didnt have no effect onto the allover flagging result. This avoids
+                # legend overflow
+                if ~(flags_i >= level).any():
+                    continue
                 _plotFlags(
                     ax,
                     datser,
-                    flags_hist[i].combine(flags_vals, min),
+                    flags_i,
                     na_mask,
                     level,
                     scatter_kwargs,
