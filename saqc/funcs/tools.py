@@ -252,6 +252,8 @@ def plot(
     path: Optional[str] = None,
     max_gap: Optional[FreqString] = None,
     stats: bool = False,
+    history: Optional[Literal["valid", "complete"]] = "valid",
+    s: Optional[slice] = None,
     plot_kwargs: Optional[dict] = None,
     fig_kwargs: Optional[dict] = None,
     scatter_kwargs: Optional[dict] = None,
@@ -294,20 +296,22 @@ def plot(
     stats : bool, default False
         Whether to include statistics table in plot.
 
+    history : {"valid", "complete", None}, default "valid"
+        Discriminate the plotted flags with respect to the tests they originate from.
+        * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
+          in the legend, that actually contributed flags to the overall resault.
+        * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
+        * None - just plot the resulting flags for one variable, without any historical meta information.
+
+    s : slice or Offset, default None
+        Parameter, that determines a chunk of the data to be plotted /
+        processed. `s` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
+
     plot_kwargs : dict, default None
         Keyword arguments controlling plot generation. Will be passed on to the
         ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
         data plot. The most relevant of those properties might be "ylabel", "title" and
-        "ylim". In Addition, following options are available:
-
-        * {'slice': s} property, that determines a chunk of the data to be plotted /
-            processed. `s` can be anything, that is a valid argument to the
-            ``pandas.Series.__getitem__`` method.
-        * {'history': str}
-            * str="all": All the flags are plotted with colored dots, refering to the
-                tests they originate from
-            * str="valid": - same as 'all' - but only plots those flags, that are not
-                removed by later tests
+        "ylim".
 
     fig_kwargs : dict, default None
         Keyword arguments controlling figure generation. In interactive mode,
@@ -376,6 +380,8 @@ def plot(
         level=kwargs.get("flag", BAD),
         max_gap=max_gap,
         stats=stats,
+        history=history,
+        s=s,
         plot_kwargs=plot_kwargs,
         fig_kwargs=fig_kwargs,
         scatter_kwargs=scatter_kwargs,

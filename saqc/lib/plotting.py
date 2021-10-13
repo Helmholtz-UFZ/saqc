@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Optional
-
+from typing_extensions import Literal
 import pandas as pd
 import numpy as np
 import matplotlib as mpl
@@ -28,6 +28,8 @@ def makeFig(
     level: float,
     max_gap: Optional[FreqString] = None,
     stats: bool = False,
+    history: Optional[Literal["valid", "complete"]] = "valid",
+    s: Optional[slice] = None,
     plot_kwargs: Optional[dict] = None,
     fig_kwargs: Optional[dict] = None,
     scatter_kwargs: Optional[dict] = None,
@@ -66,14 +68,6 @@ def makeFig(
         "title" and "ylim".
         In Addition, following options are available:
 
-        * {'slice': s} property, that determines a chunk of the data to be plotted /
-            processed. `s` can be anything,
-            that is a valid argument to the ``pandas.Series.__getitem__`` method.
-        * {'history': str}
-            * str="all": All the flags are plotted with colored dots, refering to the
-                tests they originate from
-            * str="valid": - same as 'all' - but only plots those flags, that are not
-                removed by later tests
     fig_kwargs : dict, default None
         Keyword arguments controlling figure generation. None defaults to
         {"figsize": (16, 9)}
@@ -114,7 +108,7 @@ def makeFig(
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
     if plot_kwargs is None:
-        plot_kwargs = {"history": False}
+        plot_kwargs = {}
     if fig_kwargs is None:
         fig_kwargs = {}
     if scatter_kwargs is None:
@@ -158,6 +152,7 @@ def makeFig(
         flags_vals,
         flags_hist,
         flags_meta,
+        history,
         level,
         plot_kwargs,
         scatter_kwargs,
@@ -194,6 +189,7 @@ def _plotVarWithFlags(
     flags_vals,
     flags_hist,
     flags_meta,
+    history,
     level,
     plot_kwargs,
     scatter_kwargs,
@@ -201,13 +197,12 @@ def _plotVarWithFlags(
 ):
     ax.set_title(datser.name)
     ax.plot(datser)
-    history = plot_kwargs.pop("history", False)
     ax.set(**plot_kwargs)
     if history:
         for i in flags_hist.columns:
             scatter_kwargs.update({"label": flags_meta[i]["func"].split(".")[-1]})
             flags_i = flags_hist[i].astype(float)
-            if history == "all":
+            if history == "complete":
                 _plotFlags(ax, datser, flags_i, na_mask, level, scatter_kwargs)
             if history == "valid":
                 # only plot those flags, that do not get altered later on:

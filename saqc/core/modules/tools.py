@@ -38,6 +38,8 @@ class Tools(ModuleBase):
         path: Optional[str] = None,
         max_gap: Optional[FreqString] = None,
         stats: bool = False,
+        history: Optional[Literal["valid", "complete"]] = "valid",
+        s: Optional[slice] = None,
         plot_kwargs: Optional[dict] = None,
         fig_kwargs: Optional[dict] = None,
         scatter_kwargs: Optional[dict] = None,
