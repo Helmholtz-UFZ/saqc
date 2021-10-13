@@ -121,7 +121,6 @@ def makeFig(
     if stats_dict is None:
         stats_dict = {}
 
-
     # data retrieval
     d = data[field]
     # data slicing:
@@ -152,7 +151,17 @@ def makeFig(
     else:
         ax = fig.add_subplot(grid[0])
 
-    _plotVarWithFlags(ax, d, flags_vals, flags_hist, flags_meta, level, plot_kwargs, scatter_kwargs, na_mask)
+    _plotVarWithFlags(
+        ax,
+        d,
+        flags_vals,
+        flags_hist,
+        flags_meta,
+        level,
+        plot_kwargs,
+        scatter_kwargs,
+        na_mask,
+    )
     return fig
 
 
@@ -178,23 +187,26 @@ def _plotStatsTable(ax, stats_dict):
     tab_obj.set_fontsize(10)
 
 
-def _plotVarWithFlags(ax, datser, flags_vals, flags_hist, flags_meta, level, plot_kwargs, scatter_kwargs, na_mask):
+def _plotVarWithFlags(
+    ax,
+    datser,
+    flags_vals,
+    flags_hist,
+    flags_meta,
+    level,
+    plot_kwargs,
+    scatter_kwargs,
+    na_mask,
+):
     ax.set_title(datser.name)
     ax.plot(datser)
     history = plot_kwargs.pop("history", False)
     ax.set(**plot_kwargs)
     if history:
         for i in flags_hist.columns:
-            scatter_kwargs.update({"label": flags_meta[i]['func'].split('.')[-1]})
+            scatter_kwargs.update({"label": flags_meta[i]["func"].split(".")[-1]})
             if history == "all":
-                _plotFlags(
-                    ax,
-                    datser,
-                    flags_hist[i],
-                    na_mask,
-                    level,
-                    scatter_kwargs
-                )
+                _plotFlags(ax, datser, flags_hist[i], na_mask, level, scatter_kwargs)
             if history == "valid":
                 _plotFlags(
                     ax,
@@ -202,11 +214,11 @@ def _plotVarWithFlags(ax, datser, flags_vals, flags_hist, flags_meta, level, plo
                     flags_hist[i].combine(flags_vals, min),
                     na_mask,
                     level,
-                    scatter_kwargs
+                    scatter_kwargs,
                 )
         ax.legend()
     else:
-        scatter_kwargs.update({"color": scatter_kwargs.pop('color', 'r')})
+        scatter_kwargs.update({"color": scatter_kwargs.pop("color", "r")})
         _plotFlags(ax, datser, flags_vals, na_mask, level, scatter_kwargs)
 
 
