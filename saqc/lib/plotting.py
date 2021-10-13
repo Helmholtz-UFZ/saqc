@@ -1,18 +1,14 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
+from typing import Optional
 
-import numpy as np
 import pandas as pd
-import dios
-import matplotlib.pyplot as plt
 import matplotlib as mpl
-from typing import List, Dict, Optional
+
 from saqc.constants import *
 from saqc.core import Flags
 from saqc.lib.types import DiosLikeT, FreqString
-from saqc.core.translator import DmpTranslator
 
 
 STATSDICT = {
@@ -33,6 +29,7 @@ def makeFig(
     stats: bool = False,
     plot_kwargs: Optional[dict] = None,
     fig_kwargs: Optional[dict] = None,
+    scatter_kwargs: Optional[dict] = None,
     stats_dict: Optional[dict] = None,
 ):
     """
@@ -119,6 +116,8 @@ def makeFig(
         plot_kwargs = {"history": False}
     if fig_kwargs is None:
         fig_kwargs = {}
+    if scatter_kwargs is None:
+        scatter_kwargs = {}
     if stats_dict is None:
         stats_dict = {}
 
@@ -129,6 +128,7 @@ def makeFig(
     d = d[s]
     flags_vals = flags[field][s]
     flags_hist = flags.history[field].hist.loc[s]
+    flags_meta = flags.history[field].meta
     if stats:
         stats_dict.update(STATSDICT)
         stats_dict = _evalStatsDict(stats_dict, d, flags_vals, level)
@@ -151,7 +151,17 @@ def makeFig(
     else:
         ax = fig.add_subplot(grid[0])
 
-    _plotVarWithFlags(ax, d, flags_vals, flags_hist, level, plot_kwargs, na_mask)
+    _plotVarWithFlags(
+        ax,
+        d,
+        flags_vals,
+        flags_hist,
+        flags_meta,
+        level,
+        plot_kwargs,
+        scatter_kwargs,
+        na_mask,
+    )
     return fig
 
 
@@ -177,22 +187,26 @@ def _plotStatsTable(ax, stats_dict):
     tab_obj.set_fontsize(10)
 
 
-def _plotVarWithFlags(ax, datser, flags_vals, flags_hist, level, plot_kwargs, na_mask):
+def _plotVarWithFlags(
+    ax,
+    datser,
+    flags_vals,
+    flags_hist,
+    flags_meta,
+    level,
+    plot_kwargs,
+    scatter_kwargs,
+    na_mask,
+):
     ax.set_title(datser.name)
     ax.plot(datser)
     history = plot_kwargs.pop("history", False)
     ax.set(**plot_kwargs)
     if history:
         for i in flags_hist.columns:
+            scatter_kwargs.update({"label": flags_meta[i]["func"].split(".")[-1]})
             if history == "all":
-                _plotFlags(
-                    ax,
-                    datser,
-                    flags_hist[i],
-                    na_mask,
-                    level,
-                    {"label": "test " + str(i)},
-                )
+                _plotFlags(ax, datser, flags_hist[i], na_mask, level, scatter_kwargs)
             if history == "valid":
                 _plotFlags(
                     ax,
@@ -200,11 +214,12 @@ def _plotVarWithFlags(ax, datser, flags_vals, flags_hist, level, plot_kwargs, na
                     flags_hist[i].combine(flags_vals, min),
                     na_mask,
                     level,
-                    {"label": "test " + str(i)},
+                    scatter_kwargs,
                 )
         ax.legend()
     else:
-        _plotFlags(ax, datser, flags_vals, na_mask, level, {"color": "r"})
+        scatter_kwargs.update({"color": scatter_kwargs.pop("color", "r")})
+        _plotFlags(ax, datser, flags_vals, na_mask, level, scatter_kwargs)
 
 
 def _plotFlags(ax, datser, flags, na_mask, level, scatter_kwargs):

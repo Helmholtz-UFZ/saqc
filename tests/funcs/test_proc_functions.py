@@ -36,8 +36,6 @@ def test_rollingInterpolateMissing(course_5):
         min_periods=0,
         interpol_flag=UNFLAGGED,
     )
-    # import pdb
-    # pdb.set_trace()
     assert dataInt[field][characteristics["missing"]].notna().all()
     dataInt, *_ = interpolateByRolling(
         data,
@@ -62,9 +60,15 @@ def test_interpolateMissing(course_5):
     assert dataLin[field][characteristics["missing"]].notna().all()
     assert dataPoly[field][characteristics["missing"]].notna().all()
     data, characteristics = course_5(periods=10, nan_slice=[5, 6, 7])
-    dataLin1, *_ = interpolateInvalid(data, field, flags, method="linear", limit=2)
-    dataLin2, *_ = interpolateInvalid(data, field, flags, method="linear", limit=3)
-    dataLin3, *_ = interpolateInvalid(data, field, flags, method="linear", limit=4)
+    dataLin1, *_ = interpolateInvalid(
+        data.copy(), field, flags, method="linear", limit=2
+    )
+    dataLin2, *_ = interpolateInvalid(
+        data.copy(), field, flags, method="linear", limit=3
+    )
+    dataLin3, *_ = interpolateInvalid(
+        data.copy(), field, flags, method="linear", limit=4
+    )
     assert dataLin1[field][characteristics["missing"]].isna().all()
     assert dataLin2[field][characteristics["missing"]].isna().all()
     assert dataLin3[field][characteristics["missing"]].notna().all()

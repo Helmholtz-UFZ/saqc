@@ -2,24 +2,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import numpy as np
-from dios import DictOfSeries
-
 from saqc.constants import BAD, UNFLAGGED
 from saqc.core.modules.base import ModuleBase
 import saqc
-from saqc.lib.types import FreqString, IntegerWindow, ColumnName
+from saqc.lib.types import FreqString
 
 
 class Breaks(ModuleBase):
     def flagMissing(
-        self, field: ColumnName, flag: float = BAD, to_mask: float = UNFLAGGED, **kwargs
+        self, field: str, flag: float = BAD, to_mask: float = UNFLAGGED, **kwargs
     ) -> saqc.SaQC:
         return self.defer("flagMissing", locals())
 
     def flagIsolated(
         self,
-        field: ColumnName,
+        field: str,
         gap_window: FreqString,
         group_window: FreqString,
         flag: float = BAD,
@@ -29,10 +26,10 @@ class Breaks(ModuleBase):
 
     def flagJumps(
         self,
-        field: ColumnName,
+        field: str,
         thresh: float,
         window: FreqString,
-        min_periods: IntegerWindow = 1,
+        min_periods: int = 1,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:

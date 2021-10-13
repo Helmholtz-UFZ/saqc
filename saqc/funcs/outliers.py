@@ -3,17 +3,19 @@
 
 from typing import Optional, Union, Tuple, Sequence, Callable
 from typing_extensions import Literal
+
 import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
+
 from dios import DictOfSeries
 from outliers import smirnov_grubbs
 from scipy.optimize import curve_fit
 
 from saqc.constants import *
 from saqc.core import flagging, Flags
-from saqc.lib.types import ColumnName, FreqString, IntegerWindow
+from saqc.lib.types import FreqString
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta
 from saqc.funcs.scores import assignKNNScore
 import saqc.lib.ts_operators as ts_ops
@@ -22,9 +24,9 @@ import saqc.lib.ts_operators as ts_ops
 @flagging(masking="field", module="outliers")
 def flagByStray(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    freq: Optional[Union[IntegerWindow, FreqString]] = None,
+    freq: Optional[Union[int, FreqString]] = None,
     min_periods: int = 11,
     iter_start: float = 0.5,
     alpha: float = 0.05,
@@ -398,15 +400,15 @@ def _expFit(
 @flagging(masking="all", module="outliers")
 def flagMVScores(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    fields: Sequence[ColumnName],
+    fields: Sequence[str],
     trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
     alpha: float = 0.05,
     n: int = 10,
     func: Callable[[pd.Series], float] = np.sum,
     iter_start: float = 0.5,
-    partition: Optional[Union[IntegerWindow, FreqString]] = None,
+    partition: Optional[Union[int, FreqString]] = None,
     partition_min: int = 11,
     partition_trafo: bool = True,
     stray_range: Optional[FreqString] = None,
@@ -598,7 +600,7 @@ def flagMVScores(
 @flagging(masking="field", module="outliers")
 def flagRaise(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     thresh: float,
     raise_window: FreqString,
@@ -786,7 +788,7 @@ def flagRaise(
 @flagging(masking="field", module="outliers")
 def flagMAD(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     window: FreqString,
     z: float = 3.5,
@@ -856,11 +858,11 @@ def flagMAD(
 @flagging(masking="field", module="outliers")
 def flagOffset(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     thresh: float,
     tolerance: float,
-    window: Union[IntegerWindow, FreqString],
+    window: Union[int, FreqString],
     thresh_relative: Optional[float] = None,
     flag: float = BAD,
     **kwargs,
@@ -1024,9 +1026,9 @@ def flagOffset(
 @flagging(masking="field", module="outliers")
 def flagByGrubbs(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    window: Union[FreqString, IntegerWindow],
+    window: Union[FreqString, int],
     alpha: float = 0.05,
     min_periods: int = 8,
     pedantic: bool = False,
@@ -1147,7 +1149,7 @@ def flagByGrubbs(
 @flagging(masking="field", module="outliers")
 def flagRange(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     min: float = -np.inf,
     max: float = np.inf,
@@ -1190,9 +1192,9 @@ def flagRange(
 @flagging(masking="all", module="outliers")
 def flagCrossStatistic(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    fields: Sequence[ColumnName],
+    fields: Sequence[str],
     thresh: float,
     method: Literal["modZscore", "Zscore"] = "modZscore",
     flag: float = BAD,

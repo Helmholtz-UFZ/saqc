@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
 import pytest
 import numpy as np
 import pandas as pd
@@ -12,10 +11,6 @@ from saqc.core import initFlagsLike
 from saqc import SaQC, flagging
 
 from tests.common import initData, flagAll
-
-# no logging output needed here
-# -> can this be configured on the test runner level?
-logging.disable(logging.CRITICAL)
 
 
 OPTIONAL = [False, True]
@@ -42,12 +37,8 @@ def test_errorHandling(data):
 
     var1 = data.columns[0]
 
-    for policy in ["ignore", "warn"]:
-        # NOTE: should not fail, that's all we are testing here
-        SaQC(data, error_policy=policy).raisingFunc(var1).getResult()
-
     with pytest.raises(TypeError):
-        SaQC(data, error_policy="raise").raisingFunc(var1).getResult()
+        SaQC(data).raisingFunc(var1).getResult()
 
 
 def test_duplicatedVariable():

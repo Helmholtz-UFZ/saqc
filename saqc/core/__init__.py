@@ -3,7 +3,7 @@
 
 from saqc.core.register import flagging, processing
 from saqc.core.flags import Flags, initFlagsLike
-from saqc.core.core import SaQC, logger
+from saqc.core.core import SaQC
 from saqc.core.translator import (
     FloatTranslator,
     DmpTranslator,

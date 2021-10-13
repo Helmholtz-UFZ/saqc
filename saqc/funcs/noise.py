@@ -7,21 +7,21 @@ from dios import DictOfSeries
 from typing import Callable
 from saqc.constants import *
 from saqc.core import flagging, Flags
-from saqc.lib.types import ColumnName, FreqString, PositiveInt, PositiveFloat, Literal
+from saqc.lib.types import FreqString
 from saqc.lib.tools import statPass
 
 
 @flagging(masking="field", module="noise")
 def flagByStatLowPass(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     func: Callable[[np.array, pd.Series], float],
     window: FreqString,
-    thresh: PositiveFloat,
+    thresh: float,
     sub_window: FreqString = None,
-    sub_thresh: PositiveFloat = None,
-    min_periods: PositiveInt = None,
+    sub_thresh: float = None,
+    min_periods: int = None,
     flag: float = BAD,
     **kwargs
 ):
@@ -44,13 +44,13 @@ def flagByStatLowPass(
         Function to aggregate chunk contnent with.
     window: FreqString
         Temporal extension of the chunks to test
-    thresh: PositiveFloat
+    thresh: float
         Threshold, that triggers flagging, if exceeded by stat value.
     sub_window: FreqString, default None,
         Window size of the sub chunks, that are additionally tested for exceeding
         `sub_thresh` with respect to `stat`.
-    sub_thresh: PositiveFloat, default None
-    min_periods: PositiveInt, default None
+    sub_thresh: float, default None
+    min_periods: int, default None
 
     Returns
     -------

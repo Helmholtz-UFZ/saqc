@@ -1,8 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
-
 import pandas as pd
 
 from hypothesis import given, settings
@@ -11,9 +9,6 @@ from saqc.constants import UNFLAGGED, BAD
 from saqc.core.register import _maskData, _unmaskData, CallState
 
 from tests.fuzzy.lib import dataFieldFlags, MAX_EXAMPLES
-
-
-logging.disable(logging.CRITICAL)
 
 
 @settings(max_examples=MAX_EXAMPLES, deadline=None)

@@ -11,9 +11,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pickle
 
-from saqc.lib.types import FreqString
 from saqc.constants import *
-from saqc.core import flagging, processing, Flags
+from saqc.lib.types import FreqString
+from saqc.core import processing, Flags
 from saqc.lib.tools import periodicMask
 from saqc.lib.plotting import makeFig
 
@@ -254,6 +254,7 @@ def plot(
     stats: bool = False,
     plot_kwargs: Optional[dict] = None,
     fig_kwargs: Optional[dict] = None,
+    scatter_kwargs: Optional[dict] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
     **kwargs,
@@ -312,6 +313,11 @@ def plot(
         Keyword arguments controlling figure generation. In interactive mode,
         ``None`` defaults to ``{"figsize": (16, 9)}`` to ensure a proper figure size
         in store-mode.
+
+    scatter_kwargs : dict, default None
+        Keyword arguments controlling the appearance of the dots, marking flagged values.
+        Dict just gets passed on to the matplotlib.pyplot.scatter method. Keywords of interest may be:
+        ``"alpha"`` (transparancy), ``"marker"`` (marker appearance) and ``"s"`` (dot size).
 
     store_kwargs : dict, default {}
         Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
@@ -372,6 +378,7 @@ def plot(
         stats=stats,
         plot_kwargs=plot_kwargs,
         fig_kwargs=fig_kwargs,
+        scatter_kwargs=scatter_kwargs,
         stats_dict=stats_dict,
     )
 

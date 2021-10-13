@@ -105,10 +105,7 @@ def writeData(writer_dict, df, fname):
     type=click.Choice(["DEBUG", "INFO", "WARNING"]),
     help="set output verbosity",
 )
-@click.option(
-    "--fail/--no-fail", default=True, help="whether to stop the program run on errors"
-)
-def main(config, data, scheme, outfile, nodata, log_level, fail):
+def main(config, data, scheme, outfile, nodata, log_level):
 
     _setupLogging(log_level)
     reader, writer = setupIO(nodata)
@@ -118,8 +115,7 @@ def main(config, data, scheme, outfile, nodata, log_level, fail):
     saqc = fromConfig(
         config,
         data=data,
-        scheme=SCHEMES[scheme or "float"](),
-        error_policy="raise" if fail else "warn",
+        scheme=SCHEMES[scheme or "simple"](),
     )
 
     data_result, flags_result = saqc.getResult()
