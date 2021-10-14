@@ -159,8 +159,9 @@ def flagManual(
         The fieldname of the column, holding the data-to-be-flagged.
     flags : saqc.Flags
         A flags object, holding flags and additional informations related to `data`.
-    mdata : {pd.Series, pd.Dataframe, DictOfSeries}
-        The "manually generated" data
+    mdata : {pd.Series, pd.Dataframe, DictOfSeries, str}
+        The Data determining, wich intervals are to be flagged, or a string, denoting under which field the data is
+        accessable.
     mflag : scalar
         The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
 
@@ -234,12 +235,22 @@ def flagManual(
     """
     dat = data[field]
 
+    if isinstance(mdata, str):
+        mdata = data[mdata]
+
     if isinstance(mdata, (pd.DataFrame, DictOfSeries)):
         mdata = mdata[field]
 
     hasindex = isinstance(mdata, (pd.Series, pd.DataFrame, DictOfSeries))
     if not hasindex and method != "plain":
         raise ValueError("mdata has no index")
+
+    # check, if intervals where passed in format (index:start-time, data:end-time)
+    if isinstance(mdata.iloc[0], (pd.Timestamp, str)):
+        mdata = pd.Series(
+            0, index=mdata.index.join(pd.DatetimeIndex(mdata), how="outer")
+        )
+        mdata[::2] = mflag
 
     if method == "plain":
 
