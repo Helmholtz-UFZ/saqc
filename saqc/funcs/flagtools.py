@@ -247,7 +247,9 @@ def flagManual(
 
     # check, if intervals where passed in format (index:start-time, data:end-time)
     if isinstance(mdata.iloc[0], (pd.Timestamp, str)):
-        mdata = pd.Series(0, index=mdata.index.join(pd.DatetimeIndex(mdata), how='outer'))
+        mdata = pd.Series(
+            0, index=mdata.index.join(pd.DatetimeIndex(mdata), how="outer")
+        )
         mdata[::2] = mflag
 
     if method == "plain":
