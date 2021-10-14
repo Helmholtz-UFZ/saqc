@@ -252,7 +252,9 @@ def plot(
     path: Optional[str] = None,
     max_gap: Optional[FreqString] = None,
     stats: bool = False,
-    plot_kwargs: Optional[dict] = None,
+    history: Optional[Literal["valid", "complete"]] = "valid",
+    s: Optional[slice] = None,
+    ax_kwargs: Optional[dict] = None,
     fig_kwargs: Optional[dict] = None,
     scatter_kwargs: Optional[dict] = None,
     stats_dict: Optional[dict] = None,
@@ -294,20 +296,26 @@ def plot(
     stats : bool, default False
         Whether to include statistics table in plot.
 
-    plot_kwargs : dict, default None
+    history : {"valid", "complete", None}, default "valid"
+        Discriminate the plotted flags with respect to the tests they originate from.
+        * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
+          in the legend, that actually contributed flags to the overall resault.
+        * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
+        * None - just plot the resulting flags for one variable, without any historical meta information.
+
+    s : slice or Offset, default None
+        Parameter, that determines a chunk of the data to be plotted /
+        processed. `s` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
+
+    ax_kwargs : dict, default None
+        ax_kwargs : dict, default None
         Keyword arguments controlling plot generation. Will be passed on to the
         ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
-        data plot. The most relevant of those properties might be "ylabel", "title" and
-        "ylim". In Addition, following options are available:
+        data plot. The most relevant of those properties might be "ylabel",
+        "title" and in addition: "ylim".
+        The "ylim" keyword can be passed a slice object with date offset entries to controll figure
+        scope.
 
-        * {'slice': s} property, that determines a chunk of the data to be plotted /
-            processed. `s` can be anything, that is a valid argument to the
-            ``pandas.Series.__getitem__`` method.
-        * {'history': str}
-            * str="all": All the flags are plotted with colored dots, refering to the
-                tests they originate from
-            * str="valid": - same as 'all' - but only plots those flags, that are not
-                removed by later tests
 
     fig_kwargs : dict, default None
         Keyword arguments controlling figure generation. In interactive mode,
@@ -318,6 +326,8 @@ def plot(
         Keyword arguments controlling the appearance of the dots, marking flagged values.
         Dict just gets passed on to the matplotlib.pyplot.scatter method. Keywords of interest may be:
         ``"alpha"`` (transparancy), ``"marker"`` (marker appearance) and ``"s"`` (dot size).
+        The ``"marker"`` and ``"color"`` keywords can also be passed lists, that the plotting routine will then cycle
+        through.
 
     store_kwargs : dict, default {}
         Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
@@ -376,7 +386,8 @@ def plot(
         level=kwargs.get("flag", BAD),
         max_gap=max_gap,
         stats=stats,
-        plot_kwargs=plot_kwargs,
+        history=history,
+        ax_kwargs=ax_kwargs,
         fig_kwargs=fig_kwargs,
         scatter_kwargs=scatter_kwargs,
         stats_dict=stats_dict,
