@@ -23,13 +23,14 @@ STATSDICT = {
     "flagged percentage": lambda x, y, z: round(((y >= z).sum()) / len(x), 2),
 }
 
-PLOT_KWARGS = {"alpha": 0.7}
+PLOT_KWARGS = {"alpha": 0.8,
+               "linewidth": 1}
 AX_KWARGS = {}
 FIG_KWARGS = {"figsize": (16, 9)}
 SCATTER_KWARGS = {
     "marker": ["s", "D", "^", "o"],
-    "color": seaborn.color_palette("dark"),
-    "alpha": 0.5,
+    "color": seaborn.color_palette("bright"),
+    "alpha": 0.7,
     "zorder": 10,
     "edgecolors": "black",
     "s": 70,
