@@ -202,7 +202,7 @@ def test_flagManual(data, field):
 
     kwargs_list = [
         dict(mdata=mdata, mflag="a", method="plain", flag=BAD),
-        dict(mdata=mdata.to_list(), mflag="a", method="plain", flag=BAD),
+        # dict(mdata=mdata.to_list(), mflag="a", method="plain", flag=BAD),
         dict(mdata=mdata, mflag="a", method="ontime", flag=BAD),
         dict(mdata=shrinked, mflag="a", method="ontime", flag=BAD),
     ]

@@ -3,6 +3,8 @@
 from typing import Any, Tuple, Union
 from typing_extensions import Literal
 import pandas as pd
+from dateutil.parser import ParserError
+import numpy as np
 from dios import DictOfSeries
 
 from saqc.constants import BAD, UNFLAGGED
@@ -246,9 +248,19 @@ def flagManual(
         raise ValueError("mdata has no index")
 
     # check, if intervals where passed in format (index:start-time, data:end-time)
-    if isinstance(mdata.iloc[0], (pd.Timestamp, str)):
+    try:
+        pd.to_datetime(mdata)
+    except ParserError:
+        dtlike = False
+    else:
+        if mdata.astype(str).map(str.isnumeric).any():
+            dtlike = False
+        else:
+            dtlike = True
+
+    if dtlike:
         mdata = pd.Series(
-            0, index=mdata.index.join(pd.DatetimeIndex(mdata), how="outer")
+            np.nan, index=mdata.index.join(pd.DatetimeIndex(mdata), how="outer")
         )
         mdata[::2] = mflag
 
