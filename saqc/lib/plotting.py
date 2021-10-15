@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib as mpl
 import itertools
 import matplotlib.pyplot as plt
-
+import seaborn
 from saqc.constants import *
 from saqc.core import Flags
 from saqc.lib.types import DiosLikeT, FreqString
@@ -23,11 +23,11 @@ STATSDICT = {
     "flagged percentage": lambda x, y, z: round(((y >= z).sum()) / len(x), 2),
 }
 
-PLOT_KWARGS = {'alpha': .9}
+PLOT_KWARGS = {'alpha': .7}
 AX_KWARGS = {}
 FIG_KWARGS = {"figsize": (16, 9)}
 SCATTER_KWARGS = {'marker': ['s', 'D', '^', 'o'],
-                  'color': 'r',
+                  'color': seaborn.color_palette('dark'),
                   'alpha': .5,
                   'zorder': 10,
                   'edgecolors': 'black',
