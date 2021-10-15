@@ -253,10 +253,7 @@ def plot(
     max_gap: Optional[FreqString] = None,
     stats: bool = False,
     history: Optional[Literal["valid", "complete"]] = "valid",
-    s: Optional[slice] = None,
-    ax_kwargs: Optional[dict] = None,
-    fig_kwargs: Optional[dict] = None,
-    scatter_kwargs: Optional[dict] = None,
+    xscope: Optional[slice] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
     **kwargs,
@@ -313,7 +310,7 @@ def plot(
         ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
         data plot. The most relevant of those properties might be "ylabel",
         "title" and in addition: "ylim".
-        The "ylim" keyword can be passed a slice object with date offset entries to controll figure
+        The "xlim" keyword can be passed a slice object with date offset entries to controll figure
         scope.
 
 
@@ -375,9 +372,6 @@ def plot(
 
     else:
         mpl.use("Agg")
-        # ensure a proper size in stored plot
-        if fig_kwargs is None:
-            fig_kwargs = {"figsize": (16, 9)}
 
     fig = makeFig(
         data=data,
@@ -387,9 +381,7 @@ def plot(
         max_gap=max_gap,
         stats=stats,
         history=history,
-        ax_kwargs=ax_kwargs,
-        fig_kwargs=fig_kwargs,
-        scatter_kwargs=scatter_kwargs,
+        xscope=xscope,
         stats_dict=stats_dict,
     )
 

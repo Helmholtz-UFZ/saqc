@@ -23,6 +23,16 @@ STATSDICT = {
     "flagged percentage": lambda x, y, z: round(((y >= z).sum()) / len(x), 2),
 }
 
+PLOT_KWARGS = {'alpha': .9}
+AX_KWARGS = {}
+FIG_KWARGS = {"figsize": (16, 9)}
+SCATTER_KWARGS = {'marker': ['s', 'D', '^', 'o'],
+                  'color': 'r',
+                  'alpha': .5,
+                  'zorder': 10,
+                  'edgecolors': 'black',
+                  's': 70}
+
 
 def makeFig(
     data: DiosLikeT,
@@ -32,9 +42,7 @@ def makeFig(
     max_gap: Optional[FreqString] = None,
     stats: bool = False,
     history: Optional[Literal["valid", "complete"]] = "valid",
-    ax_kwargs: Optional[dict] = None,
-    fig_kwargs: Optional[dict] = None,
-    scatter_kwargs: Optional[dict] = None,
+    xscope: Optional[slice] = None,
     stats_dict: Optional[dict] = None,
 ):
     """
@@ -63,16 +71,7 @@ def makeFig(
     stats : bool, default False
         Whether to include statistics table in plot.
 
-    ax_kwargs : dict, default None
-        Keyword arguments controlling plot generation. Will be passed on to the
-        ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
-        data plot. The most relevant of those properties might be "ylabel",
-        "title" and in addition: "ylim".
-        The "ylim" keyword can be passed a slice object with date offset entries.
-
-    fig_kwargs : dict, default None
-        Keyword arguments controlling figure generation. None defaults to
-        {"figsize": (16, 9)}
+    xscope :
 
     stats_dict: dict, default None
         (Only relevant if `stats`=True).
@@ -109,22 +108,17 @@ def makeFig(
 
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
-    if ax_kwargs is None:
-        ax_kwargs = {}
-    if fig_kwargs is None:
-        fig_kwargs = {}
-    if scatter_kwargs is None:
-        scatter_kwargs = {}
+
     if stats_dict is None:
         stats_dict = {}
 
     # data retrieval
     d = data[field]
     # data slicing:
-    s = ax_kwargs.pop("ylim", slice(None))
-    d = d[s]
-    flags_vals = flags[field][s]
-    flags_hist = flags.history[field].hist.loc[s]
+    xscope = xscope or slice(xscope)
+    d = d[xscope]
+    flags_vals = flags[field][xscope]
+    flags_hist = flags.history[field].hist.loc[xscope]
     flags_meta = flags.history[field].meta
     if stats:
         stats_dict.update(STATSDICT)
@@ -138,7 +132,7 @@ def makeFig(
         d = _insertBlockingNaNs(d, max_gap)
 
     # figure composition
-    fig = mpl.pyplot.figure(constrained_layout=True, **fig_kwargs)
+    fig = mpl.pyplot.figure(constrained_layout=True, **FIG_KWARGS)
     grid = fig.add_gridspec()
     if stats:
         plot_gs, tab_gs = grid[0].subgridspec(ncols=2, nrows=1, width_ratios=[5, 1])
@@ -156,8 +150,6 @@ def makeFig(
         flags_meta,
         history,
         level,
-        ax_kwargs,
-        scatter_kwargs,
         na_mask,
     )
     return fig
@@ -193,24 +185,27 @@ def _plotVarWithFlags(
     flags_meta,
     history,
     level,
-    ax_kwargs,
-    scatter_kwargs,
     na_mask,
 ):
     ax.set_title(datser.name)
-    ax.plot(datser, color="black")
-    ax.set(**ax_kwargs)
+    ax.plot(datser, color="black", **PLOT_KWARGS)
+    ax.set(**AX_KWARGS)
+    scatter_kwargs = SCATTER_KWARGS.copy()
+    shape_cycle = scatter_kwargs.pop("marker", "o")
+    shape_cycle = itertools.cycle(toSequence(shape_cycle))
+    color_cycle = scatter_kwargs.pop(
+        "color", plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    )
+    color_cycle = itertools.cycle(toSequence(color_cycle))
+    scatter_kwargs = SCATTER_KWARGS.copy()
     if history:
-        shape_cycle = scatter_kwargs.pop("marker", "o")
-        shape_cycle = itertools.cycle(toSequence(shape_cycle))
-        color_cycle = scatter_kwargs.pop(
-            "color", plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        )
-        color_cycle = itertools.cycle(toSequence(color_cycle))
         for i in flags_hist.columns:
             scatter_kwargs.update({"label": flags_meta[i]["func"].split(".")[-1]})
             flags_i = flags_hist[i].astype(float)
             if history == "complete":
+                scatter_kwargs.update(
+                    {"color": next(color_cycle), "marker": next(shape_cycle)}
+                )
                 _plotFlags(ax, datser, flags_i, na_mask, level, scatter_kwargs)
             if history == "valid":
                 # only plot those flags, that do not get altered later on:
@@ -234,7 +229,9 @@ def _plotVarWithFlags(
                 )
         ax.legend()
     else:
-        scatter_kwargs.update({"color": scatter_kwargs.pop("color", "r")})
+        scatter_kwargs.update(
+            {"color": next(color_cycle), "marker": next(shape_cycle)}
+        )
         _plotFlags(ax, datser, flags_vals, na_mask, level, scatter_kwargs)
 
 
