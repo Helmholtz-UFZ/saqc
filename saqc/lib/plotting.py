@@ -23,15 +23,17 @@ STATSDICT = {
     "flagged percentage": lambda x, y, z: round(((y >= z).sum()) / len(x), 2),
 }
 
-PLOT_KWARGS = {'alpha': .7}
+PLOT_KWARGS = {"alpha": 0.7}
 AX_KWARGS = {}
 FIG_KWARGS = {"figsize": (16, 9)}
-SCATTER_KWARGS = {'marker': ['s', 'D', '^', 'o'],
-                  'color': seaborn.color_palette('dark'),
-                  'alpha': .5,
-                  'zorder': 10,
-                  'edgecolors': 'black',
-                  's': 70}
+SCATTER_KWARGS = {
+    "marker": ["s", "D", "^", "o"],
+    "color": seaborn.color_palette("dark"),
+    "alpha": 0.5,
+    "zorder": 10,
+    "edgecolors": "black",
+    "s": 70,
+}
 
 
 def makeFig(
@@ -229,9 +231,7 @@ def _plotVarWithFlags(
                 )
         ax.legend()
     else:
-        scatter_kwargs.update(
-            {"color": next(color_cycle), "marker": next(shape_cycle)}
-        )
+        scatter_kwargs.update({"color": next(color_cycle), "marker": next(shape_cycle)})
         _plotFlags(ax, datser, flags_vals, na_mask, level, scatter_kwargs)
 
 
