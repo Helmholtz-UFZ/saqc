@@ -618,7 +618,7 @@ def statPass(
     for exceed, group in exceeds.groupby(by=exceeds.values):
         if exceed:
             # dt-slices include both bounds, so we subtract 1ns
-            start = group.index[0] - (winsz - pd.Timedelta('1ns'))
+            start = group.index[0] - (winsz - pd.Timedelta("1ns"))
             end = group.index[-1]
             to_set[start:end] = True
 

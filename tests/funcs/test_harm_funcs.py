@@ -131,7 +131,7 @@ def test_flagsSurviveBackprojection():
 def test_harmSingleVarIntermediateFlagging(data, reshaper):
     flags = initFlagsLike(data)
     field = "data"
-    freq = '15T'
+    freq = "15T"
 
     pre_data = data.copy()
     pre_flags = flags.copy()

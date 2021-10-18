@@ -136,7 +136,7 @@ def flagByVariance(
         maxna = np.inf
 
     if maxna_group is None:
-        max_consecutive = np.inf
+        maxna_group = np.inf
 
     min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(delta)))
     window = pd.Timedelta(window)
@@ -149,5 +149,5 @@ def flagByVariance(
         min_periods=min_periods,
     )
 
-    flags[to_set[to_set].index, field] = flag
+    flags[to_set, field] = flag
     return data, flags

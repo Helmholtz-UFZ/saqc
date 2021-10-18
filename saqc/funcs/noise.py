@@ -69,5 +69,5 @@ def flagByStatLowPass(
     to_set = statPass(
         datcol, func, window, thresh, operator.gt, sub_window, sub_thresh, min_periods
     )
-    flags[to_set[to_set].index, field] = flag
+    flags[to_set, field] = flag
     return data, flags
