@@ -3,17 +3,19 @@
 
 from typing import Optional, Union, Tuple, Sequence, Callable
 from typing_extensions import Literal
+
 import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
+
 from dios import DictOfSeries
 from outliers import smirnov_grubbs
 from scipy.optimize import curve_fit
 
 from saqc.constants import *
 from saqc.core import flagging, Flags
-from saqc.lib.types import ColumnName, FreqString, IntegerWindow
+from saqc.lib.types import FreqString
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta
 from saqc.funcs.scores import assignKNNScore
 import saqc.lib.ts_operators as ts_ops
@@ -22,10 +24,10 @@ import saqc.lib.ts_operators as ts_ops
 @flagging(masking="field", module="outliers")
 def flagByStray(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    partition_freq: Optional[Union[IntegerWindow, FreqString]] = None,
-    partition_min: int = 11,
+    freq: Optional[Union[int, FreqString]] = None,
+    min_periods: int = 11,
     iter_start: float = 0.5,
     alpha: float = 0.05,
     flag: float = BAD,
@@ -45,36 +47,37 @@ def flagByStray(
     flags : saqc.Flags
         Container to store quality flags to data.
 
-    partition_freq : str, int, or None, default None
+    freq : str, int, or None, default None
         Determines the segmentation of the data into partitions, the kNN algorithm is
         applied onto individually.
 
         * ``np.inf``: Apply Scoring on whole data set at once
         * ``x`` > 0 : Apply scoring on successive data chunks of periods length ``x``
-        * Offset String : Apply scoring on successive partitions of temporal extension matching the passed offset
-          string
+        * Offset String : Apply scoring on successive partitions of temporal extension
+          matching the passed offset string
 
-    partition_min : int, default 11
-        Minimum number of periods per partition that have to be present for a valid outlier dettection to be made in
-        this partition. (Only of effect, if `partition_freq` is an integer.) Partition min value must always be
-        greater then the nn_neighbors value.
+    min_periods : int, default 11
+        Minimum number of periods per partition that have to be present for a valid
+        outlier dettection to be made in this partition. (Only of effect, if `freq`
+        is an integer.) Partition min value must always be greater then the
+        nn_neighbors value.
 
     iter_start : float, default 0.5
-        Float in [0,1] that determines which percentage of data is considered "normal". 0.5 results in the stray
-        algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
-        information)
+        Float in [0,1] that determines which percentage of data is considered
+        "normal". 0.5 results in the stray algorithm to search only the upper 50 % of
+        the scores for the cut off point. (See reference section for more information)
 
     alpha : float, default 0.05
-        Level of significance by which it is tested, if a score might be drawn from another distribution, than the
-        majority of the data.
+        Level of significance by which it is tested, if a score might be drawn from
+        another distribution, than the majority of the data.
 
     flag : float, default BAD
         flag to set.
 
     References
     ----------
-    [1] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in high dimensional data.
-        arXiv preprint arXiv:1908.04000.
+    [1] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in
+        high dimensional data. arXiv preprint arXiv:1908.04000.
     """
     scores = data[field].dropna()
 
@@ -82,25 +85,23 @@ def flagByStray(
         flags[:, field] = UNTOUCHED
         return data, flags
 
-    if not partition_freq:
-        partition_freq = scores.shape[0]
+    if not freq:
+        freq = scores.shape[0]
 
-    if isinstance(partition_freq, str):
-        partitions = scores.groupby(pd.Grouper(freq=partition_freq))
+    if isinstance(freq, str):
+        partitions = scores.groupby(pd.Grouper(freq=freq))
 
     else:
         grouper_series = pd.Series(
             data=np.arange(0, scores.shape[0]), index=scores.index
         )
-        grouper_series = grouper_series.transform(
-            lambda x: int(np.floor(x / partition_freq))
-        )
+        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / freq)))
         partitions = scores.groupby(grouper_series)
 
     # calculate flags for every partition
     for _, partition in partitions:
 
-        if partition.empty | (partition.shape[0] < partition_min):
+        if partition.empty | (partition.shape[0] < min_periods):
             continue
 
         sample_size = partition.shape[0]
@@ -142,39 +143,51 @@ def _evalStrayLabels(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The function "reduces" an observations flag to components of it, by applying MAD (See references)
-    test onto every components temporal surrounding.
+    The function "reduces" an observations flag to components of it, by applying MAD
+    (See references) test onto every components temporal surrounding.
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
+
     field : str
         The fieldname of the column, holding the labels to be evaluated.
+
     flags : saqc.Flags
         Container to store quality flags to data.
+
     fields : list[str]
-        A list of strings, holding the column names of the variables, the stray labels shall be
-        projected onto.
+        A list of strings, holding the column names of the variables, the stray labels
+        shall be projected onto.
+
     val_frame : (N,M) pd.DataFrame
-        Input NxM DataFrame of observations, where N is the number of observations and M the number of components per
-        observation.
+        Input NxM DataFrame of observations, where N is the number of observations and
+        M the number of components per observation.
+
     to_flag_frame : pandas.DataFrame
-        Input dataframe of observations to be tested, where N is the number of observations and M the number
-        of components per observation.
+        Input dataframe of observations to be tested, where N is the number of
+        observations and M the number of components per observation.
+
     reduction_range : {None, str}
-        An offset string, denoting the range of the temporal surrounding to include into the MAD testing.
-        If ``None`` is passed, no testing will be performed and all fields will have the stray flag projected.
+        An offset string, denoting the range of the temporal surrounding to include
+        into the MAD testing. If ``None`` is passed, no testing will be performed and
+        all fields will have the stray flag projected.
+
     reduction_drop_flagged : bool, default False
-        Wheather or not to drop flagged values other than the value under test, from the temporal surrounding
-        before checking the value with MAD.
+        Wheather or not to drop flagged values other than the value under test, from the
+        temporal surrounding before checking the value with MAD.
+
     reduction_thresh : float, default 3.5
-        The `critical` value, controlling wheather the MAD score is considered referring to an outlier or not.
-        Higher values result in less rigid flagging. The default value is widely used in the literature. See references
-        section for more details ([1]).
+        The `critical` value, controlling wheather the MAD score is considered
+        referring to an outlier or not. Higher values result in less rigid flagging.
+        The default value is widely used in the literature. See references section
+        for more details ([1]).
+
     at_least_one : bool, default True
-        If none of the variables, the outlier label shall be reduced to, is an outlier with regard
-        to the test, all (True) or none (False) of the variables are flagged
+        If none of the variables, the outlier label shall be reduced to, is an outlier
+        with regard to the test, all (True) or none (False) of the variables are flagged
+
     flag : float, default BAD
         flag to set.
 
@@ -275,9 +288,9 @@ def _expFit(
         observation.
     scoring_method : {'kNNSum', 'kNNMaxGap'}, default 'kNNMaxGap'
         Scoring method applied.
-        `'kNNSum'`: Assign to every point the sum of the distances to its 'n_neighbors' nearest neighbors.
+        `'kNNSum'`: Assign to every point the sum of the distances to its 'n' nearest neighbors.
         `'kNNMaxGap'`: Assign to every point the distance to the neighbor with the "maximum gap" to its predecessor
-        in the hierarchy of the `n_neighbors` nearest neighbors. (see reference section for further descriptions)
+        in the hierarchy of the `n` nearest neighbors. (see reference section for further descriptions)
     n_neighbors : int, default 10
         Number of neighbors included in the scoring process for every datapoint.
     iter_start : float, default 0.5
@@ -338,8 +351,8 @@ def _expFit(
     if hist_argmax >= findIndex(binz, resids[iter_index - 1], 0):
         raise ValueError(
             "Either the data histogram is too strangely shaped for oddWater OD detection - "
-            "or a too low value for 'iter_start' was passed "
-            "(iter_start better be much greater 0.5)"
+            "or a too low value for 'offset' was passed "
+            "(offset better be much greater 0.5)"
         )
     # GO!
     iter_max_bin_index = findIndex(binz, resids[iter_index - 1], 0)
@@ -387,85 +400,110 @@ def _expFit(
 @flagging(masking="all", module="outliers")
 def flagMVScores(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    fields: Sequence[ColumnName],
+    fields: Sequence[str],
     trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
     alpha: float = 0.05,
-    n_neighbors: int = 10,
-    scoring_func: Callable[[pd.Series], float] = np.sum,
+    n: int = 10,
+    func: Callable[[pd.Series], float] = np.sum,
     iter_start: float = 0.5,
-    stray_partition: Optional[Union[IntegerWindow, FreqString]] = None,
-    stray_partition_min: int = 11,
-    trafo_on_partition: bool = True,
-    reduction_range: Optional[FreqString] = None,
-    reduction_drop_flagged: bool = False,  # TODO: still a case ?
-    reduction_thresh: float = 3.5,
-    reduction_min_periods: int = 1,
+    partition: Optional[Union[int, FreqString]] = None,
+    partition_min: int = 11,
+    partition_trafo: bool = True,
+    stray_range: Optional[FreqString] = None,
+    drop_flagged: bool = False,  # TODO: still a case ?
+    thresh: float = 3.5,
+    min_periods: int = 1,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The algorithm implements a 3-step outlier detection procedure for simultaneously flagging of higher dimensional
-    data (dimensions > 3).
+    The algorithm implements a 3-step outlier detection procedure for simultaneously
+    flagging of higher dimensional data (dimensions > 3).
 
-    In references [1], the procedure is introduced and exemplified with an application on hydrological data.
-
-    See the notes section for an overview over the algorithms basic steps.
+    In references [1], the procedure is introduced and exemplified with an
+    application on hydrological data. See the notes section for an overview over the
+    algorithms basic steps.
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
+
     field : str
-        The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
+        The fieldname of the column, holding the data-to-be-flagged. (Here a dummy,
+        for structural reasons)
+
     flags : saqc.Flags
         Container to store quality flags to data.
+
     fields : List[str]
-        List of fieldnames, corresponding to the variables that are to be included into the flagging process.
+        List of fieldnames, corresponding to the variables that are to be included
+        into the flagging process.
+
     trafo : callable, default lambda x:x
-        Transformation to be applied onto every column before scoring. Will likely get deprecated soon. Its better
-        to transform the data in a processing step, preceeeding the call to ``flagMVScores``.
+        Transformation to be applied onto every column before scoring. Will likely
+        get deprecated soon. Its better to transform the data in a processing step,
+        preceeeding the call to ``flagMVScores``.
+
     alpha : float, default 0.05
-        Level of significance by which it is tested, if an observations score might be drawn from another distribution
-        than the majority of the observation.
-    n_neighbors : int, default 10
+        Level of significance by which it is tested, if an observations score might
+        be drawn from another distribution than the majority of the observation.
+
+    n : int, default 10
         Number of neighbors included in the scoring process for every datapoint.
-    scoring_func : Callable[numpy.array, float], default np.sum
-        The function that maps the set of every points k-nearest neighbor distances onto a certain scoring.
+
+    func : Callable[numpy.array, float], default np.sum
+        The function that maps the set of every points k-nearest neighbor distances
+        onto a certain scoring.
+
     iter_start : float, default 0.5
-        Float in [0,1] that determines which percentage of data is considered "normal". 0.5 results in the threshing
-        algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
+        Float in [0,1] that determines which percentage of data is considered
+        "normal". 0.5 results in the threshing algorithm to search only the upper 50
+        % of the scores for the cut off point. (See reference section for more
         information)
-    stray_partition : {None, str, int}, default None
-        Only effective when `threshing` = 'stray'.
-        Determines the size of the data partitions, the data is decomposed into. Each partition is checked seperately
-        for outliers. If a String is passed, it has to be an offset string and it results in partitioning the data into
-        parts of according temporal length. If an integer is passed, the data is simply split up into continous chunks
-        of `partition_freq` periods. if ``None`` is passed (default), all the data will be tested in one run.
-    stray_partition_min : int, default 11
-        Only effective when `threshing` = 'stray'.
-        Minimum number of periods per partition that have to be present for a valid outlier detection to be made in
+
+    partition : {None, str, int}, default None
+        Only effective when `threshing` = 'stray'. Determines the size of the data
+        partitions, the data is decomposed into. Each partition is checked seperately
+        for outliers. If a String is passed, it has to be an offset string and it
+        results in partitioning the data into parts of according temporal length. If
+        an integer is passed, the data is simply split up into continous chunks of
+        `freq` periods. if ``None`` is passed (default), all the data will be tested
+        in one run.
+
+    partition_min : int, default 11
+        Only effective when `threshing` = 'stray'. Minimum number of periods per
+        partition that have to be present for a valid outlier detection to be made in
         this partition. (Only of effect, if `stray_partition` is an integer.)
-    trafo_on_partition : bool, default True
-        Whether or not to apply the passed transformation on every partition the algorithm is applied on, separately.
-    reduction_range : {None, str}, default None
-        If not None, it is tried to reduce the stray result onto single outlier components of the input fields.
-        An offset string, denoting the range of the temporal surrounding to include into the MAD testing while trying
-        to reduce flags.
-    reduction_drop_flagged : bool, default False
-        Only effective when `reduction_range` is not ``None``.
-        Whether or not to drop flagged values other than the value under test from the temporal surrounding
-        before checking the value with MAD.
-    reduction_thresh : float, default 3.5
-        Only effective when `reduction_range` is not ``None``.
-        The `critical` value, controlling wheather the MAD score is considered referring to an outlier or not.
-        Higher values result in less rigid flagging. The default value is widely considered apropriate in the
-        literature.
-    reduction_min_periods : int, 1
-        Only effective when `reduction_range` is not ``None``.
-        Minimum number of meassurements necessarily present in a reduction interval for reduction actually to be
+
+    partition_trafo : bool, default True
+        Whether or not to apply the passed transformation on every partition the
+        algorithm is applied on, separately.
+
+    stray_range : {None, str}, default None
+        If not None, it is tried to reduce the stray result onto single outlier
+        components of the input fields. An offset string, denoting the range of the
+        temporal surrounding to include into the MAD testing while trying to reduce
+        flags.
+
+    drop_flagged : bool, default False
+        Only effective when `range` is not ``None``. Whether or not to drop flagged
+        values other than the value under test from the temporal surrounding before
+        checking the value with MAD.
+
+    thresh : float, default 3.5
+        Only effective when `range` is not ``None``. The `critical` value,
+        controlling wheather the MAD score is considered referring to an outlier or
+        not. Higher values result in less rigid flagging. The default value is widely
+        considered apropriate in the literature.
+
+    min_periods : int, 1
+        Only effective when `range` is not ``None``. Minimum number of meassurements
+        necessarily present in a reduction interval for reduction actually to be
         performed.
+
     flag : float, default BAD
         flag to set.
 
@@ -487,41 +525,47 @@ def flagMVScores(
     (a) make them comparable and
     (b) make outliers more stand out.
 
-    This step is usually subject to a phase of research/try and error. See [1] for more details.
+    This step is usually subject to a phase of research/try and error. See [1] for more
+    details.
 
-    Note, that the data transformation as an built-in step of the algorithm, will likely get deprecated soon. Its better
-    to transform the data in a processing step, preceeding the multivariate flagging process. Also, by doing so, one
-    gets mutch more control and variety in the transformation applied, since the `trafo` parameter only allows for
-    application of the same transformation to all of the variables involved.
+    Note, that the data transformation as an built-in step of the algorithm,
+    will likely get deprecated soon. Its better to transform the data in a processing
+    step, preceeding the multivariate flagging process. Also, by doing so, one gets
+    mutch more control and variety in the transformation applied, since the `trafo`
+    parameter only allows for application of the same transformation to all of the
+    variables involved.
 
     2. scoring
 
-    Every observation gets assigned a score depending on its k nearest neighbors. See the `scoring_method` parameter
-    description for details on the different scoring methods. Furthermore [1], [2] may give some insight in the
-    pro and cons of the different methods.
+    Every observation gets assigned a score depending on its k nearest neighbors. See
+    the `scoring_method` parameter description for details on the different scoring
+    methods. Furthermore [1], [2] may give some insight in the pro and cons of the
+    different methods.
 
     3. threshing
 
     The gaps between the (greatest) scores are tested for beeing drawn from the same
-    distribution as the majority of the scores. If a gap is encountered, that, with sufficient significance, can be
-    said to not be drawn from the same distribution as the one all the smaller gaps are drawn from, than
-    the observation belonging to this gap, and all the observations belonging to gaps larger then this gap, get flagged
-    outliers. See description of the `threshing` parameter for more details. Although [2] gives a fully detailed
-    overview over the `stray` algorithm.
+    distribution as the majority of the scores. If a gap is encountered, that,
+    with sufficient significance, can be said to not be drawn from the same
+    distribution as the one all the smaller gaps are drawn from, than the observation
+    belonging to this gap, and all the observations belonging to gaps larger then
+    this gap, get flagged outliers. See description of the `threshing` parameter for
+    more details. Although [2] gives a fully detailed overview over the `stray`
+    algorithm.
     """
     data, flags = assignKNNScore(
         data,
         "dummy",
         flags,
         fields=fields,
-        n_neighbors=n_neighbors,
+        n=n,
         trafo=trafo,
-        trafo_on_partition=trafo_on_partition,
-        scoring_func=scoring_func,
-        target_field="kNN_scores",
-        partition_freq=stray_partition,
-        kNN_algorithm="ball_tree",
-        partition_min=stray_partition_min,
+        trafo_on_partition=partition_trafo,
+        func=func,
+        target="kNN_scores",
+        freq=partition,
+        method="ball_tree",
+        min_periods=partition_min,
         **kwargs,
     )
 
@@ -529,8 +573,8 @@ def flagMVScores(
         data,
         "kNN_scores",
         flags,
-        partition_freq=stray_partition,
-        partition_min=stray_partition_min,
+        freq=partition,
+        min_periods=partition_min,
         iter_start=iter_start,
         alpha=alpha,
         flag=flag,
@@ -542,10 +586,10 @@ def flagMVScores(
         "kNN_scores",
         flags,
         fields=fields,
-        reduction_range=reduction_range,
-        reduction_drop_flagged=reduction_drop_flagged,
-        reduction_thresh=reduction_thresh,
-        reduction_min_periods=reduction_min_periods,
+        reduction_range=stray_range,
+        reduction_drop_flagged=drop_flagged,
+        reduction_thresh=thresh,
+        reduction_min_periods=min_periods,
         flag=flag,
         **kwargs,
     )
@@ -556,16 +600,15 @@ def flagMVScores(
 @flagging(masking="field", module="outliers")
 def flagRaise(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     thresh: float,
     raise_window: FreqString,
-    intended_freq: FreqString,
+    freq: FreqString,
     average_window: Optional[FreqString] = None,
-    mean_raise_factor: float = 2.0,
-    min_slope: Optional[float] = None,
-    min_slope_weight: float = 0.8,
-    numba_boost: bool = True,  # TODO: rm, not a user decision
+    raise_factor: float = 2.0,
+    slope: Optional[float] = None,
+    weight: float = 0.8,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -589,24 +632,23 @@ def flagRaise(
     flags : saqc.Flags
         Container to store flags of the data.
     thresh : float
-        The threshold, for the total rise (thresh > 0), or total drop (thresh < 0), value courses must
-        not exceed within a timespan of length `raise_window`.
+        The threshold, for the total rise (thresh > 0), or total drop (thresh < 0),
+        value courses must not exceed within a timespan of length `raise_window`.
     raise_window : str
-        An offset string, determining the timespan, the rise/drop thresholding refers to. Window is inclusively defined.
-    intended_freq : str
-        An offset string, determining The frequency, the timeseries to-be-flagged is supposed to be sampled at.
-        The window is inclusively defined.
+        An offset string, determining the timespan, the rise/drop thresholding refers
+        to. Window is inclusively defined.
+    freq : str
+        An offset string, determining The frequency, the timeseries to-be-flagged is
+        supposed to be sampled at. The window is inclusively defined.
     average_window : {None, str}, default None
-        See condition (2) of the description linked in the references. Window is inclusively defined.
-        The window defaults to 1.5 times the size of `raise_window`
-    mean_raise_factor : float, default 2
+        See condition (2) of the description linked in the references. Window is
+        inclusively defined. The window defaults to 1.5 times the size of `raise_window`
+    raise_factor : float, default 2
         See second condition listed in the notes below.
-    min_slope : {None, float}, default None
+    slope : {None, float}, default None
         See third condition listed in the notes below.
-    min_slope_weight : float, default 0.8
+    weight : float, default 0.8
         See third condition listed in the notes below.
-    numba_boost : bool, default True
-        deprecated ?
     flag : float, default BAD
         flag to set.
 
@@ -623,29 +665,33 @@ def flagRaise(
     The value :math:`x_{k}` of a time series :math:`x` with associated
     timestamps :math:`t_i`, is flagged a raise, if:
 
-    * There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within `raise_window` range, so that:
+    * There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within `raise_window`
+    range, so that:
 
       * :math:`M = |x_k - x_s | >`  `thresh` :math:`> 0`
 
-    * The weighted average :math:`\\mu^{*}` of the values, preceding :math:`x_{k}` within `average_window`
-      range indicates, that :math:`x_{k}` does not return from an "outlierish" value course, meaning that:
+    * The weighted average :math:`\\mu^{*}` of the values, preceding :math:`x_{k}`
+      within `average_window`
+      range indicates, that :math:`x_{k}` does not return from an "outlierish" value
+      course, meaning that:
 
       * :math:`x_k > \\mu^* + ( M` / `mean_raise_factor` :math:`)`
 
-    * Additionally, if `min_slope` is not `None`, :math:`x_{k}` is checked for being sufficiently divergent from its
-      very predecessor :max:`x_{k-1}`$, meaning that, it is additionally checked if:
+    * Additionally, if `min_slope` is not `None`, :math:`x_{k}` is checked for being
+      sufficiently divergent from its very predecessor :max:`x_{k-1}`$, meaning that, it
+      is additionally checked if:
 
       * :math:`x_k - x_{k-1} >` `min_slope`
-      * :math:`t_k - t_{k-1} >` `min_slope_weight` :math:`\\times` `intended_freq`
+      * :math:`t_k - t_{k-1} >` `weight` :math:`\\times` `freq`
 
     """
 
     # prepare input args
     dataseries = data[field].dropna()
     raise_window = pd.Timedelta(raise_window)
-    intended_freq = pd.Timedelta(intended_freq)
-    if min_slope is not None:
-        min_slope = np.abs(min_slope)
+    freq = pd.Timedelta(freq)
+    if slope is not None:
+        slope = np.abs(slope)
 
     if average_window is None:
         average_window = 1.5 * pd.Timedelta(raise_window)
@@ -668,6 +714,7 @@ def flagRaise(
     # get invalid-raise/drop mask:
     raise_series = dataseries.rolling(raise_window, min_periods=2, closed="both")
 
+    numba_boost = True
     if numba_boost:
         raise_check = numba.jit(raise_check, nopython=True)
         raise_series = raise_series.apply(
@@ -681,29 +728,28 @@ def flagRaise(
         return data, flags
 
     # "unflag" values of insufficient deviation to their predecessors
-    if min_slope is not None:
+    if slope is not None:
         w_mask = (
-            pd.Series(dataseries.index).diff().dt.total_seconds()
-            / intended_freq.total_seconds()
-        ) > min_slope_weight
-        slope_mask = np.abs(dataseries.diff()) < min_slope
+            pd.Series(dataseries.index).diff().dt.total_seconds() / freq.total_seconds()
+        ) > weight
+        slope_mask = np.abs(dataseries.diff()) < slope
         to_unflag = raise_series.notna() & w_mask.values & slope_mask
         raise_series[to_unflag] = np.nan
 
     # calculate and apply the weighted mean weights (pseudo-harmonization):
     weights = (
         pd.Series(dataseries.index).diff(periods=2).shift(-1).dt.total_seconds()
-        / intended_freq.total_seconds()
+        / freq.total_seconds()
         / 2
     )
 
     weights.iloc[0] = 0.5 + (
         dataseries.index[1] - dataseries.index[0]
-    ).total_seconds() / (intended_freq.total_seconds() * 2)
+    ).total_seconds() / (freq.total_seconds() * 2)
 
     weights.iloc[-1] = 0.5 + (
         dataseries.index[-1] - dataseries.index[-2]
-    ).total_seconds() / (intended_freq.total_seconds() * 2)
+    ).total_seconds() / (freq.total_seconds() * 2)
 
     weights[weights > 1.5] = 1.5
     weights.index = dataseries.index
@@ -732,7 +778,7 @@ def flagRaise(
 
     weighted_rolling_mean = weighted_rolling_mean / weights_rolling_sum
     # check means against critical raise value:
-    to_flag = dataseries >= weighted_rolling_mean + (raise_series / mean_raise_factor)
+    to_flag = dataseries >= weighted_rolling_mean + (raise_series / raise_factor)
     to_flag &= raise_series.notna()
     flags[to_flag[to_flag].index, field] = flag
 
@@ -742,7 +788,7 @@ def flagRaise(
 @flagging(masking="field", module="outliers")
 def flagMAD(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     window: FreqString,
     z: float = 3.5,
@@ -812,24 +858,23 @@ def flagMAD(
 @flagging(masking="field", module="outliers")
 def flagOffset(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     thresh: float,
     tolerance: float,
-    window: Union[IntegerWindow, FreqString],
-    rel_thresh: Optional[float] = None,
-    numba_kickin: int = 200000,  # TODO: rm, not a user decision
+    window: Union[int, FreqString],
+    thresh_relative: Optional[float] = None,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    A basic outlier test that is designed to work for harmonized and not harmonized data.
+    A basic outlier test that work on regular and irregular sampled data
 
-    The test classifies values/value courses as outliers by detecting not only a rise in value, but also,
-    checking for a return to the initial value level.
+    The test classifies values/value courses as outliers by detecting not only a rise
+    in value, but also, checking for a return to the initial value level.
 
-    Values :math:`x_n, x_{n+1}, .... , x_{n+k}` of a timeseries :math:`x` with associated timestamps
-    :math:`t_n, t_{n+1}, .... , t_{n+k}` are considered spikes, if
+    Values :math:`x_n, x_{n+1}, .... , x_{n+k}` of a timeseries :math:`x` with
+    associated timestamps :math:`t_n, t_{n+1}, .... , t_{n+k}` are considered spikes, if
 
     1. :math:`|x_{n-1} - x_{n + s}| >` `thresh`, for all :math:`s \\in [0,1,2,...,k]`
 
@@ -837,15 +882,15 @@ def flagOffset(
 
     3. :math:`|t_{n-1} - t_{n+k+1}| <` `window`
 
-    Note, that this definition of a "spike" not only includes one-value outliers, but also plateau-ish value courses.
-
+    Note, that this definition of a "spike" not only includes one-value outliers, but
+    also plateau-ish value courses.
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
-        The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
+        The field in data.
     flags : saqc.Flags
         Container to store flags of the data.
     thresh : float
@@ -855,12 +900,8 @@ def flagOffset(
     window : {str, int}, default '15min'
         Maximum length of "spiky" value courses. See condition (3). Integer defined window length are only allowed for
         regularly sampled timeseries.
-    rel_thresh : {float, None}, default None
+    thresh_relative : {float, None}, default None
         Relative threshold.
-    numba_kickin : int, default 200000
-        When there are detected more than `numba_kickin` incidents of potential spikes,
-        the pandas.rolling - part of computation gets "jitted" with numba.
-        Default value hast proven to be around the break even point between "jit-boost" and "jit-costs".
     flag : float, default BAD
         flag to set.
 
@@ -903,10 +944,10 @@ def flagOffset(
     if thresh:
         post_jumps = dataseries.diff().abs() > thresh
 
-    if rel_thresh:
-        s = np.sign(rel_thresh)
+    if thresh_relative:
+        s = np.sign(thresh_relative)
         rel_jumps = s * (dataseries.shift(1) - dataseries).div(dataseries.abs()) > abs(
-            rel_thresh
+            thresh_relative
         )
         if thresh:
             post_jumps = rel_jumps & post_jumps
@@ -918,14 +959,15 @@ def flagOffset(
         flags[:, field] = UNTOUCHED
         return data, flags
 
-    # get all the entries preceding a significant jump and its successors within "length" range
+    # get all the entries preceding a significant jump
+    # and its successors within "length" range
     to_roll = post_jumps.reindex(
         dataseries.index, method="bfill", tolerance=window, fill_value=False
     ).dropna()
 
-    if rel_thresh:
+    if thresh_relative:
 
-        def spikeTester(chunk, thresh=abs(rel_thresh), tol=tolerance):
+        def spikeTester(chunk, thresh=abs(thresh_relative), tol=tolerance):
             jump = chunk[-2] - chunk[-1]
             thresh = thresh * abs(jump)
             chunk_stair = (np.sign(jump) * (chunk - chunk[-1]) < thresh)[::-1].cumsum()
@@ -958,7 +1000,7 @@ def flagOffset(
     roller = customRoller(
         to_roll, window=window, mask=roll_mask, min_periods=2, closed="both"
     )
-    engine = None if roll_mask.sum() < numba_kickin else "numba"
+    engine = None if roll_mask.sum() < 200000 else "numba"
     result = roller.apply(spikeTester, raw=True, engine=engine)
     result.index = map_i[result.index]
 
@@ -984,12 +1026,12 @@ def flagOffset(
 @flagging(masking="field", module="outliers")
 def flagByGrubbs(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    winsz: Union[FreqString, IntegerWindow],
+    window: Union[FreqString, int],
     alpha: float = 0.05,
     min_periods: int = 8,
-    check_lagged: bool = False,
+    pedantic: bool = False,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -998,14 +1040,16 @@ def flagByGrubbs(
 
     See reference [1] for more information on the grubbs tests definition.
 
-    The (two-sided) test gets applied onto data chunks of size "winsz". The tests application  will
-    be iterated on each data-chunk under test, till no more outliers are detected in that chunk.
+    The (two-sided) test gets applied onto data chunks of size "window". The tests
+    application  will be iterated on each data-chunk under test, till no more
+    outliers are detected in that chunk.
 
-    Note, that the test performs poorely for small data chunks (resulting in heavy overflagging).
-    Therefor you should select "winsz" so that every window contains at least > 8 values and also
-    adjust the min_periods values accordingly.
+    Note, that the test performs poorely for small data chunks (resulting in heavy
+    overflagging). Therefor you should select "window" so that every window contains
+    at least > 8 values and also adjust the min_periods values accordingly.
 
-    Note, that the data to be tested by the grubbs test are expected to be distributed "normalish".
+    Note, that the data to be tested by the grubbs test are expected to be distributed
+    "normalish".
 
     Parameters
     ----------
@@ -1015,19 +1059,23 @@ def flagByGrubbs(
         The fieldname of the column, holding the data-to-be-flagged.
     flags : saqc.Flags
         Container to store flags of the data.
-    winsz : {int, str}
-        The size of the window you want to use for outlier testing. If an integer is passed, the size
-        refers to the number of periods of every testing window. If a string is passed, it has to be an offset string,
-        and will denote the total temporal extension of every window.
+    window : {int, str}
+        The size of the window you want to use for outlier testing. If an integer is
+        passed, the size refers to the number of periods of every testing window. If a
+        string is passed, it has to be an offset string, and will denote the total
+        temporal extension of every window.
     alpha : float, default 0.05
         The level of significance, the grubbs test is to be performed at. (between 0 and 1)
     min_periods : int, default 8
-        The minimum number of values that have to be present in an interval under test, for a grubbs test result to be
-        accepted. Only makes sence in case `winsz` is an offset string.
-    check_lagged: boolean, default False
-        If True, every value gets checked twice for being an outlier. Ones in the initial rolling window and one more
-        time in a rolling window that is lagged by half the windows delimeter (winsz/2). Recommended for avoiding false
-        positives at the window edges. Only available when rolling with integer defined window size.
+        The minimum number of values that have to be present in an interval under test,
+        for a grubbs test result to be accepted. Only makes sence in case `window` is
+        an offset string.
+    pedantic: boolean, default False
+        If True, every value gets checked twice for being an outlier. Ones in the
+        initial rolling window and one more time in a rolling window that is lagged
+        by half the windows delimeter (window/2). Recommended for avoiding false
+        positives at the window edges. Only available when rolling with integer
+        defined window size.
     flag : float, default BAD
         flag to set.
 
@@ -1049,27 +1097,29 @@ def flagByGrubbs(
     datcol = data[field]
     rate = getFreqDelta(datcol.index)
 
-    # if timeseries that is analyzed, is regular, window size can be transformed to a number of periods:
-    if rate and isinstance(winsz, str):
-        winsz = pd.Timedelta(winsz) // rate
+    # if timeseries that is analyzed, is regular,
+    # window size can be transformed to a number of periods:
+    if rate and isinstance(window, str):
+        window = pd.Timedelta(window) // rate
 
     to_group = pd.DataFrame(data={"ts": datcol.index, "data": datcol})
     to_flag = pd.Series(False, index=datcol.index)
 
     # period number defined test intervals
-    if isinstance(winsz, int):
+    if isinstance(window, int):
         grouper_series = pd.Series(
             data=np.arange(0, datcol.shape[0]), index=datcol.index
         )
-        grouper_series_lagged = grouper_series + (winsz / 2)
-        grouper_series = grouper_series.transform(lambda x: x // winsz)
-        grouper_series_lagged = grouper_series_lagged.transform(lambda x: x // winsz)
+        grouper_series_lagged = grouper_series + (window / 2)
+        grouper_series = grouper_series.transform(lambda x: x // window)
+        grouper_series_lagged = grouper_series_lagged.transform(lambda x: x // window)
         partitions = to_group.groupby(grouper_series)
         partitions_lagged = to_group.groupby(grouper_series_lagged)
 
     # offset defined test intervals:
     else:
-        partitions = to_group.groupby(pd.Grouper(freq=winsz))
+        partitions = to_group.groupby(pd.Grouper(freq=window))
+        partitions_lagged = []
 
     for _, partition in partitions:
         if partition.shape[0] > min_periods:
@@ -1079,7 +1129,7 @@ def flagByGrubbs(
             detected = partition["ts"].iloc[detected]
             to_flag[detected.index] = True
 
-    if isinstance(winsz, int) and check_lagged:
+    if isinstance(window, int) and pedantic:
         to_flag_lagged = pd.Series(False, index=datcol.index)
 
         for _, partition in partitions_lagged:
@@ -1099,7 +1149,7 @@ def flagByGrubbs(
 @flagging(masking="field", module="outliers")
 def flagRange(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     min: float = -np.inf,
     max: float = np.inf,
@@ -1142,11 +1192,11 @@ def flagRange(
 @flagging(masking="all", module="outliers")
 def flagCrossStatistic(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
-    fields: Sequence[ColumnName],
+    fields: Sequence[str],
     thresh: float,
-    cross_stat: Literal["modZscore", "Zscore"] = "modZscore",
+    method: Literal["modZscore", "Zscore"] = "modZscore",
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -1176,7 +1226,7 @@ def flagCrossStatistic(
         List of fieldnames in data, determining wich variables are to be included into the flagging process.
     thresh : float
         Threshold which the outlier score of an value must exceed, for being flagged an outlier.
-    cross_stat : {'modZscore', 'Zscore'}, default 'modZscore'
+    method : {'modZscore', 'Zscore'}, default 'modZscore'
         Method used for calculating the outlier scores.
 
         * ``'modZscore'``: Median based "sigma"-ish approach. See Referenecs [1].
@@ -1201,9 +1251,9 @@ def flagCrossStatistic(
 
     df = data[fields].loc[data[fields].index_of("shared")].to_df()
 
-    if isinstance(cross_stat, str):
+    if isinstance(method, str):
 
-        if cross_stat == "modZscore":
+        if method == "modZscore":
             MAD_series = df.subtract(df.median(axis=1), axis=0).abs().median(axis=1)
             diff_scores = (
                 (0.6745 * (df.subtract(df.median(axis=1), axis=0)))
@@ -1211,7 +1261,7 @@ def flagCrossStatistic(
                 .abs()
             )
 
-        elif cross_stat == "Zscore":
+        elif method == "Zscore":
             diff_scores = (
                 df.subtract(df.mean(axis=1), axis=0)
                 .divide(df.std(axis=1), axis=0)
@@ -1219,14 +1269,14 @@ def flagCrossStatistic(
             )
 
         else:
-            raise ValueError(cross_stat)
+            raise ValueError(method)
 
     else:
 
         try:
-            stat = getattr(df, cross_stat.__name__)(axis=1)
+            stat = getattr(df, method.__name__)(axis=1)
         except AttributeError:
-            stat = df.aggregate(cross_stat, axis=1)
+            stat = df.aggregate(method, axis=1)
 
         diff_scores = df.subtract(stat, axis=0).abs()
 

@@ -15,10 +15,9 @@ class Curvefit(ModuleBase):
     def fitPolynomial(
         self,
         field: str,
-        winsz: Union[int, str],
-        polydeg: int,
-        numba: Literal[True, False, "auto"] = "auto",
-        eval_flags: bool = True,
+        window: Union[int, str],
+        order: int,
+        set_flags: bool = True,
         min_periods: int = 0,
         return_residues: bool = False,
         flag: float = BAD,

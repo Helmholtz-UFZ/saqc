@@ -9,20 +9,19 @@ from typing import Callable
 from saqc.constants import BAD
 from saqc.core.modules.base import ModuleBase
 import saqc
-from saqc.lib.types import FreqString, IntegerWindow, ColumnName
-from saqc.lib.types import ColumnName, FreqString, PositiveInt, PositiveFloat
+from saqc.lib.types import FreqString
 
 
 class Noise(ModuleBase):
     def flagByStatLowPass(
         self,
-        field: ColumnName,
-        stat: Callable[[np.array, pd.Series], float],
-        winsz: FreqString,
-        thresh: PositiveFloat,
-        sub_winsz: FreqString = None,
-        sub_thresh: PositiveFloat = None,
-        min_periods: PositiveInt = None,
+        field: str,
+        func: Callable[[np.ndarray, pd.Series], float],
+        window: FreqString,
+        thresh: float,
+        sub_window: FreqString = None,
+        sub_thresh: float = None,
+        min_periods: int = None,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:

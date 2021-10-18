@@ -43,8 +43,9 @@ def test_statPass():
     data, flags = flagByStatLowPass(
         data, "data", flags, np.std, "20D", 0.999, "5D", 0.999, 0, flag=BAD
     )
-    assert (flags["data"] == BAD).sum() == 21
-    assert (flags["data"][200:210] < BAD).all()
+    assert (flags["data"].iloc[:100] == UNFLAGGED).all()
+    assert (flags["data"].iloc[100:120] == BAD).all()
+    assert (flags["data"].iloc[121:] == UNFLAGGED).all()
 
 
 def test_flagRange(data, field):
@@ -98,9 +99,9 @@ def test_flagSesonalRange(data, field):
             newfield,
             flags,
             mode="periodic",
-            period_start=start,
-            period_end=end,
-            include_bounds=True,
+            start=start,
+            end=end,
+            closed=True,
             flag=BAD,
         )
         data, flags = flagRange(
@@ -182,7 +183,7 @@ def test_flagCrossScoring(dat):
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flags = initFlagsLike(data)
     _, flags_result = flagCrossStatistic(
-        data, field, flags, fields=fields, thresh=3, cross_stat=np.mean, flag=BAD
+        data, field, flags, fields=fields, thresh=3, method=np.mean, flag=BAD
     )
     for field in fields:
         isflagged = flags_result[field] > UNFLAGGED
@@ -287,8 +288,8 @@ def test_flagDriftFromNormal(dat):
         "dummy",
         flags,
         ["d1", "d2", "d3"],
-        segment_freq="200min",
-        norm_spread=5,
+        freq="200min",
+        spread=5,
         flag=BAD,
     )
 
@@ -297,7 +298,7 @@ def test_flagDriftFromNormal(dat):
         "d1",
         flags,
         ["d1", "d2", "d3"],
-        segment_freq="3D",
+        freq="3D",
         thresh=20,
         flag=BAD,
     )
@@ -308,9 +309,9 @@ def test_flagDriftFromNormal(dat):
         flags,
         ["d1", "d3"],
         ["d4", "d5"],
-        segment_freq="3D",
+        freq="3D",
         thresh=20,
-        norm_spread=5,
+        spread=5,
         flag=BAD,
     )
     assert all(flags_norm["d3"] > UNFLAGGED)

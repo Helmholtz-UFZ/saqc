@@ -18,7 +18,7 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
-from saqc.lib.types import FreqString, ColumnName, IntegerWindow
+from saqc.lib.types import FreqString
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.core.flags import Flags
 from saqc.core.history import History
@@ -31,7 +31,7 @@ from saqc.core.register import _isflagged, flagging
 @flagging(masking="none", module="breaks")
 def flagMissing(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     flag: float = BAD,
     to_mask: float = UNFLAGGED,
@@ -71,7 +71,7 @@ def flagMissing(
 @flagging(masking="field", module="breaks")
 def flagIsolated(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     gap_window: FreqString,
     group_window: FreqString,
@@ -150,11 +150,11 @@ def flagIsolated(
 @flagging(masking="field", module="breaks")
 def flagJumps(
     data: DictOfSeries,
-    field: ColumnName,
+    field: str,
     flags: Flags,
     thresh: float,
-    winsz: FreqString,
-    min_periods: IntegerWindow = 1,
+    window: FreqString,
+    min_periods: int = 1,
     flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -171,12 +171,12 @@ def flagJumps(
         A flags object, holding flags and additional informations related to `data`.
     thresh : float
         The threshold, the mean of the values have to change by, to trigger flagging.
-    winsz : str
-        The temporal extension, of the rolling windows, the mean values that are to be compared,
-        are obtained from.
+    window : str
+        The temporal extension, of the rolling windows, the mean values that are to be
+        compared, are obtained from.
     min_periods : int, default 1
-        Minimum number of periods that have to be present in a window of size `winsz`, so that
-        the mean value obtained from that window is regarded valid.
+        Minimum number of periods that have to be present in a window of size `window`,
+        so that the mean value obtained from that window is regarded valid.
     flag : float, default BAD
         flag to set.
     """
@@ -186,9 +186,9 @@ def flagJumps(
         flags,
         stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
         thresh_func=lambda x, y: thresh,
-        bwd_window=winsz,
-        min_periods_bwd=min_periods,
-        flag_changepoints=True,
+        window=window,
+        min_periods=min_periods,
+        set_flags=True,
         model_by_resids=False,
         assign_cluster=False,
         flag=flag,

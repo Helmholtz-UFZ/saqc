@@ -3,7 +3,6 @@
 
 from typing import Callable, Tuple, Optional, Union
 from typing_extensions import Literal
-import logging
 import numpy as np
 import pandas as pd
 from dios import DictOfSeries
@@ -16,8 +15,6 @@ from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
 from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
 import saqc.funcs.tools as tools
 
-
-logger = logging.getLogger("SaQC")
 
 METHOD2ARGS = {
     "inverse_fshift": ("backward", pd.Timedelta),
@@ -134,7 +131,7 @@ def interpolate(
     """
 
     return interpolateIndex(
-        data, field, flags, freq, method=method, inter_order=order, **kwargs
+        data, field, flags, freq, method=method, order=order, **kwargs
     )
 
 
@@ -225,13 +222,13 @@ def resample(
     field: str,
     flags: Flags,
     freq: str,
-    agg_func: Callable[[pd.Series], pd.Series] = np.mean,
+    func: Callable[[pd.Series], pd.Series] = np.mean,
     method: Literal["fagg", "bagg", "nagg"] = "bagg",
-    max_invalid_total_d: Optional[int] = None,
-    max_invalid_consec_d: Optional[int] = None,
-    max_invalid_consec_f: Optional[int] = None,
-    max_invalid_total_f: Optional[int] = None,
-    flag_agg_func: Callable[[pd.Series], float] = max,
+    maxna: Optional[int] = None,
+    maxna_group: Optional[int] = None,
+    maxna_flags: Optional[int] = None,  # TODO: still a case ??
+    maxna_group_flags: Optional[int] = None,
+    flag_func: Callable[[pd.Series], float] = max,
     freq_check: Optional[Literal["check", "auto"]] = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -276,38 +273,31 @@ def resample(
         An Offset String, that will be interpreted as the frequency you want to
         resample your data with.
 
-    agg_func : Callable
+    func : Callable
         The function you want to use for aggregation.
 
     method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
         Specifies which intervals to be aggregated for a certain timestamp. (preceding,
         succeeding or "surrounding" interval). See description above for more details.
 
-    max_invalid_total_d : {None, int}, default None
-        Maximum number of invalid (nan) datapoints, allowed per resampling interval.
-        If max_invalid_total_d is exceeded, the interval gets resampled to nan. By
-        default ( ``np.inf``), there is no bound to the number of nan values in an
-        interval and only intervals containing ONLY nan values or those, containing
-        no values at all, get projected onto nan
+    maxna : {None, int}, default None
+        Maximum number NaNs in a resampling interval. If maxna is exceeded, the interval
+        is set entirely to NaN.
 
-    max_invalid_consec_d : {None, int}, default None
-        Maximum number of consecutive invalid (nan) data points, allowed per
-        resampling interval. If max_invalid_consec_d is exceeded, the interval gets
-        resampled to nan. By default (np.inf), there is no bound to the number of
-        consecutive nan values in an interval and only intervals containing ONLY nan
-        values, or those containing no values at all, get projected onto nan.
+    maxna_group : {None, int}, default None
+        Same as `maxna` but for consecutive NaNs.
 
-    max_invalid_total_f : {None, int}, default None
-        Same as `max_invalid_total_d`, only applying for the flags. The flag regarded
+    maxna_flags : {None, int}, default None
+        Same as `max_invalid`, only applying for the flags. The flag regarded
         as "invalid" value, is the one passed to empty_intervals_flag (
         default=``BAD``). Also this is the flag assigned to invalid/empty intervals.
 
-    max_invalid_consec_f : {None, int}, default None
-        Same as `max_invalid_total_f`, only applying onto flags. The flag regarded as
+    maxna_group_flags : {None, int}, default None
+        Same as `maxna_flags`, only applying onto flags. The flag regarded as
         "invalid" value, is the one passed to empty_intervals_flag. Also this is the
         flag assigned to invalid/empty intervals.
 
-    flag_agg_func : Callable, default: max
+    flag_func : Callable, default: max
         The function you want to aggregate the flags with. It should be capable of
         operating on the flags dtype (usually ordered categorical).
 
@@ -337,19 +327,19 @@ def resample(
         datcol,
         method,
         freq,
-        agg_func,
+        func,
         fill_value=np.nan,
-        max_invalid_total=max_invalid_total_d,
-        max_invalid_consec=max_invalid_consec_d,
+        max_invalid_total=maxna,
+        max_invalid_consec=maxna_group,
     )
 
     kws = dict(
         method=method,
         freq=freq,
-        agg_func=flag_agg_func,
+        agg_func=flag_func,
         fill_value=UNTOUCHED,
-        max_invalid_total=max_invalid_total_f,
-        max_invalid_consec=max_invalid_consec_f,
+        max_invalid_total=maxna_flags,
+        max_invalid_consec=maxna_group_flags,
     )
 
     history = flags.history[field].apply(

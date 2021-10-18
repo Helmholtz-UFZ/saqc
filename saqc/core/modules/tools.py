@@ -2,15 +2,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Optional, Tuple
-
-from dios import DictOfSeries
+from typing import Optional
 from typing_extensions import Literal
 
-from saqc.lib.types import FreqString
-from saqc.core import Flags
-from saqc.core.modules.base import ModuleBase
 import saqc
+from saqc.lib.types import FreqString
+from saqc.core.modules.base import ModuleBase
 
 
 class Tools(ModuleBase):
@@ -26,11 +23,11 @@ class Tools(ModuleBase):
     def mask(
         self,
         field: str,
-        mode: Literal["periodic", "mask_var"],
-        mask_var: Optional[str] = None,
-        period_start: Optional[str] = None,
-        period_end: Optional[str] = None,
-        include_bounds: bool = True,
+        mode: Literal["periodic", "mask_field"],
+        mask_field: Optional[str] = None,
+        start: Optional[str] = None,
+        end: Optional[str] = None,
+        closed: bool = True,
         **kwargs,
     ) -> saqc.SaQC:
         return self.defer("mask", locals())
@@ -38,13 +35,13 @@ class Tools(ModuleBase):
     def plot(
         self,
         field: str,
-        save_path: Optional[str] = None,
+        path: Optional[str] = None,
         max_gap: Optional[FreqString] = None,
         stats: bool = False,
         plot_kwargs: Optional[dict] = None,
         fig_kwargs: Optional[dict] = None,
         stats_dict: Optional[dict] = None,
-        save_kwargs: Optional[dict] = None,
+        store_kwargs: Optional[dict] = None,
         **kwargs,
     ) -> saqc.SaQC:
         return self.defer("plot", locals())

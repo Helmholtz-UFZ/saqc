@@ -42,7 +42,7 @@ def data():
 )
 def test_wrapper(data, func, kws):
     field = "data"
-    freq = "15min"
+    freq = "15T"
     flags = initFlagsLike(data)
 
     import saqc
@@ -52,12 +52,12 @@ def test_wrapper(data, func, kws):
 
     # check minimal requirements
     checkDataFlagsInvariants(data, flags, field)
-    assert data[field].index.freq == pd.Timedelta(freq)
+    assert data[field].index.inferred_freq == freq
 
 
 @pytest.mark.parametrize("method", ["time", "polynomial"])
 def test_gridInterpolation(data, method):
-    freq = "15min"
+    freq = "15T"
     field = "data"
     data = data[field]
     data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
@@ -93,7 +93,7 @@ def test_gridInterpolation(data, method):
     # check minimal requirements
     rdata, rflags = res
     checkDataFlagsInvariants(rdata, rflags, field, identical=False)
-    assert rdata[field].index.freq == pd.Timedelta(freq)
+    assert rdata[field].index.inferred_freq == freq
 
 
 @pytest.mark.parametrize(
@@ -131,13 +131,14 @@ def test_flagsSurviveBackprojection():
 def test_harmSingleVarIntermediateFlagging(data, reshaper):
     flags = initFlagsLike(data)
     field = "data"
+    freq = "15T"
 
     pre_data = data.copy()
     pre_flags = flags.copy()
     data, flags = copy(data, field, flags, field + "_interpolated")
-    data, flags = linear(data, field + "_interpolated", flags, freq="15min")
+    data, flags = linear(data, field + "_interpolated", flags, freq=freq)
     checkDataFlagsInvariants(data, flags, field + "_interpolated", identical=True)
-    assert data[field + "_interpolated"].index.freq == pd.Timedelta("15min")
+    assert data[field + "_interpolated"].index.inferred_freq == freq
 
     # flag something bad
     flags[data[field + "_interpolated"].index[3:4], field + "_interpolated"] = BAD
@@ -236,7 +237,7 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
 
     data_harm, flags_harm = copy(data, "data", flags, "data_harm")
     data_harm, flags_harm = resample(
-        data_harm, h_field, flags_harm, freq, agg_func=np.sum, method=method
+        data_harm, h_field, flags_harm, freq, func=np.sum, method=method
     )
     checkDataFlagsInvariants(data_harm, flags_harm, h_field, identical=True)
     assert data_harm[h_field].index.freq == pd.Timedelta(freq)

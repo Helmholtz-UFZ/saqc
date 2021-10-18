@@ -4,9 +4,10 @@
 """
 The module gathers all kinds of timeseries tranformations.
 """
-import logging
 import re
+import warnings
 from typing import Union
+
 import pandas as pd
 import numpy as np
 import numba as nb
@@ -14,8 +15,6 @@ from sklearn.neighbors import NearestNeighbors
 from scipy.stats import iqr, median_abs_deviation
 from scipy.signal import filtfilt, butter
 import numpy.polynomial.polynomial as poly
-
-logger = logging.getLogger("SaQC")
 
 
 def identity(ts):
@@ -197,8 +196,8 @@ def interpolateNANs(
     """
     The function interpolates nan-values (and nan-grids) in timeseries data. It can
     be passed all the method keywords from the pd.Series.interpolate method and will
-    than apply this very methods. Note, that the inter_limit keyword really restricts
-    the interpolation to chunks, not containing more than "inter_limit" nan entries (
+    than apply this very methods. Note, that the limit keyword really restricts
+    the interpolation to chunks, not containing more than "limit" nan entries (
     thereby not being identical to the "limit" keyword of pd.Series.interpolate).
 
     :param data:                    pd.Series or np.array. The data series to be interpolated
@@ -209,7 +208,7 @@ def interpolateNANs(
                                     replaced by interpolation.
                                     Its default value suits an interpolation that only will apply to points of an
                                     inserted frequency grid. (regularization by interpolation)
-                                    Gaps wider than "inter_limit" will NOT be interpolated at all.
+                                    Gaps wider than "limit" will NOT be interpolated at all.
     :param downgrade_interpolation:  Boolean. Default False. If True:
                                     If a data chunk not contains enough values for interpolation of the order "order",
                                     the highest order possible will be selected for that chunks interpolation.
@@ -249,7 +248,7 @@ def interpolateNANs(
                 try:
                     return x.interpolate(method=wrap_method, order=int(wrap_order))
                 except (NotImplementedError, ValueError):
-                    logger.warning(
+                    warnings.warn(
                         f"Interpolation with method {method} is not supported at order "
                         f"{wrap_order}. and will be performed at order {wrap_order-1}"
                     )
@@ -282,7 +281,7 @@ def aggregate2Freq(
     max_invalid_consec=None,
 ):
     """
-    The function aggregates values to an equidistant frequency grid with agg_func.
+    The function aggregates values to an equidistant frequency grid with func.
     Timestamps that gets no values projected, get filled with the fill-value. It
     also serves as a replacement for "invalid" intervals.
     """

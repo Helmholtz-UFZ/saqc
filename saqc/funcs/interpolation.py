@@ -35,7 +35,7 @@ def interpolateByRolling(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    winsz: Union[str, int],
+    window: Union[str, int],
     func: Callable[[pd.Series], float] = np.median,
     center: bool = True,
     min_periods: int = 0,
@@ -56,7 +56,7 @@ def interpolateByRolling(
     flags : saqc.Flags
         A flags object, holding flags and additional Information related to `data`.
 
-    winsz : int, str
+    window : int, str
         The size of the window, the aggregation is computed from. An integer define the number of periods to be used,
         an string is interpreted as an offset. ( see `pandas.rolling` for more information).
         Integer windows may result in screwed aggregations if called on none-harmonized or irregular data.
@@ -85,7 +85,7 @@ def interpolateByRolling(
 
     data = data.copy()
     datcol = data[field]
-    roller = datcol.rolling(window=winsz, center=center, min_periods=min_periods)
+    roller = datcol.rolling(window=window, center=center, min_periods=min_periods)
     try:
         func_name = func.__name__
         if func_name[:3] == "nan":
@@ -111,9 +111,9 @@ def interpolateInvalid(
     field: str,
     flags: Flags,
     method: _SUPPORTED_METHODS,
-    inter_order: int = 2,
-    inter_limit: int = 2,
-    downgrade_interpolation: bool = False,
+    order: int = 2,
+    limit: int = 2,
+    downgrade: bool = False,
     flag: float = UNFLAGGED,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -138,20 +138,20 @@ def interpolateInvalid(
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}
         The interpolation method to use.
 
-    inter_order : int, default 2
+    order : int, default 2
         If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
         order.
 
-    inter_limit : int, default 2
+    limit : int, default 2
         Maximum number of consecutive 'nan' values allowed for a gap to be interpolated. This really restricts the
-        interpolation to chunks, containing not more than `inter_limit` successive nan entries.
+        interpolation to chunks, containing not more than `limit` successive nan entries.
 
     flag : float or None, default UNFLAGGED
         Flag that is set for interpolated values. If ``None``, no flags are set at all.
 
-    downgrade_interpolation : bool, default False
+    downgrade : bool, default False
         If `True` and the interpolation can not be performed at current order, retry with a lower order.
-        This can happen, because the chosen ``method`` does not support the passed ``inter_order``, or
+        This can happen, because the chosen ``method`` does not support the passed ``order``, or
         simply because not enough values are present in a interval.
 
     Returns
@@ -165,9 +165,9 @@ def interpolateInvalid(
     inter_data = interpolateNANs(
         data[field],
         method,
-        order=inter_order,
-        inter_limit=inter_limit,
-        downgrade_interpolation=downgrade_interpolation,
+        order=order,
+        inter_limit=limit,
+        downgrade_interpolation=downgrade,
     )
     interpolated = data[field].isna() & inter_data.notna()
 
@@ -196,9 +196,9 @@ def interpolateIndex(
     flags: Flags,
     freq: str,
     method: _SUPPORTED_METHODS,
-    inter_order: int = 2,
-    inter_limit: int = 2,
-    downgrade_interpolation: bool = False,
+    order: int = 2,
+    limit: int = 2,
+    downgrade: bool = False,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -226,17 +226,17 @@ def interpolateIndex(
         "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
         The interpolation method you want to apply.
 
-    inter_order : int, default 2
+    order : int, default 2
         If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
         order.
 
-    inter_limit : int, default 2
+    limit : int, default 2
         Maximum number of consecutive 'nan' values allowed for a gap to be interpolated. This really restricts the
-        interpolation to chunks, containing not more than `inter_limit` successive nan entries.
+        interpolation to chunks, containing not more than `limit` successive nan entries.
 
-    downgrade_interpolation : bool, default False
+    downgrade : bool, default False
         If `True` and the interpolation can not be performed at current order, retry with a lower order.
-        This can happen, because the chosen ``method`` does not support the passed ``inter_order``, or
+        This can happen, because the chosen ``method`` does not support the passed ``order``, or
         simply because not enough values are present in a interval.
 
 
@@ -275,9 +275,9 @@ def interpolateIndex(
     inter_data = interpolateNANs(
         data=datcol,
         method=method,
-        order=inter_order,
-        inter_limit=inter_limit,
-        downgrade_interpolation=downgrade_interpolation,
+        order=order,
+        inter_limit=limit,
+        downgrade_interpolation=downgrade,
     )
 
     # override falsely interpolated values:

@@ -17,7 +17,7 @@ def flagPatternByWavelet(
     data,
     field,
     flags,
-    ref_field,
+    reference,
     widths=(1, 2, 4, 8),
     waveform="mexh",
     flag=BAD,
@@ -44,7 +44,7 @@ def flagPatternByWavelet(
     flags : saqc.Flags
         The flags belongiong to `data`.
 
-    ref_field: str
+    reference: str
         The fieldname in `data' which holds the pattern.
 
     widths: tuple of int
@@ -74,7 +74,7 @@ def flagPatternByWavelet(
     """
 
     dat = data[field]
-    ref = data[ref_field].to_numpy()
+    ref = data[reference].to_numpy()
     cwtmat_ref, _ = pywt.cwt(ref, widths, waveform)
     wavepower_ref = np.power(cwtmat_ref, 2)
     len_width = len(widths)
@@ -185,7 +185,7 @@ def flagPatternByDTW(
     data,
     field,
     flags,
-    ref_field,
+    reference,
     max_distance=0.0,
     normalize=True,
     plot=False,
@@ -211,7 +211,7 @@ def flagPatternByDTW(
     flags : saqc.Flags
         The flags belonging to `data`.
 
-    ref_field : str
+    reference : str
         The name in `data` which holds the pattern. The pattern must not have NaNs,
         have a datetime index and must not be empty.
 
@@ -257,7 +257,7 @@ def flagPatternByDTW(
 
     [1] https://cran.r-project.org/web/packages/dtw/dtw.pdf
     """
-    ref = data[ref_field]
+    ref = data[reference]
     dat = data[field]
 
     distances = calculateDistanceByDTW(dat, ref, forward=True, normalize=normalize)

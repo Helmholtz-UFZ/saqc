@@ -3,36 +3,24 @@
 
 import re
 import datetime
-from typing import Sequence, Union, Any, Iterator, Callable
-import operator
 import itertools
+import warnings
+from typing import Sequence, Union, Any, Iterator, Callable
+
 import numpy as np
 import numba as nb
 import pandas as pd
 from scipy import fft
-import logging
+
 import dios
 import collections
 from scipy.cluster.hierarchy import linkage, fcluster
-from saqc.lib.types import (
-    ColumnName,
-    FreqString,
-    PositiveInt,
-    PositiveFloat,
-    Literal,
-    DictOfSeries,
-)
-from saqc.core import Flags
-import matplotlib as mpl
-from typing import Optional, Tuple
 
 from saqc.lib.types import T
-import matplotlib.pyplot as plt
 
 # keep this for external imports
+# TODO: fix the external imports
 from saqc.lib.rolling import customRoller
-
-logger = logging.getLogger("SaQC")
 
 
 def assertScalar(name, value, optional=False):
@@ -91,9 +79,9 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
     + There is no way to provide a step size, i.e. to not start the
       next rolling window at the very next row in the DataFrame/Series
     + The inconsistent bahaviour with numerical vs frequency based
-      window sizes. When winsz is an integer, all windows are equally
-      large (winsz=5 -> windows contain 5 elements), but variable in
-      size, when the winsz is a frequency string (winsz="2D" ->
+      window sizes. When window is an integer, all windows are equally
+      large (window=5 -> windows contain 5 elements), but variable in
+      size, when the window is a frequency string (window="2D" ->
       window grows from size 1 during the first iteration until it
       covers the given frequency). Especially the bahaviour with
       frequency strings is quite unfortunate when calling methods
@@ -455,9 +443,9 @@ def evalFreqStr(freq, check, index):
         if freq is None:
             freq, freqs = estimateFrequency(index)
         if freq is None:
-            logging.warning("Sampling rate could not be estimated.")
+            warnings.warn("Sampling rate could not be estimated.")
         if len(freqs) > 1:
-            logging.warning(
+            warnings.warn(
                 f"Sampling rate seems to be not uniform!." f"Detected: {freqs}"
             )
 
@@ -465,7 +453,7 @@ def evalFreqStr(freq, check, index):
             f_passed_seconds = pd.Timedelta(f_passed).total_seconds()
             freq_seconds = pd.Timedelta(freq).total_seconds()
             if f_passed_seconds != freq_seconds:
-                logging.warning(
+                warnings.warn(
                     f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed})."
                 )
         elif check == "auto":
@@ -494,7 +482,7 @@ def detectDeviants(
     "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed
     in respect to a certain metric and linkage method.
 
-    In addition, only a group is considered "normal" if it contains more then `norm_frac` percent of the
+    In addition, only a group is considered "normal" if it contains more then `frac` percent of the
     variables in "fields".
 
     Note, that the function also can be used to detect anormal regimes in a variable by assigning the different regimes
@@ -599,20 +587,22 @@ def statPass(
     datcol: pd.Series,
     stat: Callable[[np.array, pd.Series], float],
     winsz: pd.Timedelta,
-    thresh: PositiveFloat,
+    thresh: float,
     comparator: Callable[[float, float], bool],
     sub_winsz: pd.Timedelta = None,
-    sub_thresh: PositiveFloat = None,
-    min_periods: PositiveInt = None,
-):
+    sub_thresh: float = None,
+    min_periods: int = None,
+) -> pd.Series:
     """
-    Check `datcol`, if it contains chunks of length `winsz`, exceeding `thresh` with
-    regard to `stat` and `comparator`:
+    Check `datcol`, if it contains chunks of length `window`, exceeding `thresh` with
+    regard to `func` and `comparator`:
 
-    (check, if: `comparator`(stat`(*chunk*), `thresh`)
+    (check, if: `comparator`(func`(*chunk*), `thresh`)
 
-    If yes, subsequently check, if all (maybe overlapping) *sub-chunks* of *chunk*, with length `sub_winsz`,
-    satisfy, `comparator`(`stat`(*sub_chunk*), `sub_thresh`)
+    If yes, subsequently check, if all (maybe overlapping) *sub-chunks* of *chunk*, with length `sub_window`,
+    satisfy, `comparator`(`func`(*sub_chunk*), `sub_thresh`)
+
+    returns boolean series with same index as input series
     """
     stat_parent = datcol.rolling(winsz, min_periods=min_periods)
     stat_parent = getApply(stat_parent, stat)
@@ -625,8 +615,11 @@ def statPass(
         exceeds = exceeding_sub & exceeds
 
     to_set = pd.Series(False, index=exceeds.index)
-    for g in exceeds.groupby(by=exceeds.values):
-        if g[0]:
-            to_set[g[1].index[0] - winsz : g[1].index[-1]] = True
+    for exceed, group in exceeds.groupby(by=exceeds.values):
+        if exceed:
+            # dt-slices include both bounds, so we subtract 1ns
+            start = group.index[0] - (winsz - pd.Timedelta("1ns"))
+            end = group.index[-1]
+            to_set[start:end] = True
 
     return to_set

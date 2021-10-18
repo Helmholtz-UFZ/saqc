@@ -32,7 +32,6 @@ def test_constants_flagBasic(data):
     assert np.all(flagscol[25 + 1 :] == UNFLAGGED)
 
 
-@pytest.mark.skip(reason="see Issue: https://git.ufz.de/rdm-software/saqc/-/issues/220")
 def test_constants_flagVarianceBased(data):
     expected = np.arange(5, 25)
     field, *_ = data.columns
