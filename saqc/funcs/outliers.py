@@ -964,6 +964,7 @@ def flagOffset(
     to_roll = post_jumps.reindex(
         dataseries.index, method="bfill", tolerance=window, fill_value=False
     ).dropna()
+    to_roll = dataseries[to_roll]
 
     if thresh_relative:
 
@@ -993,15 +994,14 @@ def flagOffset(
                 return initial - 1
             return 0
 
-    to_roll = dataseries[to_roll]
-    roll_mask = pd.Series(False, index=to_roll.index)
-    roll_mask[post_jumps.index] = True
-
-    roller = customRoller(
-        to_roll, window=window, mask=roll_mask, min_periods=2, closed="both"
-    )
-    engine = None if roll_mask.sum() < 200000 else "numba"
+    roller = customRoller(to_roll, window=window, min_periods=2, closed="both")
+    engine = None if len(to_roll) < 200000 else "numba"
     result = roller.apply(spikeTester, raw=True, engine=engine)
+
+    ignore = pd.Series(True, index=to_roll.index)
+    ignore[post_jumps.index] = False
+    result[ignore] = np.nan
+
     result.index = map_i[result.index]
 
     # correct the result: only those values define plateaus, that do not have

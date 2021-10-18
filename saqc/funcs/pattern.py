@@ -162,16 +162,16 @@ def calculateDistanceByDTW(
     if reference.hasnans or reference.empty:
         raise ValueError("reference must not have nan's and must not be empty.")
 
-    # TODO: rm `+ pd.Timedelta('1ns')` as soon as #GL214 is fixed,
-    #   add closed=both to customRoller instead
-    winsz = reference.index.max() - reference.index.min() + pd.Timedelta("1ns")
+    winsz = reference.index.max() - reference.index.min()
     reference = reference.to_numpy()
 
     def isPattern(chunk):
         return dtw.accelerated_dtw(chunk, reference, "euclidean")[0]
 
     # generate distances, excluding NaNs
-    rolling = customRoller(data.dropna(), window=winsz, forward=forward, expand=False)
+    rolling = customRoller(
+        data.dropna(), window=winsz, forward=forward, expand=False, closed="both"
+    )
     distances: pd.Series = rolling.apply(isPattern, raw=True)
 
     if normalize:
@@ -261,20 +261,18 @@ def flagPatternByDTW(
     dat = data[field]
 
     distances = calculateDistanceByDTW(dat, ref, forward=True, normalize=normalize)
-    # TODO: rm `+ pd.Timedelta('1ns')` as soon as #GL214 is fixed,
-    #   add closed=both to customRoller instead
-    winsz = ref.index.max() - ref.index.min() + pd.Timedelta("1ns")
+    winsz = ref.index.max() - ref.index.min()
 
     # prevent nan propagation
     distances = distances.fillna(max_distance + 1)
 
     # find minima filter by threshold
-    fw = customRoller(distances, window=winsz, forward=True)
-    bw = customRoller(distances, window=winsz)
+    fw = customRoller(distances, window=winsz, forward=True, closed="both")
+    bw = customRoller(distances, window=winsz, closed="both")
     minima = (fw.min() == bw.min()) & (distances <= max_distance)
 
     # Propagate True's to size of pattern.
-    rolling = customRoller(minima, window=winsz)
+    rolling = customRoller(minima, window=winsz, closed="both")
     mask = rolling.sum() > 0
 
     if plot:
