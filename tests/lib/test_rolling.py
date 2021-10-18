@@ -1,239 +1,211 @@
 import pytest
 
-from saqc.lib.rolling import customRoller, Rolling
 import pandas as pd
 import numpy as np
+from saqc.lib.rolling import customRoller
 
-FUNCTS = [
-    "count",
-    "sum",
-    "mean",
-    "median",
-    "var",
-    "std",
-    "min",
-    "max",
-    "corr",
-    "cov",
-    "skew",
-    "kurt",
-]
-
-OTHA = [
-    "apply",
-    "aggregate",  # needs param func eg. func='min'
-    "quantile",  # needs param quantile=0.5 (0<=q<=1)
-]
+n = np.nan
 
 
-@pytest.fixture
+def test_rolling_existence_of_attrs():
+    r = pd.DataFrame().rolling(0).validate()
+    c = customRoller(pd.DataFrame(), 0)
+    expected = [attr for attr in dir(r) if not attr.startswith("_")]
+    result = [attr for attr in dir(c) if not attr.startswith("_")]
+    diff = [attr for attr in expected if attr not in result]
+    print(diff)
+    assert len(diff) == 0
+
+
+@pytest.fixture()
 def data():
-    return data_()
-
-
-def data_():
-    s1 = pd.Series(
-        1.0, index=pd.date_range("1999/12", periods=12, freq="1M") + pd.Timedelta("1d")
-    )
-    s2 = pd.Series(1.0, index=pd.date_range("2000/05/15", periods=8, freq="1d"))
-    s = pd.concat([s1, s2]).sort_index()
-    s.name = "s"
-    s[15] = np.nan
+    # a series with a symmetrical but not regular index
+    left = pd.date_range("2000", freq="1min", periods=3)
+    middle = pd.date_range(left[-1], freq="1H", periods=4)
+    right = pd.date_range(middle[-1], freq="1min", periods=3)
+    s = pd.Series(1, index=pd.Index([*left, *middle[1:-1], *right]))
     return s
 
 
-len_s = len(data_())
+@pytest.mark.parametrize(
+    "kws, expected",
+    [
+        (dict(window="0h", closed="neither"), [n, n, n, n, n, n, n, n]),
+        (dict(window="1h", closed="neither"), [n, n, n, n, n, n, 1, 2]),
+        (dict(window="2h", closed="neither"), [n, n, n, n, 1, 1, 2, 3]),
+        (dict(window="3h", closed="neither"), [n, n, n, n, n, 2, 3, 4]),
+        (dict(window="4h", closed="neither"), [n, n, n, n, n, n, n, n]),
+        # at least #hour NANs at beginning (removed by expanding=False)
+        (dict(window="0h", closed="left"), [n, n, n, n, n, n, n, n]),
+        (dict(window="1h", closed="left"), [n, n, n, 1, 1, 1, 1, 2]),
+        (dict(window="2h", closed="left"), [n, n, n, n, 2, 2, 2, 3]),
+        (dict(window="3h", closed="left"), [n, n, n, n, n, 3, 3, 4]),
+        (dict(window="4h", closed="left"), [n, n, n, n, n, n, n, n]),
+        # at least #hour NANs at beginning (removed by expanding=False)
+        (dict(window="0h", closed="right"), [1, 1, 1, 1, 1, 1, 1, 1]),
+        (dict(window="1h", closed="right"), [n, n, n, 1, 1, 1, 2, 3]),
+        (dict(window="2h", closed="right"), [n, n, n, n, 2, 2, 3, 4]),
+        (dict(window="3h", closed="right"), [n, n, n, n, n, 3, 4, 5]),
+        (dict(window="4h", closed="right"), [n, n, n, n, n, n, n, n]),
+        # at least #hour NANs at beginning (removed by expanding=False)
+        (dict(window="0h", closed="both"), [1, 1, 1, 1, 1, 1, 1, 1]),
+        (dict(window="1h", closed="both"), [n, n, n, 2, 2, 2, 2, 3]),
+        (dict(window="2h", closed="both"), [n, n, n, n, 3, 3, 3, 4]),
+        (dict(window="3h", closed="both"), [n, n, n, n, n, 4, 4, 5]),
+        (dict(window="4h", closed="both"), [n, n, n, n, n, n, n, n]),
+    ],
+    ids=lambda x: str(x if not isinstance(x, list) else ""),
+)
+def test_rolling_expand(data, kws, expected):
+    expected = np.array(expected)
+    result = customRoller(data, **kws, expand=False).sum()
+    result = result.to_numpy()
+
+    print()
+    print(
+        pd.DataFrame(
+            dict(
+                orig=data,
+                exp=expected,
+                res=result,
+            ),
+            index=data.index,
+        )
+    )
+    assert np.allclose(result, expected, rtol=0, atol=0, equal_nan=True)
 
 
-def make_num_kws():
-    l = []
-    n = list(range(len_s))
-    for window in n:
-        mp = list(range(window))
-        for min_periods in [None] + mp:
-            if min_periods is not None and min_periods > window:
-                continue
-            for center in [False, True]:
-                l.append(dict(window=window, min_periods=min_periods, center=center))
-    return l
+# left and right results are swapped
+# the expected result is checked inverted, aka x[::-1]
+@pytest.mark.parametrize(
+    "kws, expected",
+    [
+        (dict(window="0h", closed="neither"), [n, n, n, n, n, n, n, n]),
+        (dict(window="1h", closed="neither"), [n, n, n, n, n, n, 1, 2]),
+        (dict(window="2h", closed="neither"), [n, n, n, n, 1, 1, 2, 3]),
+        (dict(window="3h", closed="neither"), [n, n, n, n, n, 2, 3, 4]),
+        (dict(window="4h", closed="neither"), [n, n, n, n, n, n, n, n]),
+        # at least #hour NANs at beginning (removed by expanding=False)
+        (dict(window="0h", closed="right"), [n, n, n, n, n, n, n, n]),
+        (dict(window="1h", closed="right"), [n, n, n, 1, 1, 1, 1, 2]),
+        (dict(window="2h", closed="right"), [n, n, n, n, 2, 2, 2, 3]),
+        (dict(window="3h", closed="right"), [n, n, n, n, n, 3, 3, 4]),
+        (dict(window="4h", closed="right"), [n, n, n, n, n, n, n, n]),
+        # at least #hour NANs at beginning (removed by expanding=False)
+        (dict(window="0h", closed="left"), [1, 1, 1, 1, 1, 1, 1, 1]),
+        (dict(window="1h", closed="left"), [n, n, n, 1, 1, 1, 2, 3]),
+        (dict(window="2h", closed="left"), [n, n, n, n, 2, 2, 3, 4]),
+        (dict(window="3h", closed="left"), [n, n, n, n, n, 3, 4, 5]),
+        (dict(window="4h", closed="left"), [n, n, n, n, n, n, n, n]),
+        # at least #hour NANs at beginning (removed by expanding=False)
+        (dict(window="0h", closed="both"), [1, 1, 1, 1, 1, 1, 1, 1]),
+        (dict(window="1h", closed="both"), [n, n, n, 2, 2, 2, 2, 3]),
+        (dict(window="2h", closed="both"), [n, n, n, n, 3, 3, 3, 4]),
+        (dict(window="3h", closed="both"), [n, n, n, n, n, 4, 4, 5]),
+        (dict(window="4h", closed="both"), [n, n, n, n, n, n, n, n]),
+    ],
+    ids=lambda x: str(x if not isinstance(x, list) else ""),
+)
+def test_rolling_expand_forward(data, kws, expected):
+    expected = np.array(expected)[::-1]  # inverted
+    result = customRoller(data, **kws, expand=False, forward=True).sum()
+    result = result.to_numpy()
+
+    print()
+    print(
+        pd.DataFrame(
+            dict(
+                orig=data,
+                exp=expected,
+                res=result,
+            ),
+            index=data.index,
+        )
+    )
+    assert np.allclose(result, expected, rtol=0, atol=0, equal_nan=True)
 
 
-def make_dt_kws():
-    l = []
-    n = [0, 1, 2, 10, 32, 70, 120]
-    mp = list(range(len_s))
-    for closed in ["right", "both", "neither", "left"]:
-        for window in n:
-            for min_periods in [None] + mp:
-                l.append(
-                    dict(window=f"{window}d", min_periods=min_periods, closed=closed)
-                )
-    return l
+@pytest.mark.parametrize("window", ["0H", "1H", "2H", "3H", "4H"])
+@pytest.mark.parametrize("closed", ["both", "neither", "left", "right"])
+@pytest.mark.parametrize("center", [False, True], ids=lambda x: f" center={x} ")
+@pytest.mark.parametrize("forward", [False, True], ids=lambda x: f" forward={x} ")
+@pytest.mark.parametrize(
+    "func",
+    [
+        "sum",
+        "count",
+        "mean",
+        "median",
+        "min",
+        "max",
+        "skew",
+        "kurt",
+        "cov",
+        "corr",
+        "sem",
+        "var",
+        "std",
+    ],
+)
+def test_dtindexer(data, center, closed, window, forward, func):
+    print()
+    print("forward", forward)
+    print("center", center)
+    print("closed", closed)
+    print("window", window)
 
+    data: pd.Series
 
-def check_series(result, expected):
-    if not (result.isna() == expected.isna()).all():
-        return False
-    result = result.dropna()
-    expected = expected.dropna()
-    if not (result == expected).all():
-        return False
-    return True
+    d = data
+    cl = closed
+    if forward:
+        d = data[::-1]
+        cl = "right" if closed == "left" else "left" if closed == "right" else closed
+    roller = d.rolling(
+        window=window,
+        closed=cl,
+        center=center,
+    )
 
+    expected = getattr(roller, func)()
+    if forward:
+        expected = expected[::-1]
 
-def print_diff(s, result, expected):
-    df = pd.DataFrame()
-    df["s"] = s
-    df["exp"] = expected
-    df["res"] = result
-    print(df)
+    roller = customRoller(
+        obj=data,
+        window=window,
+        closed=closed,
+        center=center,
+        forward=forward,
+        expand=True,
+    )
+    result = getattr(roller, func)()
 
+    print()
+    print(
+        pd.DataFrame(
+            dict(
+                orig=data,
+                exp=expected,
+                res=result,
+            ),
+            index=data.index,
+        )
+    )
 
-def call_rolling_function(roller, func):
-    if isinstance(func, str):
-        return getattr(roller, func)()
-    else:
-        return getattr(roller, "apply")(func)
+    # pandas bug
+    if pd.__version__ < "1.4" and forward:
+        result = result[:-1]
+        expected = expected[:-1]
 
+    # pandas bug
+    # pandas insert a NaN where a valid value should be
+    if (
+        pd.__version__ < "1.4"
+        and forward
+        and func in ["sem", "var", "std"]
+        and int(window[:-1]) <= 1
+    ):
+        pytest.skip("fails for pandas < 1.4")
 
-@pytest.mark.parametrize("kws", make_dt_kws(), ids=lambda x: str(x))
-@pytest.mark.parametrize("func", FUNCTS)
-def test_pandas_conform_dt(data, kws, func):
-    s = data
-
-    try:
-        expR = s.rolling(**kws)
-        expected = call_rolling_function(expR, func)
-    except Exception as e0:
-        # pandas failed
-        try:
-            resR = customRoller(s, **kws)
-            result = call_rolling_function(resR, func)
-        except Exception as e1:
-            # if we also fail, we should do with the same exception
-            assert type(e0) == type(e1)
-        return
-
-    resR = customRoller(s, **kws)
-    result = call_rolling_function(resR, func)
-    success = check_series(result, expected)
-    if success:
-        return
-    print_diff(s, result, expected)
-    assert False
-
-
-@pytest.mark.skip(reason="segfaults")
-@pytest.mark.parametrize("kws", make_num_kws(), ids=lambda x: str(x))
-@pytest.mark.parametrize("func", FUNCTS)
-def test_pandas_conform_num(data, kws, func):
-    s = data
-    try:
-        expR = s.rolling(**kws)
-        expected = call_rolling_function(expR, func)
-    except Exception as e0:
-        # pandas failed, so we should also fail
-        try:
-            resR = customRoller(s, **kws)
-            result = call_rolling_function(resR, func)
-        except Exception as e1:
-            assert type(e0) == type(e1)
-            return
-        assert False, "pandas faild, but we succeed"
-
-    resR = customRoller(s, **kws)
-    result = call_rolling_function(resR, func)
-    success = check_series(result, expected)
-    if success:
-        return
-    print_diff(s, result, expected)
-    assert False
-
-
-@pytest.mark.parametrize("kws", make_dt_kws(), ids=lambda x: str(x))
-@pytest.mark.parametrize("func", FUNCTS)
-def test_forward_dt(data, kws, func):
-    s = data
-    try:
-        expR = pd.Series(reversed(s), reversed(s.index)).rolling(**kws)
-        expected = call_rolling_function(expR, func)[::-1]
-    except Exception as e0:
-        # pandas failed, so we should also fail
-        try:
-            resR = customRoller(s, forward=True, **kws)
-            result = call_rolling_function(resR, func)
-        except Exception as e1:
-            assert type(e0) == type(e1)
-        return
-
-    resR = customRoller(s, forward=True, **kws)
-    result = call_rolling_function(resR, func)
-    success = check_series(result, expected)
-    if success:
-        return
-    print_diff(s, result, expected)
-    assert False
-
-
-@pytest.mark.skip(reason="segfaults")
-@pytest.mark.parametrize("kws", make_num_kws(), ids=lambda x: str(x))
-@pytest.mark.parametrize("func", FUNCTS)
-def test_forward_num(data, kws, func):
-    s = data
-    try:
-        expR = pd.Series(reversed(s), reversed(s.index)).rolling(**kws)
-        expected = call_rolling_function(expR, func)[::-1]
-    except Exception as e0:
-        # pandas failed, so we should also fail
-        try:
-            resR = customRoller(s, forward=True, **kws)
-            result = call_rolling_function(resR, func)
-        except Exception as e1:
-            assert type(e0) == type(e1)
-            return
-        assert False, "pandas faild, but we succeed"
-
-    resR = customRoller(s, forward=True, **kws)
-    result = call_rolling_function(resR, func)
-    success = check_series(result, expected)
-    if success:
-        return
-    print_diff(s, result, expected)
-    assert False
-
-
-def dt_center_kws():
-    l = []
-    for window in range(2, 10, 2):
-        for min_periods in range(1, window + 1):
-            l.append(dict(window=window, min_periods=min_periods))
-    return l
-
-
-@pytest.mark.parametrize("kws", dt_center_kws(), ids=lambda x: str(x))
-def test_centering_w_dtindex(kws):
-    s = pd.Series(0.0, index=pd.date_range("2000", periods=10, freq="1H"))
-    s[4:7] = 1
-
-    w = kws.pop("window")
-    mp = kws.pop("min_periods")
-
-    pd_kw = dict(window=w, center=True, min_periods=mp)
-    our_kw = dict(window=f"{w}h", center=True, closed="both", min_periods=mp)
-    expected = s.rolling(**pd_kw).sum()
-    result = customRoller(s, **our_kw).sum()
-    success = check_series(result, expected)
-    if not success:
-        print_diff(s, result, expected)
-        assert False
-
-    w -= 1
-    mp -= 1
-    pd_kw = dict(window=w, center=True, min_periods=mp)
-    our_kw = dict(window=f"{w}h", center=True, closed="neither", min_periods=mp)
-    expected = s.rolling(**pd_kw).sum()
-    result = customRoller(s, **our_kw).sum()
-    success = check_series(result, expected)
-    if not success:
-        print_diff(s, result, expected)
-        assert False
+    assert np.allclose(result, expected, rtol=0, atol=0, equal_nan=True)
