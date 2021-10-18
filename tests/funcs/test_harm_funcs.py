@@ -42,7 +42,7 @@ def data():
 )
 def test_wrapper(data, func, kws):
     field = "data"
-    freq = "15min"
+    freq = "15T"
     flags = initFlagsLike(data)
 
     import saqc
@@ -52,7 +52,7 @@ def test_wrapper(data, func, kws):
 
     # check minimal requirements
     checkDataFlagsInvariants(data, flags, field)
-    assert data[field].index.freq == pd.Timedelta(freq)
+    assert data[field].index.inferred_freq == freq
 
 
 @pytest.mark.parametrize("method", ["time", "polynomial"])
