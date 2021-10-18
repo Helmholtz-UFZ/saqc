@@ -57,7 +57,7 @@ def test_wrapper(data, func, kws):
 
 @pytest.mark.parametrize("method", ["time", "polynomial"])
 def test_gridInterpolation(data, method):
-    freq = "15min"
+    freq = "15T"
     field = "data"
     data = data[field]
     data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
@@ -93,7 +93,7 @@ def test_gridInterpolation(data, method):
     # check minimal requirements
     rdata, rflags = res
     checkDataFlagsInvariants(rdata, rflags, field, identical=False)
-    assert rdata[field].index.freq == pd.Timedelta(freq)
+    assert rdata[field].index.inferred_freq == freq
 
 
 @pytest.mark.parametrize(
@@ -131,13 +131,14 @@ def test_flagsSurviveBackprojection():
 def test_harmSingleVarIntermediateFlagging(data, reshaper):
     flags = initFlagsLike(data)
     field = "data"
+    freq = '15T'
 
     pre_data = data.copy()
     pre_flags = flags.copy()
     data, flags = copy(data, field, flags, field + "_interpolated")
-    data, flags = linear(data, field + "_interpolated", flags, freq="15min")
+    data, flags = linear(data, field + "_interpolated", flags, freq=freq)
     checkDataFlagsInvariants(data, flags, field + "_interpolated", identical=True)
-    assert data[field + "_interpolated"].index.freq == pd.Timedelta("15min")
+    assert data[field + "_interpolated"].index.inferred_freq == freq
 
     # flag something bad
     flags[data[field + "_interpolated"].index[3:4], field + "_interpolated"] = BAD
