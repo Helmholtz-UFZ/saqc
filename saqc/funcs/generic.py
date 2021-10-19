@@ -72,7 +72,6 @@ def _execGeneric(
     globs = {
         "isflagged": partial(_dslIsFlagged, flags),
         "ismissing": lambda var: pd.isnull(var),
-        "mask": lambda cond: data[cond.name].mask(cond),
         "this": field,
         "GOOD": GOOD,
         "BAD": BAD,

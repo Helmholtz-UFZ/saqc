@@ -132,16 +132,11 @@ def test_nonReduncingBuiltins(data):
     flags = initFlagsLike(data)
     var1, *_ = data.columns
     this = var1
-    mean = data[var1].mean()
 
     tests = [
         (f"abs({this})", np.abs(data[this])),
         (f"log({this})", np.log(data[this])),
         (f"exp({this})", np.exp(data[this])),
-        (
-            f"ismissing(mask({this} < {mean}))",
-            data[this].mask(data[this] < mean).isna(),
-        ),
     ]
 
     for test, expected in tests:

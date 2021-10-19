@@ -42,22 +42,3 @@ def test_addFieldProcGeneric(data):
     )
 
 
-def test_mask(data):
-    saqc = SaQC(data=data)
-    data_org = data.copy(deep=True)
-    mean = data["var1"] / 2
-
-    data, _ = saqc.genericProcess(
-        "var1", lambda var1: mask(var1 < mean), flag=BAD
-    ).getResult()
-    assert (
-        (data["var1"].isna()) == (data_org["var1"] < 10) & data_org["var1"].isna()
-    ).all(axis=None)
-
-    data, flags = saqc.genericProcess(
-        "tmp", lambda var1: mask(var1 < mean), flag=BAD
-    ).getResult()
-    assert ("tmp" in data.columns) and ("tmp" in flags.columns)
-    assert (
-        (data["tmp"].isna()) == (data_org["var1"] < 10) & data_org["var1"].isna()
-    ).all(axis=None)
