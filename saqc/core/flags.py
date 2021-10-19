@@ -307,6 +307,8 @@ class Flags:
 
             # raises (correct) KeyError
             try:
+                if pd.api.types.is_list_like(value) and len(value) != len(tmp):
+                    raise ValueError
                 tmp[mask] = value
             except Exception:
                 raise ValueError(

@@ -592,7 +592,7 @@ def statPass(
     sub_winsz: pd.Timedelta = None,
     sub_thresh: float = None,
     min_periods: int = None,
-):
+) -> pd.Series:
     """
     Check `datcol`, if it contains chunks of length `window`, exceeding `thresh` with
     regard to `func` and `comparator`:
@@ -601,6 +601,8 @@ def statPass(
 
     If yes, subsequently check, if all (maybe overlapping) *sub-chunks* of *chunk*, with length `sub_window`,
     satisfy, `comparator`(`func`(*sub_chunk*), `sub_thresh`)
+
+    returns boolean series with same index as input series
     """
     stat_parent = datcol.rolling(winsz, min_periods=min_periods)
     stat_parent = getApply(stat_parent, stat)
@@ -613,8 +615,11 @@ def statPass(
         exceeds = exceeding_sub & exceeds
 
     to_set = pd.Series(False, index=exceeds.index)
-    for g in exceeds.groupby(by=exceeds.values):
-        if g[0]:
-            to_set[g[1].index[0] - winsz : g[1].index[-1]] = True
+    for exceed, group in exceeds.groupby(by=exceeds.values):
+        if exceed:
+            # dt-slices include both bounds, so we subtract 1ns
+            start = group.index[0] - (winsz - pd.Timedelta("1ns"))
+            end = group.index[-1]
+            to_set[start:end] = True
 
     return to_set

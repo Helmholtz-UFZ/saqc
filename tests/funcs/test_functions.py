@@ -43,8 +43,9 @@ def test_statPass():
     data, flags = flagByStatLowPass(
         data, "data", flags, np.std, "20D", 0.999, "5D", 0.999, 0, flag=BAD
     )
-    assert (flags["data"] == BAD).sum() == 21
-    assert (flags["data"][200:210] < BAD).all()
+    assert (flags["data"].iloc[:100] == UNFLAGGED).all()
+    assert (flags["data"].iloc[100:120] == BAD).all()
+    assert (flags["data"].iloc[121:] == UNFLAGGED).all()
 
 
 def test_flagRange(data, field):

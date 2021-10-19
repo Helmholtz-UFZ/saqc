@@ -373,7 +373,6 @@ def correctDrift(
     maintenance_field: str,
     model: Callable[..., float],
     cal_range: int = 5,
-    set_flags: bool = False,  # Todo: remove, user should use flagManual
     flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -405,8 +404,6 @@ def correctDrift(
     cal_range : int, default 5
         The number of values the mean is computed over, for obtaining the value level directly after and
         directly before maintenance event. This values are needed for shift calibration. (see above description)
-    set_flags : bool, default False
-        Whether or not to flag the values obtained while maintenance.
     flag : float, default BAD
         flag to set.
 
@@ -496,12 +493,6 @@ def correctDrift(
         to_correct[shiftedData.index] = shiftedData
 
     data[field] = to_correct
-
-    if set_flags:
-        to_flag = drift_frame["drift_group"]
-        to_flag = to_flag.drop(to_flag[: maint_data.index[0]].index)
-        to_flag = to_flag.dropna()
-        flags[to_flag, field] = flag
 
     return data, flags
 
