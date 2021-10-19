@@ -18,6 +18,7 @@ class Scores(ModuleBase):
         self,
         field: str,
         fields: Sequence[str],
+        target: str = "kNNscores",
         n: int = 10,
         func: Callable[[pd.Series], float] = np.sum,
         freq: Union[float, str] = np.inf,

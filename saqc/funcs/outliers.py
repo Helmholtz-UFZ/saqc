@@ -561,9 +561,10 @@ def flagMVScores(
 
     data, flags = assignKNNScore(
         data,
-        "kNN_scores",
+        "dummy",
         flags,
         fields=[f"trafo_{f}" for f in fields],
+        target="kNN",
         n=n,
         func=func,
         freq=partition,
@@ -574,7 +575,7 @@ def flagMVScores(
 
     data, flags = flagByStray(
         data,
-        "kNN_scores",
+        "kNN",
         flags,
         freq=partition,
         min_periods=partition_min,
@@ -586,7 +587,7 @@ def flagMVScores(
 
     data, flags = _evalStrayLabels(
         data,
-        "kNN_scores",
+        "kNN",
         flags,
         fields=fields,
         reduction_range=stray_range,
@@ -596,7 +597,7 @@ def flagMVScores(
         flag=flag,
         **kwargs,
     )
-    data, flags = drop(data, "kNN_scores", flags)
+    data, flags = drop(data, "kNN", flags)
     for f in fields:
         data, flags = drop(data, f"trafo_{f}", flags)
 

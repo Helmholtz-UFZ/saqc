@@ -7,6 +7,7 @@ The module gathers all kinds of timeseries tranformations.
 import re
 import warnings
 from typing import Union
+import sys
 
 import pandas as pd
 import numpy as np
@@ -48,7 +49,7 @@ def zeroLog(ts):
     # in internal processing, you only have to check for nan values if you need to
     # remove "invalidish" values from the data.
     log_ts = np.log(ts)
-    log_ts[log_ts == -np.inf] = np.nan
+    log_ts[log_ts == -np.inf] = sys.float_info.min
     return log_ts
 
 
