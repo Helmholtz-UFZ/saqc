@@ -11,7 +11,7 @@ from saqc.core import flagging, Flags
 from saqc.lib.tools import getFreqDelta
 
 
-@flagging(masking="field", module="rolling")
+@flagging(masking="field")
 def roll(
     data: DictOfSeries,
     field: str,

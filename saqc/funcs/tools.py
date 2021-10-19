@@ -20,7 +20,7 @@ from saqc.lib.plotting import makeFig
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
 
-@processing(module="tools")
+@processing()
 def copyField(
     data: DictOfSeries, field: str, flags: Flags, new_field: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -57,7 +57,7 @@ def copyField(
     return data, flags
 
 
-@processing(module="tools")
+@processing()
 def dropField(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -87,7 +87,7 @@ def dropField(
     return data, flags
 
 
-@processing(module="tools")
+@processing()
 def renameField(
     data: DictOfSeries, field: str, flags: Flags, new_name: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -119,7 +119,7 @@ def renameField(
     return data, flags
 
 
-@processing(module="tools")
+@processing()
 def maskTime(
     data: DictOfSeries,
     field: str,
@@ -244,7 +244,7 @@ def maskTime(
     return data, flags
 
 
-@processing(module="tools")
+@processing()
 def plot(
     data: DictOfSeries,
     field: str,

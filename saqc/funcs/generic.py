@@ -83,7 +83,7 @@ def _execGeneric(
     return func(*args)
 
 
-@processing(module="generic")
+@processing()
 def genericProcess(
     data: DictOfSeries,
     field: str,
@@ -151,7 +151,7 @@ def genericProcess(
     return data, flags
 
 
-@flagging(masking="all", module="generic")
+@flagging(masking="all")
 def genericFlag(
     data: DictOfSeries,
     field: str,

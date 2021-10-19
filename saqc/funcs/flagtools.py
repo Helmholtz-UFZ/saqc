@@ -10,7 +10,7 @@ from saqc.core import flagging, processing, Flags
 import warnings
 
 
-@flagging(masking="field", module="flagtools")
+@flagging(masking="field")
 def forceFlags(
     data: DictOfSeries, field: str, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -45,7 +45,7 @@ def forceFlags(
 
 
 # masking='none' is sufficient because call is redirected
-@flagging(masking="none", module="flagtools")
+@flagging(masking="none")
 def clearFlags(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -90,7 +90,7 @@ def clearFlags(
     return forceFlags(data, field, flags, flag=UNFLAGGED, **kwargs)
 
 
-@flagging(masking="none", module="flagtools")
+@flagging(masking="none")
 def flagUnflagged(
     data: DictOfSeries, field: str, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -132,7 +132,7 @@ def flagUnflagged(
     return data, flags
 
 
-@flagging(masking="field", module="flagtools")
+@flagging(masking="field")
 def flagManual(
     data: DictOfSeries,
     field: str,
@@ -276,7 +276,7 @@ def flagManual(
     return data, flags
 
 
-@flagging(module="flagtools")
+@flagging()
 def flagDummy(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:

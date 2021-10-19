@@ -27,7 +27,7 @@ LinkageString = Literal[
 ]
 
 
-@flagging(masking="all", module="drift")
+@flagging(masking="all")
 def flagDriftFromNorm(
     data: DictOfSeries,
     field: str,
@@ -147,7 +147,7 @@ def flagDriftFromNorm(
     return data, flags
 
 
-@flagging(masking="all", module="drift")
+@flagging(masking="all")
 def flagDriftFromReference(
     data: DictOfSeries,
     field: str,
@@ -228,7 +228,7 @@ def flagDriftFromReference(
     return data, flags
 
 
-@flagging(masking="all", module="drift")
+@flagging(masking="all")
 def flagDriftFromScaledNorm(
     data: DictOfSeries,
     field: str,
@@ -365,7 +365,7 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-@flagging(masking="all", module="drift")
+@flagging(masking="all")
 def correctDrift(
     data: DictOfSeries,
     field: str,
@@ -506,7 +506,7 @@ def correctDrift(
     return data, flags
 
 
-@flagging(masking="all", module="drift")
+@flagging(masking="all")
 def correctRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -625,7 +625,7 @@ def correctRegimeAnomaly(
     return data, flags
 
 
-@flagging(masking="all", module="drift")
+@flagging(masking="all")
 def correctOffset(
     data: DictOfSeries,
     field: str,
@@ -723,7 +723,7 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
     return data_fit, data_shift
 
 
-@flagging(masking="all", module="drift")
+@flagging(masking="all")
 def flagRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -800,7 +800,7 @@ def flagRegimeAnomaly(
     )
 
 
-@flagging(masking="all", module="drift")
+@flagging(masking="all")
 def assignRegimeAnomaly(
     data: DictOfSeries,
     field: str,

@@ -89,9 +89,7 @@ def test_modelling_mask(dat):
     assert all(flags_seasonal[field][m] == UNFLAGGED)
     assert all(data_seasonal[field][m].isna())
 
-    data_seasonal, flags_seasonal = maskTime(
-        **common, start="15:00:00", end="02:00:00"
-    )
+    data_seasonal, flags_seasonal = maskTime(**common, start="15:00:00", end="02:00:00")
     flagscol = flags_seasonal[field]
     m = (15 <= flagscol.index.hour) & (flagscol.index.hour <= 2)
     assert all(flags_seasonal[field][m] == UNFLAGGED)

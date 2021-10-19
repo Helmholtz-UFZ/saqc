@@ -35,7 +35,7 @@ class CallState:
     mask: dios.DictOfSeries
 
 
-def processing(module: Optional[str] = None):
+def processing():
     # executed on module import
     def inner(func):
         @wraps(func)
@@ -49,7 +49,7 @@ def processing(module: Optional[str] = None):
     return inner
 
 
-def flagging(masking: MaskingStrT = "all", module: Optional[str] = None):
+def flagging(masking: MaskingStrT = "all"):
 
     # executed on module import
     if masking not in ("all", "field", "none"):
@@ -70,7 +70,6 @@ def flagging(masking: MaskingStrT = "all", module: Optional[str] = None):
             return _postCall(result, old_state)
 
         FUNC_MAP[func_name] = callWrapper
-        callWrapper._module = module
         callWrapper._masking = masking
 
         return callWrapper

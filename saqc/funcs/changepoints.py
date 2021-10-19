@@ -17,7 +17,7 @@ from saqc.core import flagging, Flags
 from saqc.lib.types import FreqString
 
 
-@flagging(masking="field", module="changepoints")
+@flagging(masking="field")
 def flagChangePoints(
     data: DictOfSeries,
     field: str,
@@ -112,7 +112,7 @@ def flagChangePoints(
     )
 
 
-@flagging(masking="field", module="changepoints")
+@flagging(masking="field")
 def assignChangePointCluster(
     data: DictOfSeries,
     field: str,

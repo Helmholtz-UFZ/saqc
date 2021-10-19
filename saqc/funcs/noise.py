@@ -11,7 +11,7 @@ from saqc.lib.types import FreqString
 from saqc.lib.tools import statPass
 
 
-@flagging(masking="field", module="noise")
+@flagging(masking="field")
 def flagByStatLowPass(
     data: DictOfSeries,
     field: str,

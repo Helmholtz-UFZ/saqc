@@ -21,7 +21,7 @@ from saqc.funcs.scores import assignKNNScore
 import saqc.lib.ts_operators as ts_ops
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagByStray(
     data: DictOfSeries,
     field: str,
@@ -397,7 +397,7 @@ def _expFit(
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@flagging(masking="all", module="outliers")
+@flagging(masking="all")
 def flagMVScores(
     data: DictOfSeries,
     field: str,
@@ -597,7 +597,7 @@ def flagMVScores(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagRaise(
     data: DictOfSeries,
     field: str,
@@ -785,7 +785,7 @@ def flagRaise(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagMAD(
     data: DictOfSeries,
     field: str,
@@ -855,7 +855,7 @@ def flagMAD(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagOffset(
     data: DictOfSeries,
     field: str,
@@ -1023,7 +1023,7 @@ def flagOffset(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagByGrubbs(
     data: DictOfSeries,
     field: str,
@@ -1146,7 +1146,7 @@ def flagByGrubbs(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagRange(
     data: DictOfSeries,
     field: str,
@@ -1189,7 +1189,7 @@ def flagRange(
     return data, flags
 
 
-@flagging(masking="all", module="outliers")
+@flagging(masking="all")
 def flagCrossStatistic(
     data: DictOfSeries,
     field: str,
