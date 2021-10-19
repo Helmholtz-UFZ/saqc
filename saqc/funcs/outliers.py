@@ -18,6 +18,8 @@ from saqc.core import flagging, Flags
 from saqc.lib.types import FreqString
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta
 from saqc.funcs.scores import assignKNNScore
+from saqc.funcs.tools import copy, drop
+from saqc.funcs.transformation import transform
 import saqc.lib.ts_operators as ts_ops
 
 
@@ -410,7 +412,6 @@ def flagMVScores(
     iter_start: float = 0.5,
     partition: Optional[Union[int, FreqString]] = None,
     partition_min: int = 11,
-    partition_trafo: bool = True,
     stray_range: Optional[FreqString] = None,
     drop_flagged: bool = False,  # TODO: still a case ?
     thresh: float = 3.5,
@@ -553,16 +554,18 @@ def flagMVScores(
     more details. Although [2] gives a fully detailed overview over the `stray`
     algorithm.
     """
+
+    for f in fields:
+        data, flags = copy(data, f, flags, f"trafo_{f}")
+        data, flags = transform(data, f"trafo_{f}", flags, func=trafo, freq=partition)
+
     data, flags = assignKNNScore(
         data,
-        "dummy",
+        "kNN_scores",
         flags,
-        fields=fields,
+        fields=[f"trafo_{f}" for f in fields],
         n=n,
-        trafo=trafo,
-        trafo_on_partition=partition_trafo,
         func=func,
-        target="kNN_scores",
         freq=partition,
         method="ball_tree",
         min_periods=partition_min,
@@ -593,6 +596,9 @@ def flagMVScores(
         flag=flag,
         **kwargs,
     )
+    data, flags = drop(data, "kNN_scores", flags)
+    for f in fields:
+        data, flags = drop(data, f"trafo_{f}", flags)
 
     return data, flags
 
