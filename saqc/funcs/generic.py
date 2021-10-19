@@ -84,7 +84,7 @@ def _execGeneric(
 
 
 @processing(module="generic")
-def process(
+def genericProcess(
     data: DictOfSeries,
     field: str,
     flags: Flags,
@@ -152,7 +152,7 @@ def process(
 
 
 @flagging(masking="all", module="generic")
-def flag(
+def genericFlag(
     data: DictOfSeries,
     field: str,
     flags: Flags,

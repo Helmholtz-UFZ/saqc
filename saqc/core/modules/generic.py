@@ -12,16 +12,16 @@ import saqc
 
 
 class Generic:
-    def process(
+    def genericProcess(
         self,
         field: str,
         func: Callable[[pd.Series], pd.Series],
         to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("process", locals())
+        return self._defer("genericProcess", locals())
 
-    def flag(
+    def genericFlag(
         self,
         field: str,
         func: Callable[[pd.Series], pd.Series],
@@ -29,4 +29,4 @@ class Generic:
         to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("flag", locals())
+        return self._defer("genericFlag", locals())

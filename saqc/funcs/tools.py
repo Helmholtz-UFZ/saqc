@@ -120,7 +120,7 @@ def renameField(
 
 
 @processing(module="tools")
-def maskField(
+def maskTime(
     data: DictOfSeries,
     field: str,
     flags: Flags,
