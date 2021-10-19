@@ -542,6 +542,6 @@ def reindexFlags(
     flags.history[field] = flags.history[field].append(history)
 
     if drop:
-        data, flags = tools.drop(data=data, flags=flags, field=source)
+        data, flags = tools.dropField(data=data, flags=flags, field=source)
 
     return data, flags

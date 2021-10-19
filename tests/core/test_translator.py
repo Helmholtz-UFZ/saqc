@@ -155,9 +155,7 @@ def test_positionalTranslatorIntegration():
 
     translator = PositionalTranslator()
     saqc = SaQC(data=data, scheme=translator)
-    saqc = saqc.breaks.flagMissing(col).outliers.flagRange(
-        col, min=3, max=10, flag=DOUBTFUL
-    )
+    saqc = saqc.flagMissing(col).flagRange(col, min=3, max=10, flag=DOUBTFUL)
     data, flags = saqc.getResult()
 
     for field in flags.columns:
@@ -177,7 +175,7 @@ def test_dmpTranslatorIntegration():
 
     translator = DmpTranslator()
     saqc = SaQC(data=data, scheme=translator)
-    saqc = saqc.breaks.flagMissing(col).outliers.flagRange(col, min=3, max=10)
+    saqc = saqc.flagMissing(col).flagRange(col, min=3, max=10)
     data, flags = saqc.getResult()
 
     qflags = flags.xs("quality_flag", axis="columns", level=1)
@@ -187,7 +185,7 @@ def test_dmpTranslatorIntegration():
     qcause = flags.xs("quality_cause", axis="columns", level=1)
 
     assert qflags.isin(translator._forward.keys()).all(axis=None)
-    assert qfunc.isin({"", "breaks.flagMissing", "outliers.flagRange"}).all(axis=None)
+    assert qfunc.isin({"", "flagMissing", "flagRange"}).all(axis=None)
     assert (qcause[qflags[col] == "BAD"] == "OTHER").all(axis=None)
 
     round_trip = translator.backward(translator.forward(flags))
@@ -211,12 +209,10 @@ def test_dmpValidCombinations():
     saqc = SaQC(data=data, scheme=translator)
 
     with pytest.raises(ValueError):
-        saqc.outliers.flagRange(
-            col, min=3, max=10, cause="SOMETHING_STUPID"
-        ).getResult()
+        saqc.flagRange(col, min=3, max=10, cause="SOMETHING_STUPID").getResult()
 
     with pytest.raises(ValueError):
-        saqc.outliers.flagRange(col, min=3, max=10, cause="").getResult()
+        saqc.flagRange(col, min=3, max=10, cause="").getResult()
 
 
 def _buildupSaQCObjects():
@@ -233,9 +229,9 @@ def _buildupSaQCObjects():
     out = []
     for _ in range(2):
         saqc = SaQC(data=data, flags=flags)
-        saqc = saqc.outliers.flagRange(
-            field=col, min=5, max=6, to_mask=False
-        ).outliers.flagRange(col, min=3, max=10, to_mask=False)
+        saqc = saqc.flagRange(field=col, min=5, max=6, to_mask=False).flagRange(
+            col, min=3, max=10, to_mask=False
+        )
         flags = saqc._flags
         out.append(saqc)
     return out

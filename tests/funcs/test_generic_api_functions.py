@@ -6,7 +6,7 @@ import pandas as pd
 
 from saqc.constants import *
 from saqc.core.register import flagging
-from saqc.funcs.tools import mask
+from saqc.funcs.tools import maskField
 from saqc import SaQC
 
 from tests.common import initData, flagAll
@@ -48,14 +48,14 @@ def test_mask(data):
     mean = data["var1"] / 2
 
     data, _ = saqc.generic.process(
-        "var1", lambda var1: mask(var1 < mean), flag=BAD
+        "var1", lambda var1: maskField(var1 < mean), flag=BAD
     ).getResult()
     assert (
         (data["var1"].isna()) == (data_org["var1"] < 10) & data_org["var1"].isna()
     ).all(axis=None)
 
     data, flags = saqc.generic.process(
-        "tmp", lambda var1: mask(var1 < mean), flag=BAD
+        "tmp", lambda var1: maskField(var1 < mean), flag=BAD
     ).getResult()
     assert ("tmp" in data.columns) and ("tmp" in flags.columns)
     assert (

@@ -6,11 +6,10 @@ from typing import Callable, Optional, Union
 
 import pandas as pd
 
-from saqc.core.modules.base import ModuleBase
 import saqc
 
 
-class Transformation(ModuleBase):
+class Transformation:
     def transform(
         self,
         field: str,
@@ -18,4 +17,4 @@ class Transformation(ModuleBase):
         freq: Optional[Union[float, str]] = None,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("transform", locals())
+        return self._defer("transform", locals())

@@ -45,7 +45,7 @@ def test_duplicatedVariable():
     data = initData(1)
     var1 = data.columns[0]
 
-    pdata, pflags = SaQC(data).flagtools.flagDummy(var1).getResult()
+    pdata, pflags = SaQC(data).flagDummy(var1).getResult()
 
     if isinstance(pflags.columns, pd.MultiIndex):
         cols = pflags.columns.get_level_values(0).drop_duplicates()

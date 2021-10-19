@@ -8,11 +8,10 @@ import numpy as np
 import pandas as pd
 
 from saqc.constants import UNFLAGGED, BAD
-from saqc.core.modules.base import ModuleBase
 import saqc
 
 
-class Generic(ModuleBase):
+class Generic:
     def process(
         self,
         field: str,
@@ -20,7 +19,7 @@ class Generic(ModuleBase):
         to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("process", locals())
+        return self._defer("process", locals())
 
     def flag(
         self,
@@ -30,4 +29,4 @@ class Generic(ModuleBase):
         to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flag", locals())
+        return self._defer("flag", locals())

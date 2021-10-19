@@ -7,11 +7,9 @@ import numpy as np
 import pandas as pd
 
 from saqc.constants import BAD
-from saqc.core.modules.base import ModuleBase
-import saqc
 
 
-class Rolling(ModuleBase):
+class Rolling:
     def roll(
         self,
         field: str,
@@ -24,4 +22,4 @@ class Rolling(ModuleBase):
         flag: float = BAD,
         **kwargs
     ):
-        return self.defer("roll", locals())
+        return self._defer("roll", locals())

@@ -9,7 +9,7 @@ import dios
 from saqc.core import initFlagsLike, Flags
 from saqc.constants import BAD, UNFLAGGED
 from saqc.funcs.resampling import linear, interpolate, shift, reindexFlags, resample
-from saqc.funcs.tools import copy, drop
+from saqc.funcs.tools import copyField, dropField
 from tests.common import checkDataFlagsInvariants
 
 
@@ -135,7 +135,7 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
 
     pre_data = data.copy()
     pre_flags = flags.copy()
-    data, flags = copy(data, field, flags, field + "_interpolated")
+    data, flags = copyField(data, field, flags, field + "_interpolated")
     data, flags = linear(data, field + "_interpolated", flags, freq=freq)
     checkDataFlagsInvariants(data, flags, field + "_interpolated", identical=True)
     assert data[field + "_interpolated"].index.inferred_freq == freq
@@ -145,7 +145,7 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
     data, flags = reindexFlags(
         data, field, flags, method="inverse_" + reshaper, source=field + "_interpolated"
     )
-    data, flags = drop(data, field + "_interpolated", flags)
+    data, flags = dropField(data, field + "_interpolated", flags)
 
     assert len(data[field]) == len(flags[field])
     assert data[field].equals(pre_data[field])
@@ -235,7 +235,7 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
     pre_flaggger = flags.copy()
     method, freq = params
 
-    data_harm, flags_harm = copy(data, "data", flags, "data_harm")
+    data_harm, flags_harm = copyField(data, "data", flags, "data_harm")
     data_harm, flags_harm = resample(
         data_harm, h_field, flags_harm, freq, func=np.sum, method=method
     )
@@ -246,7 +246,7 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
     data_deharm, flags_deharm = reindexFlags(
         data_harm, field, flags_harm, source=h_field, method="inverse_" + method
     )
-    data_deharm, flags_deharm = drop(data_deharm, h_field, flags_deharm)
+    data_deharm, flags_deharm = dropField(data_deharm, h_field, flags_deharm)
     checkDataFlagsInvariants(data_deharm, flags_deharm, field, identical=True)
     assert data_deharm[field].equals(pre_data[field])
     assert flags_deharm[field].equals(pre_flaggger[field])
@@ -319,7 +319,7 @@ def test_harmSingleVarInterpolationShift(data, params, expected):
     pre_flags = flags.copy()
     method, freq = params
 
-    data_harm, flags_harm = copy(data, "data", flags, "data_harm")
+    data_harm, flags_harm = copyField(data, "data", flags, "data_harm")
     data_harm, flags_harm = shift(data_harm, h_field, flags_harm, freq, method=method)
     assert data_harm[h_field].equals(expected)
     checkDataFlagsInvariants(data_harm, flags_harm, field, identical=True)
@@ -329,6 +329,6 @@ def test_harmSingleVarInterpolationShift(data, params, expected):
     )
     checkDataFlagsInvariants(data_deharm, flags_deharm, field, identical=True)
 
-    data_deharm, flags_deharm = drop(data_deharm, h_field, flags_deharm)
+    data_deharm, flags_deharm = dropField(data_deharm, h_field, flags_deharm)
     assert data_deharm[field].equals(pre_data[field])
     assert flags_deharm[field].equals(pre_flags[field])

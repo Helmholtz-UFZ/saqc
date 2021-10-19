@@ -17,7 +17,7 @@ from saqc.constants import *
 from saqc.core.register import flagging
 from saqc.core import Flags
 from saqc.funcs.changepoints import assignChangePointCluster
-from saqc.funcs.tools import drop, copy
+from saqc.funcs.tools import dropField, copyField
 from saqc.lib.tools import detectDeviants
 from saqc.lib.types import FreqString, CurveFitter
 
@@ -670,7 +670,7 @@ def correctOffset(
     flags : saqc.Flags
         The quality flags of data
     """
-    data, flags = copy(data, field, flags, field + "_CPcluster")
+    data, flags = copyField(data, field, flags, field + "_CPcluster")
     data, flags = assignChangePointCluster(
         data,
         field + "_CPcluster",
@@ -689,7 +689,7 @@ def correctOffset(
         lambda x, p1: np.array([p1] * x.shape[0]),
         tolerance=tolerance,
     )
-    data, flags = drop(data, field + "_CPcluster", flags)
+    data, flags = dropField(data, field + "_CPcluster", flags)
 
     return data, flags
 

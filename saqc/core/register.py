@@ -38,16 +38,12 @@ class CallState:
 def processing(module: Optional[str] = None):
     # executed on module import
     def inner(func):
-        func_name = func.__name__
-        if module:
-            func_name = f"{module}.{func_name}"
-
         @wraps(func)
         def callWrapper(data, field, flags, *args, **kwargs):
             kwargs["to_mask"] = _getMaskingThresh(kwargs)
             return func(data, field, flags, *args, **kwargs)
 
-        FUNC_MAP[func_name] = callWrapper
+        FUNC_MAP[func.__name__] = callWrapper
         return callWrapper
 
     return inner
@@ -63,8 +59,6 @@ def flagging(masking: MaskingStrT = "all", module: Optional[str] = None):
 
     def inner(func):
         func_name = func.__name__
-        if module:
-            func_name = f"{module}.{func_name}"
 
         # executed if a register-decorated function is called,
         # nevertheless if it is called plain or via `SaQC.func`.

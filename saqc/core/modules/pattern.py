@@ -5,11 +5,10 @@ from __future__ import annotations
 from typing import Sequence
 
 from saqc.constants import BAD
-from saqc.core.modules.base import ModuleBase
 import saqc
 
 
-class Pattern(ModuleBase):
+class Pattern:
     def flagPatternByDTW(
         self,
         field,
@@ -20,9 +19,9 @@ class Pattern(ModuleBase):
         flag=BAD,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("flagPatternByDTW", locals())
+        return self._defer("flagPatternByDTW", locals())
 
     def flagPatternByWavelet(
         self, field, reference, widths=(1, 2, 4, 8), waveform="mexh", flag=BAD, **kwargs
     ) -> saqc.SaQC:
-        return self.defer("flagPatternByWavelet", locals())
+        return self._defer("flagPatternByWavelet", locals())

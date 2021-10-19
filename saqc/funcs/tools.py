@@ -21,7 +21,7 @@ _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
 
 @processing(module="tools")
-def copy(
+def copyField(
     data: DictOfSeries, field: str, flags: Flags, new_field: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -58,7 +58,7 @@ def copy(
 
 
 @processing(module="tools")
-def drop(
+def dropField(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -88,7 +88,7 @@ def drop(
 
 
 @processing(module="tools")
-def rename(
+def renameField(
     data: DictOfSeries, field: str, flags: Flags, new_name: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -120,7 +120,7 @@ def rename(
 
 
 @processing(module="tools")
-def mask(
+def maskField(
     data: DictOfSeries,
     field: str,
     flags: Flags,
