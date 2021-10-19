@@ -18,6 +18,7 @@ def assignKNNScore(
     field: str,
     flags: Flags,
     fields: Sequence[str],
+    target: str = "kNNscores",
     n: int = 10,
     func: Callable[[pd.Series], float] = np.sum,
     freq: Union[float, str] = np.inf,
@@ -111,7 +112,7 @@ def assignKNNScore(
     val_frame.dropna(inplace=True)
 
     if val_frame.empty:
-        flags[:, field] = UNTOUCHED
+        flags[:, target] = UNTOUCHED
         return data, flags
 
     # partitioning
@@ -144,8 +145,8 @@ def assignKNNScore(
 
         score_ser[partition.index] = resids
 
-    flags[field] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)
+    flags[target] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)
 
-    data[field] = score_ser
+    data[target] = score_ser
 
     return data, flags
