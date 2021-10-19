@@ -38,7 +38,6 @@ class Outliers(ModuleBase):
         iter_start: float = 0.5,
         partition: Optional[Union[int, FreqString]] = None,
         partition_min: int = 11,
-        partition_trafo: bool = True,
         stray_range: Optional[FreqString] = None,
         drop_flagged: bool = False,  # TODO: still a case ?
         thresh: float = 3.5,
