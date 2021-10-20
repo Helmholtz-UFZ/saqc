@@ -23,7 +23,8 @@ STATSDICT = {
     "flagged percentage": lambda x, y, z: round(((y >= z).sum()) / len(x), 2),
 }
 
-PLOT_KWARGS = {"alpha": 0.8, "linewidth": 1}
+PLOT_KWARGS = {"alpha": 0.8,
+               "linewidth": 1}
 AX_KWARGS = {}
 FIG_KWARGS = {"figsize": (16, 9)}
 SCATTER_KWARGS = {
@@ -34,7 +35,6 @@ SCATTER_KWARGS = {
     "edgecolors": "black",
     "s": 70,
 }
-
 
 def makeFig(
     data: DiosLikeT,
