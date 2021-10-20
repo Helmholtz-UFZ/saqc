@@ -134,7 +134,7 @@ def assignKNNScore(
             continue
 
         sample_size = partition.shape[0]
-        nn_neighbors = min(n - 1, max(sample_size, 2))
+        nn_neighbors = min(n, max(sample_size, 2) - 1)
         dist, *_ = ts_ops.kNN(
             partition.values, nn_neighbors, algorithm=method, metric=metric, p=p
         )
