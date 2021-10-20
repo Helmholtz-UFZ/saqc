@@ -18,11 +18,9 @@ def assignKNNScore(
     field: str,
     flags: Flags,
     fields: Sequence[str],
+    target: str = "kNNscores",
     n: int = 10,
-    trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
-    trafo_on_partition: bool = True,
     func: Callable[[pd.Series], float] = np.sum,
-    target: str = "kNN_scores",
     freq: Union[float, str] = np.inf,
     min_periods: int = 2,
     method: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
@@ -56,20 +54,14 @@ def assignKNNScore(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
     field : str
-        The reference variable, the deviation from wich determines the flagging.
+        Dummy Variable.
     flags : saqc.flags
         A flags object, holding flags and additional informations related to `data`.fields
     n : int, default 10
         The number of nearest neighbors to which the distance is comprised in every datapoints scoring calculation.
-    trafo : Callable[np.array, np.array], default lambda x: x
-        Transformation to apply on the variables before kNN scoring
-    trafo_on_partition : bool, default True
-        Weather or not to apply the transformation `trafo` onto the whole variable or onto each partition seperatly.
     func : Callable[numpy.array, float], default np.sum
         A function that assigns a score to every one dimensional array, containing the distances
         to every datapoints `n` nearest neighbors.
-    target : str, default 'kNN_scores'
-        Name of the field, where the resulting scores should be written to.
     freq : {np.inf, float, str}, default np.inf
         Determines the segmentation of the data into partitions, the kNN algorithm is
         applied onto individually.
@@ -114,16 +106,13 @@ def assignKNNScore(
 
     val_frame = data[fields]
     score_index = val_frame.index_of("shared")
-    score_ser = pd.Series(np.nan, index=score_index, name=target)
+    score_ser = pd.Series(np.nan, index=score_index, name=field)
 
     val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
     val_frame.dropna(inplace=True)
 
-    if not trafo_on_partition:
-        val_frame = val_frame.transform(trafo)
-
     if val_frame.empty:
-        flags[:, field] = UNTOUCHED
+        flags[:, target] = UNTOUCHED
         return data, flags
 
     # partitioning
@@ -143,12 +132,9 @@ def assignKNNScore(
     for _, partition in partitions:
         if partition.empty or (partition.shape[0] < min_periods):
             continue
-        if trafo_on_partition:
-            partition = partition.transform(trafo)
-            partition.dropna(inplace=True)
 
         sample_size = partition.shape[0]
-        nn_neighbors = min(n - 1, max(sample_size, 2))
+        nn_neighbors = min(n, max(sample_size, 2) - 1)
         dist, *_ = ts_ops.kNN(
             partition.values, nn_neighbors, algorithm=method, metric=metric, p=p
         )
@@ -159,9 +145,6 @@ def assignKNNScore(
 
         score_ser[partition.index] = resids
 
-    # TODO: this unconditionally overwrite a column, may we should fire a warning ? -- palmb
-    if target in flags.columns:
-        flags.drop(target)
     flags[target] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)
 
     data[target] = score_ser

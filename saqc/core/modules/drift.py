@@ -70,7 +70,6 @@ class Drift:
         maintenance_field: str,
         model: Callable[..., float],
         cal_range: int = 5,
-        set_flags: bool = False,  # Todo: remove, user should use flagManual
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
