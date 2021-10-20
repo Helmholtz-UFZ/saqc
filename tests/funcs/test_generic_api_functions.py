@@ -40,5 +40,3 @@ def test_addFieldProcGeneric(data):
     assert "tmp2" in data.columns and (data["tmp2"] == data["var1"] + data["var2"]).all(
         axis=None
     )
-
-
