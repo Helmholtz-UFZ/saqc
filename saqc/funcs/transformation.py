@@ -9,7 +9,7 @@ from dios import DictOfSeries
 from saqc.core import flagging, Flags
 
 
-@flagging(masking="field", module="transformation")
+@flagging(masking="field")
 def transform(
     data: DictOfSeries,
     field: str,

@@ -30,7 +30,7 @@ _SUPPORTED_METHODS = Literal[
 ]
 
 
-@flagging(masking="field", module="interpolation")
+@flagging(masking="field")
 def interpolateByRolling(
     data: DictOfSeries,
     field: str,
@@ -105,7 +105,7 @@ def interpolateByRolling(
     return data, flags
 
 
-@flagging(masking="field", module="interpolation")
+@flagging(masking="field")
 def interpolateInvalid(
     data: DictOfSeries,
     field: str,
@@ -189,7 +189,7 @@ def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
     return data.fillna(fill_value).astype(dtype)
 
 
-@processing(module="interpolation")
+@processing()
 def interpolateIndex(
     data: DictOfSeries,
     field: str,

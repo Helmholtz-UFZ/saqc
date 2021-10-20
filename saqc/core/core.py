@@ -14,7 +14,7 @@ from dios import DictOfSeries, to_dios
 
 from saqc.core.flags import initFlagsLike, Flags
 from saqc.core.register import FUNC_MAP
-from saqc.core.modules import FuncModules
+from saqc.core.modules import FunctionsMixin
 from saqc.core.translator.basetranslator import Translator, FloatTranslator
 from saqc.lib.tools import toSequence
 from saqc.lib.types import (
@@ -106,14 +106,13 @@ class Accessor:
         return self._obj.__repr__()
 
 
-class SaQC(FuncModules):
+class SaQC(FunctionsMixin):
     def __init__(
         self,
         data,
         flags=None,
         scheme: Translator = None,
     ):
-        super().__init__(self)
         data, flags = _prepInput(data, flags)
         self._data = data
         self._flags = self._initFlags(data, flags)
@@ -235,7 +234,7 @@ class SaQC(FuncModules):
             for field, target in zip(fields, targets):
                 if field != target:
                     out = out._callFunction(
-                        FUNC_MAP["tools.copy"],
+                        FUNC_MAP["copyField"],
                         data=out._data,
                         flags=out._flags,
                         field=field,

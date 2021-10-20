@@ -20,7 +20,7 @@ from saqc.lib.ts_operators import (
 )
 
 
-@flagging(masking="field", module="curvefit")
+@flagging(masking="field")
 def fitPolynomial(
     data: DictOfSeries,
     field: str,

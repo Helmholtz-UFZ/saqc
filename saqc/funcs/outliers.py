@@ -18,12 +18,12 @@ from saqc.core import flagging, Flags
 from saqc.lib.types import FreqString
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta
 from saqc.funcs.scores import assignKNNScore
-from saqc.funcs.tools import copy, drop
+from saqc.funcs.tools import copyField, dropField
 from saqc.funcs.transformation import transform
 import saqc.lib.ts_operators as ts_ops
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagByStray(
     data: DictOfSeries,
     field: str,
@@ -399,7 +399,7 @@ def _expFit(
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@flagging(masking="all", module="outliers")
+@flagging(masking="all")
 def flagMVScores(
     data: DictOfSeries,
     field: str,
@@ -556,7 +556,7 @@ def flagMVScores(
     """
 
     for f in fields:
-        data, flags = copy(data, f, flags, f"trafo_{f}")
+        data, flags = copyField(data, f, flags, f"trafo_{f}")
         data, flags = transform(data, f"trafo_{f}", flags, func=trafo, freq=partition)
 
     data, flags = assignKNNScore(
@@ -597,14 +597,14 @@ def flagMVScores(
         flag=flag,
         **kwargs,
     )
-    data, flags = drop(data, "kNN", flags)
+    data, flags = dropField(data, "kNN", flags)
     for f in fields:
-        data, flags = drop(data, f"trafo_{f}", flags)
+        data, flags = dropField(data, f"trafo_{f}", flags)
 
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagRaise(
     data: DictOfSeries,
     field: str,
@@ -792,7 +792,7 @@ def flagRaise(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagMAD(
     data: DictOfSeries,
     field: str,
@@ -862,7 +862,7 @@ def flagMAD(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagOffset(
     data: DictOfSeries,
     field: str,
@@ -1030,7 +1030,7 @@ def flagOffset(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagByGrubbs(
     data: DictOfSeries,
     field: str,
@@ -1153,7 +1153,7 @@ def flagByGrubbs(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@flagging(masking="field")
 def flagRange(
     data: DictOfSeries,
     field: str,
@@ -1196,7 +1196,7 @@ def flagRange(
     return data, flags
 
 
-@flagging(masking="all", module="outliers")
+@flagging(masking="all")
 def flagCrossStatistic(
     data: DictOfSeries,
     field: str,

@@ -27,7 +27,7 @@ METHOD2ARGS = {
 }
 
 
-@processing(module="resampling")
+@processing()
 def linear(
     data: DictOfSeries, field: str, flags: Flags, freq: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -70,7 +70,7 @@ def linear(
     return interpolateIndex(data, field, flags, freq, "time", **kwargs)
 
 
-@processing(module="resampling")
+@processing()
 def interpolate(
     data: DictOfSeries,
     field: str,
@@ -135,7 +135,7 @@ def interpolate(
     )
 
 
-@processing(module="resampling")
+@processing()
 def shift(
     data: DictOfSeries,
     field: str,
@@ -216,7 +216,7 @@ def shift(
     return data, flags
 
 
-@processing(module="resampling")
+@processing()
 def resample(
     data: DictOfSeries,
     field: str,
@@ -412,7 +412,7 @@ def _inverseShift(
     return source.fillna(fill_value).astype(dtype, copy=False)
 
 
-@processing(module="resampling")
+@processing()
 def reindexFlags(
     data: DictOfSeries,
     field: str,
@@ -542,6 +542,6 @@ def reindexFlags(
     flags.history[field] = flags.history[field].append(history)
 
     if drop:
-        data, flags = tools.drop(data=data, flags=flags, field=source)
+        data, flags = tools.dropField(data=data, flags=flags, field=source)
 
     return data, flags

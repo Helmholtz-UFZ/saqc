@@ -28,7 +28,7 @@ from saqc.core.register import _isflagged, flagging
 # NOTE:
 # masking="none" as we otherwise might interprete
 # the masked values as missing data
-@flagging(masking="none", module="breaks")
+@flagging(masking="none")
 def flagMissing(
     data: DictOfSeries,
     field: str,
@@ -68,7 +68,7 @@ def flagMissing(
     return data, flags
 
 
-@flagging(masking="field", module="breaks")
+@flagging(masking="field")
 def flagIsolated(
     data: DictOfSeries,
     field: str,
@@ -147,7 +147,7 @@ def flagIsolated(
     return data, flags
 
 
-@flagging(masking="field", module="breaks")
+@flagging(masking="field")
 def flagJumps(
     data: DictOfSeries,
     field: str,

@@ -72,7 +72,6 @@ def _execGeneric(
     globs = {
         "isflagged": partial(_dslIsFlagged, flags),
         "ismissing": lambda var: pd.isnull(var),
-        "mask": lambda cond: data[cond.name].mask(cond),
         "this": field,
         "GOOD": GOOD,
         "BAD": BAD,
@@ -83,8 +82,8 @@ def _execGeneric(
     return func(*args)
 
 
-@processing(module="generic")
-def process(
+@processing()
+def genericProcess(
     data: DictOfSeries,
     field: str,
     flags: Flags,
@@ -151,8 +150,8 @@ def process(
     return data, flags
 
 
-@flagging(masking="all", module="generic")
-def flag(
+@flagging(masking="all")
+def genericFlag(
     data: DictOfSeries,
     field: str,
     flags: Flags,

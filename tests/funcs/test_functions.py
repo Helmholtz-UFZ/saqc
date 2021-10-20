@@ -15,7 +15,7 @@ from saqc.funcs.drift import (
 )
 from saqc.funcs.outliers import flagCrossStatistic, flagRange
 from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
-from saqc.funcs.tools import drop, copy, mask
+from saqc.funcs.tools import dropField, copyField, maskTime
 from saqc.funcs.resampling import reindexFlags
 from saqc.funcs.breaks import flagIsolated
 
@@ -93,8 +93,8 @@ def test_flagSesonalRange(data, field):
         start = f"{test['startmonth']:02}-{test['startday']:02}T00:00:00"
         end = f"{test['endmonth']:02}-{test['endday']:02}T00:00:00"
 
-        data, flags = copy(data, field, flags, field + "_masked")
-        data, flags = mask(
+        data, flags = copyField(data, field, flags, field + "_masked")
+        data, flags = maskTime(
             data,
             newfield,
             flags,
@@ -110,7 +110,7 @@ def test_flagSesonalRange(data, field):
         data, flags = reindexFlags(
             data, field, flags, method="match", source=newfield, flag=BAD
         )
-        data, flags = drop(data, newfield, flags)
+        data, flags = dropField(data, newfield, flags)
         flagged = flags[field] > UNFLAGGED
         assert flagged.sum() == expected
 

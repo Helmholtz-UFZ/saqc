@@ -122,13 +122,13 @@ result_data.plot()
 ## Residues calculation
 
 We want to evaluate the residues of the model, in order to score the outlierish-nes of every point. 
-First, we retrieve the residues via the :py:func:`saqc.generic.process <docs.func_modules.generic.process>` method.
+First, we retrieve the residues via the :py:func:`saqc.genericProcess <docs.func_modules.genericProcess>` method.
 The method generates a new variable, resulting from the processing of other variables. It automatically
 generates the field name it gets passed - so we do not have to generate new variable beforehand. The function we apply 
 is just the computation of the variables difference for any timestep.
 
 ```python
-i_saqc = i_saqc.generic.process('incidents_residues', func=lambda incidents, incidents_model:incidents - incidents_model)
+i_saqc = i_saqc.genericProcess('incidents_residues', func=lambda incidents, incidents_model:incidents - incidents_model)
 ```
 
 Next, we score the residues simply by computing their [Z-scores](https://en.wikipedia.org/wiki/Standard_score).
@@ -140,7 +140,7 @@ i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_mean',
 i_saqc = i_saqc.rolling.roll(field='incidents_residues', target='residues_std',
                              window='27D',
                              func=np.std)
-i_saqc = i_saqc.generic.process(field='incidents_scores',
+i_saqc = i_saqc.genericProcess(field='incidents_scores',
                                 func=lambda This, residues_mean, residues_std: (
                                                                                            This - residues_mean) / residues_std)
 ```

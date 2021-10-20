@@ -8,21 +8,20 @@ import numpy as np
 import pandas as pd
 
 from saqc.constants import UNFLAGGED, BAD
-from saqc.core.modules.base import ModuleBase
 import saqc
 
 
-class Generic(ModuleBase):
-    def process(
+class Generic:
+    def genericProcess(
         self,
         field: str,
         func: Callable[[pd.Series], pd.Series],
         to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("process", locals())
+        return self._defer("genericProcess", locals())
 
-    def flag(
+    def genericFlag(
         self,
         field: str,
         func: Callable[[pd.Series], pd.Series],
@@ -30,4 +29,4 @@ class Generic(ModuleBase):
         to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flag", locals())
+        return self._defer("genericFlag", locals())

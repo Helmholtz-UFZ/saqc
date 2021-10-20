@@ -7,20 +7,19 @@ from typing_extensions import Literal
 
 import saqc
 from saqc.lib.types import FreqString
-from saqc.core.modules.base import ModuleBase
 
 
-class Tools(ModuleBase):
-    def copy(self, field: str, new_field: str, **kwargs) -> saqc.SaQC:
-        return self.defer("copy", locals())
+class Tools:
+    def copyField(self, field: str, new_field: str, **kwargs) -> saqc.SaQC:
+        return self._defer("copyField", locals())
 
-    def drop(self, field: str, **kwargs) -> saqc.SaQC:
-        return self.defer("drop", locals())
+    def dropField(self, field: str, **kwargs) -> saqc.SaQC:
+        return self._defer("dropField", locals())
 
-    def rename(self, field: str, new_name: str, **kwargs) -> saqc.SaQC:
-        return self.defer("rename", locals())
+    def renameField(self, field: str, new_name: str, **kwargs) -> saqc.SaQC:
+        return self._defer("renameField", locals())
 
-    def mask(
+    def maskTime(
         self,
         field: str,
         mode: Literal["periodic", "mask_field"],
@@ -30,7 +29,7 @@ class Tools(ModuleBase):
         closed: bool = True,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("mask", locals())
+        return self._defer("maskTime", locals())
 
     def plot(
         self,
@@ -44,4 +43,4 @@ class Tools(ModuleBase):
         store_kwargs: Optional[dict] = None,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("plot", locals())
+        return self._defer("plot", locals())

@@ -9,22 +9,21 @@ from dios import DictOfSeries
 from typing_extensions import Literal
 
 from saqc.constants import BAD
-from saqc.core.modules.base import ModuleBase
 import saqc
 
 
-class FlagTools(ModuleBase):
+class FlagTools:
     def clearFlags(self, field: str, **kwargs) -> saqc.SaQC:
-        return self.defer("clearFlags", locals())
+        return self._defer("clearFlags", locals())
 
     def forceFlags(self, field: str, flag: float = BAD, **kwargs) -> saqc.SaQC:
-        return self.defer("forceFlags", locals())
+        return self._defer("forceFlags", locals())
 
     def flagDummy(self, field: str, **kwargs) -> saqc.SaQC:
-        return self.defer("flagDummy", locals())
+        return self._defer("flagDummy", locals())
 
     def flagUnflagged(self, field: str, flag: float = BAD, **kwargs) -> saqc.SaQC:
-        return self.defer("flagUnflagged", locals())
+        return self._defer("flagUnflagged", locals())
 
     def flagManual(
         self,
@@ -35,4 +34,4 @@ class FlagTools(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flagManual", locals())
+        return self._defer("flagManual", locals())

@@ -7,11 +7,10 @@ from dios import DictOfSeries
 from typing_extensions import Literal
 
 from saqc.constants import BAD
-from saqc.core.modules.base import ModuleBase
 import saqc
 
 
-class Curvefit(ModuleBase):
+class Curvefit:
     def fitPolynomial(
         self,
         field: str,
@@ -23,4 +22,4 @@ class Curvefit(ModuleBase):
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("fitPolynomial", locals())
+        return self._defer("fitPolynomial", locals())

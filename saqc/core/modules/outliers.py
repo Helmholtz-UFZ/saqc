@@ -9,12 +9,11 @@ import pandas as pd
 from typing_extensions import Literal
 
 from saqc.constants import BAD
-from saqc.core.modules.base import ModuleBase
 import saqc
 from saqc.lib.types import FreqString
 
 
-class Outliers(ModuleBase):
+class Outliers:
     def flagByStray(
         self,
         field: str,
@@ -25,7 +24,7 @@ class Outliers(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flagByStray", locals())
+        return self._defer("flagByStray", locals())
 
     def flagMVScores(
         self,
@@ -45,7 +44,7 @@ class Outliers(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flagMVScores", locals())
+        return self._defer("flagMVScores", locals())
 
     def flagRaise(
         self,
@@ -60,7 +59,7 @@ class Outliers(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flagRaise", locals())
+        return self._defer("flagRaise", locals())
 
     def flagMAD(
         self,
@@ -70,7 +69,7 @@ class Outliers(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flagMAD", locals())
+        return self._defer("flagMAD", locals())
 
     def flagOffset(
         self,
@@ -82,7 +81,7 @@ class Outliers(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flagOffset", locals())
+        return self._defer("flagOffset", locals())
 
     def flagByGrubbs(
         self,
@@ -94,7 +93,7 @@ class Outliers(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flagByGrubbs", locals())
+        return self._defer("flagByGrubbs", locals())
 
     def flagRange(
         self,
@@ -104,7 +103,7 @@ class Outliers(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flagRange", locals())
+        return self._defer("flagRange", locals())
 
     def flagCrossStatistic(
         self,
@@ -115,4 +114,4 @@ class Outliers(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flagCrossStatistic", locals())
+        return self._defer("flagCrossStatistic", locals())

@@ -12,7 +12,7 @@ from saqc.lib.tools import toSequence
 import saqc.lib.ts_operators as ts_ops
 
 
-@flagging(masking="all", module="scores")
+@flagging(masking="all")
 def assignKNNScore(
     data: DictOfSeries,
     field: str,

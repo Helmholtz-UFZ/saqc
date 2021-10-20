@@ -17,7 +17,7 @@ from saqc.lib.tools import customRoller, getFreqDelta, statPass
 from saqc.lib.types import FreqString
 
 
-@flagging(masking="field", module="constants")
+@flagging(masking="field")
 def flagConstants(
     data: DictOfSeries,
     field: str,
@@ -81,7 +81,7 @@ def flagConstants(
     return data, flags
 
 
-@flagging(masking="field", module="constants")
+@flagging(masking="field")
 def flagByVariance(
     data: DictOfSeries,
     field: str,

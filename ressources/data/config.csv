@@ -1,6 +1,6 @@
 varname    ; test
 #----------;---------------------------------------
-SM2        ; resampling.shift(freq="15Min")
-SM2        ; breaks.flagMissing()
-'SM(1|2)+' ; outliers.flagRange(min=10, max=60)
-SM2        ; outliers.flagMAD(window="30d", z=3.5)
+SM2        ; shift(freq="15Min")
+SM2        ; flagMissing()
+'SM(1|2)+' ; flagRange(min=10, max=60)
+SM2        ; flagMAD(window="30d", z=3.5)

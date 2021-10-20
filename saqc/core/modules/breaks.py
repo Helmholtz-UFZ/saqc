@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 from saqc.constants import BAD, UNFLAGGED
-from saqc.core.modules.base import ModuleBase
 import saqc
 from saqc.lib.types import FreqString
 
 
-class Breaks(ModuleBase):
+class Breaks:
     def flagMissing(
         self, field: str, flag: float = BAD, to_mask: float = UNFLAGGED, **kwargs
     ) -> saqc.SaQC:
-        return self.defer("flagMissing", locals())
+        return self._defer("flagMissing", locals())
 
     def flagIsolated(
         self,
@@ -22,7 +21,7 @@ class Breaks(ModuleBase):
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("flagIsolated", locals())
+        return self._defer("flagIsolated", locals())
 
     def flagJumps(
         self,
@@ -33,4 +32,4 @@ class Breaks(ModuleBase):
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("flagJumps", locals())
+        return self._defer("flagJumps", locals())

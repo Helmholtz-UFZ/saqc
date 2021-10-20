@@ -8,12 +8,11 @@ import numpy as np
 from typing_extensions import Literal
 
 from saqc.constants import BAD
-from saqc.core.modules.base import ModuleBase
 import saqc
 from saqc.lib.types import FreqString
 
 
-class ChangePoints(ModuleBase):
+class ChangePoints:
     def flagChangePoints(
         self,
         field: str,
@@ -27,7 +26,7 @@ class ChangePoints(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("flagChangePoints", locals())
+        return self._defer("flagChangePoints", locals())
 
     def assignChangePointCluster(
         self,
@@ -47,4 +46,4 @@ class ChangePoints(ModuleBase):
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("assignChangePointCluster", locals())
+        return self._defer("assignChangePointCluster", locals())

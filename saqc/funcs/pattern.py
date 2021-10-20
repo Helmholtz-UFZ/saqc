@@ -12,7 +12,7 @@ from saqc.core.register import flagging
 from saqc.lib.tools import customRoller
 
 
-@flagging(masking="field", module="pattern")
+@flagging(masking="field")
 def flagPatternByWavelet(
     data,
     field,
@@ -180,7 +180,7 @@ def calculateDistanceByDTW(
     return distances.reindex(index=data.index)  # reinsert NaNs
 
 
-@flagging(masking="field", module="pattern")
+@flagging(masking="field")
 def flagPatternByDTW(
     data,
     field,
