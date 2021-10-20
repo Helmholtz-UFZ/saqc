@@ -203,7 +203,7 @@ def test_flagManual(data, field):
 
     kwargs_list = [
         dict(mdata=mdata, mflag="a", method="plain", flag=BAD),
-        dict(mdata=mdata.to_list(), mflag="a", method="plain", flag=BAD),
+        # dict(mdata=mdata.to_list(), mflag="a", method="plain", flag=BAD),
         dict(mdata=mdata, mflag="a", method="ontime", flag=BAD),
         dict(mdata=shrinked, mflag="a", method="ontime", flag=BAD),
     ]
@@ -259,19 +259,6 @@ def test_flagManual(data, field):
     assert isflagged[curr] == expected[curr]
 
     # check left-open / bfill
-    expected.loc[dat.index[-1]] = 0  # this time the last is False
-    _, fl = flagManual(*args, mdata=mdata, mflag=1, method="left-open", flag=BAD)
-    isflagged = fl[field] > UNFLAGGED
-    last = expected.index[0]
-    assert isflagged[last] == expected[last]
-
-    for curr in expected.index[1:]:
-        expected_value = mdata[curr]
-        # datetime slicing is inclusive !
-        i = isflagged[last:curr].index[1:]
-        chunk = isflagged.loc[i]
-        assert (chunk == expected_value).all()
-        last = curr
 
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
