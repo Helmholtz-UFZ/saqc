@@ -58,12 +58,12 @@ dataset and the routines to inspect, quality control and/or process them.
 The content of such a configuration could look like this:
 
 ```
-varname    ; test                                
+varname    ; test
 #----------;------------------------------------
-SM2        ; harm_shift2Grid(freq="15Min")       
-SM2        ; flagMissing(nodata=NAN)             
-'SM(1|2)+' ; flagRange(min=10, max=60)           
-SM2        ; spikes_flagMad(window="30d", z=3.5)
+SM2        ; shiftToFreq(freq="15Min")
+SM2        ; flagMissing()
+'SM(1|2)+' ; flagRange(min=10, max=60)
+SM2        ; flagMad(window="30d", z=3.5)
 ```
 
 As soon as the basic inputs, a dataset and the configuration file are
@@ -81,15 +81,16 @@ The following snippet implements the same configuration given above through
 the Python-API:
 
 ```python
-from saqc import SaQC, SimpleFlagger
+import numpy as np
+from saqc import SaQC
 
-saqc = (SaQC(SimpleFlagger(), data)
-        .harm_shift2Grid("SM2", freq="15Min")
-        .flagMissing("SM2", nodata=np.nan)
+saqc = (SaQC(data)
+        .shiftToFreq("SM2", freq="15Min")
+        .flagMissing("SM2")
         .flagRange("SM(1|2)+", regex=True, min=10, max=60)
-        .spikes_flagMad("SM2", window="30d", z=3.5))
-        
-data, flagger = saqc.getResult()
+        .flagMad("SM2", window="30d", z=3.5))
+
+data, flags = saqc.getResult()
 ```
 
 ## Installation

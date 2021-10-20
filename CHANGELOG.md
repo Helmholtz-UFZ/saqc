@@ -79,10 +79,9 @@
 ## Breaking Changes
 - register is now a decorator instead of a wrapper
 
-
 # 1.5
 
-coming soon...
+coming soon ...
 
 ## Features
 

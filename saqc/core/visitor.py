@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import ast
-
 import numpy as np
 import pandas as pd
 
+from saqc.constants import *
 from saqc.core.register import FUNC_MAP
 import saqc.lib.ts_operators as ts_ops
 
@@ -39,17 +39,18 @@ ENVIRONMENT = {
     "zLog": ts_ops.zeroLog,
 }
 
-RESERVED = {"GOOD", "BAD", "UNFLAGGED", "NODATA"}
+# TODO:
+# get from saqc.constants
+RESERVED = {"GOOD", "BAD", "UNFLAGGED"}
 
 
 class ConfigExpressionParser(ast.NodeVisitor):
-
     """
     Generic configuration functions will be rewritten as lambda functions
     and variables that need a look up in `data` will act as arguments, e.g.:
-      `flagGeneric(func=(x != NODATA) & (y < 3))`
+      `flagGeneric(func=(x != 4) & (y < 3))`
       will be rewritten to
-      `lambda x, y: (x != NODATA) & (y < 3)`
+      `lambda x, y: (x != 4) & (y < 3)`
 
     The main purpose of this class is to identify all such lambda arguments
     and check the given expression for accordance with the restrictions
@@ -134,15 +135,16 @@ class ConfigFunctionParser(ast.NodeVisitor):
         ast.Index,
         ast.USub,
         ast.List,
+        ast.Attribute,
     )
 
-    def __init__(self, flagger):
+    def __init__(self):
 
         self.kwargs = {}
         self.environment = {
-            "GOOD": flagger.GOOD,
-            "BAD": flagger.BAD,
-            "UNFLAGGED": flagger.UNFLAGGED,
+            "GOOD": GOOD,
+            "BAD": BAD,
+            "UNFLAGGED": UNFLAGGED,
             **ENVIRONMENT,
         }
 
@@ -157,7 +159,11 @@ class ConfigFunctionParser(ast.NodeVisitor):
         if node.args:
             raise TypeError("only keyword arguments are supported")
 
-        func_name = node.func.id
+        if isinstance(node.func, ast.Attribute):
+            func_name = f"{node.func.value.id}.{node.func.attr}"  # type: ignore
+        else:
+            func_name = node.func.id  # type: ignore
+
         if func_name not in FUNC_MAP:
             raise NameError(f"unknown function '{func_name}'")
 
@@ -202,7 +208,7 @@ class ConfigFunctionParser(ast.NodeVisitor):
         co = compile(
             ast.fix_missing_locations(ast.Interactive(body=[vnode])),
             "<ast>",
-            mode="single"
+            mode="single",
         )
         # NOTE: only pass a copy to not clutter the self.environment
         exec(co, {**self.environment}, self.kwargs)

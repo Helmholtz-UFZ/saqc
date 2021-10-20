@@ -2,24 +2,25 @@
 # -*- coding: utf-8 -*-
 
 import re
-from typing import Sequence, Union, Any, Iterator
-
+import datetime
 import itertools
+import warnings
+from typing import Sequence, Union, Any, Iterator, Callable
+
 import numpy as np
 import numba as nb
 import pandas as pd
 from scipy import fft
-import logging
-import dios
 
+import dios
 import collections
 from scipy.cluster.hierarchy import linkage, fcluster
+
 from saqc.lib.types import T
 
 # keep this for external imports
+# TODO: fix the external imports
 from saqc.lib.rolling import customRoller
-
-logger = logging.getLogger("SaQC")
 
 
 def assertScalar(name, value, optional=False):
@@ -29,12 +30,21 @@ def assertScalar(name, value, optional=False):
         raise ValueError(f"'{name}' needs to be a scalar")
 
 
-def toSequence(value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = None) -> Sequence[T]:
+def toSequence(
+    value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = None
+) -> Sequence[T]:
     if value is None:
         value = default
     if np.isscalar(value):
         value = [value]
     return value
+
+
+def toOffset(freq_string: str, raw: bool = False) -> datetime.timedelta:
+    offset = pd.tseries.frequencies.to_offset(freq_string)
+    if raw:
+        return offset
+    return offset.delta.to_pytimedelta()
 
 
 @nb.jit(nopython=True, cache=True)
@@ -69,9 +79,9 @@ def slidingWindowIndices(dates, window_size, iter_delta=None):
     + There is no way to provide a step size, i.e. to not start the
       next rolling window at the very next row in the DataFrame/Series
     + The inconsistent bahaviour with numerical vs frequency based
-      window sizes. When winsz is an integer, all windows are equally
-      large (winsz=5 -> windows contain 5 elements), but variable in
-      size, when the winsz is a frequency string (winsz="2D" ->
+      window sizes. When window is an integer, all windows are equally
+      large (window=5 -> windows contain 5 elements), but variable in
+      size, when the window is a frequency string (window="2D" ->
       window grows from size 1 during the first iteration until it
       covers the given frequency). Especially the bahaviour with
       frequency strings is quite unfortunate when calling methods
@@ -116,57 +126,6 @@ def inferFrequency(data: pd.Series) -> pd.DateOffset:
     return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
 
 
-def retrieveTrustworthyOriginal(
-    data: dios.DictOfSeries, field: str, flagger=None, level: Any = None
-) -> dios.DictOfSeries:
-    """Columns of data passed to the saqc runner may not be sampled to its original sampling rate - thus
-    differenciating between missng value - nans und fillvalue nans is impossible.
-
-    This function:
-    (1) if flagger is None:
-        (a) estimates the sampling rate of the input dataseries by dropping all nans and then returns the series at the
-            estimated samplng rate.
-
-    (2) if "flagger" is not None but "level" is None:
-        (a) all values are dropped, that are flagged worse then flagger.GOOD. (so unflagged values wont be dropped)
-        (b) estimates the sampling rate of the input dataseries by dropping all nans and then returns the series at the
-            estimated samplng rate.
-    (3) if "flagger" is not None and "level" is not None:
-        (a) all values are dropped, that are flagged worse then level. (so unflagged values wont be dropped)
-        (b) estimates the sampling rate of the input dataseries by dropping all nans and then returns the series at the
-            estimated samplng rate.
-
-    Note, that the passed dataseries should be harmonized to an equidistant
-        frequencie grid (maybe including blow up entries).
-
-    :param data:        DataFrame. The Data frame holding the data containing 'field'.
-    :param field:       String. Fieldname of the column in data, that you want to sample to original sampling rate.
-                        It has to have a harmonic
-    :param flagger:     None or a flagger object.
-    :param level:       Lower bound of flags that are excepted for data. Must be a flag the flagger can handle.
-
-    """
-    dataseries = data[field]
-
-    if flagger is not None:
-        mask = flagger.isFlagged(field, flag=level or flagger.GOOD, comparator="<=")
-        # drop all flags that are suspicious or worse
-        dataseries = dataseries[mask]
-
-    # drop the nan values that may result from any preceeding upsampling of the measurements:
-    dataseries = dataseries.dropna()
-
-    if dataseries.empty:
-        return dataseries, np.nan
-
-    # estimate original data sampling frequencie
-    # (the original series sampling rate may not match data-input sample rate):
-    seconds_rate = dataseries.index.to_series().diff().min().seconds
-    data_rate = pd.tseries.frequencies.to_offset(str(seconds_rate) + "s")
-
-    return dataseries.asfreq(data_rate), data_rate
-
-
 def offset2seconds(offset):
     """Function returns total seconds upon "offset like input
 
@@ -176,7 +135,7 @@ def offset2seconds(offset):
     return pd.Timedelta.total_seconds(pd.Timedelta(offset))
 
 
-def seasonalMask(dtindex, season_start, season_end, include_bounds):
+def periodicMask(dtindex, season_start, season_end, include_bounds):
     """
     This function generates date-periodic/seasonal masks from an index passed.
 
@@ -242,6 +201,7 @@ def seasonalMask(dtindex, season_start, season_end, include_bounds):
     When inclusive_selection="season", all above examples work the same way, only that you now
     determine wich values NOT TO mask (=wich values are to constitute the "seasons").
     """
+
     def _replaceBuilder(stamp):
         keys = ("second", "minute", "hour", "day", "month", "year")
         stamp_list = map(int, re.split(r"[-T:]", stamp)[::-1])
@@ -262,22 +222,27 @@ def seasonalMask(dtindex, season_start, season_end, include_bounds):
     end_replacer = _replaceBuilder(season_end)
 
     if pd.Timestamp(start_replacer(dtindex)) <= pd.Timestamp(end_replacer(dtindex)):
+
         def _selector(x, base_bool=include_bounds):
-            x[start_replacer(x.index):end_replacer(x.index)] = not base_bool
-            return x
-    else:
-        def _selector(x, base_bool=include_bounds):
-            x[:end_replacer(x.index)] = not base_bool
-            x[start_replacer(x.index):] = not base_bool
+            x[start_replacer(x.index) : end_replacer(x.index)] = not base_bool
             return x
 
-    freq = '1' + 'mmmhhhdddMMMYYY'[len(season_start)]
+    else:
+
+        def _selector(x, base_bool=include_bounds):
+            x[: end_replacer(x.index)] = not base_bool
+            x[start_replacer(x.index) :] = not base_bool
+            return x
+
+    freq = "1" + "mmmhhhdddMMMYYY"[len(season_start)]
     return mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
 
 
 def assertDictOfSeries(df: Any, argname: str = "arg") -> None:
     if not isinstance(df, dios.DictOfSeries):
-        raise TypeError(f"{argname} must be of type dios.DictOfSeries, {type(df)} was given")
+        raise TypeError(
+            f"{argname} must be of type dios.DictOfSeries, {type(df)} was given"
+        )
 
 
 def assertSeries(srs: Any, argname: str = "arg") -> None:
@@ -351,16 +316,6 @@ def isQuoted(string):
     return bool(re.search(r"'.*'|\".*\"", string))
 
 
-def dropper(field, to_drop, flagger, default):
-    drop_mask = pd.Series(False, flagger.getFlags(field).index)
-    if to_drop is None:
-        to_drop = default
-    to_drop = toSequence(to_drop)
-    if len(to_drop) > 0:
-        drop_mask |= flagger.isFlagged(field, flag=to_drop)
-    return drop_mask
-
-
 def mutateIndex(index, old_name, new_name):
     pos = index.get_loc(old_name)
     index = index.drop(index[pos])
@@ -368,8 +323,16 @@ def mutateIndex(index, old_name, new_name):
     return index
 
 
-def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", optimize=True,
-                      min_energy=0.2, max_freqs=10, bins=None):
+def estimateFrequency(
+    index,
+    delta_precision=-1,
+    max_rate="10s",
+    min_rate="1D",
+    optimize=True,
+    min_energy=0.2,
+    max_freqs=10,
+    bins=None,
+):
 
     """
     Function to estimate the sampling rate of an index.
@@ -424,23 +387,27 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     """
     index_n = index.to_numpy(float)
     if index.empty:
-        return 'empty', []
+        return "empty", []
 
-    index_n = (index_n - index_n[0])*10**(-9 + delta_precision)
-    delta = np.zeros(int(index_n[-1])+1)
+    index_n = (index_n - index_n[0]) * 10 ** (-9 + delta_precision)
+    delta = np.zeros(int(index_n[-1]) + 1)
     delta[index_n.astype(int)] = 1
     if optimize:
         delta_f = np.abs(fft.rfft(delta, fft.next_fast_len(len(delta))))
     else:
         delta_f = np.abs(fft.rfft(delta))
 
-    len_f = len(delta_f)*2
-    min_energy = delta_f[0]*min_energy
+    len_f = len(delta_f) * 2
+    min_energy = delta_f[0] * min_energy
     # calc/assign low/high freq cut offs (makes life easier):
-    min_rate_i = int(len_f/(pd.Timedelta(min_rate).total_seconds()*(10**delta_precision)))
+    min_rate_i = int(
+        len_f / (pd.Timedelta(min_rate).total_seconds() * (10 ** delta_precision))
+    )
     delta_f[:min_rate_i] = 0
-    max_rate_i = int(len_f/(pd.Timedelta(max_rate).total_seconds()*(10**delta_precision)))
-    hf_cutoff = min(max_rate_i, len_f//2)
+    max_rate_i = int(
+        len_f / (pd.Timedelta(max_rate).total_seconds() * (10 ** delta_precision))
+    )
+    hf_cutoff = min(max_rate_i, len_f // 2)
     delta_f[hf_cutoff:] = 0
     delta_f[delta_f < min_energy] = 0
 
@@ -448,54 +415,66 @@ def estimateFrequency(index, delta_precision=-1, max_rate="10s", min_rate="1D", 
     freqs = []
     f_i = np.argmax(delta_f)
     while (f_i > 0) & (len(freqs) < max_freqs):
-        f = (len_f / f_i)/(60*10**(delta_precision))
+        f = (len_f / f_i) / (60 * 10 ** (delta_precision))
         freqs.append(f)
-        for i in range(1, hf_cutoff//f_i + 1):
-            delta_f[(i*f_i) - min_rate_i:(i*f_i) + min_rate_i] = 0
+        for i in range(1, hf_cutoff // f_i + 1):
+            delta_f[(i * f_i) - min_rate_i : (i * f_i) + min_rate_i] = 0
         f_i = np.argmax(delta_f)
 
     if len(freqs) == 0:
         return None, []
 
     if bins is None:
-        r = range(0, int(pd.Timedelta(min_rate).total_seconds()/60))
+        r = range(0, int(pd.Timedelta(min_rate).total_seconds() / 60))
         bins = [0, 0.1, 0.2, 0.3, 0.4] + [i + 0.5 for i in r]
 
     f_hist, bins = np.histogram(freqs, bins=bins)
     freqs = np.ceil(bins[:-1][f_hist >= 1])
-    gcd_freq = np.gcd.reduce((10*freqs).astype(int))/10
+    gcd_freq = np.gcd.reduce((10 * freqs).astype(int)) / 10
 
-    return str(int(gcd_freq)) + 'min', [str(int(i)) + 'min' for i in freqs]
+    return str(int(gcd_freq)) + "min", [str(int(i)) + "min" for i in freqs]
 
 
 def evalFreqStr(freq, check, index):
-    if check in ['check', 'auto']:
+    if check in ["check", "auto"]:
         f_passed = freq
         freq = index.inferred_freq
         freqs = [freq]
         if freq is None:
             freq, freqs = estimateFrequency(index)
         if freq is None:
-            logging.warning('Sampling rate could not be estimated.')
+            warnings.warn("Sampling rate could not be estimated.")
         if len(freqs) > 1:
-            logging.warning(f"Sampling rate seems to be not uniform!."
-                            f"Detected: {freqs}")
+            warnings.warn(
+                f"Sampling rate seems to be not uniform!." f"Detected: {freqs}"
+            )
 
-        if check == 'check':
+        if check == "check":
             f_passed_seconds = pd.Timedelta(f_passed).total_seconds()
             freq_seconds = pd.Timedelta(freq).total_seconds()
-            if (f_passed_seconds != freq_seconds):
-                logging.warning(f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed}).")
-        elif check == 'auto':
+            if f_passed_seconds != freq_seconds:
+                warnings.warn(
+                    f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed})."
+                )
+        elif check == "auto":
             if freq is None:
-                raise ValueError('Frequency estimation for non-empty series failed with no fall back frequency passed.')
+                raise ValueError(
+                    "Frequency estimation for non-empty series failed with no fall back frequency passed."
+                )
             f_passed = freq
     else:
         f_passed = freq
     return f_passed
 
 
-def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single', population='variables'):
+def detectDeviants(
+    data,
+    metric,
+    norm_spread,
+    norm_frac,
+    linkage_method="single",
+    population="variables",
+):
     """
     Helper function for carrying out the repeatedly upcoming task,
     of detecting variables a group of variables.
@@ -503,7 +482,7 @@ def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'
     "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed
     in respect to a certain metric and linkage method.
 
-    In addition, only a group is considered "normal" if it contains more then `norm_frac` percent of the
+    In addition, only a group is considered "normal" if it contains more then `frac` percent of the
     variables in "fields".
 
     Note, that the function also can be used to detect anormal regimes in a variable by assigning the different regimes
@@ -544,17 +523,19 @@ def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'
 
     condensed = np.abs(dist_mat[tuple(zip(*combs))])
     Z = linkage(condensed, method=linkage_method)
-    cluster = fcluster(Z, norm_spread, criterion='distance')
-    if population == 'variables':
+    cluster = fcluster(Z, norm_spread, criterion="distance")
+    if population == "variables":
         counts = collections.Counter(cluster)
         pop_num = var_num
-    elif population == 'samples':
-        counts = {cluster[j]: 0 for j in range(0,var_num)}
+    elif population == "samples":
+        counts = {cluster[j]: 0 for j in range(0, var_num)}
         for c in range(var_num):
             counts[cluster[c]] += data.iloc[:, c].dropna().shape[0]
         pop_num = np.sum(list(counts.values()))
     else:
-        raise ValueError("Not a valid normality criteria keyword passed. Pass either 'variables' or 'population'.")
+        raise ValueError(
+            "Not a valid normality criteria keyword passed. Pass either 'variables' or 'population'."
+        )
     norm_cluster = -1
 
     for item in counts.items():
@@ -568,3 +549,77 @@ def detectDeviants(data, metric, norm_spread, norm_frac, linkage_method='single'
         return [i for i, x in enumerate(cluster) if x != norm_cluster]
 
 
+def getFreqDelta(index):
+    """
+    Function checks if the passed index is regularly sampled.
+
+    If yes, the according timedelta value is returned,
+
+    If no, ``None`` is returned.
+
+    (``None`` will also be returned for pd.RangeIndex type.)
+
+    """
+    delta = getattr(index, "freq", None)
+    if delta is None and not index.empty:
+        i = pd.date_range(index[0], index[-1], len(index))
+        if i.equals(index):
+            return i[1] - i[0]
+    return delta
+
+
+def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply"):
+    """
+    For the repeating task of applying build in (accelerated) methods/funcs (`apply_obj`),
+    of rolling/resampling - like objects (`in_obj`) ,
+    if those build-ins are available, or pass the method/func to the objects apply-like method, otherwise.
+
+    """
+    try:
+        out = getattr(in_obj, getattr(apply_obj, attr_access))()
+    except AttributeError:
+        out = getattr(in_obj, attr_or)(apply_obj)
+
+    return out
+
+
+def statPass(
+    datcol: pd.Series,
+    stat: Callable[[np.array, pd.Series], float],
+    winsz: pd.Timedelta,
+    thresh: float,
+    comparator: Callable[[float, float], bool],
+    sub_winsz: pd.Timedelta = None,
+    sub_thresh: float = None,
+    min_periods: int = None,
+) -> pd.Series:
+    """
+    Check `datcol`, if it contains chunks of length `window`, exceeding `thresh` with
+    regard to `func` and `comparator`:
+
+    (check, if: `comparator`(func`(*chunk*), `thresh`)
+
+    If yes, subsequently check, if all (maybe overlapping) *sub-chunks* of *chunk*, with length `sub_window`,
+    satisfy, `comparator`(`func`(*sub_chunk*), `sub_thresh`)
+
+    returns boolean series with same index as input series
+    """
+    stat_parent = datcol.rolling(winsz, min_periods=min_periods)
+    stat_parent = getApply(stat_parent, stat)
+    exceeds = comparator(stat_parent, thresh)
+    if sub_winsz:
+        stat_sub = datcol.rolling(sub_winsz)
+        stat_sub = getApply(stat_sub, stat)
+        min_stat = stat_sub.rolling(winsz - sub_winsz, closed="both").min()
+        exceeding_sub = comparator(min_stat, sub_thresh)
+        exceeds = exceeding_sub & exceeds
+
+    to_set = pd.Series(False, index=exceeds.index)
+    for exceed, group in exceeds.groupby(by=exceeds.values):
+        if exceed:
+            # dt-slices include both bounds, so we subtract 1ns
+            start = group.index[0] - (winsz - pd.Timedelta("1ns"))
+            end = group.index[-1]
+            to_set[start:end] = True
+
+    return to_set

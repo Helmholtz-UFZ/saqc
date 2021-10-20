@@ -1,0 +1,6 @@
+
+# ignore all
+*
+
+# except ourself, to ensure the `testsets`-dir isn't ignored
+!.gitignore

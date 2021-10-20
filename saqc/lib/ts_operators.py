@@ -4,20 +4,18 @@
 """
 The module gathers all kinds of timeseries tranformations.
 """
-import logging
-
 import re
+import warnings
+from typing import Union
+import sys
 
 import pandas as pd
 import numpy as np
 import numba as nb
-
 from sklearn.neighbors import NearestNeighbors
-from scipy.stats import iqr
+from scipy.stats import iqr, median_abs_deviation
+from scipy.signal import filtfilt, butter
 import numpy.polynomial.polynomial as poly
-
-
-logger = logging.getLogger("SaQC")
 
 
 def identity(ts):
@@ -26,22 +24,22 @@ def identity(ts):
 
 
 def count(ts):
-    # count is a dummy to trigger according built in count method of
-    # resamplers when passed to aggregate2freq. For consistency reasons, it works accordingly when
+    # count is a dummy to trigger according built in count method of resamplers when
+    # passed to aggregate2freq. For consistency reasons, it works accordingly when
     # applied directly:
     return ts.count()
 
 
 def first(ts):
-    # first is a dummy to trigger according built in count method of
-    # resamplers when passed to aggregate2freq. For consistency reasons, it works accordingly when
+    # first is a dummy to trigger according built in count method of resamplers when
+    # passed to aggregate2freq. For consistency reasons, it works accordingly when
     # applied directly:
     return ts.first()
 
 
 def last(ts):
-    # last is a dummy to trigger according built in count method of
-    # resamplers when passed to aggregate2freq. For consistency reasons, it works accordingly when
+    # last is a dummy to trigger according built in count method of resamplers when
+    # passed to aggregate2freq. For consistency reasons, it works accordingly when
     # applied directly:
     return ts.last()
 
@@ -51,7 +49,7 @@ def zeroLog(ts):
     # in internal processing, you only have to check for nan values if you need to
     # remove "invalidish" values from the data.
     log_ts = np.log(ts)
-    log_ts[log_ts == -np.inf] = np.nan
+    log_ts[log_ts == -np.inf] = sys.float_info.min
     return log_ts
 
 
@@ -62,7 +60,10 @@ def derivative(ts, unit="1min"):
 
 def deltaT(ts, unit="1min"):
     # calculates series of time gaps in ts
-    return ts.index.to_series().diff().dt.total_seconds() / pd.Timedelta(unit).total_seconds()
+    return (
+        ts.index.to_series().diff().dt.total_seconds()
+        / pd.Timedelta(unit).total_seconds()
+    )
 
 
 def difference(ts):
@@ -104,39 +105,37 @@ def standardizeByMean(ts):
 
 
 def standardizeByMedian(ts):
+    # standardization with median (MAD)
+    # NO SCALING
+    return (ts - np.median(ts)) / median_abs_deviation(ts, nan_policy="omit")
+
+
+def standardizeByIQR(ts):
     # standardization with median and interquartile range
     return (ts - np.median(ts)) / iqr(ts, nan_policy="omit")
 
 
-def kNN(in_arr, n_neighbors, algorithm="ball_tree"):
+def kNN(in_arr, n_neighbors, algorithm="ball_tree", metric="minkowski", p=2):
     # k-nearest-neighbor search
-    nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm=algorithm).fit(in_arr.reshape(in_arr.shape[0], -1))
+
+    nbrs = NearestNeighbors(
+        n_neighbors=n_neighbors, algorithm=algorithm, metric=metric, p=p
+    ).fit(in_arr.reshape(in_arr.shape[0], -1))
     return nbrs.kneighbors()
 
 
-def kNNMaxGap(in_arr, n_neighbors=10, algorithm="ball_tree"):
-    # searches for the "n_neighbors" nearest neighbors of every value in "in_arr"
-    # and then returns the distance to the neighbor with the "maximum" Gap to its
-    # predecessor in the neighbor hierarchy
-    in_arr = np.asarray(in_arr)
-    dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
-    sample_size = dist.shape[0]
-    to_gap = np.append(np.array([[0] * sample_size]).T, dist, axis=1)
-    max_gap_ind = np.diff(to_gap, axis=1).argmax(axis=1)
-    return dist[range(0, sample_size), max_gap_ind]
-
-
-def kNNSum(in_arr, n_neighbors=10, algorithm="ball_tree"):
-    # searches for the "n_neighbors" nearest neighbors of every value in "in_arr"
-    # and assigns that value the summed up distances to this neighbors
-    in_arr = np.asarray(in_arr)
-    dist, *_ = kNN(in_arr, n_neighbors, algorithm=algorithm)
-    return dist.sum(axis=1)
+def maxGap(in_arr):
+    """
+    Search for the maximum gap in an array of sorted distances (func for scoring kNN
+    distance matrice)
+    """
+    return max(in_arr[0], max(np.diff(in_arr)))
 
 
 @nb.njit
 def _maxConsecutiveNan(arr, max_consec):
-    # checks if arr (boolean array) has not more then "max_consec" consecutive True values
+    # checks if arr (boolean array) has not more then "max_consec" consecutive True
+    # values
     current = 0
     idx = 0
     while idx < arr.size:
@@ -151,8 +150,9 @@ def _maxConsecutiveNan(arr, max_consec):
 
 
 def validationTrafo(data, max_nan_total, max_nan_consec):
-    # data has to be boolean. False=Valid Value, True=invalid Value
-    # function returns True-array of input array size for invalid input arrays False array for valid ones
+    # data has to be boolean. False=Valid Value, True=invalid Value function returns
+    # True-array of input array size for invalid input arrays False array for valid
+    # ones
     data = data.copy()
     if (max_nan_total is np.inf) & (max_nan_consec is np.inf):
         return data
@@ -174,23 +174,32 @@ def validationTrafo(data, max_nan_total, max_nan_consec):
 
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    return np.nanstd(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)], ddof=1)
+    return np.nanstd(
+        data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)], ddof=1
+    )
 
 
 def varQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    return np.nanvar(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)], ddof=1)
+    return np.nanvar(
+        data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)], ddof=1
+    )
 
 
 def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
-    return np.nanmean(data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)])
+    return np.nanmean(
+        data[~validationTrafo(data.isna(), max_nan_total, max_nan_consec)]
+    )
 
 
-def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolation=False, return_chunk_bounds=False):
+def interpolateNANs(
+    data, method, order=2, inter_limit=2, downgrade_interpolation=False
+):
     """
-    The function interpolates nan-values (and nan-grids) in timeseries data. It can be passed all the method keywords
-    from the pd.Series.interpolate method and will than apply this very methods. Note, that the inter_limit keyword
-    really restricts the interpolation to chunks, not containing more than "inter_limit" nan entries
-    (thereby not being identical to the "limit" keyword of pd.Series.interpolate).
+    The function interpolates nan-values (and nan-grids) in timeseries data. It can
+    be passed all the method keywords from the pd.Series.interpolate method and will
+    than apply this very methods. Note, that the limit keyword really restricts
+    the interpolation to chunks, not containing more than "limit" nan entries (
+    thereby not being identical to the "limit" keyword of pd.Series.interpolate).
 
     :param data:                    pd.Series or np.array. The data series to be interpolated
     :param method:                  String. Method keyword designating interpolation method to use.
@@ -200,43 +209,35 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
                                     replaced by interpolation.
                                     Its default value suits an interpolation that only will apply to points of an
                                     inserted frequency grid. (regularization by interpolation)
-                                    Gaps wider than "inter_limit" will NOT be interpolated at all.
+                                    Gaps wider than "limit" will NOT be interpolated at all.
     :param downgrade_interpolation:  Boolean. Default False. If True:
                                     If a data chunk not contains enough values for interpolation of the order "order",
                                     the highest order possible will be selected for that chunks interpolation.
-    :param return_chunk_bounds:     Boolean. Default False. If True:
-                                    Additionally to the interpolated data, the start and ending points of data chunks
-                                    not containing no series consisting of more then "inter_limit" nan values,
-                                    are calculated and returned.
-                                    (This option fits requirements of the "interpolateNANs" functions use in the
-                                    context of saqc harmonization mainly.)
 
     :return:
     """
     inter_limit = int(inter_limit)
     data = pd.Series(data).copy()
-    gap_mask = (data.rolling(inter_limit, min_periods=0).apply(lambda x: np.sum(np.isnan(x)), raw=True)) != inter_limit
+    gap_mask = data.isna().rolling(inter_limit, min_periods=0).sum() != inter_limit
 
     if inter_limit == 2:
         gap_mask = gap_mask & gap_mask.shift(-1, fill_value=True)
     else:
         gap_mask = (
-            gap_mask.replace(True, np.nan).fillna(method="bfill", limit=inter_limit).replace(np.nan, True).astype(bool)
+            gap_mask.replace(True, np.nan)
+            .fillna(method="bfill", limit=inter_limit)
+            .replace(np.nan, True)
+            .astype(bool)
         )
-
-    if return_chunk_bounds:
-        # start end ending points of interpolation chunks have to be memorized to block their flagging:
-        chunk_switches = gap_mask.astype(int).diff()
-        chunk_starts = chunk_switches[chunk_switches == -1].index
-        chunk_ends = chunk_switches[(chunk_switches.shift(-1) == 1)].index
-        chunk_bounds = chunk_starts.join(chunk_ends, how="outer", sort=True)
 
     pre_index = data.index
     data = data[gap_mask]
 
     if method in ["linear", "time"]:
 
-        data.interpolate(method=method, inplace=True, limit=inter_limit - 1, limit_area="inside")
+        data.interpolate(
+            method=method, inplace=True, limit=inter_limit - 1, limit_area="inside"
+        )
 
     else:
         dat_name = data.name
@@ -248,9 +249,9 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
                 try:
                     return x.interpolate(method=wrap_method, order=int(wrap_order))
                 except (NotImplementedError, ValueError):
-                    logger.warning(
-                        f"Interpolation with method {method} is not supported at order {wrap_order}. "
-                        f"and will be performed at order {wrap_order-1}"
+                    warnings.warn(
+                        f"Interpolation with method {method} is not supported at order "
+                        f"{wrap_order}. and will be performed at order {wrap_order-1}"
                     )
                     return _interpolWrapper(x, int(wrap_order - 1), wrap_method)
             elif x.size < 3:
@@ -262,37 +263,47 @@ def interpolateNANs(data, method, order=2, inter_limit=2, downgrade_interpolatio
                     return x
 
         data = data.groupby(data.columns[0]).transform(_interpolWrapper)
-        # squeezing the 1-dimensional frame resulting from groupby for consistency reasons
+        # squeezing the 1-dimensional frame resulting from groupby for consistency
+        # reasons
         data = data.squeeze(axis=1)
         data.name = dat_name
     data = data.reindex(pre_index)
-    if return_chunk_bounds:
-        return data, chunk_bounds
-    else: return data
+
+    return data
 
 
 def aggregate2Freq(
-    data, method, freq, agg_func, fill_value=np.nan, max_invalid_total=np.inf, max_invalid_consec=np.inf
+    data: pd.Series,
+    method,
+    freq,
+    agg_func,
+    fill_value=np.nan,
+    max_invalid_total=None,
+    max_invalid_consec=None,
 ):
-    # The function aggregates values to an equidistant frequency grid with agg_func.
-    # Timestamps that have no values projected on them, get "fill_value" assigned. Also,
-    # "fill_value" serves as replacement for "invalid" intervals
-
+    """
+    The function aggregates values to an equidistant frequency grid with func.
+    Timestamps that gets no values projected, get filled with the fill-value. It
+    also serves as a replacement for "invalid" intervals.
+    """
     methods = {
-        "nagg": lambda seconds_total: (seconds_total/2, "left", "left"),
+        "nagg": lambda seconds_total: (seconds_total / 2, "left", "left"),
         "bagg": lambda _: (0, "left", "left"),
         "fagg": lambda _: (0, "right", "right"),
     }
 
-    # filter data for invalid patterns (since filtering is expensive we pre-check if it is demanded)
-    if (max_invalid_total is not np.inf) | (max_invalid_consec is not np.inf):
-        if pd.isnull(fill_value):
+    # filter data for invalid patterns (since filtering is expensive we pre-check if
+    # it is demanded)
+    if max_invalid_total is not None or max_invalid_consec is not None:
+        if pd.isna(fill_value):
             temp_mask = data.isna()
         else:
             temp_mask = data == fill_value
 
         temp_mask = temp_mask.groupby(pd.Grouper(freq=freq)).transform(
-            validationTrafo, max_nan_total=max_invalid_total, max_nan_consec=max_invalid_consec
+            validationTrafo,
+            max_nan_total=max_invalid_total,
+            max_nan_consec=max_invalid_consec,
         )
         data[temp_mask] = fill_value
 
@@ -300,27 +311,32 @@ def aggregate2Freq(
     base, label, closed = methods[method](seconds_total)
 
     # In the following, we check for empty intervals outside resample.apply, because:
-    # - resample AND groupBy do insert value zero for empty intervals if resampling with any kind of "sum" application -
-    #   we want "fill_value" to be inserted
-    # - we are aggregating data and flags with this function and empty intervals usually would get assigned flagger.BAD
-    #   flag (where resample inserts np.nan or 0)
+    # - resample AND groupBy do insert value zero for empty intervals if resampling
+    # with any kind of "sum" application - we want "fill_value" to be inserted - we
+    # are aggregating data and flags with this function and empty intervals usually
+    # would get assigned BAD flag (where resample inserts np.nan or 0)
 
-    data_resampler = data.resample(f"{seconds_total:.0f}s", base=base, closed=closed, label=label)
+    data_resampler = data.resample(
+        f"{seconds_total:.0f}s", base=base, closed=closed, label=label
+    )
 
     empty_intervals = data_resampler.count() == 0
-    # great performance gain can be achieved, when avoiding .apply and using pd.resampler
-    # methods instead. (this covers all the basic func aggregations, such as median, mean, sum, count, ...)
+    # great performance gain can be achieved, when avoiding .apply and using
+    # pd.resampler methods instead. (this covers all the basic func aggregations,
+    # such as median, mean, sum, count, ...)
     try:
         check_name = re.sub("^nan", "", agg_func.__name__)
-        # a nasty special case: if function "count" was passed, we not want empty intervals to be replaced by nan:
-        if check_name == 'count':
+        # a nasty special case: if function "count" was passed, we not want empty
+        # intervals to be replaced by nan:
+        if check_name == "count":
             empty_intervals[:] = False
         data = getattr(data_resampler, check_name)()
     except AttributeError:
         data = data_resampler.apply(agg_func)
 
-    # since loffset keyword of pandas.resample "discharges" after one use of the resampler (pandas logic) - we correct the
-    # resampled labels offset manually, if necessary.
+    # since loffset keyword of pandas.resample "discharges" after one use of the
+    # resampler (pandas logic), we correct the resampled labels offset manually,
+    # if necessary.
     if method == "nagg":
         data.index = data.index.shift(freq=pd.Timedelta(freq) / 2)
         empty_intervals.index = empty_intervals.index.shift(freq=pd.Timedelta(freq) / 2)
@@ -329,22 +345,64 @@ def aggregate2Freq(
     return data
 
 
-def shift2Freq(data, method, freq, fill_value=np.nan):
-    # shift timestamps backwards/forwards in order to allign them with an equidistant
-    # frequencie grid.
+def shift2Freq(
+    data: Union[pd.Series, pd.DataFrame], method: str, freq: str, fill_value
+):
+    """
+    shift timestamps backwards/forwards in order to align them with an equidistant
+    frequency grid. Resulting Nan's are replaced with the fill-value.
+    """
 
     methods = {
         "fshift": lambda freq: ("ffill", pd.Timedelta(freq)),
         "bshift": lambda freq: ("bfill", pd.Timedelta(freq)),
-        "nshift": lambda freq: ("nearest", pd.Timedelta(freq)/2),
+        "nshift": lambda freq: ("nearest", pd.Timedelta(freq) / 2),
     }
     direction, tolerance = methods[method](freq)
     target_ind = pd.date_range(
-        start=data.index[0].floor(freq), end=data.index[-1].ceil(freq),
+        start=data.index[0].floor(freq),
+        end=data.index[-1].ceil(freq),
         freq=freq,
-        name=data.index.name
+        name=data.index.name,
     )
-    return data.reindex(target_ind, method=direction, tolerance=tolerance, fill_value=fill_value)
+    return data.reindex(
+        target_ind, method=direction, tolerance=tolerance, fill_value=fill_value
+    )
+
+
+def butterFilter(
+    x, cutoff, nyq=0.5, filter_order=2, fill_method="linear", filter_type="low"
+):
+    """
+    Applies butterworth filter.
+    `x` is expected to be regularly sampled.
+
+    Parameters
+    ----------
+    x: pd.Series
+        input timeseries
+
+    cutoff: float
+        The cutoff-frequency, expressed in multiples of the sampling rate.
+
+    nyq: float
+        The niquist-frequency. expressed in multiples if the sampling rate.
+
+    fill_method: Literal[‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘spline’, ‘barycentric’, ‘polynomial’]
+        Fill method to be applied on the data before filtering (butterfilter cant
+        handle ''np.nan''). See documentation of pandas.Series.interpolate method for
+        details on the methods associated with the different keywords.
+
+
+    Returns
+    -------
+    """
+    na_mask = x.isna()
+    x = x.interpolate(fill_method).interpolate("ffill").interpolate("bfill")
+    b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
+    y = pd.Series(filtfilt(b, a, x), x.index, name=x.name)
+    y[na_mask] = np.nan
+    return y
 
 
 @nb.njit
@@ -419,8 +477,9 @@ def polyRollerNoMissing(in_slice, val_range, center_index, poly_deg):
 
 
 def polyRollerIrregular(in_slice, center_index_ser, poly_deg):
-    # a function to roll with, for polynomial fitting of data not having an equidistant frequency grid.
-    # (expects to get passed pandas timeseries), so raw parameter of rolling.apply should be set to False.
+    # a function to roll with, for polynomial fitting of data not having an
+    # equidistant frequency grid. (expects to get passed pandas timeseries),
+    # so raw parameter of rolling.apply should be set to False.
     x_data = ((in_slice.index - in_slice.index[0]).total_seconds()) / 60
     fitted = poly.polyfit(x_data, in_slice.values, poly_deg)
     center_pos = int(len(in_slice) - center_index_ser[in_slice.index[-1]])
@@ -432,9 +491,21 @@ def expModelFunc(x, a=0, b=0, c=0):
     return a + b * (np.exp(c * x) - 1)
 
 
+def expDriftModel(x, c, origin, target):
+    c = abs(c)
+    b = (target - origin) / (np.exp(c) - 1)
+    return expModelFunc(x, origin, b, c)
+
+
+def linearDriftModel(x, origin, target):
+    return origin + x * target
+
+
 def linearInterpolation(data, inter_limit=2):
     return interpolateNANs(data, "time", inter_limit=inter_limit)
 
 
 def polynomialInterpolation(data, inter_limit=2, inter_order=2):
-    return interpolateNANs(data, "polynomial", inter_limit=inter_limit, order=inter_order)
+    return interpolateNANs(
+        data, "polynomial", inter_limit=inter_limit, order=inter_order
+    )

@@ -1,111 +1,76 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import io
 import ast
-
-import numpy as np
-
+from pathlib import Path
 import pandas as pd
 
-from saqc.core.config import Fields as F
+from saqc.core.core import SaQC
 from saqc.core.visitor import ConfigFunctionParser
-from saqc.core.core import Func, FuncCtrl
-from saqc.core.register import FUNC_MAP
-
 from saqc.lib.tools import isQuoted
 
+
 COMMENT = "#"
-EMPTY = "None"
+SEPARATOR = ";"
 
 
-def _handleEmptyLines(df):
-    if F.VARNAME not in df.columns:
-        # at least the first line was empty, so we search the header
-        df = df.reset_index()
-        i = (df == F.VARNAME).first_valid_index()
-        df.columns = df.iloc[i]
-        df = df.iloc[i + 1 :]
+def readFile(fname):
 
-    # mark empty lines
-    mask = (df.isnull() | (df == "")).all(axis=1)
-    df.loc[mask] = EMPTY
-    return df
-
-
-def _handleComments(df):
-    # mark commented lines
-    df.loc[df[F.VARNAME].str.startswith(COMMENT)] = EMPTY
-
-    for col in df:
-        try:
-            df[col] = df[col].str.split(COMMENT, expand=True).iloc[:, 0].str.strip()
-        except AttributeError:
-            # NOTE:
-            # if `df[col]` is not of type string, we know, that
-            # there are no comments and the `.str` access fails
-            pass
-
-    return df
-
-
-def _injectOptionalColumns(df):
-    # inject optional columns
-    if F.PLOT not in df:
-        empty = (df == EMPTY).all(axis=1)
-        df[F.PLOT] = "False"
-        df[empty] = EMPTY
-    return df
-
-
-def _parseConfig(df, flagger):
-
-    funcs = []
-    for lineno, (_, target, expr, plot) in enumerate(df.itertuples()):
-        if target == "None" or pd.isnull(target) or pd.isnull(expr):
-            continue
-
-        regex = False
-        if isQuoted(target):
-            regex = True
-            target = target[1:-1]
-
-        tree = ast.parse(expr, mode="eval")
-        func_name, kwargs = ConfigFunctionParser(flagger).parse(tree.body)
-        f = Func(
-            field=kwargs.get("field", target),
-            target=target,
-            name=func_name,
-            func=FUNC_MAP[func_name]["func"],
-            kwargs=kwargs,
-            regex=regex,
-            ctrl=FuncCtrl(
-                masking=FUNC_MAP[func_name]["masking"],
-                plot=plot,
-                lineno=lineno+2,
-                expr=expr
-            )
-        )
-        funcs.append(f)
-    return funcs
-
-
-def readConfig(fname, flagger):
-    df = pd.read_csv(
-        fname,
-        sep=r"\s*;\s*",
-        engine="python",
-        dtype=str,
-        quoting=3,
-        keep_default_na=False,  # don't replace "" by nan
-        skip_blank_lines=False,
+    fobj = (
+        io.open(fname, "r", encoding="utf-8")
+        if isinstance(fname, (str, Path))
+        else fname
     )
 
-    df = _handleEmptyLines(df)
-    df = _injectOptionalColumns(df)
-    df = _handleComments(df)
+    out = []
+    for i, line in enumerate(fobj):
+        row = line.strip().split(COMMENT, 1)[0]
+        if not row:
+            # skip over comment line
+            continue
 
-    df[F.VARNAME] = df[F.VARNAME].replace(r"^\s*$", np.nan, regex=True)
-    df[F.TEST] = df[F.TEST].replace(r"^\s*$", np.nan, regex=True)
-    df[F.PLOT] = df[F.PLOT].replace({"False": "", EMPTY: "", np.nan: ""})
-    df = df.astype({F.PLOT: bool})
-    return _parseConfig(df, flagger)
+        parts = [p.strip() for p in row.split(SEPARATOR)]
+        if len(parts) != 2:
+            raise RuntimeError(
+                "The configuration format expects exactly two columns, one "
+                "for the variable name and one for the test to apply, but "
+                f"in line {i} we got: \n'{line}'"
+            )
+        out.append(
+            [
+                i + 1,
+            ]
+            + parts
+        )
+
+    if isinstance(fname, str):
+        fobj.close()
+
+    df = pd.DataFrame(
+        out[1:],
+        columns=[
+            "row",
+        ]
+        + out[0][1:],
+    ).set_index("row")
+    return df
+
+
+def fromConfig(fname, *args, **kwargs):
+    saqc = SaQC(*args, **kwargs)
+    config = readFile(fname)
+
+    for _, field, expr in config.itertuples():
+
+        regex = False
+        if isQuoted(field):
+            field = field[1:-1]
+            regex = True
+
+        tree = ast.parse(expr, mode="eval")
+        func, kwargs = ConfigFunctionParser().parse(tree.body)
+
+        saqc = getattr(saqc, func)(field=field, regex=regex, **kwargs)
+
+    return saqc

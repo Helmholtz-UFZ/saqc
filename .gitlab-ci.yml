@@ -1,52 +1,118 @@
+# ===========================================================
+# preparation
+# ===========================================================
+
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
-before_script:
-  - export DEBIAN_FRONTEND=noninteractive
-  - apt-get -qq update
-  - apt-get -qq install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python-openssl git > /dev/null
-  - export DEBIAN_FRONTEND=dialog
-  - export LC_ALL=C.UTF-8
-  - export LANG=C.UTF-8
-  - git clone https://github.com/pyenv/pyenv.git ~/.pyenv
-  - export PYENV_ROOT="$HOME/.pyenv"
-  - export PATH="$PYENV_ROOT/bin:$PATH"
-  - eval "$(pyenv init -)"
-
-
-test:python37:
-  script:
-    - pyenv install 3.7.5
-    - pyenv shell 3.7.5
+default:
+  image: python:3.8
+  before_script:
     - pip install --upgrade pip
+    - pip install pytest
     - pip install -r requirements.txt
-    - python -m pytest --ignore test/lib test
+
+
+# ===========================================================
+# normal jobs (non scheduled)
+# ===========================================================
+
+# test saqc with python 3.7
+python37:
+  stage: test
+  except:
+    - schedules
+  image: python:3.7
+  script:
+    - pytest tests/core tests/funcs tests/integration dios/test
     - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
-test:python38:
+# test saqc with python 3.8
+python38:
+  stage: test
+  except:
+    - schedules
   script:
-    - pyenv install 3.8.0
-    - pyenv shell 3.8.0
-    - pip install --upgrade pip
-    - pip install -r requirements.txt
-    - python -m pytest --ignore test/lib test
+    - pytest tests/core tests/funcs tests/integration dios/test
     - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
-# Make html docu with sphinx
+
+# test saqc with python 3.9
+python39:
+  stage: test
+  except:
+    - schedules
+  image: python:3.9
+  script:
+    - pytest tests/core tests/funcs tests/integration
+    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
+
+
+# check if everthing is properly formatted
+black:
+  stage: test
+  script:
+    - pip install black
+    - black --check .
+
+
+# make (visual) coverage in gitlab merge request diff's
+coverage:
+  stage: test
+  except:
+    - schedules
+  allow_failure: true
+  script:
+    - pip install pytest-cov coverage
+    - pytest --cov=saqc tests/core tests/funcs
+  after_script:
+    - coverage xml
+
+  # regex to find the coverage percentage in the job output
+  coverage: '/^TOTAL.+?(\d+\%)$/'
+
+  artifacts:
+    when: always
+    reports:
+      cobertura: coverage.xml
+
+
+# make html docu with sphinx
 pages:
   stage: deploy
+  only:
+    - cookBux
+  except:
+    - schedules
   script:
-    - pyenv install 3.8.0
-    - pyenv shell 3.8.0
-    - pip install --upgrade pip
-    - pip install -r requirements.txt
     - cd sphinx-doc/
     - pip install -r requirements_sphinx.txt
-    - make html
+    - make doc
     - cp -r _build/html ../public
   artifacts:
     paths:
       - public
+
+
+# ===========================================================
+# scheduled jobs
+# ===========================================================
+
+# fuzzy testing saqc
+fuzzy:
+  stage: test
   only:
-    - develop
+    - schedules
+  script:
+    - pytest tests/fuzzy
+
+
+# test lib saqc
+testLib:
+  stage: test
+  only:
+    - schedules
+  script:
+    - pytest tests/lib
+
