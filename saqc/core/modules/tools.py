@@ -6,6 +6,7 @@ from typing import Optional
 from typing_extensions import Literal
 
 import saqc
+import numpy as np
 from saqc.lib.types import FreqString
 from saqc.core.modules.base import ModuleBase
 
@@ -42,7 +43,7 @@ class Tools(ModuleBase):
         xscope: Optional[slice] = None,
         stats_dict: Optional[dict] = None,
         store_kwargs: Optional[dict] = None,
-        to_mask: Optional[float] = None,
+        to_mask: Optional[float] = np.inf,
         **kwargs,
     ) -> saqc.SaQC:
         return self.defer("plot", locals())

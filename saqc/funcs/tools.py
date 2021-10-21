@@ -257,7 +257,7 @@ def plot(
     xscope: Optional[slice] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
-    to_mask: Optional[float] = None,
+    to_mask: Optional[float] = np.inf,
     **kwargs,
 ):
     """
@@ -346,8 +346,11 @@ def plot(
     interactive = path is None
     level = kwargs.get("flag", BAD)
 
-    if to_mask:
-        data[field][flags[field] >= to_mask] = np.nan
+    if to_mask < np.inf:
+        data = data.copy()
+        data.loc[flags[field] >= to_mask, field] = np.nan
+        if level <= to_mask:
+            history = None
 
     if store_kwargs is None:
         store_kwargs = {}
