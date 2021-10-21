@@ -349,8 +349,6 @@ def plot(
     if to_mask < np.inf:
         data = data.copy()
         data.loc[flags[field] >= to_mask, field] = np.nan
-        if level <= to_mask:
-            history = None
 
     if store_kwargs is None:
         store_kwargs = {}

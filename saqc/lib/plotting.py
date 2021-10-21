@@ -141,7 +141,7 @@ def makeFig(
     d = d[~na_mask]
 
     # insert nans between values mutually spaced > max_gap
-    if max_gap:
+    if max_gap and not d.empty:
         d = _insertBlockingNaNs(d, max_gap)
 
     # figure composition
@@ -227,6 +227,11 @@ def _plotVarWithFlags(
                 # Skip plot, if the test did not have no effect on the all over flagging result. This avoids
                 # legend overflow
                 if ~(flags_i >= level).any():
+                    continue
+
+                # Also skip plot, if all flagged values are np.nans (to catch flag missing and masked results mainly)
+                temp_i = datser.index.join(flags_i.index, how="inner")
+                if datser[temp_i][flags_i[temp_i].notna()].isna().all():
                     continue
 
                 scatter_kwargs.update(
