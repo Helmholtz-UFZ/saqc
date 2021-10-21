@@ -263,9 +263,9 @@ def plot(
     """
     Stores or shows a figure object, containing data graph with flag marks for field.
 
-    There are two modes, 'interactive' and 'store' mode, wich is determind via the
+    There are two modes, 'interactive' and 'store', which are determind through the
     ``save_path`` keyword. In interactive mode (default) the plot is shown at runtime
-    and the execution stops until the plot window is closed manually by a user. In
+    and the program execution stops until the plot window is closed manually. In
     store mode the generated plot is stored to disk and no manually interaction is
     needed.
 
@@ -289,7 +289,7 @@ def plot(
     max_gap : str, default None
         If None, all the points in the data will be connected, resulting in long linear
         lines, where continous chunks of data is missing. Nans in the data get dropped
-        before plotting. If an Offset string is passed, only points that have a distance
+        before plotting. If an offset string is passed, only points that have a distance
         below `max_gap` get connected via the plotting line.
 
     stats : bool, default False
