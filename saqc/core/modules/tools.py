@@ -42,6 +42,7 @@ class Tools(ModuleBase):
         xscope: Optional[slice] = None,
         stats_dict: Optional[dict] = None,
         store_kwargs: Optional[dict] = None,
+        to_mask: Optional[float] = None,
         **kwargs,
     ) -> saqc.SaQC:
         return self.defer("plot", locals())

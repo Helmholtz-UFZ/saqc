@@ -16,6 +16,7 @@ from saqc.lib.types import FreqString
 from saqc.core import processing, Flags
 from saqc.lib.tools import periodicMask
 from saqc.lib.plotting import makeFig
+from saqc.core.register import _maskData
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
@@ -252,10 +253,11 @@ def plot(
     path: Optional[str] = None,
     max_gap: Optional[FreqString] = None,
     stats: bool = False,
-    history: Optional[Literal["valid", "complete"]] = "valid",
+    history: Optional[Literal["valid", "complete", "clear"]] = "valid",
     xscope: Optional[slice] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
+    to_mask: Optional[float] = None,
     **kwargs,
 ):
     """
@@ -298,33 +300,12 @@ def plot(
         * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
           in the legend, that actually contributed flags to the overall resault.
         * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
+        * "clear" - clear plot from all the flagged values
         * None - just plot the resulting flags for one variable, without any historical meta information.
 
-    s : slice or Offset, default None
+    xscope : slice or Offset, default None
         Parameter, that determines a chunk of the data to be plotted /
         processed. `s` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
-
-    ax_kwargs : dict, default None
-        ax_kwargs : dict, default None
-        Keyword arguments controlling plot generation. Will be passed on to the
-        ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
-        data plot. The most relevant of those properties might be "ylabel",
-        "title" and in addition: "ylim".
-        The "xlim" keyword can be passed a slice object with date offset entries to controll figure
-        scope.
-
-
-    fig_kwargs : dict, default None
-        Keyword arguments controlling figure generation. In interactive mode,
-        ``None`` defaults to ``{"figsize": (16, 9)}`` to ensure a proper figure size
-        in store-mode.
-
-    scatter_kwargs : dict, default None
-        Keyword arguments controlling the appearance of the dots, marking flagged values.
-        Dict just gets passed on to the matplotlib.pyplot.scatter method. Keywords of interest may be:
-        ``"alpha"`` (transparancy), ``"marker"`` (marker appearance) and ``"s"`` (dot size).
-        The ``"marker"`` and ``"color"`` keywords can also be passed lists, that the plotting routine will then cycle
-        through.
 
     store_kwargs : dict, default {}
         Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
@@ -363,6 +344,10 @@ def plot(
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
     interactive = path is None
+    level = kwargs.get("flag", BAD)
+
+    if to_mask:
+        data[field][flags[field] >= to_mask] = np.nan
 
     if store_kwargs is None:
         store_kwargs = {}
@@ -377,7 +362,7 @@ def plot(
         data=data,
         field=field,
         flags=flags,
-        level=kwargs.get("flag", BAD),
+        level=level,
         max_gap=max_gap,
         stats=stats,
         history=history,
