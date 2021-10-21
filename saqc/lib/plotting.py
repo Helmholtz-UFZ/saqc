@@ -229,6 +229,10 @@ def _plotVarWithFlags(
                 if ~(flags_i >= level).any():
                     continue
 
+                # Also skip plot, if all flagged values are np.nans (to catch flag missing and masked results mainly)
+                if datser[flags_i.notna()].empty:
+                    continue
+
                 scatter_kwargs.update(
                     {"color": next(color_cycle), "marker": next(shape_cycle)}
                 )
