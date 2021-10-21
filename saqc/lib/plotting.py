@@ -141,7 +141,7 @@ def makeFig(
     d = d[~na_mask]
 
     # insert nans between values mutually spaced > max_gap
-    if max_gap:
+    if max_gap and not d.empty:
         d = _insertBlockingNaNs(d, max_gap)
 
     # figure composition
@@ -230,7 +230,8 @@ def _plotVarWithFlags(
                     continue
 
                 # Also skip plot, if all flagged values are np.nans (to catch flag missing and masked results mainly)
-                if datser[flags_i.notna()].empty:
+                temp_i = datser.index.join(flags_i.index, how="inner")
+                if datser[temp_i][flags_i[temp_i].notna()].isna().all():
                     continue
 
                 scatter_kwargs.update(
