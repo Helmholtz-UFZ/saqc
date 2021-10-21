@@ -2,41 +2,41 @@ varname    ; test
 #----------;---------------------------------------
 level      ; outliers.flagRange(min=0)
 water_temp ; outliers.flagRange(min=-.5)
-sak254 				; outliers.flagRange(min=0, max=70)
+sak254 	   ; outliers.flagRange(min=0, max=70)
 turbidity  ; outliers.flagRange(min=0, max=140)
 # interpolation resampling
 level      ; resample.linear(freq='15min')
 water_temp ; resample.linear(freq='15min')
-sak254 				; resample.linear(freq='15min')
+sak254 	   ; resample.linear(freq='15min')
 turbidity  ; resample.linear(freq='15min')
 # Drift Correction
-sak254 				; drift.correctDrift(target='sak254_corr', maintenance_field='maint', model=expDriftModel)
+sak254 		; drift.correctDrift(target='sak254_corr', maintenance_field='maint', model=expDriftModel)
 turbidity 	; drift.correctDrift(target='turbidity_corr', maintenance_field='maint', model=expDriftModel)
 # flag maintenance intervals
-sak254 				; flagtools.flagManual(mdata='maint')
-sak254_corr; flagtools.flagManual(mdata='maint')
+sak254 		; flagtools.flagManual(mdata='maint')
+sak254_corr ; flagtools.flagManual(mdata='maint')
 turbidity 	; flagtools.flagManual(mdata='maint')
 turbidity_corr ; flagtools.flagManual(mdata='maint')
 # linearly fill singleton gaps
 level      ; interpolation.interpolateInvalid('linear', limit=2)
 water_temp ; interpolation.interpolateInvalid('linear', limit=2)
-sak254 				; interpolation.interpolateInvalid('linear', limit=2)
+sak254 	   ; interpolation.interpolateInvalid('linear', limit=2)
 turbidity  ; interpolation.interpolateInvalid('linear', limit=2)
 # transform variables
-level 										; transformation.transform(target='norm_level', func='zNorm', freq='20D')
-sac_corr 							; transformation.transform(target='norm_SAK', func='zNorm', freq='20D')
+level 	   ; transformation.transform(target='norm_level', func='zNorm', freq='20D')
+sac_corr   ; transformation.transform(target='norm_SAK', func='zNorm', freq='20D')
 turbidity_corr 	; transformation.transform(target='norm_turbidity_corr', func='zNorm', freq='20D')
-water_temp 					; transformation.transform('norm_water_temp', func='zNorm', freq='20D')
+water_temp 		; transformation.transform('norm_water_temp', func='zNorm', freq='20D')
 # nearest neighbor scoring
 norm_level, norm_sac_corr, norm_turbidity_corr, norm_water_temp ; scores.assignKNNScore(targe='kNN_scores', freq='20D')
-kNN_scores 					; outliers.flagByStray(freq='20D')
+kNN_scores 	; outliers.flagByStray(freq='20D')
 # project stray results
 level, sac_corr, turbidity_corr, water_temp ; generic.projectFlags(source='kNNscores', 'match')
 # undo interpolation resampling
-level 										; generic.projectFlags(source='level_original', 'inverse_interpolation')
-sac_corr 							; generic.projectFlags(source='sac_original', 'inverse_interpolation')
+level 			; generic.projectFlags(source='level_original', 'inverse_interpolation')
+sac_corr 		; generic.projectFlags(source='sac_original', 'inverse_interpolation')
 turbidity_corr 	; generic.projectFlags(source='turbidity_original', 'inverse_interpolation')
-water_temp 					; generic.projectFlags(source='water_temp_original', 'inverse_interpolation')
+water_temp 		; generic.projectFlags(source='water_temp_original', 'inverse_interpolation')
 
 
 
