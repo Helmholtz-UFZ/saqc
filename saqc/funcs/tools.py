@@ -289,7 +289,7 @@ def plot(
     max_gap : str, default None
         If None, all the points in the data will be connected, resulting in long linear
         lines, where continous chunks of data is missing. Nans in the data get dropped
-        before plotting. If an Offset string is passed, only points that have a distance
+        before plotting. If an offset string is passed, only points that have a distance
         below `max_gap` get connected via the plotting line.
 
     stats : bool, default False
