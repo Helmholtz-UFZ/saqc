@@ -73,7 +73,18 @@ def makeFig(
     stats : bool, default False
         Whether to include statistics table in plot.
 
-    xscope :
+    history : {"valid", "complete", None}, default "valid"
+        Discriminate the plotted flags with respect to the tests they originate from.
+        * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
+          in the legend, that actually contributed flags to the overall resault.
+        * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
+        * "clear" - clear plot from all the flagged values
+        * None - just plot the resulting flags for one variable, without any historical meta information.
+
+    xscope : slice or Offset, default None
+        Parameter, that determines a chunk of the data to be plotted /
+        processed. `s` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
+
 
     stats_dict: dict, default None
         (Only relevant if `stats`=True).
