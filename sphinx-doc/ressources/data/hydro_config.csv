@@ -28,13 +28,10 @@ sac_corr 							; transformation.transform(target='norm_SAK', func='zNorm', freq
 turbidity_corr 	; transformation.transform(target='norm_turbidity_corr', func='zNorm', freq='20D')
 water_temp 					; transformation.transform('norm_water_temp', func='zNorm', freq='20D')
 # nearest neighbor scoring
-level, sac_corr, turbidity_corr, water_temp ; scores.assignKNNScore(targe='kNN_scores', freq='20D')
+norm_level, norm_sac_corr, norm_turbidity_corr, norm_water_temp ; scores.assignKNNScore(targe='kNN_scores', freq='20D')
 kNN_scores 					; outliers.flagByStray(freq='20D')
 # project stray results
-level 										; generic.projectFlags(source='kNNscores', 'match')
-sac_corr 							; generic.projectFlags(source='kNNscores', 'match')
-turbidity_corr 	; generic.projectFlags(source='kNNscores', 'match')
-water_temp 					; generic.projectFlags(source='kNNscores', 'match')
+level, sac_corr, turbidity_corr, water_temp ; generic.projectFlags(source='kNNscores', 'match')
 # undo interpolation resampling
 level 										; generic.projectFlags(source='level_original', 'inverse_interpolation')
 sac_corr 							; generic.projectFlags(source='sac_original', 'inverse_interpolation')
