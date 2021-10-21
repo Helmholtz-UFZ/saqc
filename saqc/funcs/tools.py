@@ -263,9 +263,9 @@ def plot(
     """
     Stores or shows a figure object, containing data graph with flag marks for field.
 
-    There are two modes, 'interactive' and 'store' mode, wich is determind via the
+    There are two modes, 'interactive' and 'store', which are determind through the
     ``save_path`` keyword. In interactive mode (default) the plot is shown at runtime
-    and the execution stops until the plot window is closed manually by a user. In
+    and the program execution stops until the plot window is closed manually. In
     store mode the generated plot is stored to disk and no manually interaction is
     needed.
 
