@@ -255,6 +255,7 @@ def plot(
     stats: bool = False,
     history: Optional[Literal["valid", "complete", "clear"]] = "valid",
     xscope: Optional[slice] = None,
+    phaseplot: Optional[str] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
     to_mask: Optional[float] = np.inf,
@@ -306,6 +307,8 @@ def plot(
     xscope : slice or Offset, default None
         Parameter, that determines a chunk of the data to be plotted /
         processed. `s` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
+
+    phaseplot :
 
     store_kwargs : dict, default {}
         Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
@@ -368,6 +371,7 @@ def plot(
         stats=stats,
         history=history,
         xscope=xscope,
+        phaseplot=phaseplot,
         stats_dict=stats_dict,
     )
 
