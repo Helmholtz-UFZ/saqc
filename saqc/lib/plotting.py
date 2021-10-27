@@ -45,6 +45,7 @@ def makeFig(
     stats: bool = False,
     history: Optional[Literal["valid", "complete"]] = "valid",
     xscope: Optional[slice] = None,
+    phaseplot: Optional[str] = None,
     stats_dict: Optional[dict] = None,
 ):
     """
@@ -85,6 +86,7 @@ def makeFig(
         Parameter, that determines a chunk of the data to be plotted /
         processed. `s` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
 
+    phaseplot :
 
     stats_dict: dict, default None
         (Only relevant if `stats`=True).
@@ -139,6 +141,22 @@ def makeFig(
 
     na_mask = d.isna()
     d = d[~na_mask]
+    if phaseplot:
+        flags_vals = flags_vals.copy()
+        flags_hist = flags_hist.copy()
+        phase_index = data[phaseplot][xscope].values
+        phase_index_d = phase_index[~na_mask]
+        na_mask.index = phase_index
+        d.index = phase_index_d
+        flags_vals.index = phase_index
+        flags_hist.index = phase_index
+        PLOT_KWARGS.update({"marker": "o", "linewidth": 0})
+        AX_KWARGS.update(
+            {
+                "xlabel": AX_KWARGS.pop("xlabel", phaseplot),
+                "ylabel": AX_KWARGS.pop("ylabel", d.name),
+            }
+        )
 
     # insert nans between values mutually spaced > max_gap
     if max_gap and not d.empty:

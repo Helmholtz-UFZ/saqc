@@ -41,6 +41,7 @@ class Tools(ModuleBase):
         stats: bool = False,
         history: Optional[Literal["valid", "complete"]] = "valid",
         xscope: Optional[slice] = None,
+        phaseplot: Optional[str] = None,
         stats_dict: Optional[dict] = None,
         store_kwargs: Optional[dict] = None,
         to_mask: Optional[float] = np.inf,
