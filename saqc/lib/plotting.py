@@ -150,13 +150,11 @@ def makeFig(
         d.index = phase_index_d
         flags_vals.index = phase_index
         flags_hist.index = phase_index
-        PLOT_KWARGS.update({"marker": "o", "linewidth": 0})
-        AX_KWARGS.update(
-            {
-                "xlabel": AX_KWARGS.pop("xlabel", phaseplot),
-                "ylabel": AX_KWARGS.pop("ylabel", d.name),
-            }
-        )
+        plot_kwargs = {**PLOT_KWARGS, **{"marker": "o", "linewidth": 0}}
+        ax_kwargs = {**{"xlabel": phaseplot, "ylabel": d.name}, **AX_KWARGS}
+    else:
+        plot_kwargs = PLOT_KWARGS
+        ax_kwargs = AX_KWARGS
 
     # insert nans between values mutually spaced > max_gap
     if max_gap and not d.empty:
@@ -182,6 +180,9 @@ def makeFig(
         history,
         level,
         na_mask,
+        plot_kwargs,
+        ax_kwargs,
+        SCATTER_KWARGS
     )
     return fig
 
@@ -217,18 +218,20 @@ def _plotVarWithFlags(
     history,
     level,
     na_mask,
+    plot_kwargs,
+    ax_kwargs,
+    scatter_kwargs
 ):
+    scatter_kwargs = scatter_kwargs.copy()
     ax.set_title(datser.name)
-    ax.plot(datser, color="black", **PLOT_KWARGS)
-    ax.set(**AX_KWARGS)
-    scatter_kwargs = SCATTER_KWARGS.copy()
-    shape_cycle = scatter_kwargs.pop("marker", "o")
+    ax.plot(datser, color="black", **plot_kwargs)
+    ax.set(**ax_kwargs)
+    shape_cycle = scatter_kwargs.get("marker", "o")
     shape_cycle = itertools.cycle(toSequence(shape_cycle))
-    color_cycle = scatter_kwargs.pop(
+    color_cycle = scatter_kwargs.get(
         "color", plt.rcParams["axes.prop_cycle"].by_key()["color"]
     )
     color_cycle = itertools.cycle(toSequence(color_cycle))
-    scatter_kwargs = SCATTER_KWARGS.copy()
     if history:
         for i in flags_hist.columns:
             scatter_kwargs.update({"label": flags_meta[i]["func"].split(".")[-1]})
