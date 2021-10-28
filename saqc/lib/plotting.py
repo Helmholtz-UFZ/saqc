@@ -234,6 +234,9 @@ def _plotVarWithFlags(
     color_cycle = itertools.cycle(toSequence(color_cycle))
     if history:
         for i in flags_hist.columns:
+            # catch empty but existing history case (flags_meta={})
+            if len(flags_meta) == 0:
+                continue
             scatter_kwargs.update({"label": flags_meta[i]["func"].split(".")[-1]})
             flags_i = flags_hist[i].astype(float)
             if history == "complete":
