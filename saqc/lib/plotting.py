@@ -182,7 +182,7 @@ def makeFig(
         na_mask,
         plot_kwargs,
         ax_kwargs,
-        SCATTER_KWARGS
+        SCATTER_KWARGS,
     )
     return fig
 
@@ -220,7 +220,7 @@ def _plotVarWithFlags(
     na_mask,
     plot_kwargs,
     ax_kwargs,
-    scatter_kwargs
+    scatter_kwargs,
 ):
     scatter_kwargs = scatter_kwargs.copy()
     ax.set_title(datser.name)
