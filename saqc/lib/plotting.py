@@ -255,7 +255,9 @@ def _plotVarWithFlags(
 
                 # Also skip plot, if all flagged values are np.nans (to catch flag missing and masked results mainly)
                 temp_i = datser.index.join(flags_i.index, how="inner")
-                if datser[temp_i][flags_i[temp_i].notna()].isna().all():
+                if datser[temp_i][flags_i[temp_i].notna()].isna().all() or (
+                    "flagMissing" in flags_meta[i]["func"]
+                ):
                     continue
 
                 scatter_kwargs.update(
