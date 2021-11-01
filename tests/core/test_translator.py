@@ -89,13 +89,13 @@ def test_dmpTranslator():
     flags[:, "var2"] = BAD
 
     history1 = flags.history["var1"]
-    history1.meta[1].update({"func": "flagFoo", "keywords": {"cause": "AUTOFLAGGED"}})
-    history1.meta[2].update({"func": "flagBar", "keywords": {"comment": "I did it"}})
+    history1.meta[1].update({"func": "flagFoo", "kwargs": {"cause": "AUTOFLAGGED"}})
+    history1.meta[2].update({"func": "flagBar", "kwargs": {"comment": "I did it"}})
     flags.history["var1"] = history1
 
     history2 = flags.history["var2"]
     history2.meta[-1].update(
-        {"func": "flagFoo", "keywords": {"cause": "BELOW_OR_ABOVE_MIN_MAX"}}
+        {"func": "flagFoo", "kwargs": {"cause": "BELOW_OR_ABOVE_MIN_MAX"}}
     )
     flags.history["var2"] = history2
 
