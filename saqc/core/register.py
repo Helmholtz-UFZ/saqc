@@ -267,7 +267,7 @@ def _restoreFlags(flags: Flags, old_state: CallState):
     meta = {
         "func": old_state.func_name,
         "args": old_state.args,
-        "keywords": old_state.kwargs,
+        "kwargs": old_state.kwargs,
     }
     new_columns = flags.columns.difference(old_state.flags.columns)
 

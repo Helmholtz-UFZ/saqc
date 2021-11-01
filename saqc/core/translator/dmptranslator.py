@@ -104,7 +104,7 @@ class DmpTranslator(Translator):
 
                 meta = {
                     "func": comment["test"],
-                    "keywords": {"comment": comment["comment"], "cause": cause},
+                    "kwargs": {"comment": comment["comment"], "cause": cause},
                 }
                 field_history.append(histcol, meta=meta)
 
@@ -148,7 +148,7 @@ class DmpTranslator(Translator):
 
                 # extract from meta
                 meta = history.meta[col]
-                keywords = meta.get("keywords", {})
+                keywords = meta.get("kwargs", {})
                 comment = json.dumps(
                     {
                         "test": meta.get("func", "unknown"),
