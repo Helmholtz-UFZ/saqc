@@ -128,7 +128,8 @@ class _DiosBase:
             raise TypeError("data type not understood")
 
         for k in data:
-            self._insert(k, pd.Series(data[k], index=index))
+            s = pd.Series(data[k], index=index, dtype=object).infer_objects()
+            self._insert(k, s)
 
     # ----------------------------------------------------------------------
     # checks
