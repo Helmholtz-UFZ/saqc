@@ -128,6 +128,8 @@ def test_arithmeticOperators(data):
         assert np.all(result == expected)
 
 
+@pytest.mark.filterwarnings("ignore: divide by zero encountered in log")
+@pytest.mark.filterwarnings("ignore: overflow encountered in exp")
 def test_nonReduncingBuiltins(data):
     flags = initFlagsLike(data)
     var1, *_ = data.columns

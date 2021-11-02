@@ -31,12 +31,12 @@ def test_addFieldFlagGeneric(data):
 def test_addFieldProcGeneric(data):
     saqc = SaQC(data=data)
 
-    func = lambda: pd.Series([])
-    data, flags = saqc.genericProcess("tmp1", func, flag=BAD).getResult(raw=True)
+    func = lambda: pd.Series([], dtype=float)
+    data, flags = saqc.genericProcess("tmp1", func).getResult(raw=True)
     assert "tmp1" in data.columns and data["tmp1"].empty
 
     func = lambda var1, var2: var1 + var2
-    data, flags = saqc.genericProcess("tmp2", func, flag=BAD).getResult()
+    data, flags = saqc.genericProcess("tmp2", func).getResult()
     assert "tmp2" in data.columns and (data["tmp2"] == data["var1"] + data["var2"]).all(
         axis=None
     )

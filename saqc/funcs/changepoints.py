@@ -220,12 +220,14 @@ def assignChangePointCluster(
         )
         reduce_window = f"{s}s"
 
-    roller = customRoller(data_ser, window=bwd_window)
+    roller = customRoller(data_ser, window=bwd_window, min_periods=bwd_min_periods)
     bwd_start, bwd_end = roller.window_indexer.get_window_bounds(
         len(data_ser), min_periods=bwd_min_periods, closed=closed
     )
 
-    roller = customRoller(data_ser, window=fwd_window, forward=True)
+    roller = customRoller(
+        data_ser, window=fwd_window, forward=True, min_periods=fwd_min_periods
+    )
     fwd_start, fwd_end = roller.window_indexer.get_window_bounds(
         len(data_ser), min_periods=fwd_min_periods, closed=closed
     )
@@ -272,7 +274,7 @@ def assignChangePointCluster(
     detected = pd.Series(True, index=det_index)
     if reduce_window:
         l = detected.shape[0]
-        roller = customRoller(detected, window=reduce_window)
+        roller = customRoller(detected, window=reduce_window, min_periods=1)
         start, end = roller.window_indexer.get_window_bounds(
             num_values=l, min_periods=1, closed="both", center=True
         )
