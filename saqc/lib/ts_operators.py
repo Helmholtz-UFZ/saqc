@@ -312,7 +312,7 @@ def aggregate2Freq(
     offset, closed, label = methods[method](freq)
 
     resampler = data.resample(
-        freq, closed=closed, label=label, origin='start_day', offset=offset
+        freq, closed=closed, label=label, origin="start_day", offset=offset
     )
 
     # count valid values
