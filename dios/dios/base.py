@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import annotations
+from typing import Mapping, Hashable, Any
 
 from . import operators as ops
 from . import pandas_bridge as pdextra
@@ -23,8 +25,12 @@ __copyright__ = "Copyright 2018, Helmholtz-Zentrum für Umweltforschung GmbH - U
 class _DiosBase:
     @property
     @abstractmethod
-    def _constructor(self):
-        pass
+    def _constructor(self) -> type[_DiosBase]:
+        raise NotImplementedError
+
+    def _finalize(self, other: _DiosBase):
+        self._attrs = other._attrs
+        return self
 
     def __init__(
         self,
@@ -36,8 +42,8 @@ class _DiosBase:
         fastpath=False,
     ):
 
-        # set via property
-        self.cast_policy = cast_policy
+        self._attrs = {}
+        self.cast_policy = cast_policy  # set via property
 
         # we are called internally
         if fastpath:
@@ -203,7 +209,7 @@ class _DiosBase:
         if self._is_valid_columns_index(data):
             return self._constructor(
                 data=data, itype=self.itype, cast_policy=self.cast_policy, fastpath=True
-            )
+            )._finalize(self)
 
         raise TypeError(f"cannot index columns with this type, {type(key)}")
 
@@ -331,6 +337,19 @@ class _DiosBase:
 
     # ------------------------------------------------------------------------------
     # Base properties and basic dunder magic
+
+    @property
+    def attrs(self) -> dict[Hashable, Any]:
+        """
+        Dictionary of global attributes of this dataset.
+        """
+        if self._attrs is None:
+            self._attrs = {}
+        return self._attrs
+
+    @attrs.setter
+    def attrs(self, value: Mapping[Hashable, Any]) -> None:
+        self._attrs = dict(value)
 
     @property
     def columns(self):
@@ -479,7 +498,7 @@ class _DiosBase:
 
         return self._constructor(
             data=data, itype=self.itype, cast_policy=self.cast_policy, fastpath=True
-        )
+        )._finalize(self)
 
     def copy_empty(self, columns=True):
         """
@@ -531,7 +550,7 @@ class _DiosBase:
 
         return self._constructor(
             data=data, itype=self.itype, cast_policy=self.cast_policy, fastpath=True
-        )
+        )._finalize(self)
 
     # ------------------------------------------------------------------------------
     # Operators

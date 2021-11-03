@@ -258,7 +258,9 @@ class _aLocIndexer(_Indexer):
         if lowdim:
             return data.squeeze()
         else:
-            return self.obj._constructor(data=data, fastpath=True, **kws)
+            return self.obj._constructor(data=data, fastpath=True, **kws)._finalize(
+                self.obj
+            )
 
     def __setitem__(self, key, value):
         rowkeys, colkeys, _ = self._unpack_key_aloc(key)

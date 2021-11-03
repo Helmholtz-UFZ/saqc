@@ -76,7 +76,7 @@ class PositionalTranslator(Translator):
 
         return Flags(data)
 
-    def backward(self, flags: Flags) -> pd.DataFrame:
+    def backward(self, flags: Flags, **kwargs) -> pd.DataFrame:
         """
         Translate from 'internal flags' to 'external flags'
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 import warnings
 import copy as stdcopy
-from typing import Any, Callable, Tuple, Union, Optional
+from typing import Any, Callable, Tuple, Union, Optional, Mapping, Hashable
 
 import pandas as pd
 import numpy as np
@@ -78,7 +78,7 @@ def _setup():
     # NOTE:
     # the import is needed to trigger the registration
     # of the built-in (test-)functions
-    import saqc.funcs
+    import saqc.funcs  # noqa
 
     # warnings
     pd.set_option("mode.chained_assignment", "warn")
@@ -118,6 +118,7 @@ class SaQC(FunctionsMixin):
         self._flags = self._initFlags(data, flags)
         self._translator = scheme or FloatTranslator()
         self.called = []
+        self._attrs = {}
 
     @staticmethod
     def _initFlags(data: DictOfSeries, flags: Optional[Flags]) -> Flags:
@@ -137,6 +138,17 @@ class SaQC(FunctionsMixin):
 
         return flags
 
+    @property
+    def attrs(self) -> dict[Hashable, Any]:
+        """
+        Dictionary of global attributes of this dataset.
+        """
+        return self._attrs
+
+    @attrs.setter
+    def attrs(self, value: Mapping[Hashable, Any]) -> None:
+        self._attrs = dict(value)
+
     def _construct(self, **injectables) -> SaQC:
         """
         Construct a new `SaQC`-Object from `self` and optionally inject
@@ -151,11 +163,8 @@ class SaQC(FunctionsMixin):
         For internal usage only! Setting values through `injectables` has
         the potential to mess up certain invariants of the constructed object.
         """
-        out = SaQC(
-            data=DictOfSeries(),
-            flags=Flags(),
-            scheme=self._translator,
-        )
+        out = SaQC(data=DictOfSeries(), flags=Flags(), scheme=self._translator)
+        out.attrs = self._attrs
         for k, v in injectables.items():
             if not hasattr(out, k):
                 raise AttributeError(f"failed to set unknown attribute: {k}")
@@ -168,7 +177,7 @@ class SaQC(FunctionsMixin):
 
     @property
     def flags(self) -> Accessor:
-        return Accessor(self._translator.backward(self._flags))
+        return Accessor(self._translator.backward(self._flags, attrs=self.attrs))
 
     def getResult(
         self, raw=False
@@ -186,7 +195,7 @@ class SaQC(FunctionsMixin):
         if raw:
             return data, flags
 
-        return data.to_df(), self._translator.backward(flags)
+        return data.to_df(), self._translator.backward(flags, attrs=self.attrs)
 
     def _wrap(self, func: Callable):
         """Enrich a function by special saqc-functionality.
@@ -308,7 +317,8 @@ def _warnForUnusedKwargs(func, keywords, translator: Translator):
 
     Notes
     -----
-    A single warning is thrown, if any number of missing kws are detected, naming each missing kw.
+    A single warning is thrown, if any number of missing kws are detected,
+    naming each missing kw.
     """
     sig_kws = inspect.signature(func).parameters
 
