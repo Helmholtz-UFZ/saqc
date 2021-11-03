@@ -71,7 +71,8 @@ class Translator:
         """
         if UNFLAGGED not in backward or BAD not in backward:
             raise ValueError(
-                f"need translations for the special flags `UNFLAGGED` ({UNFLAGGED}) and `BAD` ({BAD})"
+                f"need translations for the special flags `UNFLAGGED` ({UNFLAGGED})"
+                f" and `BAD` ({BAD})"
             )
         self._forward = forward
         self._backward = backward
@@ -143,7 +144,11 @@ class Translator:
         return Flags(self._translate(flags, self._forward))
 
     def backward(
-        self, flags: Flags, raw: bool = False
+        self,
+        flags: Flags,
+        raw: bool = False,
+        attrs: dict | None = None,
+        **kwargs,
     ) -> Union[pd.DataFrame, DictOfSeries]:
         """
         Translate from 'internal flags' to 'external flags'
@@ -153,11 +158,18 @@ class Translator:
         flags : pd.DataFrame
             The external flags to translate
 
+        raw: bool, default False
+            if True return data as DictOfSeries, otherwise as pandas DataFrame.
+
+        attrs : dict or None, default None
+            global meta information of saqc-object
+
         Returns
         -------
         pd.DataFrame
         """
         out = self._translate(flags, self._backward)
+        out.attrs = attrs or {}
         if not raw:
             out = out.to_df()
         return out
