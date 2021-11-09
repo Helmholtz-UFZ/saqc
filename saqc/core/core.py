@@ -284,6 +284,12 @@ class SaQC(FunctionsMixin):
 
         planned = self.called + [(field, (function, args, kwargs))]
 
+        # keep consistence: if we modify data and flags inplace in a function,
+        # but data is the original and flags is a copy (as currently implemented),
+        # data and flags of the original saqc obj may change inconsistently.
+        self._data = data
+        self._flags = flags
+
         return self._construct(_data=data, _flags=flags, called=planned)
 
     def __getattr__(self, key):

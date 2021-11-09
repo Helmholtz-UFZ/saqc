@@ -13,14 +13,14 @@ import pickle
 
 from saqc.constants import *
 from saqc.lib.types import FreqString
-from saqc.core import processing, Flags
+from saqc.core import register, Flags
 from saqc.lib.tools import periodicMask
 from saqc.lib.plotting import makeFig
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
 
-@processing()
+@register(handles="index", datamask=None)
 def copyField(
     data: DictOfSeries, field: str, flags: Flags, new_field: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -57,7 +57,7 @@ def copyField(
     return data, flags
 
 
-@processing()
+@register(handles="index", datamask=None)
 def dropField(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -87,7 +87,7 @@ def dropField(
     return data, flags
 
 
-@processing()
+@register(handles="data|flags", datamask=None)
 def renameField(
     data: DictOfSeries, field: str, flags: Flags, new_name: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -119,7 +119,7 @@ def renameField(
     return data, flags
 
 
-@processing()
+@register(handles="index", datamask=None)
 def maskTime(
     data: DictOfSeries,
     field: str,
@@ -244,7 +244,7 @@ def maskTime(
     return data, flags
 
 
-@processing()
+@register(handles="index", datamask=None)
 def plot(
     data: DictOfSeries,
     field: str,

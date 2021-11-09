@@ -8,7 +8,7 @@ import dios
 from pathlib import Path
 
 from saqc.core.reader import fromConfig, readFile
-from saqc.core.register import FUNC_MAP, flagging
+from saqc.core.register import FUNC_MAP, register
 from saqc.constants import UNTOUCHED
 
 from tests.common import initData, writeIO
@@ -107,7 +107,7 @@ def test_configChecks(data):
 
     var1, _, var3, *_ = data.columns
 
-    @flagging(masking="none")
+    @register(datamask=None)
     def flagFunc(data, field, flags, arg, opt_arg=None, **kwargs):
         flags[:, field] = UNTOUCHED
         return data, flags
@@ -133,7 +133,7 @@ def test_supportedArguments(data):
 
     # TODO: necessary?
 
-    @flagging(masking="field")
+    @register(datamask="field")
     def func(data, field, flags, kwarg, **kwargs):
         flags[:, field] = UNTOUCHED
         return data, flags

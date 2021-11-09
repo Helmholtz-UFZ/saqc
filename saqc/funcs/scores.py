@@ -7,12 +7,12 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
 from saqc.lib.tools import toSequence
 import saqc.lib.ts_operators as ts_ops
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def assignKNNScore(
     data: DictOfSeries,
     field: str,

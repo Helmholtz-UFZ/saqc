@@ -11,13 +11,13 @@ import operator
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
 from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta, statPass
 from saqc.lib.types import FreqString
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def flagConstants(
     data: DictOfSeries,
     field: str,
@@ -81,7 +81,7 @@ def flagConstants(
     return data, flags
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def flagByVariance(
     data: DictOfSeries,
     field: str,

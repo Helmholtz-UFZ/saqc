@@ -67,23 +67,28 @@ def test_gridInterpolation(data, method):
     # we are just testing if the interpolation gets passed to the series without
     # causing an error:
     res = interpolate(
-        data, field, flags, freq, method=method, downcast_interpolation=True
+        data.copy(),
+        field,
+        flags.copy(),
+        freq,
+        method=method,
+        downcast_interpolation=True,
     )
 
     if method == "polynomial":
         res = interpolate(
-            data,
+            data.copy(),
             field,
-            flags,
+            flags.copy(),
             freq,
             order=2,
             method=method,
             downcast_interpolation=True,
         )
         res = interpolate(
-            data,
+            data.copy(),
             field,
-            flags,
+            flags.copy(),
             freq,
             order=10,
             method=method,
