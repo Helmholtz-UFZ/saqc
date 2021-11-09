@@ -5,7 +5,7 @@ import re
 import datetime
 import itertools
 import warnings
-from typing import Sequence, Union, Any, Iterator, Callable
+from typing import List, Sequence, Union, Any, Iterator, Callable
 
 import numpy as np
 import numba as nb
@@ -30,13 +30,11 @@ def assertScalar(name, value, optional=False):
         raise ValueError(f"'{name}' needs to be a scalar")
 
 
-def toSequence(
-    value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = None
-) -> Sequence[T]:
-    if value is None:
-        value = default
+def toSequence(value: Union[Any, Sequence[Any]]) -> List[Any]:
     if np.isscalar(value):
         value = [value]
+    return list(value)
+
     return value
 
 
