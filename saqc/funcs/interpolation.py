@@ -40,7 +40,7 @@ def interpolateByRolling(
     center: bool = True,
     min_periods: int = 0,
     flag: float = UNFLAGGED,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Interpolates nan-values in the data by assigning them the aggregation result of the window surrounding them.
@@ -113,7 +113,7 @@ def interpolateInvalid(
     limit: int = 2,
     downgrade: bool = False,
     flag: float = UNFLAGGED,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to interpolate nan values in the data.
@@ -197,7 +197,7 @@ def interpolateIndex(
     order: int = 2,
     limit: int = 2,
     downgrade: bool = False,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
