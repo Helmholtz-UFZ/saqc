@@ -43,7 +43,7 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
         field=field,
         args=(),
         kwargs={},
-        masking="field",
+        dec_kwargs={},
         mthresh=UNFLAGGED,
         mask=mask,
     )
@@ -69,7 +69,7 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
         field=field,
         args=(),
         kwargs={},
-        masking="field",
+        dec_kwargs={},
         mthresh=UNFLAGGED,
         mask=mask,
     )
@@ -98,7 +98,7 @@ def test_reshapingPreventsUnmasking(data_field_flags):
         field=field,
         args=(),
         kwargs={},
-        masking="field",
+        dec_kwargs={},
         mthresh=UNFLAGGED,
         mask=mask,
     )
@@ -130,7 +130,7 @@ def test_unmaskingInvertsMasking(data_field_flags):
         field=field,
         args=(),
         kwargs={},
-        masking="field",
+        dec_kwargs={},
         mthresh=UNFLAGGED,
         mask=mask,
     )

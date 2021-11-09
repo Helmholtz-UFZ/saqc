@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import inspect
 import warnings
-import copy as stdcopy
 from typing import Any, Callable, Tuple, Union, Optional, Mapping, Hashable
+from copy import deepcopy, copy as shallowcopy
 
 import pandas as pd
 import numpy as np
@@ -25,11 +25,14 @@ from saqc.lib.types import (
 
 # TODO: shouldn't the code/function go to SaQC.__init__ ?
 def _prepInput(
-    data: PandasLike, flags: Optional[Union[DictOfSeries, pd.DataFrame, Flags]]
+    data: PandasLike,
+    flags: Optional[Union[DictOfSeries, pd.DataFrame, Flags]],
+    copy: bool,
 ) -> Tuple[DictOfSeries, Optional[Flags]]:
     dios_like = (DictOfSeries, pd.DataFrame)
 
-    data = stdcopy.deepcopy(data)
+    if copy:
+        data = deepcopy(data)
 
     if isinstance(data, pd.Series):
         data = data.to_frame()
@@ -69,7 +72,7 @@ def _prepInput(
 
         # this also ensures float dtype
         if not isinstance(flags, Flags):
-            flags = Flags(flags, copy=True)
+            flags = Flags(flags, copy=copy)
 
     return data, flags
 
@@ -107,13 +110,16 @@ class Accessor:
 
 
 class SaQC(FunctionsMixin):
-    def __init__(
-        self,
-        data,
-        flags=None,
-        scheme: Translator = None,
-    ):
-        data, flags = _prepInput(data, flags)
+    _attributes = {
+        "_data",
+        "_flags",
+        "_translator",
+        "_attrs",
+        "called",
+    }
+
+    def __init__(self, data, flags=None, scheme: Translator = None, copy: bool = True):
+        data, flags = _prepInput(data, flags, copy)
         self._data = data
         self._flags = self._initFlags(data, flags)
         self._translator = scheme or FloatTranslator()
@@ -166,8 +172,8 @@ class SaQC(FunctionsMixin):
         out = SaQC(data=DictOfSeries(), flags=Flags(), scheme=self._translator)
         out.attrs = self._attrs
         for k, v in injectables.items():
-            if not hasattr(out, k):
-                raise AttributeError(f"failed to set unknown attribute: {k}")
+            if k not in self._attributes:
+                raise AttributeError(f"SaQC has no attribute {repr(k)}")
             setattr(out, k, v)
         return out
 
@@ -268,6 +274,12 @@ class SaQC(FunctionsMixin):
 
         planned = self.called + [(field, (function, args, kwargs))]
 
+        # keep consistence: if we modify data and flags inplace in a function,
+        # but data is the original and flags is a copy (as currently implemented),
+        # data and flags of the original saqc obj may change inconsistently.
+        self._data = data
+        self._flags = flags
+
         return self._construct(_data=data, _flags=flags, called=planned)
 
     def __getattr__(self, key):
@@ -282,9 +294,17 @@ class SaQC(FunctionsMixin):
         return self._wrap(FUNC_MAP[key])
 
     def copy(self, deep=True):
-        if deep:
-            return stdcopy.deepcopy(self)
-        return stdcopy.copy(self)
+        copyfunc = deepcopy if deep else shallowcopy
+        new = self._construct()
+        for attr in self._attributes:
+            setattr(new, attr, copyfunc(getattr(self, attr)))
+        return new
+
+    def __copy__(self):
+        return self.copy(deep=False)
+
+    def __deepcopy__(self, memodict=None):
+        return self.copy(deep=True)
 
 
 def _warnForUnusedKwargs(func, keywords, translator: Translator):
