@@ -35,18 +35,6 @@ class CallState:
     kwargs: dict
     dec_kwargs: dict
 
-def processing():
-    # executed on module import
-    def inner(func):
-        @wraps(func)
-        def callWrapper(data, field, flags, *args, **kwargs):
-            kwargs["to_mask"] = _getMaskingThresh(kwargs)
-            return func(data, field, flags, *args, **kwargs)
-
-        FUNC_MAP[func.__name__] = callWrapper
-        return callWrapper
-
-    return inner
     needs_squeezing: bool | None = None
     needs_masking: bool  | None= None
     needs_demasking: bool  | None= None
