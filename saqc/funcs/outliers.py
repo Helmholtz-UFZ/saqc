@@ -849,9 +849,9 @@ def flagMAD(
     # In pandas <= 0.25.3, the window size is not fixed if the
     # window-argument to rolling is a frequency. That implies,
     # that during the first iterations the window has a size of
-    # 1, 2, 3, ... until it eventually covers the disered time
-    # span. For stuff the calculation of median, that is rather
-    # unfortunate, as the size of calculation base might differ
+    # 1, 2, 3, ... until it eventually covers the desired time
+    # span. For stuff like the calculation of median, that is rather
+    # unfortunate, as the size of the calculation base might differ
     # heavily. So don't flag something until, the window reaches
     # its target size
     if not isinstance(window, int):

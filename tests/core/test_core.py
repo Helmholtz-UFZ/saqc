@@ -44,28 +44,13 @@ def test_duplicatedVariable():
     data = initData(1)
     var1 = data.columns[0]
 
-    pdata, pflags = SaQC(data).flagDummy(var1).getResult()
+    _, pflags = SaQC(data).flagDummy(var1).getResult()
 
     if isinstance(pflags.columns, pd.MultiIndex):
         cols = pflags.columns.get_level_values(0).drop_duplicates()
         assert np.all(cols == [var1])
     else:
         assert (pflags.columns == [var1]).all()
-
-
-def test_sourceTarget():
-    """
-    test implicit assignments
-    """
-    data = initData(1)
-    var1 = data.columns[0]
-    target = "new"
-
-    pdata, pflags = SaQC(data).flagAll(field=var1, target=target).getResult(raw=True)
-
-    assert (pdata[var1] == pdata[target]).all(axis=None)
-    assert all(pflags[var1] == UNFLAGGED)
-    assert all(pflags[target] > UNFLAGGED)
 
 
 @pytest.mark.parametrize("optional", OPTIONAL)
@@ -77,7 +62,7 @@ def test_dtypes(data, flags):
     flags_raw = flags.toDios()
     var1, var2 = data.columns[:2]
 
-    pdata, pflags = (
+    _, pflags = (
         SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).getResult(raw=True)
     )
 
