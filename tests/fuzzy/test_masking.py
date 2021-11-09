@@ -39,8 +39,10 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
     state = CallState(
         func=lambda x: x,
         func_name="",
+        data=data_in,
         flags=flags,
         field=field,
+        target=[],
         args=(),
         kwargs={},
         dec_kwargs={},
@@ -65,8 +67,10 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
     state = CallState(
         func=lambda x: x,
         func_name="",
+        data=data_in,
         flags=flags,
         field=field,
+        target=[],
         args=(),
         kwargs={},
         dec_kwargs={},
@@ -94,8 +98,10 @@ def test_reshapingPreventsUnmasking(data_field_flags):
     state = CallState(
         func=lambda x: x,
         func_name="",
+        data=data_in,
         flags=flags,
         field=field,
+        target=[],
         args=(),
         kwargs={},
         dec_kwargs={},
@@ -126,8 +132,10 @@ def test_unmaskingInvertsMasking(data_field_flags):
     state = CallState(
         func=lambda x: x,
         func_name="",
+        data=data_in,
         flags=flags,
         field=field,
+        target=[],
         args=(),
         kwargs={},
         dec_kwargs={},

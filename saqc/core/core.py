@@ -238,6 +238,10 @@ class SaQC(FunctionsMixin):
             else:
                 fields = toSequence(field)
 
+            if func.__multivariate__:
+                # we wrap field again to make the downstream loop work as expected
+                fields = [fields,]
+
             out = self
 
             for field in fields:

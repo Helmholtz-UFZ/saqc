@@ -175,7 +175,6 @@ def test_flagIsolated(data, field):
 def test_flagCrossScoring(dat):
     data1, characteristics = dat(initial_level=0, final_level=0, out_val=0)
     data2, characteristics = dat(initial_level=0, final_level=0, out_val=10)
-    field = "dummy"
     fields = ["data1", "data2"]
     s1, s2 = data1.squeeze(), data2.squeeze()
     s1 = pd.Series(data=s1.values, index=s1.index)
@@ -183,7 +182,7 @@ def test_flagCrossScoring(dat):
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flags = initFlagsLike(data)
     _, flags_result = flagCrossStatistic(
-        data, field, flags, fields=fields, thresh=3, method=np.mean, flag=BAD
+        data, fields, flags, thresh=3, method=np.mean, flag=BAD
     )
     for field in fields:
         isflagged = flags_result[field] > UNFLAGGED
@@ -304,27 +303,26 @@ def test_flagDriftFromNormal(dat):
     data["d5"] = 3 + 4 * data["d1"]
 
     flags = initFlagsLike(data)
-    data_norm, flags_norm = flagDriftFromNorm(
-        data.copy(),
-        "dummy",
-        flags.copy(),
-        ["d1", "d2", "d3"],
+    _, flags_norm = flagDriftFromNorm(
+        data=data.copy(),
+        field=["d1", "d2", "d3"],
+        flags=flags.copy(),
         freq="200min",
         spread=5,
         flag=BAD,
     )
 
-    data_ref, flags_ref = flagDriftFromReference(
-        data.copy(),
-        "d1",
-        flags.copy(),
-        ["d1", "d2", "d3"],
+    _, flags_ref = flagDriftFromReference(
+        data=data.copy(),
+        field=["d1", "d2", "d3"],
+        flags=flags.copy(),
+        reference="d1",
         freq="3D",
         thresh=20,
         flag=BAD,
     )
 
-    data_scale, flags_scale = flagDriftFromScaledNorm(
+    _, flags_scale = flagDriftFromScaledNorm(
         data.copy(),
         "dummy",
         flags.copy(),
