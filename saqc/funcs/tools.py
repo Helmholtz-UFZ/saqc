@@ -89,7 +89,7 @@ def dropField(
 
 @processing()
 def renameField(
-    data: DictOfSeries, field: str, flags: Flags, target: str, **kwargs
+    data: DictOfSeries, field: str, flags: Flags, new_name: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function renames field to new name (in both, the flags and the data).
@@ -102,7 +102,7 @@ def renameField(
         The fieldname of the data column, you want to rename.
     flags : saqc.Flags
         Container to store flags of the data.
-    target : str
+    new_name : str
         String, field is to be replaced with.
 
     Returns
@@ -112,8 +112,8 @@ def renameField(
     flags : saqc.Flags
         The quality flags of data
     """
-    data[target] = data[field]
-    flags.history[target] = flags.history[field]
+    data[new_name] = data[field]
+    flags.history[new_name] = flags.history[field]
     del data[field]
     del flags[field]
     return data, flags

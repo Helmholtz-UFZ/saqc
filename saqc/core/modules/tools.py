@@ -16,7 +16,7 @@ class Tools:
     def dropField(self, field: str, **kwargs) -> saqc.SaQC:
         return self._defer("dropField", locals())
 
-    def renameField(self, field: str, target: str, **kwargs) -> saqc.SaQC:
+    def renameField(self, field: str, new_name: str, **kwargs) -> saqc.SaQC:
         return self._defer("renameField", locals())
 
     def maskTime(
