@@ -201,13 +201,12 @@ class SaQC(FunctionsMixin):
         """Enrich a function by special saqc-functionality.
 
         For each saqc function this realize
-            - the source-target workflow,
             - regex's in field,
             - use default of translator for ``to_mask`` if not specified by user,
             - translation of ``flag`` and
             - working inplace.
         Therefore it adds the following keywords to each saqc function:
-        ``target``, ``regex`` and ``inplace``.
+        ``regex`` and ``inplace``.
 
         The returned function returns a Saqc object.
         """
@@ -215,14 +214,10 @@ class SaQC(FunctionsMixin):
         def inner(
             field: str,
             *args,
-            target: str = None,
             regex: bool = False,
             flag: ExternalFlag = None,
             **kwargs,
         ) -> SaQC:
-
-            if regex and target is not None:
-                raise ValueError("explicit `target` not supported with `regex=True`")
 
             kwargs.setdefault("to_mask", self._translator.TO_MASK)
 
@@ -234,23 +229,12 @@ class SaQC(FunctionsMixin):
             if regex:
                 fields = self._data.columns.str.match(field)
                 fields = self._data.columns[fields]
-                targets = fields
             else:
-                fields, targets = toSequence(field), toSequence(target, default=field)
+                fields = toSequence(field)
 
             out = self
 
-            for field, target in zip(fields, targets):
-                if field != target:
-                    out = out._callFunction(
-                        FUNC_MAP["copyField"],
-                        data=out._data,
-                        flags=out._flags,
-                        field=field,
-                        new_field=target,
-                    )
-                    field = target
-
+            for field in fields:
                 out = out._callFunction(
                     func,
                     data=out._data,

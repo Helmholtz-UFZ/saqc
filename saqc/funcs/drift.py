@@ -373,7 +373,6 @@ def correctDrift(
     maintenance_field: str,
     model: Callable[..., float],
     cal_range: int = 5,
-    flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
