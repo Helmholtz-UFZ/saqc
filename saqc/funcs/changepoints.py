@@ -201,7 +201,6 @@ def assignChangePointCluster(
     Returns
     -------
     """
-    data = data.copy()
     data_ser = data[field].dropna()
     if isinstance(window, (list, tuple)):
         bwd_window, fwd_window = window

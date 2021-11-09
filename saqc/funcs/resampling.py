@@ -201,13 +201,10 @@ def shift(
     datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
 
     # do the shift on the history
-    history = flags.history[field]
-
     kws = dict(method=method, freq=freq)
-    history = history.apply(
+    history = flags.history[field].apply(
         index=datcol.index,
         func_handle_df=True,
-        copy=False,
         func=shift2Freq,
         func_kws={**kws, "fill_value": UNTOUCHED},
     )
@@ -348,7 +345,6 @@ def resample(
         index=datcol.index,
         func=aggregate2Freq,
         func_kws=kws,
-        copy=False,
     )
 
     data[field] = datcol
@@ -540,8 +536,8 @@ def reindexFlags(
     else:
         raise ValueError(f"unknown method {method}")
 
-    history = flags.history[source].apply(dummy.index, func, func_kws, copy=False)
-    flags.history[field] = flags.history[field].append(history)
+    history = flags.history[source].apply(dummy.index, func, func_kws)
+    flags.history[field].append(history)
 
     if drop:
         data, flags = tools.dropField(data=data, flags=flags, field=source)

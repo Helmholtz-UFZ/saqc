@@ -69,8 +69,7 @@ def roll(
     flags : saqc.Flags
         The quality flags of data
     """
-    data = data.copy()
-    to_fit = data[field]
+    to_fit = data[field].copy()
     if to_fit.empty:
         flags[:, field] = UNTOUCHED
         return data, flags

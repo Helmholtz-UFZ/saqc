@@ -49,9 +49,7 @@ def transform(
     flags : saqc.Flags
         The quality flags of data
     """
-
-    data = data.copy()
-    val_ser = data[field]
+    val_ser = data[field].copy()
     # partitioning
     if not freq:
         freq = val_ser.shape[0]

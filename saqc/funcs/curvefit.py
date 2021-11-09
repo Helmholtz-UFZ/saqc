@@ -95,10 +95,9 @@ def fitPolynomial(
     """
     # TODO: some (rater large) parts are functional similar to saqc.funcs.rolling.roll
     if data[field].empty:
-        flags[:, field] = UNTOUCHED
         return data, flags
-    data = data.copy()
-    to_fit = data[field]
+
+    to_fit = data[field].copy()
     regular = getFreqDelta(to_fit.index)
     if not regular:
         if isinstance(window, int):

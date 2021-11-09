@@ -192,7 +192,6 @@ def test_flagCrossScoring(dat):
 
 def test_flagManual(data, field):
     flags = initFlagsLike(data)
-    args = data, field, flags
     dat = data[field]
 
     mdata = pd.Series("lala", index=dat.index)
@@ -209,13 +208,19 @@ def test_flagManual(data, field):
     ]
 
     for kw in kwargs_list:
-        _, fl = flagManual(*args, **kw)
+        _, fl = flagManual(data.copy(), field, flags.copy(), **kw)
         isflagged = fl[field] > UNFLAGGED
         assert isflagged[isflagged].index.equals(index_exp)
 
     # flag not exist in mdata
     _, fl = flagManual(
-        *args, mdata=mdata, mflag="i do not exist", method="ontime", flag=BAD
+        data.copy(),
+        field,
+        flags.copy(),
+        mdata=mdata,
+        mflag="i do not exist",
+        method="ontime",
+        flag=BAD,
     )
     isflagged = fl[field] > UNFLAGGED
     assert isflagged[isflagged].index.equals(pd.DatetimeIndex([]))
@@ -244,7 +249,15 @@ def test_flagManual(data, field):
     expected.loc[dat.index[-1]] = 1
     expected = expected.astype(bool)
 
-    _, fl = flagManual(*args, mdata=mdata, mflag=1, method="right-open", flag=BAD)
+    _, fl = flagManual(
+        data.copy(),
+        field,
+        flags.copy(),
+        mdata=mdata,
+        mflag=1,
+        method="right-open",
+        flag=BAD,
+    )
     isflagged = fl[field] > UNFLAGGED
     last = expected.index[0]
 
@@ -260,7 +273,15 @@ def test_flagManual(data, field):
 
     # check left-open / bfill
     expected.loc[dat.index[-1]] = 0  # this time the last is False
-    _, fl = flagManual(*args, mdata=mdata, mflag=1, method="left-open", flag=BAD)
+    _, fl = flagManual(
+        data.copy(),
+        field,
+        flags.copy(),
+        mdata=mdata,
+        mflag=1,
+        method="left-open",
+        flag=BAD,
+    )
     isflagged = fl[field] > UNFLAGGED
     last = expected.index[0]
     assert isflagged[last] == expected[last]
@@ -284,9 +305,9 @@ def test_flagDriftFromNormal(dat):
 
     flags = initFlagsLike(data)
     data_norm, flags_norm = flagDriftFromNorm(
-        data,
+        data.copy(),
         "dummy",
-        flags,
+        flags.copy(),
         ["d1", "d2", "d3"],
         freq="200min",
         spread=5,
@@ -294,9 +315,9 @@ def test_flagDriftFromNormal(dat):
     )
 
     data_ref, flags_ref = flagDriftFromReference(
-        data,
+        data.copy(),
         "d1",
-        flags,
+        flags.copy(),
         ["d1", "d2", "d3"],
         freq="3D",
         thresh=20,
@@ -304,9 +325,9 @@ def test_flagDriftFromNormal(dat):
     )
 
     data_scale, flags_scale = flagDriftFromScaledNorm(
-        data,
+        data.copy(),
         "dummy",
-        flags,
+        flags.copy(),
         ["d1", "d3"],
         ["d4", "d5"],
         freq="3D",
