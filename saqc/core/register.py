@@ -36,10 +36,10 @@ class CallState:
     dec_kwargs: dict
 
     needs_squeezing: bool | None = None
-    needs_masking: bool  | None= None
-    needs_demasking: bool  | None= None
-    mthresh: float  | None= None
-    mask: dios.DictOfSeries | None= None
+    needs_masking: bool | None = None
+    needs_demasking: bool | None = None
+    mthresh: float | None = None
+    mask: dios.DictOfSeries | None = None
 
 
 def register(

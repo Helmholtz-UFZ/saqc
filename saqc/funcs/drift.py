@@ -216,7 +216,9 @@ def flagDriftFromReference(
             continue
 
         for i in range(len(fields)):
-            dist = metric(segment[1].iloc[:, i].values, segment[1].loc[:, reference].values)
+            dist = metric(
+                segment[1].iloc[:, i].values, segment[1].loc[:, reference].values
+            )
 
             if dist > thresh:
                 flags[segment[1].index, fields[i]] = flag

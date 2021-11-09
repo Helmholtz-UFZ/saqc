@@ -240,7 +240,9 @@ class SaQC(FunctionsMixin):
 
             if func.__multivariate__:
                 # we wrap field again to make the downstream loop work as expected
-                fields = [fields,]
+                fields = [
+                    fields,
+                ]
 
             out = self
 
