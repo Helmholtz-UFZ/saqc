@@ -124,54 +124,63 @@ def test_copy(data):
     deep = hist.copy(deep=True)
 
     # checks
-
     for copy in [deep, shallow]:
         check_invariants(copy)
         assert copy is not hist
+        assert copy.hist is not hist.hist
+        assert copy.meta is not hist.meta
         assert is_equal(copy, hist)
 
     assert deep is not shallow
     assert is_equal(deep, shallow)
 
-    assert deep.hist is not hist.hist
-    assert deep.meta is not hist.meta
-
-    assert shallow.hist is hist.hist
-    assert shallow.meta is hist.meta
+    # underling pandas data was only copied with deep=True
+    assert shallow.hist.index is hist.hist.index
+    assert deep.hist.index is not hist.hist.index
 
 
+@pytest.mark.parametrize("copy", [True, False])
 @pytest.mark.parametrize("data", data + [None])
-def test_reindex_trivial_cases(data):
+def test_reindex_trivial_cases(data, copy):
     df = pd.DataFrame(data, dtype=float)
     orig = dummyHistory(hist=df)
 
     # checks
     for index in [df.index, pd.Index([])]:
-        hist = orig.copy()
-        ref = hist.reindex(index)
-        assert ref is hist  # check if working inplace
+        ref = orig.copy()
+        hist = ref.reindex(index, copy=copy)
+        if copy:
+            assert hist is not ref
+        else:
+            assert hist is ref
         check_invariants(hist)
 
 
+@pytest.mark.parametrize("copy", [True, False])
 @pytest.mark.parametrize("data", data + [None])
-def test_reindex_missing_indicees(data):
+def test_reindex_missing_indicees(data, copy):
     df = pd.DataFrame(data, dtype=float)
-    hist = dummyHistory(hist=df)
+    orig = dummyHistory(hist=df)
     index = df.index[1:-1]
-    # checks
-    ref = hist.reindex(index)
-    assert ref is hist  # check if working inplace
+    hist = orig.reindex(index, copy=copy)
+    if copy:
+        assert hist is not orig
+    else:
+        assert hist is orig
     check_invariants(hist)
 
 
+@pytest.mark.parametrize("copy", [True, False])
 @pytest.mark.parametrize("data", data + [None])
-def test_reindex_extra_indicees(data):
+def test_reindex_extra_indicees(data, copy):
     df = pd.DataFrame(data, dtype=float)
-    hist = dummyHistory(hist=df)
+    orig = dummyHistory(hist=df)
     index = df.index.append(pd.Index(range(len(df.index), len(df.index) + 5)))
-    # checks
-    ref = hist.reindex(index)
-    assert ref is hist  # check if working inplace
+    hist = orig.reindex(index, copy=copy)
+    if copy:
+        assert hist is not orig
+    else:
+        assert hist is orig
     check_invariants(hist)
 
 

@@ -5,13 +5,12 @@ import pytest
 import numpy as np
 import pandas as pd
 
-
+import saqc
 from saqc.constants import *
 from saqc.core import initFlagsLike
 from saqc import SaQC, register
 
 from tests.common import initData, flagAll
-
 
 OPTIONAL = [False, True]
 
@@ -84,3 +83,34 @@ def test_dtypes(data, flags):
 
     for c in pflags.columns:
         assert pflags[c].dtype == flags[c].dtype
+
+
+def test_copy(data):
+    qc = saqc.SaQC(data)
+
+    qc = qc.flagRange("var1").flagRange("var1", min=0, max=0)
+
+    deep = qc.copy(deep=True)
+    shallow = qc.copy(deep=False)
+
+    for copy in [deep, shallow]:
+        assert copy is not qc
+        assert copy.called is not qc.called
+        assert copy._translator is not qc._translator
+        assert copy._attrs is not qc._attrs
+
+        assert copy._data is not qc._data
+        assert copy._flags is not qc._flags
+
+        assert copy._data._data is not qc._data._data
+        assert copy._flags._data is not qc._flags._data
+
+    # underling data copied
+    assert deep._data._data.iloc[0] is not qc._data._data.iloc[0]
+    assert (
+        deep._flags._data["var1"].hist.index is not qc._flags._data["var1"].hist.index
+    )
+
+    # underling data NOT copied
+    assert shallow._data._data.iloc[0] is qc._data._data.iloc[0]
+    assert shallow._flags._data["var1"].hist.index is qc._flags._data["var1"].hist.index

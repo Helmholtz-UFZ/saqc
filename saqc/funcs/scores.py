@@ -101,10 +101,8 @@ def assignKNNScore(
     ----------
     [1] https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html
     """
-    data = data.copy()
     fields = toSequence(fields)
-
-    val_frame = data[fields]
+    val_frame = data[fields].copy()
     score_index = val_frame.index_of("shared")
     score_ser = pd.Series(np.nan, index=score_index, name=field)
 

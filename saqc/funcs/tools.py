@@ -52,8 +52,7 @@ def copyField(
         raise ValueError(f"{field}: field already exist")
 
     data[new_field] = data[field].copy()
-    # implicit copy in history access
-    flags.history[new_field] = flags.history[field]
+    flags.history[new_field] = flags.history[field].copy()
     return data, flags
 
 
@@ -228,7 +227,6 @@ def maskTime(
     When inclusive_selection="season", all above examples work the same way, only that you now
     determine wich values NOT TO mask (=wich values are to constitute the "seasons").
     """
-    data = data.copy()
     datcol_idx = data[field].index
 
     if mode == "periodic":

@@ -458,12 +458,10 @@ def correctDrift(
     """
     # 1: extract fit intervals:
     if data[maintenance_field].empty:
-        flags[:, field] = UNTOUCHED
         return data, flags
 
-    data = data.copy()
-    to_correct = data[field]
-    maint_data = data[maintenance_field]
+    to_correct = data[field].copy()
+    maint_data = data[maintenance_field].copy()
 
     to_correct_clean = to_correct.dropna()
     d = {"drift_group": np.nan, to_correct.name: to_correct_clean.values}

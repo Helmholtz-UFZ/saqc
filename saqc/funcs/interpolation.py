@@ -82,8 +82,6 @@ def interpolateByRolling(
     flags : saqc.Flags
         The quality flags of data
     """
-
-    data = data.copy()
     datcol = data[field]
     roller = datcol.rolling(window=window, center=center, min_periods=min_periods)
     try:
@@ -291,7 +289,6 @@ def interpolateIndex(
         index=data[field].index,
         func=_resampleOverlapping,
         func_kws=dict(freq=freq, fill_value=UNFLAGGED),
-        copy=False,
     )
 
     flags.history[field] = history

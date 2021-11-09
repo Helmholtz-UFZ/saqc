@@ -1100,8 +1100,7 @@ def flagByGrubbs(
 
     [1] https://en.wikipedia.org/wiki/Grubbs%27s_test_for_outliers
     """
-    data = data.copy()
-    datcol = data[field]
+    datcol = data[field].copy()
     rate = getFreqDelta(datcol.index)
 
     # if timeseries that is analyzed, is regular,
