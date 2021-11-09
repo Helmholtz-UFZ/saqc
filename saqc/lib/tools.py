@@ -35,6 +35,10 @@ def toSequence(value: Union[Any, Sequence[Any]]) -> List[Any]:
         value = [value]
     return list(value)
 
+
+def squeezeSequence(value: Sequence[T]) -> Union[T, Sequence[T]]:
+    if len(value) == 1:
+        return value[0]
     return value
 
 
