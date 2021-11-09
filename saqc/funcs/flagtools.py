@@ -6,11 +6,11 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import BAD, UNFLAGGED
-from saqc.core import flagging, processing, Flags
+from saqc.core import register, Flags
 import warnings
 
 
-@flagging(masking="field")
+@register(datamask=None)
 def forceFlags(
     data: DictOfSeries, field: str, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -44,8 +44,7 @@ def forceFlags(
     return data, flags
 
 
-# masking='none' is sufficient because call is redirected
-@flagging(masking="none")
+@register(datamask=None)
 def clearFlags(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -90,7 +89,7 @@ def clearFlags(
     return forceFlags(data, field, flags, flag=UNFLAGGED, **kwargs)
 
 
-@flagging(masking="none")
+@register(datamask=None)
 def flagUnflagged(
     data: DictOfSeries, field: str, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -132,7 +131,7 @@ def flagUnflagged(
     return data, flags
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def flagManual(
     data: DictOfSeries,
     field: str,
@@ -276,7 +275,7 @@ def flagManual(
     return data, flags
 
 
-@flagging()
+@register(datamask=None)
 def flagDummy(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:

@@ -32,7 +32,7 @@ class _HistAccess:
         self.obj = obj
 
     def __getitem__(self, key: str) -> History:
-        return self.obj._data[key].copy()
+        return self.obj._data[key]
 
     def __setitem__(self, key: str, value: History):
         if not isinstance(value, History):
@@ -359,9 +359,10 @@ class Flags:
         """
         Accessor for the flags history.
 
-        To get a copy of the current history use ``flags.history['var']``.
+        Access via ``flags.history['var']``.
         To set a new history use ``flags.history['var'] = value``.
-        The passed value must be a instance of History or must be convertible to a history.
+        The passed value must be a instance of History or must be convertible to a
+        history.
 
         Returns
         -------
@@ -392,11 +393,11 @@ class Flags:
         copy of flags
         """
         new = self._constructor()
-        new._data = {c: h.copy() if deep else h for c, h in self._data.items()}
+        new._data = {c: h.copy(deep) for c, h in self._data.items()}
         return new
 
-    def __copy__(self, deep=True):
-        return self.copy(deep=deep)
+    def __copy__(self):
+        return self.copy(deep=False)
 
     def __deepcopy__(self, memo=None):
         """

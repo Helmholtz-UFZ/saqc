@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # imports needed to make the functions register themself
-from saqc.core.register import flagging
+from saqc.core.register import register
 from saqc.funcs.breaks import *
 from saqc.funcs.changepoints import *
 from saqc.funcs.constants import *

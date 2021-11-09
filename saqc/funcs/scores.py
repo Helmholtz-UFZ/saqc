@@ -7,12 +7,12 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
 from saqc.lib.tools import toSequence
 import saqc.lib.ts_operators as ts_ops
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def assignKNNScore(
     data: DictOfSeries,
     field: str,
@@ -101,10 +101,8 @@ def assignKNNScore(
     ----------
     [1] https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html
     """
-    data = data.copy()
     fields = toSequence(fields)
-
-    val_frame = data[fields]
+    val_frame = data[fields].copy()
     score_index = val_frame.index_of("shared")
     score_ser = pd.Series(np.nan, index=score_index, name=field)
 

@@ -14,7 +14,7 @@ from scipy.spatial.distance import pdist
 
 from dios import DictOfSeries
 from saqc.constants import *
-from saqc.core.register import flagging
+from saqc.core.register import register
 from saqc.core import Flags
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
@@ -27,7 +27,7 @@ LinkageString = Literal[
 ]
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def flagDriftFromNorm(
     data: DictOfSeries,
     field: str,
@@ -147,7 +147,7 @@ def flagDriftFromNorm(
     return data, flags
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def flagDriftFromReference(
     data: DictOfSeries,
     field: str,
@@ -228,7 +228,7 @@ def flagDriftFromReference(
     return data, flags
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def flagDriftFromScaledNorm(
     data: DictOfSeries,
     field: str,
@@ -365,7 +365,7 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def correctDrift(
     data: DictOfSeries,
     field: str,
@@ -457,12 +457,10 @@ def correctDrift(
     """
     # 1: extract fit intervals:
     if data[maintenance_field].empty:
-        flags[:, field] = UNTOUCHED
         return data, flags
 
-    data = data.copy()
-    to_correct = data[field]
-    maint_data = data[maintenance_field]
+    to_correct = data[field].copy()
+    maint_data = data[maintenance_field].copy()
 
     to_correct_clean = to_correct.dropna()
     d = {"drift_group": np.nan, to_correct.name: to_correct_clean.values}
@@ -496,7 +494,7 @@ def correctDrift(
     return data, flags
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def correctRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -615,7 +613,7 @@ def correctRegimeAnomaly(
     return data, flags
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def correctOffset(
     data: DictOfSeries,
     field: str,
@@ -713,7 +711,7 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
     return data_fit, data_shift
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def flagRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -790,7 +788,7 @@ def flagRegimeAnomaly(
     )
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def assignRegimeAnomaly(
     data: DictOfSeries,
     field: str,

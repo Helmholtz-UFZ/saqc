@@ -8,7 +8,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import processing, Flags
+from saqc.core import register, Flags
 from saqc.core.register import _isflagged
 from saqc.lib.tools import evalFreqStr, getFreqDelta
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
@@ -27,7 +27,7 @@ METHOD2ARGS = {
 }
 
 
-@processing()
+@register(handles="index", datamask=None)
 def linear(
     data: DictOfSeries, field: str, flags: Flags, freq: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -66,11 +66,11 @@ def linear(
         The quality flags of data
         Flags values and shape may have changed relatively to the flags input.
     """
-
+    # todo: we could use now `register(handles='index', datamsk='all')`
     return interpolateIndex(data, field, flags, freq, "time", **kwargs)
 
 
-@processing()
+@register(handles="index", datamask=None)
 def interpolate(
     data: DictOfSeries,
     field: str,
@@ -129,13 +129,13 @@ def interpolate(
         The quality flags of data
         Flags values and shape may have changed relatively to the flags input.
     """
-
+    # todo: we could use now `register(handles='index', datamsk='all')`
     return interpolateIndex(
         data, field, flags, freq, method=method, order=order, **kwargs
     )
 
 
-@processing()
+@register(handles="index", datamask=None)
 def shift(
     data: DictOfSeries,
     field: str,
@@ -192,6 +192,7 @@ def shift(
     if datcol.empty:
         return data, flags
 
+    # todo: we could use now `register(handles='index', datamsk='all')`
     flagged = _isflagged(flags[field], kwargs["to_mask"])
     datcol[flagged] = np.nan
     freq = evalFreqStr(freq, freq_check, datcol.index)
@@ -200,13 +201,10 @@ def shift(
     datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
 
     # do the shift on the history
-    history = flags.history[field]
-
     kws = dict(method=method, freq=freq)
-    history = history.apply(
+    history = flags.history[field].apply(
         index=datcol.index,
         func_handle_df=True,
-        copy=False,
         func=shift2Freq,
         func_kws={**kws, "fill_value": UNTOUCHED},
     )
@@ -216,7 +214,7 @@ def shift(
     return data, flags
 
 
-@processing()
+@register(handles="index", datamask=None)
 def resample(
     data: DictOfSeries,
     field: str,
@@ -318,6 +316,7 @@ def resample(
         The quality flags of data
         Flags values and shape may have changed relatively to the flags input.
     """
+    # todo: we could use now `register(handles='index', datamsk='all')`
     flagged = _isflagged(flags[field], kwargs["to_mask"])
     datcol = data[field]
     datcol[flagged] = np.nan
@@ -346,7 +345,6 @@ def resample(
         index=datcol.index,
         func=aggregate2Freq,
         func_kws=kws,
-        copy=False,
     )
 
     data[field] = datcol
@@ -412,7 +410,7 @@ def _inverseShift(
     return source.fillna(fill_value).astype(dtype, copy=False)
 
 
-@processing()
+@register(handles="index", datamask=None)
 def reindexFlags(
     data: DictOfSeries,
     field: str,
@@ -538,8 +536,8 @@ def reindexFlags(
     else:
         raise ValueError(f"unknown method {method}")
 
-    history = flags.history[source].apply(dummy.index, func, func_kws, copy=False)
-    flags.history[field] = flags.history[field].append(history)
+    history = flags.history[source].apply(dummy.index, func, func_kws)
+    flags.history[field].append(history)
 
     if drop:
         data, flags = tools.dropField(data=data, flags=flags, field=source)

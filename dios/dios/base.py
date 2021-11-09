@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 from __future__ import annotations
+
+from copy import deepcopy, copy as shallowcopy
 from typing import Mapping, Hashable, Any
 
 from . import operators as ops
@@ -472,7 +474,7 @@ class _DiosBase:
         return self.copy(deep=True)
 
     def __copy__(self):
-        return self.copy(deep=True)
+        return self.copy(deep=False)
 
     def copy(self, deep=True):
         """Make a copy of this DictOfSeries' indices and data.
@@ -491,14 +493,19 @@ class _DiosBase:
         --------
         pandas.DataFrame.copy
         """
-        data = self._data.copy()
+        data = self._data.copy()  # always copy the outer hull series
         if deep:
             for c, series in self.items():
                 data.at[c] = series.copy()
 
-        return self._constructor(
+        new = self._constructor(
             data=data, itype=self.itype, cast_policy=self.cast_policy, fastpath=True
-        )._finalize(self)
+        )
+
+        copyfunc = deepcopy if deep else shallowcopy
+        new._attrs = copyfunc(self._attrs)
+
+        return new
 
     def copy_empty(self, columns=True):
         """

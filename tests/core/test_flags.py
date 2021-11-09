@@ -72,16 +72,20 @@ def test_copy(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
         assert isinstance(copy, Flags)
         assert copy is not flags
         assert copy._data is not flags._data
+        for c in copy.columns:
+            assert copy._data[c] is not flags._data[c]
         is_equal(copy, flags)
 
     assert deep is not shallow
     is_equal(deep, shallow)
 
+    # the underling series data is the same
     for c in shallow.columns:
-        assert shallow._data[c] is flags._data[c]
+        assert shallow._data[c].index is flags._data[c].index
 
+    # the underling series data was copied
     for c in deep.columns:
-        assert deep._data[c] is not flags._data[c]
+        assert deep._data[c].index is not flags._data[c].index
 
 
 @pytest.mark.parametrize("data", data)
