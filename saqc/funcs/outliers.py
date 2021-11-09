@@ -14,7 +14,7 @@ from outliers import smirnov_grubbs
 from scipy.optimize import curve_fit
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
 from saqc.lib.types import FreqString
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta
 from saqc.funcs.scores import assignKNNScore
@@ -23,7 +23,7 @@ from saqc.funcs.transformation import transform
 import saqc.lib.ts_operators as ts_ops
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def flagByStray(
     data: DictOfSeries,
     field: str,
@@ -399,7 +399,7 @@ def _expFit(
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def flagMVScores(
     data: DictOfSeries,
     field: str,
@@ -604,7 +604,7 @@ def flagMVScores(
     return data, flags
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def flagRaise(
     data: DictOfSeries,
     field: str,
@@ -792,7 +792,7 @@ def flagRaise(
     return data, flags
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def flagMAD(
     data: DictOfSeries,
     field: str,
@@ -862,7 +862,7 @@ def flagMAD(
     return data, flags
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def flagOffset(
     data: DictOfSeries,
     field: str,
@@ -1030,7 +1030,7 @@ def flagOffset(
     return data, flags
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def flagByGrubbs(
     data: DictOfSeries,
     field: str,
@@ -1153,7 +1153,7 @@ def flagByGrubbs(
     return data, flags
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def flagRange(
     data: DictOfSeries,
     field: str,
@@ -1196,7 +1196,7 @@ def flagRange(
     return data, flags
 
 
-@flagging(masking="all")
+@register(datamask="all")
 def flagCrossStatistic(
     data: DictOfSeries,
     field: str,

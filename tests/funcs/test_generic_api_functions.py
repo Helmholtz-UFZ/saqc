@@ -5,14 +5,14 @@ import pytest
 import pandas as pd
 
 from saqc.constants import *
-from saqc.core.register import flagging
+from saqc.core.register import register
 from saqc.funcs.tools import maskTime
 from saqc import SaQC
 
 from tests.common import initData, flagAll
 
 
-flagging(masking="field")(flagAll)
+register(datamask="field")(flagAll)
 
 
 @pytest.fixture

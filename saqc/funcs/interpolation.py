@@ -7,7 +7,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, processing, Flags
+from saqc.core import register, Flags
 from saqc.core.register import _isflagged
 from saqc.lib.ts_operators import interpolateNANs
 
@@ -30,7 +30,7 @@ _SUPPORTED_METHODS = Literal[
 ]
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def interpolateByRolling(
     data: DictOfSeries,
     field: str,
@@ -105,7 +105,7 @@ def interpolateByRolling(
     return data, flags
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def interpolateInvalid(
     data: DictOfSeries,
     field: str,
@@ -189,7 +189,7 @@ def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
     return data.fillna(fill_value).astype(dtype)
 
 
-@processing()
+@register(handles="index", datamask=None)
 def interpolateIndex(
     data: DictOfSeries,
     field: str,
@@ -257,6 +257,7 @@ def interpolateIndex(
     start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
     grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
 
+    # todo: we could use now `register(handles='index', datamsk='all')`
     flagged = _isflagged(flags[field], kwargs["to_mask"])
 
     # drop all points that hold no relevant grid information

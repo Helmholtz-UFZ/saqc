@@ -7,11 +7,11 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
 from saqc.lib.tools import getFreqDelta
 
 
-@flagging(masking="field")
+@register(datamask="field")
 def roll(
     data: DictOfSeries,
     field: str,

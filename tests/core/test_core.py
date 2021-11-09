@@ -8,7 +8,7 @@ import pandas as pd
 
 from saqc.constants import *
 from saqc.core import initFlagsLike
-from saqc import SaQC, flagging
+from saqc import SaQC, register
 
 from tests.common import initData, flagAll
 
@@ -16,7 +16,7 @@ from tests.common import initData, flagAll
 OPTIONAL = [False, True]
 
 
-flagging(masking="field")(flagAll)
+register(datamask="field")(flagAll)
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def flags(data, optional):
 
 
 def test_errorHandling(data):
-    @flagging(masking="field")
+    @register(datamask="field")
     def raisingFunc(data, field, flags, **kwargs):
         raise TypeError
 
