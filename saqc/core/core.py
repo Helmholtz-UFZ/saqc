@@ -218,7 +218,7 @@ class SaQC(FunctionsMixin):
         """
 
         def inner(
-            field: str,
+            field: str | Sequence[str],
             *args,
             regex: bool = False,
             flag: ExternalFlag = None,
@@ -233,25 +233,23 @@ class SaQC(FunctionsMixin):
 
             # expand regular expressions
             if regex:
-                fields = self._data.columns.str.match(field)
-                fields = self._data.columns[fields]
+                fmask = self._data.columns.str.match(field)
+                fields: list = self._data.columns[fmask].tolist()
             else:
                 fields = toSequence(field)
 
             if func.__multivariate__:
-                # we wrap field again to make the downstream loop work as expected
-                fields = [
-                    fields,
-                ]
+                # we wrap field again to generalize the down stream loop work as expected
+                fields = [fields]
 
             out = self
 
-            for field in fields:
+            for f in fields:
                 out = out._callFunction(
                     func,
                     data=out._data,
                     flags=out._flags,
-                    field=field,
+                    field=f,
                     *args,
                     **kwargs,
                 )
@@ -264,7 +262,7 @@ class SaQC(FunctionsMixin):
         function: Callable,
         data: DictOfSeries,
         flags: Flags,
-        field: str,
+        field: str | Sequence[str],
         *args: Any,
         **kwargs: Any,
     ) -> SaQC:
