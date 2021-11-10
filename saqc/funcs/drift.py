@@ -401,6 +401,8 @@ def correctDrift(
     cal_range : int, default 5
         The number of values the mean is computed over, for obtaining the value level directly after and
         directly before maintenance event. This values are needed for shift calibration. (see above description)
+    target : str or None, default None
+        Write the reult of the processing to another variable then, ``field``. Must not already exist.
     flag : float, default BAD
         flag to set.
 
@@ -488,6 +490,9 @@ def correctDrift(
         to_correct[shiftedData.index] = shiftedData
 
     if target:
+        if target in data.columns:
+            raise ValueError('Target already exists.')
+
         flags.history[target] = flags.history[field].copy()
         field = target
 
@@ -496,7 +501,7 @@ def correctDrift(
     return data, flags
 
 
-@register(datamask="all")
+@register(handles='index', datamask='field')
 def correctRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -505,6 +510,7 @@ def correctRegimeAnomaly(
     model: CurveFitter,
     tolerance: Optional[FreqString] = None,
     epoch: bool = False,
+    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -541,6 +547,9 @@ def correctRegimeAnomaly(
         unreliability of data near the changepoints of regimes.
     epoch : bool, default False
         If True, use "seconds from epoch" as x input to the model func, instead of "seconds from regime start".
+    target : str or None, default None
+        Write the reult of the processing to another variable then, ``field``. Must not already exist.
+
 
     Returns
     -------
@@ -611,6 +620,13 @@ def correctRegimeAnomaly(
         else:
             last_valid = 1
 
+    if target:
+        if target in data.columns:
+            raise ValueError('Target already exists.')
+
+        flags.history[target] = flags.history[field].copy()
+        field = target
+
     data[field] = data_ser
     return data, flags
 
@@ -625,6 +641,7 @@ def correctOffset(
     window: FreqString,
     min_periods: int,
     tolerance: Optional[FreqString] = None,
+    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -651,6 +668,9 @@ def correctOffset(
         If an offset string is passed, a data chunk of length `offset` right from the
         start and right before the end of any regime is ignored when calculating a regimes mean for data correcture.
         This is to account for the unrelyability of data near the changepoints of regimes.
+    target : str or None, default None
+        Write the result of the processing to another variable then, ``field``. Must not already exist.
+
 
     Returns
     -------
@@ -660,6 +680,14 @@ def correctOffset(
     flags : saqc.Flags
         The quality flags of data
     """
+    if target:
+        if target in data.columns:
+            raise ValueError('Target already exists.')
+
+        flags.history[target] = flags.history[field].copy()
+        data[target] = data[field]
+        field = target
+
     data, flags = copyField(data, field, flags, field + "_CPcluster")
     data, flags = assignChangePointCluster(
         data,

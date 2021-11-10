@@ -82,6 +82,7 @@ class Drift:
         model: CurveFitter,
         tolerance: Optional[FreqString] = None,
         epoch: bool = False,
+        target: str = None,
         **kwargs
     ) -> saqc.SaQC:
         return self._defer("correctRegimeAnomaly", locals())
@@ -94,6 +95,7 @@ class Drift:
         window: FreqString,
         min_periods: int,
         tolerance: Optional[FreqString] = None,
+        target: str = None,
         **kwargs
     ) -> saqc.SaQC:
         return self._defer("correctOffset", locals())
