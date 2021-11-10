@@ -244,13 +244,14 @@ class SaQC(FunctionsMixin):
             # expand regular expressions
             if regex:
                 fmask = self._data.columns.str.match(field)
-                fields: list = self._data.columns[fmask].tolist()
+                fields = self._data.columns[fmask].tolist()
             else:
                 fields = toSequence(field)
 
             if func.__multivariate__:
                 # we wrap field again to generalize the down stream loop work as expected
                 fields = [fields]
+
 
             out = self
 
