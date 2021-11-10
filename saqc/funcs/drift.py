@@ -362,7 +362,7 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-@register(datamask="all")
+@register(handles='index', datamask="field")
 def correctDrift(
     data: DictOfSeries,
     field: str,
@@ -370,6 +370,7 @@ def correctDrift(
     maintenance_field: str,
     model: Callable[..., float],
     cal_range: int = 5,
+    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -485,6 +486,10 @@ def correctDrift(
         data_shiftVektor = data_shiftTarget - data_fit
         shiftedData = data_series + data_shiftVektor
         to_correct[shiftedData.index] = shiftedData
+
+    if target:
+        flags.history[target] = flags.history[field].copy()
+        field = target
 
     data[field] = to_correct
 

@@ -69,6 +69,7 @@ class Drift:
         maintenance_field: str,
         model: Callable[..., float],
         cal_range: int = 5,
+        target: str = None,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
