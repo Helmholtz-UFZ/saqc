@@ -201,10 +201,9 @@ def test_flagManual(data, field):
     shrinked = mdata.loc[index_exp.union(mdata.iloc[[1, 2, 3, 4, 600, 601]].index)]
 
     kwargs_list = [
-        dict(mdata=mdata, mflag="a", method="plain", flag=BAD),
-        dict(mdata=mdata.to_list(), mflag="a", method="plain", flag=BAD),
-        dict(mdata=mdata, mflag="a", method="ontime", flag=BAD),
-        dict(mdata=shrinked, mflag="a", method="ontime", flag=BAD),
+        dict(mdata=mdata, mflag="a", method="plain", mformat="mflag", flag=BAD),
+        dict(mdata=mdata, mflag="a", method="ontime", mformat="mflag", flag=BAD),
+        dict(mdata=shrinked, mflag="a", method="ontime", mformat="mflag", flag=BAD),
     ]
 
     for kw in kwargs_list:
@@ -220,12 +219,13 @@ def test_flagManual(data, field):
         mdata=mdata,
         mflag="i do not exist",
         method="ontime",
+        mformat="mflag",
         flag=BAD,
     )
     isflagged = fl[field] > UNFLAGGED
     assert isflagged[isflagged].index.equals(pd.DatetimeIndex([]))
 
-    # check right-open / ffill
+    # check closure methods
     index = pd.date_range(start="2016-01-01", end="2018-12-31", periods=11)
     mdata = pd.Series(0, index=index)
     mdata.loc[index[[1, 5, 6, 7, 9, 10]]] = 1
@@ -242,57 +242,34 @@ def test_flagManual(data, field):
     # 2018-09-12 12:00:00    1
     # 2018-12-31 00:00:00    1
     # dtype: int64
-
-    # add first and last index from data
-    expected = mdata.copy()
-    expected.loc[dat.index[0]] = 0
-    expected.loc[dat.index[-1]] = 1
-    expected = expected.astype(bool)
-
-    _, fl = flagManual(
-        data.copy(),
-        field,
-        flags.copy(),
-        mdata=mdata,
-        mflag=1,
-        method="right-open",
-        flag=BAD,
-    )
-    isflagged = fl[field] > UNFLAGGED
-    last = expected.index[0]
-
-    for curr in expected.index[1:]:
-        expected_value = mdata[last]
-        # datetime slicing is inclusive !
-        i = isflagged[last:curr].index[:-1]
-        chunk = isflagged.loc[i]
-        assert (chunk == expected_value).all()
-        last = curr
-    # check last value
-    assert isflagged[curr] == expected[curr]
-
-    # check left-open / bfill
-    expected.loc[dat.index[-1]] = 0  # this time the last is False
-    _, fl = flagManual(
-        data.copy(),
-        field,
-        flags.copy(),
-        mdata=mdata,
-        mflag=1,
-        method="left-open",
-        flag=BAD,
-    )
-    isflagged = fl[field] > UNFLAGGED
-    last = expected.index[0]
-    assert isflagged[last] == expected[last]
-
-    for curr in expected.index[1:]:
-        expected_value = mdata[curr]
-        # datetime slicing is inclusive !
-        i = isflagged[last:curr].index[1:]
-        chunk = isflagged.loc[i]
-        assert (chunk == expected_value).all()
-        last = curr
+    m_index = mdata.index
+    flag_intervals = [
+        (m_index[1], m_index[2]),
+        (m_index[5], m_index[8]),
+        (m_index[9], dat.index.shift(freq="1h")[-1]),
+    ]
+    bound_drops = {"right-open": [1], "left-open": [0], "closed": []}
+    for method in ["right-open", "left-open", "closed"]:
+        _, fl = flagManual(
+            data.copy(),
+            field,
+            flags.copy(),
+            mdata=mdata,
+            mflag=1,
+            method=method,
+            mformat="mflag",
+            flag=BAD,
+        )
+        isflagged = fl[field] > UNFLAGGED
+        for flag_i in flag_intervals:
+            f_i = isflagged[slice(flag_i[0], flag_i[-1])].index
+            check_i = f_i.drop(
+                [flag_i[k] for k in bound_drops[method]], errors="ignore"
+            )
+            assert isflagged[check_i].all()
+            unflagged = isflagged[f_i.difference(check_i)]
+            if not unflagged.empty:
+                assert ~unflagged.all()
 
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
