@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 from __future__ import annotations
-from typing import Dict, Optional, Union, Tuple, Callable, Sequence
+from typing import Dict, List, Union, Tuple, Callable, Sequence
 from typing_extensions import Literal
 from functools import wraps
 import dataclasses
+from dios.dios.dios import DictOfSeries
 import numpy as np
 import pandas as pd
 import dios
 
-from saqc.constants import *
-from saqc.core.flags import initFlagsLike, Flags, History
+from saqc.constants import UNFLAGGED
+from saqc.core.flags import Flags, History
+from saqc.lib.tools import squeezeSequence, toSequence
 
 # NOTE:
 # the global SaQC function store,
@@ -24,37 +26,26 @@ class CallState:
     func: Callable
     func_name: str
 
+    data: DictOfSeries
     flags: Flags
-    field: str
+    field: List[str]
+    target: List[str] | None
 
     args: tuple
     kwargs: dict
     dec_kwargs: dict
 
-    needs_squeezing = None
-    needs_masking = None
-    needs_demasking = None
-    mthresh: float = None
-    mask: dios.DictOfSeries = None
-
-
-def processing():
-    # executed on module import
-    def inner(func):
-        @wraps(func)
-        def callWrapper(data, field, flags, *args, **kwargs):
-            kwargs["to_mask"] = _getMaskingThresh(kwargs)
-            return func(data, field, flags, *args, **kwargs)
-
-        FUNC_MAP[func.__name__] = callWrapper
-        return callWrapper
-
-    return inner
+    needs_squeezing: bool | None = None
+    needs_masking: bool | None = None
+    needs_demasking: bool | None = None
+    mthresh: float | None = None
+    mask: dios.DictOfSeries | None = None
 
 
 def register(
     handles: Literal["data|flags", "index"] = "data|flags",
     datamask: Literal["all", "field"] | None = "all",
+    multivariate: bool = False,
 ):
 
     # executed on module import
@@ -75,14 +66,24 @@ def register(
 
     def inner(func):
         func_name = func.__name__
+        func.__multivariate__ = multivariate
 
         # executed if a register-decorated function is called,
         # nevertheless if it is called plain or via `SaQC.func`.
         @wraps(func)
         def callWrapper(data, field, flags, *args, **kwargs):
-            args = data, field, flags, *args
 
-            state = CallState(func, func_name, flags, field, args, kwargs, dec_kws)
+            state = CallState(
+                func=func,
+                func_name=func_name,
+                data=data,
+                flags=flags,
+                field=toSequence(field),
+                target=toSequence(kwargs.get("target", [])),
+                args=args,
+                kwargs=kwargs,
+                dec_kwargs=dec_kws,
+            )
 
             if handles == "index":
                 # masking is possible, but demasking not,
@@ -138,16 +139,16 @@ def _preCall(state: CallState):
     mthresh = _getMaskingThresh(kwargs)
     kwargs["to_mask"] = mthresh
     state.mthresh = mthresh
-
-    data, field, flags, *args = state.args
+    data, flags = state.data, state.flags
 
     if state.needs_demasking:
         datamask_kw = state.dec_kwargs["datamask"]
-        columns = _getMaskingColumns(data, field, datamask_kw)
-        data, mask = _maskData(data, flags, columns, mthresh)
+        # should we also mask a potential `target`?
+        columns = _getMaskingColumns(state.data, state.field, datamask_kw)
+        data, mask = _maskData(state.data, state.flags, columns, mthresh)
         state.mask = mask
 
-    args = data, field, flags.copy(), *args
+    args = data, squeezeSequence(state.field), flags.copy(), *state.args
 
     return args, kwargs
 
@@ -174,7 +175,7 @@ def _postCall(result, old_state: CallState) -> FuncReturnT:
     data, flags = result
 
     if old_state.needs_squeezing:
-        flags = _restoreFlags(flags, old_state)
+        flags = _squeezeFlags(flags, old_state)
 
     if old_state.needs_demasking:
         data = _unmaskData(data, old_state)
@@ -183,7 +184,7 @@ def _postCall(result, old_state: CallState) -> FuncReturnT:
 
 
 def _getMaskingColumns(
-    data: dios.DictOfSeries, field: str, datamask: str | None
+    data: dios.DictOfSeries, field: Sequence[str], datamask: str | None
 ) -> pd.Index:
     """
     Return columns to mask, by `datamask` (decorator keyword)
@@ -207,7 +208,7 @@ def _getMaskingColumns(
     if datamask == "all":
         return data.columns
     if datamask == "field":
-        return pd.Index([field])
+        return pd.Index(field)
 
     raise ValueError(f"wrong use of `register(datamask={repr(datamask)})`")
 
@@ -269,7 +270,7 @@ def _isflagged(
     return flagscol >= thresh
 
 
-def _restoreFlags(flags: Flags, old_state: CallState):
+def _squeezeFlags(flags: Flags, old_state: CallState):
     """
     Generate flags from the temporary result-flags and the original flags.
 
@@ -295,8 +296,8 @@ def _restoreFlags(flags: Flags, old_state: CallState):
 
     if old_state.dec_kwargs["datamask"] in (None, "all"):
         columns = flags.columns
-    else:  # field
-        columns = pd.Index([old_state.field])
+    else:  # field or target
+        columns = pd.Index(old_state.target or old_state.field)
 
     for col in columns.union(new_columns):
 
@@ -306,7 +307,7 @@ def _restoreFlags(flags: Flags, old_state: CallState):
         old_history = out.history[col]
         new_history = flags.history[col]
 
-        # We only want to add new columns, that were appended during the last function
+        # We only want to add columns, that were appended during the last function
         # call. If no such columns exist, we end up with an empty new_history.
         start = len(old_history.columns)
         new_history = _sliceHistory(new_history, slice(start, None))
@@ -363,7 +364,7 @@ def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSer
 
     Notes
     -----
-    Even if this returns data, it work inplace !
+    Even if this returns data, it works inplace !
     """
     # we have two options to implement this:
     #

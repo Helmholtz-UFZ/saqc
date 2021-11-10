@@ -28,8 +28,7 @@ class Outliers:
 
     def flagMVScores(
         self,
-        field: str,
-        fields: Sequence[str],
+        field: Sequence[str],
         trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
         alpha: float = 0.05,
         n: int = 10,
@@ -107,8 +106,7 @@ class Outliers:
 
     def flagCrossStatistic(
         self,
-        field: str,
-        fields: Sequence[str],
+        field: Sequence[str],
         thresh: float,
         method: Literal["modZscore", "Zscore"] = "modZscore",
         flag: float = BAD,

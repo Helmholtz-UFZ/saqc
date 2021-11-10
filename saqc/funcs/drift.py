@@ -18,7 +18,7 @@ from saqc.core.register import register
 from saqc.core import Flags
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
-from saqc.lib.tools import detectDeviants
+from saqc.lib.tools import detectDeviants, toSequence
 from saqc.lib.types import FreqString, CurveFitter
 
 
@@ -30,9 +30,8 @@ LinkageString = Literal[
 @register(datamask="all")
 def flagDriftFromNorm(
     data: DictOfSeries,
-    field: str,
+    field: Sequence[str],
     flags: Flags,
-    fields: Sequence[str],
     freq: FreqString,
     spread: float,
     frac: float = 0.5,
@@ -49,7 +48,7 @@ def flagDriftFromNorm(
 
     "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed.
     In addition, only a group is considered "normal" if it contains more then `frac` percent of the
-    variables in "fields".
+    variables in "field".
 
     See the Notes section for a more detailed presentation of the algorithm
 
@@ -57,12 +56,10 @@ def flagDriftFromNorm(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    field : str
-        A dummy parameter.
+    field : list of str
+        List of fieldnames in data, determining which variables are to be included into the flagging process.
     flags : saqc.Flags
         A flags object, holding flags and additional informations related to `data`.
-    fields : str
-        List of fieldnames in data, determining which variables are to be included into the flagging process.
     freq : str
         An offset string, determining the size of the seperate datachunks that the algorihm is to be piecewise
         applied on.
@@ -99,12 +96,12 @@ def flagDriftFromNorm(
     following steps are performed for every data "segment" of length `freq` in order to find the
     "abnormal" data:
 
-    1. Calculate the distances :math:`d(x_i,x_j)` for all :math:`x_i` in parameter `fields`. (with :math:`d`
+    1. Calculate the distances :math:`d(x_i,x_j)` for all :math:`x_i` in parameter `field`. (with :math:`d`
        denoting the distance function
        passed to the parameter `metric`.
     2. Calculate a dendogram with a hierarchical linkage algorithm, specified by the parameter `method`.
     3. Flatten the dendogram at the level, the agglomeration costs exceed the value given by the parameter `spread`
-    4. check if there is a cluster containing more than `frac` percentage of the variables in fields.
+    4. check if there is a cluster containing more than `frac` percentage of the variables in field.
 
         1. if yes: flag all the variables that are not in that cluster (inside the segment)
         2. if no: flag nothing
@@ -130,6 +127,7 @@ def flagDriftFromNorm(
     Introduction to Hierarchical clustering:
         [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
     """
+    fields = toSequence(field)
     data_to_flag = data[fields].to_df()
     data_to_flag.dropna(inplace=True)
 
@@ -147,12 +145,12 @@ def flagDriftFromNorm(
     return data, flags
 
 
-@register(datamask="all")
+@register(datamask="all", multivariate=True)
 def flagDriftFromReference(
     data: DictOfSeries,
-    field: str,
+    field: Sequence[str],
     flags: Flags,
-    fields: Sequence[str],
+    reference: str,
     freq: FreqString,
     thresh: float,
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
@@ -171,12 +169,12 @@ def flagDriftFromReference(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    field : str
-        The reference variable, the deviation from wich determines the flagging.
+    field : list of str
+        List of fieldnames in data, determining wich variables are to be included into the flagging process.
     flags : saqc.Flags
         A flags object, holding flags and additional informations related to `data`.
-    fields : str
-        List of fieldnames in data, determining wich variables are to be included into the flagging process.
+    reference : str
+        The reference variable, the deviation from wich determines the flagging.
     freq : str
         An offset string, determining the size of the seperate datachunks that the algorihm is to be piecewise
         applied on.
@@ -204,14 +202,12 @@ def flagDriftFromReference(
     That is, why, the "averaged manhatten metric" is set as the metric default, since it corresponds to the
     averaged value distance, two timeseries have (as opposed by euclidean, for example).
     """
-    data_to_flag = data[fields].to_df()
-    data_to_flag.dropna(inplace=True)
+    fields = toSequence(field)
+    data_to_flag = data[fields].to_df().dropna()
 
     fields = list(fields)
-    if field not in fields:
-        fields.append(field)
-
-    var_num = len(fields)
+    if reference not in fields:
+        fields.append(reference)
 
     segments = data_to_flag.groupby(pd.Grouper(freq=freq))
     for segment in segments:
@@ -219,8 +215,10 @@ def flagDriftFromReference(
         if segment[1].shape[0] <= 1:
             continue
 
-        for i in range(var_num):
-            dist = metric(segment[1].iloc[:, i].values, segment[1].loc[:, field].values)
+        for i in range(len(fields)):
+            dist = metric(
+                segment[1].iloc[:, i].values, segment[1].loc[:, reference].values
+            )
 
             if dist > thresh:
                 flags[segment[1].index, fields[i]] = flag
@@ -228,7 +226,7 @@ def flagDriftFromReference(
     return data, flags
 
 
-@register(datamask="all")
+@register(datamask="all", multivariate=True)
 def flagDriftFromScaledNorm(
     data: DictOfSeries,
     field: str,
@@ -326,8 +324,7 @@ def flagDriftFromScaledNorm(
         [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
     """
     fields = list(set_1) + list(set_2)
-    data_to_flag = data[fields].to_df()
-    data_to_flag.dropna(inplace=True)
+    data_to_flag = data[fields].to_df().dropna()
 
     convert_slope = []
     convert_intercept = []
@@ -365,7 +362,7 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-@register(datamask="all")
+@register(handles='index', datamask="field")
 def correctDrift(
     data: DictOfSeries,
     field: str,
@@ -373,6 +370,7 @@ def correctDrift(
     maintenance_field: str,
     model: Callable[..., float],
     cal_range: int = 5,
+    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -403,6 +401,8 @@ def correctDrift(
     cal_range : int, default 5
         The number of values the mean is computed over, for obtaining the value level directly after and
         directly before maintenance event. This values are needed for shift calibration. (see above description)
+    target : str or None, default None
+        Write the reult of the processing to another variable then, ``field``. Must not already exist.
     flag : float, default BAD
         flag to set.
 
@@ -489,12 +489,19 @@ def correctDrift(
         shiftedData = data_series + data_shiftVektor
         to_correct[shiftedData.index] = shiftedData
 
+    if target:
+        if target in data.columns:
+            raise ValueError('Target already exists.')
+
+        flags.history[target] = flags.history[field].copy()
+        field = target
+
     data[field] = to_correct
 
     return data, flags
 
 
-@register(datamask="all")
+@register(handles='index', datamask='field')
 def correctRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -503,6 +510,7 @@ def correctRegimeAnomaly(
     model: CurveFitter,
     tolerance: Optional[FreqString] = None,
     epoch: bool = False,
+    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -539,6 +547,9 @@ def correctRegimeAnomaly(
         unreliability of data near the changepoints of regimes.
     epoch : bool, default False
         If True, use "seconds from epoch" as x input to the model func, instead of "seconds from regime start".
+    target : str or None, default None
+        Write the reult of the processing to another variable then, ``field``. Must not already exist.
+
 
     Returns
     -------
@@ -609,6 +620,13 @@ def correctRegimeAnomaly(
         else:
             last_valid = 1
 
+    if target:
+        if target in data.columns:
+            raise ValueError('Target already exists.')
+
+        flags.history[target] = flags.history[field].copy()
+        field = target
+
     data[field] = data_ser
     return data, flags
 
@@ -623,6 +641,7 @@ def correctOffset(
     window: FreqString,
     min_periods: int,
     tolerance: Optional[FreqString] = None,
+    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -649,6 +668,9 @@ def correctOffset(
         If an offset string is passed, a data chunk of length `offset` right from the
         start and right before the end of any regime is ignored when calculating a regimes mean for data correcture.
         This is to account for the unrelyability of data near the changepoints of regimes.
+    target : str or None, default None
+        Write the result of the processing to another variable then, ``field``. Must not already exist.
+
 
     Returns
     -------
@@ -658,6 +680,14 @@ def correctOffset(
     flags : saqc.Flags
         The quality flags of data
     """
+    if target:
+        if target in data.columns:
+            raise ValueError('Target already exists.')
+
+        flags.history[target] = flags.history[field].copy()
+        data[target] = data[field]
+        field = target
+
     data, flags = copyField(data, field, flags, field + "_CPcluster")
     data, flags = assignChangePointCluster(
         data,
