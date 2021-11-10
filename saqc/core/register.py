@@ -143,6 +143,7 @@ def _preCall(state: CallState):
 
     if state.needs_demasking:
         datamask_kw = state.dec_kwargs["datamask"]
+        # should we also mask a potential `target`?
         columns = _getMaskingColumns(state.data, state.field, datamask_kw)
         data, mask = _maskData(state.data, state.flags, columns, mthresh)
         state.mask = mask
@@ -174,7 +175,7 @@ def _postCall(result, old_state: CallState) -> FuncReturnT:
     data, flags = result
 
     if old_state.needs_squeezing:
-        flags = _restoreFlags(flags, old_state)
+        flags = _squeezeFlags(flags, old_state)
 
     if old_state.needs_demasking:
         data = _unmaskData(data, old_state)
@@ -269,7 +270,7 @@ def _isflagged(
     return flagscol >= thresh
 
 
-def _restoreFlags(flags: Flags, old_state: CallState):
+def _squeezeFlags(flags: Flags, old_state: CallState):
     """
     Generate flags from the temporary result-flags and the original flags.
 
@@ -295,7 +296,7 @@ def _restoreFlags(flags: Flags, old_state: CallState):
 
     if old_state.dec_kwargs["datamask"] in (None, "all"):
         columns = flags.columns
-    else:  # field
+    else:  # field or target
         columns = pd.Index(old_state.target or old_state.field)
 
     for col in columns.union(new_columns):
@@ -306,7 +307,7 @@ def _restoreFlags(flags: Flags, old_state: CallState):
         old_history = out.history[col]
         new_history = flags.history[col]
 
-        # We only want to add new columns, that were appended during the last function
+        # We only want to add columns, that were appended during the last function
         # call. If no such columns exist, we end up with an empty new_history.
         start = len(old_history.columns)
         new_history = _sliceHistory(new_history, slice(start, None))
