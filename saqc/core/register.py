@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import annotations
-from typing import Dict, List, Optional, Union, Tuple, Callable, Sequence
+from typing import Dict, List, Union, Tuple, Callable, Sequence
 from typing_extensions import Literal
 from functools import wraps
 import dataclasses
@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import dios
 
-from saqc.constants import *
-from saqc.core.flags import initFlagsLike, Flags, History
+from saqc.constants import UNFLAGGED
+from saqc.core.flags import Flags, History
 from saqc.lib.tools import squeezeSequence, toSequence
 
 # NOTE:

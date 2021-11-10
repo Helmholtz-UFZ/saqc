@@ -4,7 +4,17 @@ from __future__ import annotations
 
 import inspect
 import warnings
-from typing import Any, Callable, Tuple, Union, Optional, Mapping, Hashable
+from typing import (
+    Any,
+    Callable,
+    List,
+    Sequence,
+    Tuple,
+    Union,
+    Optional,
+    Mapping,
+    Hashable,
+)
 from copy import deepcopy, copy as shallowcopy
 
 import pandas as pd
@@ -267,9 +277,14 @@ class SaQC(FunctionsMixin):
         **kwargs: Any,
     ) -> SaQC:
 
-        assert data.columns.difference(flags.columns).empty
-
         data, flags = function(data=data, flags=flags, field=field, *args, **kwargs)
+
+        if not data.columns.difference(flags.columns).empty:
+            raise ValueError(
+                "expected identical columns in 'data' and 'flags', "
+                f"the call to {function.__name__} broke this invariant"
+            )
+
         # we check the passed function-kwargs after the actual call,
         # because now "hard" errors would already have been raised
         # (eg. `TypeError: got multiple values for argument 'data'`,
