@@ -252,7 +252,6 @@ class SaQC(FunctionsMixin):
                 # we wrap field again to generalize the down stream loop work as expected
                 fields = [fields]
 
-
             out = self
 
             for f in fields:
