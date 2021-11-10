@@ -8,13 +8,12 @@ import numpy as np
 from scipy.spatial.distance import pdist
 
 from saqc.constants import BAD
-from saqc.core.modules.base import ModuleBase
 import saqc
 from saqc.funcs import LinkageString
 from saqc.lib.types import FreqString, CurveFitter
 
 
-class Drift(ModuleBase):
+class Drift:
     def flagDriftFromNorm(
         self,
         field: str,
@@ -30,7 +29,7 @@ class Drift(ModuleBase):
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("flagDriftFromNorm", locals())
+        return self._defer("flagDriftFromNorm", locals())
 
     def flagDriftFromReference(
         self,
@@ -45,7 +44,7 @@ class Drift(ModuleBase):
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("flagDriftFromReference", locals())
+        return self._defer("flagDriftFromReference", locals())
 
     def flagDriftFromScaledNorm(
         self,
@@ -63,7 +62,7 @@ class Drift(ModuleBase):
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("flagDriftFromScaledNorm", locals())
+        return self._defer("flagDriftFromScaledNorm", locals())
 
     def correctDrift(
         self,
@@ -74,7 +73,7 @@ class Drift(ModuleBase):
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("correctDrift", locals())
+        return self._defer("correctDrift", locals())
 
     def correctRegimeAnomaly(
         self,
@@ -85,7 +84,7 @@ class Drift(ModuleBase):
         epoch: bool = False,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("correctRegimeAnomaly", locals())
+        return self._defer("correctRegimeAnomaly", locals())
 
     def correctOffset(
         self,
@@ -97,4 +96,4 @@ class Drift(ModuleBase):
         tolerance: Optional[FreqString] = None,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("correctOffset", locals())
+        return self._defer("correctOffset", locals())

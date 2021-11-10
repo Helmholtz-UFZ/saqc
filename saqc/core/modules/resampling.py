@@ -9,14 +9,13 @@ import pandas as pd
 from typing_extensions import Literal
 
 from saqc.constants import BAD
-from saqc.core.modules.base import ModuleBase
 import saqc
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
 
 
-class Resampling(ModuleBase):
+class Resampling:
     def linear(self, field: str, freq: str, **kwargs) -> saqc.SaQC:
-        return self.defer("linear", locals())
+        return self._defer("linear", locals())
 
     def interpolate(
         self,
@@ -26,7 +25,7 @@ class Resampling(ModuleBase):
         order: int = 1,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("interpolate", locals())
+        return self._defer("interpolate", locals())
 
     def shift(
         self,
@@ -36,7 +35,7 @@ class Resampling(ModuleBase):
         freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("shift", locals())
+        return self._defer("shift", locals())
 
     def resample(
         self,
@@ -52,7 +51,7 @@ class Resampling(ModuleBase):
         freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("resample", locals())
+        return self._defer("resample", locals())
 
     def reindexFlags(
         self,
@@ -71,4 +70,4 @@ class Resampling(ModuleBase):
         drop: Optional[bool] = False,
         **kwargs,
     ) -> saqc.SaQC:
-        return self.defer("reindexFlags", locals())
+        return self._defer("reindexFlags", locals())

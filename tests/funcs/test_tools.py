@@ -18,14 +18,15 @@ def test_makeFig():
     )
     d_saqc = saqc.SaQC(data)
     d_saqc = (
-        d_saqc.outliers.flagRange("data", max=500)
-        .outliers.flagRange("data", max=400)
-        .outliers.flagRange("data", max=300)
+        d_saqc.flagRange("data", max=500)
+        .flagRange("data", max=400)
+        .flagRange("data", max=300)
     )
 
     # not interactive, no storing
     dummy_path = ""
 
+<<<<<<< HEAD
     d_saqc = d_saqc.tools.plot(field="data", path="")
     d_saqc = d_saqc.tools.plot(
         field="data", path=dummy_path, history="valid", stats=True
@@ -33,4 +34,13 @@ def test_makeFig():
     d_saqc = d_saqc.tools.plot(field="data", path=dummy_path, history="complete")
     d_saqc = d_saqc.tools.plot(
         field="data", path=dummy_path, ax_kwargs={"ylim": "2000-10"}, stats=True
+=======
+    d_saqc = d_saqc.plot(field="data", path="")
+    d_saqc = d_saqc.plot(
+        field="data", path=dummy_path, plot_kwargs={"history": "valid"}, stats=True
+    )
+    d_saqc = d_saqc.plot(field="data", path=dummy_path, plot_kwargs={"history": "all"})
+    d_saqc = d_saqc.plot(
+        field="data", path=dummy_path, plot_kwargs={"slice": "2000-10"}, stats=True
+>>>>>>> develop
     )

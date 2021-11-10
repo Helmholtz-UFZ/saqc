@@ -8,7 +8,7 @@ import dios
 from pathlib import Path
 
 from saqc.core.reader import fromConfig, readFile
-from saqc.core.register import FUNC_MAP, flagging
+from saqc.core.register import FUNC_MAP, register
 from saqc.constants import UNTOUCHED
 
 from tests.common import initData, writeIO
@@ -47,7 +47,7 @@ def test_variableRegex(data):
     ]
 
     for regex, expected in tests:
-        fobj = writeIO(header + "\n" + f"{regex} ; flagtools.flagDummy()")
+        fobj = writeIO(header + "\n" + f"{regex} ; flagDummy()")
         saqc = fromConfig(fobj, data=data)
         result = [field for field, _ in saqc.called]
         assert np.all(result == expected)
@@ -59,25 +59,25 @@ def test_inlineComments(data):
     """
     config = f"""
     varname ; test
-    pre2        ; flagtools.flagDummy() # test
+    pre2        ; flagDummy() # test
     """
 
     saqc = fromConfig(writeIO(config), data)
     _, func = saqc.called[0]
-    assert func[0] == FUNC_MAP["flagtools.flagDummy"]
+    assert func[0] == FUNC_MAP["flagDummy"]
 
 
 def test_configReaderLineNumbers(data):
     config = f"""
     varname ; test
-    #temp1      ; flagtools.flagDummy()
-    pre1        ; flagtools.flagDummy()
-    pre2        ; flagtools.flagDummy()
-    SM          ; flagtools.flagDummy()
-    #SM         ; flagtools.flagDummy()
-    # SM1       ; flagtools.flagDummy()
+    #temp1      ; flagDummy()
+    pre1        ; flagDummy()
+    pre2        ; flagDummy()
+    SM          ; flagDummy()
+    #SM         ; flagDummy()
+    # SM1       ; flagDummy()
 
-    SM1         ; flagtools.flagDummy()
+    SM1         ; flagDummy()
     """
     planned = readFile(writeIO(config))
     expected = [4, 5, 6, 10]
@@ -91,14 +91,14 @@ def test_configFile(data):
     config = f"""
     varname ; test
 
-    #temp1      ; flagtools.flagDummy()
-    pre1; flagtools.flagDummy()
-    pre2        ;flagtools.flagDummy()
-    SM          ; flagtools.flagDummy()
-    #SM         ; flagtools.flagDummy()
-    # SM1       ; flagtools.flagDummy()
+    #temp1      ; flagDummy()
+    pre1; flagDummy()
+    pre2        ;flagDummy()
+    SM          ; flagDummy()
+    #SM         ; flagDummy()
+    # SM1       ; flagDummy()
 
-    SM1;flagtools.flagDummy()
+    SM1;flagDummy()
     """
     fromConfig(writeIO(config), data)
 
@@ -107,7 +107,7 @@ def test_configChecks(data):
 
     var1, _, var3, *_ = data.columns
 
-    @flagging(masking="none")
+    @register(datamask=None)
     def flagFunc(data, field, flags, arg, opt_arg=None, **kwargs):
         flags[:, field] = UNTOUCHED
         return data, flags
@@ -133,7 +133,7 @@ def test_supportedArguments(data):
 
     # TODO: necessary?
 
-    @flagging(masking="field")
+    @register(datamask="field")
     def func(data, field, flags, kwarg, **kwargs):
         flags[:, field] = UNTOUCHED
         return data, flags

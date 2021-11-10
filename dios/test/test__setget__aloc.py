@@ -4,7 +4,9 @@ from pandas.core.dtypes.common import is_scalar
 pytestmark = pytest.mark.skip
 
 
-@pytest.mark.parametrize(("idxer", "exp"), [("a", s1), ("c", s3), ("x", pd.Series())])
+@pytest.mark.parametrize(
+    ("idxer", "exp"), [("a", s1), ("c", s3), ("x", pd.Series(dtype=float))]
+)
 def test__getitem_aloc_singleCol(dios_aligned, idxer, exp):
     di = dios_aligned.aloc[:, idxer]
     assert isinstance(di, pd.Series)

@@ -27,9 +27,9 @@ def test_rollingInterpolateMissing(course_5):
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
     dataInt, *_ = interpolateByRolling(
-        data,
+        data.copy(),
         field,
-        flags,
+        flags.copy(),
         3,
         func=np.median,
         center=True,
@@ -38,9 +38,9 @@ def test_rollingInterpolateMissing(course_5):
     )
     assert dataInt[field][characteristics["missing"]].notna().all()
     dataInt, *_ = interpolateByRolling(
-        data,
+        data.copy(),
         field,
-        flags,
+        flags.copy(),
         3,
         func=np.nanmean,
         center=False,

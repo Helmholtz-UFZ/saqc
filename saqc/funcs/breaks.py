@@ -22,13 +22,13 @@ from saqc.lib.types import FreqString
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.core.flags import Flags
 from saqc.core.history import History
-from saqc.core.register import _isflagged, flagging
+from saqc.core.register import _isflagged, register
 
 
 # NOTE:
-# masking="none" as we otherwise might interprete
+# masking=None as we otherwise might interprete
 # the masked values as missing data
-@flagging(masking="none", module="breaks")
+@register(datamask=None)
 def flagMissing(
     data: DictOfSeries,
     field: str,
@@ -68,7 +68,7 @@ def flagMissing(
     return data, flags
 
 
-@flagging(masking="field", module="breaks")
+@register(datamask="field")
 def flagIsolated(
     data: DictOfSeries,
     field: str,
@@ -147,7 +147,7 @@ def flagIsolated(
     return data, flags
 
 
-@flagging(masking="field", module="breaks")
+@register(datamask="field")
 def flagJumps(
     data: DictOfSeries,
     field: str,

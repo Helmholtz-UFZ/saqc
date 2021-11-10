@@ -7,11 +7,11 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
 from saqc.lib.tools import getFreqDelta
 
 
-@flagging(masking="field", module="rolling")
+@register(datamask="field")
 def roll(
     data: DictOfSeries,
     field: str,
@@ -69,8 +69,7 @@ def roll(
     flags : saqc.Flags
         The quality flags of data
     """
-    data = data.copy()
-    to_fit = data[field]
+    to_fit = data[field].copy()
     if to_fit.empty:
         flags[:, field] = UNTOUCHED
         return data, flags

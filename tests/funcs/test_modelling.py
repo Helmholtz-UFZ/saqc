@@ -3,17 +3,19 @@
 
 
 # see test/functs/fixtures.py for global fixtures "course_..."
+import pytest
 
 import dios
 
 from saqc import BAD, UNFLAGGED
 from saqc.core import initFlagsLike
-from saqc.funcs.tools import mask
+from saqc.funcs.tools import maskTime
 from saqc.funcs.residues import calculatePolynomialResidues, calculateRollingResidues
 
 from tests.fixtures import *
 
 
+@pytest.mark.filterwarnings("ignore: The fit may be poorly conditioned")
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])
 def test_modelling_polyFit_forRegular(dat):
     data, _ = dat(
@@ -81,7 +83,7 @@ def test_modelling_mask(dat):
     flags[:, field] = BAD
 
     common = dict(data=data, field=field, flags=flags, mode="periodic")
-    data_seasonal, flags_seasonal = mask(
+    data_seasonal, flags_seasonal = maskTime(
         **common, start="20:00", end="40:00", closed=False
     )
     flagscol = flags_seasonal[field]
@@ -89,13 +91,13 @@ def test_modelling_mask(dat):
     assert all(flags_seasonal[field][m] == UNFLAGGED)
     assert all(data_seasonal[field][m].isna())
 
-    data_seasonal, flags_seasonal = mask(**common, start="15:00:00", end="02:00:00")
+    data_seasonal, flags_seasonal = maskTime(**common, start="15:00:00", end="02:00:00")
     flagscol = flags_seasonal[field]
     m = (15 <= flagscol.index.hour) & (flagscol.index.hour <= 2)
     assert all(flags_seasonal[field][m] == UNFLAGGED)
     assert all(data_seasonal[field][m].isna())
 
-    data_seasonal, flags_seasonal = mask(
+    data_seasonal, flags_seasonal = maskTime(
         **common, start="03T00:00:00", end="10T00:00:00"
     )
     flagscol = flags_seasonal[field]
@@ -107,7 +109,7 @@ def test_modelling_mask(dat):
     mask_ser[::5] = True
     data["mask_ser"] = mask_ser
     flags = initFlagsLike(data)
-    data_masked, flags_masked = mask(
+    data_masked, flags_masked = maskTime(
         data, "data", flags, mode="mask_field", mask_field="mask_ser"
     )
     m = mask_ser

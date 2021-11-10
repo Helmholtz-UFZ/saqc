@@ -8,11 +8,10 @@ import numpy as np
 from typing_extensions import Literal
 
 from saqc.constants import BAD
-from saqc.core.modules.base import ModuleBase
 import saqc
 
 
-class Residues(ModuleBase):
+class Residues:
     def calculatePolynomialResidues(
         self,
         field: str,
@@ -23,7 +22,7 @@ class Residues(ModuleBase):
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("calculatePolynomialResidues", locals())
+        return self._defer("calculatePolynomialResidues", locals())
 
     def calculateRollingResidues(
         self,
@@ -36,4 +35,4 @@ class Residues(ModuleBase):
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("calculateRollingResidues", locals())
+        return self._defer("calculateRollingResidues", locals())

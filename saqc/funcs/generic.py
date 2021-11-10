@@ -12,7 +12,7 @@ from dios import DictOfSeries
 
 from saqc.constants import GOOD, BAD, UNFLAGGED
 from saqc.core.flags import initFlagsLike, Flags
-from saqc.core.register import flagging, processing, _maskData, _isflagged
+from saqc.core.register import register, _maskData, _isflagged
 from saqc.core.visitor import ENVIRONMENT
 
 import operator as op
@@ -72,7 +72,6 @@ def _execGeneric(
     globs = {
         "isflagged": partial(_dslIsFlagged, flags),
         "ismissing": lambda var: pd.isnull(var),
-        "mask": lambda cond: data[cond.name].mask(cond),
         "this": field,
         "GOOD": GOOD,
         "BAD": BAD,
@@ -83,8 +82,8 @@ def _execGeneric(
     return func(*args)
 
 
-@processing(module="generic")
-def process(
+@register(handles="index", datamask=None)
+def genericProcess(
     data: DictOfSeries,
     field: str,
     flags: Flags,
@@ -140,6 +139,7 @@ def process(
     >>> lambda temperature, uncertainty: np.round(temperature) * np.sqrt(uncertainty)
     """
 
+    # todo: we could use now `register(handles='index', datamsk='all')`
     data_masked, _ = _maskData(data.copy(), flags, data.columns, to_mask)
     data[field] = _execGeneric(flags, data_masked, func, field).squeeze()
 
@@ -151,8 +151,8 @@ def process(
     return data, flags
 
 
-@flagging(masking="all", module="generic")
-def flag(
+@register(datamask="all")
+def genericFlag(
     data: DictOfSeries,
     field: str,
     flags: Flags,

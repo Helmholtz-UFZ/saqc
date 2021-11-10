@@ -13,7 +13,7 @@ import pickle
 
 from saqc.constants import *
 from saqc.lib.types import FreqString
-from saqc.core import processing, Flags
+from saqc.core import register, Flags
 from saqc.lib.tools import periodicMask
 from saqc.lib.plotting import makeFig
 from saqc.core.register import _maskData
@@ -21,9 +21,9 @@ from saqc.core.register import _maskData
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
 
-@processing(module="tools")
-def copy(
-    data: DictOfSeries, field: str, flags: Flags, new_field: str, **kwargs
+@register(handles="index", datamask=None)
+def copyField(
+    data: DictOfSeries, field: str, flags: Flags, target: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
@@ -37,7 +37,7 @@ def copy(
         The fieldname of the data column, you want to fork (copy).
     flags : saqc.Flags
         Container to store quality flags to data.
-    new_field: str
+    target: str
         Target name.
 
     Returns
@@ -49,17 +49,17 @@ def copy(
         The quality flags of data
         Flags shape may have changed relatively to the flags input.
     """
-    if new_field in flags.columns.union(data.columns):
+    if target in flags.columns.union(data.columns):
         raise ValueError(f"{field}: field already exist")
 
-    data[new_field] = data[field].copy()
-    # implicit copy in history access
-    flags.history[new_field] = flags.history[field]
+    data[target] = data[field].copy()
+    flags.history[target] = flags.history[field].copy()
+
     return data, flags
 
 
-@processing(module="tools")
-def drop(
+@register(handles="index", datamask=None)
+def dropField(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -88,8 +88,8 @@ def drop(
     return data, flags
 
 
-@processing(module="tools")
-def rename(
+@register(handles="data|flags", datamask=None)
+def renameField(
     data: DictOfSeries, field: str, flags: Flags, new_name: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -120,8 +120,8 @@ def rename(
     return data, flags
 
 
-@processing(module="tools")
-def mask(
+@register(handles="index", datamask=None)
+def maskTime(
     data: DictOfSeries,
     field: str,
     flags: Flags,
@@ -165,9 +165,9 @@ def mask(
         - "mask_var": data[mask_var] is expected to be a boolean valued timeseries and is used as mask.
     mask_field : {None, str}, default None
         Only effective if mode == "mask_var"
-        Fieldname of the column, holding the data that is to be used as mask. (must be moolean series)
+        Fieldname of the column, holding the data that is to be used as mask. (must be boolean series)
         Neither the series` length nor its labels have to match data[field]`s index and length. An inner join of the
-        indices will be calculated and values get masked where the values of the inner join are "True".
+        indices will be calculated and values get masked where the values of the inner join are ``True``.
     start : {None, str}, default None
         Only effective if mode == "seasonal"
         String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
@@ -229,7 +229,6 @@ def mask(
     When inclusive_selection="season", all above examples work the same way, only that you now
     determine wich values NOT TO mask (=wich values are to constitute the "seasons").
     """
-    data = data.copy()
     datcol_idx = data[field].index
 
     if mode == "periodic":
@@ -245,7 +244,7 @@ def mask(
     return data, flags
 
 
-@processing(module="tools")
+@register(handles="index", datamask=None)
 def plot(
     data: DictOfSeries,
     field: str,

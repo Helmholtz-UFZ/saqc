@@ -14,10 +14,10 @@ from scipy.spatial.distance import pdist
 
 from dios import DictOfSeries
 from saqc.constants import *
-from saqc.core.register import flagging
+from saqc.core.register import register
 from saqc.core import Flags
 from saqc.funcs.changepoints import assignChangePointCluster
-from saqc.funcs.tools import drop, copy
+from saqc.funcs.tools import dropField, copyField
 from saqc.lib.tools import detectDeviants
 from saqc.lib.types import FreqString, CurveFitter
 
@@ -27,7 +27,7 @@ LinkageString = Literal[
 ]
 
 
-@flagging(masking="all", module="drift")
+@register(datamask="all")
 def flagDriftFromNorm(
     data: DictOfSeries,
     field: str,
@@ -147,7 +147,7 @@ def flagDriftFromNorm(
     return data, flags
 
 
-@flagging(masking="all", module="drift")
+@register(datamask="all")
 def flagDriftFromReference(
     data: DictOfSeries,
     field: str,
@@ -228,7 +228,7 @@ def flagDriftFromReference(
     return data, flags
 
 
-@flagging(masking="all", module="drift")
+@register(datamask="all")
 def flagDriftFromScaledNorm(
     data: DictOfSeries,
     field: str,
@@ -365,7 +365,7 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-@flagging(masking="all", module="drift")
+@register(datamask="all")
 def correctDrift(
     data: DictOfSeries,
     field: str,
@@ -373,7 +373,6 @@ def correctDrift(
     maintenance_field: str,
     model: Callable[..., float],
     cal_range: int = 5,
-    flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -458,12 +457,10 @@ def correctDrift(
     """
     # 1: extract fit intervals:
     if data[maintenance_field].empty:
-        flags[:, field] = UNTOUCHED
         return data, flags
 
-    data = data.copy()
-    to_correct = data[field]
-    maint_data = data[maintenance_field]
+    to_correct = data[field].copy()
+    maint_data = data[maintenance_field].copy()
 
     to_correct_clean = to_correct.dropna()
     d = {"drift_group": np.nan, to_correct.name: to_correct_clean.values}
@@ -497,7 +494,7 @@ def correctDrift(
     return data, flags
 
 
-@flagging(masking="all", module="drift")
+@register(datamask="all")
 def correctRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -616,7 +613,7 @@ def correctRegimeAnomaly(
     return data, flags
 
 
-@flagging(masking="all", module="drift")
+@register(datamask="all")
 def correctOffset(
     data: DictOfSeries,
     field: str,
@@ -661,7 +658,7 @@ def correctOffset(
     flags : saqc.Flags
         The quality flags of data
     """
-    data, flags = copy(data, field, flags, field + "_CPcluster")
+    data, flags = copyField(data, field, flags, field + "_CPcluster")
     data, flags = assignChangePointCluster(
         data,
         field + "_CPcluster",
@@ -680,7 +677,7 @@ def correctOffset(
         lambda x, p1: np.array([p1] * x.shape[0]),
         tolerance=tolerance,
     )
-    data, flags = drop(data, field + "_CPcluster", flags)
+    data, flags = dropField(data, field + "_CPcluster", flags)
 
     return data, flags
 
@@ -714,7 +711,7 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
     return data_fit, data_shift
 
 
-@flagging(masking="all", module="drift")
+@register(datamask="all")
 def flagRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -791,7 +788,7 @@ def flagRegimeAnomaly(
     )
 
 
-@flagging(masking="all", module="drift")
+@register(datamask="all")
 def assignRegimeAnomaly(
     data: DictOfSeries,
     field: str,

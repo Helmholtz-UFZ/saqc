@@ -104,7 +104,7 @@ class DmpTranslator(Translator):
 
                 meta = {
                     "func": comment["test"],
-                    "keywords": {"comment": comment["comment"], "cause": cause},
+                    "kwargs": {"comment": comment["comment"], "cause": cause},
                 }
                 field_history.append(histcol, meta=meta)
 
@@ -112,7 +112,9 @@ class DmpTranslator(Translator):
 
         return Flags(data)
 
-    def backward(self, flags: Flags) -> pd.DataFrame:
+    def backward(
+        self, flags: Flags, attrs: dict | None = None, **kwargs
+    ) -> pd.DataFrame:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -120,11 +122,14 @@ class DmpTranslator(Translator):
         ----------
         flags : The external flags to translate
 
+        attrs : dict or None, default None
+            global meta information of saqc-object
+
         Returns
         -------
         translated flags
         """
-        tflags = super().backward(flags, raw=True)
+        tflags = super().backward(flags, raw=True, attrs=attrs)
 
         out = pd.DataFrame(
             index=reduce(lambda x, y: x.union(y), tflags.indexes).sort_values(),
@@ -148,7 +153,7 @@ class DmpTranslator(Translator):
 
                 # extract from meta
                 meta = history.meta[col]
-                keywords = meta.get("keywords", {})
+                keywords = meta.get("kwargs", {})
                 comment = json.dumps(
                     {
                         "test": meta.get("func", "unknown"),

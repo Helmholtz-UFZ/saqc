@@ -14,16 +14,16 @@ from outliers import smirnov_grubbs
 from scipy.optimize import curve_fit
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
 from saqc.lib.types import FreqString
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta
 from saqc.funcs.scores import assignKNNScore
-from saqc.funcs.tools import copy, drop
+from saqc.funcs.tools import copyField, dropField
 from saqc.funcs.transformation import transform
 import saqc.lib.ts_operators as ts_ops
 
 
-@flagging(masking="field", module="outliers")
+@register(datamask="field")
 def flagByStray(
     data: DictOfSeries,
     field: str,
@@ -399,7 +399,7 @@ def _expFit(
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@flagging(masking="all", module="outliers")
+@register(datamask="all")
 def flagMVScores(
     data: DictOfSeries,
     field: str,
@@ -556,7 +556,7 @@ def flagMVScores(
     """
 
     for f in fields:
-        data, flags = copy(data, f, flags, f"trafo_{f}")
+        data, flags = copyField(data, f, flags, f"trafo_{f}")
         data, flags = transform(data, f"trafo_{f}", flags, func=trafo, freq=partition)
 
     data, flags = assignKNNScore(
@@ -597,14 +597,14 @@ def flagMVScores(
         flag=flag,
         **kwargs,
     )
-    data, flags = drop(data, "kNN", flags)
+    data, flags = dropField(data, "kNN", flags)
     for f in fields:
-        data, flags = drop(data, f"trafo_{f}", flags)
+        data, flags = dropField(data, f"trafo_{f}", flags)
 
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@register(datamask="field")
 def flagRaise(
     data: DictOfSeries,
     field: str,
@@ -792,7 +792,7 @@ def flagRaise(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@register(datamask="field")
 def flagMAD(
     data: DictOfSeries,
     field: str,
@@ -849,9 +849,9 @@ def flagMAD(
     # In pandas <= 0.25.3, the window size is not fixed if the
     # window-argument to rolling is a frequency. That implies,
     # that during the first iterations the window has a size of
-    # 1, 2, 3, ... until it eventually covers the disered time
-    # span. For stuff the calculation of median, that is rather
-    # unfortunate, as the size of calculation base might differ
+    # 1, 2, 3, ... until it eventually covers the desired time
+    # span. For stuff like the calculation of median, that is rather
+    # unfortunate, as the size of the calculation base might differ
     # heavily. So don't flag something until, the window reaches
     # its target size
     if not isinstance(window, int):
@@ -862,7 +862,7 @@ def flagMAD(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@register(datamask="field")
 def flagOffset(
     data: DictOfSeries,
     field: str,
@@ -1030,7 +1030,7 @@ def flagOffset(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@register(datamask="field")
 def flagByGrubbs(
     data: DictOfSeries,
     field: str,
@@ -1100,8 +1100,7 @@ def flagByGrubbs(
 
     [1] https://en.wikipedia.org/wiki/Grubbs%27s_test_for_outliers
     """
-    data = data.copy()
-    datcol = data[field]
+    datcol = data[field].copy()
     rate = getFreqDelta(datcol.index)
 
     # if timeseries that is analyzed, is regular,
@@ -1153,7 +1152,7 @@ def flagByGrubbs(
     return data, flags
 
 
-@flagging(masking="field", module="outliers")
+@register(datamask="field")
 def flagRange(
     data: DictOfSeries,
     field: str,
@@ -1196,7 +1195,7 @@ def flagRange(
     return data, flags
 
 
-@flagging(masking="all", module="outliers")
+@register(datamask="all")
 def flagCrossStatistic(
     data: DictOfSeries,
     field: str,

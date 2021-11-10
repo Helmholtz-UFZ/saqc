@@ -8,11 +8,11 @@ import pywt
 from mlxtend.evaluate import permutation_test
 
 from saqc.constants import *
-from saqc.core.register import flagging
+from saqc.core.register import register
 from saqc.lib.tools import customRoller
 
 
-@flagging(masking="field", module="pattern")
+@register(datamask="field")
 def flagPatternByWavelet(
     data,
     field,
@@ -180,7 +180,7 @@ def calculateDistanceByDTW(
     return distances.reindex(index=data.index)  # reinsert NaNs
 
 
-@flagging(masking="field", module="pattern")
+@register(datamask="field")
 def flagPatternByDTW(
     data,
     field,
@@ -267,12 +267,12 @@ def flagPatternByDTW(
     distances = distances.fillna(max_distance + 1)
 
     # find minima filter by threshold
-    fw = customRoller(distances, window=winsz, forward=True, closed="both")
-    bw = customRoller(distances, window=winsz, closed="both")
+    fw = customRoller(distances, window=winsz, forward=True, closed="both", expand=True)
+    bw = customRoller(distances, window=winsz, closed="both", expand=True)
     minima = (fw.min() == bw.min()) & (distances <= max_distance)
 
     # Propagate True's to size of pattern.
-    rolling = customRoller(minima, window=winsz, closed="both")
+    rolling = customRoller(minima, window=winsz, closed="both", expand=True)
     mask = rolling.sum() > 0
 
     if plot:

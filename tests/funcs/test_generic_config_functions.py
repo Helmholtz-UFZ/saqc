@@ -11,7 +11,7 @@ import dios
 from saqc.constants import *
 from saqc.core import initFlagsLike, Flags
 from saqc.core.visitor import ConfigFunctionParser
-from saqc.core.register import flagging
+from saqc.core.register import register
 from saqc.funcs.generic import _execGeneric
 from saqc import SaQC
 
@@ -55,7 +55,7 @@ def test_missingIdentifier(data):
     ]
 
     for test in tests:
-        func = _compileGeneric(f"generic.flag(func={test})", flags)
+        func = _compileGeneric(f"genericFlag(func={test})", flags)
         with pytest.raises(NameError):
             _execGeneric(flags, data, func, field="")
 
@@ -85,7 +85,7 @@ def test_typeError():
 
     for test in tests:
         with pytest.raises(TypeError):
-            _compileGeneric(f"generic.flag(func={test})", flags)
+            _compileGeneric(f"genericFlag(func={test})", flags)
 
 
 def test_comparisonOperators(data):
@@ -103,7 +103,7 @@ def test_comparisonOperators(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.flag(func={test})", flags)
+        func = _compileGeneric(f"genericFlag(func={test})", flags)
         result = _execGeneric(flags, data, func, field=var1)
         assert np.all(result == expected)
 
@@ -123,29 +123,26 @@ def test_arithmeticOperators(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.process(func={test})", flags)
+        func = _compileGeneric(f"genericProcess(func={test})", flags)
         result = _execGeneric(flags, data, func, field=var1)
         assert np.all(result == expected)
 
 
+@pytest.mark.filterwarnings("ignore: divide by zero encountered in log")
+@pytest.mark.filterwarnings("ignore: overflow encountered in exp")
 def test_nonReduncingBuiltins(data):
     flags = initFlagsLike(data)
     var1, *_ = data.columns
     this = var1
-    mean = data[var1].mean()
 
     tests = [
         (f"abs({this})", np.abs(data[this])),
         (f"log({this})", np.log(data[this])),
         (f"exp({this})", np.exp(data[this])),
-        (
-            f"ismissing(mask({this} < {mean}))",
-            data[this].mask(data[this] < mean).isna(),
-        ),
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.process(func={test})", flags)
+        func = _compileGeneric(f"genericProcess(func={test})", flags)
         result = _execGeneric(flags, data, func, field=this)
         assert (result == expected).all()
 
@@ -166,7 +163,7 @@ def test_reduncingBuiltins(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.process(func={test})", flags)
+        func = _compileGeneric(f"genericProcess(func={test})", flags)
         result = _execGeneric(flags, data, func, field=this.name)
         assert result == expected
 
@@ -184,7 +181,7 @@ def test_ismissing(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.flag(func={test})", flags)
+        func = _compileGeneric(f"genericFlag(func={test})", flags)
         result = _execGeneric(flags, data, func, this.name)
         assert np.all(result == expected)
 
@@ -202,7 +199,7 @@ def test_bitOps(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"generic.flag(func={test})", flags)
+        func = _compileGeneric(f"genericFlag(func={test})", flags)
         result = _execGeneric(flags, data, func, this)
         assert np.all(result == expected)
 
@@ -226,7 +223,7 @@ def test_isflagged(data):
 
     for i, (test, expected) in enumerate(tests):
         try:
-            func = _compileGeneric(f"generic.flag(func={test}, flag=BAD)", flags)
+            func = _compileGeneric(f"genericFlag(func={test}, flag=BAD)", flags)
             result = _execGeneric(flags, data, func, field=None)
             assert np.all(result == expected)
         except Exception:
@@ -237,7 +234,7 @@ def test_isflagged(data):
     for comp in [">", ">=", "==", "!=", "<", "<="]:
         fails = f"isflagged({var1}, comparator='{comp}')"
 
-        func = _compileGeneric(f"generic.flag(func={fails}, flag=BAD)", flags)
+        func = _compileGeneric(f"genericFlag(func={fails}, flag=BAD)", flags)
         with pytest.raises(ValueError):
             _execGeneric(flags, data, func, field=None)
 
@@ -247,8 +244,8 @@ def test_variableAssignments(data):
 
     config = f"""
     varname ; test
-    dummy1  ; generic.process(func=var1 + var2)
-    dummy2  ; generic.flag(func=var1 + var2 > 0)
+    dummy1  ; genericProcess(func=var1 + var2)
+    dummy2  ; genericFlag(func=var1 + var2 > 0)
     """
 
     fobj = writeIO(config)
@@ -264,8 +261,8 @@ def test_variableAssignments(data):
 def test_processMultiple(data_diff):
     config = f"""
     varname ; test
-    dummy   ; generic.process(func=var1 + 1)
-    dummy   ; generic.process(func=var2 - 1)
+    dummy   ; genericProcess(func=var1 + 1)
+    dummy   ; genericProcess(func=var2 - 1)
     """
 
     fobj = writeIO(config)
@@ -278,7 +275,7 @@ def test_callableArgumentsUnary(data):
 
     window = 5
 
-    @flagging(masking="field")
+    @register(datamask="field")
     def testFuncUnary(data, field, flags, func, **kwargs):
         data[field] = data[field].rolling(window=window).apply(func)
         return data, initFlagsLike(data)
@@ -307,7 +304,7 @@ def test_callableArgumentsUnary(data):
 def test_callableArgumentsBinary(data):
     var1, var2 = data.columns[:2]
 
-    @flagging(masking="field")
+    @register(datamask="field")
     def testFuncBinary(data, field, flags, func, **kwargs):
         data[field] = func(data[var1], data[var2])
         return data, initFlagsLike(data)

@@ -24,10 +24,10 @@ except ModuleNotFoundError:
 import pandas as pd
 import numpy as np
 
-a = pd.Series(range(0, 70, 7))
-b = pd.Series(range(5, 15, 1))
-c = pd.Series(range(7, 107, 10))
-d = pd.Series(range(0, 10, 1))
+a = pd.Series(range(0, 70, 7), dtype=int)
+b = pd.Series(range(5, 15, 1), dtype=int)
+c = pd.Series(range(7, 107, 10), dtype=int)
+d = pd.Series(range(0, 10, 1), dtype=int)
 
 s1, s2, s3, s4 = a, b, c, d
 
@@ -330,8 +330,7 @@ OP1 = list(_OP1_MAP)
 def diosFromMatr(mlist):
     l = []
     for m in mlist:
-        m = np.array(m)
-        l.append(DictOfSeries(m.copy()))
+        l.append(DictOfSeries({i: li.copy() for i, li in enumerate(m)}))
     return tuple(l)
 
 

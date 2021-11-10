@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import inspect
 import warnings
-import copy as stdcopy
-from typing import Any, Callable, Tuple, Union, Optional
+from typing import Any, Callable, Tuple, Union, Optional, Mapping, Hashable
+from copy import deepcopy, copy as shallowcopy
 
 import pandas as pd
 import numpy as np
@@ -14,7 +14,7 @@ from dios import DictOfSeries, to_dios
 
 from saqc.core.flags import initFlagsLike, Flags
 from saqc.core.register import FUNC_MAP
-from saqc.core.modules import FuncModules
+from saqc.core.modules import FunctionsMixin
 from saqc.core.translator.basetranslator import Translator, FloatTranslator
 from saqc.lib.tools import toSequence
 from saqc.lib.types import (
@@ -25,11 +25,14 @@ from saqc.lib.types import (
 
 # TODO: shouldn't the code/function go to SaQC.__init__ ?
 def _prepInput(
-    data: PandasLike, flags: Optional[Union[DictOfSeries, pd.DataFrame, Flags]]
+    data: PandasLike,
+    flags: Optional[Union[DictOfSeries, pd.DataFrame, Flags]],
+    copy: bool,
 ) -> Tuple[DictOfSeries, Optional[Flags]]:
     dios_like = (DictOfSeries, pd.DataFrame)
 
-    data = stdcopy.deepcopy(data)
+    if copy:
+        data = deepcopy(data)
 
     if isinstance(data, pd.Series):
         data = data.to_frame()
@@ -69,7 +72,7 @@ def _prepInput(
 
         # this also ensures float dtype
         if not isinstance(flags, Flags):
-            flags = Flags(flags, copy=True)
+            flags = Flags(flags, copy=copy)
 
     return data, flags
 
@@ -78,7 +81,7 @@ def _setup():
     # NOTE:
     # the import is needed to trigger the registration
     # of the built-in (test-)functions
-    import saqc.funcs
+    import saqc.funcs  # noqa
 
     # warnings
     pd.set_option("mode.chained_assignment", "warn")
@@ -106,19 +109,22 @@ class Accessor:
         return self._obj.__repr__()
 
 
-class SaQC(FuncModules):
-    def __init__(
-        self,
-        data,
-        flags=None,
-        scheme: Translator = None,
-    ):
-        super().__init__(self)
-        data, flags = _prepInput(data, flags)
+class SaQC(FunctionsMixin):
+    _attributes = {
+        "_data",
+        "_flags",
+        "_translator",
+        "_attrs",
+        "called",
+    }
+
+    def __init__(self, data, flags=None, scheme: Translator = None, copy: bool = True):
+        data, flags = _prepInput(data, flags, copy)
         self._data = data
         self._flags = self._initFlags(data, flags)
         self._translator = scheme or FloatTranslator()
         self.called = []
+        self._attrs = {}
 
     @staticmethod
     def _initFlags(data: DictOfSeries, flags: Optional[Flags]) -> Flags:
@@ -138,6 +144,17 @@ class SaQC(FuncModules):
 
         return flags
 
+    @property
+    def attrs(self) -> dict[Hashable, Any]:
+        """
+        Dictionary of global attributes of this dataset.
+        """
+        return self._attrs
+
+    @attrs.setter
+    def attrs(self, value: Mapping[Hashable, Any]) -> None:
+        self._attrs = dict(value)
+
     def _construct(self, **injectables) -> SaQC:
         """
         Construct a new `SaQC`-Object from `self` and optionally inject
@@ -152,14 +169,11 @@ class SaQC(FuncModules):
         For internal usage only! Setting values through `injectables` has
         the potential to mess up certain invariants of the constructed object.
         """
-        out = SaQC(
-            data=DictOfSeries(),
-            flags=Flags(),
-            scheme=self._translator,
-        )
+        out = SaQC(data=DictOfSeries(), flags=Flags(), scheme=self._translator)
+        out.attrs = self._attrs
         for k, v in injectables.items():
-            if not hasattr(out, k):
-                raise AttributeError(f"failed to set unknown attribute: {k}")
+            if k not in self._attributes:
+                raise AttributeError(f"SaQC has no attribute {repr(k)}")
             setattr(out, k, v)
         return out
 
@@ -169,7 +183,7 @@ class SaQC(FuncModules):
 
     @property
     def flags(self) -> Accessor:
-        return Accessor(self._translator.backward(self._flags))
+        return Accessor(self._translator.backward(self._flags, attrs=self.attrs))
 
     def getResult(
         self, raw=False
@@ -187,19 +201,18 @@ class SaQC(FuncModules):
         if raw:
             return data, flags
 
-        return data.to_df(), self._translator.backward(flags)
+        return data.to_df(), self._translator.backward(flags, attrs=self.attrs)
 
     def _wrap(self, func: Callable):
         """Enrich a function by special saqc-functionality.
 
         For each saqc function this realize
-            - the source-target workflow,
             - regex's in field,
             - use default of translator for ``to_mask`` if not specified by user,
             - translation of ``flag`` and
             - working inplace.
         Therefore it adds the following keywords to each saqc function:
-        ``target``, ``regex`` and ``inplace``.
+        ``regex`` and ``inplace``.
 
         The returned function returns a Saqc object.
         """
@@ -207,14 +220,10 @@ class SaQC(FuncModules):
         def inner(
             field: str,
             *args,
-            target: str = None,
             regex: bool = False,
             flag: ExternalFlag = None,
             **kwargs,
         ) -> SaQC:
-
-            if regex and target is not None:
-                raise ValueError("explicit `target` not supported with `regex=True`")
 
             kwargs.setdefault("to_mask", self._translator.TO_MASK)
 
@@ -226,23 +235,12 @@ class SaQC(FuncModules):
             if regex:
                 fields = self._data.columns.str.match(field)
                 fields = self._data.columns[fields]
-                targets = fields
             else:
-                fields, targets = toSequence(field), toSequence(target, default=field)
+                fields = toSequence(field)
 
             out = self
 
-            for field, target in zip(fields, targets):
-                if field != target:
-                    out = out._callFunction(
-                        FUNC_MAP["tools.copy"],
-                        data=out._data,
-                        flags=out._flags,
-                        field=field,
-                        new_field=target,
-                    )
-                    field = target
-
+            for field in fields:
                 out = out._callFunction(
                     func,
                     data=out._data,
@@ -276,6 +274,12 @@ class SaQC(FuncModules):
 
         planned = self.called + [(field, (function, args, kwargs))]
 
+        # keep consistence: if we modify data and flags inplace in a function,
+        # but data is the original and flags is a copy (as currently implemented),
+        # data and flags of the original saqc obj may change inconsistently.
+        self._data = data
+        self._flags = flags
+
         return self._construct(_data=data, _flags=flags, called=planned)
 
     def __getattr__(self, key):
@@ -290,9 +294,17 @@ class SaQC(FuncModules):
         return self._wrap(FUNC_MAP[key])
 
     def copy(self, deep=True):
-        if deep:
-            return stdcopy.deepcopy(self)
-        return stdcopy.copy(self)
+        copyfunc = deepcopy if deep else shallowcopy
+        new = self._construct()
+        for attr in self._attributes:
+            setattr(new, attr, copyfunc(getattr(self, attr)))
+        return new
+
+    def __copy__(self):
+        return self.copy(deep=False)
+
+    def __deepcopy__(self, memodict=None):
+        return self.copy(deep=True)
 
 
 def _warnForUnusedKwargs(func, keywords, translator: Translator):
@@ -309,7 +321,8 @@ def _warnForUnusedKwargs(func, keywords, translator: Translator):
 
     Notes
     -----
-    A single warning is thrown, if any number of missing kws are detected, naming each missing kw.
+    A single warning is thrown, if any number of missing kws are detected,
+    naming each missing kw.
     """
     sig_kws = inspect.signature(func).parameters
 

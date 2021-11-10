@@ -44,7 +44,7 @@ def readFile(fname):
             + parts
         )
 
-    if isinstance(fname, str):
+    if isinstance(fname, (str, Path)):
         fobj.close()
 
     df = pd.DataFrame(

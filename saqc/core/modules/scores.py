@@ -8,12 +8,10 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from saqc.core import Flags
-from saqc.core.modules.base import ModuleBase
 import saqc
 
 
-class Scores(ModuleBase):
+class Scores:
     def assignKNNScore(
         self,
         field: str,
@@ -28,4 +26,4 @@ class Scores(ModuleBase):
         p: int = 2,
         **kwargs
     ) -> saqc.SaQC:
-        return self.defer("assignKNNScore", locals())
+        return self._defer("assignKNNScore", locals())

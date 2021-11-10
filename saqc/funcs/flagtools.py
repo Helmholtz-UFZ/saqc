@@ -8,11 +8,11 @@ import numpy as np
 from dios import DictOfSeries
 
 from saqc.constants import BAD, UNFLAGGED
-from saqc.core import flagging, processing, Flags
+from saqc.core import register, Flags
 import warnings
 
 
-@flagging(masking="field", module="flagtools")
+@register(datamask=None)
 def forceFlags(
     data: DictOfSeries, field: str, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -46,8 +46,7 @@ def forceFlags(
     return data, flags
 
 
-# masking='none' is sufficient because call is redirected
-@flagging(masking="none", module="flagtools")
+@register(datamask=None)
 def clearFlags(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -92,7 +91,7 @@ def clearFlags(
     return forceFlags(data, field, flags, flag=UNFLAGGED, **kwargs)
 
 
-@flagging(masking="none", module="flagtools")
+@register(datamask=None)
 def flagUnflagged(
     data: DictOfSeries, field: str, flags: Flags, flag: float = BAD, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -134,14 +133,17 @@ def flagUnflagged(
     return data, flags
 
 
-@flagging(masking="field", module="flagtools")
+@register(datamask="field")
 def flagManual(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
+    mdata: Union[pd.Series, pd.DataFrame, DictOfSeries, list, np.array],
+    method: Literal[
+        "left-open", "right-open", "closed", "plain", "ontime"
+    ] = "left-open",
+    mformat: Literal["start-end", "mflag"] = "start-end",
     mflag: Any = 1,
-    method: Literal["plain", "ontime", "left-open", "right-open", "closed"] = "plain",
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -161,12 +163,10 @@ def flagManual(
         The fieldname of the column, holding the data-to-be-flagged.
     flags : saqc.Flags
         A flags object, holding flags and additional informations related to `data`.
-    mdata : {pd.Series, pd.Dataframe, DictOfSeries, str}
+    mdata : pd.Series, pd.DataFrame, DictOfSeries, str, list or np.ndarray
         The Data determining, wich intervals are to be flagged, or a string, denoting under which field the data is
         accessable.
-    mflag : scalar
-        The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
-    method : {'plain', 'ontime', 'left-open', 'right-open', 'closed'}, default plain
+    method : {'plain', 'ontime', 'left-open', 'right-open', 'closed'}, default 'plain'
         Defines how mdata is projected on data. Except for the 'plain' method, the methods assume mdata to have an
         index.
         * 'plain': mdata must have the same length as data and is projected one-to-one on data.
@@ -178,6 +178,13 @@ def flagManual(
           The value at t_1 gets projected onto all data timestamps t with t_1 <= t < t_2.
         * 'left-open': like 'right-open', but the projected interval now covers all t with t_1 < t <= t_2.
         * 'closed': like 'right-open', but the projected interval now covers all t with t_1 <= t <= t_2.
+    mformat : {"start-end", "mflag"}, default "start-end"
+        * "start-end": mdata is a Series, where every entry indicates an interval to-flag. The index defines the left
+          bound, the value defines the right bound.
+        * "mflag": mdata is an array like, with entries containing 'mflag',where flags shall be set. See documentation
+          for examples.
+    mflag : scalar
+        The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
     flag : float, default BAD
         flag to set.
 
@@ -237,7 +244,7 @@ def flagManual(
     """
     dat = data[field]
     # internal not-mflag-value -> cant go for np.nan
-    not_mflag = np.sign(-1 * (mflag == 0))
+    not_mflag = -1 if mflag == 0 else 0
     if isinstance(mdata, str):
         mdata = data[mdata]
 
@@ -245,51 +252,49 @@ def flagManual(
         mdata = mdata[field]
 
     hasindex = isinstance(mdata, (pd.Series, pd.DataFrame, DictOfSeries))
-    if not hasindex and method != "plain":
-        raise ValueError("mdata has no index")
+    if not hasindex:
+        if method != "plain":
+            raise ValueError("mdata has no index")
+        else:
+            mdata = pd.Series(mdata, index=dat.index)
 
     # check, if intervals where passed in format (index:start-time, data:end-time)
-    try:
-        pd.to_datetime(mdata)
-    except (ParserError, TypeError):
-        dtlike = False
-    else:
-        if mdata.astype(str).map(str.isnumeric).any():
-            dtlike = False
+    if mformat == "start-end":
+        if method in ["plain", "ontime"]:
+            raise ValueError(
+                "'Start-End' formatting not compatible to 'plain' or 'ontime' methods"
+            )
         else:
-            dtlike = True
-
-    if dtlike:
-        mdata = pd.Series(
-            not_mflag,
-            index=mdata.index.join(pd.DatetimeIndex(mdata.values), how="outer"),
-        )
-        mdata[::2] = mflag
+            mdata = pd.Series(
+                not_mflag,
+                index=mdata.index.join(pd.DatetimeIndex(mdata.values), how="outer"),
+            )
+            mdata[::2] = mflag
 
     # get rid of values that are neither mflag nor not_mflag (for bw-compatibillity mainly)
     mdata[mdata != mflag] = not_mflag
+
+    # evaluate methods
     if method == "plain":
-
-        if hasindex:
-            mdata = mdata.to_numpy()
-
-        if len(mdata) != len(dat):
-            raise ValueError("mdata must be of same length as data")
-
-        mdata = pd.Series(mdata, index=dat.index)
-
+        pass
     # reindex will do the job later
     elif method == "ontime":
         pass
 
     elif method in ["left-open", "right-open", "closed"]:
+        mdata = mdata.drop(mdata.index[mdata.diff() == 0])
+        app_entry = pd.Series(mdata[-1], dat.index.shift(freq="1min")[-1:])
         mdata = mdata.reindex(dat.index.union(mdata.index))
 
         if method == "right-open":
             mdata = mdata.ffill()
 
         if method == "left-open":
-            mdata = mdata.replace({mflag: not_mflag, not_mflag: mflag}).bfill()
+            mdata = (
+                mdata.replace({mflag: not_mflag, not_mflag: mflag})
+                .append(app_entry)
+                .bfill()
+            )
 
         if method == "closed":
             mdata[mdata.ffill() == mflag] = mflag
@@ -304,7 +309,7 @@ def flagManual(
     return data, flags
 
 
-@flagging(module="flagtools")
+@register(datamask=None)
 def flagDummy(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:

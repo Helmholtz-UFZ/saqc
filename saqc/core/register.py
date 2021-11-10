@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import annotations
 from typing import Dict, Optional, Union, Tuple, Callable, Sequence
 from typing_extensions import Literal
 from functools import wraps
@@ -15,7 +16,6 @@ from saqc.core.flags import initFlagsLike, Flags, History
 # will be filled by calls to register
 FUNC_MAP: Dict[str, Callable] = {}
 
-MaskingStrT = Literal["all", "field", "none"]
 FuncReturnT = Tuple[dios.DictOfSeries, Flags]
 
 
@@ -29,83 +29,96 @@ class CallState:
 
     args: tuple
     kwargs: dict
+    dec_kwargs: dict
 
-    masking: MaskingStrT
-    mthresh: float
-    mask: dios.DictOfSeries
+    needs_squeezing = None
+    needs_masking = None
+    needs_demasking = None
+    mthresh: float = None
+    mask: dios.DictOfSeries = None
 
 
-def processing(module: Optional[str] = None):
+def processing():
     # executed on module import
     def inner(func):
-        func_name = func.__name__
-        if module:
-            func_name = f"{module}.{func_name}"
-
         @wraps(func)
         def callWrapper(data, field, flags, *args, **kwargs):
             kwargs["to_mask"] = _getMaskingThresh(kwargs)
             return func(data, field, flags, *args, **kwargs)
 
-        FUNC_MAP[func_name] = callWrapper
+        FUNC_MAP[func.__name__] = callWrapper
         return callWrapper
 
     return inner
 
 
-def flagging(masking: MaskingStrT = "all", module: Optional[str] = None):
+def register(
+    handles: Literal["data|flags", "index"] = "data|flags",
+    datamask: Literal["all", "field"] | None = "all",
+):
 
     # executed on module import
-    if masking not in ("all", "field", "none"):
+
+    if handles not in ["data|flags", "index"]:
         raise ValueError(
-            f"invalid masking argument '{masking}', choose one of ('all', 'field', 'none')"
+            f"invalid register decorator argument 'handles={repr(handles)}', "
+            "only 'data|flags' or 'index' are allowed."
         )
+
+    if datamask not in ["all", "field", None]:
+        raise ValueError(
+            f"invalid register decorator argument 'datamask={repr(datamask)}', "
+            f"only None, 'all' or 'field' are allowed."
+        )
+
+    dec_kws = {"handles": handles, "datamask": datamask}
 
     def inner(func):
         func_name = func.__name__
-        if module:
-            func_name = f"{module}.{func_name}"
 
         # executed if a register-decorated function is called,
         # nevertheless if it is called plain or via `SaQC.func`.
         @wraps(func)
         def callWrapper(data, field, flags, *args, **kwargs):
             args = data, field, flags, *args
-            args, kwargs, old_state = _preCall(func, args, kwargs, masking, func_name)
+
+            state = CallState(func, func_name, flags, field, args, kwargs, dec_kws)
+
+            if handles == "index":
+                # masking is possible, but demasking not,
+                # because the index may changed, same apply
+                # for squeezing the Flags
+                state.needs_squeezing = False
+                state.needs_demasking = False
+            else:  # handles == "data|flags"
+                state.needs_squeezing = True
+                state.needs_demasking = True
+
+            if datamask is None:
+                # if we have nothing to mask, we aso have nothing to UNmask
+                state.needs_masking = False
+                state.needs_demasking = False
+            else:
+                state.needs_masking = True
+
+            args, kwargs = _preCall(state)
             result = func(*args, **kwargs)
-            return _postCall(result, old_state)
+            return _postCall(result, state)
 
         FUNC_MAP[func_name] = callWrapper
-        callWrapper._module = module
-        callWrapper._masking = masking
+        callWrapper._masking = datamask
 
         return callWrapper
 
     return inner
 
 
-def _preCall(
-    func: Callable, args: tuple, kwargs: dict, masking: MaskingStrT, fname: str
-):
+def _preCall(state: CallState):
     """
     Handler that runs before any call to a saqc-function.
 
     This is called before each call to a saqc-function, nevertheless if it is
     called via the SaQC-interface or plain by importing and direct calling.
-
-    Parameters
-    ----------
-    func : callable
-        the function, which is called after this returns. This is not called here!
-
-    args : tuple
-        args to the function
-
-    kwargs : dict
-        kwargs to the function
-
-    masking : str
-        a string indicating which columns in data need masking
 
     See Also
     --------
@@ -117,34 +130,26 @@ def _preCall(
         arguments to be passed to the actual call
     kwargs: dict
         keyword-arguments to be passed to the actual call
-    state: CallState
-        control keyword-arguments passed to `_postCall`
-
     """
+    # set the masking threshold in kwargs that are passed to the function
+    # but keep the call state's kwargs the original, because the threshold
+    # is also stored in `state.mthresh`
+    kwargs = state.kwargs.copy()
     mthresh = _getMaskingThresh(kwargs)
     kwargs["to_mask"] = mthresh
+    state.mthresh = mthresh
 
-    data, field, flags, *args = args
+    data, field, flags, *args = state.args
 
-    # handle data - masking
-    columns = _getMaskingColumns(data, field, masking)
-    masked_data, mask = _maskData(data, flags, columns, mthresh)
+    if state.needs_demasking:
+        datamask_kw = state.dec_kwargs["datamask"]
+        columns = _getMaskingColumns(data, field, datamask_kw)
+        data, mask = _maskData(data, flags, columns, mthresh)
+        state.mask = mask
 
-    # store current state
-    state = CallState(
-        func=func,
-        func_name=fname,
-        flags=flags,
-        field=field,
-        args=args,
-        kwargs=kwargs,
-        masking=masking,
-        mthresh=mthresh,
-        mask=mask,
-    )
+    args = data, field, flags.copy(), *args
 
-    args = masked_data, field, flags.copy(), *args
-    return args, kwargs, state
+    return args, kwargs
 
 
 def _postCall(result, old_state: CallState) -> FuncReturnT:
@@ -167,18 +172,25 @@ def _postCall(result, old_state: CallState) -> FuncReturnT:
     data, flags : dios.DictOfSeries, saqc.Flags
     """
     data, flags = result
-    flags = _restoreFlags(flags, old_state)
-    data = _unmaskData(data, old_state)
+
+    if old_state.needs_squeezing:
+        flags = _restoreFlags(flags, old_state)
+
+    if old_state.needs_demasking:
+        data = _unmaskData(data, old_state)
+
     return data, flags
 
 
-def _getMaskingColumns(data: dios.DictOfSeries, field: str, masking: MaskingStrT):
+def _getMaskingColumns(
+    data: dios.DictOfSeries, field: str, datamask: str | None
+) -> pd.Index:
     """
-    Return columns to mask, by `masking` (decorator keyword)
+    Return columns to mask, by `datamask` (decorator keyword)
 
-    Depending on the `masking` kw, the following s returned:
+    Depending on the `datamask` kw, the following s returned:
+        * None : empty pd.Index
         * 'all' : all columns from data
-        * 'None' : empty pd.Index
         * 'field': single entry Index
 
     Returns
@@ -188,16 +200,16 @@ def _getMaskingColumns(data: dios.DictOfSeries, field: str, masking: MaskingStrT
 
     Raises
     ------
-    ValueError: if given masking literal is not supported
+    ValueError: if given datamask literal is not supported
     """
-    if masking == "all":
-        return data.columns
-    if masking == "none":
+    if datamask is None:
         return pd.Index([])
-    if masking == "field":
+    if datamask == "all":
+        return data.columns
+    if datamask == "field":
         return pd.Index([field])
 
-    raise ValueError(f"wrong use of `register(masking={masking})`")
+    raise ValueError(f"wrong use of `register(datamask={repr(datamask)})`")
 
 
 def _getMaskingThresh(kwargs):
@@ -248,6 +260,9 @@ def _isflagged(
     """
     Return a mask of flags accordingly to `thresh`. Return type is same as flags.
     """
+    if not isinstance(thresh, (float, int)):
+        raise TypeError(f"thresh must be of type float, not {repr(type(thresh))}")
+
     if thresh == UNFLAGGED:
         return flagscol > UNFLAGGED
 
@@ -274,33 +289,11 @@ def _restoreFlags(flags: Flags, old_state: CallState):
     meta = {
         "func": old_state.func_name,
         "args": old_state.args,
-        "keywords": old_state.kwargs,
+        "kwargs": old_state.kwargs,
     }
     new_columns = flags.columns.difference(old_state.flags.columns)
 
-    # masking == 'none'
-    # - no data was masked (no relevance here, but help understanding)
-    # - the saqc-function got a copy of the whole flags frame with all full histories
-    #   (but is not allowed to change them; we have -> @processing for this case)
-    # - the saqc-function appended none or some columns to each history
-    #
-    # masking == 'all'
-    # - all data was masked by flags (no relevance here, but help understanding)
-    # - the saqc-function got a complete new flags frame, with empty Histories
-    # - the saqc-function appended none or some columns to the each history
-    #
-    # masking == 'field'
-    # - the column `field` was masked by flags (no relevance here)
-    # - the saqc-function got a complete new flags frame, with empty `History`s
-    # - the saqc-function appended none or some columns to none or some `History`s
-    #
-    # NOTE:
-    # Actually the flags SHOULD have been cleared only at the `field` (as the
-    # masking-parameter implies) but the current implementation in `_prepareFlags`
-    # clears all columns. Nevertheless the following code only update the `field`
-    # (and new columns) and not all columns.
-
-    if old_state.masking in ("none", "all"):
+    if old_state.dec_kwargs["datamask"] in (None, "all"):
         columns = flags.columns
     else:  # field
         columns = pd.Index([old_state.field])
@@ -338,7 +331,7 @@ def _maskData(
 ) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
     """
     Mask data with Nans, if the flags are worse than a threshold.
-        - mask only passed `columns` (preselected by `masking`-kw from decorator)
+        - mask only passed `columns` (preselected by `datamask`-kw from decorator)
 
     Returns
     -------
@@ -372,9 +365,6 @@ def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSer
     -----
     Even if this returns data, it work inplace !
     """
-    if old_state.masking == "none":
-        return data
-
     # we have two options to implement this:
     #
     # =================================
@@ -396,9 +386,8 @@ def _unmaskData(data: dios.DictOfSeries, old_state: CallState) -> dios.DictOfSer
     # col in new only : new (keep column)
     # col in old only : new (ignore, was deleted)
 
-    columns = old_state.mask.columns.intersection(
-        data.columns
-    )  # in old, in masked, in new
+    # in old, in masked, in new
+    columns = old_state.mask.columns.intersection(data.columns)
 
     for c in columns:
 

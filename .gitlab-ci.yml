@@ -34,7 +34,7 @@ python38:
   except:
     - schedules
   script:
-    - pytest tests/core tests/funcs tests/integration dios/test
+    - pytest tests/core tests/funcs tests/integration dios/test -Werror
     - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
@@ -45,7 +45,7 @@ python39:
     - schedules
   image: python:3.9
   script:
-    - pytest tests/core tests/funcs tests/integration
+    - pytest tests/core tests/funcs tests/integration dios/test -Werror
     - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
@@ -65,7 +65,7 @@ coverage:
   allow_failure: true
   script:
     - pip install pytest-cov coverage
-    - pytest --cov=saqc tests/core tests/funcs
+    - pytest --cov=saqc tests/core tests/funcs -Werror
   after_script:
     - coverage xml
 
@@ -105,7 +105,7 @@ fuzzy:
   only:
     - schedules
   script:
-    - pytest tests/fuzzy
+    - pytest tests/fuzzy -Werror
 
 
 # test lib saqc
@@ -114,5 +114,5 @@ testLib:
   only:
     - schedules
   script:
-    - pytest tests/lib
+    - pytest tests/lib -Werror
 

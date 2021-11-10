@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
+from copy import deepcopy, copy as shallowcopy
+from typing import Mapping, Hashable, Any
 
 from . import operators as ops
 from . import pandas_bridge as pdextra
@@ -23,8 +27,12 @@ __copyright__ = "Copyright 2018, Helmholtz-Zentrum für Umweltforschung GmbH - U
 class _DiosBase:
     @property
     @abstractmethod
-    def _constructor(self):
-        pass
+    def _constructor(self) -> type[_DiosBase]:
+        raise NotImplementedError
+
+    def _finalize(self, other: _DiosBase):
+        self._attrs = other._attrs
+        return self
 
     def __init__(
         self,
@@ -36,8 +44,8 @@ class _DiosBase:
         fastpath=False,
     ):
 
-        # set via property
-        self.cast_policy = cast_policy
+        self._attrs = {}
+        self.cast_policy = cast_policy  # set via property
 
         # we are called internally
         if fastpath:
@@ -128,7 +136,8 @@ class _DiosBase:
             raise TypeError("data type not understood")
 
         for k in data:
-            self._insert(k, pd.Series(data[k], index=index))
+            s = pd.Series(data[k], index=index, dtype=object).infer_objects()
+            self._insert(k, s)
 
     # ----------------------------------------------------------------------
     # checks
@@ -202,7 +211,7 @@ class _DiosBase:
         if self._is_valid_columns_index(data):
             return self._constructor(
                 data=data, itype=self.itype, cast_policy=self.cast_policy, fastpath=True
-            )
+            )._finalize(self)
 
         raise TypeError(f"cannot index columns with this type, {type(key)}")
 
@@ -332,6 +341,19 @@ class _DiosBase:
     # Base properties and basic dunder magic
 
     @property
+    def attrs(self) -> dict[Hashable, Any]:
+        """
+        Dictionary of global attributes of this dataset.
+        """
+        if self._attrs is None:
+            self._attrs = {}
+        return self._attrs
+
+    @attrs.setter
+    def attrs(self, value: Mapping[Hashable, Any]) -> None:
+        self._attrs = dict(value)
+
+    @property
     def columns(self):
         """The column labels of the DictOfSeries"""
         return self._data.index
@@ -452,7 +474,7 @@ class _DiosBase:
         return self.copy(deep=True)
 
     def __copy__(self):
-        return self.copy(deep=True)
+        return self.copy(deep=False)
 
     def copy(self, deep=True):
         """Make a copy of this DictOfSeries' indices and data.
@@ -471,14 +493,19 @@ class _DiosBase:
         --------
         pandas.DataFrame.copy
         """
-        data = self._data.copy()
+        data = self._data.copy()  # always copy the outer hull series
         if deep:
             for c, series in self.items():
                 data.at[c] = series.copy()
 
-        return self._constructor(
+        new = self._constructor(
             data=data, itype=self.itype, cast_policy=self.cast_policy, fastpath=True
         )
+
+        copyfunc = deepcopy if deep else shallowcopy
+        new._attrs = copyfunc(self._attrs)
+
+        return new
 
     def copy_empty(self, columns=True):
         """
@@ -530,7 +557,7 @@ class _DiosBase:
 
         return self._constructor(
             data=data, itype=self.itype, cast_policy=self.cast_policy, fastpath=True
-        )
+        )._finalize(self)
 
     # ------------------------------------------------------------------------------
     # Operators

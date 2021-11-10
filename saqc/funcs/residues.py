@@ -7,12 +7,12 @@ import numpy as np
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
 from saqc.funcs.rolling import roll
 from saqc.funcs.curvefit import fitPolynomial
 
 
-@flagging(masking="field", module="residues")
+@register(datamask="field")
 def calculatePolynomialResidues(
     data: DictOfSeries,
     field: str,
@@ -109,7 +109,7 @@ def calculatePolynomialResidues(
     )
 
 
-@flagging(masking="field", module="residues")
+@register(datamask="field")
 def calculateRollingResidues(
     data: DictOfSeries,
     field: str,

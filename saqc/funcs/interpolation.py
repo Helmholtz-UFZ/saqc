@@ -7,7 +7,7 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, processing, Flags
+from saqc.core import register, Flags
 from saqc.core.register import _isflagged
 from saqc.lib.ts_operators import interpolateNANs
 
@@ -30,7 +30,7 @@ _SUPPORTED_METHODS = Literal[
 ]
 
 
-@flagging(masking="field", module="interpolation")
+@register(datamask="field")
 def interpolateByRolling(
     data: DictOfSeries,
     field: str,
@@ -40,7 +40,7 @@ def interpolateByRolling(
     center: bool = True,
     min_periods: int = 0,
     flag: float = UNFLAGGED,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Interpolates nan-values in the data by assigning them the aggregation result of the window surrounding them.
@@ -82,8 +82,6 @@ def interpolateByRolling(
     flags : saqc.Flags
         The quality flags of data
     """
-
-    data = data.copy()
     datcol = data[field]
     roller = datcol.rolling(window=window, center=center, min_periods=min_periods)
     try:
@@ -105,7 +103,7 @@ def interpolateByRolling(
     return data, flags
 
 
-@flagging(masking="field", module="interpolation")
+@register(datamask="field")
 def interpolateInvalid(
     data: DictOfSeries,
     field: str,
@@ -115,7 +113,7 @@ def interpolateInvalid(
     limit: int = 2,
     downgrade: bool = False,
     flag: float = UNFLAGGED,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to interpolate nan values in the data.
@@ -189,7 +187,7 @@ def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
     return data.fillna(fill_value).astype(dtype)
 
 
-@processing(module="interpolation")
+@register(handles="index", datamask=None)
 def interpolateIndex(
     data: DictOfSeries,
     field: str,
@@ -199,7 +197,7 @@ def interpolateIndex(
     order: int = 2,
     limit: int = 2,
     downgrade: bool = False,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
@@ -257,6 +255,7 @@ def interpolateIndex(
     start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
     grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
 
+    # todo: we could use now `register(handles='index', datamsk='all')`
     flagged = _isflagged(flags[field], kwargs["to_mask"])
 
     # drop all points that hold no relevant grid information
@@ -290,7 +289,6 @@ def interpolateIndex(
         index=data[field].index,
         func=_resampleOverlapping,
         func_kws=dict(freq=freq, fill_value=UNFLAGGED),
-        copy=False,
     )
 
     flags.history[field] = history
