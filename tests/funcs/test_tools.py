@@ -27,10 +27,8 @@ def test_makeFig():
     dummy_path = ""
 
     d_saqc = d_saqc.plot(field="data", path="")
+    d_saqc = d_saqc.plot(field="data", path=dummy_path, history="valid", stats=True)
+    d_saqc = d_saqc.plot(field="data", path=dummy_path, history="complete")
     d_saqc = d_saqc.plot(
-        field="data", path=dummy_path, plot_kwargs={"history": "valid"}, stats=True
-    )
-    d_saqc = d_saqc.plot(field="data", path=dummy_path, plot_kwargs={"history": "all"})
-    d_saqc = d_saqc.plot(
-        field="data", path=dummy_path, plot_kwargs={"slice": "2000-10"}, stats=True
+        field="data", path=dummy_path, ax_kwargs={"ylim": "2000-10"}, stats=True
     )
