@@ -251,18 +251,20 @@ def plot(
     path: Optional[str] = None,
     max_gap: Optional[FreqString] = None,
     stats: bool = False,
-    plot_kwargs: Optional[dict] = None,
-    fig_kwargs: Optional[dict] = None,
+    history: Optional[Literal["valid", "complete", "clear"]] = "valid",
+    xscope: Optional[slice] = None,
+    phaseplot: Optional[str] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
+    to_mask: Optional[float] = np.inf,
     **kwargs,
 ):
     """
     Stores or shows a figure object, containing data graph with flag marks for field.
 
-    There are two modes, 'interactive' and 'store' mode, wich is determind via the
+    There are two modes, 'interactive' and 'store', which are determind through the
     ``save_path`` keyword. In interactive mode (default) the plot is shown at runtime
-    and the execution stops until the plot window is closed manually by a user. In
+    and the program execution stops until the plot window is closed manually. In
     store mode the generated plot is stored to disk and no manually interaction is
     needed.
 
@@ -286,31 +288,26 @@ def plot(
     max_gap : str, default None
         If None, all the points in the data will be connected, resulting in long linear
         lines, where continous chunks of data is missing. Nans in the data get dropped
-        before plotting. If an Offset string is passed, only points that have a distance
+        before plotting. If an offset string is passed, only points that have a distance
         below `max_gap` get connected via the plotting line.
 
     stats : bool, default False
         Whether to include statistics table in plot.
 
-    plot_kwargs : dict, default None
-        Keyword arguments controlling plot generation. Will be passed on to the
-        ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
-        data plot. The most relevant of those properties might be "ylabel", "title" and
-        "ylim". In Addition, following options are available:
+    history : {"valid", "complete", None}, default "valid"
+        Discriminate the plotted flags with respect to the tests they originate from.
+        * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
+          in the legend, that actually contributed flags to the overall resault.
+        * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
+        * "clear" - clear plot from all the flagged values
+        * None - just plot the resulting flags for one variable, without any historical meta information.
 
-        * {'slice': s} property, that determines a chunk of the data to be plotted /
-            processed. `s` can be anything, that is a valid argument to the
-            ``pandas.Series.__getitem__`` method.
-        * {'history': str}
-            * str="all": All the flags are plotted with colored dots, refering to the
-                tests they originate from
-            * str="valid": - same as 'all' - but only plots those flags, that are not
-                removed by later tests
+    xscope : slice or Offset, default None
+        Parameter, that determines a chunk of the data to be plotted /
+        processed. `xscope` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
 
-    fig_kwargs : dict, default None
-        Keyword arguments controlling figure generation. In interactive mode,
-        ``None`` defaults to ``{"figsize": (16, 9)}`` to ensure a proper figure size
-        in store-mode.
+    phaseplot : str or None, default None
+        If a string is passed, plot ``field`` in the phase space it forms together with the Variable ``phaseplot``.
 
     store_kwargs : dict, default {}
         Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
@@ -349,6 +346,11 @@ def plot(
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
     interactive = path is None
+    level = kwargs.get("flag", BAD)
+
+    if to_mask < np.inf:
+        data = data.copy()
+        data.loc[flags[field] >= to_mask, field] = np.nan
 
     if store_kwargs is None:
         store_kwargs = {}
@@ -358,19 +360,17 @@ def plot(
 
     else:
         mpl.use("Agg")
-        # ensure a proper size in stored plot
-        if fig_kwargs is None:
-            fig_kwargs = {"figsize": (16, 9)}
 
     fig = makeFig(
         data=data,
         field=field,
         flags=flags,
-        level=kwargs.get("flag", BAD),
+        level=level,
         max_gap=max_gap,
         stats=stats,
-        plot_kwargs=plot_kwargs,
-        fig_kwargs=fig_kwargs,
+        history=history,
+        xscope=xscope,
+        phaseplot=phaseplot,
         stats_dict=stats_dict,
     )
 
