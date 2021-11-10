@@ -141,7 +141,7 @@ def _preCall(state: CallState):
     state.mthresh = mthresh
     data, flags = state.data, state.flags
 
-    if state.needs_demasking:
+    if state.needs_masking:
         datamask_kw = state.dec_kwargs["datamask"]
         # should we also mask a potential `target`?
         columns = _getMaskingColumns(state.data, state.field, datamask_kw)
