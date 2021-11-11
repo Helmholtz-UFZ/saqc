@@ -101,24 +101,6 @@ def _setup():
 _setup()
 
 
-class Accessor:
-    def __init__(self, obj: Union[DictOfSeries, pd.DataFrame, Flags]):
-        self._obj = obj
-
-    def __getitem__(self, key):
-        return self._obj[key]
-
-    @property
-    def columns(self):
-        return self._obj.columns
-
-    def __len__(self):
-        return len(self.columns)
-
-    def __repr__(self):
-        return self._obj.__repr__()
-
-
 class SaQC(FunctionsMixin):
     _attributes = {
         "_data",
@@ -188,30 +170,28 @@ class SaQC(FunctionsMixin):
         return out
 
     @property
-    def data(self) -> Accessor:
-        return Accessor(self._data)
+    def dataRaw(self) -> DictOfSeries:
+        return self._data
 
     @property
-    def flags(self) -> Accessor:
-        return Accessor(self._translator.backward(self._flags, attrs=self.attrs))
+    def flagsRaw(self) -> Flags:
+        return self._flags
 
-    def getResult(
-        self, raw=False
-    ) -> Union[Tuple[DictOfSeries, Flags], Tuple[pd.DataFrame, pd.DataFrame]]:
-        """
-        Realize the registered calculations and return the results
+    @property
+    def data(self) -> pd.DataFrame:
+        data: pd.DataFrame = self._data.to_df()
+        data.attrs = self._attrs.copy()
+        return data
 
-        Returns
-        -------
-        data, flags: (DictOfSeries, DictOfSeries)
-        """
+    @property
+    def flags(self) -> pd.DataFrame:
+        data: pd.DataFrame = self._translator.backward(self._flags, attrs=self._attrs)
+        data.attrs = self._attrs.copy()
+        return data
 
-        data, flags = self._data, self._flags
-
-        if raw:
-            return data, flags
-
-        return data.to_df(), self._translator.backward(flags, attrs=self.attrs)
+    @property
+    def result(self) -> SaQCResult:
+        return SaQCResult(self._data, self._flags, self._attrs, self._translator)
 
     def _wrap(self, func: Callable):
         """Enrich a function by special saqc-functionality.
@@ -318,3 +298,77 @@ class SaQC(FunctionsMixin):
 
     def __deepcopy__(self, memodict=None):
         return self.copy(deep=True)
+
+
+class SaQCResult:
+    def __init__(
+        self, data: DictOfSeries, flags: Flags, attrs: dict, translator: Translator
+    ):
+        assert isinstance(data, DictOfSeries)
+        assert isinstance(flags, Flags)
+        assert isinstance(attrs, dict)
+        assert isinstance(translator, Translator)
+        self._data = data.copy()
+        self._flags = flags.copy()
+        self._attrs = attrs.copy()
+        self._translator = translator
+        self._validate()
+
+        try:
+            self._translator.backward(self._flags, attrs=self._attrs)
+        except Exception as e:
+            raise RuntimeError("Translation of flags failed") from e
+
+    def _validate(self):
+        if not self._data.columns.equals(self._flags.columns):
+            AssertionError(
+                "Consistency broken. data and flags have not the same columns"
+            )
+
+    @property
+    def data(self) -> pd.DataFrame:
+        data: pd.DataFrame = self._data.copy().to_df()
+        data.attrs = self._attrs.copy()
+        return data
+
+    @property
+    def flags(self) -> pd.DataFrame:
+        data: pd.DataFrame = self._translator.backward(self._flags, attrs=self._attrs)
+        data.attrs = self._attrs.copy()
+        return data
+
+    @property
+    def dataRaw(self) -> DictOfSeries:
+        return self._data
+
+    @property
+    def flagsRaw(self) -> Flags:
+        return self._flags
+
+    @property
+    def columns(self) -> DictOfSeries():
+        self._validate()
+        return self._data.columns
+
+    def __getitem__(self, key):
+        self._validate()
+        if key not in self.columns:
+            raise KeyError(key)
+        data_series = self._data[key].copy()
+        # slice flags to one column
+        flags = Flags({key: self._flags._data[key]}, copy=True)
+
+        df = self._translator.backward(flags, attrs=self._attrs)
+        if isinstance(df.columns, pd.MultiIndex):
+            df = df.droplevel(level=0, axis=1)
+
+        if len(df.columns) == 1:
+            df.columns = ["flags"]
+
+        df.insert(0, column="data", value=data_series)
+        df.columns.name = None
+        df.index.name = None
+        return df
+
+    def __repr__(self):
+        return f"SaQCResult\nColumns: {self.columns.to_list()}"
