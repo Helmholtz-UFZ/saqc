@@ -4,7 +4,17 @@ from __future__ import annotations
 
 import inspect
 import warnings
-from typing import Any, Callable, Tuple, Union, Optional, Mapping, Hashable
+from typing import (
+    Any,
+    Callable,
+    List,
+    Sequence,
+    Tuple,
+    Union,
+    Optional,
+    Mapping,
+    Hashable,
+)
 from copy import deepcopy, copy as shallowcopy
 
 import pandas as pd
@@ -218,7 +228,7 @@ class SaQC(FunctionsMixin):
         """
 
         def inner(
-            field: str,
+            field: str | Sequence[str],
             *args,
             regex: bool = False,
             flag: ExternalFlag = None,
@@ -233,19 +243,23 @@ class SaQC(FunctionsMixin):
 
             # expand regular expressions
             if regex:
-                fields = self._data.columns.str.match(field)
-                fields = self._data.columns[fields]
+                fmask = self._data.columns.str.match(field)
+                fields = self._data.columns[fmask].tolist()
             else:
                 fields = toSequence(field)
 
+            if func._multivariate:
+                # we wrap field again to generalize the down stream loop work as expected
+                fields = [fields]
+
             out = self
 
-            for field in fields:
+            for f in fields:
                 out = out._callFunction(
                     func,
                     data=out._data,
                     flags=out._flags,
-                    field=field,
+                    field=f,
                     *args,
                     **kwargs,
                 )
@@ -258,14 +272,18 @@ class SaQC(FunctionsMixin):
         function: Callable,
         data: DictOfSeries,
         flags: Flags,
-        field: str,
+        field: str | Sequence[str],
         *args: Any,
         **kwargs: Any,
     ) -> SaQC:
 
-        assert data.columns.difference(flags.columns).empty
-
         data, flags = function(data=data, flags=flags, field=field, *args, **kwargs)
+
+        if not data.columns.difference(flags.columns).empty:
+            raise ValueError(
+                "expected identical columns in 'data' and 'flags', "
+                f"the call to {repr(function.__name__)} broke this invariant"
+            )
 
         planned = self.called + [(field, (function, args, kwargs))]
 

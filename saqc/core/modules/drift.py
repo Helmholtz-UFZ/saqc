@@ -16,8 +16,7 @@ from saqc.lib.types import FreqString, CurveFitter
 class Drift:
     def flagDriftFromNorm(
         self,
-        field: str,
-        fields: Sequence[str],
+        field: Sequence[str],
         freq: FreqString,
         spread: float,
         frac: float = 0.5,
@@ -33,8 +32,8 @@ class Drift:
 
     def flagDriftFromReference(
         self,
-        field: str,
-        fields: Sequence[str],
+        field: Sequence[str],
+        reference: str,
         freq: FreqString,
         thresh: float,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(

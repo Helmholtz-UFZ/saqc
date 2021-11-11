@@ -1,11 +1,12 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 import re
 import datetime
 import itertools
 import warnings
-from typing import Sequence, Union, Any, Iterator, Callable
+from typing import List, Sequence, TypeVar, Union, Any, Iterator, Callable
 
 import numpy as np
 import numba as nb
@@ -16,11 +17,12 @@ import dios
 import collections
 from scipy.cluster.hierarchy import linkage, fcluster
 
-from saqc.lib.types import T
-
 # keep this for external imports
 # TODO: fix the external imports
 from saqc.lib.rolling import customRoller
+
+
+T = TypeVar("T", str, float, int)
 
 
 def assertScalar(name, value, optional=False):
@@ -30,13 +32,15 @@ def assertScalar(name, value, optional=False):
         raise ValueError(f"'{name}' needs to be a scalar")
 
 
-def toSequence(
-    value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = None
-) -> Sequence[T]:
-    if value is None:
-        value = default
-    if np.isscalar(value):
-        value = [value]
+def toSequence(value: T | Sequence[T]) -> List[T]:
+    if isinstance(value, (str, int, float)):
+        return [value]
+    return list(value)
+
+
+def squeezeSequence(value: Sequence[T]) -> Union[T, Sequence[T]]:
+    if len(value) == 1:
+        return value[0]
     return value
 
 

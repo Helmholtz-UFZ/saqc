@@ -14,8 +14,7 @@ import saqc
 class Scores:
     def assignKNNScore(
         self,
-        field: str,
-        fields: Sequence[str],
+        field: Sequence[str],
         target: str = "kNNscores",
         n: int = 10,
         func: Callable[[pd.Series], float] = np.sum,
