@@ -16,7 +16,7 @@ from scipy.optimize import curve_fit
 from saqc.constants import *
 from saqc.core import register, Flags
 from saqc.lib.types import FreqString
-from saqc.lib.tools import customRoller, findIndex, getFreqDelta
+from saqc.lib.tools import customRoller, findIndex, getFreqDelta, toSequence
 from saqc.funcs.scores import assignKNNScore
 from saqc.funcs.tools import copyField, dropField
 from saqc.funcs.transformation import transform
@@ -159,7 +159,7 @@ def _evalStrayLabels(
     flags : saqc.Flags
         Container to store quality flags to data.
 
-    fields : list[str]
+    fields : list of str
         A list of strings, holding the column names of the variables, the stray labels
         shall be projected onto.
 
@@ -399,12 +399,11 @@ def _expFit(
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@register(datamask="all")
+@register(datamask="all", multivariate=True)
 def flagMVScores(
     data: DictOfSeries,
-    field: str,
+    field: Sequence[str],
     flags: Flags,
-    fields: Sequence[str],
     trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
     alpha: float = 0.05,
     n: int = 10,
@@ -432,16 +431,12 @@ def flagMVScores(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
 
-    field : str
-        The fieldname of the column, holding the data-to-be-flagged. (Here a dummy,
-        for structural reasons)
+    field : list of str
+        List of fieldnames, corresponding to the variables that are to be included
+        into the flagging process.
 
     flags : saqc.Flags
         Container to store quality flags to data.
-
-    fields : List[str]
-        List of fieldnames, corresponding to the variables that are to be included
-        into the flagging process.
 
     trafo : callable, default lambda x:x
         Transformation to be applied onto every column before scoring. Will likely
@@ -555,15 +550,15 @@ def flagMVScores(
     algorithm.
     """
 
+    fields = toSequence(field)
     for f in fields:
         data, flags = copyField(data, f, flags, f"trafo_{f}")
         data, flags = transform(data, f"trafo_{f}", flags, func=trafo, freq=partition)
 
     data, flags = assignKNNScore(
-        data,
-        "dummy",
-        flags,
-        fields=[f"trafo_{f}" for f in fields],
+        data=data,
+        field=[f"trafo_{f}" for f in fields],
+        flags=flags,
         target="kNN",
         n=n,
         func=func,
@@ -586,10 +581,10 @@ def flagMVScores(
     )
 
     data, flags = _evalStrayLabels(
-        data,
-        "kNN",
-        flags,
+        data=data,
+        field="kNN",
         fields=fields,
+        flags=flags,
         reduction_range=stray_range,
         reduction_drop_flagged=drop_flagged,
         reduction_thresh=thresh,
@@ -1195,12 +1190,11 @@ def flagRange(
     return data, flags
 
 
-@register(datamask="all")
+@register(datamask="all", multivariate=True)
 def flagCrossStatistic(
     data: DictOfSeries,
-    field: str,
+    field: Sequence[str],
     flags: Flags,
-    fields: Sequence[str],
     thresh: float,
     method: Literal["modZscore", "Zscore"] = "modZscore",
     flag: float = BAD,
@@ -1224,12 +1218,10 @@ def flagCrossStatistic(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    field : str
-        A dummy parameter.
+    field : list of str
+        List of fieldnames in data, determining wich variables are to be included into the flagging process.
     flags : saqc.Flags
         A flags object, holding flags and additional informations related to `data`.
-    fields : str
-        List of fieldnames in data, determining wich variables are to be included into the flagging process.
     thresh : float
         Threshold which the outlier score of an value must exceed, for being flagged an outlier.
     method : {'modZscore', 'Zscore'}, default 'modZscore'
@@ -1255,6 +1247,7 @@ def flagCrossStatistic(
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
 
+    fields = toSequence(field)
     df = data[fields].loc[data[fields].index_of("shared")].to_df()
 
     if isinstance(method, str):

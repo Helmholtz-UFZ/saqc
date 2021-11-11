@@ -12,12 +12,11 @@ from saqc.lib.tools import toSequence
 import saqc.lib.ts_operators as ts_ops
 
 
-@register(datamask="all")
+@register(datamask="all", multivariate=True)
 def assignKNNScore(
     data: DictOfSeries,
-    field: str,
+    field: Sequence[str],
     flags: Flags,
-    fields: Sequence[str],
     target: str = "kNNscores",
     n: int = 10,
     func: Callable[[pd.Series], float] = np.sum,
@@ -36,8 +35,9 @@ def assignKNNScore(
 
     The steps taken to calculate the scores are as follows:
 
-    1. All the timeseries, named fields, are combined to one feature space by an *inner* join on their date time indexes.
-       thus, only samples, that share timestamps across all fields will be included in the feature space
+    1. All the timeseries, given through ``field``, are combined to one feature space by an *inner* join on their
+       date time indexes. thus, only samples, that share timestamps across all ``field``s will be included in the
+       feature space.
     2. Any datapoint/sample, where one ore more of the features is invalid (=np.nan) will get excluded.
     3. For every data point, the distance to its `n` nearest neighbors is calculated by applying the
        metric `metric` at grade `p` onto the feature space. The defaults lead to the euclidian to be applied.
@@ -53,10 +53,10 @@ def assignKNNScore(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    field : str
-        Dummy Variable.
+    field : list of str
+        input variable names.
     flags : saqc.flags
-        A flags object, holding flags and additional informations related to `data`.fields
+        A flags object, holding flags and additional informations related to `data`.
     n : int, default 10
         The number of nearest neighbors to which the distance is comprised in every datapoints scoring calculation.
     func : Callable[numpy.array, float], default np.sum
@@ -101,10 +101,10 @@ def assignKNNScore(
     ----------
     [1] https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html
     """
-    fields = toSequence(fields)
+    fields = toSequence(field)
     val_frame = data[fields].copy()
     score_index = val_frame.index_of("shared")
-    score_ser = pd.Series(np.nan, index=score_index, name=field)
+    score_ser = pd.Series(np.nan, index=score_index, name=target)
 
     val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
     val_frame.dropna(inplace=True)

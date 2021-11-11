@@ -18,7 +18,7 @@ from saqc.core.register import register
 from saqc.core import Flags
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
-from saqc.lib.tools import detectDeviants
+from saqc.lib.tools import detectDeviants, toSequence
 from saqc.lib.types import FreqString, CurveFitter
 
 
@@ -30,9 +30,8 @@ LinkageString = Literal[
 @register(datamask="all")
 def flagDriftFromNorm(
     data: DictOfSeries,
-    field: str,
+    field: Sequence[str],
     flags: Flags,
-    fields: Sequence[str],
     freq: FreqString,
     spread: float,
     frac: float = 0.5,
@@ -49,7 +48,7 @@ def flagDriftFromNorm(
 
     "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed.
     In addition, only a group is considered "normal" if it contains more then `frac` percent of the
-    variables in "fields".
+    variables in "field".
 
     See the Notes section for a more detailed presentation of the algorithm
 
@@ -57,12 +56,10 @@ def flagDriftFromNorm(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    field : str
-        A dummy parameter.
+    field : list of str
+        List of fieldnames in data, determining which variables are to be included into the flagging process.
     flags : saqc.Flags
         A flags object, holding flags and additional informations related to `data`.
-    fields : str
-        List of fieldnames in data, determining which variables are to be included into the flagging process.
     freq : str
         An offset string, determining the size of the seperate datachunks that the algorihm is to be piecewise
         applied on.
@@ -99,12 +96,12 @@ def flagDriftFromNorm(
     following steps are performed for every data "segment" of length `freq` in order to find the
     "abnormal" data:
 
-    1. Calculate the distances :math:`d(x_i,x_j)` for all :math:`x_i` in parameter `fields`. (with :math:`d`
+    1. Calculate the distances :math:`d(x_i,x_j)` for all :math:`x_i` in parameter `field`. (with :math:`d`
        denoting the distance function
        passed to the parameter `metric`.
     2. Calculate a dendogram with a hierarchical linkage algorithm, specified by the parameter `method`.
     3. Flatten the dendogram at the level, the agglomeration costs exceed the value given by the parameter `spread`
-    4. check if there is a cluster containing more than `frac` percentage of the variables in fields.
+    4. check if there is a cluster containing more than `frac` percentage of the variables in field.
 
         1. if yes: flag all the variables that are not in that cluster (inside the segment)
         2. if no: flag nothing
@@ -130,6 +127,7 @@ def flagDriftFromNorm(
     Introduction to Hierarchical clustering:
         [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
     """
+    fields = toSequence(field)
     data_to_flag = data[fields].to_df()
     data_to_flag.dropna(inplace=True)
 
@@ -147,12 +145,12 @@ def flagDriftFromNorm(
     return data, flags
 
 
-@register(datamask="all")
+@register(datamask="all", multivariate=True)
 def flagDriftFromReference(
     data: DictOfSeries,
-    field: str,
+    field: Sequence[str],
     flags: Flags,
-    fields: Sequence[str],
+    reference: str,
     freq: FreqString,
     thresh: float,
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
@@ -171,12 +169,12 @@ def flagDriftFromReference(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    field : str
-        The reference variable, the deviation from wich determines the flagging.
+    field : list of str
+        List of fieldnames in data, determining wich variables are to be included into the flagging process.
     flags : saqc.Flags
         A flags object, holding flags and additional informations related to `data`.
-    fields : str
-        List of fieldnames in data, determining wich variables are to be included into the flagging process.
+    reference : str
+        The reference variable, the deviation from wich determines the flagging.
     freq : str
         An offset string, determining the size of the seperate datachunks that the algorihm is to be piecewise
         applied on.
@@ -204,14 +202,12 @@ def flagDriftFromReference(
     That is, why, the "averaged manhatten metric" is set as the metric default, since it corresponds to the
     averaged value distance, two timeseries have (as opposed by euclidean, for example).
     """
-    data_to_flag = data[fields].to_df()
-    data_to_flag.dropna(inplace=True)
+    fields = toSequence(field)
+    data_to_flag = data[fields].to_df().dropna()
 
     fields = list(fields)
-    if field not in fields:
-        fields.append(field)
-
-    var_num = len(fields)
+    if reference not in fields:
+        fields.append(reference)
 
     segments = data_to_flag.groupby(pd.Grouper(freq=freq))
     for segment in segments:
@@ -219,8 +215,10 @@ def flagDriftFromReference(
         if segment[1].shape[0] <= 1:
             continue
 
-        for i in range(var_num):
-            dist = metric(segment[1].iloc[:, i].values, segment[1].loc[:, field].values)
+        for i in range(len(fields)):
+            dist = metric(
+                segment[1].iloc[:, i].values, segment[1].loc[:, reference].values
+            )
 
             if dist > thresh:
                 flags[segment[1].index, fields[i]] = flag
@@ -228,7 +226,7 @@ def flagDriftFromReference(
     return data, flags
 
 
-@register(datamask="all")
+@register(datamask="all", multivariate=True)
 def flagDriftFromScaledNorm(
     data: DictOfSeries,
     field: str,
@@ -326,8 +324,7 @@ def flagDriftFromScaledNorm(
         [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
     """
     fields = list(set_1) + list(set_2)
-    data_to_flag = data[fields].to_df()
-    data_to_flag.dropna(inplace=True)
+    data_to_flag = data[fields].to_df().dropna()
 
     convert_slope = []
     convert_intercept = []
