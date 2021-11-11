@@ -24,7 +24,7 @@ Data preparation
 
 * Flagging missing values via :py:func:`flagMissing <Functions.saqc.flagMissing>`.
 * Flagging out of range values via :py:func:`flagRange <Functions.saqc.flagRange>`.
-* Flagging values, where the Specific Conductance (\ *K25*\ ) drops down to near zero. (via :py:func:`flagGeneric <Functions.saqc.flagGeneric>`)
+* Flagging values, where the Specific Conductance (\ *K25*\ ) drops down to near zero. (via :py:func:`flagGeneric <Functions.saqc.flag>`)
 * Resampling the data via linear Interpolation (:py:func:`linear <Functions.saqc.linear>`).
 
 Drift Correction
@@ -63,11 +63,11 @@ Basically following the *oddWater* procedure, as suggested in *Talagala, P.D. et
 * Variables *SAK254*\ , *Turbidity*\ , *Pegel*\ , *NO3N*\ , *WaterTemp* and *pH* get transformed to comparable scales
 * We are obtaining nearest neighbor scores and assigign those to a new variable, via :py:func:`assignKNNScores <Functions.saqc.assignKNNScores>`.
 * We are applying the *STRAY* Algorithm to find the cut_off points for the scores, above which values qualify as outliers. (:py:func:`flagByStray <Functions.saqc.flagByStray>`)
-* We project the calculated flags onto the input variables via :py:func:`assignKNNScores <Functions.saqc.assignKNNScores>`.
+* We project the calculated flags onto the input variables via :py:func:`assignKNNScore <Functions.saqc.assignKNNScore>`.
 
-Posprocessing
--------------
+Postprocessing
+--------------
 
 
 * (Flags reduction onto subspaces)
-* Backprojection of calculated flags from resampled Data onto original data via :py:func ``mapToOriginal <Functions.saqc.assignKNNScores>``
+* Back projection of calculated flags from resampled Data onto original data via :py:func: ``mapToOriginal <Functions.saqc.mapToOriginal>``

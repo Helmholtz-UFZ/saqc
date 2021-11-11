@@ -2,6 +2,8 @@
 SaQC documentation
 ==================
 
+.. include:: misc_md_m2r/TitlePage.rst
+
 .. toctree::
    :hidden:
    :maxdepth: 1
