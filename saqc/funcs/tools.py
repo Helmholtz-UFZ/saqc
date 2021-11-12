@@ -304,10 +304,12 @@ def plot(
         * None - just plot the resulting flags for one variable, without any historical meta information.
 
     xscope : slice or Offset, default None
-        Parameter, that determines a chunk of the data to be plotted /
-        processed. `s` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
+        Parameter, that determines a chunk of the data to be plotted
+        processed. `xscope` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
 
-    phaseplot :
+    phaseplot : str or None, default None
+        If a string is passed, plot ``field`` in the phase space it forms together with the Variable ``phaseplot``.
+
 
     store_kwargs : dict, default {}
         Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling

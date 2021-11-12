@@ -118,7 +118,7 @@ def main(config, data, scheme, outfile, nodata, log_level):
         scheme=SCHEMES[scheme or "simple"](),
     )
 
-    data_result, flags_result = saqc.getResult()
+    data_result, flags_result = saqc.result.data, saqc.result.flags
 
     if outfile:
 

@@ -32,7 +32,7 @@ def test_packagedConfig():
         parse_dates=True,
     )
     saqc = fromConfig(config_path, data)
-    saqc.getResult()
+    saqc.result._validate()
 
 
 def test_variableRegex(data):

@@ -37,14 +37,14 @@ def test_errorHandling(data):
     var1 = data.columns[0]
 
     with pytest.raises(TypeError):
-        SaQC(data).raisingFunc(var1).getResult()
+        SaQC(data).raisingFunc(var1)
 
 
 def test_duplicatedVariable():
     data = initData(1)
     var1 = data.columns[0]
 
-    _, pflags = SaQC(data).flagDummy(var1).getResult()
+    pflags = SaQC(data).flagDummy(var1).result.flags
 
     if isinstance(pflags.columns, pd.MultiIndex):
         cols = pflags.columns.get_level_values(0).drop_duplicates()
@@ -62,9 +62,7 @@ def test_dtypes(data, flags):
     flags_raw = flags.toDios()
     var1, var2 = data.columns[:2]
 
-    _, pflags = (
-        SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).getResult(raw=True)
-    )
+    pflags = SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).result.flagsRaw
 
     for c in pflags.columns:
         assert pflags[c].dtype == flags[c].dtype

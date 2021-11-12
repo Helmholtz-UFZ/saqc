@@ -25,6 +25,15 @@ from saqc.lib.rolling import customRoller
 T = TypeVar("T", str, float, int)
 
 
+def _swapToTarget(field, target, flags):
+    if target:
+        if target in flags.columns:
+            raise ValueError("Target already exists.")
+
+        flags.history[target] = flags.history[field].copy()
+    return target or field, flags
+
+
 def assertScalar(name, value, optional=False):
     if (not np.isscalar(value)) and (value is not None) and (optional is True):
         raise ValueError(f"'{name}' needs to be a scalar or 'None'")

@@ -154,7 +154,7 @@ def test_positionalTranslatorIntegration():
     translator = PositionalTranslator()
     saqc = SaQC(data=data, scheme=translator)
     saqc = saqc.flagMissing(col).flagRange(col, min=3, max=10, flag=DOUBTFUL)
-    data, flags = saqc.getResult()
+    flags = saqc.result.flags
 
     for field in flags.columns:
         assert flags[field].astype(str).str.match("^9[012]*$").all()
@@ -174,7 +174,7 @@ def test_dmpTranslatorIntegration():
     translator = DmpTranslator()
     saqc = SaQC(data=data, scheme=translator)
     saqc = saqc.flagMissing(col).flagRange(col, min=3, max=10)
-    data, flags = saqc.getResult()
+    flags = saqc.result.flags
 
     qflags = flags.xs("quality_flag", axis="columns", level=1)
     qfunc = flags.xs("quality_comment", axis="columns", level=1).applymap(
@@ -206,11 +206,11 @@ def test_dmpValidCombinations():
     translator = DmpTranslator()
     saqc = SaQC(data=data, scheme=translator)
 
-    with pytest.raises(ValueError):
-        saqc.flagRange(col, min=3, max=10, cause="SOMETHING_STUPID").getResult()
+    with pytest.raises(RuntimeError):
+        saqc.flagRange(col, min=3, max=10, cause="SOMETHING_STUPID").result
 
-    with pytest.raises(ValueError):
-        saqc.flagRange(col, min=3, max=10, cause="").getResult()
+    with pytest.raises(RuntimeError):
+        saqc.flagRange(col, min=3, max=10, cause="").result
 
 
 def _buildupSaQCObjects():
@@ -238,8 +238,8 @@ def _buildupSaQCObjects():
 def test_translationPreservesFlags():
 
     saqc1, saqc2 = _buildupSaQCObjects()
-    _, flags1 = saqc1.getResult(raw=True)
-    _, flags2 = saqc2.getResult(raw=True)
+    flags1 = saqc1.result.flagsRaw
+    flags2 = saqc2.result.flagsRaw
 
     for k in flags2.columns:
         got = flags2.history[k].hist
@@ -253,8 +253,8 @@ def test_translationPreservesFlags():
 
 def test_multicallsPreserveHistory():
     saqc1, saqc2 = _buildupSaQCObjects()
-    _, flags1 = saqc1.getResult(raw=True)
-    _, flags2 = saqc2.getResult(raw=True)
+    flags1 = saqc1.result.flagsRaw
+    flags2 = saqc2.result.flagsRaw
 
     # check, that the `History` is duplicated
     for col in flags2.columns:
@@ -277,8 +277,8 @@ def test_positionalMulitcallsPreserveState():
     saqc1, saqc2 = _buildupSaQCObjects()
 
     translator = PositionalTranslator()
-    _, flags1 = saqc1.getResult(raw=True)
-    _, flags2 = saqc2.getResult(raw=True)
+    flags1 = saqc1.result.flagsRaw
+    flags2 = saqc2.result.flagsRaw
     tflags1 = translator.backward(flags1).astype(str)
     tflags2 = translator.backward(flags2).astype(str)
 

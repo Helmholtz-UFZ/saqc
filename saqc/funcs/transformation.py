@@ -7,9 +7,10 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.core import register, Flags
+from saqc.lib.tools import _swapToTarget
 
 
-@register(handles='index', datamask="field")
+@register(handles="index", datamask="field")
 def transform(
     data: DictOfSeries,
     field: str,
@@ -71,12 +72,7 @@ def transform(
             continue
         val_ser[partition.index] = func(partition)
 
-    if target:
-        if target in data.columns:
-            raise ValueError('Target already exists.')
-
-        flags.history[target] = flags.history[field].copy()
-        field = target
+    field, flags = _swapToTarget(field, target, flags)
 
     data[field] = val_ser
     return data, flags

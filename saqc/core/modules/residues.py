@@ -19,6 +19,7 @@ class Residues:
         order: int,
         set_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
         min_periods: Optional[int] = 0,
+        target: str = None,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
@@ -32,6 +33,7 @@ class Residues:
         set_flags: bool = True,
         min_periods: Optional[int] = 0,
         center: bool = True,
+        target: str = None,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:

@@ -237,7 +237,10 @@ def _plotVarWithFlags(
             # catch empty but existing history case (flags_meta={})
             if len(flags_meta[i]) == 0:
                 continue
-            scatter_kwargs.update({"label": flags_meta[i]["func"].split(".")[-1]})
+            label = (
+                flags_meta[i].get("label", None) or flags_meta[i]["func"].split(".")[-1]
+            )
+            scatter_kwargs.update({"label": label})
             flags_i = flags_hist[i].astype(float)
             if history == "complete":
                 scatter_kwargs.update(

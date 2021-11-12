@@ -19,6 +19,7 @@ class Curvefit:
         set_flags: bool = True,
         min_periods: int = 0,
         return_residues: bool = False,
+        target: str = None,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
