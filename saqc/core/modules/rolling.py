@@ -19,6 +19,7 @@ class Rolling:
         min_periods: int = 0,
         center: bool = True,
         return_residues=False,  # TODO: this should not be public, a wrapper would be better
+        target: str = None,
         flag: float = BAD,
         **kwargs
     ):

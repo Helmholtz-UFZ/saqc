@@ -10,6 +10,7 @@ from saqc.constants import *
 from saqc.core import register, Flags
 from saqc.core.register import _isflagged
 from saqc.lib.ts_operators import interpolateNANs
+from saqc.lib.tools import _swapToTarget
 
 _SUPPORTED_METHODS = Literal[
     "linear",
@@ -30,7 +31,7 @@ _SUPPORTED_METHODS = Literal[
 ]
 
 
-@register(datamask="field")
+@register(handles="index", datamask="field")
 def interpolateByRolling(
     data: DictOfSeries,
     field: str,
@@ -39,6 +40,7 @@ def interpolateByRolling(
     func: Callable[[pd.Series], float] = np.median,
     center: bool = True,
     min_periods: int = 0,
+    target: str = None,
     flag: float = UNFLAGGED,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -71,6 +73,9 @@ def interpolateByRolling(
         Minimum number of valid (not np.nan) values that have to be available in a window for its aggregation to be
         computed.
 
+    target : str
+        Write the calculation results to ``target``. (keeping flags).
+
     flag : float or None, default UNFLAGGED
         Flag that is to be inserted for the interpolated values. If ``None`` no flags are set.
 
@@ -95,15 +100,22 @@ def interpolateByRolling(
     na_mask = datcol.isna()
     interpolated = na_mask & rolled.notna()
     datcol[na_mask] = rolled[na_mask]
-    data[field] = datcol
+
+    field, flags = _swapToTarget(field, target, flags)
 
     if flag is not None:
-        flags[interpolated, field] = flag
+        new_col = pd.Series(UNTOUCHED, index=flags[field].index)
+        new_col.loc[interpolated] = flag
+        flags.history[field].append(
+            new_col, {"func": "interpolateByRolling", "args": (), "kwargs": kwargs}
+        )
+
+    data[field] = datcol
 
     return data, flags
 
 
-@register(datamask="field")
+@register(handles="index", datamask="field")
 def interpolateInvalid(
     data: DictOfSeries,
     field: str,
@@ -112,6 +124,7 @@ def interpolateInvalid(
     order: int = 2,
     limit: int = 2,
     downgrade: bool = False,
+    target: str = None,
     flag: float = UNFLAGGED,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -157,6 +170,8 @@ def interpolateInvalid(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
         Data values may have changed relatively to the data input.
+    target : str
+        Write the calculation results to ``target`` (keeping flags)
     flags : saqc.Flags
         The quality flags of data
     """
@@ -169,8 +184,14 @@ def interpolateInvalid(
     )
     interpolated = data[field].isna() & inter_data.notna()
 
+    field, flags = _swapToTarget(field, target, flags)
+
     if flag is not None:
-        flags[interpolated, field] = flag
+        new_col = pd.Series(UNTOUCHED, index=flags[field].index)
+        new_col.loc[interpolated] = flag
+        flags.history[field].append(
+            new_col, {"func": "interpolateInvalid", "args": (), "kwargs": kwargs}
+        )
 
     data[field] = inter_data
     return data, flags
@@ -187,7 +208,7 @@ def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
     return data.fillna(fill_value).astype(dtype)
 
 
-@register(handles="index", datamask=None)
+@register(handles="index", datamask="field")
 def interpolateIndex(
     data: DictOfSeries,
     field: str,
@@ -197,6 +218,7 @@ def interpolateIndex(
     order: int = 2,
     limit: int = 2,
     downgrade: bool = False,
+    target: str = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -236,6 +258,9 @@ def interpolateIndex(
         If `True` and the interpolation can not be performed at current order, retry with a lower order.
         This can happen, because the chosen ``method`` does not support the passed ``order``, or
         simply because not enough values are present in a interval.
+
+    target : str, default None
+        Write result to ``target``.
 
 
     Returns
@@ -283,6 +308,7 @@ def interpolateIndex(
     inter_data[gaps] = np.nan
 
     # store interpolated grid
+    field, flags = _swapToTarget(field, target, flags)
     data[field] = inter_data[grid_index]
 
     history = flags.history[field].apply(
