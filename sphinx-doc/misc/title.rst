@@ -67,14 +67,13 @@ the system with custom quality checks. Furthermore, even core components like
 the flagging scheme are exchangeable.
 
 
---------
 Features
 --------
 
 .. list-table::
 
     * - |pyLogo| |csvConfig|
-        * SaQC is readily available from PyPI
+      - * SaQC is readily available from PyPI
         * use SaQC as a commandline application and configure your labeling pipelines via plain .csv files
         * or use the SaQC python API, enabling integration in your python processing script
     * - |sacRaw|
