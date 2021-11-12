@@ -12,7 +12,7 @@ from dios import DictOfSeries
 
 from saqc.constants import GOOD, BAD, UNFLAGGED
 from saqc.core.flags import initFlagsLike, Flags
-from saqc.core.register import register, _maskData, _isflagged
+from saqc.core.register import register, _isflagged, FunctionWrapper
 from saqc.core.visitor import ENVIRONMENT
 
 import operator as op
@@ -140,7 +140,9 @@ def genericProcess(
     """
 
     # todo: we could use now `register(handles='index', datamsk='all')`
-    data_masked, _ = _maskData(data.copy(), flags, data.columns, to_mask)
+    data_masked, _ = FunctionWrapper._maskData(
+        data.copy(), flags, data.columns, to_mask
+    )
     data[field] = _execGeneric(flags, data_masked, func, field).squeeze()
 
     if field in flags:
