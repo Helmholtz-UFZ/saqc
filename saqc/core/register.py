@@ -17,7 +17,6 @@ from saqc.lib.tools import squeezeSequence, toSequence
 FUNC_MAP: Dict[str, Callable] = {}
 
 
-
 class FunctionWrapper:
     def __init__(
         self,
@@ -371,6 +370,7 @@ def register(
 
     return inner
 
+
 def _isflagged(flagscol: np.ndarray | pd.Series, thresh: float) -> np.array | pd.Series:
     """
     Return a mask of flags accordingly to `thresh`. Return type is same as flags.
@@ -382,4 +382,3 @@ def _isflagged(flagscol: np.ndarray | pd.Series, thresh: float) -> np.array | pd
         return flagscol > UNFLAGGED
 
     return flagscol >= thresh
-

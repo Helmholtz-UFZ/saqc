@@ -363,7 +363,6 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-
 @register(handles="index", datamask="field")
 def correctDrift(
     data: DictOfSeries,
