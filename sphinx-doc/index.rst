@@ -1,8 +1,5 @@
-==================
-SaQC documentation
-==================
 
-.. include:: misc_md_m2r/TitlePage.rst
+.. include:: misc/title.rst
 
 .. toctree::
    :hidden:
