@@ -250,12 +250,12 @@ def test_variableAssignments(data):
 
     fobj = writeIO(config)
     saqc = fromConfig(fobj, data)
-    result_data, result_flags = saqc.getResult(raw=True)
+    result = saqc.result
 
-    assert set(result_data.columns) == set(data.columns) | {
+    assert set(result.dataRaw.columns) == set(data.columns) | {
         "dummy1",
     }
-    assert set(result_flags.columns) == set(data.columns) | {"dummy1", "dummy2"}
+    assert set(result.flagsRaw.columns) == set(data.columns) | {"dummy1", "dummy2"}
 
 
 def test_processMultiple(data_diff):
@@ -267,8 +267,8 @@ def test_processMultiple(data_diff):
 
     fobj = writeIO(config)
     saqc = fromConfig(fobj, data_diff)
-    result_data, result_flags = saqc.getResult()
-    assert len(result_data["dummy"]) == len(result_flags["dummy"])
+    result = saqc.result
+    assert len(result.data["dummy"]) == len(result.flags["dummy"])
 
 
 def test_callableArgumentsUnary(data):
@@ -294,8 +294,8 @@ def test_callableArgumentsUnary(data):
 
     for (name, func) in tests:
         fobj = writeIO(config.format(name))
-        result_config, _ = fromConfig(fobj, data).getResult()
-        result_api, _ = SaQC(data).testFuncUnary(var, func=func).getResult()
+        result_config = fromConfig(fobj, data).result.data
+        result_api = SaQC(data).testFuncUnary(var, func=func).result.data
         expected = data[var].rolling(window=window).apply(func)
         assert (result_config[var].dropna() == expected.dropna()).all(axis=None)
         assert (result_api[var].dropna() == expected.dropna()).all(axis=None)
@@ -321,8 +321,8 @@ def test_callableArgumentsBinary(data):
 
     for (name, func) in tests:
         fobj = writeIO(config.format(name))
-        result_config, _ = fromConfig(fobj, data).getResult()
-        result_api, _ = SaQC(data).testFuncBinary(var1, func=func).getResult()
+        result_config = fromConfig(fobj, data).result.data
+        result_api = SaQC(data).testFuncBinary(var1, func=func).result.data
         expected = func(data[var1], data[var2])
         assert (result_config[var1].dropna() == expected.dropna()).all(axis=None)
         assert (result_api[var1].dropna() == expected.dropna()).all(axis=None)
