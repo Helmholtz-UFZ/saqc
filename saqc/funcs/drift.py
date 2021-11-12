@@ -19,7 +19,7 @@ from saqc.core import Flags
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
 
-from saqc.lib.tools import detectDeviants, toSequence
+from saqc.lib.tools import detectDeviants, toSequence, _swapToTarget
 from saqc.lib.types import FreqString, CurveFitter
 
 
@@ -363,11 +363,8 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-<<<<<<< HEAD
-@register(handles='index', datamask="field")
-=======
+
 @register(handles="index", datamask="field")
->>>>>>> develop
 def correctDrift(
     data: DictOfSeries,
     field: str,
@@ -494,27 +491,13 @@ def correctDrift(
         shiftedData = data_series + data_shiftVektor
         to_correct[shiftedData.index] = shiftedData
 
-<<<<<<< HEAD
-    if target:
-        if target in data.columns:
-            raise ValueError('Target already exists.')
-
-        flags.history[target] = flags.history[field].copy()
-        field = target
-=======
     field, flags = _swapToTarget(field, target, flags)
->>>>>>> develop
-
     data[field] = to_correct
 
     return data, flags
 
 
-<<<<<<< HEAD
-@register(handles='index', datamask='field')
-=======
 @register(handles="index", datamask="field")
->>>>>>> develop
 def correctRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -633,17 +616,7 @@ def correctRegimeAnomaly(
         else:
             last_valid = 1
 
-<<<<<<< HEAD
-    if target:
-        if target in data.columns:
-            raise ValueError('Target already exists.')
-
-        flags.history[target] = flags.history[field].copy()
-        field = target
-=======
     field, flags = _swapToTarget(field, target, flags)
->>>>>>> develop
-
     data[field] = data_ser
     return data, flags
 
@@ -699,16 +672,9 @@ def correctOffset(
     """
     if target:
         if target in data.columns:
-<<<<<<< HEAD
-            raise ValueError('Target already exists.')
-
-        flags.history[target] = flags.history[field].copy()
-        data[target] = data[field]
-=======
             raise ValueError("Target already exists.")
 
         data, flags = copyField(data, field, flags, target)
->>>>>>> develop
         field = target
 
     data, flags = copyField(data, field, flags, field + "_CPcluster")

@@ -16,7 +16,6 @@ from saqc.lib.types import FreqString
 from saqc.core import register, Flags
 from saqc.lib.tools import periodicMask
 from saqc.lib.plotting import makeFig
-from saqc.core.register import _maskData
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
