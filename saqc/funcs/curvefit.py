@@ -10,7 +10,7 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.core import register, Flags
-from saqc.lib.tools import getFreqDelta
+from saqc.lib.tools import getFreqDelta, _swapToTarget
 from saqc.lib.ts_operators import (
     polyRollerIrregular,
     polyRollerNumba,
@@ -20,7 +20,7 @@ from saqc.lib.ts_operators import (
 )
 
 
-@register(datamask="field")
+@register(handles="index", datamask="field")
 def fitPolynomial(
     data: DictOfSeries,
     field: str,
@@ -30,6 +30,7 @@ def fitPolynomial(
     set_flags: bool = True,
     min_periods: int = 0,
     return_residues: bool = False,
+    target: str = None,
     flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -82,6 +83,8 @@ def fitPolynomial(
         set the minimum number of periods to the number of values in an offset defined window size, pass np.nan.
     return_residues : bool, default False
         Internal parameter. Makes the method return the residues instead of the fit.
+    target : str or None, default None
+        Write the reult of the processing to another variable then, ``field``. Must not already exist.
     flag : float, default BAD
         flag to set.
 
@@ -195,6 +198,8 @@ def fitPolynomial(
 
     if return_residues:
         residues = to_fit - residues
+
+    field, flags = _swapToTarget(field, target, flags)
 
     data[field] = residues
     if set_flags:

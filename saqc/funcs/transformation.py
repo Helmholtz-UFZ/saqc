@@ -7,15 +7,17 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.core import register, Flags
+from saqc.lib.tools import _swapToTarget
 
 
-@register(datamask="field")
+@register(handles="index", datamask="field")
 def transform(
     data: DictOfSeries,
     field: str,
     flags: Flags,
     func: Callable[[pd.Series], pd.Series],
     freq: Optional[Union[float, str]] = None,
+    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -40,6 +42,9 @@ def transform(
         * ``x`` > 0 : Apply transformation on successive data chunks of periods length ``x``
         * Offset String : Apply transformation on successive partitions of temporal extension matching the passed offset
           string
+    target : str or None, default None
+        Write the result of the processing to the new variable ``target``. Must not already exist.
+
 
     Returns
     -------
@@ -66,6 +71,8 @@ def transform(
         if partition.empty:
             continue
         val_ser[partition.index] = func(partition)
+
+    field, flags = _swapToTarget(field, target, flags)
 
     data[field] = val_ser
     return data, flags

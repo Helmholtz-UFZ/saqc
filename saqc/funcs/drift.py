@@ -18,7 +18,7 @@ from saqc.core.register import register
 from saqc.core import Flags
 from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
-from saqc.lib.tools import detectDeviants, toSequence
+from saqc.lib.tools import detectDeviants, toSequence, _swapToTarget
 from saqc.lib.types import FreqString, CurveFitter
 
 
@@ -362,7 +362,7 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-@register(datamask="all")
+@register(handles="index", datamask="field")
 def correctDrift(
     data: DictOfSeries,
     field: str,
@@ -370,6 +370,7 @@ def correctDrift(
     maintenance_field: str,
     model: Callable[..., float],
     cal_range: int = 5,
+    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -400,6 +401,8 @@ def correctDrift(
     cal_range : int, default 5
         The number of values the mean is computed over, for obtaining the value level directly after and
         directly before maintenance event. This values are needed for shift calibration. (see above description)
+    target : str or None, default None
+        Write the reult of the processing to another variable then, ``field``. Must not already exist.
     flag : float, default BAD
         flag to set.
 
@@ -486,12 +489,14 @@ def correctDrift(
         shiftedData = data_series + data_shiftVektor
         to_correct[shiftedData.index] = shiftedData
 
+    field, flags = _swapToTarget(field, target, flags)
+
     data[field] = to_correct
 
     return data, flags
 
 
-@register(datamask="all")
+@register(handles="index", datamask="field")
 def correctRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -500,6 +505,7 @@ def correctRegimeAnomaly(
     model: CurveFitter,
     tolerance: Optional[FreqString] = None,
     epoch: bool = False,
+    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -536,6 +542,9 @@ def correctRegimeAnomaly(
         unreliability of data near the changepoints of regimes.
     epoch : bool, default False
         If True, use "seconds from epoch" as x input to the model func, instead of "seconds from regime start".
+    target : str or None, default None
+        Write the reult of the processing to another variable then, ``field``. Must not already exist.
+
 
     Returns
     -------
@@ -606,6 +615,8 @@ def correctRegimeAnomaly(
         else:
             last_valid = 1
 
+    field, flags = _swapToTarget(field, target, flags)
+
     data[field] = data_ser
     return data, flags
 
@@ -620,6 +631,7 @@ def correctOffset(
     window: FreqString,
     min_periods: int,
     tolerance: Optional[FreqString] = None,
+    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -646,6 +658,9 @@ def correctOffset(
         If an offset string is passed, a data chunk of length `offset` right from the
         start and right before the end of any regime is ignored when calculating a regimes mean for data correcture.
         This is to account for the unrelyability of data near the changepoints of regimes.
+    target : str or None, default None
+        Write the result of the processing to another variable then, ``field``. Must not already exist.
+
 
     Returns
     -------
@@ -655,6 +670,13 @@ def correctOffset(
     flags : saqc.Flags
         The quality flags of data
     """
+    if target:
+        if target in data.columns:
+            raise ValueError("Target already exists.")
+
+        data, flags = copyField(data, field, flags, target)
+        field = target
+
     data, flags = copyField(data, field, flags, field + "_CPcluster")
     data, flags = assignChangePointCluster(
         data,

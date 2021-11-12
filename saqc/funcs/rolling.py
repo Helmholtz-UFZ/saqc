@@ -8,7 +8,7 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.core import register, Flags
-from saqc.lib.tools import getFreqDelta
+from saqc.lib.tools import getFreqDelta, _swapToTarget
 
 
 @register(datamask="field")
@@ -22,6 +22,7 @@ def roll(
     min_periods: int = 0,
     center: bool = True,
     return_residues=False,  # TODO: this should not be public, a wrapper would be better
+    target: str = None,
     flag: float = BAD,
     **kwargs
 ):
@@ -58,6 +59,8 @@ def roll(
     center : bool, default True
         Wheather or not to center the window the mean is calculated of around the reference value. If False,
         the reference value is placed to the right of the window (classic rolling mean with lag.)
+    target : str, default None
+        Write result to Target. Copy flags from field to Target.
     flag : float, default BAD
         flag to set.
 
@@ -135,6 +138,7 @@ def roll(
     if return_residues:
         means = to_fit - means
 
+    field, flags = _swapToTarget(field, target, flags)
     data[field] = means
     if set_flags:
         # TODO: we does not get any flags here, because of masking=field

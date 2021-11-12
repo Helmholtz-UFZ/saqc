@@ -112,7 +112,7 @@ def flagChangePoints(
     )
 
 
-@register(datamask="field")
+@register(handles="index", datamask="field")
 def assignChangePointCluster(
     data: DictOfSeries,
     field: str,
