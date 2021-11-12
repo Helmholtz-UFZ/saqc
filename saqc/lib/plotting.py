@@ -238,7 +238,7 @@ def _plotVarWithFlags(
             if len(flags_meta[i]) == 0:
                 continue
             label = (
-                flags_meta[i].get("label", None) or flags_meta[i]["func"].split(".")[-1]
+                flags_meta[i]['kwargs'].get("label", None) or flags_meta[i]["func"].split(".")[-1]
             )
             scatter_kwargs.update({"label": label})
             flags_i = flags_hist[i].astype(float)
