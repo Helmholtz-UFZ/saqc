@@ -3,14 +3,12 @@
     :format: html
 
 .. |ufzLogo| image:: /ressources/images/Representative/UFZ_Logo.jpg
-    :height: 100 px
-    :width: 317 px
+    :width: 45 %
     :target: https://www.ufz.de/
 
 
 .. |rdmLogo| image:: /ressources/images/Representative/RDMlogo.jpg
-    :height: 100 px
-    :width: 184 px
+    :width: 30 %
     :target: https://www.ufz.de/index.php?de=45348
 
 
@@ -27,8 +25,8 @@
     :width: 288 px
 
 .. |sacProc| image:: /ressources/images/Representative/ProcessingDrift.png
-    :height: 165 px
-    :width: 316 px
+    :height: 150 px
+    :width: 288 px
 
 .. |pyLogo| image:: /ressources/images/Representative/pythonLogo.png
     :height: 108 px
@@ -39,17 +37,23 @@
     :width: 176 px
 
 
-.. image:: /ressources/images/Representative/gitlabLogo.png
+.. |legendEXMPL| image:: /ressources/images/Representative/legendEXMPL.png
     :height: 100 px
-    :width: 110 px
-    :target: https://git.ufz.de/rdm-software/saqc
-    :align: right
+    :width: 200
 
-|ufzLogo|   |rdmLogo|
+
+.. image:: /ressources/images/Representative/gitlabLogo.png
+    :width: 17 %
+    :align: right
+    :target: https://git.ufz.de/rdm-software/saqc
+
+
+|ufzLogo| |rdmLogo|
 
 ===========================================
 SaQC - System for automated Quality Control
 ===========================================
+
 
 Quality Control of numerical data requires a significant amount of
 domain knowledge and practical experience. Finding a robust setup of
@@ -66,27 +70,30 @@ A modular structure and well-defined interfaces make it easy to extend
 the system with custom quality checks. Furthermore, even core components like
 the flagging scheme are exchangeable.
 
-
+--------
 Features
 --------
 
 .. list-table::
 
     * - |pyLogo| |csvConfig|
-      - * SaQC is readily available from PyPI
-        * use SaQC as a commandline application and configure your labeling pipelines via plain .csv files
+      - * get SaQC from PyPI
+        * use SaQC as a commandline application and configure your flagging pipelines via plain .csv files
         * or use the SaQC python API, enabling integration in your python processing script
     * - |sacRaw|
       - * easily load data from multiple sources, concatenating them in a SaQC object
-        * preprocess your data, by aligning it to equidistant frequency grids
+        * preprocess your data, by aligning it to shared frequency grids
     * - |sacFlagged|
-      - * ally basic plausibillity checks, as well as
+      - * apply basic plausibility checks, as well as
         * more complex, univariat flagging Functions
-        * automatically keep track of labeling history and label significance
+    * - |legendEXMPL|
+      - * automatically keep track of flagging history and flags significance for every datapoint
+        * define and use custom schemes to translate your flags to and from SaQC
     * - |sacProc|
       - * modifyyour data, by interpolations, corrections and transformations
         * calculate data products, such as residues or outlier scores
         * automatically keep track of labeling history and label significance
     * - |sacMV|
       - * apply multivariate flagging function
+
 
