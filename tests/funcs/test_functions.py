@@ -16,7 +16,7 @@ from saqc.funcs.drift import (
 from saqc.funcs.outliers import flagCrossStatistic, flagRange
 from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
 from saqc.funcs.tools import dropField, copyField, maskTime
-from saqc.funcs.resampling import reindexFlags
+from saqc.funcs.resampling import concatFlags
 from saqc.funcs.breaks import flagIsolated
 
 from tests.fixtures import *
@@ -107,8 +107,8 @@ def test_flagSesonalRange(data, field):
         data, flags = flagRange(
             data, newfield, flags, min=test["min"], max=test["max"], flag=BAD
         )
-        data, flags = reindexFlags(
-            data, field, flags, method="match", source=newfield, flag=BAD
+        data, flags = concatFlags(
+            data, newfield, flags, method="match", target=field, flag=BAD
         )
         data, flags = dropField(data, newfield, flags)
         flagged = flags[field] > UNFLAGGED
