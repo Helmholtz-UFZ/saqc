@@ -27,8 +27,7 @@ LinkageString = Literal[
     "single", "complete", "average", "weighted", "centroid", "median", "ward"
 ]
 
-MODELDICT = {'linear': linearDriftModel,
-             'exponential': expDriftModel}
+MODELDICT = {"linear": linearDriftModel, "exponential": expDriftModel}
 
 
 @register(datamask="all")
@@ -372,7 +371,7 @@ def correctDrift(
     field: str,
     flags: Flags,
     maintenance_field: str,
-    model: Union[Callable[..., float], Literal['linear', 'exponential']],
+    model: Union[Callable[..., float], Literal["linear", "exponential"]],
     cal_range: int = 5,
     target: str = None,
     **kwargs

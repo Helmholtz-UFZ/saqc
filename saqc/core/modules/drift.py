@@ -68,7 +68,7 @@ class Drift:
         self,
         field: str,
         maintenance_field: str,
-        model: Union[Callable[..., float], Literal['linear', 'exponential']],
+        model: Union[Callable[..., float], Literal["linear", "exponential"]],
         cal_range: int = 5,
         target: str = None,
         flag: float = BAD,
