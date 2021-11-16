@@ -427,10 +427,11 @@ def _inverseShift(
 
 
 @register(handles="index", datamask=None)
-def reindexFlags(
+def concatFlags(
     data: DictOfSeries,
     field: str,
     flags: Flags,
+    target: str,
     method: Literal[
         "inverse_fagg",
         "inverse_bagg",
@@ -440,39 +441,35 @@ def reindexFlags(
         "inverse_nshift",
         "inverse_interpolation",
     ],
-    source: str,
     freq: Optional[str] = None,
     drop: Optional[bool] = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The Function projects flags of "source" onto flags of "field". Wherever the "field" flags are "better" then the
-    source flags projected on them, they get overridden with this associated source flag value.
-
-    Which "field"-flags are to be projected on which source flags, is controlled by the "method" and "freq"
-    parameters.
+    The Function appends flags history of ``fields`` to flags history of ``target``.
+    Before Appending, columns in ``field`` history are projected onto the target index via ``method``
 
     method: (field_flag in associated with "field", source_flags associated with "source")
 
-    'inverse_nagg' - all field_flags within the range +/- freq/2 of a source_flag, get assigned this source flags value.
-        (if source_flag > field_flag)
-    'inverse_bagg' - all field_flags succeeding a source_flag within the range of "freq", get assigned this source flags
-        value. (if source_flag > field_flag)
-    'inverse_fagg' - all field_flags preceeding a source_flag within the range of "freq", get assigned this source flags
-        value. (if source_flag > field_flag)
+    'inverse_nagg' - all target_flags within the range +/- freq/2 of a field_flag, get assigned this field flags value.
+        (if field_flag > target_flag)
+    'inverse_bagg' - all target_flags succeeding a field_flag within the range of "freq", get assigned this field flags
+        value. (if field_flag > target_flag)
+    'inverse_fagg' - all target_flags preceeding a field_flag within the range of "freq", get assigned this field flags
+        value. (if field_flag > target_flag)
 
-    'inverse_interpolation' - all field_flags within the range +/- freq of a source_flag, get assigned this source flags value.
-        (if source_flag > field_flag)
+    'inverse_interpolation' - all target_flags within the range +/- freq of a field_flag, get assigned this source flags value.
+        (if field_flag > target_flag)
 
-    'inverse_nshift' - That field_flag within the range +/- freq/2, that is nearest to a source_flag, gets the source
-        flags value. (if source_flag > field_flag)
-    'inverse_bshift' - That field_flag succeeding a source flag within the range freq, that is nearest to a
-        source_flag, gets assigned this source flags value. (if source_flag > field_flag)
-    'inverse_nshift' - That field_flag preceeding a source flag within the range freq, that is nearest to a
-        source_flag, gets assigned this source flags value. (if source_flag > field_flag)
+    'inverse_nshift' - That target_flag within the range +/- freq/2, that is nearest to a field_flag, gets the source
+        flags value. (if field_flag > target_flag)
+    'inverse_bshift' - That target_flag succeeding a field flag within the range freq, that is nearest to a
+        field_flag, gets assigned this field flags value. (if field_flag > target_flag)
+    'inverse_nshift' - That target_flag preceeding a field flag within the range freq, that is nearest to a
+        field_flag, gets assigned this field flags value. (if field_flag > target_flag)
 
-    'match' - any field_flag with a timestamp matching a source_flags timestamp gets this source_flags value
-    (if source_flag > field_flag)
+    'match' - any target_flag with a timestamp matching a field_flags timestamp gets this field_flags value
+    (if field_flag > target_flag)
 
     Note, to undo or backtrack a resampling/shifting/interpolation that has been performed with a certain method,
     you can just pass the associated "inverse" method. Also you should pass the same drop flags keyword.
@@ -483,23 +480,24 @@ def reindexFlags(
         A dictionary of pandas.Series, holding all the data.
 
     field : str
-        The fieldname of the data column, you want to project the source-flags onto.
+        Fieldname of flags history to append.
 
     flags : saqc.Flags
         Container to store flags of the data.
 
-    method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift'}
-        The method used for projection of source flags onto field flags. See description above for more details.
+    target : str
+        Fieldname of flags history to append to.
 
-    source : str
-        The source source of flags projection.
+    method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift',
+             'match'}
+        The method used for projection of ``field`` flags onto ``target`` flags. See description above for more details.
 
     freq : {None, str},default None
-        The freq determines the projection range for the projection method. See above description for more details.
-        Defaultly (None), the sampling frequency of source is used.
+        The ``freq`` determines the projection range for the projection method. See above description for more details.
+        Defaultly (None), the sampling frequency of ``field`` is used.
 
     drop : default False
-        If set to `True`, the `source` column will be removed
+        If set to `True`, the `field` column will be removed after processing
 
     Returns
     -------
@@ -509,9 +507,9 @@ def reindexFlags(
         The quality flags of data
         Flags values and shape may have changed relatively to the flags input.
     """
-    flagscol = flags[source]
-    target_datcol = data[field]
-    target_flagscol = flags[field]
+    flagscol = flags[field]
+    target_datcol = data[target]
+    target_flagscol = flags[target]
 
     if target_datcol.empty or flagscol.empty:
         return data, flags
@@ -531,7 +529,7 @@ def reindexFlags(
         func = _inverseInterpolation
         func_kws = dict(freq=freq, chunk_bounds=ignore, target=dummy)
 
-    elif method[-3:] == "agg" or method == "match":
+    elif method[-3:] == "agg":
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
         func = _inverseAggregation
@@ -549,13 +547,17 @@ def reindexFlags(
         )
         func_kws = {**kws, "fill_value": UNTOUCHED}
 
+    elif method == "match":
+        func = lambda x: x
+        func_kws = {}
+
     else:
         raise ValueError(f"unknown method {method}")
 
-    history = flags.history[source].apply(dummy.index, func, func_kws)
-    flags.history[field].append(history)
+    history = flags.history[field].apply(dummy.index, func, func_kws)
+    flags.history[target].append(history)
 
     if drop:
-        data, flags = tools.dropField(data=data, flags=flags, field=source)
+        data, flags = tools.dropField(data=data, flags=flags, field=field)
 
     return data, flags

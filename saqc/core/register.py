@@ -103,7 +103,9 @@ class FunctionWrapper:
         self.args = args
         self.kwargs = self._checkKwargs(kwargs)
 
-        self.targets = toSequence(kwargs.get("target", None) or [])
+        self.targets = (
+            toSequence(kwargs["target"]) if kwargs.get("target", None) else self.fields
+        )
         self.mask_thresh = self._getMaskingThresh()
 
         if self.data_masking:
@@ -145,7 +147,7 @@ class FunctionWrapper:
         kwargs = self.kwargs.copy()
         kwargs["to_mask"] = self.mask_thresh
 
-        # always pass a list to multivariat functions and
+        # always pass a list to multivariate functions and
         # unpack single element lists for univariate functions
         if self._multivariate:
             field = self.fields
@@ -175,7 +177,7 @@ class FunctionWrapper:
             return self.data.columns
 
         # datamask == "field"
-        return pd.Index(self.targets or self.fields)
+        return pd.Index(self.fields)
 
     def _getMaskingThresh(self) -> float:
         """
@@ -234,12 +236,12 @@ class FunctionWrapper:
         meta = self._createMeta()
         new_columns = flags.columns.difference(self.flags.columns)
 
-        # Note: do not call _getMaskingColumns because it takes columns from data,
-        # instead of from the new flags
+        # NOTE: do not call _getMaskingColumns because it takes columns
+        # from data, instead of from the new flags
         if self.datamask in (None, "all"):
             columns = flags.columns
         else:  # datamask == field
-            columns = pd.Index(self.targets or self.fields)
+            columns = pd.Index(self.targets)
 
         for col in columns.union(new_columns):
 

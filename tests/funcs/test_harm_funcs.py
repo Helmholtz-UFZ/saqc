@@ -8,7 +8,7 @@ import dios
 
 from saqc.core import initFlagsLike, Flags
 from saqc.constants import BAD, UNFLAGGED
-from saqc.funcs.resampling import linear, interpolate, shift, reindexFlags, resample
+from saqc.funcs.resampling import linear, interpolate, shift, concatFlags, resample
 from saqc.funcs.tools import copyField, dropField
 from tests.common import checkDataFlagsInvariants
 
@@ -147,8 +147,8 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
 
     # flag something bad
     flags[data[field + "_interpolated"].index[3:4], field + "_interpolated"] = BAD
-    data, flags = reindexFlags(
-        data, field, flags, method="inverse_" + reshaper, source=field + "_interpolated"
+    data, flags = concatFlags(
+        data, field + "_interpolated", flags, method="inverse_" + reshaper, target=field
     )
     data, flags = dropField(data, field + "_interpolated", flags)
 
@@ -248,8 +248,8 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
     assert data_harm[h_field].index.freq == pd.Timedelta(freq)
     assert data_harm[h_field].equals(expected)
 
-    data_deharm, flags_deharm = reindexFlags(
-        data_harm, field, flags_harm, source=h_field, method="inverse_" + method
+    data_deharm, flags_deharm = concatFlags(
+        data_harm, h_field, flags_harm, target=field, method="inverse_" + method
     )
     data_deharm, flags_deharm = dropField(data_deharm, h_field, flags_deharm)
     checkDataFlagsInvariants(data_deharm, flags_deharm, field, identical=True)
@@ -329,8 +329,8 @@ def test_harmSingleVarInterpolationShift(data, params, expected):
     assert data_harm[h_field].equals(expected)
     checkDataFlagsInvariants(data_harm, flags_harm, field, identical=True)
 
-    data_deharm, flags_deharm = reindexFlags(
-        data_harm, field, flags_harm, source=h_field, method="inverse_" + method
+    data_deharm, flags_deharm = concatFlags(
+        data_harm, h_field, flags_harm, target=field, method="inverse_" + method
     )
     checkDataFlagsInvariants(data_deharm, flags_deharm, field, identical=True)
 
