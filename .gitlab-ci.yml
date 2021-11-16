@@ -24,8 +24,8 @@ python37:
     - schedules
   image: python:3.7
   script:
-    - pytest tests/core tests/funcs tests/integration dios/test
-    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
+    - pytest tests/core tests/funcs tests/integration dios/test -Werror
+    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
 # test saqc with python 3.8
@@ -35,7 +35,7 @@ python38:
     - schedules
   script:
     - pytest tests/core tests/funcs tests/integration dios/test -Werror
-    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
+    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
 # test saqc with python 3.9
@@ -46,7 +46,7 @@ python39:
   image: python:3.9
   script:
     - pytest tests/core tests/funcs tests/integration dios/test -Werror
-    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
+    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
 # check if everthing is properly formatted

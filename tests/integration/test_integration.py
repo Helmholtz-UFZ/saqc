@@ -10,7 +10,7 @@ def test__main__py():
     projpath = os.path.dirname(saqc.__file__) + "/../"
     args = [
         "--config",
-        projpath + "ressources/data/config_ci.csv",
+        projpath + "ressources/data/config.csv",
         "--data",
         projpath + "ressources/data/data.csv",
         "--outfile",

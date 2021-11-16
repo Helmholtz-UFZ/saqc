@@ -15,7 +15,7 @@ COMMENT = "#"
 SEPARATOR = ";"
 
 
-def readFile(fname):
+def readFile(fname) -> pd.DataFrame:
 
     fobj = (
         io.open(fname, "r", encoding="utf-8")
@@ -37,15 +37,12 @@ def readFile(fname):
                 "for the variable name and one for the test to apply, but "
                 f"in line {i} we got: \n'{line}'"
             )
-        out.append(
-            [
-                i + 1,
-            ]
-            + parts
-        )
+        out.append([i + 1] + parts)
 
-    if isinstance(fname, (str, Path)):
+    try:
         fobj.close()
+    except AttributeError:
+        pass
 
     df = pd.DataFrame(
         out[1:],
@@ -69,8 +66,8 @@ def fromConfig(fname, *args, **kwargs):
             regex = True
 
         tree = ast.parse(expr, mode="eval")
-        func, kwargs = ConfigFunctionParser().parse(tree.body)
-
-        saqc = getattr(saqc, func)(field=field, regex=regex, **kwargs)
+        func_name, kwargs = ConfigFunctionParser().parse(tree.body)
+        kwargs["field" if "field" not in kwargs else "target"] = field
+        saqc = getattr(saqc, func_name)(regex=regex, **kwargs)
 
     return saqc

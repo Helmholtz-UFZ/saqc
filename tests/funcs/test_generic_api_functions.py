@@ -3,11 +3,12 @@
 
 import pytest
 import pandas as pd
+from dios.dios.dios import DictOfSeries
 
-from saqc.constants import *
+from saqc.constants import BAD, UNFLAGGED
 from saqc.core.register import register
-from saqc.funcs.tools import maskTime
 from saqc import SaQC
+from saqc.lib.tools import toSequence
 
 from tests.common import initData, flagAll
 
@@ -21,22 +22,22 @@ def data():
 
 
 def test_addFieldFlagGeneric(data):
-    saqc = SaQC(data=data)
-
-    func = lambda var1: pd.Series(False, index=data[var1.name].index)
-    result = saqc.genericFlag("tmp1", func, flag=BAD).result
-    assert "tmp1" in result.flags.columns and "tmp1" not in result.data
+    func = lambda x: pd.Series(False, index=x.index)
+    saqc = SaQC(data=data).genericFlag(field="var1", target="tmp1", func=func, flag=BAD)
+    assert (saqc.flags["tmp1"] == UNFLAGGED).all()
+    assert (saqc.data["tmp1"].isna()).all()
 
 
 def test_addFieldProcGeneric(data):
     saqc = SaQC(data=data)
-
-    func = lambda: pd.Series([], dtype=float)
-    data = saqc.genericProcess("tmp1", func).result.dataRaw
-    assert "tmp1" in data.columns and data["tmp1"].empty
-
-    func = lambda var1, var2: var1 + var2
-    data = saqc.genericProcess("tmp2", func).result.dataRaw
-    assert "tmp2" in data.columns and (data["tmp2"] == data["var1"] + data["var2"]).all(
-        axis=None
-    )
+    fields = ["var1", "var2"]
+    params = [
+        ("tmp", lambda x, y: x + y),
+        (["tmp1", "tmp2"], lambda x, y: (x + y, y * 2)),
+    ]
+    for target, func in params:
+        expected = DictOfSeries(
+            func(*[data[f] for f in fields]), columns=toSequence(target)
+        ).squeeze()
+        res = saqc.genericProcess(field=fields, target=target, func=func, flag=BAD)
+        assert (expected == res.data[target]).all(axis=None)
