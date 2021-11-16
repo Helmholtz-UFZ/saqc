@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Sequence, Callable, Optional
+from typing import Sequence, Callable, Optional, Union
+from typing_extensions import Literal
 
 import numpy as np
 from scipy.spatial.distance import pdist
@@ -67,7 +68,7 @@ class Drift:
         self,
         field: str,
         maintenance_field: str,
-        model: Callable[..., float],
+        model: Union[Callable[..., float], Literal['linear', 'exponential']],
         cal_range: int = 5,
         target: str = None,
         flag: float = BAD,

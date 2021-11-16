@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Optional, Tuple, Sequence, Callable, Optional
+from typing import Union, Tuple, Sequence, Callable, Optional
 from typing_extensions import Literal
 
 import numpy as np
@@ -20,11 +20,15 @@ from saqc.funcs.changepoints import assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
 from saqc.lib.tools import detectDeviants, toSequence, _swapToTarget
 from saqc.lib.types import FreqString, CurveFitter
+from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 
 
 LinkageString = Literal[
     "single", "complete", "average", "weighted", "centroid", "median", "ward"
 ]
+
+MODELDICT = {'linear': linearDriftModel,
+             'exponential': expDriftModel}
 
 
 @register(datamask="all")
@@ -368,7 +372,7 @@ def correctDrift(
     field: str,
     flags: Flags,
     maintenance_field: str,
-    model: Callable[..., float],
+    model: Union[Callable[..., float], Literal['linear', 'exponential']],
     cal_range: int = 5,
     target: str = None,
     **kwargs
@@ -391,8 +395,9 @@ def correctDrift(
         The maint data is to expected to have following form:
         The series' timestamp itself represents the beginning of a
         maintenance event, wheras the values represent the endings of the maintenance intervals.
-    model : Callable
+    model : Callable or {'exponential', 'linear'}
         A modelfunction describing the drift behavior, that is to be corrected.
+        Either use built-in exponential or linear drift model by passing a string, or pass a custom callable.
         The model function must always contain the keyword parameters 'origin' and 'target'.
         The starting parameter must always be the parameter, by wich the data is passed to the model.
         After the data parameter, there can occure an arbitrary number of model calibration arguments in
@@ -455,6 +460,10 @@ def correctDrift(
     expDriftModel and linearDriftModel.
 
     """
+    # extract model func:
+    if isinstance(model, str):
+        model = MODELDICT[model]
+
     # 1: extract fit intervals:
     if data[maintenance_field].empty:
         return data, flags
