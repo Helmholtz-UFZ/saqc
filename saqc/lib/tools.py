@@ -26,12 +26,14 @@ T = TypeVar("T", str, float, int)
 
 
 def _swapToTarget(field, target, flags):
-    if target:
-        if target in flags.columns:
-            raise ValueError("Target already exists.")
-
-        flags.history[target] = flags.history[field].copy()
-    return target or field, flags
+    if target is None:
+        return field, flags
+    if not isinstance(target, str):
+        raise TypeError(f'target must be of type string, not {repr(type(target))}')
+    if target in flags.columns:
+        raise ValueError(f"cannot create target {repr(target)}, it already exists.")
+    flags.history[target] = flags.history[field].copy()
+    return target, flags
 
 
 def assertScalar(name, value, optional=False):
