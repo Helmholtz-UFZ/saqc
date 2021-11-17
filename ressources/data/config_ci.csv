@@ -1,8 +1,0 @@
-varname ; test
-#-------; -----------------------------------------------------
-SM2     ; shift(freq="15Min")
-'.*'    ; flagRange(min=10, max=60)
-SM2     ; flagMissing()
-SM2     ; flagRange(min=10, max=60)
-SM2     ; flagMAD(window="30d", z=3.5)
-Dummy   ; genericFlag(func=(isflagged(SM1) | isflagged(SM2)))

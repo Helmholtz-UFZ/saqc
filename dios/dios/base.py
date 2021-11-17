@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy, copy as shallowcopy
-from typing import Mapping, Hashable, Any
+from typing import Mapping, Hashable, Any, Sequence, overload
 
 from . import operators as ops
 from . import pandas_bridge as pdextra
@@ -181,6 +181,22 @@ class _DiosBase:
 
         val.name = col
         self._data.at[col] = val.copy(deep=True)
+
+    @overload
+    def __getitem__(self, key: str | int) -> pd.Series:
+        ...
+
+    @overload
+    def __getitem__(self, key: slice) -> pd.Series:
+        ...
+
+    @overload
+    def __getitem__(self, key: "_DiosBase" | pd.DataFrame) -> "_DiosBase":
+        ...
+
+    @overload
+    def __getitem__(self, key: Sequence[str | int]) -> "_DiosBase":
+        ...
 
     def __getitem__(self, key):
         """dios[key] -> dios/series"""
@@ -571,7 +587,11 @@ class _DiosBase:
             raise type(e)(f"'{ops.OP_MAP[op]} dios' failed: " + str(e)) from e
         return new
 
-    def _op2(self, op, other, align=True, inplace=False):
+    def _op2_inplace(self, op, other, align=True) -> None:
+        new = self._op2(op, other, align)
+        self._data = new._data
+
+    def _op2(self, op, other, align=True) -> "_DiosBase":
         def raiseif(kself, kother, s):
             if kself != kother:
                 raise ValueError(
@@ -610,10 +630,6 @@ class _DiosBase:
         except Exception as e:
             raise type(e)(f"'dios {ops.OP_MAP[op]} other' failed: " + str(e)) from e
 
-        if inplace:
-            self._data = new._data
-            return None
-
         return new
 
     # unary
@@ -635,13 +651,13 @@ class _DiosBase:
     __truediv__ = ftools.partialmethod(_op2, op.truediv)
     __floordiv__ = ftools.partialmethod(_op2, op.floordiv)
     __pow__ = ftools.partialmethod(_op2, op.pow)
-    __iadd__ = ftools.partialmethod(_op2, op.add, inplace=True)
-    __isub__ = ftools.partialmethod(_op2, op.sub, inplace=True)
-    __imul__ = ftools.partialmethod(_op2, op.mul, inplace=True)
-    __imod__ = ftools.partialmethod(_op2, op.mod, inplace=True)
-    __itruediv__ = ftools.partialmethod(_op2, op.truediv, inplace=True)
-    __ifloordiv__ = ftools.partialmethod(_op2, op.floordiv, inplace=True)
-    __ipow__ = ftools.partialmethod(_op2, op.pow, inplace=True)
+    __iadd__ = ftools.partialmethod(_op2_inplace, op.add)
+    __isub__ = ftools.partialmethod(_op2_inplace, op.sub)
+    __imul__ = ftools.partialmethod(_op2_inplace, op.mul)
+    __imod__ = ftools.partialmethod(_op2_inplace, op.mod)
+    __itruediv__ = ftools.partialmethod(_op2_inplace, op.truediv)
+    __ifloordiv__ = ftools.partialmethod(_op2_inplace, op.floordiv)
+    __ipow__ = ftools.partialmethod(_op2_inplace, op.pow)
     # bool
     __and__ = ftools.partialmethod(_op2, op.and_)
     __or__ = ftools.partialmethod(_op2, op.or_)

@@ -23,7 +23,7 @@ def test_packagedConfig():
 
     path = Path(__file__).parents[2] / "ressources/data"
 
-    config_path = path / "config_ci.csv"
+    config_path = path / "config.csv"
     data_path = path / "data.csv"
 
     data = pd.read_csv(
@@ -67,7 +67,7 @@ def test_inlineComments(data):
     assert func[0] == FUNC_MAP["flagDummy"]
 
 
-def test_configReaderLineNumbers(data):
+def test_configReaderLineNumbers():
     config = f"""
     varname ; test
     #temp1      ; flagDummy()
@@ -123,7 +123,7 @@ def test_configChecks(data):
     for test, expected in tests:
         fobj = writeIO(header + "\n" + test)
         with pytest.raises(expected):
-            fromConfig(fobj, data=data).evaluate()
+            fromConfig(fobj, data=data)
 
 
 def test_supportedArguments(data):
