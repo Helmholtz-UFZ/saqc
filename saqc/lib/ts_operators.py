@@ -111,7 +111,7 @@ def standardizeByMedian(ts):
 
 
 def standardizeByIQR(ts):
-    # standardization with median and interquartile range
+    # standardization with median and inter quantile range
     return (ts - np.median(ts)) / iqr(ts, nan_policy="omit")
 
 
