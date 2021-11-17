@@ -117,7 +117,9 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
         d for d in doc_mod_structure.keys() if not re.search("_dcstring$", d)
     ]:
         with open(os.path.join(targetpath, f"{doc_mod}.py"), "w+") as f:
-            mod_string = ['"""\n' + doc_mod_structure.get(doc_mod + "_dcstring",'') + '\n"""']
+            mod_string = [
+                '"""\n' + doc_mod_structure.get(doc_mod + "_dcstring", "") + '\n"""'
+            ]
             mod_funcs = doc_mod_structure[doc_mod]
             for func in mod_funcs:
                 mod_string.append(func_dict[func][0])
@@ -132,7 +134,6 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
                 mod_string.append("")
                 mod_string.append("")
             f.write("\n".join(mod_string))
-
 
     return 0
 
@@ -188,7 +189,9 @@ def main(pckpath, targetpath, sphinxroot, mode):
     # parse all the functions
     module_paths = [os.path.join(pkg_path, f"{m}.py") for m in modules]
     mod_dict = parse_module_dcstrings(module_paths)
-    mod_dict = dict(zip([k + '_dcstring' for k in mod_dict.keys()], list(mod_dict.values())))
+    mod_dict = dict(
+        zip([k + "_dcstring" for k in mod_dict.keys()], list(mod_dict.values()))
+    )
     func_dict = parse_func_dcstrings(module_paths)
     if mode == "Functions":
         # module docs
