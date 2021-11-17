@@ -10,6 +10,8 @@
    Package API <moduleAPIs/saqcInit>
 
 
+:py:const:`saqc.core.visitor.ENVIRONMENT`
+:py:const:`saqc.constants.BAD`
 
 Tutorials and Topics
 ====================
