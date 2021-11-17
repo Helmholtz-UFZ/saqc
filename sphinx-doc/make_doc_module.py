@@ -117,7 +117,7 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
         d for d in doc_mod_structure.keys() if not re.search("_dcstring$", d)
     ]:
         with open(os.path.join(targetpath, f"{doc_mod}.py"), "w+") as f:
-            mod_string = ['"""\n' + doc_mod_structure[doc_mod + "_dcstring"] + '\n"""']
+            mod_string = ['"""\n' + doc_mod_structure.get(doc_mod + "_dcstring",'') + '\n"""']
             mod_funcs = doc_mod_structure[doc_mod]
             for func in mod_funcs:
                 mod_string.append(func_dict[func][0])
@@ -133,8 +133,6 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
                 mod_string.append("")
             f.write("\n".join(mod_string))
 
-    with open(os.path.join(targetpath, "module_dict.pkl"), "wb+") as file:
-        pickle.dump(doc_mod_structure, file)
 
     return 0
 
@@ -190,29 +188,19 @@ def main(pckpath, targetpath, sphinxroot, mode):
     # parse all the functions
     module_paths = [os.path.join(pkg_path, f"{m}.py") for m in modules]
     mod_dict = parse_module_dcstrings(module_paths)
+    mod_dict = dict(zip([k + '_dcstring' for k in mod_dict.keys()], list(mod_dict.values())))
     func_dict = parse_func_dcstrings(module_paths)
     if mode == "Functions":
-        doc_mod_structure = {"saqc": [f for f in func_dict.keys()], "saqc_dcstring": ""}
-        make_doc_module(targetpath, func_dict, doc_mod_structure)
-    # DEPRECATED DOC MODE
-    if mode == "registered_doc":
-        doc_struct = {}
-        for dm in func_dict.keys():
-            module = func_dict[dm][2]
-            if module:
-                if module in doc_struct.keys():
-                    doc_struct[module].append(dm)
-                else:
-                    doc_struct[module] = [dm]
-                    doc_struct[module + "_dcstring"] = mod_dict[module]
-        make_doc_module(targetpath, func_dict, doc_struct)
-    # DEPRECATED DOC MODE
-    if mode == "module_doc":
+        # module docs
         doc_struct = {m: [] for m in modules}
         for dm in func_dict.keys():
             module = re.search("([^ .]*)\.[^ ]*$", dm).group(1)
             doc_struct[module].append(dm)
+        doc_struct.update(mod_dict)
         make_doc_module(targetpath, func_dict, doc_struct)
+        # complete docs
+        doc_mod_structure = {"saqc": [f for f in func_dict.keys()], "saqc_dcstring": ""}
+        make_doc_module(targetpath, func_dict, doc_mod_structure)
 
 
 if __name__ == "__main__":
