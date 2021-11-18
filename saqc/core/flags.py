@@ -66,13 +66,17 @@ class Flags:
 
     Examples
     --------
+
     We create an empty instance, by calling ``Flags`` without any arguments and then add a column to it.
 
     >>> from saqc.constants import UNFLAGGED, BAD, DOUBT, UNTOUCHED
+    >>> from saqc.core.flags import Flags
     >>> flags = Flags()
     >>> flags
     Empty Flags
     Columns: []
+
+
     >>> flags['v0'] = pd.Series([BAD,BAD,UNFLAGGED], dtype=float)
     >>> flags
           v0 |
@@ -83,6 +87,7 @@ class Flags:
 
     Once the column exist, we cannot overwrite it anymore, with a different series.
 
+    >>> flags = Flags()
     >>> flags['v0'] = pd.Series([666.], dtype=float)
     Traceback (most recent call last):
       some file path ...
@@ -104,6 +109,7 @@ class Flags:
     an alias for ``numpy.nan`` was used. We can inspect all the updates that was
     made by looking in the history.
 
+    >>> flags['v0'] = pd.Series([DOUBT,UNTOUCHED,DOUBT], dtype=float)
     >>> flags.history['v0']
             0       1
     0  (255.0)   25.0
