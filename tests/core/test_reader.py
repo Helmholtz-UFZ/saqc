@@ -49,7 +49,7 @@ def test_variableRegex(data):
     for regex, expected in tests:
         fobj = writeIO(header + "\n" + f"{regex} ; flagDummy()")
         saqc = fromConfig(fobj, data=data)
-        result = [field for field, _ in saqc.called]
+        result = [field for field, _ in saqc._called]
         assert np.all(result == expected)
 
 
@@ -63,7 +63,7 @@ def test_inlineComments(data):
     """
 
     saqc = fromConfig(writeIO(config), data)
-    _, func = saqc.called[0]
+    _, func = saqc._called[0]
     assert func[0] == FUNC_MAP["flagDummy"]
 
 

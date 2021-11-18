@@ -78,7 +78,7 @@ def test_copy(data):
 
     for copy in [deep, shallow]:
         assert copy is not qc
-        assert copy.called is not qc.called
+        assert copy._called is not qc._called
         assert copy._translator is not qc._translator
         assert copy._attrs is not qc._attrs
 
