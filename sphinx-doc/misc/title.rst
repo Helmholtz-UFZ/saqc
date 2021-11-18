@@ -1,14 +1,4 @@
 
-
-.. |ufzLogo| image:: /ressources/images/Representative/UFZLogo.jpg
-   :width: 40 %
-   :target: https://www.ufz.de/
-
-.. |rdmLogo| image:: /ressources/images/Representative/RDMlogo.jpg
-   :width: 18 %
-   :target: https://www.ufz.de/index.php?de=45348
-   :class: align-right
-
 .. |sacRaw| image:: /ressources/images/Representative/RawData.png
     :height: 150 px
     :width: 288 px
@@ -38,8 +28,6 @@
     :height: 100 px
     :width: 200
 
-
-|ufzLogo| |rdmLogo|
 
 
 ===========================================
