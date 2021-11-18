@@ -27,7 +27,7 @@ clean:
 	rm -rf _build _static
 	rm -rf ../$(FUNCTIONS)
 	mkdir _static
-	for k in $(MDLIST); do rm -r "$$k"_m2r; done
+	# for k in $(MDLIST); do rm -r "$$k"_m2r; done
 
 # trigger (saqc) customized documentation pipeline
 doc:
@@ -36,7 +36,7 @@ doc:
 	# generate environment table from dictionary
 	python make_env_tab.py
 	# make rest folders from markdown folders
-	for k in $(MDLIST); do python make_md_to_rst.py -p sphinx-doc/"$$k" -sr ".."; done
+	# for k in $(MDLIST); do python make_md_to_rst.py -p sphinx-doc/"$$k" -sr ".."; done
 	# make the html build
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 

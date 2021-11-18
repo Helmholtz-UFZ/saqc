@@ -8,11 +8,11 @@ Mainly we will see how to apply Drift Corrections onto the data and how to perfo
 
 #. 
 
-   * :ref:`Data Preparation <cook_books_md_m2r/MultivariateFlagging:Data Preparation>`
+   * :ref:`Data Preparation <cook_books/MultivariateFlagging:Data Preparation>`
 
 #. 
 
-   * :ref:`Drift Correction <cook_books_md_m2r/MultivariateFlagging:Drift Correction>`
+   * :ref:`Drift Correction <cook_books/MultivariateFlagging:Drift Correction>`
 
 #. 
 
@@ -37,7 +37,7 @@ Exponential Drift
 * The variables *SAK254* and *Turbidity* show drifting behavior originating from dirt, that accumulates on the light sensitive sensor surfaces over time.  
 * The effect, the dirt accumulation has on the measurement values, is assumed to be properly described by an exponential model.
 * The Sensors are cleaned periodocally, resulting in a periodical reset of the drifting effect. 
-* The Dates and Times of the maintenance events are input to the :py:func:`correctDrift <Functions.saqc.correctDrift>`, that will correct the data in between any two such maintenance intervals. (Find some formal description of the process :doc:`here <../misc_md_m2r/ExponentialModel>`.)
+* The Dates and Times of the maintenance events are input to the :py:func:`correctDrift <Functions.saqc.correctDrift>`, that will correct the data in between any two such maintenance intervals. (Find some formal description of the process :doc:`here <../misc/ExponentialModel>`.)
 
 Linear Long Time Drift
 ^^^^^^^^^^^^^^^^^^^^^^
