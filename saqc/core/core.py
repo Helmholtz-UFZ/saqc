@@ -2,17 +2,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import inspect
-import warnings
 from typing import (
     Any,
     Callable,
-    List,
     Sequence,
-    Tuple,
-    Union,
-    Optional,
-    Mapping,
     Hashable,
 )
 from copy import deepcopy, copy as shallowcopy
@@ -23,82 +16,36 @@ import numpy as np
 from dios import DictOfSeries, to_dios
 
 from saqc.core.flags import initFlagsLike, Flags
-from saqc.core.register import FUNC_MAP
+from saqc.core.history import History
+from saqc.core.register import FUNC_MAP, FunctionWrapper
 from saqc.core.modules import FunctionsMixin
-from saqc.core.translator.basetranslator import Translator, FloatTranslator
+from saqc.core.translator import (
+    Translator,
+    FloatTranslator,
+    SimpleTranslator,
+    PositionalTranslator,
+    DmpTranslator,
+)
 from saqc.lib.tools import toSequence
 from saqc.lib.types import (
     ExternalFlag,
-    PandasLike,
 )
 
+# the import is needed to trigger the registration
+# of the built-in (test-)functions
+import saqc.funcs  # noqa
 
-# TODO: shouldn't the code/function go to SaQC.__init__ ?
-def _prepInput(
-    data: PandasLike,
-    flags: Optional[Union[DictOfSeries, pd.DataFrame, Flags]],
-    copy: bool,
-) -> Tuple[DictOfSeries, Optional[Flags]]:
-    dios_like = (DictOfSeries, pd.DataFrame)
-
-    if copy:
-        data = deepcopy(data)
-
-    if isinstance(data, pd.Series):
-        data = data.to_frame()
-
-    if not isinstance(data, dios_like):
-        raise TypeError(
-            "'data' must be of type pd.Series, pd.DataFrame or dios.DictOfSeries"
-        )
-
-    if isinstance(data, pd.DataFrame):
-        if isinstance(data.index, pd.MultiIndex) or isinstance(
-            data.columns, pd.MultiIndex
-        ):
-            raise TypeError("'data' should not use MultiIndex")
-        data = to_dios(data)
-
-    if not hasattr(data.columns, "str"):
-        raise TypeError("expected dataframe columns of type string")
-
-    if flags is not None:
-
-        if isinstance(flags, pd.DataFrame):
-            if isinstance(flags.index, pd.MultiIndex) or isinstance(
-                flags.columns, pd.MultiIndex
-            ):
-                raise TypeError("'flags' should not use MultiIndex")
-
-        if isinstance(flags, (DictOfSeries, pd.DataFrame, Flags)):
-            # NOTE: only test common columns, data as well as flags could
-            # have more columns than the respective other.
-            cols = flags.columns.intersection(data.columns)
-            for c in cols:
-                if not flags[c].index.equals(data[c].index):
-                    raise ValueError(
-                        f"the index of 'flags' and 'data' missmatch in column {c}"
-                    )
-
-        # this also ensures float dtype
-        if not isinstance(flags, Flags):
-            flags = Flags(flags, copy=copy)
-
-    return data, flags
+# warnings
+pd.set_option("mode.chained_assignment", "warn")
+np.seterr(invalid="ignore")
 
 
-def _setup():
-    # NOTE:
-    # the import is needed to trigger the registration
-    # of the built-in (test-)functions
-    import saqc.funcs  # noqa
-
-    # warnings
-    pd.set_option("mode.chained_assignment", "warn")
-    np.seterr(invalid="ignore")
-
-
-_setup()
+TRANSLATION_SCHEMES = {
+    "float": FloatTranslator,
+    "simple": SimpleTranslator,
+    "dmp": DmpTranslator,
+    "positional": PositionalTranslator,
+}
 
 
 class SaQC(FunctionsMixin):
@@ -107,34 +54,51 @@ class SaQC(FunctionsMixin):
         "_flags",
         "_translator",
         "_attrs",
-        "called",
+        "_called",
     }
 
-    def __init__(self, data, flags=None, scheme: Translator = None, copy: bool = True):
-        data, flags = _prepInput(data, flags, copy)
-        self._data = data
-        self._flags = self._initFlags(data, flags)
-        self._translator = scheme or FloatTranslator()
-        self.called = []
+    def __init__(
+        self,
+        data=None,
+        flags=None,
+        scheme: str | Translator = "float",
+        copy: bool = True,
+    ):
+        self._data = self._initData(data, copy)
+        self._flags = self._initFlags(flags, copy)
+        self._translator = self._initTranslator(scheme)  # scheme or FloatTranslator()
+        self._called = []
         self._attrs = {}
+        self._validate(reason="init")
 
-    @staticmethod
-    def _initFlags(data: DictOfSeries, flags: Optional[Flags]) -> Flags:
+    def _construct(self, **attributes) -> SaQC:
         """
-        Init the internal Flags-object.
+        Construct a new `SaQC`-Object from `self` and optionally inject
+        attributes with any chechking and overhead.
 
-        Ensures that all data columns are present and user passed
-        flags from a frame or an already initialised Flags-object
-        are used.
+        Parameters
+        ----------
+        **attributes: any of the `SaQC` data attributes with name and value
+
+        Note
+        ----
+        For internal usage only! Setting values through `injectables` has
+        the potential to mess up certain invariants of the constructed object.
         """
-        if flags is None:
-            return initFlagsLike(data)
+        out = SaQC(data=DictOfSeries(), flags=Flags(), scheme=self._translator)
+        out.attrs = self._attrs
+        for k, v in attributes.items():
+            if k not in self._attributes:
+                raise AttributeError(f"SaQC has no attribute {repr(k)}")
+            setattr(out, k, v)
+        return out
 
-        # add columns that are present in data but not in flags
-        for c in data.columns.difference(flags.columns):
-            flags[c] = initFlagsLike(data[c])
-
-        return flags
+    def _validate(self, reason=None):
+        if not self._data.columns.equals(self._flags.columns):
+            msg = "Consistency broken. data and flags have not the same columns."
+            if reason:
+                msg += f" This was most likely caused by: {reason}"
+            raise RuntimeError(msg)
 
     @property
     def attrs(self) -> dict[Hashable, Any]:
@@ -144,30 +108,8 @@ class SaQC(FunctionsMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: Mapping[Hashable, Any]) -> None:
+    def attrs(self, value: dict[Hashable, Any]) -> None:
         self._attrs = dict(value)
-
-    def _construct(self, **injectables) -> SaQC:
-        """
-        Construct a new `SaQC`-Object from `self` and optionally inject
-        attributes with any chechking and overhead.
-
-        Parameters
-        ----------
-        **injectables: any of the `SaQC` data attributes with name and value
-
-        Note
-        ----
-        For internal usage only! Setting values through `injectables` has
-        the potential to mess up certain invariants of the constructed object.
-        """
-        out = SaQC(data=DictOfSeries(), flags=Flags(), scheme=self._translator)
-        out.attrs = self._attrs
-        for k, v in injectables.items():
-            if k not in self._attributes:
-                raise AttributeError(f"SaQC has no attribute {repr(k)}")
-            setattr(out, k, v)
-        return out
 
     @property
     def dataRaw(self) -> DictOfSeries:
@@ -193,7 +135,7 @@ class SaQC(FunctionsMixin):
     def result(self) -> SaQCResult:
         return SaQCResult(self._data, self._flags, self._attrs, self._translator)
 
-    def _wrap(self, func: Callable):
+    def _wrap(self, func: FunctionWrapper):
         """Enrich a function by special saqc-functionality.
 
         For each saqc function this realize
@@ -228,21 +170,15 @@ class SaQC(FunctionsMixin):
             else:
                 fields = toSequence(field)
 
+            # we wrap field again to generalize the
+            # down stream loop work as expected
             if func._multivariate:
-                # we wrap field again to generalize the down stream loop work as expected
                 fields = [fields]
 
             out = self
 
             for f in fields:
-                out = out._callFunction(
-                    func,
-                    data=out._data,
-                    flags=out._flags,
-                    field=f,
-                    *args,
-                    **kwargs,
-                )
+                out = out._callFunction(func, field=f, *args, **kwargs)
             return out
 
         return inner
@@ -250,30 +186,23 @@ class SaQC(FunctionsMixin):
     def _callFunction(
         self,
         function: Callable,
-        data: DictOfSeries,
-        flags: Flags,
         field: str | Sequence[str],
         *args: Any,
         **kwargs: Any,
     ) -> SaQC:
 
-        data, flags = function(data=data, flags=flags, field=field, *args, **kwargs)
-
-        if not data.columns.difference(flags.columns).empty:
-            raise ValueError(
-                "expected identical columns in 'data' and 'flags', "
-                f"the call to {repr(function.__name__)} broke this invariant"
-            )
-
-        planned = self.called + [(field, (function, args, kwargs))]
+        res = function(data=self._data, flags=self._flags, field=field, *args, **kwargs)
 
         # keep consistence: if we modify data and flags inplace in a function,
         # but data is the original and flags is a copy (as currently implemented),
         # data and flags of the original saqc obj may change inconsistently.
-        self._data = data
-        self._flags = flags
+        self._data, self._flags = res
+        self._called += [(field, (function, args, kwargs))]
+        self._validate(reason=f"Call to {repr(function.__name__)}")
 
-        return self._construct(_data=data, _flags=flags, called=planned)
+        return self._construct(
+            _data=self._data, _flags=self._flags, _called=self._called
+        )
 
     def __getattr__(self, key):
         """
@@ -283,7 +212,7 @@ class SaQC(FunctionsMixin):
         actually implementing them.
         """
         if key not in FUNC_MAP:
-            raise AttributeError(f"no such attribute: '{key}'")
+            raise AttributeError(f"SaQC has no attribute {repr(key)}")
         return self._wrap(FUNC_MAP[key])
 
     def copy(self, deep=True):
@@ -298,6 +227,67 @@ class SaQC(FunctionsMixin):
 
     def __deepcopy__(self, memodict=None):
         return self.copy(deep=True)
+
+    def _initTranslator(self, scheme: str | Translator) -> Translator:
+        if isinstance(scheme, str) and scheme in TRANSLATION_SCHEMES:
+            return TRANSLATION_SCHEMES[scheme]()
+        if isinstance(scheme, Translator):
+            return scheme
+        raise TypeError(
+            f"expected one of the following translation schemes '{TRANSLATION_SCHEMES.keys()} "
+            f"or an initialized Translator object, got '{scheme}'"
+        )
+
+    def _initData(self, data, copy: bool) -> DictOfSeries:
+        if data is None:
+            data = DictOfSeries()
+        if isinstance(data, pd.Series):
+            data = data.to_frame()
+        if not isinstance(data, (DictOfSeries, pd.DataFrame)):
+            raise TypeError(
+                "'data' must be of type pandas.Series, "
+                "pandas.DataFrame or dios.DictOfSeries"
+            )
+        if isinstance(data, pd.DataFrame):
+            for idx in [data.index, data.columns]:
+                if isinstance(idx, pd.MultiIndex):
+                    raise TypeError("'data' should not have MultiIndex")
+
+        data = to_dios(data)  # noop for DictOfSeries
+
+        for c in data.columns:
+            if not isinstance(c, str):
+                raise TypeError("columns labels must be of type string")
+        if copy:
+            return data.copy()
+        return data
+
+    def _initFlags(self, flags, copy: bool) -> Flags:
+        if isinstance(flags, pd.DataFrame):
+            for idx in [flags.index, flags.columns]:
+                if isinstance(idx, pd.MultiIndex):
+                    raise TypeError("'flags' should not have MultiIndex")
+        if flags is None:
+            flags = initFlagsLike(self._data)
+        elif isinstance(flags, (pd.DataFrame, DictOfSeries, Flags)):
+            if not isinstance(flags, Flags):
+                flags = Flags(flags)
+            if copy:
+                flags = flags.copy()
+            for c in self._data.columns:
+                if c not in flags.columns:
+                    flags.history = History(self._data[c].index)
+                else:
+                    if not flags[c].index.equals(self._data[c].index):
+                        raise ValueError(
+                            f"index of 'flags' does not equal "
+                            f"index of 'data' for column {c} "
+                        )
+        else:
+            raise TypeError(
+                "'flags' must be of type pandas.DataFrame, dios.DictOfSeries or Flags"
+            )
+        return flags
 
 
 class SaQCResult:
@@ -321,7 +311,7 @@ class SaQCResult:
 
     def _validate(self):
         if not self._data.columns.equals(self._flags.columns):
-            AssertionError(
+            raise AssertionError(
                 "Consistency broken. data and flags have not the same columns"
             )
 

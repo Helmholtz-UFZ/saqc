@@ -8,23 +8,42 @@
    :maxdepth: 1
 
    Repository <https://git.ufz.de/rdm-software/saqc>
-   Documentation Guide <how_to_doc/HowToDoc>
    Package API <moduleAPIs/saqcInit>
    Doctesttest <misc/doctesttest>
 
-
-Tutorials and Topics
-====================
+Getting Started
+===============
 
 .. toctree::
+   :caption: Getting started
    :maxdepth: 1
+   :hidden:
 
    getting_started/InstallationGuide
+   getting_started/TutorialAPI
    getting_started/GettingStarted
+
+Cookbooks
+=========
+
+.. toctree::
+   :caption: Cookbooks
+   :maxdepth: 1
+   :hidden:
+
    cook_books/DataRegularisation
    cook_books/OutlierDetection
    cook_books/MultivariateFlagging
 
+
+Developer Ressources
+====================
+.. toctree::
+   :caption: Developer Ressources
+   :hidden:
+   :maxdepth: 1
+
+   Documentation Guide <how_to_doc/HowToDoc>
 
 Functions
 =========

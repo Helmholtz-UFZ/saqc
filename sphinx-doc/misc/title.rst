@@ -77,9 +77,9 @@ Features
 .. list-table::
 
     * - |pyLogo| |csvConfig|
-      - * get SaQC from PyPI
-        * use SaQC as a commandline application and configure your flagging pipelines via plain .csv files
-        * or use the SaQC python API, enabling integration in your python processing script
+      - * :ref:`get and install SaQC <getting_started/InstallationGuide:installation guide>`
+        * :ref:`use the SaQC python API, enabling integration into larger programs <getting_started/python api>`
+        * or use SaQC as a commandline application and configure your pipelines via plain text
     * - |sacRaw|
       - * easily load data from multiple sources, concatenating them in a SaQC object
         * preprocess your data, by aligning it to shared frequency grids
@@ -90,10 +90,8 @@ Features
       - * automatically keep track of flagging history and flags significance for every datapoint
         * define and use custom schemes to translate your flags to and from SaQC
     * - |sacProc|
-      - * modifyyour data, by interpolations, corrections and transformations
+      - * modify your data by interpolations, corrections and transformations
         * calculate data products, such as residues or outlier scores
         * automatically keep track of labeling history and label significance
     * - |sacMV|
       - * apply multivariate flagging function
-
-

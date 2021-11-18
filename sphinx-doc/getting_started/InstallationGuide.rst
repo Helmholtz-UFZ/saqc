@@ -5,20 +5,14 @@ SaQC is written in Python, so the easiest way to set up your system to use SaQC
 for your needs is using the Python Package Index (PyPI). It might be a good idea
 to install SaQC into its own virtual environment. 
 
-Contents
---------
 
-#. :ref:`Set up a virtual environment <getting_started/InstallationGuide:1. system requirements>`
-#. :ref:`Set up a virtual environment <getting_started/InstallationGuide:2. set up a virtual environment>`
-#. :ref:`Get SaQC <getting_started/InstallationGuide:3. get saqc>`
-
-1. System Requirements
-----------------------
+System Requirements
+-------------------
 SaQC is tested to run with Python version from 3.7 to 3.9 on 64-bit operating systems (Linux and Windows).
 
 
-2. Set up a virtual environment
---------------------------------
+Set up a virtual environment
+-----------------------------
 
 The exact process depends on your operating system and python version/distribution.
 The following sections should get you started on UNIX-like Systems and Windows.
@@ -50,8 +44,8 @@ On Windows-systems
    ./activate
 
 
-3. Get SaQC
------------
+Get SaQC
+--------
 
 We currently distribute SaQC via the `Python Package Index (PyPI) <https://pypi.org/>`_
 or through our `GitLab-repository <https://git.ufz.de/rdm-software/saqc>`_.
