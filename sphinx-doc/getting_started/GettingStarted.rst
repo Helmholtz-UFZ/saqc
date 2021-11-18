@@ -1,4 +1,3 @@
-
 Getting started with SaQC
 =========================
 
@@ -9,21 +8,21 @@ Contents
 --------
 
 
-#. :ref:`Set up your environment <getting_started_md_m2r/GettingStarted:1. set up your environment>`
-#. :ref:`Get SaQC <getting_started_md_m2r/GettingStarted:2. get saqc>`
-#. :ref:`Training tour <getting_started_md_m2r/GettingStarted:3. training tour>` 
+#. :ref:`Set up your environment <getting_started/GettingStarted:1. set up your environment>`
+#. :ref:`Get SaQC <getting_started/GettingStarted:2. get saqc>`
+#. :ref:`Training tour <getting_started/GettingStarted:3. training tour>`
 
-   * :ref:`3.1 Get toy data and configuration <getting_started_md_m2r/GettingStarted:get toy data and configuration>`
-   * :ref:`3.2 Run SaQC <getting_started_md_m2r/GettingStarted:run saqc>`
-   * :ref:`3.3 Configure SaQC <getting_started_md_m2r/GettingStarted:configure saqc>`
+   * :ref:`3.1 Get toy data and configuration <getting_started/GettingStarted:get toy data and configuration>`
+   * :ref:`3.2 Run SaQC <getting_started/GettingStarted:run saqc>`
+   * :ref:`3.3 Configure SaQC <getting_started/GettingStarted:configure saqc>`
 
-     * :ref:`Change test parameters <getting_started_md_m2r/GettingStarted:change test parameters>`
+     * :ref:`Change test parameters <getting_started/GettingStarted:change test parameters>`
 
-   * :ref:`3.4 Explore the functionality <getting_started_md_m2r/GettingStarted:explore the functionality>`
+   * :ref:`3.4 Explore the functionality <getting_started/GettingStarted:explore the functionality>`
 
-     * :ref:`Process multiple variables <getting_started_md_m2r/GettingStarted:process multiple variables>`
-     * :ref:`Data harmonization and custom functions <getting_started_md_m2r/GettingStarted:data harmonization and custom functions>`
-     * :ref:`Save outputs to file <getting_started_md_m2r/GettingStarted:save outputs to file>`
+     * :ref:`Process multiple variables <getting_started/GettingStarted:process multiple variables>`
+     * :ref:`Data harmonization and custom functions <getting_started/GettingStarted:data harmonization and custom functions>`
+     * :ref:`Save outputs to file <getting_started/GettingStarted:save outputs to file>`
 
 1. Set up your environment
 --------------------------
