@@ -39,10 +39,12 @@ with something more elaborate, is in fact a one line change. So let's start with
 
    # we need some dummy data
    values = np.random.randint(low=0, high=100, size=100)
-   dates = pd.date_range(start="2020-01-01", periods=len(values))
+   dates = pd.date_range(start="2020-01-01", periods=len(values), freq="D")
    data = pd.DataFrame({"a": values}, index=dates)
-   # let's insert an outlier
-   data.iloc[50] *= 10
+   # let's insert some constant values ...
+   data.iloc[30:40] = values.mean()
+   # ... and an outlier
+   data.iloc[70] = 175
 
    # initialize saqc
    qc = SaQC(data=data, scheme="simple")
@@ -56,7 +58,7 @@ available functions appear as methods of the ``SaQC``  class, so we can add a te
 
 .. code-block:: python
 
-   qc.flagRange("a", min=30, max=60)
+   qc.flagRange("a", min=20, max=80)
 
 ``flagRange`` is the easiest of all functions and simply marks all values smaller than ``min`` and larger
 than ``max``. This feature by itself wouldn't be worth the trouble of getting into ``SaQC``, but it serves
@@ -71,8 +73,9 @@ simply a matter of method chaining.
 .. code-block:: python
    # execute some tests
    qc = (qc
-         .flagRange("a", min=30, max=60)
-         .flagByGrubbs("a", window=10))
+         .flagConstants("a", thresh=0.1, window="4D")
+         .flagByGrubbs("a", window="10D")
+         .flagRange("a", min=20, max=80))
 
 
 Getting done - Pull something out
@@ -104,18 +107,21 @@ The snippet below provides you with a compete example from the things we have se
 
    # we need some dummy data
    values = np.random.randint(low=0, high=100, size=100)
-   dates = pd.date_range(start="2020-01-01", periods=len(values))
+   dates = pd.date_range(start="2020-01-01", periods=len(values), freq="D")
    data = pd.DataFrame({"a": values}, index=dates)
-   # let's insert an outlier
-   data.iloc[50] *= 10
+   # let's insert some constant values ...
+   data.iloc[30:40] = values.mean()
+   # ... and an outlier
+   data.iloc[70] = 175
 
    # initialize saqc
    qc = SaQC(data=data, scheme="simple")
 
    # execute some tests
    qc = (qc
-         .flagRange("a", min=30, max=60)
-         .flagByGrubbs("a", window=10))
+         .flagConstants("a", thresh=0.1, window="4D")
+         .flagByGrubbs("a", window="10D")
+         .flagRange("a", min=20, max=80))
 
    # retrieve the data as a pandas.DataFrame
    qc.data
@@ -124,10 +130,12 @@ The snippet below provides you with a compete example from the things we have se
    qc.flags
 
 
+
 Can I get something visual, please?
 -----------------------------------
 
 Yes, you can. We provide an elaborated plotting method to generate and show or write matplotlib figures.
 Building on the example :ref:`above <getting_started/TutorialAPI:putting it together - a complete workflow>`
-simply call the method ``qc.plot()``. By the way, all plots on these pages are generated using exactly
-this functionality. 
+the calling the method ``qc.plot("a")`` will generate a plot like the following:
+
+.. image:: /ressources/images/tutorial_api_1.png
