@@ -4,56 +4,44 @@
    * - Env-Value
      - Env-Doc
    * - "NAN"
-     -  absolute value function
+     -  Pointwise absolute Value Function.
    * - "abs"
-     -  returns max
+     -  Maximum Value Function. Ignores NaN.
    * - "max"
-     -  returns min
+     -  Minimum Value Function. Ignores NaN.
    * - "min"
-     -  returns mean
+     -  Mean Value Function. Ignores NaN.
    * - "mean"
-     -  returns sum
+     -  Summation. Ignores NaN.
    * - "sum"
-     - 
-   * - "std"
-     - 
+     -  Standart Deviation. Ignores NaN.
    * - "len"
-     - 
+     -  Pointwise Exponential.
    * - "exp"
-     - 
+     -  Pointwise Logarithm.
    * - "log"
-     - 
+     -  Logarithm, returning NaN for zero input, instead of -inf.
+   * - "nanLog"
+     -  Standart Deviation. Ignores NaN.
+   * - "std"
+     -  Variance. Ignores NaN.
    * - "var"
-     - 
+     -  Median. Ignores NaN.
    * - "median"
-     - 
-   * - "first"
-     - 
-   * - "last"
-     -  counts counts-a-lot
+     -  Count Number of values. Ignores NaNs.
    * - "count"
-     - 
-   * - "deltaT"
-     - 
+     -  Identity.
    * - "id"
-     - 
+     -  Returns a Series` diff.
    * - "diff"
-     - 
-   * - "relDiff"
-     - 
-   * - "deriv"
-     - 
-   * - "rateOfChange"
-     - 
+     -  Scales data to [0,1] Interval.
    * - "scale"
-     - 
-   * - "normScale"
-     - 
-   * - "meanStandardize"
-     - 
-   * - "medianStandardize"
-     - 
-   * - "zLog"
+     -  Standardize with Standart Deviation.
+   * - "zScore"
+     -  Standardize with Median and MAD.
+   * - "madScore"
+     -  Standardize with Median and inter quantile range.
+   * - "iqsScore"
      - 
    * - "GOOD"
      - 

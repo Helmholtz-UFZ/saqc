@@ -6,11 +6,9 @@
    :maxdepth: 1
 
    Repository <https://git.ufz.de/rdm-software/saqc>
-   Documentation Guide <how_to_doc_md_m2r/HowToDoc>
+   Documentation Guide <how_to_doc/HowToDoc>
    Package API <moduleAPIs/saqcInit>
 
-
-:py:mod:`Functions`
 
 
 Tutorials and Topics
@@ -19,10 +17,10 @@ Tutorials and Topics
 .. toctree::
    :maxdepth: 1
 
-   getting_started_md_m2r/GettingStarted
-   cook_books_md_m2r/DataRegularisation
-   cook_books_md_m2r/OutlierDetection
-   cook_books_md_m2r/MultivariateFlagging
+   getting_started/GettingStarted
+   cook_books/DataRegularisation
+   cook_books/OutlierDetection
+   cook_books/MultivariateFlagging
 
 
 Functions

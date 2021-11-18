@@ -74,11 +74,7 @@ In pycharm one can activate autogeneration of numpy doc style like so:
 * Do not include lines *only* containing two or more `-` signs, except it is the underscore line of the section heading (otherwise resulting html representation could be messed up)
 
 ## hyperlinking docstrings
-
-* Most straight forward way to make documented code content available / linkable, is, adding a rest file containing an
-  automodapi directive to the folder `moduleAPIs` - check out the files it already contains as example.
-  * adding ``.. automodapi:: foo.bar``, will make the module `foo.bar` and all its content `foo.bar.X` referable by the 
-    module path.
+* Link code content/modules via python roles.
     
 * Cite/link via the py domain roles. Link content `bar`, that is registered to the API with the adress `foo.bar` and 
   shall be represented by the name `link_name`, via: 
@@ -92,38 +88,36 @@ In pycharm one can activate autogeneration of numpy doc style like so:
 ``` 
 :py:const:`~saqc.constants.BAD` 
 ```  
+* the ``~`` is a shorthand for hiding the module path and only displaying ``BAD``.
 
-* Functions are available via the "fake"  module `Functions.saqc` - for example: 
+* Functions are available via the "simulated"  module `Functions.saqc` - for example: 
   
 ``` 
 :py:func:`saqc.flagRange <saqc.Functions.flagRange>` 
+``` 
+
+* Modules are available via the "simulated"  package `Functions.` - for example: 
+  
+``` 
+:py:mod:`generic <Functions.generic>` 
 ``` 
   
 * The saqc object and/or its content is available via: 
   
 ```
-:py:class: `saqc.SaQC` 
-:py:meth: `saqc.SaQC.show` 
+:py:class:`saqc.SaQC` 
+:py:meth:`saqc.SaQC.getResults` 
 ```   
 
 * The Flags object and/or its content is available via: 
   
 ```
-:py:class: `saqc.Flags` 
+:py:class:`saqc.Flags` 
 ```   
 
-## Linking to function categories
+* you can add .rst files containing ``automodapi`` directives to the modulesAPI folder to make available more modules via pyroles
 
-To link to a group of functions, you might generate a rest landing page for that link and add it to 
-the `function_cats` folder. It already contains the landing pages for the :doc:`generic <../function_cats/generic>` 
-functions and the :doc:`regularisation <../function_cats/regularisation>` functions.
-Those can be linked via relative paths to the `function_cats` folder. From this file, located in `sphinx-doc/how_to_doc`,
-the linking is realized by:
-
-```python
-:doc:`regularisation <../function_cats/regularistaion>`
-:doc:`generic <../function_cats/generic>`
-```
+- the Environment table, including variables available via config files is available as restfile located in the environment folder. (Use include directive to include, or linking syntax to link it.
 
 ## Adding Markdown content to the Documentation
 
@@ -148,6 +142,8 @@ the linking is realized by:
 
 - You can include a markdown file in a rest document, by appending '_m2r' to the folder name when linking it path_wise. 
   So, to include the markdown file 'foo/bar.md' in a toc tree for example - you would do something like:
+
+- the Environment table, including variables availbe via config files is available as restfile located in the environment folder. (Use include directive to include, or linking syntax to link it.)
 
 ```python
 .. toctree::
