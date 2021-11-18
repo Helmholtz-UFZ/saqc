@@ -1,4 +1,3 @@
-
 Data Regularisation
 ===================
 
@@ -9,27 +8,22 @@ spacing in between subsequent data points.
 The tutorial guides through the following steps: 
 
 
-#. 
-   Initially, we introduce and motivate regularisation techniques and we do import the tutorial data.
+#. Initially, we introduce and motivate regularisation techniques and we do import the tutorial data.
 
 
    * :ref:`Why Regularisation <cook_books/DataRegularisation:Why Regularisation>`
    * :ref:`Tutorial Data <cook_books/DataRegularisation:Tutorial Data>`
 
-#. 
-   We will get an overview over the main :ref:`Regularisation <cook_books/DataRegularisation:regularisations>` methods, starting with the shift.
-
+#. We will get an overview over the main :ref:`Regularisation <cook_books/DataRegularisation:regularisations>` methods, starting with the shift.
 
    * :ref:`Shift <cook_books/DataRegularisation:shift>`
+   * :ref:`Target Parameter <cook_books/DataRegularisation:target parameter>`
 
-     * :ref:`Target Parameter <cook_books/DataRegularisation:target parameter>`
+      * :ref:`Freq Parameter <cook_books/DataRegularisation:freq parameter>`
+      * :ref:`Method Parameter <cook_books/DataRegularisation:shifting method>`
+      * :ref:`Valid Data <cook_books/DataRegularisation:Valid Data>`
 
-       * :ref:`Freq Parameter <cook_books/DataRegularisation:freq parameter>`
-       * :ref:`Method Parameter <cook_books/DataRegularisation:shifting method>`
-       * :ref:`Valid Data <cook_books/DataRegularisation:Valid Data>`
-
-#. 
-   We introduce the notion of *valid* data and see how sparse intervals and those with multiple values interact with 
+#. We introduce the notion of *valid* data and see how sparse intervals and those with multiple values interact with
    regularisation.
 
 
@@ -41,8 +35,7 @@ The tutorial guides through the following steps:
        * :ref:`Data Reduction <cook_books/DataRegularisation:data reduction>`
        * :ref:`Minimize Shifting <cook_books/DataRegularisation:minimize shifting distance>`
 
-#. 
-   We use the Aggregation and the Interpolation method.
+#. We use the Aggregation and the Interpolation method.
 
 
    * :ref:`Aggregation <cook_books/DataRegularisation:aggregation>`
@@ -52,11 +45,9 @@ The tutorial guides through the following steps:
 
    * :ref:`Interpolation <cook_books/DataRegularisation:interpolation>`
 
-     * :ref:`Representing Data Sparsity <cook_books/DataRegularisation:interpolation and data sparsity>`
+   * :ref:`Representing Data Sparsity <cook_books/DataRegularisation:interpolation and data sparsity>`
 
-#. 
-   We see how regularisation interacts with Flags.
-
+#. We see how regularisation interacts with Flags.
 
    * :ref:`Flags and Regularisation <cook_books/DataRegularisation:flags and regularisation>`
 
@@ -78,7 +69,7 @@ way of constructing such a mapping, is to just resample all data at the same (re
 Tutorial Data
 -------------
 
-The following `dataset <../ressources/data/SoilMoisture.csv>`_ of Soil Moisture meassurements may serve as 
+The following `dataset <../ressources/data/SoilMoisture.csv>`_ of Soil Moisture measurements may serve as
 example data set:
 
 

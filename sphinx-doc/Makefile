@@ -28,6 +28,8 @@ clean:
 	rm -rf ../$(FUNCTIONS)
 	mkdir _static
 	# for k in $(MDLIST); do rm -r "$$k"_m2r; done
+	rm -f *.automodsumm
+	rm -f moduleAPIs/*.automodsumm
 
 # trigger (saqc) customized documentation pipeline
 doc:

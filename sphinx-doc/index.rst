@@ -1,5 +1,7 @@
 
+
 .. include:: misc/title.rst
+
 
 .. toctree::
    :hidden:
@@ -8,7 +10,7 @@
    Repository <https://git.ufz.de/rdm-software/saqc>
    Documentation Guide <how_to_doc/HowToDoc>
    Package API <moduleAPIs/saqcInit>
-
+   Doctesttest <misc/doctesttest>
 
 
 Tutorials and Topics
@@ -32,9 +34,7 @@ Functions
    :titlesonly:
 
    All Functions <moduleAPIs/saqcFunctions>
-   generic <function_cats/generic>
-   resampling <function_cats/resampling>
-   tools <function_cats/tools>
+   generic <moduleAPIs/functionsgeneric>
 
 
 Python Package
