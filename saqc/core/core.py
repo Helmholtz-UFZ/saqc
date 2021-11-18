@@ -6,7 +6,6 @@ from typing import (
     Any,
     Callable,
     Sequence,
-    Mapping,
     Hashable,
 )
 from copy import deepcopy, copy as shallowcopy
@@ -20,7 +19,13 @@ from saqc.core.flags import initFlagsLike, Flags
 from saqc.core.history import History
 from saqc.core.register import FUNC_MAP, FunctionWrapper
 from saqc.core.modules import FunctionsMixin
-from saqc.core.translator.basetranslator import Translator, FloatTranslator
+from saqc.core.translator import (
+    Translator,
+    FloatTranslator,
+    SimpleTranslator,
+    PositionalTranslator,
+    DmpTranslator,
+)
 from saqc.lib.tools import toSequence
 from saqc.lib.types import (
     ExternalFlag,
@@ -35,6 +40,14 @@ pd.set_option("mode.chained_assignment", "warn")
 np.seterr(invalid="ignore")
 
 
+TRANSLATION_SCHEMES = {
+    "float": FloatTranslator,
+    "simple": SimpleTranslator,
+    "dmp": DmpTranslator,
+    "positional": PositionalTranslator,
+}
+
+
 class SaQC(FunctionsMixin):
     _attributes = {
         "_data",
@@ -45,11 +58,15 @@ class SaQC(FunctionsMixin):
     }
 
     def __init__(
-        self, data=None, flags=None, scheme: Translator = None, copy: bool = True
+        self,
+        data=None,
+        flags=None,
+        scheme: str | Translator = "float",
+        copy: bool = True,
     ):
         self._data = self._initData(data, copy)
         self._flags = self._initFlags(flags, copy)
-        self._translator = scheme or FloatTranslator()
+        self._translator = self._initTranslator(scheme)  # scheme or FloatTranslator()
         self._called = []
         self._attrs = {}
         self._validate(reason="init")
@@ -91,7 +108,7 @@ class SaQC(FunctionsMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: Mapping[Hashable, Any]) -> None:
+    def attrs(self, value: dict[Hashable, Any]) -> None:
         self._attrs = dict(value)
 
     @property
@@ -210,6 +227,16 @@ class SaQC(FunctionsMixin):
 
     def __deepcopy__(self, memodict=None):
         return self.copy(deep=True)
+
+    def _initTranslator(self, scheme: str | Translator) -> Translator:
+        if isinstance(scheme, str) and scheme in TRANSLATION_SCHEMES:
+            return TRANSLATION_SCHEMES[scheme]()
+        if isinstance(scheme, Translator):
+            return scheme
+        raise TypeError(
+            f"expected one of the following translation schemes '{TRANSLATION_SCHEMES.keys()} "
+            f"or an initialized Translator object, got '{scheme}'"
+        )
 
     def _initData(self, data, copy: bool) -> DictOfSeries:
         if data is None:
