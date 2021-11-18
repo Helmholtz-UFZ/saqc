@@ -35,6 +35,17 @@ Cookbooks
    cook_books/OutlierDetection
    cook_books/MultivariateFlagging
 
+Documentation
+=============
+.. toctree::
+   :caption: Documentation
+   :maxdepth: 1
+   :hidden:
+
+   documentation/FlaggingTranslation
+   documentation/GenericFunctions
+   documentation/SourceTarget
+
 
 Developer Ressources
 ====================
