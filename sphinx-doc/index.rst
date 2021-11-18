@@ -17,6 +17,7 @@ Tutorials and Topics
 .. toctree::
    :maxdepth: 1
 
+   getting_started/InstallationGuide
    getting_started/GettingStarted
    cook_books/DataRegularisation
    cook_books/OutlierDetection
