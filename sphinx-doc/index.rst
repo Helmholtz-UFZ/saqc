@@ -10,15 +10,26 @@
    Package API <moduleAPIs/saqcInit>
 
 
-
-Tutorials and Topics
-====================
+Getting Started
+===============
 
 .. toctree::
+   :caption: Getting started
    :maxdepth: 1
+   :hidden:
 
    getting_started/InstallationGuide
+   getting_started/TutorialAPI
    getting_started/GettingStarted
+
+Cookbooks
+=========
+
+.. toctree::
+   :caption: Cookbooks
+   :maxdepth: 1
+   :hidden:
+
    cook_books/DataRegularisation
    cook_books/OutlierDetection
    cook_books/MultivariateFlagging
