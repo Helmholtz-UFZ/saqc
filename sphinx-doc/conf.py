@@ -76,11 +76,11 @@ autosectionlabel_prefix_document = True
 
 autodoc_typehints = "none"
 
-doctest_global_setup = '''
+doctest_global_setup = """
 import saqc
 import pandas as pd
 import numpy as np
-'''
+"""
 # -- Other options -----------------------------------------------------------
 
 # Add any paths that contain templates here, relative to this directory.

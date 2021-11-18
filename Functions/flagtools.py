@@ -1,10 +1,12 @@
 """
 
 """
+
+
 def forceFlags(field, flag, kwargs):
     """
     Set whole column to a flag value.
-    
+
     Parameters
     ----------
     field : str
@@ -13,7 +15,7 @@ def forceFlags(field, flag, kwargs):
         flag to set
     kwargs : dict
         unused
-    
+
     See Also
     --------
     clearFlags : set whole column to UNFLAGGED
@@ -25,22 +27,22 @@ def forceFlags(field, flag, kwargs):
 def clearFlags(field, kwargs):
     """
     Set whole column to UNFLAGGED.
-    
+
     Parameters
     ----------
     field : str
         columns name that holds the data
     kwargs : dict
         unused
-    
+
     Notes
     -----
     This function ignores the ``to_mask`` keyword, because the data is not relevant
     for processing.
     A warning is triggered if the ``flag`` keyword is given, because the flags are
     always set to `UNFLAGGED`.
-    
-    
+
+
     See Also
     --------
     forceFlags : set whole column to a flag value
@@ -52,7 +54,7 @@ def clearFlags(field, kwargs):
 def flagUnflagged(field, flag, kwargs):
     """
     Function sets a flag at all unflagged positions.
-    
+
     Parameters
     ----------
     field : str
@@ -61,12 +63,12 @@ def flagUnflagged(field, flag, kwargs):
         flag value to set
     kwargs : Dict
         unused
-    
+
     Notes
     -----
     This function ignores the ``to_mask`` keyword, because the data is not relevant
     for processing.
-    
+
     See Also
     --------
     clearFlags : set whole column to UNFLAGGED
@@ -78,12 +80,12 @@ def flagUnflagged(field, flag, kwargs):
 def flagManual(field, mdata, method, mformat, mflag, flag):
     """
     Flag data by given, "manually generated" data.
-    
+
     The data is flagged at locations where `mdata` is equal to a provided flag (`mflag`).
     The format of mdata can be an indexed object, like pd.Series, pd.Dataframe or dios.DictOfSeries,
     but also can be a plain list- or array-like.
     How indexed mdata is aligned to data is specified via the `method` parameter.
-    
+
     Parameters
     ----------
     field : str
@@ -112,7 +114,7 @@ def flagManual(field, mdata, method, mformat, mflag, flag):
         The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
     flag : float, default BAD
         flag to set.
-    
+
     Examples
     --------
     An example for mdata
@@ -122,7 +124,7 @@ def flagManual(field, mdata, method, mformat, mflag, flag):
     2000-03-01    0
     2001-05-01    1
     dtype: int64
-    
+
     On *dayly* data, with the 'ontime' method, only the provided timestamnps are used.
     Bear in mind that only exact timestamps apply, any offset will result in ignoring
     the timestamp.
@@ -137,7 +139,7 @@ def flagManual(field, mdata, method, mformat, mflag, flag):
     2000-03-01    True
     2000-03-02    False
     Freq: D, dtype: bool
-    
+
     With the 'right-open' method, the mdata is forward fill:
     >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='right-open')
     >>> fl[field] > UNFLAGGED
@@ -149,7 +151,7 @@ def flagManual(field, mdata, method, mformat, mflag, flag):
     2000-03-01    False
     2000-03-02    False
     Freq: D, dtype: bool
-    
+
     With the 'left-open' method, backward filling is used:
     >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='left-open')
     >>> fl[field] > UNFLAGGED
@@ -168,11 +170,10 @@ def flagManual(field, mdata, method, mformat, mflag, flag):
 def flagDummy(field):
     """
     Function does nothing but returning data and flags.
-    
+
     Parameters
     ----------
     field : str
         The fieldname of the column, holding the data-to-be-flagged.
     """
     pass
-
