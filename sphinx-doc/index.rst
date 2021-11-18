@@ -6,7 +6,6 @@
    :maxdepth: 1
 
    Repository <https://git.ufz.de/rdm-software/saqc>
-   Documentation Guide <how_to_doc/HowToDoc>
    Package API <moduleAPIs/saqcInit>
 
 
@@ -34,6 +33,15 @@ Cookbooks
    cook_books/OutlierDetection
    cook_books/MultivariateFlagging
 
+
+Developer Ressources
+====================
+.. toctree::
+   :caption: Developer Ressources
+   :hidden:
+   :maxdepth: 1
+
+   Documentation Guide <how_to_doc/HowToDoc>
 
 Functions
 =========
