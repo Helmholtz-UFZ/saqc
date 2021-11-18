@@ -137,15 +137,16 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
 
     return 0
 
-def makeModuleAPIs(modules, folder_path='moduleAPIs', pck_path='Functions'):
+
+def makeModuleAPIs(modules, folder_path="moduleAPIs", pck_path="Functions"):
     f_path = os.path.abspath(folder_path)
     for m in modules:
         lines = []
         lines += [m]
-        lines += ['='*len(m)]
-        lines += ['']
-        lines += [f'.. automodapi:: {pck_path}.{m}']
-        lines += [' '*3 + ':no-heading:']
+        lines += ["=" * len(m)]
+        lines += [""]
+        lines += [f".. automodapi:: {pck_path}.{m}"]
+        lines += [" " * 3 + ":no-heading:"]
         with open(os.path.join(f_path, f"{pck_path}{m}.rst"), "w") as f:
             for l in lines:
                 f.write(l + "\n")
