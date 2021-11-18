@@ -1,5 +1,5 @@
-Getting started with SaQC
-=========================
+Training tour
+=============
 
 Requirements: this tutorial assumes that you have Python version 3.6.1 or newer
 installed, and that both your operating system and Python version are in 64-bit.
@@ -8,116 +8,23 @@ Contents
 --------
 
 
-#. :ref:`Set up your environment <getting_started/GettingStarted:1. set up your environment>`
-#. :ref:`Get SaQC <getting_started/GettingStarted:2. get saqc>`
-#. :ref:`Training tour <getting_started/GettingStarted:3. training tour>`
+* :ref:`1 Get toy data and configuration <getting_started/GettingStarted:get toy data and configuration>`
+* :ref:`2 Run SaQC <getting_started/GettingStarted:run saqc>`
+* :ref:`3 Configure SaQC <getting_started/GettingStarted:configure saqc>`
 
-   * :ref:`3.1 Get toy data and configuration <getting_started/GettingStarted:get toy data and configuration>`
-   * :ref:`3.2 Run SaQC <getting_started/GettingStarted:run saqc>`
-   * :ref:`3.3 Configure SaQC <getting_started/GettingStarted:configure saqc>`
+  * :ref:`Change test parameters <getting_started/GettingStarted:change test parameters>`
 
-     * :ref:`Change test parameters <getting_started/GettingStarted:change test parameters>`
+* :ref:`4 Explore the functionality <getting_started/GettingStarted:explore the functionality>`
 
-   * :ref:`3.4 Explore the functionality <getting_started/GettingStarted:explore the functionality>`
+  * :ref:`Process multiple variables <getting_started/GettingStarted:process multiple variables>`
+  * :ref:`Data harmonization and custom functions <getting_started/GettingStarted:data harmonization and custom functions>`
 
-     * :ref:`Process multiple variables <getting_started/GettingStarted:process multiple variables>`
-     * :ref:`Data harmonization and custom functions <getting_started/GettingStarted:data harmonization and custom functions>`
-     * :ref:`Save outputs to file <getting_started/GettingStarted:save outputs to file>`
-
-1. Set up your environment
---------------------------
-
-SaQC is written in Python, so the easiest way to set up your system to use SaQC
-for your needs is using the Python Package Index (PyPI). Following good Python
-practice, you will first want to create a new virtual environment that you
-install SaQC into by typing the following in your console:
-
-On Unix/Mac-systems
-"""""""""""""""""""
-
-.. code-block:: sh
-
-   # if you have not installed venv yet, do so:
-   python3 -m pip install --user virtualenv
-
-   # move to the directory where you want to create your virtual environment
-   cd YOURDIR
-
-   # create virtual environment called "env_saqc"
-   python3 -m venv env_saqc
-
-   # activate the virtual environment
-   source env_saqc/bin/activate
-
-On Windows-systems
-""""""""""""""""""
-
-.. code-block:: sh
-
-   # if you have not installed venv yet, do so:
-   py -3 -m pip install --user virtualenv
-
-   # move to the directory where you want to create your virtual environment
-   cd YOURDIR
-
-   # create virtual environment called "env_saqc"
-   py -3 -m venv env_saqc
-
-   # move to the Scripts directory in "env_saqc"
-   cd env_saqc/Scripts
-
-   # activate the virtual environment
-   ./activate
-
-2. Get SaQC
------------
-
-Via PyPI
-^^^^^^^^
-
-Type the following:
-
-On Unix/Mac-systems
-"""""""""""""""""""
-
-.. code-block:: sh
-
-   python3 -m pip install saqc
-
-On Windows-systems
-""""""""""""""""""
-
-.. code-block:: sh
-
-   py -3 -m pip install saqc
-
-From Gitlab repository
-^^^^^^^^^^^^^^^^^^^^^^
-
-Download SaQC directly from the `GitLab-repository <https://git.ufz.de/rdm/saqc>`_ to make sure you use the most recent version:
-
-.. code-block:: sh
-
-   # clone gitlab - repository
-   git clone https://git.ufz.de/rdm-software/saqc
-
-   # switch to the folder where you installed saqc
-   cd saqc 
-
-   # install all required packages 
-   pip install -r requirements.txt
-
-   # install all required submodules
-   git submodule update --init --recursive
-
-3. Training tour
-----------------
 
 The following passage guides you through the essentials of the usage of SaQC via
 a toy dataset and a toy configuration.
 
-Get toy data and configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1. Get toy data and configuration
+---------------------------------
 
 If you take a look into the folder ``saqc/ressources/data`` you will find a toy
 dataset ``data.csv`` which contains the following:
@@ -168,8 +75,8 @@ overview of all available quality control tests in the
 *executed in the order that you define in the configuration file*. The quality
 flags that are set during one test are always passed on to the subsequent one.
 
-Run SaQC
-^^^^^^^^
+2. Run SaQC
+-----------
 
 Remember to have your virtual environment activated:
 
@@ -234,7 +141,7 @@ So, what do we see here?
   points and highlights the flags of the selected test as red points.
 
 Save outputs to file
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 If you want the final results to be saved to a csv-file, you can do so by the
 use of the ``-o`` option:
@@ -257,11 +164,11 @@ flags that were assigned by SaQC for each of the variables:
 
 
 
-Configure SaQC
-^^^^^^^^^^^^^^
+3. Configure SaQC
+-----------------
 
 Change test parameters
-~~~~~~~~~~~~~~~~~~~~~~
+""""""""""""""""""""""
 
 Now you can start to change the settings in the config-file and investigate the
 effect that has on how many datapoints are flagged as "BAD". When using your
@@ -288,11 +195,11 @@ take effect so that only the values > 60 are flagged by it (black points). This,
 in turn, leaves more erroneous data that is then identified by the proceeding
 spike-test (red points).
 
-Explore the functionality
-^^^^^^^^^^^^^^^^^^^^^^^^^
+4. Explore the functionality
+----------------------------
 
 Process multiple variables
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+""""""""""""""""""""""""""
 
 You can also define multiple tests for multiple variables in your data. These
 are then executed sequentially and can be plotted seperately. E.g. you could do
@@ -347,7 +254,7 @@ tests:
 
 
 Data harmonization and custom functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"""""""""""""""""""""""""""""""""""""""
 
 SaQC includes functionality to harmonize the timestamps of one or more data
 series. Also, you can write your own tests using a python-based
