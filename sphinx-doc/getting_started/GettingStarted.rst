@@ -152,14 +152,13 @@ These lines illustrate how different quality control tests can be specified for
 different variables by following the pattern:
 
 ..list-table::
-:header-rows:1
+  :header-rows:1
 
-*-*varname*
--;
--*testname(testparameters)*
--;
--*plottingoption*
-*-
+  * - *varname*
+    - *testname(testparameters)*
+    -
+  * plottingoption*
+    -
 
 
 In this case, we define a range-test that flags all values outside the range
@@ -338,7 +337,7 @@ tests:
           :target: ../ressources/images/example_plot_31.png
           :alt: 
        
-     - bumm
+     -
 
 
 
@@ -384,5 +383,3 @@ plot below). You can learn more about the syntax of these custom functions
    :target: ../ressources/images/example_plot_4.png
    :alt: Example custom function
 
-
-:py:func:`lala <docs.func_modules.outliers.flagRange>`
