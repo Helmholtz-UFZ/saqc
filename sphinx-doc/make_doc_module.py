@@ -137,6 +137,21 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
 
     return 0
 
+def makeModuleAPIs(modules, folder_path='moduleAPIs', pck_path='Functions'):
+    f_path = os.path.abspath(folder_path)
+    for m in modules:
+        lines = []
+        lines += [m]
+        lines += ['='*len(m)]
+        lines += ['']
+        lines += [f'.. automodapi:: {pck_path}.{m}']
+        lines += [' '*3 + ':no-heading:']
+        with open(os.path.join(f_path, f"{pck_path}{m}.rst"), "w") as f:
+            for l in lines:
+                f.write(l + "\n")
+
+    pass
+
 
 @click.command()
 @click.option(
@@ -199,10 +214,13 @@ def main(pckpath, targetpath, sphinxroot, mode):
         for dm in func_dict.keys():
             module = re.search("([^ .]*)\.[^ ]*$", dm).group(1)
             doc_struct[module].append(dm)
+        makeModuleAPIs(list(doc_struct.keys()))
         doc_struct.update(mod_dict)
         make_doc_module(targetpath, func_dict, doc_struct)
+
         # complete docs
         doc_mod_structure = {"saqc": [f for f in func_dict.keys()], "saqc_dcstring": ""}
+        makeModuleAPIs(["saqc"])
         make_doc_module(targetpath, func_dict, doc_mod_structure)
 
 
