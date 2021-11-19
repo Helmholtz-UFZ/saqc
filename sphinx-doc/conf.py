@@ -14,6 +14,9 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(".."))
+package_path = os.path.abspath('..')
+os.environ['PYTHONPATH'] = ':'.join((package_path, os.environ.get('PYTHONPATH', '')))
+
 
 
 # -- Project information -----------------------------------------------------
@@ -59,6 +62,10 @@ extensions = [
     "recommonmark",
     # https://github.com/ryanfox/sphinx-markdown-tables
     "sphinx_markdown_tables",
+    # snippet plotting
+    "matplotlib.sphinxext.plot_directive",
+    # jupyter code execution
+    "jupyter_sphinx",
 ]
 
 
