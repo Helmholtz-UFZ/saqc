@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import warnings
 from typing import Optional, Union, Tuple, Sequence, Callable
 from typing_extensions import Literal
 
@@ -15,6 +15,7 @@ from scipy.optimize import curve_fit
 
 from saqc.constants import *
 from saqc.core import register, Flags
+from saqc.core.register import flagging
 from saqc.lib.types import FreqString
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta, toSequence
 from saqc.funcs.scores import assignKNNScore
@@ -23,7 +24,7 @@ from saqc.funcs.transformation import transform
 import saqc.lib.ts_operators as ts_ops
 
 
-@register(datamask="field")
+@flagging()
 def flagByStray(
     data: DictOfSeries,
     field: str,
@@ -399,7 +400,13 @@ def _expFit(
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@register(datamask="all", multivariate=True)
+@register(
+    mask=["field"],
+    demask=["field"],
+    squeeze=["field"],
+    multivariate=True,
+    handles_target=True,
+)
 def flagMVScores(
     data: DictOfSeries,
     field: Sequence[str],
@@ -415,6 +422,7 @@ def flagMVScores(
     drop_flagged: bool = False,  # TODO: still a case ?
     thresh: float = 3.5,
     min_periods: int = 1,
+    target: str = None,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -500,6 +508,9 @@ def flagMVScores(
         necessarily present in a reduction interval for reduction actually to be
         performed.
 
+    target : None
+        ignored.
+
     flag : float, default BAD
         flag to set.
 
@@ -549,6 +560,8 @@ def flagMVScores(
     more details. Although [2] gives a fully detailed overview over the `stray`
     algorithm.
     """
+    if target:
+        raise NotImplementedError("target is not implemented for this function")
 
     fields = toSequence(field)
     for f in fields:
@@ -599,7 +612,7 @@ def flagMVScores(
     return data, flags
 
 
-@register(datamask="field")
+@flagging()
 def flagRaise(
     data: DictOfSeries,
     field: str,
@@ -787,7 +800,7 @@ def flagRaise(
     return data, flags
 
 
-@register(datamask="field")
+@flagging()
 def flagMAD(
     data: DictOfSeries,
     field: str,
@@ -857,7 +870,7 @@ def flagMAD(
     return data, flags
 
 
-@register(datamask="field")
+@flagging()
 def flagOffset(
     data: DictOfSeries,
     field: str,
@@ -1025,7 +1038,7 @@ def flagOffset(
     return data, flags
 
 
-@register(datamask="field")
+@flagging()
 def flagByGrubbs(
     data: DictOfSeries,
     field: str,
@@ -1147,7 +1160,7 @@ def flagByGrubbs(
     return data, flags
 
 
-@register(datamask="field")
+@flagging()
 def flagRange(
     data: DictOfSeries,
     field: str,
@@ -1190,7 +1203,13 @@ def flagRange(
     return data, flags
 
 
-@register(datamask="all", multivariate=True)
+@register(
+    mask=["field"],
+    demask=["field"],
+    squeeze=["field"],
+    multivariate=True,
+    handles_target=True,
+)
 def flagCrossStatistic(
     data: DictOfSeries,
     field: Sequence[str],
@@ -1198,6 +1217,7 @@ def flagCrossStatistic(
     thresh: float,
     method: Literal["modZscore", "Zscore"] = "modZscore",
     flag: float = BAD,
+    target: str = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -1234,6 +1254,10 @@ def flagCrossStatistic(
     flag : float, default BAD
         flag to set.
 
+    target : None
+        ignored
+
+
     Returns
     -------
     data : dios.DictOfSeries
@@ -1246,6 +1270,8 @@ def flagCrossStatistic(
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
+    if target:
+        raise NotImplementedError("target is not implemented for this function")
 
     fields = toSequence(field)
     df = data[fields].loc[data[fields].index_of("shared")].to_df()

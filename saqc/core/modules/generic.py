@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Sequence, Union
 
 import saqc
 from saqc.constants import UNFLAGGED, BAD
@@ -16,16 +16,18 @@ class Generic:
         func: GenericFunction,
         target: str | Sequence[str] = None,
         flag: float = UNFLAGGED,
+        to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("genericProcess", locals())
 
     def genericFlag(
         self,
-        field: str | Sequence[str],
+        field: Union[str, Sequence[str]],
         func: GenericFunction,
-        target: str | Sequence[str] = None,
+        target: Union[str, Sequence[str]] = None,
         flag: float = BAD,
+        to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("genericFlag", locals())
