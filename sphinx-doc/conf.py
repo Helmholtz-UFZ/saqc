@@ -14,9 +14,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(".."))
-package_path = os.path.abspath('..')
-os.environ['PYTHONPATH'] = ':'.join((package_path, os.environ.get('PYTHONPATH', '')))
-
+package_path = os.path.abspath("..")
+os.environ["PYTHONPATH"] = ":".join((package_path, os.environ.get("PYTHONPATH", "")))
 
 
 # -- Project information -----------------------------------------------------
@@ -83,11 +82,11 @@ autosectionlabel_prefix_document = True
 
 autodoc_typehints = "none"
 
-doctest_global_setup = '''
+doctest_global_setup = """
 import saqc
 import pandas as pd
 import numpy as np
-'''
+"""
 # -- Other options -----------------------------------------------------------
 
 # Add any paths that contain templates here, relative to this directory.
