@@ -1,15 +1,13 @@
 """
 
 """
-
-
 def roll(field, window, func, set_flags, min_periods, center, target, flag):
     """
     Models the data with the rolling mean and returns the residues.
-
+    
     Note, that the residues will be stored to the `field` field of the input data, so that the data that is modelled
     gets overridden.
-
+    
     Parameters
     ----------
     field : str
@@ -39,3 +37,4 @@ def roll(field, window, func, set_flags, min_periods, center, target, flag):
         flag to set.
     """
     pass
+

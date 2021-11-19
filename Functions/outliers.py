@@ -1,14 +1,12 @@
 """
 
 """
-
-
 def flagByStray(field, freq, min_periods, iter_start, alpha, flag):
     """
     Flag outliers in 1-dimensional (score) data with the STRAY Algorithm.
-
+    
     Find more information on the algorithm in References [1].
-
+    
     Parameters
     ----------
     field : str
@@ -16,30 +14,30 @@ def flagByStray(field, freq, min_periods, iter_start, alpha, flag):
     freq : str, int, or None, default None
         Determines the segmentation of the data into partitions, the kNN algorithm is
         applied onto individually.
-
+    
         * ``np.inf``: Apply Scoring on whole data set at once
         * ``x`` > 0 : Apply scoring on successive data chunks of periods length ``x``
         * Offset String : Apply scoring on successive partitions of temporal extension
           matching the passed offset string
-
+    
     min_periods : int, default 11
         Minimum number of periods per partition that have to be present for a valid
         outlier dettection to be made in this partition. (Only of effect, if `freq`
         is an integer.) Partition min value must always be greater then the
         nn_neighbors value.
-
+    
     iter_start : float, default 0.5
         Float in [0,1] that determines which percentage of data is considered
         "normal". 0.5 results in the stray algorithm to search only the upper 50 % of
         the scores for the cut off point. (See reference section for more information)
-
+    
     alpha : float, default 0.05
         Level of significance by which it is tested, if a score might be drawn from
         another distribution, than the majority of the data.
-
+    
     flag : float, default BAD
         flag to set.
-
+    
     References
     ----------
     [1] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in
@@ -48,58 +46,43 @@ def flagByStray(field, freq, min_periods, iter_start, alpha, flag):
     pass
 
 
-def flagMVScores(
-    field,
-    trafo,
-    alpha,
-    n,
-    func,
-    iter_start,
-    partition,
-    partition_min,
-    partition_trafo,
-    stray_range,
-    drop_flagged,
-    thresh,
-    min_periods,
-    flag,
-):
+def flagMVScores(field, trafo, alpha, n, func, iter_start, partition, partition_min, partition_trafo, stray_range, drop_flagged, thresh, min_periods, flag):
     """
     The algorithm implements a 3-step outlier detection procedure for simultaneously
     flagging of higher dimensional data (dimensions > 3).
-
+    
     In references [1], the procedure is introduced and exemplified with an
     application on hydrological data. See the notes section for an overview over the
     algorithms basic steps.
-
+    
     Parameters
     ----------
     field : list of str
         List of fieldnames, corresponding to the variables that are to be included
         into the flagging process.
-
+    
     trafo : callable, default lambda x:x
         Transformation to be applied onto every column before scoring. Will likely
         get deprecated soon. Its better to transform the data in a processing step,
         preceeeding the call to ``flagMVScores``.
-
+    
     alpha : float, default 0.05
         Level of significance by which it is tested, if an observations score might
         be drawn from another distribution than the majority of the observation.
-
+    
     n : int, default 10
         Number of neighbors included in the scoring process for every datapoint.
-
+    
     func : Callable[numpy.array, float], default np.sum
         The function that maps the set of every points k-nearest neighbor distances
         onto a certain scoring.
-
+    
     iter_start : float, default 0.5
         Float in [0,1] that determines which percentage of data is considered
         "normal". 0.5 results in the threshing algorithm to search only the upper 50
         % of the scores for the cut off point. (See reference section for more
         information)
-
+    
     partition : {None, str, int}, default None
         Only effective when `threshing` = 'stray'. Determines the size of the data
         partitions, the data is decomposed into. Each partition is checked seperately
@@ -108,70 +91,70 @@ def flagMVScores(
         an integer is passed, the data is simply split up into continous chunks of
         `freq` periods. if ``None`` is passed (default), all the data will be tested
         in one run.
-
+    
     partition_min : int, default 11
         Only effective when `threshing` = 'stray'. Minimum number of periods per
         partition that have to be present for a valid outlier detection to be made in
         this partition. (Only of effect, if `stray_partition` is an integer.)
-
+    
     partition_trafo : bool, default True
         Whether or not to apply the passed transformation on every partition the
         algorithm is applied on, separately.
-
+    
     stray_range : {None, str}, default None
         If not None, it is tried to reduce the stray result onto single outlier
         components of the input fields. An offset string, denoting the range of the
         temporal surrounding to include into the MAD testing while trying to reduce
         flags.
-
+    
     drop_flagged : bool, default False
         Only effective when `range` is not ``None``. Whether or not to drop flagged
         values other than the value under test from the temporal surrounding before
         checking the value with MAD.
-
+    
     thresh : float, default 3.5
         Only effective when `range` is not ``None``. The `critical` value,
         controlling wheather the MAD score is considered referring to an outlier or
         not. Higher values result in less rigid flagging. The default value is widely
         considered apropriate in the literature.
-
+    
     min_periods : int, 1
         Only effective when `range` is not ``None``. Minimum number of meassurements
         necessarily present in a reduction interval for reduction actually to be
         performed.
-
+    
     flag : float, default BAD
         flag to set.
-
+    
     Notes
     -----
     The basic steps are:
-
+    
     1. transforming
-
+    
     The different data columns are transformed via timeseries transformations to
     (a) make them comparable and
     (b) make outliers more stand out.
-
+    
     This step is usually subject to a phase of research/try and error. See [1] for more
     details.
-
+    
     Note, that the data transformation as an built-in step of the algorithm,
     will likely get deprecated soon. Its better to transform the data in a processing
     step, preceeding the multivariate flagging process. Also, by doing so, one gets
     mutch more control and variety in the transformation applied, since the `trafo`
     parameter only allows for application of the same transformation to all of the
     variables involved.
-
+    
     2. scoring
-
+    
     Every observation gets assigned a score depending on its k nearest neighbors. See
     the `scoring_method` parameter description for details on the different scoring
     methods. Furthermore [1], [2] may give some insight in the pro and cons of the
     different methods.
-
+    
     3. threshing
-
+    
     The gaps between the (greatest) scores are tested for beeing drawn from the same
     distribution as the majority of the scores. If a gap is encountered, that,
     with sufficient significance, can be said to not be drawn from the same
@@ -184,20 +167,18 @@ def flagMVScores(
     pass
 
 
-def flagRaise(
-    field, thresh, raise_window, freq, average_window, raise_factor, slope, weight, flag
-):
+def flagRaise(field, thresh, raise_window, freq, average_window, raise_factor, slope, weight, flag):
     """
     The function flags raises and drops in value courses, that exceed a certain threshold
     within a certain timespan.
-
+    
     The parameter variety of the function is owned to the intriguing
     case of values, that "return" from outlierish or anomalious value levels and
     thus exceed the threshold, while actually being usual values.
-
+    
     NOTE, the dataset is NOT supposed to be harmonized to a time series with an
     equidistant frequency grid.
-
+    
     Parameters
     ----------
     field : str
@@ -222,28 +203,28 @@ def flagRaise(
         See third condition listed in the notes below.
     flag : float, default BAD
         flag to set.
-
+    
     Notes
     -----
     The value :math:`x_{k}` of a time series :math:`x` with associated
     timestamps :math:`t_i`, is flagged a raise, if:
-
+    
     * There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within `raise_window`
     range, so that:
-
+    
       * :math:`M = |x_k - x_s | >`  `thresh` :math:`> 0`
-
+    
     * The weighted average :math:`\mu^{*}` of the values, preceding :math:`x_{k}`
       within `average_window`
       range indicates, that :math:`x_{k}` does not return from an "outlierish" value
       course, meaning that:
-
+    
       * :math:`x_k > \mu^* + ( M` / `mean_raise_factor` :math:`)`
-
+    
     * Additionally, if `min_slope` is not `None`, :math:`x_{k}` is checked for being
       sufficiently divergent from its very predecessor :max:`x_{k-1}`$, meaning that, it
       is additionally checked if:
-
+    
       * :math:`x_k - x_{k-1} >` `min_slope`
       * :math:`t_k - t_{k-1} >` `weight` :math:`\times` `freq`
     """
@@ -253,11 +234,11 @@ def flagRaise(
 def flagMAD(field, window, flag):
     """
     The function represents an implementation of the modyfied Z-score outlier detection method.
-
+    
     See references [1] for more details on the algorithm.
-
+    
     Note, that the test needs the input data to be sampled regularly (fixed sampling rate).
-
+    
     Parameters
     ----------
     field : str
@@ -268,7 +249,7 @@ def flagMAD(field, window, flag):
         The value the Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
     flag : float, default BAD
         flag to set.
-
+    
     References
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
@@ -279,22 +260,22 @@ def flagMAD(field, window, flag):
 def flagOffset(field, thresh, tolerance, window, thresh_relative, flag):
     """
     A basic outlier test that work on regular and irregular sampled data
-
+    
     The test classifies values/value courses as outliers by detecting not only a rise
     in value, but also, checking for a return to the initial value level.
-
+    
     Values :math:`x_n, x_{n+1}, .... , x_{n+k}` of a timeseries :math:`x` with
     associated timestamps :math:`t_n, t_{n+1}, .... , t_{n+k}` are considered spikes, if
-
+    
     1. :math:`|x_{n-1} - x_{n + s}| >` `thresh`, for all :math:`s \in [0,1,2,...,k]`
-
+    
     2. :math:`|x_{n-1} - x_{n+k+1}| <` `tolerance`
-
+    
     3. :math:`|t_{n-1} - t_{n+k+1}| <` `window`
-
+    
     Note, that this definition of a "spike" not only includes one-value outliers, but
     also plateau-ish value courses.
-
+    
     Parameters
     ----------
     field : str
@@ -310,12 +291,12 @@ def flagOffset(field, thresh, tolerance, window, thresh_relative, flag):
         Relative threshold.
     flag : float, default BAD
         flag to set.
-
+    
     References
     ----------
     The implementation is a time-window based version of an outlier test from the UFZ Python library,
     that can be found here:
-
+    
     https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py
     """
     pass
@@ -324,20 +305,20 @@ def flagOffset(field, thresh, tolerance, window, thresh_relative, flag):
 def flagByGrubbs(field, window, alpha, min_periods, flag):
     """
     The function flags values that are regarded outliers due to the grubbs test.
-
+    
     See reference [1] for more information on the grubbs tests definition.
-
+    
     The (two-sided) test gets applied onto data chunks of size "window". The tests
     application  will be iterated on each data-chunk under test, till no more
     outliers are detected in that chunk.
-
+    
     Note, that the test performs poorely for small data chunks (resulting in heavy
     overflagging). Therefor you should select "window" so that every window contains
     at least > 8 values and also adjust the min_periods values accordingly.
-
+    
     Note, that the data to be tested by the grubbs test are expected to be distributed
     "normalish".
-
+    
     Parameters
     ----------
     field : str
@@ -361,11 +342,11 @@ def flagByGrubbs(field, window, alpha, min_periods, flag):
         defined window size.
     flag : float, default BAD
         flag to set.
-
+    
     References
     ----------
     introduction to the grubbs test:
-
+    
     [1] https://en.wikipedia.org/wiki/Grubbs%27s_test_for_outliers
     """
     pass
@@ -374,7 +355,7 @@ def flagByGrubbs(field, window, alpha, min_periods, flag):
 def flagRange(field, min, max, flag):
     """
     Function flags values not covered by the closed interval [`min`, `max`].
-
+    
     Parameters
     ----------
     field : str
@@ -392,10 +373,10 @@ def flagRange(field, min, max, flag):
 def flagCrossStatistic(field, thresh, method, flag):
     """
     Function checks for outliers relatively to the "horizontal" input data axis.
-
+    
     For `fields` :math:`=[f_1,f_2,...,f_N]` and timestamps :math:`[t_1,t_2,...,t_K]`, the following steps are taken
     for outlier detection:
-
+    
     1. All timestamps :math:`t_i`, where there is one :math:`f_k`, with :math:`data[f_K]` having no entry at
        :math:`t_i`, are excluded from the following process (inner join of the :math:`f_i` fields.)
     2. for every :math:`0 <= i <= K`, the value
@@ -403,7 +384,7 @@ def flagCrossStatistic(field, thresh, method, flag):
     2. for every :math:`0 <= i <= K`, the set
        :math:`\{data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j\}` is tested for outliers with the
        specified method (`cross_stat` parameter).
-
+    
     Parameters
     ----------
     field : list of str
@@ -412,16 +393,17 @@ def flagCrossStatistic(field, thresh, method, flag):
         Threshold which the outlier score of an value must exceed, for being flagged an outlier.
     method : {'modZscore', 'Zscore'}, default 'modZscore'
         Method used for calculating the outlier scores.
-
+    
         * ``'modZscore'``: Median based "sigma"-ish approach. See Referenecs [1].
         * ``'Zscore'``: Score values by how many times the standard deviation they differ from the median.
           See References [1]
-
+    
     flag : float, default BAD
         flag to set.
-
+    
     References
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
     pass
+

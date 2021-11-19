@@ -1,20 +1,18 @@
 """
 
 """
-
-
 def flagConstants(field, thresh, window, flag):
     """
     This functions flags plateaus/series of constant values of length `window` if
     their maximum total change is smaller than thresh.
-
+    
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
-
+    
     (1) n > `window`
     (2) |(y(t + i) - (t + j)| < `thresh`, for all i,j in [0, 1, ..., n]
-
+    
     Flag values are (semi-)constant.
-
+    
     Parameters
     ----------
     field : str
@@ -32,10 +30,10 @@ def flagConstants(field, thresh, window, flag):
 def flagByVariance(field, window, thresh, maxna, maxna_group, flag):
     """
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
-
+    
     (1) n > `window`
     (2) variance(y(t),...,y(t+n) < `thresh`
-
+    
     Parameters
     ----------
     field : str
@@ -53,3 +51,4 @@ def flagByVariance(field, window, thresh, maxna, maxna_group, flag):
         flag to set.
     """
     pass
+
