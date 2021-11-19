@@ -1,15 +1,17 @@
 """
 
 """
+
+
 def assignKNNScore(field, n, func, freq, min_periods, method, metric, p, radius):
     """
     TODO: docstring need a rework
     Score datapoints by an aggregation of the dictances to their k nearest neighbors.
-    
+
     The function is a wrapper around the NearestNeighbors method from pythons sklearn library (See reference [1]).
-    
+
     The steps taken to calculate the scores are as follows:
-    
+
     1. All the timeseries, given through ``field``, are combined to one feature space by an *inner* join on their
        date time indexes. thus, only samples, that share timestamps across all ``field``s will be included in the
        feature space.
@@ -23,7 +25,7 @@ def assignKNNScore(field, n, func, freq, min_periods, method, metric, p, radius)
     4. For every datapoint, the calculated nearest neighbors distances get aggregated to a score, by the function
        passed to `func`. The default, ``sum`` obviously just sums up the distances.
     5. The resulting timeseries of scores gets assigned to the field target.
-    
+
     Parameters
     ----------
     field : list of str
@@ -36,12 +38,12 @@ def assignKNNScore(field, n, func, freq, min_periods, method, metric, p, radius)
     freq : {np.inf, float, str}, default np.inf
         Determines the segmentation of the data into partitions, the kNN algorithm is
         applied onto individually.
-    
+
         * ``np.inf``: Apply Scoring on whole data set at once
         * ``x`` > 0 : Apply scoring on successive data chunks of periods length ``x``
         * Offset String : Apply scoring on successive partitions of temporal extension matching the passed offset
           string
-    
+
     min_periods : int, default 2
         The minimum number of periods that have to be present in a partition for the kNN scoring
         to be applied. If the number of periods present is below `min_periods`, the score for the
@@ -67,10 +69,9 @@ def assignKNNScore(field, n, func, freq, min_periods, method, metric, p, radius)
         one np.nan value gets appended to the list passed to the scoring method.
         The keyword just gets passed on to the underlying sklearn method.
         See reference [1] for more information on the algorithm.
-    
+
     References
     ----------
     [1] https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html
     """
     pass
-

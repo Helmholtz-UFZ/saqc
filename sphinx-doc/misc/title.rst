@@ -1,17 +1,4 @@
 
-.. role:: raw-html(raw)
-    :format: html
-
-.. |ufzLogo| image:: /ressources/images/Representative/UFZ_Logo.jpg
-    :width: 45 %
-    :target: https://www.ufz.de/
-
-
-.. |rdmLogo| image:: /ressources/images/Representative/RDMlogo.jpg
-    :width: 30 %
-    :target: https://www.ufz.de/index.php?de=45348
-
-
 .. |sacRaw| image:: /ressources/images/Representative/RawData.png
     :height: 150 px
     :width: 288 px
@@ -42,13 +29,6 @@
     :width: 200
 
 
-.. image:: /ressources/images/Representative/gitlabLogo.png
-    :width: 17 %
-    :align: right
-    :target: https://git.ufz.de/rdm-software/saqc
-
-
-|ufzLogo| |rdmLogo|
 
 ===========================================
 SaQC - System for automated Quality Control
@@ -78,7 +58,7 @@ Features
 
     * - |pyLogo| |csvConfig|
       - * :ref:`get and install SaQC <getting_started/InstallationGuide:installation guide>`
-        * :ref:`use the SaQC python API, enabling integration into larger programs <getting_started/python api>`
+        * :ref:`use the SaQC python API, enabling integration into larger programs <getting_started/TutorialAPI:python api>`
         * or use SaQC as a commandline application and configure your pipelines via plain text
     * - |sacRaw|
       - * easily load data from multiple sources, concatenating them in a SaQC object

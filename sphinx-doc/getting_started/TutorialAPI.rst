@@ -71,6 +71,7 @@ structures, so we only create shallow copies). Setting up more complex quality c
 simply a matter of method chaining. 
 
 .. code-block:: python
+
    # execute some tests
    qc = (qc
          .flagConstants("a", thresh=0.1, window="4D")

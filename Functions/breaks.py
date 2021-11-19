@@ -4,10 +4,12 @@ Detecting breakish changes in timeseries value courses.
 This module provides functions to detect and flag  breakish changes in the data value course, like gaps
 (:py:func:`flagMissing`), jumps/drops (:py:func:`flagJumps`) or isolated values (:py:func:`flagIsolated`).
 """
+
+
 def flagMissing(field, flag):
     """
     The function flags all values indicating missing data.
-    
+
     Parameters
     ----------
     field : str
@@ -22,9 +24,9 @@ def flagIsolated(field, gap_window, group_window, flag):
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
     large data gaps.
-    
+
     A gap is a timespan containing either no data or data invalid only (usually `nan`) .
-    
+
     Parameters
     ----------
     field : str
@@ -37,16 +39,16 @@ def flagIsolated(field, gap_window, group_window, flag):
         to be actually flagged as isolated group. See condition (1).
     flag : float, default BAD
         flag to set.
-    
+
     Notes
     -----
     A series of values :math:`x_k,x_{k+1},...,x_{k+n}`, with associated timestamps :math:`t_k,t_{k+1},...,t_{k+n}`,
     is considered to be isolated, if:
-    
+
     1. :math:`t_{k+1} - t_n <` `group_window`
     2. None of the :math:`x_j` with :math:`0 < t_k - t_j <` `gap_window`, is valid (preceeding gap).
     3. None of the :math:`x_j` with :math:`0 < t_j - t_(k+n) <` `gap_window`, is valid (succeding gap).
-    
+
     See Also
     --------
     :py:func:`flagMissing`
@@ -57,7 +59,7 @@ def flagIsolated(field, gap_window, group_window, flag):
 def flagJumps(field, thresh, window, min_periods, flag):
     """
     Flag datapoints, where the mean of the values significantly changes (where the value course "jumps").
-    
+
     Parameters
     ----------
     field : str
@@ -74,4 +76,3 @@ def flagJumps(field, thresh, window, min_periods, flag):
         flag to set.
     """
     pass
-

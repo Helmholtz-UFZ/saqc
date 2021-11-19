@@ -119,4 +119,18 @@ html_theme = "nature"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+html_static_path = ["_static", "css"]
+
+# -- RST options -------
+rst_prolog = """
+.. |ufzLogo| image:: /ressources/images/Representative/UFZLogo.jpg
+   :width: 40 %
+   :target: https://www.ufz.de/
+
+.. |rdmLogo| image:: /ressources/images/Representative/RDMlogo.jpg
+   :width: 18 %
+   :target: https://www.ufz.de/index.php?de=45348
+   :class: align-right
+
+|ufzLogo| |rdmLogo|
+"""

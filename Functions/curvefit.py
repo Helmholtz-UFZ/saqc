@@ -1,30 +1,34 @@
 """
 
 """
-def fitPolynomial(field, window, order, set_flags, min_periods, return_residues, target, flag):
+
+
+def fitPolynomial(
+    field, window, order, set_flags, min_periods, return_residues, target, flag
+):
     """
     Function fits a polynomial model to the data and returns the fitted data curve.
-    
+
     The fit is calculated by fitting a polynomial of degree `order` to a data slice
     of size `window`, that has x at its center.
-    
+
     Note, that the resulting fit is stored to the `field` field of the input data, so that the original data, the
     polynomial is fitted to, gets overridden.
-    
+
     Note, that, if data[field] is not alligned to an equidistant frequency grid, the window size passed,
     has to be an offset string.
-    
+
     Note, that calculating the residues tends to be quite costy, because a function fitting is perfomed for every
     sample. To improve performance, consider the following possibillities:
-    
+
     In case your data is sampled at an equidistant frequency grid:
-    
+
     (1) If you know your data to have no significant number of missing values, or if you do not want to
         calculate residues for windows containing missing values any way, performance can be increased by setting
         min_periods=window.
-    
+
     Note, that in the current implementation, the initial and final window/2 values do not get fitted.
-    
+
     Parameters
     ----------
     field : str
@@ -53,4 +57,3 @@ def fitPolynomial(field, window, order, set_flags, min_periods, return_residues,
         flag to set.
     """
     pass
-
