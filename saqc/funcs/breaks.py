@@ -19,16 +19,13 @@ from dios import DictOfSeries
 from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
 from saqc.lib.types import FreqString
-from saqc.funcs.changepoints import assignChangePointCluster
+from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.core.flags import Flags
 from saqc.core.history import History
-from saqc.core.register import _isflagged, register
+from saqc.core.register import _isflagged, register, flagging
 
 
-# NOTE:
-# masking=None as we otherwise might interprete
-# the masked values as missing data
-@register(datamask=None)
+@register(mask=[], demask=[], squeeze=["field"])
 def flagMissing(
     data: DictOfSeries,
     field: str,
@@ -68,7 +65,7 @@ def flagMissing(
     return data, flags
 
 
-@register(datamask="field")
+@flagging()
 def flagIsolated(
     data: DictOfSeries,
     field: str,
@@ -147,7 +144,7 @@ def flagIsolated(
     return data, flags
 
 
-@register(datamask="field")
+@flagging()
 def flagJumps(
     data: DictOfSeries,
     field: str,
@@ -159,7 +156,7 @@ def flagJumps(
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flag datapoints, where the mean of the values significantly changes (where the value course "jumps").
+    Flag where the mean of the values significantly changes (the data "jumps").
 
     Parameters
     ----------
@@ -180,7 +177,7 @@ def flagJumps(
     flag : float, default BAD
         flag to set.
     """
-    return assignChangePointCluster(
+    return _assignChangePointCluster(
         data,
         field,
         flags,

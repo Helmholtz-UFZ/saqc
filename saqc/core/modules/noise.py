@@ -15,7 +15,7 @@ class Noise:
     def flagByStatLowPass(
         self,
         field: str,
-        func: Callable[[np.ndarray, pd.Series], float],
+        func: Callable[[np.array, pd.Series], float],
         window: FreqString,
         thresh: float,
         sub_window: FreqString = None,

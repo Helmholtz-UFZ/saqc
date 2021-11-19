@@ -9,13 +9,14 @@ import saqc
 from saqc.constants import *
 from saqc.core import initFlagsLike
 from saqc import SaQC, register
+from saqc.core.register import processing
 
 from tests.common import initData, flagAll
 
 OPTIONAL = [False, True]
 
 
-register(datamask="field")(flagAll)
+register(mask=["field"], demask=["field"], squeeze=["field"])(flagAll)
 
 
 @pytest.fixture
@@ -30,7 +31,7 @@ def flags(data, optional):
 
 
 def test_errorHandling(data):
-    @register(datamask="field")
+    @processing()
     def raisingFunc(data, field, flags, **kwargs):
         raise TypeError
 

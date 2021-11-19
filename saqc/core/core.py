@@ -172,7 +172,7 @@ class SaQC(FunctionsMixin):
 
             # we wrap field again to generalize the
             # down stream loop work as expected
-            if func._multivariate:
+            if func.multivariate:
                 fields = [fields]
 
             out = self

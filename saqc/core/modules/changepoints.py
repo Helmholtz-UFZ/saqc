@@ -41,9 +41,6 @@ class ChangePoints:
             [np.ndarray, np.ndarray], float
         ] = lambda x, _: x.argmax(),
         model_by_resids: bool = False,
-        set_flags: bool = False,
-        assign_cluster: bool = True,
-        flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("assignChangePointCluster", locals())

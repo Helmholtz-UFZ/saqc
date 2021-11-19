@@ -215,7 +215,7 @@ def test_callableArgumentsUnary(data):
 
     window = 5
 
-    @register(datamask="field")
+    @register(mask=["field"], demask=["field"], squeeze=["field"])
     def testFuncUnary(data, field, flags, func, **kwargs):
         value = data[field].rolling(window=window).apply(func)
         data[field] = value
@@ -245,7 +245,7 @@ def test_callableArgumentsUnary(data):
 def test_callableArgumentsBinary(data):
     var1, var2 = data.columns[:2]
 
-    @register(datamask="field")
+    @register(mask=["field"], demask=["field"], squeeze=["field"])
     def testFuncBinary(data, field, flags, func, **kwargs):
         data[field] = func(data[var1], data[var2])
         return data, initFlagsLike(data)

@@ -13,7 +13,7 @@ from saqc.lib.tools import toSequence
 from tests.common import initData, flagAll
 
 
-register(datamask="field")(flagAll)
+register(mask=["field"], demask=["field"], squeeze=["field"])(flagAll)
 
 
 @pytest.fixture

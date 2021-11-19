@@ -37,7 +37,7 @@ def data():
         ("linear", dict()),
         ("shift", dict(method="nshift")),
         ("interpolate", dict(method="spline")),
-        ("resample", dict(agg_func=np.nansum, method="nagg")),
+        ("resample", dict(func=np.nansum, method="nagg")),
     ],
 )
 def test_wrapper(data, func, kws):

@@ -37,7 +37,13 @@ def _execGeneric(
     return DictOfSeries(out)
 
 
-@register(handles="data|flags", datamask="all", multivariate=True)
+@register(
+    mask=[],
+    demask=[],
+    squeeze=[],
+    multivariate=True,
+    handles_target=True,
+)
 def genericProcess(
     data: DictOfSeries,
     field: str | Sequence[str],
@@ -107,6 +113,9 @@ def genericProcess(
     >>> saqc.processGeneric(field=["rainfall", "snowfall"], target="precipitation'", func=lambda x, y: x + y)
     """
 
+    # TODO:
+    #  Function need manual masking, demasking and squeezing
+
     fields = toSequence(field)
     targets = toSequence(target or []) or fields
     result = _execGeneric(
@@ -128,7 +137,14 @@ def genericProcess(
     return data, flags
 
 
-@register(handles="data|flags", datamask="all", multivariate=True)
+# @register_fake(handles="data|flags", datamask="all", multivariate=True)
+@register(
+    mask=[],
+    demask=[],
+    squeeze=[],
+    multivariate=True,
+    handles_target=True,
+)
 def genericFlag(
     data: DictOfSeries,
     field: Union[str, Sequence[str]],
@@ -200,6 +216,8 @@ def genericFlag(
     >>> saqc.flagGeneric(field="fan", target="temperature", func=lambda x: np.sqrt(x) < 7)
     """
 
+    # TODO:
+    #  Function need manual masking, demasking and squeezing
     fields = toSequence(field)
     targets = toSequence(target or []) or fields
     result = _execGeneric(
