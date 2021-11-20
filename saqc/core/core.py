@@ -154,10 +154,14 @@ class SaQC(FunctionsMixin):
             *args,
             regex: bool = False,
             flag: ExternalFlag = None,
+            to_mask: float = None,
             **kwargs,
         ) -> SaQC:
 
-            kwargs.setdefault("to_mask", self._translator.TO_MASK)
+            if to_mask is None:
+                to_mask = self._translator.TO_MASK
+            else:
+                to_mask = self._translator(to_mask)
 
             # translation
             if flag is not None:
@@ -178,7 +182,13 @@ class SaQC(FunctionsMixin):
             out = self
 
             for f in fields:
-                out = out._callFunction(func, field=f, *args, **kwargs)
+                out = out._callFunction(
+                    func,
+                    field=f,
+                    to_mask=to_mask,
+                    *args,
+                    **kwargs,
+                )
             return out
 
         return inner
