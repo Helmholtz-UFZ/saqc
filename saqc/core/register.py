@@ -226,11 +226,7 @@ class FunctionWrapper:
         -----
         If ``to_mask`` is **not** in the kwargs, the threshold defaults to
          - ``-np.inf``
-        If boolean ``to_mask`` is found in the kwargs, the threshold defaults to
-         - ``-np.inf``, if ``True``
-         - ``+np.inf``, if ``False``
-        If a floatish ``to_mask`` is found in the kwargs, this value is taken as
-        the threshold.
+        If a floatish ``to_mask`` is found in the kwargs, this value is taken as the threshold.
         """
         if "to_mask" not in self.kwargs:
             return UNFLAGGED

@@ -49,7 +49,7 @@ class Translator:
     """
 
     # (internal) threshold flag above which values will be masked
-    TO_MASK: Union[float, bool] = True
+    TO_MASK: float = UNFLAGGED
 
     # additional arguments and default values the translation scheme accepts
     ARGUMENTS: Dict[str, Any] = {}
@@ -184,6 +184,7 @@ class FloatTranslator(Translator):
 
     _MAP = {
         -np.inf: -np.inf,
+        np.inf: np.inf,
         **{k: k for k in np.arange(0, 256, dtype=float)},
     }
 
