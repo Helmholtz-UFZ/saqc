@@ -244,7 +244,7 @@ def maskTime(
     return data, flags
 
 
-@register(mask=[], demask=[], squeeze=[], handles_target=True)
+@register(mask=[], demask=[], squeeze=[])
 def plot(
     data: DictOfSeries,
     field: str,
@@ -257,7 +257,7 @@ def plot(
     phaseplot: Optional[str] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
-    to_mask: Optional[float] = np.inf,
+    to_mask: float = np.inf,
     **kwargs,
 ):
     """
@@ -346,7 +346,6 @@ def plot(
 
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
-    kwargs = filterKwargs(kwargs, ["target"], msg="it makes no sense with plot.")
 
     interactive = path is None
     level = kwargs.get("flag", BAD)

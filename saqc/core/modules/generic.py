@@ -10,7 +10,7 @@ from saqc.lib.types import GenericFunction
 
 
 class Generic:
-    def genericProcess(
+    def processGeneric(
         self,
         field: str | Sequence[str],
         func: GenericFunction,
@@ -19,9 +19,9 @@ class Generic:
         to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("genericProcess", locals())
+        return self._defer("processGeneric", locals())
 
-    def genericFlag(
+    def flagGeneric(
         self,
         field: Union[str, Sequence[str]],
         func: GenericFunction,
@@ -30,4 +30,4 @@ class Generic:
         to_mask: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("genericFlag", locals())
+        return self._defer("flagGeneric", locals())
