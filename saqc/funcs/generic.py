@@ -10,10 +10,21 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import BAD, UNFLAGGED, ENVIRONMENT
+from saqc.core.history import History
 from saqc.lib.tools import toSequence
 from saqc.lib.types import GenericFunction, PandasLike
 from saqc.core.flags import Flags
-from saqc.core.register import register, _isflagged
+from saqc.core.register import register, _isflagged, FunctionWrapper
+
+
+def _prepare(
+    data: DictOfSeries, flags: Flags, columns: Sequence[str], to_mask: float
+) -> Tuple[DictOfSeries, Flags]:
+    fchunk = Flags({f: flags[f] for f in columns})
+    dchunk, _ = FunctionWrapper._maskData(
+        data=data.loc[:, columns].copy(), flags=fchunk, columns=columns, thresh=to_mask
+    )
+    return dchunk, fchunk.copy()
 
 
 def _execGeneric(
@@ -44,7 +55,7 @@ def _execGeneric(
     multivariate=True,
     handles_target=True,
 )
-def genericProcess(
+def processGeneric(
     data: DictOfSeries,
     field: str | Sequence[str],
     flags: Flags,
@@ -86,7 +97,7 @@ def genericProcess(
         created.
     flag: float, default ``UNFLAGGED``
         The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
-        ``genericProcess`` generates 'new' data without direct relation to the potentially
+        ``processGeneric`` generates 'new' data without direct relation to the potentially
         already present flags.
     to_mask: float, default ``UNFLAGGED``
         Threshold flag. Flag values greater than ``to_mask`` indicate that the associated
@@ -113,31 +124,44 @@ def genericProcess(
     >>> saqc.processGeneric(field=["rainfall", "snowfall"], target="precipitation'", func=lambda x, y: x + y)
     """
 
-    # TODO:
-    #  Function need manual masking, demasking and squeezing
-
     fields = toSequence(field)
-    targets = toSequence(target or []) or fields
-    result = _execGeneric(
-        Flags({f: flags[f] for f in fields}), data.loc[:, fields], func, to_mask=to_mask
-    )
+    targets = fields if target is None else toSequence(target)
 
-    # uodate data & flags
+    dchunk, fchunk = _prepare(data, flags, fields, to_mask)
+    result = _execGeneric(fchunk, dchunk, func, to_mask=to_mask)
+
+    meta = {
+        "func": "procGeneric",
+        "args": (),
+        "kwargs": {
+            "field": field,
+            "func": func.__name__,
+            "target": target,
+            "flag": flag,
+            "to_mask": to_mask,
+        },
+    }
+
+    # update data & flags
     for i, col in enumerate(targets):
+
         datacol = result.iloc[:, i]
         data[col] = datacol
-        if col in flags and flags[col].index.equals(datacol.index) is False:
+
+        if col not in flags:
+            flags.history[col] = History(datacol.index)
+
+        if not flags[col].index.equals(datacol.index):
             raise ValueError(
                 f"cannot assign function result to the existing variable {repr(col)} "
                 "because of incompatible indices, please choose another 'target'"
             )
 
-        flags[col] = pd.Series(flag, index=datacol.index)
+        flags.history[col].append(pd.Series(flag, index=datacol.index), meta)
 
     return data, flags
 
 
-# @register_fake(handles="data|flags", datamask="all", multivariate=True)
 @register(
     mask=[],
     demask=[],
@@ -145,7 +169,7 @@ def genericProcess(
     multivariate=True,
     handles_target=True,
 )
-def genericFlag(
+def flagGeneric(
     data: DictOfSeries,
     field: Union[str, Sequence[str]],
     flags: Flags,
@@ -183,7 +207,7 @@ def genericFlag(
         created.
     flag: float, default ``UNFLAGGED``
         The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
-        ``genericProcess`` generates 'new' data without direct relation to the potentially
+        ``processGeneric`` generates 'new' data without direct relation to the potentially
         already present flags.
     to_mask: float, default ``UNFLAGGED``
         Threshold flag. Flag values greater than ``to_mask`` indicate that the associated
@@ -216,16 +240,11 @@ def genericFlag(
     >>> saqc.flagGeneric(field="fan", target="temperature", func=lambda x: np.sqrt(x) < 7)
     """
 
-    # TODO:
-    #  Function need manual masking, demasking and squeezing
     fields = toSequence(field)
-    targets = toSequence(target or []) or fields
-    result = _execGeneric(
-        Flags({f: flags[f] for f in fields}),
-        data.loc[:, fields],
-        func,
-        to_mask=to_mask,
-    )
+    targets = fields if target is None else toSequence(target)
+
+    dchunk, fchunk = _prepare(data, flags, fields, to_mask)
+    result = _execGeneric(fchunk, dchunk, func, to_mask=to_mask)
 
     if len(targets) != len(result.columns):
         raise ValueError(
@@ -235,17 +254,41 @@ def genericFlag(
     if not (result.dtypes == bool).all():
         raise TypeError(f"generic expression does not return a boolean array")
 
+    meta = {
+        "func": "flagGeneric",
+        "args": (),
+        "kwargs": {
+            "field": field,
+            "func": func.__name__,
+            "target": target,
+            "flag": flag,
+            "to_mask": to_mask,
+        },
+    }
+
     # update flags & data
     for i, col in enumerate(targets):
+
         maskcol = result.iloc[:, i]
-        if col in flags and not flags[col].index.equals(maskcol.index):
+
+        # make sure the column exists
+        if col not in flags:
+            flags.history[col] = History(maskcol.index)
+
+        # dummy column to ensure consistency between flags and data
+        if col not in data:
+            data[col] = pd.Series(np.nan, index=maskcol.index)
+
+        maskcol = maskcol & ~_isflagged(flags[col], to_mask)
+        flagcol = maskcol.replace({False: np.nan, True: flag}).astype(float)
+
+        # we need equal indices to work on
+        if not flags[col].index.equals(maskcol.index):
             raise ValueError(
                 f"cannot assign function result to the existing variable {repr(col)} "
                 "because of incompatible indices, please choose another 'target'"
             )
-        flagcol = maskcol.replace({False: np.nan, True: flag})
-        flags[col] = flagcol
-        if col not in data:
-            data[col] = pd.Series(np.nan, index=maskcol.index)
+
+        flags.history[col].append(flagcol, meta)
 
     return data, flags
