@@ -19,7 +19,11 @@ from saqc.core.flags import (
     DOUBTFUL,
     BAD,
 )
-from saqc.core.translator.basetranslator import BackwardMap, Translator, ForwardMap
+from saqc.core.translation.basescheme import (
+    BackwardMap,
+    TranslationScheme,
+    ForwardMap,
+)
 
 
 _QUALITY_CAUSES = [
@@ -43,7 +47,7 @@ _QUALITY_LABELS = [
 ]
 
 
-class DmpTranslator(Translator):
+class DmpScheme(TranslationScheme):
 
     """
     Implements the translation from and to the flagging scheme implemented in

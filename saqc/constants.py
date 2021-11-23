@@ -14,6 +14,7 @@ import numpy as np
 import scipy.stats as st
 import saqc.lib.ts_operators as ts_ops
 
+
 #: Internal :py:mod:`flag level constant <saqc.constants>`.
 #: When returned by a test, it indicates, that the test did not consider to flag the respective value
 UNTOUCHED = np.nan
