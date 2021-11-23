@@ -294,6 +294,26 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
         start = stop
 
 
+def concatDios(data: List[dios.DictOfSeries], warn: bool = True, stacklevel: int = 2):
+    # fast path for most common case
+    if len(data) == 1 and data[0].columns.is_unique:
+        return data[0]
+
+    result = dios.DictOfSeries()
+    for di in data:
+        for c in di.columns:
+            if c in result.columns:
+                if warn:
+                    warnings.warn(
+                        f"Column {c} already exist. Data is overwritten. "
+                        f"Avoid duplicate columns names over all inputs.",
+                        stacklevel=stacklevel,
+                    )
+            result[c] = di[c]
+
+    return result
+
+
 def mergeDios(left, right, subset=None, join="merge"):
     # use dios.merge() as soon as it implemented
     # see https://git.ufz.de/rdm/dios/issues/15
