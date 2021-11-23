@@ -52,7 +52,7 @@ def fitPolynomial(
 
     Parameters
     ----------
-    data : dios.DictOfSeries
+    data : DictOfSeries
         The data container.
 
     field : str
