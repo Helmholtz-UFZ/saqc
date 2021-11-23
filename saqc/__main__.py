@@ -11,24 +11,11 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from saqc.core import (
-    fromConfig,
-    FloatTranslator,
-    DmpTranslator,
-    PositionalTranslator,
-    SimpleTranslator,
-)
+from saqc.core.reader import fromConfig
+from saqc.core.core import TRANSLATION_SCHEMES
 
 
 logger = logging.getLogger("SaQC")
-
-
-SCHEMES = {
-    "simple": SimpleTranslator,
-    "float": FloatTranslator,
-    "positional": PositionalTranslator,
-    "dmp": DmpTranslator,
-}
 
 
 def _setupLogging(loglvl):
@@ -95,7 +82,7 @@ def writeData(writer_dict, df, fname):
 @click.option(
     "--scheme",
     default=None,
-    type=click.Choice(SCHEMES.keys()),
+    type=click.Choice(tuple(TRANSLATION_SCHEMES.keys())),
     help="the flagging scheme to use",
 )
 @click.option("--nodata", default=np.nan, help="nodata value")
@@ -115,7 +102,7 @@ def main(config, data, scheme, outfile, nodata, log_level):
     saqc = fromConfig(
         config,
         data=data,
-        scheme=SCHEMES[scheme or "simple"](),
+        scheme=TRANSLATION_SCHEMES[scheme or "simple"](),
     )
 
     data_result, flags_result = saqc.result.data, saqc.result.flags
