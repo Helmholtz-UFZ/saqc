@@ -56,7 +56,6 @@ def test_modelling_rollingMean_forRegular(dat):
         flags,
         5,
         func=np.mean,
-        set_flags=True,
         min_periods=0,
         center=True,
     )
@@ -66,7 +65,6 @@ def test_modelling_rollingMean_forRegular(dat):
         flags,
         5,
         func=np.mean,
-        set_flags=True,
         min_periods=0,
         center=False,
     )

@@ -10,7 +10,7 @@ __all__ = [
     "ExternalFlag",
 ]
 
-from typing import TypeVar, Union
+from typing import Any, Callable, TypeVar, Union, Dict
 from typing_extensions import Protocol, Literal
 import numpy as np
 import pandas as pd
@@ -26,6 +26,7 @@ ExternalFlag = Union[str, float, int]
 # we only support fixed length offsets
 FreqString = Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"]
 
+
 # needed for deeper type hinting magic
 class CurveFitter(Protocol):
     def __call__(self, data: np.ndarray, *params: float) -> np.ndarray:
@@ -33,5 +34,9 @@ class CurveFitter(Protocol):
 
 
 class GenericFunction(Protocol):
+
+    __name__: str
+    __globals__: Dict[str, Any]
+
     def __call__(self, *args: pd.Series) -> PandasLike:
         ...

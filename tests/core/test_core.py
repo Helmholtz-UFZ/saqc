@@ -6,16 +6,17 @@ import numpy as np
 import pandas as pd
 
 import saqc
-from saqc.constants import *
 from saqc.core import initFlagsLike
 from saqc import SaQC, register
+from saqc.core.flags import Flags
+from saqc.core.register import processing
 
 from tests.common import initData, flagAll
 
 OPTIONAL = [False, True]
 
 
-register(datamask="field")(flagAll)
+register(mask=["field"], demask=["field"], squeeze=["field"])(flagAll)
 
 
 @pytest.fixture
@@ -30,7 +31,7 @@ def flags(data, optional):
 
 
 def test_errorHandling(data):
-    @register(datamask="field")
+    @processing()
     def raisingFunc(data, field, flags, **kwargs):
         raise TypeError
 
@@ -97,3 +98,64 @@ def test_copy(data):
     # underling data NOT copied
     assert shallow._data._data.iloc[0] is qc._data._data.iloc[0]
     assert shallow._flags._data["var1"].hist.index is qc._flags._data["var1"].hist.index
+
+
+def test_sourceTargetCopy():
+    """
+    test implicit copies
+    """
+    data = initData(1)
+    var1 = data.columns[0]
+    target = "new"
+
+    @register(mask=["field"], demask=["field"], squeeze=["field"], handles_target=False)
+    def flagTarget(data, field, flags, **kwargs):
+        assert "target" not in kwargs
+        return data, flags
+
+    qc = SaQC(data, flags=Flags({var1: pd.Series(127.0, index=data[var1].index)}))
+    qc = qc.flagTarget(field=var1, target=target)
+
+    assert (qc.data[var1] == qc.data[target]).all(axis=None)
+    assert all(qc.flags[var1] == qc.flags[target])
+
+
+def test_sourceTargetNoCopy():
+    """
+    test bypassing of the imlpicit copy machiners
+    """
+    data = initData(1)
+    var1 = data.columns[0]
+    target = "new"
+
+    @register(mask=["field"], demask=["field"], squeeze=["field"], handles_target=True)
+    def flagField(data, field, flags, **kwargs):
+        assert "target" in kwargs
+        assert "target" not in data
+        assert "target" not in flags
+        return data, flags
+
+    SaQC(data).flagField(field=var1, target=target)
+
+
+def test_sourceTargetMultivariate():
+    """
+    test bypassing of the imlpicit copy machiners
+    """
+    data = initData(3)
+
+    @register(
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field"],
+        handles_target=True,
+        multivariate=True,
+    )
+    def flagMulti(data, field, flags, **kwargs):
+        assert "target" in kwargs
+        assert "target" not in data
+        assert "target" not in flags
+        assert field == kwargs["target"]
+        return data, flags
+
+    SaQC(data).flagMulti(field=data.columns, target=data.columns)

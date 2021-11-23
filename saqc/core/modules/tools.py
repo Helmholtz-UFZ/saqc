@@ -38,7 +38,7 @@ class Tools:
         path: Optional[str] = None,
         max_gap: Optional[FreqString] = None,
         stats: bool = False,
-        history: Optional[Literal["valid", "complete"]] = "valid",
+        history: Optional[Literal["valid", "complete", "clear"]] = "valid",
         xscope: Optional[slice] = None,
         phaseplot: Optional[str] = None,
         stats_dict: Optional[dict] = None,

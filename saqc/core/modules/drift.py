@@ -41,6 +41,7 @@ class Drift:
             np.array([x, y]), metric="cityblock"
         )
         / len(x),
+        target=None,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
@@ -59,6 +60,7 @@ class Drift:
         )
         / len(x),
         method: LinkageString = "single",
+        target: str = None,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
@@ -70,8 +72,6 @@ class Drift:
         maintenance_field: str,
         model: Union[Callable[..., float], Literal["linear", "exponential"]],
         cal_range: int = 5,
-        target: str = None,
-        flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
         return self._defer("correctDrift", locals())
@@ -83,7 +83,6 @@ class Drift:
         model: CurveFitter,
         tolerance: Optional[FreqString] = None,
         epoch: bool = False,
-        target: str = None,
         **kwargs
     ) -> saqc.SaQC:
         return self._defer("correctRegimeAnomaly", locals())
@@ -96,7 +95,6 @@ class Drift:
         window: FreqString,
         min_periods: int,
         tolerance: Optional[FreqString] = None,
-        target: str = None,
         **kwargs
     ) -> saqc.SaQC:
         return self._defer("correctOffset", locals())

@@ -7,11 +7,12 @@ from dios import DictOfSeries
 from typing import Callable
 from saqc.constants import *
 from saqc.core import register, Flags
+from saqc.core.register import flagging
 from saqc.lib.types import FreqString
 from saqc.lib.tools import statPass
 
 
-@register(datamask="field")
+@flagging()
 def flagByStatLowPass(
     data: DictOfSeries,
     field: str,
@@ -51,6 +52,8 @@ def flagByStatLowPass(
         `sub_thresh` with respect to `stat`.
     sub_thresh: float, default None
     min_periods: int, default None
+    flag : float, default BAD
+        flag to set
 
     Returns
     -------

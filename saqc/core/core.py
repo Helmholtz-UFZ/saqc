@@ -5,8 +5,10 @@ from __future__ import annotations
 from typing import (
     Any,
     Callable,
+    List,
     Sequence,
     Hashable,
+    Tuple,
 )
 from copy import deepcopy, copy as shallowcopy
 
@@ -14,11 +16,11 @@ import pandas as pd
 import numpy as np
 
 from dios import DictOfSeries, to_dios
+from saqc.constants import BAD
 
 from saqc.core.flags import initFlagsLike, Flags
 from saqc.core.history import History
 from saqc.core.register import FUNC_MAP, FunctionWrapper
-from saqc.core.modules import FunctionsMixin
 from saqc.core.translator import (
     Translator,
     FloatTranslator,
@@ -48,7 +50,7 @@ TRANSLATION_SCHEMES = {
 }
 
 
-class SaQC(FunctionsMixin):
+class SaQC:
     _attributes = {
         "_data",
         "_flags",
@@ -135,50 +137,101 @@ class SaQC(FunctionsMixin):
     def result(self) -> SaQCResult:
         return SaQCResult(self._data, self._flags, self._attrs, self._translator)
 
+    def _expandFields(
+        self,
+        regex: bool,
+        multivariate: bool,
+        field: str | Sequence[str],
+        target: str | Sequence[str] = None,
+    ) -> Tuple[List[str], List[str]]:
+        """
+        check and expand `field` and `target`
+        """
+
+        if regex and target is not None:
+            raise NotImplementedError(
+                "explicit `target` not supported with regular expressions"
+            )
+        # expand regular expressions
+        if regex:
+            fmask = self._data.columns.str.match(field)
+            fields = self._data.columns[fmask].tolist()
+        else:
+            fields = toSequence(field)
+
+        targets = fields if target is None else toSequence(target)
+
+        if multivariate:
+            # wrap again to generalize the down stream loop
+            fields, targets = [fields], [targets]
+        else:
+            if len(fields) != len(targets):
+                raise ValueError(
+                    "expected the same number of 'field' and 'target' values"
+                )
+        return fields, targets
+
     def _wrap(self, func: FunctionWrapper):
-        """Enrich a function by special saqc-functionality.
+        """
+        prepare user function input:
+          - expand fields and targets
+          - translate user given ``flag`` values or set the default ``BAD``
+          - translate user given ``to_mask`` values or set the translator default
+          - dependeing on the workflow: initialize ``target`` variables
 
-        For each saqc function this realize
-            - regex's in field,
-            - use default of translator for ``to_mask`` if not specified by user,
-            - translation of ``flag`` and
-            - working inplace.
-        Therefore it adds the following keywords to each saqc function:
-        ``regex`` and ``inplace``.
+        Here we add the following parameters to all registered functions, regardless
+        of their repsective definition:
+          - ``regex``
+          - ``target``
 
-        The returned function returns a Saqc object.
         """
 
         def inner(
             field: str | Sequence[str],
             *args,
+            target: str | Sequence[str] = None,
             regex: bool = False,
             flag: ExternalFlag = None,
+            to_mask: float = None,
             **kwargs,
         ) -> SaQC:
 
-            kwargs.setdefault("to_mask", self._translator.TO_MASK)
+            if to_mask is None:
+                to_mask = self._translator.TO_MASK
+            else:
+                to_mask = self._translator(to_mask)
 
-            # translation
             if flag is not None:
                 kwargs["flag"] = self._translator(flag)
 
-            # expand regular expressions
-            if regex:
-                fmask = self._data.columns.str.match(field)
-                fields = self._data.columns[fmask].tolist()
-            else:
-                fields = toSequence(field)
-
-            # we wrap field again to generalize the
-            # down stream loop work as expected
-            if func._multivariate:
-                fields = [fields]
+            fields, targets = self._expandFields(
+                regex=regex, multivariate=func.multivariate, field=field, target=target
+            )
 
             out = self
 
-            for f in fields:
-                out = out._callFunction(func, field=f, *args, **kwargs)
+            for field, target in zip(fields, targets):
+
+                fkwargs = {
+                    **kwargs,
+                    "field": field,
+                    "target": target,
+                    "to_mask": to_mask,
+                }
+
+                if not func.handles_target and field != target:
+                    out = out._callFunction(
+                        FUNC_MAP["copyField"],
+                        *args,
+                        **fkwargs,
+                    )
+                    fkwargs["field"] = fkwargs.pop("target")
+
+                out = out._callFunction(
+                    func,
+                    *args,
+                    **fkwargs,
+                )
             return out
 
         return inner
@@ -198,7 +251,7 @@ class SaQC(FunctionsMixin):
         # data and flags of the original saqc obj may change inconsistently.
         self._data, self._flags = res
         self._called += [(field, (function, args, kwargs))]
-        self._validate(reason=f"Call to {repr(function.__name__)}")
+        self._validate(reason=f"call to {repr(function.__name__)}")
 
         return self._construct(
             _data=self._data, _flags=self._flags, _called=self._called
@@ -206,10 +259,9 @@ class SaQC(FunctionsMixin):
 
     def __getattr__(self, key):
         """
-        All failing attribute accesses are redirected to
-        __getattr__. We use this mechanism to make the
-        registered functions as `SaQC`-methods without
-        actually implementing them.
+        All failing attribute accesses are redirected to __getattr__.
+        We use this mechanism to make the registered functions appear
+        as `SaQC`-methods without actually implementing them.
         """
         if key not in FUNC_MAP:
             raise AttributeError(f"SaQC has no attribute {repr(key)}")

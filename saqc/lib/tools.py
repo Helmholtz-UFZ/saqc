@@ -6,7 +6,7 @@ import re
 import datetime
 import itertools
 import warnings
-from typing import List, Sequence, TypeVar, Union, Any, Iterator, Callable
+from typing import List, Sequence, TypeVar, Union, Any, Iterator, Callable, Collection
 
 import numpy as np
 import numba as nb
@@ -638,3 +638,54 @@ def statPass(
             to_set[start:end] = True
 
     return to_set
+
+
+def filterKwargs(
+    kwargs: dict,
+    reserved: Collection,
+    inplace: bool = True,
+    warn: bool = True,
+    msg: str = "",
+    stacklevel: int = 3,
+) -> dict:
+    """
+    Filter kwargs (or any dict) by a list of reserved keys.
+
+    Parameters
+    ----------
+    kwargs : dict
+        The dict to filter.
+
+    reserved : list-like
+        A list of reserved keywords.
+
+    inplace : bool, default False
+        If `False` a copy is returned, otherwise the modified original kwargs.
+
+    warn : bool, default True
+        Throw a `RuntimeWarning` with the following text:
+
+    msg : str, default ""
+        A text to append to the warnings message.
+
+    stacklevel : int, default 3
+        The stacklevel this warning will refer to.
+            - `2` : warn at the location this function is called
+            - `3` : warn for the function that calls this function (default)
+
+    Returns
+    -------
+    kwargs: dict
+        the modified kwargs or a copy
+    """
+    if not inplace:
+        kwargs = kwargs.copy()
+    for key in reserved:
+        if warn and key in kwargs:
+            warnings.warn(
+                f"The keyword {repr(key)} is reserved and will be ignored {msg}",
+                RuntimeWarning,
+                stacklevel=stacklevel,
+            )
+        kwargs.pop(key, None)
+    return kwargs
