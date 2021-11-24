@@ -8,9 +8,10 @@ __all__ = [
     "FreqString",
     "CurveFitter",
     "ExternalFlag",
+    "OptionalNone",
 ]
 
-from typing import Any, Callable, TypeVar, Union, Dict
+from typing import Any, TypeVar, Union, Dict
 from typing_extensions import Protocol, Literal
 import numpy as np
 import pandas as pd
