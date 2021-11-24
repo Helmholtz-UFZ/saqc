@@ -20,8 +20,8 @@ from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
 
 from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
-from saqc.lib.types import FreqString, CurveFitter
 from saqc.lib.ts_operators import linearDriftModel, expDriftModel
+from saqc.lib.types import CurveFitter
 
 
 LinkageString = Literal[
@@ -36,7 +36,7 @@ def flagDriftFromNorm(
     data: DictOfSeries,
     field: Sequence[str],
     flags: Flags,
-    freq: FreqString,
+    freq: str,
     spread: float,
     frac: float = 0.5,
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
@@ -162,7 +162,7 @@ def flagDriftFromReference(
     field: Sequence[str],
     flags: Flags,
     reference: str,
-    freq: FreqString,
+    freq: str,
     thresh: float,
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
         np.array([x, y]), metric="cityblock"
@@ -257,7 +257,7 @@ def flagDriftFromScaledNorm(
     flags: Flags,
     set_1: Sequence[str],
     set_2: Sequence[str],
-    freq: FreqString,
+    freq: str,
     spread: float,
     frac: float = 0.5,
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
@@ -532,7 +532,7 @@ def correctRegimeAnomaly(
     flags: Flags,
     cluster_field: str,
     model: CurveFitter,
-    tolerance: Optional[FreqString] = None,
+    tolerance: Optional[str] = None,
     epoch: bool = False,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -651,9 +651,9 @@ def correctOffset(
     flags: Flags,
     max_jump: float,
     spread: float,
-    window: FreqString,
+    window: str,
     min_periods: int,
-    tolerance: Optional[FreqString] = None,
+    tolerance: Optional[str] = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """

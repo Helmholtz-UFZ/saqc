@@ -16,7 +16,6 @@ from scipy.optimize import curve_fit
 from saqc.constants import *
 from saqc.core import register, Flags
 from saqc.core.register import flagging
-from saqc.lib.types import FreqString
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta, toSequence
 from saqc.funcs.scores import assignKNNScore
 from saqc.funcs.tools import copyField, dropField
@@ -29,7 +28,7 @@ def flagByStray(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    freq: Optional[Union[int, FreqString]] = None,
+    freq: Optional[Union[int, str]] = None,
     min_periods: int = 11,
     iter_start: float = 0.5,
     alpha: float = 0.05,
@@ -416,9 +415,9 @@ def flagMVScores(
     n: int = 10,
     func: Callable[[pd.Series], float] = np.sum,
     iter_start: float = 0.5,
-    partition: Optional[Union[int, FreqString]] = None,
+    partition: Optional[Union[int, str]] = None,
     partition_min: int = 11,
-    stray_range: Optional[FreqString] = None,
+    stray_range: Optional[str] = None,
     drop_flagged: bool = False,  # TODO: still a case ?
     thresh: float = 3.5,
     min_periods: int = 1,
@@ -618,9 +617,9 @@ def flagRaise(
     field: str,
     flags: Flags,
     thresh: float,
-    raise_window: FreqString,
-    freq: FreqString,
-    average_window: Optional[FreqString] = None,
+    raise_window: str,
+    freq: str,
+    average_window: Optional[str] = None,
     raise_factor: float = 2.0,
     slope: Optional[float] = None,
     weight: float = 0.8,
@@ -805,7 +804,7 @@ def flagMAD(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: FreqString,
+    window: str,
     z: float = 3.5,
     flag: float = BAD,
     **kwargs,
@@ -877,7 +876,7 @@ def flagOffset(
     flags: Flags,
     thresh: float,
     tolerance: float,
-    window: Union[int, FreqString],
+    window: Union[int, str],
     thresh_relative: Optional[float] = None,
     flag: float = BAD,
     **kwargs,
@@ -1043,7 +1042,7 @@ def flagByGrubbs(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: Union[FreqString, int],
+    window: Union[str, int],
     alpha: float = 0.05,
     min_periods: int = 8,
     pedantic: bool = False,

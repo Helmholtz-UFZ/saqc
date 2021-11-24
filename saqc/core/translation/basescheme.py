@@ -24,7 +24,7 @@ ForwardMap = Dict[ExternalFlag, float]
 BackwardMap = Dict[float, ExternalFlag]
 
 
-class Translator:
+class TranslationScheme:
     """
     This class provides the basic translation mechanism and should serve as
     a base class for every other translation scheme.
@@ -175,7 +175,7 @@ class Translator:
         return out
 
 
-class FloatTranslator(Translator):
+class FloatScheme(TranslationScheme):
 
     """
     Acts as the default Translator, provides a changeable subset of the
@@ -192,7 +192,7 @@ class FloatTranslator(Translator):
         super().__init__(self._MAP, self._MAP)
 
 
-class SimpleTranslator(Translator):
+class SimpleScheme(TranslationScheme):
 
     """
     Acts as the default Translator, provides a changeable subset of the

@@ -14,10 +14,14 @@ from saqc.core.flags import (
     DOUBTFUL,
     BAD,
 )
-from saqc.core.translator.basetranslator import Translator, ForwardMap, BackwardMap
+from saqc.core.translation.basescheme import (
+    TranslationScheme,
+    ForwardMap,
+    BackwardMap,
+)
 
 
-class PositionalTranslator(Translator):
+class PositionalScheme(TranslationScheme):
 
     """
     Implements the translation from and to the flagging scheme implemented by CHS

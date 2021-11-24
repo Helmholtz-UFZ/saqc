@@ -17,6 +17,10 @@ from saqc.core import (
     flagging,
     processing,
     Flags,
+    FloatScheme,
+    DmpScheme,
+    PositionalScheme,
+    SimpleScheme,
     SaQC,
     fromConfig,
 )

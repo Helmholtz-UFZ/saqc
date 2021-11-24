@@ -18,7 +18,6 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
-from saqc.lib.types import FreqString
 from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.core.flags import Flags
 from saqc.core.history import History
@@ -70,8 +69,8 @@ def flagIsolated(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    gap_window: FreqString,
-    group_window: FreqString,
+    gap_window: str,
+    group_window: str,
     flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -150,7 +149,7 @@ def flagJumps(
     field: str,
     flags: Flags,
     thresh: float,
-    window: FreqString,
+    window: str,
     min_periods: int = 1,
     flag: float = BAD,
     **kwargs
