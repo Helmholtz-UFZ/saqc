@@ -1,12 +1,19 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+__all__ = [
+    "T",
+    "ArrayLike",
+    "PandasLike",
+    "DiosLikeT",
+    "FreqString",
+    "CurveFitter",
+    "ExternalFlag",
+]
 
 from typing import Any, Callable, TypeVar, Union, Dict
 from typing_extensions import Protocol, Literal
-
 import numpy as np
 import pandas as pd
-
 from dios import DictOfSeries
 
 T = TypeVar("T")
@@ -19,27 +26,6 @@ ExternalFlag = Union[str, float, int]
 # we only support fixed length offsets
 FreqString = Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"]
 
-LinkageString = Literal[
-    "single", "complete", "average", "weighted", "centroid", "median", "ward"
-]
-
-InterpolationString = Literal[
-    "linear",
-    "time",
-    "nearest",
-    "zero",
-    "slinear",
-    "quadratic",
-    "cubic",
-    "spline",
-    "barycentric",
-    "polynomial",
-    "krogh",
-    "piecewise_polynomial",
-    "spline",
-    "pchip",
-    "akima",
-]
 
 # needed for deeper type hinting magic
 class CurveFitter(Protocol):

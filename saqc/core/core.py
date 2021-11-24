@@ -391,7 +391,7 @@ class SaQCResult:
         return self._flags
 
     @property
-    def columns(self) -> DictOfSeries:
+    def columns(self) -> DictOfSeries():
         self._validate()
         return self._data.columns
 

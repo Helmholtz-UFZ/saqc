@@ -17,7 +17,7 @@ def flagByStatLowPass(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    func: Callable[[np.ndarray, pd.Series], float],
+    func: Callable[[np.array, pd.Series], float],
     window: FreqString,
     thresh: float,
     sub_window: FreqString = None,
@@ -41,7 +41,7 @@ def flagByStatLowPass(
         The fieldname of the column, holding the data-to-be-flagged.
     flags : saqc.Flags
         Container to store quality flags to data.
-    func: Callable[[np.ndarray, pd.Series], float]
+    func: Callable[[np.array, pd.Series], float]
         Function to aggregate chunk contnent with.
     window: FreqString
         Temporal extension of the chunks to test
