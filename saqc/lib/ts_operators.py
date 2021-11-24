@@ -201,7 +201,7 @@ def interpolateNANs(
     the interpolation to chunks, not containing more than "limit" nan entries (
     thereby not being identical to the "limit" keyword of pd.Series.interpolate).
 
-    :param data:                    pd.Series or np.ndarray. The data series to be interpolated
+    :param data:                    pd.Series or np.array. The data series to be interpolated
     :param method:                  String. Method keyword designating interpolation method to use.
     :param order:                   Integer. If your desired interpolation method needs an order to be passed -
                                     here you pass it.

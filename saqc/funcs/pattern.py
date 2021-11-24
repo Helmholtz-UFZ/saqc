@@ -1,30 +1,27 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Tuple
 import numpy as np
 import pandas as pd
 import dtw
 import pywt
 from mlxtend.evaluate import permutation_test
-from dios.dios.dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core.flags import Flags
-from saqc.core.register import flagging
+from saqc.core.register import register, flagging
 from saqc.lib.tools import customRoller
 
 
 # todo should we mask `reference` even if the func fail if reference has NaNs
 @flagging()
 def flagPatternByWavelet(
-    data: DictOfSeries,
-    field: str,
-    flags: Flags,
-    reference: str,
-    widths: Tuple[int] = (1, 2, 4, 8),
-    waveform: str = "mexh",
-    flag: float = BAD,
+    data,
+    field,
+    flags,
+    reference,
+    widths=(1, 2, 4, 8),
+    waveform="mexh",
+    flag=BAD,
     **kwargs
 ):
     """

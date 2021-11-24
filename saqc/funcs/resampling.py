@@ -12,7 +12,7 @@ from saqc.core import register, Flags
 from saqc.core.register import _isflagged, processing
 from saqc.lib.tools import evalFreqStr, getFreqDelta, filterKwargs
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
-from saqc.funcs.interpolation import interpolateIndex, InterpolationString
+from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
 import saqc.funcs.tools as tools
 
 
@@ -81,7 +81,7 @@ def interpolate(
     field: str,
     flags: Flags,
     freq: str,
-    method: InterpolationString,
+    method: _SUPPORTED_METHODS,
     order: int = 1,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -226,7 +226,7 @@ def resample(
     field: str,
     flags: Flags,
     freq: str,
-    func: Callable[[pd.Series], float] = np.mean,
+    func: Callable[[pd.Series], pd.Series] = np.mean,
     method: Literal["fagg", "bagg", "nagg"] = "bagg",
     maxna: Optional[int] = None,
     maxna_group: Optional[int] = None,

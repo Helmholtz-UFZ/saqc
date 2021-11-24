@@ -1,9 +1,10 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Tuple, Union, Callable
+from typing import Tuple, Union, Optional, Callable
 
 import pandas as pd
+from typing_extensions import Literal
 import numpy as np
 from dios import DictOfSeries
 
@@ -21,7 +22,7 @@ def calculatePolynomialResidues(
     flags: Flags,
     window: Union[str, int],
     order: int,
-    min_periods: int = 0,
+    min_periods: Optional[int] = 0,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -101,8 +102,8 @@ def calculateRollingResidues(
     field: str,
     flags: Flags,
     window: Union[str, int],
-    func: Callable[[pd.Series], float] = np.mean,
-    min_periods: int = 0,
+    func: Callable[[pd.Series], np.ndarray] = np.mean,
+    min_periods: Optional[int] = 0,
     center: bool = True,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:

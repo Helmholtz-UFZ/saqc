@@ -14,11 +14,17 @@ from scipy.spatial.distance import pdist
 
 from dios import DictOfSeries
 from saqc.constants import *
-from saqc.core.register import register, flagging, Flags
+from saqc.core.register import register, flagging
+from saqc.core import Flags
 from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
 from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
-from saqc.lib.types import FreqString, CurveFitter, LinkageString
+from saqc.lib.types import FreqString, CurveFitter
+
+
+LinkageString = Literal[
+    "single", "complete", "average", "weighted", "centroid", "median", "ward"
+]
 
 
 @flagging()
@@ -816,7 +822,7 @@ def assignRegimeAnomaly(
     cluster_field: str,
     spread: float,
     method: LinkageString = "single",
-    metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(
+    metric: Callable[[np.array, np.array], float] = lambda x, y: np.abs(
         np.nanmean(x) - np.nanmean(y)
     ),
     frac: float = 0.5,

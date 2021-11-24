@@ -600,7 +600,7 @@ def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply"):
 
 def statPass(
     datcol: pd.Series,
-    stat: Callable[[np.ndarray, pd.Series], float],
+    stat: Callable[[np.array, pd.Series], float],
     winsz: pd.Timedelta,
     thresh: float,
     comparator: Callable[[float, float], bool],

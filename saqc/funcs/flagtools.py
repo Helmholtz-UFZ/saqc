@@ -140,7 +140,7 @@ def flagManual(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    mdata: Union[pd.Series, pd.DataFrame, DictOfSeries, list, np.ndarray],
+    mdata: Union[pd.Series, pd.DataFrame, DictOfSeries, list, np.array],
     method: Literal[
         "left-open", "right-open", "closed", "plain", "ontime"
     ] = "left-open",
