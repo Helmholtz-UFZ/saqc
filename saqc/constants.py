@@ -36,7 +36,7 @@ DOUBTFUL = 25.0
 #: , evaluating to the highest (internal) flag level available.
 BAD = 255.0
 
-
+#: A :py:mod:`flag level constant <saqc.constants>`
 ENVIRONMENT = {
     # Not A number Constant.
     "NAN": np.nan,

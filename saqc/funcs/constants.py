@@ -35,7 +35,7 @@ def flagConstants(
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
     (1) n > `window`
-    (2) |(y(t + i) - (t + j)| < `thresh`, for all i,j in [0, 1, ..., n]
+    (2) `|(y(t + i) - (t + j)|` < `thresh`, for all i,j in [0, 1, ..., n]
 
     Flag values are (semi-)constant.
 

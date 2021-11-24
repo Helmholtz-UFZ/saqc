@@ -10,14 +10,13 @@ from saqc.core.register import FUNC_MAP
 class ConfigExpressionParser(ast.NodeVisitor):
     """
     Generic configuration functions will be rewritten as lambda functions
-    and variables that need a look up in `data` will act as arguments, e.g.:
-      `flagGeneric(func=(x != 4) & (y < 3))`
-      will be rewritten to
-      `lambda x, y: (x != 4) & (y < 3)`
+    and all defined variables will act as arguments, e.g.:
+    ``flagGeneric(func=(x != 4) & (y < 3))`` will be rewritten to
+    ``lambda x, y: (x != 4) & (y < 3)``
 
-    The main purpose of this class is to identify all such lambda arguments
-    and check the given expression for accordance with the restrictions
-    imposed onto generic functions.
+    The main purpose of this class is to identify all variables used in
+    a given generic function and to check that it does not violate the
+    restrictions imposed onto generic functions.
     """
 
     SUPPORTED = (

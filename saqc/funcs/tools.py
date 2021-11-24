@@ -297,6 +297,7 @@ def plot(
 
     history : {"valid", "complete", None}, default "valid"
         Discriminate the plotted flags with respect to the tests they originate from.
+
         * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
           in the legend, that actually contributed flags to the overall resault.
         * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
@@ -317,11 +318,11 @@ def plot(
         Reopen with: ``pickle.load(open(savepath,'w')).show()``
 
     stats_dict: dict, default None
-        (Only relevant if `stats`=True)
+        (Only relevant if ``stats = True``)
         Dictionary of additional statisticts to write to the statistics table
         accompanying the data plot. An entry to the stats_dict has to be of the form:
 
-        * {"stat_name": lambda x, y, z: func(x, y, z)}
+        * ``{"stat_name": lambda x, y, z: func(x, y, z)}``
 
         The lambda args ``x``,``y``,``z`` will be fed by:
 
