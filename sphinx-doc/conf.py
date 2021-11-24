@@ -27,7 +27,7 @@ copyright = (
 author = "Bert Palm, David Schäfer, Peter Lünenschloß, Lennart Schmidt, Juliane Geller"
 
 # The full version, including alpha/beta/rc tags
-release = "develop"
+release = f"{project} 2.0"
 
 
 # -- General configuration ---------------------------------------------------
