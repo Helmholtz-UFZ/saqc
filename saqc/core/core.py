@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import warnings
 from typing import (
     Any,
     Callable,
@@ -27,7 +28,7 @@ from saqc.core.translation import (
     PositionalScheme,
     DmpScheme,
 )
-from saqc.lib.tools import toSequence
+from saqc.lib.tools import toSequence, concatDios
 from saqc.lib.types import ExternalFlag, OptionalNone
 
 # the import is needed to trigger the registration
@@ -291,54 +292,93 @@ class SaQC:
         )
 
     def _initData(self, data, copy: bool) -> DictOfSeries:
+
         if data is None:
-            data = DictOfSeries()
+            return DictOfSeries()
+
+        if isinstance(data, list):
+            results = []
+            for d in data:
+                results.append(self._castToDios(d, copy=copy))
+            return concatDios(results, warn=True, stacklevel=3)
+
+        if isinstance(data, (DictOfSeries, pd.DataFrame, pd.Series)):
+            return self._castToDios(data, copy)
+
+        raise TypeError(
+            "'data' must be of type pandas.Series, "
+            "pandas.DataFrame or dios.DictOfSeries or"
+            "a list of those."
+        )
+
+    def _castToDios(self, data, copy: bool):
         if isinstance(data, pd.Series):
+            if not isinstance(data.name, str):
+                raise ValueError(f"Cannot init from unnamed pd.Series")
             data = data.to_frame()
-        if not isinstance(data, (DictOfSeries, pd.DataFrame)):
-            raise TypeError(
-                "'data' must be of type pandas.Series, "
-                "pandas.DataFrame or dios.DictOfSeries"
-            )
         if isinstance(data, pd.DataFrame):
             for idx in [data.index, data.columns]:
                 if isinstance(idx, pd.MultiIndex):
                     raise TypeError("'data' should not have MultiIndex")
-
         data = to_dios(data)  # noop for DictOfSeries
-
         for c in data.columns:
             if not isinstance(c, str):
                 raise TypeError("columns labels must be of type string")
         if copy:
-            return data.copy()
+            data = data.copy()
         return data
 
     def _initFlags(self, flags, copy: bool) -> Flags:
+        if flags is None:
+            return initFlagsLike(self._data)
+
+        if isinstance(flags, list):
+            result = Flags()
+            for f in flags:
+                f = self._castToFlags(f, copy=copy)
+                for c in f.columns:
+                    if c in result.columns:
+                        warnings.warn(
+                            f"Column {c} already exist. Data is overwritten. "
+                            f"Avoid duplicate columns names over all inputs.",
+                            stacklevel=2,
+                        )
+                        result.history[c] = f.history[c]
+            flags = result
+
+        elif isinstance(flags, (pd.DataFrame, DictOfSeries, Flags)):
+            flags = self._castToFlags(flags, copy=copy)
+
+        else:
+            raise TypeError(
+                "'flags' must be of type pandas.DataFrame, "
+                "dios.DictOfSeries or saqc.Flags or "
+                "a list of those."
+            )
+
+        # sanitize
+        # - if column is missing flags but present in data, add it
+        # - if column is present in both, the index must be equal
+        for c in self._data.columns:
+            if c not in flags.columns:
+                flags.history[c] = History(self._data[c].index)
+            else:
+                if not flags[c].index.equals(self._data[c].index):
+                    raise ValueError(
+                        f"The flags index of column {c} does not equals "
+                        f"the index of the same column in data."
+                    )
+        return flags
+
+    def _castToFlags(self, flags, copy):
         if isinstance(flags, pd.DataFrame):
             for idx in [flags.index, flags.columns]:
                 if isinstance(idx, pd.MultiIndex):
                     raise TypeError("'flags' should not have MultiIndex")
-        if flags is None:
-            flags = initFlagsLike(self._data)
-        elif isinstance(flags, (pd.DataFrame, DictOfSeries, Flags)):
-            if not isinstance(flags, Flags):
-                flags = Flags(flags)
-            if copy:
-                flags = flags.copy()
-            for c in self._data.columns:
-                if c not in flags.columns:
-                    flags.history = History(self._data[c].index)
-                else:
-                    if not flags[c].index.equals(self._data[c].index):
-                        raise ValueError(
-                            f"index of 'flags' does not equal "
-                            f"index of 'data' for column {c} "
-                        )
-        else:
-            raise TypeError(
-                "'flags' must be of type pandas.DataFrame, dios.DictOfSeries or Flags"
-            )
+        if not isinstance(flags, Flags):
+            flags = Flags(flags)
+        if copy:
+            flags = flags.copy()
         return flags
 
 
