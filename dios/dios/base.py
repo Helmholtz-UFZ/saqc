@@ -106,6 +106,9 @@ class _DiosBase:
         if pdextra.is_iterator(data):
             data = list(data)
 
+        if _is_dios_like(data) and not data.columns.is_unique:
+            raise ValueError("columns index must have unique values")
+
         if _is_dios_like(data) or isinstance(data, dict):
             if columns is None:
                 pass  # data is dict-like
