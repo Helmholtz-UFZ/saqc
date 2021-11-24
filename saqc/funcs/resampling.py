@@ -9,8 +9,8 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.core import register, Flags
-from saqc.core.register import _isflagged
-from saqc.lib.tools import evalFreqStr, getFreqDelta, _swapToTarget
+from saqc.core.register import _isflagged, processing
+from saqc.lib.tools import evalFreqStr, getFreqDelta, filterKwargs
 from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
 from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
 import saqc.funcs.tools as tools
@@ -27,13 +27,12 @@ METHOD2ARGS = {
 }
 
 
-@register(handles="index", datamask=None)
+@processing()
 def linear(
     data: DictOfSeries,
     field: str,
     flags: Flags,
     freq: str,
-    target: str = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -62,9 +61,6 @@ def linear(
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
 
-    target : str, default None
-        Write result to ``target``.
-
     Returns
     -------
     data : dios.DictOfSeries
@@ -74,10 +70,12 @@ def linear(
         The quality flags of data
         Flags values and shape may have changed relatively to the flags input.
     """
-    return interpolateIndex(data, field, flags, freq, "time", target=target, **kwargs)
+    reserved = ["method", "order", "limit", "downgrade"]
+    kwargs = filterKwargs(kwargs, reserved)
+    return interpolateIndex(data, field, flags, freq, "time", **kwargs)
 
 
-@register(handles="index", datamask="field")
+@processing()
 def interpolate(
     data: DictOfSeries,
     field: str,
@@ -85,7 +83,6 @@ def interpolate(
     freq: str,
     method: _SUPPORTED_METHODS,
     order: int = 1,
-    target: str = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -128,9 +125,6 @@ def interpolate(
         If your selected interpolation method can be performed at different *orders* - here you pass the desired
         order.
 
-    target : str, default None
-        Write result to ``target``.
-
     Returns
     -------
     data : dios.DictOfSeries
@@ -140,12 +134,15 @@ def interpolate(
         The quality flags of data
         Flags values and shape may have changed relatively to the flags input.
     """
+    reserved = ["limit", "downgrade"]
+    kwargs = filterKwargs(kwargs, reserved)
     return interpolateIndex(
-        data, field, flags, freq, method=method, order=order, target=target, **kwargs
+        data, field, flags, freq, method=method, order=order, **kwargs
     )
 
 
-@register(handles="index", datamask="field")
+# for @processing this would need to handle to_mask
+@register(mask=["field"], demask=[], squeeze=[])
 def shift(
     data: DictOfSeries,
     field: str,
@@ -153,7 +150,6 @@ def shift(
     freq: str,
     method: Literal["fshift", "bshift", "nshift"] = "nshift",
     freq_check: Optional[Literal["check", "auto"]] = None,
-    target: str = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -190,9 +186,6 @@ def shift(
           or if no uniform sampling rate could be estimated
         * 'auto' : estimate frequency and use estimate. (Ignores `freq` parameter.)
 
-    target : str, default None
-        Write result to ``target``.
-
     Returns
     -------
     data : dios.DictOfSeries
@@ -214,7 +207,6 @@ def shift(
     # do the shift on the history
     kws = dict(method=method, freq=freq)
 
-    field, flags = _swapToTarget(field, target, flags)
     history = flags.history[field].apply(
         index=datcol.index,
         func_handle_df=True,
@@ -227,7 +219,8 @@ def shift(
     return data, flags
 
 
-@register(handles="index", datamask="field")
+# for @processing this would need to handle to_mask
+@register(mask=["field"], demask=[], squeeze=[])
 def resample(
     data: DictOfSeries,
     field: str,
@@ -241,7 +234,6 @@ def resample(
     maxna_group_flags: Optional[int] = None,
     flag_func: Callable[[pd.Series], float] = max,
     freq_check: Optional[Literal["check", "auto"]] = None,
-    target: str = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -321,9 +313,6 @@ def resample(
             estimated
         * ``'auto'``: estimate frequency and use estimate. (Ignores `freq` parameter.)
 
-    target : str, default None
-        Write result to ``target``.
-
     Returns
     -------
     data : dios.DictOfSeries
@@ -356,7 +345,6 @@ def resample(
         max_invalid_consec=maxna_group_flags,
     )
 
-    field, flags = _swapToTarget(field, target, flags)
     history = flags.history[field].apply(
         index=datcol.index,
         func=aggregate2Freq,
@@ -426,7 +414,12 @@ def _inverseShift(
     return source.fillna(fill_value).astype(dtype, copy=False)
 
 
-@register(handles="index", datamask=None)
+@register(
+    mask=[],
+    demask=[],
+    squeeze=[],
+    handles_target=True,  # target is mandatory in func, so its allowed
+)
 def concatFlags(
     data: DictOfSeries,
     field: str,
@@ -486,7 +479,7 @@ def concatFlags(
         Container to store flags of the data.
 
     target : str
-        Fieldname of flags history to append to.
+        Field name of flags history to append to.
 
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift',
              'match'}

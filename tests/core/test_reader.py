@@ -8,7 +8,7 @@ import dios
 from pathlib import Path
 
 from saqc.core.reader import fromConfig, readFile
-from saqc.core.register import FUNC_MAP, register
+from saqc.core.register import FUNC_MAP, register, flagging
 from saqc.constants import UNTOUCHED
 
 from tests.common import initData, writeIO
@@ -42,7 +42,6 @@ def test_variableRegex(data):
         ("'.*'", data.columns),
         ("'var(1|2)'", [c for c in data.columns if c[-1] in ("1", "2")]),
         ("'var[12]'", [c for c in data.columns if c[-1] in ("1", "2")]),
-        ("var[12]", ["var[12]"]),  # not quoted -> not a regex
         ('".*3"', [c for c in data.columns if c[-1] == "3"]),
     ]
 
@@ -52,7 +51,18 @@ def test_variableRegex(data):
         result = [field for field, _ in saqc._called]
         assert np.all(result == expected)
 
+    tests = [
+        ("var[12]", ["var[12]"]),  # not quoted -> not a regex
+    ]
+    for regex, expected in tests:
+        fobj = writeIO(header + "\n" + f"{regex} ; flagDummy()")
+        with pytest.warns(RuntimeWarning):
+            saqc = fromConfig(fobj, data=data)
+        result = [field for field, _ in saqc._called]
+        assert np.all(result == expected)
 
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_inlineComments(data):
     """
     adresses issue #3
@@ -84,6 +94,7 @@ def test_configReaderLineNumbers():
     assert (planned.index == expected).all()
 
 
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_configFile(data):
 
     # check that the reader accepts different whitespace patterns
@@ -107,7 +118,7 @@ def test_configChecks(data):
 
     var1, _, var3, *_ = data.columns
 
-    @register(datamask=None)
+    @flagging()
     def flagFunc(data, field, flags, arg, opt_arg=None, **kwargs):
         flags[:, field] = UNTOUCHED
         return data, flags
@@ -133,7 +144,7 @@ def test_supportedArguments(data):
 
     # TODO: necessary?
 
-    @register(datamask="field")
+    @flagging()
     def func(data, field, flags, kwarg, **kwargs):
         flags[:, field] = UNTOUCHED
         return data, flags

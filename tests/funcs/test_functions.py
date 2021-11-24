@@ -129,8 +129,8 @@ def test_forceFlags(data, field):
     flags[:, field] = BAD
     assert all(flags[field] == BAD)
 
-    _, flags = forceFlags(data, field, flags, flag=DOUBT)
-    assert all(flags[field] == DOUBT)
+    _, flags = forceFlags(data, field, flags, flag=DOUBTFUL)
+    assert all(flags[field] == DOUBTFUL)
 
 
 def test_flagIsolated(data, field):

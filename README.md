@@ -47,8 +47,8 @@ additionally ships with a python based
 [extension language](docs/GenericFunctions.md) for quality and general
 purpose data processing.
 
-For a more specific round trip to some of SaQC's possibilities, we refer to
-our [GettingStarted](docs/GettingStarted.md).
+For a more specific round trip to some of SaQC's possibilities, please refer to
+the [Documention](https://rdm-software.pages.ufz.de/saqc/index.html).
 
 
 ### SaQC as a command line application

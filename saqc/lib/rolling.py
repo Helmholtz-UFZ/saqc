@@ -14,15 +14,9 @@ else:
     import pandas.core.indexers.objects as indexers
 
 
-class CustomNumericalIndexer(indexers.FixedWindowIndexer):
-    def __init__(
-        self,
-        index_array: np.ndarray | None = None,
-        window_size: int = 0,
-        forward: bool = False,
-        **kwargs,
-    ):
-        super().__init__(index_array, window_size, **kwargs)
+class ForwardMixin:
+    def __init__(self, *args, forward: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
         self.forward = forward
 
     def get_window_bounds(
@@ -37,12 +31,21 @@ class CustomNumericalIndexer(indexers.FixedWindowIndexer):
             closed = "right"
 
         if self.forward:
+
+            # this is only set with variable window indexer
+            if self.index_array is not None:  # noqa
+                self.index_array = self.index_array[::-1]  # noqa
+
+            # closed 'both' and 'neither' works the same
+            # on forward and backward windows by definition
             if closed == "left":
                 closed = "right"
             elif closed == "right":
                 closed = "left"
 
-        start, end = super().get_window_bounds(num_values, min_periods, center, closed)
+        start, end = super().get_window_bounds(  # noqa
+            num_values, min_periods, center, closed
+        )
 
         if self.forward:
             start, end = end, start
@@ -52,47 +55,13 @@ class CustomNumericalIndexer(indexers.FixedWindowIndexer):
         return start, end
 
 
-class CustomDatetimeIndexer(indexers.VariableWindowIndexer):
-    def __init__(
-        self,
-        index_array: np.ndarray | None = None,
-        window_size: int = 0,
-        forward: bool = False,
-        **kwargs,
-    ):
-        super().__init__(index_array, window_size, **kwargs)
-        self.forward = forward
+CustomFixedIndexer = type(
+    "CustomFixedIndexer", (ForwardMixin, indexers.FixedWindowIndexer), {}
+)
 
-    def get_window_bounds(
-        self,
-        num_values: int = 0,
-        min_periods: int | None = None,
-        center: bool | None = None,
-        closed: str | None = None,
-    ) -> tuple[np.ndarray, np.ndarray]:
-
-        # set the default
-        if closed is None and self.forward:
-            closed = "left"
-        elif closed is None:
-            closed = "right"
-
-        if self.forward:
-            self.index_array = self.index_array[::-1]
-            # swap left / right because we inverted the array
-            if closed == "left":
-                closed = "right"
-            elif closed == "right":
-                closed = "left"
-
-        start, end = super().get_window_bounds(num_values, min_periods, center, closed)
-
-        if self.forward:
-            start, end = end, start
-            start = num_values - start[::-1]
-            end = num_values - end[::-1]
-
-        return start, end
+CustomVariableIndexer = type(
+    "CustomVariableIndexer", (ForwardMixin, indexers.VariableWindowIndexer), {}
+)
 
 
 class AttrWrapper(object):
@@ -221,9 +190,7 @@ class CustomRoller:
         self._expand = expand
 
         # dummy roller.
-        # 1. This lets pandas do all the checks.
-        # 2. After the call, all the attributes (public and private)
-        #    of `_roller` are accessible on self
+        # This lets pandas do all the checks.
         verified = obj.rolling(
             window=window,
             min_periods=min_periods,
@@ -245,27 +212,33 @@ class CustomRoller:
         self._index_array = verified._index_array
 
         if self._dtlike_window:
-            self.window_indexer = CustomDatetimeIndexer(
+            self.window_indexer = CustomVariableIndexer(
                 index_array=verified._index_array,
                 window_size=verified._win_freq_i8,
                 center=verified.center,
                 forward=self._forward,
             )
         else:
-            self.window_indexer = CustomNumericalIndexer(
+            self.window_indexer = CustomFixedIndexer(
                 window_size=verified.window,
                 forward=self._forward,
             )
 
+        # set the default
+        if self._forward and closed is None:
+            closed = "left"
+
         # create the real roller with a custom Indexer
         # from the attributes of the old roller.
+        # After next line, all the attributes (public and private)
+        #    of `_roller` are accessible on self
         self._roller = obj.rolling(
             window=self.window_indexer,
             min_periods=verified.min_periods,  # roller.min_periods
             win_type=verified._win_type,  # use private here to silence warning
             on=verified.on,
             center=verified.center,
-            closed=verified.closed,
+            closed=closed,
             axis=verified.axis,
         )
 

@@ -13,7 +13,6 @@ __all__ = [
     "DOUBTFUL",
     "BAD",
     "GOOD",
-    "DOUBT",
     "ENVIRONMENT",
 ]
 
@@ -43,8 +42,6 @@ DOUBTFUL = 25.0
 #: A :py:mod:`flag level constant <saqc.constants>`
 #: , evaluating to the highest (internal) flag level available.
 BAD = 255.0
-
-DOUBT = DOUBTFUL  #: Alias for :py:const:`DOUBTFUL <saqc.constants.DOUBTFUL>`.
 
 
 ENVIRONMENT = {

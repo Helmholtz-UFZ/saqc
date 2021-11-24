@@ -62,12 +62,21 @@ def fromConfig(fname, *args, **kwargs):
 
         regex = False
         if isQuoted(field):
-            field = field[1:-1]
+            fld = field[1:-1]
             regex = True
+        else:
+            fld = field
 
-        tree = ast.parse(expr, mode="eval")
-        func_name, kwargs = ConfigFunctionParser().parse(tree.body)
-        kwargs["field" if "field" not in kwargs else "target"] = field
-        saqc = getattr(saqc, func_name)(regex=regex, **kwargs)
+        try:
+            tree = ast.parse(expr, mode="eval")
+            func_name, kwargs = ConfigFunctionParser().parse(tree.body)
+        except Exception as e:
+            raise type(e)(f"failed to parse: {field} ; {expr}") from e
+
+        kwargs["field" if "field" not in kwargs else "target"] = fld
+        try:
+            saqc = getattr(saqc, func_name)(regex=regex, **kwargs)
+        except Exception as e:
+            raise type(e)(f"failed to execute: {field} ; {expr}") from e
 
     return saqc

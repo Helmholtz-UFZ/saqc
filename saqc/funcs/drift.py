@@ -14,12 +14,12 @@ from scipy.spatial.distance import pdist
 
 from dios import DictOfSeries
 from saqc.constants import *
-from saqc.core.register import register
+from saqc.core.register import register, flagging
 from saqc.core import Flags
-from saqc.funcs.changepoints import assignChangePointCluster
+from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
 
-from saqc.lib.tools import detectDeviants, toSequence, _swapToTarget
+from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
 from saqc.lib.types import FreqString, CurveFitter
 from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 
@@ -31,7 +31,7 @@ LinkageString = Literal[
 MODELDICT = {"linear": linearDriftModel, "exponential": expDriftModel}
 
 
-@register(datamask="all")
+@flagging()
 def flagDriftFromNorm(
     data: DictOfSeries,
     field: Sequence[str],
@@ -149,7 +149,14 @@ def flagDriftFromNorm(
     return data, flags
 
 
-@register(datamask="all", multivariate=True)
+# default multivariate flagging
+@register(
+    mask=["field", "reference"],
+    demask=["field", "reference"],
+    squeeze=["field", "reference"],  # reference is written !
+    multivariate=True,
+    handles_target=True,
+)
 def flagDriftFromReference(
     data: DictOfSeries,
     field: Sequence[str],
@@ -161,6 +168,7 @@ def flagDriftFromReference(
         np.array([x, y]), metric="cityblock"
     )
     / len(x),
+    target=None,
     flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -188,6 +196,8 @@ def flagDriftFromReference(
         A distance function. It should be a function of 2 1-dimensional arrays and return a float scalar value.
         This value is interpreted as the distance of the two input arrays. The default is the averaged manhatten metric.
         See the Notes section to get an idea of why this could be a good choice.
+    target : None
+        ignored.
     flag : float, default BAD
         flag to set.
 
@@ -206,6 +216,9 @@ def flagDriftFromReference(
     That is, why, the "averaged manhatten metric" is set as the metric default, since it corresponds to the
     averaged value distance, two timeseries have (as opposed by euclidean, for example).
     """
+    if target:
+        raise NotImplementedError("target is not implemented for this function")
+
     fields = toSequence(field)
     data_to_flag = data[fields].to_df().dropna()
 
@@ -230,7 +243,14 @@ def flagDriftFromReference(
     return data, flags
 
 
-@register(datamask="all", multivariate=True)
+# default multivariate flagging
+@register(
+    mask=["set_1", "set_2"],
+    demask=["set_1", "set_2"],
+    squeeze=["set_1", "set_2"],
+    multivariate=True,
+    handles_target=True,
+)
 def flagDriftFromScaledNorm(
     data: DictOfSeries,
     field: str,
@@ -245,6 +265,7 @@ def flagDriftFromScaledNorm(
     )
     / len(x),
     method: LinkageString = "single",
+    target: str = None,
     flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
@@ -309,6 +330,9 @@ def flagDriftFromScaledNorm(
         different keywords (References [1]). See wikipedia for an introduction to
         hierarchical clustering (References [2]).
 
+    target : None
+        ignored
+
     flag : float, default BAD
         flag to set.
 
@@ -327,6 +351,9 @@ def flagDriftFromScaledNorm(
     Introduction to Hierarchical clustering:
         [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
     """
+    if target:
+        raise NotImplementedError("target is not implemented for this function")
+
     fields = list(set_1) + list(set_2)
     data_to_flag = data[fields].to_df().dropna()
 
@@ -366,7 +393,7 @@ def flagDriftFromScaledNorm(
     return data, flags
 
 
-@register(handles="index", datamask="field")
+@register(mask=["field"], demask=[], squeeze=[])
 def correctDrift(
     data: DictOfSeries,
     field: str,
@@ -374,7 +401,6 @@ def correctDrift(
     maintenance_field: str,
     model: Union[Callable[..., float], Literal["linear", "exponential"]],
     cal_range: int = 5,
-    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -406,10 +432,6 @@ def correctDrift(
     cal_range : int, default 5
         The number of values the mean is computed over, for obtaining the value level directly after and
         directly before maintenance event. This values are needed for shift calibration. (see above description)
-    target : str or None, default None
-        Write the reult of the processing to another variable then, ``field``. Must not already exist.
-    flag : float, default BAD
-        flag to set.
 
     Returns
     -------
@@ -498,13 +520,12 @@ def correctDrift(
         shiftedData = data_series + data_shiftVektor
         to_correct[shiftedData.index] = shiftedData
 
-    field, flags = _swapToTarget(field, target, flags)
     data[field] = to_correct
 
     return data, flags
 
 
-@register(handles="index", datamask="field")
+@register(mask=["field", "cluster_field"], demask=["cluster_field"], squeeze=[])
 def correctRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -513,7 +534,6 @@ def correctRegimeAnomaly(
     model: CurveFitter,
     tolerance: Optional[FreqString] = None,
     epoch: bool = False,
-    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -550,9 +570,6 @@ def correctRegimeAnomaly(
         unreliability of data near the changepoints of regimes.
     epoch : bool, default False
         If True, use "seconds from epoch" as x input to the model func, instead of "seconds from regime start".
-    target : str or None, default None
-        Write the reult of the processing to another variable then, ``field``. Must not already exist.
-
 
     Returns
     -------
@@ -623,12 +640,11 @@ def correctRegimeAnomaly(
         else:
             last_valid = 1
 
-    field, flags = _swapToTarget(field, target, flags)
     data[field] = data_ser
     return data, flags
 
 
-@register(datamask="all")
+@register(mask=["field"], demask=[], squeeze=[])
 def correctOffset(
     data: DictOfSeries,
     field: str,
@@ -638,7 +654,6 @@ def correctOffset(
     window: FreqString,
     min_periods: int,
     tolerance: Optional[FreqString] = None,
-    target: str = None,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -665,9 +680,6 @@ def correctOffset(
         If an offset string is passed, a data chunk of length `offset` right from the
         start and right before the end of any regime is ignored when calculating a regimes mean for data correcture.
         This is to account for the unrelyability of data near the changepoints of regimes.
-    target : str or None, default None
-        Write the result of the processing to another variable then, ``field``. Must not already exist.
-
 
     Returns
     -------
@@ -677,15 +689,8 @@ def correctOffset(
     flags : saqc.Flags
         The quality flags of data
     """
-    if target:
-        if target in data.columns:
-            raise ValueError("Target already exists.")
-
-        data, flags = copyField(data, field, flags, target)
-        field = target
-
     data, flags = copyField(data, field, flags, field + "_CPcluster")
-    data, flags = assignChangePointCluster(
+    data, flags = _assignChangePointCluster(
         data,
         field + "_CPcluster",
         flags,
@@ -694,7 +699,7 @@ def correctOffset(
         window=window,
         min_periods=min_periods,
     )
-    data, flags = assignRegimeAnomaly(data, field, flags, field + "_CPcluster", spread)
+    data, flags = _assignRegimeAnomaly(data, field, flags, field + "_CPcluster", spread)
     data, flags = correctRegimeAnomaly(
         data,
         field,
@@ -737,7 +742,7 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
     return data_fit, data_shift
 
 
-@register(datamask="all")
+@flagging()
 def flagRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -753,36 +758,38 @@ def flagRegimeAnomaly(
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    A function to flag values belonging to an anomalous regime regarding modelling regimes of field.
+    Flags anomalous regimes regarding to modelling regimes of field.
 
-    "Normality" is determined in terms of a maximum spreading distance, regimes must not exceed in respect
-    to a certain metric and linkage method.
+    "Normality" is determined in terms of a maximum spreading distance,
+    regimes must not exceed in respect to a certain metric and linkage method.
 
-    In addition, only a range of regimes is considered "normal", if it models more then `frac` percentage of
-    the valid samples in "field".
+    In addition, only a range of regimes is considered "normal", if it models
+    more then `frac` percentage of the valid samples in "field".
 
     Note, that you must detect the regime changepoints prior to calling this function.
 
-    Note, that it is possible to perform hypothesis tests for regime equality by passing the metric
-    a function for p-value calculation and selecting linkage method "complete".
+    Note, that it is possible to perform hypothesis tests for regime equality
+    by passing the metric a function for p-value calculation and selecting linkage
+    method "complete".
 
     Parameters
     ----------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        Data to process
     field : str
-        The fieldname of the column, holding the data-to-be-flagged.
+        Name of the column to process
     flags : saqc.Flags
         Container to store flags of the data.
     cluster_field : str
-        The name of the column in data, holding the cluster labels for the samples in field. (has to be indexed
-        equal to field)
+        Column in data, holding the cluster labels for the samples in field.
+        (has to be indexed equal to field)
     spread : float
-        A threshold denoting the valuelevel, up to wich clusters a agglomerated.
+        A threshold denoting the value level, up to wich clusters a agglomerated.
     method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
-        The linkage method used for hierarchical (agglomerative) clustering of the variables.
-    metric : Callable[[numpy.array, numpy.array], float], default lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y))
-        A metric function for calculating the dissimilarity between 2 regimes. Defaults to just the difference in mean.
+        The linkage method for hierarchical (agglomerative) clustering of the variables.
+    metric : Callable, default lambda x,y: np.abs(np.nanmean(x) - np.nanmean(y))
+        A metric function for calculating the dissimilarity between 2 regimes.
+        Defaults to the difference in mean.
     frac : float
         Has to be in [0,1]. Determines the minimum percentage of samples,
         the "normal" group has to comprise to be the normal group actually.
@@ -798,23 +805,25 @@ def flagRegimeAnomaly(
         The flags object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flags input.
     """
-    return assignRegimeAnomaly(
-        data,
-        field,
-        flags,
-        cluster_field,
-        spread,
+    reserverd = ["set_cluster", "set_flags"]
+    kwargs = filterKwargs(kwargs, reserverd)
+    return _assignRegimeAnomaly(
+        data=data,
+        field=field,
+        flags=flags,
+        cluster_field=cluster_field,
+        spread=spread,
         method=method,
         metric=metric,
         frac=frac,
+        flag=flag,
+        **kwargs,
         set_cluster=False,
         set_flags=True,
-        flag=flag,
-        **kwargs
     )
 
 
-@register(datamask="all")
+@register(mask=["field", "cluster_field"], demask=["cluster_field"], squeeze=[])
 def assignRegimeAnomaly(
     data: DictOfSeries,
     field: str,
@@ -826,9 +835,6 @@ def assignRegimeAnomaly(
         np.nanmean(x) - np.nanmean(y)
     ),
     frac: float = 0.5,
-    set_cluster: bool = True,  # todo: hide by a wrapper
-    set_flags: bool = False,  # todo: hide by a wrapper
-    flag: float = BAD,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -850,34 +856,24 @@ def assignRegimeAnomaly(
     Parameters
     ----------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        Data to process
     field : str
-        The fieldname of the column, holding the data-to-be-flagged.
+        Name of the column to process
     flags : saqc.Flags
         Container to store flags of the data.
     cluster_field : str
-        The name of the column in data, holding the cluster labels for the samples in field. (has to be indexed
-        equal to field)
+        Column in data, holding the cluster labels for the samples in field.
+        (has to be indexed equal to field)
     spread : float
-        A threshold denoting the valuelevel, up to wich clusters a agglomerated.
-    method : str, default "single"
-        The linkage method used for hierarchical (agglomerative) clustering of the
-        variables.
-    metric : Callable[[numpy.array, numpy.array], float], default lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y))
-        A metric function for calculating the dissimilarity between 2 regimes. Defaults
-        to just the difference in mean.
+        A threshold denoting the value level, up to wich clusters a agglomerated.
+    method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
+        The linkage method for hierarchical (agglomerative) clustering of the variables.
+    metric : Callable, default lambda x,y: np.abs(np.nanmean(x) - np.nanmean(y))
+        A metric function for calculating the dissimilarity between 2 regimes.
+        Defaults to the difference in mean.
     frac : float
         Has to be in [0,1]. Determines the minimum percentage of samples,
         the "normal" group has to comprise to be the normal group actually.
-    set_cluster : bool, default False
-        If True, all data, considered "anormal", gets assigned a negative clusterlabel.
-         This option is present for further use (correction) of the anomaly information.
-    set_flags : bool, default True
-        Whether or not to flag abnormal values (do not flag them, if you want to
-        correct them afterwards, because flagged values usually are not visible in
-        further tests).
-    flag : float, default BAD
-        flag to set.
 
     Returns
     -------
@@ -887,6 +883,40 @@ def assignRegimeAnomaly(
         The flags object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flags input.
     """
+    reserverd = ["set_cluster", "set_flags", "flag"]
+    kwargs = filterKwargs(kwargs, reserverd)
+    return _assignRegimeAnomaly(
+        data=data,
+        field=field,
+        flags=flags,
+        cluster_field=cluster_field,
+        spread=spread,
+        method=method,
+        metric=metric,
+        frac=frac,
+        **kwargs,
+        # control args
+        set_cluster=True,
+        set_flags=False,
+    )
+
+
+def _assignRegimeAnomaly(
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    cluster_field: str,
+    spread: float,
+    method: LinkageString = "single",
+    metric: Callable[[np.array, np.array], float] = lambda x, y: np.abs(
+        np.nanmean(x) - np.nanmean(y)
+    ),
+    frac: float = 0.5,
+    set_cluster: bool = True,
+    set_flags: bool = False,
+    flag: float = BAD,
+    **kwargs
+) -> Tuple[DictOfSeries, Flags]:
     series = data[cluster_field]
     cluster = np.unique(series)
     cluster_dios = DictOfSeries({i: data[field][series == i] for i in cluster})

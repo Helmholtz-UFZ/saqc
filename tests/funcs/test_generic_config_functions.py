@@ -67,7 +67,7 @@ def test_typeError():
 
     for test in tests:
         with pytest.raises(TypeError):
-            _compileGeneric(f"genericFlag(func={test})")
+            _compileGeneric(f"flagGeneric(func={test})")
 
 
 def test_comparisonOperators(data):
@@ -84,7 +84,7 @@ def test_comparisonOperators(data):
     ]
 
     for field, test, expected in tests:
-        func = _compileGeneric(f"genericFlag(func={test})")
+        func = _compileGeneric(f"flagGeneric(func={test})")
         result = _execGeneric(Flags({f: flags[f] for f in field}), data[field], func)
         assert (result == expected).all(axis=None)
 
@@ -106,7 +106,7 @@ def test_arithmeticOperators(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"genericProcess(func={test})")
+        func = _compileGeneric(f"processGeneric(func={test})")
         result = _execGeneric(flags, data, func)
         assert (result == expected).all(axis=None)
 
@@ -123,7 +123,7 @@ def test_nonReduncingBuiltins(data):
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"genericProcess(func={test})")
+        func = _compileGeneric(f"processGeneric(func={test})")
         result = _execGeneric(flags, data, func)
         assert (result == expected).all(axis=None)
 
@@ -139,7 +139,7 @@ def test_bitOps(data):
     ]
 
     for field, test, expected in tests:
-        func = _compileGeneric(f"genericFlag(func={test})")
+        func = _compileGeneric(f"flagGeneric(func={test})")
         result = _execGeneric(Flags({f: flags[f] for f in field}), data[field], func)
         assert (result == expected).all(axis=None)
 
@@ -148,8 +148,8 @@ def test_variableAssignments(data):
 
     config = f"""
     varname ; test
-    dummy1  ; genericProcess(field=["var1", "var2"], func=x + y)
-    dummy2  ; genericFlag(field=["var1", "var2"], func=x + y > 0)
+    dummy1  ; processGeneric(field=["var1", "var2"], func=x + y)
+    dummy2  ; flagGeneric(field=["var1", "var2"], func=x + y > 0)
     """
 
     fobj = writeIO(config)
@@ -164,7 +164,7 @@ def test_processExistingTarget(data):
     config = f"""
     varname ; test
     var2   ; flagMissing()
-    var2   ; genericProcess(func=y - 1, flag=DOUBTFUL)
+    var2   ; processGeneric(func=y - 1, flag=DOUBTFUL)
     """
 
     fobj = writeIO(config)
@@ -178,8 +178,8 @@ def test_processExistingTarget(data):
 def test_flagTargetExisting(data):
     config = f"""
     varname ; test
-    dummy   ; genericProcess(field="var1", func=x < 1)
-    dummy   ; genericProcess(field="var2", func=y >1)
+    dummy   ; processGeneric(field="var1", func=x < 1)
+    dummy   ; processGeneric(field="var2", func=y >1)
     """
 
     fobj = writeIO(config)
@@ -190,8 +190,8 @@ def test_flagTargetExisting(data):
 def test_processTargetExistingFail(data_diff):
     config = f"""
     varname ; test
-    dummy   ; genericProcess(field="var1", func=x + 1)
-    dummy   ; genericProcess(field="var2", func=y - 1)
+    dummy   ; processGeneric(field="var1", func=x + 1)
+    dummy   ; processGeneric(field="var2", func=y - 1)
     """
 
     fobj = writeIO(config)
@@ -202,8 +202,8 @@ def test_processTargetExistingFail(data_diff):
 def test_flagTargetExistingFail(data_diff):
     config = f"""
     varname ; test
-    dummy   ; genericFlag(field="var1", func=x < 1)
-    dummy   ; genericFlag(field="var2", func=y > 1)
+    dummy   ; flagGeneric(field="var1", func=x < 1)
+    dummy   ; flagGeneric(field="var2", func=y > 1)
     """
 
     fobj = writeIO(config)
@@ -215,7 +215,7 @@ def test_callableArgumentsUnary(data):
 
     window = 5
 
-    @register(datamask="field")
+    @register(mask=["field"], demask=["field"], squeeze=["field"])
     def testFuncUnary(data, field, flags, func, **kwargs):
         value = data[field].rolling(window=window).apply(func)
         data[field] = value
@@ -245,7 +245,7 @@ def test_callableArgumentsUnary(data):
 def test_callableArgumentsBinary(data):
     var1, var2 = data.columns[:2]
 
-    @register(datamask="field")
+    @register(mask=["field"], demask=["field"], squeeze=["field"])
     def testFuncBinary(data, field, flags, func, **kwargs):
         data[field] = func(data[var1], data[var2])
         return data, initFlagsLike(data)
@@ -287,6 +287,6 @@ def test_isflagged(data):
     ]
 
     for field, test, expected in tests:
-        func = _compileGeneric(f"genericFlag(func={test}, flag=BAD)")
+        func = _compileGeneric(f"flagGeneric(func={test}, flag=BAD)")
         result = _execGeneric(Flags({f: flags[f] for f in field}), data[field], func)
         assert (result == expected).all(axis=None)

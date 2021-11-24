@@ -3,6 +3,7 @@
 
 from typing import Optional, Tuple
 
+from py import process
 from typing_extensions import Literal
 import numpy as np
 from dios import DictOfSeries
@@ -12,21 +13,21 @@ import matplotlib.pyplot as plt
 import pickle
 
 from saqc.constants import *
+from saqc.core.register import processing
 from saqc.lib.types import FreqString
 from saqc.core import register, Flags
-from saqc.lib.tools import periodicMask
+from saqc.lib.tools import periodicMask, filterKwargs
 from saqc.lib.plotting import makeFig
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
 
-@register(handles="index", datamask=None)
+@register(mask=[], demask=[], squeeze=[], handles_target=True)
 def copyField(
     data: DictOfSeries, field: str, flags: Flags, target: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
-    data.
+    Copy data and flags to a new name (preserve flags history).
 
     Parameters
     ----------
@@ -57,12 +58,12 @@ def copyField(
     return data, flags
 
 
-@register(handles="index", datamask=None)
+@processing()
 def dropField(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The function drops field from the data dios and the flags.
+    Drops field from the data and flags.
 
     Parameters
     ----------
@@ -87,12 +88,12 @@ def dropField(
     return data, flags
 
 
-@register(handles="data|flags", datamask=None)
+@processing()
 def renameField(
     data: DictOfSeries, field: str, flags: Flags, new_name: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The function renames field to new name (in both, the flags and the data).
+    Rename field in data and flags.
 
     Parameters
     ----------
@@ -119,7 +120,7 @@ def renameField(
     return data, flags
 
 
-@register(handles="index", datamask=None)
+@register(mask=[], demask=[], squeeze=["field"])
 def maskTime(
     data: DictOfSeries,
     field: str,
@@ -132,7 +133,7 @@ def maskTime(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    This function realizes masking within saqc.
+    Realizes masking within saqc.
 
     Due to some inner saqc mechanics, it is not straight forwardly possible to exclude
     values or datachunks from flagging routines. This function replaces flags with UNFLAGGED
@@ -141,12 +142,12 @@ def maskTime(
 
     Here comes a recipe on how to apply a flagging function only on a masked chunk of the variable field:
 
-    1. dublicate "field" in the input data (copy)
-    2. mask the dublicated data (mask)
-    3. apply the tests you only want to be applied onto the masked data chunks (saqc_tests)
+    1. dublicate "field" in the input data (`copyField`)
+    2. mask the dublicated data (this, `maskTime`)
+    3. apply the tests you only want to be applied onto the masked data chunks (a saqc function)
     4. project the flags, calculated on the dublicated and masked data onto the original field data
-        (projectFlags or flagGeneric)
-    5. drop the dublicated data (drop)
+        (`concateFlags` or `flagGeneric`)
+    5. drop the dublicated data (`dropField`)
 
     To see an implemented example, checkout flagSeasonalRange in the saqc.functions module
 
@@ -243,7 +244,7 @@ def maskTime(
     return data, flags
 
 
-@register(handles="index", datamask=None)
+@register(mask=[], demask=[], squeeze=[])
 def plot(
     data: DictOfSeries,
     field: str,
@@ -256,11 +257,11 @@ def plot(
     phaseplot: Optional[str] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
-    to_mask: Optional[float] = np.inf,
+    to_mask: float = np.inf,
     **kwargs,
 ):
     """
-    Stores or shows a figure object, containing data graph with flag marks for field.
+    Plot data and flags or store plot to file.
 
     There are two modes, 'interactive' and 'store', which are determind through the
     ``save_path`` keyword. In interactive mode (default) the plot is shown at runtime
@@ -346,6 +347,7 @@ def plot(
 
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
+
     interactive = path is None
     level = kwargs.get("flag", BAD)
 

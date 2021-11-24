@@ -8,11 +8,12 @@ import pywt
 from mlxtend.evaluate import permutation_test
 
 from saqc.constants import *
-from saqc.core.register import register
+from saqc.core.register import register, flagging
 from saqc.lib.tools import customRoller
 
 
-@register(datamask="field")
+# todo should we mask `reference` even if the func fail if reference has NaNs
+@flagging()
 def flagPatternByWavelet(
     data,
     field,
@@ -180,7 +181,8 @@ def calculateDistanceByDTW(
     return distances.reindex(index=data.index)  # reinsert NaNs
 
 
-@register(datamask="field")
+# todo should we mask `reference` even if the func fail if reference has NaNs
+@flagging()
 def flagPatternByDTW(
     data,
     field,

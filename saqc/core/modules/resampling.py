@@ -14,7 +14,12 @@ from saqc.funcs.interpolation import _SUPPORTED_METHODS
 
 
 class Resampling:
-    def linear(self, field: str, freq: str, target: str = None, **kwargs) -> saqc.SaQC:
+    def linear(
+        self,
+        field: str,
+        freq: str,
+        **kwargs,
+    ) -> saqc.SaQC:
         return self._defer("linear", locals())
 
     def interpolate(
@@ -23,7 +28,6 @@ class Resampling:
         freq: str,
         method: _SUPPORTED_METHODS,
         order: int = 1,
-        target: str = None,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("interpolate", locals())
@@ -34,7 +38,6 @@ class Resampling:
         freq: str,
         method: Literal["fshift", "bshift", "nshift"] = "nshift",
         freq_check: Optional[Literal["check", "auto"]] = None,
-        target: str = None,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("shift", locals())
@@ -51,7 +54,6 @@ class Resampling:
         maxna_group_flags: Optional[int] = None,
         flag_func: Callable[[pd.Series], float] = max,
         freq_check: Optional[Literal["check", "auto"]] = None,
-        target: str = None,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("resample", locals())
