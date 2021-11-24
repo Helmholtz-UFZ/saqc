@@ -10,6 +10,7 @@ default:
   before_script:
     - pip install --upgrade pip
     - pip install pytest
+    - pip install black
     - pip install -r requirements.txt
 
 
@@ -47,9 +48,14 @@ python39:
 black:
   stage: test
   script:
-    - pip install black
     - black --check .
 
+# check if the signatures have changed
+signatures:
+  stage: test
+  image: python:3.9
+  script:
+    - python scripts/signatures.py --check
 
 # make (visual) coverage in gitlab merge request diff's
 coverage:

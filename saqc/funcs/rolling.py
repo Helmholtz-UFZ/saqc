@@ -17,7 +17,7 @@ def roll(
     field: str,
     flags: Flags,
     window: Union[str, int],
-    func: Callable[[pd.Series], np.ndarray] = np.mean,
+    func: Callable[[pd.Series], float] = np.mean,
     min_periods: int = 0,
     center: bool = True,
     **kwargs

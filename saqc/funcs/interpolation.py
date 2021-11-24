@@ -2,32 +2,17 @@
 # -*- coding: utf-8 -*-
 from typing import Tuple, Union, Callable
 from typing_extensions import Literal
+
 import numpy as np
 import pandas as pd
+
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.core.register import _isflagged, processing
+from saqc.core import register, processing, Flags
+from saqc.core.register import _isflagged
 from saqc.lib.ts_operators import interpolateNANs
-
-_SUPPORTED_METHODS = Literal[
-    "linear",
-    "time",
-    "nearest",
-    "zero",
-    "slinear",
-    "quadratic",
-    "cubic",
-    "spline",
-    "barycentric",
-    "polynomial",
-    "krogh",
-    "piecewise_polynomial",
-    "spline",
-    "pchip",
-    "akima",
-]
+from saqc.lib.types import InterpolationString
 
 
 @register(
@@ -122,7 +107,7 @@ def interpolateInvalid(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    method: _SUPPORTED_METHODS,
+    method: InterpolationString,
     order: int = 2,
     limit: int = 2,
     downgrade: bool = False,
@@ -212,7 +197,7 @@ def interpolateIndex(
     field: str,
     flags: Flags,
     freq: str,
-    method: _SUPPORTED_METHODS,
+    method: InterpolationString,
     order: int = 2,
     limit: int = 2,
     downgrade: bool = False,

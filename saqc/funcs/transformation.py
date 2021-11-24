@@ -31,7 +31,7 @@ def transform(
         The fieldname of the column, holding the data-to-be-transformed.
     flags : saqc.Flags
         Container to store quality flags to data.
-    func : Callable[{pd.Series, np.array}, np.array]
+    func : Callable[{pd.Series, np.ndarray}, np.ndarray]
         Function to transform data[field] with.
     freq : {None, float, str}, default None
         Determines the segmentation of the data into partitions, the transformation is applied on individually
