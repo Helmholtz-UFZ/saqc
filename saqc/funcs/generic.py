@@ -230,15 +230,15 @@ def flagGeneric(
 
     1. Flag the variable 'rainfall', if the sum of the variables 'temperature' and 'uncertainty' is below zero:
 
-    >>> saqc.genericFlag(field=["temperature", "uncertainty"], target="rainfall", func= lambda x, y: temperature + uncertainty < 0
+    >>> saqc.flagGeneric(field=["temperature", "uncertainty"], target="rainfall", func= lambda x, y: temperature + uncertainty < 0
 
     2. Flag the variable 'temperature', where the variable 'fan' is flagged:
 
-    >>> saqc.genericFlag(field="fan", target="temperature", func=lambda x: isflagged(x))
+    >>> saqc.flagGeneric(field="fan", target="temperature", func=lambda x: isflagged(x))
 
     3. The generic functions also support all pandas and numpy functions:
 
-    >>> saqc.genericFlag(field="fan", target="temperature", func=lambda x: np.sqrt(x) < 7)
+    >>> saqc.flagGeneric(field="fan", target="temperature", func=lambda x: np.sqrt(x) < 7)
     """
 
     fields = toSequence(field)

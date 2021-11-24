@@ -681,7 +681,7 @@ def flagRaise(
     timestamps :math:`t_i`, is flagged a raise, if:
 
     * There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within `raise_window`
-    range, so that:
+      range, so that:
 
       * :math:`M = |x_k - x_s | >`  `thresh` :math:`> 0`
 
@@ -692,8 +692,8 @@ def flagRaise(
 
       * :math:`x_k > \\mu^* + ( M` / `mean_raise_factor` :math:`)`
 
-    * Additionally, if `min_slope` is not `None`, :math:`x_{k}` is checked for being
-      sufficiently divergent from its very predecessor :max:`x_{k-1}`$, meaning that, it
+    * Additionally, if ``min_slope`` is not `None`, :math:`x_{k}` is checked for being
+      sufficiently divergent from its very predecessor :math:`x_{k-1}`, meaning that, it
       is additionally checked if:
 
       * :math:`x_k - x_{k-1} >` `min_slope`
@@ -1230,7 +1230,7 @@ def flagCrossStatistic(
        :math:`t_i`, are excluded from the following process (inner join of the :math:`f_i` fields.)
     2. for every :math:`0 <= i <= K`, the value
        :math:`m_j = median(\\{data[f_1][t_i], data[f_2][t_i], ..., data[f_N][t_i]\\})` is calculated
-    2. for every :math:`0 <= i <= K`, the set
+    3. for every :math:`0 <= i <= K`, the set
        :math:`\\{data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j\\}` is tested for outliers with the
        specified method (`cross_stat` parameter).
 

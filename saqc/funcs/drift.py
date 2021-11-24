@@ -444,26 +444,26 @@ def correctDrift(
     Notes
     -----
     It is assumed, that between support points, there is a drift effect shifting the meassurements in a way, that
-    can be described, by a model function M(t, *p, origin, target). (With 0<=t<=1, p being a parameter set, and origin,
-    target being floats).
+    can be described, by a model function ``M(t, *p, origin, target)``. (With ``0<=t<=1``, ``p`` being a parameter
+    set, and ``origin``, ``target`` being floats).
 
     Note, that its possible for the model to have no free parameters p at all. (linear drift mainly)
 
-    The drift model, directly after the last support point (t=0),
-    should evaluate to the origin - calibration level (origin), and directly before the next support point
-    (t=1), it should evaluate to the target calibration level (target).
+    The drift model, directly after the last support point (``t=0``),
+    should evaluate to the origin - calibration level (``origin``), and directly before the next support point
+    (``t=1``), it should evaluate to the target calibration level (``target``).::
 
-    M(0, *p, origin, target) = origin
-    M(1, *p, origin, target) = target
+        M(0, *p, origin, target) = origin
+        M(1, *p, origin, target) = target
 
-    The model is than fitted to any data chunk in between support points, by optimizing the parameters p*, and
-    thus, obtaining optimal parameterset P*.
+    The model is than fitted to any data chunk in between support points, by optimizing the parameters ``p*``, and
+    thus, obtaining optimal parameterset ``P*``.
 
-    The new values at t are computed via:
+    The new values at t are computed via:::
 
-    new_vals(t) = old_vals(t) + M(t, *P, origin, target) - M_drift(t, *P, origin, new_target)
+        new_vals(t) = old_vals(t) + M(t, *P, origin, target) - M_drift(t, *P, origin, new_target)
 
-    Wheras new_target represents the value level immediately after the nex support point.
+    Wheras ``new_target`` represents the value level immediately after the next support point.
 
     Examples
     --------
@@ -471,15 +471,15 @@ def correctDrift(
 
     Linear drift modell (no free parameters).
 
-    >>> M = lambda t, origin, target: origin + t*target
+    >>> M = lambda t, origin, target: origin + t * target
 
     exponential drift model (exponential raise!)
 
     >>> expFunc = lambda t, a, b, c: a + b * (np.exp(c * x) - 1)
     >>> M = lambda t, p, origin, target: expFunc(t, (target - origin) / (np.exp(abs(c)) - 1), abs(c))
 
-    Exponential and linear driftmodels are part of the ts_operators library, under the names
-    expDriftModel and linearDriftModel.
+    Exponential and linear driftmodels are part of the ``ts_operators`` library, under the names
+    ``expDriftModel`` and ``linearDriftModel``.
 
     """
     # extract model func:

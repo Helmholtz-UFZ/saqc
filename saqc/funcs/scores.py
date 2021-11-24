@@ -42,7 +42,7 @@ def assignKNNScore(
     The steps taken to calculate the scores are as follows:
 
     1. All the timeseries, given through ``field``, are combined to one feature space by an *inner* join on their
-       date time indexes. thus, only samples, that share timestamps across all ``field``s will be included in the
+       date time indexes. thus, only samples, that share timestamps across all ``field`` will be included in the
        feature space.
     2. Any datapoint/sample, where one ore more of the features is invalid (=np.nan) will get excluded.
     3. For every data point, the distance to its `n` nearest neighbors is calculated by applying the

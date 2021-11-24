@@ -368,10 +368,11 @@ def register(
     Generalized decorator for any saqc functions.
 
     Before the call of the decorated function:
-        - data gets masked by flags according to `to_mask`
+    - data gets masked by flags according to `to_mask`
+
     After the call of the decorated function:
-        - data gets demasked (original data is written back)
-        - flags gets squeezed (only one history column append per call)
+    - data gets demasked (original data is written back)
+    - flags gets squeezed (only one history column append per call)
 
     Parameters
     ----------
@@ -380,15 +381,15 @@ def register(
         data, that is read by the function and therefore should be masked by flags.
 
         The masking takes place before the call of the decorated function and
-        temporary sets data to `NaN` at flagged locations. It is undone by `demask`.
+        temporary sets data to `NaN` at flagged locations. It is undone by ``demask``.
         The threshold of which data is considered to be flagged can be controlled
-        via `to_mask`, a parameter each function takes.
+        via ``to_mask``, a parameter each function takes.
 
     demask : list of string
         A list of all parameter of the decorated function, that specify a column in
-        data, that was masked (see `mask`) and needs unmasking after the call.
+        data, that was masked (see ``mask``) and needs unmasking after the call.
 
-        The unmasking replace all remaining(!) `NaN`s by its original values from
+        The unmasking replace all remaining(!) ``NaN`` by its original values from
         before the call of the decorated function.
 
     squeeze : list of string
@@ -402,15 +403,15 @@ def register(
         happened.
 
     multivariate : bool, default False
-        If `True`, the decorated function, process multiple data or flags
+        If ``True``, the decorated function, process multiple data or flags
         columns at once. Therefore the decorated function must handle a list
-        of columns in the parameter `field`.
+        of columns in the parameter ``field``.
 
-        If `False`, the decorated function must take a single column (`str`)
-        in `field`.
+        If ``False``, the decorated function must take a single column (``str``)
+        in ``field``.
 
     handles_target : bool, default False
-        If `True`, the decorated function, handles the target parameter by
+        If ``True``, the decorated function, handles the target parameter by
         itself. Mandatory for multivariate functions.
     """
 
