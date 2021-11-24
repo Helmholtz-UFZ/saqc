@@ -113,7 +113,7 @@ def genericProcess(
         Flags({f: flags[f] for f in fields}), data.loc[:, fields], func, to_mask=to_mask
     )
 
-    # uodate data & flags
+    # update data & flags
     for i, col in enumerate(targets):
         datacol = result.iloc[:, i]
         data[col] = datacol
