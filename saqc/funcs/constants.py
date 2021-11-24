@@ -100,7 +100,7 @@ def flagByVariance(
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flag constant data calculated by its variance.
+    Flag low-variance data.
 
     Flags plateaus of constant data if the variance in a rolling window does not
     exceed a certain threshold.

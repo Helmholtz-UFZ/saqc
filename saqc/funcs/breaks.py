@@ -87,7 +87,7 @@ def flagIsolated(
     """
     Find and flag temporal isolated groups of data.
 
-    The function flags arbitrary large groups of values, if they are surrounded by
+    The function flags arbitrarily large groups of values, if they are surrounded by
     sufficiently large data gaps. A gap is a timespan containing either no data at all
     or NaNs only.
 

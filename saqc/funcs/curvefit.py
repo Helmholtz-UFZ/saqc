@@ -74,8 +74,8 @@ def fitPolynomial(
 
     min_periods : int or None, default 0
         Minimum number of observations in a window required to perform the fit,
-        otherwise NaNs will assigned.
-        If ``None``, `min_periods` default to 1 for integer windows and to the
+        otherwise NaNs will be assigned.
+        If ``None``, `min_periods` defaults to 1 for integer windows and to the
         size of the window for offset based windows.
         Passing 0, disables the feature and will result in over-fitting for too
         sparse windows.

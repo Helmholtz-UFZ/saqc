@@ -43,7 +43,7 @@ def flagDriftFromNorm(
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flags data that deviate from its normal course.
+    Flags data that deviates from an avarage data course.
 
     "Normality" is determined in terms of a maximum spreading distance,
     that members of a normal group must not exceed. In addition, only a group is considered
@@ -66,15 +66,15 @@ def flagDriftFromNorm(
         Frequency, that split the data in chunks.
 
     spread : float
-        Maximum spread in data considered normal. See Notes section for more details.
+        Maximum spread allowed in the group of *normal* data. See Notes section for more details.
 
     frac : float, default 0.5
         Fraction defining the normal group. Use a value from the interval [0,1].
-        The higher the value, the more stable the algorithm will. For values below
+        The higher the value, the more stable the algorithm will be. For values below
         0.5 the results are undefined.
 
     metric : Callable, default ``lambda x,y:pdist(np.array([x,y]),metric="cityblock")/len(x)``
-        Distance function that takes two arrays as input and return a scalar float.
+        Distance function that takes two arrays as input and returns a scalar float.
         This value is interpreted as the distance of the two input arrays.
         Defaults to the `averaged manhattan metric` (see Notes).
 
@@ -168,7 +168,7 @@ def flagDriftFromReference(
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flags data that deviate from a reference course.
+    Flags data that deviates from a reference course.
 
     The deviation is measured by a passed distance function.
 
@@ -193,8 +193,8 @@ def flagDriftFromReference(
         Maximum deviation from reference.
 
     metric : Callable
-        Distance function that takes two arrays as input and return a scalar float.
-        This value is interpreted as the distance of the two input arrays.
+        Distance function. Takes two arrays as input and returns a scalar float.
+        This value is interpreted as the mutual distance of the two input arrays.
         Defaults to the `averaged manhattan metric` (see Notes).
 
     target : None
@@ -270,7 +270,7 @@ def flagDriftFromScaledNorm(
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flags data that deviate from a scaled norm.
+    Flags data that deviates from a scaled norm.
 
     Linearly rescales one set of variables to another set of variables
     with a different scale and then flags data courses that significantly deviate
@@ -283,7 +283,7 @@ def flagDriftFromScaledNorm(
     intercepts.
 
     Once the transformation is performed, values that deviate from a group of normal
-    values gets flagged. "Normality" is determined in terms of
+    values get flagged. "Normality" is determined in terms of
     a maximum spreading distance, that members of a normal group must not exceed. In
     addition, only a group is considered "normal" if it contains more then `frac`
     percent of the passed variables.
@@ -306,7 +306,7 @@ def flagDriftFromScaledNorm(
         Second set of columns in data to be flagged.
 
     freq : str
-        Frequency, that split the data in chunks.
+        Frequency, that splits the data in chunks.
 
     spread : float
         Maximum spread in data considered normal. See Notes section for more details.
@@ -425,7 +425,7 @@ def correctDrift(
         See the Notes section for an extensive description.
 
     cal_range : int, default 5
-        Number of values to calculate the mean, for obtaining the value level directly
+        Number of values to calculate the mean of, for obtaining the value level directly
         after and directly before a maintenance event. Needed for shift calibration.
 
     Returns
