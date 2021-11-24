@@ -5,11 +5,10 @@ The tutorial aims to introduce the usage of ``SaQC`` methods, in order to obtain
 from given time series data input. Regularly sampled time series data, is data, that exhibits a constant temporal 
 spacing in between subsequent data points.
 
-The tutorial guides through the following steps: 
-
+In the following steps, the tutorial guides through the usage of the *SaQC* :py:mod:`resampling <saqc.resampling>`
+library.
 
 #. Initially, we introduce and motivate regularisation techniques and we do import the tutorial data.
-
 
    * :ref:`Why Regularisation <cook_books/DataRegularisation:Why Regularisation>`
    * :ref:`Tutorial Data <cook_books/DataRegularisation:Tutorial Data>`
@@ -19,9 +18,9 @@ The tutorial guides through the following steps:
    * :ref:`Shift <cook_books/DataRegularisation:shift>`
    * :ref:`Target Parameter <cook_books/DataRegularisation:target parameter>`
 
-      * :ref:`Freq Parameter <cook_books/DataRegularisation:freq parameter>`
-      * :ref:`Method Parameter <cook_books/DataRegularisation:shifting method>`
-      * :ref:`Valid Data <cook_books/DataRegularisation:Valid Data>`
+     * :ref:`Freq Parameter <cook_books/DataRegularisation:freq parameter>`
+     * :ref:`Method Parameter <cook_books/DataRegularisation:shifting method>`
+     * :ref:`Valid Data <cook_books/DataRegularisation:Valid Data>`
 
 #. We introduce the notion of *valid* data and see how sparse intervals and those with multiple values interact with
    regularisation.
@@ -78,34 +77,34 @@ example data set:
    :alt: 
 
 
-Lets import it via:
+Lets import it and check out the first and last lines.
 
-.. code-block:: python
+>>> import pandas as pd
+>>> data_path = './ressources/data/SoilMoisture.csv'
+>>> data = pd.read_csv(data_path, index_col=0)
+>>> data.index = pd.DatetimeIndex(data.index)
+>>> data
+                     SoilMoisture
+2021-01-01 00:09:07     23.429701
+2021-01-01 00:18:55     23.431900
+2021-01-01 00:28:42     23.343100
+2021-01-01 00:38:30     23.476400
+2021-01-01 00:48:18     23.343100
+...                           ...
+2021-03-20 07:13:49    152.883102
+2021-03-20 07:26:16    156.587906
+2021-03-20 07:40:37    166.146194
+2021-03-20 07:54:59    164.690598
+2021-03-20 08:40:41    155.318893
+<BLANKLINE>
+[10607 rows x 1 columns]
 
-   import pandas as pd
-   data = pd.read_csv(data_path, col_index=1)
+.. testsetup::
+
+   data_path = './ressources/data/SoilMoisture.csv'
+   data = pd.read_csv(data_path, index_col=0)
    data.index = pd.DatetimeIndex(data.index)
 
-Now lets check out the imported data`s timestamps:
-
-.. code-block:: python
-
-   >>> data
-
-                        SoilMoisture
-   Date Time                        
-   2021-01-01 00:09:07     23.429701
-   2021-01-01 00:18:55     23.431900
-   2021-01-01 00:28:42     23.343100
-   2021-01-01 00:38:30     23.476400
-   2021-01-01 00:48:18     23.343100
-                              ...
-   2021-03-20 07:13:49    152.883102
-   2021-03-20 07:26:16    156.587906
-   2021-03-20 07:40:37    166.146194
-   2021-03-20 07:54:59    164.690598
-   2021-03-20 08:40:41    155.318893
-   [10607 rows x 1 columns]
 
 The data series seems to start with a sampling rate of roughly *10* minutes. 
 Somewhere the sampling rate changes, and at the end it seems to exhibit an intended sampling 
@@ -137,20 +136,25 @@ Shift
 
 Lets apply a simple shift via the :py:func:`saqc.shift <Functions.saqc.shift>` method.
 
-.. code-block:: python
+>>> import saqc
+>>> qc = saqc.SaQC(data)
+>>> qc = qc.shift('SoilMoisture', target='SoilMoisture_bshift', freq='10min', method='bshift')
 
-   saqc = saqc.shift('SoilMoisture', target='SoilMoisture_bshift', freq='10min', method='bshift')
+.. testsetup::
+
+   qc = saqc.SaQC(data)
+   qc = qc.shift('SoilMoisture', target='SoilMoisture_bshift', freq='10min', method='bshift')
 
 Target parameter
 ^^^^^^^^^^^^^^^^
 
-We selected a new ``target`` field, to store the shifted data to a new field, so that our original data wouldnt be 
+We selected a new ``target`` field, to store the shifted data to a new field, so that our original data wouldnt be
 overridden.
 
 Freq parameter
 ^^^^^^^^^^^^^^
 
-We passed the ``freq`` keyword of the intended sampling frequency in terms of a 
+We passed the ``freq`` keyword of the intended sampling frequency in terms of a
 `date alias <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_ string. All of
 the :doc:`regularisation <function_cats/regularisation>` methods have such a frequency keyword,
 and it just determines the sampling rate, the resulting regular timeseries will have.
@@ -158,48 +162,43 @@ and it just determines the sampling rate, the resulting regular timeseries will 
 Shifting Method
 ^^^^^^^^^^^^^^^
 
-With the ``method`` keyword, we determined the direction of the shift. We passed it the string ``bshift`` - 
+With the ``method`` keyword, we determined the direction of the shift. We passed it the string ``bshift`` -
 which applies a *backwards* shift, so data points get shifted *backwards*\ , until they match a timestamp
 that is a multiple of *10* minutes. (See :py:func:`saqc.shift <Functions.saqc.shift>` documentation for more
 details on the keywords.) 
 
-Lets see, how the data is now sampled. Therefore, we use the ``raw`` output from the 
-:py:meth:`saqc.getResult <saqc.core.core.SaQC>` method. This will prevent the methods output from
+Lets see, how the data is now sampled. Therefore, we use the ``dataRaw`` Atribute from the
+:py:class:`SaQC <saqc.core.core.SaQC>` object. This will prevent the methods output from
 being merged to a ``pandas.DataFrame`` object, and the changes from the resampling will be easier 
-comprehensible from one look.:
+comprehensible from one look.
 
 Shifted data
 ^^^^^^^^^^^^
 
-.. code-block:: python
-
-   >>> saqc = saqc.evaluate()
-   >>> data_serult = saqc.getResult(raw=True)[0]
-   >>> data_result
-
-                       SoilMoisture |                       SoilMoisture_bshift | 
-   ================================ | ========================================= | 
-   Date Time                        | Date Time                                 | 
-   2021-01-01 00:00:00    23.429701 | 2021-01-01 00:09:07             23.429701 | 
-   2021-01-01 00:10:00    23.431900 | 2021-01-01 00:18:55             23.431900 | 
-   2021-01-01 00:20:00    23.343100 | 2021-01-01 00:28:42             23.343100 | 
-   2021-01-01 00:30:00    23.476400 | 2021-01-01 00:38:30             23.476400 | 
-   2021-01-01 00:40:00    23.343100 | 2021-01-01 00:48:18             23.343100 | 
-   2021-01-01 00:50:00    23.298800 | 2021-01-01 00:58:06             23.298800 | 
-   2021-01-01 01:00:00    23.387400 | 2021-01-01 01:07:54             23.387400 | 
-   2021-01-01 01:10:00    23.343100 | 2021-01-01 01:17:41             23.343100 | 
-   2021-01-01 01:20:00    23.298800 | 2021-01-01 01:27:29             23.298800 | 
-   2021-01-01 01:30:00    23.343100 | 2021-01-01 01:37:17             23.343100 | 
-                             ... | ...                                   ... | 
-   2021-03-20 07:20:00   156.587906 | 2021-03-20 05:07:02            137.271500 | 
-   2021-03-20 07:30:00          NaN | 2021-03-20 05:21:35            138.194107 | 
-   2021-03-20 07:40:00   166.146194 | 2021-03-20 05:41:59            154.116806 | 
-   2021-03-20 07:50:00   164.690598 | 2021-03-20 06:03:09            150.567505 | 
-   2021-03-20 08:00:00          NaN | 2021-03-20 06:58:10            145.027496 | 
-   2021-03-20 08:10:00          NaN | 2021-03-20 07:13:49            152.883102 | 
-   2021-03-20 08:20:00          NaN | 2021-03-20 07:26:16            156.587906 | 
-   2021-03-20 08:30:00          NaN | 2021-03-20 07:40:37            166.146194 | 
-   2021-03-20 08:40:00   155.318893 | 2021-03-20 07:54:59            164.690598 | 
+    >>> qc.dataRaw
+                       SoilMoisture |                       SoilMoisture_bshift |
+   ================================ | ========================================= |
+   Date Time                        | Date Time                                 |
+   2021-01-01 00:00:00    23.429701 | 2021-01-01 00:09:07             23.429701 |
+   2021-01-01 00:10:00    23.431900 | 2021-01-01 00:18:55             23.431900 |
+   2021-01-01 00:20:00    23.343100 | 2021-01-01 00:28:42             23.343100 |
+   2021-01-01 00:30:00    23.476400 | 2021-01-01 00:38:30             23.476400 |
+   2021-01-01 00:40:00    23.343100 | 2021-01-01 00:48:18             23.343100 |
+   2021-01-01 00:50:00    23.298800 | 2021-01-01 00:58:06             23.298800 |
+   2021-01-01 01:00:00    23.387400 | 2021-01-01 01:07:54             23.387400 |
+   2021-01-01 01:10:00    23.343100 | 2021-01-01 01:17:41             23.343100 |
+   2021-01-01 01:20:00    23.298800 | 2021-01-01 01:27:29             23.298800 |
+   2021-01-01 01:30:00    23.343100 | 2021-01-01 01:37:17             23.343100 |
+                             ... | ...                                   ... |
+   2021-03-20 07:20:00   156.587906 | 2021-03-20 05:07:02            137.271500 |
+   2021-03-20 07:30:00          NaN | 2021-03-20 05:21:35            138.194107 |
+   2021-03-20 07:40:00   166.146194 | 2021-03-20 05:41:59            154.116806 |
+   2021-03-20 07:50:00   164.690598 | 2021-03-20 06:03:09            150.567505 |
+   2021-03-20 08:00:00          NaN | 2021-03-20 06:58:10            145.027496 |
+   2021-03-20 08:10:00          NaN | 2021-03-20 07:13:49            152.883102 |
+   2021-03-20 08:20:00          NaN | 2021-03-20 07:26:16            156.587906 |
+   2021-03-20 08:30:00          NaN | 2021-03-20 07:40:37            166.146194 |
+   2021-03-20 08:40:00   155.318893 | 2021-03-20 07:54:59            164.690598 |
    [11286]                            [10607]
 
 We see, the first and last *10* datapoints of both, the original data time series and the shifted one.
