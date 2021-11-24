@@ -14,7 +14,6 @@ import pickle
 
 from saqc.constants import *
 from saqc.core.register import processing
-from saqc.lib.types import FreqString
 from saqc.core import register, Flags
 from saqc.lib.tools import periodicMask, filterKwargs
 from saqc.lib.plotting import makeFig
@@ -250,7 +249,7 @@ def plot(
     field: str,
     flags: Flags,
     path: Optional[str] = None,
-    max_gap: Optional[FreqString] = None,
+    max_gap: Optional[str] = None,
     stats: bool = False,
     history: Optional[Literal["valid", "complete", "clear"]] = "valid",
     xscope: Optional[slice] = None,

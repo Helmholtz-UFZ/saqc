@@ -8,7 +8,6 @@ from typing import Callable
 
 from saqc.constants import BAD
 import saqc
-from saqc.lib.types import FreqString
 
 
 class Noise:
@@ -16,9 +15,9 @@ class Noise:
         self,
         field: str,
         func: Callable[[np.array, pd.Series], float],
-        window: FreqString,
+        window: str,
         thresh: float,
-        sub_window: FreqString = None,
+        sub_window: str = None,
         sub_thresh: float = None,
         min_periods: int = None,
         flag: float = BAD,

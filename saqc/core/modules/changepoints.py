@@ -9,7 +9,6 @@ from typing_extensions import Literal
 
 from saqc.constants import BAD
 import saqc
-from saqc.lib.types import FreqString
 
 
 class ChangePoints:
@@ -18,10 +17,10 @@ class ChangePoints:
         field: str,
         stat_func: Callable[[np.ndarray, np.ndarray], float],
         thresh_func: Callable[[np.ndarray, np.ndarray], float],
-        window: FreqString | Tuple[FreqString, FreqString],
+        window: str | Tuple[str, str],
         min_periods: int | Tuple[int, int],
         closed: Literal["right", "left", "both", "neither"] = "both",
-        reduce_window: FreqString = None,
+        reduce_window: str = None,
         reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
         flag: float = BAD,
         **kwargs,
