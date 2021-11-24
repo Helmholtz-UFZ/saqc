@@ -54,3 +54,7 @@ class GenericFunction(Protocol):
 
     def __call__(self, *args: pd.Series) -> PandasLike:
         ...
+
+
+class OptionalNone:
+    pass

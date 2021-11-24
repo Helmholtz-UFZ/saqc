@@ -28,7 +28,7 @@ from saqc.core.translation import (
     DmpScheme,
 )
 from saqc.lib.tools import toSequence
-from saqc.lib.types import ExternalFlag
+from saqc.lib.types import ExternalFlag, OptionalNone
 
 # the import is needed to trigger the registration
 # of the built-in (test-)functions
@@ -170,6 +170,7 @@ class SaQC:
 
     def _wrap(self, func: FunctionWrapper):
         """
+        Prepare the
         prepare user function input:
           - expand fields and targets
           - translate user given ``flag`` values or set the default ``BAD``
@@ -188,17 +189,17 @@ class SaQC:
             *args,
             target: str | Sequence[str] = None,
             regex: bool = False,
-            flag: ExternalFlag = None,
-            to_mask: float = None,
+            flag: ExternalFlag | OptionalNone = OptionalNone(),
+            to_mask: ExternalFlag | OptionalNone = OptionalNone(),
             **kwargs,
         ) -> SaQC:
 
-            if to_mask is None:
+            if isinstance(to_mask, OptionalNone):
                 to_mask = self._scheme.TO_MASK
             else:
                 to_mask = self._scheme(to_mask)
 
-            if flag is not None:
+            if not isinstance(flag, OptionalNone):
                 kwargs["flag"] = self._scheme(flag)
 
             fields, targets = self._expandFields(
