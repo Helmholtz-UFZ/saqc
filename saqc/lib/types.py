@@ -5,7 +5,6 @@ __all__ = [
     "ArrayLike",
     "PandasLike",
     "DiosLikeT",
-    "FreqString",
     "CurveFitter",
     "ExternalFlag",
 ]
@@ -22,10 +21,6 @@ PandasLike = Union[pd.Series, pd.DataFrame, DictOfSeries]
 DiosLikeT = Union[DictOfSeries, pd.DataFrame]
 
 ExternalFlag = Union[str, float, int]
-
-# we only support fixed length offsets
-FreqString = Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"]
-
 
 # needed for deeper type hinting magic
 class CurveFitter(Protocol):

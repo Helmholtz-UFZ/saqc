@@ -10,14 +10,14 @@ from scipy.spatial.distance import pdist
 from saqc.constants import BAD
 import saqc
 from saqc.funcs import LinkageString
-from saqc.lib.types import FreqString, CurveFitter
+from saqc.lib.types import CurveFitter
 
 
 class Drift:
     def flagDriftFromNorm(
         self,
         field: Sequence[str],
-        freq: FreqString,
+        freq: str,
         spread: float,
         frac: float = 0.5,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
@@ -34,7 +34,7 @@ class Drift:
         self,
         field: Sequence[str],
         reference: str,
-        freq: FreqString,
+        freq: str,
         thresh: float,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
             np.array([x, y]), metric="cityblock"
@@ -51,7 +51,7 @@ class Drift:
         field: str,
         set_1: Sequence[str],
         set_2: Sequence[str],
-        freq: FreqString,
+        freq: str,
         spread: float,
         frac: float = 0.5,
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
@@ -80,7 +80,7 @@ class Drift:
         field: str,
         cluster_field: str,
         model: CurveFitter,
-        tolerance: Optional[FreqString] = None,
+        tolerance: Optional[str] = None,
         epoch: bool = False,
         **kwargs
     ) -> saqc.SaQC:
@@ -91,9 +91,9 @@ class Drift:
         field: str,
         max_jump: float,
         spread: float,
-        window: FreqString,
+        window: str,
         min_periods: int,
-        tolerance: Optional[FreqString] = None,
+        tolerance: Optional[str] = None,
         **kwargs
     ) -> saqc.SaQC:
         return self._defer("correctOffset", locals())

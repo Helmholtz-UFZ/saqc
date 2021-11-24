@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from saqc.constants import BAD, UNFLAGGED
 import saqc
-from saqc.lib.types import FreqString
 
 
 class Breaks:
@@ -16,8 +15,8 @@ class Breaks:
     def flagIsolated(
         self,
         field: str,
-        gap_window: FreqString,
-        group_window: FreqString,
+        gap_window: str,
+        group_window: str,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
@@ -27,7 +26,7 @@ class Breaks:
         self,
         field: str,
         thresh: float,
-        window: FreqString,
+        window: str,
         min_periods: int = 1,
         flag: float = BAD,
         **kwargs

@@ -7,7 +7,6 @@ from typing_extensions import Literal
 
 import saqc
 import numpy as np
-from saqc.lib.types import FreqString
 
 
 class Tools:
@@ -36,7 +35,7 @@ class Tools:
         self,
         field: str,
         path: Optional[str] = None,
-        max_gap: Optional[FreqString] = None,
+        max_gap: Optional[str] = None,
         stats: bool = False,
         history: Optional[Literal["valid", "complete", "clear"]] = "valid",
         xscope: Optional[slice] = None,
