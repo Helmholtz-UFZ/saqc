@@ -8,45 +8,45 @@ The tutorial guides through the following steps:
 
 #. We checkout and load the example data set. Subsequently, we initialise an :py:class:`SaQC <saqc.core.core.SaQC>` object.
 
-   * :ref:`Preparation <cook_books_md_m2r/OutlierDetection:Preparation>`
+   * :ref:`Preparation <cook_books/OutlierDetection:Preparation>`
 
-     * :ref:`Data <cook_books_md_m2r/OutlierDetection:Data>`
-     * :ref:`Initialisation <cook_books_md_m2r/OutlierDetection:Initialisation>`
+     * :ref:`Data <cook_books/OutlierDetection:Data>`
+     * :ref:`Initialisation <cook_books/OutlierDetection:Initialisation>`
 
 #. 
    We will see how to apply different smoothing methods and models to the data in order to obtain usefull residue 
    variables.
 
 
-   * :ref:`Modelling <cook_books_md_m2r/OutlierDetection:Modelling>`
+   * :ref:`Modelling <cook_books/OutlierDetection:Modelling>`
 
-     * :ref:`Rolling Mean <cook_books_md_m2r/OutlierDetection:Rolling Mean>`
-     * :ref:`Rolling Median <cook_books_md_m2r/OutlierDetection:Rolling Median>`
-     * :ref:`Polynomial Fit <cook_books_md_m2r/OutlierDetection:Polynomial Fit>`
-     * :ref:`Custom Models <cook_books_md_m2r/OutlierDetection:Custom Models>`
+     * :ref:`Rolling Mean <cook_books/OutlierDetection:Rolling Mean>`
+     * :ref:`Rolling Median <cook_books/OutlierDetection:Rolling Median>`
+     * :ref:`Polynomial Fit <cook_books/OutlierDetection:Polynomial Fit>`
+     * :ref:`Custom Models <cook_books/OutlierDetection:Custom Models>`
 
-   * :ref:`Evaluation and Visualisation <cook_books_md_m2r/OutlierDetection:Evaluation and Visualisation>`
+   * :ref:`Evaluation and Visualisation <cook_books/OutlierDetection:Evaluation and Visualisation>`
 
 #. 
    We will see how we can obtain residues and scores from the calculated model curves. 
 
 
-   * :ref:`Residues and Scores <cook_books_md_m2r/OutlierDetection:Residues and Scores>`
+   * :ref:`Residues and Scores <cook_books/OutlierDetection:Residues and Scores>`
 
-     * :ref:`Residues <cook_books_md_m2r/OutlierDetection:Residues>`
-     * :ref:`Scores <cook_books_md_m2r/OutlierDetection:Scores>`
-     * :ref:`Optimization from Decomposition <cook_books_md_m2r/OutlierDetection:Optimization from Decomposition>`
+     * :ref:`Residues <cook_books/OutlierDetection:Residues>`
+     * :ref:`Scores <cook_books/OutlierDetection:Scores>`
+     * :ref:`Optimization by Decomposition <cook_books/OutlierDetection:Optimization by Decomposition>`
 
 #. 
    Finally, we will see how to derive flags from the scores itself and impose additional conditions, functioning as 
    correctives.
 
 
-   * :ref:`Setting and Correcting Flags <cook_books_md_m2r/OutlierDetection:Setting and Correcting Flags>`
+   * :ref:`Setting and Correcting Flags <cook_books/OutlierDetection:Setting and Correcting Flags>`
 
-     * :ref:`Flagging the Scores <cook_books_md_m2r/OutlierDetection:Flagging the Scores>`
+     * :ref:`Flagging the Scores <cook_books/OutlierDetection:Flagging the Scores>`
      * `Additional Conditions ("unflagging") <#Additional-Conditions>`_
-     * :ref:`Including Multiple Conditions <cook_books_md_m2r/OutlierDetection:Including Multiple Conditions>`
+     * :ref:`Including Multiple Conditions <cook_books/OutlierDetection:Including Multiple Conditions>`
 
 Preparation
 -----------
@@ -156,7 +156,7 @@ saqc functions pool and will determine the result of the function to be written 
 data, under the fieldname specified by it. If there already exists a field with the name passed to ``target``\ , 
 the data stored to this field will be overridden.
 
-We will evaluate and visualize the different model curves :ref:`later <cook_books_md_m2r/OutlierDetection:Evaluation and Visualisation>`. 
+We will evaluate and visualize the different model curves :ref:`later <cook_books/OutlierDetection:Evaluation and Visualisation>`. 
 Beforehand, we will generate some more model data.
 
 Polynomial Fit
@@ -191,7 +191,7 @@ module. We wrap the filter generator up into a function first:
        return filtfilt(b, a, x)
 
 This function object, we can pass on to the :py:func:`saqc.processGeneric <Functions.saqc.process>` methods :py:attr:`func` argument. 
-(\ :doc:`Here <../getting_started_md_m2r/GenericFunctions>` can
+(\ :doc:`Here <../getting_started/GenericFunctions>` can
 be found some more information on the generic Functions)
 
 .. code-block:: python
@@ -249,16 +249,7 @@ control via the :py:attr:`target` parameter.
 .. code-block:: python
 
    i_saqc = i_saqc.procesGeneric(['incidents', 'incidents_model'], target='incidents_residues', func=lambda x, y: x - y)
-   =======
-   We want to evaluate the residues of the model, in order to score the outlierish-nes of every point. 
-   First, we retrieve the residues via the :py:func:`saqc.genericProcess <docs.func_modules.genericProcess>` method.
-   The method generates a new variable, resulting from the processing of other variables. It automatically
-   generates the field name it gets passed - so we do not have to generate new variable beforehand. The function we apply 
-   is just the computation of the variables difference for any timestep.
 
-   ```python
-   i_saqc = i_saqc.genericProcess('incidents_residues', func=lambda incidents, incidents_model:incidents - incidents_model)
-   >>>>>>> develop
 
 Scores
 ^^^^^^
@@ -283,7 +274,7 @@ function:
 Optimization by Decomposition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-There are 2 problems with the attempt presented :ref:`above <cook_books_md_m2r/OutlierDetection:Scores>`. 
+There are 2 problems with the attempt presented :ref:`above <cook_books/OutlierDetection:Scores>`. 
 
 First, the rolling application of the customly 
 defined function, might get really slow for large data sets, because our function ``z_scores`` does not get decomposed into optimized building blocks. 
@@ -311,7 +302,7 @@ residues *mean* and *standard deviation* seperately:
                                    func=lambda This, residues_mean, residues_std: (
                                                                                               This - residues_mean) / residues_std)
 
-With huge datasets, this will be noticably faster, compared to the method presented :ref:`initially <cook_books_md_m2r/OutlierDetection:Scores>`\ , 
+With huge datasets, this will be noticably faster, compared to the method presented :ref:`initially <cook_books/OutlierDetection:Scores>`\ , 
 because ``saqc`` dispatches the rolling with the basic numpy statistic methods to an optimized pandas built-in.
 
 Also, as a result of the :py:func: ``saqc.roll <Functions.saqc.roll>`` assigning its results to the center of every window, 
@@ -373,7 +364,7 @@ We now can project those flags onto our original incidents timeseries:
 
    >>> i_saqc = i_saqc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: isFlagged(x))
 
-Note, that we could have skipped the :ref:`range flagging step <cook_books_md_m2r/OutlierDetection:Flagging the scores>`\ , by including the cutting off in our 
+Note, that we could have skipped the :ref:`range flagging step <cook_books/OutlierDetection:Flagging the scores>`\ , by including the cutting off in our 
 generic expression:
 
 .. code-block:: python
@@ -426,7 +417,7 @@ This method usually comes into play, when we want to assign flags based on the e
 So, we check out, which residues evaluate to a level below *20*\ , and assign the 
 flag value for :py:const:`unflagged <saqc.constants.UNFLAGGED>`. This value defaults to
 to ``-np.inf`` in the default translation scheme, wich we selected implicitly by not specifying any special scheme in the 
-generation of the :py:class:`SaQC <saqc.core.core.SaQC>` object in the :ref:`beginning <cook_books_md_m2r/OutlierDetection:Initialisation>`.
+generation of the :py:class:`SaQC <saqc.core.core.SaQC>` object in the :ref:`beginning <cook_books/OutlierDetection:Initialisation>`.
 
 .. code-block:: python
 
@@ -449,11 +440,11 @@ Evaluation and showing proofs the tweaking did in deed improve the flagging resu
    :alt: 
 
 
-Including multiple Conditions
+Including multiple conditions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If we do not want to first set flags, only to remove the majority of them in the next step, we also
-could circumvent the :ref:`unflagging <cook_books_md_m2r/OutlierDetection:Unflagging>` step, by adding to the call to :py:func:`saqc.flagRange <Functions.saqc.flagRange>` the condition for the residues having to be above *20*
+could circumvent the :ref:`unflagging <cook_books/OutlierDetection:Unflagging>` step, by adding to the call to :py:func:`saqc.flagRange <Functions.saqc.flagRange>` the condition for the residues having to be above *20*
 
 .. code-block:: python
 
