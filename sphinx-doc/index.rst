@@ -22,8 +22,6 @@ Getting Started
    getting_started/TutorialAPI
    getting_started/GettingStarted
 
-Cookbooks
-=========
 
 .. toctree::
    :caption: Cookbooks
@@ -34,8 +32,6 @@ Cookbooks
    cook_books/OutlierDetection
    cook_books/MultivariateFlagging
 
-Documentation
-=============
 .. toctree::
    :caption: Documentation
    :maxdepth: 1
@@ -46,8 +42,6 @@ Documentation
    documentation/SourceTarget
 
 
-Developer Ressources
-====================
 .. toctree::
    :caption: Developer Ressources
    :hidden:
@@ -55,10 +49,10 @@ Developer Ressources
 
    Documentation Guide <how_to_doc/HowToDoc>
 
-Functions
-=========
 
 .. toctree::
+   :caption: Functions
+   :hidden:
    :maxdepth: 1
    :glob:
    :titlesonly:
@@ -82,12 +76,14 @@ Functions
    noise <moduleAPIs/Functionsnoise>
 
 
+.. toctree::
+   :caption: SaQC
+   :hidden:
+   :maxdepth: 1
 
-SaQC Object
-===========
-
-* :py:class:`saqc.SaQC <Core.Core.SaQC>`
-
+   SaQC Object <moduleAPIs/saqcClass>
+   Constants <moduleAPI/saqcConstants>
+   Config Environment <environment/configEnv>
 
 Indices and tables
 ==================
