@@ -26,7 +26,7 @@ setup(
         "typing_extensions==3.10.*",
         "outlier-utils==0.0.3",
         "dtw==1.4.*",
-        "seaborn==0.11.*"
+        "seaborn==0.11.*",
     ],
     license_files=("LICENSE.md",),
     entry_points={
