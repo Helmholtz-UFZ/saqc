@@ -175,7 +175,7 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
 
     Returns
     -------
-    to_mask : pandas.Series[bool]
+    dfilter : pandas.Series[bool]
         A series, indexed with the input index and having value `True` for all the values that are to be masked.
 
     Examples

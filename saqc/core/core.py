@@ -18,6 +18,7 @@ import numpy as np
 
 from dios import DictOfSeries, to_dios
 
+from saqc.core.modules import FunctionsMixin
 from saqc.core.flags import initFlagsLike, Flags
 from saqc.core.history import History
 from saqc.core.register import FUNC_MAP, FunctionWrapper
@@ -48,7 +49,7 @@ TRANSLATION_SCHEMES = {
 }
 
 
-class SaQC:
+class SaQC(FunctionsMixin):
     _attributes = {
         "_data",
         "_flags",
@@ -175,7 +176,7 @@ class SaQC:
         prepare user function input:
           - expand fields and targets
           - translate user given ``flag`` values or set the default ``BAD``
-          - translate user given ``to_mask`` values or set the scheme default
+          - translate user given ``dfilter`` values or set the scheme default
           - dependeing on the workflow: initialize ``target`` variables
 
         Here we add the following parameters to all registered functions, regardless
@@ -191,16 +192,14 @@ class SaQC:
             target: str | Sequence[str] = None,
             regex: bool = False,
             flag: ExternalFlag | OptionalNone = OptionalNone(),
-            to_mask: ExternalFlag | OptionalNone = OptionalNone(),
             **kwargs,
         ) -> SaQC:
 
-            if isinstance(to_mask, OptionalNone):
-                to_mask = self._scheme.TO_MASK
-            else:
-                to_mask = self._scheme(to_mask)
+            kwargs.setdefault("dfilter", self._scheme.DFILTER_DEFAULT)
 
             if not isinstance(flag, OptionalNone):
+                # translation schemes might want to use a flag,
+                # None so we introduce a special class here
                 kwargs["flag"] = self._scheme(flag)
 
             fields, targets = self._expandFields(
@@ -215,7 +214,6 @@ class SaQC:
                     **kwargs,
                     "field": field,
                     "target": target,
-                    "to_mask": to_mask,
                 }
 
                 if not func.handles_target and field != target:

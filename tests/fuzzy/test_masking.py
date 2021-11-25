@@ -116,10 +116,10 @@ def test_unmaskingInvertsMasking(data_field_flags):
 
 #     data_in, field, flags = data_field_flags
 
-#     data_masked, mask = _maskData(data_in, flags, columns=[field], to_mask=flags.BAD)
+#     data_masked, mask = _maskData(data_in, flags, columns=[field], dfilter=flags.BAD)
 #     func, kwargs = func_kwargs
 #     data_masked, _ = func(data_masked, field, flags, **kwargs)
-#     data_out = _unmaskData(data_in, mask, data_masked, flags, to_mask=flags.BAD)
+#     data_out = _unmaskData(data_in, mask, data_masked, flags, dfilter=flags.BAD)
 
 #     flags_in = flags.isFlagged(flag=flags.BAD)
 #     assert data_in.aloc[flags_in].equals(data_out.aloc[flags_in])
@@ -139,7 +139,7 @@ def test_unmaskingInvertsMasking(data_field_flags):
 #     flagged_in = flags.isFlagged(flag=flags.BAD, comparator=">=")
 
 #     # mask and call
-#     data_left, _ = _maskData(data, flags, columns=[field], to_mask=flags.BAD)
+#     data_left, _ = _maskData(data, flags, columns=[field], dfilter=flags.BAD)
 #     data_left, _ = func(data_left, field, flags, **kwargs)
 
 #     # remove and call

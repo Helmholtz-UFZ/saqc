@@ -16,7 +16,7 @@ class Generic:
         func: GenericFunction,
         target: str | Sequence[str] = None,
         flag: float = UNFLAGGED,
-        to_mask: float = UNFLAGGED,
+        dfilter: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("processGeneric", locals())
@@ -27,7 +27,7 @@ class Generic:
         func: GenericFunction,
         target: Union[str, Sequence[str]] = None,
         flag: float = BAD,
-        to_mask: float = UNFLAGGED,
+        dfilter: float = UNFLAGGED,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagGeneric", locals())

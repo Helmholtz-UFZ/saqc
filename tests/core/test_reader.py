@@ -9,7 +9,6 @@ from pathlib import Path
 
 from saqc.core.reader import fromConfig, readFile
 from saqc.core.register import FUNC_MAP, register, flagging
-from saqc.constants import UNTOUCHED
 
 from tests.common import initData, writeIO
 
@@ -120,7 +119,7 @@ def test_configChecks(data):
 
     @flagging()
     def flagFunc(data, field, flags, arg, opt_arg=None, **kwargs):
-        flags[:, field] = UNTOUCHED
+        flags[:, field] = np.nan
         return data, flags
 
     header = f"varname;test"
@@ -146,7 +145,7 @@ def test_supportedArguments(data):
 
     @flagging()
     def func(data, field, flags, kwarg, **kwargs):
-        flags[:, field] = UNTOUCHED
+        flags[:, field] = np.nan
         return data, flags
 
     var1 = data.columns[0]

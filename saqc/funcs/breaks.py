@@ -30,7 +30,7 @@ def flagMissing(
     field: str,
     flags: Flags,
     flag: float = BAD,
-    to_mask: float = UNFLAGGED,
+    dfilter: float = UNFLAGGED,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -58,7 +58,7 @@ def flagMissing(
     datacol = data[field]
     mask = datacol.isna()
 
-    mask = ~_isflagged(flags[field], to_mask) & mask
+    mask = ~_isflagged(flags[field], dfilter) & mask
 
     flags[mask, field] = flag
     return data, flags

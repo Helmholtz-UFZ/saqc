@@ -13,7 +13,6 @@ from dios import DictOfSeries
 from saqc.core.flags import (
     Flags,
     UNFLAGGED,
-    UNTOUCHED,
     BAD,
     GOOD,
 )
@@ -49,7 +48,7 @@ class TranslationScheme:
     """
 
     # (internal) threshold flag above which values will be masked
-    TO_MASK: float = UNFLAGGED
+    DFILTER_DEFAULT: float = UNFLAGGED
 
     # additional arguments and default values the translation scheme accepts
     ARGUMENTS: Dict[str, Any] = {}
@@ -184,7 +183,6 @@ class FloatScheme(TranslationScheme):
 
     _MAP = {
         -np.inf: -np.inf,
-        np.inf: np.inf,
         **{k: k for k in np.arange(0, 256, dtype=float)},
     }
 
@@ -207,7 +205,7 @@ class SimpleScheme(TranslationScheme):
 
     _BACKWARD = {
         UNFLAGGED: "UNFLAGGED",
-        UNTOUCHED: "UNFLAGGED",
+        np.nan: "UNFLAGGED",
         BAD: "BAD",
         GOOD: "OK",
     }
