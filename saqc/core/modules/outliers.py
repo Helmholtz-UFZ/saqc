@@ -10,14 +10,13 @@ from typing_extensions import Literal
 
 from saqc.constants import BAD
 import saqc
-from saqc.lib.types import FreqString
 
 
 class Outliers:
     def flagByStray(
         self,
         field: str,
-        freq: Optional[Union[int, FreqString]] = None,
+        freq: Optional[Union[int, str]] = None,
         min_periods: int = 11,
         iter_start: float = 0.5,
         alpha: float = 0.05,
@@ -28,19 +27,19 @@ class Outliers:
 
     def flagMVScores(
         self,
-        field: str,
-        fields: Sequence[str],
+        field: Sequence[str],
         trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
         alpha: float = 0.05,
         n: int = 10,
         func: Callable[[pd.Series], float] = np.sum,
         iter_start: float = 0.5,
-        partition: Optional[Union[int, FreqString]] = None,
+        partition: Optional[Union[int, str]] = None,
         partition_min: int = 11,
-        stray_range: Optional[FreqString] = None,
+        stray_range: Optional[str] = None,
         drop_flagged: bool = False,  # TODO: still a case ?
         thresh: float = 3.5,
         min_periods: int = 1,
+        target: str = None,
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
@@ -50,9 +49,9 @@ class Outliers:
         self,
         field: str,
         thresh: float,
-        raise_window: FreqString,
-        freq: FreqString,
-        average_window: Optional[FreqString] = None,
+        raise_window: str,
+        freq: str,
+        average_window: Optional[str] = None,
         raise_factor: float = 2.0,
         slope: Optional[float] = None,
         weight: float = 0.8,
@@ -64,7 +63,7 @@ class Outliers:
     def flagMAD(
         self,
         field: str,
-        window: FreqString,
+        window: str,
         z: float = 3.5,
         flag: float = BAD,
         **kwargs,
@@ -76,7 +75,7 @@ class Outliers:
         field: str,
         thresh: float,
         tolerance: float,
-        window: Union[int, FreqString],
+        window: Union[int, str],
         thresh_relative: Optional[float] = None,
         flag: float = BAD,
         **kwargs,
@@ -86,7 +85,7 @@ class Outliers:
     def flagByGrubbs(
         self,
         field: str,
-        window: Union[FreqString, int],
+        window: Union[str, int],
         alpha: float = 0.05,
         min_periods: int = 8,
         pedantic: bool = False,
@@ -107,11 +106,11 @@ class Outliers:
 
     def flagCrossStatistic(
         self,
-        field: str,
-        fields: Sequence[str],
+        field: Sequence[str],
         thresh: float,
         method: Literal["modZscore", "Zscore"] = "modZscore",
         flag: float = BAD,
+        target: str = None,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagCrossStatistic", locals())

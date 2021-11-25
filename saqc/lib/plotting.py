@@ -2,13 +2,17 @@
 # -*- coding: utf-8 -*-
 
 from typing import Optional
-
+from typing_extensions import Literal
+from saqc.lib.tools import toSequence
 import pandas as pd
+import numpy as np
 import matplotlib as mpl
-
+import itertools
+import matplotlib.pyplot as plt
+import seaborn
 from saqc.constants import *
 from saqc.core import Flags
-from saqc.lib.types import DiosLikeT, FreqString
+from saqc.lib.types import DiosLikeT
 
 
 STATSDICT = {
@@ -19,16 +23,29 @@ STATSDICT = {
     "flagged percentage": lambda x, y, z: round(((y >= z).sum()) / len(x), 2),
 }
 
+PLOT_KWARGS = {"alpha": 0.8, "linewidth": 1}
+AX_KWARGS = {}
+FIG_KWARGS = {"figsize": (16, 9)}
+SCATTER_KWARGS = {
+    "marker": ["s", "D", "^", "o"],
+    "color": seaborn.color_palette("bright"),
+    "alpha": 0.7,
+    "zorder": 10,
+    "edgecolors": "black",
+    "s": 70,
+}
+
 
 def makeFig(
     data: DiosLikeT,
     field: str,
     flags: Flags,
     level: float,
-    max_gap: Optional[FreqString] = None,
+    max_gap: Optional[str] = None,
     stats: bool = False,
-    plot_kwargs: Optional[dict] = None,
-    fig_kwargs: Optional[dict] = None,
+    history: Optional[Literal["valid", "complete"]] = "valid",
+    xscope: Optional[slice] = None,
+    phaseplot: Optional[str] = None,
     stats_dict: Optional[dict] = None,
 ):
     """
@@ -57,24 +74,19 @@ def makeFig(
     stats : bool, default False
         Whether to include statistics table in plot.
 
-    plot_kwargs : dict, default None
-        Keyword arguments controlling plot generation. Will be passed on to the
-        ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
-        data plot. The most relevant of those properties might be "ylabel",
-        "title" and "ylim".
-        In Addition, following options are available:
+    history : {"valid", "complete", None}, default "valid"
+        Discriminate the plotted flags with respect to the tests they originate from.
+        * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
+          in the legend, that actually contributed flags to the overall resault.
+        * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
+        * "clear" - clear plot from all the flagged values
+        * None - just plot the resulting flags for one variable, without any historical meta information.
 
-        * {'slice': s} property, that determines a chunk of the data to be plotted /
-            processed. `s` can be anything,
-            that is a valid argument to the ``pandas.Series.__getitem__`` method.
-        * {'history': str}
-            * str="all": All the flags are plotted with colored dots, refering to the
-                tests they originate from
-            * str="valid": - same as 'all' - but only plots those flags, that are not
-                removed by later tests
-    fig_kwargs : dict, default None
-        Keyword arguments controlling figure generation. None defaults to
-        {"figsize": (16, 9)}
+    xscope : slice or Offset, default None
+        Parameter, that determines a chunk of the data to be plotted /
+        processed. `s` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
+
+    phaseplot :
 
     stats_dict: dict, default None
         (Only relevant if `stats`=True).
@@ -111,33 +123,45 @@ def makeFig(
 
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
-    if plot_kwargs is None:
-        plot_kwargs = {"history": False}
-    if fig_kwargs is None:
-        fig_kwargs = {}
+
     if stats_dict is None:
         stats_dict = {}
 
     # data retrieval
     d = data[field]
     # data slicing:
-    s = plot_kwargs.pop("slice", slice(None))
-    d = d[s]
-    flags_vals = flags[field][s]
-    flags_hist = flags.history[field].hist.loc[s]
+    xscope = xscope or slice(xscope)
+    d = d[xscope]
+    flags_vals = flags[field][xscope]
+    flags_hist = flags.history[field].hist.loc[xscope]
+    flags_meta = flags.history[field].meta
     if stats:
         stats_dict.update(STATSDICT)
         stats_dict = _evalStatsDict(stats_dict, d, flags_vals, level)
 
     na_mask = d.isna()
     d = d[~na_mask]
+    if phaseplot:
+        flags_vals = flags_vals.copy()
+        flags_hist = flags_hist.copy()
+        phase_index = data[phaseplot][xscope].values
+        phase_index_d = phase_index[~na_mask]
+        na_mask.index = phase_index
+        d.index = phase_index_d
+        flags_vals.index = phase_index
+        flags_hist.index = phase_index
+        plot_kwargs = {**PLOT_KWARGS, **{"marker": "o", "linewidth": 0}}
+        ax_kwargs = {**{"xlabel": phaseplot, "ylabel": d.name}, **AX_KWARGS}
+    else:
+        plot_kwargs = PLOT_KWARGS
+        ax_kwargs = AX_KWARGS
 
     # insert nans between values mutually spaced > max_gap
-    if max_gap:
+    if max_gap and not d.empty:
         d = _insertBlockingNaNs(d, max_gap)
 
     # figure composition
-    fig = mpl.pyplot.figure(constrained_layout=True, **fig_kwargs)
+    fig = mpl.pyplot.figure(constrained_layout=True, **FIG_KWARGS)
     grid = fig.add_gridspec()
     if stats:
         plot_gs, tab_gs = grid[0].subgridspec(ncols=2, nrows=1, width_ratios=[5, 1])
@@ -147,7 +171,19 @@ def makeFig(
     else:
         ax = fig.add_subplot(grid[0])
 
-    _plotVarWithFlags(ax, d, flags_vals, flags_hist, level, plot_kwargs, na_mask)
+    _plotVarWithFlags(
+        ax,
+        d,
+        flags_vals,
+        flags_hist,
+        flags_meta,
+        history,
+        level,
+        na_mask,
+        plot_kwargs,
+        ax_kwargs,
+        SCATTER_KWARGS,
+    )
     return fig
 
 
@@ -173,34 +209,76 @@ def _plotStatsTable(ax, stats_dict):
     tab_obj.set_fontsize(10)
 
 
-def _plotVarWithFlags(ax, datser, flags_vals, flags_hist, level, plot_kwargs, na_mask):
+def _plotVarWithFlags(
+    ax,
+    datser,
+    flags_vals,
+    flags_hist,
+    flags_meta,
+    history,
+    level,
+    na_mask,
+    plot_kwargs,
+    ax_kwargs,
+    scatter_kwargs,
+):
+    scatter_kwargs = scatter_kwargs.copy()
     ax.set_title(datser.name)
-    ax.plot(datser)
-    history = plot_kwargs.pop("history", False)
-    ax.set(**plot_kwargs)
+    ax.plot(datser, color="black", **plot_kwargs)
+    ax.set(**ax_kwargs)
+    shape_cycle = scatter_kwargs.get("marker", "o")
+    shape_cycle = itertools.cycle(toSequence(shape_cycle))
+    color_cycle = scatter_kwargs.get(
+        "color", plt.rcParams["axes.prop_cycle"].by_key()["color"]
+    )
+    color_cycle = itertools.cycle(toSequence(color_cycle))
     if history:
         for i in flags_hist.columns:
-            if history == "all":
-                _plotFlags(
-                    ax,
-                    datser,
-                    flags_hist[i],
-                    na_mask,
-                    level,
-                    {"label": "test " + str(i)},
+            # catch empty but existing history case (flags_meta={})
+            if len(flags_meta[i]) == 0:
+                continue
+            label = (
+                flags_meta[i]["kwargs"].get("label", None)
+                or flags_meta[i]["func"].split(".")[-1]
+            )
+            scatter_kwargs.update({"label": label})
+            flags_i = flags_hist[i].astype(float)
+            if history == "complete":
+                scatter_kwargs.update(
+                    {"color": next(color_cycle), "marker": next(shape_cycle)}
                 )
+                _plotFlags(ax, datser, flags_i, na_mask, level, scatter_kwargs)
             if history == "valid":
+                # only plot those flags, that do not get altered later on:
+                mask = flags_i.eq(flags_vals)
+                flags_i[~mask] = np.nan
+                # Skip plot, if the test did not have no effect on the all over flagging result. This avoids
+                # legend overflow
+                if ~(flags_i >= level).any():
+                    continue
+
+                # Also skip plot, if all flagged values are np.nans (to catch flag missing and masked results mainly)
+                temp_i = datser.index.join(flags_i.index, how="inner")
+                if datser[temp_i][flags_i[temp_i].notna()].isna().all() or (
+                    "flagMissing" in flags_meta[i]["func"]
+                ):
+                    continue
+
+                scatter_kwargs.update(
+                    {"color": next(color_cycle), "marker": next(shape_cycle)}
+                )
                 _plotFlags(
                     ax,
                     datser,
-                    flags_hist[i].combine(flags_vals, min),
+                    flags_i,
                     na_mask,
                     level,
-                    {"label": "test " + str(i)},
+                    scatter_kwargs,
                 )
         ax.legend()
     else:
-        _plotFlags(ax, datser, flags_vals, na_mask, level, {"color": "r"})
+        scatter_kwargs.update({"color": next(color_cycle), "marker": next(shape_cycle)})
+        _plotFlags(ax, datser, flags_vals, na_mask, level, scatter_kwargs)
 
 
 def _plotFlags(ax, datser, flags, na_mask, level, scatter_kwargs):

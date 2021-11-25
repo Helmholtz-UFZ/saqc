@@ -14,9 +14,8 @@ import saqc
 class Scores:
     def assignKNNScore(
         self,
-        field: str,
-        fields: Sequence[str],
-        target: str = "kNNscores",
+        field: Sequence[str],
+        target: str,
         n: int = 10,
         func: Callable[[pd.Series], float] = np.sum,
         freq: Union[float, str] = np.inf,
@@ -24,6 +23,6 @@ class Scores:
         method: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         metric: str = "minkowski",
         p: int = 2,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("assignKNNScore", locals())

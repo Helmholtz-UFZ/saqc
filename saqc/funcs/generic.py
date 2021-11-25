@@ -1,100 +1,72 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from functools import partial
-from inspect import signature
-from typing import Tuple, Union, Callable
+from typing import Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 from dios import DictOfSeries
 
-from saqc.constants import GOOD, BAD, UNFLAGGED
-from saqc.core.flags import initFlagsLike, Flags
-from saqc.core.register import flagging, processing, _maskData, _isflagged
-from saqc.core.visitor import ENVIRONMENT
-
-import operator as op
-
-_OP = {"<": op.lt, "<=": op.le, "==": op.eq, "!=": op.ne, ">": op.gt, ">=": op.ge}
+from saqc.constants import BAD, UNFLAGGED, ENVIRONMENT, FILTER_ALL
+from saqc.core.history import History
+from saqc.lib.tools import toSequence
+from saqc.lib.types import GenericFunction, PandasLike
+from saqc.core.flags import Flags
+from saqc.core.register import register, _isflagged, FunctionWrapper
 
 
-def _dslIsFlagged(
-    flags: Flags, var: pd.Series, flag: float = None, comparator: str = None
-) -> Union[pd.Series, DictOfSeries]:
-    """
-    helper function for `flag`
-
-    Param Combinations
-    ------------------
-    - ``isflagged('var')``              : show me (anything) flagged
-    - ``isflagged('var', DOUBT)``       : show me ``flags >= DOUBT``
-    - ``isflagged('var', DOUBT, '==')`` : show me ``flags == DOUBT``
-
-    Raises
-    ------
-    ValueError: if `comparator` is passed but no `flag` vaule. Eg. ``isflagged('var', comparator='>=')``
-    """
-    if flag is None:
-        if comparator is not None:
-            raise ValueError("if `comparator` is used, explicitly pass a `flag` level.")
-        flag = UNFLAGGED
-        comparator = ">"
-
-    # default
-    if comparator is None:
-        comparator = ">="
-
-    _op = _OP[comparator]
-    return _op(flags[var.name], flag)
+def _prepare(
+    data: DictOfSeries, flags: Flags, columns: Sequence[str], dfilter: float
+) -> Tuple[DictOfSeries, Flags]:
+    fchunk = Flags({f: flags[f] for f in columns})
+    dchunk, _ = FunctionWrapper._maskData(
+        data=data.loc[:, columns].copy(), flags=fchunk, columns=columns, thresh=dfilter
+    )
+    return dchunk, fchunk.copy()
 
 
 def _execGeneric(
     flags: Flags,
-    data: DictOfSeries,
-    func: Callable[[pd.Series], pd.Series],
-    field: str,
-) -> pd.Series:
-    # TODO:
-    # - check series.index compatibility
-    # - field is only needed to translate 'this' parameters
-    #    -> maybe we could do the translation on the tree instead
-
-    sig = signature(func)
-    args = []
-    for k, v in sig.parameters.items():
-        k = field if k == "this" else k
-        if k not in data:
-            raise NameError(f"variable '{k}' not found")
-        args.append(data[k])
+    data: PandasLike,
+    func: GenericFunction,
+    dfilter: float = FILTER_ALL,
+) -> DictOfSeries:
 
     globs = {
-        "isflagged": partial(_dslIsFlagged, flags),
-        "ismissing": lambda var: pd.isnull(var),
-        "this": field,
-        "GOOD": GOOD,
-        "BAD": BAD,
-        "UNFLAGGED": UNFLAGGED,
+        "isflagged": lambda data: _isflagged(flags[data.name], thresh=dfilter),
         **ENVIRONMENT,
     }
+
     func.__globals__.update(globs)
-    return func(*args)
+
+    if isinstance(data, pd.Series):
+        data = data.to_frame()
+
+    out = func(*[data[c] for c in data.columns])
+    return DictOfSeries(out)
 
 
-@processing()
-def genericProcess(
+@register(
+    mask=[],
+    demask=[],
+    squeeze=[],
+    multivariate=True,
+    handles_target=True,
+)
+def processGeneric(
     data: DictOfSeries,
-    field: str,
+    field: str | Sequence[str],
     flags: Flags,
-    func: Callable[[pd.Series], pd.Series],
-    to_mask: float = UNFLAGGED,
+    func: GenericFunction,
+    target: str | Sequence[str] = None,
+    flag: float = UNFLAGGED,
+    dfilter: float = FILTER_ALL,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    generate/process data with generically defined functions.
-
-    The functions can depend on on any of the fields present in data.
+    Generate/process data with user defined functions.
 
     Formally, what the function does, is the following:
 
@@ -102,21 +74,34 @@ def genericProcess(
         Than, for every timestamp t_i that occurs in at least one of the timeseries data[f_j] (outer join),
         The value v_i is computed via:
         v_i = data([f_1][t_i], data[f_2][t_i], ..., data[f_K][t_i]), if all data[f_j][t_i] do exist
-        v_i = `np.nan`, if at least one of the data[f_j][t_i] is missing.
-    2.  The result is stored to data[field] (gets generated if not present)
+        v_i = ``np.nan``, if at least one of the data[f_j][t_i] is missing.
+    2.  The result is stored to ``data[target]``, if ``target`` is given or to ``data[field]`` otherwise
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    field : str
-        The fieldname of the column, where you want the result from the generic expressions processing to be written to.
+    field : str or list of str
+        The variable(s) passed to func.
     flags : saqc.Flags
-        Container to store quality flags to data.
-    func : Callable
-        The data processing function with parameter names that will be
-        interpreted as data column entries.
-        See the examples section to learn more.
+        Container to store flags of the data.
+    func : callable
+        Function to call on the variables given in ``field``. The return value will be written
+        to ``target`` or ``field`` if the former is not given. This implies, that the function
+        needs to accept the same number of arguments (of type pandas.Series) as variables given
+        in ``field`` and should return an iterable of array-like objects with the same number
+        of elements as given in ``target`` (or ``field`` if ``target`` is not specified).
+    target: str or list of str
+        The variable(s) to write the result of ``func`` to. If not given, the variable(s)
+        specified in ``field`` will be overwritten. If a ``target`` is not given, it will be
+        created.
+    flag: float, default ``UNFLAGGED``
+        The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
+        ``processGeneric`` generates 'new' data without direct relation to the potentially
+        already present flags.
+    dfilter: float, default ``FILTER_ALL``
+        Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
+        data value is inappropiate for further usage.
 
     Returns
     -------
@@ -127,73 +112,106 @@ def genericProcess(
         The quality flags of data
         The flags shape may have changed relatively to the input flags.
 
+    Note
+    -----
+    All the numpy functions are available within the generic expressions.
+
     Examples
     --------
-    Some examples on what to pass to the func parameter:
-    To compute the sum of the variables "temperature" and "uncertainty", you would pass the function:
+    Compute the sum of the variables 'rainfall' and 'snowfall' and save the result to
+    a (new) variable 'precipitation'
 
-    >>> lambda temperature, uncertainty: temperature + uncertainty
-
-    You also can pass numpy and pandas functions:
-
-    >>> lambda temperature, uncertainty: np.round(temperature) * np.sqrt(uncertainty)
+    >>> saqc.genericProcess(field=["rainfall", "snowfall"], target="precipitation'", func=lambda x, y: x + y)
     """
 
-    data_masked, _ = _maskData(data.copy(), flags, data.columns, to_mask)
-    data[field] = _execGeneric(flags, data_masked, func, field).squeeze()
+    fields = toSequence(field)
+    targets = fields if target is None else toSequence(target)
 
-    if field in flags:
-        flags.drop(field)
+    dchunk, fchunk = _prepare(data, flags, fields, dfilter)
+    result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
 
-    flags[field] = initFlagsLike(data[field])[field]
+    meta = {
+        "func": "procGeneric",
+        "args": (),
+        "kwargs": {
+            "field": field,
+            "func": func.__name__,
+            "target": target,
+            "flag": flag,
+            "dfilter": dfilter,
+        },
+    }
+
+    # update data & flags
+    for i, col in enumerate(targets):
+
+        datacol = result.iloc[:, i]
+        data[col] = datacol
+
+        if col not in flags:
+            flags.history[col] = History(datacol.index)
+
+        if not flags[col].index.equals(datacol.index):
+            raise ValueError(
+                f"cannot assign function result to the existing variable {repr(col)} "
+                "because of incompatible indices, please choose another 'target'"
+            )
+
+        flags.history[col].append(pd.Series(flag, index=datacol.index), meta)
 
     return data, flags
 
 
-@flagging(masking="all")
-def genericFlag(
+@register(
+    mask=[],
+    demask=[],
+    squeeze=[],
+    multivariate=True,
+    handles_target=True,
+)
+def flagGeneric(
     data: DictOfSeries,
-    field: str,
+    field: Union[str, Sequence[str]],
     flags: Flags,
-    func: Callable[[pd.Series], pd.Series],
+    func: GenericFunction,
+    target: Union[str, Sequence[str]] = None,
     flag: float = BAD,
-    to_mask: float = UNFLAGGED,
+    dfilter: float = FILTER_ALL,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
-    # TODO : fix docstring, check if all still works
     """
-    a function to flag a data column by evaluation of a generic expression.
-
-    The expression can depend on any of the fields present in data.
+    Flag data with user defined functions.
 
     Formally, what the function does, is the following:
-
-    Let X be an expression, depending on fields f_1, f_2,...f_K, (X = X(f_1, f_2,...f_K))
+    Let X be a Callable, depending on fields f_1, f_2,...f_K, (X = X(f_1, f_2,...f_K))
     Than for every timestamp t_i in data[field]:
     data[field][t_i] is flagged if X(data[f_1][t_i], data[f_2][t_i], ..., data[f_K][t_i]) is True.
-
-    Note, that all value series included in the expression to evaluate must be labeled identically to field.
-
-    Note, that the expression is passed in the form of a Callable and that this callables variable names are
-    interpreted as actual names in the data header. See the examples section to get an idea.
-
-    Note, that all the numpy functions are available within the generic expressions.
 
     Parameters
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    field : str
-        The fieldname of the column, where you want the result from the generic expressions evaluation to be projected
-        to.
+    field : str or list of str
+        The variable(s) passed to func.
     flags : saqc.Flags
         Container to store flags of the data.
-    func : Callable
-        The expression that is to be evaluated is passed in form of a callable, with parameter names that will be
-        interpreted as data column entries. The Callable must return an boolen array like.
-        See the examples section to learn more.
-    flag : float, default BAD
-        flag to set.
+    func : callable
+        Function to call on the variables given in ``field``. The function needs to accept the same
+        number of arguments (of type pandas.Series) as variables given in ``field`` and return an
+        iterable of array-like objects of with dtype bool and with the same number of elements as
+        given in ``target`` (or ``field`` if ``target`` is not specified). The function output
+        determines the values to flag.
+    target: str or list of str
+        The variable(s) to write the result of ``func`` to. If not given, the variable(s)
+        specified in ``field`` will be overwritten. If a ``target`` is not given, it will be
+        created.
+    flag: float, default ``UNFLAGGED``
+        The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
+        ``processGeneric`` generates 'new' data without direct relation to the potentially
+        already present flags.
+    dfilter: float, default ``FILTER_ALL``
+        Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
+        data value is inappropiate for further usage.
 
     Returns
     -------
@@ -203,53 +221,75 @@ def genericFlag(
         The quality flags of data
         Flags values may have changed relatively to the flags input.
 
+    Note
+    -----
+    All the numpy functions are available within the generic expressions.
+
     Examples
     --------
-    Some examples on what to pass to the func parameter:
-    To flag the variable `field`, if the sum of the variables
-    "temperature" and "uncertainty" is below zero, you would pass the function:
 
-    >>> lambda temperature, uncertainty: temperature + uncertainty < 0
+    1. Flag the variable 'rainfall', if the sum of the variables 'temperature' and 'uncertainty' is below zero:
 
-    There is the reserved name 'This', that always refers to `field`. So, to flag field if field is negative, you can
-    also pass:
+    >>> saqc.flagGeneric(field=["temperature", "uncertainty"], target="rainfall", func= lambda x, y: temperature + uncertainty < 0
 
-    >>> lambda this: this < 0
+    2. Flag the variable 'temperature', where the variable 'fan' is flagged:
 
-    If you want to make dependent the flagging from flags already present in the data, you can use the built-in
-    ``isflagged`` method. For example, to flag the 'temperature', if 'level' is flagged, you would use:
+    >>> saqc.flagGeneric(field="fan", target="temperature", func=lambda x: isflagged(x))
 
-    >>> lambda level: isflagged(level)
+    3. The generic functions also support all pandas and numpy functions:
 
-    You can furthermore specify a flagging level, you want to compare the flags to. For example, for flagging
-    'temperature', if 'level' is flagged at a level named DOUBTFUL or worse, use:
-
-    >>> lambda level: isflagged(level, flag=DOUBTFUL, comparator='>')
-
-    If you are unsure about the used flaggers flagging level names, you can use the reserved key words BAD, UNFLAGGED
-    and GOOD, to refer to the worst (BAD), best(GOOD) or unflagged (UNFLAGGED) flagging levels. For example.
-
-    >>> lambda level: isflagged(level, flag=UNFLAGGED, comparator='==')
-
-    Your expression also is allowed to include pandas and numpy functions
-
-    >>> lambda level: np.sqrt(level) > 7
+    >>> saqc.flagGeneric(field="fan", target="temperature", func=lambda x: np.sqrt(x) < 7)
     """
-    # we get the data unmasked, in order to also receive flags,
-    # so let's do to the masking manually
-    # data_masked, _ = _maskData(data, flags, data.columns, to_mask)
 
-    mask = _execGeneric(flags, data, func, field).squeeze()
-    if np.isscalar(mask):
-        raise TypeError(f"generic expression does not return an array")
-    if not np.issubdtype(mask.dtype, np.bool_):
+    fields = toSequence(field)
+    targets = fields if target is None else toSequence(target)
+
+    dchunk, fchunk = _prepare(data, flags, fields, dfilter)
+    result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
+
+    if len(targets) != len(result.columns):
+        raise ValueError(
+            f"the generic function returned {len(result.columns)} field(s), but only {len(targets)} target(s) were given"
+        )
+
+    if not (result.dtypes == bool).all():
         raise TypeError(f"generic expression does not return a boolean array")
 
-    if field not in flags:
-        flags[field] = pd.Series(data=UNFLAGGED, index=mask.index, name=field)
+    meta = {
+        "func": "flagGeneric",
+        "args": (),
+        "kwargs": {
+            "field": field,
+            "func": func.__name__,
+            "target": target,
+            "flag": flag,
+            "dfilter": dfilter,
+        },
+    }
 
-    mask = ~_isflagged(flags[field], to_mask) & mask
+    # update flags & data
+    for i, col in enumerate(targets):
 
-    flags[mask, field] = flag
+        maskcol = result.iloc[:, i]
+
+        # make sure the column exists
+        if col not in flags:
+            flags.history[col] = History(maskcol.index)
+
+        # dummy column to ensure consistency between flags and data
+        if col not in data:
+            data[col] = pd.Series(np.nan, index=maskcol.index)
+
+        maskcol = maskcol & ~_isflagged(flags[col], dfilter)
+        flagcol = maskcol.replace({False: np.nan, True: flag}).astype(float)
+
+        # we need equal indices to work on
+        if not flags[col].index.equals(maskcol.index):
+            raise ValueError(
+                f"cannot assign function result to the existing variable {repr(col)} "
+                "because of incompatible indices, please choose another 'target'"
+            )
+
+        flags.history[col].append(flagcol, meta)
 
     return data, flags

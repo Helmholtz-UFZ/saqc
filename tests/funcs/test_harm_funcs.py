@@ -8,7 +8,7 @@ import dios
 
 from saqc.core import initFlagsLike, Flags
 from saqc.constants import BAD, UNFLAGGED
-from saqc.funcs.resampling import linear, interpolate, shift, reindexFlags, resample
+from saqc.funcs.resampling import linear, interpolate, shift, concatFlags, resample
 from saqc.funcs.tools import copyField, dropField
 from tests.common import checkDataFlagsInvariants
 
@@ -37,7 +37,7 @@ def data():
         ("linear", dict()),
         ("shift", dict(method="nshift")),
         ("interpolate", dict(method="spline")),
-        ("resample", dict(agg_func=np.nansum, method="nagg")),
+        ("resample", dict(func=np.nansum, method="nagg")),
     ],
 )
 def test_wrapper(data, func, kws):
@@ -67,23 +67,28 @@ def test_gridInterpolation(data, method):
     # we are just testing if the interpolation gets passed to the series without
     # causing an error:
     res = interpolate(
-        data, field, flags, freq, method=method, downcast_interpolation=True
+        data.copy(),
+        field,
+        flags.copy(),
+        freq,
+        method=method,
+        downcast_interpolation=True,
     )
 
     if method == "polynomial":
         res = interpolate(
-            data,
+            data.copy(),
             field,
-            flags,
+            flags.copy(),
             freq,
             order=2,
             method=method,
             downcast_interpolation=True,
         )
         res = interpolate(
-            data,
+            data.copy(),
             field,
-            flags,
+            flags.copy(),
             freq,
             order=10,
             method=method,
@@ -142,8 +147,8 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
 
     # flag something bad
     flags[data[field + "_interpolated"].index[3:4], field + "_interpolated"] = BAD
-    data, flags = reindexFlags(
-        data, field, flags, method="inverse_" + reshaper, source=field + "_interpolated"
+    data, flags = concatFlags(
+        data, field + "_interpolated", flags, method="inverse_" + reshaper, target=field
     )
     data, flags = dropField(data, field + "_interpolated", flags)
 
@@ -243,8 +248,8 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
     assert data_harm[h_field].index.freq == pd.Timedelta(freq)
     assert data_harm[h_field].equals(expected)
 
-    data_deharm, flags_deharm = reindexFlags(
-        data_harm, field, flags_harm, source=h_field, method="inverse_" + method
+    data_deharm, flags_deharm = concatFlags(
+        data_harm, h_field, flags_harm, target=field, method="inverse_" + method
     )
     data_deharm, flags_deharm = dropField(data_deharm, h_field, flags_deharm)
     checkDataFlagsInvariants(data_deharm, flags_deharm, field, identical=True)
@@ -324,8 +329,8 @@ def test_harmSingleVarInterpolationShift(data, params, expected):
     assert data_harm[h_field].equals(expected)
     checkDataFlagsInvariants(data_harm, flags_harm, field, identical=True)
 
-    data_deharm, flags_deharm = reindexFlags(
-        data_harm, field, flags_harm, source=h_field, method="inverse_" + method
+    data_deharm, flags_deharm = concatFlags(
+        data_harm, h_field, flags_harm, target=field, method="inverse_" + method
     )
     checkDataFlagsInvariants(data_deharm, flags_deharm, field, identical=True)
 

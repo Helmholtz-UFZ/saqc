@@ -2,31 +2,32 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Callable
+from typing import Sequence, Union
 
-import numpy as np
-import pandas as pd
-
-from saqc.constants import UNFLAGGED, BAD
 import saqc
+from saqc.constants import UNFLAGGED, BAD, FILTER_ALL
+from saqc.lib.types import GenericFunction
 
 
 class Generic:
-    def genericProcess(
+    def processGeneric(
         self,
-        field: str,
-        func: Callable[[pd.Series], pd.Series],
-        to_mask: float = UNFLAGGED,
+        field: str | Sequence[str],
+        func: GenericFunction,
+        target: str | Sequence[str] = None,
+        flag: float = UNFLAGGED,
+        dfilter: float = FILTER_ALL,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("genericProcess", locals())
+        return self._defer("processGeneric", locals())
 
-    def genericFlag(
+    def flagGeneric(
         self,
-        field: str,
-        func: Callable[[pd.Series], pd.Series],
+        field: Union[str, Sequence[str]],
+        func: GenericFunction,
+        target: Union[str, Sequence[str]] = None,
         flag: float = BAD,
-        to_mask: float = UNFLAGGED,
+        dfilter: float = FILTER_ALL,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("genericFlag", locals())
+        return self._defer("flagGeneric", locals())

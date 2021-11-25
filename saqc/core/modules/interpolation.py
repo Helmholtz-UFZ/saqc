@@ -21,7 +21,7 @@ class Interpolation:
         center: bool = True,
         min_periods: int = 0,
         flag: float = UNFLAGGED,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("interpolateByRolling", locals())
 
@@ -33,7 +33,7 @@ class Interpolation:
         limit: int = 2,
         downgrade: bool = False,
         flag: float = UNFLAGGED,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("interpolateInvalid", locals())
 
@@ -45,6 +45,6 @@ class Interpolation:
         order: int = 2,
         limit: int = 2,
         downgrade: bool = False,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("interpolateIndex", locals())

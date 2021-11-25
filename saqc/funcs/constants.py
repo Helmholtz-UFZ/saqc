@@ -11,21 +11,21 @@ import operator
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
+from saqc.core.register import flagging
 from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta, statPass
-from saqc.lib.types import FreqString
 
 
-@flagging(masking="field")
+@flagging()
 def flagConstants(
     data: DictOfSeries,
     field: str,
     flags: Flags,
     thresh: float,
-    window: FreqString,
+    window: str,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     This functions flags plateaus/series of constant values of length `window` if
@@ -34,7 +34,7 @@ def flagConstants(
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
     (1) n > `window`
-    (2) |(y(t + i) - (t + j)| < `thresh`, for all i,j in [0, 1, ..., n]
+    (2) `|(y(t + i) - (t + j)|` < `thresh`, for all i,j in [0, 1, ..., n]
 
     Flag values are (semi-)constant.
 
@@ -61,8 +61,6 @@ def flagConstants(
         The flags object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flags input.
     """
-    if not isinstance(window, str):
-        raise TypeError("window must be offset string.")
     d = data[field]
 
     # min_periods=2 ensures that at least two non-nan values are present
@@ -81,17 +79,17 @@ def flagConstants(
     return data, flags
 
 
-@flagging(masking="field")
+@flagging()
 def flagByVariance(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: FreqString = "12h",
+    window: str = "12h",
     thresh: float = 0.0005,
     maxna: int = None,
     maxna_group: int = None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:

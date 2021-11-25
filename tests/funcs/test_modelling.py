@@ -3,6 +3,7 @@
 
 
 # see test/functs/fixtures.py for global fixtures "course_..."
+import pytest
 
 import dios
 
@@ -14,6 +15,7 @@ from saqc.funcs.residues import calculatePolynomialResidues, calculateRollingRes
 from tests.fixtures import *
 
 
+@pytest.mark.filterwarnings("ignore: The fit may be poorly conditioned")
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])
 def test_modelling_polyFit_forRegular(dat):
     data, _ = dat(
@@ -54,7 +56,6 @@ def test_modelling_rollingMean_forRegular(dat):
         flags,
         5,
         func=np.mean,
-        set_flags=True,
         min_periods=0,
         center=True,
     )
@@ -64,7 +65,6 @@ def test_modelling_rollingMean_forRegular(dat):
         flags,
         5,
         func=np.mean,
-        set_flags=True,
         min_periods=0,
         center=False,
     )

@@ -16,10 +16,7 @@ class Curvefit:
         field: str,
         window: Union[int, str],
         order: int,
-        set_flags: bool = True,
         min_periods: int = 0,
-        return_residues: bool = False,
-        flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
         return self._defer("fitPolynomial", locals())

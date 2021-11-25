@@ -2,59 +2,21 @@
 # -*- coding: utf-8 -*-
 
 import ast
-import numpy as np
-import pandas as pd
 
-from saqc.constants import *
+from saqc.constants import ENVIRONMENT
 from saqc.core.register import FUNC_MAP
-import saqc.lib.ts_operators as ts_ops
-
-
-ENVIRONMENT = {
-    "NAN": np.nan,
-    "abs": np.abs,
-    "max": np.nanmax,
-    "min": np.nanmin,
-    "mean": np.nanmean,
-    "sum": np.nansum,
-    "std": np.nanstd,
-    "len": len,
-    "exp": np.exp,
-    "log": np.log,
-    "var": np.nanvar,
-    "median": np.nanmedian,
-    "first": ts_ops.first,
-    "last": ts_ops.last,
-    "count": ts_ops.count,
-    "deltaT": ts_ops.deltaT,
-    "id": ts_ops.identity,
-    "diff": ts_ops.difference,
-    "relDiff": ts_ops.relativeDifference,
-    "deriv": ts_ops.derivative,
-    "rateOfChange": ts_ops.rateOfChange,
-    "scale": ts_ops.scale,
-    "normScale": ts_ops.normScale,
-    "meanStandardize": ts_ops.standardizeByMean,
-    "medianStandardize": ts_ops.standardizeByMedian,
-    "zLog": ts_ops.zeroLog,
-}
-
-# TODO:
-# get from saqc.constants
-RESERVED = {"GOOD", "BAD", "UNFLAGGED"}
 
 
 class ConfigExpressionParser(ast.NodeVisitor):
     """
     Generic configuration functions will be rewritten as lambda functions
-    and variables that need a look up in `data` will act as arguments, e.g.:
-      `flagGeneric(func=(x != 4) & (y < 3))`
-      will be rewritten to
-      `lambda x, y: (x != 4) & (y < 3)`
+    and all defined variables will act as arguments, e.g.:
+    ``flagGeneric(func=(x != 4) & (y < 3))`` will be rewritten to
+    ``lambda x, y: (x != 4) & (y < 3)``
 
-    The main purpose of this class is to identify all such lambda arguments
-    and check the given expression for accordance with the restrictions
-    imposed onto generic functions.
+    The main purpose of this class is to identify all variables used in
+    a given generic function and to check that it does not violate the
+    restrictions imposed onto generic functions.
     """
 
     SUPPORTED = (
@@ -88,11 +50,6 @@ class ConfigExpressionParser(ast.NodeVisitor):
     def __init__(self, node):
         self._args = []
         self.visit(node)
-        if not self._args:
-            # NOTE:
-            # we assume, that we are not dealing with an
-            # expression as we couldn't find any arguments
-            raise TypeError("not a valid expression")
 
     @property
     def args(self):
@@ -106,10 +63,9 @@ class ConfigExpressionParser(ast.NodeVisitor):
 
     def visit_Name(self, node):
         # NOTE:
-        # the assumption is, that anything not in
-        # ENVIRONMENT + RESERVED needs a lookup in `data`
+        # anything not in ENVIRONMENT should be an argument of the generic function
         name = node.id
-        if name not in ENVIRONMENT and name not in RESERVED:
+        if name not in ENVIRONMENT:
             self._args.append(name)
         self.generic_visit(node)
 
@@ -139,20 +95,14 @@ class ConfigFunctionParser(ast.NodeVisitor):
     )
 
     def __init__(self):
-
         self.kwargs = {}
-        self.environment = {
-            "GOOD": GOOD,
-            "BAD": BAD,
-            "UNFLAGGED": UNFLAGGED,
-            **ENVIRONMENT,
-        }
 
     def parse(self, node):
         func = self.visit_Call(node)
         return func, self.kwargs
 
     def visit_Call(self, node):
+
         if not isinstance(node, ast.Call):
             raise TypeError("expected function call")
 
@@ -172,13 +122,11 @@ class ConfigFunctionParser(ast.NodeVisitor):
 
     def visit_keyword(self, node):
 
-        k, v = node.arg, node.value
+        key, value = node.arg, node.value
         check_tree = True
 
-        # NOTE: `node` is not a constant or a variable,
-        #       so it should be a function call
-        try:
-            visitor = ConfigExpressionParser(v)
+        if key == "func":
+            visitor = ConfigExpressionParser(value)
             args = ast.arguments(
                 posonlyargs=[],
                 kwonlyargs=[],
@@ -188,34 +136,33 @@ class ConfigFunctionParser(ast.NodeVisitor):
                 kwarg=None,
                 vararg=None,
             )
-            v = ast.Lambda(args=args, body=v)
+            value = ast.Lambda(args=args, body=value)
             # NOTE:
             # don't pass the generated functions down
             # to the checks implemented in this class...
             check_tree = False
-        except TypeError:
-            pass
 
-        vnode = ast.Assign(targets=[ast.Name(id=k, ctx=ast.Store())], value=v)
+        vnode = ast.Assign(targets=[ast.Name(id=key, ctx=ast.Store())], value=value)
 
         # NOTE:
         # in order to get concrete values out of the AST
-        # we compile and evaluate the keyword (e.g. max=100)
+        # we compile and evaluate every keyword (e.g. max=100)
         # into the dictionary `self.kwargs`
         # -> after all keywords where visited we end up with
-        #    a dictionary holding all the passed arguments as
-        #    real python objects
+        # a dictionary holding all the passed arguments as
+        # real python objects
         co = compile(
             ast.fix_missing_locations(ast.Interactive(body=[vnode])),
             "<ast>",
             mode="single",
         )
-        # NOTE: only pass a copy to not clutter the self.environment
-        exec(co, {**self.environment}, self.kwargs)
+        # NOTE: only pass a copy to not clutter the ENVIRONMENT
+        # try:
+        exec(co, {**ENVIRONMENT}, self.kwargs)
 
         # let's do some more validity checks
         if check_tree:
-            self.generic_visit(v)
+            self.generic_visit(value)
 
     def generic_visit(self, node):
         if not isinstance(node, self.SUPPORTED_NODES):

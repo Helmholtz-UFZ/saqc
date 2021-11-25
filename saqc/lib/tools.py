@@ -1,11 +1,12 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 import re
 import datetime
 import itertools
 import warnings
-from typing import Sequence, Union, Any, Iterator, Callable
+from typing import List, Sequence, TypeVar, Union, Any, Iterator, Callable, Collection
 
 import numpy as np
 import numba as nb
@@ -16,11 +17,23 @@ import dios
 import collections
 from scipy.cluster.hierarchy import linkage, fcluster
 
-from saqc.lib.types import T
-
 # keep this for external imports
 # TODO: fix the external imports
 from saqc.lib.rolling import customRoller
+
+
+T = TypeVar("T", str, float, int)
+
+
+def _swapToTarget(field, target, flags):
+    if target is None:
+        return field, flags
+    if not isinstance(target, str):
+        raise TypeError(f"target must be of type string, not {repr(type(target))}")
+    if target in flags.columns:
+        raise ValueError(f"cannot create target {repr(target)}, it already exists.")
+    flags.history[target] = flags.history[field].copy()
+    return target, flags
 
 
 def assertScalar(name, value, optional=False):
@@ -30,13 +43,15 @@ def assertScalar(name, value, optional=False):
         raise ValueError(f"'{name}' needs to be a scalar")
 
 
-def toSequence(
-    value: Union[T, Sequence[T]], default: Union[T, Sequence[T]] = None
-) -> Sequence[T]:
-    if value is None:
-        value = default
-    if np.isscalar(value):
-        value = [value]
+def toSequence(value: T | Sequence[T]) -> List[T]:
+    if isinstance(value, (str, int, float)):
+        return [value]
+    return list(value)
+
+
+def squeezeSequence(value: Sequence[T]) -> Union[T, Sequence[T]]:
+    if len(value) == 1:
+        return value[0]
     return value
 
 
@@ -160,7 +175,7 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
 
     Returns
     -------
-    to_mask : pandas.Series[bool]
+    dfilter : pandas.Series[bool]
         A series, indexed with the input index and having value `True` for all the values that are to be masked.
 
     Examples
@@ -277,6 +292,26 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
             break
         yield pd.Series(data=values[start:stop], index=index[start:stop])
         start = stop
+
+
+def concatDios(data: List[dios.DictOfSeries], warn: bool = True, stacklevel: int = 2):
+    # fast path for most common case
+    if len(data) == 1 and data[0].columns.is_unique:
+        return data[0]
+
+    result = dios.DictOfSeries()
+    for di in data:
+        for c in di.columns:
+            if c in result.columns:
+                if warn:
+                    warnings.warn(
+                        f"Column {c} already exist. Data is overwritten. "
+                        f"Avoid duplicate columns names over all inputs.",
+                        stacklevel=stacklevel,
+                    )
+            result[c] = di[c]
+
+    return result
 
 
 def mergeDios(left, right, subset=None, join="merge"):
@@ -623,3 +658,54 @@ def statPass(
             to_set[start:end] = True
 
     return to_set
+
+
+def filterKwargs(
+    kwargs: dict,
+    reserved: Collection,
+    inplace: bool = True,
+    warn: bool = True,
+    msg: str = "",
+    stacklevel: int = 3,
+) -> dict:
+    """
+    Filter kwargs (or any dict) by a list of reserved keys.
+
+    Parameters
+    ----------
+    kwargs : dict
+        The dict to filter.
+
+    reserved : list-like
+        A list of reserved keywords.
+
+    inplace : bool, default False
+        If `False` a copy is returned, otherwise the modified original kwargs.
+
+    warn : bool, default True
+        Throw a `RuntimeWarning` with the following text:
+
+    msg : str, default ""
+        A text to append to the warnings message.
+
+    stacklevel : int, default 3
+        The stacklevel this warning will refer to.
+            - `2` : warn at the location this function is called
+            - `3` : warn for the function that calls this function (default)
+
+    Returns
+    -------
+    kwargs: dict
+        the modified kwargs or a copy
+    """
+    if not inplace:
+        kwargs = kwargs.copy()
+    for key in reserved:
+        if warn and key in kwargs:
+            warnings.warn(
+                f"The keyword {repr(key)} is reserved and will be ignored {msg}",
+                RuntimeWarning,
+                stacklevel=stacklevel,
+            )
+        kwargs.pop(key, None)
+    return kwargs

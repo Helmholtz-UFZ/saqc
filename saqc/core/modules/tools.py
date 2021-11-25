@@ -6,11 +6,13 @@ from typing import Optional
 from typing_extensions import Literal
 
 import saqc
-from saqc.lib.types import FreqString
+import numpy as np
+
+from saqc.constants import FILTER_NONE
 
 
 class Tools:
-    def copyField(self, field: str, new_field: str, **kwargs) -> saqc.SaQC:
+    def copyField(self, field: str, target: str, **kwargs) -> saqc.SaQC:
         return self._defer("copyField", locals())
 
     def dropField(self, field: str, **kwargs) -> saqc.SaQC:
@@ -35,12 +37,14 @@ class Tools:
         self,
         field: str,
         path: Optional[str] = None,
-        max_gap: Optional[FreqString] = None,
+        max_gap: Optional[str] = None,
         stats: bool = False,
-        plot_kwargs: Optional[dict] = None,
-        fig_kwargs: Optional[dict] = None,
+        history: Optional[Literal["valid", "complete", "clear"]] = "valid",
+        xscope: Optional[slice] = None,
+        phaseplot: Optional[str] = None,
         stats_dict: Optional[dict] = None,
         store_kwargs: Optional[dict] = None,
+        dfilter: Optional[float] = FILTER_NONE,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("plot", locals())

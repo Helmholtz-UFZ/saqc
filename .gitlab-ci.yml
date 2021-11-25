@@ -20,33 +20,27 @@ default:
 # test saqc with python 3.7
 python37:
   stage: test
-  except:
-    - schedules
   image: python:3.7
   script:
-    - pytest tests/core tests/funcs tests/integration dios/test
-    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
+    - pytest tests/core tests/funcs tests/integration dios/test -Werror
+    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
 # test saqc with python 3.8
 python38:
   stage: test
-  except:
-    - schedules
   script:
-    - pytest tests/core tests/funcs tests/integration dios/test
-    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
+    - pytest tests/core tests/funcs tests/integration dios/test -Werror
+    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
 # test saqc with python 3.9
 python39:
   stage: test
-  except:
-    - schedules
   image: python:3.9
   script:
-    - pytest tests/core tests/funcs tests/integration
-    - python -m saqc --config ressources/data/config_ci.csv --data ressources/data/data.csv --outfile /tmp/test.csv
+    - pytest tests/core tests/funcs tests/integration dios/test -Werror
+    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv --outfile /tmp/test.csv
 
 
 # check if everthing is properly formatted
@@ -60,12 +54,10 @@ black:
 # make (visual) coverage in gitlab merge request diff's
 coverage:
   stage: test
-  except:
-    - schedules
   allow_failure: true
   script:
     - pip install pytest-cov coverage
-    - pytest --cov=saqc tests/core tests/funcs
+    - pytest --cov=saqc tests/core tests/funcs -Werror
   after_script:
     - coverage xml
 
@@ -105,7 +97,7 @@ fuzzy:
   only:
     - schedules
   script:
-    - pytest tests/fuzzy
+    - pytest tests/fuzzy -Werror
 
 
 # test lib saqc
@@ -114,5 +106,5 @@ testLib:
   only:
     - schedules
   script:
-    - pytest tests/lib
+    - pytest tests/lib -Werror
 

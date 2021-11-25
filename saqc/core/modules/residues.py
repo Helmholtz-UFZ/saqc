@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Optional, Union, Callable
 
 import numpy as np
+import pandas as pd
 from typing_extensions import Literal
 
 from saqc.constants import BAD
@@ -17,9 +18,7 @@ class Residues:
         field: str,
         window: Union[str, int],
         order: int,
-        set_flags: bool = True,  # TODO, not valid anymore, if still needed, maybe assign user-passed ``flag``?
         min_periods: Optional[int] = 0,
-        flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
         return self._defer("calculatePolynomialResidues", locals())
@@ -28,11 +27,9 @@ class Residues:
         self,
         field: str,
         window: Union[str, int],
-        func: Callable[[np.ndarray], np.ndarray] = np.mean,
-        set_flags: bool = True,
+        func: Callable[[pd.Series], np.ndarray] = np.mean,
         min_periods: Optional[int] = 0,
         center: bool = True,
-        flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
         return self._defer("calculateRollingResidues", locals())

@@ -14,7 +14,12 @@ from saqc.funcs.interpolation import _SUPPORTED_METHODS
 
 
 class Resampling:
-    def linear(self, field: str, freq: str, **kwargs) -> saqc.SaQC:
+    def linear(
+        self,
+        field: str,
+        freq: str,
+        **kwargs,
+    ) -> saqc.SaQC:
         return self._defer("linear", locals())
 
     def interpolate(
@@ -53,9 +58,10 @@ class Resampling:
     ) -> saqc.SaQC:
         return self._defer("resample", locals())
 
-    def reindexFlags(
+    def concatFlags(
         self,
         field: str,
+        target: str,
         method: Literal[
             "inverse_fagg",
             "inverse_bagg",
@@ -65,9 +71,8 @@ class Resampling:
             "inverse_nshift",
             "inverse_interpolation",
         ],
-        source: str,
         freq: Optional[str] = None,
         drop: Optional[bool] = False,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("reindexFlags", locals())
+        return self._defer("concatFlags", locals())

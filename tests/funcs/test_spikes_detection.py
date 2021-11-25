@@ -86,7 +86,6 @@ def test_flagMultivarScores(dat):
     data2, characteristics = dat(
         periods=1000, initial_level=20, final_level=1, out_val=30
     )
-    field = "dummy"
     fields = ["data1", "data2"]
     s1, s2 = data1.squeeze(), data2.squeeze()
     s1 = pd.Series(data=s1.values, index=s1.index)
@@ -94,10 +93,9 @@ def test_flagMultivarScores(dat):
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flags = initFlagsLike(data)
     _, flags_result = flagMVScores(
-        data,
-        field,
-        flags,
-        fields=fields,
+        data=data,
+        field=fields,
+        flags=flags,
         trafo=np.log,
         iter_start=0.95,
         n=10,

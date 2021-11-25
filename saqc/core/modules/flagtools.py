@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Union
 
 import pandas as pd
+import numpy as np
 from dios import DictOfSeries
 from typing_extensions import Literal
 
@@ -28,9 +29,12 @@ class FlagTools:
     def flagManual(
         self,
         field: str,
-        mdata: Union[pd.Series, pd.DataFrame, DictOfSeries],
+        mdata: Union[pd.Series, pd.DataFrame, DictOfSeries, list, np.array],
+        method: Literal[
+            "left-open", "right-open", "closed", "plain", "ontime"
+        ] = "left-open",
+        mformat: Literal["start-end", "mflag"] = "start-end",
         mflag: Any = 1,
-        method: Literal["plain", "ontime", "left-open", "right-open"] = "plain",
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:

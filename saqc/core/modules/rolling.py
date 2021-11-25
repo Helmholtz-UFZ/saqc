@@ -14,12 +14,9 @@ class Rolling:
         self,
         field: str,
         window: Union[str, int],
-        func: Callable[[pd.Series], float] = np.mean,
-        set_flags: bool = True,  # TODO: not applicable anymore
+        func: Callable[[pd.Series], np.ndarray] = np.mean,
         min_periods: int = 0,
         center: bool = True,
-        return_residues=False,  # TODO: this should not be public, a wrapper would be better
-        flag: float = BAD,
         **kwargs
     ):
         return self._defer("roll", locals())

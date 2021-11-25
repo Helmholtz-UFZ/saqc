@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import Any, Mapping, Hashable
+
 from .base import _DiosBase, _is_dios_like
 from .lib import Opts, OptsFields, dios_options
 from .lib import _find_least_common_itype
@@ -42,26 +45,8 @@ class DictOfSeries(_DiosBase):
         the ``itype``.
     """
 
-    def __init__(
-        self,
-        data=None,
-        columns=None,
-        index=None,
-        itype=None,
-        cast_policy="save",
-        fastpath=False,
-    ):
-        super().__init__(
-            data=data,
-            columns=columns,
-            index=index,
-            itype=itype,
-            cast_policy=cast_policy,
-            fastpath=fastpath,
-        )
-
     @property
-    def _constructor(self):
+    def _constructor(self) -> type[DictOfSeries]:
         """Return the class. Useful for construction in the elder class.
         A import of DictOfSeries would end up cyclic."""
         return DictOfSeries
@@ -69,7 +54,7 @@ class DictOfSeries(_DiosBase):
     def _construct_like_self(self, **kwargs):
         kwargs.setdefault("itype", self.itype)
         kwargs.setdefault("cast_policy", self.cast_policy)
-        return self._constructor(**kwargs)
+        return self._constructor(**kwargs)._finalize(self)
 
     @property
     def indexes(self):
@@ -223,7 +208,9 @@ class DictOfSeries(_DiosBase):
                 yield from df.iterrows()
             else:
                 for idx, row in df.iterrows():
-                    yield idx, self._constructor(data=row.to_dict(), index=[idx])
+                    yield idx, self._constructor(
+                        data=row.to_dict(), index=[idx]
+                    )._finalize(self)
 
     # ------------------------------------------------------------------------------
     # Broadcasting and Reducing
@@ -460,6 +447,8 @@ class DictOfSeries(_DiosBase):
                     result.at[c] = pd.Series(val)
             itype = _find_least_common_itype(result)
             result = self._constructor(data=result, itype=itype, fastpath=True)
+            result._finalize(self)
+
         return result
 
     def reduce_columns(self, func, initial=None, skipna=False):
@@ -822,6 +811,8 @@ class DictOfSeries(_DiosBase):
             # was set before. Missing locations are already
             # nans, present locations are set.
             df[c] = series.copy()
+
+        df.attrs = self.attrs
         return df
 
     @property

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import ast
+from saqc.core.flags import Flags
 from saqc.core.reader import fromConfig
 import pytest
 import numpy as np
@@ -9,9 +10,9 @@ import pandas as pd
 import dios
 
 from saqc.constants import *
-from saqc.core import initFlagsLike, Flags
+from saqc.core import initFlagsLike
 from saqc.core.visitor import ConfigFunctionParser
-from saqc.core.register import flagging
+from saqc.core.register import register
 from saqc.funcs.generic import _execGeneric
 from saqc import SaQC
 
@@ -38,30 +39,13 @@ def data_diff():
     )
 
 
-def _compileGeneric(expr, flags):
+def _compileGeneric(expr):
     tree = ast.parse(expr, mode="eval")
     _, kwargs = ConfigFunctionParser().parse(tree.body)
     return kwargs["func"]
 
 
-def test_missingIdentifier(data):
-    flags = Flags()
-
-    # NOTE:
-    # - the error is only raised at runtime during parsing would be better
-    tests = [
-        "fff(var2) < 5",
-        "var3 != 42",
-    ]
-
-    for test in tests:
-        func = _compileGeneric(f"genericFlag(func={test})", flags)
-        with pytest.raises(NameError):
-            _execGeneric(flags, data, func, field="")
-
-
 def test_syntaxError():
-    flags = Flags()
     tests = [
         "range(x=5",
         "rangex=5)",
@@ -70,212 +54,171 @@ def test_syntaxError():
 
     for test in tests:
         with pytest.raises(SyntaxError):
-            _compileGeneric(f"flag(func={test})", flags)
+            _compileGeneric(f"flag(func={test})")
 
 
 def test_typeError():
     """
     test that forbidden constructs actually throw an error
-    TODO: find a few more cases or get rid of the test
     """
-    flags = Flags()
 
-    # : think about cases that should be forbidden
+    # TODO: think about cases that should be forbidden
     tests = ("lambda x: x * 2",)
 
     for test in tests:
         with pytest.raises(TypeError):
-            _compileGeneric(f"genericFlag(func={test})", flags)
+            _compileGeneric(f"flagGeneric(func={test})")
 
 
 def test_comparisonOperators(data):
-    flags = initFlagsLike(data)
     var1, var2, *_ = data.columns
-    this = var1
+    flags = initFlagsLike(data)
 
     tests = [
-        ("this > 100", data[this] > 100),
-        (f"10 >= {var2}", 10 >= data[var2]),
-        (f"{var2} < 100", data[var2] < 100),
-        (f"this <= {var2}", data[this] <= data[var2]),
-        (f"{var1} == {var2}", data[this] == data[var2]),
-        (f"{var1} != {var2}", data[this] != data[var2]),
+        (["var1"], "x > 100", data[var1] > 100),
+        (["var2"], "10 >= y", 10 >= data[var2]),
+        (["var2"], f"y < 100", data[var2] < 100),
+        (["var1", "var2"], "x <= y", data[var1] <= data[var2]),
+        (["var1", "var2"], "x == y", data[var1] == data[var2]),
+        (["var1", "var2"], "x != y", data[var1] != data[var2]),
     ]
 
-    for test, expected in tests:
-        func = _compileGeneric(f"genericFlag(func={test})", flags)
-        result = _execGeneric(flags, data, func, field=var1)
-        assert np.all(result == expected)
+    for field, test, expected in tests:
+        func = _compileGeneric(f"flagGeneric(func={test})")
+        result = _execGeneric(Flags({f: flags[f] for f in field}), data[field], func)
+        assert (result == expected).all(axis=None)
 
 
 def test_arithmeticOperators(data):
-    flags = initFlagsLike(data)
+
     var1, *_ = data.columns
-    this = data[var1]
+
+    data = data[var1]
+    flags = Flags({var1: pd.Series(UNFLAGGED, index=data.index)})
 
     tests = [
-        ("var1 + 100 > 110", this + 100 > 110),
-        ("var1 - 100 > 0", this - 100 > 0),
-        ("var1 * 100 > 200", this * 100 > 200),
-        ("var1 / 100 > .1", this / 100 > 0.1),
-        ("var1 % 2 == 1", this % 2 == 1),
-        ("var1 ** 2 == 0", this ** 2 == 0),
+        ("var1 + 100 > 110", data + 100 > 110),
+        ("var1 - 100 > 0", data - 100 > 0),
+        ("var1 * 100 > 200", data * 100 > 200),
+        ("var1 / 100 > .1", data / 100 > 0.1),
+        ("var1 % 2 == 1", data % 2 == 1),
+        ("var1 ** 2 == 0", data ** 2 == 0),
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"genericProcess(func={test})", flags)
-        result = _execGeneric(flags, data, func, field=var1)
-        assert np.all(result == expected)
+        func = _compileGeneric(f"processGeneric(func={test})")
+        result = _execGeneric(flags, data, func)
+        assert (result == expected).all(axis=None)
 
 
 def test_nonReduncingBuiltins(data):
-    flags = initFlagsLike(data)
     var1, *_ = data.columns
-    this = var1
+    data = data.iloc[1:10, 0]
+    flags = Flags({var1: pd.Series(UNFLAGGED, index=data.index)})
 
     tests = [
-        (f"abs({this})", np.abs(data[this])),
-        (f"log({this})", np.log(data[this])),
-        (f"exp({this})", np.exp(data[this])),
+        ("abs(x)", np.abs(data)),
+        ("log(x)", np.log(data)),
+        ("exp(x)", np.exp(data)),
     ]
 
     for test, expected in tests:
-        func = _compileGeneric(f"genericProcess(func={test})", flags)
-        result = _execGeneric(flags, data, func, field=this)
-        assert (result == expected).all()
-
-
-def test_reduncingBuiltins(data):
-    data.loc[::4] = np.nan
-    flags = initFlagsLike(data)
-    var1 = data.columns[0]
-    this = data.iloc[:, 0]
-
-    tests = [
-        ("min(this)", np.nanmin(this)),
-        (f"max({var1})", np.nanmax(this)),
-        (f"sum({var1})", np.nansum(this)),
-        ("mean(this)", np.nanmean(this)),
-        (f"std({this.name})", np.std(this)),
-        (f"len({this.name})", len(this)),
-    ]
-
-    for test, expected in tests:
-        func = _compileGeneric(f"genericProcess(func={test})", flags)
-        result = _execGeneric(flags, data, func, field=this.name)
-        assert result == expected
-
-
-def test_ismissing(data):
-
-    flags = initFlagsLike(data)
-    data.iloc[: len(data) // 2, 0] = np.nan
-    data.iloc[(len(data) // 2) + 1 :, 0] = -9999
-    this = data.iloc[:, 0]
-
-    tests = [
-        (f"ismissing({this.name})", pd.isnull(this)),
-        (f"~ismissing({this.name})", pd.notnull(this)),
-    ]
-
-    for test, expected in tests:
-        func = _compileGeneric(f"genericFlag(func={test})", flags)
-        result = _execGeneric(flags, data, func, this.name)
-        assert np.all(result == expected)
+        func = _compileGeneric(f"processGeneric(func={test})")
+        result = _execGeneric(flags, data, func)
+        assert (result == expected).all(axis=None)
 
 
 def test_bitOps(data):
     var1, var2, *_ = data.columns
-    this = var1
-
     flags = initFlagsLike(data)
 
     tests = [
-        ("~(this > mean(this))", ~(data[this] > np.nanmean(data[this]))),
-        (f"(this <= 0) | (0 < {var1})", (data[this] <= 0) | (0 < data[var1])),
-        (f"({var2} >= 0) & (0 > this)", (data[var2] >= 0) & (0 > data[this])),
+        ([var1], "~(x > mean(x))", ~(data[var1] > np.nanmean(data[var1]))),
+        ([var1], "(x <= 0) | (0 < x)", (data[var1] <= 0) | (0 < data[var1])),
+        ([var1, var2], "(y>= 0) & (0 > x)", (data[var2] >= 0) & (0 > data[var1])),
     ]
 
-    for test, expected in tests:
-        func = _compileGeneric(f"genericFlag(func={test})", flags)
-        result = _execGeneric(flags, data, func, this)
-        assert np.all(result == expected)
-
-
-def test_isflagged(data):
-
-    var1, var2, *_ = data.columns
-    flags = initFlagsLike(data)
-    flags[data[var1].index[::2], var1] = BAD
-
-    tests = [
-        (f"isflagged({var1})", flags[var1] > UNFLAGGED),
-        (f"isflagged({var1}, flag=BAD)", flags[var1] >= BAD),
-        (f"isflagged({var1}, UNFLAGGED, '==')", flags[var1] == UNFLAGGED),
-        (f"~isflagged({var2})", flags[var2] == UNFLAGGED),
-        (
-            f"~({var2}>999) & (~isflagged({var2}))",
-            ~(data[var2] > 999) & (flags[var2] == UNFLAGGED),
-        ),
-    ]
-
-    for i, (test, expected) in enumerate(tests):
-        try:
-            func = _compileGeneric(f"genericFlag(func={test}, flag=BAD)", flags)
-            result = _execGeneric(flags, data, func, field=None)
-            assert np.all(result == expected)
-        except Exception:
-            print(i, test)
-            raise
-
-    # test bad combination
-    for comp in [">", ">=", "==", "!=", "<", "<="]:
-        fails = f"isflagged({var1}, comparator='{comp}')"
-
-        func = _compileGeneric(f"genericFlag(func={fails}, flag=BAD)", flags)
-        with pytest.raises(ValueError):
-            _execGeneric(flags, data, func, field=None)
+    for field, test, expected in tests:
+        func = _compileGeneric(f"flagGeneric(func={test})")
+        result = _execGeneric(Flags({f: flags[f] for f in field}), data[field], func)
+        assert (result == expected).all(axis=None)
 
 
 def test_variableAssignments(data):
-    var1, var2, *_ = data.columns
 
     config = f"""
     varname ; test
-    dummy1  ; genericProcess(func=var1 + var2)
-    dummy2  ; genericFlag(func=var1 + var2 > 0)
+    dummy1  ; processGeneric(field=["var1", "var2"], func=x + y)
+    dummy2  ; flagGeneric(field=["var1", "var2"], func=x + y > 0)
     """
 
     fobj = writeIO(config)
     saqc = fromConfig(fobj, data)
-    result_data, result_flags = saqc.getResult(raw=True)
 
-    assert set(result_data.columns) == set(data.columns) | {
-        "dummy1",
-    }
-    assert set(result_flags.columns) == set(data.columns) | {"dummy1", "dummy2"}
+    expected_columns = set(data.columns) | {"dummy1", "dummy2"}
+    assert set(saqc.data.columns) == expected_columns
+    assert set(saqc.flags.columns) == expected_columns
 
 
-def test_processMultiple(data_diff):
+def test_processExistingTarget(data):
     config = f"""
     varname ; test
-    dummy   ; genericProcess(func=var1 + 1)
-    dummy   ; genericProcess(func=var2 - 1)
+    var2   ; flagMissing()
+    var2   ; processGeneric(func=y - 1, flag=DOUBTFUL)
     """
 
     fobj = writeIO(config)
-    saqc = fromConfig(fobj, data_diff)
-    result_data, result_flags = saqc.getResult()
-    assert len(result_data["dummy"]) == len(result_flags["dummy"])
+    saqc = fromConfig(fobj, data)
+    assert (saqc._data["var2"] == data["var2"] - 1).all()
+    assert len(saqc._flags.history["var2"]) == 2
+    assert saqc._flags.history["var2"].hist[0].isna().all()
+    assert (saqc._flags.history["var2"].hist[1] == DOUBTFUL).all()
+
+
+def test_flagTargetExisting(data):
+    config = f"""
+    varname ; test
+    dummy   ; processGeneric(field="var1", func=x < 1)
+    dummy   ; processGeneric(field="var2", func=y >1)
+    """
+
+    fobj = writeIO(config)
+    saqc = fromConfig(fobj, data)
+    assert len(saqc.data["dummy"]) == len(saqc.flags["dummy"])
+
+
+def test_processTargetExistingFail(data_diff):
+    config = f"""
+    varname ; test
+    dummy   ; processGeneric(field="var1", func=x + 1)
+    dummy   ; processGeneric(field="var2", func=y - 1)
+    """
+
+    fobj = writeIO(config)
+    with pytest.raises(ValueError):
+        fromConfig(fobj, data_diff)
+
+
+def test_flagTargetExistingFail(data_diff):
+    config = f"""
+    varname ; test
+    dummy   ; flagGeneric(field="var1", func=x < 1)
+    dummy   ; flagGeneric(field="var2", func=y > 1)
+    """
+
+    fobj = writeIO(config)
+    with pytest.raises(ValueError):
+        fromConfig(fobj, data_diff)
 
 
 def test_callableArgumentsUnary(data):
 
     window = 5
 
-    @flagging(masking="field")
+    @register(mask=["field"], demask=["field"], squeeze=["field"])
     def testFuncUnary(data, field, flags, func, **kwargs):
-        data[field] = data[field].rolling(window=window).apply(func)
+        value = data[field].rolling(window=window).apply(func)
+        data[field] = value
         return data, initFlagsLike(data)
 
     var = data.columns[0]
@@ -286,14 +229,14 @@ def test_callableArgumentsUnary(data):
     """
 
     tests = [
-        ("sum", np.nansum),
+        # ("sum", np.nansum),
         ("std(exp(x))", lambda x: np.std(np.exp(x))),
     ]
 
     for (name, func) in tests:
         fobj = writeIO(config.format(name))
-        result_config, _ = fromConfig(fobj, data).getResult()
-        result_api, _ = SaQC(data).testFuncUnary(var, func=func).getResult()
+        result_config = fromConfig(fobj, data).result.data
+        result_api = SaQC(data).testFuncUnary(var, func=func).result.data
         expected = data[var].rolling(window=window).apply(func)
         assert (result_config[var].dropna() == expected.dropna()).all(axis=None)
         assert (result_api[var].dropna() == expected.dropna()).all(axis=None)
@@ -302,7 +245,7 @@ def test_callableArgumentsUnary(data):
 def test_callableArgumentsBinary(data):
     var1, var2 = data.columns[:2]
 
-    @flagging(masking="field")
+    @register(mask=["field"], demask=["field"], squeeze=["field"])
     def testFuncBinary(data, field, flags, func, **kwargs):
         data[field] = func(data[var1], data[var2])
         return data, initFlagsLike(data)
@@ -319,8 +262,31 @@ def test_callableArgumentsBinary(data):
 
     for (name, func) in tests:
         fobj = writeIO(config.format(name))
-        result_config, _ = fromConfig(fobj, data).getResult()
-        result_api, _ = SaQC(data).testFuncBinary(var1, func=func).getResult()
+        result_config = fromConfig(fobj, data).result.data
+        result_api = SaQC(data).testFuncBinary(var1, func=func).result.data
         expected = func(data[var1], data[var2])
         assert (result_config[var1].dropna() == expected.dropna()).all(axis=None)
         assert (result_api[var1].dropna() == expected.dropna()).all(axis=None)
+
+
+def test_isflagged(data):
+
+    var1, var2, *_ = data.columns
+    flags = initFlagsLike(data)
+    flags[data[var1].index[::2], var1] = BAD
+
+    tests = [
+        ([var1], f"isflagged(x)", flags[var1] > UNFLAGGED),
+        ([var1], f"isflagged(x)", flags[var1] >= BAD),
+        ([var2], f"~isflagged(x)", flags[var2] == UNFLAGGED),
+        (
+            [var1, var2],
+            f"~(x > 999) & (~isflagged(y))",
+            ~(data[var1] > 999) & (flags[var2] == UNFLAGGED),
+        ),
+    ]
+
+    for field, test, expected in tests:
+        func = _compileGeneric(f"flagGeneric(func={test}, flag=BAD)")
+        result = _execGeneric(Flags({f: flags[f] for f in field}), data[field], func)
+        assert (result == expected).all(axis=None)

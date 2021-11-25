@@ -5,16 +5,12 @@ __all__ = [
     "ArrayLike",
     "PandasLike",
     "DiosLikeT",
-    "FreqString",
-    "IntegerWindow",
-    "Timestampstr",
     "CurveFitter",
     "ExternalFlag",
-    "PositiveFloat",
-    "PositiveInt",
+    "OptionalNone",
 ]
 
-from typing import TypeVar, Union, NewType, List, Tuple
+from typing import Any, TypeVar, Union, Dict
 from typing_extensions import Protocol, Literal
 import numpy as np
 import pandas as pd
@@ -27,17 +23,21 @@ DiosLikeT = Union[DictOfSeries, pd.DataFrame]
 
 ExternalFlag = Union[str, float, int]
 
-# we only support fixed length offsets
-FreqString = Literal["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"]
-
-# # we define a bunch of type aliases, mostly needed to generate appropiate fuzzy data through hypothesis
-# ColumnName = NewType("ColumnName", str)
-# IntegerWindow = NewType("IntegerWindow", int)
-# Timestampstr = TypeVar("Timestampstr", bound=str)
-# PositiveFloat = NewType("PositiveFloat", float)
-# PositiveInt = NewType("PositiveInt", int)
 
 # needed for deeper type hinting magic
 class CurveFitter(Protocol):
     def __call__(self, data: np.ndarray, *params: float) -> np.ndarray:
         ...
+
+
+class GenericFunction(Protocol):
+
+    __name__: str
+    __globals__: Dict[str, Any]
+
+    def __call__(self, *args: pd.Series) -> PandasLike:
+        ...
+
+
+class OptionalNone:
+    pass

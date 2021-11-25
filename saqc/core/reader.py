@@ -15,7 +15,7 @@ COMMENT = "#"
 SEPARATOR = ";"
 
 
-def readFile(fname):
+def readFile(fname) -> pd.DataFrame:
 
     fobj = (
         io.open(fname, "r", encoding="utf-8")
@@ -37,15 +37,12 @@ def readFile(fname):
                 "for the variable name and one for the test to apply, but "
                 f"in line {i} we got: \n'{line}'"
             )
-        out.append(
-            [
-                i + 1,
-            ]
-            + parts
-        )
+        out.append([i + 1] + parts)
 
-    if isinstance(fname, str):
+    try:
         fobj.close()
+    except AttributeError:
+        pass
 
     df = pd.DataFrame(
         out[1:],
@@ -65,12 +62,21 @@ def fromConfig(fname, *args, **kwargs):
 
         regex = False
         if isQuoted(field):
-            field = field[1:-1]
+            fld = field[1:-1]
             regex = True
+        else:
+            fld = field
 
-        tree = ast.parse(expr, mode="eval")
-        func, kwargs = ConfigFunctionParser().parse(tree.body)
+        try:
+            tree = ast.parse(expr, mode="eval")
+            func_name, kwargs = ConfigFunctionParser().parse(tree.body)
+        except Exception as e:
+            raise type(e)(f"failed to parse: {field} ; {expr}") from e
 
-        saqc = getattr(saqc, func)(field=field, regex=regex, **kwargs)
+        kwargs["field" if "field" not in kwargs else "target"] = fld
+        try:
+            saqc = getattr(saqc, func_name)(regex=regex, **kwargs)
+        except Exception as e:
+            raise type(e)(f"failed to execute: {field} ; {expr}") from e
 
     return saqc

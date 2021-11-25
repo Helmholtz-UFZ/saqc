@@ -1,0 +1,26 @@
+varname    	; test
+#---------------;---------------------------------------
+level_raw      	; flagRange(min=0)
+water_temp_raw 	; flagRange(min=-1)
+sak254_raw 	   	; flagRange(min=0, max=70)
+level_raw      	; linear(target='level', freq='15min')
+water_temp_raw 	; linear(target='water_temp', freq='15min')
+sak254_raw 	   	; linear(target='sac254, freq='15min')
+sak254 	   					; correctDrift(target='sak254_corr', maintenance_field='maint', model='exponential')
+sak254_corr					; flagManual(mdata='maint')
+level 	   						; transform(target='level_norm', func='zNorm', freq='20D')
+sac254_corr   		; transform(target='sac254_norm', func='zNorm', freq='20D')
+water_temp 					; transform('water_temp_norm', func='zNorm', freq='20D')
+level_norm, sac_corr_norm, water_temp_norm ; scores.assignKNNScore(target='kNN_scores', freq='20D')
+kNN_scores 					; flagByStray(freq='20D')
+level 										;	genericFlag(func=lambda kNNscores: isFlagged(kNNscores))
+sac25_corr 					; genericFlag(func=lambda kNNscores: isFlagged(kNNscores))
+water_temp 					; genericFlag(func=lambda kNNscores: isFlagged(kNNscores))
+level 										; concatFlags(target='level_raw', 'inverse_interpolation')
+sac_corr 							; concatFlags(target='sac254_raw', 'inverse_interpolation')
+water_temp 					; concatFlags(target='water_temp_raw', 'inverse_interpolation')
+
+
+
+
+

@@ -1,18 +1,16 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import pandas as pd
 import dtw
-import pywt
-from mlxtend.evaluate import permutation_test
 
-from saqc.constants import *
+from saqc.constants import BAD
 from saqc.core.register import flagging
 from saqc.lib.tools import customRoller
 
 
-@flagging(masking="field")
+# todo should we mask `reference` even if the func fail if reference has NaNs
+@flagging()
 def flagPatternByWavelet(
     data,
     field,
@@ -21,7 +19,7 @@ def flagPatternByWavelet(
     widths=(1, 2, 4, 8),
     waveform="mexh",
     flag=BAD,
-    **kwargs
+    **kwargs,
 ):
     """
     Pattern recognition via wavelets.
@@ -42,16 +40,16 @@ def flagPatternByWavelet(
         The fieldname of the data column, you want to correct.
 
     flags : saqc.Flags
-        The flags belongiong to `data`.
+        The flags belonging to ``data``.
 
     reference: str
-        The fieldname in `data' which holds the pattern.
+        The fieldname in ``data`' which holds the pattern.
 
     widths: tuple of int
         Widths for wavelet decomposition. [1] recommends a dyadic scale.
         Default: (1,2,4,8)
 
-    waveform: str.
+    waveform: str
         Wavelet to be used for decomposition. Default: 'mexh'. See [2] for a list.
 
     Returns
@@ -180,7 +178,8 @@ def calculateDistanceByDTW(
     return distances.reindex(index=data.index)  # reinsert NaNs
 
 
-@flagging(masking="field")
+# todo should we mask `reference` even if the func fail if reference has NaNs
+@flagging()
 def flagPatternByDTW(
     data,
     field,
@@ -190,7 +189,7 @@ def flagPatternByDTW(
     normalize=True,
     plot=False,
     flag=BAD,
-    **kwargs
+    **kwargs,
 ):
     """Pattern Recognition via Dynamic Time Warping.
 
@@ -231,11 +230,12 @@ def flagPatternByDTW(
         Show a calibration plot, which can be quite helpful to find the right threshold
         for `max_distance`. It works best with `normalize=True`. Do not use in automatic
         setups / pipelines. The plot show three lines:
-            - data: the data the function was called on
-            - distances: the calculated distances by the algorithm
-            - indicator: have to distinct levels: `0` and the value of `max_distance`.
-              If `max_distance` is `0.0` it defaults to `1`. Everywhere where the
-              indicator is not `0` the data will be flagged.
+
+        - data: the data the function was called on
+        - distances: the calculated distances by the algorithm
+        - indicator: have to distinct levels: `0` and the value of `max_distance`.
+          If `max_distance` is `0.0` it defaults to `1`. Everywhere where the
+          indicator is not `0` the data will be flagged.
 
     Returns
     -------
@@ -267,12 +267,12 @@ def flagPatternByDTW(
     distances = distances.fillna(max_distance + 1)
 
     # find minima filter by threshold
-    fw = customRoller(distances, window=winsz, forward=True, closed="both")
-    bw = customRoller(distances, window=winsz, closed="both")
+    fw = customRoller(distances, window=winsz, forward=True, closed="both", expand=True)
+    bw = customRoller(distances, window=winsz, closed="both", expand=True)
     minima = (fw.min() == bw.min()) & (distances <= max_distance)
 
     # Propagate True's to size of pattern.
-    rolling = customRoller(minima, window=winsz, closed="both")
+    rolling = customRoller(minima, window=winsz, closed="both", expand=True)
     mask = rolling.sum() > 0
 
     if plot:

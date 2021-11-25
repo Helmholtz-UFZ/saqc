@@ -7,8 +7,8 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, processing, Flags
-from saqc.core.register import _isflagged
+from saqc.core import register, Flags
+from saqc.core.register import _isflagged, processing
 from saqc.lib.ts_operators import interpolateNANs
 
 _SUPPORTED_METHODS = Literal[
@@ -30,7 +30,11 @@ _SUPPORTED_METHODS = Literal[
 ]
 
 
-@flagging(masking="field")
+@register(
+    mask=["field"],
+    demask=["field"],
+    squeeze=[],  # func handles history by itself
+)
 def interpolateByRolling(
     data: DictOfSeries,
     field: str,
@@ -40,7 +44,7 @@ def interpolateByRolling(
     center: bool = True,
     min_periods: int = 0,
     flag: float = UNFLAGGED,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Interpolates nan-values in the data by assigning them the aggregation result of the window surrounding them.
@@ -72,7 +76,8 @@ def interpolateByRolling(
         computed.
 
     flag : float or None, default UNFLAGGED
-        Flag that is to be inserted for the interpolated values. If ``None`` no flags are set.
+        Flag that is to be inserted for the interpolated values.
+        If `None` the old flags are kept, even if the data is valid now.
 
     Returns
     -------
@@ -82,8 +87,6 @@ def interpolateByRolling(
     flags : saqc.Flags
         The quality flags of data
     """
-
-    data = data.copy()
     datcol = data[field]
     roller = datcol.rolling(window=window, center=center, min_periods=min_periods)
     try:
@@ -99,13 +102,22 @@ def interpolateByRolling(
     datcol[na_mask] = rolled[na_mask]
     data[field] = datcol
 
-    if flag is not None:
-        flags[interpolated, field] = flag
+    new_col = pd.Series(np.nan, index=flags[field].index)
+    new_col.loc[interpolated] = np.nan if flag is None else flag
+
+    # todo kwargs must have all passed args except data,field,flags
+    flags.history[field].append(
+        new_col, {"func": "interpolateByRolling", "args": (), "kwargs": kwargs}
+    )
 
     return data, flags
 
 
-@flagging(masking="field")
+@register(
+    mask=["field"],
+    demask=["field"],
+    squeeze=[],  # func handles history by itself
+)
 def interpolateInvalid(
     data: DictOfSeries,
     field: str,
@@ -115,7 +127,7 @@ def interpolateInvalid(
     limit: int = 2,
     downgrade: bool = False,
     flag: float = UNFLAGGED,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to interpolate nan values in the data.
@@ -169,12 +181,17 @@ def interpolateInvalid(
         inter_limit=limit,
         downgrade_interpolation=downgrade,
     )
-    interpolated = data[field].isna() & inter_data.notna()
-
-    if flag is not None:
-        flags[interpolated, field] = flag
-
     data[field] = inter_data
+
+    interpolated = data[field].isna() & inter_data.notna()
+    new_col = pd.Series(np.nan, index=flags[field].index)
+    new_col.loc[interpolated] = np.nan if flag is None else flag
+
+    # todo kwargs must have all passed args except data,field,flags
+    flags.history[field].append(
+        new_col, {"func": "interpolateInvalid", "args": (), "kwargs": kwargs}
+    )
+
     return data, flags
 
 
@@ -199,7 +216,7 @@ def interpolateIndex(
     order: int = 2,
     limit: int = 2,
     downgrade: bool = False,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
@@ -257,7 +274,10 @@ def interpolateIndex(
     start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
     grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
 
-    flagged = _isflagged(flags[field], kwargs["to_mask"])
+    # todo:
+    #  in future we could use `register(mask=[field], [], [])`
+    #  and dont handle masking manually here
+    flagged = _isflagged(flags[field], kwargs["dfilter"])
 
     # drop all points that hold no relevant grid information
     datcol = datcol[~flagged].dropna()
@@ -290,7 +310,6 @@ def interpolateIndex(
         index=data[field].index,
         func=_resampleOverlapping,
         func_kws=dict(freq=freq, fill_value=UNFLAGGED),
-        copy=False,
     )
 
     flags.history[field] = history

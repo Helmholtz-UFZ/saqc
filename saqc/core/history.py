@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
-from copy import deepcopy, copy
+from copy import deepcopy, copy as shallowcopy
 import itertools
 
 from typing import Dict, Tuple, Type, Union, List, Any
@@ -161,7 +161,7 @@ class History:
             raise ValueError("Index does not match")
 
         self._insert(val, pos=len(self))
-        self.meta.append(deepcopy(meta))
+        self.meta.append(meta.copy())
         return self
 
     def _appendHistory(self, value: History):
@@ -189,18 +189,19 @@ class History:
         if not value.index.equals(self.index):
             raise ValueError("Index does not match")
 
-        n = len(self.columns)
-        # don't overwrite the `.columns` of the input down the line
+        # we copy shallow because we only want to set new columns
+        # the actual data copy happens in calls to astype
         value_hist = value.hist.copy(deep=False)
-        value_meta = deepcopy(value.meta)
+        value_meta = value.meta.copy()
 
         # rename columns, to avoid ``pd.DataFrame.loc`` become confused
+        n = len(self.columns)
         columns = pd.Index(range(n, n + len(value_hist.columns)))
         value_hist.columns = columns
 
         hist = self.hist.astype(float)
         hist.loc[:, columns] = value_hist.astype(float)
-        self.hist = hist.astype("category", copy=True)
+        self.hist = hist.astype("category")
         self.meta += value_meta
         return self
 
@@ -214,7 +215,7 @@ class History:
         """
         result = self.hist.astype(float)
         if result.empty:
-            result = pd.DataFrame(data=UNTOUCHED, index=self.hist.index, columns=[0])
+            result = pd.DataFrame(data=np.nan, index=self.hist.index, columns=[0])
 
         result = result.ffill(axis=1).iloc[:, -1]
 
@@ -223,7 +224,9 @@ class History:
         else:
             return result.fillna(UNFLAGGED)
 
-    def reindex(self, index: pd.Index, fill_value_last: float = UNFLAGGED) -> History:
+    def reindex(
+        self, index: pd.Index, fill_value_last: float = UNFLAGGED, copy: bool = True
+    ) -> History:
         """
         Reindex the History. Be careful this alters the past.
 
@@ -231,24 +234,30 @@ class History:
         ----------
         index : pd.Index
             the index to reindex to.
+
         fill_value_last : float, default UNFLAGGED
-            value to fill nan's (UNTOUCHED) in the last column.
+            value to fill nan's in the last column.
             Defaults to 0 (UNFLAGGED).
+
+        copy : bool, default True
+            If False, alter the underlying history, otherwise return a copy.
 
         Returns
         -------
         History
         """
-        hist = self.hist.astype(float).reindex(
+        out = self.copy() if copy else self
+
+        hist = out.hist.astype(float).reindex(
             index=index, copy=False, fill_value=np.nan
         )
 
         # Note: all following code must handle empty frames
         hist.iloc[:, -1:] = hist.iloc[:, -1:].fillna(fill_value_last)
 
-        self.hist = hist.astype("category")
+        out.hist = hist.astype("category")
 
-        return self
+        return out
 
     def apply(
         self,
@@ -279,10 +288,10 @@ class History:
             because the initial history is empty. Then the altered empty history is
             reindexed to this index.
 
-        hist_func : callable
+        func : callable
             function to apply on `History.hist` (flags DataFrame)
 
-        hist_kws : dict
+        func_kws : dict
             hist-function keywords dict
 
         func_handle_df : bool, default False
@@ -300,10 +309,10 @@ class History:
         """
         hist = pd.DataFrame(index=index)
 
+        # implicit copy by astype
+        # convert data to floats as functions may fail with categoricals
         if func_handle_df:
-            # we need to pass the data as floats as functions may fail with Categorical
             hist = func(self.hist.astype(float), **func_kws)
-
         else:
             for pos in self.columns:
                 hist[pos] = func(self.hist[pos].astype(float), **func_kws)
@@ -312,7 +321,7 @@ class History:
 
         if copy:
             history = History(index=None)  # noqa
-            history.meta = deepcopy(self.meta)
+            history.meta = self.meta.copy()
         else:
             history = self
 
@@ -335,10 +344,23 @@ class History:
         copy : History
             the copied FH
         """
-        if deep:
-            return deepcopy(self)
-        else:
-            return copy(self)
+        copyfunc = deepcopy if deep else shallowcopy
+        new = History(self.index)
+        new.hist = self.hist.copy(deep)
+        new.meta = copyfunc(self.meta)
+        return new
+
+    def __copy__(self):
+        return self.copy(deep=False)
+
+    def __deepcopy__(self, memo=None):
+        """
+        Parameters
+        ----------
+        memo, default None
+            Standard signature. Unused
+        """
+        return self.copy(deep=True)
 
     def __len__(self) -> int:
         return len(self.hist.columns)
@@ -380,7 +402,7 @@ class History:
 
         if not hist.empty and (
             not hist.columns.equals(pd.Index(range(len(hist.columns))))
-            or hist.columns.dtype != int
+            or not np.issubdtype(hist.columns.dtype, np.integer)
         ):
             raise ValueError(
                 "column names must be continuous increasing int's, starting with 0."

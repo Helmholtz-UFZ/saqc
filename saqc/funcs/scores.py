@@ -7,18 +7,23 @@ import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
 from saqc.lib.tools import toSequence
 import saqc.lib.ts_operators as ts_ops
 
 
-@flagging(masking="all")
+@register(
+    mask=["field"],
+    demask=[],
+    squeeze=["target"],
+    multivariate=True,
+    handles_target=True,
+)
 def assignKNNScore(
     data: DictOfSeries,
-    field: str,
+    field: Sequence[str],
     flags: Flags,
-    fields: Sequence[str],
-    target: str = "kNNscores",
+    target: str,
     n: int = 10,
     func: Callable[[pd.Series], float] = np.sum,
     freq: Union[float, str] = np.inf,
@@ -26,7 +31,7 @@ def assignKNNScore(
     method: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
     metric: str = "minkowski",
     p: int = 2,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     TODO: docstring need a rework
@@ -36,8 +41,9 @@ def assignKNNScore(
 
     The steps taken to calculate the scores are as follows:
 
-    1. All the timeseries, named fields, are combined to one feature space by an *inner* join on their date time indexes.
-       thus, only samples, that share timestamps across all fields will be included in the feature space
+    1. All the timeseries, given through ``field``, are combined to one feature space by an *inner* join on their
+       date time indexes. thus, only samples, that share timestamps across all ``field`` will be included in the
+       feature space.
     2. Any datapoint/sample, where one ore more of the features is invalid (=np.nan) will get excluded.
     3. For every data point, the distance to its `n` nearest neighbors is calculated by applying the
        metric `metric` at grade `p` onto the feature space. The defaults lead to the euclidian to be applied.
@@ -53,10 +59,12 @@ def assignKNNScore(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    field : str
-        Dummy Variable.
+    field : list of str
+        input variable names.
     flags : saqc.flags
-        A flags object, holding flags and additional informations related to `data`.fields
+        A flags object, holding flags and additional informations related to `data`.
+    target : str, default "kNNscores"
+        A new Column name, where the result is stored.
     n : int, default 10
         The number of nearest neighbors to which the distance is comprised in every datapoints scoring calculation.
     func : Callable[numpy.array, float], default np.sum
@@ -88,31 +96,22 @@ def assignKNNScore(
         The grade of the metrice specified by parameter `metric`.
         The keyword just gets passed on to the underlying sklearn method.
         See reference [1] for more information on the algorithm.
-    radius : {None, float}, default None
-        If the radius is not None, only the distance to neighbors that ly within the range specified by `radius`
-        are comprised in the scoring aggregation.
-        The scoring method passed must be capable of handling np.nan values - since, for every point missing
-        within `radius` range to make complete the list of the distances to the `n` nearest neighbors,
-        one np.nan value gets appended to the list passed to the scoring method.
-        The keyword just gets passed on to the underlying sklearn method.
-        See reference [1] for more information on the algorithm.
 
     References
     ----------
     [1] https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html
     """
-    data = data.copy()
-    fields = toSequence(fields)
-
-    val_frame = data[fields]
+    if target in data.columns:
+        raise ValueError(f"'target' must not exist.")
+    fields = toSequence(field)
+    val_frame = data[fields].copy()
     score_index = val_frame.index_of("shared")
-    score_ser = pd.Series(np.nan, index=score_index, name=field)
+    score_ser = pd.Series(np.nan, index=score_index, name=target)
 
     val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
     val_frame.dropna(inplace=True)
 
     if val_frame.empty:
-        flags[:, target] = UNTOUCHED
         return data, flags
 
     # partitioning
@@ -146,7 +145,6 @@ def assignKNNScore(
         score_ser[partition.index] = resids
 
     flags[target] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)
-
     data[target] = score_ser
 
     return data, flags

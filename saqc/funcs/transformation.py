@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 from dios import DictOfSeries
 
-from saqc.core import flagging, Flags
+from saqc.core import register, Flags
 
 
-@flagging(masking="field")
+@register(mask=["field"], demask=[], squeeze=[])
 def transform(
     data: DictOfSeries,
     field: str,
@@ -49,9 +49,7 @@ def transform(
     flags : saqc.Flags
         The quality flags of data
     """
-
-    data = data.copy()
-    val_ser = data[field]
+    val_ser = data[field].copy()
     # partitioning
     if not freq:
         freq = val_ser.shape[0]

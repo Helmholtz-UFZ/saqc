@@ -111,7 +111,7 @@ def standardizeByMedian(ts):
 
 
 def standardizeByIQR(ts):
-    # standardization with median and interquartile range
+    # standardization with median and inter quantile range
     return (ts - np.median(ts)) / iqr(ts, nan_policy="omit")
 
 
@@ -217,7 +217,7 @@ def interpolateNANs(
     :return:
     """
     inter_limit = int(inter_limit)
-    data = pd.Series(data).copy()
+    data = pd.Series(data, copy=True)
     gap_mask = data.isna().rolling(inter_limit, min_periods=0).sum() != inter_limit
 
     if inter_limit == 2:
@@ -287,9 +287,10 @@ def aggregate2Freq(
     also serves as a replacement for "invalid" intervals.
     """
     methods = {
-        "nagg": lambda seconds_total: (seconds_total / 2, "left", "left"),
-        "bagg": lambda _: (0, "left", "left"),
-        "fagg": lambda _: (0, "right", "right"),
+        # offset, closed, label
+        "nagg": lambda f: (f / 2, "left", "left"),
+        "bagg": lambda _: (pd.Timedelta(0), "left", "left"),
+        "fagg": lambda _: (pd.Timedelta(0), "right", "right"),
     }
 
     # filter data for invalid patterns (since filtering is expensive we pre-check if
@@ -307,40 +308,35 @@ def aggregate2Freq(
         )
         data[temp_mask] = fill_value
 
-    seconds_total = pd.Timedelta(freq).total_seconds()
-    base, label, closed = methods[method](seconds_total)
+    freq = pd.Timedelta(freq)
+    offset, closed, label = methods[method](freq)
 
-    # In the following, we check for empty intervals outside resample.apply, because:
-    # - resample AND groupBy do insert value zero for empty intervals if resampling
-    # with any kind of "sum" application - we want "fill_value" to be inserted - we
-    # are aggregating data and flags with this function and empty intervals usually
-    # would get assigned BAD flag (where resample inserts np.nan or 0)
-
-    data_resampler = data.resample(
-        f"{seconds_total:.0f}s", base=base, closed=closed, label=label
+    resampler = data.resample(
+        freq, closed=closed, label=label, origin="start_day", offset=offset
     )
 
-    empty_intervals = data_resampler.count() == 0
-    # great performance gain can be achieved, when avoiding .apply and using
-    # pd.resampler methods instead. (this covers all the basic func aggregations,
-    # such as median, mean, sum, count, ...)
+    # count valid values
+    counts = resampler.count()
+
+    # native methods of resampling (median, mean, sum, ..) are much faster than apply
     try:
         check_name = re.sub("^nan", "", agg_func.__name__)
         # a nasty special case: if function "count" was passed, we not want empty
-        # intervals to be replaced by nan:
+        # intervals to be replaced by fill_value:
         if check_name == "count":
-            empty_intervals[:] = False
-        data = getattr(data_resampler, check_name)()
+            data = counts.copy()
+            counts[:] = np.nan
+        else:
+            data = getattr(resampler, check_name)()
     except AttributeError:
-        data = data_resampler.apply(agg_func)
+        data = resampler.apply(agg_func)
 
-    # since loffset keyword of pandas.resample "discharges" after one use of the
-    # resampler (pandas logic), we correct the resampled labels offset manually,
-    # if necessary.
+    # we custom fill bins that have no value
+    data[counts == 0] = fill_value
+
+    # undo the temporary shift, to mimic centering the frequency
     if method == "nagg":
-        data.index = data.index.shift(freq=pd.Timedelta(freq) / 2)
-        empty_intervals.index = empty_intervals.index.shift(freq=pd.Timedelta(freq) / 2)
-    data[empty_intervals] = fill_value
+        data.index += offset
 
     return data
 

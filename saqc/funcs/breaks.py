@@ -18,24 +18,20 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
-from saqc.lib.types import FreqString
-from saqc.funcs.changepoints import assignChangePointCluster
+from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.core.flags import Flags
 from saqc.core.history import History
-from saqc.core.register import _isflagged, flagging
+from saqc.core.register import _isflagged, register, flagging
 
 
-# NOTE:
-# masking="none" as we otherwise might interprete
-# the masked values as missing data
-@flagging(masking="none")
+@register(mask=[], demask=[], squeeze=["field"])
 def flagMissing(
     data: DictOfSeries,
     field: str,
     flags: Flags,
     flag: float = BAD,
-    to_mask: float = UNFLAGGED,
-    **kwargs
+    dfilter: float = FILTER_ALL,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags all values indicating missing data.
@@ -62,21 +58,21 @@ def flagMissing(
     datacol = data[field]
     mask = datacol.isna()
 
-    mask = ~_isflagged(flags[field], to_mask) & mask
+    mask = ~_isflagged(flags[field], dfilter) & mask
 
     flags[mask, field] = flag
     return data, flags
 
 
-@flagging(masking="field")
+@flagging()
 def flagIsolated(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    gap_window: FreqString,
-    group_window: FreqString,
+    gap_window: str,
+    group_window: str,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
@@ -147,19 +143,19 @@ def flagIsolated(
     return data, flags
 
 
-@flagging(masking="field")
+@flagging()
 def flagJumps(
     data: DictOfSeries,
     field: str,
     flags: Flags,
     thresh: float,
-    window: FreqString,
+    window: str,
     min_periods: int = 1,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flag datapoints, where the mean of the values significantly changes (where the value course "jumps").
+    Flag where the mean of the values significantly changes (the data "jumps").
 
     Parameters
     ----------
@@ -180,7 +176,7 @@ def flagJumps(
     flag : float, default BAD
         flag to set.
     """
-    return assignChangePointCluster(
+    return _assignChangePointCluster(
         data,
         field,
         flags,
@@ -192,5 +188,5 @@ def flagJumps(
         model_by_resids=False,
         assign_cluster=False,
         flag=flag,
-        **kwargs
+        **kwargs,
     )

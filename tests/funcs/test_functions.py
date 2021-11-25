@@ -16,7 +16,7 @@ from saqc.funcs.drift import (
 from saqc.funcs.outliers import flagCrossStatistic, flagRange
 from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
 from saqc.funcs.tools import dropField, copyField, maskTime
-from saqc.funcs.resampling import reindexFlags
+from saqc.funcs.resampling import concatFlags
 from saqc.funcs.breaks import flagIsolated
 
 from tests.fixtures import *
@@ -107,8 +107,8 @@ def test_flagSesonalRange(data, field):
         data, flags = flagRange(
             data, newfield, flags, min=test["min"], max=test["max"], flag=BAD
         )
-        data, flags = reindexFlags(
-            data, field, flags, method="match", source=newfield, flag=BAD
+        data, flags = concatFlags(
+            data, newfield, flags, method="match", target=field, flag=BAD
         )
         data, flags = dropField(data, newfield, flags)
         flagged = flags[field] > UNFLAGGED
@@ -129,8 +129,8 @@ def test_forceFlags(data, field):
     flags[:, field] = BAD
     assert all(flags[field] == BAD)
 
-    _, flags = forceFlags(data, field, flags, flag=DOUBT)
-    assert all(flags[field] == DOUBT)
+    _, flags = forceFlags(data, field, flags, flag=DOUBTFUL)
+    assert all(flags[field] == DOUBTFUL)
 
 
 def test_flagIsolated(data, field):
@@ -175,7 +175,6 @@ def test_flagIsolated(data, field):
 def test_flagCrossScoring(dat):
     data1, characteristics = dat(initial_level=0, final_level=0, out_val=0)
     data2, characteristics = dat(initial_level=0, final_level=0, out_val=10)
-    field = "dummy"
     fields = ["data1", "data2"]
     s1, s2 = data1.squeeze(), data2.squeeze()
     s1 = pd.Series(data=s1.values, index=s1.index)
@@ -183,7 +182,7 @@ def test_flagCrossScoring(dat):
     data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
     flags = initFlagsLike(data)
     _, flags_result = flagCrossStatistic(
-        data, field, flags, fields=fields, thresh=3, method=np.mean, flag=BAD
+        data, fields, flags, thresh=3, method=np.mean, flag=BAD
     )
     for field in fields:
         isflagged = flags_result[field] > UNFLAGGED
@@ -192,7 +191,6 @@ def test_flagCrossScoring(dat):
 
 def test_flagManual(data, field):
     flags = initFlagsLike(data)
-    args = data, field, flags
     dat = data[field]
 
     mdata = pd.Series("lala", index=dat.index)
@@ -202,25 +200,31 @@ def test_flagManual(data, field):
     shrinked = mdata.loc[index_exp.union(mdata.iloc[[1, 2, 3, 4, 600, 601]].index)]
 
     kwargs_list = [
-        dict(mdata=mdata, mflag="a", method="plain", flag=BAD),
-        dict(mdata=mdata.to_list(), mflag="a", method="plain", flag=BAD),
-        dict(mdata=mdata, mflag="a", method="ontime", flag=BAD),
-        dict(mdata=shrinked, mflag="a", method="ontime", flag=BAD),
+        dict(mdata=mdata, mflag="a", method="plain", mformat="mflag", flag=BAD),
+        dict(mdata=mdata, mflag="a", method="ontime", mformat="mflag", flag=BAD),
+        dict(mdata=shrinked, mflag="a", method="ontime", mformat="mflag", flag=BAD),
     ]
 
     for kw in kwargs_list:
-        _, fl = flagManual(*args, **kw)
+        _, fl = flagManual(data.copy(), field, flags.copy(), **kw)
         isflagged = fl[field] > UNFLAGGED
         assert isflagged[isflagged].index.equals(index_exp)
 
     # flag not exist in mdata
     _, fl = flagManual(
-        *args, mdata=mdata, mflag="i do not exist", method="ontime", flag=BAD
+        data.copy(),
+        field,
+        flags.copy(),
+        mdata=mdata,
+        mflag="i do not exist",
+        method="ontime",
+        mformat="mflag",
+        flag=BAD,
     )
     isflagged = fl[field] > UNFLAGGED
     assert isflagged[isflagged].index.equals(pd.DatetimeIndex([]))
 
-    # check right-open / ffill
+    # check closure methods
     index = pd.date_range(start="2016-01-01", end="2018-12-31", periods=11)
     mdata = pd.Series(0, index=index)
     mdata.loc[index[[1, 5, 6, 7, 9, 10]]] = 1
@@ -237,41 +241,34 @@ def test_flagManual(data, field):
     # 2018-09-12 12:00:00    1
     # 2018-12-31 00:00:00    1
     # dtype: int64
-
-    # add first and last index from data
-    expected = mdata.copy()
-    expected.loc[dat.index[0]] = 0
-    expected.loc[dat.index[-1]] = 1
-    expected = expected.astype(bool)
-
-    _, fl = flagManual(*args, mdata=mdata, mflag=1, method="right-open", flag=BAD)
-    isflagged = fl[field] > UNFLAGGED
-    last = expected.index[0]
-
-    for curr in expected.index[1:]:
-        expected_value = mdata[last]
-        # datetime slicing is inclusive !
-        i = isflagged[last:curr].index[:-1]
-        chunk = isflagged.loc[i]
-        assert (chunk == expected_value).all()
-        last = curr
-    # check last value
-    assert isflagged[curr] == expected[curr]
-
-    # check left-open / bfill
-    expected.loc[dat.index[-1]] = 0  # this time the last is False
-    _, fl = flagManual(*args, mdata=mdata, mflag=1, method="left-open", flag=BAD)
-    isflagged = fl[field] > UNFLAGGED
-    last = expected.index[0]
-    assert isflagged[last] == expected[last]
-
-    for curr in expected.index[1:]:
-        expected_value = mdata[curr]
-        # datetime slicing is inclusive !
-        i = isflagged[last:curr].index[1:]
-        chunk = isflagged.loc[i]
-        assert (chunk == expected_value).all()
-        last = curr
+    m_index = mdata.index
+    flag_intervals = [
+        (m_index[1], m_index[2]),
+        (m_index[5], m_index[8]),
+        (m_index[9], dat.index.shift(freq="1h")[-1]),
+    ]
+    bound_drops = {"right-open": [1], "left-open": [0], "closed": []}
+    for method in ["right-open", "left-open", "closed"]:
+        _, fl = flagManual(
+            data.copy(),
+            field,
+            flags.copy(),
+            mdata=mdata,
+            mflag=1,
+            method=method,
+            mformat="mflag",
+            flag=BAD,
+        )
+        isflagged = fl[field] > UNFLAGGED
+        for flag_i in flag_intervals:
+            f_i = isflagged[slice(flag_i[0], flag_i[-1])].index
+            check_i = f_i.drop(
+                [flag_i[k] for k in bound_drops[method]], errors="ignore"
+            )
+            assert isflagged[check_i].all()
+            unflagged = isflagged[f_i.difference(check_i)]
+            if not unflagged.empty:
+                assert ~unflagged.all()
 
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
@@ -283,30 +280,29 @@ def test_flagDriftFromNormal(dat):
     data["d5"] = 3 + 4 * data["d1"]
 
     flags = initFlagsLike(data)
-    data_norm, flags_norm = flagDriftFromNorm(
-        data,
-        "dummy",
-        flags,
-        ["d1", "d2", "d3"],
+    _, flags_norm = flagDriftFromNorm(
+        data=data.copy(),
+        field=["d1", "d2", "d3"],
+        flags=flags.copy(),
         freq="200min",
         spread=5,
         flag=BAD,
     )
 
-    data_ref, flags_ref = flagDriftFromReference(
-        data,
-        "d1",
-        flags,
-        ["d1", "d2", "d3"],
+    _, flags_ref = flagDriftFromReference(
+        data=data.copy(),
+        field=["d1", "d2", "d3"],
+        flags=flags.copy(),
+        reference="d1",
         freq="3D",
         thresh=20,
         flag=BAD,
     )
 
-    data_scale, flags_scale = flagDriftFromScaledNorm(
-        data,
+    _, flags_scale = flagDriftFromScaledNorm(
+        data.copy(),
         "dummy",
-        flags,
+        flags.copy(),
         ["d1", "d3"],
         ["d4", "d5"],
         freq="3D",

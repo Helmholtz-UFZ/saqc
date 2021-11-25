@@ -6,7 +6,7 @@ import pandas as pd
 from hypothesis import given, settings
 
 from saqc.constants import UNFLAGGED, BAD
-from saqc.core.register import _maskData, _unmaskData, CallState
+from saqc.core.register import FunctionWrapper
 
 from tests.fuzzy.lib import dataFieldFlags, MAX_EXAMPLES
 
@@ -18,7 +18,7 @@ def test_maskingMasksData(data_field_flags):
     test if flagged values are replaced by np.nan
     """
     data_in, field, flags = data_field_flags
-    data_masked, mask = _maskData(
+    data_masked, mask = FunctionWrapper._maskData(
         data_in, flags, columns=[field], thresh=UNFLAGGED
     )  # thresh UNFLAGGED | np.inf
     assert data_masked[field].iloc[mask[field].index].isna().all()
@@ -35,21 +35,12 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
     filler = -9999
 
     data_in, field, flags = data_field_flags
-    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
-    state = CallState(
-        func=lambda x: x,
-        func_name="",
-        flags=flags,
-        field=field,
-        args=(),
-        kwargs={},
-        masking="field",
-        mthresh=UNFLAGGED,
-        mask=mask,
-    )
 
+    data_masked, mask = FunctionWrapper._maskData(
+        data_in, flags, columns=[field], thresh=UNFLAGGED
+    )
     data_masked[field] = filler
-    data_out = _unmaskData(data_masked, state)
+    data_out = FunctionWrapper._unmaskData(data_masked, mask)
     assert (data_out[field] == filler).all(axis=None)
 
 
@@ -61,20 +52,12 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
     if `flags` is mutated after `_maskData`, `_unmaskData` should be a no-op
     """
     data_in, field, flags = data_field_flags
-    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
-    state = CallState(
-        func=lambda x: x,
-        func_name="",
-        flags=flags,
-        field=field,
-        args=(),
-        kwargs={},
-        masking="field",
-        mthresh=UNFLAGGED,
-        mask=mask,
+
+    data_masked, mask = FunctionWrapper._maskData(
+        data_in, flags, columns=[field], thresh=UNFLAGGED
     )
     flags[:, field] = UNFLAGGED
-    data_out = _unmaskData(data_masked, state)
+    data_out = FunctionWrapper._unmaskData(data_masked, mask)
     assert (data_out.loc[flags[field] == BAD, field].isna()).all(axis=None)
 
 
@@ -90,17 +73,9 @@ def test_reshapingPreventsUnmasking(data_field_flags):
     filler = -1111
 
     data_in, field, flags = data_field_flags
-    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
-    state = CallState(
-        func=lambda x: x,
-        func_name="",
-        flags=flags,
-        field=field,
-        args=(),
-        kwargs={},
-        masking="field",
-        mthresh=UNFLAGGED,
-        mask=mask,
+
+    data_masked, mask = FunctionWrapper._maskData(
+        data_in, flags, columns=[field], thresh=UNFLAGGED
     )
     # mutate indexes of `data` and `flags`
     index = data_masked[field].index.to_series()
@@ -111,7 +86,7 @@ def test_reshapingPreventsUnmasking(data_field_flags):
     flags.drop(field)
     flags[field] = pd.Series(data=fflags.values, index=index)
 
-    data_out = _unmaskData(data_masked, state)
+    data_out = FunctionWrapper._unmaskData(data_masked, mask)
     assert (data_out[field] == filler).all(axis=None)
 
 
@@ -122,19 +97,11 @@ def test_unmaskingInvertsMasking(data_field_flags):
     unmasking data should invert the masking
     """
     data_in, field, flags = data_field_flags
-    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
-    state = CallState(
-        func=lambda x: x,
-        func_name="",
-        flags=flags,
-        field=field,
-        args=(),
-        kwargs={},
-        masking="field",
-        mthresh=UNFLAGGED,
-        mask=mask,
+
+    data_masked, mask = FunctionWrapper._maskData(
+        data_in, flags, columns=[field], thresh=UNFLAGGED
     )
-    data_out = _unmaskData(data_masked, state)
+    data_out = FunctionWrapper._unmaskData(data_masked, mask)
     assert pd.DataFrame.equals(
         data_out.to_df().astype(float), data_in.to_df().astype(float)
     )
@@ -153,10 +120,10 @@ def test_unmaskingInvertsMasking(data_field_flags):
 
 #     data_in, field, flags = data_field_flags
 
-#     data_masked, mask = _maskData(data_in, flags, columns=[field], to_mask=flags.BAD)
+#     data_masked, mask = _maskData(data_in, flags, columns=[field], dfilter=flags.BAD)
 #     func, kwargs = func_kwargs
 #     data_masked, _ = func(data_masked, field, flags, **kwargs)
-#     data_out = _unmaskData(data_in, mask, data_masked, flags, to_mask=flags.BAD)
+#     data_out = _unmaskData(data_in, mask, data_masked, flags, dfilter=flags.BAD)
 
 #     flags_in = flags.isFlagged(flag=flags.BAD)
 #     assert data_in.aloc[flags_in].equals(data_out.aloc[flags_in])
@@ -176,7 +143,7 @@ def test_unmaskingInvertsMasking(data_field_flags):
 #     flagged_in = flags.isFlagged(flag=flags.BAD, comparator=">=")
 
 #     # mask and call
-#     data_left, _ = _maskData(data, flags, columns=[field], to_mask=flags.BAD)
+#     data_left, _ = _maskData(data, flags, columns=[field], dfilter=flags.BAD)
 #     data_left, _ = func(data_left, field, flags, **kwargs)
 
 #     # remove and call

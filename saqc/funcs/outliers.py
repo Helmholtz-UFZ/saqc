@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import warnings
 from typing import Optional, Union, Tuple, Sequence, Callable
 from typing_extensions import Literal
 
@@ -14,21 +14,21 @@ from outliers import smirnov_grubbs
 from scipy.optimize import curve_fit
 
 from saqc.constants import *
-from saqc.core import flagging, Flags
-from saqc.lib.types import FreqString
-from saqc.lib.tools import customRoller, findIndex, getFreqDelta
+from saqc.core import register, Flags
+from saqc.core.register import flagging
+from saqc.lib.tools import customRoller, findIndex, getFreqDelta, toSequence
 from saqc.funcs.scores import assignKNNScore
 from saqc.funcs.tools import copyField, dropField
 from saqc.funcs.transformation import transform
 import saqc.lib.ts_operators as ts_ops
 
 
-@flagging(masking="field")
+@flagging()
 def flagByStray(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    freq: Optional[Union[int, FreqString]] = None,
+    freq: Optional[Union[int, str]] = None,
     min_periods: int = 11,
     iter_start: float = 0.5,
     alpha: float = 0.05,
@@ -84,7 +84,6 @@ def flagByStray(
     scores = data[field].dropna()
 
     if scores.empty:
-        flags[:, field] = UNTOUCHED
         return data, flags
 
     if not freq:
@@ -159,7 +158,7 @@ def _evalStrayLabels(
     flags : saqc.Flags
         Container to store quality flags to data.
 
-    fields : list[str]
+    fields : list of str
         A list of strings, holding the column names of the variables, the stray labels
         shall be projected onto.
 
@@ -399,23 +398,29 @@ def _expFit(
     return val_frame.index[sorted_i[iter_index:]]
 
 
-@flagging(masking="all")
+@register(
+    mask=["field"],
+    demask=["field"],
+    squeeze=["field"],
+    multivariate=True,
+    handles_target=True,
+)
 def flagMVScores(
     data: DictOfSeries,
-    field: str,
+    field: Sequence[str],
     flags: Flags,
-    fields: Sequence[str],
     trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
     alpha: float = 0.05,
     n: int = 10,
     func: Callable[[pd.Series], float] = np.sum,
     iter_start: float = 0.5,
-    partition: Optional[Union[int, FreqString]] = None,
+    partition: Optional[Union[int, str]] = None,
     partition_min: int = 11,
-    stray_range: Optional[FreqString] = None,
+    stray_range: Optional[str] = None,
     drop_flagged: bool = False,  # TODO: still a case ?
     thresh: float = 3.5,
     min_periods: int = 1,
+    target: str = None,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -432,16 +437,12 @@ def flagMVScores(
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
 
-    field : str
-        The fieldname of the column, holding the data-to-be-flagged. (Here a dummy,
-        for structural reasons)
+    field : list of str
+        List of fieldnames, corresponding to the variables that are to be included
+        into the flagging process.
 
     flags : saqc.Flags
         Container to store quality flags to data.
-
-    fields : List[str]
-        List of fieldnames, corresponding to the variables that are to be included
-        into the flagging process.
 
     trafo : callable, default lambda x:x
         Transformation to be applied onto every column before scoring. Will likely
@@ -505,6 +506,9 @@ def flagMVScores(
         necessarily present in a reduction interval for reduction actually to be
         performed.
 
+    target : None
+        ignored.
+
     flag : float, default BAD
         flag to set.
 
@@ -554,16 +558,18 @@ def flagMVScores(
     more details. Although [2] gives a fully detailed overview over the `stray`
     algorithm.
     """
+    if target:
+        raise NotImplementedError("target is not implemented for this function")
 
+    fields = toSequence(field)
     for f in fields:
         data, flags = copyField(data, f, flags, f"trafo_{f}")
         data, flags = transform(data, f"trafo_{f}", flags, func=trafo, freq=partition)
 
     data, flags = assignKNNScore(
-        data,
-        "dummy",
-        flags,
-        fields=[f"trafo_{f}" for f in fields],
+        data=data,
+        field=[f"trafo_{f}" for f in fields],
+        flags=flags,
         target="kNN",
         n=n,
         func=func,
@@ -586,10 +592,10 @@ def flagMVScores(
     )
 
     data, flags = _evalStrayLabels(
-        data,
-        "kNN",
-        flags,
+        data=data,
+        field="kNN",
         fields=fields,
+        flags=flags,
         reduction_range=stray_range,
         reduction_drop_flagged=drop_flagged,
         reduction_thresh=thresh,
@@ -604,15 +610,15 @@ def flagMVScores(
     return data, flags
 
 
-@flagging(masking="field")
+@flagging()
 def flagRaise(
     data: DictOfSeries,
     field: str,
     flags: Flags,
     thresh: float,
-    raise_window: FreqString,
-    freq: FreqString,
-    average_window: Optional[FreqString] = None,
+    raise_window: str,
+    freq: str,
+    average_window: Optional[str] = None,
     raise_factor: float = 2.0,
     slope: Optional[float] = None,
     weight: float = 0.8,
@@ -673,7 +679,7 @@ def flagRaise(
     timestamps :math:`t_i`, is flagged a raise, if:
 
     * There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within `raise_window`
-    range, so that:
+      range, so that:
 
       * :math:`M = |x_k - x_s | >`  `thresh` :math:`> 0`
 
@@ -684,8 +690,8 @@ def flagRaise(
 
       * :math:`x_k > \\mu^* + ( M` / `mean_raise_factor` :math:`)`
 
-    * Additionally, if `min_slope` is not `None`, :math:`x_{k}` is checked for being
-      sufficiently divergent from its very predecessor :max:`x_{k-1}`$, meaning that, it
+    * Additionally, if ``min_slope`` is not `None`, :math:`x_{k}` is checked for being
+      sufficiently divergent from its very predecessor :math:`x_{k-1}`, meaning that, it
       is additionally checked if:
 
       * :math:`x_k - x_{k-1} >` `min_slope`
@@ -731,7 +737,6 @@ def flagRaise(
         raise_series = raise_series.apply(raise_check, args=(thresh,), raw=True)
 
     if raise_series.isna().all():
-        flags[:, field] = UNTOUCHED
         return data, flags
 
     # "unflag" values of insufficient deviation to their predecessors
@@ -792,12 +797,12 @@ def flagRaise(
     return data, flags
 
 
-@flagging(masking="field")
+@flagging()
 def flagMAD(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: FreqString,
+    window: str,
     z: float = 3.5,
     flag: float = BAD,
     **kwargs,
@@ -838,7 +843,6 @@ def flagMAD(
     """
     d = data[field]
     if d.empty:
-        flags[:, field] = UNTOUCHED
         return data, flags
 
     median = d.rolling(window=window, closed="both").median()
@@ -849,9 +853,9 @@ def flagMAD(
     # In pandas <= 0.25.3, the window size is not fixed if the
     # window-argument to rolling is a frequency. That implies,
     # that during the first iterations the window has a size of
-    # 1, 2, 3, ... until it eventually covers the disered time
-    # span. For stuff the calculation of median, that is rather
-    # unfortunate, as the size of calculation base might differ
+    # 1, 2, 3, ... until it eventually covers the desired time
+    # span. For stuff like the calculation of median, that is rather
+    # unfortunate, as the size of the calculation base might differ
     # heavily. So don't flag something until, the window reaches
     # its target size
     if not isinstance(window, int):
@@ -862,14 +866,14 @@ def flagMAD(
     return data, flags
 
 
-@flagging(masking="field")
+@flagging()
 def flagOffset(
     data: DictOfSeries,
     field: str,
     flags: Flags,
     thresh: float,
     tolerance: float,
-    window: Union[int, FreqString],
+    window: Union[int, str],
     thresh_relative: Optional[float] = None,
     flag: float = BAD,
     **kwargs,
@@ -930,7 +934,6 @@ def flagOffset(
     """
     dataseries = data[field].dropna()
     if dataseries.empty:
-        flags[:, field] = UNTOUCHED
         return data, flags
 
     # using reverted series - because ... long story.
@@ -963,7 +966,6 @@ def flagOffset(
 
     post_jumps = post_jumps[post_jumps]
     if post_jumps.empty:
-        flags[:, field] = UNTOUCHED
         return data, flags
 
     # get all the entries preceding a significant jump
@@ -1030,12 +1032,12 @@ def flagOffset(
     return data, flags
 
 
-@flagging(masking="field")
+@flagging()
 def flagByGrubbs(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: Union[FreqString, int],
+    window: Union[str, int],
     alpha: float = 0.05,
     min_periods: int = 8,
     pedantic: bool = False,
@@ -1100,8 +1102,7 @@ def flagByGrubbs(
 
     [1] https://en.wikipedia.org/wiki/Grubbs%27s_test_for_outliers
     """
-    data = data.copy()
-    datcol = data[field]
+    datcol = data[field].copy()
     rate = getFreqDelta(datcol.index)
 
     # if timeseries that is analyzed, is regular,
@@ -1153,7 +1154,7 @@ def flagByGrubbs(
     return data, flags
 
 
-@flagging(masking="field")
+@flagging()
 def flagRange(
     data: DictOfSeries,
     field: str,
@@ -1196,15 +1197,21 @@ def flagRange(
     return data, flags
 
 
-@flagging(masking="all")
+@register(
+    mask=["field"],
+    demask=["field"],
+    squeeze=["field"],
+    multivariate=True,
+    handles_target=True,
+)
 def flagCrossStatistic(
     data: DictOfSeries,
-    field: str,
+    field: Sequence[str],
     flags: Flags,
-    fields: Sequence[str],
     thresh: float,
     method: Literal["modZscore", "Zscore"] = "modZscore",
     flag: float = BAD,
+    target: str = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -1217,7 +1224,7 @@ def flagCrossStatistic(
        :math:`t_i`, are excluded from the following process (inner join of the :math:`f_i` fields.)
     2. for every :math:`0 <= i <= K`, the value
        :math:`m_j = median(\\{data[f_1][t_i], data[f_2][t_i], ..., data[f_N][t_i]\\})` is calculated
-    2. for every :math:`0 <= i <= K`, the set
+    3. for every :math:`0 <= i <= K`, the set
        :math:`\\{data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j\\}` is tested for outliers with the
        specified method (`cross_stat` parameter).
 
@@ -1225,12 +1232,10 @@ def flagCrossStatistic(
     ----------
     data : dios.DictOfSeries
         A dictionary of pandas.Series, holding all the data.
-    field : str
-        A dummy parameter.
+    field : list of str
+        List of fieldnames in data, determining wich variables are to be included into the flagging process.
     flags : saqc.Flags
         A flags object, holding flags and additional informations related to `data`.
-    fields : str
-        List of fieldnames in data, determining wich variables are to be included into the flagging process.
     thresh : float
         Threshold which the outlier score of an value must exceed, for being flagged an outlier.
     method : {'modZscore', 'Zscore'}, default 'modZscore'
@@ -1242,6 +1247,10 @@ def flagCrossStatistic(
 
     flag : float, default BAD
         flag to set.
+
+    target : None
+        ignored
+
 
     Returns
     -------
@@ -1255,7 +1264,10 @@ def flagCrossStatistic(
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
+    if target:
+        raise NotImplementedError("target is not implemented for this function")
 
+    fields = toSequence(field)
     df = data[fields].loc[data[fields].index_of("shared")].to_df()
 
     if isinstance(method, str):
@@ -1289,7 +1301,6 @@ def flagCrossStatistic(
 
     mask = diff_scores > thresh
     if mask.empty:
-        flags[:, field] = UNTOUCHED
         return data, flags
 
     for var in fields:

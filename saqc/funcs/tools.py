@@ -12,21 +12,20 @@ import matplotlib.pyplot as plt
 import pickle
 
 from saqc.constants import *
-from saqc.lib.types import FreqString
-from saqc.core import processing, Flags
-from saqc.lib.tools import periodicMask
+from saqc.core.register import processing
+from saqc.core import register, Flags
+from saqc.lib.tools import periodicMask, filterKwargs
 from saqc.lib.plotting import makeFig
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
 
-@processing()
+@register(mask=[], demask=[], squeeze=[], handles_target=True)
 def copyField(
-    data: DictOfSeries, field: str, flags: Flags, new_field: str, **kwargs
+    data: DictOfSeries, field: str, flags: Flags, target: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The function generates a copy of the data "field" and inserts it under the name field + suffix into the existing
-    data.
+    Copy data and flags to a new name (preserve flags history).
 
     Parameters
     ----------
@@ -36,7 +35,7 @@ def copyField(
         The fieldname of the data column, you want to fork (copy).
     flags : saqc.Flags
         Container to store quality flags to data.
-    new_field: str
+    target: str
         Target name.
 
     Returns
@@ -48,12 +47,12 @@ def copyField(
         The quality flags of data
         Flags shape may have changed relatively to the flags input.
     """
-    if new_field in flags.columns.union(data.columns):
+    if target in flags.columns.union(data.columns):
         raise ValueError(f"{field}: field already exist")
 
-    data[new_field] = data[field].copy()
-    # implicit copy in history access
-    flags.history[new_field] = flags.history[field]
+    data[target] = data[field].copy()
+    flags.history[target] = flags.history[field].copy()
+
     return data, flags
 
 
@@ -62,7 +61,7 @@ def dropField(
     data: DictOfSeries, field: str, flags: Flags, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The function drops field from the data dios and the flags.
+    Drops field from the data and flags.
 
     Parameters
     ----------
@@ -92,7 +91,7 @@ def renameField(
     data: DictOfSeries, field: str, flags: Flags, new_name: str, **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The function renames field to new name (in both, the flags and the data).
+    Rename field in data and flags.
 
     Parameters
     ----------
@@ -119,7 +118,7 @@ def renameField(
     return data, flags
 
 
-@processing()
+@register(mask=[], demask=[], squeeze=["field"])
 def maskTime(
     data: DictOfSeries,
     field: str,
@@ -132,7 +131,7 @@ def maskTime(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    This function realizes masking within saqc.
+    Realizes masking within saqc.
 
     Due to some inner saqc mechanics, it is not straight forwardly possible to exclude
     values or datachunks from flagging routines. This function replaces flags with UNFLAGGED
@@ -141,12 +140,12 @@ def maskTime(
 
     Here comes a recipe on how to apply a flagging function only on a masked chunk of the variable field:
 
-    1. dublicate "field" in the input data (copy)
-    2. mask the dublicated data (mask)
-    3. apply the tests you only want to be applied onto the masked data chunks (saqc_tests)
+    1. dublicate "field" in the input data (`copyField`)
+    2. mask the dublicated data (this, `maskTime`)
+    3. apply the tests you only want to be applied onto the masked data chunks (a saqc function)
     4. project the flags, calculated on the dublicated and masked data onto the original field data
-        (projectFlags or flagGeneric)
-    5. drop the dublicated data (drop)
+        (`concateFlags` or `flagGeneric`)
+    5. drop the dublicated data (`dropField`)
 
     To see an implemented example, checkout flagSeasonalRange in the saqc.functions module
 
@@ -164,9 +163,9 @@ def maskTime(
         - "mask_var": data[mask_var] is expected to be a boolean valued timeseries and is used as mask.
     mask_field : {None, str}, default None
         Only effective if mode == "mask_var"
-        Fieldname of the column, holding the data that is to be used as mask. (must be moolean series)
+        Fieldname of the column, holding the data that is to be used as mask. (must be boolean series)
         Neither the series` length nor its labels have to match data[field]`s index and length. An inner join of the
-        indices will be calculated and values get masked where the values of the inner join are "True".
+        indices will be calculated and values get masked where the values of the inner join are ``True``.
     start : {None, str}, default None
         Only effective if mode == "seasonal"
         String denoting starting point of every period. Formally, it has to be a truncated instance of "mm-ddTHH:MM:SS".
@@ -228,42 +227,43 @@ def maskTime(
     When inclusive_selection="season", all above examples work the same way, only that you now
     determine wich values NOT TO mask (=wich values are to constitute the "seasons").
     """
-    data = data.copy()
     datcol_idx = data[field].index
 
     if mode == "periodic":
-        to_mask = periodicMask(datcol_idx, start, end, closed)
+        mask = periodicMask(datcol_idx, start, end, closed)
     elif mode == "mask_field":
         idx = data[mask_field].index.intersection(datcol_idx)
-        to_mask = data.loc[idx, mask_field]
+        mask = data.loc[idx, mask_field]
     else:
         raise ValueError("Keyword passed as masking mode is unknown ({})!".format(mode))
 
-    data.aloc[to_mask, field] = np.nan
-    flags[to_mask, field] = UNFLAGGED
+    data.aloc[mask, field] = np.nan
+    flags[mask, field] = UNFLAGGED
     return data, flags
 
 
-@processing()
+@register(mask=[], demask=[], squeeze=[])
 def plot(
     data: DictOfSeries,
     field: str,
     flags: Flags,
     path: Optional[str] = None,
-    max_gap: Optional[FreqString] = None,
+    max_gap: Optional[str] = None,
     stats: bool = False,
-    plot_kwargs: Optional[dict] = None,
-    fig_kwargs: Optional[dict] = None,
+    history: Optional[Literal["valid", "complete", "clear"]] = "valid",
+    xscope: Optional[slice] = None,
+    phaseplot: Optional[str] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
+    dfilter: float = FILTER_ALL,
     **kwargs,
 ):
     """
-    Stores or shows a figure object, containing data graph with flag marks for field.
+    Plot data and flags or store plot to file.
 
-    There are two modes, 'interactive' and 'store' mode, wich is determind via the
+    There are two modes, 'interactive' and 'store', which are determind through the
     ``save_path`` keyword. In interactive mode (default) the plot is shown at runtime
-    and the execution stops until the plot window is closed manually by a user. In
+    and the program execution stops until the plot window is closed manually. In
     store mode the generated plot is stored to disk and no manually interaction is
     needed.
 
@@ -287,31 +287,27 @@ def plot(
     max_gap : str, default None
         If None, all the points in the data will be connected, resulting in long linear
         lines, where continous chunks of data is missing. Nans in the data get dropped
-        before plotting. If an Offset string is passed, only points that have a distance
+        before plotting. If an offset string is passed, only points that have a distance
         below `max_gap` get connected via the plotting line.
 
     stats : bool, default False
         Whether to include statistics table in plot.
 
-    plot_kwargs : dict, default None
-        Keyword arguments controlling plot generation. Will be passed on to the
-        ``Matplotlib.axes.Axes.set()`` property batch setter for the axes showing the
-        data plot. The most relevant of those properties might be "ylabel", "title" and
-        "ylim". In Addition, following options are available:
+    history : {"valid", "complete", None}, default "valid"
+        Discriminate the plotted flags with respect to the tests they originate from.
 
-        * {'slice': s} property, that determines a chunk of the data to be plotted /
-            processed. `s` can be anything, that is a valid argument to the
-            ``pandas.Series.__getitem__`` method.
-        * {'history': str}
-            * str="all": All the flags are plotted with colored dots, refering to the
-                tests they originate from
-            * str="valid": - same as 'all' - but only plots those flags, that are not
-                removed by later tests
+        * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
+          in the legend, that actually contributed flags to the overall resault.
+        * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
+        * "clear" - clear plot from all the flagged values
+        * None - just plot the resulting flags for one variable, without any historical meta information.
 
-    fig_kwargs : dict, default None
-        Keyword arguments controlling figure generation. In interactive mode,
-        ``None`` defaults to ``{"figsize": (16, 9)}`` to ensure a proper figure size
-        in store-mode.
+    xscope : slice or Offset, default None
+        Parameter, that determines a chunk of the data to be plotted
+        processed. `xscope` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
+
+    phaseplot : str or None, default None
+        If a string is passed, plot ``field`` in the phase space it forms together with the Variable ``phaseplot``.
 
     store_kwargs : dict, default {}
         Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
@@ -320,11 +316,11 @@ def plot(
         Reopen with: ``pickle.load(open(savepath,'w')).show()``
 
     stats_dict: dict, default None
-        (Only relevant if `stats`=True)
+        (Only relevant if ``stats = True``)
         Dictionary of additional statisticts to write to the statistics table
         accompanying the data plot. An entry to the stats_dict has to be of the form:
 
-        * {"stat_name": lambda x, y, z: func(x, y, z)}
+        * ``{"stat_name": lambda x, y, z: func(x, y, z)}``
 
         The lambda args ``x``,``y``,``z`` will be fed by:
 
@@ -349,7 +345,13 @@ def plot(
 
     >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
+
     interactive = path is None
+    level = kwargs.get("flag", BAD)
+
+    if dfilter < np.inf:
+        data = data.copy()
+        data.loc[flags[field] >= dfilter, field] = np.nan
 
     if store_kwargs is None:
         store_kwargs = {}
@@ -359,19 +361,17 @@ def plot(
 
     else:
         mpl.use("Agg")
-        # ensure a proper size in stored plot
-        if fig_kwargs is None:
-            fig_kwargs = {"figsize": (16, 9)}
 
     fig = makeFig(
         data=data,
         field=field,
         flags=flags,
-        level=kwargs.get("flag", BAD),
+        level=level,
         max_gap=max_gap,
         stats=stats,
-        plot_kwargs=plot_kwargs,
-        fig_kwargs=fig_kwargs,
+        history=history,
+        xscope=xscope,
+        phaseplot=phaseplot,
         stats_dict=stats_dict,
     )
 
