@@ -35,6 +35,7 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
     filler = -9999
 
     data_in, field, flags = data_field_flags
+
     data_masked, mask = FunctionWrapper._maskData(
         data_in, flags, columns=[field], thresh=UNFLAGGED
     )
@@ -51,6 +52,7 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
     if `flags` is mutated after `_maskData`, `_unmaskData` should be a no-op
     """
     data_in, field, flags = data_field_flags
+
     data_masked, mask = FunctionWrapper._maskData(
         data_in, flags, columns=[field], thresh=UNFLAGGED
     )
@@ -71,6 +73,7 @@ def test_reshapingPreventsUnmasking(data_field_flags):
     filler = -1111
 
     data_in, field, flags = data_field_flags
+
     data_masked, mask = FunctionWrapper._maskData(
         data_in, flags, columns=[field], thresh=UNFLAGGED
     )
@@ -94,6 +97,7 @@ def test_unmaskingInvertsMasking(data_field_flags):
     unmasking data should invert the masking
     """
     data_in, field, flags = data_field_flags
+
     data_masked, mask = FunctionWrapper._maskData(
         data_in, flags, columns=[field], thresh=UNFLAGGED
     )

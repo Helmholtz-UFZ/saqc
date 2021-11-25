@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+The module comprises flag value constants in use throughout saqc.
+The constants order as follows (from "worse" to "best"):
+
+:py:const:`~saqc.constants.BAD` > :py:const:`~saqc.constants.DOUBTFUL` > :py:const:`~saqc.constants.GOOD` >
+:py:const:`~saqc.constants.UNFLAGGED`
+"""
 
 __all__ = [
     "UNFLAGGED",

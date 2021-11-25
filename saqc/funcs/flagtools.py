@@ -290,7 +290,6 @@ def flagManual(
     # evaluate methods
     if method == "plain":
         pass
-
     # reindex will do the job later
     elif method == "ontime":
         pass

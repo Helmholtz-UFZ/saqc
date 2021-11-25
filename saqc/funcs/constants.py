@@ -25,7 +25,7 @@ def flagConstants(
     thresh: float,
     window: str,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     This functions flags plateaus/series of constant values of length `window` if
@@ -89,7 +89,7 @@ def flagByVariance(
     maxna: int = None,
     maxna_group: int = None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
