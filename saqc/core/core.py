@@ -176,7 +176,7 @@ class SaQC(FunctionsMixin):
         prepare user function input:
           - expand fields and targets
           - translate user given ``flag`` values or set the default ``BAD``
-          - translate user given ``to_mask`` values or set the scheme default
+          - translate user given ``dfilter`` values or set the scheme default
           - dependeing on the workflow: initialize ``target`` variables
 
         Here we add the following parameters to all registered functions, regardless
@@ -195,7 +195,7 @@ class SaQC(FunctionsMixin):
             **kwargs,
         ) -> SaQC:
 
-            kwargs.setdefault("to_mask", self._scheme.TO_MASK)
+            kwargs.setdefault("dfilter", self._scheme.DFILTER_DEFAULT)
 
             if not isinstance(flag, OptionalNone):
                 # translation schemes might want to use a flag,

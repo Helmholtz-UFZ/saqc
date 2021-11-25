@@ -49,7 +49,7 @@ class TranslationScheme:
     """
 
     # (internal) threshold flag above which values will be masked
-    TO_MASK: float = UNFLAGGED
+    DFILTER_DEFAULT: float = UNFLAGGED
 
     # additional arguments and default values the translation scheme accepts
     ARGUMENTS: Dict[str, Any] = {}

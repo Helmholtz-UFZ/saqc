@@ -42,7 +42,7 @@ class Tools:
         phaseplot: Optional[str] = None,
         stats_dict: Optional[dict] = None,
         store_kwargs: Optional[dict] = None,
-        to_mask: Optional[float] = np.inf,
+        dfilter: Optional[float] = np.inf,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("plot", locals())

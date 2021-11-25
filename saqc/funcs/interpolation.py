@@ -277,7 +277,7 @@ def interpolateIndex(
     # todo:
     #  in future we could use `register(mask=[field], [], [])`
     #  and dont handle masking manually here
-    flagged = _isflagged(flags[field], kwargs["to_mask"])
+    flagged = _isflagged(flags[field], kwargs["dfilter"])
 
     # drop all points that hold no relevant grid information
     datcol = datcol[~flagged].dropna()
