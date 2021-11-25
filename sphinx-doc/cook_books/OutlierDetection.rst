@@ -196,7 +196,7 @@ Visualisation
 -------------
 
 We can obtain those updated informations by generating a `pandas dataframe <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_
-representation of it, with the :py:attribute:`data <saqc.core.core.SaQC.data>` method: 
+representation of it, with the :py:attr:`data <saqc.core.core.SaQC.data>` method: 
 
 .. code-block:: python
 

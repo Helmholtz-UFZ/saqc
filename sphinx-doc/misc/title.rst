@@ -76,7 +76,7 @@ Features
       - * automatically keep track of flagging history and flags significance for every datapoint
         * define and use custom schemes to translate your flags to and from SaQC
     * - |sacProc|
-      - * modify your data by interpolations, corrections and transformations
-        * calculate data products, such as residues or outlier scores
+      - * modify your data by :ref:`interpolations <cook_books/DataRegularisation:Interpolation>`, corrections and :ref:`transformations <cook_books/DataRegularisation:Aggregation>`
+        * calculate data products, such as :ref:`residues or outlier scores <cook_books/OutlierDetection:Residues and Scores>`
     * - |sacMV|
       - * apply multivariate flagging function

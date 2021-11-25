@@ -19,7 +19,7 @@ Getting Started
 
    getting_started/InstallationGuide
    getting_started/TutorialAPI
-   getting_started/GettingStarted
+   getting_started/TutorialCLI
 
 
 .. toctree::
