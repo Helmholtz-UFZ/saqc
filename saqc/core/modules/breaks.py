@@ -8,7 +8,7 @@ import saqc
 
 class Breaks:
     def flagMissing(
-        self, field: str, flag: float = BAD, to_mask: float = UNFLAGGED, **kwargs
+        self, field: str, flag: float = BAD, dfilter: float = UNFLAGGED, **kwargs
     ) -> saqc.SaQC:
         return self._defer("flagMissing", locals())
 

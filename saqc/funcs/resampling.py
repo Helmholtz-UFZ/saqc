@@ -141,7 +141,7 @@ def interpolate(
     )
 
 
-# for @processing this would need to handle to_mask
+# for @processing this would need to handle dfilter
 @register(mask=["field"], demask=[], squeeze=[])
 def shift(
     data: DictOfSeries,
@@ -219,7 +219,7 @@ def shift(
     return data, flags
 
 
-# for @processing this would need to handle to_mask
+# for @processing this would need to handle dfilter
 @register(mask=["field"], demask=[], squeeze=[])
 def resample(
     data: DictOfSeries,
@@ -530,7 +530,7 @@ def concatFlags(
 
     elif method[-5:] == "shift":
         drop_mask = target_datcol.isna() | _isflagged(
-            target_flagscol, kwargs["to_mask"]
+            target_flagscol, kwargs["dfilter"]
         )
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)

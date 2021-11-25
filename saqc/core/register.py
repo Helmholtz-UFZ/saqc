@@ -184,10 +184,10 @@ class FunctionWrapper:
 
     @staticmethod
     def _checkKwargs(kwargs: dict) -> dict[str, Any]:
-        if "to_mask" in kwargs and not isinstance(
-            kwargs["to_mask"], (bool, float, int)
+        if "dfilter" in kwargs and not isinstance(
+            kwargs["dfilter"], (bool, float, int)
         ):
-            raise TypeError(f"'to_mask' must be of type bool or float")
+            raise TypeError(f"'dfilter' must be of type bool or float")
         return kwargs
 
     def _prepareArgs(self) -> Tuple[tuple, dict[str, Any]]:
@@ -201,7 +201,7 @@ class FunctionWrapper:
             keyword-arguments to be passed to the actual call
         """
         kwargs = self.kwargs.copy()
-        kwargs["to_mask"] = self.mask_thresh
+        kwargs["dfilter"] = self.mask_thresh
 
         # always pass a list to multivariate functions and
         # unpack single element lists for univariate functions
@@ -215,7 +215,7 @@ class FunctionWrapper:
 
     def _getMaskingThresh(self) -> float:
         """
-        Generate a float threshold by the value of the `to_mask` keyword
+        Generate a float threshold by the value of the `dfilter` keyword
 
         Returns
         -------
@@ -224,13 +224,13 @@ class FunctionWrapper:
 
         Notes
         -----
-        If ``to_mask`` is **not** in the kwargs, the threshold defaults to
+        If ``dfilter`` is **not** in the kwargs, the threshold defaults to
          - ``-np.inf``
-        If a floatish ``to_mask`` is found in the kwargs, this value is taken as the threshold.
+        If a floatish ``dfilter`` is found in the kwargs, this value is taken as the threshold.
         """
-        if "to_mask" not in self.kwargs:
+        if "dfilter" not in self.kwargs:
             return UNFLAGGED
-        return float(self.kwargs["to_mask"])  # handle int
+        return float(self.kwargs["dfilter"])  # handle int
 
     def _createMeta(self) -> dict:
         return {
@@ -368,7 +368,7 @@ def register(
     Generalized decorator for any saqc functions.
 
     Before the call of the decorated function:
-    - data gets masked by flags according to `to_mask`
+    - data gets masked by flags according to `dfilter`
 
     After the call of the decorated function:
     - data gets demasked (original data is written back)
@@ -383,7 +383,7 @@ def register(
         The masking takes place before the call of the decorated function and
         temporary sets data to `NaN` at flagged locations. It is undone by ``demask``.
         The threshold of which data is considered to be flagged can be controlled
-        via ``to_mask``, a parameter each function takes.
+        via ``dfilter``, a parameter each function takes.
 
     demask : list of string
         A list of all parameter of the decorated function, that specify a column in
@@ -430,7 +430,7 @@ def flagging(**kwargs):
     Default decorator for univariate flagging functions.
 
     Before the call of the decorated function:
-    - `data[field]` gets masked by `flags[field]` according to `to_mask`
+    - `data[field]` gets masked by `flags[field]` according to `dfilter`
     After the call of the decorated function:
     - `data[field]` gets demasked (original data is written back)
     - `flags[field]` gets squeezed (only one history column append per call) if needed
