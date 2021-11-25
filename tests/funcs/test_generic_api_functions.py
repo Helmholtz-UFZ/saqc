@@ -5,7 +5,7 @@ import pytest
 import pandas as pd
 from dios.dios.dios import DictOfSeries
 
-from saqc.constants import BAD, UNFLAGGED
+from saqc.constants import BAD, UNFLAGGED, FILTER_ALL
 from saqc.core.flags import Flags
 from saqc import SaQC
 from saqc.lib.tools import toSequence
@@ -35,7 +35,7 @@ def test_writeTargetFlagGeneric(data):
                 "func": func.__name__,
                 "target": targets,
                 "flag": BAD,
-                "dfilter": UNFLAGGED,
+                "dfilter": FILTER_ALL,
             },
         }
 
@@ -67,7 +67,7 @@ def test_overwriteFieldFlagGeneric(data):
                 "target": fields,
                 "func": func.__name__,
                 "flag": flag,
-                "dfilter": UNFLAGGED,
+                "dfilter": FILTER_ALL,
             },
         }
 

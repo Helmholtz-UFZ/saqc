@@ -231,15 +231,15 @@ def maskTime(
     datcol_idx = data[field].index
 
     if mode == "periodic":
-        dfilter = periodicMask(datcol_idx, start, end, closed)
+        mask = periodicMask(datcol_idx, start, end, closed)
     elif mode == "mask_field":
         idx = data[mask_field].index.intersection(datcol_idx)
-        dfilter = data.loc[idx, mask_field]
+        mask = data.loc[idx, mask_field]
     else:
         raise ValueError("Keyword passed as masking mode is unknown ({})!".format(mode))
 
-    data.aloc[dfilter, field] = np.nan
-    flags[dfilter, field] = UNFLAGGED
+    data.aloc[mask, field] = np.nan
+    flags[mask, field] = UNFLAGGED
     return data, flags
 
 
@@ -256,7 +256,7 @@ def plot(
     phaseplot: Optional[str] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
-    dfilter: float = np.inf,
+    dfilter: float = FILTER_ALL,
     **kwargs,
 ):
     """
