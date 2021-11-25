@@ -5,7 +5,6 @@ __version__ = "1.4"
 
 # import order: from small to big
 from saqc.constants import (
-    UNTOUCHED,
     UNFLAGGED,
     GOOD,
     DOUBTFUL,
