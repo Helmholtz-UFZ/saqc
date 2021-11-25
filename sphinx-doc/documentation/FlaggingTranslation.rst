@@ -1,4 +1,4 @@
-Quality Labels and Translation Schemes
-======================================
+Flags, History and Translations
+===============================
 
 TODO
