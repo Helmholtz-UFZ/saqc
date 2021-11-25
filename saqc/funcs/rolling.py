@@ -87,7 +87,6 @@ def _roll(
 ):
     to_fit = data[field].copy()
     if to_fit.empty:
-        flags[:, field] = np.nan
         return data, flags
 
     regular = getFreqDelta(to_fit.index)

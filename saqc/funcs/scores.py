@@ -112,7 +112,6 @@ def assignKNNScore(
     val_frame.dropna(inplace=True)
 
     if val_frame.empty:
-        flags[:, target] = np.nan
         return data, flags
 
     # partitioning
