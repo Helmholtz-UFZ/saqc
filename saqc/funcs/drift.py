@@ -45,7 +45,7 @@ def flagDriftFromNorm(
     / len(x),
     method: LinkageString = "single",
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags value courses that significantly deviate from a group of normal value courses.
@@ -170,7 +170,7 @@ def flagDriftFromReference(
     / len(x),
     target=None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags value courses that deviate from a reference course by a margin exceeding a certain threshold.
@@ -267,7 +267,7 @@ def flagDriftFromScaledNorm(
     method: LinkageString = "single",
     target: str = None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function linearly rescales one set of variables to another set of variables
@@ -401,7 +401,7 @@ def correctDrift(
     maintenance_field: str,
     model: Union[Callable[..., float], Literal["linear", "exponential"]],
     cal_range: int = 5,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function corrects drifting behavior.
@@ -534,7 +534,7 @@ def correctRegimeAnomaly(
     model: CurveFitter,
     tolerance: Optional[str] = None,
     epoch: bool = False,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function fits the passed model to the different regimes in data[field] and tries to correct
@@ -755,7 +755,7 @@ def flagRegimeAnomaly(
     ),
     frac: float = 0.5,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flags anomalous regimes regarding to modelling regimes of field.
@@ -835,7 +835,7 @@ def assignRegimeAnomaly(
         np.nanmean(x) - np.nanmean(y)
     ),
     frac: float = 0.5,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     A function to detect values belonging to an anomalous regime regarding modelling
@@ -915,7 +915,7 @@ def _assignRegimeAnomaly(
     set_cluster: bool = True,
     set_flags: bool = False,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     series = data[cluster_field]
     cluster = np.unique(series)

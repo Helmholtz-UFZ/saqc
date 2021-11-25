@@ -69,8 +69,11 @@ def main(envpath, targetpath, sphinxroot):
             if len(doc.groups()) > 0:
                 doc_dict.update({entry: doc_dict.get(entry, "") + doc["Comment"]})
 
-    # make table directive
+    # make heading
+    heading = "Config file Environment"
     lines = []
+    lines += [heading, len(heading) * "=", ""]
+    # make table directive
     tab = " " * 3
     new_row = tab + "* - "
     new_col = tab + " " + " - "

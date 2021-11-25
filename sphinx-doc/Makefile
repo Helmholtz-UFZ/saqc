@@ -11,6 +11,7 @@ BUILDDIR      = _build
 # sphinx build controll:
 # Function documentations will be acessible through: FUNCTIONS.saqc
 FUNCTIONS     = Functions
+CORE          = Core
 # List of folders containing markdown content to include into the build
 MDLIST		  = getting_started_md how_to_doc_md cook_books_md misc_md
 # Put it first so that "make" without argument is like "make help".
@@ -26,10 +27,13 @@ test:
 clean:
 	rm -rf _build _static
 	rm -rf ../$(FUNCTIONS)
+	rm -rf ../$(CORE)
 	mkdir _static
 	# for k in $(MDLIST); do rm -r "$$k"_m2r; done
 	rm -f *.automodsumm
+	rm -f *.automodapi
 	rm -f moduleAPIs/*.automodsumm
+	rm -f moduleAPIs/*.automodapi
 
 # trigger (saqc) customized documentation pipeline
 doc:

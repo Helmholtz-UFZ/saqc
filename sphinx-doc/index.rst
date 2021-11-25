@@ -22,8 +22,6 @@ Getting Started
    getting_started/TutorialAPI
    getting_started/GettingStarted
 
-Cookbooks
-=========
 
 .. toctree::
    :caption: Cookbooks
@@ -34,8 +32,6 @@ Cookbooks
    cook_books/OutlierDetection
    cook_books/MultivariateFlagging
 
-Documentation
-=============
 .. toctree::
    :caption: Documentation
    :maxdepth: 1
@@ -46,8 +42,6 @@ Documentation
    documentation/SourceTarget
 
 
-Developer Ressources
-====================
 .. toctree::
    :caption: Developer Ressources
    :hidden:
@@ -55,27 +49,41 @@ Developer Ressources
 
    Documentation Guide <how_to_doc/HowToDoc>
 
-Functions
-=========
 
 .. toctree::
+   :caption: Functions
+   :hidden:
    :maxdepth: 1
    :glob:
    :titlesonly:
 
-   All Functions <moduleAPIs/saqcFunctions>
-   generic <moduleAPIs/functionsgeneric>
+   all <moduleAPIs/Functionssaqc>
+   resampling <moduleAPIs/Functionsresampling>
+   generic <moduleAPIs/Functionsgeneric>
+   outliers <moduleAPIs/Functionsoutliers>
+   breaks <moduleAPIs/Functionsbreaks>
+   constants <moduleAPIs/Functionsconstants>
+   changepoints <moduleAPIs/Functionschangepoints>
+   drift <moduleAPIs/Functionsdrift>
+   curvefit <moduleAPIs/Functionscurvefit>
+   interpolation <moduleAPIs/Functionsinterpolation>
+   residues <moduleAPIs/Functionsresidues>
+   tools <moduleAPIs/Functionstools>
+   flagtools <moduleAPIs/Functionsflagtools>
+   rolling <moduleAPIs/Functionsrolling>
+   scores <moduleAPIs/Functionsscores>
+   transformation <moduleAPIs/Functionstransformation>
+   noise <moduleAPIs/Functionsnoise>
 
 
-Python Package
-==============
 .. toctree::
-   :maxdepth: 2
-   :glob:
-   :titlesonly:
+   :caption: SaQC
+   :hidden:
+   :maxdepth: 1
 
-   SaQC init <moduleAPIs/saqcInit>
-
+   SaQC Object <moduleAPIs/saqcClass>
+   Constants <moduleAPI/saqcConstants>
+   Config Environment <environment/configEnv>
 
 Indices and tables
 ==================
@@ -83,3 +91,4 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
