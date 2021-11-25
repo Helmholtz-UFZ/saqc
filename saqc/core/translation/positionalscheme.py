@@ -8,7 +8,6 @@ import pandas as pd
 from saqc.core.flags import (
     Flags,
     History,
-    UNTOUCHED,
     UNFLAGGED,
     GOOD,
     DOUBTFUL,
@@ -38,7 +37,7 @@ class PositionalScheme(TranslationScheme):
         2: BAD,
     }
     _BACKWARD: BackwardMap = {
-        UNTOUCHED: 0,
+        np.nan: 0,
         UNFLAGGED: 0,
         GOOD: 0,
         DOUBTFUL: 1,

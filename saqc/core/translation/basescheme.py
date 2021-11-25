@@ -13,7 +13,6 @@ from dios import DictOfSeries
 from saqc.core.flags import (
     Flags,
     UNFLAGGED,
-    UNTOUCHED,
     BAD,
     GOOD,
 )
@@ -206,7 +205,7 @@ class SimpleScheme(TranslationScheme):
 
     _BACKWARD = {
         UNFLAGGED: "UNFLAGGED",
-        UNTOUCHED: "UNFLAGGED",
+        np.nan: "UNFLAGGED",
         BAD: "BAD",
         GOOD: "OK",
     }
