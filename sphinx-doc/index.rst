@@ -83,14 +83,10 @@ Functions
 
 
 
-Python Package
-==============
-.. toctree::
-   :maxdepth: 2
-   :glob:
-   :titlesonly:
+SaQC Object
+===========
 
-   saqc.SaQC <moduleAPIs/ObjectsSaQC>
+   * :py:class:`saqc.SaQC <Core.Core.SaQC>`
 
 
 Indices and tables
