@@ -31,7 +31,9 @@ clean:
 	mkdir _static
 	# for k in $(MDLIST); do rm -r "$$k"_m2r; done
 	rm -f *.automodsumm
+	rm -f *.automodapi
 	rm -f moduleAPIs/*.automodsumm
+	rm -f moduleAPIs/*.automodapi
 
 # trigger (saqc) customized documentation pipeline
 doc:

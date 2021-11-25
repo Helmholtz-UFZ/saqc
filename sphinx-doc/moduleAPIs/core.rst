@@ -1,5 +1,0 @@
-
-saqc
-====
-
-.. automodapi:: Core.Core

@@ -90,7 +90,7 @@ Python Package
    :glob:
    :titlesonly:
 
-   :py:class:`Core.Core.SaQC`
+   saqc.SaQC <moduleAPIs/ObjectsSaQC>
 
 
 Indices and tables
