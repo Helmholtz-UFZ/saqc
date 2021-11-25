@@ -13,40 +13,37 @@ The tutorial guides through the following steps:
      * :ref:`Data <cook_books_md_m2r/OutlierDetection:Data>`
      * :ref:`Initialisation <cook_books_md_m2r/OutlierDetection:Initialisation>`
 
-#. 
-   We will see how to apply different smoothing methods and models to the data in order to obtain usefull residue 
+#. We will see how to apply different smoothing methods and models to the data in order to obtain usefull residue
    variables.
 
 
-   * :ref:`Modelling <cook_books_md_m2r/OutlierDetection:Modelling>`
+   * :ref:`Modelling <cook_books/OutlierDetection:Modelling>`
 
-     * :ref:`Rolling Mean <cook_books_md_m2r/OutlierDetection:Rolling Mean>`
-     * :ref:`Rolling Median <cook_books_md_m2r/OutlierDetection:Rolling Median>`
-     * :ref:`Polynomial Fit <cook_books_md_m2r/OutlierDetection:Polynomial Fit>`
-     * :ref:`Custom Models <cook_books_md_m2r/OutlierDetection:Custom Models>`
+     * :ref:`Rolling Mean <cook_books/OutlierDetection:Rolling Mean>`
+     * :ref:`Rolling Median <cook_books/OutlierDetection:Rolling Median>`
+     * :ref:`Polynomial Fit <cook_books/OutlierDetection:Polynomial Fit>`
+     * :ref:`Custom Models <cook_books/OutlierDetection:Custom Models>`
 
-   * :ref:`Evaluation and Visualisation <cook_books_md_m2r/OutlierDetection:Evaluation and Visualisation>`
+   * :ref:`Evaluation and Visualisation <cook_books/OutlierDetection:Evaluation and Visualisation>`
 
-#. 
-   We will see how we can obtain residues and scores from the calculated model curves. 
+#. We will see how we can obtain residues and scores from the calculated model curves.
 
 
-   * :ref:`Residues and Scores <cook_books_md_m2r/OutlierDetection:Residues and Scores>`
+   * :ref:`Residues and Scores <cook_books/OutlierDetection:Residues and Scores>`
 
-     * :ref:`Residues <cook_books_md_m2r/OutlierDetection:Residues>`
-     * :ref:`Scores <cook_books_md_m2r/OutlierDetection:Scores>`
-     * :ref:`Optimization from Decomposition <cook_books_md_m2r/OutlierDetection:Optimization from Decomposition>`
+     * :ref:`Residues <cook_books/OutlierDetection:Residues>`
+     * :ref:`Scores <cook_books/OutlierDetection:Scores>`
+     * :ref:`Optimization from Decomposition <cook_books/OutlierDetection:Optimization from Decomposition>`
 
-#. 
-   Finally, we will see how to derive flags from the scores itself and impose additional conditions, functioning as 
+#. Finally, we will see how to derive flags from the scores itself and impose additional conditions, functioning as
    correctives.
 
 
-   * :ref:`Setting and Correcting Flags <cook_books_md_m2r/OutlierDetection:Setting and Correcting Flags>`
+   * :ref:`Setting and Correcting Flags <cook_books/OutlierDetection:Setting and Correcting Flags>`
 
-     * :ref:`Flagging the Scores <cook_books_md_m2r/OutlierDetection:Flagging the Scores>`
+     * :ref:`Flagging the Scores <cook_books/OutlierDetection:Flagging the Scores>`
      * `Additional Conditions ("unflagging") <#Additional-Conditions>`_
-     * :ref:`Including Multiple Conditions <cook_books_md_m2r/OutlierDetection:Including Multiple Conditions>`
+     * :ref:`Including Multiple Conditions <cook_books/OutlierDetection:Including Multiple Conditions>`
 
 Preparation
 -----------
@@ -84,40 +81,56 @@ Initialisation
 We initially want to import the data into our workspace. Therefore we import the `pandas <https://pandas.pydata.org/>`_
 library and use its csv file parser `pd.read_csv <https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html>`_. 
 
-.. code-block:: python
+>>> import pandas as pd
+>>> i_data = pd.read_csv(data_path, index_col=0)
 
-   import pandas as pd
-   i_data = pd.read_csv(data_path)
+.. testsetup::
+
+   data_path = './ressources/data/incidentsLKG.csv'
+   i_data = pd.read_csv(data_path, index_col=0)
 
 The resulting ``i_data`` variable is a pandas `data frame <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_
 object. We can generate an SaQC object directly from that. Beforehand we have to make sure, the index
-of ``ì_data`` is of the right type. 
+of ``ì_data`` is of the right type.
 
-.. code-block:: python
+>>> i_data.index = pd.DatetimeIndex(i_data.index)
+
+.. testsetup::
 
    i_data.index = pd.DatetimeIndex(i_data.index)
 
 Now we do load the saqc package into the workspace and generate an instance of ``saqc <saqc.core.core.SaQC>`` object,
 that refers to the loaded data.
 
-.. code-block:: python
+>>> import saqc
+>>> i_saqc = saqc.SaQC(i_data)
 
-   import saqc
+.. testsetup::
+
    i_saqc = saqc.SaQC(i_data)
 
-With evaluating :py:attr:`saqc.fields`, we can check out the variables, present in the data.
+With evaluating :py:attr:`saqc.data <Core.Core.SaQC.data>`, we can check out the variables, present in the data.
 
-.. code-block:: python
-
-   >>> saqc.fields
-   ['incidents']
+>>> i_saqc.data
+columns     incidents
+2020-01-01          0
+2020-01-02          0
+2020-01-03          0
+2020-01-04          0
+2020-01-05          0
+               ...
+2021-01-10          8
+2021-01-11         26
+2021-01-12        129
+2021-01-13         37
+2021-01-14          0
+<BLANKLINE>
+[380 rows x 1 columns]
 
 So, the only data present, is the *incidents* dataset. We can have a look at the data and obtain the above plot through
 the method :py:meth:`saqc.show <saqc.core.core.SaQC.show>`:
 
-.. code-block:: python
-
-   >>> saqc.show('incidents')
+>>> saqc.plot('incidents')
 
 Modelling
 ---------

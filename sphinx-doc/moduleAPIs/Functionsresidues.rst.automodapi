@@ -1,0 +1,16 @@
+residues
+========
+
+
+ 
+
+
+.. automodule:: Functions.residues
+
+Functions
+^^^^^^^^^
+
+.. automodsumm:: Functions.residues
+    :functions-only:
+    :toctree: ../_api
+
