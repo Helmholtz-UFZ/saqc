@@ -187,7 +187,7 @@ def flagJumps(
         The flags container.
 
     thresh : float
-        Threshold, the mean of data have to change to trigger flagging.
+        Threshold value by which the mean of data has to change to trigger flagging.
 
     window : str
         Size of the moving window. This is the number of observations used
