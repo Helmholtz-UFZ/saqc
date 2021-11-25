@@ -9,7 +9,7 @@ import pandas as pd
 
 from dios import DictOfSeries
 
-from saqc.constants import BAD, UNFLAGGED, ENVIRONMENT
+from saqc.constants import BAD, UNFLAGGED, ENVIRONMENT, FILTER_ALL
 from saqc.core.history import History
 from saqc.lib.tools import toSequence
 from saqc.lib.types import GenericFunction, PandasLike
@@ -31,7 +31,7 @@ def _execGeneric(
     flags: Flags,
     data: PandasLike,
     func: GenericFunction,
-    dfilter: float = UNFLAGGED,
+    dfilter: float = FILTER_ALL,
 ) -> DictOfSeries:
 
     globs = {
@@ -62,7 +62,7 @@ def processGeneric(
     func: GenericFunction,
     target: str | Sequence[str] = None,
     flag: float = UNFLAGGED,
-    dfilter: float = UNFLAGGED,
+    dfilter: float = FILTER_ALL,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -99,7 +99,7 @@ def processGeneric(
         The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
         ``processGeneric`` generates 'new' data without direct relation to the potentially
         already present flags.
-    dfilter: float, default ``UNFLAGGED``
+    dfilter: float, default ``FILTER_ALL``
         Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
         data value is inappropiate for further usage.
 
@@ -176,7 +176,7 @@ def flagGeneric(
     func: GenericFunction,
     target: Union[str, Sequence[str]] = None,
     flag: float = BAD,
-    dfilter: float = UNFLAGGED,
+    dfilter: float = FILTER_ALL,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -209,7 +209,7 @@ def flagGeneric(
         The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
         ``processGeneric`` generates 'new' data without direct relation to the potentially
         already present flags.
-    dfilter: float, default ``UNFLAGGED``
+    dfilter: float, default ``FILTER_ALL``
         Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
         data value is inappropiate for further usage.
 

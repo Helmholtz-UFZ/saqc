@@ -30,7 +30,7 @@ def flagMissing(
     field: str,
     flags: Flags,
     flag: float = BAD,
-    dfilter: float = UNFLAGGED,
+    dfilter: float = FILTER_ALL,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """

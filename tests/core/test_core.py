@@ -6,8 +6,7 @@ import numpy as np
 import pandas as pd
 
 import saqc
-from saqc.core import initFlagsLike
-from saqc import SaQC, register
+from saqc.core import initFlagsLike, SaQC, register
 from saqc.core.flags import Flags
 from saqc.core.register import processing
 

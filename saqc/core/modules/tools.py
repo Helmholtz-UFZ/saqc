@@ -8,6 +8,8 @@ from typing_extensions import Literal
 import saqc
 import numpy as np
 
+from saqc.constants import FILTER_NONE
+
 
 class Tools:
     def copyField(self, field: str, target: str, **kwargs) -> saqc.SaQC:
@@ -42,7 +44,7 @@ class Tools:
         phaseplot: Optional[str] = None,
         stats_dict: Optional[dict] = None,
         store_kwargs: Optional[dict] = None,
-        dfilter: Optional[float] = np.inf,
+        dfilter: Optional[float] = FILTER_NONE,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("plot", locals())

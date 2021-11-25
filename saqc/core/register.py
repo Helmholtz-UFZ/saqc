@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import dios
 
-from saqc.constants import UNFLAGGED
+from saqc.constants import UNFLAGGED, FILTER_ALL
 from saqc.core.flags import Flags, History
 from saqc.lib.tools import squeezeSequence, toSequence
 
@@ -224,12 +224,11 @@ class FunctionWrapper:
 
         Notes
         -----
-        If ``dfilter`` is **not** in the kwargs, the threshold defaults to
-         - ``-np.inf``
-        If a floatish ``dfilter`` is found in the kwargs, this value is taken as the threshold.
+        If ``dfilter`` is **not** in the kwargs, the threshold defaults to `FILTER_ALL`.
+        For any floatish value, it is taken as the threshold.
         """
         if "dfilter" not in self.kwargs:
-            return UNFLAGGED
+            return FILTER_ALL
         return float(self.kwargs["dfilter"])  # handle int
 
     def _createMeta(self) -> dict:
@@ -478,7 +477,7 @@ def _isflagged(flagscol: np.ndarray | pd.Series, thresh: float) -> np.array | pd
     if not isinstance(thresh, (float, int)):
         raise TypeError(f"thresh must be of type float, not {repr(type(thresh))}")
 
-    if thresh == UNFLAGGED:
+    if thresh == FILTER_ALL:
         return flagscol > UNFLAGGED
 
     return flagscol >= thresh
