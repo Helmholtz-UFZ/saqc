@@ -1,4 +1,8 @@
-[![pipeline status](https://git.ufz.de/rdm-software/saqc/badges/develop/pipeline.svg)](https://git.ufz.de/rdm-software/saqc/-/commits/develop)
+
+<img src="sphinx-doc/ressources/images/Representative/UFZLogo.jpg" width="400"/>
+
+<img src="sphinx-doc/ressources/images/Representative/RDMlogo.jpg" align="right" width="180"/>
+
 
 # System for automated Quality Control (SaQC)
 
