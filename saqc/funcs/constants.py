@@ -27,7 +27,7 @@ def flagConstants(
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flag constant data.
+    Flag constant data values.
     
     Flags plateaus of constant data if their maximum total change in
     a rolling window does not exceed a certain threshold.
