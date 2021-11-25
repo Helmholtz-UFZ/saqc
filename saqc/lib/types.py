@@ -23,6 +23,7 @@ DiosLikeT = Union[DictOfSeries, pd.DataFrame]
 
 ExternalFlag = Union[str, float, int]
 
+
 # needed for deeper type hinting magic
 class CurveFitter(Protocol):
     def __call__(self, data: np.ndarray, *params: float) -> np.ndarray:

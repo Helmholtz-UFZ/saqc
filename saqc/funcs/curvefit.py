@@ -111,7 +111,8 @@ def _fitPolynomial(
     return_residues: bool = False,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
-    # TODO: some (rater large) parts are functional similar to saqc.funcs.rolling.roll
+
+    # TODO: some (rather large) parts are functional similar to saqc.funcs.rolling.roll
     if data[field].empty:
         return data, flags
 

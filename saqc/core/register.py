@@ -270,15 +270,6 @@ class FunctionWrapper:
             start = len(old_history.columns)
             new_history = self._sliceHistory(new_history, slice(start, None))
 
-            # NOTE:
-            # Nothing to update -> i.e. a function did not set any flags at all.
-            # This has implications for function writers: early returns out of
-            # functions before `flags.__getitem__` was called once, make the
-            # function call invisable to the flags/history machinery and likely
-            # break translation schemes such as the `PositionalTranslator`
-            if new_history.empty:
-                continue
-
             squeezed = new_history.max(raw=True)
             out.history[col] = out.history[col].append(squeezed, meta=meta)
 
