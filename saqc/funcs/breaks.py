@@ -30,8 +30,8 @@ def flagMissing(
     field: str,
     flags: Flags,
     flag: float = BAD,
-    to_mask: float = UNFLAGGED,
-    **kwargs,
+    dfilter: float = FILTER_ALL,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags all values indicating missing data.
@@ -58,7 +58,7 @@ def flagMissing(
     datacol = data[field]
     mask = datacol.isna()
 
-    mask = ~_isflagged(flags[field], to_mask) & mask
+    mask = ~_isflagged(flags[field], dfilter) & mask
 
     flags[mask, field] = flag
     return data, flags

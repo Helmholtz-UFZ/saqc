@@ -9,7 +9,7 @@ import pandas as pd
 
 import pytest
 
-from saqc.constants import UNFLAGGED, BAD, DOUBTFUL
+from saqc.constants import UNFLAGGED, BAD, DOUBTFUL, FILTER_NONE
 from saqc.core.translation import (
     PositionalScheme,
     TranslationScheme,
@@ -225,8 +225,8 @@ def _buildupSaQCObjects():
     out = []
     for _ in range(2):
         saqc = SaQC(data=data, flags=flags)
-        saqc = saqc.flagRange(field=col, min=5, max=6, to_mask=np.inf).flagRange(
-            col, min=3, max=10, to_mask=np.inf
+        saqc = saqc.flagRange(field=col, min=5, max=6, dfilter=FILTER_NONE).flagRange(
+            col, min=3, max=10, dfilter=FILTER_NONE
         )
         flags = saqc._flags
         out.append(saqc)

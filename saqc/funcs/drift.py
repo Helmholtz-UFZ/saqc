@@ -1,19 +1,20 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Union, Tuple, Sequence, Callable, Optional
+import functools
+from typing import Optional, Tuple, Sequence, Callable, Optional
 from typing_extensions import Literal
 
 import numpy as np
 import pandas as pd
-import functools
 
 from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
 
 from dios import DictOfSeries
-from saqc.constants import *
+from saqc.constants import BAD
 from saqc.core.register import register, flagging
 from saqc.core import Flags
 from saqc.funcs.changepoints import _assignChangePointCluster
@@ -22,6 +23,7 @@ from saqc.funcs.tools import dropField, copyField
 from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
 from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 from saqc.lib.types import CurveFitter
+from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 
 
 LinkageString = Literal[
@@ -399,7 +401,7 @@ def correctDrift(
     field: str,
     flags: Flags,
     maintenance_field: str,
-    model: Union[Callable[..., float], Literal["linear", "exponential"]],
+    model: Callable[..., float] | Literal["linear", "exponential"],
     cal_range: int = 5,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -484,6 +486,10 @@ def correctDrift(
     """
     # extract model func:
     if isinstance(model, str):
+        if model not in MODELDICT:
+            raise ValueError(
+                f"invalid model '{model}', choose one of '{MODELDICT.keys()}'"
+            )
         model = MODELDICT[model]
 
     # 1: extract fit intervals:
@@ -654,7 +660,7 @@ def correctOffset(
     window: str,
     min_periods: int,
     tolerance: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Parameters

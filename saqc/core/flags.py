@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import numpy as np
 import dios
 from typing import Mapping, Union, Dict, DefaultDict, Optional, Type, Tuple, Iterable
 
@@ -69,8 +70,7 @@ class Flags:
 
     We create an empty instance, by calling ``Flags`` without any arguments and then add a column to it.
 
-    >>> from saqc.constants import UNFLAGGED, BAD, DOUBT, UNTOUCHED
-    >>> from saqc.core.flags import Flags
+    >>> from saqc.constants import UNFLAGGED, BAD, DOUBTFUL
     >>> flags = Flags()
     >>> flags
     Empty Flags
@@ -96,7 +96,7 @@ class Flags:
     But if we pass a series, which index match it will work,
     because the series now is interpreted as value-to-set.
 
-    >>> flags['v0'] = pd.Series([DOUBT,UNTOUCHED,DOUBT], dtype=float)
+    >>> flags['v0'] = pd.Series([DOUBT,np.nan,DOUBT], dtype=float)
     >>> flags
           v0 |
     ======== |
@@ -105,8 +105,8 @@ class Flags:
     2   25.0 |
 
     As we see above, the column now holds a combination from the values from the
-    first and the second set. This is, because the special constant ``UNTOUCHED``,
-    an alias for ``numpy.nan`` was used. We can inspect all the updates that was
+    first and the second set. This is, because ``numpy.nan`` was used.
+    We can inspect all the updates that was
     made by looking in the history.
 
     >>> flags['v0'] = pd.Series([DOUBT,UNTOUCHED,DOUBT], dtype=float)
@@ -303,7 +303,7 @@ class Flags:
                 )
             mask, key = key
 
-            tmp = pd.Series(UNTOUCHED, index=self._data[key].index, dtype=float)
+            tmp = pd.Series(np.nan, index=self._data[key].index, dtype=float)
 
             # make a mask from an index, because it seems
             # that passing an index is a very common workflow

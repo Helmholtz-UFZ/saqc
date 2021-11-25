@@ -5,7 +5,7 @@ import pytest
 import pandas as pd
 from dios.dios.dios import DictOfSeries
 
-from saqc.constants import BAD, UNFLAGGED
+from saqc.constants import BAD, UNFLAGGED, FILTER_ALL
 from saqc.core.flags import Flags
 from saqc import SaQC
 from saqc.lib.tools import toSequence
@@ -35,7 +35,7 @@ def test_writeTargetFlagGeneric(data):
                 "func": func.__name__,
                 "target": targets,
                 "flag": BAD,
-                "to_mask": UNFLAGGED,
+                "dfilter": FILTER_ALL,
             },
         }
 
@@ -67,7 +67,7 @@ def test_overwriteFieldFlagGeneric(data):
                 "target": fields,
                 "func": func.__name__,
                 "flag": flag,
-                "to_mask": UNFLAGGED,
+                "dfilter": FILTER_ALL,
             },
         }
 
@@ -100,7 +100,7 @@ def test_writeTargetProcGeneric(data):
         (["tmp"], lambda x, y: x + y),
         (["tmp1", "tmp2"], lambda x, y: (x + y, y * 2)),
     ]
-    to_mask = 128
+    dfilter = 128
     for targets, func in params:
 
         expected_data = DictOfSeries(
@@ -115,7 +115,7 @@ def test_writeTargetProcGeneric(data):
                 "target": targets,
                 "func": func.__name__,
                 "flag": BAD,
-                "to_mask": to_mask,
+                "dfilter": dfilter,
             },
         }
         saqc = SaQC(
@@ -125,7 +125,7 @@ def test_writeTargetProcGeneric(data):
             ),
         )
         res = saqc.processGeneric(
-            field=fields, target=targets, func=func, flag=BAD, to_mask=to_mask
+            field=fields, target=targets, func=func, flag=BAD, dfilter=dfilter
         )
         assert (expected_data == res.data[targets].squeeze()).all(axis=None)
         # check that new histories where created
@@ -139,7 +139,7 @@ def test_overwriteFieldProcGeneric(data):
         (["var1"], lambda x: x * 2),
         (["var1", "var2"], lambda x, y: (x + y, y * 2)),
     ]
-    to_mask = 128
+    dfilter = 128
     flag = 12
     for fields, func in params:
         expected_data = DictOfSeries(
@@ -154,7 +154,7 @@ def test_overwriteFieldProcGeneric(data):
                 "target": fields,
                 "func": func.__name__,
                 "flag": flag,
-                "to_mask": to_mask,
+                "dfilter": dfilter,
             },
         }
 
@@ -165,7 +165,7 @@ def test_overwriteFieldProcGeneric(data):
             ),
         )
 
-        res = saqc.processGeneric(field=fields, func=func, flag=flag, to_mask=to_mask)
+        res = saqc.processGeneric(field=fields, func=func, flag=flag, dfilter=dfilter)
         assert (expected_data == res.data[fields].squeeze()).all(axis=None)
         # check that the histories got appended
         for field in fields:

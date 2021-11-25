@@ -14,7 +14,6 @@ from saqc.core.history import History
 from saqc.core.flags import (
     Flags,
     UNFLAGGED,
-    UNTOUCHED,
     GOOD,
     DOUBTFUL,
     BAD,
@@ -65,7 +64,7 @@ class DmpScheme(TranslationScheme):
 
     _BACKWARD: BackwardMap = {
         UNFLAGGED: "NIL",
-        UNTOUCHED: "NIL",
+        np.nan: "NIL",
         GOOD: "OK",
         DOUBTFUL: "DOUBTFUL",
         BAD: "BAD",
@@ -103,7 +102,7 @@ class DmpScheme(TranslationScheme):
                 except json.decoder.JSONDecodeError:
                     comment = {"test": "unknown", "comment": ""}
 
-                histcol = pd.Series(UNTOUCHED, index=field_flags.index)
+                histcol = pd.Series(np.nan, index=field_flags.index)
                 histcol.loc[values.index] = self(flag)
 
                 meta = {

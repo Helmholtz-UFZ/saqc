@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from saqc.constants import BAD, UNFLAGGED
+from saqc.constants import BAD, FILTER_ALL
 import saqc
 
 
 class Breaks:
     def flagMissing(
-        self, field: str, flag: float = BAD, to_mask: float = UNFLAGGED, **kwargs
+        self, field: str, flag: float = BAD, dfilter: float = FILTER_ALL, **kwargs
     ) -> saqc.SaQC:
         return self._defer("flagMissing", locals())
 

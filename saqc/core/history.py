@@ -215,7 +215,7 @@ class History:
         """
         result = self.hist.astype(float)
         if result.empty:
-            result = pd.DataFrame(data=UNTOUCHED, index=self.hist.index, columns=[0])
+            result = pd.DataFrame(data=np.nan, index=self.hist.index, columns=[0])
 
         result = result.ffill(axis=1).iloc[:, -1]
 
@@ -236,7 +236,7 @@ class History:
             the index to reindex to.
 
         fill_value_last : float, default UNFLAGGED
-            value to fill nan's (UNTOUCHED) in the last column.
+            value to fill nan's in the last column.
             Defaults to 0 (UNFLAGGED).
 
         copy : bool, default True

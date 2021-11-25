@@ -61,8 +61,6 @@ def flagConstants(
         The flags object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flags input.
     """
-    if not isinstance(window, str):
-        raise TypeError("window must be offset string.")
     d = data[field]
 
     # min_periods=2 ensures that at least two non-nan values are present
