@@ -86,7 +86,7 @@ Functions
 SaQC Object
 ===========
 
-   * :py:class:`saqc.SaQC <Core.Core.SaQC>`
+* :py:class:`saqc.SaQC <Core.Core.SaQC>`
 
 
 Indices and tables

@@ -4,3 +4,4 @@ sphinx-automodapi
 sphinxcontrib-fulltoc
 sphinx-markdown-tables
 m2r
+jupyter-sphinx
