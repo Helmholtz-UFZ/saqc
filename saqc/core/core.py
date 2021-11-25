@@ -17,6 +17,7 @@ import pandas as pd
 import numpy as np
 
 from dios import DictOfSeries, to_dios
+from saqc.constants import BAD
 
 from saqc.core.modules import FunctionsMixin
 from saqc.core.flags import initFlagsLike, Flags
@@ -172,7 +173,6 @@ class SaQC(FunctionsMixin):
 
     def _wrap(self, func: FunctionWrapper):
         """
-        Prepare the
         prepare user function input:
           - expand fields and targets
           - translate user given ``flag`` values or set the default ``BAD``
