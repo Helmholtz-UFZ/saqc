@@ -134,7 +134,7 @@ Basically, there are three types of :doc:`regularisations <../moduleAPIs/Functio
 Shift
 -----
 
-Lets apply a simple shift via the :py:func:`saqc.shift <Functions.saqc.shift>` method.
+Lets apply a simple shift via the :py:func:`shift <Functions.saqc.shift>` method.
 
 >>> import saqc
 >>> qc = saqc.SaQC(data)
