@@ -123,13 +123,13 @@ Regularisations
 So lets transform the measurements timestamps to have a regular *10* minutes frequency. In order to do so, 
 we have to decide what to do with each time stamps associated data, when we alter the timestamps value.
 
-Basically, there are three types of :doc:`regularisation <function_cats/regularisation>` methods: 
+Basically, there are three types of :doc:`regularisations <../moduleAPIs/Functionsresampling>` methods: 
 
 
 #. We could keep the values as they are, and thus, 
    just :ref:`shift <cook_books/DataRegularisation:Shift>` them in time to match the equidistant *10* minutes frequency grid, we want the data to exhibit.
 #. We could calculate new, synthetic data values for the regular timestamps, via an :ref:`interpolation <cook_books/DataRegularisation:Interpolation>` method.
-#. We could apply some :ref:`aggregation <cook_books/DataRegularisation:Resampling>` to up- or down sample the data.
+#. We could apply some :ref:`aggregation <cook_books/DataRegularisation:Aggregation>` to up- or down sample the data.
 
 Shift
 -----
@@ -156,7 +156,7 @@ Freq parameter
 
 We passed the ``freq`` keyword of the intended sampling frequency in terms of a
 `date alias <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_ string. All of
-the :doc:`regularisation <function_cats/regularisation>` methods have such a frequency keyword,
+the :doc:`regularisations <../moduleAPIs/Functionsresampling>` methods have such a frequency keyword,
 and it just determines the sampling rate, the resulting regular timeseries will have.
 
 Shifting Method
@@ -200,7 +200,7 @@ We see, the first and last *10* datapoints of both, the original data time serie
 Obveously, the shifted data series now exhibits a regular sampling rate of *10* minutes, with the index
 ranging from the latest timestamp, that is a multiple of *10* minutes and preceeds the initial timestamp
 of the original data, up to the first *10* minutes multiple, that succeeds the last original datas timestamp.
-This is default behavior to all the :doc:`regularisations <../Functions/regularisation>` provided by ``saqc``.
+This is default behavior to all the :doc:`regularisations <../moduleAPIs/Functionsresampling>` provided by ``saqc``.
 
 Data Loss and Empty Intervals
 -----------------------------
@@ -231,7 +231,7 @@ Data points are referred to, as *valid*\ , in context of a regularisation, if:
 
 Note, that, from point *2* above, it follows, that flagging data values 
 before regularisation, will effectively exclude them from the regularistaion process. See chapter 
-:ref:`flagging and resampling <cook_books/DataRegularisation:flagging and resampling>` for an example of this effect and how it can help
+:ref:`flagging and resampling <cook_books/DataRegularisation:flags and regularisation>` for an example of this effect and how it can help
 control :ref:`data reduction <cook_books/DataRegularisation:data reduction>`.
 
 data reduction
@@ -241,7 +241,7 @@ If there are multiple values present within an interval with size according to t
 ``freq``\ , this values get reduced to one single value, that will get assigned to the timestamp associated with the 
 interval.
 
-This reduction depends on the selected :doc:`regularisation <../function_cats/regularisation>` method.
+This reduction depends on the selected :doc:`regularisation <../moduleAPIs/Functionsresampling>` method.
 
 For example, :ref:`above <cook_books/DataRegularisation:shift>`\ , we applied a backwards :py:func:`shift <Functions.saqc.shift>` with a *10* minutes frequency.
 As a result, the first value, encountered after any multiple of *10* minutes, gets shifted backwards to be aligned with
@@ -487,4 +487,4 @@ do the interpolation.
 back projection of flags
 ------------------------
 
-ToDo
+TODO
