@@ -3,7 +3,6 @@
 
 from typing import Optional, Tuple
 
-from py import process
 from typing_extensions import Literal
 import numpy as np
 from dios import DictOfSeries

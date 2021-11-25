@@ -402,7 +402,7 @@ class History:
 
         if not hist.empty and (
             not hist.columns.equals(pd.Index(range(len(hist.columns))))
-            or hist.columns.dtype != int
+            or not np.issubdtype(hist.columns.dtype, np.integer)
         ):
             raise ValueError(
                 "column names must be continuous increasing int's, starting with 0."
