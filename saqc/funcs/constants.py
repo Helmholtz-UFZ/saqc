@@ -125,7 +125,7 @@ def flagByVariance(
         Size of the moving window. This is the number of observations used
         for calculating the statistic. Each window will be a fixed size.
         If its an offset then this will be the time period of each window.
-        Each window will be a variable sized based on the observations included
+        Each window will be sized, based on the number of observations included
         in the time-period.
 
     thresh : float, default 0.0005
