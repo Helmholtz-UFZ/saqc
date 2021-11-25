@@ -1,30 +1,34 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-import warnings
+from __future__ import annotations
+
+import functools
 from typing import Optional, Tuple, Sequence, Callable, Optional
 from typing_extensions import Literal
 
 import numpy as np
 import pandas as pd
-import functools
 
 from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
 
 from dios import DictOfSeries
-from saqc.constants import *
+from saqc.constants import BAD
 from saqc.core.register import register, flagging
 from saqc.core import Flags
 from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
 from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
 from saqc.lib.types import CurveFitter
+from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 
 
 LinkageString = Literal[
     "single", "complete", "average", "weighted", "centroid", "median", "ward"
 ]
+
+MODELDICT = {"linear": linearDriftModel, "exponential": expDriftModel}
 
 
 @flagging()
@@ -41,7 +45,7 @@ def flagDriftFromNorm(
     / len(x),
     method: LinkageString = "single",
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags value courses that significantly deviate from a group of normal value courses.
@@ -166,7 +170,7 @@ def flagDriftFromReference(
     / len(x),
     target=None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags value courses that deviate from a reference course by a margin exceeding a certain threshold.
@@ -263,7 +267,7 @@ def flagDriftFromScaledNorm(
     method: LinkageString = "single",
     target: str = None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function linearly rescales one set of variables to another set of variables
@@ -395,9 +399,9 @@ def correctDrift(
     field: str,
     flags: Flags,
     maintenance_field: str,
-    model: Callable[..., float],
+    model: Callable[..., float] | Literal["linear", "exponential"],
     cal_range: int = 5,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function corrects drifting behavior.
@@ -417,8 +421,9 @@ def correctDrift(
         The maint data is to expected to have following form:
         The series' timestamp itself represents the beginning of a
         maintenance event, wheras the values represent the endings of the maintenance intervals.
-    model : Callable
+    model : Callable or {'exponential', 'linear'}
         A modelfunction describing the drift behavior, that is to be corrected.
+        Either use built-in exponential or linear drift model by passing a string, or pass a custom callable.
         The model function must always contain the keyword parameters 'origin' and 'target'.
         The starting parameter must always be the parameter, by wich the data is passed to the model.
         After the data parameter, there can occure an arbitrary number of model calibration arguments in
@@ -477,6 +482,14 @@ def correctDrift(
     ``expDriftModel`` and ``linearDriftModel``.
 
     """
+    # extract model func:
+    if isinstance(model, str):
+        if model not in MODELDICT:
+            raise ValueError(
+                f"invalid model '{model}', choose one of '{MODELDICT.keys()}'"
+            )
+        model = MODELDICT[model]
+
     # 1: extract fit intervals:
     if data[maintenance_field].empty:
         return data, flags
@@ -525,7 +538,7 @@ def correctRegimeAnomaly(
     model: CurveFitter,
     tolerance: Optional[str] = None,
     epoch: bool = False,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function fits the passed model to the different regimes in data[field] and tries to correct
@@ -645,7 +658,7 @@ def correctOffset(
     window: str,
     min_periods: int,
     tolerance: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Parameters
@@ -746,7 +759,7 @@ def flagRegimeAnomaly(
     ),
     frac: float = 0.5,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flags anomalous regimes regarding to modelling regimes of field.
@@ -826,7 +839,7 @@ def assignRegimeAnomaly(
         np.nanmean(x) - np.nanmean(y)
     ),
     frac: float = 0.5,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     A function to detect values belonging to an anomalous regime regarding modelling
@@ -906,7 +919,7 @@ def _assignRegimeAnomaly(
     set_cluster: bool = True,
     set_flags: bool = False,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     series = data[cluster_field]
     cluster = np.unique(series)
