@@ -8,7 +8,6 @@
 
    Repository <https://git.ufz.de/rdm-software/saqc>
    Package API <moduleAPIs/saqcInit>
-   Doctesttest <misc/doctesttest>
 
 Getting Started
 ===============
@@ -40,14 +39,6 @@ Getting Started
    documentation/FlaggingTranslation
    documentation/GenericFunctions
    documentation/SourceTarget
-
-
-.. toctree::
-   :caption: Developer Ressources
-   :hidden:
-   :maxdepth: 1
-
-   Documentation Guide <how_to_doc/HowToDoc>
 
 
 .. toctree::
@@ -84,6 +75,15 @@ Getting Started
    SaQC Object <moduleAPIs/saqcClass>
    Constants <moduleAPI/saqcConstants>
    Config Environment <environment/configEnv>
+
+
+.. toctree::
+   :caption: Developer Ressources
+   :hidden:
+   :maxdepth: 1
+
+   Documentation Guide <how_to_doc/HowToDoc>
+
 
 Indices and tables
 ==================
