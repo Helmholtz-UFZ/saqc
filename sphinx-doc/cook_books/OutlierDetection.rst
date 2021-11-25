@@ -132,11 +132,7 @@ model via the method :py:func:`saqc.roll <Functions.saqc.roll>`.
 
 .. code-block:: python
 
-   <<<<<<< HEAD
    >>> i_saqc = i_saqc.roll(field='incidents', target='incidents_mean', func=np.mean, winsz='13D')
-   =======
-   i_saqc = i_saqc.rolling.roll(field='incidents_model', func=np.mean, window='13D')
-   >>>>>>> develop
 
 The :py:attr:`field` parameter is passed the variable name, we want to calculate the rolling mean of. 
 The :py:attr:`target` parameter holds the name, we want to store the results of the calculation to. 
@@ -151,12 +147,7 @@ under the name ``ǹp.median``. We just calculate another model curve for the ``"
 
 .. code-block:: python
 
-   <<<<<<< HEAD
    >>> i_saqc = i_saqc.roll(field='incidents', target='incidents_median', func=np.median, winsz='13D')
-   =======
-   i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_median')
-   i_saqc = i_saqc.rolling.roll(field='incidents_median', func=np.median, window='13D')
-   >>>>>>> develop
 
 We chose another :py:attr:`target` value for the rolling *median* calculation, in order to not override our results from 
 the previous rolling *mean* calculation. 
@@ -176,13 +167,8 @@ Another common approach, is, to fit polynomials of certain degrees to the data.
 
 .. code-block:: python
 
-   <<<<<<< HEAD
    >>> i_saqc = i_saqc.fitPolynomial(field='incidents', target='incidents_polynomial', polydeg=2 ,winsz='13D')
-   =======
-   i_saqc = i_saqc.tools.copy(field='incidents', new_field='incidents_polynomial')
-   i_saqc = i_saqc.curvefit.fitPolynomial(field='incidents_polynomial', order=2,
-                                          winsz='13D')
-   >>>>>>> develop
+
 
 It also takes a :py:attr:`winsz` parameter, determining the size of the fitting window. 
 The parameter, :py:attr:`polydeg` refers to the size of the rolling window, the polynomials get fitted to.
@@ -242,8 +228,6 @@ To see all the results obtained so far, plotted in one figure window, we make us
    :target: ../ressources/images/cbooks_incidents2.png
    :alt: 
 
-
-<<<<<<< HEAD
 
 Residues and Scores
 -------------------
