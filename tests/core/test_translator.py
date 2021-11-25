@@ -236,8 +236,8 @@ def _buildupSaQCObjects():
 def test_translationPreservesFlags():
 
     saqc1, saqc2 = _buildupSaQCObjects()
-    flags1 = saqc1.result.flagsRaw
-    flags2 = saqc2.result.flagsRaw
+    flags1 = saqc1.result.flags_raw
+    flags2 = saqc2.result.flags_raw
 
     for k in flags2.columns:
         got = flags2.history[k].hist
@@ -251,8 +251,8 @@ def test_translationPreservesFlags():
 
 def test_multicallsPreserveHistory():
     saqc1, saqc2 = _buildupSaQCObjects()
-    flags1 = saqc1.result.flagsRaw
-    flags2 = saqc2.result.flagsRaw
+    flags1 = saqc1.result.flags_raw
+    flags2 = saqc2.result.flags_raw
 
     # check, that the `History` is duplicated
     for col in flags2.columns:
@@ -275,8 +275,8 @@ def test_positionalMulitcallsPreserveState():
     saqc1, saqc2 = _buildupSaQCObjects()
 
     scheme = PositionalScheme()
-    flags1 = saqc1.result.flagsRaw
-    flags2 = saqc2.result.flagsRaw
+    flags1 = saqc1.result.flags_raw
+    flags2 = saqc2.result.flags_raw
     tflags1 = scheme.backward(flags1).astype(str)
     tflags2 = scheme.backward(flags2).astype(str)
 

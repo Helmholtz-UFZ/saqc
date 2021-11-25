@@ -62,7 +62,7 @@ def test_dtypes(data, flags):
     flags_raw = flags.toDios()
     var1, var2 = data.columns[:2]
 
-    pflags = SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).result.flagsRaw
+    pflags = SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).result.flags_raw
 
     for c in pflags.columns:
         assert pflags[c].dtype == flags[c].dtype

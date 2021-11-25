@@ -114,11 +114,11 @@ class SaQC(FunctionsMixin):
         self._attrs = dict(value)
 
     @property
-    def dataRaw(self) -> DictOfSeries:
+    def data_raw(self) -> DictOfSeries:
         return self._data
 
     @property
-    def flagsRaw(self) -> Flags:
+    def flags_raw(self) -> Flags:
         return self._flags
 
     @property
@@ -217,11 +217,12 @@ class SaQC(FunctionsMixin):
                 }
 
                 if not func.handles_target and field != target:
-                    out = out._callFunction(
-                        FUNC_MAP["copyField"],
-                        *args,
-                        **fkwargs,
-                    )
+                    if target not in self.data.columns:
+                        out = out._callFunction(
+                            FUNC_MAP["copyField"],
+                            *args,
+                            **fkwargs,
+                        )
                     fkwargs["field"] = fkwargs.pop("target")
 
                 out = out._callFunction(
@@ -422,11 +423,11 @@ class SaQCResult:
         return data
 
     @property
-    def dataRaw(self) -> DictOfSeries:
+    def data_raw(self) -> DictOfSeries:
         return self._data
 
     @property
-    def flagsRaw(self) -> Flags:
+    def flags_raw(self) -> Flags:
         return self._flags
 
     @property
