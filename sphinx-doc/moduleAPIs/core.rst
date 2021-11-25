@@ -2,4 +2,4 @@
 saqc
 ====
 
-.. automodapi:: saqc.core.core
+.. automodapi:: Core.Core

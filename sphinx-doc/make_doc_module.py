@@ -138,6 +138,57 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
     return 0
 
 
+def make_doc_core(sphinxroot, func_dict, doc_mod_structure):
+    targetfolder = os.path.join(sphinxroot, 'Core')
+    coresource = os.path.join(sphinxroot, os.path.normpath('saqc/core/core.py'))
+
+    # parse real core.py
+    with open(coresource) as f:
+        corelines = f.readlines()
+
+    # find SaQC class def
+    coreast = ast.parse(''.join(corelines))
+    startline = None
+    endline = None
+    for node in coreast.body:
+        if isinstance(node, ast.ClassDef):
+            if node.name == 'SaQC':
+                startline = node.lineno
+            elif startline and (not endline):
+                endline = node.lineno
+
+    start = corelines[:endline - 1]
+    end = corelines[endline - 1:]
+    tab = '    '
+    for doc_mod in [
+        d for d in doc_mod_structure.keys() if not re.search("_dcstring$", d)
+    ]:
+        with open(os.path.join(targetfolder, f"Core.py"), "w+") as f:
+            mod_string = []
+            mod_funcs = doc_mod_structure[doc_mod]
+            for func in mod_funcs:
+                def_string = func_dict[func][0]
+                i_pos = re.match('def [^ ]*\(', def_string).span()[-1]
+                def_string = def_string[:i_pos] + 'self, ' + def_string[i_pos:]
+                def_string = tab + def_string
+                mod_string.append(def_string)
+                mod_string.append(2*tab + '"""')
+                # indent the docstring:
+                indented_doc_string = "\n".join(
+                    [2*tab + f"{l}" for l in func_dict[func][1].splitlines()]
+                )
+                mod_string.append(indented_doc_string)
+                mod_string.append(2*tab + '"""')
+                mod_string.append(2*tab + "pass")
+                mod_string.append("")
+                mod_string.append("")
+
+            newcore = "".join(start) + "\n" + "\n".join(mod_string) + "\n" + "".join(end)
+            f.write(newcore)
+
+    return 0
+
+
 def makeModuleAPIs(modules, folder_path="moduleAPIs", pck_path="Functions"):
     f_path = os.path.abspath(folder_path)
     for m in modules:
@@ -192,6 +243,8 @@ def main(pckpath, targetpath, sphinxroot, mode):
     root_path = os.path.abspath(sphinxroot)
     pkg_path = os.path.join(root_path, pckpath)
     targetpath = os.path.join(root_path, targetpath)
+    coretrg = os.path.join(sphinxroot, 'Core')
+
     modules = []
     # collect modules
     for _, modname, _ in pkgutil.walk_packages(path=[pkg_path], onerror=lambda x: None):
@@ -201,6 +254,10 @@ def main(pckpath, targetpath, sphinxroot, mode):
     if os.path.isdir(targetpath):
         shutil.rmtree(targetpath)
     os.makedirs(targetpath, exist_ok=True)
+
+    if os.path.isdir(coretrg):
+        shutil.rmtree(coretrg)
+    os.makedirs(coretrg, exist_ok=True)
 
     # parse all the functions
     module_paths = [os.path.join(pkg_path, f"{m}.py") for m in modules]
@@ -223,6 +280,8 @@ def main(pckpath, targetpath, sphinxroot, mode):
         doc_mod_structure = {"saqc": [f for f in func_dict.keys()], "saqc_dcstring": ""}
         makeModuleAPIs(["saqc"])
         make_doc_module(targetpath, func_dict, doc_mod_structure)
+
+        make_doc_core(root_path, func_dict, doc_mod_structure)
 
 
 if __name__ == "__main__":

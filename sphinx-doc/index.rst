@@ -63,8 +63,24 @@ Functions
    :glob:
    :titlesonly:
 
-   All Functions <moduleAPIs/saqcFunctions>
-   generic <moduleAPIs/functionsgeneric>
+   all <moduleAPIs/Functionssaqc>
+   resampling <moduleAPIs/Functionsresampling>
+   generic <moduleAPIs/Functionsgeneric>
+   outliers <moduleAPIs/Functionsoutliers>
+   breaks <moduleAPIs/Functionsbreaks>
+   constants <moduleAPIs/Functionsconstants>
+   changepoints <moduleAPIs/Functionschangepoints>
+   drift <moduleAPIs/Functionsdrift>
+   curvefit <moduleAPIs/Functionscurvefit>
+   interpolation <moduleAPIs/Functionsinterpolation>
+   residues <moduleAPIs/Functionsresidues>
+   tools <moduleAPIs/Functionstools>
+   flagtools <moduleAPIs/Functionsflagtools>
+   rolling <moduleAPIs/Functionsrolling>
+   scores <moduleAPIs/Functionsscores>
+   transformation <moduleAPIs/Functionstransformation>
+   noise <moduleAPIs/Functionsnoise>
+
 
 
 Python Package
@@ -74,7 +90,7 @@ Python Package
    :glob:
    :titlesonly:
 
-   SaQC init <moduleAPIs/saqcInit>
+   :py:class:`Core.Core.SaQC`
 
 
 Indices and tables
@@ -84,4 +100,3 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-:py:meth:`saqc.SaQC.flagMissing`
