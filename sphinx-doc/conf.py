@@ -65,8 +65,8 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     # jupyter code execution
     "jupyter_sphinx",
-    #"sphinx_autodoc_typehints",
-    #"numpydoc"
+    # "sphinx_autodoc_typehints",
+    # "numpydoc"
 ]
 
 

@@ -32,7 +32,7 @@ def flagMissing(
     flags: Flags,
     flag: float = BAD,
     to_mask: float = UNFLAGGED,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags all values indicating missing data.
@@ -73,7 +73,7 @@ def flagIsolated(
     gap_window: FreqString,
     group_window: FreqString,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags arbitrary large groups of values, if they are surrounded by sufficiently
@@ -153,7 +153,7 @@ def flagJumps(
     window: FreqString,
     min_periods: int = 1,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flag where the mean of the values significantly changes (the data "jumps").
@@ -189,5 +189,5 @@ def flagJumps(
         model_by_resids=False,
         assign_cluster=False,
         flag=flag,
-        **kwargs
+        **kwargs,
     )

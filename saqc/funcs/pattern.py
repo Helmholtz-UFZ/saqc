@@ -22,7 +22,7 @@ def flagPatternByWavelet(
     widths=(1, 2, 4, 8),
     waveform="mexh",
     flag=BAD,
-    **kwargs
+    **kwargs,
 ):
     """
     Pattern recognition via wavelets.
@@ -192,7 +192,7 @@ def flagPatternByDTW(
     normalize=True,
     plot=False,
     flag=BAD,
-    **kwargs
+    **kwargs,
 ):
     """Pattern Recognition via Dynamic Time Warping.
 

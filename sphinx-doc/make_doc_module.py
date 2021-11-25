@@ -139,27 +139,27 @@ def make_doc_module(targetpath, func_dict, doc_mod_structure):
 
 
 def make_doc_core(sphinxroot, func_dict, doc_mod_structure):
-    targetfolder = os.path.join(sphinxroot, 'Core')
-    coresource = os.path.join(sphinxroot, os.path.normpath('saqc/core/core.py'))
+    targetfolder = os.path.join(sphinxroot, "Core")
+    coresource = os.path.join(sphinxroot, os.path.normpath("saqc/core/core.py"))
 
     # parse real core.py
     with open(coresource) as f:
         corelines = f.readlines()
 
     # find SaQC class def
-    coreast = ast.parse(''.join(corelines))
+    coreast = ast.parse("".join(corelines))
     startline = None
     endline = None
     for node in coreast.body:
         if isinstance(node, ast.ClassDef):
-            if node.name == 'SaQC':
+            if node.name == "SaQC":
                 startline = node.lineno
             elif startline and (not endline):
                 endline = node.lineno
 
-    start = corelines[:endline - 1]
-    end = corelines[endline - 1:]
-    tab = '    '
+    start = corelines[: endline - 1]
+    end = corelines[endline - 1 :]
+    tab = "    "
     for doc_mod in [
         d for d in doc_mod_structure.keys() if not re.search("_dcstring$", d)
     ]:
@@ -168,22 +168,24 @@ def make_doc_core(sphinxroot, func_dict, doc_mod_structure):
             mod_funcs = doc_mod_structure[doc_mod]
             for func in mod_funcs:
                 def_string = func_dict[func][0]
-                i_pos = re.match('def [^ ]*\(', def_string).span()[-1]
-                def_string = def_string[:i_pos] + 'self, ' + def_string[i_pos:]
+                i_pos = re.match("def [^ ]*\(", def_string).span()[-1]
+                def_string = def_string[:i_pos] + "self, " + def_string[i_pos:]
                 def_string = tab + def_string
                 mod_string.append(def_string)
-                mod_string.append(2*tab + '"""')
+                mod_string.append(2 * tab + '"""')
                 # indent the docstring:
                 indented_doc_string = "\n".join(
-                    [2*tab + f"{l}" for l in func_dict[func][1].splitlines()]
+                    [2 * tab + f"{l}" for l in func_dict[func][1].splitlines()]
                 )
                 mod_string.append(indented_doc_string)
-                mod_string.append(2*tab + '"""')
-                mod_string.append(2*tab + "pass")
+                mod_string.append(2 * tab + '"""')
+                mod_string.append(2 * tab + "pass")
                 mod_string.append("")
                 mod_string.append("")
 
-            newcore = "".join(start) + "\n" + "\n".join(mod_string) + "\n" + "".join(end)
+            newcore = (
+                "".join(start) + "\n" + "\n".join(mod_string) + "\n" + "".join(end)
+            )
             f.write(newcore)
 
     return 0
@@ -243,7 +245,7 @@ def main(pckpath, targetpath, sphinxroot, mode):
     root_path = os.path.abspath(sphinxroot)
     pkg_path = os.path.join(root_path, pckpath)
     targetpath = os.path.join(root_path, targetpath)
-    coretrg = os.path.join(sphinxroot, 'Core')
+    coretrg = os.path.join(sphinxroot, "Core")
 
     modules = []
     # collect modules

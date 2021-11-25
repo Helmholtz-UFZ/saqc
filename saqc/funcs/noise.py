@@ -24,7 +24,7 @@ def flagByStatLowPass(
     sub_thresh: float = None,
     min_periods: int = None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ):
     """
     Flag *chunks* of length, `window`:
