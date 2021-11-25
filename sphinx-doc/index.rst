@@ -83,3 +83,5 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+:py:meth:`saqc.SaQC.flagMissing`
