@@ -184,7 +184,6 @@ class FloatScheme(TranslationScheme):
 
     _MAP = {
         -np.inf: -np.inf,
-        np.inf: np.inf,
         **{k: k for k in np.arange(0, 256, dtype=float)},
     }
 
