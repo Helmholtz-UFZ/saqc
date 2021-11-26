@@ -81,45 +81,39 @@ Initialisation
 We initially want to import the data into our workspace. Therefore we import the `pandas <https://pandas.pydata.org/>`_
 library and use its csv file parser `pd.read_csv <https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html>`_.
 
-
-.. testsetup::
+.. testsetup:: example
 
    data_path = './ressources/data/incidentsLKG.csv'
-   data = pd.read_csv(data_path, index_col=0)
-   data.index = pd.DatetimeIndex(data.index)
-   qc = saqc.SaQC(data)
-   qc = qc.roll(field='incidents', target='incidents_mean', func=np.mean, window='13D')
-   qc = qc.roll(field='incidents', target='incidents_median', func=np.median, window='13D')
-   qc = qc.fitPolynomial(field='incidents', target='incidents_polynomial', order=2, window='13D')
-   from scipy.signal import filtfilt, butter
-   def butterFilter(x, filter_order, nyq, cutoff, filter_type="lowpass"):
-       b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
-       return pd.Series(filtfilt(b, a, x), index=x.index)
-   data = qc.data
-   qc = qc.processGeneric(['incidents', 'incidents_mean'], target='incidents_residues', func=lambda x, y: x - y)
-   z_score = lambda D: abs((D[14] - np.mean(D)) / np.std(D))
-   qc = qc.roll(field='incidents_residues', target='incidents_scores', func=z_score, window='27D')
 
->>> import pandas as pd
->>> data = pd.read_csv(data_path, index_col=0)
+.. doctest:: exampleOD
+
+   >>> data_path = './ressources/data/incidentsLKG.csv'
+   >>> import pandas as pd
+   >>> data = pd.read_csv(data_path, index_col=0)
 
 
 The resulting ``data`` variable is a pandas `data frame <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_
 object. We can generate an :py:class:`SaQC <saqc.core.core.SaQC>` object directly from that. Beforehand we have to make sure, the index
 of ``data`` is of the right type. 
 
->>> data.index = pd.DatetimeIndex(data.index)
+.. doctest:: exampleOD
+
+   >>> data.index = pd.DatetimeIndex(data.index)
 
 Now we do load the saqc package into the workspace and generate an instance of :py:class:`SaQC <saqc.core.core.SaQC>` object,
 that refers to the loaded data.
 
->>> import saqc
->>> qc = saqc.SaQC(data)
+.. doctest:: exampleOD
+
+   >>> import saqc
+   >>> qc = saqc.SaQC(data)
 
 The only timeseries have here, is the *incidents* dataset. We can have a look at the data and obtain the above plot through
 the method :py:meth:`plot <Functions.saqc.plot>`:
 
->>> qc.plot('incidents') # doctest: +SKIP
+.. doctest:: exampleOD
+
+   >>> qc.plot('incidents') # doctest: +SKIP
 
 
 Modelling
@@ -133,8 +127,10 @@ Rolling Mean
 Easiest thing to do, would be, to apply some rolling mean
 model via the method :py:meth:`roll <Functions.saqc.roll>`.
 
->>> import numpy as np
->>> qc = qc.roll(field='incidents', target='incidents_mean', func=np.mean, window='13D')
+.. doctest:: exampleOD
+
+   >>> import numpy as np
+   >>> qc = qc.roll(field='incidents', target='incidents_mean', func=np.mean, window='13D')
 
 The ``field`` parameter is passed the variable name, we want to calculate the rolling mean of.
 The ``target`` parameter holds the name, we want to store the results of the calculation to.
@@ -147,7 +143,9 @@ You can pass arbitrary function objects to the ``func`` parameter, to be applied
 For example, you could go for the *median* instead of the *mean*. The numpy library provides a `median <https://numpy.org/doc/stable/reference/generated/numpy.median.html>`_ function
 under the name ``ǹp.median``. We just calculate another model curve for the ``"incidents"`` data with the ``np.median`` function from the ``numpy`` library.
 
->>> qc = qc.roll(field='incidents', target='incidents_median', func=np.median, window='13D')
+.. doctest:: exampleOD
+
+   >>> qc = qc.roll(field='incidents', target='incidents_median', func=np.median, window='13D')
 
 We chose another :py:attr:`target` value for the rolling *median* calculation, in order to not override our results from 
 the previous rolling *mean* calculation. 
@@ -165,7 +163,9 @@ Polynomial Fit
 Another common approach, is, to fit polynomials of certain degrees to the data.
 :py:class:`SaQC <Core.Core.SaQC>` provides the polynomial fit function :py:meth:`fitPolynomial <Core.Core.SaQC.fitPolynomial>`:
 
->>> qc = qc.fitPolynomial(field='incidents', target='incidents_polynomial', order=2, window='13D')
+.. doctest:: exampleOD
+
+   >>> qc = qc.fitPolynomial(field='incidents', target='incidents_polynomial', order=2, window='13D')
 
 It also takes a :py:attr:`window` parameter, determining the size of the fitting window. 
 The parameter, :py:attr:`order` refers to the size of the rolling window, the polynomials get fitted to.
@@ -179,7 +179,7 @@ you can make use of the more general :py:meth:`processGeneric <Functions.saqc.pr
 Lets apply a smoothing filter from the `scipy.signal <https://docs.scipy.org/doc/scipy/reference/signal.html>`_ 
 module. We wrap the filter generator up into a function first:
 
-.. testcode::
+.. testcode:: exampleOD
 
    from scipy.signal import filtfilt, butter
    def butterFilter(x, filter_order, nyq, cutoff, filter_type="lowpass"):
@@ -189,7 +189,9 @@ module. We wrap the filter generator up into a function first:
 
 This function object, we can pass on to the :py:meth:`processGeneric <Core.Core.SaQC.processGeneric>` methods ``func`` argument.
 
->>> qc = qc.processGeneric(field='incidents', target='incidents_lowPass', func=lambda x: butterFilter(x, cutoff=0.1, nyq=0.5, filter_order=2))
+.. doctest:: exampleOD
+
+   >>> qc = qc.processGeneric(field='incidents', target='incidents_lowPass', func=lambda x: butterFilter(x, cutoff=0.1, nyq=0.5, filter_order=2))
 
 Visualisation
 -------------
@@ -197,12 +199,15 @@ Visualisation
 We can obtain those updated informations by generating a `pandas dataframe <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_
 representation of it, with the :py:attr:`data <saqc.core.core.SaQC.data>` method: 
 
->>> data = qc.data
+.. doctest:: exampleOD
+
+   >>> data = qc.data
 
 To see all the results obtained so far, plotted in one figure window, we make use of the dataframes `plot <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html>`_ method.
 
->>> data.plot()
-<AxesSubplot:>
+.. doctest:: exampleOD
+   >>> data.plot()
+   <AxesSubplot:>
 
 .. image:: ../ressources/images/cbooks_incidents2.png
    :target: ../ressources/images/cbooks_incidents2.png
@@ -226,7 +231,9 @@ For obtaining the models residues, we just subtract the model data from the orig
 of this operation to a new variable, called ``incidents_residues``. This Assignment, we, as usual,
 control via the ``target`` parameter.
 
->>> qc = qc.processGeneric(['incidents', 'incidents_mean'], target='incidents_residues', func=lambda x, y: x - y)
+.. doctest:: exampleOD
+
+   >>> qc = qc.processGeneric(['incidents', 'incidents_mean'], target='incidents_residues', func=lambda x, y: x - y)
 
 Scores
 ^^^^^^
@@ -237,12 +244,16 @@ The Z-score of a point $\ ``x``\ $, relative to its surrounding $\ ``D``\ $, eva
 So, if we would like to roll with a window of a fixed size of *27* periods through the data and calculate the *Z*\ -score 
 for the point lying in the center of every window, we would define our function ``z_score``\ :
 
->>> z_score = lambda D: abs((D[14] - np.mean(D)) / np.std(D))
+.. doctest:: exampleOD
+
+   >>> z_score = lambda D: abs((D[14] - np.mean(D)) / np.std(D))
 
 And subsequently, use the :py:meth:`~Core.Core.SaQC.roll` method to make a rolling window application with the scoring
 function:
 
->>> qc = qc.roll(field='incidents_residues', target='incidents_scores', func=z_score, window='27D')
+.. doctest:: exampleOD
+
+   >>> qc = qc.roll(field='incidents_residues', target='incidents_scores', func=z_score, window='27D')
 
 
 Optimization by Decomposition
@@ -264,22 +275,11 @@ In order to tweak our calculations and make them much more stable, it might be u
 into seperate calls to the :py:meth:`roll <Functions.saqc.roll>` function, by calculating the series of the 
 residues *mean* and *standard deviation* seperately:
 
-.. testsetup::
+.. doctest:: exampleOD
 
-   qc = qc.roll(field='incidents_residues', target='residues_mean', window='27D', func=np.mean)
-   qc = qc.roll(field='incidents_residues', target='residues_std', window='27D', func=np.std)
-   qc = qc.processGeneric(field=['incidents_scores', "residues_mean", "residues_std"], target="residues_norm", func=lambda this, mean, std: (this - mean) / std)
-   qc = qc.processGeneric(field=['incidents_residues','incidents_mean','incidents_median'], target='incidents_scores', func=lambda x,y,z: abs((x-y) / z))
-   qc = qc.flagRange('incidents_scores', max=3)
-   qc = qc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: isflagged(x))
-   qc = qc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: x > 3)
-   qc = qc.flagGeneric(field=['incidents','incidents_residues'], target="incidents", func=lambda x,y: isflagged(x) & (y < 50), flag=-np.inf)
-   qc = qc.flagGeneric(field=['incidents_scores', 'incidents_residues'], target='incidents', func=lambda x, y: (x > 3) & (y > 20))
-
-
->>> qc = qc.roll(field='incidents_residues', target='residues_mean', window='27D', func=np.mean)
->>> qc = qc.roll(field='incidents_residues', target='residues_std', window='27D', func=np.std)
->>> qc = qc.processGeneric(field=['incidents_scores', "residues_mean", "residues_std"], target="residues_norm", func=lambda this, mean, std: (this - mean) / std)
+   >>> qc = qc.roll(field='incidents_residues', target='residues_mean', window='27D', func=np.mean)
+   >>> qc = qc.roll(field='incidents_residues', target='residues_std', window='27D', func=np.std)
+   >>> qc = qc.processGeneric(field=['incidents_scores', "residues_mean", "residues_std"], target="residues_norm", func=lambda this, mean, std: (this - mean) / std)
 
 With huge datasets, this will be noticably faster, compared to the method presented :ref:`initially <cook_books/OutlierDetection:Scores>`\ , 
 because ``saqc`` dispatches the rolling with the basic numpy statistic methods to an optimized pandas built-in.
@@ -291,11 +291,15 @@ the *Z*\ -Scores from the two series.
 We simply combine them via the
 :py:meth:`~Core.Core.SaQC.processGeneric` method, in order to obtain the scores:
 
->>> qc = qc.processGeneric(field=['incidents_residues','incidents_mean','incidents_median'], target='incidents_scores', func=lambda x,y,z: abs((x-y) / z))
+.. doctest:: exampleOD
+
+   >>> qc = qc.processGeneric(field=['incidents_residues','incidents_mean','incidents_median'], target='incidents_scores', func=lambda x,y,z: abs((x-y) / z))
 
 Let's have a look at the resulting scores:
 
->>> qc.plot('incidents_scores') # doctest: + SKIP
+.. doctest:: exampleOD
+
+   >>> qc.plot('incidents_scores') # doctest:+SKIP
 
 .. image:: ../ressources/images/cbook_incidents_scoresUnflagged.png
    :target: ../ressources/images/cbook_incidents_scoresUnflagged.png
@@ -312,7 +316,9 @@ We can now implement the common `rule of thumb <https://en.wikipedia.org/wiki/68
 that any *Z*\ -score value above *3* may indicate an outlierish data point, 
 by applying the :py:meth:`~Core.Core.SaQC.flagRange` method with a `max` value of *3*.
 
->>> qc = qc.flagRange('incidents_scores', max=3)
+.. doctest:: exampleOD
+
+   >>> qc = qc.flagRange('incidents_scores', max=3)
 
 Now flags have been calculated for the scores:
 
@@ -328,16 +334,22 @@ Projecting Flags
 
 We now can project those flags onto our original incidents timeseries:
 
->>> qc = qc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: isflagged(x))
+.. doctest:: exampleOD
+
+   >>> qc = qc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: isflagged(x))
 
 Note, that we could have skipped the :ref:`range flagging step <cook_books/OutlierDetection:Flagging the scores>`\ , by including the cutting off in our 
 generic expression:
 
->>> qc = qc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: x > 3)
+.. doctest:: exampleOD
+
+   >>> qc = qc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: x > 3)
 
 Lets check out the results:
 
->>> qc.plot('incidents') # doctest: +SKIP
+.. doctest:: exampleOD
+
+   >>> qc.plot('incidents') # doctest: +SKIP
 
 .. image:: ../ressources/images/cbooks_incidentsOverflagged.png
    :target: ../ressources/images/cbooks_incidentsOverflagged.png
@@ -379,7 +391,9 @@ flag value for :py:const:`~saqc.constants.UNFLAGGED`. This value defaults to
 to ``-np.inf`` in the default translation scheme, wich we selected implicitly by not specifying any special scheme in the 
 generation of the :py:class:`~Core.Core.SaQC>` object in the :ref:`beginning <cook_books/OutlierDetection:Initialisation>`.
 
->>> qc = qc.flagGeneric(field=['incidents','incidents_residues'], target="incidents", func=lambda x,y: isflagged(x) & (y < 50), flag=-np.inf)
+.. doctest:: exampleOD
+
+   >>> qc = qc.flagGeneric(field=['incidents','incidents_residues'], target="incidents", func=lambda x,y: isflagged(x) & (y < 50), flag=-np.inf)
 
 Notice, that we passed the desired flag level to the :py:attr:`flag` keyword in order to perform an
 "unflagging" instead of the usual flagging. The :py:attr:`flag` keyword can be passed to all the functions
@@ -387,7 +401,9 @@ and defaults to the selected translation schemes :py:const:`BAD <saqc.constants.
 
 Plotting proofs the tweaking did in deed improve the flagging result:
 
->>> qc.plot("incidents") # doctest: SKIP
+.. doctest:: exampleOD
+
+   >>> qc.plot("incidents") # doctest:+SKIP
 
 .. image:: ../ressources/images/cbooks_incidents_correctFlagged.png
    :target: ../ressources/images/cbooks_incidents_correctFlagged.png
@@ -401,8 +417,10 @@ If we do not want to first set flags, only to remove the majority of them in the
 could circumvent the :ref:`unflagging <cook_books/OutlierDetection:Unflagging>` step, by adding to the call to
 :py:meth:`~Core.Core.SaQC.flagRange` the condition for the residues having to be above *20*
 
->>> qc = qc.flagGeneric(field=['incidents_scores', 'incidents_residues'], target='incidents', func=lambda x, y: (x > 3) & (y > 20))
->>> qc.plot("incidents") # doctest: +SKIP
+.. doctest:: exampleOD
+
+   >>> qc = qc.flagGeneric(field=['incidents_scores', 'incidents_residues'], target='incidents', func=lambda x, y: (x > 3) & (y > 20))
+   >>> qc.plot("incidents") # doctest: +SKIP
 
 
 .. image:: ../ressources/images/cbooks_incidents_correctFlagged.png

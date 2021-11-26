@@ -78,32 +78,27 @@ example data set:
 
 
 Lets import it and check out the first and last lines.
+.. doctest:: example
 
->>> import pandas as pd
->>> data_path = './ressources/data/SoilMoisture.csv'
->>> data = pd.read_csv(data_path, index_col=0)
->>> data.index = pd.DatetimeIndex(data.index)
->>> data
-                     SoilMoisture
-2021-01-01 00:09:07     23.429701
-2021-01-01 00:18:55     23.431900
-2021-01-01 00:28:42     23.343100
-2021-01-01 00:38:30     23.476400
-2021-01-01 00:48:18     23.343100
-...                           ...
-2021-03-20 07:13:49    152.883102
-2021-03-20 07:26:16    156.587906
-2021-03-20 07:40:37    166.146194
-2021-03-20 07:54:59    164.690598
-2021-03-20 08:40:41    155.318893
-<BLANKLINE>
-[10607 rows x 1 columns]
-
-.. testsetup::
-
-   data_path = './ressources/data/SoilMoisture.csv'
-   data = pd.read_csv(data_path, index_col=0)
-   data.index = pd.DatetimeIndex(data.index)
+   >>> import pandas as pd
+   >>> data_path = './ressources/data/SoilMoisture.csv'
+   >>> data = pd.read_csv(data_path, index_col=0)
+   >>> data.index = pd.DatetimeIndex(data.index)
+   >>> data
+                        SoilMoisture
+   2021-01-01 00:09:07     23.429701
+   2021-01-01 00:18:55     23.431900
+   2021-01-01 00:28:42     23.343100
+   2021-01-01 00:38:30     23.476400
+   2021-01-01 00:48:18     23.343100
+   ...                           ...
+   2021-03-20 07:13:49    152.883102
+   2021-03-20 07:26:16    156.587906
+   2021-03-20 07:40:37    166.146194
+   2021-03-20 07:54:59    164.690598
+   2021-03-20 08:40:41    155.318893
+   <BLANKLINE>
+   [10607 rows x 1 columns]
 
 
 The data series seems to start with a sampling rate of roughly *10* minutes. 
@@ -136,14 +131,12 @@ Shift
 
 Lets apply a simple shift via the :py:func:`shift <Functions.saqc.shift>` method.
 
->>> import saqc
->>> qc = saqc.SaQC(data)
->>> qc = qc.shift('SoilMoisture', target='SoilMoisture_bshift', freq='10min', method='bshift')
+.. doctest::
 
-.. testsetup::
+   >>> import saqc
+   >>> qc = saqc.SaQC(data)
+   >>> qc = qc.shift('SoilMoisture', target='SoilMoisture_bshift', freq='10min', method='bshift')
 
-   qc = saqc.SaQC(data)
-   qc = qc.shift('SoilMoisture', target='SoilMoisture_bshift', freq='10min', method='bshift')
 
 Target parameter
 ^^^^^^^^^^^^^^^^
@@ -441,21 +434,17 @@ Since data, that is flagged by a level higher or equal to the passed ``to_mask``
 it can be of advantage, to flag data before regularisation in order to effectively exclude it
 from the resulting regularly sampled data set. Lets see an example for the *SoilMoisture* data set.
 
-.. testsetup::
-
-   qc = qc.drop('SoilMoisture')
-
-   >>> qc = qc.linear('SoilMoisture', target='SoilMoisture_linear', freq='10min')
-   >>> qc.dataRaw['2021-01-01 15:00:00':'2021-01-01 16:00:00'] # doctest: +SKIP
-                SoilMoisture_linear |                              SoilMoisture | 
-   ================================ | ========================================= | 
-   Date Time                        | Date Time                                 | 
-   2021-01-01 15:00:00    23.341182 | 2021-01-01 15:00:51               23.3410 | 
-   2021-01-01 15:10:00    23.342964 | 2021-01-01 15:10:38               23.3431 | 
-   2021-01-01 15:20:00    23.341092 | 2021-01-01 15:20:26               23.3410 | 
-   2021-01-01 15:30:00    23.341000 | 2021-01-01 15:30:14               23.3410 | 
-   2021-01-01 15:40:00  -119.512446 | 2021-01-01 15:40:02             -120.0000 | 
-   2021-01-01 15:50:00    23.299553 | 2021-01-01 15:49:50               23.2988 |
+>>> qc = qc.linear('SoilMoisture', target='SoilMoisture_linear', freq='10min') # doctest: +SKIP
+>>> qc.dataRaw['2021-01-01 15:00:00':'2021-01-01 16:00:00'] # doctest: +SKIP
+             SoilMoisture_linear |                              SoilMoisture |
+================================ | ========================================= |
+Date Time                        | Date Time                                 |
+2021-01-01 15:00:00    23.341182 | 2021-01-01 15:00:51               23.3410 |
+2021-01-01 15:10:00    23.342964 | 2021-01-01 15:10:38               23.3431 |
+2021-01-01 15:20:00    23.341092 | 2021-01-01 15:20:26               23.3410 |
+2021-01-01 15:30:00    23.341000 | 2021-01-01 15:30:14               23.3410 |
+2021-01-01 15:40:00  -119.512446 | 2021-01-01 15:40:02             -120.0000 |
+2021-01-01 15:50:00    23.299553 | 2021-01-01 15:49:50               23.2988 |
 
 At ``2021-01-01 15:40:02`` the original data exhibits a measurement value
 of ``-120`` - which is obviously not a valid data point, regarding the fact, that *SoilMoisture* measurements

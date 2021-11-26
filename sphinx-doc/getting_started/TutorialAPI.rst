@@ -1,32 +1,6 @@
-.. testsetup::
+.. testsetup:: python
 
-   import numpy as np
-   import pandas as pd
-   from saqc import SaQC
-
-   # we need some dummy data
-   values = np.random.randint(low=0, high=100, size=100)
-   dates = pd.date_range(start="2020-01-01", periods=len(values), freq="D")
-   data = pd.DataFrame({"a": values}, index=dates)
-   # let's insert some constant values ...
-   data.iloc[30:40] = values.mean()
-   # ... and an outlier
-   data.iloc[70] = 175
-
-   # initialize saqc
-   qc = SaQC(data=data, scheme="simple")
-
-   # execute some tests
-   qc = (qc
-         .flagConstants("a", thresh=0.1, window="4D")
-         .flagByGrubbs("a", window="10D")
-         .flagRange("a", min=20, max=80))
-
-   # retrieve the data as a pandas.DataFrame
-   qc.data
-
-   # retrieve the flags as a pandas.DataFrame
-   qc.flags
+   np.random.seed(100)
 
 Python API
 ==========
@@ -120,20 +94,45 @@ we have seen above, calling quality checks does however not immediately return t
 associated flags, but rather an new ``SaQC`` object. The actual execution products are accessible through a
 number of different attributes, of which you likely might want to use the following:
 
-.. testcode:: python
+.. doctest:: python
 
-   # retrieve the data as a pandas.DataFrame
-   qc.data
-
-   # retrieve the flags as a pandas.DataFrame
-   qc.flags
+   >>> qc.data # retrieve the data as a pandas.DataFrame
+   columns        a
+   2020-01-01   8.0
+   2020-01-02  24.0
+   2020-01-03  67.0
+   2020-01-04  87.0
+   2020-01-05  79.0
+   ...          ...
+   2020-04-05  38.0
+   2020-04-06  86.0
+   2020-04-07  94.0
+   2020-04-08  98.0
+   2020-04-09  42.0
+   <BLANKLINE>
+   [100 rows x 1 columns]
+   >>> qc.flags # retrieve the flags as a pandas.DataFrame
+   columns             a
+   2020-01-01        BAD
+   2020-01-02  UNFLAGGED
+   2020-01-03  UNFLAGGED
+   2020-01-04        BAD
+   2020-01-05  UNFLAGGED
+   ...               ...
+   2020-04-05  UNFLAGGED
+   2020-04-06        BAD
+   2020-04-07        BAD
+   2020-04-08        BAD
+   2020-04-09  UNFLAGGED
+   <BLANKLINE>
+   [100 rows x 1 columns]
 
 
 Putting it together - The complete workflow
 -------------------------------------------
 The snippet below provides you with a compete example from the things we have seen so far.
 
-.. testcode::
+.. testcode:: python
 
    import numpy as np
    import pandas as pd
