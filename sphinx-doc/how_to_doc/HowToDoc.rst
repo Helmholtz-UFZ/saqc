@@ -205,7 +205,7 @@ Linking ReST sources in markdown documentation
 * 
   If you want to hyperlink/include other sources from the sphinx documentation that are rest-files (and docstrings), 
   you will not be able to include them in a way, that they will appear in you markdown rendering. - however - there is 
-  the posibillity to just include the respective rest directives (see directive/link :ref:`examples <how_to_doc_md_m2r/HowToDoc:hyperlinking docstrings>`\ ). 
+  the posibillity to just include the respective rest directives (see directive/link :ref:`examples <how_to_doc/HowToDoc:hyperlinking docstrings>`\ ). 
 
 * 
   This will mess up your markdown code - meaning that you will have 
@@ -216,7 +216,7 @@ Linking ReST sources in markdown documentation
 * 
   to include the link to the rest source ``functions.rst`` in the folder ``foo``\ , under the name ``bar``\ , you would need to insert: 
 
-  .. code-block:: python
+  .. code-block::
 
      :doc:`foo <rel_path/functions>`
 

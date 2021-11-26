@@ -31,7 +31,7 @@ def flagMissing(
     flags: Flags,
     flag: float = BAD,
     dfilter: float = FILTER_ALL,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags all values indicating missing data.

@@ -367,11 +367,7 @@ def register(
     Generalized decorator for any saqc functions.
 
     Before the call of the decorated function:
-<<<<<<< HEAD
-    - data gets masked by flags according to `to_mask`
-=======
     - data gets masked by flags according to `dfilter`
->>>>>>> develop
 
     After the call of the decorated function:
     - data gets demasked (original data is written back)
@@ -386,11 +382,7 @@ def register(
         The masking takes place before the call of the decorated function and
         temporary sets data to `NaN` at flagged locations. It is undone by ``demask``.
         The threshold of which data is considered to be flagged can be controlled
-<<<<<<< HEAD
-        via ``to_mask``, a parameter each function takes.
-=======
         via ``dfilter``, a parameter each function takes.
->>>>>>> develop
 
     demask : list of string
         A list of all parameter of the decorated function, that specify a column in

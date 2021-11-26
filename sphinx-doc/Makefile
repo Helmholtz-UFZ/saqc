@@ -38,11 +38,11 @@ clean:
 # trigger (saqc) customized documentation pipeline
 doc:
 	# generate parent fake module for the functions to be documented
-	python make_doc_module.py -p "saqc/funcs" -t "$(FUNCTIONS)" -sr ".."
+	python scripts/make_doc_module.py -p "saqc/funcs" -t "$(FUNCTIONS)" -sr ".."
 	# generate environment table from dictionary
-	python make_env_tab.py
+	python scripts/make_env_tab.py
 	# make rest folders from markdown folders
-	# for k in $(MDLIST); do python make_md_to_rst.py -p sphinx-doc/"$$k" -sr ".."; done
+	# for k in $(MDLIST); do python scripts/make_md_to_rst.py -p sphinx-doc/"$$k" -sr ".."; done
 	# make the html build
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 

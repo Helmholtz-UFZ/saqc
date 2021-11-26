@@ -21,6 +21,7 @@ from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
 
 from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
+from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 from saqc.lib.types import CurveFitter
 from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 

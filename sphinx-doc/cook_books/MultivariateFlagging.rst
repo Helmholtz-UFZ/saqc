@@ -6,17 +6,11 @@ The tutorial aims to introduce the usage of SaQC in the context of some more com
 Mainly we will see how to apply Drift Corrections onto the data and how to perform multivariate flagging.
 
 
-#. 
+#. :ref:`Data Preparation <cook_books/MultivariateFlagging:Data Preparation>`
 
-   * :ref:`Data Preparation <cook_books/MultivariateFlagging:Data Preparation>`
+#. :ref:`Drift Correction <cook_books/MultivariateFlagging:Drift Correction>`
 
-#. 
-
-   * :ref:`Drift Correction <cook_books/MultivariateFlagging:Drift Correction>`
-
-#. 
-
-   * `Multivariate Flagging (odd Water) <#Multivariate-Flagging>`_
+#. `Multivariate Flagging (odd Water) <#Multivariate-Flagging>`_
 
 Data preparation
 ----------------

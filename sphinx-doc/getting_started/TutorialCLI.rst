@@ -1,6 +1,12 @@
 Command Line Application
 ========================
 
+.. note:
+
+    The content of this page is outdate and the provided code sample will very likely
+    not work as expected. A rewrite of this document is pending...
+
+
 Contents
 --------
 
@@ -53,17 +59,7 @@ and paste the following lines into it:
 
 
 These lines illustrate how different quality control tests can be specified for
-different variables by following the pattern:
-
-..list-table::
-  :header-rows:1
-
-  * - *varname*
-    - *testname(testparameters)*
-    -
-  * plottingoption*
-    -
-
+different variables,
 
 In this case, we define a range-test that flags all values outside the range
 [10,60] and a test to detect spikes using the MAD-method. You can find an

@@ -109,7 +109,7 @@ class Flags:
     We can inspect all the updates that was
     made by looking in the history.
 
-    >>> flags['v0'] = pd.Series([DOUBT,UNTOUCHED,DOUBT], dtype=float)
+    >>> flags['v0'] = pd.Series([DOUBTFUL, np.nan, DOUBTFUL], dtype=float)
     >>> flags.history['v0']
             0       1
     0  (255.0)   25.0

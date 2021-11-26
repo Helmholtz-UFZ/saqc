@@ -34,21 +34,27 @@
 SaQC - System for automated Quality Control
 ===========================================
 
+Anomalies and errors are the rule not the exception when working with
+time series data. This is especially true, if such data originates
+from in-situ measurements of environmental properties.
+Almost all applications, however, implicitly rely on data, that complies
+with some definition of 'correct'.
+In order to infer reliable data products and tools, there is no alternative
+to quality control. SaQC provides all the building blocks to comfortably
+bridge the gap between 'usually faulty' and 'expected to be corrected' in
+a accessible, consistent, objective and reproducible way.
 
-Quality Control of numerical data requires a significant amount of
-domain knowledge and practical experience. Finding a robust setup of
-quality tests that identifies as many suspicious values as possible, without
-removing valid data, is usually a time-consuming endeavor,
-even for experts. SaQC is both, a Python framework and a command line application, that
-addresses the exploratory nature of quality control by offering a
-continuously growing number of quality check routines through a flexible
-and simple configuration system.
-
-
-Below its user interface, SaQC is highly customizable and extensible.
-A modular structure and well-defined interfaces make it easy to extend
-the system with custom quality checks. Furthermore, even core components like
-the flagging scheme are exchangeable.
+SaQC is developed and maintained by the
+`Research Data Management <https://www.ufz.de/index.php?en=45348>`_ Team at the
+`Helmholtz-Centre for Environmental Research - UFZ <https://www.ufz.de/>`_.
+It manifests the requirements and experiences made from the implementation and
+operation of fully automated quality control pipelines for environmental sensor data. 
+The diversity of communities involved in this process and the special needs within the
+realm of scientific data acquisition and its provisioning, have shaped SaQC into
+its current state. We define this state as: inherently consistent, yet externally
+extensible, traceable, approachable for non-programmers and usable in a wide range
+of applications, from exploratory interactive programming environments to large-scale
+fully automated, managed workflows.
 
 --------
 Features
@@ -70,8 +76,7 @@ Features
       - * automatically keep track of flagging history and flags significance for every datapoint
         * define and use custom schemes to translate your flags to and from SaQC
     * - |sacProc|
-      - * modify your data by interpolations, corrections and transformations
-        * calculate data products, such as residues or outlier scores
-        * automatically keep track of labeling history and label significance
+      - * modify your data by :ref:`interpolations <cook_books/DataRegularisation:Interpolation>`, corrections and :ref:`transformations <cook_books/DataRegularisation:Aggregation>`
+        * calculate data products, such as :ref:`residues or outlier scores <cook_books/OutlierDetection:Residues and Scores>`
     * - |sacMV|
       - * apply multivariate flagging function

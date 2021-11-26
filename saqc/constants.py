@@ -4,7 +4,7 @@ The module comprises flag value constants in use throughout saqc.
 The constants order as follows (from "worse" to "best"):
 
 :py:const:`~saqc.constants.BAD` > :py:const:`~saqc.constants.DOUBTFUL` > :py:const:`~saqc.constants.GOOD` >
-:py:const:`~saqc.constants.UNFLAGGED` (> :py:const:`~saqc.constants.UNTOUCHED`)
+:py:const:`~saqc.constants.UNFLAGGED`
 """
 
 __all__ = [
@@ -42,6 +42,7 @@ DOUBTFUL = 25.0
 #: A :py:mod:`flag level constant <saqc.constants>`
 #: , evaluating to the highest (internal) flag level available.
 BAD = 255.0
+
 
 # ----------------------------------------------------------------------
 # global dfilter constants
