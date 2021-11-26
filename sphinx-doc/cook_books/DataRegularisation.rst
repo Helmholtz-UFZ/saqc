@@ -442,6 +442,7 @@ it can be of advantage, to flag data before regularisation in order to effective
 from the resulting regularly sampled data set. Lets see an example for the *SoilMoisture* data set.
 
 .. testsetup::
+
    qc = qc.drop('SoilMoisture')
 
    >>> qc = qc.linear('SoilMoisture', target='SoilMoisture_linear', freq='10min')

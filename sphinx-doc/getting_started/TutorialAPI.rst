@@ -1,3 +1,33 @@
+.. testsetup::
+
+   import numpy as np
+   import pandas as pd
+   from saqc import SaQC
+
+   # we need some dummy data
+   values = np.random.randint(low=0, high=100, size=100)
+   dates = pd.date_range(start="2020-01-01", periods=len(values), freq="D")
+   data = pd.DataFrame({"a": values}, index=dates)
+   # let's insert some constant values ...
+   data.iloc[30:40] = values.mean()
+   # ... and an outlier
+   data.iloc[70] = 175
+
+   # initialize saqc
+   qc = SaQC(data=data, scheme="simple")
+
+   # execute some tests
+   qc = (qc
+         .flagConstants("a", thresh=0.1, window="4D")
+         .flagByGrubbs("a", window="10D")
+         .flagRange("a", min=20, max=80))
+
+   # retrieve the data as a pandas.DataFrame
+   qc.data
+
+   # retrieve the flags as a pandas.DataFrame
+   qc.flags
+
 Python API
 ==========
 
@@ -33,7 +63,7 @@ of an appropriate flagging scheme. For reasons of simplicity, we'll use the ``Si
 the following examples. However, as the flagging schemes are mostly interchangable, replacing the ``SimpleScheme``
 with something more elaborate, is in fact a one line change. So let's start with:
 
-.. code-block:: python
+.. testcode:: python
 
    import numpy as np
    import pandas as pd
@@ -58,9 +88,9 @@ Moving on - Quality control your data
 The ``qc`` variable now serves as the base for all further processing steps. As mentioned above, all
 available functions appear as methods of the ``SaQC``  class, so we can add a tests to our suite with:
 
-.. code-block:: python
+.. testcode:: python
 
-   qc.flagRange("a", min=20, max=80)
+   qc = qc.flagRange("a", min=20, max=80)
 
 :py:func:`flagRange <Functions.saqc.flagRange>` is the easiest of all functions and simply marks all values
 smaller than ``min`` and larger than ``max``. This feature by itself wouldn't be worth the trouble of getting
@@ -73,7 +103,7 @@ structures, so we only create shallow copies). Setting up more complex quality c
 the additional methods :py:func:`flagConstants <Functions.saqc.flagConstants>` and
 :py:func:`flagByGrubbs <Functions.saqc.flagByGrubbs>`) is therefore simply a matter of method chaining. 
 
-.. code-block:: python
+.. testcode:: python
 
    # execute some tests
    qc = (qc
@@ -90,7 +120,7 @@ we have seen above, calling quality checks does however not immediately return t
 associated flags, but rather an new ``SaQC`` object. The actual execution products are accessible through a
 number of different attributes, of which you likely might want to use the following:
 
-.. code-block:: python
+.. testcode:: python
 
    # retrieve the data as a pandas.DataFrame
    qc.data
@@ -103,7 +133,7 @@ Putting it together - The complete workflow
 -------------------------------------------
 The snippet below provides you with a compete example from the things we have seen so far.
 
-.. code-block:: python
+.. testcode::
 
    import numpy as np
    import pandas as pd
@@ -142,8 +172,8 @@ We provide an elaborated plotting method to generate and show or write matplotli
 the example :ref:`above <getting_started/TutorialAPI:putting it together - the complete workflow>` above
 simply call:
 
-.. code-block:: python
+.. testcode:: python
 
-   qc.plot("a")
+   qc = qc.plot("a")
 
 .. image:: /ressources/images/tutorial_api_1.png
