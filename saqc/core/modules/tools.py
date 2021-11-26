@@ -7,7 +7,8 @@ from typing_extensions import Literal
 
 import saqc
 import numpy as np
-from saqc.lib.types import FreqString
+
+from saqc.constants import FILTER_NONE
 
 
 class Tools:
@@ -36,14 +37,14 @@ class Tools:
         self,
         field: str,
         path: Optional[str] = None,
-        max_gap: Optional[FreqString] = None,
+        max_gap: Optional[str] = None,
         stats: bool = False,
         history: Optional[Literal["valid", "complete", "clear"]] = "valid",
         xscope: Optional[slice] = None,
         phaseplot: Optional[str] = None,
         stats_dict: Optional[dict] = None,
         store_kwargs: Optional[dict] = None,
-        to_mask: Optional[float] = np.inf,
+        dfilter: Optional[float] = FILTER_NONE,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("plot", locals())

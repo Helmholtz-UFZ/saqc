@@ -8,12 +8,13 @@ The constants order as follows (from "worse" to "best"):
 """
 
 __all__ = [
-    "UNTOUCHED",
     "UNFLAGGED",
     "DOUBTFUL",
     "BAD",
     "GOOD",
     "ENVIRONMENT",
+    "FILTER_ALL",
+    "FILTER_NONE",
 ]
 
 
@@ -21,10 +22,9 @@ import numpy as np
 import scipy.stats as st
 import saqc.lib.ts_operators as ts_ops
 
-
-#: Internal :py:mod:`flag level constant <saqc.constants>`.
-#: When returned by a test, it indicates, that the test did not consider to flag the respective value
-UNTOUCHED = np.nan
+# ----------------------------------------------------------------------
+# global flag constants
+# ----------------------------------------------------------------------
 
 #: A :py:mod:`flag level constant <saqc.constants>`
 #: , evaluating to the level, that indicates, no flag has been assigned to yet.
@@ -42,6 +42,22 @@ DOUBTFUL = 25.0
 #: A :py:mod:`flag level constant <saqc.constants>`
 #: , evaluating to the highest (internal) flag level available.
 BAD = 255.0
+
+# ----------------------------------------------------------------------
+# global dfilter constants
+# ----------------------------------------------------------------------
+
+#: A :py:mod:`dfilter constant <saqc.constants>`
+#: , mask/filter all flagged data.
+FILTER_ALL = -np.inf
+
+#: A :py:mod:`dfilter constant <saqc.constants>`
+#: , mask/filter no data at all.
+FILTER_NONE = np.inf
+
+# ----------------------------------------------------------------------
+# other
+# ----------------------------------------------------------------------
 
 #: A :py:mod:`flag level constant <saqc.constants>`
 ENVIRONMENT = {

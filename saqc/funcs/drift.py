@@ -1,26 +1,27 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from typing import Union, Tuple, Sequence, Callable, Optional
+import functools
+from typing import Optional, Tuple, Sequence, Callable, Optional
 from typing_extensions import Literal
 
 import numpy as np
 import pandas as pd
-import functools
 
 from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
 
 from dios import DictOfSeries
-from saqc.constants import *
+from saqc.constants import BAD
 from saqc.core.register import register, flagging
 from saqc.core import Flags
 from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
 
 from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
-from saqc.lib.types import FreqString, CurveFitter
+from saqc.lib.types import CurveFitter
 from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 
 
@@ -36,7 +37,7 @@ def flagDriftFromNorm(
     data: DictOfSeries,
     field: Sequence[str],
     flags: Flags,
-    freq: FreqString,
+    freq: str,
     spread: float,
     frac: float = 0.5,
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
@@ -162,7 +163,7 @@ def flagDriftFromReference(
     field: Sequence[str],
     flags: Flags,
     reference: str,
-    freq: FreqString,
+    freq: str,
     thresh: float,
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
         np.array([x, y]), metric="cityblock"
@@ -257,7 +258,7 @@ def flagDriftFromScaledNorm(
     flags: Flags,
     set_1: Sequence[str],
     set_2: Sequence[str],
-    freq: FreqString,
+    freq: str,
     spread: float,
     frac: float = 0.5,
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
@@ -399,7 +400,7 @@ def correctDrift(
     field: str,
     flags: Flags,
     maintenance_field: str,
-    model: Union[Callable[..., float], Literal["linear", "exponential"]],
+    model: Callable[..., float] | Literal["linear", "exponential"],
     cal_range: int = 5,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -484,6 +485,10 @@ def correctDrift(
     """
     # extract model func:
     if isinstance(model, str):
+        if model not in MODELDICT:
+            raise ValueError(
+                f"invalid model '{model}', choose one of '{MODELDICT.keys()}'"
+            )
         model = MODELDICT[model]
 
     # 1: extract fit intervals:
@@ -532,7 +537,7 @@ def correctRegimeAnomaly(
     flags: Flags,
     cluster_field: str,
     model: CurveFitter,
-    tolerance: Optional[FreqString] = None,
+    tolerance: Optional[str] = None,
     epoch: bool = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -651,9 +656,9 @@ def correctOffset(
     flags: Flags,
     max_jump: float,
     spread: float,
-    window: FreqString,
+    window: str,
     min_periods: int,
-    tolerance: Optional[FreqString] = None,
+    tolerance: Optional[str] = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """

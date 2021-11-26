@@ -14,7 +14,6 @@ import pickle
 
 from saqc.constants import *
 from saqc.core.register import processing
-from saqc.lib.types import FreqString
 from saqc.core import register, Flags
 from saqc.lib.tools import periodicMask, filterKwargs
 from saqc.lib.plotting import makeFig
@@ -232,15 +231,15 @@ def maskTime(
     datcol_idx = data[field].index
 
     if mode == "periodic":
-        to_mask = periodicMask(datcol_idx, start, end, closed)
+        mask = periodicMask(datcol_idx, start, end, closed)
     elif mode == "mask_field":
         idx = data[mask_field].index.intersection(datcol_idx)
-        to_mask = data.loc[idx, mask_field]
+        mask = data.loc[idx, mask_field]
     else:
         raise ValueError("Keyword passed as masking mode is unknown ({})!".format(mode))
 
-    data.aloc[to_mask, field] = np.nan
-    flags[to_mask, field] = UNFLAGGED
+    data.aloc[mask, field] = np.nan
+    flags[mask, field] = UNFLAGGED
     return data, flags
 
 
@@ -250,14 +249,14 @@ def plot(
     field: str,
     flags: Flags,
     path: Optional[str] = None,
-    max_gap: Optional[FreqString] = None,
+    max_gap: Optional[str] = None,
     stats: bool = False,
     history: Optional[Literal["valid", "complete", "clear"]] = "valid",
     xscope: Optional[slice] = None,
     phaseplot: Optional[str] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
-    to_mask: float = np.inf,
+    dfilter: float = FILTER_ALL,
     **kwargs,
 ):
     """
@@ -351,9 +350,9 @@ def plot(
     interactive = path is None
     level = kwargs.get("flag", BAD)
 
-    if to_mask < np.inf:
+    if dfilter < np.inf:
         data = data.copy()
-        data.loc[flags[field] >= to_mask, field] = np.nan
+        data.loc[flags[field] >= dfilter, field] = np.nan
 
     if store_kwargs is None:
         store_kwargs = {}

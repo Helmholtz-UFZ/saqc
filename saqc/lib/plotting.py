@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import seaborn
 from saqc.constants import *
 from saqc.core import Flags
-from saqc.lib.types import DiosLikeT, FreqString
+from saqc.lib.types import DiosLikeT
 
 
 STATSDICT = {
@@ -41,7 +41,7 @@ def makeFig(
     field: str,
     flags: Flags,
     level: float,
-    max_gap: Optional[FreqString] = None,
+    max_gap: Optional[str] = None,
     stats: bool = False,
     history: Optional[Literal["valid", "complete"]] = "valid",
     xscope: Optional[slice] = None,

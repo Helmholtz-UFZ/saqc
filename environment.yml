@@ -10,7 +10,6 @@ dependencies:
   - click
   - scikit-learn
   - pyarrow
-  - PyWavelets
   - pip
   - pip:
     - python-intervals

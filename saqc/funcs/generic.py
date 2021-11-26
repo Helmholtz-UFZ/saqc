@@ -9,7 +9,7 @@ import pandas as pd
 
 from dios import DictOfSeries
 
-from saqc.constants import BAD, UNFLAGGED, ENVIRONMENT
+from saqc.constants import BAD, UNFLAGGED, ENVIRONMENT, FILTER_ALL
 from saqc.core.history import History
 from saqc.lib.tools import toSequence
 from saqc.lib.types import GenericFunction, PandasLike
@@ -18,11 +18,11 @@ from saqc.core.register import register, _isflagged, FunctionWrapper
 
 
 def _prepare(
-    data: DictOfSeries, flags: Flags, columns: Sequence[str], to_mask: float
+    data: DictOfSeries, flags: Flags, columns: Sequence[str], dfilter: float
 ) -> Tuple[DictOfSeries, Flags]:
     fchunk = Flags({f: flags[f] for f in columns})
     dchunk, _ = FunctionWrapper._maskData(
-        data=data.loc[:, columns].copy(), flags=fchunk, columns=columns, thresh=to_mask
+        data=data.loc[:, columns].copy(), flags=fchunk, columns=columns, thresh=dfilter
     )
     return dchunk, fchunk.copy()
 
@@ -31,11 +31,11 @@ def _execGeneric(
     flags: Flags,
     data: PandasLike,
     func: GenericFunction,
-    to_mask: float = UNFLAGGED,
+    dfilter: float = FILTER_ALL,
 ) -> DictOfSeries:
 
     globs = {
-        "isflagged": lambda data: _isflagged(flags[data.name], thresh=to_mask),
+        "isflagged": lambda data: _isflagged(flags[data.name], thresh=dfilter),
         **ENVIRONMENT,
     }
 
@@ -62,7 +62,7 @@ def processGeneric(
     func: GenericFunction,
     target: str | Sequence[str] = None,
     flag: float = UNFLAGGED,
-    to_mask: float = UNFLAGGED,
+    dfilter: float = FILTER_ALL,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -99,8 +99,8 @@ def processGeneric(
         The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
         ``processGeneric`` generates 'new' data without direct relation to the potentially
         already present flags.
-    to_mask: float, default ``UNFLAGGED``
-        Threshold flag. Flag values greater than ``to_mask`` indicate that the associated
+    dfilter: float, default ``FILTER_ALL``
+        Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
         data value is inappropiate for further usage.
 
     Returns
@@ -127,8 +127,8 @@ def processGeneric(
     fields = toSequence(field)
     targets = fields if target is None else toSequence(target)
 
-    dchunk, fchunk = _prepare(data, flags, fields, to_mask)
-    result = _execGeneric(fchunk, dchunk, func, to_mask=to_mask)
+    dchunk, fchunk = _prepare(data, flags, fields, dfilter)
+    result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
 
     meta = {
         "func": "procGeneric",
@@ -138,7 +138,7 @@ def processGeneric(
             "func": func.__name__,
             "target": target,
             "flag": flag,
-            "to_mask": to_mask,
+            "dfilter": dfilter,
         },
     }
 
@@ -176,7 +176,7 @@ def flagGeneric(
     func: GenericFunction,
     target: Union[str, Sequence[str]] = None,
     flag: float = BAD,
-    to_mask: float = UNFLAGGED,
+    dfilter: float = FILTER_ALL,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -209,8 +209,8 @@ def flagGeneric(
         The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
         ``processGeneric`` generates 'new' data without direct relation to the potentially
         already present flags.
-    to_mask: float, default ``UNFLAGGED``
-        Threshold flag. Flag values greater than ``to_mask`` indicate that the associated
+    dfilter: float, default ``FILTER_ALL``
+        Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
         data value is inappropiate for further usage.
 
     Returns
@@ -244,8 +244,8 @@ def flagGeneric(
     fields = toSequence(field)
     targets = fields if target is None else toSequence(target)
 
-    dchunk, fchunk = _prepare(data, flags, fields, to_mask)
-    result = _execGeneric(fchunk, dchunk, func, to_mask=to_mask)
+    dchunk, fchunk = _prepare(data, flags, fields, dfilter)
+    result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
 
     if len(targets) != len(result.columns):
         raise ValueError(
@@ -263,7 +263,7 @@ def flagGeneric(
             "func": func.__name__,
             "target": target,
             "flag": flag,
-            "to_mask": to_mask,
+            "dfilter": dfilter,
         },
     }
 
@@ -280,7 +280,7 @@ def flagGeneric(
         if col not in data:
             data[col] = pd.Series(np.nan, index=maskcol.index)
 
-        maskcol = maskcol & ~_isflagged(flags[col], to_mask)
+        maskcol = maskcol & ~_isflagged(flags[col], dfilter)
         flagcol = maskcol.replace({False: np.nan, True: flag}).astype(float)
 
         # we need equal indices to work on

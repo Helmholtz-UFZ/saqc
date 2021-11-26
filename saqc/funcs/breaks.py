@@ -18,7 +18,6 @@ from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
-from saqc.lib.types import FreqString
 from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.core.flags import Flags
 from saqc.core.history import History
@@ -31,8 +30,8 @@ def flagMissing(
     field: str,
     flags: Flags,
     flag: float = BAD,
-    to_mask: float = UNFLAGGED,
-    **kwargs,
+    dfilter: float = FILTER_ALL,
+    **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function flags all values indicating missing data.
@@ -59,7 +58,7 @@ def flagMissing(
     datacol = data[field]
     mask = datacol.isna()
 
-    mask = ~_isflagged(flags[field], to_mask) & mask
+    mask = ~_isflagged(flags[field], dfilter) & mask
 
     flags[mask, field] = flag
     return data, flags
@@ -70,8 +69,8 @@ def flagIsolated(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    gap_window: FreqString,
-    group_window: FreqString,
+    gap_window: str,
+    group_window: str,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -150,7 +149,7 @@ def flagJumps(
     field: str,
     flags: Flags,
     thresh: float,
-    window: FreqString,
+    window: str,
     min_periods: int = 1,
     flag: float = BAD,
     **kwargs,

@@ -73,7 +73,7 @@ def clearFlags(
 
     Notes
     -----
-    This function ignores the ``to_mask`` keyword, because the data is not relevant
+    This function ignores the ``dfilter`` keyword, because the data is not relevant
     for processing.
     A warning is triggered if the ``flag`` keyword is given, because the flags are
     always set to `UNFLAGGED`.
@@ -122,7 +122,7 @@ def flagUnflagged(
 
     Notes
     -----
-    This function ignores the ``to_mask`` keyword, because the data is not relevant
+    This function ignores the ``dfilter`` keyword, because the data is not relevant
     for processing.
 
     See Also

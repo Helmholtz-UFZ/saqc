@@ -15,7 +15,6 @@ from saqc.core import register, Flags
 from saqc.core.register import flagging
 from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta, statPass
-from saqc.lib.types import FreqString
 
 
 @flagging()
@@ -24,7 +23,7 @@ def flagConstants(
     field: str,
     flags: Flags,
     thresh: float,
-    window: FreqString,
+    window: str,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -62,8 +61,6 @@ def flagConstants(
         The flags object, holding flags and additional informations related to `data`.
         Flags values may have changed, relatively to the flags input.
     """
-    if not isinstance(window, str):
-        raise TypeError("window must be offset string.")
     d = data[field]
 
     # min_periods=2 ensures that at least two non-nan values are present
@@ -87,7 +84,7 @@ def flagByVariance(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: FreqString = "12h",
+    window: str = "12h",
     thresh: float = 0.0005,
     maxna: int = None,
     maxna_group: int = None,
