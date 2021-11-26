@@ -1,0 +1,16 @@
+curvefit
+========
+
+
+ 
+
+
+.. automodule:: Functions.curvefit
+
+Functions
+^^^^^^^^^
+
+.. automodsumm:: Functions.curvefit
+    :functions-only:
+    :toctree: ../_api
+

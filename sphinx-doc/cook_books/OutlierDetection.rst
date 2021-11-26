@@ -119,7 +119,7 @@ that refers to the loaded data.
 The only timeseries have here, is the *incidents* dataset. We can have a look at the data and obtain the above plot through
 the method :py:meth:`plot <Functions.saqc.plot>`:
 
->>> qc = qc.plot('incidents')
+>>> qc.plot('incidents') # doctest: +SKIP
 
 
 Modelling
@@ -295,7 +295,7 @@ We simply combine them via the
 
 Let's have a look at the resulting scores:
 
->>> qc = qc.plot('incidents_scores')
+>>> qc.plot('incidents_scores') # doctest: + SKIP
 
 .. image:: ../ressources/images/cbook_incidents_scoresUnflagged.png
    :target: ../ressources/images/cbook_incidents_scoresUnflagged.png
@@ -316,7 +316,7 @@ by applying the :py:meth:`~Core.Core.SaQC.flagRange` method with a `max` value o
 
 Now flags have been calculated for the scores:
 
->>> qc = qc.plot('incidents_scores')
+>>> qc.plot('incidents_scores') # doctest:+SKIP
 
 .. image:: ../ressources/images/cbooks_incidents_scores.png
    :target: ../ressources/images/cbooks_incidents_scores.png
@@ -337,7 +337,7 @@ generic expression:
 
 Lets check out the results:
 
->>> qc = qc.plot('incidents')
+>>> qc.plot('incidents') # doctest: +SKIP
 
 .. image:: ../ressources/images/cbooks_incidentsOverflagged.png
    :target: ../ressources/images/cbooks_incidentsOverflagged.png
@@ -387,7 +387,7 @@ and defaults to the selected translation schemes :py:const:`BAD <saqc.constants.
 
 Plotting proofs the tweaking did in deed improve the flagging result:
 
->>> qc = qc.plot("incidents")
+>>> qc.plot("incidents") # doctest: SKIP
 
 .. image:: ../ressources/images/cbooks_incidents_correctFlagged.png
    :target: ../ressources/images/cbooks_incidents_correctFlagged.png
@@ -402,7 +402,7 @@ could circumvent the :ref:`unflagging <cook_books/OutlierDetection:Unflagging>` 
 :py:meth:`~Core.Core.SaQC.flagRange` the condition for the residues having to be above *20*
 
 >>> qc = qc.flagGeneric(field=['incidents_scores', 'incidents_residues'], target='incidents', func=lambda x, y: (x > 3) & (y > 20))
->>> qc = qc.plot("incidents")
+>>> qc.plot("incidents") # doctest: +SKIP
 
 
 .. image:: ../ressources/images/cbooks_incidents_correctFlagged.png

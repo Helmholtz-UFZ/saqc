@@ -1,0 +1,16 @@
+constants
+=========
+
+
+ 
+
+
+.. automodule:: Functions.constants
+
+Functions
+^^^^^^^^^
+
+.. automodsumm:: Functions.constants
+    :functions-only:
+    :toctree: ../_api
+

@@ -1,0 +1,16 @@
+noise
+=====
+
+
+ 
+
+
+.. automodule:: Functions.noise
+
+Functions
+^^^^^^^^^
+
+.. automodsumm:: Functions.noise
+    :functions-only:
+    :toctree: ../_api
+
