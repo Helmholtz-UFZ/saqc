@@ -31,8 +31,8 @@ def flagMissing(
     field: str,
     flags: Flags,
     flag: float = BAD,
-    to_mask: float = UNFLAGGED,
-    **kwargs
+    dfilter: float = FILTER_ALL,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flag NaNs in data.
@@ -68,7 +68,7 @@ def flagMissing(
     datacol = data[field]
     mask = datacol.isna()
 
-    mask = ~_isflagged(flags[field], to_mask) & mask
+    mask = ~_isflagged(flags[field], dfilter) & mask
 
     flags[mask, field] = flag
     return data, flags
@@ -82,7 +82,7 @@ def flagIsolated(
     gap_window: str,
     group_window: str,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Find and flag temporal isolated groups of data.
@@ -168,7 +168,7 @@ def flagJumps(
     window: str,
     min_periods: int = 1,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flag jumps and drops in data.
@@ -212,5 +212,5 @@ def flagJumps(
         model_by_resids=False,
         assign_cluster=False,
         flag=flag,
-        **kwargs
+        **kwargs,
     )

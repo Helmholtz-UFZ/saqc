@@ -9,14 +9,14 @@ import numpy as np
 import pandas as pd
 
 from dios import DictOfSeries
-
-from saqc.core.flags import (
-    Flags,
+from saqc.constants import (
+    FILTER_ALL,
     UNFLAGGED,
-    UNTOUCHED,
     BAD,
     GOOD,
 )
+
+from saqc.core.flags import Flags
 from saqc.lib.types import ExternalFlag
 
 
@@ -49,7 +49,7 @@ class TranslationScheme:
     """
 
     # (internal) threshold flag above which values will be masked
-    TO_MASK: float = UNFLAGGED
+    DFILTER_DEFAULT: float = FILTER_ALL
 
     # additional arguments and default values the translation scheme accepts
     ARGUMENTS: Dict[str, Any] = {}
@@ -184,7 +184,6 @@ class FloatScheme(TranslationScheme):
 
     _MAP = {
         -np.inf: -np.inf,
-        np.inf: np.inf,
         **{k: k for k in np.arange(0, 256, dtype=float)},
     }
 
@@ -200,14 +199,14 @@ class SimpleScheme(TranslationScheme):
     """
 
     _FORWARD = {
-        "UNFLAGGED": -np.inf,
+        "UNFLAGGED": UNFLAGGED,
         "BAD": BAD,
         "OK": GOOD,
     }
 
     _BACKWARD = {
         UNFLAGGED: "UNFLAGGED",
-        UNTOUCHED: "UNFLAGGED",
+        np.nan: "UNFLAGGED",
         BAD: "BAD",
         GOOD: "OK",
     }

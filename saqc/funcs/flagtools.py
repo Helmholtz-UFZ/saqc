@@ -73,7 +73,7 @@ def clearFlags(
 
     Notes
     -----
-    This function ignores the ``to_mask`` keyword, because the data is not relevant
+    This function ignores the ``dfilter`` keyword, because the data is not relevant
     for processing.
     A warning is triggered if the ``flag`` keyword is given, because the flags are
     always set to `UNFLAGGED`.
@@ -122,7 +122,7 @@ def flagUnflagged(
 
     Notes
     -----
-    This function ignores the ``to_mask`` keyword, because the data is not relevant
+    This function ignores the ``dfilter`` keyword, because the data is not relevant
     for processing.
 
     See Also
@@ -171,20 +171,27 @@ def flagManual(
     method : {'plain', 'ontime', 'left-open', 'right-open', 'closed'}, default 'plain'
         Defines how mdata is projected on data. Except for the 'plain' method, the methods assume mdata to have an
         index.
+
         * 'plain': mdata must have the same length as data and is projected one-to-one on data.
         * 'ontime': works only with indexed mdata. mdata entries are matched with data entries that have the same index.
         * 'right-open': mdata defines intervals, values are to be projected on.
           The intervals are defined,
+
           (1) Either, by any two consecutive timestamps t_1 and 1_2 where t_1 is valued with mflag, or by a series,
           (2) Or, a Series, where the index contains in the t1 timestamps nd the values the respective t2 stamps.
+
           The value at t_1 gets projected onto all data timestamps t with t_1 <= t < t_2.
+
         * 'left-open': like 'right-open', but the projected interval now covers all t with t_1 < t <= t_2.
         * 'closed': like 'right-open', but the projected interval now covers all t with t_1 <= t <= t_2.
+
     mformat : {"start-end", "mflag"}, default "start-end"
+
         * "start-end": mdata is a Series, where every entry indicates an interval to-flag. The index defines the left
           bound, the value defines the right bound.
         * "mflag": mdata is an array like, with entries containing 'mflag',where flags shall be set. See documentation
           for examples.
+
     mflag : scalar
         The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
     flag : float, default BAD
@@ -198,6 +205,7 @@ def flagManual(
     Examples
     --------
     An example for mdata
+
     >>> mdata = pd.Series([1,0,1], index=pd.to_datetime(['2000-02', '2000-03', '2001-05']))
     >>> mdata
     2000-02-01    1
@@ -208,6 +216,7 @@ def flagManual(
     On *dayly* data, with the 'ontime' method, only the provided timestamnps are used.
     Bear in mind that only exact timestamps apply, any offset will result in ignoring
     the timestamp.
+
     >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='ontime')
     >>> fl[field] > UNFLAGGED
     2000-01-31    False
@@ -221,6 +230,7 @@ def flagManual(
     Freq: D, dtype: bool
 
     With the 'right-open' method, the mdata is forward fill:
+
     >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='right-open')
     >>> fl[field] > UNFLAGGED
     2000-01-31    False
@@ -233,6 +243,7 @@ def flagManual(
     Freq: D, dtype: bool
 
     With the 'left-open' method, backward filling is used:
+
     >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='left-open')
     >>> fl[field] > UNFLAGGED
     2000-01-31    False
@@ -279,7 +290,6 @@ def flagManual(
     # evaluate methods
     if method == "plain":
         pass
-
     # reindex will do the job later
     elif method == "ontime":
         pass

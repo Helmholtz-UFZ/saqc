@@ -24,7 +24,7 @@ def flagConstants(
     thresh: float,
     window: str,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flag constant data values.
@@ -32,9 +32,18 @@ def flagConstants(
     Flags plateaus of constant data if their maximum total change in
     a rolling window does not exceed a certain threshold.
 
+<<<<<<< HEAD
     Any interval of values y(t),..y(t+n) is flagged, if:
      - (1): n > `window`
      - (2): |(y(t + i) - (t + j)| < `thresh`, for all i,j in [0, 1, ..., n]
+=======
+    Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
+
+    (1) n > `window`
+    (2) `|(y(t + i) - (t + j)|` < `thresh`, for all i,j in [0, 1, ..., n]
+
+    Flag values are (semi-)constant.
+>>>>>>> cookBux
 
     Parameters
     ----------
@@ -69,6 +78,7 @@ def flagConstants(
     """
     if not isinstance(window, (str, int)):
         raise TypeError("window must be offset string or int.")
+
     d = data[field]
 
     # min_periods=2 ensures that at least two non-nan values are present
@@ -97,7 +107,7 @@ def flagByVariance(
     maxna: int = None,
     maxna_group: int = None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flag low-variance data.

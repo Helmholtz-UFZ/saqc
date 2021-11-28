@@ -175,7 +175,7 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
 
     Returns
     -------
-    to_mask : pandas.Series[bool]
+    dfilter : pandas.Series[bool]
         A series, indexed with the input index and having value `True` for all the values that are to be masked.
 
     Examples
@@ -292,6 +292,26 @@ def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
             break
         yield pd.Series(data=values[start:stop], index=index[start:stop])
         start = stop
+
+
+def concatDios(data: List[dios.DictOfSeries], warn: bool = True, stacklevel: int = 2):
+    # fast path for most common case
+    if len(data) == 1 and data[0].columns.is_unique:
+        return data[0]
+
+    result = dios.DictOfSeries()
+    for di in data:
+        for c in di.columns:
+            if c in result.columns:
+                if warn:
+                    warnings.warn(
+                        f"Column {c} already exist. Data is overwritten. "
+                        f"Avoid duplicate columns names over all inputs.",
+                        stacklevel=stacklevel,
+                    )
+            result[c] = di[c]
+
+    return result
 
 
 def mergeDios(left, right, subset=None, join="merge"):

@@ -141,7 +141,7 @@ def interpolate(
     )
 
 
-# for @processing this would need to handle to_mask
+# for @processing this would need to handle dfilter
 @register(mask=["field"], demask=[], squeeze=[])
 def shift(
     data: DictOfSeries,
@@ -211,7 +211,7 @@ def shift(
         index=datcol.index,
         func_handle_df=True,
         func=shift2Freq,
-        func_kws={**kws, "fill_value": UNTOUCHED},
+        func_kws={**kws, "fill_value": np.nan},
     )
 
     flags.history[field] = history
@@ -219,7 +219,7 @@ def shift(
     return data, flags
 
 
-# for @processing this would need to handle to_mask
+# for @processing this would need to handle dfilter
 @register(mask=["field"], demask=[], squeeze=[])
 def resample(
     data: DictOfSeries,
@@ -340,7 +340,7 @@ def resample(
         method=method,
         freq=freq,
         agg_func=flag_func,
-        fill_value=UNTOUCHED,
+        fill_value=np.nan,
         max_invalid_total=maxna_flags,
         max_invalid_consec=maxna_group_flags,
     )
@@ -530,7 +530,7 @@ def concatFlags(
 
     elif method[-5:] == "shift":
         drop_mask = target_datcol.isna() | _isflagged(
-            target_flagscol, kwargs["to_mask"]
+            target_flagscol, kwargs["dfilter"]
         )
         projection_method = METHOD2ARGS[method][0]
         tolerance = METHOD2ARGS[method][1](freq)
@@ -538,7 +538,7 @@ def concatFlags(
         kws = dict(
             freq=tolerance, method=projection_method, drop_mask=drop_mask, target=dummy
         )
-        func_kws = {**kws, "fill_value": UNTOUCHED}
+        func_kws = {**kws, "fill_value": np.nan}
 
     elif method == "match":
         func = lambda x: x

@@ -16,7 +16,6 @@ from scipy.optimize import curve_fit
 from saqc.constants import *
 from saqc.core import register, Flags
 from saqc.core.register import flagging
-from saqc.lib.types import FreqString
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta, toSequence
 from saqc.funcs.scores import assignKNNScore
 from saqc.funcs.tools import copyField, dropField
@@ -29,7 +28,7 @@ def flagByStray(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    freq: Optional[Union[int, FreqString]] = None,
+    freq: Optional[Union[int, str]] = None,
     min_periods: int = 11,
     iter_start: float = 0.5,
     alpha: float = 0.05,
@@ -85,7 +84,7 @@ def flagByStray(
     scores = data[field].dropna()
 
     if scores.empty:
-        flags[:, field] = UNTOUCHED
+        flags[:, field] = np.nan
         return data, flags
 
     if not freq:
@@ -416,9 +415,9 @@ def flagMVScores(
     n: int = 10,
     func: Callable[[pd.Series], float] = np.sum,
     iter_start: float = 0.5,
-    partition: Optional[Union[int, FreqString]] = None,
+    partition: Optional[Union[int, str]] = None,
     partition_min: int = 11,
-    stray_range: Optional[FreqString] = None,
+    stray_range: Optional[str] = None,
     drop_flagged: bool = False,  # TODO: still a case ?
     thresh: float = 3.5,
     min_periods: int = 1,
@@ -618,9 +617,9 @@ def flagRaise(
     field: str,
     flags: Flags,
     thresh: float,
-    raise_window: FreqString,
-    freq: FreqString,
-    average_window: Optional[FreqString] = None,
+    raise_window: str,
+    freq: str,
+    average_window: Optional[str] = None,
     raise_factor: float = 2.0,
     slope: Optional[float] = None,
     weight: float = 0.8,
@@ -681,7 +680,7 @@ def flagRaise(
     timestamps :math:`t_i`, is flagged a raise, if:
 
     * There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within `raise_window`
-    range, so that:
+      range, so that:
 
       * :math:`M = |x_k - x_s | >`  `thresh` :math:`> 0`
 
@@ -692,8 +691,8 @@ def flagRaise(
 
       * :math:`x_k > \\mu^* + ( M` / `mean_raise_factor` :math:`)`
 
-    * Additionally, if `min_slope` is not `None`, :math:`x_{k}` is checked for being
-      sufficiently divergent from its very predecessor :max:`x_{k-1}`$, meaning that, it
+    * Additionally, if ``min_slope`` is not `None`, :math:`x_{k}` is checked for being
+      sufficiently divergent from its very predecessor :math:`x_{k-1}`, meaning that, it
       is additionally checked if:
 
       * :math:`x_k - x_{k-1} >` `min_slope`
@@ -739,7 +738,7 @@ def flagRaise(
         raise_series = raise_series.apply(raise_check, args=(thresh,), raw=True)
 
     if raise_series.isna().all():
-        flags[:, field] = UNTOUCHED
+        flags[:, field] = np.nan
         return data, flags
 
     # "unflag" values of insufficient deviation to their predecessors
@@ -805,7 +804,7 @@ def flagMAD(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: FreqString,
+    window: str,
     z: float = 3.5,
     flag: float = BAD,
     **kwargs,
@@ -846,7 +845,7 @@ def flagMAD(
     """
     d = data[field]
     if d.empty:
-        flags[:, field] = UNTOUCHED
+        flags[:, field] = np.nan
         return data, flags
 
     median = d.rolling(window=window, closed="both").median()
@@ -877,7 +876,7 @@ def flagOffset(
     flags: Flags,
     thresh: float,
     tolerance: float,
-    window: Union[int, FreqString],
+    window: Union[int, str],
     thresh_relative: Optional[float] = None,
     flag: float = BAD,
     **kwargs,
@@ -938,7 +937,7 @@ def flagOffset(
     """
     dataseries = data[field].dropna()
     if dataseries.empty:
-        flags[:, field] = UNTOUCHED
+        flags[:, field] = np.nan
         return data, flags
 
     # using reverted series - because ... long story.
@@ -971,7 +970,7 @@ def flagOffset(
 
     post_jumps = post_jumps[post_jumps]
     if post_jumps.empty:
-        flags[:, field] = UNTOUCHED
+        flags[:, field] = np.nan
         return data, flags
 
     # get all the entries preceding a significant jump
@@ -1043,7 +1042,7 @@ def flagByGrubbs(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: Union[FreqString, int],
+    window: Union[str, int],
     alpha: float = 0.05,
     min_periods: int = 8,
     pedantic: bool = False,
@@ -1230,7 +1229,7 @@ def flagCrossStatistic(
        :math:`t_i`, are excluded from the following process (inner join of the :math:`f_i` fields.)
     2. for every :math:`0 <= i <= K`, the value
        :math:`m_j = median(\\{data[f_1][t_i], data[f_2][t_i], ..., data[f_N][t_i]\\})` is calculated
-    2. for every :math:`0 <= i <= K`, the set
+    3. for every :math:`0 <= i <= K`, the set
        :math:`\\{data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j\\}` is tested for outliers with the
        specified method (`cross_stat` parameter).
 
@@ -1307,7 +1306,7 @@ def flagCrossStatistic(
 
     mask = diff_scores > thresh
     if mask.empty:
-        flags[:, field] = UNTOUCHED
+        flags[:, field] = np.nan
         return data, flags
 
     for var in fields:

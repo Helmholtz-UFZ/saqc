@@ -1,12 +1,15 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-import warnings
+
+
+from __future__ import annotations
+
+import functools
 from typing import Tuple, Sequence, Callable
 from typing_extensions import Literal
 
 import numpy as np
 import pandas as pd
-import functools
 
 from scipy import stats
 from scipy.optimize import curve_fit
@@ -14,16 +17,21 @@ from scipy.spatial.distance import pdist
 
 from dios import DictOfSeries
 from saqc.constants import *
+
 from saqc.core.register import register, flagging, Flags
 from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
+
 from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
 from saqc.lib.types import CurveFitter
+from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 
 
 LinkageString = Literal[
     "single", "complete", "average", "weighted", "centroid", "median", "ward"
 ]
+
+MODELDICT = {"linear": linearDriftModel, "exponential": expDriftModel}
 
 
 @flagging()
@@ -40,7 +48,7 @@ def flagDriftFromNorm(
     / len(x),
     method: LinkageString = "single",
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flags data that deviates from an avarage data course.
@@ -165,7 +173,7 @@ def flagDriftFromReference(
     / len(x),
     target=None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flags data that deviates from a reference course.
@@ -267,7 +275,7 @@ def flagDriftFromScaledNorm(
     method: LinkageString = "single",
     target: str = None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flags data that deviates from a scaled norm.
@@ -392,9 +400,9 @@ def correctDrift(
     field: str,
     flags: Flags,
     maintenance_field: str,
-    model: Callable[..., float],
+    model: Callable[..., float] | Literal["linear", "exponential"],
     cal_range: int = 5,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The function corrects drifting behavior.
@@ -413,6 +421,7 @@ def correctDrift(
         Flags container.
 
     maintenance_field : str
+<<<<<<< HEAD
         Column holding the support-points information.
         The data is to expected to have following form:
         The index of the series represent the beginning of a maintenance
@@ -422,6 +431,19 @@ def correctDrift(
         Function describing the drift behavior to correct.
         The function must take an array as first parameter, but can support more parameter.
         It must take the keywords ``origin`` and ``target``.
+=======
+        The fieldname of the datacolumn holding the support-points information.
+        The maint data is to expected to have following form:
+        The series' timestamp itself represents the beginning of a
+        maintenance event, wheras the values represent the endings of the maintenance intervals.
+    model : Callable or {'exponential', 'linear'}
+        A modelfunction describing the drift behavior, that is to be corrected.
+        Either use built-in exponential or linear drift model by passing a string, or pass a custom callable.
+        The model function must always contain the keyword parameters 'origin' and 'target'.
+        The starting parameter must always be the parameter, by wich the data is passed to the model.
+        After the data parameter, there can occure an arbitrary number of model calibration arguments in
+        the signature.
+>>>>>>> cookBux
         See the Notes section for an extensive description.
 
     cal_range : int, default 5
@@ -438,6 +460,7 @@ def correctDrift(
 
     Notes
     -----
+<<<<<<< HEAD
     It is assumed, that between support points, there is a drift effect shifting the
     meassurements in a way, that can be described, by a model function M(t, *p, origin, target).
     (With 0<=t<=1, p being a parameter set, and origin, target being floats).
@@ -447,18 +470,34 @@ def correctDrift(
     The drift model, directly after the last support point (t=0),
     should evaluate to the origin - calibration level (origin), and directly before the next
     support point (t=1), it should evaluate to the target calibration level (target).
+=======
+    It is assumed, that between support points, there is a drift effect shifting the meassurements in a way, that
+    can be described, by a model function ``M(t, *p, origin, target)``. (With ``0<=t<=1``, ``p`` being a parameter
+    set, and ``origin``, ``target`` being floats).
 
-    M(0, *p, origin, target) = origin
-    M(1, *p, origin, target) = target
+    Note, that its possible for the model to have no free parameters p at all. (linear drift mainly)
 
+    The drift model, directly after the last support point (``t=0``),
+    should evaluate to the origin - calibration level (``origin``), and directly before the next support point
+    (``t=1``), it should evaluate to the target calibration level (``target``).::
+>>>>>>> cookBux
+
+        M(0, *p, origin, target) = origin
+        M(1, *p, origin, target) = target
+
+<<<<<<< HEAD
     The model is than fitted to any data chunk in between support points, by optimizing
     the parameters p*, and thus, obtaining optimal parameterset P*.
+=======
+    The model is than fitted to any data chunk in between support points, by optimizing the parameters ``p*``, and
+    thus, obtaining optimal parameterset ``P*``.
+>>>>>>> cookBux
 
-    The new values at t are computed via:
+    The new values at t are computed via:::
 
-    new_vals(t) = old_vals(t) + M(t, *P, origin, target) - M_drift(t, *P, origin, new_target)
+        new_vals(t) = old_vals(t) + M(t, *P, origin, target) - M_drift(t, *P, origin, new_target)
 
-    Wheras new_target represents the value level immediately after the nex support point.
+    Wheras ``new_target`` represents the value level immediately after the next support point.
 
     Examples
     --------
@@ -466,17 +505,29 @@ def correctDrift(
 
     Linear drift modell (no free parameters).
 
+<<<<<<< HEAD
     >>> lambda t, origin, target: origin + t*target
+=======
+    >>> M = lambda t, origin, target: origin + t * target
+>>>>>>> cookBux
 
     exponential drift model (exponential raise!)
 
     >>> expFunc = lambda t, a, b, c: a + b * (np.exp(c * x) - 1)
     >>> lambda t, p, origin, target: expFunc(t, (target - origin) / (np.exp(abs(c)) - 1), abs(c))
 
-    Exponential and linear driftmodels are part of the ts_operators library, under the names
-    expDriftModel and linearDriftModel.
+    Exponential and linear driftmodels are part of the ``ts_operators`` library, under the names
+    ``expDriftModel`` and ``linearDriftModel``.
 
     """
+    # extract model func:
+    if isinstance(model, str):
+        if model not in MODELDICT:
+            raise ValueError(
+                f"invalid model '{model}', choose one of '{MODELDICT.keys()}'"
+            )
+        model = MODELDICT[model]
+
     # 1: extract fit intervals:
     if data[maintenance_field].empty:
         return data, flags
@@ -525,7 +576,7 @@ def correctRegimeAnomaly(
     model: CurveFitter,
     tolerance: str = None,
     epoch: bool = False,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function fits the passed model to the different regimes in data[field] and tries to correct
@@ -746,7 +797,7 @@ def flagRegimeAnomaly(
     ),
     frac: float = 0.5,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Flags anomalous regimes regarding to modelling regimes of field.
@@ -826,7 +877,7 @@ def assignRegimeAnomaly(
         np.nanmean(x) - np.nanmean(y)
     ),
     frac: float = 0.5,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     A function to detect values belonging to an anomalous regime regarding modelling
@@ -906,7 +957,7 @@ def _assignRegimeAnomaly(
     set_cluster: bool = True,
     set_flags: bool = False,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     series = data[cluster_field]
     cluster = np.unique(series)

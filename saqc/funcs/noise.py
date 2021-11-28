@@ -8,7 +8,6 @@ from typing import Callable
 from saqc.constants import *
 from saqc.core import register, Flags
 from saqc.core.register import flagging
-from saqc.lib.types import FreqString
 from saqc.lib.tools import statPass
 
 
@@ -18,13 +17,13 @@ def flagByStatLowPass(
     field: str,
     flags: Flags,
     func: Callable[[np.array, pd.Series], float],
-    window: FreqString,
+    window: str,
     thresh: float,
-    sub_window: FreqString = None,
+    sub_window: str = None,
     sub_thresh: float = None,
     min_periods: int = None,
     flag: float = BAD,
-    **kwargs
+    **kwargs,
 ):
     """
     Flag *chunks* of length, `window`:
@@ -43,11 +42,11 @@ def flagByStatLowPass(
         Container to store quality flags to data.
     func: Callable[[np.array, pd.Series], float]
         Function to aggregate chunk contnent with.
-    window: FreqString
+    window: str
         Temporal extension of the chunks to test
     thresh: float
         Threshold, that triggers flagging, if exceeded by stat value.
-    sub_window: FreqString, default None,
+    sub_window: str, default None,
         Window size of the sub chunks, that are additionally tested for exceeding
         `sub_thresh` with respect to `stat`.
     sub_thresh: float, default None

@@ -3,7 +3,6 @@
 
 from typing import Optional, Tuple
 
-from py import process
 from typing_extensions import Literal
 import numpy as np
 from dios import DictOfSeries
@@ -14,7 +13,6 @@ import pickle
 
 from saqc.constants import *
 from saqc.core.register import processing
-from saqc.lib.types import FreqString
 from saqc.core import register, Flags
 from saqc.lib.tools import periodicMask, filterKwargs
 from saqc.lib.plotting import makeFig
@@ -232,15 +230,15 @@ def maskTime(
     datcol_idx = data[field].index
 
     if mode == "periodic":
-        to_mask = periodicMask(datcol_idx, start, end, closed)
+        mask = periodicMask(datcol_idx, start, end, closed)
     elif mode == "mask_field":
         idx = data[mask_field].index.intersection(datcol_idx)
-        to_mask = data.loc[idx, mask_field]
+        mask = data.loc[idx, mask_field]
     else:
         raise ValueError("Keyword passed as masking mode is unknown ({})!".format(mode))
 
-    data.aloc[to_mask, field] = np.nan
-    flags[to_mask, field] = UNFLAGGED
+    data.aloc[mask, field] = np.nan
+    flags[mask, field] = UNFLAGGED
     return data, flags
 
 
@@ -250,14 +248,14 @@ def plot(
     field: str,
     flags: Flags,
     path: Optional[str] = None,
-    max_gap: Optional[FreqString] = None,
+    max_gap: Optional[str] = None,
     stats: bool = False,
     history: Optional[Literal["valid", "complete", "clear"]] = "valid",
     xscope: Optional[slice] = None,
     phaseplot: Optional[str] = None,
     stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
-    to_mask: float = np.inf,
+    dfilter: float = FILTER_ALL,
     **kwargs,
 ):
     """
@@ -297,6 +295,7 @@ def plot(
 
     history : {"valid", "complete", None}, default "valid"
         Discriminate the plotted flags with respect to the tests they originate from.
+
         * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
           in the legend, that actually contributed flags to the overall resault.
         * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
@@ -304,7 +303,7 @@ def plot(
         * None - just plot the resulting flags for one variable, without any historical meta information.
 
     xscope : slice or Offset, default None
-        Parameter, that determines a chunk of the data to be plotted /
+        Parameter, that determines a chunk of the data to be plotted
         processed. `xscope` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
 
     phaseplot : str or None, default None
@@ -317,11 +316,11 @@ def plot(
         Reopen with: ``pickle.load(open(savepath,'w')).show()``
 
     stats_dict: dict, default None
-        (Only relevant if `stats`=True)
+        (Only relevant if ``stats = True``)
         Dictionary of additional statisticts to write to the statistics table
         accompanying the data plot. An entry to the stats_dict has to be of the form:
 
-        * {"stat_name": lambda x, y, z: func(x, y, z)}
+        * ``{"stat_name": lambda x, y, z: func(x, y, z)}``
 
         The lambda args ``x``,``y``,``z`` will be fed by:
 
@@ -350,9 +349,9 @@ def plot(
     interactive = path is None
     level = kwargs.get("flag", BAD)
 
-    if to_mask < np.inf:
+    if dfilter < np.inf:
         data = data.copy()
-        data.loc[flags[field] >= to_mask, field] = np.nan
+        data.loc[flags[field] >= dfilter, field] = np.nan
 
     if store_kwargs is None:
         store_kwargs = {}

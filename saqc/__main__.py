@@ -73,6 +73,7 @@ def writeData(writer_dict, df, fname):
     "-d",
     "--data",
     type=click.Path(exists=True),
+    multiple=True,
     required=True,
     help="path to the data file",
 )
@@ -93,11 +94,16 @@ def writeData(writer_dict, df, fname):
     help="set output verbosity",
 )
 def main(config, data, scheme, outfile, nodata, log_level):
+    # data is always a list of data files
 
     _setupLogging(log_level)
     reader, writer = setupIO(nodata)
 
-    data = readData(reader, data)
+    _data = []
+    for dfile in data:
+        df = readData(reader, dfile)
+        _data.append(df)
+    data = _data
 
     saqc = fromConfig(
         config,
