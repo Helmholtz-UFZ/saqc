@@ -29,7 +29,7 @@ configuration headers have a look `here <saqc/core/config.py>`_.
      - name of a variable
      - yes
    * - test
-     - :ref:`function notation <getting_started_md_m2r/ConfigurationFiles:test function notation>`
+     - :ref:`function notation <getting_started/ConfigurationFiles:test function notation>`
      - test function
      - yes
    * - plot

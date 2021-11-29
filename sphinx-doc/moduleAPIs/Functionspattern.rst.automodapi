@@ -1,0 +1,16 @@
+pattern
+=======
+
+
+ 
+
+
+.. automodule:: Functions.pattern
+
+Functions
+^^^^^^^^^
+
+.. automodsumm:: Functions.pattern
+    :functions-only:
+    :toctree: ../_api
+

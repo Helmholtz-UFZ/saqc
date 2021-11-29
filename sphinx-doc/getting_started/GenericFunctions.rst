@@ -16,7 +16,7 @@ can be explained by the dataset itself. Think of a an active, fan-cooled
 measurement device: no matter how precise the instrument may work, problems
 are to be expected when the fan stops working or the power supply 
 drops below a certain threshold. While these dependencies are easy to 
-:ref:`formalize <getting_started_md_m2r/GenericFunctions:a real world example>` on a per dataset basis, it is quite
+:ref:`formalize <getting_started/GenericFunctions:a real world example>` on a per dataset basis, it is quite
 challenging to translate them into generic source code.
 
 Specification
@@ -30,9 +30,9 @@ signature looks like that:
 
    flagGeneric(func=<expression>, flag=<flagging_constant>)
 
-where ``<expression>`` is composed of the :ref:`supported constructs <getting_started_md_m2r/GenericFunctions:supported constructs>`
+where ``<expression>`` is composed of the :ref:`supported constructs <getting_started/GenericFunctions:supported constructs>`
 and ``<flag_constant>`` is one of the predefined
-:ref:`flagging constants <getting_started_md_m2r/ParameterDescriptions:flagging constants>` (default: ``BAD``\ ).
+:ref:`flagging constants <getting_started/ParameterDescriptions:flagging constants>` (default: ``BAD``\ ).
 Generic flagging functions are expected to return a boolean value, i.e. ``True`` or ``False``. All other expressions will
 fail during the runtime of ``SaQC``.
 
@@ -177,7 +177,7 @@ The basic signature looks like that:
 
    procGeneric(func=<expression>)
 
-where ``<expression>`` is composed of the :ref:`supported constructs <getting_started_md_m2r/GenericFunctions:supported constructs>`.
+where ``<expression>`` is composed of the :ref:`supported constructs <getting_started/GenericFunctions:supported constructs>`.
 
 Variable References
 -------------------
@@ -185,7 +185,7 @@ Variable References
 All variables of the processed dataset are available within generic functions,
 so arbitrary cross references are possible. The variable of interest 
 is furthermore available with the special reference ``this``\ , so the second 
-:ref:`example <getting_started_md_m2r/GenericFunctions:calculations>` could be rewritten as: 
+:ref:`example <getting_started/GenericFunctions:calculations>` could be rewritten as:
 
 .. code-block::
 
@@ -274,8 +274,8 @@ The bitwise operators also act as logical operators in comparison chains
 Functions
 ^^^^^^^^^
 
-All functions expect a :ref:`variable reference <getting_started_md_m2r/GenericFunctions:variable references>`
-as the only non-keyword argument (see :ref:`here <getting_started_md_m2r/GenericFunctions:special functions>`\ )
+All functions expect a :ref:`variable reference <getting_started/GenericFunctions:variable references>`
+as the only non-keyword argument (see :ref:`here <getting_started/GenericFunctions:special functions>`\ )
 
 Mathematical Functions
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -319,4 +319,4 @@ Constants
 ^^^^^^^^^
 
 Generic functions support the same constants as normal functions, a detailed 
-list is available :ref:`here <getting_started_md_m2r/ParameterDescriptions:constants>`.
+list is available :ref:`here <getting_started/ParameterDescriptions:constants>`.
