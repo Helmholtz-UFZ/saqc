@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import annotations
 
+from math import floor
 from typing import Tuple, Union
 from typing_extensions import Literal
 import numpy as np
@@ -25,7 +25,7 @@ def fitPolynomial(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: int | str,
+    window: Union[int, str],
     order: int,
     min_periods: int = 0,
     **kwargs
@@ -52,40 +52,37 @@ def fitPolynomial(
 
     Parameters
     ----------
-    data : DictOfSeries
-        The data container.
+    data : dios.DictOfSeries
+        The data.
 
     field : str
-        A column in flags and data.
+        The column, holding the data-to-be-modelled.
 
-    flags : Flags
-        The flags container.
+    flags : saqc.Flags
+        Container to store quality flags to data.
 
-    window : str, int
-        Size of the window you want to use for fitting. If an integer is passed,
+    window : {str, int}
+        The size of the window you want to use for fitting. If an integer is passed,
         the size refers to the number of periods for every fitting window. If an
         offset string is passed, the size refers to the total temporal extension. The
         window will be centered around the vaule-to-be-fitted. For regularly sampled
-        data always a odd number of periods will be used for the fit (periods-1 if
-        periods is even).
+        timeseries the period number will be casted down to an odd number if even.
 
     order : int
-        Degree of the polynomial used for fitting
+        The degree of the polynomial used for fitting
 
     min_periods : int or None, default 0
-        Minimum number of observations in a window required to perform the fit,
-        otherwise NaNs will be assigned.
-        If ``None``, `min_periods` defaults to 1 for integer windows and to the
-        size of the window for offset based windows.
-        Passing 0, disables the feature and will result in over-fitting for too
-        sparse windows.
+        The minimum number of periods, that has to be available in every values
+        fitting surrounding for the polynomial fit to be performed. If there are not
+        enough values, np.nan gets assigned. Default (0) results in fitting
+        regardless of the number of values present (results in overfitting for too
+        sparse intervals). To automatically set the minimum number of periods to the
+        number of values in an offset defined window size, pass np.nan.
 
     Returns
     -------
     data : dios.DictOfSeries
-        Modified data
     flags : saqc.Flags
-        Flags
     """
     reserved = ["residues", "set_flags"]
     filterKwargs(kwargs, reserved)
@@ -114,7 +111,8 @@ def _fitPolynomial(
     return_residues: bool = False,
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
-    # TODO: some (rater large) parts are functional similar to saqc.funcs.rolling.roll
+
+    # TODO: some (rather large) parts are functional similar to saqc.funcs.rolling.roll
     if data[field].empty:
         return data, flags
 

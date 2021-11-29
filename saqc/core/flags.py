@@ -70,62 +70,51 @@ class Flags:
 
     We create an empty instance, by calling ``Flags`` without any arguments and then add a column to it.
 
-    .. doctest:: exampleFlags
+    >>> from saqc.constants import UNFLAGGED, BAD, DOUBTFUL
+    >>> flags = Flags()
+    >>> flags
+    Empty Flags
+    Columns: []
 
-       >>> from saqc.constants import UNFLAGGED, BAD, DOUBTFUL
-       >>> flags = saqc.Flags()
-       >>> flags
-       Empty Flags
-       Columns: []
 
-    .. doctest:: exampleFlags
-
-       >>> flags['v0'] = pd.Series([BAD,BAD,UNFLAGGED], dtype=float)
-       >>> flags # doctest:+NORMALIZE_WHITESPACE
-             v0 |
-       ======== |
-       0  255.0 |
-       1  255.0 |
-       2   -inf |
-       <BLANKLINE>
+    >>> flags['v0'] = pd.Series([BAD,BAD,UNFLAGGED], dtype=float)
+    >>> flags
+          v0 |
+    ======== |
+    0  255.0 |
+    1  255.0 |
+    2   -inf |
 
     Once the column exist, we cannot overwrite it anymore, with a different series.
 
-    .. doctest:: exampleFlags
-
-       >>> flags['v0'] = pd.Series([666.], dtype=float) # doctest:+ELLIPSIS
-       Traceback (most recent call last):
-         ...
-       ValueError: Index does not match
+    >>> flags = Flags()
+    >>> flags['v0'] = pd.Series([666.], dtype=float)
+    Traceback (most recent call last):
+      some file path ...
+    ValueError: Index does not match
 
     But if we pass a series, which index match it will work,
     because the series now is interpreted as value-to-set.
 
-    .. doctest:: exampleFlags
-
-       >>> flags['v0'] = pd.Series([DOUBTFUL,np.nan,DOUBTFUL], dtype=float)
-       >>> flags # doctest:+NORMALIZE_WHITESPACE
-             v0 |
-       ======== |
-       0   25.0 |
-       1  255.0 |
-       2   25.0 |
-       <BLANKLINE>
+    >>> flags['v0'] = pd.Series([DOUBT,np.nan,DOUBT], dtype=float)
+    >>> flags
+          v0 |
+    ======== |
+    0   25.0 |
+    1  255.0 |
+    2   25.0 |
 
     As we see above, the column now holds a combination from the values from the
     first and the second set. This is, because ``numpy.nan`` was used.
     We can inspect all the updates that was
     made by looking in the history.
 
-    .. doctest:: exampleFlags
-
-       >>> flags['v0'] = pd.Series([DOUBTFUL, np.nan, DOUBTFUL], dtype=float)
-       >>> flags.history['v0'] # doctest:+NORMALIZE_WHITESPACE
-             0     1     2
-       0  255.0  25.0  25.0
-       1  255.0   nan   nan
-       2   -inf  25.0  25.0
-
+    >>> flags['v0'] = pd.Series([DOUBTFUL, np.nan, DOUBTFUL], dtype=float)
+    >>> flags.history['v0']
+            0       1
+    0  (255.0)   25.0
+    1   255.0     nan
+    2   (-inf)   25.0
 
     As we see now, the second call sets ``25.0`` and shadows (represented by the parentheses) ``(255.0)`` in the
     first row and ``(-inf)`` in the last, but in the second row ``255.0`` still is valid, because it was
@@ -134,25 +123,19 @@ class Flags:
     It is also possible to set values by a mask, which can be interpreted as condidional setting.
     Imagine we want to `reset` all flags to ``0.`` if the existing flags are lower that ``255.``.
 
-    .. doctest:: exampleFlags
-
-       >>> mask = flags['v0'] < BAD
-       >>> mask # doctest:+NORMALIZE_WHITESPACE
-       0     True
-       1    False
-       2     True
-       Name: 2, dtype: bool
-
-    .. doctest:: exampleFlags
-
-       >>> flags[mask, 'v0'] = 0
-       >>> flags # doctest:+NORMALIZE_WHITESPACE
-             v0 |
-       ======== |
-       0    0.0 |
-       1  255.0 |
-       2    0.0 |
-       <BLANKLINE>
+    >>> mask = flags['v0'] < BAD
+    >>> mask
+    0     True
+    1    False
+    2     True
+    dtype: bool
+    >>> flags[mask, 'v0'] = 0
+    >>> flags
+          v0 |
+    ======== |
+    0    0.0 |
+    1  255.0 |
+    2    0.0 |
 
     The objects you can pass as a row selector (``flags[rows, column]``) are:
 
@@ -162,27 +145,21 @@ class Flags:
 
     For example, to set `all` values to a scalar value, use a Null-slice:
 
-    .. doctest:: exampleFlags
+    >>> flags[:, 'v0'] = 99.0
+    >>> flags
+         v0 |
+    ======= |
+    0  99.0 |
+    1  99.0 |
+    2  99.0 |
 
-       >>> flags[:, 'v0'] = 99.0
-       >>> flags # doctest:+NORMALIZE_WHITESPACE
-            v0 |
-       ======= |
-       0  99.0 |
-       1  99.0 |
-       2  99.0 |
-       <BLANKLINE>
+    After all calls presented here, the history look like this:
 
-
-    After all calls presented here, the history looks like this:
-
-    .. doctest:: exampleFlags
-
-       >>> flags.history['v0']
-             0     1     2    3     4
-       0  255.0  25.0  25.0  0.0  99.0
-       1  255.0   nan   nan  nan  99.0
-       2   -inf  25.0  25.0  0.0  99.0
+    >>> flags.history['v0']
+            0       1      2       3
+    0  (255.0)  (25.0)  (0.0)   99.0
+    1  (255.0)   (nan)  (nan)   99.0
+    2   (-inf)  (25.0)  (0.0)   99.0
     """
 
     def __init__(

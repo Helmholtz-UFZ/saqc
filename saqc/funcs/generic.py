@@ -121,12 +121,7 @@ def processGeneric(
     Compute the sum of the variables 'rainfall' and 'snowfall' and save the result to
     a (new) variable 'precipitation'
 
-    .. testsetup::
-
-       qc = saqc.SaQC(pd.DataFrame({'rainfall':[0], 'snowfall':[0], 'precipitation':[0]}, index=pd.DatetimeIndex([0])))
-
-
-    >>> qc = qc.processGeneric(field=["rainfall", "snowfall"], target="precipitation'", func=lambda x, y: x + y)
+    >>> saqc.genericProcess(field=["rainfall", "snowfall"], target="precipitation'", func=lambda x, y: x + y)
     """
 
     fields = toSequence(field)
@@ -233,27 +228,17 @@ def flagGeneric(
     Examples
     --------
 
-    .. testsetup:: exampleFlagGeneric
-
-       qc = saqc.SaQC(pd.DataFrame({'temperature':[0], 'uncertainty':[0], 'rainfall':[0], 'fan':[0]}, index=pd.DatetimeIndex([0])))
-
     1. Flag the variable 'rainfall', if the sum of the variables 'temperature' and 'uncertainty' is below zero:
 
-    .. testcode:: exampleFlagGeneric
-
-       qc.flagGeneric(field=["temperature", "uncertainty"], target="rainfall", func= lambda x, y: x + y < 0)
+    >>> saqc.flagGeneric(field=["temperature", "uncertainty"], target="rainfall", func= lambda x, y: temperature + uncertainty < 0
 
     2. Flag the variable 'temperature', where the variable 'fan' is flagged:
 
-    .. testcode:: exampleFlagGeneric
-
-       qc.flagGeneric(field="fan", target="temperature", func=lambda x: isflagged(x))
+    >>> saqc.flagGeneric(field="fan", target="temperature", func=lambda x: isflagged(x))
 
     3. The generic functions also support all pandas and numpy functions:
 
-    .. testcode:: exampleFlagGeneric
-
-       qc = qc.flagGeneric(field="fan", target="temperature", func=lambda x: np.sqrt(x) < 7)
+    >>> saqc.flagGeneric(field="fan", target="temperature", func=lambda x: np.sqrt(x) < 7)
     """
 
     fields = toSequence(field)

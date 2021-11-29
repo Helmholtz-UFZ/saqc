@@ -1,11 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
-
 from __future__ import annotations
 
 import functools
-from typing import Tuple, Sequence, Callable
+from typing import Optional, Tuple, Sequence, Callable, Optional
 from typing_extensions import Literal
 
 import numpy as np
@@ -16,13 +14,14 @@ from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
 
 from dios import DictOfSeries
-from saqc.constants import *
-
-from saqc.core.register import register, flagging, Flags
+from saqc.constants import BAD
+from saqc.core.register import register, flagging
+from saqc.core import Flags
 from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.funcs.tools import dropField, copyField
 
 from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
+from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 from saqc.lib.types import CurveFitter
 from saqc.lib.ts_operators import linearDriftModel, expDriftModel
 
@@ -51,81 +50,81 @@ def flagDriftFromNorm(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flags data that deviates from an avarage data course.
+    The function flags value courses that significantly deviate from a group of normal value courses.
 
-    "Normality" is determined in terms of a maximum spreading distance,
-    that members of a normal group must not exceed. In addition, only a group is considered
-    "normal" if it contains more then `frac` percent of the variables in "field".
+    "Normality" is determined in terms of a maximum spreading distance, that members of a normal group must not exceed.
+    In addition, only a group is considered "normal" if it contains more then `frac` percent of the
+    variables in "field".
 
     See the Notes section for a more detailed presentation of the algorithm
 
     Parameters
     ----------
-    data : DictOfSeries
-        The data container.
-
-    field : str
-        A column in flags and data.
-
-    flags : Flags
-        The flags container.
-
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : list of str
+        List of fieldnames in data, determining which variables are to be included into the flagging process.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
     freq : str
-        Frequency, that split the data in chunks.
-
+        An offset string, determining the size of the seperate datachunks that the algorihm is to be piecewise
+        applied on.
     spread : float
-        Maximum spread allowed in the group of *normal* data. See Notes section for more details.
-
+        A parameter limiting the maximum "spread" of the timeseries, allowed in the "normal" group. See Notes section
+        for more details.
     frac : float, default 0.5
-        Fraction defining the normal group. Use a value from the interval [0,1].
-        The higher the value, the more stable the algorithm will be. For values below
-        0.5 the results are undefined.
-
-    metric : Callable, default ``lambda x,y:pdist(np.array([x,y]),metric="cityblock")/len(x)``
-        Distance function that takes two arrays as input and returns a scalar float.
-        This value is interpreted as the distance of the two input arrays.
-        Defaults to the `averaged manhattan metric` (see Notes).
-
+        Has to be in [0,1]. Determines the minimum percentage of variables, the "normal" group has to comprise to be the
+        normal group actually. The higher that value, the more stable the algorithm will be with respect to false
+        positives. Also, nobody knows what happens, if this value is below 0.5.
+    metric : Callable[[numpy.array, numpy.array], float]
+        A distance function. It should be a function of 2 1-dimensional arrays and return a float scalar value.
+        This value is interpreted as the distance of the two input arrays. The default is the averaged manhatten metric.
+        See the Notes section to get an idea of why this could be a good choice.
     method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
-        Linkage method used for hierarchical (agglomerative) clustering of the data.
-        `method` is directly passed to ``scipy.hierarchy.linkage``. See its documentation [1] for
-        more details. For a general introduction on hierarchical clustering see [2].
-
+        The linkage method used for hierarchical (agglomerative) clustering of the timeseries.
+        See the Notes section for more details.
+        The keyword gets passed on to scipy.hierarchy.linkage. See its documentation to learn more about the different
+        keywords (References [1]).
+        See wikipedia for an introduction to hierarchical clustering (References [2]).
     flag : float, default BAD
         flag to set.
 
     Returns
     -------
     data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
     flags : saqc.Flags
+        The quality flags of data
+        Flags values may have changed relatively to the input flags.
 
     Notes
     -----
     following steps are performed for every data "segment" of length `freq` in order to find the
     "abnormal" data:
 
-    1. Calculate distances :math:`d(x_i,x_j)` for all :math:`x_i` in parameter `field`.
-       (with :math:`d` denoting the distance function, specified by `metric`.
-    2. Calculate a dendogram with a hierarchical linkage algorithm, specified by `method`.
-    3. Flatten the dendogram at the level, the agglomeration costs exceed `spread`
-    4. check if a cluster containing more than `frac` variables.
+    1. Calculate the distances :math:`d(x_i,x_j)` for all :math:`x_i` in parameter `field`. (with :math:`d`
+       denoting the distance function
+       passed to the parameter `metric`.
+    2. Calculate a dendogram with a hierarchical linkage algorithm, specified by the parameter `method`.
+    3. Flatten the dendogram at the level, the agglomeration costs exceed the value given by the parameter `spread`
+    4. check if there is a cluster containing more than `frac` percentage of the variables in field.
 
         1. if yes: flag all the variables that are not in that cluster (inside the segment)
         2. if no: flag nothing
 
-    The main parameter giving control over the algorithms behavior is the `spread` parameter,
-    that determines the maximum spread of a normal group by limiting the costs, a cluster
-    agglomeration must not exceed in every linkage step.
-    For singleton clusters, that costs just equal half the distance, the data in the
-    clusters, have to each other. So, no data can be clustered together, that are more then
-    2*`spread` distances away from each other. When data get clustered together, this new
-    clusters distance to all the other data/clusters is calculated according to the linkage
-    method specified by `method`. By default, it is the minimum distance, the members of the
-    clusters have to each other. Having that in mind, it is advisable to choose a distance
-    function, that can be well interpreted in the units dimension of the measurement and where
-    the interpretation is invariant over the length of the data. That is, why,
-    the "averaged manhattan metric" is set as the metric default, since it corresponds to the
-    averaged value distance, two data sets have (as opposed by euclidean, for example).
+    The main parameter giving control over the algorithms behavior is the `spread` parameter, that determines
+    the maximum spread of a normal group by limiting the costs, a cluster agglomeration must not exceed in every
+    linkage step.
+    For singleton clusters, that costs just equal half the distance, the timeseries in the clusters, have to
+    each other. So, no timeseries can be clustered together, that are more then
+    2*`spread` distanted from each other.
+    When timeseries get clustered together, this new clusters distance to all the other timeseries/clusters is
+    calculated according to the linkage method specified by `method`. By default, it is the minimum distance,
+    the members of the clusters have to each other.
+    Having that in mind, it is advisable to choose a distance function, that can be well interpreted in the units
+    dimension of the measurement and where the interpretation is invariant over the length of the timeseries.
+    That is, why, the "averaged manhatten metric" is set as the metric default, since it corresponds to the
+    averaged value distance, two timeseries have (as opposed by euclidean, for example).
 
     References
     ----------
@@ -176,53 +175,48 @@ def flagDriftFromReference(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flags data that deviates from a reference course.
+    The function flags value courses that deviate from a reference course by a margin exceeding a certain threshold.
 
-    The deviation is measured by a passed distance function.
+    The deviation is measured by the distance function passed to parameter metric.
 
     Parameters
     ----------
-    data : DictOfSeries
-        The data container.
-
-    field : str
-        A column in flags and data.
-
-    flags : Flags
-        The flags container.
-
-    freq : str
-        Frequency, that split the data in chunks.
-
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : list of str
+        List of fieldnames in data, determining wich variables are to be included into the flagging process.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
     reference : str
-        Reference variable, the deviation is calculated from.
-
+        The reference variable, the deviation from wich determines the flagging.
+    freq : str
+        An offset string, determining the size of the seperate datachunks that the algorihm is to be piecewise
+        applied on.
     thresh : float
-        Maximum deviation from reference.
-
-    metric : Callable
-        Distance function. Takes two arrays as input and returns a scalar float.
-        This value is interpreted as the mutual distance of the two input arrays.
-        Defaults to the `averaged manhattan metric` (see Notes).
-
+        The threshod by wich normal variables can deviate from the reference variable at max.
+    metric : Callable[(numpyp.array, numpy-array), float]
+        A distance function. It should be a function of 2 1-dimensional arrays and return a float scalar value.
+        This value is interpreted as the distance of the two input arrays. The default is the averaged manhatten metric.
+        See the Notes section to get an idea of why this could be a good choice.
     target : None
-        Ignored.
-
+        ignored.
     flag : float, default BAD
-        Flag to set.
+        flag to set.
 
     Returns
     -------
     data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
     flags : saqc.Flags
+        The quality flags of data
+        Flags values may have changed relatively to the input flags.
 
     Notes
     -----
-    It is advisable to choose a distance function, that can be well interpreted in
-    the units dimension of the measurement and where the interpretation is invariant over the
-    length of the data. That is, why, the "averaged manhatten metric" is set as the metric
-    default, since it corresponds to the averaged value distance, two data sets have (as opposed
-    by euclidean, for example).
+    it is advisable to choose a distance function, that can be well interpreted in the units
+    dimension of the measurement and where the interpretation is invariant over the length of the timeseries.
+    That is, why, the "averaged manhatten metric" is set as the metric default, since it corresponds to the
+    averaged value distance, two timeseries have (as opposed by euclidean, for example).
     """
     if target:
         raise NotImplementedError("target is not implemented for this function")
@@ -278,11 +272,9 @@ def flagDriftFromScaledNorm(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flags data that deviates from a scaled norm.
-
-    Linearly rescales one set of variables to another set of variables
-    with a different scale and then flags data courses that significantly deviate
-    from a group of normal courses.
+    The function linearly rescales one set of variables to another set of variables
+    with a different scale and then flags value courses that significantly deviate
+    from a group of normal value courses.
 
     The two sets of variables can be linearly scaled one to another and hence the
     scaling transformation is performed via linear regression: A linear regression is
@@ -290,49 +282,55 @@ def flagDriftFromScaledNorm(
     transformation is then calculated a the median of all the calculated slopes and
     intercepts.
 
-    Once the transformation is performed, values that deviate from a group of normal
-    values get flagged. "Normality" is determined in terms of
+    Once the transformation is performed, the function flags those values,
+    that deviate from a group of normal values. "Normality" is determined in terms of
     a maximum spreading distance, that members of a normal group must not exceed. In
     addition, only a group is considered "normal" if it contains more then `frac`
-    percent of the passed variables.
+    percent of the variables in "fields".
 
     Parameters
     ----------
-    data : DictOfSeries
-        The data.
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
 
     field : str
-        Ignored.
+        A dummy parameter.
 
-    flags : Flags
-        A flags object.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
 
     set_1 : str
-        First set of columns in data to be flagged.
+        The first set of fieldnames in data to be included into the flagging process.
 
     set_2 : str
-        Second set of columns in data to be flagged.
+        The second set of fieldnames in data to be included into the flagging process.
 
     freq : str
-        Frequency, that splits the data in chunks.
+        An offset string, determining the size of the seperate datachunks that the
+        algorihm is to be piecewise applied on.
 
     spread : float
-        Maximum spread in data considered normal. See Notes section for more details.
+        A parameter limiting the maximum "spread" of the timeseries, allowed in the
+        "normal" group. See Notes section for more details.
 
     frac : float, default 0.5
-        Fraction defining the normal group. Use a value from the interval [0,1].
-        The higher the value, the more stable the algorithm will. For values below
-        0.5 the results are undefined.
+        Has to be in [0,1]. Determines the minimum percentage of variables,
+        the "normal" group has to comprise to be the normal group actually. The
+        higher that value, the more stable the algorithm will be with respect to
+        false positives. Also, nobody knows what happens, if this value is below 0.5.
 
-    metric : Callable, default ``lambda x,y:pdist(np.array([x,y]),metric="cityblock")/len(x)``
-        Distance function that takes two arrays as input and return a scalar float.
-        This value is interpreted as the distance of the two input arrays.
-        Defaults to the `averaged manhattan metric` (see Notes).
+    metric : Callable[(numpyp.array, numpy-array), float]
+        A distance function. It should be a function of 2 1-dimensional arrays and
+        return a float scalar value. This value is interpreted as the distance of the
+        two input arrays. The default is the averaged manhatten metric. See the Notes
+        section to get an idea of why this could be a good choice.
 
-    method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
-        Linkage method used for hierarchical (agglomerative) clustering of the data.
-        `method` is directly passed to ``scipy.hierarchy.linkage``. See its documentation [1] for
-        more details. For a general introduction on hierarchical clustering see [2].
+    method : str, default "single"
+        The linkage method used for hierarchical (agglomerative) clustering of the
+        timeseries. See the Notes section for more details. The keyword gets passed
+        on to scipy.hierarchy.linkage. See its documentation to learn more about the
+        different keywords (References [1]). See wikipedia for an introduction to
+        hierarchical clustering (References [2]).
 
     target : None
         ignored
@@ -343,7 +341,10 @@ def flagDriftFromScaledNorm(
     Returns
     -------
     data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
     flags : saqc.Flags
+        The quality flags of data
+        Flags values may have changed relatively to the input flags.
 
     References
     ----------
@@ -411,21 +412,17 @@ def correctDrift(
 
     Parameters
     ----------
-    data : DictOfSeries
-        The data container.
-
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
     field : str
-        Column in data and flags.
-
+        The fieldname of the data column, you want to correct.
     flags : saqc.Flags
-        Flags container.
-
+        Container to store quality flags to data.
     maintenance_field : str
-        Column holding the support-points information.
-        The data is expected to have the following form:
-        The index of the series represents the beginning of a maintenance
-        event, wheras the values represent its endings.
-
+        The fieldname of the datacolumn holding the support-points information.
+        The maint data is to expected to have following form:
+        The series' timestamp itself represents the beginning of a
+        maintenance event, wheras the values represent the endings of the maintenance intervals.
     model : Callable or {'exponential', 'linear'}
         A modelfunction describing the drift behavior, that is to be corrected.
         Either use built-in exponential or linear drift model by passing a string, or pass a custom callable.
@@ -434,10 +431,9 @@ def correctDrift(
         After the data parameter, there can occure an arbitrary number of model calibration arguments in
         the signature.
         See the Notes section for an extensive description.
-
     cal_range : int, default 5
-        Number of values to calculate the mean of, for obtaining the value level directly
-        after and directly before a maintenance event. Needed for shift calibration.
+        The number of values the mean is computed over, for obtaining the value level directly after and
+        directly before maintenance event. This values are needed for shift calibration. (see above description)
 
     Returns
     -------
@@ -449,23 +445,21 @@ def correctDrift(
 
     Notes
     -----
-    It is assumed, that between support points, there is a drift effect shifting the
-    meassurements in a way, that can be described, by a model function M(t, *p, origin, target).
-    (With 0<=t<=1, p being a parameter set, and origin, target being floats).
+    It is assumed, that between support points, there is a drift effect shifting the meassurements in a way, that
+    can be described, by a model function ``M(t, *p, origin, target)``. (With ``0<=t<=1``, ``p`` being a parameter
+    set, and ``origin``, ``target`` being floats).
 
     Note, that its possible for the model to have no free parameters p at all. (linear drift mainly)
 
-    The drift model, directly after the last support point (t=0),
-    should evaluate to the origin - calibration level (origin), and directly before the next
-    support point (t=1), it should evaluate to the target calibration level (target).
-
+    The drift model, directly after the last support point (``t=0``),
+    should evaluate to the origin - calibration level (``origin``), and directly before the next support point
+    (``t=1``), it should evaluate to the target calibration level (``target``).::
 
         M(0, *p, origin, target) = origin
         M(1, *p, origin, target) = target
 
-
-    The model is than fitted to any data chunk in between support points, by optimizing
-    the parameters p*, and thus, obtaining optimal parameterset P*.
+    The model is than fitted to any data chunk in between support points, by optimizing the parameters ``p*``, and
+    thus, obtaining optimal parameterset ``P*``.
 
     The new values at t are computed via:::
 
@@ -479,13 +473,12 @@ def correctDrift(
 
     Linear drift modell (no free parameters).
 
-
-    >>> Model = lambda t, origin, target: origin + t*target
+    >>> M = lambda t, origin, target: origin + t * target
 
     exponential drift model (exponential raise!)
 
     >>> expFunc = lambda t, a, b, c: a + b * (np.exp(c * x) - 1)
-    >>> Model = lambda t, p, origin, target: expFunc(t, (target - origin) / (np.exp(abs(c)) - 1), abs(c))
+    >>> M = lambda t, p, origin, target: expFunc(t, (target - origin) / (np.exp(abs(c)) - 1), abs(c))
 
     Exponential and linear driftmodels are part of the ``ts_operators`` library, under the names
     ``expDriftModel`` and ``linearDriftModel``.
@@ -545,7 +538,7 @@ def correctRegimeAnomaly(
     flags: Flags,
     cluster_field: str,
     model: CurveFitter,
-    tolerance: str = None,
+    tolerance: Optional[str] = None,
     epoch: bool = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -666,7 +659,7 @@ def correctOffset(
     spread: float,
     window: str,
     min_periods: int,
-    tolerance: str = None,
+    tolerance: Optional[str] = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -844,7 +837,7 @@ def assignRegimeAnomaly(
     cluster_field: str,
     spread: float,
     method: LinkageString = "single",
-    metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(
+    metric: Callable[[np.array, np.array], float] = lambda x, y: np.abs(
         np.nanmean(x) - np.nanmean(y)
     ),
     frac: float = 0.5,
