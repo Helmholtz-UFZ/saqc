@@ -27,54 +27,54 @@ def flagConstants(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flag constant data values.
-    
-    Flags plateaus of constant data if their maximum total change in
-    a rolling window does not exceed a certain threshold.
+        Flag constant data values.
 
-<<<<<<< HEAD
-    Any interval of values y(t),..y(t+n) is flagged, if:
-     - (1): n > `window`
-     - (2): |(y(t + i) - (t + j)| < `thresh`, for all i,j in [0, 1, ..., n]
-=======
-    Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
+        Flags plateaus of constant data if their maximum total change in
+        a rolling window does not exceed a certain threshold.
 
-    (1) n > `window`
-    (2) `|(y(t + i) - (t + j)|` < `thresh`, for all i,j in [0, 1, ..., n]
+    <<<<<<< HEAD
+        Any interval of values y(t),..y(t+n) is flagged, if:
+         - (1): n > `window`
+         - (2): |(y(t + i) - (t + j)| < `thresh`, for all i,j in [0, 1, ..., n]
+    =======
+        Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
 
-    Flag values are (semi-)constant.
->>>>>>> cookBux
+        (1) n > `window`
+        (2) `|(y(t + i) - (t + j)|` < `thresh`, for all i,j in [0, 1, ..., n]
 
-    Parameters
-    ----------
-    data : dios.DictOfSeries
-        The data container.
+        Flag values are (semi-)constant.
+    >>>>>>> cookBux
 
-    field : str
-        A column in flags and data.
+        Parameters
+        ----------
+        data : dios.DictOfSeries
+            The data container.
 
-    flags : saqc.Flags
-        The flags container.
-        
-    thresh : float
-        Maximum total change allowed per window.
-        
-    window : str | int
-        Size of the moving window. This is the number of observations used
-        for calculating the statistic. Each window will be a fixed size.
-        If its an offset then this will be the time period of each window.
-        Each window will be a variable sized based on the observations included
-        in the time-period.
-        
-    flag : float, default BAD
-        Flag to set.
+        field : str
+            A column in flags and data.
 
-    Returns
-    -------
-    data : dios.DictOfSeries
-        Unmodified data container
-    flags : saqc.Flags
-        The flags container
+        flags : saqc.Flags
+            The flags container.
+
+        thresh : float
+            Maximum total change allowed per window.
+
+        window : str | int
+            Size of the moving window. This is the number of observations used
+            for calculating the statistic. Each window will be a fixed size.
+            If its an offset then this will be the time period of each window.
+            Each window will be a variable sized based on the observations included
+            in the time-period.
+
+        flag : float, default BAD
+            Flag to set.
+
+        Returns
+        -------
+        data : dios.DictOfSeries
+            Unmodified data container
+        flags : saqc.Flags
+            The flags container
     """
     if not isinstance(window, (str, int)):
         raise TypeError("window must be offset string or int.")

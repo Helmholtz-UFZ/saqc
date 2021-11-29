@@ -421,21 +421,11 @@ def correctDrift(
         Flags container.
 
     maintenance_field : str
-<<<<<<< HEAD
         Column holding the support-points information.
-        The data is to expected to have following form:
-        The index of the series represent the beginning of a maintenance
+        The data is expected to have the following form:
+        The index of the series represents the beginning of a maintenance
         event, wheras the values represent its endings.
 
-    model : Callable
-        Function describing the drift behavior to correct.
-        The function must take an array as first parameter, but can support more parameter.
-        It must take the keywords ``origin`` and ``target``.
-=======
-        The fieldname of the datacolumn holding the support-points information.
-        The maint data is to expected to have following form:
-        The series' timestamp itself represents the beginning of a
-        maintenance event, wheras the values represent the endings of the maintenance intervals.
     model : Callable or {'exponential', 'linear'}
         A modelfunction describing the drift behavior, that is to be corrected.
         Either use built-in exponential or linear drift model by passing a string, or pass a custom callable.
@@ -443,7 +433,6 @@ def correctDrift(
         The starting parameter must always be the parameter, by wich the data is passed to the model.
         After the data parameter, there can occure an arbitrary number of model calibration arguments in
         the signature.
->>>>>>> cookBux
         See the Notes section for an extensive description.
 
     cal_range : int, default 5
@@ -460,7 +449,6 @@ def correctDrift(
 
     Notes
     -----
-<<<<<<< HEAD
     It is assumed, that between support points, there is a drift effect shifting the
     meassurements in a way, that can be described, by a model function M(t, *p, origin, target).
     (With 0<=t<=1, p being a parameter set, and origin, target being floats).
@@ -470,28 +458,14 @@ def correctDrift(
     The drift model, directly after the last support point (t=0),
     should evaluate to the origin - calibration level (origin), and directly before the next
     support point (t=1), it should evaluate to the target calibration level (target).
-=======
-    It is assumed, that between support points, there is a drift effect shifting the meassurements in a way, that
-    can be described, by a model function ``M(t, *p, origin, target)``. (With ``0<=t<=1``, ``p`` being a parameter
-    set, and ``origin``, ``target`` being floats).
 
-    Note, that its possible for the model to have no free parameters p at all. (linear drift mainly)
-
-    The drift model, directly after the last support point (``t=0``),
-    should evaluate to the origin - calibration level (``origin``), and directly before the next support point
-    (``t=1``), it should evaluate to the target calibration level (``target``).::
->>>>>>> cookBux
 
         M(0, *p, origin, target) = origin
         M(1, *p, origin, target) = target
 
-<<<<<<< HEAD
+
     The model is than fitted to any data chunk in between support points, by optimizing
     the parameters p*, and thus, obtaining optimal parameterset P*.
-=======
-    The model is than fitted to any data chunk in between support points, by optimizing the parameters ``p*``, and
-    thus, obtaining optimal parameterset ``P*``.
->>>>>>> cookBux
 
     The new values at t are computed via:::
 
@@ -505,16 +479,13 @@ def correctDrift(
 
     Linear drift modell (no free parameters).
 
-<<<<<<< HEAD
-    >>> lambda t, origin, target: origin + t*target
-=======
-    >>> M = lambda t, origin, target: origin + t * target
->>>>>>> cookBux
+
+    >>> Model = lambda t, origin, target: origin + t*target
 
     exponential drift model (exponential raise!)
 
     >>> expFunc = lambda t, a, b, c: a + b * (np.exp(c * x) - 1)
-    >>> lambda t, p, origin, target: expFunc(t, (target - origin) / (np.exp(abs(c)) - 1), abs(c))
+    >>> Model = lambda t, p, origin, target: expFunc(t, (target - origin) / (np.exp(abs(c)) - 1), abs(c))
 
     Exponential and linear driftmodels are part of the ``ts_operators`` library, under the names
     ``expDriftModel`` and ``linearDriftModel``.
@@ -696,7 +667,7 @@ def correctOffset(
     window: str,
     min_periods: int,
     tolerance: str = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Parameters
