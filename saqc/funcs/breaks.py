@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 
-"""Detecting breakish changes in timeseries value courses.
+"""
+Detecting breaks in data.
 
-This module provides functions to detect and flag  breakish changes in the data value course, like gaps
-(:py:func:`flagMissing`), jumps/drops (:py:func:`flagJumps`) or isolated values (:py:func:`flagIsolated`).
+This module provides functions to detect and flag breaks in data, for example temporal
+gaps (:py:func:`flagMissing`), jumps and drops (:py:func:`flagJumps`) or temporal
+isolated values (:py:func:`flagIsolated`).
 """
 
 from typing import Tuple
@@ -20,7 +22,6 @@ from saqc.constants import *
 from saqc.lib.tools import groupConsecutives
 from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.core.flags import Flags
-from saqc.core.history import History
 from saqc.core.register import _isflagged, register, flagging
 
 
@@ -34,25 +35,34 @@ def flagMissing(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The function flags all values indicating missing data.
+    Flag NaNs in data.
+
+    By default only NaNs are flagged, that not already have a flag.
+    `to_mask` can be used to pass a flag that is used as threshold.
+    Each flag worse than the threshold is replaced by the function.
+    This is, because the data gets masked (with NaNs) before the
+    function evaluates the NaNs.
 
     Parameters
     ----------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        The data container.
+
     field : str
-        The fieldname of the column, holding the data-to-be-flagged.
+        Column(s) in flags and data.
+
     flags : saqc.Flags
-        Container to store quality flags to data.
+        The flags container.
+
     flag : float, default BAD
-        flag to set.
+        Flag to set.
 
     Returns
     -------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        Unmodified data container
     flags : saqc.Flags
-        The quality flags of data
+        The flags container
     """
 
     datacol = data[field]
@@ -75,47 +85,53 @@ def flagIsolated(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    The function flags arbitrary large groups of values, if they are surrounded by sufficiently
-    large data gaps.
+    Find and flag temporal isolated groups of data.
 
-    A gap is a timespan containing either no data or data invalid only (usually `nan`) .
+    The function flags arbitrarily large groups of values, if they are surrounded by
+    sufficiently large data gaps. A gap is a timespan containing either no data at all
+    or NaNs only.
 
     Parameters
     ----------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        The data container.
+
     field : str
-        The fieldname of the column, holding the data-to-be-flagged.
+        Column(s) in flags and data.
+
     flags : saqc.Flags
-        A flags object
+        The flags container.
+
     gap_window : str
-        The minimum size of the gap before and after a group of valid values, making this group considered an
-        isolated group. See condition (2) and (3)
+        Minimum gap size required before and after a data group to consider it
+        isolated. See condition (2) and (3)
+
     group_window : str
-        The maximum temporal extension allowed for a group that is isolated by gaps of size 'gap_window',
-        to be actually flagged as isolated group. See condition (1).
+        Maximum size of a data chunk to consider it a candidate for an isolated group.
+        Data chunks that are bigger than the ``group_window`` are ignored.
+        This does not include the possible gaps surrounding it.
+        See condition (1).
+
     flag : float, default BAD
-        flag to set.
+        Flag to set.
 
     Returns
     -------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        Unmodified data container
     flags : saqc.Flags
-        The flags object, holding flags and additional information related to `data`.
+        The flags container
 
     Notes
     -----
-    A series of values :math:`x_k,x_{k+1},...,x_{k+n}`, with associated timestamps :math:`t_k,t_{k+1},...,t_{k+n}`,
-    is considered to be isolated, if:
+    A series of values :math:`x_k,x_{k+1},...,x_{k+n}`, with associated
+    timestamps :math:`t_k,t_{k+1},...,t_{k+n}`, is considered to be isolated, if:
 
     1. :math:`t_{k+1} - t_n <` `group_window`
-    2. None of the :math:`x_j` with :math:`0 < t_k - t_j <` `gap_window`, is valid (preceeding gap).
-    3. None of the :math:`x_j` with :math:`0 < t_j - t_(k+n) <` `gap_window`, is valid (succeding gap).
-
-    See Also
-    --------
-    :py:func:`flagMissing`
+    2. None of the :math:`x_j` with :math:`0 < t_k - t_j <` `gap_window`,
+        is valid (preceeding gap).
+    3. None of the :math:`x_j` with :math:`0 < t_j - t_(k+n) <` `gap_window`,
+        is valid (succeding gap).
     """
     gap_window = pd.tseries.frequencies.to_offset(gap_window)
     group_window = pd.tseries.frequencies.to_offset(group_window)
@@ -155,26 +171,34 @@ def flagJumps(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Flag where the mean of the values significantly changes (the data "jumps").
+    Flag jumps and drops in data.
+
+    Flag data where the mean of its values significantly changes (the data "jumps").
 
     Parameters
     ----------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        The data container.
+
     field : str
-        The reference variable, the deviation from wich determines the flagging.
+        Column(s) in flags and data.
+
     flags : saqc.Flags
-        A flags object, holding flags and additional informations related to `data`.
+        The flags container.
+
     thresh : float
-        The threshold, the mean of the values have to change by, to trigger flagging.
+        Threshold value by which the mean of data has to change to trigger flagging.
+
     window : str
-        The temporal extension, of the rolling windows, the mean values that are to be
-        compared, are obtained from.
+        Size of the moving window. This is the number of observations used
+        for calculating the statistic.
+
     min_periods : int, default 1
-        Minimum number of periods that have to be present in a window of size `window`,
-        so that the mean value obtained from that window is regarded valid.
+        Minimum number of observations in window required to calculate a valid
+        mean value.
+
     flag : float, default BAD
-        flag to set.
+        Flag to set.
     """
     return _assignChangePointCluster(
         data,
