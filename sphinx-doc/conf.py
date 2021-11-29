@@ -88,6 +88,7 @@ doctest_global_setup = """
 import saqc
 import pandas as pd
 import numpy as np
+from saqc.constants import *
 """
 # -- Other options -----------------------------------------------------------
 

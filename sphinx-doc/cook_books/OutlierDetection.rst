@@ -206,6 +206,7 @@ representation of it, with the :py:attr:`data <saqc.core.core.SaQC.data>` method
 To see all the results obtained so far, plotted in one figure window, we make use of the dataframes `plot <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html>`_ method.
 
 .. doctest:: exampleOD
+
    >>> data.plot()
    <AxesSubplot:>
 
