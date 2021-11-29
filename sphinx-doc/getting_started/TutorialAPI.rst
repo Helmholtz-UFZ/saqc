@@ -1,3 +1,7 @@
+.. testsetup:: python
+
+   np.random.seed(100)
+
 Python API
 ==========
 
@@ -33,7 +37,7 @@ of an appropriate flagging scheme. For reasons of simplicity, we'll use the ``Si
 the following examples. However, as the flagging schemes are mostly interchangable, replacing the ``SimpleScheme``
 with something more elaborate, is in fact a one line change. So let's start with:
 
-.. code-block:: python
+.. testcode:: python
 
    import numpy as np
    import pandas as pd
@@ -58,9 +62,9 @@ Moving on - Quality control your data
 The ``qc`` variable now serves as the base for all further processing steps. As mentioned above, all
 available functions appear as methods of the ``SaQC``  class, so we can add a tests to our suite with:
 
-.. code-block:: python
+.. testcode:: python
 
-   qc.flagRange("a", min=20, max=80)
+   qc = qc.flagRange("a", min=20, max=80)
 
 :py:func:`flagRange <Functions.saqc.flagRange>` is the easiest of all functions and simply marks all values
 smaller than ``min`` and larger than ``max``. This feature by itself wouldn't be worth the trouble of getting
@@ -73,7 +77,7 @@ structures, so we only create shallow copies). Setting up more complex quality c
 the additional methods :py:func:`flagConstants <Functions.saqc.flagConstants>` and
 :py:func:`flagByGrubbs <Functions.saqc.flagByGrubbs>`) is therefore simply a matter of method chaining. 
 
-.. code-block:: python
+.. testcode:: python
 
    # execute some tests
    qc = (qc
@@ -90,20 +94,46 @@ we have seen above, calling quality checks does however not immediately return t
 associated flags, but rather an new ``SaQC`` object. The actual execution products are accessible through a
 number of different attributes, of which you likely might want to use the following:
 
-.. code-block:: python
+.. doctest:: python
 
-   # retrieve the data as a pandas.DataFrame
-   qc.data
+   >>> qc.data # retrieve the data as a pandas.DataFrame
+   columns        a
+   2020-01-01   8.0
+   2020-01-02  24.0
+   2020-01-03  67.0
+   2020-01-04  87.0
+   2020-01-05  79.0
+   ...          ...
+   2020-04-05  38.0
+   2020-04-06  86.0
+   2020-04-07  94.0
+   2020-04-08  98.0
+   2020-04-09  42.0
+   <BLANKLINE>
+   [100 rows x 1 columns]
+   >>> qc.flags # retrieve the flags as a pandas.DataFrame
+   columns             a
+   2020-01-01        BAD
+   2020-01-02  UNFLAGGED
+   2020-01-03  UNFLAGGED
+   2020-01-04        BAD
+   2020-01-05  UNFLAGGED
+   ...               ...
+   2020-04-05  UNFLAGGED
+   2020-04-06        BAD
+   2020-04-07        BAD
+   2020-04-08        BAD
+   2020-04-09  UNFLAGGED
+   <BLANKLINE>
+   [100 rows x 1 columns]
 
-   # retrieve the flags as a pandas.DataFrame
-   qc.flags
 
 
 Putting it together - The complete workflow
 -------------------------------------------
 The snippet below provides you with a compete example from the things we have seen so far.
 
-.. code-block:: python
+.. testcode:: python
 
    import numpy as np
    import pandas as pd
@@ -142,8 +172,8 @@ We provide an elaborated plotting method to generate and show or write matplotli
 the example :ref:`above <getting_started/TutorialAPI:putting it together - the complete workflow>` above
 simply call:
 
-.. code-block:: python
+.. testcode:: python
 
-   qc.plot("a")
+   qc = qc.plot("a")
 
 .. image:: /ressources/images/tutorial_api_1.png
