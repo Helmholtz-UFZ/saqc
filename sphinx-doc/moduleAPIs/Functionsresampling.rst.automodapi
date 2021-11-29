@@ -1,0 +1,16 @@
+resampling
+==========
+
+
+ 
+
+
+.. automodule:: Functions.resampling
+
+Functions
+^^^^^^^^^
+
+.. automodsumm:: Functions.resampling
+    :functions-only:
+    :toctree: ../_api
+

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
-from math import floor
 from typing import Tuple, Union
 from typing_extensions import Literal
 import numpy as np
@@ -25,7 +25,7 @@ def fitPolynomial(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: Union[int, str],
+    window: int | str,
     order: int,
     min_periods: int = 0,
     **kwargs
@@ -52,37 +52,40 @@ def fitPolynomial(
 
     Parameters
     ----------
-    data : dios.DictOfSeries
-        The data.
+    data : DictOfSeries
+        The data container.
 
     field : str
-        The column, holding the data-to-be-modelled.
+        A column in flags and data.
 
-    flags : saqc.Flags
-        Container to store quality flags to data.
+    flags : Flags
+        The flags container.
 
-    window : {str, int}
-        The size of the window you want to use for fitting. If an integer is passed,
+    window : str, int
+        Size of the window you want to use for fitting. If an integer is passed,
         the size refers to the number of periods for every fitting window. If an
         offset string is passed, the size refers to the total temporal extension. The
         window will be centered around the vaule-to-be-fitted. For regularly sampled
-        timeseries the period number will be casted down to an odd number if even.
+        data always a odd number of periods will be used for the fit (periods-1 if
+        periods is even).
 
     order : int
-        The degree of the polynomial used for fitting
+        Degree of the polynomial used for fitting
 
     min_periods : int or None, default 0
-        The minimum number of periods, that has to be available in every values
-        fitting surrounding for the polynomial fit to be performed. If there are not
-        enough values, np.nan gets assigned. Default (0) results in fitting
-        regardless of the number of values present (results in overfitting for too
-        sparse intervals). To automatically set the minimum number of periods to the
-        number of values in an offset defined window size, pass np.nan.
+        Minimum number of observations in a window required to perform the fit,
+        otherwise NaNs will be assigned.
+        If ``None``, `min_periods` defaults to 1 for integer windows and to the
+        size of the window for offset based windows.
+        Passing 0, disables the feature and will result in over-fitting for too
+        sparse windows.
 
     Returns
     -------
     data : dios.DictOfSeries
+        Modified data
     flags : saqc.Flags
+        Flags
     """
     reserved = ["residues", "set_flags"]
     filterKwargs(kwargs, reserved)

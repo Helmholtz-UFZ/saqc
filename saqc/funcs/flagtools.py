@@ -206,54 +206,64 @@ def flagManual(
     --------
     An example for mdata
 
-    >>> mdata = pd.Series([1,0,1], index=pd.to_datetime(['2000-02', '2000-03', '2001-05']))
-    >>> mdata
-    2000-02-01    1
-    2000-03-01    0
-    2001-05-01    1
-    dtype: int64
+    .. doctest:: ExampleFlagManual
 
-    On *dayly* data, with the 'ontime' method, only the provided timestamnps are used.
+       >>> mdata = pd.Series([1,0,1], index=pd.to_datetime(['2000-02', '2000-03', '2001-05']))
+       >>> mdata
+       2000-02-01    1
+       2000-03-01    0
+       2001-05-01    1
+       dtype: int64
+
+    On *dayly* data, with the 'ontime' method, only the provided timestamps are used.
     Bear in mind that only exact timestamps apply, any offset will result in ignoring
     the timestamp.
 
-    >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='ontime')
-    >>> fl[field] > UNFLAGGED
-    2000-01-31    False
-    2000-02-01    True
-    2000-02-02    False
-    2000-02-03    False
-    ..            ..
-    2000-02-29    False
-    2000-03-01    True
-    2000-03-02    False
-    Freq: D, dtype: bool
+    .. doctest:: ExampleFlagManual
+
+       >>> data = a=pd.Series(0, index=pd.date_range('2000-01-31', '2000-03-02', freq='1D'), name='dailyData')
+       >>> qc = saqc.SaQC(data)
+       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='ontime')
+       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       2000-01-31    False
+       2000-02-01    True
+       2000-02-02    False
+       2000-02-03    False
+       ..            ..
+       2000-02-29    False
+       2000-03-01    True
+       2000-03-02    False
+       Freq: D, dtype: bool
 
     With the 'right-open' method, the mdata is forward fill:
 
-    >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='right-open')
-    >>> fl[field] > UNFLAGGED
-    2000-01-31    False
-    2000-02-01    True
-    2000-02-02    True
-    ..            ..
-    2000-02-29    True
-    2000-03-01    False
-    2000-03-02    False
-    Freq: D, dtype: bool
+    .. doctest:: ExampleFlagManual
+
+       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='right-open')
+       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       2000-01-31    False
+       2000-02-01    True
+       2000-02-02    True
+       ..            ..
+       2000-02-29    True
+       2000-03-01    False
+       2000-03-02    False
+       Freq: D, dtype: bool
 
     With the 'left-open' method, backward filling is used:
 
-    >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='left-open')
-    >>> fl[field] > UNFLAGGED
-    2000-01-31    False
-    2000-02-01    False
-    2000-02-02    True
-    ..            ..
-    2000-02-29    True
-    2000-03-01    True
-    2000-03-02    False
-    Freq: D, dtype: bool
+    .. doctest:: ExampleFlagManual
+
+       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='left-open')
+       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       2000-01-31    False
+       2000-02-01    False
+       2000-02-02    True
+       ..            ..
+       2000-02-29    True
+       2000-03-01    True
+       2000-03-02    False
+       Freq: D, dtype: bool
     """
     dat = data[field]
     # internal not-mflag-value -> cant go for np.nan
