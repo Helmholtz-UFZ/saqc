@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 """The system for automated quality controll package."""
 
-__version__ = "1.4"
+from saqc.version import __version__
 
-# import order: from small to big
 from saqc.constants import (
     UNFLAGGED,
     GOOD,
@@ -12,6 +11,7 @@ from saqc.constants import (
     BAD,
 )
 
+# import order: from small to big, to a void cycles
 from saqc.core import (
     Flags,
     SaQC,

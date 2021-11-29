@@ -1,11 +1,21 @@
 from setuptools import setup, find_packages
+from distutils.util import convert_path
+
+# read the version string from saqc without importing it. See the
+# link for a more detailed description of the problem and the solution
+# https://stackoverflow.com/questions/2058802/how-can-i-get-the-version-defined-in-setup-py-setuptools-in-my-package
+vdict = {}
+version_fpath = convert_path("saqc/version.py")
+with open(version_fpath) as f:
+    exec(f.read(), vdict)
+version = vdict["__version__"]
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
     name="saqc",
-    version="2.0.0",
+    version=version,
     author="Bert Palm, David Schaefer, Peter Luenenschloss, Lennard Schmidt",
     author_email="david.schaefer@ufz.de",
     description="Data quality checking and processing tool/framework",
