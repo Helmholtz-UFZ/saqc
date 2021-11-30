@@ -34,6 +34,7 @@ clean:
 	rm -f *.automodapi
 	rm -f moduleAPIs/*.automodsumm
 	rm -f moduleAPIs/*.automodapi
+	rm -f */*.automodsumm
 
 # trigger (saqc) customized documentation pipeline
 doc:
