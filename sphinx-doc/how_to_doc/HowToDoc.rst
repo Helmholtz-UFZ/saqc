@@ -259,13 +259,17 @@ doctest flags that can mitigate frustration:
       >>> 'abcdefg' #doctest:+ELLIPSIS
       'a...b'
 
-#. SKIP skips the chek all together. (usually used, if display is demanded, but testing would somehow be unstable, due to random/unpredictable components)
+#. SKIP skips the check (and execution of the line) all together. (usually used, if display is demanded, but testing would somehow be unstable, due to random/unpredictable components)
 
    .. code-block:: rest
 
       >>> time #doctest:+SKIP
       CPU times: user 5 µs, sys: 3 µs, total: 8 µs
       Wall time: 13.8 µs
+
+   .. caution::
+      Skipped lines are NOT tested! The execution of the line is skipped all together with the check against the
+      expected output.
 
 To assign a group to doctest snippets, use the more verbose `doctest` directive:
 
@@ -277,7 +281,7 @@ To assign a group to doctest snippets, use the more verbose `doctest` directive:
       CPU times: user 5 µs, sys: 3 µs, total: 8 µs
       Wall time: 13.8 µs
 
-Will ber rendered, as:
+Will be rendered, as:
 
 .. doctest:: group1
 
