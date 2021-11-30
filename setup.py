@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="saqc",
-    version="2.0",
+    version="2.0.0",
     author="Bert Palm, David Schaefer, Peter Luenenschloss, Lennard Schmidt",
     author_email="david.schaefer@ufz.de",
     description="Data quality checking and processing tool/framework",
