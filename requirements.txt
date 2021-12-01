@@ -1,6 +1,6 @@
 Click==8.0.1
 dtw==1.4.0
-hypothesis==6.23.1
+hypothesis==6.29.0
 matplotlib==3.4.3
 numba==0.54.0
 numpy==1.20.3
