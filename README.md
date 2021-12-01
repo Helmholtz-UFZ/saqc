@@ -1,8 +1,10 @@
+<a href="https://www.ufz.de/index.php?en=33573">
+    <img src="sphinx-doc/ressources/images/Representative/UFZLogo.png" width="400"/>
+</a>
 
-<img src="sphinx-doc/ressources/images/Representative/UFZLogo.jpg" width="400"/>
-
-<img src="sphinx-doc/ressources/images/Representative/RDMlogo.jpg" align="right" width="180"/>
-
+<a href="https://www.ufz.de/index.php?en=45348">
+    <img src="sphinx-doc/ressources/images/Representative/RDMLogo.png" align="right" width="220"/>
+</a>
 
 # System for automated Quality Control (SaQC)
 
