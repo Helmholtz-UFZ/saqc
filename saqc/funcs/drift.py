@@ -451,7 +451,7 @@ def correctDrift(
     Notes
     -----
     It is assumed, that between support points, there is a drift effect shifting the
-    meassurements in a way, that can be described, by a model function M(t, *p, origin, target).
+    meassurements in a way, that can be described, by a model function M(t, p, origin, target).
     (With 0<=t<=1, p being a parameter set, and origin, target being floats).
 
     Note, that its possible for the model to have no free parameters p at all. (linear drift mainly)
@@ -461,16 +461,16 @@ def correctDrift(
     support point (t=1), it should evaluate to the target calibration level (target).
 
 
-        M(0, *p, origin, target) = origin
-        M(1, *p, origin, target) = target
+        M(0, p, origin, target) = origin
+        M(1, p, origin, target) = target
 
 
     The model is than fitted to any data chunk in between support points, by optimizing
-    the parameters p*, and thus, obtaining optimal parameterset P*.
+    the parameters p, and thus, obtaining optimal parameterset P.
 
     The new values at t are computed via:::
 
-        new_vals(t) = old_vals(t) + M(t, *P, origin, target) - M_drift(t, *P, origin, new_target)
+        new_vals(t) = old_vals(t) + M(t, P, origin, target) - M_drift(t, P, origin, new_target)
 
     Wheras ``new_target`` represents the value level immediately after the next support point.
 
