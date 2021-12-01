@@ -81,6 +81,7 @@ pages:
     - cd sphinx-doc/
     - pip install -r requirements_sphinx.txt
     - make doc
+    - make doctest
     - cp -r _build/html ../public
   artifacts:
     paths:
