@@ -34,7 +34,7 @@ doc:
 	# generate environment table from dictionary
 	python scripts/make_env_tab.py
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-
+	python scripts/modify_html_API.py
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile

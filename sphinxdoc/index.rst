@@ -47,7 +47,6 @@ Getting Started
    :glob:
    :titlesonly:
 
-   all <funcSummaries/saqc>
    resampling <funcSummaries/resampling>
    generic <funcSummaries/generic>
    outliers <funcSummaries/outliers>
@@ -70,9 +69,9 @@ Getting Started
 .. toctree::
    :caption: SaQC
    :hidden:
-   :maxdepth: 1
+   :maxdepth: 2
 
-   SaQC Object <moduleAPIs/saqcClass>
+   Package <moduleAPIs/saqc>
    Config Environment <environment/configEnv>
 
 

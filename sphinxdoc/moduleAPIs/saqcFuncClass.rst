@@ -2,7 +2,7 @@
 SaQC
 ====
 
-.. automodapi:: sphinxdoc.coredoc.core
+.. automodapi:: sphinxdoc.coredoc
 
 
 

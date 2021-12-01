@@ -213,17 +213,17 @@ def makeModuleSummaries(modules, folder_path="../funcSummaries"):
         shutil.rmtree(f_path)
     os.makedirs(f_path, exist_ok=True)
 
-    for m in [m for m in modules.keys() if m.split('_')[-1] != 'dcstring']:
+    for m in [m for m in modules.keys() if m.split("_")[-1] != "dcstring"]:
         lines = []
         lines += [m]
         lines += ["=" * len(m)]
         lines += [""]
-        lines += [modules[m + '_dcstring']]
+        lines += [modules[m + "_dcstring"]]
         lines += [""]
         lines += [f".. currentmodule:: saqc", ""]
         lines += [".. autosummary::", ""]
         for func in modules[m]:
-            lines += [3*" " + f"~SaQC.{func.split('.')[-1]}"]
+            lines += [3 * " " + f"~SaQC.{func.split('.')[-1]}"]
 
         with open(os.path.join(f_path, f"{m}.rst"), "w") as f:
             for l in lines:
@@ -241,7 +241,6 @@ def makeModuleSummaries(modules, folder_path="../funcSummaries"):
     default="saqc/funcs",
     help="Relative path to the package to be documented (relative to sphinx root).",
 )
-
 @click.option(
     "-sr",
     "--sphinxroot",
@@ -250,7 +249,6 @@ def makeModuleSummaries(modules, folder_path="../funcSummaries"):
     default="../..",
     help="Relative path to the sphinx root.",
 )
-
 def main(pckpath, sphinxroot):
     root_path = os.path.abspath(sphinxroot)
     pkg_path = os.path.join(root_path, pckpath)
@@ -261,9 +259,9 @@ def main(pckpath, sphinxroot):
     for _, modname, _ in pkgutil.walk_packages(path=[pkg_path], onerror=lambda x: None):
         modules.append(modname)
 
-    if os.path.isdir(coretrg):
-        shutil.rmtree(coretrg)
-    os.makedirs(coretrg, exist_ok=True)
+    # if os.path.isdir(coretrg):
+    #    shutil.rmtree(coretrg)
+    # os.makedirs(coretrg, exist_ok=True)
 
     # parse all the functions
     module_paths = [os.path.join(pkg_path, f"{m}.py") for m in modules]

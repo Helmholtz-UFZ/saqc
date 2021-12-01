@@ -3,14 +3,14 @@ SaQC
 ====
 
 
-sphinxdoc.coredoc.core Module
------------------------------
+sphinxdoc.coredoc Package
+-------------------------
 
-.. automodule:: sphinxdoc.coredoc.core
+.. automodule:: sphinxdoc.coredoc
 
 Classes
 ^^^^^^^
 
-.. automodsumm:: sphinxdoc.coredoc.core
+.. automodsumm:: sphinxdoc.coredoc
     :classes-only:
     :toctree: ../_api

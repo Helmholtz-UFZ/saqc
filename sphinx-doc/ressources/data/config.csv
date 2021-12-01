@@ -1,6 +1,0 @@
-varname    ; test                                ; plot
-#----------;-------------------------------------;------
-SM2        ; shift(freq="15Min")                 ; False
-SM2        ; flagMissing()                       ; False
-'SM(1|2)+' ; flagRange(min=10, max=60)           ; False
-SM2        ; flagMAD(window="30d", z=3.5) ; True

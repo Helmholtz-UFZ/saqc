@@ -1,8 +1,0 @@
-
-SaQC
-====
-
-.. automodapi:: saqc
-
-
-
