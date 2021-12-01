@@ -71,6 +71,8 @@ extensions = [
 
 
 # -- Params of the extensions ------------------------------------------------
+autosummary_ignore_module_all = True
+autosummary_imported_members = False
 add_module_names = False
 numpydoc_show_class_members = False
 plot_html_show_formats = False

@@ -1,0 +1,16 @@
+generic
+=======
+
+
+ 
+
+
+.. automodule:: Functions.generic
+
+Functions
+^^^^^^^^^
+
+.. automodsumm:: Functions.generic
+    :functions-only:
+    :toctree: ../_api
+

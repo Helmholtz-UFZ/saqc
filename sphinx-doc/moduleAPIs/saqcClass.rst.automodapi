@@ -1,0 +1,18 @@
+
+SaQC
+====
+
+
+Core.Core Module
+----------------
+
+.. automodule:: Core.Core
+
+Classes
+^^^^^^^
+
+.. automodsumm:: Core.Core
+    :classes-only:
+    :toctree: ../_api
+    :skip: History, TranslationScheme, NonSense
+

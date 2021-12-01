@@ -1,0 +1,16 @@
+changepoints
+============
+
+
+ 
+
+
+.. automodule:: Functions.changepoints
+
+Functions
+^^^^^^^^^
+
+.. automodsumm:: Functions.changepoints
+    :functions-only:
+    :toctree: ../_api
+

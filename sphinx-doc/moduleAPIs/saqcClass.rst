@@ -2,4 +2,5 @@
 SaQC
 ====
 
-* :py:class:`saqc.SaQC <Core.Core.SaQC>`
+.. automodapi:: Core.Core
+   :skip: History, TranslationScheme, NonSense
