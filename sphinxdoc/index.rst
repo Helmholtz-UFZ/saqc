@@ -47,24 +47,24 @@ Getting Started
    :glob:
    :titlesonly:
 
-   all <moduleAPIs/Functionssaqc>
-   resampling <moduleAPIs/Functionsresampling>
-   generic <moduleAPIs/Functionsgeneric>
-   outliers <moduleAPIs/Functionsoutliers>
-   breaks <moduleAPIs/Functionsbreaks>
-   constants <moduleAPIs/Functionsconstants>
-   changepoints <moduleAPIs/Functionschangepoints>
-   drift <moduleAPIs/Functionsdrift>
-   curvefit <moduleAPIs/Functionscurvefit>
-   interpolation <moduleAPIs/Functionsinterpolation>
-   residues <moduleAPIs/Functionsresidues>
-   tools <moduleAPIs/Functionstools>
-   flagtools <moduleAPIs/Functionsflagtools>
-   rolling <moduleAPIs/Functionsrolling>
-   scores <moduleAPIs/Functionsscores>
-   transformation <moduleAPIs/Functionstransformation>
-   noise <moduleAPIs/Functionsnoise>
-   pattern <moduleAPIs/Functionspattern>
+   all <funcSummaries/saqc>
+   resampling <funcSummaries/resampling>
+   generic <funcSummaries/generic>
+   outliers <funcSummaries/outliers>
+   breaks <funcSummaries/breaks>
+   constants <funcSummaries/constants>
+   changepoints <funcSummaries/changepoints>
+   drift <funcSummaries/drift>
+   curvefit <funcSummaries/curvefit>
+   interpolation <funcSummaries/interpolation>
+   residues <funcSummaries/residues>
+   tools <funcSummaries/tools>
+   flagtools <funcSummaries/flagtools>
+   rolling <funcSummaries/rolling>
+   scores <funcSummaries/scores>
+   transformation <funcSummaries/transformation>
+   noise <funcSummaries/noise>
+   pattern <funcSummaries/pattern>
 
 
 .. toctree::
@@ -90,7 +90,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-
-:py:meth:`sphinxdoc.Core.SaQC.flagRange`
-:py:class:`sphinxdoc.Core.SaQC`

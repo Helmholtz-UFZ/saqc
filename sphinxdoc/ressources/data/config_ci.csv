@@ -1,0 +1,7 @@
+varname;test;plot
+SM2;shift(freq="15Min");False
+'.*';flagRange(min=10, max=60);False
+SM2;flagMissing();False
+SM2;flagRange(min=10, max=60);False
+SM2;flagMAD(window="30d", z=3.5);False
+Dummy;flag(func=(isflagged(SM1) | isflagged(SM2)))
