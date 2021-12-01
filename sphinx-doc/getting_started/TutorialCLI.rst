@@ -11,16 +11,16 @@ Contents
 --------
 
 
-* :ref:`1 Get toy data and configuration <getting_started/GettingStarted:get toy data and configuration>`
-* :ref:`2 Run SaQC <getting_started/GettingStarted:run saqc>`
-* :ref:`3 Configure SaQC <getting_started/GettingStarted:configure saqc>`
+* `1. Get toy data and configuration`_
+* `2. Run SaQC`_
+* `3. Configure SaQC`_
 
-  * :ref:`Change test parameters <getting_started/GettingStarted:change test parameters>`
+  * `Change test parameters`_
 
-* :ref:`4 Explore the functionality <getting_started/GettingStarted:explore the functionality>`
+* `4. Explore the functionality`_
 
-  * :ref:`Process multiple variables <getting_started/GettingStarted:process multiple variables>`
-  * :ref:`Data harmonization and custom functions <getting_started/GettingStarted:data harmonization and custom functions>`
+  * `Process multiple variables`_
+  * `Data harmonization and custom functions`_
 
 
 The following passage guides you through the essentials of the usage of SaQC via
@@ -63,22 +63,28 @@ different variables,
 
 In this case, we define a range-test that flags all values outside the range
 [10,60] and a test to detect spikes using the MAD-method. You can find an
-overview of all available quality control tests in the
-:doc:`documentation <FunctionIndex>`. Note that the tests are
+overview of all available quality control tests :py:mod:`here <Functions.saqc>`. Note that the tests are
 *executed in the order that you define in the configuration file*. The quality
 flags that are set during one test are always passed on to the subsequent one.
 
 2. Run SaQC
 -----------
 
-Remember to have your virtual environment activated:
-
 On Unix/Mac-systems
 """""""""""""""""""
+
+Remember to have your virtual environment activated:
 
 .. code-block:: sh
 
    source env_saqc/bin/activate
+
+From here, you can run saqc and tell it to run the tests from the toy
+config-file on the toy dataset via the ``-c`` and ``-d`` options:
+
+.. code-block:: sh
+
+   python3 -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
 
 On Windows
 """"""""""
@@ -97,15 +103,6 @@ Via your console, move into the folder you downloaded saqc into:
 From here, you can run saqc and tell it to run the tests from the toy
 config-file on the toy dataset via the ``-c`` and ``-d`` options:
 
-On Unix/Mac-systems
-"""""""""""""""""""
-
-.. code-block:: sh
-
-   python3 -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
-
-On Windows
-""""""""""
 
 .. code-block:: sh
 
@@ -251,18 +248,18 @@ Data harmonization and custom functions
 
 SaQC includes functionality to harmonize the timestamps of one or more data
 series. Also, you can write your own tests using a python-based
-:doc:`extension language <GenericFunctions>`. This would look like this:
+:ref:`extension language <documentation/GenericFunctions:Generic Functions>`. This would look like this:
 
 .. code-block::
 
    varname;test;plot
-   SM2;shiftToFreq(freq="15Min");False
+   SM2;shift(freq="15Min");False
    SM2;generic(func=(SM2 < 30));True
 
 
 The above executes an internal framework that harmonizes the timestamps of SM2
-to a 15min-grid (see data below). Further information about this routine can be
-found in the :ref:`Flagging Functions Overview <flaggingFunctions>`.
+to a 15min-grid (:py:meth:`SaQC.shift <Core.Core.SaQC.shift>`). Further information on harmonization can be
+found in the :doc:`Resampling cookbook <../cook_books/DataRegularisation>`.
 
 .. code-block::
 
@@ -276,7 +273,7 @@ found in the :ref:`Flagging Functions Overview <flaggingFunctions>`.
 
 Also, all values where SM2 is below 30 are flagged via the custom function (see
 plot below). You can learn more about the syntax of these custom functions
-:doc:`here <GenericFunctions>`.
+:ref:`here <documentation/GenericFunctions:Generic Functions>`.
 
 
 .. image:: ../ressources/images/example_plot_4.png

@@ -68,7 +68,7 @@ Features
         * or use SaQC as a commandline application and configure your pipelines via plain text
     * - |sacRaw|
       - * easily load data from multiple sources, concatenating them in a SaQC object
-        * preprocess your data, by aligning it to shared frequency grids
+        * :ref:`preprocess your data, by aligning it to shared frequency grids <cook_books/DataRegularisation:Data Regularisation>`
     * - |sacFlagged|
       - * apply basic plausibility checks, as well as
         * more complex, univariat flagging Functions

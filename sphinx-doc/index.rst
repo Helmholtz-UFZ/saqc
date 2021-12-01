@@ -7,7 +7,6 @@
    :maxdepth: 1
 
    Repository <https://git.ufz.de/rdm-software/saqc>
-   Package API <moduleAPIs/saqcInit>
 
 Getting Started
 ===============
@@ -65,6 +64,7 @@ Getting Started
    scores <moduleAPIs/Functionsscores>
    transformation <moduleAPIs/Functionstransformation>
    noise <moduleAPIs/Functionsnoise>
+   pattern <moduleAPIs/Functionspattern>
 
 
 .. toctree::
@@ -73,7 +73,6 @@ Getting Started
    :maxdepth: 1
 
    SaQC Object <moduleAPIs/saqcClass>
-   Constants <moduleAPI/saqcConstants>
    Config Environment <environment/configEnv>
 
 

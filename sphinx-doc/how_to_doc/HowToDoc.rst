@@ -72,11 +72,11 @@ Docstring formatting pitfalls
 
      :math:`<latex_code>`
 
-* Latex commands need to be signified with **double**   backlash! (\ ``\\mu`` instead of ``\mu``\ )
+* Latex commands need to be signified with **double**   backlash! (``\\mu``)
 * Nested lists need to be all of the same kind (either   numbered or marked - otherwise result is salad)
 * List items covering several lines in the docstring have to be all aligned - (so, not only the superfluent ones, but ALL, including the first one - otherwise result is salad)
 * Start of a list has to be seperated from preceding docstring code by *one blank line* - (otherwise list items get just chained in one line and result is salad)
-* Most formatting signifiers are not allowed to start or end with a space. (so no :math: `1+1 `, ` var2`, `` a=1 ``, ...)
+* Most formatting signifiers are not allowed to start or end with a space.
 * Do not include lines *only* containing two or more ``-`` signs, except it is the underscore line of the section heading (otherwise resulting html representation could be messed up)
 
 hyperlinking docstrings
