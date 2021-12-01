@@ -109,7 +109,7 @@ that refers to the loaded data.
    >>> qc = saqc.SaQC(data)
 
 The only timeseries have here, is the *incidents* dataset. We can have a look at the data and obtain the above plot through
-the method :py:meth:`plot <Functions.saqc.plot>`:
+the method :py:meth:`~saqc.SaQC.plot`:
 
 .. doctest:: exampleOD
 
@@ -125,7 +125,7 @@ Rolling Mean
 ^^^^^^^^^^^^
 
 Easiest thing to do, would be, to apply some rolling mean
-model via the method :py:meth:`roll <Functions.saqc.roll>`.
+model via the method :py:meth:`saqc.SaQC.roll`.
 
 .. doctest:: exampleOD
 
@@ -161,7 +161,7 @@ Polynomial Fit
 ^^^^^^^^^^^^^^
 
 Another common approach, is, to fit polynomials of certain degrees to the data.
-:py:class:`SaQC <Core.Core.SaQC>` provides the polynomial fit function :py:meth:`fitPolynomial <Core.Core.SaQC.fitPolynomial>`:
+:py:class:`SaQC <Core.Core.SaQC>` provides the polynomial fit function :py:meth:`~saqc.SaQC.fitPolynomial`:
 
 .. doctest:: exampleOD
 
@@ -174,7 +174,7 @@ Custom Models
 ^^^^^^^^^^^^^
 
 If you want to apply a completely arbitrary function to your data, without pre-chunking it by a rolling window, 
-you can make use of the more general :py:meth:`processGeneric <Functions.saqc.process>` function. 
+you can make use of the more general :py:meth:`~saqc.SaQC.process` function.
 
 Lets apply a smoothing filter from the `scipy.signal <https://docs.scipy.org/doc/scipy/reference/signal.html>`_ 
 module. We wrap the filter generator up into a function first:
@@ -187,7 +187,7 @@ module. We wrap the filter generator up into a function first:
        return pd.Series(filtfilt(b, a, x), index=x.index)
 
 
-This function object, we can pass on to the :py:meth:`processGeneric <Core.Core.SaQC.processGeneric>` methods ``func`` argument.
+This function object, we can pass on to the :py:meth:`~saqc.SaQC.processGeneric` methods ``func`` argument.
 
 .. doctest:: exampleOD
 
@@ -224,7 +224,7 @@ Residues
 We want to evaluate the residues of one of our models model, in order to score the outlierish-nes of every point. 
 Therefor we just stick to the initially calculated rolling mean curve.  
 
-First, we retrieve the residues via the :py:meth:`processGeneric <Core.Core.SaQC.processGeneric>` method.
+First, we retrieve the residues via the :py:meth:`~saqc.SaQC.processGeneric` method.
 This method always comes into play, when we want to obtain variables, resulting from basic algebraic
 manipulations of one or more input variables. 
 
@@ -249,7 +249,7 @@ for the point lying in the center of every window, we would define our function 
 
    >>> z_score = lambda D: abs((D[14] - np.mean(D)) / np.std(D))
 
-And subsequently, use the :py:meth:`~Core.Core.SaQC.roll` method to make a rolling window application with the scoring
+And subsequently, use the :py:meth:`~saqc.SaQC.roll` method to make a rolling window application with the scoring
 function:
 
 .. doctest:: exampleOD
@@ -273,7 +273,7 @@ So the attempt works fine, only because our data set is small and strictly regul
 Meaning that it has constant temporal distances between subsequent meassurements.
 
 In order to tweak our calculations and make them much more stable, it might be useful to decompose the scoring 
-into seperate calls to the :py:meth:`roll <Functions.saqc.roll>` function, by calculating the series of the 
+into seperate calls to the :py:meth:`~saqc.SaQC.roll` function, by calculating the series of the
 residues *mean* and *standard deviation* seperately:
 
 .. doctest:: exampleOD
@@ -285,12 +285,12 @@ residues *mean* and *standard deviation* seperately:
 With huge datasets, this will be noticably faster, compared to the method presented :ref:`initially <cook_books/OutlierDetection:Scores>`\ , 
 because ``saqc`` dispatches the rolling with the basic numpy statistic methods to an optimized pandas built-in.
 
-Also, as a result of the :py:meth:`~Core.Core.SaQC.roll` assigning its results to the center of every window,
+Also, as a result of the :py:meth:`~saqc.SaQC.roll` assigning its results to the center of every window,
 all the values are centered and we dont have to care about window center indices when we are generating 
 the *Z*\ -Scores from the two series. 
 
 We simply combine them via the
-:py:meth:`~Core.Core.SaQC.processGeneric` method, in order to obtain the scores:
+:py:meth:`~saqc.SaQC.processGeneric` method, in order to obtain the scores:
 
 .. doctest:: exampleOD
 
@@ -315,7 +315,7 @@ Flagging the Scores
 
 We can now implement the common `rule of thumb <https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule>`_\ , 
 that any *Z*\ -score value above *3* may indicate an outlierish data point, 
-by applying the :py:meth:`~Core.Core.SaQC.flagRange` method with a `max` value of *3*.
+by applying the :py:meth:`~saqc.SaQC.flagRange` method with a `max` value of *3*.
 
 .. doctest:: exampleOD
 
@@ -384,7 +384,7 @@ some flags based on some condition.
 In order want to *unflag* those values, that do not relate to
 sufficiently large residues, we assign them the :py:const:`~saqc.constants.UNFLAGGED` flag.
 
-Therefore, we make use of the :py:meth:`~Core.Core.SaQC.flagGeneric` method.
+Therefore, we make use of the :py:meth:`~saqc.SaQC.flagGeneric` method.
 This method usually comes into play, when we want to assign flags based on the evaluation of logical expressions.
 
 So, we check out, which residues evaluate to a level below *20*\ , and assign the 
@@ -416,7 +416,7 @@ Including multiple conditions
 
 If we do not want to first set flags, only to remove the majority of them in the next step, we also
 could circumvent the :ref:`unflagging <cook_books/OutlierDetection:Unflagging>` step, by adding to the call to
-:py:meth:`~Core.Core.SaQC.flagRange` the condition for the residues having to be above *20*
+:py:meth:`~saqc.SaQC.flagRange` the condition for the residues having to be above *20*
 
 .. doctest:: exampleOD
 

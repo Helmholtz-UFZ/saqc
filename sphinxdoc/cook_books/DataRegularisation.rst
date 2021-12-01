@@ -5,7 +5,7 @@ The tutorial aims to introduce the usage of ``SaQC`` methods, in order to obtain
 from given time series data input. Regularly sampled time series data, is data, that exhibits a constant temporal 
 spacing in between subsequent data points.
 
-In the following steps, the tutorial guides through the usage of the *SaQC* :py:mod:`resampling <saqc.resampling>`
+In the following steps, the tutorial guides through the usage of the *SaQC* :doc:`resampling <../funcSummaries/generic>`
 library.
 
 #. Initially, we introduce and motivate regularisation techniques and we do import the tutorial data.
@@ -118,7 +118,7 @@ Regularisations
 So lets transform the measurements timestamps to have a regular *10* minutes frequency. In order to do so, 
 we have to decide what to do with each time stamps associated data, when we alter the timestamps value.
 
-Basically, there are three types of :doc:`regularisations <../moduleAPIs/Functionsresampling>` methods: 
+Basically, there are three types of :doc:`regularisations <../funcSummaries/resampling>` methods:
 
 
 #. We could keep the values as they are, and thus, 
@@ -129,7 +129,7 @@ Basically, there are three types of :doc:`regularisations <../moduleAPIs/Functio
 Shift
 -----
 
-Lets apply a simple shift via the :py:func:`shift <Functions.saqc.shift>` method.
+Lets apply a simple shift via the :py:meth:`~saqc.SaQC.shift` method.
 
 .. doctest::
 
@@ -149,7 +149,7 @@ Freq parameter
 
 We passed the ``freq`` keyword of the intended sampling frequency in terms of a
 `date alias <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_ string. All of
-the :doc:`regularisations <../moduleAPIs/Functionsresampling>` methods have such a frequency keyword,
+the :doc:`regularisations <../funcSummaries/resampling>` methods have such a frequency keyword,
 and it just determines the sampling rate, the resulting regular timeseries will have.
 
 Shifting Method
@@ -157,7 +157,7 @@ Shifting Method
 
 With the ``method`` keyword, we determined the direction of the shift. We passed it the string ``bshift`` -
 which applies a *backwards* shift, so data points get shifted *backwards*\ , until they match a timestamp
-that is a multiple of *10* minutes. (See :py:func:`saqc.shift <Functions.saqc.shift>` documentation for more
+that is a multiple of *10* minutes. (See :py:meth:`~saqc.SaQC.shift` documentation for more
 details on the keywords.) 
 
 Lets see, how the data is now sampled. Therefore, we use the ``data_raw`` Atribute from the
@@ -193,7 +193,7 @@ We see, the first and last *10* datapoints of both, the original data time serie
 Obveously, the shifted data series now exhibits a regular sampling rate of *10* minutes, with the index
 ranging from the latest timestamp, that is a multiple of *10* minutes and preceeds the initial timestamp
 of the original data, up to the first *10* minutes multiple, that succeeds the last original datas timestamp.
-This is default behavior to all the :doc:`regularisations <../moduleAPIs/Functionsresampling>` provided by ``saqc``.
+This is default behavior to all the :doc:`regularisations <../funcSummaries/resampling>` provided by ``saqc``.
 
 Data Loss and Empty Intervals
 -----------------------------
@@ -234,9 +234,9 @@ If there are multiple values present within an interval with size according to t
 ``freq``\ , this values get reduced to one single value, that will get assigned to the timestamp associated with the 
 interval.
 
-This reduction depends on the selected :doc:`regularisation <../moduleAPIs/Functionsresampling>` method.
+This reduction depends on the selected :doc:`regularisation <../funcSummaries/resampling>` method.
 
-For example, :ref:`above <cook_books/DataRegularisation:shift>`\ , we applied a backwards :py:func:`shift <Functions.saqc.shift>` with a *10* minutes frequency.
+For example, :ref:`above <cook_books/DataRegularisation:shift>`\ , we applied a backwards :py:meth:`~saqc.SaQC.shift` with a *10* minutes frequency.
 As a result, the first value, encountered after any multiple of *10* minutes, gets shifted backwards to be aligned with
 the desired frequency and any other value in that *10* minutes interval just gets discarded.
 
@@ -309,7 +309,7 @@ Aggregation
 -----------
 
 If we want to comprise several values by aggregation and assign the result to the new regular timestamp, instead of
-selecting a single one, we can do this, with the :py:func:`saqc.resample <Functions.saqc.resample>` method.
+selecting a single one, we can do this, with the :py:meth:`~saqc.SaQC.resample` method.
 Lets resample the *SoilMoisture* data to have a *20* minutes sample rate by aggregating every *20* minutes intervals
 content with the arithmetic mean (which is implemented by numpies ``numpy.mean`` function for example).
 
@@ -366,13 +366,13 @@ Interpolation
 Another common way of obtaining regular timestamps, is, the interpolation of data at regular timestamps.
 
 In the pool of py:mod:`regularisation <Functions.saqc.resampling>` methods, is available the
-:py:func:`saqc.interpolate <Functions.saqc.interpolate>` method.
+:py:meth:`~saqc.SaQC.interpolate` method.
 
 Lets apply a linear interpolation onto the dataset. To access
 linear interpolation, we pass the ``method`` parameter the string ``"time"``. This 
 applies an interpolation, that is sensitive to the difference in temporal gaps
 (as opposed by ``"linear"``\ , wich expects all the gaps to be equal). Get an overview
-of the possible interpolation methods in the :py:func:`saqc.interpolate <Functions.saqc.interpolate>`
+of the possible interpolation methods in the :py:meth:`~saqc.SaQC.interpolate>`
 documentation. Lets check the results:
 
    >>> qc = qc.interpolate('SoilMoisture', target='SoilMoisture_linear', freq='10min', method='time')
@@ -419,12 +419,12 @@ a :ref:`valid <cook_books/DataRegularisation:valid data>` value at ``2021-03-20 
 
 This behavior is intended to reflect the sparsity of the original data in the
 regularized data set. The behavior can be circumvented by applying the more general
-:py:func:`saqc.interpolateIndex <Functions.saqc.interpolateIndex>`.
+:py:meth:`~saqc.SaQC.interpolateIndex`.
 
 Linear Interpolation
 ~~~~~~~~~~~~~~~~~~~~
 
-Note, that there is a wrapper available for linear interpolation: :py:func:`saqc.linear <Functions.saqc.linear>`.
+Note, that there is a wrapper available for linear interpolation: :py:meth:`~saqc.SaQC.linear`.
 
 Flags and Regularisation
 ------------------------
@@ -461,7 +461,7 @@ We can circumvent having that gap, by flagging that value before interpolation. 
 works, because there is actually another, now valid value, available in the interval
 in between ``2021-01-01 15:40:00`` and ``2021-01-01 15:50:00``\ , that can serve as right pillow point
 for the interpolation at ``2021-01-01 15:40:00``. So lets flag all the values smaller than *0*
-with the :py:func:`saqc.flagRange <Functions.saqc.flagRange>` method and after this,
+with the :py:meth:`~saqc.SaQC.flagRange` method and after this,
 do the interpolation.
 
    >>> qc = qc.flagRange('SoilMoisture', min=0)

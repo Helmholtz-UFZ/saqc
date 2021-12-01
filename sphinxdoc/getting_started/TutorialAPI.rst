@@ -67,7 +67,7 @@ available functions appear as methods of the ``SaQC``  class, so we can add a te
 
    qc = qc.flagRange("a", min=20, max=80)
 
-:py:func:`flagRange <Functions.saqc.flagRange>` is the easiest of all functions and simply marks all values
+:py:meth:`~saqc.SaQC.flagRange>` is the easiest of all functions and simply marks all values
 smaller than ``min`` and larger than ``max``. This feature by itself wouldn't be worth the trouble of getting
 into ``SaQC``, but it serves as a simple example. All functions expect the name of a column in the given
 ``data`` as their first positional argument (called ``field``). The function ``flagRange`` (like all other
@@ -75,8 +75,8 @@ functions for that matter) is then called on the given ``field`` (only).
 
 Each call to a ``SaQC`` method returns a new object (all itermediate objects share the main internal data
 structures, so we only create shallow copies). Setting up more complex quality control suites (here by calling
-the additional methods :py:func:`flagConstants <Functions.saqc.flagConstants>` and
-:py:func:`flagByGrubbs <Functions.saqc.flagByGrubbs>`) is therefore simply a matter of method chaining. 
+the additional methods :py:meth:`~saqc.SaQC.flagConstants` and
+:py:meth:`~saqc.SaQC.flagByGrubbs`) is therefore simply a matter of method chaining.
 
 .. testcode:: python
 
