@@ -78,7 +78,7 @@ pages:
   except:
     - schedules
   script:
-    - cd sphinx-doc/
+    - cd sphinxdoc/
     - pip install -r requirements_sphinx.txt
     - make doc
     - make doctest
