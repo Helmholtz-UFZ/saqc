@@ -128,12 +128,12 @@ html_static_path = ["_static", "css"]
 
 # -- RST options -------
 rst_prolog = """
-.. |ufzLogo| image:: /ressources/images/Representative/UFZLogo.jpg
+.. |ufzLogo| image:: /ressources/images/Representative/UFZLogo.png
    :width: 40 %
    :target: https://www.ufz.de/
 
-.. |rdmLogo| image:: /ressources/images/Representative/RDMlogo.jpg
-   :width: 18 %
+.. |rdmLogo| image:: /ressources/images/Representative/RDMLogo.png
+   :width: 22 %
    :target: https://www.ufz.de/index.php?de=45348
    :class: align-right
 
