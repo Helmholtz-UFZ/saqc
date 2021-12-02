@@ -257,7 +257,6 @@ def makeModuleSummaries(modules, folder_path="funcSummaries"):
     default="funcSummaries",
     help="Target path for summaries.",
 )
-
 def main(pckpath, sphinxroot, summaries):
     root_path = os.path.abspath(sphinxroot)
     pkg_path = os.path.join(root_path, pckpath)
