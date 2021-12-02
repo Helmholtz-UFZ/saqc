@@ -10,9 +10,9 @@ General structure
 
 The Python API of SaQC consists of three distinct components:
 
-1. the core class, :py:class:`SaQC <Core.Core.SaQC>`
+1. the core class, :py:class:`saqc.SaQC`
 2. a number of flagging schemes
-3. a collection of :py:mod:`functions <Functions.saqc>`
+3. a collection of :doc:`functions <../moduleAPIs/saqcFuncTOC>`.
 
 One and two are implemented as distinct classes, the core object is called ``SaQC`` and we currently
 provide three flagging schemes, namely:
@@ -26,8 +26,8 @@ provide three flagging schemes, namely:
 3. ``DmpScheme``: Provides the four distinct flags ``NIL``, ``OK``, ``DOUBTFUL``, ``BAD``, whereas each
    flag is extended by information about the generating function and optional comments.
 
-The third component, the actual test :py:mod:`functions <Functions.saqc>`, appear as methods of
-:py:class:`SaQC <Core.Core.SaQC>` instances.
+The third component, the actual test functions, appear as methods of
+:py:class:`~saqc.SaQC` instances.
 
 
 Getting started - Put something in
@@ -61,7 +61,7 @@ Moving on - Quality control your data
 -------------------------------------
 
 The ``qc`` variable now serves as the base for all further processing steps. As mentioned above, all
-available functions appear as methods of the ``SaQC``  class, so we can add a tests to our suite with:
+available functions appear as methods of the :py:class:`~saqc.SaQC`  class, so we can add a tests to our suite with:
 
 .. testcode:: python
 
