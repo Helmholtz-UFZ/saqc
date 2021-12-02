@@ -207,7 +207,7 @@ def makeModuleAPIs(modules, folder_path="moduleAPIs", pck_path="Functions"):
     pass
 
 
-def makeModuleSummaries(modules, folder_path="../funcSummaries"):
+def makeModuleSummaries(modules, folder_path="funcSummaries"):
     f_path = os.path.abspath(folder_path)
     if os.path.isdir(f_path):
         shutil.rmtree(f_path)
