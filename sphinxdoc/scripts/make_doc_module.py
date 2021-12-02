@@ -249,7 +249,16 @@ def makeModuleSummaries(modules, folder_path="funcSummaries"):
     default="../..",
     help="Relative path to the sphinx root.",
 )
-def main(pckpath, sphinxroot):
+@click.option(
+    "-su",
+    "--summaries",
+    type=str,
+    required=True,
+    default="funcSummaries",
+    help="Target path for summaries.",
+)
+
+def main(pckpath, sphinxroot, summaries):
     root_path = os.path.abspath(sphinxroot)
     pkg_path = os.path.join(root_path, pckpath)
     coretrg = os.path.join(sphinxroot, "sphinxdoc/coredoc")
@@ -277,7 +286,7 @@ def main(pckpath, sphinxroot):
         module = re.search("([^ .]*)\.[^ ]*$", dm).group(1)
         doc_struct[module].append(dm)
     doc_struct.update(mod_dict)
-    makeModuleSummaries(doc_struct)
+    makeModuleSummaries(doc_struct, summaries)
     doc_mod_structure = {"saqc": [f for f in func_dict.keys()], "saqc_dcstring": ""}
     make_doc_core(root_path, func_dict, doc_mod_structure)
 

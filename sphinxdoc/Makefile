@@ -30,7 +30,7 @@ clean:
 # trigger (saqc) customized documentation pipeline
 doc:
 	# generate parent fake module for the functions to be documented
-	python scripts/make_doc_module.py -p "saqc/funcs" -sr ".."
+	python scripts/make_doc_module.py -p "saqc/funcs" -sr ".." -su "funcSummaries"
 	# generate environment table from dictionary
 	python scripts/make_env_tab.py
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
