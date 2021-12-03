@@ -33,7 +33,7 @@ setup(
         "matplotlib==3.4.*",
         "Click==8.0.*",
         "pyarrow==4.0.*",
-        "typing_extensions==3.10.*",
+        "typing_extensions>=3.10,<4.1",
         "outlier-utils==0.0.3",
         "dtw==1.4.*",
         "seaborn==0.11.*",
