@@ -30,7 +30,7 @@ setup(
         "scipy==1.7.*",
         "scikit-learn==1.0.*",
         "numba==0.54.*",
-        "matplotlib==3.4.*",
+        "matplotlib>=3.4,<3.6",
         "Click==8.0.*",
         "pyarrow==6.0.*",
         "typing_extensions==4.*",
