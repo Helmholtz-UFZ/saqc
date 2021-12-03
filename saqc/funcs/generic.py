@@ -267,7 +267,7 @@ def flagGeneric(
             f"the generic function returned {len(result.columns)} field(s), but only {len(targets)} target(s) were given"
         )
 
-    if not (result.dtypes == bool).all():
+    if not result.empty and not (result.dtypes == bool).all():
         raise TypeError(f"generic expression does not return a boolean array")
 
     meta = {
