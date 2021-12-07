@@ -48,7 +48,7 @@ def copyField(
         Flags shape may have changed relatively to the flags input.
     """
     if target in flags.columns.union(data.columns):
-        raise ValueError(f"{field}: field already exist")
+        raise ValueError(f"'{target}' already exist")
 
     data[target] = data[field].copy()
     flags.history[target] = flags.history[field].copy()
