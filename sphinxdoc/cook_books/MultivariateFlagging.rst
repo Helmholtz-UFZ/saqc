@@ -6,14 +6,27 @@ The tutorial aims to introduce the usage of SaQC in the context of some more com
 Mainly we will see how to apply Drift Corrections onto the data and how to perform multivariate flagging.
 
 
-#. :ref:`Data Preparation <cook_books/MultivariateFlagging:Data Preparation>`
+#. `Data Preparation`_
 
-#. :ref:`Drift Correction <cook_books/MultivariateFlagging:Drift Correction>`
+#. `Drift Correction`_
 
-#. `Multivariate Flagging (odd Water) <#Multivariate-Flagging>`_
+#. `Multivariate-Flagging`_
 
-Data preparation
+Data Preparation
 ----------------
+
+.. testsetup:: exampleMV
+
+   datapath = './ressources/data/hydro_data.csv'
+   maintpath = './ressources/data/hydro_maint.csv'
+
+First import the data (from the repository), and generate an saqc object from it. You will need to download the sensor
+data and maintenance data for the tutorial from
+
+.. doctest:: exampleMV
+
+   >>> data = pd.read_csv(datapath, index_col=0)
+   >>> maint = pd.read_csv(maintpath, index_col=0)
 
 
 * Flagging missing values via :py:func:`flagMissing <Functions.saqc.flagMissing>`.
