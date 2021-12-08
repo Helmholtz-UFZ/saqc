@@ -1082,25 +1082,19 @@ class SaQC(FunctionsMixin):
         ----------
         field : str
             Name of the column to process
-
         cluster_field : str
             Column in data, holding the cluster labels for the samples in field.
             (has to be indexed equal to field)
-
         spread : float
             A threshold denoting the value level, up to wich clusters a agglomerated.
-
         method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
             The linkage method for hierarchical (agglomerative) clustering of the variables.
-
         metric : Callable, default lambda x,y: np.abs(np.nanmean(x) - np.nanmean(y))
             A metric function for calculating the dissimilarity between 2 regimes.
             Defaults to the difference in mean.
-
         frac : float
             Has to be in [0,1]. Determines the minimum percentage of samples,
             the "normal" group has to comprise to be the normal group actually.
-
         flag : float, default BAD
             flag to set.
         """
@@ -1127,21 +1121,16 @@ class SaQC(FunctionsMixin):
         ----------
         field : str
             Name of the column to process
-
         cluster_field : str
             Column in data, holding the cluster labels for the samples in field.
             (has to be indexed equal to field)
-
         spread : float
             A threshold denoting the value level, up to wich clusters a agglomerated.
-
         method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
             The linkage method for hierarchical (agglomerative) clustering of the variables.
-
         metric : Callable, default lambda x,y: np.abs(np.nanmean(x) - np.nanmean(y))
             A metric function for calculating the dissimilarity between 2 regimes.
             Defaults to the difference in mean.
-
         frac : float
             Has to be in [0,1]. Determines the minimum percentage of samples,
             the "normal" group has to comprise to be the normal group actually.
