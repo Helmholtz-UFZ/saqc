@@ -401,7 +401,7 @@ def _expFit(
 @register(
     mask=["field"],
     demask=["field"],
-    squeeze=["field"],
+    squeeze=["field", "target"],
     multivariate=True,
     handles_target=True,
 )
@@ -590,6 +590,11 @@ def flagMVScores(
         flag=flag,
         **kwargs,
     )
+
+    # the targets migh not exist, so we need to generate them
+    for src, trg in zip(fields, targets):
+        if trg not in data:
+            data, flags = copyField(data, field=src, flags=flags, target=trg)
 
     data, flags = _evalStrayLabels(
         data=data,
