@@ -7,6 +7,8 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 ### Added
 - The CLI now accepts remote configuration files given by an URL
 ### Changed
+- Documentaion now is generated from the develop branch
+- Doctest is now ran upon push to the develop branch (Failing doc snippets cause CI-pipeline to fail)
 ### Removed
 ### Fixed
 - RDM/UFZ ogos:
