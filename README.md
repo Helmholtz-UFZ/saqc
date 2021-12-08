@@ -1,9 +1,9 @@
 <a href="https://www.ufz.de/index.php?en=33573">
-    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinx-doc/ressources/images/Representative/UFZLogo.png" width="400"/>
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/ressources/images/Representative/UFZLogo.png" width="400"/>
 </a>
 
 <a href="https://www.ufz.de/index.php?en=45348">
-    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinx-doc/ressources/images/Representative/RDMLogo.png" align="right" width="220"/>
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/ressources/images/Representative/RDMLogo.png" align="right" width="220"/>
 </a>
 
 # System for automated Quality Control (SaQC)
