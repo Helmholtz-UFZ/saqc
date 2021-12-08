@@ -1,5 +1,5 @@
 
-.. testsetup:: exampleMV
+.. testsetup:: default
 
    datapath = './ressources/data/hydro_data.csv'
    maintpath = './ressources/data/hydro_maint.csv'
@@ -44,7 +44,7 @@ This is done, to circumvent having to concatenate both datasets in a pandas Data
 `NaN` values to both the datasets, wherever their timestamps missmatch. `SaQC` can handle those unaligned data
 internally without introducing artificially fill values to them.
 
-.. testcode:: exampleMV
+.. testcode:: default
 
    data = pd.read_csv(datapath, index_col=0)
    maint = pd.read_csv(maintpath, index_col=0)
@@ -54,17 +54,65 @@ internally without introducing artificially fill values to them.
 
 We can check out the filds, the newly generated :py:class:`~saqc.SaQC` object contains as follows:
 
-.. doctest:: exampleMV
+.. doctest:: default
 
    >>> qc.data.columns
    Index(['sac254_raw', 'level_raw', 'water_temp_raw', 'maint'], dtype='object', name='columns')
 
-First we should figure out, what sampling rate the data is intended to have, by acessing the *_raw* variables
+The variables represent meassurements of *water level*, the *specific absorption coefficient* at 254 nm Wavelength,
+the *water temperature* and there is also a variable, *maint*, that refers to time periods, where the *sac254* sensor
+was maintained. Lets have a look at those:
+
+.. doctest:: default
+
+   >>> qc.data_raw['maint'] # doctest:+SKIP
+   Timestamp
+   2016-01-10 11:15:00    2016-01-10 12:15:00
+   2016-01-12 14:40:00    2016-01-12 15:30:00
+   2016-02-10 13:40:00    2016-02-10 14:40:00
+   2016-02-24 16:40:00    2016-02-24 17:30:00
+   ....                                  ....
+   2017-10-17 08:55:00    2017-10-17 10:20:00
+   2017-11-14 15:30:00    2017-11-14 16:20:00
+   2017-11-27 09:10:00    2017-11-27 10:10:00
+   2017-12-12 14:10:00    2017-12-12 14:50:00
+   Name: maint, dtype: object
+
+Measurements collected while maintenance, are not trustworthy, so any measurement taken, in any of the listed
+intervals should be flagged right away. This can be achieved, with the :py:meth:`~saqc.SaQC.flagManual` method. Also,
+we will flag out-of-range values in the data with the :py:meth:`~saqc.SaQC.flagRange` method:
+
+.. doctest:: default
+
+   >>> qc = qc.flagManual('sac254_raw', mdata='maint', method='closed', label='Maintenance')
+   >>> qc = qc.flagRange('level_raw', min=0)
+   >>> qc = qc.flagRange('water_temp_raw', min=-1, max=40)
+   >>> qc = qc.flagRange('sac254_raw', min=0, max=60)
+
+.. plot::
+   :context:
+   :include-source: False
+
+   qc = qc.flagManual('sac254_raw', mdata='maint', method='closed', label='Maintenance')
+   qc = qc.flagRange('level_raw', min=0)
+   qc = qc.flagRange('water_temp_raw', min=-1, max=40)
+   qc = qc.flagRange('sac254_raw', min=0, max=60)
+
+Lets check out the resulting flags for the *sac254* variable with the :py:meth:`~saqc.SaQC.plot` method:
+
+.. plot::
+   :context:
+   :include-source: True
+   :format: doctest
+
+   >>> qc.plot('sac254_raw') #doctest:+SKIP
+
+Now we should figure out, what sampling rate the data is intended to have, by accessing the *_raw* variables
 constituting the sensor data. (Since :py:attr:`saqc.SaQC.data` yields a common
 `pandas.DataFrame <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_ object, we can index it with
 the desired variables as column names and have a look at the console output to get a first impression.)
 
-.. doctest:: exampleMV
+.. doctest:: default
 
    >>> qc.data[['sac254_raw', 'level_raw', 'water_temp_raw']] # doctest:+NORMALIZE_WHITESPACE
    columns              sac254_raw  level_raw  water_temp_raw
@@ -84,9 +132,9 @@ the desired variables as column names and have a look at the console output to g
    [70199 rows x 3 columns]
 
 The data seems to have a fairly regular sampling rate of *15* minutes at first glance.
-But checking out values around *2017-10-29*, we noitce, that the sampling rate seems not to be totally stable:
+But checking out values around *2017-10-29*, we notice, that the sampling rate seems not to be totally stable:
 
-.. doctest:: exampleMV
+.. doctest:: default
 
    >>> qc.data[['sac254_raw', 'level_raw', 'water_temp_raw']]['2017-10-29 07:00:00':'2017-10-29 09:00:00'] # doctest:+NORMALIZE_WHITESPACE
    columns              sac254_raw  level_raw  water_temp_raw
@@ -106,21 +154,11 @@ But checking out values around *2017-10-29*, we noitce, that the sampling rate s
 
 Those instabilities do bias most statistical evaluations and it is common practize to apply some
 :doc:`resampling functions <../funcSummaries/resampling>` onto the data, to obtain a regularly spaced timestamp.
-(See also the :ref:`harmonization tutorial <./cook_books/dataregularisation:data regularisation> for more informations
+(See also the :ref:`harmonization tutorial <./cook_books/DataRegularisation:data regularisation> for more informations
 on that topic.)
+
 We will apply :py:meth:`linear harmonisation <saqc.SaQC.linear>`, to interpolate pillar points of multiples of *15*
-minutes linearly. Before that, we clean the data from out of range values via the :py:meth:`~saqc.SaQC.flagRange` method,
-to mitigate inclusion of anomalous values in the processing result.
-
-
-.. plot::
-   :context:
-
-   qc = qc.flagRange('level_raw', min=0)
-   qc = qc.flagRange('water_temp_raw', min=-1, max=40)
-   qc = qc.flagRange('sac254_raw', min=0, max=60)
-   qc = qc.linear(['sac254_raw', 'level_raw', 'water_temp_raw'], freq='15min')
-   qc.plot('sac254_raw')
+minutes linearly.
 
 
 * Flagging missing values via :py
