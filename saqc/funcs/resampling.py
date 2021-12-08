@@ -27,7 +27,7 @@ METHOD2ARGS = {
 }
 
 
-@processing()
+@register(mask=["field"], demask=[], squeeze=[])
 def linear(
     data: DictOfSeries,
     field: str,
@@ -75,7 +75,7 @@ def linear(
     return interpolateIndex(data, field, flags, freq, "time", **kwargs)
 
 
-@processing()
+@register(mask=["field"], demask=[], squeeze=[])
 def interpolate(
     data: DictOfSeries,
     field: str,
@@ -141,7 +141,6 @@ def interpolate(
     )
 
 
-# for @processing this would need to handle dfilter
 @register(mask=["field"], demask=[], squeeze=[])
 def shift(
     data: DictOfSeries,
@@ -219,7 +218,6 @@ def shift(
     return data, flags
 
 
-# for @processing this would need to handle dfilter
 @register(mask=["field"], demask=[], squeeze=[])
 def resample(
     data: DictOfSeries,
