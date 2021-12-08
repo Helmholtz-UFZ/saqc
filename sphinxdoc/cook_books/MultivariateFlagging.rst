@@ -1,4 +1,25 @@
 
+.. testsetup:: exampleMV
+
+   datapath = './ressources/data/hydro_data.csv'
+   maintpath = './ressources/data/hydro_maint.csv'
+
+.. plot::
+   :context:
+   :include-source: False
+
+   import matplotlib
+   import saqc
+   import pandas as pd
+   datapath = '../ressources/data/hydro_data.csv'
+   maintpath = '../ressources/data/hydro_maint.csv'
+   data = pd.read_csv(datapath, index_col=0)
+   maint = pd.read_csv(maintpath, index_col=0)
+   maint.index = pd.DatetimeIndex(maint.index)
+   data.index = pd.DatetimeIndex(data.index)
+   qc = saqc.SaQC([data, maint])
+
+
 Multivariate Flagging
 =====================
 
@@ -10,25 +31,99 @@ Mainly we will see how to apply Drift Corrections onto the data and how to perfo
 
 #. `Drift Correction`_
 
-#. `Multivariate-Flagging`_
 
 Data Preparation
 ----------------
 
-.. testsetup:: exampleMV
+First import the data (from the repository), and generate an saqc instance from it. You will need to download the `sensor
+data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/ressources/data/hydro_config.csv>`_ and the
+`maintenance data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/ressources/data/hydro_maint.csv>`_
+from the `repository <https://git.ufz.de/rdm-software/saqc.git>`_ and make variables `datapath` and `maintpath` be
+paths pointing at those downloaded files. Note, that the :py:class:`~saqc.SaQC` digests the loaded data in a list.
+This is done, to circumvent having to concatenate both datasets in a pandas Dataframe instance, which would introduce
+`NaN` values to both the datasets, wherever their timestamps missmatch. `SaQC` can handle those unaligned data
+internally without introducing artificially fill values to them.
 
-   datapath = './ressources/data/hydro_data.csv'
-   maintpath = './ressources/data/hydro_maint.csv'
+.. testcode:: exampleMV
 
-First import the data (from the repository), and generate an saqc object from it. You will need to download the sensor
-data and maintenance data for the tutorial from
+   data = pd.read_csv(datapath, index_col=0)
+   maint = pd.read_csv(maintpath, index_col=0)
+   maint.index = pd.DatetimeIndex(maint.index)
+   data.index = pd.DatetimeIndex(data.index)
+   qc = saqc.SaQC([data, maint])  # dataframes "data" and "maint" are integrated internally
+
+We can check out the filds, the newly generated :py:class:`~saqc.SaQC` object contains as follows:
 
 .. doctest:: exampleMV
 
-   >>> data = pd.read_csv(datapath, index_col=0)
-   >>> maint = pd.read_csv(maintpath, index_col=0)
+   >>> qc.data.columns
+   Index(['sac254_raw', 'level_raw', 'water_temp_raw', 'maint'], dtype='object', name='columns')
+
+First we should figure out, what sampling rate the data is intended to have, by acessing the *_raw* variables
+constituting the sensor data. (Since :py:attr:`saqc.SaQC.data` yields a common
+`pandas.DataFrame <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_ object, we can index it with
+the desired variables as column names and have a look at the console output to get a first impression.)
+
+.. doctest:: exampleMV
+
+   >>> qc.data[['sac254_raw', 'level_raw', 'water_temp_raw']] # doctest:+NORMALIZE_WHITESPACE
+   columns              sac254_raw  level_raw  water_temp_raw
+   Timestamp
+   2016-01-01 00:02:00     18.4500    103.290            4.84
+   2016-01-01 00:17:00     18.6437    103.285            4.82
+   2016-01-01 00:32:00     18.9887    103.253            4.81
+   2016-01-01 00:47:00     18.8388    103.210            4.80
+   2016-01-01 01:02:00     18.7438    103.167            4.78
+                            ...        ...             ...
+   2017-12-31 22:47:00     43.2275    186.060            5.49
+   2017-12-31 23:02:00     43.6937    186.115            5.49
+   2017-12-31 23:17:00     43.6012    186.137            5.50
+   2017-12-31 23:32:00     43.2237    186.128            5.51
+   2017-12-31 23:47:00     43.7438    186.130            5.53
+   <BLANKLINE>
+   [70199 rows x 3 columns]
+
+The data seems to have a fairly regular sampling rate of *15* minutes at first glance.
+But checking out values around *2017-10-29*, we noitce, that the sampling rate seems not to be totally stable:
+
+.. doctest:: exampleMV
+
+   >>> qc.data[['sac254_raw', 'level_raw', 'water_temp_raw']]['2017-10-29 07:00:00':'2017-10-29 09:00:00'] # doctest:+NORMALIZE_WHITESPACE
+   columns              sac254_raw  level_raw  water_temp_raw
+   Timestamp
+   2017-10-29 07:02:00     40.3050    112.570           10.91
+   2017-10-29 07:17:00     39.6287    112.497           10.90
+   2017-10-29 07:32:00     39.5800    112.460           10.88
+   2017-10-29 07:32:01     39.9750    111.837           10.70
+   2017-10-29 07:47:00     39.1350    112.330           10.84
+   2017-10-29 07:47:01     40.6937    111.615           10.68
+   2017-10-29 08:02:00     40.4938    112.040           10.77
+   2017-10-29 08:02:01     39.3337    111.552           10.68
+   2017-10-29 08:17:00     41.5238    111.835           10.72
+   2017-10-29 08:17:01     38.6963    111.750           10.69
+   2017-10-29 08:32:01     39.4337    112.027           10.66
+   2017-10-29 08:47:01     40.4987    112.450           10.64
+
+Those instabilities do bias most statistical evaluations and it is common practize to apply some
+:doc:`resampling functions <../funcSummaries/resampling>` onto the data, to obtain a regularly spaced timestamp.
+(See also the :ref:`harmonization tutorial <./cook_books/dataregularisation:data regularisation> for more informations
+on that topic.)
+We will apply :py:meth:`linear harmonisation <saqc.SaQC.linear>`, to interpolate pillar points of multiples of *15*
+minutes linearly. Before that, we clean the data from out of range values via the :py:meth:`~saqc.SaQC.flagRange` method,
+to mitigate inclusion of anomalous values in the processing result.
 
 
+.. plot::
+   :context:
+
+   qc = qc.flagRange('level_raw', min=0)
+   qc = qc.flagRange('water_temp_raw', min=-1, max=40)
+   qc = qc.flagRange('sac254_raw', min=0, max=60)
+   qc = qc.linear(['sac254_raw', 'level_raw', 'water_temp_raw'], freq='15min')
+   qc.plot('sac254_raw')
+
+
+* Flagging missing values via :py
 * Flagging missing values via :py:func:`flagMissing <Functions.saqc.flagMissing>`.
 * Flagging out of range values via :py:func:`flagRange <Functions.saqc.flagRange>`.
 * Flagging values, where the Specific Conductance (\ *K25*\ ) drops down to near zero. (via :py:func:`flagGeneric <Functions.saqc.flag>`)
@@ -61,8 +156,8 @@ Maintenance Intervals Flagging
 * The *SAK254* and *Turbidity* values, obtained while maintenance, are, of course not trustworthy, thus, all the values obtained while maintenance get flagged via the :py:func:`flagManual <Functions.saqc.flagManual>` method.
 * When maintaining the *SAK254* and *Turbidity* sensors, also the *NO3* sensors get removed from the water - thus, they also have to be flagged via the :py:func:`flagManual <Functions.saqc.flagManual>` method.
 
-Multivariate Flagging
----------------------
+Apply Multivariate Flagging
+---------------------------
 
 Basically following the *oddWater* procedure, as suggested in *Talagala, P.D. et al (2019): A Feature-Based Procedure for Detecting Technical Outliers in Water-Quality Data From In Situ Sensors. Water Ressources Research, 55(11), 8547-8568.*
 
