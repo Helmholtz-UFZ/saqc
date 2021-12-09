@@ -81,6 +81,7 @@ Getting Started
    :maxdepth: 1
 
    Documentation Guide <how_to_doc/HowToDoc>
+   Writing Functions <documentation/WritingFunctions>
 
 
 Indices and tables

@@ -217,12 +217,16 @@ class SaQC(FunctionsMixin):
                 }
 
                 if not func.handles_target and field != target:
-                    if target not in self.data.columns:
+                    if target in self.data.columns:
                         out = out._callFunction(
-                            FUNC_MAP["copyField"],
-                            *args,
-                            **fkwargs,
+                            FUNC_MAP["dropField"], field=target, **kwargs
                         )
+
+                    out = out._callFunction(
+                        FUNC_MAP["copyField"],
+                        *args,
+                        **fkwargs,
+                    )
                     fkwargs["field"] = fkwargs.pop("target")
 
                 out = out._callFunction(
@@ -836,74 +840,6 @@ class SaQC(FunctionsMixin):
         length of the data. That is, why, the "averaged manhatten metric" is set as the metric
         default, since it corresponds to the averaged value distance, two data sets have (as opposed
         by euclidean, for example).
-        """
-        pass
-
-
-    def flagDriftFromScaledNorm(self, field, set_1, set_2, freq, spread, frac, metric, method, target, flag):
-        """
-        Flags data that deviates from a scaled norm.
-        
-        Linearly rescales one set of variables to another set of variables
-        with a different scale and then flags data courses that significantly deviate
-        from a group of normal courses.
-        
-        The two sets of variables can be linearly scaled one to another and hence the
-        scaling transformation is performed via linear regression: A linear regression is
-        performed on each pair of variables giving a slope and an intercept. The
-        transformation is then calculated a the median of all the calculated slopes and
-        intercepts.
-        
-        Once the transformation is performed, values that deviate from a group of normal
-        values get flagged. "Normality" is determined in terms of
-        a maximum spreading distance, that members of a normal group must not exceed. In
-        addition, only a group is considered "normal" if it contains more then `frac`
-        percent of the passed variables.
-        
-        Parameters
-        ----------
-        field : str
-            Ignored.
-        
-        set_1 : str
-            First set of columns in data to be flagged.
-        
-        set_2 : str
-            Second set of columns in data to be flagged.
-        
-        freq : str
-            Frequency, that splits the data in chunks.
-        
-        spread : float
-            Maximum spread in data considered normal. See Notes section for more details.
-        
-        frac : float, default 0.5
-            Fraction defining the normal group. Use a value from the interval [0,1].
-            The higher the value, the more stable the algorithm will. For values below
-            0.5 the results are undefined.
-        
-        metric : Callable, default ``lambda x,y:pdist(np.array([x,y]),metric="cityblock")/len(x)``
-            Distance function that takes two arrays as input and return a scalar float.
-            This value is interpreted as the distance of the two input arrays.
-            Defaults to the `averaged manhattan metric` (see Notes).
-        
-        method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
-            Linkage method used for hierarchical (agglomerative) clustering of the data.
-            `method` is directly passed to ``scipy.hierarchy.linkage``. See its documentation [1] for
-            more details. For a general introduction on hierarchical clustering see [2].
-        
-        target : None
-            ignored
-        
-        flag : float, default BAD
-            flag to set.
-        
-        References
-        ----------
-        Documentation of the underlying hierarchical clustering algorithm:
-            [1] https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
-        Introduction to Hierarchical clustering:
-            [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
         """
         pass
 
@@ -1676,10 +1612,18 @@ class SaQC(FunctionsMixin):
             Only effective when `range` is not ``None``. Minimum number of meassurements
             necessarily present in a reduction interval for reduction actually to be
             performed.
+<<<<<<< HEAD
         
         target : None
             ignored.
         
+=======
+
+        target : list of str
+            List of field names to write the output to, these fields should not already
+            exist.
+
+>>>>>>> 7a15bb35746a5cb984a850ea45df42d37f411e82
         flag : float, default BAD
             flag to set.
         
