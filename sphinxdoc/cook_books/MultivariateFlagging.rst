@@ -1,6 +1,7 @@
 
 .. testsetup:: default
 
+   import matplotlib.pyplot as plt
    datapath = './ressources/data/hydro_data.csv'
    maintpath = './ressources/data/hydro_maint.csv'
 
@@ -30,6 +31,8 @@ Mainly we will see how to apply Drift Corrections onto the data and how to perfo
 #. `Data Preparation`_
 
 #. `Drift Correction`_
+
+#. `Multivariate Flagging Procedure`_
 
 
 Data Preparation
@@ -100,12 +103,16 @@ we will flag out-of-range values in the data with the :py:meth:`~saqc.SaQC.flagR
 
 Lets check out the resulting flags for the *sac254* variable with the :py:meth:`~saqc.SaQC.plot` method:
 
+>>> qc.plot('sac254_raw') #doctest:+SKIP
+
 .. plot::
    :context:
-   :include-source: True
-   :format: doctest
+   :include-source: False
+   :width: 80 %
+   :class: center
 
-   >>> qc.plot('sac254_raw') #doctest:+SKIP
+   qc.plot('sac254_raw')
+
 
 Now we should figure out, what sampling rate the data is intended to have, by accessing the *_raw* variables
 constituting the sensor data. Since :py:attr:`saqc.SaQC.data` yields a common
@@ -192,12 +199,20 @@ check and the maintenance data flagging:
    2018-01-01 00:00:00          NaN
    Name: sac254_raw, Length: 70194, dtype: float64
 
-.. plot::
-   :context:
-   :include-source: True
-   :format: doctest
+Since points, that were identified as malicous get excluded, before the harmonization, the resulting regularly sampled
+timeseries does not include thme anymore:
+
+.. doctest:: default
 
    >>> qc.plot('sac254_raw') # doctest:+SKIP
+
+.. plot::
+   :context:
+   :include-source: False
+   :width: 80 %
+   :class: center
+
+   qc.plot('sac254_raw')
 
 
 Drift Correction
@@ -207,30 +222,38 @@ The variables *SAK254* and *Turbidity* show drifting behavior originating from d
 sensitive sensor surfaces over time. The effect, the dirt accumulation has on the measurement values, is assumed to be
 properly described by an exponential model. The Sensors are cleaned periodocally, resulting in a periodical reset of
 the drifting effect. The Dates and Times of the maintenance events are input to the
-:py:meth:`~saqc.SaQC.correctDrift>`, that will correct the data in between any two such maintenance intervals.
+:py:meth:`~saqc.SaQC.correctDrift`, that will correct the data in between any two such maintenance intervals.
 
 .. doctest:: default
 
-   >>> qc = qc.correctDrift('sac254_raw', target='sac254_corrected',maintenance_field='maint', model=expDriftModel)
+   >>> qc = qc.correctDrift('sac254_raw', target='sac254_corrected',maintenance_field='maint', model='exponential')
 
 .. plot::
    :context: close-figs
    :include-source: False
+   :width: 80 %
+   :class: center
 
    qc = qc.correctDrift('sac254_raw', target='sac254_corrected',maintenance_field='maint', model='exponential')
 
-Check out results
+Check out the results for the year *2016*
+
+.. doctest:: default
+
+   >>> plt.plot(qc.data_raw['sac254_raw']['2016'], alpha=.5, color='black', label='original') # doctest:+SKIP
+   >>> plt.plot(qc.data_raw['sac254_corrected']['2016'], color='black', label='corrected') # doctest:+SKIP
 
 .. plot::
    :context:
-   :include-source: True
-   :format: doctest
+   :include-source: False
 
-   >>> plt.plot(qc.data_raw['sac254_raw'])
-   >>> plt.plot(qc.data_raw['sac254_corrected'])
+   plt.figure(figsize=(16,9))
+   plt.plot(qc.data_raw['sac254_raw']['2016'], alpha=.5, color='black', label='original')
+   plt.plot(qc.data_raw['sac254_corrected']['2016'], color='black', label='corrected')
+   plt.legend()
 
-Apply Multivariate Flagging
----------------------------
+Multivariate Flagging Procedure
+-------------------------------
 
 We are basically following the *oddWater* procedure, as suggested in *Talagala, P.D. et al (2019): A Feature-Based
 Procedure for Detecting Technical Outliers in Water-Quality Data From In Situ Sensors. Water Ressources Research,
@@ -240,10 +263,10 @@ First we define a transformation we want the variables to be normalized with.
 We just import *scipys* `zscore` function and wrap it, so that it will
 be able to digest *nan* values without returning *nan*
 
-.. testcode:: default
+.. doctest:: default
 
-   from scipy.stats import zscore
-   zscore_func = lambda x: zscore(x, nan_policy='omit')
+   >>> from scipy.stats import zscore
+   >>> zscore_func = lambda x: zscore(x, nan_policy='omit')
 
 .. plot::
    :context: close-figs
@@ -254,49 +277,85 @@ be able to digest *nan* values without returning *nan*
 
 Now we can pass the function to the :py:meth:`saqc.SaQC.transform` method.
 
-.. testcode:: default
+.. doctest:: default
+
+   >>> qc = qc.transform(['sac254_raw', 'level_raw', 'water_temp_raw'], target=['sac_z', 'level_z', 'water_z'], func=zscore_func, freq='30D')
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :class: center
 
    qc = qc.transform(['sac254_raw', 'level_raw', 'water_temp_raw'], target=['sac_z', 'level_z', 'water_z'], func=zscore_func, freq='30D')
+
+The idea of the *oddWater* algorithm, is, to assign any timestamp a score, derived from the distance of the *k* nearest
+neighbors of the datapoint related to that score. We can do this, via the :py:meth:`~saqc.SaQC.assignKNNscore` method.
+
+.. doctest:: default
+
+   >>> qc = qc.assignKNNScore(field=['sac_z', 'level_z', 'water_z'], target='kNNscores', freq='30D', n=5)
+   >>> qc.plot('kNNscores') # doctest:+SKIP
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :class: center
+
+   qc = qc.assignKNNScore(field=['sac_z', 'level_z', 'water_z'], target='kNNscores', freq='30D', n=5)
+   qc.plot('kNNscores')
+
+Those scores roughly correlate with the isolation of the scored points in the phase space. For example, have a look at
+the phase space of *sac* and *level* in october 2016:
+
+.. doctest:: default
+
+   >>> qc.plot('sac_z', phaseplot='level_z', xscope='2016-11') # doctest:+SKIP
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :class: center
+
+   qc.plot('sac_z', phaseplot='level_z', xscope='2016-11')
+
+
+We can clearly see some outliers, that seem to be isolated from the cloud of the normal group. Since those outliers are
+correlated with relatively high *kNNscores*, we could try to calculate a threshold that determines, how extreme an
+*kNN* score has to be to qualify an outlier. We will use the saqc implementation of the
+`STRAY <https://arxiv.org/pdf/1908.04000.pdf>`_ algorithm, which is available as the method:
+:py:meth:`~saqc.SaQC.flagByStray`. Subsequently we project the resulting flags on the *sac* variable with a call to
+:py:meth:`~saqc.SaQC.flagGeneric`.
+
+.. doctest:: default
+
+   >>> qc = qc.flagByStray(field='kNNscores', target='sac254_corrected', freq='30D', alpha=.3)
+   >>> qc.plot('sac254_corrected', xscope='2016-11') # doctest:+SKIP
+   >>> qc.plot('sac254_corrected', phaseplot='level_raw', xscope='2016-11') # doctest:+SKIP
 
 .. plot::
    :context: close-figs
    :include-source: False
 
-   qc = qc.transform(['sac254_raw', 'level_raw', 'water_temp_raw'], target=['sac_z', 'level_z', 'water_z'], func=zscore_func, freq='30D')
+   qc = qc.flagByStray(field='kNNscores', target='sac254_corrected', freq='30D', alpha=.3)
 
-The idea of the *oddWater* algorithm, is, to assign any timestamp a score, derived from the distance of the *k* nearest
-neighbors of the datapoint related to that score. We can do this, via the :py:meth:`~saqc.SaQC.assignKNNScores` method.
-
-.. testsetup:: default
-
-   qc = qc.assignKNNScore(field=['sac254_z', 'level_z', 'water_temp_z'], target='kNNscores', freq='30D', n=5)
 
 .. plot::
    :context: close-figs
-   :include-source: True
-   :format: doctest
+   :include-source: False
+   :width: 80 %
+   :align: center
 
-   >>> qc = qc.assignKNNScore(['sac254_z', 'level_z', 'water_temp_z'], target='kNNscores', freq='30D', n=5)
-   >>> qc.plot('kNNscores') # doctest:+SKIP
-
-Those scores roughly correlate with the isolation of the scored points in the phase space. For example, have a look at
-the phase space of *sac* and *level*
+   qc.plot('sac254_corrected', xscope='2016-11')
 
 .. plot::
    :context: close-figs
-   :include-source: True
-   :format: doctest
+   :include-source: False
+   :width: 80 %
+   :class: center
 
-   >>> qc.plot('sac_z', phaseplot='level_z') # doctest:+SKIP
-
-* Variables *SAK254*\ , *Turbidity*\ , *Pegel*\ , *NO3N*\ , *WaterTemp* and *pH* get transformed to comparable scales
-* We are obtaining nearest neighbor scores and assigign those to a new variable, via :py:func:`assignKNNScores <Functions.saqc.assignKNNScores>`.
-* We are applying the *STRAY* Algorithm to find the cut_off points for the scores, above which values qualify as outliers. (:py:func:`flagByStray <Functions.saqc.flagByStray>`)
-* We project the calculated flags onto the input variables via :py:func:`assignKNNScore <Functions.saqc.assignKNNScore>`.
-
-Postprocessing
---------------
+   qc.plot('sac254_corrected', phaseplot='level_raw', xscope='2016-11')
 
 
-* (Flags reduction onto subspaces)
-* Back projection of calculated flags from resampled Data onto original data via :py:func: ``mapToOriginal <Functions.saqc.mapToOriginal>``
