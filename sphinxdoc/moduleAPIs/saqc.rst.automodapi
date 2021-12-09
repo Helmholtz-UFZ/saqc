@@ -1,0 +1,23 @@
+
+SaQC
+====
+
+
+saqc Package
+------------
+
+.. automodule:: saqc
+
+Functions
+^^^^^^^^^
+
+.. automodsumm:: saqc
+    :functions-only:
+    :toctree: ../_api
+
+Classes
+^^^^^^^
+
+.. automodsumm:: saqc
+    :classes-only:
+    :toctree: ../_api

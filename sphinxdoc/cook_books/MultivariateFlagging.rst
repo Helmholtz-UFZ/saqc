@@ -1,6 +1,7 @@
 
 .. testsetup:: default
 
+   import matplotlib.pyplot as plt
    datapath = './ressources/data/hydro_data.csv'
    maintpath = './ressources/data/hydro_maint.csv'
 
@@ -31,6 +32,8 @@ Mainly we will see how to apply Drift Corrections onto the data and how to perfo
 
 #. `Drift Correction`_
 
+#. `Multivariate Flagging Procedure`_
+
 
 Data Preparation
 ----------------
@@ -52,7 +55,7 @@ internally without introducing artificially fill values to them.
    data.index = pd.DatetimeIndex(data.index)
    qc = saqc.SaQC([data, maint])  # dataframes "data" and "maint" are integrated internally
 
-We can check out the filds, the newly generated :py:class:`~saqc.SaQC` object contains as follows:
+We can check out the fields, the newly generated :py:class:`~saqc.SaQC` object contains as follows:
 
 .. doctest:: default
 
@@ -78,7 +81,7 @@ was maintained. Lets have a look at those:
    2017-12-12 14:10:00    2017-12-12 14:50:00
    Name: maint, dtype: object
 
-Measurements collected while maintenance, are not trustworthy, so any measurement taken, in any of the listed
+Measurements collected while maintenance are not trustworthy, so any measurement taken, in any of the listed
 intervals should be flagged right away. This can be achieved, with the :py:meth:`~saqc.SaQC.flagManual` method. Also,
 we will flag out-of-range values in the data with the :py:meth:`~saqc.SaQC.flagRange` method:
 
@@ -100,17 +103,21 @@ we will flag out-of-range values in the data with the :py:meth:`~saqc.SaQC.flagR
 
 Lets check out the resulting flags for the *sac254* variable with the :py:meth:`~saqc.SaQC.plot` method:
 
+>>> qc.plot('sac254_raw') #doctest:+SKIP
+
 .. plot::
    :context:
-   :include-source: True
-   :format: doctest
+   :include-source: False
+   :width: 80 %
+   :class: center
 
-   >>> qc.plot('sac254_raw') #doctest:+SKIP
+   qc.plot('sac254_raw')
+
 
 Now we should figure out, what sampling rate the data is intended to have, by accessing the *_raw* variables
-constituting the sensor data. (Since :py:attr:`saqc.SaQC.data` yields a common
+constituting the sensor data. Since :py:attr:`saqc.SaQC.data` yields a common
 `pandas.DataFrame <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_ object, we can index it with
-the desired variables as column names and have a look at the console output to get a first impression.)
+the desired variables as column names and have a look at the console output to get a first impression.
 
 .. doctest:: default
 
@@ -152,62 +159,203 @@ But checking out values around *2017-10-29*, we notice, that the sampling rate s
    2017-10-29 08:32:01     39.4337    112.027           10.66
    2017-10-29 08:47:01     40.4987    112.450           10.64
 
-Those instabilities do bias most statistical evaluations and it is common practize to apply some
+Those instabilities do bias most statistical evaluations and it is common practice to apply some
 :doc:`resampling functions <../funcSummaries/resampling>` onto the data, to obtain a regularly spaced timestamp.
-(See also the :ref:`harmonization tutorial <./cook_books/DataRegularisation:data regularisation> for more informations
+(See also the :ref:`harmonization tutorial <cook_books/DataRegularisation:data regularisation>` for more informations
 on that topic.)
 
-We will apply :py:meth:`linear harmonisation <saqc.SaQC.linear>`, to interpolate pillar points of multiples of *15*
-minutes linearly.
+We will apply :py:meth:`linear harmonisation <saqc.SaQC.linear>` to all the sensor data variables,
+to interpolate pillar points of multiples of *15* minutes linearly.
+
+.. doctest:: default
+
+   >>> qc = qc.linear(['sac254_raw', 'level_raw', 'water_temp_raw'], freq='15min')
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+
+   qc = qc.linear(['sac254_raw', 'level_raw', 'water_temp_raw'], freq='15min')
 
 
-* Flagging missing values via :py
-* Flagging missing values via :py:func:`flagMissing <Functions.saqc.flagMissing>`.
-* Flagging out of range values via :py:func:`flagRange <Functions.saqc.flagRange>`.
-* Flagging values, where the Specific Conductance (\ *K25*\ ) drops down to near zero. (via :py:func:`flagGeneric <Functions.saqc.flag>`)
-* Resampling the data via linear Interpolation (:py:func:`linear <Functions.saqc.linear>`).
+The resulting timeseries has regular timestamp and includes only values that evaluate to `NaN` or did pass the range
+check and the maintenance data flagging:
+
+
+.. doctest:: default
+
+   >>> qc.data['sac254_raw'] #doctest:+NORMALIZE_WHITESPACE
+   Timestamp
+   2016-01-01 00:00:00          NaN
+   2016-01-01 00:15:00    18.617873
+   2016-01-01 00:30:00    18.942700
+   2016-01-01 00:45:00    18.858787
+   2016-01-01 01:00:00    18.756467
+                            ...
+   2017-12-31 23:00:00    43.631540
+   2017-12-31 23:15:00    43.613533
+   2017-12-31 23:30:00    43.274033
+   2017-12-31 23:45:00    43.674453
+   2018-01-01 00:00:00          NaN
+   Name: sac254_raw, Length: 70194, dtype: float64
+
+Since points, that were identified as malicous get excluded, before the harmonization, the resulting regularly sampled
+timeseries does not include thme anymore:
+
+.. doctest:: default
+
+   >>> qc.plot('sac254_raw') # doctest:+SKIP
+
+.. plot::
+   :context:
+   :include-source: False
+   :width: 80 %
+   :class: center
+
+   qc.plot('sac254_raw')
+
 
 Drift Correction
 ----------------
 
-Exponential Drift
-^^^^^^^^^^^^^^^^^
+The variables *SAK254* and *Turbidity* show drifting behavior originating from dirt, that accumulates on the light
+sensitive sensor surfaces over time. The effect, the dirt accumulation has on the measurement values, is assumed to be
+properly described by an exponential model. The Sensors are cleaned periodocally, resulting in a periodical reset of
+the drifting effect. The Dates and Times of the maintenance events are input to the
+:py:meth:`~saqc.SaQC.correctDrift`, that will correct the data in between any two such maintenance intervals.
+
+.. doctest:: default
+
+   >>> qc = qc.correctDrift('sac254_raw', target='sac254_corrected',maintenance_field='maint', model='exponential')
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :class: center
+
+   qc = qc.correctDrift('sac254_raw', target='sac254_corrected',maintenance_field='maint', model='exponential')
+
+Check out the results for the year *2016*
+
+.. doctest:: default
+
+   >>> plt.plot(qc.data_raw['sac254_raw']['2016'], alpha=.5, color='black', label='original') # doctest:+SKIP
+   >>> plt.plot(qc.data_raw['sac254_corrected']['2016'], color='black', label='corrected') # doctest:+SKIP
+
+.. plot::
+   :context:
+   :include-source: False
+
+   plt.figure(figsize=(16,9))
+   plt.plot(qc.data_raw['sac254_raw']['2016'], alpha=.5, color='black', label='original')
+   plt.plot(qc.data_raw['sac254_corrected']['2016'], color='black', label='corrected')
+   plt.legend()
+
+Multivariate Flagging Procedure
+-------------------------------
+
+We are basically following the *oddWater* procedure, as suggested in *Talagala, P.D. et al (2019): A Feature-Based
+Procedure for Detecting Technical Outliers in Water-Quality Data From In Situ Sensors. Water Ressources Research,
+55(11), 8547-8568.*
+
+First we define a transformation we want the variables to be normalized with.
+We just import *scipys* `zscore` function and wrap it, so that it will
+be able to digest *nan* values without returning *nan*
+
+.. doctest:: default
+
+   >>> from scipy.stats import zscore
+   >>> zscore_func = lambda x: zscore(x, nan_policy='omit')
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+
+   from scipy.stats import zscore
+   zscore_func = lambda x: zscore(x, nan_policy='omit')
+
+Now we can pass the function to the :py:meth:`saqc.SaQC.transform` method.
+
+.. doctest:: default
+
+   >>> qc = qc.transform(['sac254_raw', 'level_raw', 'water_temp_raw'], target=['sac_z', 'level_z', 'water_z'], func=zscore_func, freq='30D')
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :class: center
+
+   qc = qc.transform(['sac254_raw', 'level_raw', 'water_temp_raw'], target=['sac_z', 'level_z', 'water_z'], func=zscore_func, freq='30D')
+
+The idea of the *oddWater* algorithm, is, to assign any timestamp a score, derived from the distance of the *k* nearest
+neighbors of the datapoint related to that score. We can do this, via the :py:meth:`~saqc.SaQC.assignKNNscore` method.
+
+.. doctest:: default
+
+   >>> qc = qc.assignKNNScore(field=['sac_z', 'level_z', 'water_z'], target='kNNscores', freq='30D', n=5)
+   >>> qc.plot('kNNscores') # doctest:+SKIP
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :class: center
+
+   qc = qc.assignKNNScore(field=['sac_z', 'level_z', 'water_z'], target='kNNscores', freq='30D', n=5)
+   qc.plot('kNNscores')
+
+Those scores roughly correlate with the isolation of the scored points in the phase space. For example, have a look at
+the phase space of *sac* and *level* in october 2016:
+
+.. doctest:: default
+
+   >>> qc.plot('sac_z', phaseplot='level_z', xscope='2016-11') # doctest:+SKIP
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :class: center
+
+   qc.plot('sac_z', phaseplot='level_z', xscope='2016-11')
 
 
-* The variables *SAK254* and *Turbidity* show drifting behavior originating from dirt, that accumulates on the light sensitive sensor surfaces over time.  
-* The effect, the dirt accumulation has on the measurement values, is assumed to be properly described by an exponential model.
-* The Sensors are cleaned periodocally, resulting in a periodical reset of the drifting effect. 
-* The Dates and Times of the maintenance events are input to the :py:func:`correctDrift <Functions.saqc.correctDrift>`, that will correct the data in between any two such maintenance intervals.
+We can clearly see some outliers, that seem to be isolated from the cloud of the normal group. Since those outliers are
+correlated with relatively high *kNNscores*, we could try to calculate a threshold that determines, how extreme an
+*kNN* score has to be to qualify an outlier. We will use the saqc implementation of the
+`STRAY <https://arxiv.org/pdf/1908.04000.pdf>`_ algorithm, which is available as the method:
+:py:meth:`~saqc.SaQC.flagByStray`. Subsequently we project the resulting flags on the *sac* variable with a call to
+:py:meth:`~saqc.SaQC.flagGeneric`.
 
-Linear Long Time Drift
-^^^^^^^^^^^^^^^^^^^^^^
+.. doctest:: default
 
+   >>> qc = qc.flagByStray(field='kNNscores', target='sac254_corrected', freq='30D', alpha=.3)
+   >>> qc.plot('sac254_corrected', xscope='2016-11') # doctest:+SKIP
+   >>> qc.plot('sac254_corrected', phaseplot='level_raw', xscope='2016-11') # doctest:+SKIP
 
-* Afterwards, there remains a long time linear Drift in the *SAK254* and *Turbidity* measurements, originating from scratches, that accumule on the sensors glass lenses over time
-* The lenses are replaced periodically, resulting in a periodical reset of that long time drifting effect
-* The Dates and Times of the lenses replacements are input to the :py:func:`correctDrift <Functions.saqc.correctDrift>`, that will correct the data in between any two such maintenance intervals according to the assumption of a linearly increasing bias.
+.. plot::
+   :context: close-figs
+   :include-source: False
 
-Maintenance Intervals Flagging
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-* The *SAK254* and *Turbidity* values, obtained while maintenance, are, of course not trustworthy, thus, all the values obtained while maintenance get flagged via the :py:func:`flagManual <Functions.saqc.flagManual>` method.
-* When maintaining the *SAK254* and *Turbidity* sensors, also the *NO3* sensors get removed from the water - thus, they also have to be flagged via the :py:func:`flagManual <Functions.saqc.flagManual>` method.
-
-Apply Multivariate Flagging
----------------------------
-
-Basically following the *oddWater* procedure, as suggested in *Talagala, P.D. et al (2019): A Feature-Based Procedure for Detecting Technical Outliers in Water-Quality Data From In Situ Sensors. Water Ressources Research, 55(11), 8547-8568.*
+   qc = qc.flagByStray(field='kNNscores', target='sac254_corrected', freq='30D', alpha=.3)
 
 
-* Variables *SAK254*\ , *Turbidity*\ , *Pegel*\ , *NO3N*\ , *WaterTemp* and *pH* get transformed to comparable scales
-* We are obtaining nearest neighbor scores and assigign those to a new variable, via :py:func:`assignKNNScores <Functions.saqc.assignKNNScores>`.
-* We are applying the *STRAY* Algorithm to find the cut_off points for the scores, above which values qualify as outliers. (:py:func:`flagByStray <Functions.saqc.flagByStray>`)
-* We project the calculated flags onto the input variables via :py:func:`assignKNNScore <Functions.saqc.assignKNNScore>`.
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :align: center
 
-Postprocessing
---------------
+   qc.plot('sac254_corrected', xscope='2016-11')
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :class: center
+
+   qc.plot('sac254_corrected', phaseplot='level_raw', xscope='2016-11')
 
 
-* (Flags reduction onto subspaces)
-* Back projection of calculated flags from resampled Data onto original data via :py:func: ``mapToOriginal <Functions.saqc.mapToOriginal>``
