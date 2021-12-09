@@ -8,8 +8,10 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - The CLI now accepts remote configuration files given by an URL
 ### Changed
 - Documentaion now is generated from the develop branch
-- Doctest is now ran upon push to the develop branch (Failing doc snippets cause CI-pipeline to fail)
+- Doctest is now ran upon push to the develop branch (failing doc snippets cause CI-pipeline to fail)
+- Rename function `flagCrossStatistic` to `flagCrossStatistics`
 ### Removed
+- removed function `flagDriftFromScaledNorm`
 ### Fixed
 - RDM/UFZ ogos:
   - use the english versions of the respective images
@@ -18,6 +20,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - Fix version confusion
 - `copyField`: fix missleading error message
 - `flagGeneric`: fix failure on empty data
+- Existing `target` variables led to function calls on `target` instead of `field`
 
 ## [2.0.0] - 2021-11-25
 This release marks the beginning of a new release cycle. Basically the entire system got reworked between versions 1.4 and 2.0, a detailed changelog is not recoverable and/or useful.
