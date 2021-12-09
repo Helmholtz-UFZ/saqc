@@ -11,7 +11,6 @@ from saqc.core import initFlagsLike
 from saqc.funcs.drift import (
     flagDriftFromNorm,
     flagDriftFromReference,
-    flagDriftFromScaledNorm,
 )
 from saqc.funcs.outliers import flagRange
 from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
@@ -281,17 +280,5 @@ def test_flagDriftFromNormal(dat):
         flag=BAD,
     )
 
-    _, flags_scale = flagDriftFromScaledNorm(
-        data.copy(),
-        "dummy",
-        flags.copy(),
-        ["d1", "d3"],
-        ["d4", "d5"],
-        freq="3D",
-        thresh=20,
-        spread=5,
-        flag=BAD,
-    )
     assert all(flags_norm["d3"] > UNFLAGGED)
     assert all(flags_ref["d3"] > UNFLAGGED)
-    assert all(flags_scale["d3"] > UNFLAGGED)
