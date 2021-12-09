@@ -591,11 +591,6 @@ def flagMVScores(
         **kwargs,
     )
 
-    # the targets migh not exist, so we need to generate them
-    for src, trg in zip(fields, targets):
-        if trg not in data:
-            data, flags = copyField(data, field=src, flags=flags, target=trg)
-
     data, flags = _evalStrayLabels(
         data=data,
         field="kNN",
@@ -1209,7 +1204,7 @@ def flagRange(
     multivariate=True,
     handles_target=True,
 )
-def flagCrossStatistic(
+def flagCrossStatistics(
     data: DictOfSeries,
     field: Sequence[str],
     flags: Flags,

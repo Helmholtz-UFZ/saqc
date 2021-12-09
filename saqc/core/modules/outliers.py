@@ -104,7 +104,7 @@ class Outliers:
     ) -> saqc.SaQC:
         return self._defer("flagRange", locals())
 
-    def flagCrossStatistic(
+    def flagCrossStatistics(
         self,
         field: Sequence[str],
         thresh: float,
