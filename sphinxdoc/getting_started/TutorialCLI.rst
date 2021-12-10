@@ -1,7 +1,7 @@
 Command Line Application
 ========================
 
-.. note:
+.. note::
 
     The content of this page is outdate and the provided code sample will very likely
     not work as expected. A rewrite of this document is pending...
