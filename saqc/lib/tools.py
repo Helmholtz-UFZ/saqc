@@ -25,17 +25,6 @@ from saqc.lib.rolling import customRoller
 T = TypeVar("T", str, float, int)
 
 
-def _swapToTarget(field, target, flags):
-    if target is None:
-        return field, flags
-    if not isinstance(target, str):
-        raise TypeError(f"target must be of type string, not {repr(type(target))}")
-    if target in flags.columns:
-        raise ValueError(f"cannot create target {repr(target)}, it already exists.")
-    flags.history[target] = flags.history[field].copy()
-    return target, flags
-
-
 def assertScalar(name, value, optional=False):
     if (not np.isscalar(value)) and (value is not None) and (optional is True):
         raise ValueError(f"'{name}' needs to be a scalar or 'None'")
@@ -44,7 +33,7 @@ def assertScalar(name, value, optional=False):
 
 
 def toSequence(value: T | Sequence[T]) -> List[T]:
-    if isinstance(value, (str, int, float)):
+    if isinstance(value, T.__constraints__):
         return [value]
     return list(value)
 

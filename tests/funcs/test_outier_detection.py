@@ -80,18 +80,25 @@ def test_flagSpikesLimitRaise(dat):
 
 # see test/functs/fixtures.py for the 'course_N'
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
-def test_flagMultivarScores(dat):
+def test_flagMVScores(dat):
+    def _check(fields, flags, characteristics):
+        for field in fields:
+            isflagged = flags[field] > UNFLAGGED
+            assert isflagged[characteristics["raise"]].all()
+            assert not isflagged[characteristics["return"]].any()
+            assert not isflagged[characteristics["drop"]].any()
+
     data1, characteristics = dat(
         periods=1000, initial_level=5, final_level=15, out_val=50
     )
     data2, characteristics = dat(
         periods=1000, initial_level=20, final_level=1, out_val=30
     )
-    fields = ["data1", "data2"]
+    fields = ["field1", "field2"]
     s1, s2 = data1.squeeze(), data2.squeeze()
     s1 = pd.Series(data=s1.values, index=s1.index)
     s2 = pd.Series(data=s2.values, index=s1.index)
-    data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
+    data = dios.DictOfSeries([s1, s2], columns=["field1", "field2"])
     flags = initFlagsLike(data)
     _, flags_result = flagMVScores(
         data=data,
@@ -102,11 +109,7 @@ def test_flagMultivarScores(dat):
         n=10,
         flag=BAD,
     )
-    for field in fields:
-        isflagged = flags_result[field] > UNFLAGGED
-        assert isflagged[characteristics["raise"]].all()
-        assert not isflagged[characteristics["return"]].any()
-        assert not isflagged[characteristics["drop"]].any()
+    _check(fields, flags_result, characteristics)
 
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_3")])
@@ -132,7 +135,6 @@ def test_flagCrossStatistics(dat):
     data1, characteristics = dat(initial_level=0, final_level=0, out_val=0)
     data2, characteristics = dat(initial_level=0, final_level=0, out_val=10)
     fields = ["field1", "field2"]
-    targets = ["target1", "trarget2"]
     s1, s2 = data1.squeeze(), data2.squeeze()
     s1 = pd.Series(data=s1.values, index=s1.index)
     s2 = pd.Series(data=s2.values, index=s1.index)

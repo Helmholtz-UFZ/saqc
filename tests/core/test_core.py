@@ -158,3 +158,31 @@ def test_sourceTargetMultivariate():
         return data, flags
 
     SaQC(data).flagMulti(field=data.columns, target=data.columns)
+
+
+def test_sourceTargetMulti():
+    data = initData(3)
+    flags = initFlagsLike(data)
+    fields = data.columns
+    targets = [f"target{i + 1}" for i in range(len(fields))]
+
+    @register(
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field"],
+        handles_target=False,
+        multivariate=True,
+    )
+    def flagMulti(data, field, flags, target, **kwargs):
+        assert len(field) == len(target)
+        for src, trg in zip(field, target):
+            assert src in data
+            assert trg in data
+            assert src in flags
+            assert trg in flags
+
+            assert (data[src] == data[trg]).all(axis=None)
+            assert (flags[src] == flags[trg]).all(axis=None)
+        return data, flags
+
+    SaQC(data, flags).flagMulti(field=fields, target=targets)

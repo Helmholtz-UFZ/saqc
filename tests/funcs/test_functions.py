@@ -254,35 +254,45 @@ def test_flagManual(data, field):
 
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
-def test_flagDriftFromNormal(dat):
-    data = dat(periods=200, peak_level=5, name="d1")[0]
-    data["d2"] = dat(periods=200, peak_level=10, name="d2")[0]["d2"]
-    data["d3"] = dat(periods=200, peak_level=100, name="d3")[0]["d3"]
-    data["d4"] = 3 + 4 * data["d1"]
-    data["d5"] = 3 + 4 * data["d1"]
+def test_flagDriftFromNorm(dat):
+    data = dat(periods=200, peak_level=5, name="field1")[0]
+    data["field2"] = dat(periods=200, peak_level=10, name="field2")[0]["field2"]
+    data["field3"] = dat(periods=200, peak_level=100, name="field3")[0]["field3"]
+
+    fields = ["field1", "field2", "field3"]
 
     flags = initFlagsLike(data)
     _, flags_norm = flagDriftFromNorm(
         data=data.copy(),
-        field=["d1", "d2", "d3"],
+        field=fields,
         flags=flags.copy(),
         freq="200min",
         spread=5,
         flag=BAD,
     )
+    assert all(flags_norm["field3"] > UNFLAGGED)
+
+
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
+def test_flagDriftFromReference(dat):
+    data = dat(periods=200, peak_level=5, name="field1")[0]
+    data["field2"] = dat(periods=200, peak_level=10, name="field2")[0]["field2"]
+    data["field3"] = dat(periods=200, peak_level=100, name="field3")[0]["field3"]
+
+    fields = ["field1", "field2", "field3"]
+
+    flags = initFlagsLike(data)
 
     _, flags_ref = flagDriftFromReference(
         data=data.copy(),
-        field=["d1", "d2", "d3"],
+        field=fields,
         flags=flags.copy(),
-        reference="d1",
+        reference="field1",
         freq="3D",
         thresh=20,
         flag=BAD,
     )
-
-    assert all(flags_norm["d3"] > UNFLAGGED)
-    assert all(flags_ref["d3"] > UNFLAGGED)
+    assert all(flags_ref["field3"] > UNFLAGGED)
 
 
 def test_transferFlags():

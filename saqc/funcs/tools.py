@@ -22,7 +22,12 @@ _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
 @register(mask=[], demask=[], squeeze=[], handles_target=True)
 def copyField(
-    data: DictOfSeries, field: str, flags: Flags, target: str, **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    target: str,
+    overwrite: bool = False,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Copy data and flags to a new name (preserve flags history).
@@ -47,8 +52,13 @@ def copyField(
         The quality flags of data
         Flags shape may have changed relatively to the flags input.
     """
+    if field == target:
+        return data, flags
+
     if target in flags.columns.union(data.columns):
-        raise ValueError(f"'{target}' already exist")
+        if not overwrite:
+            raise ValueError(f"{target}: already exist")
+        data, flags = dropField(data=data, flags=flags, field=target)
 
     data[target] = data[field].copy()
     flags.history[target] = flags.history[field].copy()
