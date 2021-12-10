@@ -48,10 +48,12 @@ from the `repository <https://git.ufz.de/rdm-software/saqc.git>`_ and make varia
 paths pointing at those downloaded files. Note, that the :py:class:`~saqc.SaQC` digests the loaded data in a list.
 This is done, to circumvent having to concatenate both datasets in a pandas Dataframe instance, which would introduce
 `NaN` values to both the datasets, wherever their timestamps missmatch. `SaQC` can handle those unaligned data
-internally without introducing artificially fill values to them.
+internally without introducing artificial fill values to them.
 
 .. testcode:: exampleMV
 
+   import saqc
+   import pandas as pd
    data = pd.read_csv(datapath, index_col=0)
    maint = pd.read_csv(maintpath, index_col=0)
    maint.index = pd.DatetimeIndex(maint.index)
@@ -181,8 +183,7 @@ to interpolate pillar points of multiples of *15* minutes linearly.
    qc = qc.linear(['sac254_raw', 'level_raw', 'water_temp_raw'], freq='15min')
 
 
-The resulting timeseries has regular timestamp and includes only values that evaluate to `NaN` or did pass the range
-check and the maintenance data flagging:
+The resulting timeseries now has has regular timestamp.
 
 
 .. doctest:: exampleMV
@@ -202,8 +203,8 @@ check and the maintenance data flagging:
    2018-01-01 00:00:00          NaN
    Name: sac254_raw, Length: 70194, dtype: float64
 
-Since points, that were identified as malicous get excluded, before the harmonization, the resulting regularly sampled
-timeseries does not include thme anymore:
+Since points, that were identified as malicous get excluded before the harmonization, the resulting regularly sampled
+timeseries does not include them anymore:
 
 .. doctest:: exampleMV
 
@@ -217,13 +218,6 @@ timeseries does not include thme anymore:
 
    qc.plot('sac254_raw')
 
-Data Preparation Config
-^^^^^^^^^^^^^^^^^^^^^^^
-
-To configure `saqc` to execute the above data preparation steps, the config file would have to look as follows:
-
-.. literalinclude:: ../ressources/data/hydro_config.csv
-
 
 Drift Correction
 ----------------
@@ -231,7 +225,7 @@ Drift Correction
 The variables *SAK254* and *Turbidity* show drifting behavior originating from dirt, that accumulates on the light
 sensitive sensor surfaces over time. The effect, the dirt accumulation has on the measurement values, is assumed to be
 properly described by an exponential model. The Sensors are cleaned periodocally, resulting in a periodical reset of
-the drifting effect. The Dates and Times of the maintenance events are input to the
+the drifting effect. The Dates and Times of the maintenance events are input to the method
 :py:meth:`~saqc.SaQC.correctDrift`, that will correct the data in between any two such maintenance intervals.
 
 .. doctest:: exampleMV
@@ -269,9 +263,10 @@ We are basically following the *oddWater* procedure, as suggested in *Talagala, 
 Procedure for Detecting Technical Outliers in Water-Quality Data From In Situ Sensors. Water Ressources Research,
 55(11), 8547-8568.*
 
-First we define a transformation we want the variables to be normalized with.
-We just import *scipys* `zscore` function and wrap it, so that it will
-be able to digest *nan* values without returning *nan*
+First, we define a transformation, we want the variables to be transformed with, to make them equally significant in
+their common feature space. We go for the common pick of just *zScoring* the variables.
+Therefor, we just import *scipys* `zscore` function and wrap it, so that it will be able to digest *nan* values,
+without returning *nan*.
 
 .. doctest:: exampleMV
 
@@ -285,7 +280,7 @@ be able to digest *nan* values without returning *nan*
    from scipy.stats import zscore
    zscore_func = lambda x: zscore(x, nan_policy='omit')
 
-Now we can pass the function to the :py:meth:`saqc.SaQC.transform` method.
+Now we can pass the function to the :py:meth:`~saqc.SaQC.transform` method.
 
 .. doctest:: exampleMV
 
@@ -300,12 +295,19 @@ Now we can pass the function to the :py:meth:`saqc.SaQC.transform` method.
 
    qc = qc.transform(['sac254_raw', 'level_raw', 'water_temp_raw'], target=['sac_z', 'level_z', 'water_z'], func=zscore_func, freq='30D')
 
-The idea of the *oddWater* algorithm, is, to assign any timestamp a score, derived from the distance of the *k* nearest
-neighbors of the datapoint related to that score. We can do this, via the :py:meth:`~saqc.SaQC.assignKNNscore` method.
+The idea of the multivariate flagging approach we are going for, is,
+to assign any datapoint a score, derived from the distance this datapoint has to its *k* nearest
+neighbors in feature space. We can do this, via the :py:meth:`~saqc.SaQC.assignKNNScore` method.
+
 
 .. doctest:: exampleMV
 
    >>> qc = qc.assignKNNScore(field=['sac_z', 'level_z', 'water_z'], target='kNNscores', freq='30D', n=5)
+
+Lets have a look at the resulting score variable.
+
+.. doctest:: exampleMV
+
    >>> qc.plot('kNNscores') # doctest:+SKIP
 
 .. plot::
@@ -317,8 +319,8 @@ neighbors of the datapoint related to that score. We can do this, via the :py:me
    qc = qc.assignKNNScore(field=['sac_z', 'level_z', 'water_z'], target='kNNscores', freq='30D', n=5)
    qc.plot('kNNscores')
 
-Those scores roughly correlate with the isolation of the scored points in the phase space. For example, have a look at
-the phase space of *sac* and *level* in october 2016:
+Those scores roughly correlate with the isolation of the scored points in the feature space. For example, have a look at
+the projection of this feature space onto the 2 dimensional *sac* - *level* space, in november 2016:
 
 .. doctest:: exampleMV
 
@@ -333,20 +335,21 @@ the phase space of *sac* and *level* in october 2016:
    qc.plot('sac_z', phaseplot='level_z', xscope='2016-11')
 
 
-We can clearly see some outliers, that seem to be isolated from the cloud of the normal group. Since those outliers are
+We can clearly see some outliers, that seem to be isolated from the cloud of the normalish points. Since those outliers are
 correlated with relatively high *kNNscores*, we could try to calculate a threshold that determines, how extreme an
-*kNN* score has to be to qualify an outlier. We will use the saqc implementation of the
+*kNN* score has to be to qualify an outlier. Therefor, we will use the saqc-implementation of the
 `STRAY <https://arxiv.org/pdf/1908.04000.pdf>`_ algorithm, which is available as the method:
-:py:meth:`~saqc.SaQC.flagByStray`. Subsequently we project the resulting flags on the *sac* variable with a call to
-:py:meth:`~saqc.SaQC.flagGeneric`. For the sake of demonstration, we also project the flags
-on the normalized *sac* and plot the flagged values in the *sac_z*-*level_z* phase space
+:py:meth:`~saqc.SaQC.flagByStray`. This method will mark some samples of the `kNNscore` variable as anomaly.
+Subsequently we project this marks (or *flags*) on to the *sac* variable with a call to
+:py:meth:`~saqc.SaQC.transferFlags`. For the sake of demonstration, we also project the flags
+on the normalized *sac* and plot the flagged values in the *sac_z* - *level_z* feature space.
 
 
 .. doctest:: exampleMV
 
    >>> qc = qc.flagByStray(field='kNNscores', freq='30D', alpha=.3)
-   >>> qc = qc.flagGeneric(field='sac254_corrected', func=lambda x: isflagged(x), label='STRAY')
-   >>> qc = qc.flagGeneric(field='sac_z', freq='30D', func=lambda x: isflagged(x), label='STRAY')
+   >>> qc = qc.transferFlags(field='kNNscores', target='sac254_corrected', label='STRAY')
+   >>> qc = qc.transferFlags(field='kNNscores', target='sac_z', label='STRAY')
    >>> qc.plot('sac254_corrected', xscope='2016-11') # doctest:+SKIP
    >>> qc.plot('sac_z', phaseplot='level_z', xscope='2016-11') # doctest:+SKIP
 
@@ -354,8 +357,9 @@ on the normalized *sac* and plot the flagged values in the *sac_z*-*level_z* pha
    :context: close-figs
    :include-source: False
 
-   qc = qc.flagByStray(field='kNNscores', target='sac254_corrected', freq='30D', alpha=.3)
-   qc = qc.flagByStray(field='kNNscores', target='sac_z', freq='30D', alpha=.3)
+   qc = qc.flagByStray(field='kNNscores', freq='30D', alpha=.3)
+   qc = qc.transferFlags(field='kNNscores', target='sac254_corrected', label='STRAY')
+   qc = qc.transferFlags(field='kNNscores', target='sac_z', label='STRAY')
 
 .. plot::
    :context: close-figs
@@ -381,7 +385,8 @@ Config
 
    saqc.fromConfig(configpath, [data, maint])
 
-To configure `saqc` to execute the above data preparation steps, the config file would have to look as follows:
+To configure `saqc` to execute the above data processing and flagging steps, the config file would have to look
+as follows:
 
 .. literalinclude:: ../ressources/data/hydro_config.csv
 
