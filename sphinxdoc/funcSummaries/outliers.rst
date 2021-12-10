@@ -14,4 +14,4 @@ outliers
    ~SaQC.flagOffset
    ~SaQC.flagByGrubbs
    ~SaQC.flagRange
-   ~SaQC.flagCrossStatistic
+   ~SaQC.flagCrossStatistics

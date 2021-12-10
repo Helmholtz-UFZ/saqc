@@ -26,6 +26,7 @@ clean:
 	rm -f moduleAPIs/*.automodsumm
 	rm -f moduleAPIs/*.automodapi
 	rm -f */*.automodsumm
+	rm -f -r coredoc
 
 # trigger (saqc) customized documentation pipeline
 doc:
