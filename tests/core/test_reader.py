@@ -8,7 +8,7 @@ import dios
 from pathlib import Path
 
 from saqc.core.reader import fromConfig, readFile
-from saqc.core.register import FUNC_MAP, register, flagging
+from saqc.core.register import FUNC_MAP, flagging
 
 from tests.common import initData, writeIO
 

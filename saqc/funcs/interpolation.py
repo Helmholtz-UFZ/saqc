@@ -206,7 +206,7 @@ def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
     return data.fillna(fill_value).astype(dtype)
 
 
-@processing()
+@register(mask=["field"], demask=[], squeeze=[])
 def interpolateIndex(
     data: DictOfSeries,
     field: str,

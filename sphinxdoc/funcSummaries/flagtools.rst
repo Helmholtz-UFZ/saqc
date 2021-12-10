@@ -12,3 +12,4 @@ flagtools
    ~SaQC.flagUnflagged
    ~SaQC.flagManual
    ~SaQC.flagDummy
+   ~SaQC.transferFlags

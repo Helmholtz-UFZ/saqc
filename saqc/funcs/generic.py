@@ -45,6 +45,12 @@ def _execGeneric(
         data = data.to_frame()
 
     out = func(*[data[c] for c in data.columns])
+    if pd.api.types.is_scalar(out):
+        raise ValueError(
+            "generic function should return a sequence object, "
+            f"got '{type(out)}' instead"
+        )
+
     return DictOfSeries(out)
 
 
@@ -139,6 +145,7 @@ def processGeneric(
         "func": "procGeneric",
         "args": (),
         "kwargs": {
+            **kwargs,
             "field": field,
             "func": func.__name__,
             "target": target,
@@ -274,6 +281,7 @@ def flagGeneric(
         "func": "flagGeneric",
         "args": (),
         "kwargs": {
+            **kwargs,
             "field": field,
             "func": func.__name__,
             "target": target,

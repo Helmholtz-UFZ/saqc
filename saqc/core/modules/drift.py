@@ -41,7 +41,6 @@ class Drift:
             np.array([x, y]), metric="cityblock"
         )
         / len(x),
-        target=None,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:

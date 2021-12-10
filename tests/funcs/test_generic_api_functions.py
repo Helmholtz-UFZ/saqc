@@ -130,6 +130,7 @@ def test_writeTargetProcGeneric(data):
                 "func": func.__name__,
                 "flag": BAD,
                 "dfilter": dfilter,
+                "label": "generic",
             },
         }
         saqc = SaQC(
@@ -139,7 +140,12 @@ def test_writeTargetProcGeneric(data):
             ),
         )
         res = saqc.processGeneric(
-            field=fields, target=targets, func=func, flag=BAD, dfilter=dfilter
+            field=fields,
+            target=targets,
+            func=func,
+            flag=BAD,
+            dfilter=dfilter,
+            label="generic",
         )
         assert (expected_data == res.data[targets].squeeze()).all(axis=None)
         # check that new histories where created
@@ -169,6 +175,7 @@ def test_overwriteFieldProcGeneric(data):
                 "func": func.__name__,
                 "flag": flag,
                 "dfilter": dfilter,
+                "label": "generic",
             },
         }
 
@@ -179,7 +186,9 @@ def test_overwriteFieldProcGeneric(data):
             ),
         )
 
-        res = saqc.processGeneric(field=fields, func=func, flag=flag, dfilter=dfilter)
+        res = saqc.processGeneric(
+            field=fields, func=func, flag=flag, dfilter=dfilter, label="generic"
+        )
         assert (expected_data == res.data[fields].squeeze()).all(axis=None)
         # check that the histories got appended
         for field in fields:
