@@ -40,8 +40,6 @@ class FunctionWrapper:
 
         # ensure type and all elements exist in signature
         self._checkDecoratorKeywords(mask, demask, squeeze)
-        if multivariate and not handles_target:
-            raise ValueError("multivariate=True requires handle_target=True")
 
         self.decorator_mask = mask
         self.decorator_demask = demask

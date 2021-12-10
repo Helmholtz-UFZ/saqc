@@ -12,7 +12,9 @@ from saqc.constants import FILTER_NONE
 
 
 class Tools:
-    def copyField(self, field: str, target: str, **kwargs) -> saqc.SaQC:
+    def copyField(
+        self, field: str, target: str, overwrite: bool = False, **kwargs
+    ) -> saqc.SaQC:
         return self._defer("copyField", locals())
 
     def dropField(self, field: str, **kwargs) -> saqc.SaQC:

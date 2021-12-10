@@ -11,12 +11,11 @@ from typing_extensions import Literal
 import numpy as np
 import pandas as pd
 
-from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
 
 from dios import DictOfSeries
-from saqc.constants import *
+from saqc.constants import BAD
 
 from saqc.core.register import register, flagging, Flags
 from saqc.funcs.changepoints import _assignChangePointCluster
@@ -35,7 +34,13 @@ LinkageString = Literal[
 MODELDICT = {"linear": linearDriftModel, "exponential": expDriftModel}
 
 
-@flagging()
+@register(
+    mask=["field"],
+    demask=["field"],
+    squeeze=["field"],  # reference is written !
+    multivariate=True,
+    handles_target=False,
+)
 def flagDriftFromNorm(
     data: DictOfSeries,
     field: Sequence[str],
@@ -136,6 +141,7 @@ def flagDriftFromNorm(
         [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
     """
     fields = toSequence(field)
+
     data_to_flag = data[fields].to_df()
     data_to_flag.dropna(inplace=True)
 
@@ -153,13 +159,12 @@ def flagDriftFromNorm(
     return data, flags
 
 
-# default multivariate flagging
 @register(
     mask=["field", "reference"],
     demask=["field", "reference"],
     squeeze=["field", "reference"],  # reference is written !
     multivariate=True,
-    handles_target=True,
+    handles_target=False,
 )
 def flagDriftFromReference(
     data: DictOfSeries,
@@ -172,7 +177,6 @@ def flagDriftFromReference(
         np.array([x, y]), metric="cityblock"
     )
     / len(x),
-    target=None,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -225,15 +229,13 @@ def flagDriftFromReference(
     default, since it corresponds to the averaged value distance, two data sets have (as opposed
     by euclidean, for example).
     """
-    if target:
-        raise NotImplementedError("target is not implemented for this function")
 
     fields = toSequence(field)
-    data_to_flag = data[fields].to_df().dropna()
 
-    fields = list(fields)
     if reference not in fields:
         fields.append(reference)
+
+    data_to_flag = data[fields].to_df().dropna()
 
     segments = data_to_flag.groupby(pd.Grouper(freq=freq))
     for segment in segments:
