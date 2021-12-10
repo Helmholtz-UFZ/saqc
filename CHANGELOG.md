@@ -5,24 +5,25 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 
 ## [Unreleased]
 ### Added
-- The CLI now accepts remote configuration files given by an URL
+- the CLI now accepts remote configuration files given by an URL
 - function `transferFlags` added 
+- improved error messages from `flagGeneric` and `processGeneric`
 ### Changed
-- Documentaion now is generated from the develop branch
-- Doctest is now ran upon push to the develop branch (failing doc snippets cause CI-pipeline to fail)
-- Rename function `flagCrossStatistic` to `flagCrossStatistics`
+- documentaion now is generated from the develop branch
+- doctest is now ran upon push to the develop branch (failing doc snippets cause CI-pipeline to fail)
+- rename function `flagCrossStatistic` to `flagCrossStatistics`
 ### Removed
 - removed function `flagDriftFromScaledNorm`
 ### Fixed
 - RDM/UFZ ogos:
   - use the english versions of the respective images
   - use full urls instead of the repo local urls in README.md
-- Fix the README.md code snippets
-- Fix version confusion
+- fix the README.md code snippets
+- fix version confusion
 - `copyField`: fix missleading error message
 - `flagGeneric`: fix failure on empty data
-- Existing `target` variables led to function calls on `target` instead of `field`
-- The functions `flagDriftFromNorm`, `flagDriftFromReference`, `flagCrossStatistics` and `flagMVScores` now properly support the field-target workflow
+- existing `target` variables led to function calls on `target` instead of `field`
+- the functions `flagDriftFromNorm`, `flagDriftFromReference`, `flagCrossStatistics` and `flagMVScores` now properly support the field-target workflow
 - `field` was not masked for resampling functions
 
 ## [2.0.0] - 2021-11-25
