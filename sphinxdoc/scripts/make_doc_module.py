@@ -142,6 +142,10 @@ def make_doc_core(sphinxroot, func_dict, doc_mod_structure):
     targetfolder = os.path.join(sphinxroot, "sphinxdoc/coredoc")
     coresource = os.path.join(sphinxroot, os.path.normpath("saqc/core/core.py"))
 
+    if os.path.isdir(targetfolder):
+        shutil.rmtree(targetfolder)
+    os.makedirs(targetfolder, exist_ok=True)
+
     # parse real core.py
     with open(coresource) as f:
         corelines = f.readlines()
@@ -187,6 +191,14 @@ def make_doc_core(sphinxroot, func_dict, doc_mod_structure):
                 "".join(start) + "\n" + "\n".join(mod_string) + "\n" + "".join(end)
             )
             f.write(newcore)
+
+        with open(os.path.join(targetfolder, f"__init__.py"), "w+") as f:
+            init_content = [
+                "# ! /usr/bin/env python",
+                "# -*- coding: utf-8 -*-",
+                "from sphinxdoc.coredoc.core import SaQC",
+            ]
+            f.write("\n".join(init_content))
 
     return 0
 
