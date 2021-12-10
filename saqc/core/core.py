@@ -217,12 +217,16 @@ class SaQC(FunctionsMixin):
                 }
 
                 if not func.handles_target and field != target:
-                    if target not in self.data.columns:
+                    if target in self.data.columns:
                         out = out._callFunction(
-                            FUNC_MAP["copyField"],
-                            *args,
-                            **fkwargs,
+                            FUNC_MAP["dropField"], field=target, **kwargs
                         )
+
+                    out = out._callFunction(
+                        FUNC_MAP["copyField"],
+                        *args,
+                        **fkwargs,
+                    )
                     fkwargs["field"] = fkwargs.pop("target")
 
                 out = out._callFunction(

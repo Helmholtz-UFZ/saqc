@@ -279,7 +279,8 @@ Now we can pass the function to the :py:meth:`saqc.SaQC.transform` method.
 
 .. doctest:: default
 
-   >>> qc = qc.transform(['sac254_raw', 'level_raw', 'water_temp_raw'], target=['sac_z', 'level_z', 'water_z'], func=zscore_func, freq='30D')
+   >>> qc = qc.transform(['sac254_corrected', 'level_raw', 'water_temp_raw'], target=['sac_z', 'level_z', 'water_z'], func=zscore_func, freq='30D')
+
 
 .. plot::
    :context: close-figs

@@ -401,7 +401,7 @@ def _expFit(
 @register(
     mask=["field"],
     demask=["field"],
-    squeeze=["field"],
+    squeeze=["field", "target"],
     multivariate=True,
     handles_target=True,
 )
@@ -1204,7 +1204,7 @@ def flagRange(
     multivariate=True,
     handles_target=True,
 )
-def flagCrossStatistic(
+def flagCrossStatistics(
     data: DictOfSeries,
     field: Sequence[str],
     flags: Flags,

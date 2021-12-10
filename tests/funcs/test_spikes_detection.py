@@ -11,6 +11,7 @@ from saqc.funcs.outliers import (
     flagRaise,
     flagMVScores,
     flagByGrubbs,
+    flagCrossStatistics,
 )
 from saqc.constants import *
 from saqc.core import initFlagsLike
@@ -124,3 +125,23 @@ def test_grubbs(dat):
         data, "data", flags, window=20, min_periods=15, flag=BAD
     )
     assert np.all(result_flags["data"][char_dict["drop"]] > UNFLAGGED)
+
+
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])
+def test_flagCrossStatistics(dat):
+    data1, characteristics = dat(initial_level=0, final_level=0, out_val=0)
+    data2, characteristics = dat(initial_level=0, final_level=0, out_val=10)
+    fields = ["field1", "field2"]
+    targets = ["target1", "trarget2"]
+    s1, s2 = data1.squeeze(), data2.squeeze()
+    s1 = pd.Series(data=s1.values, index=s1.index)
+    s2 = pd.Series(data=s2.values, index=s1.index)
+    data = dios.DictOfSeries([s1, s2], columns=["field1", "field2"])
+    flags = initFlagsLike(data)
+
+    _, flags_result = flagCrossStatistics(
+        data, fields, flags, thresh=3, method=np.mean, flag=BAD
+    )
+    for field in fields:
+        isflagged = flags_result[field] > UNFLAGGED
+        assert isflagged[characteristics["raise"]].all()

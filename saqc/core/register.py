@@ -85,7 +85,7 @@ class FunctionWrapper:
     def _argnamesToColumns(names: list, values: dict):
         clist = []
         for name in names:
-            value = values[name]  # eg. the value behind 'field'
+            value = values.get(name)  # eg. the value behind 'field'
 
             # NOTE: do not change order of the tests
             if value is None:

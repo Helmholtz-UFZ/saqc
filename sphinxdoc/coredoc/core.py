@@ -217,12 +217,16 @@ class SaQC(FunctionsMixin):
                 }
 
                 if not func.handles_target and field != target:
-                    if target not in self.data.columns:
+                    if target in self.data.columns:
                         out = out._callFunction(
-                            FUNC_MAP["copyField"],
-                            *args,
-                            **fkwargs,
+                            FUNC_MAP["dropField"], field=target, **kwargs
                         )
+
+                    out = out._callFunction(
+                        FUNC_MAP["copyField"],
+                        *args,
+                        **fkwargs,
+                    )
                     fkwargs["field"] = fkwargs.pop("target")
 
                 out = out._callFunction(
@@ -838,75 +842,6 @@ class SaQC(FunctionsMixin):
         by euclidean, for example).
         """
         pass
-
-
-    def flagDriftFromScaledNorm(self, field, set_1, set_2, freq, spread, frac, metric, method, target, flag):
-        """
-        Flags data that deviates from a scaled norm.
-        
-        Linearly rescales one set of variables to another set of variables
-        with a different scale and then flags data courses that significantly deviate
-        from a group of normal courses.
-        
-        The two sets of variables can be linearly scaled one to another and hence the
-        scaling transformation is performed via linear regression: A linear regression is
-        performed on each pair of variables giving a slope and an intercept. The
-        transformation is then calculated a the median of all the calculated slopes and
-        intercepts.
-        
-        Once the transformation is performed, values that deviate from a group of normal
-        values get flagged. "Normality" is determined in terms of
-        a maximum spreading distance, that members of a normal group must not exceed. In
-        addition, only a group is considered "normal" if it contains more then `frac`
-        percent of the passed variables.
-        
-        Parameters
-        ----------
-        field : str
-            Ignored.
-        
-        set_1 : str
-            First set of columns in data to be flagged.
-        
-        set_2 : str
-            Second set of columns in data to be flagged.
-        
-        freq : str
-            Frequency, that splits the data in chunks.
-        
-        spread : float
-            Maximum spread in data considered normal. See Notes section for more details.
-        
-        frac : float, default 0.5
-            Fraction defining the normal group. Use a value from the interval [0,1].
-            The higher the value, the more stable the algorithm will. For values below
-            0.5 the results are undefined.
-        
-        metric : Callable, default ``lambda x,y:pdist(np.array([x,y]),metric="cityblock")/len(x)``
-            Distance function that takes two arrays as input and return a scalar float.
-            This value is interpreted as the distance of the two input arrays.
-            Defaults to the `averaged manhattan metric` (see Notes).
-        
-        method : {"single", "complete", "average", "weighted", "centroid", "median", "ward"}, default "single"
-            Linkage method used for hierarchical (agglomerative) clustering of the data.
-            `method` is directly passed to ``scipy.hierarchy.linkage``. See its documentation [1] for
-            more details. For a general introduction on hierarchical clustering see [2].
-        
-        target : None
-            ignored
-        
-        flag : float, default BAD
-            flag to set.
-        
-        References
-        ----------
-        Documentation of the underlying hierarchical clustering algorithm:
-            [1] https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
-        Introduction to Hierarchical clustering:
-            [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
-        """
-        pass
-
 
     def correctDrift(self, field, maintenance_field, model, cal_range):
         """
@@ -1602,6 +1537,7 @@ class SaQC(FunctionsMixin):
 
     def flagMVScores(self, field, trafo, alpha, n, func, iter_start, partition, partition_min, partition_trafo, stray_range, drop_flagged, thresh, min_periods, target, flag):
         """
+<<<<<<< HEAD
         The algorithm implements a 3-step outlier detection procedure for simultaneously
         flagging of higher dimensional data (dimensions > 3).
         
@@ -1720,6 +1656,134 @@ class SaQC(FunctionsMixin):
         this gap, get flagged outliers. See description of the `threshing` parameter for
         more details. Although [2] gives a fully detailed overview over the `stray`
         algorithm.
+=======
+                The algorithm implements a 3-step outlier detection procedure for simultaneously
+                flagging of higher dimensional data (dimensions > 3).
+
+                In references [1], the procedure is introduced and exemplified with an
+                application on hydrological data. See the notes section for an overview over the
+                algorithms basic steps.
+
+                Parameters
+                ----------
+                field : list of str
+                    List of fieldnames, corresponding to the variables that are to be included
+                    into the flagging process.
+
+                trafo : callable, default lambda x:x
+                    Transformation to be applied onto every column before scoring. Will likely
+                    get deprecated soon. Its better to transform the data in a processing step,
+                    preceeeding the call to ``flagMVScores``.
+
+                alpha : float, default 0.05
+                    Level of significance by which it is tested, if an observations score might
+                    be drawn from another distribution than the majority of the observation.
+
+                n : int, default 10
+                    Number of neighbors included in the scoring process for every datapoint.
+
+                func : Callable[numpy.array, float], default np.sum
+                    The function that maps the set of every points k-nearest neighbor distances
+                    onto a certain scoring.
+
+                iter_start : float, default 0.5
+                    Float in [0,1] that determines which percentage of data is considered
+                    "normal". 0.5 results in the threshing algorithm to search only the upper 50
+                    % of the scores for the cut off point. (See reference section for more
+                    information)
+
+                partition : {None, str, int}, default None
+                    Only effective when `threshing` = 'stray'. Determines the size of the data
+                    partitions, the data is decomposed into. Each partition is checked seperately
+                    for outliers. If a String is passed, it has to be an offset string and it
+                    results in partitioning the data into parts of according temporal length. If
+                    an integer is passed, the data is simply split up into continous chunks of
+                    `freq` periods. if ``None`` is passed (default), all the data will be tested
+                    in one run.
+
+                partition_min : int, default 11
+                    Only effective when `threshing` = 'stray'. Minimum number of periods per
+                    partition that have to be present for a valid outlier detection to be made in
+                    this partition. (Only of effect, if `stray_partition` is an integer.)
+
+                partition_trafo : bool, default True
+                    Whether or not to apply the passed transformation on every partition the
+                    algorithm is applied on, separately.
+
+                stray_range : {None, str}, default None
+                    If not None, it is tried to reduce the stray result onto single outlier
+                    components of the input fields. An offset string, denoting the range of the
+                    temporal surrounding to include into the MAD testing while trying to reduce
+                    flags.
+
+                drop_flagged : bool, default False
+                    Only effective when `range` is not ``None``. Whether or not to drop flagged
+                    values other than the value under test from the temporal surrounding before
+                    checking the value with MAD.
+
+                thresh : float, default 3.5
+                    Only effective when `range` is not ``None``. The `critical` value,
+                    controlling wheather the MAD score is considered referring to an outlier or
+                    not. Higher values result in less rigid flagging. The default value is widely
+                    considered apropriate in the literature.
+
+                min_periods : int, 1
+                    Only effective when `range` is not ``None``. Minimum number of meassurements
+                    necessarily present in a reduction interval for reduction actually to be
+                    performed.
+        <<<<<<< HEAD
+
+                target : None
+                    ignored.
+
+        =======
+
+                target : list of str
+                    List of field names to write the output to, these fields should not already
+                    exist.
+
+        >>>>>>> 7a15bb35746a5cb984a850ea45df42d37f411e82
+                flag : float, default BAD
+                    flag to set.
+
+                Notes
+                -----
+                The basic steps are:
+
+                1. transforming
+
+                The different data columns are transformed via timeseries transformations to
+                (a) make them comparable and
+                (b) make outliers more stand out.
+
+                This step is usually subject to a phase of research/try and error. See [1] for more
+                details.
+
+                Note, that the data transformation as an built-in step of the algorithm,
+                will likely get deprecated soon. Its better to transform the data in a processing
+                step, preceeding the multivariate flagging process. Also, by doing so, one gets
+                mutch more control and variety in the transformation applied, since the `trafo`
+                parameter only allows for application of the same transformation to all of the
+                variables involved.
+
+                2. scoring
+
+                Every observation gets assigned a score depending on its k nearest neighbors. See
+                the `scoring_method` parameter description for details on the different scoring
+                methods. Furthermore [1], [2] may give some insight in the pro and cons of the
+                different methods.
+
+                3. threshing
+
+                The gaps between the (greatest) scores are tested for beeing drawn from the same
+                distribution as the majority of the scores. If a gap is encountered, that,
+                with sufficient significance, can be said to not be drawn from the same
+                distribution as the one all the smaller gaps are drawn from, than the observation
+                belonging to this gap, and all the observations belonging to gaps larger then
+                this gap, get flagged outliers. See description of the `threshing` parameter for
+                more details. Although [2] gives a fully detailed overview over the `stray`
+                algorithm.
+>>>>>>> develop
         """
         pass
 

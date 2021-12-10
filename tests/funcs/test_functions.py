@@ -11,9 +11,8 @@ from saqc.core import initFlagsLike
 from saqc.funcs.drift import (
     flagDriftFromNorm,
     flagDriftFromReference,
-    flagDriftFromScaledNorm,
 )
-from saqc.funcs.outliers import flagCrossStatistic, flagRange
+from saqc.funcs.outliers import flagRange
 from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
 from saqc.funcs.tools import dropField, copyField, maskTime
 from saqc.funcs.resampling import concatFlags
@@ -171,24 +170,6 @@ def test_flagIsolated(data, field):
     assert flags_result[field].iloc[[3, 5, 13, 14]].all()
 
 
-@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])
-def test_flagCrossScoring(dat):
-    data1, characteristics = dat(initial_level=0, final_level=0, out_val=0)
-    data2, characteristics = dat(initial_level=0, final_level=0, out_val=10)
-    fields = ["data1", "data2"]
-    s1, s2 = data1.squeeze(), data2.squeeze()
-    s1 = pd.Series(data=s1.values, index=s1.index)
-    s2 = pd.Series(data=s2.values, index=s1.index)
-    data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
-    flags = initFlagsLike(data)
-    _, flags_result = flagCrossStatistic(
-        data, fields, flags, thresh=3, method=np.mean, flag=BAD
-    )
-    for field in fields:
-        isflagged = flags_result[field] > UNFLAGGED
-        assert isflagged[characteristics["raise"]].all()
-
-
 def test_flagManual(data, field):
     flags = initFlagsLike(data)
     dat = data[field]
@@ -299,17 +280,5 @@ def test_flagDriftFromNormal(dat):
         flag=BAD,
     )
 
-    _, flags_scale = flagDriftFromScaledNorm(
-        data.copy(),
-        "dummy",
-        flags.copy(),
-        ["d1", "d3"],
-        ["d4", "d5"],
-        freq="3D",
-        thresh=20,
-        spread=5,
-        flag=BAD,
-    )
     assert all(flags_norm["d3"] > UNFLAGGED)
     assert all(flags_ref["d3"] > UNFLAGGED)
-    assert all(flags_scale["d3"] > UNFLAGGED)

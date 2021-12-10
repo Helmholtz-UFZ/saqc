@@ -70,6 +70,7 @@ def readFile(fname) -> pd.DataFrame:
     return df
 
 
+# Todo: needs (maybe tiny) docstring!
 def fromConfig(fname, *args, **kwargs):
     saqc = SaQC(*args, **kwargs)
     config = readFile(fname)
