@@ -4,6 +4,7 @@
 import dios
 import pandas as pd
 import numpy as np
+import saqc
 
 from saqc.funcs.noise import flagByStatLowPass
 from saqc.constants import *
@@ -282,3 +283,16 @@ def test_flagDriftFromNormal(dat):
 
     assert all(flags_norm["d3"] > UNFLAGGED)
     assert all(flags_ref["d3"] > UNFLAGGED)
+
+
+def test_transferFlags():
+    data = pd.DataFrame({"a": [1, 2], "b": [1, 2], "c": [1, 2]})
+    qc = saqc.SaQC(data)
+    qc = qc.flagRange("a", max=1.5)
+    qc = qc.transferFlags(["a", "a"], ["b", "c"])
+    assert np.all(
+        qc.flags["b"].values == np.array([saqc.constants.UNFLAGGED, saqc.constants.BAD])
+    )
+    assert np.all(
+        qc.flags["c"].values == np.array([saqc.constants.UNFLAGGED, saqc.constants.BAD])
+    )

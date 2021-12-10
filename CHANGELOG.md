@@ -6,6 +6,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 ## [Unreleased]
 ### Added
 - The CLI now accepts remote configuration files given by an URL
+- function `transferFlags` added 
 ### Changed
 - Documentaion now is generated from the develop branch
 - Doctest is now ran upon push to the develop branch (failing doc snippets cause CI-pipeline to fail)
