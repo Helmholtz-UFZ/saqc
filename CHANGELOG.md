@@ -22,6 +22,8 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - `copyField`: fix missleading error message
 - `flagGeneric`: fix failure on empty data
 - Existing `target` variables led to function calls on `target` instead of `field`
+- The functions `flagDriftFromNorm`, `flagDriftFromReference`, `flagCrossStatistics` and `flagMVScores` now properly support the field-target workflow
+- `field` was not masked for resampling functions
 
 ## [2.0.0] - 2021-11-25
 This release marks the beginning of a new release cycle. Basically the entire system got reworked between versions 1.4 and 2.0, a detailed changelog is not recoverable and/or useful.
