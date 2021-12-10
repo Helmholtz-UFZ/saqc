@@ -9,7 +9,6 @@ drift
 
    ~SaQC.flagDriftFromNorm
    ~SaQC.flagDriftFromReference
-   ~SaQC.flagDriftFromScaledNorm
    ~SaQC.correctDrift
    ~SaQC.correctRegimeAnomaly
    ~SaQC.correctOffset
