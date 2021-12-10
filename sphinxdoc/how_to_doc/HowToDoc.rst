@@ -103,21 +103,15 @@ hyperlinking docstrings
 
   .. code-block::
 
-     :py:func:`saqc.flagRange <saqc.Functions.flagRange>`
+     :py:func:`coolMethod <saqc.SaQC.flagRange>`
 
-
-* Modules are available via the "simulated"  package ``Functions.`` - for example:
-
-  .. code-block::
-
-     :py:mod:`generic <Functions.generic>`
 
 * The saqc object and/or its content is available via:
 
   .. code-block::
 
-     :py:class:`saqc.SaQC <Core.Core.SaQC>`
-     :py:meth:`saqc.SaQC.flagRange <Core.Core.SaQC.flagRange>`
+     :py:class:`saqc.SaQC`
+     :py:meth:`saqc.SaQC.flagRange`
 
 
 * The Flags object and/or its content is available via:
@@ -288,3 +282,18 @@ Will be rendered, as:
       >>> time #doctest:+SKIP
       CPU times: user 5 µs, sys: 3 µs, total: 8 µs
       Wall time: 13.8 µs
+
+
+Run doctest locally
+-------------------
+
+Since doctest checks guard the push to the develop branch, you might wish to chek if your local modification passes
+all doctests beforehand.
+
+There for go to the sphinxdoc directory and run:
+
+.. codebloc::
+
+   make testonly
+
+To only run the doctests.
