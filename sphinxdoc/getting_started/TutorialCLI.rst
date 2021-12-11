@@ -2,18 +2,20 @@
 
    datapath = './ressources/data/data.csv'
    configpath = lambda x: f'./ressources/data/myconfig{x}.csv'
+   temppath = lambda x: f'./ressources/temp/{x}'
    data = pd.read_csv(datapath, index_col=0)
    data.index = pd.DatetimeIndex(data.index)
 
 .. plot::
-   :context: close-figs
    :include-source: False
+   :context: close-figs
 
    import pandas as pd
    import saqc
    import matplotlib
    datapath = '../ressources/data/data.csv'
    configpath = lambda x: f'../ressources/data/myconfig{x}.csv'
+   temppath = lambda x: f'../ressources/temp/{x}'
    data = pd.read_csv(datapath, index_col=0)
    data.index = pd.DatetimeIndex(data.index)
 
@@ -214,55 +216,35 @@ Process multiple variables
 """"""""""""""""""""""""""
 
 You can also define multiple tests for multiple variables in your data. These
-are then executed sequentially and can be plotted seperately. E.g. you could do
-something like this:
+are then executed sequentially and can be plotted seperately. To not interrupt processing, the plots
+get stored to files.
 
-.. code-block::
+.. literalinclude:: ../ressources/data/myconfig4.csv
 
-   varname;test;plot
-   SM1;flagRange(min=10, max=60);False
-   SM2;flagRange(min=10, max=60);False
-   SM1;flagMad(window="15d", z=3.5);True
-   SM2;flagMad(window="30d", z=3.5);True
 
+.. plot::
+   :context: close-figs
+   :include-source: False
+
+   qc = saqc.fromConfig(configpath('4'), data)
 
 which gives you separate plots for each line where the plotting option is set to
 ``True`` as well as one summary "data plot" that depicts the joint flags from all
 tests:
 
-.. list-table::
-   :header-rows: 1
-
-   * - SM1
-     - SM2
-   * - here
-     - there
-
 
 .. list-table::
    :header-rows: 1
 
    * - SM1
      - SM2
-   * - .. image:: ../ressources/images/example_plot_31.png
-          :target: ../ressources/images/example_plot_31.png
+   * - .. image:: ../ressources/images/SM1processingResults.png
+          :target: ../ressources/images/SM1processingResults.png
           :alt: 
        
-     - .. image:: ../ressources/images/example_plot_32.png
-          :target: ../ressources/images/example_plot_32.png
+     - .. image:: ../ressources/images/SM2processingResults.png
+          :target: ../ressources/images/SM2processingResults.png
           :alt: 
-       
-   * - .. image:: ../ressources/images/example_plot_31.png
-          :target: ../ressources/images/example_plot_31.png
-          :alt: 
-       
-     -
-
-
-
-.. image:: ../ressources/images/example_plot_33.png
-   :target: ../ressources/images/example_plot_33.png
-   :alt: 
 
 
 Data harmonization and custom functions
@@ -286,7 +268,7 @@ series. Also, you can write your own tests using a python-based
 
    import os
    qc = saqc.fromConfig(configpath('3'), data)
-   qc.data.to_csv(os.path.join(os.path.dirname(datapath), 'TutorialCLIHarmData.csv'))
+   qc.data.to_csv(temppath('TutorialCLIHarmData.csv'))
 
 
 The above executes an internal framework that aligns the timestamps of SM2
@@ -294,17 +276,20 @@ to a 15min-grid (:py:meth:`saqc.SaQC.shift`). Further information on harmonizati
 found in the :doc:`Resampling cookbook <../cook_books/DataRegularisation>`.
 
 
-.. literalinclude:: ../ressources/data/TutorialCLIHarmData.csv
+.. literalinclude:: ../ressources/temp/TutorialCLIHarmData.csv
    :lines: 1-10
 
 
 Also, all values where SM2 is below 30 are flagged via the custom function (see
-plot below). You can learn more about the syntax of these custom functions
+plot below) and the plot is labeled with the string passed to the `label` keyword.
+You can learn more about the syntax of these custom functions
 :ref:`here <documentation/GenericFunctions:Generic Functions>`.
 
 
 .. plot::
    :context: close-figs
    :include-source: False
+   :width: 80 %
+   :align: center
 
    qc.plot('SM2')

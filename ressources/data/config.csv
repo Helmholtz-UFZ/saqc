@@ -1,8 +1,0 @@
-varname    ; test
-#----------; -----------------------------------------------------
-SM2        ; shift(freq="15Min")
-'SM(1|2)+' ; flagMissing()
-SM1        ; flagRange(min=10, max=60)
-SM2        ; flagRange(min=10, max=40)
-SM2        ; flagMAD(window="30d", z=3.5)
-Dummy      ; flagGeneric(field=["SM1", "SM2"], func=(isflagged(x) | isflagged(y)))
