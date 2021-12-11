@@ -1,0 +1,16 @@
+
+SaQC
+====
+
+
+sphinxdoc.coredoc Package
+-------------------------
+
+.. automodule:: sphinxdoc.coredoc
+
+Classes
+^^^^^^^
+
+.. automodsumm:: sphinxdoc.coredoc
+    :classes-only:
+    :toctree: ../_api

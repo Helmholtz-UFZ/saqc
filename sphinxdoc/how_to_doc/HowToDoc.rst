@@ -292,7 +292,7 @@ all doctests beforehand.
 
 There for go to the sphinxdoc directory and run:
 
-.. codebloc::
+.. code-block::
 
    make testonly
 

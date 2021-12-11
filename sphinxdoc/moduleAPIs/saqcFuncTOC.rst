@@ -1,3 +1,6 @@
+SaQC Flagging Functions
+-----------------------
+
 .. toctree::
    :glob:
 
