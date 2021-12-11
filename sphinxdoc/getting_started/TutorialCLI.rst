@@ -1,10 +1,31 @@
+.. testsetup:: exampleCLI
+
+   datapath = './ressources/data/data.csv'
+   configpath = lambda x: f'./ressources/data/myconfig{x}.csv'
+   temppath = lambda x: f'./ressources/temp/{x}'
+   data = pd.read_csv(datapath, index_col=0)
+   data.index = pd.DatetimeIndex(data.index)
+
+.. plot::
+   :include-source: False
+   :context: close-figs
+
+   import pandas as pd
+   import saqc
+   import matplotlib
+   datapath = '../ressources/data/data.csv'
+   configpath = lambda x: f'../ressources/data/myconfig{x}.csv'
+   temppath = lambda x: f'../ressources/temp/{x}'
+   data = pd.read_csv(datapath, index_col=0)
+   data.index = pd.DatetimeIndex(data.index)
+
 Command Line Application
 ========================
 
-.. note:
+.. note::
 
-    The content of this page is outdate and the provided code sample will very likely
-    not work as expected. A rewrite of this document is pending...
+   The content of this page is outdated and the provided code sample will very likely
+   not work as expected. A rewrite of this document is WIP
 
 
 Contents
@@ -30,42 +51,39 @@ a toy dataset and a toy configuration.
 ---------------------------------
 
 If you take a look into the folder ``saqc/ressources/data`` you will find a toy
-dataset ``data.csv`` which contains the following:
+dataset ``data.csv`` which contains the following data:
 
-.. code-block::
-
-   Date,Battery,SM1,SM2
-   2016-04-01 00:05:48,3573,32.685,29.3157
-   2016-04-01 00:20:42,3572,32.7428,29.3157
-   2016-04-01 00:35:37,3572,32.6186,29.3679
-   2016-04-01 00:50:32,3572,32.736999999999995,29.3679
-   ...
+.. literalinclude:: ../ressources/data/data.csv
+   :lines: 1-6
 
 
-These are two timeseries of soil moisture (SM1+2) and the battery voltage of the
+These are the first entries of two timeseries of soil moisture (SM1+2) and the battery voltage of the
 measuring device over time. Generally, this is the way that your data should
 look like to run saqc. Note, however, that you do not necessarily need a series
 of dates to reference to and that you are free to use more columns of any name
 that you like.
 
-Now create your our own configuration file ``saqc/ressources/data/myconfig.csv``
-and paste the following lines into it:
+Now have a look at a basic sonfiguration file, as
+`this one <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/ressources/data/myconfig.csv>`_.
+It contains the following lines:
 
-.. code-block::
-
-   varname;test;plot
-   SM2;flagRange(min=10, max=60);False
-   SM2;flagMad(window="30d", z=3.5);True
-
+.. literalinclude:: ../ressources/data/myconfig.csv
 
 These lines illustrate how different quality control tests can be specified for
-different variables,
+different variables.
 
-In this case, we define a range-test that flags all values outside the range
-[10,60] and a test to detect spikes using the MAD-method. You can find an
-overview of all available quality control tests :py:mod:`here <Functions.saqc>`. Note that the tests are
+In this case, we trigger a :py:meth:`range <saqc.SaQC.flagRange>` test, that flags all values exceeding
+the range of the bounds of the interval *[10,60]*. Subsequently, a test to detect spikes, is applied,
+using the MAD-method. (:py:meth:`~saqc.SaQC.flagMAD`).
+You can find an overview of all available quality control tests
+:ref:`here <moduleAPI/saqcFuncTOC:SaQC Flagging Functions>`. Note that the tests are
 *executed in the order that you define in the configuration file*. The quality
 flags that are set during one test are always passed on to the subsequent one.
+
+.. testcode:: exampleCLI
+   :hide:
+
+   qc = saqc.fromConfig(configpath(''), data)
 
 2. Run SaQC
 -----------
@@ -113,22 +131,23 @@ If you installed saqc via PYPi, you can omit ``sh python -m``.
 The command will output this plot:
 
 
-.. image:: ../ressources/images/example_plot_1.png
-   :target: ../ressources/images/example_plot_1.png
-   :alt: Toy Plot
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :align: center
 
+   qc = saqc.fromConfig(configpath(''), data)
 
 So, what do we see here?
 
 
 * The plot shows the data as well as the quality flags that were set by the
   tests for the variable ``SM2``\ , as defined in the config-file
-* Following our definition in the config-file, first the ``flagRange``\ -test that flags
+* Following our definition in the config-file, first the :py:meth:`~saqc.SaQC.flagRange` -test that flags
   all values outside the range [10,60] was executed and after that,
-  the ``flagMad``\ -test to identify spikes in the data
-* In the config, we set the plotting option to ``True`` for ``flagMad``\ ,
-  only. Thus, the plot aggregates all preceeding tests (here: ``range``\ ) to black
-  points and highlights the flags of the selected test as red points.
+  the :py:meth:`~saqc.SaQC.flagMAD` -test to identify spikes in the data
+* Finally we triggered the generation of a plot, by adding the :py:meth:`~saqc.SaQC.plot` function in the last line.
 
 Save outputs to file
 ^^^^^^^^^^^^^^^^^^^^
@@ -166,18 +185,23 @@ own data, this is your way to configure the tests according to your needs. For
 example, you could modify your ``myconfig.csv`` and change the parameters of the
 range-test:
 
-.. code-block::
-
-   varname;test;plot
-   SM2;flagRange(min=-20, max=60);False
-   SM2;flagMad(window="30d", z=3.5);True
+.. literalinclude:: ../ressources/data/myconfig2.csv
 
 Rerunning SaQC as above produces the following plot:
 
+.. testcode:: exampleCLI
+   :hide:
 
-.. image:: ../ressources/images/example_plot_2.png
-   :target: ../ressources/images/example_plot_2.png
-   :alt: Changing the config
+   qc = saqc.fromConfig(configpath('2'), data)
+
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :align: center
+
+   qc = saqc.fromConfig(configpath('2'), data)
 
 
 You can see that the changes that we made to the parameters of the range test
@@ -192,55 +216,35 @@ Process multiple variables
 """"""""""""""""""""""""""
 
 You can also define multiple tests for multiple variables in your data. These
-are then executed sequentially and can be plotted seperately. E.g. you could do
-something like this:
+are then executed sequentially and can be plotted seperately. To not interrupt processing, the plots
+get stored to files.
 
-.. code-block::
+.. literalinclude:: ../ressources/data/myconfig4.csv
 
-   varname;test;plot
-   SM1;flagRange(min=10, max=60);False
-   SM2;flagRange(min=10, max=60);False
-   SM1;flagMad(window="15d", z=3.5);True
-   SM2;flagMad(window="30d", z=3.5);True
 
+.. plot::
+   :context: close-figs
+   :include-source: False
+
+   qc = saqc.fromConfig(configpath('4'), data)
 
 which gives you separate plots for each line where the plotting option is set to
 ``True`` as well as one summary "data plot" that depicts the joint flags from all
 tests:
 
-.. list-table::
-   :header-rows: 1
-
-   * - SM1
-     - SM2
-   * - here
-     - there
-
 
 .. list-table::
    :header-rows: 1
 
    * - SM1
      - SM2
-   * - .. image:: ../ressources/images/example_plot_31.png
-          :target: ../ressources/images/example_plot_31.png
+   * - .. image:: ../ressources/images/SM1processingResults.png
+          :target: ../ressources/images/SM1processingResults.png
           :alt: 
        
-     - .. image:: ../ressources/images/example_plot_32.png
-          :target: ../ressources/images/example_plot_32.png
+     - .. image:: ../ressources/images/SM2processingResults.png
+          :target: ../ressources/images/SM2processingResults.png
           :alt: 
-       
-   * - .. image:: ../ressources/images/example_plot_31.png
-          :target: ../ressources/images/example_plot_31.png
-          :alt: 
-       
-     -
-
-
-
-.. image:: ../ressources/images/example_plot_33.png
-   :target: ../ressources/images/example_plot_33.png
-   :alt: 
 
 
 Data harmonization and custom functions
@@ -250,33 +254,42 @@ SaQC includes functionality to harmonize the timestamps of one or more data
 series. Also, you can write your own tests using a python-based
 :ref:`extension language <documentation/GenericFunctions:Generic Functions>`. This would look like this:
 
-.. code-block::
+.. literalinclude:: ../ressources/data/myconfig3.csv
 
-   varname;test;plot
-   SM2;shift(freq="15Min");False
-   SM2;generic(func=(SM2 < 30));True
+.. testcode:: exampleCLI
+   :hide:
+
+   qc = saqc.fromConfig(configpath('3'), data)
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :nofigs:
+
+   import os
+   qc = saqc.fromConfig(configpath('3'), data)
+   qc.data.to_csv(temppath('TutorialCLIHarmData.csv'))
 
 
-The above executes an internal framework that harmonizes the timestamps of SM2
-to a 15min-grid (:py:meth:`SaQC.shift <Core.Core.SaQC.shift>`). Further information on harmonization can be
+The above executes an internal framework that aligns the timestamps of SM2
+to a 15min-grid (:py:meth:`saqc.SaQC.shift`). Further information on harmonization can be
 found in the :doc:`Resampling cookbook <../cook_books/DataRegularisation>`.
 
-.. code-block::
 
-   Date,SM1,SM1_flags,SM2,SM2_flags
-   2016-04-01 00:00:00,,,29.3157,OK
-   2016-04-01 00:05:48,32.685,OK,,
-   2016-04-01 00:15:00,,,29.3157,OK
-   2016-04-01 00:20:42,32.7428,OK,,
-   ...
+.. literalinclude:: ../ressources/temp/TutorialCLIHarmData.csv
+   :lines: 1-10
 
 
 Also, all values where SM2 is below 30 are flagged via the custom function (see
-plot below). You can learn more about the syntax of these custom functions
+plot below) and the plot is labeled with the string passed to the `label` keyword.
+You can learn more about the syntax of these custom functions
 :ref:`here <documentation/GenericFunctions:Generic Functions>`.
 
 
-.. image:: ../ressources/images/example_plot_4.png
-   :target: ../ressources/images/example_plot_4.png
-   :alt: Example custom function
+.. plot::
+   :context: close-figs
+   :include-source: False
+   :width: 80 %
+   :align: center
 
+   qc.plot('SM2')
