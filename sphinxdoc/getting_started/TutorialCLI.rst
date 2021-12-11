@@ -22,11 +22,6 @@
 Command Line Application
 ========================
 
-.. note::
-
-   The content of this page is outdated and the provided code sample will very likely
-   not work as expected. A rewrite of this document is WIP
-
 
 Contents
 --------
