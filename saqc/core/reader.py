@@ -92,7 +92,7 @@ def fromConfig(fname, *args, **kwargs):
 
         kwargs["field" if "field" not in kwargs else "target"] = fld
         try:
-            saqc = getattr(saqc, func_name)(regex=regex, **kwargs)
+            saqc = saqc.__getattr__(func_name)(regex=regex, **kwargs)
         except Exception as e:
             raise type(e)(f"failed to execute: {field} ; {expr}") from e
 
