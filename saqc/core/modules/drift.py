@@ -41,30 +41,10 @@ class Drift:
             np.array([x, y]), metric="cityblock"
         )
         / len(x),
-        target=None,
         flag: float = BAD,
         **kwargs
     ) -> saqc.SaQC:
         return self._defer("flagDriftFromReference", locals())
-
-    def flagDriftFromScaledNorm(
-        self,
-        field: str,
-        set_1: Sequence[str],
-        set_2: Sequence[str],
-        freq: str,
-        spread: float,
-        frac: float = 0.5,
-        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: pdist(
-            np.array([x, y]), metric="cityblock"
-        )
-        / len(x),
-        method: LinkageString = "single",
-        target: str = None,
-        flag: float = BAD,
-        **kwargs
-    ) -> saqc.SaQC:
-        return self._defer("flagDriftFromScaledNorm", locals())
 
     def correctDrift(
         self,

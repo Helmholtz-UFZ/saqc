@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from operator import mod
 from typing import Tuple
 
 import numpy as np
@@ -28,39 +27,49 @@ def flagConstants(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    This functions flags plateaus/series of constant values of length `window` if
-    their maximum total change is smaller than thresh.
+    Flag constant data values.
 
-    Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
+    Flags plateaus of constant data if their maximum total change in
+    a rolling window does not exceed a certain threshold.
 
-    (1) n > `window`
-    (2) `|(y(t + i) - (t + j)|` < `thresh`, for all i,j in [0, 1, ..., n]
-
-    Flag values are (semi-)constant.
+    Any interval of values y(t),...,y(t+n) is flagged, if:
+     - (1): n > ``window``
+     - (2): abs(y(t + i) - (t + j)) < `thresh`, for all i,j in [0, 1, ..., n]
 
     Parameters
     ----------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        The data container.
+
     field : str
-        Name of the column, holding the data-to-be-flagged.
+        A column in flags and data.
+
     flags : saqc.Flags
-        Container to store quality flags to data.
+        The flags container.
+
     thresh : float
-        Upper bound for the maximum total change of an interval to be flagged constant.
-    window : str
-        Lower bound for the size of an interval to be flagged constant.
+        Maximum total change allowed per window.
+
+    window : str | int
+        Size of the moving window. This is the number of observations used
+        for calculating the statistic. Each window will be a fixed size.
+        If its an offset then this will be the time period of each window.
+        Each window will be a variable sized based on the observations included
+        in the time-period.
+
     flag : float, default BAD
-        flag to set.
+        Flag to set.
 
     Returns
     -------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        Unmodified data container
     flags : saqc.Flags
-        The flags object, holding flags and additional informations related to `data`.
-        Flags values may have changed, relatively to the flags input.
+        The flags container
     """
+    if not isinstance(window, (str, int)):
+        raise TypeError("window must be offset string or int.")
+
     d = data[field]
 
     # min_periods=2 ensures that at least two non-nan values are present
@@ -84,7 +93,7 @@ def flagByVariance(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    window: str = "12h",
+    window: str,
     thresh: float = 0.0005,
     maxna: int = None,
     maxna_group: int = None,
@@ -92,7 +101,12 @@ def flagByVariance(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Function flags plateaus/series of constant values. Any interval of values y(t),..y(t+n) is flagged, if:
+    Flag low-variance data.
+
+    Flags plateaus of constant data if the variance in a rolling window does not
+    exceed a certain threshold.
+
+    Any interval of values y(t),..y(t+n) is flagged, if:
 
     (1) n > `window`
     (2) variance(y(t),...,y(t+n) < `thresh`
@@ -100,30 +114,40 @@ def flagByVariance(
     Parameters
     ----------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        The data container.
+
     field : str
-        The fieldname of the column, holding the data-to-be-flagged.
+        A column in flags and data.
+
     flags : saqc.Flags
-        Container to store quality flags to data.
-    window : str
-        Only intervals of minimum size "window" have the chance to get flagged as constant intervals
-    thresh : float
-        The upper bound, the variance of an interval must not exceed, if the interval wants to be flagged a plateau.
+        The flags container.
+
+    window : str | int
+        Size of the moving window. This is the number of observations used
+        for calculating the statistic. Each window will be a fixed size.
+        If its an offset then this will be the time period of each window.
+        Each window will be sized, based on the number of observations included
+        in the time-period.
+
+    thresh : float, default 0.0005
+        Maximum total variance allowed per window.
+
     maxna : int, default None
-        Maximum number of NaNs tolerated in an interval. If more NaNs are present, the
-        interval is not flagged as plateau.
+        Maximum number of NaNs allowed in window.
+        If more NaNs are present, the window is not flagged.
+
     maxna_group : int, default None
         Same as `maxna` but for consecutive NaNs.
+
     flag : float, default BAD
-        flag to set.
+        Flag to set.
 
     Returns
     -------
     data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        Unmodified data container
     flags : saqc.Flags
-        The flags object, holding flags and additional informations related to `data`.
-        Flags values may have changed, relatively to the flags input.
+        The flags container
     """
     dataseries = data[field]
     delta = getFreqDelta(dataseries.index)

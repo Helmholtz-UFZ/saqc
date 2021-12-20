@@ -8,6 +8,7 @@ from dios.dios.dios import DictOfSeries
 from saqc.constants import BAD, UNFLAGGED, FILTER_ALL
 from saqc.core.flags import Flags
 from saqc import SaQC
+from saqc.core.register import _isflagged
 from saqc.lib.tools import toSequence
 
 from tests.common import initData
@@ -16,6 +17,19 @@ from tests.common import initData
 @pytest.fixture
 def data():
     return initData()
+
+
+def test_emptyData():
+    # test that things do not break with empty data sets
+    saqc = SaQC(data=pd.DataFrame({"x": [], "y": []}))
+
+    saqc.flagGeneric("x", func=lambda x: x < 0)
+    assert saqc.data.empty
+    assert saqc.flags.empty
+
+    saqc = saqc.processGeneric(field="x", target="y", func=lambda x: x + 2)
+    assert saqc.data.empty
+    assert saqc.flags.empty
 
 
 def test_writeTargetFlagGeneric(data):
@@ -116,6 +130,7 @@ def test_writeTargetProcGeneric(data):
                 "func": func.__name__,
                 "flag": BAD,
                 "dfilter": dfilter,
+                "label": "generic",
             },
         }
         saqc = SaQC(
@@ -125,7 +140,12 @@ def test_writeTargetProcGeneric(data):
             ),
         )
         res = saqc.processGeneric(
-            field=fields, target=targets, func=func, flag=BAD, dfilter=dfilter
+            field=fields,
+            target=targets,
+            func=func,
+            flag=BAD,
+            dfilter=dfilter,
+            label="generic",
         )
         assert (expected_data == res.data[targets].squeeze()).all(axis=None)
         # check that new histories where created
@@ -155,6 +175,7 @@ def test_overwriteFieldProcGeneric(data):
                 "func": func.__name__,
                 "flag": flag,
                 "dfilter": dfilter,
+                "label": "generic",
             },
         }
 
@@ -165,7 +186,9 @@ def test_overwriteFieldProcGeneric(data):
             ),
         )
 
-        res = saqc.processGeneric(field=fields, func=func, flag=flag, dfilter=dfilter)
+        res = saqc.processGeneric(
+            field=fields, func=func, flag=flag, dfilter=dfilter, label="generic"
+        )
         assert (expected_data == res.data[fields].squeeze()).all(axis=None)
         # check that the histories got appended
         for field in fields:

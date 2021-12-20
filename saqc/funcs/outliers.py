@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-import warnings
+
+import uuid
 from typing import Optional, Union, Tuple, Sequence, Callable
 from typing_extensions import Literal
 
@@ -13,7 +14,7 @@ from dios import DictOfSeries
 from outliers import smirnov_grubbs
 from scipy.optimize import curve_fit
 
-from saqc.constants import *
+from saqc.constants import BAD, UNFLAGGED
 from saqc.core import register, Flags
 from saqc.core.register import flagging
 from saqc.lib.tools import customRoller, findIndex, getFreqDelta, toSequence
@@ -134,7 +135,7 @@ def _evalStrayLabels(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    fields: Sequence[str],
+    target: Sequence[str],
     reduction_range: Optional[str] = None,
     reduction_drop_flagged: bool = False,  # TODO: still a case ?
     reduction_thresh: float = 3.5,
@@ -158,7 +159,7 @@ def _evalStrayLabels(
     flags : saqc.Flags
         Container to store quality flags to data.
 
-    fields : list of str
+    target : list of str
         A list of strings, holding the column names of the variables, the stray labels
         shall be projected onto.
 
@@ -173,7 +174,7 @@ def _evalStrayLabels(
     reduction_range : {None, str}
         An offset string, denoting the range of the temporal surrounding to include
         into the MAD testing. If ``None`` is passed, no testing will be performed and
-        all fields will have the stray flag projected.
+        all targets will have the stray flag projected.
 
     reduction_drop_flagged : bool, default False
         Wheather or not to drop flagged values other than the value under test, from the
@@ -196,17 +197,17 @@ def _evalStrayLabels(
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
-    val_frame = data[fields].to_df()
+    val_frame = data[target].to_df()
     stray_detects = flags[field] > UNFLAGGED
     stray_detects = stray_detects[stray_detects]
-    to_flag_frame = pd.DataFrame(False, columns=fields, index=stray_detects.index)
+    to_flag_frame = pd.DataFrame(False, columns=target, index=stray_detects.index)
 
     if reduction_range is None:
         for field in to_flag_frame.columns:
             flags[to_flag_frame.index, field] = flag
         return data, flags
 
-    for var in fields:
+    for var in target:
         for index in enumerate(to_flag_frame.index):
 
             index_slice = slice(
@@ -403,7 +404,7 @@ def _expFit(
     demask=["field"],
     squeeze=["field"],
     multivariate=True,
-    handles_target=True,
+    handles_target=False,
 )
 def flagMVScores(
     data: DictOfSeries,
@@ -420,7 +421,6 @@ def flagMVScores(
     drop_flagged: bool = False,  # TODO: still a case ?
     thresh: float = 3.5,
     min_periods: int = 1,
-    target: str = None,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -506,9 +506,6 @@ def flagMVScores(
         necessarily present in a reduction interval for reduction actually to be
         performed.
 
-    target : None
-        ignored.
-
     flag : float, default BAD
         flag to set.
 
@@ -558,19 +555,24 @@ def flagMVScores(
     more details. Although [2] gives a fully detailed overview over the `stray`
     algorithm.
     """
-    if target:
-        raise NotImplementedError("target is not implemented for this function")
 
     fields = toSequence(field)
-    for f in fields:
-        data, flags = copyField(data, f, flags, f"trafo_{f}")
-        data, flags = transform(data, f"trafo_{f}", flags, func=trafo, freq=partition)
 
+    fields_ = []
+    for f in fields:
+        field_ = str(uuid.uuid4())
+        data, flags = copyField(data, field=f, flags=flags, target=field_)
+        data, flags = transform(
+            data, field=field_, flags=flags, func=trafo, freq=partition
+        )
+        fields_.append(field_)
+
+    knn_field = str(uuid.uuid4())
     data, flags = assignKNNScore(
         data=data,
-        field=[f"trafo_{f}" for f in fields],
+        field=fields_,
         flags=flags,
-        target="kNN",
+        target=knn_field,
         n=n,
         func=func,
         freq=partition,
@@ -578,11 +580,13 @@ def flagMVScores(
         min_periods=partition_min,
         **kwargs,
     )
+    for field_ in fields_:
+        data, flags = dropField(data, field_, flags)
 
     data, flags = flagByStray(
-        data,
-        "kNN",
-        flags,
+        data=data,
+        field=knn_field,
+        flags=flags,
         freq=partition,
         min_periods=partition_min,
         iter_start=iter_start,
@@ -593,8 +597,8 @@ def flagMVScores(
 
     data, flags = _evalStrayLabels(
         data=data,
-        field="kNN",
-        fields=fields,
+        field=knn_field,
+        target=fields,
         flags=flags,
         reduction_range=stray_range,
         reduction_drop_flagged=drop_flagged,
@@ -603,9 +607,7 @@ def flagMVScores(
         flag=flag,
         **kwargs,
     )
-    data, flags = dropField(data, "kNN", flags)
-    for f in fields:
-        data, flags = dropField(data, f"trafo_{f}", flags)
+    data, flags = dropField(data, knn_field, flags)
 
     return data, flags
 
@@ -1202,16 +1204,15 @@ def flagRange(
     demask=["field"],
     squeeze=["field"],
     multivariate=True,
-    handles_target=True,
+    handles_target=False,
 )
-def flagCrossStatistic(
+def flagCrossStatistics(
     data: DictOfSeries,
     field: Sequence[str],
     flags: Flags,
     thresh: float,
     method: Literal["modZscore", "Zscore"] = "modZscore",
     flag: float = BAD,
-    target: str = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -1248,10 +1249,6 @@ def flagCrossStatistic(
     flag : float, default BAD
         flag to set.
 
-    target : None
-        ignored
-
-
     Returns
     -------
     data : dios.DictOfSeries
@@ -1264,10 +1261,16 @@ def flagCrossStatistic(
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
-    if target:
-        raise NotImplementedError("target is not implemented for this function")
 
     fields = toSequence(field)
+
+    for src in fields[1:]:
+        if (data[src].index != data[fields[0]].index).any():
+            raise ValueError(
+                f"indices of '{fields[0]}' and '{src}' are not compatibble, "
+                "please resample all variables to a common (time-)grid"
+            )
+
     df = data[fields].loc[data[fields].index_of("shared")].to_df()
 
     if isinstance(method, str):
@@ -1303,7 +1306,7 @@ def flagCrossStatistic(
     if mask.empty:
         return data, flags
 
-    for var in fields:
-        flags[mask[var], var] = flag
+    for f in fields:
+        flags[mask[f], f] = flag
 
     return data, flags

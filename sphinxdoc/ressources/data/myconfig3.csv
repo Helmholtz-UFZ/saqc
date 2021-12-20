@@ -1,0 +1,5 @@
+varname;test
+#------;--------------------------
+SM2    ;shift(freq="15Min")
+SM2    ;flagGeneric(func=(SM2 < 30), label='Value too low')
+SM2    ;plot()

@@ -12,7 +12,9 @@ from saqc.constants import FILTER_NONE
 
 
 class Tools:
-    def copyField(self, field: str, target: str, **kwargs) -> saqc.SaQC:
+    def copyField(
+        self, field: str, target: str, overwrite: bool = False, **kwargs
+    ) -> saqc.SaQC:
         return self._defer("copyField", locals())
 
     def dropField(self, field: str, **kwargs) -> saqc.SaQC:
@@ -38,11 +40,9 @@ class Tools:
         field: str,
         path: Optional[str] = None,
         max_gap: Optional[str] = None,
-        stats: bool = False,
         history: Optional[Literal["valid", "complete", "clear"]] = "valid",
         xscope: Optional[slice] = None,
         phaseplot: Optional[str] = None,
-        stats_dict: Optional[dict] = None,
         store_kwargs: Optional[dict] = None,
         dfilter: Optional[float] = FILTER_NONE,
         **kwargs,

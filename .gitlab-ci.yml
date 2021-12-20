@@ -74,11 +74,11 @@ coverage:
 pages:
   stage: deploy
   only:
-    - cookBux
+    - develop
   except:
     - schedules
   script:
-    - cd sphinx-doc/
+    - cd sphinxdoc/
     - pip install -r requirements_sphinx.txt
     - make doc
     - cp -r _build/html ../public

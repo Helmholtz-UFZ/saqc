@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import Any, Tuple, Union
+from __future__ import annotations
+from typing import Any, Tuple, Union, Sequence
 from typing_extensions import Literal
 import pandas as pd
 from dateutil.parser import ParserError
@@ -12,6 +13,7 @@ from saqc.core import register, Flags
 import warnings
 
 from saqc.core.register import flagging
+from saqc.funcs.generic import flagGeneric
 
 
 @register(mask=[], demask=[], squeeze=["field"])
@@ -206,54 +208,64 @@ def flagManual(
     --------
     An example for mdata
 
-    >>> mdata = pd.Series([1,0,1], index=pd.to_datetime(['2000-02', '2000-03', '2001-05']))
-    >>> mdata
-    2000-02-01    1
-    2000-03-01    0
-    2001-05-01    1
-    dtype: int64
+    .. doctest:: ExampleFlagManual
 
-    On *dayly* data, with the 'ontime' method, only the provided timestamnps are used.
+       >>> mdata = pd.Series([1,0,1], index=pd.to_datetime(['2000-02', '2000-03', '2001-05']))
+       >>> mdata
+       2000-02-01    1
+       2000-03-01    0
+       2001-05-01    1
+       dtype: int64
+
+    On *dayly* data, with the 'ontime' method, only the provided timestamps are used.
     Bear in mind that only exact timestamps apply, any offset will result in ignoring
     the timestamp.
 
-    >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='ontime')
-    >>> fl[field] > UNFLAGGED
-    2000-01-31    False
-    2000-02-01    True
-    2000-02-02    False
-    2000-02-03    False
-    ..            ..
-    2000-02-29    False
-    2000-03-01    True
-    2000-03-02    False
-    Freq: D, dtype: bool
+    .. doctest:: ExampleFlagManual
+
+       >>> data = a=pd.Series(0, index=pd.date_range('2000-01-31', '2000-03-02', freq='1D'), name='dailyData')
+       >>> qc = saqc.SaQC(data)
+       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='ontime')
+       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       2000-01-31    False
+       2000-02-01    True
+       2000-02-02    False
+       2000-02-03    False
+       ..            ..
+       2000-02-29    False
+       2000-03-01    True
+       2000-03-02    False
+       Freq: D, dtype: bool
 
     With the 'right-open' method, the mdata is forward fill:
 
-    >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='right-open')
-    >>> fl[field] > UNFLAGGED
-    2000-01-31    False
-    2000-02-01    True
-    2000-02-02    True
-    ..            ..
-    2000-02-29    True
-    2000-03-01    False
-    2000-03-02    False
-    Freq: D, dtype: bool
+    .. doctest:: ExampleFlagManual
+
+       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='right-open')
+       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       2000-01-31    False
+       2000-02-01    True
+       2000-02-02    True
+       ..            ..
+       2000-02-29    True
+       2000-03-01    False
+       2000-03-02    False
+       Freq: D, dtype: bool
 
     With the 'left-open' method, backward filling is used:
 
-    >>> _, fl = flagManual(data, field, flags, mdata, mflag=1, method='left-open')
-    >>> fl[field] > UNFLAGGED
-    2000-01-31    False
-    2000-02-01    False
-    2000-02-02    True
-    ..            ..
-    2000-02-29    True
-    2000-03-01    True
-    2000-03-02    False
-    Freq: D, dtype: bool
+    .. doctest:: ExampleFlagManual
+
+       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='left-open')
+       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       2000-01-31    False
+       2000-02-01    False
+       2000-02-02    True
+       ..            ..
+       2000-02-29    True
+       2000-03-01    True
+       2000-03-02    False
+       Freq: D, dtype: bool
     """
     dat = data[field]
     # internal not-mflag-value -> cant go for np.nan
@@ -345,4 +357,89 @@ def flagDummy(
     flags : saqc.Flags
         The quality flags of data
     """
+    return data, flags
+
+
+@register(
+    mask=[],
+    demask=[],
+    squeeze=["target"],
+    handles_target=True,
+)
+def transferFlags(
+    data: DictOfSeries,
+    field: str | Sequence[str],
+    flags: Flags,
+    target: str | Sequence[str],
+    **kwargs,
+):
+    """
+    Transfer Flags of one variable to another.
+
+    Parameters
+    ----------
+
+    data : {pd.DataFrame, dios.DictOfSeries}
+        data
+
+    field : str or List of str
+       Variable or list of variables, the flags of which are to be transferred.
+
+    flags : {pd.DataFrame, dios.DictOfSeries, saqc.flagger}
+        Flags or flagger object
+
+    target : str or List of str
+        Variable or list of variables, the flags of `field` are to be transferred to.
+
+    See Also
+    --------
+    * :py:meth:`saqc.SaQC.flagGeneric`
+
+    Examples
+    --------
+    First, generate some data with some flags:
+
+    .. doctest:: exampleTransfer
+
+       >>> import pandas as pd #doctest:+SKIP
+       >>> import saqc #doctest:+SKIP
+       >>> data = pd.DataFrame({'a':[1,2], 'b':[1,2], 'c':[1,2]})
+       >>> qc = saqc.SaQC(data)
+       >>> qc = qc.flagRange('a', max=1.5)
+       >>> qc.flags
+       columns      a    b    c
+       0         -inf -inf -inf
+       1        255.0 -inf -inf
+
+    Now we can project the flag from `a` to `b` via
+
+    .. doctest:: exampleTransfer
+
+       >>> qc = qc.transferFlags('a', target='b')
+       >>> qc.flags
+       columns      a      b    c
+       0         -inf   -inf -inf
+       1        255.0  255.0 -inf
+
+    You can skip the explicit target parameter designation:
+
+    .. doctest:: exampleTransfer
+
+       >>> qc = qc.transferFlags('a', 'b')
+
+    To project the flags of `a` to both the variables `b` and `c` in one call, align the field and target variables in
+    2 lists:
+
+    .. doctest:: exampleTransfer
+
+       >>> qc = qc.transferFlags(['a','a'], ['b', 'c'])
+       >>> qc.flags
+       columns      a      b      c
+       0         -inf   -inf   -inf
+       1        255.0  255.0  255.0
+    """
+
+    data, flags = flagGeneric(
+        data, field, flags, target=target, func=lambda x: isflagged(x), **kwargs
+    )
     return data, flags

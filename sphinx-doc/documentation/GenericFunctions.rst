@@ -1,4 +1,0 @@
-Generic Functions
-=================
-
-TODO

@@ -65,14 +65,14 @@ def writeData(writer_dict, df, fname):
 @click.option(
     "-c",
     "--config",
-    type=click.Path(exists=True),
+    type=click.Path(),
     required=True,
     help="path to the configuration file",
 )
 @click.option(
     "-d",
     "--data",
-    type=click.Path(exists=True),
+    type=click.Path(),
     multiple=True,
     required=True,
     help="path to the data file",

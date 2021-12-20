@@ -1,0 +1,5 @@
+varname;test
+#------;--------------------------
+SM2    ;flagRange(min=10, max=60)
+SM2    ;flagMAD(window="30d", z=3.5)
+SM2    ;plot()

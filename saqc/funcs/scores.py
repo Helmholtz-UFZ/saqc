@@ -101,8 +101,13 @@ def assignKNNScore(
     ----------
     [1] https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html
     """
-    if target in data.columns:
-        raise ValueError(f"'target' must not exist.")
+    if isinstance(target, list):
+        if (len(target) > 1) or (target[0] in data.columns):
+            raise ValueError(
+                f"'target' must not exist and be of length 1. {target} was passed instead."
+            )
+        target = target[0]
+
     fields = toSequence(field)
     val_frame = data[fields].copy()
     score_index = val_frame.index_of("shared")
