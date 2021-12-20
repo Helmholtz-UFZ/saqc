@@ -1,5 +1,5 @@
 # Development Environment
-We recommend a virtual python environment for development. The setup process is described in detail in our [GettingStarted](docs/GettingStarted.md).
+We recommend a virtual python environment for development, a more detailed description of the setup process can be found in the [docs](https://rdm-software.pages.ufz.de/saqc/getting_started/InstallationGuide.html#set-up-a-virtual-environment).
 
 # Testing
 SaQC comes with an extensive test suite based on [pytest](https://docs.pytest.org/en/latest/).
@@ -59,7 +59,7 @@ It is not a shame to name a parameter just `n` or `alpha` etc. if for example th
 - testnames: [testmodule_]flagTestName
  
 ## Formatting
-We use (black)[https://black.readthedocs.io/en/stable/] in its default settings.
+We use [black](https://black.readthedocs.io/en/stable/) in its default settings.
 Within the `saqc` root directory run `black .`.
 
 ## Imports
@@ -71,12 +71,12 @@ Only absolute imports are accepted.
 
 - `master` - branch:
   + Stable and usually protected.
-  + Regular merges from `develop` according to the [release cycle](#release-cycle). These merges get a tag, increasing at least the minor version.
-  + Irregular merges from `develop` in case if critical bugs. Such merges increase at least the patch level.
-  + Merges into `master` usually lead to a PyPI release
+  + Regular merges from `develop`, these merges are tagged and increasing at least the minor version.
+  + Irregular merges from `develop` in case of critical bugs. Such merges increase at least the patch level.
+  + Merges into `master` usually lead to a PyPI release.
 - `develop` - branch:
-  + The main development branch, no hard stability requirements/guarantees
-  + Merges into `develop` should mostly follow a Merge Request Workflow, minor changes can however be committed directly. Such minor changes include:
+  + The main development branch, no hard stability requirements/guarantees.
+  + Merges into `develop` should mostly follow a [Merge Request Workflow](#merge-request-workflow), minor changes can however be committed directly. Such minor changes include:
     * Typos and white space changes
     * Obvious bug in features implemented by the committing developer
     

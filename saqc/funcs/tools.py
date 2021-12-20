@@ -22,7 +22,12 @@ _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
 @register(mask=[], demask=[], squeeze=[], handles_target=True)
 def copyField(
-    data: DictOfSeries, field: str, flags: Flags, target: str, **kwargs
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    target: str,
+    overwrite: bool = False,
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Copy data and flags to a new name (preserve flags history).
@@ -47,8 +52,13 @@ def copyField(
         The quality flags of data
         Flags shape may have changed relatively to the flags input.
     """
+    if field == target:
+        return data, flags
+
     if target in flags.columns.union(data.columns):
-        raise ValueError(f"{field}: field already exist")
+        if not overwrite:
+            raise ValueError(f"{target}: already exist")
+        data, flags = dropField(data=data, flags=flags, field=target)
 
     data[target] = data[field].copy()
     flags.history[target] = flags.history[field].copy()
@@ -249,12 +259,11 @@ def plot(
     flags: Flags,
     path: Optional[str] = None,
     max_gap: Optional[str] = None,
-    stats: bool = False,
     history: Optional[Literal["valid", "complete", "clear"]] = "valid",
     xscope: Optional[slice] = None,
     phaseplot: Optional[str] = None,
-    stats_dict: Optional[dict] = None,
     store_kwargs: Optional[dict] = None,
+    ax_kwargs: Optional[dict] = None,
     dfilter: float = FILTER_ALL,
     **kwargs,
 ):
@@ -290,9 +299,6 @@ def plot(
         before plotting. If an offset string is passed, only points that have a distance
         below `max_gap` get connected via the plotting line.
 
-    stats : bool, default False
-        Whether to include statistics table in plot.
-
     history : {"valid", "complete", None}, default "valid"
         Discriminate the plotted flags with respect to the tests they originate from.
 
@@ -315,35 +321,10 @@ def plot(
         ``{'pickle': True}``, but note that all other store_kwargs are ignored then.
         Reopen with: ``pickle.load(open(savepath,'w')).show()``
 
-    stats_dict: dict, default None
-        (Only relevant if ``stats = True``)
-        Dictionary of additional statisticts to write to the statistics table
-        accompanying the data plot. An entry to the stats_dict has to be of the form:
+    ax_kwargs : dict, default {}
+        Axis keywords. Change the axis labeling defaults. Most important keywords:
+        'x_label', 'y_label', 'title', 'fontsize'.
 
-        * ``{"stat_name": lambda x, y, z: func(x, y, z)}``
-
-        The lambda args ``x``,``y``,``z`` will be fed by:
-
-        * ``x``: the data (``data[field]``).
-        * ``y``: the flags (``flags[field]``).
-        * ``z``: The passed flags level (``kwargs[flag]``)
-
-        See examples section for examples
-
-    Examples
-    --------
-    Summary statistic function examples:
-
-    >>> func = lambda x, y, z: len(x)
-
-    Total number of nan-values:
-
-    >>> func = lambda x, y, z: x.isna().sum()
-
-    Percentage of values, flagged greater than passed flag (always round float results
-    to avoid table cell overflow):
-
-    >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
 
     interactive = path is None
@@ -355,6 +336,9 @@ def plot(
 
     if store_kwargs is None:
         store_kwargs = {}
+
+    if ax_kwargs is None:
+        ax_kwargs = {}
 
     if interactive:
         mpl.use(_MPL_DEFAULT_BACKEND)
@@ -368,11 +352,10 @@ def plot(
         flags=flags,
         level=level,
         max_gap=max_gap,
-        stats=stats,
         history=history,
         xscope=xscope,
         phaseplot=phaseplot,
-        stats_dict=stats_dict,
+        ax_kwargs=ax_kwargs,
     )
 
     if interactive:

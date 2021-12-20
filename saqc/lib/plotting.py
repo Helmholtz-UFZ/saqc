@@ -24,7 +24,6 @@ STATSDICT = {
 }
 
 PLOT_KWARGS = {"alpha": 0.8, "linewidth": 1}
-AX_KWARGS = {}
 FIG_KWARGS = {"figsize": (16, 9)}
 SCATTER_KWARGS = {
     "marker": ["s", "D", "^", "o"],
@@ -42,11 +41,10 @@ def makeFig(
     flags: Flags,
     level: float,
     max_gap: Optional[str] = None,
-    stats: bool = False,
     history: Optional[Literal["valid", "complete"]] = "valid",
     xscope: Optional[slice] = None,
     phaseplot: Optional[str] = None,
-    stats_dict: Optional[dict] = None,
+    ax_kwargs: Optional[dict] = None,
 ):
     """
     Returns a figure object, containing data graph with flag marks for field.
@@ -71,8 +69,6 @@ def makeFig(
         before plotting. If an Offset string is passed, only points that have a distance
         below `max_gap` get connected via the plotting line.
 
-    stats : bool, default False
-        Whether to include statistics table in plot.
 
     history : {"valid", "complete", None}, default "valid"
         Discriminate the plotted flags with respect to the tests they originate from.
@@ -88,44 +84,13 @@ def makeFig(
 
     phaseplot :
 
-    stats_dict: dict, default None
-        (Only relevant if `stats`=True).
-        Dictionary of additional statisticts to write to the statistics table
-        accompanying the data plot. An entry to the stats_dict has to be of the form:
-
-        * {"stat_name": lambda x, y, z: func(x, y, z)}
-
-        The lambda args ``x``,``y``,``z`` will be fed by:
-
-        * ``x``: the data (``data[field]``).
-        * ``y``: the flags (``flags[field]``).
-        * ``z``: The passed flags level (``kwargs[flag]``)
-
-        See examples section for examples
-
 
     Returns
     -------
     fig : matplotlib.pyplot.figure
         figure object.
 
-    Examples
-    --------
-    Summary statistic function examples:
-
-    >>> func = lambda x, y, z: len(x)
-
-    Total number of nan-values:
-
-    >>> func = lambda x, y, z: x.isna().sum()
-
-    Percentage of values, flagged greater than passed flag (always round float results to avoid table cell overflow):
-
-    >>> func = lambda x, y, z: round((x.isna().sum()) / len(x), 2)
     """
-
-    if stats_dict is None:
-        stats_dict = {}
 
     # data retrieval
     d = data[field]
@@ -135,9 +100,10 @@ def makeFig(
     flags_vals = flags[field][xscope]
     flags_hist = flags.history[field].hist.loc[xscope]
     flags_meta = flags.history[field].meta
-    if stats:
-        stats_dict.update(STATSDICT)
-        stats_dict = _evalStatsDict(stats_dict, d, flags_vals, level)
+
+    # set fontsize:
+    default = plt.rcParams["font.size"]
+    plt.rcParams["font.size"] = ax_kwargs.pop("fontsize", None) or default
 
     na_mask = d.isna()
     d = d[~na_mask]
@@ -151,10 +117,9 @@ def makeFig(
         flags_vals.index = phase_index
         flags_hist.index = phase_index
         plot_kwargs = {**PLOT_KWARGS, **{"marker": "o", "linewidth": 0}}
-        ax_kwargs = {**{"xlabel": phaseplot, "ylabel": d.name}, **AX_KWARGS}
+        ax_kwargs = {**{"xlabel": phaseplot, "ylabel": d.name}, **ax_kwargs}
     else:
         plot_kwargs = PLOT_KWARGS
-        ax_kwargs = AX_KWARGS
 
     # insert nans between values mutually spaced > max_gap
     if max_gap and not d.empty:
@@ -163,13 +128,7 @@ def makeFig(
     # figure composition
     fig = mpl.pyplot.figure(constrained_layout=True, **FIG_KWARGS)
     grid = fig.add_gridspec()
-    if stats:
-        plot_gs, tab_gs = grid[0].subgridspec(ncols=2, nrows=1, width_ratios=[5, 1])
-        ax = fig.add_subplot(tab_gs)
-        _plotStatsTable(ax, stats_dict)
-        ax = fig.add_subplot(plot_gs)
-    else:
-        ax = fig.add_subplot(grid[0])
+    ax = fig.add_subplot(grid[0])
 
     _plotVarWithFlags(
         ax,
@@ -184,29 +143,9 @@ def makeFig(
         ax_kwargs,
         SCATTER_KWARGS,
     )
+
+    plt.rcParams["font.size"] = default
     return fig
-
-
-def _evalStatsDict(in_dict, datser, flagser, level):
-    out_dict = {}
-    for key in in_dict:
-        out_dict[key] = str(in_dict[key](datser, flagser, level))
-    return out_dict
-
-
-def _plotStatsTable(ax, stats_dict):
-    ax.axis("tight")
-    ax.axis("off")
-    tab_obj = ax.table(
-        cellText=[[a, b] for a, b in stats_dict.items()],
-        in_layout=True,
-        loc="center",
-        # make the table a bit smaller than the plot
-        bbox=[0.0, 0.1, 0.95, 0.8],
-    )
-    tab_obj.auto_set_column_width(False)
-    tab_obj.auto_set_font_size(False)
-    tab_obj.set_fontsize(10)
 
 
 def _plotVarWithFlags(

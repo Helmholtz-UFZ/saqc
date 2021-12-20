@@ -1,7 +1,12 @@
+<a href="https://www.ufz.de/index.php?en=33573">
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/ressources/images/Representative/UFZLogo.png" width="400"/>
+</a>
 
-<img src="sphinx-doc/ressources/images/Representative/UFZLogo.jpg" width="400"/>
+<a href="https://www.ufz.de/index.php?en=45348">
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/ressources/images/Representative/RDMLogo.png" align="right" width="220"/>
+</a>
 
-<img src="sphinx-doc/ressources/images/Representative/RDMlogo.jpg" align="right" width="180"/>
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
 
 # System for automated Quality Control (SaQC)
@@ -40,24 +45,34 @@ and a python module with a simple API.
 The command line application is controlled by a semicolon-separated text
 file listing the variables in the dataset and the routines to inspect,
 quality control and/or process them. The content of such a configuration
-could look like this:
+could look like [this](https://git.ufz.de/rdm-software/saqc/raw/develop/ressources/data/config.csv):
 
 ```
 varname    ; test
-#----------;------------------------------------
-SM2        ; shiftToFreq(freq="15Min")
-SM2        ; flagMissing()
-'SM(1|2)+' ; flagRange(min=10, max=60)
-SM2        ; flagMad(window="30d", z=3.5)
+#----------; -----------------------------------------------------
+SM2        ; shift(freq="15Min")
+'SM(1|2)+' ; flagMissing()
+SM1        ; flagRange(min=10, max=60)
+SM2        ; flagRange(min=10, max=40)
+SM2        ; flagMAD(window="30d", z=3.5)
+Dummy      ; flagGeneric(field=["SM1", "SM2"], func=(isflagged(x) | isflagged(y)))
 ```
 
 As soon as the basic inputs, dataset and configuration file, are
-prepared, `SaQC` is run with:
+prepared, run `SaQC`:
 ```sh
 saqc \
-    --config path_to_configuration.txt \
-    --data path_to_data.csv \
-    --outfile path_to_output.csv
+    --config PATH_TO_CONFIGURATION \
+    --data PATH_TO_DATA \
+    --outfile PATH_TO_OUTPUT
+```
+
+A full `SaQC` run against provided example data can be invoked with:
+```sh
+saqc \
+    --config https://git.ufz.de/rdm-software/saqc/raw/develop/ressources/data/config.csv \
+    --data https://git.ufz.de/rdm-software/saqc/raw/develop/ressources/data/data.csv \
+    --outfile saqc_test.csv
 ```
 
 ### SaQC as a python module
@@ -66,18 +81,48 @@ The following snippet implements the same configuration given above through
 the Python-API:
 
 ```python
-import numpy as np
+import pandas as pd
 from saqc import SaQC
 
-saqc = (SaQC(data)
-        .shiftToFreq("SM2", freq="15Min")
-        .flagMissing("SM2")
-        .flagRange("SM(1|2)+", regex=True, min=10, max=60)
-        .flagMad("SM2", window="30d", z=3.5))
+data = pd.read_csv(
+    "https://git.ufz.de/rdm-software/saqc/raw/develop/ressources/data/data.csv",
+    index_col=0, parse_dates=True,
+)
 
-data, flags = saqc.getResult()
+saqc = SaQC(data=data)
+saqc = (saqc
+        .shift("SM2", freq="15Min")
+        .flagMissing("SM(1|2)+", regex=True)
+        .flagRange("SM1", min=10, max=60)
+        .flagRange("SM2", min=10, max=40)
+        .flagMAD("SM2", window="30d", z=3.5)
+        .flagGeneric(field=["SM1", "SM2"], target="Dummy", func=lambda x, y: (isflagged(x) | isflagged(y))))
 ```
 
 A more detailed description of the Python API is available in the 
 [respective section](https://rdm-software.pages.ufz.de/saqc/getting_started/TutorialAPI.html)
 of the documentation.
+
+## Changelog
+All notable changes to this project will be documented in [CHANGELOG.md](CHANGELOG.md).
+
+## Contributing
+You found a bug or you want to suggest some cool features? Please refer to our [contributing guidelines](CONTRIBUTING.md) to see how you can contribute to SaQC.
+
+## Copyright and License
+Copyright(c) 2021, [Helmholtz-Zentrum für Umweltforschung GmbH -- UFZ](https://www.ufz.de). All rights reserved.
+
+- Documentation: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/) <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/80x15.png" /></a>
+- Source code: [GNU General Public License 3](https://www.gnu.org/licenses/gpl-3.0.html)
+
+For full details, see [LICENSE](LICENSE.md).
+
+## Acknowledgements
+...
+
+## Publications
+...
+
+## How to cite SaQC
+... 
+

@@ -4,6 +4,7 @@
 import dios
 import pandas as pd
 import numpy as np
+import saqc
 
 from saqc.funcs.noise import flagByStatLowPass
 from saqc.constants import *
@@ -11,9 +12,8 @@ from saqc.core import initFlagsLike
 from saqc.funcs.drift import (
     flagDriftFromNorm,
     flagDriftFromReference,
-    flagDriftFromScaledNorm,
 )
-from saqc.funcs.outliers import flagCrossStatistic, flagRange
+from saqc.funcs.outliers import flagRange
 from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
 from saqc.funcs.tools import dropField, copyField, maskTime
 from saqc.funcs.resampling import concatFlags
@@ -171,24 +171,6 @@ def test_flagIsolated(data, field):
     assert flags_result[field].iloc[[3, 5, 13, 14]].all()
 
 
-@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])
-def test_flagCrossScoring(dat):
-    data1, characteristics = dat(initial_level=0, final_level=0, out_val=0)
-    data2, characteristics = dat(initial_level=0, final_level=0, out_val=10)
-    fields = ["data1", "data2"]
-    s1, s2 = data1.squeeze(), data2.squeeze()
-    s1 = pd.Series(data=s1.values, index=s1.index)
-    s2 = pd.Series(data=s2.values, index=s1.index)
-    data = dios.DictOfSeries([s1, s2], columns=["data1", "data2"])
-    flags = initFlagsLike(data)
-    _, flags_result = flagCrossStatistic(
-        data, fields, flags, thresh=3, method=np.mean, flag=BAD
-    )
-    for field in fields:
-        isflagged = flags_result[field] > UNFLAGGED
-        assert isflagged[characteristics["raise"]].all()
-
-
 def test_flagManual(data, field):
     flags = initFlagsLike(data)
     dat = data[field]
@@ -272,44 +254,55 @@ def test_flagManual(data, field):
 
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
-def test_flagDriftFromNormal(dat):
-    data = dat(periods=200, peak_level=5, name="d1")[0]
-    data["d2"] = dat(periods=200, peak_level=10, name="d2")[0]["d2"]
-    data["d3"] = dat(periods=200, peak_level=100, name="d3")[0]["d3"]
-    data["d4"] = 3 + 4 * data["d1"]
-    data["d5"] = 3 + 4 * data["d1"]
+def test_flagDriftFromNorm(dat):
+    data = dat(periods=200, peak_level=5, name="field1")[0]
+    data["field2"] = dat(periods=200, peak_level=10, name="field2")[0]["field2"]
+    data["field3"] = dat(periods=200, peak_level=100, name="field3")[0]["field3"]
+
+    fields = ["field1", "field2", "field3"]
 
     flags = initFlagsLike(data)
     _, flags_norm = flagDriftFromNorm(
         data=data.copy(),
-        field=["d1", "d2", "d3"],
+        field=fields,
         flags=flags.copy(),
         freq="200min",
         spread=5,
         flag=BAD,
     )
+    assert all(flags_norm["field3"] > UNFLAGGED)
+
+
+@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
+def test_flagDriftFromReference(dat):
+    data = dat(periods=200, peak_level=5, name="field1")[0]
+    data["field2"] = dat(periods=200, peak_level=10, name="field2")[0]["field2"]
+    data["field3"] = dat(periods=200, peak_level=100, name="field3")[0]["field3"]
+
+    fields = ["field1", "field2", "field3"]
+
+    flags = initFlagsLike(data)
 
     _, flags_ref = flagDriftFromReference(
         data=data.copy(),
-        field=["d1", "d2", "d3"],
+        field=fields,
         flags=flags.copy(),
-        reference="d1",
+        reference="field1",
         freq="3D",
         thresh=20,
         flag=BAD,
     )
+    assert all(flags_ref["field3"] > UNFLAGGED)
 
-    _, flags_scale = flagDriftFromScaledNorm(
-        data.copy(),
-        "dummy",
-        flags.copy(),
-        ["d1", "d3"],
-        ["d4", "d5"],
-        freq="3D",
-        thresh=20,
-        spread=5,
-        flag=BAD,
+
+def test_transferFlags():
+    data = pd.DataFrame({"a": [1, 2], "b": [1, 2], "c": [1, 2]})
+    qc = saqc.SaQC(data)
+    qc = qc.flagRange("a", max=1.5)
+    qc = qc.transferFlags(["a", "a"], ["b", "c"])
+    assert np.all(
+        qc.flags["b"].values == np.array([saqc.constants.UNFLAGGED, saqc.constants.BAD])
     )
-    assert all(flags_norm["d3"] > UNFLAGGED)
-    assert all(flags_ref["d3"] > UNFLAGGED)
-    assert all(flags_scale["d3"] > UNFLAGGED)
+    assert np.all(
+        qc.flags["c"].values == np.array([saqc.constants.UNFLAGGED, saqc.constants.BAD])
+    )

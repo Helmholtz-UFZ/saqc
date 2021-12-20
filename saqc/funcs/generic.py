@@ -45,6 +45,12 @@ def _execGeneric(
         data = data.to_frame()
 
     out = func(*[data[c] for c in data.columns])
+    if pd.api.types.is_scalar(out):
+        raise ValueError(
+            "generic function should return a sequence object, "
+            f"got '{type(out)}' instead"
+        )
+
     return DictOfSeries(out)
 
 
@@ -121,7 +127,12 @@ def processGeneric(
     Compute the sum of the variables 'rainfall' and 'snowfall' and save the result to
     a (new) variable 'precipitation'
 
-    >>> saqc.genericProcess(field=["rainfall", "snowfall"], target="precipitation'", func=lambda x, y: x + y)
+    .. testsetup::
+
+       qc = saqc.SaQC(pd.DataFrame({'rainfall':[0], 'snowfall':[0], 'precipitation':[0]}, index=pd.DatetimeIndex([0])))
+
+
+    >>> qc = qc.processGeneric(field=["rainfall", "snowfall"], target="precipitation'", func=lambda x, y: x + y)
     """
 
     fields = toSequence(field)
@@ -134,6 +145,7 @@ def processGeneric(
         "func": "procGeneric",
         "args": (),
         "kwargs": {
+            **kwargs,
             "field": field,
             "func": func.__name__,
             "target": target,
@@ -228,17 +240,27 @@ def flagGeneric(
     Examples
     --------
 
+    .. testsetup:: exampleFlagGeneric
+
+       qc = saqc.SaQC(pd.DataFrame({'temperature':[0], 'uncertainty':[0], 'rainfall':[0], 'fan':[0]}, index=pd.DatetimeIndex([0])))
+
     1. Flag the variable 'rainfall', if the sum of the variables 'temperature' and 'uncertainty' is below zero:
 
-    >>> saqc.flagGeneric(field=["temperature", "uncertainty"], target="rainfall", func= lambda x, y: temperature + uncertainty < 0
+    .. testcode:: exampleFlagGeneric
+
+       qc.flagGeneric(field=["temperature", "uncertainty"], target="rainfall", func= lambda x, y: x + y < 0)
 
     2. Flag the variable 'temperature', where the variable 'fan' is flagged:
 
-    >>> saqc.flagGeneric(field="fan", target="temperature", func=lambda x: isflagged(x))
+    .. testcode:: exampleFlagGeneric
+
+       qc.flagGeneric(field="fan", target="temperature", func=lambda x: isflagged(x))
 
     3. The generic functions also support all pandas and numpy functions:
 
-    >>> saqc.flagGeneric(field="fan", target="temperature", func=lambda x: np.sqrt(x) < 7)
+    .. testcode:: exampleFlagGeneric
+
+       qc = qc.flagGeneric(field="fan", target="temperature", func=lambda x: np.sqrt(x) < 7)
     """
 
     fields = toSequence(field)
@@ -252,13 +274,14 @@ def flagGeneric(
             f"the generic function returned {len(result.columns)} field(s), but only {len(targets)} target(s) were given"
         )
 
-    if not (result.dtypes == bool).all():
+    if not result.empty and not (result.dtypes == bool).all():
         raise TypeError(f"generic expression does not return a boolean array")
 
     meta = {
         "func": "flagGeneric",
         "args": (),
         "kwargs": {
+            **kwargs,
             "field": field,
             "func": func.__name__,
             "target": target,

@@ -39,7 +39,6 @@ class Outliers:
         drop_flagged: bool = False,  # TODO: still a case ?
         thresh: float = 3.5,
         min_periods: int = 1,
-        target: str = None,
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
@@ -104,13 +103,12 @@ class Outliers:
     ) -> saqc.SaQC:
         return self._defer("flagRange", locals())
 
-    def flagCrossStatistic(
+    def flagCrossStatistics(
         self,
         field: Sequence[str],
         thresh: float,
         method: Literal["modZscore", "Zscore"] = "modZscore",
         flag: float = BAD,
-        target: str = None,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagCrossStatistic", locals())

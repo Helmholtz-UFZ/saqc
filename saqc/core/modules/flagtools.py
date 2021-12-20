@@ -39,3 +39,12 @@ class FlagTools:
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagManual", locals())
+
+    def transferFlags(
+        self,
+        field: str | Sequence[str],
+        target: str | Sequence[str],
+        flag: float = BAD,
+        **kwargs,
+    ) -> saqc.SaQC:
+        return self._defer("transferFlags", locals())

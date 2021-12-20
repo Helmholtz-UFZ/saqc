@@ -1,0 +1,21 @@
+varname                 ; test
+#-----------------------;-------------------------------------------
+# Data Preparation
+sac254_raw              ; flagManual(mdata='maint', method='closed')
+level_raw               ; flagRange(min=0)
+water_temp_raw          ; flagRange(min=-1)
+sac254_raw              ; flagRange(min=0, max=60)
+level_raw               ; linear(freq='15min')
+water_temp_raw          ; linear(freq='15min')
+sac254_raw              ; linear(freq='15min')
+# Drift Correcture
+sac254_raw              ; correctDrift(target='sac254_corr', maintenance_field='maint', model='exponential')
+# Multivariate Flagging Procedure
+level_z                 ; transform(field=['level_raw'], func=zScore(x), freq='20D')
+water_z                 ; transform(field=['water_temp_raw'], func=zScore(x), freq='20D')
+sac_z                   ; transform(field=['sac254_raw'], func=zScore(x), freq='20D')
+kNN_scores              ; assignKNNScore(field=['level_z', 'water_z', 'sac_z'], freq='20D')
+kNN_scores              ; flagByStray(freq='20D')
+level_raw               ; transferFlags(field=['kNN_scores'], label='STRAY')
+sac254_corr             ; transferFlags(field=['kNN_scores'], label='STRAY')
+water_temp_raw          ; transferFlags(field=['kNN_scores'], label='STRAY')

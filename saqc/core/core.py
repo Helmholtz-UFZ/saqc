@@ -140,7 +140,6 @@ class SaQC(FunctionsMixin):
     def _expandFields(
         self,
         regex: bool,
-        multivariate: bool,
         field: str | Sequence[str],
         target: str | Sequence[str] = None,
     ) -> Tuple[List[str], List[str]]:
@@ -148,10 +147,6 @@ class SaQC(FunctionsMixin):
         check and expand `field` and `target`
         """
 
-        if regex and target is not None:
-            raise NotImplementedError(
-                "explicit `target` not supported with regular expressions"
-            )
         # expand regular expressions
         if regex:
             fmask = self._data.columns.str.match(field)
@@ -161,14 +156,6 @@ class SaQC(FunctionsMixin):
 
         targets = fields if target is None else toSequence(target)
 
-        if multivariate:
-            # wrap again to generalize the down stream loop
-            fields, targets = [fields], [targets]
-        else:
-            if len(fields) != len(targets):
-                raise ValueError(
-                    "expected the same number of 'field' and 'target' values"
-                )
         return fields, targets
 
     def _wrap(self, func: FunctionWrapper):
@@ -198,38 +185,48 @@ class SaQC(FunctionsMixin):
             kwargs.setdefault("dfilter", self._scheme.DFILTER_DEFAULT)
 
             if not isinstance(flag, OptionalNone):
-                # translation schemes might want to use a flag,
-                # None so we introduce a special class here
+                # translation schemes might want to use a flag
+                # `None` so we introduce a special class here
                 kwargs["flag"] = self._scheme(flag)
 
             fields, targets = self._expandFields(
-                regex=regex, multivariate=func.multivariate, field=field, target=target
+                regex=regex, field=field, target=target
             )
-
             out = self
 
-            for field, target in zip(fields, targets):
+            if not func.handles_target:
+                if len(fields) != len(targets):
+                    raise ValueError(
+                        "expected the same number of 'field' and 'target' values"
+                    )
 
-                fkwargs = {
-                    **kwargs,
-                    "field": field,
-                    "target": target,
-                }
-
-                if not func.handles_target and field != target:
-                    if target not in self.data.columns:
+                # initialize all target variables
+                for src, trg in zip(fields, targets):
+                    if src != trg:
                         out = out._callFunction(
                             FUNC_MAP["copyField"],
-                            *args,
-                            **fkwargs,
+                            field=src,
+                            target=trg,
+                            overwrite=True,
                         )
-                    fkwargs["field"] = fkwargs.pop("target")
 
+            if func.multivariate:
+                # pass all fields and targets
                 out = out._callFunction(
                     func,
+                    field=fields,
+                    target=targets,
                     *args,
-                    **fkwargs,
+                    **kwargs,
                 )
+            else:
+                # call the function on target
+                for src, trg in zip(fields, targets):
+                    fkwargs = {**kwargs, "field": src, "target": trg}
+                    if not func.handles_target:
+                        fkwargs["field"] = fkwargs.pop("target")
+                    out = out._callFunction(func, *args, **fkwargs)
+
             return out
 
         return inner
