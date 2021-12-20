@@ -26,11 +26,6 @@ the specific system components and how to customize `SaQC` to your specific
 needs, please refer to our
 [online documentation](https://rdm-software.pages.ufz.de/saqc/index.html).
 
-[[_TOC_]]
-
-## Changelog
-
-All notable changes to this project will be documented in [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation
 
@@ -107,6 +102,9 @@ saqc = (saqc
 A more detailed description of the Python API is available in the 
 [respective section](https://rdm-software.pages.ufz.de/saqc/getting_started/TutorialAPI.html)
 of the documentation.
+
+## Changelog
+All notable changes to this project will be documented in [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 You found a bug or you want to suggest some cool features? Please refer to our [contributing guidelines](CONTRIBUTING.md) to see how you can contribute to SaQC.
