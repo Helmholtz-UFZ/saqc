@@ -1,4 +1,8 @@
 **/__pycache__
 *.pyc
+*.automodsumm
+*.automodapi
+sphinxdoc/_api
+sphinxdoc/_build
 venv*/
 **/.*

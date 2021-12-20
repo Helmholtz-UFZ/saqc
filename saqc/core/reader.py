@@ -5,6 +5,7 @@ import io
 import ast
 from pathlib import Path
 from urllib.request import urlopen
+from urllib.error import URLError
 from typing import TextIO
 
 import pandas as pd
@@ -23,7 +24,7 @@ def _openFile(fname) -> TextIO:
         try:
             fobj = io.StringIO(urlopen(str(fname)).read().decode("utf-8"))
             fobj.seek(0)
-        except ValueError:
+        except (ValueError, URLError):
             fobj = io.open(fname, "r", encoding="utf-8")
     else:
         fobj = fname
