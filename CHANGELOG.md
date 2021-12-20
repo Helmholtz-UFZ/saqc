@@ -12,6 +12,8 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - documentaion now is generated from the develop branch
 - doctest is now ran upon push to the develop branch (failing doc snippets cause CI-pipeline to fail)
 - rename function `flagCrossStatistic` to `flagCrossStatistics`
+- removed `stats` keywords and functionality from `SaQC.plot` function
+- added `ax_kwargs` keyword to `SaQC.plot` function
 ### Removed
 - removed function `flagDriftFromScaledNorm`
 ### Fixed
