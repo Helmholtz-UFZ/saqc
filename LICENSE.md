@@ -8,16 +8,16 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 This file is part of the "System for Automated Quality Control" developed by
 the Research Data Management Team of the Helmholtz Centre for Environmental
-Research -- UFZ.
+Research - UFZ.
 
 # Copyright Notice
 
-Copyright(c) 2021, *Helmholtz-Zentrum für Umweltforschung GmbH -- UFZ*. All rights reserved.
+Copyright(c) 2021, *Helmholtz-Zentrum für Umweltforschung GmbH - UFZ*. All rights reserved.
 
 
 **The code is a property of**
 
-*Helmholtz-Zentrum für Umweltforschung GmbH -- UFZ*\
+*Helmholtz-Zentrum für Umweltforschung GmbH - UFZ*\
 Registered Office: Leipzig\
 Registration Office: Amtsgericht Leipzig\
 Trade Register Nr. B 4703\
@@ -44,8 +44,12 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
 Public License for more details.
 
 You should have received a copy of the GNU General Public License along
-with this program; if not, it can be found at the end of this document
-or see at https://www.gnu.org/licenses/gpl-3.0.de.html.
+with this program; if not, it can be found at
+[LICENSES/GPL-3.0-or-later.txt](LICENSES/GPL-3.0-or-later.txt) or see at
+https://www.gnu.org/licenses/gpl-3.0.de.html.
+
+> **Hint:** We provided the copyright and license information in accordance to
+> the [REUSE Specification 3.0](https://reuse.software/spec/).
 
 **Redistribution**
 
@@ -62,7 +66,7 @@ notice, this list of conditions, the following GNU General Public License
 and the modification conditions in the documentation and/or other materials
 provided with the distribution.
 
-- Neither the name of *Helmholtz-Zentrum für Umweltforschung GmbH -- UFZ*,
+- Neither the name of *Helmholtz-Zentrum für Umweltforschung GmbH - UFZ*,
 nor the names of its contributors may be used to endorse or promote products
 derived from this software without specific prior written permission.
 
@@ -70,10 +74,5 @@ derived from this software without specific prior written permission.
 
 If software is modified to produce derivative works, such modified
 software should be clearly marked, so as not to confuse it with the
-version available from *Helmholtz-Zentrum für Umweltforschung GmbH --
+version available from *Helmholtz-Zentrum für Umweltforschung GmbH -
 UFZ*.
-
-Please see the [individual files](LICENSES) for more accurate information.
-
-> **Hint:** We provided the copyright and license information in accordance to
-> the [REUSE Specification 3.0](https://reuse.software/spec/).
