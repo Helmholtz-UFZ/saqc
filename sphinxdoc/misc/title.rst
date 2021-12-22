@@ -2,32 +2,32 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-.. |sacRaw| image:: /ressources/images/Representative/RawData.png
+.. |sacRaw| image:: /resources/images/Representative/RawData.png
     :height: 150 px
     :width: 288 px
 
-.. |sacFlagged| image:: /ressources/images/Representative/DifferentFlags.png
+.. |sacFlagged| image:: /resources/images/Representative/DifferentFlags.png
     :height: 150 px
     :width: 288 px
 
-.. |sacMV| image:: /ressources/images/Representative/MultivarSAC.png
+.. |sacMV| image:: /resources/images/Representative/MultivarSAC.png
     :height: 150 px
     :width: 288 px
 
-.. |sacProc| image:: /ressources/images/Representative/ProcessingDrift.png
+.. |sacProc| image:: /resources/images/Representative/ProcessingDrift.png
     :height: 150 px
     :width: 288 px
 
-.. |pyLogo| image:: /ressources/images/Representative/pythonLogo.png
+.. |pyLogo| image:: /resources/images/Representative/pythonLogo.png
     :height: 108 px
     :width: 105 px
 
-.. |csvConfig| image:: /ressources/images/Representative/csvConfig.png
+.. |csvConfig| image:: /resources/images/Representative/csvConfig.png
     :height: 100 px
     :width: 176 px
 
 
-.. |legendEXMPL| image:: /ressources/images/Representative/legendEXMPL.png
+.. |legendEXMPL| image:: /resources/images/Representative/legendEXMPL.png
     :height: 100 px
     :width: 200
 
@@ -51,7 +51,7 @@ SaQC is developed and maintained by the
 `Research Data Management <https://www.ufz.de/index.php?en=45348>`_ Team at the
 `Helmholtz-Centre for Environmental Research - UFZ <https://www.ufz.de/>`_.
 It manifests the requirements and experiences made from the implementation and
-operation of fully automated quality control pipelines for environmental sensor data. 
+operation of fully automated quality control pipelines for environmental sensor data.
 The diversity of communities involved in this process and the special needs within the
 realm of scientific data acquisition and its provisioning, have shaped SaQC into
 its current state. We define this state as: inherently consistent, yet externally

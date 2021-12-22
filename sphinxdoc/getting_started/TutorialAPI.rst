@@ -180,4 +180,4 @@ simply call:
 
    qc.plot("a")
 
-.. image:: /ressources/images/tutorial_api_1.png
+.. image:: /resources/images/tutorial_api_1.png

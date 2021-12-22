@@ -5,9 +5,9 @@
 .. testsetup:: exampleMV
 
    import matplotlib.pyplot as plt
-   datapath = './ressources/data/hydro_data.csv'
-   maintpath = './ressources/data/hydro_maint.csv'
-   configpath = './ressources/data/hydro_config.csv'
+   datapath = './resources/data/hydro_data.csv'
+   maintpath = './resources/data/hydro_maint.csv'
+   configpath = './resources/data/hydro_config.csv'
 
 .. plot::
    :context:
@@ -16,8 +16,8 @@
    import matplotlib
    import saqc
    import pandas as pd
-   datapath = '../ressources/data/hydro_data.csv'
-   maintpath = '../ressources/data/hydro_maint.csv'
+   datapath = '../resources/data/hydro_data.csv'
+   maintpath = '../resources/data/hydro_maint.csv'
    data = pd.read_csv(datapath, index_col=0)
    maint = pd.read_csv(maintpath, index_col=0)
    maint.index = pd.DatetimeIndex(maint.index)
@@ -28,7 +28,7 @@
 Multivariate Flagging
 =====================
 
-The tutorial aims to introduce the usage of SaQC in the context of some more complex flagging and processing techniques. 
+The tutorial aims to introduce the usage of SaQC in the context of some more complex flagging and processing techniques.
 Mainly we will see how to apply Drift Corrections onto the data and how to perform multivariate flagging.
 
 
@@ -45,8 +45,8 @@ Data Preparation
 ----------------
 
 First import the data (from the repository), and generate an saqc instance from it. You will need to download the `sensor
-data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/ressources/data/hydro_config.csv>`_ and the
-`maintenance data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/ressources/data/hydro_maint.csv>`_
+data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/resources/data/hydro_config.csv>`_ and the
+`maintenance data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/resources/data/hydro_maint.csv>`_
 from the `repository <https://git.ufz.de/rdm-software/saqc.git>`_ and make variables `datapath` and `maintpath` be
 paths pointing at those downloaded files. Note, that the :py:class:`~saqc.SaQC` digests the loaded data in a list.
 This is done, to circumvent having to concatenate both datasets in a pandas Dataframe instance, which would introduce
@@ -263,7 +263,7 @@ Multivariate Flagging Procedure
 -------------------------------
 
 We are basically following the *oddWater* procedure, as suggested in *Talagala, P.D. et al (2019): A Feature-Based
-Procedure for Detecting Technical Outliers in Water-Quality Data From In Situ Sensors. Water Ressources Research,
+Procedure for Detecting Technical Outliers in Water-Quality Data From In Situ Sensors. Water Resources Research,
 55(11), 8547-8568.*
 
 First, we define a transformation, we want the variables to be transformed with, to make them equally significant in
@@ -392,5 +392,5 @@ Config
 To configure `saqc` to execute the above data processing and flagging steps, the config file would have to look
 as follows:
 
-.. literalinclude:: ../ressources/data/hydro_config.csv
+.. literalinclude:: ../resources/data/hydro_config.csv
 

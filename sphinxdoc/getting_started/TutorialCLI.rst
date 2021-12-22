@@ -4,9 +4,9 @@
 
 .. testsetup:: exampleCLI
 
-   datapath = './ressources/data/data.csv'
-   configpath = lambda x: f'./ressources/data/myconfig{x}.csv'
-   temppath = lambda x: f'./ressources/temp/{x}'
+   datapath = './resources/data/data.csv'
+   configpath = lambda x: f'./resources/data/myconfig{x}.csv'
+   temppath = lambda x: f'./resources/temp/{x}'
    data = pd.read_csv(datapath, index_col=0)
    data.index = pd.DatetimeIndex(data.index)
 
@@ -17,9 +17,9 @@
    import pandas as pd
    import saqc
    import matplotlib
-   datapath = '../ressources/data/data.csv'
-   configpath = lambda x: f'../ressources/data/myconfig{x}.csv'
-   temppath = lambda x: f'../ressources/temp/{x}'
+   datapath = '../resources/data/data.csv'
+   configpath = lambda x: f'../resources/data/myconfig{x}.csv'
+   temppath = lambda x: f'../resources/temp/{x}'
    data = pd.read_csv(datapath, index_col=0)
    data.index = pd.DatetimeIndex(data.index)
 
@@ -49,11 +49,11 @@ a toy dataset and a toy configuration.
 1. Get toy data and configuration
 ---------------------------------
 
-If you take a look into the folder ``saqc/ressources/data`` you will find a toy
+If you take a look into the folder ``saqc/resources/data`` you will find a toy
 dataset ``data.csv`` which contains the following data:
 
 
-.. literalinclude:: ../ressources/data/data.csv
+.. literalinclude:: ../resources/data/data.csv
    :lines: 1-6
 
 
@@ -65,10 +65,10 @@ of dates to reference to and that you are free to use more columns of any name
 that you like.
 
 Now have a look at a basic sonfiguration file, as
-`this one <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/ressources/data/myconfig.csv>`_.
+`this one <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/resources/data/myconfig.csv>`_.
 It contains the following lines:
 
-.. literalinclude:: ../ressources/data/myconfig.csv
+.. literalinclude:: ../resources/data/myconfig.csv
 
 These lines illustrate how different quality control tests can be specified for
 different variables.
@@ -103,7 +103,7 @@ config-file on the toy dataset via the ``-c`` and ``-d`` options:
 
 .. code-block:: sh
 
-   python3 -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
+   python3 -m saqc -c resources/data/myconfig.csv -d resources/data/data.csv
 
 On Windows
 """"""""""
@@ -125,7 +125,7 @@ config-file on the toy dataset via the ``-c`` and ``-d`` options:
 
 .. code-block:: sh
 
-   py -3 -m saqc -c ressources/data/myconfig.csv -d ressources/data/data.csv
+   py -3 -m saqc -c resources/data/myconfig.csv -d resources/data/data.csv
 
 If you installed saqc via PYPi, you can omit ``sh python -m``.
 
@@ -158,7 +158,7 @@ use of the ``-o`` option:
 
 .. code-block:: sh
 
-   saqc -c ressources/data/config.csv -d ressources/data/data.csv -o ressources/data/out.csv
+   saqc -c resources/data/config.csv -d resources/data/data.csv -o resources/data/out.csv
 
 Which saves a dataframe that contains both the original data and the quality
 flags that were assigned by SaQC for each of the variables:
@@ -186,7 +186,7 @@ own data, this is your way to configure the tests according to your needs. For
 example, you could modify your ``myconfig.csv`` and change the parameters of the
 range-test:
 
-.. literalinclude:: ../ressources/data/myconfig2.csv
+.. literalinclude:: ../resources/data/myconfig2.csv
 
 Rerunning SaQC as above produces the following plot:
 
@@ -220,7 +220,7 @@ You can also define multiple tests for multiple variables in your data. These
 are then executed sequentially and can be plotted seperately. To not interrupt processing, the plots
 get stored to files. (We route the storage to the repos resources folder...)
 
-.. literalinclude:: ../ressources/data/myconfig4.csv
+.. literalinclude:: ../resources/data/myconfig4.csv
 
 
 .. plot::
@@ -236,13 +236,13 @@ which gives you separate plots for each call to plot:
 
    * - SM1
      - SM2
-   * - .. image:: ../ressources/images/SM1processingResults.png
-          :target: ../ressources/images/SM1processingResults.png
+   * - .. image:: ../resources/images/SM1processingResults.png
+          :target: ../resources/images/SM1processingResults.png
           :alt:
-       
-     - .. image:: ../ressources/images/SM2processingResults.png
-          :target: ../ressources/images/SM2processingResults.png
-          :alt: 
+
+     - .. image:: ../resources/images/SM2processingResults.png
+          :target: ../resources/images/SM2processingResults.png
+          :alt:
 
 
 Data harmonization and custom functions
@@ -252,7 +252,7 @@ SaQC includes functionality to harmonize the timestamps of one or more data
 series. Also, you can write your own tests using a python-based
 :ref:`extension language <documentation/GenericFunctions:Generic Functions>`. This would look like this:
 
-.. literalinclude:: ../ressources/data/myconfig3.csv
+.. literalinclude:: ../resources/data/myconfig3.csv
 
 .. testcode:: exampleCLI
    :hide:
@@ -274,7 +274,7 @@ to a 15min-grid (:py:meth:`saqc.SaQC.shift`). Further information on harmonizati
 found in the :doc:`Resampling cookbook <../cook_books/DataRegularisation>`.
 
 
-.. literalinclude:: ../ressources/temp/TutorialCLIHarmData.csv
+.. literalinclude:: ../resources/temp/TutorialCLIHarmData.csv
    :lines: 1-10
 
 
