@@ -284,7 +284,7 @@ Now we can pass the function to the :py:meth:`~saqc.SaQC.transform` method.
 
 .. doctest:: exampleMV
 
-   >>> qc = qc.transform(['sac254_corrected', 'level_raw', 'water_temp_raw'], target=['sac_z', 'level_z', 'water_z'], func=zscore_func, freq='30D')
+   >>> qc = qc.transform(['sac254_corrected', 'level_raw', 'water_temp_raw'], target=['sac254_norm', 'level_norm', 'water_temp_norm'], func=zscore_func, freq='30D')
 
 
 .. plot::
@@ -293,7 +293,7 @@ Now we can pass the function to the :py:meth:`~saqc.SaQC.transform` method.
    :width: 80 %
    :class: center
 
-   qc = qc.transform(['sac254_raw', 'level_raw', 'water_temp_raw'], target=['sac_z', 'level_z', 'water_z'], func=zscore_func, freq='30D')
+   qc = qc.transform(['sac254_raw', 'level_raw', 'water_temp_raw'], target=['sac254_norm', 'level_norm', 'water_temp_norm'], func=zscore_func, freq='30D')
 
 The idea of the multivariate flagging approach we are going for, is,
 to assign any datapoint a score, derived from the distance this datapoint has to its *k* nearest
@@ -302,7 +302,7 @@ neighbors in feature space. We can do this, via the :py:meth:`~saqc.SaQC.assignK
 
 .. doctest:: exampleMV
 
-   >>> qc = qc.assignKNNScore(field=['sac_z', 'level_z', 'water_z'], target='kNNscores', freq='30D', n=5)
+   >>> qc = qc.assignKNNScore(field=['sac254_norm', 'level_norm', 'water_temp_norm'], target='kNNscores', freq='30D', n=5)
 
 Lets have a look at the resulting score variable.
 
@@ -316,7 +316,7 @@ Lets have a look at the resulting score variable.
    :width: 80 %
    :class: center
 
-   qc = qc.assignKNNScore(field=['sac_z', 'level_z', 'water_z'], target='kNNscores', freq='30D', n=5)
+   qc = qc.assignKNNScore(field=['sac254_norm', 'level_norm', 'water_temp_norm'], target='kNNscores', freq='30D', n=5)
    qc.plot('kNNscores')
 
 Those scores roughly correlate with the isolation of the scored points in the feature space. For example, have a look at
@@ -324,7 +324,7 @@ the projection of this feature space onto the 2 dimensional *sac* - *level* spac
 
 .. doctest:: exampleMV
 
-   >>> qc.plot('sac_z', phaseplot='level_z', xscope='2016-11') # doctest:+SKIP
+   >>> qc.plot('sac254_norm', phaseplot='level_norm', xscope='2016-11') # doctest:+SKIP
 
 .. plot::
    :context: close-figs
@@ -332,7 +332,7 @@ the projection of this feature space onto the 2 dimensional *sac* - *level* spac
    :width: 80 %
    :class: center
 
-   qc.plot('sac_z', phaseplot='level_z', xscope='2016-11')
+   qc.plot('sac254_norm', phaseplot='level_norm', xscope='2016-11')
 
 
 We can clearly see some outliers, that seem to be isolated from the cloud of the normalish points. Since those outliers are
@@ -342,16 +342,16 @@ correlated with relatively high *kNNscores*, we could try to calculate a thresho
 :py:meth:`~saqc.SaQC.flagByStray`. This method will mark some samples of the `kNNscore` variable as anomaly.
 Subsequently we project this marks (or *flags*) on to the *sac* variable with a call to
 :py:meth:`~saqc.SaQC.transferFlags`. For the sake of demonstration, we also project the flags
-on the normalized *sac* and plot the flagged values in the *sac_z* - *level_z* feature space.
+on the normalized *sac* and plot the flagged values in the *sac254_norm* - *level_norm* feature space.
 
 
 .. doctest:: exampleMV
 
    >>> qc = qc.flagByStray(field='kNNscores', freq='30D', alpha=.3)
    >>> qc = qc.transferFlags(field='kNNscores', target='sac254_corrected', label='STRAY')
-   >>> qc = qc.transferFlags(field='kNNscores', target='sac_z', label='STRAY')
+   >>> qc = qc.transferFlags(field='kNNscores', target='sac254_norm', label='STRAY')
    >>> qc.plot('sac254_corrected', xscope='2016-11') # doctest:+SKIP
-   >>> qc.plot('sac_z', phaseplot='level_z', xscope='2016-11') # doctest:+SKIP
+   >>> qc.plot('sac254_norm', phaseplot='level_norm', xscope='2016-11') # doctest:+SKIP
 
 .. plot::
    :context: close-figs
@@ -359,7 +359,7 @@ on the normalized *sac* and plot the flagged values in the *sac_z* - *level_z* f
 
    qc = qc.flagByStray(field='kNNscores', freq='30D', alpha=.3)
    qc = qc.transferFlags(field='kNNscores', target='sac254_corrected', label='STRAY')
-   qc = qc.transferFlags(field='kNNscores', target='sac_z', label='STRAY')
+   qc = qc.transferFlags(field='kNNscores', target='sac254_norm', label='STRAY')
 
 .. plot::
    :context: close-figs
@@ -375,7 +375,7 @@ on the normalized *sac* and plot the flagged values in the *sac_z* - *level_z* f
    :width: 80 %
    :class: center
 
-   qc.plot('sac_z', phaseplot='level_z', xscope='2016-11')
+   qc.plot('sac254_norm', phaseplot='level_norm', xscope='2016-11')
 
 Config
 ------
