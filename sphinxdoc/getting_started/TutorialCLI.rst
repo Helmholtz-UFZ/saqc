@@ -217,7 +217,7 @@ Process multiple variables
 
 You can also define multiple tests for multiple variables in your data. These
 are then executed sequentially and can be plotted seperately. To not interrupt processing, the plots
-get stored to files.
+get stored to files. (We route the storage to the repos resources folder...)
 
 .. literalinclude:: ../ressources/data/myconfig4.csv
 
@@ -228,9 +228,7 @@ get stored to files.
 
    qc = saqc.fromConfig(configpath('4'), data)
 
-which gives you separate plots for each line where the plotting option is set to
-``True`` as well as one summary "data plot" that depicts the joint flags from all
-tests:
+which gives you separate plots for each call to plot:
 
 
 .. list-table::
