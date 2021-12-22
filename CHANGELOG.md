@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Changelog
 
 This changelog starts with version 2.0.0. Basically all parts of the system, including the format of this changelog, have been reworked between the releases 1.4 and 2.0. Preceding the major breaking release 2.0, the maintenance of this file was rather sloppy, so we won't provide a detailed change history for early versions.

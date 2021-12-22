@@ -1,4 +1,9 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 from typing import Union, Tuple, Callable, Sequence, Optional
 from typing_extensions import Literal
