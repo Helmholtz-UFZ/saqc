@@ -6,3 +6,4 @@ SM1;flagMAD(window="15d", z=3.5)
 SM2;flagMAD(window="30d", z=3.5)
 SM1;plot(path='../ressources/temp/SM1processingResults')
 SM2;plot(path='../ressources/temp/SM2processingResults')
+

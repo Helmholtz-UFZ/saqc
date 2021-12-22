@@ -22,11 +22,6 @@
 Command Line Application
 ========================
 
-.. note::
-
-   The content of this page is outdated and the provided code sample will very likely
-   not work as expected. A rewrite of this document is WIP
-
 
 Contents
 --------
@@ -53,8 +48,10 @@ a toy dataset and a toy configuration.
 If you take a look into the folder ``saqc/ressources/data`` you will find a toy
 dataset ``data.csv`` which contains the following data:
 
+
 .. literalinclude:: ../ressources/data/data.csv
    :lines: 1-6
+
 
 
 These are the first entries of two timeseries of soil moisture (SM1+2) and the battery voltage of the
@@ -230,7 +227,6 @@ get stored to files. (We route the storage to the repos resources folder...)
 
 which gives you separate plots for each call to plot:
 
-
 .. list-table::
    :header-rows: 1
 
@@ -238,7 +234,7 @@ which gives you separate plots for each call to plot:
      - SM2
    * - .. image:: ../ressources/images/SM1processingResults.png
           :target: ../ressources/images/SM1processingResults.png
-          :alt: 
+          :alt:
        
      - .. image:: ../ressources/images/SM2processingResults.png
           :target: ../ressources/images/SM2processingResults.png
@@ -291,3 +287,4 @@ You can learn more about the syntax of these custom functions
    :align: center
 
    qc.plot('SM2')
+

@@ -345,6 +345,7 @@ Subsequently we project this marks (or *flags*) on to the *sac* variable with a 
 on the normalized *sac* and plot the flagged values in the *sac254_norm* - *level_norm* feature space.
 
 
+
 .. doctest:: exampleMV
 
    >>> qc = qc.flagByStray(field='kNNscores', freq='30D', alpha=.3)

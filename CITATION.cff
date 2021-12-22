@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+title: SaQC - System for automated Quality Control
+message: "Please cite this software using these metadata."
+type: software
+version: 2.0.0
+doi: 
+date-released: "2021-11-25"
+license: "GPL-3.0"
+repository-code: "https://git.ufz.de/rdm-software/saqc"
+keywords:
+  - time series data
+  - environmental sensor data
+authors:
+  - given-names: David
+    family-names: Schäfer
+    email: david.schaefer@ufz.de
+    affiliation: >-
+      Helmholtz Centre for Environmental Research -
+      UFZ
+    orcid: 'https://orcid.org/0000-0003-4517-6459'
+  - given-names: Bert
+    family-names: Palm
+    email: bert.palm@ufz.de
+    affiliation: >-
+      Helmholtz Centre for Environmental Research -
+      UFZ
+    orcid: 'https://orcid.org/0000-0000-0000-0000'
+  - given-names: Peter
+    family-names: Lünenschloß
+    email: peter.luenenschloss@ufz.de
+    affiliation: >-
+      Helmholtz Centre for Environmental Research -
+      UFZ
+    orcid: 'https://orcid.org/0000-0000-0000-0000'

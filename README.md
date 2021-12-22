@@ -14,6 +14,9 @@
 >>>>>>> develop
 </a>
 
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+
+
 # System for automated Quality Control (SaQC)
 
 Anomalies and errors are the rule not the exception when working with 
@@ -107,3 +110,27 @@ saqc = (saqc
 A more detailed description of the Python API is available in the 
 [respective section](https://rdm-software.pages.ufz.de/saqc/getting_started/TutorialAPI.html)
 of the documentation.
+
+## Changelog
+All notable changes to this project will be documented in [CHANGELOG.md](CHANGELOG.md).
+
+## Contributing
+You found a bug or you want to suggest some cool features? Please refer to our [contributing guidelines](CONTRIBUTING.md) to see how you can contribute to SaQC.
+
+## Copyright and License
+Copyright(c) 2021, [Helmholtz-Zentrum für Umweltforschung GmbH -- UFZ](https://www.ufz.de). All rights reserved.
+
+- Documentation: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/) <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/80x15.png" /></a>
+- Source code: [GNU General Public License 3](https://www.gnu.org/licenses/gpl-3.0.html)
+
+For full details, see [LICENSE](LICENSE.md).
+
+## Acknowledgements
+...
+
+## Publications
+...
+
+## How to cite SaQC
+... 
+
