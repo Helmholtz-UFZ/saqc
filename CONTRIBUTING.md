@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Development Environment
 We recommend a virtual python environment for development, a more detailed description of the setup process can be found in the [docs](https://rdm-software.pages.ufz.de/saqc/getting_started/InstallationGuide.html#set-up-a-virtual-environment).
 

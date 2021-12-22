@@ -1,3 +1,7 @@
+.. SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+..
+.. SPDX-License-Identifier: GPL-3.0-or-later
+
 .. dios documentation master file, created by
    sphinx-quickstart on Sun Apr 19 02:36:37 2020.
    You can adapt this file completely to your liking, but it should at least

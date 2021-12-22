@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # ===========================================================
 # preparation
 # ===========================================================
@@ -69,6 +73,16 @@ coverage:
     reports:
       cobertura: coverage.xml
 
+# Check compliance with the REUSE specification
+reuse_compliance:
+  stage: test
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: [""]
+  before_script:
+    - echo "Override default 'before_script'..."
+  script:
+    - reuse lint
 
 # make html docu with sphinx
 pages:

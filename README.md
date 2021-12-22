@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <a href="https://www.ufz.de/index.php?en=33573">
     <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/ressources/images/Representative/UFZLogo.png" width="400"/>
 </a>
