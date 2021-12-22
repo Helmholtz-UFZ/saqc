@@ -18,22 +18,6 @@ def data() -> dios.DictOfSeries:
     return initData(3)
 
 
-def test_packagedConfig():
-
-    path = Path(__file__).parents[2] / "ressources/data"
-
-    config_path = path / "config.csv"
-    data_path = path / "data.csv"
-
-    data = pd.read_csv(
-        data_path,
-        index_col=0,
-        parse_dates=True,
-    )
-    saqc = fromConfig(config_path, data)
-    saqc.result._validate()
-
-
 def test_variableRegex(data):
 
     header = f"varname;test"

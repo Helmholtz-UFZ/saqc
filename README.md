@@ -1,17 +1,9 @@
 <a href="https://www.ufz.de/index.php?en=33573">
-<<<<<<< HEAD
-    <img src="sphinx-doc/ressources/images/Representative/UFZLogo.png" width="400"/>
-</a>
-
-<a href="https://www.ufz.de/index.php?en=45348">
-    <img src="sphinx-doc/ressources/images/Representative/RDMLogo.png" align="right" width="220"/>
-=======
     <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/ressources/images/Representative/UFZLogo.png" width="400"/>
 </a>
 
 <a href="https://www.ufz.de/index.php?en=45348">
     <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/ressources/images/Representative/RDMLogo.png" align="right" width="220"/>
->>>>>>> develop
 </a>
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
