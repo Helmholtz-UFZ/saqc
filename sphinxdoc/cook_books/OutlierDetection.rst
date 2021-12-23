@@ -54,26 +54,26 @@ Preparation
 Data
 ^^^^
 
-The example `data set <https://git.ufz.de/rdm-software/saqc/-/blob/cookBux/sphinx-doc/ressources/data/incidentsLKG.csv>`_
+The example `data set <https://git.ufz.de/rdm-software/saqc/-/blob/cookBux/sphinx-doc/resources/data/incidentsLKG.csv>`_
 is selected to be small, comprehendable and its single anomalous outlier
-can be identified easily visually: 
+can be identified easily visually:
 
 
-.. image:: ../ressources/images/cbooks_incidents1.png
-   :target: ../ressources/images/cbooks_incidents1.png
-   :alt: 
+.. image:: ../resources/images/cbooks_incidents1.png
+   :target: ../resources/images/cbooks_incidents1.png
+   :alt:
 
 
-It can be downloaded from the saqc git `repository <https://git.ufz.de/rdm-software/saqc/-/blob/cookBux/sphinx-doc/ressources/data/incidentsLKG.csv>`_.
+It can be downloaded from the saqc git `repository <https://git.ufz.de/rdm-software/saqc/-/blob/cookBux/sphinx-doc/resources/data/incidentsLKG.csv>`_.
 
-The data represents incidents of SARS-CoV-2 infections, on a daily basis, as reported by the 
+The data represents incidents of SARS-CoV-2 infections, on a daily basis, as reported by the
 `RKI <https://www.rki.de/DE/Home/homepage_node.html>`_ in 2020.
 
 In June, an extreme spike can be observed. This spike relates to an incidence of so called "superspreading" in a local
 `meat factory <https://www.heise.de/tp/features/Superspreader-bei-Toennies-identifiziert-4852400.html>`_.
 
 For the sake of modelling the spread of Covid, it can be of advantage, to filter the data for such extreme events, since
-they may not be consistent with underlying distributional assumptions and thus interfere with the parameter learning 
+they may not be consistent with underlying distributional assumptions and thus interfere with the parameter learning
 process of the modelling. Also it can help to learn about the conditions severely facilitating infection rates.
 
 To introduce into some basic ``saqc`` workflows, we will concentrate on classic variance based outlier detection approaches.
@@ -86,18 +86,18 @@ library and use its csv file parser `pd.read_csv <https://pandas.pydata.org/docs
 
 .. testsetup:: example
 
-   data_path = './ressources/data/incidentsLKG.csv'
+   data_path = './resources/data/incidentsLKG.csv'
 
 .. doctest:: exampleOD
 
-   >>> data_path = './ressources/data/incidentsLKG.csv'
+   >>> data_path = './resources/data/incidentsLKG.csv'
    >>> import pandas as pd
    >>> data = pd.read_csv(data_path, index_col=0)
 
 
 The resulting ``data`` variable is a pandas `data frame <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_
 object. We can generate an :py:class:`SaQC <saqc.core.core.SaQC>` object directly from that. Beforehand we have to make sure, the index
-of ``data`` is of the right type. 
+of ``data`` is of the right type.
 
 .. doctest:: exampleOD
 
@@ -122,7 +122,7 @@ the method :py:meth:`~saqc.SaQC.plot`:
 Modelling
 ---------
 
-First, we want to model our data in order to obtain a stationary, residuish variable with zero mean. 
+First, we want to model our data in order to obtain a stationary, residuish variable with zero mean.
 
 Rolling Mean
 ^^^^^^^^^^^^
@@ -150,14 +150,14 @@ under the name ``ǹp.median``. We just calculate another model curve for the ``"
 
    >>> qc = qc.roll(field='incidents', target='incidents_median', func=np.median, window='13D')
 
-We chose another :py:attr:`target` value for the rolling *median* calculation, in order to not override our results from 
-the previous rolling *mean* calculation. 
-The :py:attr:`target` parameter can be passed to any call of a function from the 
-saqc functions pool and will determine the result of the function to be written to the 
-data, under the fieldname specified by it. If there already exists a field with the name passed to ``target``\ , 
+We chose another :py:attr:`target` value for the rolling *median* calculation, in order to not override our results from
+the previous rolling *mean* calculation.
+The :py:attr:`target` parameter can be passed to any call of a function from the
+saqc functions pool and will determine the result of the function to be written to the
+data, under the fieldname specified by it. If there already exists a field with the name passed to ``target``\ ,
 the data stored to this field will be overridden.
 
-We will evaluate and visualize the different model curves :ref:`later <cook_books/OutlierDetection:Visualisation>`. 
+We will evaluate and visualize the different model curves :ref:`later <cook_books/OutlierDetection:Visualisation>`.
 Beforehand, we will generate some more model data.
 
 Polynomial Fit
@@ -170,16 +170,16 @@ Another common approach, is, to fit polynomials of certain degrees to the data.
 
    >>> qc = qc.fitPolynomial(field='incidents', target='incidents_polynomial', order=2, window='13D')
 
-It also takes a :py:attr:`window` parameter, determining the size of the fitting window. 
+It also takes a :py:attr:`window` parameter, determining the size of the fitting window.
 The parameter, :py:attr:`order` refers to the size of the rolling window, the polynomials get fitted to.
 
 Custom Models
 ^^^^^^^^^^^^^
 
-If you want to apply a completely arbitrary function to your data, without pre-chunking it by a rolling window, 
+If you want to apply a completely arbitrary function to your data, without pre-chunking it by a rolling window,
 you can make use of the more general :py:meth:`~saqc.SaQC.process` function.
 
-Lets apply a smoothing filter from the `scipy.signal <https://docs.scipy.org/doc/scipy/reference/signal.html>`_ 
+Lets apply a smoothing filter from the `scipy.signal <https://docs.scipy.org/doc/scipy/reference/signal.html>`_
 module. We wrap the filter generator up into a function first:
 
 .. testcode:: exampleOD
@@ -200,7 +200,7 @@ Visualisation
 -------------
 
 We can obtain those updated informations by generating a `pandas dataframe <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_
-representation of it, with the :py:attr:`data <saqc.core.core.SaQC.data>` method: 
+representation of it, with the :py:attr:`data <saqc.core.core.SaQC.data>` method:
 
 .. doctest:: exampleOD
 
@@ -213,9 +213,9 @@ To see all the results obtained so far, plotted in one figure window, we make us
    >>> data.plot()
    <AxesSubplot:>
 
-.. image:: ../ressources/images/cbooks_incidents2.png
-   :target: ../ressources/images/cbooks_incidents2.png
-   :alt: 
+.. image:: ../resources/images/cbooks_incidents2.png
+   :target: ../resources/images/cbooks_incidents2.png
+   :alt:
 
 
 Residues and Scores
@@ -224,12 +224,12 @@ Residues and Scores
 Residues
 ^^^^^^^^
 
-We want to evaluate the residues of one of our models model, in order to score the outlierish-nes of every point. 
-Therefor we just stick to the initially calculated rolling mean curve.  
+We want to evaluate the residues of one of our models model, in order to score the outlierish-nes of every point.
+Therefor we just stick to the initially calculated rolling mean curve.
 
 First, we retrieve the residues via the :py:meth:`~saqc.SaQC.processGeneric` method.
 This method always comes into play, when we want to obtain variables, resulting from basic algebraic
-manipulations of one or more input variables. 
+manipulations of one or more input variables.
 
 For obtaining the models residues, we just subtract the model data from the original data and assign the result
 of this operation to a new variable, called ``incidents_residues``. This Assignment, we, as usual,
@@ -245,7 +245,7 @@ Scores
 Next, we score the residues simply by computing their `Z-scores <https://en.wikipedia.org/wiki/Standard_score>`_.
 The Z-score of a point $\ ``x``\ $, relative to its surrounding $\ ``D``\ $, evaluates to $\ ``Z(x) = \frac{x - \mu(D)}{\sigma(D)}``\ $.
 
-So, if we would like to roll with a window of a fixed size of *27* periods through the data and calculate the *Z*\ -score 
+So, if we would like to roll with a window of a fixed size of *27* periods through the data and calculate the *Z*\ -score
 for the point lying in the center of every window, we would define our function ``z_score``\ :
 
 .. doctest:: exampleOD
@@ -263,19 +263,19 @@ function:
 Optimization by Decomposition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-There are 2 problems with the attempt presented :ref:`above <cook_books/OutlierDetection:Scores>`. 
+There are 2 problems with the attempt presented :ref:`above <cook_books/OutlierDetection:Scores>`.
 
-First, the rolling application of the customly 
-defined function, might get really slow for large data sets, because our function ``z_scores`` does not get decomposed into optimized building blocks. 
+First, the rolling application of the customly
+defined function, might get really slow for large data sets, because our function ``z_scores`` does not get decomposed into optimized building blocks.
 
-Second, and maybe more important, it relies heavily on every window having a fixed number of values and a fixed temporal extension. 
-Otherwise, ``D[14]`` might not always be the value in the middle of the window, or it might not even exist, 
+Second, and maybe more important, it relies heavily on every window having a fixed number of values and a fixed temporal extension.
+Otherwise, ``D[14]`` might not always be the value in the middle of the window, or it might not even exist,
 and an error will be thrown.
 
-So the attempt works fine, only because our data set is small and strictly regularily sampled. 
+So the attempt works fine, only because our data set is small and strictly regularily sampled.
 Meaning that it has constant temporal distances between subsequent meassurements.
 
-In order to tweak our calculations and make them much more stable, it might be useful to decompose the scoring 
+In order to tweak our calculations and make them much more stable, it might be useful to decompose the scoring
 into seperate calls to the :py:meth:`~saqc.SaQC.roll` function, by calculating the series of the
 residues *mean* and *standard deviation* seperately:
 
@@ -285,12 +285,12 @@ residues *mean* and *standard deviation* seperately:
    >>> qc = qc.roll(field='incidents_residues', target='residues_std', window='27D', func=np.std)
    >>> qc = qc.processGeneric(field=['incidents_scores', "residues_mean", "residues_std"], target="residues_norm", func=lambda this, mean, std: (this - mean) / std)
 
-With huge datasets, this will be noticably faster, compared to the method presented :ref:`initially <cook_books/OutlierDetection:Scores>`\ , 
+With huge datasets, this will be noticably faster, compared to the method presented :ref:`initially <cook_books/OutlierDetection:Scores>`\ ,
 because ``saqc`` dispatches the rolling with the basic numpy statistic methods to an optimized pandas built-in.
 
 Also, as a result of the :py:meth:`~saqc.SaQC.roll` assigning its results to the center of every window,
-all the values are centered and we dont have to care about window center indices when we are generating 
-the *Z*\ -Scores from the two series. 
+all the values are centered and we dont have to care about window center indices when we are generating
+the *Z*\ -Scores from the two series.
 
 We simply combine them via the
 :py:meth:`~saqc.SaQC.processGeneric` method, in order to obtain the scores:
@@ -305,9 +305,9 @@ Let's have a look at the resulting scores:
 
    >>> qc.plot('incidents_scores') # doctest:+SKIP
 
-.. image:: ../ressources/images/cbook_incidents_scoresUnflagged.png
-   :target: ../ressources/images/cbook_incidents_scoresUnflagged.png
-   :alt: 
+.. image:: ../resources/images/cbook_incidents_scoresUnflagged.png
+   :target: ../resources/images/cbook_incidents_scoresUnflagged.png
+   :alt:
 
 
 Setting and correcting Flags
@@ -316,8 +316,8 @@ Setting and correcting Flags
 Flagging the Scores
 ^^^^^^^^^^^^^^^^^^^
 
-We can now implement the common `rule of thumb <https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule>`_\ , 
-that any *Z*\ -score value above *3* may indicate an outlierish data point, 
+We can now implement the common `rule of thumb <https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule>`_\ ,
+that any *Z*\ -score value above *3* may indicate an outlierish data point,
 by applying the :py:meth:`~saqc.SaQC.flagRange` method with a `max` value of *3*.
 
 .. doctest:: exampleOD
@@ -328,9 +328,9 @@ Now flags have been calculated for the scores:
 
 >>> qc.plot('incidents_scores') # doctest:+SKIP
 
-.. image:: ../ressources/images/cbooks_incidents_scores.png
-   :target: ../ressources/images/cbooks_incidents_scores.png
-   :alt: 
+.. image:: ../resources/images/cbooks_incidents_scores.png
+   :target: ../resources/images/cbooks_incidents_scores.png
+   :alt:
 
 
 Projecting Flags
@@ -342,7 +342,7 @@ We now can project those flags onto our original incidents timeseries:
 
    >>> qc = qc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: isflagged(x))
 
-Note, that we could have skipped the :ref:`range flagging step <cook_books/OutlierDetection:Flagging the scores>`\ , by including the cutting off in our 
+Note, that we could have skipped the :ref:`range flagging step <cook_books/OutlierDetection:Flagging the scores>`\ , by including the cutting off in our
 generic expression:
 
 .. doctest:: exampleOD
@@ -355,34 +355,34 @@ Lets check out the results:
 
    >>> qc.plot('incidents') # doctest: +SKIP
 
-.. image:: ../ressources/images/cbooks_incidentsOverflagged.png
-   :target: ../ressources/images/cbooks_incidentsOverflagged.png
-   :alt: 
+.. image:: ../resources/images/cbooks_incidentsOverflagged.png
+   :target: ../resources/images/cbooks_incidentsOverflagged.png
+   :alt:
 
 
 Obveously, there are some flags set, that, relative to their 13 days surrounding, might relate to minor incidents spikes,
-but may not relate to superspreading events we are looking for. 
+but may not relate to superspreading events we are looking for.
 
-Especially the left most flag seems not to relate to an extreme event at all. 
+Especially the left most flag seems not to relate to an extreme event at all.
 This overflagging stems from those values having a surrounding with very low data variance, and thus, evaluate to a relatively high Z-score.
 
-There are a lot of possibilities to tackle the issue. In the next section, we will see how we can improve the flagging results 
+There are a lot of possibilities to tackle the issue. In the next section, we will see how we can improve the flagging results
 by incorporating additional domain knowledge.
 
 Additional Conditions
 ---------------------
 
-In order to improve our flagging result, we could additionally assume, that the events we are interested in, 
+In order to improve our flagging result, we could additionally assume, that the events we are interested in,
 are those with an incidents count that is deviating by a margin of more than
-*20* from the 2 week average. 
+*20* from the 2 week average.
 
 This is equivalent to imposing the additional condition, that an outlier must relate to a sufficiently large residue.
 
 Unflagging
 ^^^^^^^^^^
 
-We can do that posterior to the preceeding flagging step, by *removing* 
-some flags based on some condition. 
+We can do that posterior to the preceeding flagging step, by *removing*
+some flags based on some condition.
 
 In order want to *unflag* those values, that do not relate to
 sufficiently large residues, we assign them the :py:const:`~saqc.constants.UNFLAGGED` flag.
@@ -390,9 +390,9 @@ sufficiently large residues, we assign them the :py:const:`~saqc.constants.UNFLA
 Therefore, we make use of the :py:meth:`~saqc.SaQC.flagGeneric` method.
 This method usually comes into play, when we want to assign flags based on the evaluation of logical expressions.
 
-So, we check out, which residues evaluate to a level below *20*\ , and assign the 
+So, we check out, which residues evaluate to a level below *20*\ , and assign the
 flag value for :py:const:`~saqc.constants.UNFLAGGED`. This value defaults to
-to ``-np.inf`` in the default translation scheme, wich we selected implicitly by not specifying any special scheme in the 
+to ``-np.inf`` in the default translation scheme, wich we selected implicitly by not specifying any special scheme in the
 generation of the :py:class:`~Core.Core.SaQC>` object in the :ref:`beginning <cook_books/OutlierDetection:Initialisation>`.
 
 .. doctest:: exampleOD
@@ -401,7 +401,7 @@ generation of the :py:class:`~Core.Core.SaQC>` object in the :ref:`beginning <co
 
 Notice, that we passed the desired flag level to the :py:attr:`flag` keyword in order to perform an
 "unflagging" instead of the usual flagging. The :py:attr:`flag` keyword can be passed to all the functions
-and defaults to the selected translation schemes :py:const:`BAD <saqc.constants.BAD>` flag level. 
+and defaults to the selected translation schemes :py:const:`BAD <saqc.constants.BAD>` flag level.
 
 Plotting proofs the tweaking did in deed improve the flagging result:
 
@@ -409,9 +409,9 @@ Plotting proofs the tweaking did in deed improve the flagging result:
 
    >>> qc.plot("incidents") # doctest:+SKIP
 
-.. image:: ../ressources/images/cbooks_incidents_correctFlagged.png
-   :target: ../ressources/images/cbooks_incidents_correctFlagged.png
-   :alt: 
+.. image:: ../resources/images/cbooks_incidents_correctFlagged.png
+   :target: ../resources/images/cbooks_incidents_correctFlagged.png
+   :alt:
 
 
 Including multiple conditions
@@ -427,7 +427,7 @@ could circumvent the :ref:`unflagging <cook_books/OutlierDetection:Unflagging>` 
    >>> qc.plot("incidents") # doctest: +SKIP
 
 
-.. image:: ../ressources/images/cbooks_incidents_correctFlagged.png
-   :target: ../ressources/images/cbooks_incidents_correctFlagged.png
-   :alt: 
+.. image:: ../resources/images/cbooks_incidents_correctFlagged.png
+   :target: ../resources/images/cbooks_incidents_correctFlagged.png
+   :alt:
 

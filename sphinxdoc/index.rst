@@ -79,7 +79,7 @@ Getting Started
 
 
 .. toctree::
-   :caption: Developer Ressources
+   :caption: Developer Resources
    :hidden:
    :maxdepth: 1
 

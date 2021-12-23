@@ -6,7 +6,7 @@ Data Regularisation
 ===================
 
 The tutorial aims to introduce the usage of ``SaQC`` methods, in order to obtain regularly sampled data derivatives
-from given time series data input. Regularly sampled time series data, is data, that exhibits a constant temporal 
+from given time series data input. Regularly sampled time series data, is data, that exhibits a constant temporal
 spacing in between subsequent data points.
 
 In the following steps, the tutorial guides through the usage of the *SaQC* :doc:`resampling <../funcSummaries/generic>`
@@ -59,11 +59,11 @@ Why Regularisation
 
 Often, measurement data does not come in regularly sampled time series. The reasons, why one usually would
 like to have time series data, that exhibits a constant temporal gap size
-in between subsequent measurements, are manifold. 
+in between subsequent measurements, are manifold.
 
-The 2 foremost important ones, may be, that statistics, such as *mean* and *standard deviation* 
+The 2 foremost important ones, may be, that statistics, such as *mean* and *standard deviation*
 usually presuppose the set of data points, they are computed of, to
-be equally weighted. 
+be equally weighted.
 
 The second reason, is, that, relating data of different sources to another, is impossible, if one
 has not a mapping at hand, that relates the different date time indices to each other. One easy and intuitive
@@ -72,20 +72,20 @@ way of constructing such a mapping, is to just resample all data at the same (re
 Tutorial Data
 -------------
 
-The following `dataset <../ressources/data/SoilMoisture.csv>`_ of Soil Moisture measurements may serve as
+The following `dataset <../resources/data/SoilMoisture.csv>`_ of Soil Moisture measurements may serve as
 example data set:
 
 
-.. image:: ../ressources/images/cbooks_SoilMoisture.png
-   :target: ../ressources/images/cbooks_SoilMoisture.png
-   :alt: 
+.. image:: ../resources/images/cbooks_SoilMoisture.png
+   :target: ../resources/images/cbooks_SoilMoisture.png
+   :alt:
 
 
 Lets import it and check out the first and last lines.
 .. doctest:: example
 
    >>> import pandas as pd
-   >>> data_path = './ressources/data/SoilMoisture.csv'
+   >>> data_path = './resources/data/SoilMoisture.csv'
    >>> data = pd.read_csv(data_path, index_col=0)
    >>> data.index = pd.DatetimeIndex(data.index)
    >>> data
@@ -105,27 +105,27 @@ Lets import it and check out the first and last lines.
    [10607 rows x 1 columns]
 
 
-The data series seems to start with a sampling rate of roughly *10* minutes. 
-Somewhere the sampling rate changes, and at the end it seems to exhibit an intended sampling 
+The data series seems to start with a sampling rate of roughly *10* minutes.
+Somewhere the sampling rate changes, and at the end it seems to exhibit an intended sampling
 rate of *15* minutes.
 
-Finding out about the proper sampling a series should be regularized to, is a subject on its own and wont be covered 
+Finding out about the proper sampling a series should be regularized to, is a subject on its own and wont be covered
 here. Usually, the intended sampling rate of sensor data is known from the specification of the sensor.
 
-If that is not the case, and if there seem to be more than one candidates for a rate regularisation, a rough rule of 
-thumb, aiming at minimisation of data loss and data manipulation, may be, 
+If that is not the case, and if there seem to be more than one candidates for a rate regularisation, a rough rule of
+thumb, aiming at minimisation of data loss and data manipulation, may be,
 to go for the smallest rate seemingly present in the data.
 
 Regularisations
 ---------------
 
-So lets transform the measurements timestamps to have a regular *10* minutes frequency. In order to do so, 
+So lets transform the measurements timestamps to have a regular *10* minutes frequency. In order to do so,
 we have to decide what to do with each time stamps associated data, when we alter the timestamps value.
 
 Basically, there are three types of :doc:`regularisations <../funcSummaries/resampling>` methods:
 
 
-#. We could keep the values as they are, and thus, 
+#. We could keep the values as they are, and thus,
    just :ref:`shift <cook_books/DataRegularisation:Shift>` them in time to match the equidistant *10* minutes frequency grid, we want the data to exhibit.
 #. We could calculate new, synthetic data values for the regular timestamps, via an :ref:`interpolation <cook_books/DataRegularisation:Interpolation>` method.
 #. We could apply some :ref:`aggregation <cook_books/DataRegularisation:Aggregation>` to up- or down sample the data.
@@ -162,11 +162,11 @@ Shifting Method
 With the ``method`` keyword, we determined the direction of the shift. We passed it the string ``bshift`` -
 which applies a *backwards* shift, so data points get shifted *backwards*\ , until they match a timestamp
 that is a multiple of *10* minutes. (See :py:meth:`~saqc.SaQC.shift` documentation for more
-details on the keywords.) 
+details on the keywords.)
 
 Lets see, how the data is now sampled. Therefore, we use the ``data_raw`` Atribute from the
 :py:class:`SaQC <saqc.core.core.SaQC>` object. This will prevent the methods output from
-being merged to a ``pandas.DataFrame`` object, and the changes from the resampling will be easier 
+being merged to a ``pandas.DataFrame`` object, and the changes from the resampling will be easier
 comprehensible from one look.
 
 Shifted data
@@ -209,7 +209,7 @@ Empty Intervals
 ^^^^^^^^^^^^^^^
 
 If there is no :ref:`valid <cook_books/DataRegularisation:valid data>` data point available within an interval of the passed frequency,
-that could be shifted to match a multiple of the frequency, a ``NaN`` value gets inserted to represent the fact, 
+that could be shifted to match a multiple of the frequency, a ``NaN`` value gets inserted to represent the fact,
 that in the interval that is represented by that date time index, there was data missing.
 
 Valid Data
@@ -218,24 +218,24 @@ Valid Data
 Data points are referred to, as *valid*\ , in context of a regularisation, if:
 
 
-#. 
+#.
    the data points value is not ``NaN``
 
-#. 
+#.
    the *flag* of that datapoint has a value lower than the value passed to the methods
-   ``to_mask`` keyword - since this keyword defaults to the highest flag level available, 
+   ``to_mask`` keyword - since this keyword defaults to the highest flag level available,
    defaultly, all data flagged :py:const:`~saqc.constants.BAD`, is considered invalid by that method.
 
-Note, that, from point *2* above, it follows, that flagging data values 
-before regularisation, will effectively exclude them from the regularistaion process. See chapter 
+Note, that, from point *2* above, it follows, that flagging data values
+before regularisation, will effectively exclude them from the regularistaion process. See chapter
 :ref:`flagging and resampling <cook_books/DataRegularisation:flags and regularisation>` for an example of this effect and how it can help
 control :ref:`data reduction <cook_books/DataRegularisation:data reduction>`.
 
 data reduction
 ^^^^^^^^^^^^^^
 
-If there are multiple values present within an interval with size according to the passed frequency alias passed to 
-``freq``\ , this values get reduced to one single value, that will get assigned to the timestamp associated with the 
+If there are multiple values present within an interval with size according to the passed frequency alias passed to
+``freq``\ , this values get reduced to one single value, that will get assigned to the timestamp associated with the
 interval.
 
 This reduction depends on the selected :doc:`regularisation <../funcSummaries/resampling>` method.
@@ -263,51 +263,51 @@ for that interval.
 Minimize Shifting Distance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Notice, how, for example, the data point for ``2021-01-01 07:49:41`` gets shifted all the way back, to 
+Notice, how, for example, the data point for ``2021-01-01 07:49:41`` gets shifted all the way back, to
 ``2021-01-01 07:40:00`` - although, shifting it forward to ``07:40:00`` would be less a manipulation, since this timestamp
-appears to be closer to the original one. 
+appears to be closer to the original one.
 
 To shift to any frequncy aligned timestamp the value that is closest to that timestamp, we
 can perform a *nearest shift* instead of a simple *back shift*\ , by using the shift method ``"nshift"``\ :
 
    >>> qc = qc.shift('SoilMoisture', target='SoilMoisture_nshift', freq='10min', method='nshift')
    >>> qc.dataRaw['2021-01-01T07:00:00':'2021-01-01T08:00:00'] # doctest: +SKIP
-                SoilMoisture_nshift |                              SoilMoisture | 
-   ================================ | ========================================= | 
-   Date Time                        | Date Time                                 | 
-   2021-01-01 07:00:00      23.3431 | 2021-01-01 07:00:41               23.3431 | 
-   2021-01-01 07:10:00      23.3431 | 2021-01-01 07:10:29               23.3431 | 
-   2021-01-01 07:20:00      23.2988 | 2021-01-01 07:20:17               23.2988 | 
-   2021-01-01 07:30:00      23.3874 | 2021-01-01 07:30:05               23.3874 | 
-   2021-01-01 07:40:00      23.3853 | 2021-01-01 07:39:53               23.3853 | 
+                SoilMoisture_nshift |                              SoilMoisture |
+   ================================ | ========================================= |
+   Date Time                        | Date Time                                 |
+   2021-01-01 07:00:00      23.3431 | 2021-01-01 07:00:41               23.3431 |
+   2021-01-01 07:10:00      23.3431 | 2021-01-01 07:10:29               23.3431 |
+   2021-01-01 07:20:00      23.2988 | 2021-01-01 07:20:17               23.2988 |
+   2021-01-01 07:30:00      23.3874 | 2021-01-01 07:30:05               23.3874 |
+   2021-01-01 07:40:00      23.3853 | 2021-01-01 07:39:53               23.3853 |
    2021-01-01 07:50:00      23.3431 | 2021-01-01 07:49:41               23.3431 |
 
 Now, any timestamp got assigned, the value that is nearest to it, *if* there is one valid data value available in the
-interval surrounding that timestamp with a range of half the frequency. In our example, this would mean, the regular 
-timestamp would get assigned the nearest value of all the values, that preceed or succeed it by less than *5* minutes. 
+interval surrounding that timestamp with a range of half the frequency. In our example, this would mean, the regular
+timestamp would get assigned the nearest value of all the values, that preceed or succeed it by less than *5* minutes.
 
 Maybe check out, what happens with the chunk of the final 2 hours of our shifted *Soil Moisture* dataset, to get an idea.
 
    >>> qc.dataRaw['2021-03-20 07:00:00':] # doctest: +SKIP
-                SoilMoisture_nshift |                              SoilMoisture | 
-   ================================ | ========================================= | 
-   Date Time                        | Date Time                                 | 
-   2021-03-20 07:00:00   145.027496 | 2021-03-20 07:13:49            152.883102 | 
-   2021-03-20 07:10:00   152.883102 | 2021-03-20 07:26:16            156.587906 | 
-   2021-03-20 07:20:00          NaN | 2021-03-20 07:40:37            166.146194 | 
-   2021-03-20 07:30:00   156.587906 | 2021-03-20 07:54:59            164.690598 | 
-   2021-03-20 07:40:00   166.146194 | 2021-03-20 08:40:41            155.318893 | 
-   2021-03-20 07:50:00   164.690598 | 2021-03-20 08:40:41            155.318893 | 
-   2021-03-20 08:00:00          NaN |                                           | 
-   2021-03-20 08:10:00          NaN |                                           | 
-   2021-03-20 08:20:00          NaN |                                           | 
-   2021-03-20 08:30:00          NaN |                                           | 
-   2021-03-20 08:40:00   155.318893 |                                           | 
+                SoilMoisture_nshift |                              SoilMoisture |
+   ================================ | ========================================= |
+   Date Time                        | Date Time                                 |
+   2021-03-20 07:00:00   145.027496 | 2021-03-20 07:13:49            152.883102 |
+   2021-03-20 07:10:00   152.883102 | 2021-03-20 07:26:16            156.587906 |
+   2021-03-20 07:20:00          NaN | 2021-03-20 07:40:37            166.146194 |
+   2021-03-20 07:30:00   156.587906 | 2021-03-20 07:54:59            164.690598 |
+   2021-03-20 07:40:00   166.146194 | 2021-03-20 08:40:41            155.318893 |
+   2021-03-20 07:50:00   164.690598 | 2021-03-20 08:40:41            155.318893 |
+   2021-03-20 08:00:00          NaN |                                           |
+   2021-03-20 08:10:00          NaN |                                           |
+   2021-03-20 08:20:00          NaN |                                           |
+   2021-03-20 08:30:00          NaN |                                           |
+   2021-03-20 08:40:00   155.318893 |                                           |
    2021-03-20 08:50:00          NaN |                                           |
 
 
-Since there is no valid data available, for example, in the interval from ``2021-03-20 07:55:00`` to ``2021-03-20 08:05:00`` - the new value 
-for the regular timestamp ``2021-03-20 08:00:00``\ , that lies in the center of this interval, is ``NaN``. 
+Since there is no valid data available, for example, in the interval from ``2021-03-20 07:55:00`` to ``2021-03-20 08:05:00`` - the new value
+for the regular timestamp ``2021-03-20 08:00:00``\ , that lies in the center of this interval, is ``NaN``.
 
 Aggregation
 -----------
@@ -320,29 +320,29 @@ content with the arithmetic mean (which is implemented by numpies ``numpy.mean``
    >>> import numpy as np
    >>> qc = qc.resample('SoilMoisture', target='SoilMoisture_mean', freq='20min', method='bagg', agg_func=np.mean)
    >>> qc.dataRaw # doctest: +SKIP
-                       SoilMoisture |                     SoilMoisture_mean | 
-   ================================ | ===================================== | 
-   Date Time                        | Date Time                             | 
-   2021-01-01 00:09:07    23.429701 | 2021-01-01 00:00:00         23.430800 | 
-   2021-01-01 00:18:55    23.431900 | 2021-01-01 00:20:00         23.409750 | 
-   2021-01-01 00:28:42    23.343100 | 2021-01-01 00:40:00         23.320950 | 
-   2021-01-01 00:38:30    23.476400 | 2021-01-01 01:00:00         23.365250 | 
-   2021-01-01 00:48:18    23.343100 | 2021-01-01 01:20:00         23.320950 | 
-   2021-01-01 00:58:06    23.298800 | 2021-01-01 01:40:00         23.343100 | 
-   2021-01-01 01:07:54    23.387400 | 2021-01-01 02:00:00         23.320950 | 
-   2021-01-01 01:17:41    23.343100 | 2021-01-01 02:20:00         23.343100 | 
-   2021-01-01 01:27:29    23.298800 | 2021-01-01 02:40:00         23.343100 | 
-   2021-01-01 01:37:17    23.343100 | 2021-01-01 03:00:00         23.343100 | 
-                             ... | ...                               ... | 
-   2021-03-20 05:07:02   137.271500 | 2021-03-20 05:40:00        154.116806 | 
-   2021-03-20 05:21:35   138.194107 | 2021-03-20 06:00:00        150.567505 | 
-   2021-03-20 05:41:59   154.116806 | 2021-03-20 06:20:00               NaN | 
-   2021-03-20 06:03:09   150.567505 | 2021-03-20 06:40:00        145.027496 | 
-   2021-03-20 06:58:10   145.027496 | 2021-03-20 07:00:00        152.883102 | 
-   2021-03-20 07:13:49   152.883102 | 2021-03-20 07:20:00        156.587906 | 
-   2021-03-20 07:26:16   156.587906 | 2021-03-20 07:40:00        165.418396 | 
-   2021-03-20 07:40:37   166.146194 | 2021-03-20 08:00:00               NaN | 
-   2021-03-20 07:54:59   164.690598 | 2021-03-20 08:20:00               NaN | 
+                       SoilMoisture |                     SoilMoisture_mean |
+   ================================ | ===================================== |
+   Date Time                        | Date Time                             |
+   2021-01-01 00:09:07    23.429701 | 2021-01-01 00:00:00         23.430800 |
+   2021-01-01 00:18:55    23.431900 | 2021-01-01 00:20:00         23.409750 |
+   2021-01-01 00:28:42    23.343100 | 2021-01-01 00:40:00         23.320950 |
+   2021-01-01 00:38:30    23.476400 | 2021-01-01 01:00:00         23.365250 |
+   2021-01-01 00:48:18    23.343100 | 2021-01-01 01:20:00         23.320950 |
+   2021-01-01 00:58:06    23.298800 | 2021-01-01 01:40:00         23.343100 |
+   2021-01-01 01:07:54    23.387400 | 2021-01-01 02:00:00         23.320950 |
+   2021-01-01 01:17:41    23.343100 | 2021-01-01 02:20:00         23.343100 |
+   2021-01-01 01:27:29    23.298800 | 2021-01-01 02:40:00         23.343100 |
+   2021-01-01 01:37:17    23.343100 | 2021-01-01 03:00:00         23.343100 |
+                             ... | ...                               ... |
+   2021-03-20 05:07:02   137.271500 | 2021-03-20 05:40:00        154.116806 |
+   2021-03-20 05:21:35   138.194107 | 2021-03-20 06:00:00        150.567505 |
+   2021-03-20 05:41:59   154.116806 | 2021-03-20 06:20:00               NaN |
+   2021-03-20 06:03:09   150.567505 | 2021-03-20 06:40:00        145.027496 |
+   2021-03-20 06:58:10   145.027496 | 2021-03-20 07:00:00        152.883102 |
+   2021-03-20 07:13:49   152.883102 | 2021-03-20 07:20:00        156.587906 |
+   2021-03-20 07:26:16   156.587906 | 2021-03-20 07:40:00        165.418396 |
+   2021-03-20 07:40:37   166.146194 | 2021-03-20 08:00:00               NaN |
+   2021-03-20 07:54:59   164.690598 | 2021-03-20 08:20:00               NaN |
    2021-03-20 08:40:41   155.318893 | 2021-03-20 08:40:00        155.318893 |
    [10607]                            [5643]
 
@@ -357,11 +357,11 @@ Aggregation method
 ^^^^^^^^^^^^^^^^^^
 
 As it is with the :ref:`shift <cook_books/DataRegularisation:Shift>` functionality, a ``method`` keyword controlls, weather the
-aggregation result for the interval in between 2 regular timestamps gets assigned to the left (=\ ``bagg``\ ) or to the 
+aggregation result for the interval in between 2 regular timestamps gets assigned to the left (=\ ``bagg``\ ) or to the
 right (\ ``fagg``\ ) boundary timestamp.
 
 
-* Also, analogous to to the shift functionality, intervals of size ``freq``\ , that do 
+* Also, analogous to to the shift functionality, intervals of size ``freq``\ , that do
   not contain any :ref:`valid <cook_books/DataRegularisation:valid data>` data, that could be aggregated, get ``ǹp.nan`` assigned.
 
 Interpolation
@@ -373,7 +373,7 @@ In the pool of py:mod:`regularisation <Functions.saqc.resampling>` methods, is a
 :py:meth:`~saqc.SaQC.interpolate` method.
 
 Lets apply a linear interpolation onto the dataset. To access
-linear interpolation, we pass the ``method`` parameter the string ``"time"``. This 
+linear interpolation, we pass the ``method`` parameter the string ``"time"``. This
 applies an interpolation, that is sensitive to the difference in temporal gaps
 (as opposed by ``"linear"``\ , wich expects all the gaps to be equal). Get an overview
 of the possible interpolation methods in the :py:meth:`~saqc.SaQC.interpolate>`
@@ -381,36 +381,36 @@ documentation. Lets check the results:
 
    >>> qc = qc.interpolate('SoilMoisture', target='SoilMoisture_linear', freq='10min', method='time')
    >>> qc.dataRaw # doctest: +SKIP
-                       SoilMoisture |                       SoilMoisture_linear | 
-   ================================ | ========================================= | 
-   Date Time                        | Date Time                                 | 
-   2021-01-01 00:00:00          NaN | 2021-01-01 00:09:07             23.429701 | 
-   2021-01-01 00:10:00    23.429899 | 2021-01-01 00:18:55             23.431900 | 
-   2021-01-01 00:20:00    23.422067 | 2021-01-01 00:28:42             23.343100 | 
-   2021-01-01 00:30:00    23.360782 | 2021-01-01 00:38:30             23.476400 | 
-   2021-01-01 00:40:00    23.455997 | 2021-01-01 00:48:18             23.343100 | 
-   2021-01-01 00:50:00    23.335415 | 2021-01-01 00:58:06             23.298800 | 
-   2021-01-01 01:00:00    23.315977 | 2021-01-01 01:07:54             23.387400 | 
-   2021-01-01 01:10:00    23.377891 | 2021-01-01 01:17:41             23.343100 | 
-   2021-01-01 01:20:00    23.332627 | 2021-01-01 01:27:29             23.298800 | 
-   2021-01-01 01:30:00    23.310176 | 2021-01-01 01:37:17             23.343100 | 
-                             ... | ...                                   ... | 
-   2021-03-20 07:20:00   154.723105 | 2021-03-20 05:07:02            137.271500 | 
-   2021-03-20 07:30:00          NaN | 2021-03-20 05:21:35            138.194107 | 
-   2021-03-20 07:40:00          NaN | 2021-03-20 05:41:59            154.116806 | 
-   2021-03-20 07:50:00   165.195497 | 2021-03-20 06:03:09            150.567505 | 
-   2021-03-20 08:00:00          NaN | 2021-03-20 06:58:10            145.027496 | 
-   2021-03-20 08:10:00          NaN | 2021-03-20 07:13:49            152.883102 | 
-   2021-03-20 08:20:00          NaN | 2021-03-20 07:26:16            156.587906 | 
-   2021-03-20 08:30:00          NaN | 2021-03-20 07:40:37            166.146194 | 
-   2021-03-20 08:40:00          NaN | 2021-03-20 07:54:59            164.690598 |                             
+                       SoilMoisture |                       SoilMoisture_linear |
+   ================================ | ========================================= |
+   Date Time                        | Date Time                                 |
+   2021-01-01 00:00:00          NaN | 2021-01-01 00:09:07             23.429701 |
+   2021-01-01 00:10:00    23.429899 | 2021-01-01 00:18:55             23.431900 |
+   2021-01-01 00:20:00    23.422067 | 2021-01-01 00:28:42             23.343100 |
+   2021-01-01 00:30:00    23.360782 | 2021-01-01 00:38:30             23.476400 |
+   2021-01-01 00:40:00    23.455997 | 2021-01-01 00:48:18             23.343100 |
+   2021-01-01 00:50:00    23.335415 | 2021-01-01 00:58:06             23.298800 |
+   2021-01-01 01:00:00    23.315977 | 2021-01-01 01:07:54             23.387400 |
+   2021-01-01 01:10:00    23.377891 | 2021-01-01 01:17:41             23.343100 |
+   2021-01-01 01:20:00    23.332627 | 2021-01-01 01:27:29             23.298800 |
+   2021-01-01 01:30:00    23.310176 | 2021-01-01 01:37:17             23.343100 |
+                             ... | ...                                   ... |
+   2021-03-20 07:20:00   154.723105 | 2021-03-20 05:07:02            137.271500 |
+   2021-03-20 07:30:00          NaN | 2021-03-20 05:21:35            138.194107 |
+   2021-03-20 07:40:00          NaN | 2021-03-20 05:41:59            154.116806 |
+   2021-03-20 07:50:00   165.195497 | 2021-03-20 06:03:09            150.567505 |
+   2021-03-20 08:00:00          NaN | 2021-03-20 06:58:10            145.027496 |
+   2021-03-20 08:10:00          NaN | 2021-03-20 07:13:49            152.883102 |
+   2021-03-20 08:20:00          NaN | 2021-03-20 07:26:16            156.587906 |
+   2021-03-20 08:30:00          NaN | 2021-03-20 07:40:37            166.146194 |
+   2021-03-20 08:40:00          NaN | 2021-03-20 07:54:59            164.690598 |
    2021-03-20 08:50:00          NaN | 2021-03-20 08:40:41            155.318893 |
    [11286]                            [10607]
 
 Interpolation and Data Sparsity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The regularisation by interpolation is strict in the sense, that regular timestamps *only* get 
+The regularisation by interpolation is strict in the sense, that regular timestamps *only* get
 interpolated, if they have at least one :ref:`valid <cook_books/DataRegularisation:valid data>` data value preceeding them *and* one
 succeeding them *within* the given frequency range (wich is controlled by the ``freq`` keyword.).
 
@@ -433,7 +433,7 @@ Note, that there is a wrapper available for linear interpolation: :py:meth:`~saq
 Flags and Regularisation
 ------------------------
 
-Since data, that is flagged by a level higher or equal to the passed ``to_mask`` value 
+Since data, that is flagged by a level higher or equal to the passed ``to_mask`` value
 (default=:py:const:~saqc.constants.BAD), is not regarded :ref:`valid <cook_books/DataRegularisation:valid data>` by the applied function,
 it can be of advantage, to flag data before regularisation in order to effectively exclude it
 from the resulting regularly sampled data set. Lets see an example for the *SoilMoisture* data set.
@@ -457,7 +457,7 @@ should be percentage values in between *0* and *100*.
 Since we dont exclude the value from interpolation, it gets included in the interpolation
 process for the regular timstamp at ``2021-01-01 15:40:00`` - wich, as a result, also exhibits
 a non - sence value of *-119.512446*. We could now flag the resulting regular dataset and
-exclude this calculated non sence value from further processing and analysis. 
+exclude this calculated non sence value from further processing and analysis.
 
 But, this would mean, that we would have a small data gap at this point.
 
@@ -472,13 +472,13 @@ do the interpolation.
    >>> qc = qc.interpolate('SoilMoisture', freq='10min', method='time')
    >>> qc.dataRaw['2021-01-01T07:00:00':'2021-01-01T08:00:00'] # doctest: +SKIP
                        SoilMoisture |                     SoilMoisture_original |
-   ================================ | ========================================= | 
-   Date Time                        | Date Time                                 | 
-   2021-01-01 15:00:00    23.341182 | 2021-01-01 15:00:51               23.3410 | 
-   2021-01-01 15:10:00    23.342964 | 2021-01-01 15:10:38               23.3431 | 
-   2021-01-01 15:20:00    23.341092 | 2021-01-01 15:20:26               23.3410 | 
-   2021-01-01 15:30:00    23.341000 | 2021-01-01 15:30:14               23.3410 | 
-   2021-01-01 15:40:00    23.319971 | 2021-01-01 15:40:02             -120.0000 | 
+   ================================ | ========================================= |
+   Date Time                        | Date Time                                 |
+   2021-01-01 15:00:00    23.341182 | 2021-01-01 15:00:51               23.3410 |
+   2021-01-01 15:10:00    23.342964 | 2021-01-01 15:10:38               23.3431 |
+   2021-01-01 15:20:00    23.341092 | 2021-01-01 15:20:26               23.3410 |
+   2021-01-01 15:30:00    23.341000 | 2021-01-01 15:30:14               23.3410 |
+   2021-01-01 15:40:00    23.319971 | 2021-01-01 15:40:02             -120.0000 |
    2021-01-01 15:50:00    23.299553 | 2021-01-01 15:49:50               23.2988 |
 
 back projection of flags

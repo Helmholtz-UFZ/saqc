@@ -15,9 +15,9 @@ def test__main__py(tmp_path):
     projpath = Path(saqc.__file__).parents[1]
     args = [
         "--config",
-        Path(projpath, "sphinxdoc/ressources/data/config.csv"),
+        Path(projpath, "sphinxdoc/resources/data/config.csv"),
         "--data",
-        Path(projpath, "sphinxdoc/ressources/data/data.csv"),
+        Path(projpath, "sphinxdoc/resources/data/data.csv"),
         "--outfile",
         Path(tmp_path, "test.csv"),  # the filesystem temp dir
     ]
