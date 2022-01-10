@@ -76,9 +76,9 @@ def readFile(fname) -> pd.DataFrame:
     return df
 
 
-# Todo: needs (maybe tiny) docstring!
-def fromConfig(fname, *args, **kwargs):
-    saqc = SaQC(*args, **kwargs)
+# Todo: needs a (maybe tiny) docstring!
+def fromConfig(fname, *args, **func_kwargs):
+    saqc = SaQC(*args, **func_kwargs)
     config = readFile(fname)
 
     for _, field, expr in config.itertuples():
@@ -92,13 +92,13 @@ def fromConfig(fname, *args, **kwargs):
 
         try:
             tree = ast.parse(expr, mode="eval")
-            func_name, kwargs = ConfigFunctionParser().parse(tree.body)
+            func_name, func_kwargs = ConfigFunctionParser().parse(tree.body)
         except Exception as e:
             raise type(e)(f"failed to parse: {field} ; {expr}") from e
 
-        kwargs["field" if "field" not in kwargs else "target"] = fld
+        func_kwargs["field" if "field" not in func_kwargs else "target"] = fld
         try:
-            saqc = saqc.__getattr__(func_name)(regex=regex, **kwargs)
+            saqc = getattr(saqc, func_name)(regex=regex, **func_kwargs)
         except Exception as e:
             raise type(e)(f"failed to execute: {field} ; {expr}") from e
 

@@ -269,7 +269,7 @@ def plot(
     phaseplot: Optional[str] = None,
     store_kwargs: Optional[dict] = None,
     ax_kwargs: Optional[dict] = None,
-    dfilter: float = FILTER_ALL,
+    dfilter: float = FILTER_NONE,
     **kwargs,
 ):
     """

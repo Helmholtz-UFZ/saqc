@@ -49,7 +49,9 @@ class Tools:
         xscope: Optional[slice] = None,
         phaseplot: Optional[str] = None,
         store_kwargs: Optional[dict] = None,
+        ax_kwargs: Optional[dict] = None,
         dfilter: Optional[float] = FILTER_NONE,
         **kwargs,
     ) -> saqc.SaQC:
+
         return self._defer("plot", locals())
