@@ -112,8 +112,13 @@ of the documentation.
 ## Changelog
 All notable changes to this project will be documented in [CHANGELOG.md](CHANGELOG.md).
 
-## Contributing
+## Get involved
+
+### Contributing
 You found a bug or you want to suggest some cool features? Please refer to our [contributing guidelines](CONTRIBUTING.md) to see how you can contribute to SaQC.
+
+### User support
+If you need help or have a question, you can use the SaQC user support mailing list: [saqc-support@ufz.de](mailto:saqc-support@ufz.de)
 
 ## Copyright and License
 Copyright(c) 2021, [Helmholtz-Zentrum für Umweltforschung GmbH -- UFZ](https://www.ufz.de). All rights reserved.
