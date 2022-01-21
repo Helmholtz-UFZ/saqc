@@ -3,7 +3,7 @@ title: SaQC - System for automated Quality Control
 message: "Please cite this software using these metadata."
 type: software
 version: 2.0.0
-doi: 
+doi: https://doi.org/10.5281/zenodo.5888547
 date-released: "2021-11-25"
 license: "GPL-3.0"
 repository-code: "https://git.ufz.de/rdm-software/saqc"
@@ -24,7 +24,7 @@ authors:
     affiliation: >-
       Helmholtz Centre for Environmental Research -
       UFZ
-    orcid: 'https://orcid.org/0000-0000-0000-0000'
+    orcid: 'https://orcid.org/0000-0001-5106-9057'
   - given-names: Peter
     family-names: Lünenschloß
     email: peter.luenenschloss@ufz.de
