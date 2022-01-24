@@ -5,8 +5,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+from typing import Optional, Tuple, Union
 
-from typing import Optional, Tuple
 
 from typing_extensions import Literal
 import numpy as np
@@ -264,7 +265,7 @@ def plot(
     flags: Flags,
     path: Optional[str] = None,
     max_gap: Optional[str] = None,
-    history: Optional[Literal["valid", "complete", "clear"]] = "valid",
+    history: Optional[Literal["valid", "complete"] | list] = "valid",
     xscope: Optional[slice] = None,
     phaseplot: Optional[str] = None,
     store_kwargs: Optional[dict] = None,
@@ -304,14 +305,14 @@ def plot(
         before plotting. If an offset string is passed, only points that have a distance
         below `max_gap` get connected via the plotting line.
 
-    history : {"valid", "complete", None}, default "valid"
+    history : {"valid", "complete", None, list of strings}, default "valid"
         Discriminate the plotted flags with respect to the tests they originate from.
 
         * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
           in the legend, that actually contributed flags to the overall resault.
         * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
-        * "clear" - clear plot from all the flagged values
         * None - just plot the resulting flags for one variable, without any historical meta information.
+        * list of strings - plot only flags set by those tests listed.
 
     xscope : slice or Offset, default None
         Parameter, that determines a chunk of the data to be plotted
@@ -328,7 +329,7 @@ def plot(
 
     ax_kwargs : dict, default {}
         Axis keywords. Change the axis labeling defaults. Most important keywords:
-        'x_label', 'y_label', 'title', 'fontsize'.
+        'x_label', 'y_label', 'title', 'fontsize', 'cycleskip'.
 
     """
 
