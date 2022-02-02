@@ -14,9 +14,11 @@ import pandas as pd
 from typing_extensions import Literal
 
 import saqc
-
+from sphinxdoc.scripts.templates import doc
 
 class Scores:
+
+    @doc(saqc.funcs.scores.assignKNNScore.__doc__)
     def assignKNNScore(
         self,
         field: Sequence[str],

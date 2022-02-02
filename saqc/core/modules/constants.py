@@ -9,9 +9,12 @@ from __future__ import annotations
 
 from saqc.constants import BAD
 import saqc
+from sphinxdoc.scripts.templates import doc
 
 
 class Constants:
+
+    @doc(saqc.funcs.constants.flagByVariance.__doc__)
     def flagByVariance(
         self,
         field: str,
@@ -24,6 +27,7 @@ class Constants:
     ) -> saqc.SaQC:
         return self._defer("flagByVariance", locals())
 
+    @doc(saqc.funcs.constants.flagConstants.__doc__)
     def flagConstants(
         self, field: str, thresh: float, window: str, flag: float = BAD, **kwargs
     ) -> saqc.SaQC:

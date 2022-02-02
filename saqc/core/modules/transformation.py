@@ -12,9 +12,11 @@ from typing import Callable, Optional, Union
 import pandas as pd
 
 import saqc
-
+from sphinxdoc.scripts.templates import doc
 
 class Transformation:
+
+    @doc(saqc.funcs.transformation.transform.__doc__)
     def transform(
         self,
         field: str,

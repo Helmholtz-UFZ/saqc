@@ -13,9 +13,11 @@ from typing import Callable
 
 from saqc.constants import BAD
 import saqc
-
+from sphinxdoc.scripts.templates import doc
 
 class Noise:
+
+    @doc(saqc.noise.flagByStatLowPass.__doc__)
     def flagByStatLowPass(
         self,
         field: str,

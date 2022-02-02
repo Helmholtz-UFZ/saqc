@@ -9,9 +9,11 @@ from __future__ import annotations
 
 from saqc.constants import BAD
 import saqc
-
+from sphinxdoc.scripts.templates import doc
 
 class Pattern:
+
+    @doc(saqc.funcs.pattern.flagPatternByDTW.__doc__)
     def flagPatternByDTW(
         self,
         field,
