@@ -32,7 +32,7 @@ def test_modelling_polyFit_forRegular(dat):
     flags = initFlagsLike(data)
     result1, _ = calculatePolynomialResidues(data, "data", flags, 11, 2, numba=False)
     result2, _ = calculatePolynomialResidues(data, "data", flags, 11, 2, numba=True)
-    assert (result1["data"] - result2["data"]).abs().max() < 10 ** -10
+    assert (result1["data"] - result2["data"]).abs().max() < 10**-10
     result3, _ = calculatePolynomialResidues(
         data, "data", flags, "110min", 2, numba=False
     )
@@ -40,7 +40,7 @@ def test_modelling_polyFit_forRegular(dat):
     result4, _ = calculatePolynomialResidues(
         data, "data", flags, 11, 2, numba=True, min_periods=11
     )
-    assert (result4["data"] - result2["data"]).abs().max() < 10 ** -10
+    assert (result4["data"] - result2["data"]).abs().max() < 10**-10
     data.iloc[13:16] = np.nan
     result5, _ = calculatePolynomialResidues(
         data, "data", flags, 11, 2, numba=True, min_periods=9

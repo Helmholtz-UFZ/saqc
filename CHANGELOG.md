@@ -14,8 +14,10 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 
 ### Added
 ### Changed
+- `flagOffsets` parameters `thresh` and `thresh_relative` now both are optional
 ### Removed
 ### Fixed
+- `flagOffset` bug with zero-valued threshold
 
 ## [2.0.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2021-12-20
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.0.0...v2.0.1)

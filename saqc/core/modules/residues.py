@@ -24,7 +24,7 @@ class Residues:
         window: Union[str, int],
         order: int,
         min_periods: Optional[int] = 0,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("calculatePolynomialResidues", locals())
 
@@ -35,6 +35,6 @@ class Residues:
         func: Callable[[pd.Series], np.ndarray] = np.mean,
         min_periods: Optional[int] = 0,
         center: bool = True,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("calculateRollingResidues", locals())

@@ -33,7 +33,7 @@ def fitPolynomial(
     window: int | str,
     order: int,
     min_periods: int = 0,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Fits a polynomial model to the data.
@@ -117,7 +117,7 @@ def _fitPolynomial(
     set_flags: bool = True,
     min_periods: int = 0,
     return_residues: bool = False,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
 
     # TODO: some (rather large) parts are functional similar to saqc.funcs.rolling.roll

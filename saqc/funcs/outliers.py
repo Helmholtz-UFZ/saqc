@@ -243,12 +243,12 @@ def _evalStrayLabels(
 
             x = test_slice.index.values.astype(float)
             x_0 = x[0]
-            x = (x - x_0) / 10 ** 12
+            x = (x - x_0) / 10**12
 
             polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=polydeg)
 
             testval = poly.polyval(
-                (float(index[1].to_numpy()) - x_0) / 10 ** 12, polyfitted
+                (float(index[1].to_numpy()) - x_0) / 10**12, polyfitted
             )
             testval = val_frame[var][index[1]] - testval
 
@@ -878,27 +878,29 @@ def flagOffset(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    thresh: float,
     tolerance: float,
     window: Union[int, str],
+    thresh: Optional[float] = None,
     thresh_relative: Optional[float] = None,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    A basic outlier test that work on regular and irregular sampled data
+    A basic outlier test that works on regularly and irregularly sampled data.
 
     The test classifies values/value courses as outliers by detecting not only a rise
-    in value, but also, checking for a return to the initial value level.
+    in value, but also, by checking for a return to the initial value level.
 
     Values :math:`x_n, x_{n+1}, .... , x_{n+k}` of a timeseries :math:`x` with
     associated timestamps :math:`t_n, t_{n+1}, .... , t_{n+k}` are considered spikes, if
 
     1. :math:`|x_{n-1} - x_{n + s}| >` `thresh`, for all :math:`s \\in [0,1,2,...,k]`
 
-    2. :math:`|x_{n-1} - x_{n+k+1}| <` `tolerance`
+    2. :math:`(x_{n + s} - x_{n - 1}) / x_{n - 1} >` `thresh_relative`
 
-    3. :math:`|t_{n-1} - t_{n+k+1}| <` `window`
+    3. :math:`|x_{n-1} - x_{n+k+1}| <` `tolerance`
+
+    4. :math:`|t_{n-1} - t_{n+k+1}| <` `window`
 
     Note, that this definition of a "spike" not only includes one-value outliers, but
     also plateau-ish value courses.
@@ -911,15 +913,19 @@ def flagOffset(
         The field in data.
     flags : saqc.Flags
         Container to store flags of the data.
-    thresh : float
-        Minimum difference between to values, to consider the latter one as a spike. See condition (1)
     tolerance : float
-        Maximum difference between pre-spike and post-spike values. See condition (2)
+        Maximum difference allowed, between the value, directly preceding and the value, directly succeeding an offset,
+        to trigger flagging of the values forming the offset.
+        See condition (3).
     window : {str, int}, default '15min'
-        Maximum length of "spiky" value courses. See condition (3). Integer defined window length are only allowed for
-        regularly sampled timeseries.
+        Maximum length allowed for offset value courses, to trigger flagging of the values forming the offset.
+        See condition (4). Integer defined window length are only allowed for regularly sampled timeseries.
+    thresh : float: {float, None}, default None
+        Minimum difference between a value and its successors, to consider the successors an anomalous offset group.
+        See condition (1). If None is passed, condition (1) is not tested.
     thresh_relative : {float, None}, default None
-        Relative threshold.
+        Minimum relative change between and its successors, to consider the successors an anomalous offset group.
+        See condition (2). If None is passed, condition (2) is not tested.
     flag : float, default BAD
         flag to set.
 
@@ -931,6 +937,99 @@ def flagOffset(
         The quality flags of data
         Flags values may have changed, relatively to the flags input.
 
+    Examples
+    --------
+
+    .. plot::
+       :context:
+       :include-source: False
+
+       import matplotlib
+       import saqc
+       import pandas as pd
+       data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
+
+
+
+    Lets generate a simple, regularly sampled timeseries with an hourly sampling rate and generate an
+    :py:class:`saqc.SaQC` instance from it.
+
+    .. doctest:: flagOffsetExample
+
+       >>> data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
+       >>> data
+                            data
+       2000-01-01 00:00:00     5
+       2000-01-01 01:00:00     5
+       2000-01-01 02:00:00     8
+       2000-01-01 03:00:00    16
+       2000-01-01 04:00:00    17
+       2000-01-01 05:00:00     7
+       2000-01-01 06:00:00     4
+       2000-01-01 07:00:00     4
+       2000-01-01 08:00:00     4
+       2000-01-01 09:00:00     1
+       2000-01-01 10:00:00     1
+       2000-01-01 11:00:00     4
+       >>> qc = saqc.SaQC(data)
+
+    Now we are applying :py:meth:`~saqc.SaQC.flagOffset` and try to flag offset courses, that dont extend longer than
+    *6 hours* in time (``window``) and that have an initial value jump higher than *2* (``thresh``), and that do return
+    to the initial value level within a tolerance of *1.5* (``tolerance``).
+
+    .. doctest:: flagOffsetExample
+
+       >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
+       >>> qc.plot('data') # doctest:+SKIP
+
+    .. plot::
+       :context: close-figs
+       :include-source: False
+
+       >>> qc = saqc.SaQC(data)
+       >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
+       >>> qc.plot('data')
+
+    Note, that both, negative and positive jumps are considered starting points of negative or positive offsets.
+    If you want to impose the additional condition, that the initial value jump must exceed *+90%* of the value level,
+    you can additionally set the ``thresh_relative`` parameter:
+
+    .. doctest:: flagOffsetExample
+
+       >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6H')
+       >>> qc.plot('data') # doctest:+SKIP
+
+    .. plot::
+       :context: close-figs
+       :include-source: False
+
+       >>> qc = saqc.SaQC(data)
+       >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6H')
+       >>> qc.plot('data')
+
+    Now, only positive jumps, that exceed a value gain of *+90%* are considered starting points of offsets.
+
+    In the same way, you can aim for only negative offsets, by setting a negative relative threshold. The below
+    example only flags offsets, that fall off by at least *50 %* in value, with an absolute value drop of at least *2*.
+
+    .. doctest:: flagOffsetExample
+
+       >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6H')
+       >>> qc.plot('data') # doctest:+SKIP
+
+    .. plot::
+       :context: close-figs
+       :include-source: False
+
+       >>> qc = saqc.SaQC(data)
+       >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6H')
+       >>> qc.plot('data')
+
+
+
+
+
+
     References
     ----------
     The implementation is a time-window based version of an outlier test from the UFZ Python library,
@@ -939,6 +1038,12 @@ def flagOffset(
     https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py
 
     """
+    if (thresh is None) and (thresh_relative is None):
+        raise ValueError(
+            "At least one of parameters 'thresh' and 'thresh_relative' has to be given. Got 'thresh'=None, "
+            "'thresh_relative'=None instead."
+        )
+
     dataseries = data[field].dropna()
     if dataseries.empty:
         return data, flags
@@ -954,19 +1059,19 @@ def flagOffset(
         window = delta * window
         if not delta:
             raise TypeError(
-                "Only offset string defined window sizes allowed for irrgegularily sampled timeseries"
+                "Only offset string defined window sizes allowed for timeseries not sampled regularly."
             )
 
     # get all the entries preceding a significant jump
-    if thresh:
+    if thresh is not None:
         post_jumps = dataseries.diff().abs() > thresh
 
-    if thresh_relative:
+    if thresh_relative is not None:
         s = np.sign(thresh_relative)
         rel_jumps = s * (dataseries.shift(1) - dataseries).div(dataseries.abs()) > abs(
             thresh_relative
         )
-        if thresh:
+        if thresh is not None:
             post_jumps = rel_jumps & post_jumps
         else:
             post_jumps = rel_jumps
@@ -982,11 +1087,13 @@ def flagOffset(
     ).dropna()
     to_roll = dataseries[to_roll]
 
-    if thresh_relative:
+    if thresh_relative is not None:
 
-        def spikeTester(chunk, thresh=abs(thresh_relative), tol=tolerance):
+        def spikeTester(
+            chunk, thresh_r=abs(thresh_relative), thresh_a=thresh or 0, tol=tolerance
+        ):
             jump = chunk[-2] - chunk[-1]
-            thresh = thresh * abs(jump)
+            thresh = max(thresh_r * abs(chunk[-1]), thresh_a)
             chunk_stair = (np.sign(jump) * (chunk - chunk[-1]) < thresh)[::-1].cumsum()
             initial = np.searchsorted(chunk_stair, 2)
             if initial == len(chunk):

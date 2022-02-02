@@ -72,7 +72,7 @@ def df_unaligned__():
 def dios_fuzzy__(nr_cols=None, mincol=0, maxcol=10, itype=None):
     nr_of_cols = nr_cols if nr_cols else randint(mincol, maxcol + 1)
 
-    ns = 10 ** 9
+    ns = 10**9
     sec_per_year = 31536000
 
     ITYPES = [IntItype, FloatItype, DtItype, ObjItype]
