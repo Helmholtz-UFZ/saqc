@@ -121,6 +121,6 @@ if __name__ == "__main__":
     # t1 = time.time()
     # print(t1-t0)
 
-    rr = [10 ** r for r in range(1, 6)]
+    rr = [10**r for r in range(1, 6)]
     c = range(10, 60, 10)
     gen_all(rr, c)

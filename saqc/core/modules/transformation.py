@@ -20,6 +20,6 @@ class Transformation:
         field: str,
         func: Callable[[pd.Series], pd.Series],
         freq: Optional[Union[float, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("transform", locals())

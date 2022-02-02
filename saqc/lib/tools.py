@@ -430,11 +430,11 @@ def estimateFrequency(
     min_energy = delta_f[0] * min_energy
     # calc/assign low/high freq cut offs (makes life easier):
     min_rate_i = int(
-        len_f / (pd.Timedelta(min_rate).total_seconds() * (10 ** delta_precision))
+        len_f / (pd.Timedelta(min_rate).total_seconds() * (10**delta_precision))
     )
     delta_f[:min_rate_i] = 0
     max_rate_i = int(
-        len_f / (pd.Timedelta(max_rate).total_seconds() * (10 ** delta_precision))
+        len_f / (pd.Timedelta(max_rate).total_seconds() * (10**delta_precision))
     )
     hf_cutoff = min(max_rate_i, len_f // 2)
     delta_f[hf_cutoff:] = 0

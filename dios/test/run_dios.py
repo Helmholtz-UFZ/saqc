@@ -36,7 +36,7 @@ if __name__ == "__main__":
     )
 
     def f(s):
-        sec = 10 ** 9
+        sec = 10**9
         s.index = pd.to_datetime(s.index * sec)
         return s
 

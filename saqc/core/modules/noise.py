@@ -26,6 +26,6 @@ class Noise:
         sub_thresh: float = None,
         min_periods: int = None,
         flag: float = BAD,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagByStatLowPass", locals())
