@@ -71,11 +71,10 @@ def get_parameters(section: list, indent_str: str) -> dict:
     for k in range(len(section)):
         # try catch a parameter definition start (implicitly assuming parameter names have no
         # whitespaces):
-        para = re.match(indent_str + r"(\S+) *:", section[k])
-        # got one ?
-        if para:
+        param = re.match(indent_str + r"(\S+) *:", section[k])
+        if param:
             parameter_lines.append(k)
-            parameter_names.append(para.group(1))
+            parameter_names.append(param.group(1))
 
     parameter_lines.append(len(section))
     parameter_content = [
@@ -114,7 +113,6 @@ def compose_docstring(
     doc_string = []
     section_dict = section_dict.copy()
     for sec in order:
-        # append section
         dc = section_dict.pop(sec, [])
         doc_string += dc
         # blank line at section end
@@ -134,9 +132,7 @@ def clear_whitespace_tail(doc: list) -> list:
 
 def saqc_methods_template(doc_string: str, source="function_string"):
     if source == "function_string":
-        # splitline doc string:
         doc_string = doc_string.splitlines()
-        # retrieve doc indention
         indent_string = get_docstring_indent(doc_string)
         # retrieve sections dict
         sections = get_sections(doc_string, indent_str=indent_string)
