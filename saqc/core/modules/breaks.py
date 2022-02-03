@@ -12,8 +12,8 @@ import saqc
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Breaks:
 
+class Breaks:
     @doc(saqc.funcs.breaks.flagMissing.__doc__)
     def flagMissing(
         self, field: str, flag: float = BAD, dfilter: float = FILTER_ALL, **kwargs

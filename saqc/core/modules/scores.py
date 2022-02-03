@@ -17,8 +17,8 @@ import saqc
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Scores:
 
+class Scores:
     @doc(saqc.funcs.scores.assignKNNScore.__doc__)
     def assignKNNScore(
         self,

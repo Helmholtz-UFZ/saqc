@@ -15,8 +15,8 @@ from saqc.constants import BAD
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Rolling:
 
+class Rolling:
     @doc(saqc.funcs.rolling.roll.__doc__)
     def roll(
         self,

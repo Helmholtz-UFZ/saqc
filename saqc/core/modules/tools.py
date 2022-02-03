@@ -17,24 +17,21 @@ from saqc.constants import FILTER_NONE
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Tools:
 
+class Tools:
     @doc(saqc.funcs.tools.copyField.__doc__)
     def copyField(
         self, field: str, target: str, overwrite: bool = False, **kwargs
     ) -> saqc.SaQC:
         return self._defer("copyField", locals())
 
-
     @doc(saqc.funcs.tools.dropField.__doc__)
     def dropField(self, field: str, **kwargs) -> saqc.SaQC:
         return self._defer("dropField", locals())
 
-
     @doc(saqc.funcs.tools.renameField.__doc__)
     def renameField(self, field: str, new_name: str, **kwargs) -> saqc.SaQC:
         return self._defer("renameField", locals())
-
 
     @doc(saqc.funcs.tools.maskTime.__doc__)
     def maskTime(
@@ -48,7 +45,6 @@ class Tools:
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("maskTime", locals())
-
 
     @doc(saqc.funcs.tools.plot.__doc__)
     def plot(

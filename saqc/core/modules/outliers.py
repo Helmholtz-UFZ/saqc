@@ -18,8 +18,8 @@ import saqc
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Outliers:
 
+class Outliers:
     @doc(saqc.funcs.outliers.flagByStray.__doc__)
     def flagByStray(
         self,

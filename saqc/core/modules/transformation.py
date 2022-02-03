@@ -15,8 +15,8 @@ import saqc
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Transformation:
 
+class Transformation:
     @doc(saqc.funcs.transformation.transform.__doc__)
     def transform(
         self,

@@ -16,8 +16,8 @@ import saqc
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Noise:
 
+class Noise:
     @doc(saqc.funcs.noise.flagByStatLowPass.__doc__)
     def flagByStatLowPass(
         self,

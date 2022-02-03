@@ -15,8 +15,8 @@ from saqc.lib.types import GenericFunction
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Generic:
 
+class Generic:
     @doc(saqc.funcs.generic.processGeneric.__doc__)
     def processGeneric(
         self,

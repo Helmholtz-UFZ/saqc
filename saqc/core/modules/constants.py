@@ -14,7 +14,6 @@ import saqc.funcs
 
 
 class Constants:
-
     @doc(saqc.funcs.constants.flagByVariance.__doc__)
     def flagByVariance(
         self,

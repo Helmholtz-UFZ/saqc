@@ -20,8 +20,8 @@ from saqc.lib.types import CurveFitter
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Drift:
 
+class Drift:
     @doc(saqc.funcs.drift.flagDriftFromNorm.__doc__)
     def flagDriftFromNorm(
         self,
@@ -55,7 +55,6 @@ class Drift:
     ) -> saqc.SaQC:
         return self._defer("flagDriftFromReference", locals())
 
-
     @doc(saqc.funcs.drift.correctDrift.__doc__)
     def correctDrift(
         self,
@@ -66,7 +65,6 @@ class Drift:
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("correctDrift", locals())
-
 
     @doc(saqc.funcs.drift.correctRegimeAnomaly.__doc__)
     def correctRegimeAnomaly(
@@ -79,7 +77,6 @@ class Drift:
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("correctRegimeAnomaly", locals())
-
 
     @doc(saqc.funcs.drift.correctOffset.__doc__)
     def correctOffset(

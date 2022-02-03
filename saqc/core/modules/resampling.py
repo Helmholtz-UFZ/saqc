@@ -19,8 +19,8 @@ from saqc.funcs.interpolation import _SUPPORTED_METHODS
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Resampling:
 
+class Resampling:
     @doc(saqc.funcs.resampling.linear.__doc__)
     def linear(
         self,
@@ -68,7 +68,6 @@ class Resampling:
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("resample", locals())
-
 
     @doc(saqc.funcs.resampling.concatFlags.__doc__)
     def concatFlags(

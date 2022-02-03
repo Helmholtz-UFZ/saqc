@@ -19,8 +19,8 @@ import saqc
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class FlagTools:
 
+class FlagTools:
     @doc(saqc.funcs.flagtools.clearFlags.__doc__)
     def clearFlags(self, field: str, **kwargs) -> saqc.SaQC:
         return self._defer("clearFlags", locals())

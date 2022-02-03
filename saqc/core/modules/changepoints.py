@@ -19,7 +19,6 @@ import saqc.funcs
 
 
 class ChangePoints:
-
     @doc(saqc.funcs.changepoints.flagChangePoints.__doc__)
     def flagChangePoints(
         self,

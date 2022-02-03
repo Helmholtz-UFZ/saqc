@@ -12,8 +12,8 @@ import saqc
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Pattern:
 
+class Pattern:
     @doc(saqc.funcs.pattern.flagPatternByDTW.__doc__)
     def flagPatternByDTW(
         self,

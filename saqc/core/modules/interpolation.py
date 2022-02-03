@@ -18,8 +18,8 @@ from saqc.funcs.interpolation import _SUPPORTED_METHODS
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Interpolation:
 
+class Interpolation:
     @doc(saqc.funcs.interpolation.interpolateByRolling.__doc__)
     def interpolateByRolling(
         self,
@@ -32,7 +32,6 @@ class Interpolation:
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("interpolateByRolling", locals())
-
 
     @doc(saqc.funcs.interpolation.interpolateInvalid.__doc__)
     def interpolateInvalid(

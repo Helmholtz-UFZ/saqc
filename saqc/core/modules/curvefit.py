@@ -18,7 +18,6 @@ import saqc.funcs
 
 
 class Curvefit:
-
     @doc(saqc.funcs.curvefit.fitPolynomial.__doc__)
     def fitPolynomial(
         self,

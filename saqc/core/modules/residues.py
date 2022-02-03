@@ -18,8 +18,8 @@ import saqc
 from sphinxdoc.scripts.templates import doc
 import saqc.funcs
 
-class Residues:
 
+class Residues:
     @doc(saqc.funcs.residues.calculatePolynomialResidues.__doc__)
     def calculatePolynomialResidues(
         self,
