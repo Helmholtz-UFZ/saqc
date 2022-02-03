@@ -15,6 +15,7 @@ from typing_extensions import Literal
 
 import saqc
 from sphinxdoc.scripts.templates import doc
+import saqc.funcs
 
 class Scores:
 

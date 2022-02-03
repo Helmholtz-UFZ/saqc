@@ -17,6 +17,7 @@ from saqc.constants import BAD
 import saqc
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
 from sphinxdoc.scripts.templates import doc
+import saqc.funcs
 
 class Resampling:
 

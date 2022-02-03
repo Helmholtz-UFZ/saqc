@@ -18,10 +18,11 @@ import saqc
 from saqc.funcs import LinkageString
 from saqc.lib.types import CurveFitter
 from sphinxdoc.scripts.templates import doc
+import saqc.funcs
 
 class Drift:
 
-    @doc(saqc.drift.flagDriftFromNorm.__doc__)
+    @doc(saqc.funcs.drift.flagDriftFromNorm.__doc__)
     def flagDriftFromNorm(
         self,
         field: Sequence[str],
@@ -38,7 +39,7 @@ class Drift:
     ) -> saqc.SaQC:
         return self._defer("flagDriftFromNorm", locals())
 
-    @doc(saqc.drift.flagDriftFromReference.__doc__)
+    @doc(saqc.funcs.drift.flagDriftFromReference.__doc__)
     def flagDriftFromReference(
         self,
         field: Sequence[str],
@@ -55,7 +56,7 @@ class Drift:
         return self._defer("flagDriftFromReference", locals())
 
 
-    @doc(saqc.drift.correctDrift.__doc__)
+    @doc(saqc.funcs.drift.correctDrift.__doc__)
     def correctDrift(
         self,
         field: str,
@@ -67,7 +68,7 @@ class Drift:
         return self._defer("correctDrift", locals())
 
 
-    @doc(saqc.drift.correctRegimeAnomaly.__doc__)
+    @doc(saqc.funcs.drift.correctRegimeAnomaly.__doc__)
     def correctRegimeAnomaly(
         self,
         field: str,
@@ -80,7 +81,7 @@ class Drift:
         return self._defer("correctRegimeAnomaly", locals())
 
 
-    @doc(saqc.drift.correctOffset.__doc__)
+    @doc(saqc.funcs.drift.correctOffset.__doc__)
     def correctOffset(
         self,
         field: str,

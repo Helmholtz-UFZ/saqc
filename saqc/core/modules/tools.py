@@ -15,6 +15,7 @@ import numpy as np
 
 from saqc.constants import FILTER_NONE
 from sphinxdoc.scripts.templates import doc
+import saqc.funcs
 
 class Tools:
 

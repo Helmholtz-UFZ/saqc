@@ -14,6 +14,7 @@ from typing_extensions import Literal
 from saqc.constants import BAD
 import saqc
 from sphinxdoc.scripts.templates import doc
+import saqc.funcs
 
 
 class Curvefit:

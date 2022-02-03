@@ -16,10 +16,11 @@ from saqc.constants import UNFLAGGED
 import saqc
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
 from sphinxdoc.scripts.templates import doc
+import saqc.funcs
 
 class Interpolation:
 
-    @doc(saqc.interpolation.interpolateByRolling.__doc__)
+    @doc(saqc.funcs.interpolation.interpolateByRolling.__doc__)
     def interpolateByRolling(
         self,
         field: str,
@@ -33,7 +34,7 @@ class Interpolation:
         return self._defer("interpolateByRolling", locals())
 
 
-    @doc(saqc.interpolation.interpolateInvalid.__doc__)
+    @doc(saqc.funcs.interpolation.interpolateInvalid.__doc__)
     def interpolateInvalid(
         self,
         field: str,
@@ -46,7 +47,7 @@ class Interpolation:
     ) -> saqc.SaQC:
         return self._defer("interpolateInvalid", locals())
 
-    @doc(saqc.interpolation.interpolateIndex.__doc__)
+    @doc(saqc.funcs.interpolation.interpolateIndex.__doc__)
     def interpolateIndex(
         self,
         field: str,

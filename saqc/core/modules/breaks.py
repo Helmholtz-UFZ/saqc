@@ -10,6 +10,7 @@ from __future__ import annotations
 from saqc.constants import BAD, FILTER_ALL
 import saqc
 from sphinxdoc.scripts.templates import doc
+import saqc.funcs
 
 class Breaks:
 
