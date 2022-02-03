@@ -51,7 +51,7 @@ def get_sections(doc_string: list, indent_str: str) -> dict:
             # check if underscore length matches heading length
             if len(doc_string[k + 1]) == len(doc_string[k]):
                 section_lines.append(k)
-                # skip leading whitespaces (start with whitespace and end with anything but whitespace
+                # skip leading whitespaces
                 skip = re.match("^ *", doc_string[k]).span()[-1]
                 section_headings.append(doc_string[k][skip:])
     section_lines.append(len(doc_string))
