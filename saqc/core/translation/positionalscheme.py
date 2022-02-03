@@ -102,7 +102,7 @@ class PositionalScheme(TranslationScheme):
             thist = flags.history[field].hist.replace(self._BACKWARD).astype(int)
             # concatenate the single flag values
             ncols = thist.shape[-1]
-            init = 9 * 10 ** ncols
+            init = 9 * 10**ncols
             bases = 10 ** np.arange(ncols - 1, -1, -1)
 
             tflags = init + (thist * bases).sum(axis=1)

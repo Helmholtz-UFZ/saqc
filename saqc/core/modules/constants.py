@@ -24,7 +24,7 @@ class Constants:
         maxna: int = None,
         maxna_group: int = None,
         flag: float = BAD,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagByVariance", locals())
 

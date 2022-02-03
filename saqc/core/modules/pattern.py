@@ -23,6 +23,6 @@ class Pattern:
         normalize=True,
         plot=False,
         flag=BAD,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagPatternByDTW", locals())

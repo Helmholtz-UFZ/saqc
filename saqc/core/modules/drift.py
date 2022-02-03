@@ -35,7 +35,7 @@ class Drift:
         / len(x),
         method: LinkageString = "single",
         flag: float = BAD,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagDriftFromNorm", locals())
 
@@ -51,7 +51,7 @@ class Drift:
         )
         / len(x),
         flag: float = BAD,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagDriftFromReference", locals())
 
@@ -63,7 +63,7 @@ class Drift:
         maintenance_field: str,
         model: Callable[..., float] | Literal["linear", "exponential"],
         cal_range: int = 5,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("correctDrift", locals())
 
@@ -76,7 +76,7 @@ class Drift:
         model: CurveFitter,
         tolerance: Optional[str] = None,
         epoch: bool = False,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("correctRegimeAnomaly", locals())
 
@@ -90,6 +90,6 @@ class Drift:
         window: str,
         min_periods: int,
         tolerance: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("correctOffset", locals())

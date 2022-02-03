@@ -98,7 +98,6 @@ import numpy as np
 from saqc.constants import *
 """
 # -- Other options -----------------------------------------------------------
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 

@@ -26,6 +26,6 @@ class Curvefit:
         window: Union[int, str],
         order: int,
         min_periods: int = 0,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("fitPolynomial", locals())

@@ -84,9 +84,9 @@ class Outliers:
     def flagOffset(
         self,
         field: str,
-        thresh: float,
         tolerance: float,
         window: Union[int, str],
+        thresh: Optional[float] = None,
         thresh_relative: Optional[float] = None,
         flag: float = BAD,
         **kwargs,

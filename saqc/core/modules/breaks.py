@@ -27,7 +27,7 @@ class Breaks:
         gap_window: str,
         group_window: str,
         flag: float = BAD,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagIsolated", locals())
 
@@ -39,6 +39,6 @@ class Breaks:
         window: str,
         min_periods: int = 1,
         flag: float = BAD,
-        **kwargs
+        **kwargs,
     ) -> saqc.SaQC:
         return self._defer("flagJumps", locals())

@@ -415,7 +415,7 @@ def _coeffMat(x, deg):
     mat_[:, 1] = x
     if deg > 1:
         for n in range(2, deg + 1):
-            mat_[:, n] = x ** n
+            mat_[:, n] = x**n
     return mat_
 
 

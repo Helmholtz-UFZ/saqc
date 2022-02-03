@@ -107,7 +107,7 @@ def test_arithmeticOperators(data):
         ("var1 * 100 > 200", data * 100 > 200),
         ("var1 / 100 > .1", data / 100 > 0.1),
         ("var1 % 2 == 1", data % 2 == 1),
-        ("var1 ** 2 == 0", data ** 2 == 0),
+        ("var1 ** 2 == 0", data**2 == 0),
     ]
 
     for test, expected in tests:
