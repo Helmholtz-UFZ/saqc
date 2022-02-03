@@ -34,35 +34,25 @@ clean:
 
 # make doctest, make documentation, make clean
 doc:
-	# generate parent fake module for the functions to be documented
-	#python scripts/make_doc_module.py -p "saqc/funcs" -sr ".." -su "funcSummaries"
 	# generate environment table from dictionary
 	python scripts/make_env_tab.py
 	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-	#python scripts/modify_html_API.py
 	rm -f *.automodsumm
 	rm -f *.automodapi
 	rm -f moduleAPIs/*.automodsumm
 	rm -f moduleAPIs/*.automodapi
 	rm -f */*.automodsumm
-	#rm -f -r coredoc
 
 # make documentation
 doconly:
-	# generate parent fake module for the functions to be documented
-	python scripts/make_doc_module.py -p "saqc/funcs" -sr ".." -su "funcSummaries"
 	# generate environment table from dictionary
 	python scripts/make_env_tab.py
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-	python scripts/modify_html_API.py
-
 
 # make test, clean up
 testonly:
     # generate parent fake module for the functions to be documented
-	python scripts/make_doc_module.py -p "saqc/funcs" -sr ".." -su "funcSummaries"
-    # generate environment table from dictionary
 	python scripts/make_env_tab.py
 	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -f *.automodsumm
