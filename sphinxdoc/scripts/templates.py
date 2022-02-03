@@ -134,24 +134,17 @@ def saqc_methods_template(doc_string: str, source="function_string"):
     if source == "function_string":
         doc_string = doc_string.splitlines()
         indent_string = get_docstring_indent(doc_string)
-        # retrieve sections dict
         sections = get_sections(doc_string, indent_str=indent_string)
-        # remove returns section (if present)
         sections.pop("Returns", None)
-        # generate new (blank) returns section
         returns_section = mk_section(section_name="Returns", indent_str=indent_string)
-        # generate return parameter 'out'
         out_para = mk_parameter(
             parameter_name="out",
             parameter_type="saqc.SaQC",
             parameter_doc="An :py:meth:`saqc.SaQC` object, holding the (possibly) modified data",
             indent_str=indent_string,
         )
-        # add out - parameter description content to new returns section
         returns_section["Returns"] += out_para["out"]
-        # add new returns section to sections dict
         sections.update(returns_section)
-        # compose output string with reference to desired order
         doc_string = compose_docstring(
             section_dict=sections, order=FUNC_NAPOLEAN_STYLE_ORDER
         )
