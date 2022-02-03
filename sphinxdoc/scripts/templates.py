@@ -71,7 +71,7 @@ def get_parameters(section: list, indent_str: str) -> dict:
     for k in range(len(section)):
         # try catch a parameter definition start (implicitly assuming parameter names have no
         # whitespaces):
-        para = re.match(indent_str + "(\S+) *:", section[k])
+        para = re.match(indent_str + r"(\S+) *:", section[k])
         # got one ?
         if para:
             parameter_lines.append(k)
@@ -127,7 +127,7 @@ def compose_docstring(
 def clear_whitespace_tail(doc: list) -> list:
     """Clears tailing whitespace lines"""
     for k in range(len(doc), 0, -1):
-        if not re.match("^\s*$", doc[k - 1]):
+        if not re.match(r"^\s*$", doc[k - 1]):
             break
     return doc[:k]
 
