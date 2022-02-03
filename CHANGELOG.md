@@ -14,6 +14,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 
 ### Added
 ### Changed
+- documentation pipeline changed to base on methods decorators
 ### Removed
 ### Fixed
 
