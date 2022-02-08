@@ -29,13 +29,11 @@ def get_docstring_indent(doc_string: list) -> str:
     regular_line = False
     current_line = 0
     while not regular_line:
-        # check if line isnt just a newline string and also not a blank line (with all white space)
-        if (not len(doc_string[current_line]) == 0) and (
-            not re.match(" *$", doc_string[current_line])
-        ):
-            regular_line = True
-        else:
+        # check if line is empty
+        if len(doc_string[current_line]) == 0 or re.match(" *$", doc_string[current_line]):
             current_line += 1
+        else:
+            regular_line = True 
     # get indent-string (smth. like "   ")
     indent_str = re.match(" *", doc_string[current_line])[0]
     return indent_str
