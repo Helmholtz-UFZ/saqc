@@ -59,7 +59,7 @@ def getSections(doc_string: list, indent_str: str) -> dict:
         doc_string[section_lines[k] : section_lines[k + 1]]
         for k in range(len(section_lines) - 1)
     ]
-    section_content = [cleartrainingWhitespace(p) for p in section_content]
+    section_content = [clearTrailingWhitespace(p) for p in section_content]
     sections = dict(zip(section_headings, section_content))
     return sections
 
@@ -81,7 +81,7 @@ def getParameters(section: list, indent_str: str) -> dict:
         section[parameter_lines[k] : parameter_lines[k + 1]]
         for k in range(len(parameter_lines) - 1)
     ]
-    parameter_content = [cleartrainingWhitespace(p) for p in parameter_content]
+    parameter_content = [clearTrailingWhitespace(p) for p in parameter_content]
     parameter_dict = dict(zip(parameter_names, parameter_content))
     return parameter_dict
 
@@ -96,7 +96,7 @@ def mkParameter(
     return {parameter_name: content}
 
 
-def mkSection(section_name: str, indent_str: str, doc_content: str = None) -> dict:
+def makeSection(section_name: str, indent_str: str, doc_content: str = None) -> dict:
     content = [indent_str + section_name]
     content += [indent_str + "_" * len(section_name)]
     content += [" "]
@@ -122,7 +122,7 @@ def composeDocstring(
     return "\n".join(doc_string)
 
 
-def cleartrainingWhitespace(doc: list) -> list:
+def clearTrailingWhitespace(doc: list) -> list:
     """Clears tailing whitespace lines"""
     for k in range(len(doc), 0, -1):
         if not re.match(r"^\s*$", doc[k - 1]):
@@ -136,7 +136,7 @@ def saqcMethodsTemplate(doc_string: str, source="function_string"):
         indent_string = getDocstringIndent(doc_string)
         sections = getSections(doc_string, indent_str=indent_string)
         sections.pop("Returns", None)
-        returns_section = mkSection(section_name="Returns", indent_str=indent_string)
+        returns_section = makeSection(section_name="Returns", indent_str=indent_string)
         out_para = mkParameter(
             parameter_name="out",
             parameter_type="saqc.SaQC",
