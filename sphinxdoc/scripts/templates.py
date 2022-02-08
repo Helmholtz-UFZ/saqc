@@ -16,15 +16,15 @@ FUNC_NAPOLEAN_STYLE_ORDER = [
 
 
 def doc(doc_string: str, template="saqc_methods", source="function_string"):
-    def doc_func(meth):
+    def docFunc(meth):
         if template == "saqc_methods":
-            meth.__doc__ = saqc_methods_template(doc_string, source)
+            meth.__doc__ = saqcMethodsTemplate(doc_string, source)
         return meth
 
-    return doc_func
+    return docFunc
 
 
-def get_docstring_indent(doc_string: list) -> str:
+def getDocstringIndent(doc_string: list) -> str:
     """returns a whitespace string matching the indent size of the passed docstring_list"""
     regular_line = False
     current_line = 0
@@ -39,7 +39,7 @@ def get_docstring_indent(doc_string: list) -> str:
     return indent_str
 
 
-def get_sections(doc_string: list, indent_str: str) -> dict:
+def getSections(doc_string: list, indent_str: str) -> dict:
     """Returns a dictionary of sections, with section names as keys"""
     section_lines = [0]
     section_headings = ["Head"]
@@ -57,12 +57,12 @@ def get_sections(doc_string: list, indent_str: str) -> dict:
         doc_string[section_lines[k] : section_lines[k + 1]]
         for k in range(len(section_lines) - 1)
     ]
-    section_content = [clear_whitespace_tail(p) for p in section_content]
+    section_content = [cleartrainingWhitespace(p) for p in section_content]
     sections = dict(zip(section_headings, section_content))
     return sections
 
 
-def get_parameters(section: list, indent_str: str) -> dict:
+def getParameters(section: list, indent_str: str) -> dict:
     """Returns a dictionary of Parameter documentations, with parameter names as keys"""
     parameter_lines = []
     parameter_names = []
@@ -79,12 +79,12 @@ def get_parameters(section: list, indent_str: str) -> dict:
         section[parameter_lines[k] : parameter_lines[k + 1]]
         for k in range(len(parameter_lines) - 1)
     ]
-    parameter_content = [clear_whitespace_tail(p) for p in parameter_content]
+    parameter_content = [cleartrainingWhitespace(p) for p in parameter_content]
     parameter_dict = dict(zip(parameter_names, parameter_content))
     return parameter_dict
 
 
-def mk_parameter(
+def mkParameter(
     parameter_name: str, parameter_type: str, parameter_doc: str, indent_str: str
 ) -> dict:
     parameter_doc = parameter_doc.splitlines()
@@ -94,7 +94,7 @@ def mk_parameter(
     return {parameter_name: content}
 
 
-def mk_section(section_name: str, indent_str: str, doc_content: str = None) -> dict:
+def mkSection(section_name: str, indent_str: str, doc_content: str = None) -> dict:
     content = [indent_str + section_name]
     content += [indent_str + "_" * len(section_name)]
     content += [" "]
@@ -104,7 +104,7 @@ def mk_section(section_name: str, indent_str: str, doc_content: str = None) -> d
     return {section_name: content}
 
 
-def compose_docstring(
+def composeDocstring(
     section_dict: dict, order: list = FUNC_NAPOLEAN_STYLE_ORDER
 ) -> str:
     """Compose final docstring from a sections dictionary"""
@@ -120,7 +120,7 @@ def compose_docstring(
     return "\n".join(doc_string)
 
 
-def clear_whitespace_tail(doc: list) -> list:
+def cleartrainingWhitespace(doc: list) -> list:
     """Clears tailing whitespace lines"""
     for k in range(len(doc), 0, -1):
         if not re.match(r"^\s*$", doc[k - 1]):
@@ -128,14 +128,14 @@ def clear_whitespace_tail(doc: list) -> list:
     return doc[:k]
 
 
-def saqc_methods_template(doc_string: str, source="function_string"):
+def saqcMethodsTemplate(doc_string: str, source="function_string"):
     if source == "function_string":
         doc_string = doc_string.splitlines()
-        indent_string = get_docstring_indent(doc_string)
-        sections = get_sections(doc_string, indent_str=indent_string)
+        indent_string = getDocstringIndent(doc_string)
+        sections = getSections(doc_string, indent_str=indent_string)
         sections.pop("Returns", None)
-        returns_section = mk_section(section_name="Returns", indent_str=indent_string)
-        out_para = mk_parameter(
+        returns_section = mkSection(section_name="Returns", indent_str=indent_string)
+        out_para = mkParameter(
             parameter_name="out",
             parameter_type="saqc.SaQC",
             parameter_doc="An :py:meth:`saqc.SaQC` object, holding the (possibly) modified data",
@@ -143,7 +143,7 @@ def saqc_methods_template(doc_string: str, source="function_string"):
         )
         returns_section["Returns"] += out_para["out"]
         sections.update(returns_section)
-        doc_string = compose_docstring(
+        doc_string = composeDocstring(
             section_dict=sections, order=FUNC_NAPOLEAN_STYLE_ORDER
         )
     return doc_string
