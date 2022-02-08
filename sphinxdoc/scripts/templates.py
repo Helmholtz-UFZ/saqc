@@ -123,7 +123,7 @@ def composeDocstring(
 
 
 def clearTrailingWhitespace(doc: list) -> list:
-    """Clears tailing whitespace lines"""
+    """Clears trailing whitespace lines"""
     for k in range(len(doc), 0, -1):
         if not re.match(r"^\s*$", doc[k - 1]):
             break
