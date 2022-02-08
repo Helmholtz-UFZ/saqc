@@ -30,10 +30,12 @@ def getDocstringIndent(doc_string: list) -> str:
     current_line = 0
     while not regular_line:
         # check if line is empty
-        if len(doc_string[current_line]) == 0 or re.match(" *$", doc_string[current_line]):
+        if len(doc_string[current_line]) == 0 or re.match(
+            " *$", doc_string[current_line]
+        ):
             current_line += 1
         else:
-            regular_line = True 
+            regular_line = True
     # get indent-string (smth. like "   ")
     indent_str = re.match(" *", doc_string[current_line])[0]
     return indent_str
