@@ -16,7 +16,6 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 ### Changed
 - documentation pipeline changed to base on methods decorators
 - `flagOffsets` parameters `thresh` and `thresh_relative` now both are optional
->>>>>>> develop
 ### Removed
 ### Fixed
 - `flagOffset` bug with zero-valued threshold
