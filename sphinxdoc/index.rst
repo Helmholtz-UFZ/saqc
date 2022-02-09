@@ -41,6 +41,7 @@ Getting Started
    documentation/FlaggingTranslation
    documentation/GenericFunctions
    documentation/SourceTarget
+   documentation/GlobalKeywords
 
 
 .. toctree::
