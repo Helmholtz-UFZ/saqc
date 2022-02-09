@@ -334,7 +334,7 @@ def plot(
     """
 
     interactive = path is None
-    level = kwargs.get("flag", BAD)
+    level = kwargs.get("flag", UNFLAGGED)
 
     if dfilter < np.inf:
         data_temp = data[field].copy()

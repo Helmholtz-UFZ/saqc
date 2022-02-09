@@ -225,7 +225,7 @@ def _plotVarWithFlags(
                 flags_i[~mask] = np.nan
                 # Skip plot, if the test did not have no effect on the all over flagging result. This avoids
                 # legend overflow
-                if ~(flags_i >= level).any():
+                if ~(flags_i > level).any():
                     continue
 
                 # Also skip plot, if all flagged values are np.nans (to catch flag missing and masked results mainly)
@@ -254,7 +254,7 @@ def _plotVarWithFlags(
 
 
 def _plotFlags(ax, datser, flags, na_mask, level, scatter_kwargs):
-    is_flagged = flags.astype(float) >= level
+    is_flagged = flags.astype(float) > level
     is_flagged = is_flagged[~na_mask]
     is_flagged = datser[is_flagged[is_flagged].index]
     ax.scatter(is_flagged.index, is_flagged.values, **scatter_kwargs)
