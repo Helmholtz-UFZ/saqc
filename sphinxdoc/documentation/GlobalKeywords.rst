@@ -206,3 +206,41 @@ Both possibilities and results are shown below:
    qc = qc.flagRange('data', max=15)
    qc = qc.flagRange('data', max=0, dfilter=300)
    qc.plot('data')
+
+Revoking flags
+^^^^^^^^^^^^^^
+
+With the ``flag`` keyword it is as well possible, to "revoke" or "unflag" a value, that is marked by an other function.
+This way, it is possible to associate flags with complex conditions. For example, if we want to flag all values below
+a level of `0.5`, but not those that belong to a constant value course, we can achieve that by combining the ``flag`` and
+the ``dfilter`` keyword. Lets first flag all the data below a level of `0.5`
+
+.. doctest:: exampleLabel
+
+   >>> qc = saqc.SaQC(data)
+   >>> qc = qc.flagRange('data', min=0.5)
+   >>> qc.plot('data')
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+
+   qc = saqc.SaQC(data)
+   qc = qc.flagRange('data', min=0.5)
+   qc.plot('data')
+
+Now we can override the flags for the constant value course with the lowes (unflagged) flag level, wich is ``-np.inf``.
+Also for the override to work, we have to rise the input filter, so that the :py:meth:`saqc.SaQC.flagConstants` method
+gets the already flagged values passed to test them.
+
+.. doctest:: exampleLabel
+
+   >>> qc = qc.flagConstants('data', window='2D', thresh=0, dfilter=300, flag=-np.inf)
+   >>> qc.plot('data')
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+
+   qc = qc.flagConstants('data', window='2D', thresh=0, dfilter=300, flag=-np.inf)
+   qc.plot('data')
