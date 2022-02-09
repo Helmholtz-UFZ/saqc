@@ -112,7 +112,7 @@ dfilter
 -------
 
 The ``dfilter`` keyword controls the threshold up to which a flag triggers masking of its associated value, when passed
-on, to any flagging function. Any value ``v`` with a flag ``f(v)`` will be masked, if ``f(v) > dfilter``. A masked value
+on, to any flagging function. Any value ``v`` with a flag ``f(v)`` will be masked, if ``f(v) >= dfilter``. A masked value
 is not visible to a flagging function, so it will neither be part of any calculations performed, nor will it be
 flagged by this function. Lets visualize this with the :py:plot:`saqc.SaqC.plot` method. (We are reusing data and code
 from `Example Data`_ section). First, we set some flags to the data:
@@ -133,7 +133,7 @@ from `Example Data`_ section). First, we set some flags to the data:
    qc = saqc.SaQC(data)
    qc = qc.flagRange('data', max=15, label='flaglevel=200', flag=200)
    qc = qc.flagRange('data', min=-16, label='flaglevel=100', flag=100)
-   qc = qc.flagManual('data', mdata=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='flaglevel=0')
+   qc = qc.flagManual('data', mdata=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='flaglevel=0', flag=0)
    qc.plot('data')
 
 With the ``dfilter`` Keyword, we can now control, which of the flags are passed on to the plot function.
