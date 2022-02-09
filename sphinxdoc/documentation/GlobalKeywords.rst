@@ -57,9 +57,9 @@ call to :py:meth:`saqc.SaQC.plot`.
 
 It is especially useful for enriching figures with custom context information and for making results from
 different function calls distinguishable with respect to their purpose and parameterisation.
-Check out the following examples.
+Check out the following example:
 
-Now we apply some flagging functions to mark anomalies, at first, without usage of the ``label`` keyword
+At first, we apply some flagging functions to mark anomalies, at first, without usage of the ``label`` keyword
 
 .. doctest:: exampleLabel
 
@@ -112,7 +112,7 @@ dfilter
 -------
 
 The ``dfilter`` keyword controls the threshold up to which a flag triggers masking of its associated value, when passed
-on, to any flagging function. Any value ``v`` with a flag ``f(v)`` will be masked, if ``f(v) >= dfilter``. A masked value
+on to any flagging function. Any value ``v`` with a flag ``f(v)`` will be masked, if ``f(v) >= dfilter``. A masked value
 is not visible to a flagging function, so it will neither be part of any calculations performed, nor will it be
 flagged by this function. Lets visualize this with the :py:plot:`saqc.SaqC.plot` method. (We are reusing data and code
 from `Example Data`_ section). First, we set some flags to the data:
@@ -150,4 +150,59 @@ and thus, the resulting plot will be cleared from the flags:
 
    qc.plot('data', dfilter=50)
 
-We can also
+We can also use the interplay between ``dfilter`` keyword and ``flag`` keyword, to order flags priority.
+By default, the ``dfilter`` keyword is set to the highest flag value (``255``). So, the flag second call
+to :py:meth:`flagRange` in the example below, wont get passed the values already flagged by the first call to
+:py:meth:`flagRange` - so it cant check the value level and assign no flag.
+
+.. doctest:: exampleLabel
+
+   >>> qc = saqc.SaQC(data)
+   >>> qc = qc.flagRange('data', max=15, label='value > 15')
+   >>> qc = qc.flagRange('data', max=0, label='value > 0')
+   >>> qc.plot('data') # doctest:+SKIP
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+
+   qc = saqc.SaQC(data)
+   qc = qc.flagRange('data', max=15)
+   qc = qc.flagRange('data', max=0)
+   qc.plot('data')
+
+We could either lower the significance if the flags set by the first call to :py:meth:`flagRange`, or increase the
+``dfilter`` threshold of the second call above the default flag level of ``255``.
+Both possibilities and results are shown below:
+
+.. doctest:: exampleLabel
+
+   >>> qc = saqc.SaQC(data)
+   >>> qc = qc.flagRange('data', max=15, label='value > 15', flag=200)
+   >>> qc = qc.flagRange('data', max=0, label='value > 0')
+   >>> qc.plot('data') # doctest:+SKIP
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+
+   qc = saqc.SaQC(data)
+   qc = qc.flagRange('data', max=15, flag=200)
+   qc = qc.flagRange('data', max=0)
+   qc.plot('data')
+
+.. doctest:: exampleLabel
+
+   >>> qc = saqc.SaQC(data)
+   >>> qc = qc.flagRange('data', max=15, label='value > 15')
+   >>> qc = qc.flagRange('data', max=0, label='value > 0', dfilter=300)
+   >>> qc.plot('data') # doctest:+SKIP
+
+.. plot::
+   :context: close-figs
+   :include-source: False
+
+   qc = saqc.SaQC(data)
+   qc = qc.flagRange('data', max=15)
+   qc = qc.flagRange('data', max=0, dfilter=300)
+   qc.plot('data')
