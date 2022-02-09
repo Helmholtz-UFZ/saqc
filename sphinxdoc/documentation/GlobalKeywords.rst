@@ -133,12 +133,12 @@ from `Example Data`_ section). First, we set some flags to the data:
    qc = saqc.SaQC(data)
    qc = qc.flagRange('data', max=15, label='flaglevel=200', flag=200)
    qc = qc.flagRange('data', min=-16, label='flaglevel=100', flag=100)
-   qc = qc.flagManual('data', mdata=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='flaglevel=0', flag=0)
+   qc = qc.flagManual('data', mdata=pd.Series('2020-05', index=pd.DatetimeIndex(['2020-03'])), label='flaglevel=0')
    qc.plot('data')
 
 With the ``dfilter`` Keyword, we can now control, which of the flags are passed on to the plot function.
 For example, if we set ``dfilter=50``, the flags set by the :py:meth:`saqc.SaQC.flagRange` method wont get passed on
-and thus, the flagged values wont be visible in the plot:
+and thus, the resulting plot will be cleared from the flags:
 
 .. doctest:: exampleLabel
 
@@ -149,3 +149,5 @@ and thus, the flagged values wont be visible in the plot:
    :include-source: False
 
    qc.plot('data', dfilter=50)
+
+We can also
