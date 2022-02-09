@@ -17,7 +17,7 @@ from saqc.constants import BAD
 import saqc
 from saqc.funcs import LinkageString
 from saqc.lib.types import CurveFitter
-from sphinxdoc.scripts.templates import doc
+from saqc.lib.docurator import doc
 import saqc.funcs
 
 

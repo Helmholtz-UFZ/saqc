@@ -15,7 +15,7 @@ import pandas as pd
 from saqc.constants import UNFLAGGED
 import saqc
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
-from sphinxdoc.scripts.templates import doc
+from saqc.lib.docurator import doc
 import saqc.funcs
 
 

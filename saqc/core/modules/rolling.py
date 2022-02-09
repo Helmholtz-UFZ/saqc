@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from saqc.constants import BAD
-from sphinxdoc.scripts.templates import doc
+from saqc.lib.docurator import doc
 import saqc.funcs
 
 

@@ -12,7 +12,7 @@ from typing import Sequence, Union
 import saqc
 from saqc.constants import UNFLAGGED, BAD, FILTER_ALL
 from saqc.lib.types import GenericFunction
-from sphinxdoc.scripts.templates import doc
+from saqc.lib.docurator import doc
 import saqc.funcs
 
 

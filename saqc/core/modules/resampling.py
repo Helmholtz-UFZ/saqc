@@ -16,7 +16,7 @@ from typing_extensions import Literal
 from saqc.constants import BAD
 import saqc
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
-from sphinxdoc.scripts.templates import doc
+from saqc.lib.docurator import doc
 import saqc.funcs
 
 

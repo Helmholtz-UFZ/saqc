@@ -12,7 +12,7 @@ from typing import Callable, Optional, Union
 import pandas as pd
 
 import saqc
-from sphinxdoc.scripts.templates import doc
+from saqc.lib.docurator import doc
 import saqc.funcs
 
 
