@@ -76,6 +76,8 @@ Getting Started
    :maxdepth: 2
 
    Package <moduleAPIs/saqc>
+   Constants <moduleAPIs/saqcConstants>
+   Methods
    Config Environment <environment/configEnv>
 
 
