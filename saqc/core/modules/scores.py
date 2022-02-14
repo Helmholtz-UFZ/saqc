@@ -14,9 +14,12 @@ import pandas as pd
 from typing_extensions import Literal
 
 import saqc
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Scores:
+    @doc(saqc.funcs.scores.assignKNNScore.__doc__)
     def assignKNNScore(
         self,
         field: Sequence[str],

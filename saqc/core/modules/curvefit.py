@@ -13,9 +13,12 @@ from typing_extensions import Literal
 
 from saqc.constants import BAD
 import saqc
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Curvefit:
+    @doc(saqc.funcs.curvefit.fitPolynomial.__doc__)
     def fitPolynomial(
         self,
         field: str,

@@ -14,9 +14,12 @@ from typing_extensions import Literal
 
 from saqc.constants import BAD
 import saqc
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class ChangePoints:
+    @doc(saqc.funcs.changepoints.flagChangePoints.__doc__)
     def flagChangePoints(
         self,
         field: str,
@@ -32,6 +35,7 @@ class ChangePoints:
     ) -> saqc.SaQC:
         return self._defer("flagChangePoints", locals())
 
+    @doc(saqc.funcs.changepoints.assignChangePointCluster.__doc__)
     def assignChangePointCluster(
         self,
         field: str,

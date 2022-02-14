@@ -17,9 +17,12 @@ from saqc.constants import BAD
 import saqc
 from saqc.funcs import LinkageString
 from saqc.lib.types import CurveFitter
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Drift:
+    @doc(saqc.funcs.drift.flagDriftFromNorm.__doc__)
     def flagDriftFromNorm(
         self,
         field: Sequence[str],
@@ -36,6 +39,7 @@ class Drift:
     ) -> saqc.SaQC:
         return self._defer("flagDriftFromNorm", locals())
 
+    @doc(saqc.funcs.drift.flagDriftFromReference.__doc__)
     def flagDriftFromReference(
         self,
         field: Sequence[str],
@@ -51,6 +55,7 @@ class Drift:
     ) -> saqc.SaQC:
         return self._defer("flagDriftFromReference", locals())
 
+    @doc(saqc.funcs.drift.correctDrift.__doc__)
     def correctDrift(
         self,
         field: str,
@@ -61,6 +66,7 @@ class Drift:
     ) -> saqc.SaQC:
         return self._defer("correctDrift", locals())
 
+    @doc(saqc.funcs.drift.correctRegimeAnomaly.__doc__)
     def correctRegimeAnomaly(
         self,
         field: str,
@@ -72,6 +78,7 @@ class Drift:
     ) -> saqc.SaQC:
         return self._defer("correctRegimeAnomaly", locals())
 
+    @doc(saqc.funcs.drift.correctOffset.__doc__)
     def correctOffset(
         self,
         field: str,

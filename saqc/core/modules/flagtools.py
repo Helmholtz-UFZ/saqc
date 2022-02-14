@@ -16,21 +16,28 @@ from typing_extensions import Literal
 
 from saqc.constants import BAD
 import saqc
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class FlagTools:
+    @doc(saqc.funcs.flagtools.clearFlags.__doc__)
     def clearFlags(self, field: str, **kwargs) -> saqc.SaQC:
         return self._defer("clearFlags", locals())
 
+    @doc(saqc.funcs.flagtools.forceFlags.__doc__)
     def forceFlags(self, field: str, flag: float = BAD, **kwargs) -> saqc.SaQC:
         return self._defer("forceFlags", locals())
 
+    @doc(saqc.funcs.flagtools.forceFlags.__doc__)
     def flagDummy(self, field: str, **kwargs) -> saqc.SaQC:
         return self._defer("flagDummy", locals())
 
+    @doc(saqc.funcs.flagtools.flagUnflagged.__doc__)
     def flagUnflagged(self, field: str, flag: float = BAD, **kwargs) -> saqc.SaQC:
         return self._defer("flagUnflagged", locals())
 
+    @doc(saqc.funcs.flagtools.flagManual.__doc__)
     def flagManual(
         self,
         field: str,
@@ -45,6 +52,7 @@ class FlagTools:
     ) -> saqc.SaQC:
         return self._defer("flagManual", locals())
 
+    @doc(saqc.funcs.flagtools.transferFlags.__doc__)
     def transferFlags(
         self,
         field: str | Sequence[str],

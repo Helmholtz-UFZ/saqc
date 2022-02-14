@@ -57,7 +57,7 @@ Label Keyword
 The ``label`` keyword can be passed with any function call and serves as label to be plotted by a subsequent
 call to :py:meth:`saqc.SaQC.plot`.
 
-It is especially useful for enriching figures with custom context information and for making results from
+It is especially useful for enriching figures with custom context information, and for making results from
 different function calls distinguishable with respect to their purpose and parameterisation.
 Check out the following example:
 

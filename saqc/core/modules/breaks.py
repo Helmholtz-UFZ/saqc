@@ -9,14 +9,18 @@ from __future__ import annotations
 
 from saqc.constants import BAD, FILTER_ALL
 import saqc
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Breaks:
+    @doc(saqc.funcs.breaks.flagMissing.__doc__)
     def flagMissing(
         self, field: str, flag: float = BAD, dfilter: float = FILTER_ALL, **kwargs
     ) -> saqc.SaQC:
         return self._defer("flagMissing", locals())
 
+    @doc(saqc.funcs.breaks.flagIsolated.__doc__)
     def flagIsolated(
         self,
         field: str,
@@ -27,6 +31,7 @@ class Breaks:
     ) -> saqc.SaQC:
         return self._defer("flagIsolated", locals())
 
+    @doc(saqc.funcs.breaks.flagJumps.__doc__)
     def flagJumps(
         self,
         field: str,

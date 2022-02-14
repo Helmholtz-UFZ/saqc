@@ -12,9 +12,12 @@ from typing import Sequence, Union
 import saqc
 from saqc.constants import UNFLAGGED, BAD, FILTER_ALL
 from saqc.lib.types import GenericFunction
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Generic:
+    @doc(saqc.funcs.generic.processGeneric.__doc__)
     def processGeneric(
         self,
         field: str | Sequence[str],
@@ -26,6 +29,7 @@ class Generic:
     ) -> saqc.SaQC:
         return self._defer("processGeneric", locals())
 
+    @doc(saqc.funcs.generic.flagGeneric.__doc__)
     def flagGeneric(
         self,
         field: Union[str, Sequence[str]],

@@ -21,7 +21,7 @@ from saqc.lib.tools import filterKwargs
 
 
 @register(mask=["field"], demask=[], squeeze=[])
-def calculatePolynomialResidues(
+def calculatePolynomialResiduals(
     data: DictOfSeries,
     field: str,
     flags: Flags,
@@ -31,19 +31,19 @@ def calculatePolynomialResidues(
     **kwargs
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    Fits a polynomial model to the data and calculate the residues.
+    Fits a polynomial model to the data and calculate the residuals.
 
-    The residue  is calculated by fitting a polynomial of degree `order` to a data
+    The residual  is calculated by fitting a polynomial of degree `order` to a data
     slice of size `window`, that has x at its center.
 
-    Note, that calculating the residues tends to be quite costy, because a function
+    Note, that calculating the residuals tends to be quite costy, because a function
     fitting is performed for every sample. To improve performance, consider the
     following possibilities:
 
     In case your data is sampled at an equidistant frequency grid:
 
     (1) If you know your data to have no significant number of missing values,
-    or if you do not want to calculate residues for windows containing missing values
+    or if you do not want to calculate residuals for windows containing missing values
     any way, performance can be increased by setting min_periods=window.
 
     Note, that the initial and final window/2 values do not get fitted.
@@ -85,7 +85,7 @@ def calculatePolynomialResidues(
     data : dios.DictOfSeries
     flags : saqc.Flags
     """
-    reserved = ["residues", "set_flags"]
+    reserved = ["residuals", "set_flags"]
     filterKwargs(kwargs, reserved)
     return _fitPolynomial(
         data=data,
@@ -96,13 +96,13 @@ def calculatePolynomialResidues(
         min_periods=min_periods,
         **kwargs,
         # ctrl args
-        return_residues=True,
+        return_residuals=True,
         set_flags=True,
     )
 
 
 @register(mask=["field"], demask=[], squeeze=[])
-def calculateRollingResidues(
+def calculateRollingResiduals(
     data: DictOfSeries,
     field: str,
     flags: Flags,
@@ -146,7 +146,7 @@ def calculateRollingResidues(
     flags : saqc.Flags
         The quality flags of data
     """
-    reserved = ["return_residues", "set_flags"]
+    reserved = ["return_residuals", "set_flags"]
     kwargs = filterKwargs(kwargs, reserved)
     return _roll(
         data=data,
@@ -159,5 +159,5 @@ def calculateRollingResidues(
         **kwargs,
         # ctrl args
         set_flags=True,
-        return_residues=True,
+        return_residuals=True,
     )

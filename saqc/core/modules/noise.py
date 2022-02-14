@@ -13,9 +13,12 @@ from typing import Callable
 
 from saqc.constants import BAD
 import saqc
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Noise:
+    @doc(saqc.funcs.noise.flagByStatLowPass.__doc__)
     def flagByStatLowPass(
         self,
         field: str,

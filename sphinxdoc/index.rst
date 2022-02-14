@@ -60,7 +60,7 @@ Getting Started
    drift <funcSummaries/drift>
    curvefit <funcSummaries/curvefit>
    interpolation <funcSummaries/interpolation>
-   residues <funcSummaries/residues>
+   residuals <funcSummaries/residuals>
    tools <funcSummaries/tools>
    flagtools <funcSummaries/flagtools>
    rolling <funcSummaries/rolling>
@@ -77,7 +77,7 @@ Getting Started
 
    Package <moduleAPIs/saqc>
    Constants <moduleAPIs/saqcConstants>
-   Methods
+   Methods <funcSummaries/allFunctions>
    Config Environment <environment/configEnv>
 
 

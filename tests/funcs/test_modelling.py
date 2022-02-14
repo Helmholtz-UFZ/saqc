@@ -15,7 +15,7 @@ import dios
 from saqc import BAD, UNFLAGGED
 from saqc.core import initFlagsLike
 from saqc.funcs.tools import maskTime
-from saqc.funcs.residues import calculatePolynomialResidues, calculateRollingResidues
+from saqc.funcs.residuals import calculatePolynomialResiduals, calculateRollingResiduals
 
 from tests.fixtures import *
 
@@ -30,19 +30,19 @@ def test_modelling_polyFit_forRegular(dat):
     data = data + 10 * np.sin(np.arange(0, len(data.indexes[0])))
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
-    result1, _ = calculatePolynomialResidues(data, "data", flags, 11, 2, numba=False)
-    result2, _ = calculatePolynomialResidues(data, "data", flags, 11, 2, numba=True)
+    result1, _ = calculatePolynomialResiduals(data, "data", flags, 11, 2, numba=False)
+    result2, _ = calculatePolynomialResiduals(data, "data", flags, 11, 2, numba=True)
     assert (result1["data"] - result2["data"]).abs().max() < 10**-10
-    result3, _ = calculatePolynomialResidues(
+    result3, _ = calculatePolynomialResiduals(
         data, "data", flags, "110min", 2, numba=False
     )
     assert result3["data"].equals(result1["data"])
-    result4, _ = calculatePolynomialResidues(
+    result4, _ = calculatePolynomialResiduals(
         data, "data", flags, 11, 2, numba=True, min_periods=11
     )
     assert (result4["data"] - result2["data"]).abs().max() < 10**-10
     data.iloc[13:16] = np.nan
-    result5, _ = calculatePolynomialResidues(
+    result5, _ = calculatePolynomialResiduals(
         data, "data", flags, 11, 2, numba=True, min_periods=9
     )
     assert result5["data"].iloc[10:19].isna().all()
@@ -55,7 +55,7 @@ def test_modelling_rollingMean_forRegular(dat):
     )
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
-    calculateRollingResidues(
+    calculateRollingResiduals(
         data,
         "data",
         flags,
@@ -64,7 +64,7 @@ def test_modelling_rollingMean_forRegular(dat):
         min_periods=0,
         center=True,
     )
-    calculateRollingResidues(
+    calculateRollingResiduals(
         data,
         "data",
         flags,

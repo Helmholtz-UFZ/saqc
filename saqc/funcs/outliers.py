@@ -14,6 +14,7 @@ import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
+import warnings
 
 from dios import DictOfSeries
 from outliers import smirnov_grubbs
@@ -308,8 +309,8 @@ def _expFit(
         Niveau of significance by which it is tested, if a score might be drawn from another distribution, than the
         majority of the data.
     bin_frac : {int, str}, default 10
-        Controls the binning for the histogram in the fitting step. If an integer is passed, the residues will
-        equidistantly be covered by `bin_frac` bins, ranging from the minimum to the maximum of the residues.
+        Controls the binning for the histogram in the fitting step. If an integer is passed, the residuals will
+        equidistantly be covered by `bin_frac` bins, ranging from the minimum to the maximum of the residuals.
         If a string is passed, it will be passed on to the ``numpy.histogram_bin_edges`` method.
     """
 
@@ -1369,19 +1370,20 @@ def flagCrossStatistics(
         The quality flags of data
         Flags values may have changed relatively to the input flags.
 
+
+    Notes
+    -----
+
+    The input variables dont necessarily have to be aligned. If the variables are unaligned, scoring
+    and flagging will be only performed on the subset of inices shared among all input variables.
+
+
     References
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
 
     fields = toSequence(field)
-
-    for src in fields[1:]:
-        if (data[src].index != data[fields[0]].index).any():
-            raise ValueError(
-                f"indices of '{fields[0]}' and '{src}' are not compatibble, "
-                "please resample all variables to a common (time-)grid"
-            )
 
     df = data[fields].loc[data[fields].index_of("shared")].to_df()
 
@@ -1419,6 +1421,7 @@ def flagCrossStatistics(
         return data, flags
 
     for f in fields:
-        flags[mask[f], f] = flag
+        m = mask[f].reindex(index=flags[f].index, fill_value=False)
+        flags[m, f] = flag
 
     return data, flags

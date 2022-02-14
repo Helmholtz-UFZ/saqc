@@ -17,7 +17,7 @@ from saqc.core.modules.interpolation import Interpolation
 from saqc.core.modules.outliers import Outliers
 from saqc.core.modules.pattern import Pattern
 from saqc.core.modules.resampling import Resampling
-from saqc.core.modules.residues import Residues
+from saqc.core.modules.residuals import Residuals
 from saqc.core.modules.rolling import Rolling
 from saqc.core.modules.scores import Scores
 from saqc.core.modules.tools import Tools
@@ -38,7 +38,7 @@ class FunctionsMixin(
     Outliers,
     Pattern,
     Resampling,
-    Residues,
+    Residuals,
     Rolling,
     Scores,
     Tools,
