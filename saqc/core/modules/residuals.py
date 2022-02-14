@@ -19,9 +19,9 @@ from saqc.lib.docurator import doc
 import saqc.funcs
 
 
-class Residues:
-    @doc(saqc.funcs.residues.calculatePolynomialResidues.__doc__)
-    def calculatePolynomialResidues(
+class Residuals:
+    @doc(saqc.funcs.residuals.calculatePolynomialResiduals.__doc__)
+    def calculatePolynomialResiduals(
         self,
         field: str,
         window: Union[str, int],
@@ -29,10 +29,10 @@ class Residues:
         min_periods: Optional[int] = 0,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("calculatePolynomialResidues", locals())
+        return self._defer("calculatePolynomialResiduals", locals())
 
-    @doc(saqc.funcs.residues.calculateRollingResidues.__doc__)
-    def calculateRollingResidues(
+    @doc(saqc.funcs.residuals.calculateRollingResiduals.__doc__)
+    def calculateRollingResiduals(
         self,
         field: str,
         window: Union[str, int],
@@ -41,4 +41,4 @@ class Residues:
         center: bool = True,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("calculateRollingResidues", locals())
+        return self._defer("calculateRollingResiduals", locals())

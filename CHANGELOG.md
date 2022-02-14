@@ -17,6 +17,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 ### Changed
 - documentation pipeline changed to base on methods decorators
 - `flagOffsets` parameters `thresh` and `thresh_relative` now both are optional
+- corrected false notion of *residual* concept (old notion: *residue* got replaced by *residual*)
 ### Removed
 ### Fixed
 - `flagOffset` bug with zero-valued threshold

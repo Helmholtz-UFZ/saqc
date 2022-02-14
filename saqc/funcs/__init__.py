@@ -18,7 +18,7 @@ from saqc.funcs.interpolation import *
 from saqc.funcs.outliers import *
 from saqc.funcs.pattern import *
 from saqc.funcs.resampling import *
-from saqc.funcs.residues import *
+from saqc.funcs.residuals import *
 from saqc.funcs.rolling import *
 from saqc.funcs.scores import *
 from saqc.funcs.tools import *
