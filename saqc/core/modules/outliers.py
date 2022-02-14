@@ -116,4 +116,4 @@ class Outliers:
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("flagCrossStatistic", locals())
+        return self._defer("flagCrossStatistics", locals())

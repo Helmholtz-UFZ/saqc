@@ -18,6 +18,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 ### Removed
 ### Fixed
 - `flagOffset` bug with zero-valued threshold
+- `flagCrossStatistics` bug with unaligned input variables
 - `plot` fixed data loss when using *dfilter* kwarg
 
 ## [2.0.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2021-12-20
