@@ -334,10 +334,10 @@ def plot(
     """
 
     interactive = path is None
-    level = kwargs.get("flag", BAD)
+    level = kwargs.get("flag", UNFLAGGED)
 
     if dfilter < np.inf:
-        data = data.copy()
+        data_temp = data[field].copy()
         data.loc[flags[field] >= dfilter, field] = np.nan
 
     if store_kwargs is None:
@@ -373,5 +373,8 @@ def plot(
                 pickle.dump(fig, f)
         else:
             fig.savefig(path, **store_kwargs)
+
+    if dfilter < np.inf:
+        data[field] = data_temp
 
     return data, flags
