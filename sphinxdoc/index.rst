@@ -59,7 +59,7 @@ Getting Started
    drift <funcSummaries/drift>
    curvefit <funcSummaries/curvefit>
    interpolation <funcSummaries/interpolation>
-   residues <funcSummaries/residues>
+   residuals <funcSummaries/residuals>
    tools <funcSummaries/tools>
    flagtools <funcSummaries/flagtools>
    rolling <funcSummaries/rolling>

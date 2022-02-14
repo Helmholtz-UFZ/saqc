@@ -319,9 +319,9 @@ def _assignChangePointCluster(
     result_arr = stat_arr > thresh_arr
 
     if model_by_resids:
-        residues = pd.Series(np.nan, index=data[field].index)
-        residues[masked_index] = stat_arr
-        data[field] = residues
+        residuals = pd.Series(np.nan, index=data[field].index)
+        residuals[masked_index] = stat_arr
+        data[field] = residuals
         flags[:, field] = UNFLAGGED
         return data, flags
 

@@ -61,7 +61,7 @@ def roll(
     flags : saqc.Flags
         The quality flags of data
     """
-    reserved = ["return_residues", "set_flags"]
+    reserved = ["return_residuals", "set_flags"]
     kwargs = filterKwargs(kwargs, reserved)
     return _roll(
         data=data,
@@ -74,7 +74,7 @@ def roll(
         **kwargs,
         # ctrl args
         set_flags=True,
-        return_residues=False,
+        return_residuals=False,
     )
 
 
@@ -87,7 +87,7 @@ def _roll(
     set_flags: bool = True,
     min_periods: int = 0,
     center: bool = True,
-    return_residues=False,
+    return_residuals=False,
     **kwargs
 ):
     to_fit = data[field].copy()
@@ -153,7 +153,7 @@ def _roll(
                 func
             )
 
-    if return_residues:
+    if return_residuals:
         means = to_fit - means
 
     data[field] = means

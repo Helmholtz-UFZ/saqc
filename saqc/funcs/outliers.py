@@ -309,8 +309,8 @@ def _expFit(
         Niveau of significance by which it is tested, if a score might be drawn from another distribution, than the
         majority of the data.
     bin_frac : {int, str}, default 10
-        Controls the binning for the histogram in the fitting step. If an integer is passed, the residues will
-        equidistantly be covered by `bin_frac` bins, ranging from the minimum to the maximum of the residues.
+        Controls the binning for the histogram in the fitting step. If an integer is passed, the residuals will
+        equidistantly be covered by `bin_frac` bins, ranging from the minimum to the maximum of the residuals.
         If a string is passed, it will be passed on to the ``numpy.histogram_bin_edges`` method.
     """
 

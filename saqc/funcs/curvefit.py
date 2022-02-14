@@ -47,7 +47,7 @@ def fitPolynomial(
     In case your data is sampled at an equidistant frequency grid:
 
     (1) If you know your data to have no significant number of missing values,
-    or if you do not want to calculate residues for windows containing missing values
+    or if you do not want to calculate residuals for windows containing missing values
     any way, performance can be increased by setting min_periods=window.
 
     Note, that the initial and final window/2 values do not get fitted.
@@ -92,7 +92,7 @@ def fitPolynomial(
     flags : saqc.Flags
         Flags
     """
-    reserved = ["residues", "set_flags"]
+    reserved = ["residuals", "set_flags"]
     filterKwargs(kwargs, reserved)
     return _fitPolynomial(
         data=data,
@@ -103,7 +103,7 @@ def fitPolynomial(
         min_periods=min_periods,
         **kwargs,
         # ctrl args
-        return_residues=False,
+        return_residuals=False,
         set_flags=True,
     )
 
@@ -116,7 +116,7 @@ def _fitPolynomial(
     order: int,
     set_flags: bool = True,
     min_periods: int = 0,
-    return_residues: bool = False,
+    return_residuals: bool = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
 
@@ -140,7 +140,7 @@ def _fitPolynomial(
         ).floor()
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
-        residues = to_fit.rolling(
+        residuals = to_fit.rolling(
             pd.Timedelta(window), closed="both", min_periods=min_periods
         ).apply(polyRollerIrregular, args=(centers, order))
 
@@ -153,11 +153,11 @@ def _fitPolynomial(
             .apply(center_func, raw=False)
             .astype(int)
         )
-        temp = residues.copy()
+        temp = residuals.copy()
         for k in centers_iloc.iteritems():
-            residues.iloc[k[1]] = temp[k[0]]
-        residues[residues.index[0] : residues.index[centers_iloc[0]]] = np.nan
-        residues[residues.index[centers_iloc[-1]] : residues.index[-1]] = np.nan
+            residuals.iloc[k[1]] = temp[k[0]]
+        residuals[residuals.index[0] : residuals.index[centers_iloc[0]]] = np.nan
+        residuals[residuals.index[centers_iloc[-1]] : residuals.index[-1]] = np.nan
     else:
         if isinstance(window, str):
             window = pd.Timedelta(window) // regular
@@ -185,7 +185,7 @@ def _fitPolynomial(
             na_mask = to_fit.isna()
             to_fit[na_mask] = miss_marker
             if numba:
-                residues = to_fit.rolling(window).apply(
+                residuals = to_fit.rolling(window).apply(
                     polyRollerNumba,
                     args=(miss_marker, val_range, center_index, order),
                     raw=True,
@@ -194,18 +194,18 @@ def _fitPolynomial(
                 )
                 # due to a tiny bug - rolling with center=True doesnt work
                 # when using numba engine.
-                residues = residues.shift(-int(center_index))
+                residuals = residuals.shift(-int(center_index))
             else:
-                residues = to_fit.rolling(window, center=True).apply(
+                residuals = to_fit.rolling(window, center=True).apply(
                     polyRoller,
                     args=(miss_marker, val_range, center_index, order),
                     raw=True,
                 )
-            residues[na_mask] = np.nan
+            residuals[na_mask] = np.nan
         else:
             # we only fit fully populated intervals:
             if numba:
-                residues = to_fit.rolling(window).apply(
+                residuals = to_fit.rolling(window).apply(
                     polyRollerNoMissingNumba,
                     args=(val_range, center_index, order),
                     engine="numba",
@@ -214,18 +214,18 @@ def _fitPolynomial(
                 )
                 # due to a tiny bug - rolling with center=True doesnt work
                 # when using numba engine.
-                residues = residues.shift(-int(center_index))
+                residuals = residuals.shift(-int(center_index))
             else:
-                residues = to_fit.rolling(window, center=True).apply(
+                residuals = to_fit.rolling(window, center=True).apply(
                     polyRollerNoMissing,
                     args=(val_range, center_index, order),
                     raw=True,
                 )
 
-    if return_residues:
-        residues = to_fit - residues
+    if return_residuals:
+        residuals = to_fit - residuals
 
-    data[field] = residues
+    data[field] = residuals
     if set_flags:
         # TODO: we does not get any flags here, because of masking=field
         worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()

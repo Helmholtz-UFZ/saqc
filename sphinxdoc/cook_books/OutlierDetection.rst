@@ -16,7 +16,7 @@ The tutorial guides through the following steps:
      * :ref:`Data <cook_books/OutlierDetection:Data>`
      * :ref:`Initialisation <cook_books/OutlierDetection:Initialisation>`
 
-#. We will see how to apply different smoothing methods and models to the data in order to obtain usefull residue
+#. We will see how to apply different smoothing methods and models to the data in order to obtain usefull residual
    variables.
 
 
@@ -29,12 +29,12 @@ The tutorial guides through the following steps:
 
    * :ref:`Evaluation and Visualisation <cook_books/OutlierDetection:Visualisation>`
 
-#. We will see how we can obtain residues and scores from the calculated model curves.
+#. We will see how we can obtain residuals and scores from the calculated model curves.
 
 
-   * :ref:`Residues and Scores <cook_books/OutlierDetection:Residues and Scores>`
+   * :ref:`Residuals and Scores <cook_books/OutlierDetection:Residuals and Scores>`
 
-     * :ref:`Residues <cook_books/OutlierDetection:Residues>`
+     * :ref:`Residuals <cook_books/OutlierDetection:Residuals>`
      * :ref:`Scores <cook_books/OutlierDetection:Scores>`
      * :ref:`Optimization by Decomposition <cook_books/OutlierDetection:Optimization by Decomposition>`
 
@@ -218,31 +218,31 @@ To see all the results obtained so far, plotted in one figure window, we make us
    :alt:
 
 
-Residues and Scores
+Residuals and Scores
 -------------------
 
-Residues
+Residuals
 ^^^^^^^^
 
-We want to evaluate the residues of one of our models model, in order to score the outlierish-nes of every point.
+We want to evaluate the residuals of one of our models model, in order to score the outlierish-nes of every point.
 Therefor we just stick to the initially calculated rolling mean curve.
 
-First, we retrieve the residues via the :py:meth:`~saqc.SaQC.processGeneric` method.
+First, we retrieve the residuals via the :py:meth:`~saqc.SaQC.processGeneric` method.
 This method always comes into play, when we want to obtain variables, resulting from basic algebraic
 manipulations of one or more input variables.
 
-For obtaining the models residues, we just subtract the model data from the original data and assign the result
-of this operation to a new variable, called ``incidents_residues``. This Assignment, we, as usual,
+For obtaining the models residuals, we just subtract the model data from the original data and assign the result
+of this operation to a new variable, called ``incidents_residuals``. This Assignment, we, as usual,
 control via the ``target`` parameter.
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.processGeneric(['incidents', 'incidents_mean'], target='incidents_residues', func=lambda x, y: x - y)
+   >>> qc = qc.processGeneric(['incidents', 'incidents_mean'], target='incidents_residuals', func=lambda x, y: x - y)
 
 Scores
 ^^^^^^
 
-Next, we score the residues simply by computing their `Z-scores <https://en.wikipedia.org/wiki/Standard_score>`_.
+Next, we score the residuals simply by computing their `Z-scores <https://en.wikipedia.org/wiki/Standard_score>`_.
 The Z-score of a point $\ ``x``\ $, relative to its surrounding $\ ``D``\ $, evaluates to $\ ``Z(x) = \frac{x - \mu(D)}{\sigma(D)}``\ $.
 
 So, if we would like to roll with a window of a fixed size of *27* periods through the data and calculate the *Z*\ -score
@@ -257,7 +257,7 @@ function:
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.roll(field='incidents_residues', target='incidents_scores', func=z_score, window='27D')
+   >>> qc = qc.roll(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D')
 
 
 Optimization by Decomposition
@@ -277,13 +277,13 @@ Meaning that it has constant temporal distances between subsequent meassurements
 
 In order to tweak our calculations and make them much more stable, it might be useful to decompose the scoring
 into seperate calls to the :py:meth:`~saqc.SaQC.roll` function, by calculating the series of the
-residues *mean* and *standard deviation* seperately:
+residuals *mean* and *standard deviation* seperately:
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.roll(field='incidents_residues', target='residues_mean', window='27D', func=np.mean)
-   >>> qc = qc.roll(field='incidents_residues', target='residues_std', window='27D', func=np.std)
-   >>> qc = qc.processGeneric(field=['incidents_scores', "residues_mean", "residues_std"], target="residues_norm", func=lambda this, mean, std: (this - mean) / std)
+   >>> qc = qc.roll(field='incidents_residuals', target='residuals_mean', window='27D', func=np.mean)
+   >>> qc = qc.roll(field='incidents_residuals', target='residuals_std', window='27D', func=np.std)
+   >>> qc = qc.processGeneric(field=['incidents_scores', "residuals_mean", "residuals_std"], target="residuals_norm", func=lambda this, mean, std: (this - mean) / std)
 
 With huge datasets, this will be noticably faster, compared to the method presented :ref:`initially <cook_books/OutlierDetection:Scores>`\ ,
 because ``saqc`` dispatches the rolling with the basic numpy statistic methods to an optimized pandas built-in.
@@ -297,7 +297,7 @@ We simply combine them via the
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.processGeneric(field=['incidents_residues','incidents_mean','incidents_median'], target='incidents_scores', func=lambda x,y,z: abs((x-y) / z))
+   >>> qc = qc.processGeneric(field=['incidents_residuals','incidents_mean','incidents_median'], target='incidents_scores', func=lambda x,y,z: abs((x-y) / z))
 
 Let's have a look at the resulting scores:
 
@@ -376,7 +376,7 @@ In order to improve our flagging result, we could additionally assume, that the 
 are those with an incidents count that is deviating by a margin of more than
 *20* from the 2 week average.
 
-This is equivalent to imposing the additional condition, that an outlier must relate to a sufficiently large residue.
+This is equivalent to imposing the additional condition, that an outlier must relate to a sufficiently large residual.
 
 Unflagging
 ^^^^^^^^^^
@@ -385,19 +385,19 @@ We can do that posterior to the preceeding flagging step, by *removing*
 some flags based on some condition.
 
 In order want to *unflag* those values, that do not relate to
-sufficiently large residues, we assign them the :py:const:`~saqc.constants.UNFLAGGED` flag.
+sufficiently large residuals, we assign them the :py:const:`~saqc.constants.UNFLAGGED` flag.
 
 Therefore, we make use of the :py:meth:`~saqc.SaQC.flagGeneric` method.
 This method usually comes into play, when we want to assign flags based on the evaluation of logical expressions.
 
-So, we check out, which residues evaluate to a level below *20*\ , and assign the
+So, we check out, which residuals evaluate to a level below *20*\ , and assign the
 flag value for :py:const:`~saqc.constants.UNFLAGGED`. This value defaults to
 to ``-np.inf`` in the default translation scheme, wich we selected implicitly by not specifying any special scheme in the
 generation of the :py:class:`~Core.Core.SaQC>` object in the :ref:`beginning <cook_books/OutlierDetection:Initialisation>`.
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.flagGeneric(field=['incidents','incidents_residues'], target="incidents", func=lambda x,y: isflagged(x) & (y < 50), flag=-np.inf)
+   >>> qc = qc.flagGeneric(field=['incidents','incidents_residuals'], target="incidents", func=lambda x,y: isflagged(x) & (y < 50), flag=-np.inf)
 
 Notice, that we passed the desired flag level to the :py:attr:`flag` keyword in order to perform an
 "unflagging" instead of the usual flagging. The :py:attr:`flag` keyword can be passed to all the functions
@@ -419,11 +419,11 @@ Including multiple conditions
 
 If we do not want to first set flags, only to remove the majority of them in the next step, we also
 could circumvent the :ref:`unflagging <cook_books/OutlierDetection:Unflagging>` step, by adding to the call to
-:py:meth:`~saqc.SaQC.flagRange` the condition for the residues having to be above *20*
+:py:meth:`~saqc.SaQC.flagRange` the condition for the residuals having to be above *20*
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.flagGeneric(field=['incidents_scores', 'incidents_residues'], target='incidents', func=lambda x, y: (x > 3) & (y > 20))
+   >>> qc = qc.flagGeneric(field=['incidents_scores', 'incidents_residuals'], target='incidents', func=lambda x, y: (x > 3) & (y > 20))
    >>> qc.plot("incidents") # doctest: +SKIP
 
 

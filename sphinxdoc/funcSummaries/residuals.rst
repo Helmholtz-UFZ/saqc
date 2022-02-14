@@ -2,8 +2,8 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-residues
-========
+residuals
+=========
 
 
 
@@ -11,5 +11,5 @@ residues
 
 .. autosummary::
 
-   ~SaQC.calculatePolynomialResidues
-   ~SaQC.calculateRollingResidues
+   ~SaQC.calculatePolynomialResiduals
+   ~SaQC.calculateRollingResiduals
