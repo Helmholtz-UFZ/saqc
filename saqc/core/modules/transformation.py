@@ -12,9 +12,12 @@ from typing import Callable, Optional, Union
 import pandas as pd
 
 import saqc
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Transformation:
+    @doc(saqc.funcs.transformation.transform.__doc__)
     def transform(
         self,
         field: str,

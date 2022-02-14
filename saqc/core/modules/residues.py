@@ -15,9 +15,12 @@ from typing_extensions import Literal
 
 from saqc.constants import BAD
 import saqc
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Residues:
+    @doc(saqc.funcs.residues.calculatePolynomialResidues.__doc__)
     def calculatePolynomialResidues(
         self,
         field: str,
@@ -28,6 +31,7 @@ class Residues:
     ) -> saqc.SaQC:
         return self._defer("calculatePolynomialResidues", locals())
 
+    @doc(saqc.funcs.residues.calculateRollingResidues.__doc__)
     def calculateRollingResidues(
         self,
         field: str,

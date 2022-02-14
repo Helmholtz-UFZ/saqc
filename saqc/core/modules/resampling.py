@@ -16,9 +16,12 @@ from typing_extensions import Literal
 from saqc.constants import BAD
 import saqc
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Resampling:
+    @doc(saqc.funcs.resampling.linear.__doc__)
     def linear(
         self,
         field: str,
@@ -27,6 +30,7 @@ class Resampling:
     ) -> saqc.SaQC:
         return self._defer("linear", locals())
 
+    @doc(saqc.funcs.resampling.interpolate.__doc__)
     def interpolate(
         self,
         field: str,
@@ -37,6 +41,7 @@ class Resampling:
     ) -> saqc.SaQC:
         return self._defer("interpolate", locals())
 
+    @doc(saqc.funcs.resampling.shift.__doc__)
     def shift(
         self,
         field: str,
@@ -47,6 +52,7 @@ class Resampling:
     ) -> saqc.SaQC:
         return self._defer("shift", locals())
 
+    @doc(saqc.funcs.resampling.resample.__doc__)
     def resample(
         self,
         field: str,
@@ -63,6 +69,7 @@ class Resampling:
     ) -> saqc.SaQC:
         return self._defer("resample", locals())
 
+    @doc(saqc.funcs.resampling.concatFlags.__doc__)
     def concatFlags(
         self,
         field: str,

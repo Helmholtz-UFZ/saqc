@@ -9,9 +9,12 @@ from __future__ import annotations
 
 from saqc.constants import BAD
 import saqc
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Pattern:
+    @doc(saqc.funcs.pattern.flagPatternByDTW.__doc__)
     def flagPatternByDTW(
         self,
         field,

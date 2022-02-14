@@ -15,9 +15,12 @@ from typing_extensions import Literal
 
 from saqc.constants import BAD
 import saqc
+from saqc.lib.docurator import doc
+import saqc.funcs
 
 
 class Outliers:
+    @doc(saqc.funcs.outliers.flagByStray.__doc__)
     def flagByStray(
         self,
         field: str,
@@ -30,6 +33,7 @@ class Outliers:
     ) -> saqc.SaQC:
         return self._defer("flagByStray", locals())
 
+    @doc(saqc.funcs.outliers.flagMVScores.__doc__)
     def flagMVScores(
         self,
         field: Sequence[str],
@@ -49,6 +53,7 @@ class Outliers:
     ) -> saqc.SaQC:
         return self._defer("flagMVScores", locals())
 
+    @doc(saqc.funcs.outliers.flagRaise.__doc__)
     def flagRaise(
         self,
         field: str,
@@ -64,6 +69,7 @@ class Outliers:
     ) -> saqc.SaQC:
         return self._defer("flagRaise", locals())
 
+    @doc(saqc.funcs.outliers.flagMAD.__doc__)
     def flagMAD(
         self,
         field: str,
@@ -74,6 +80,7 @@ class Outliers:
     ) -> saqc.SaQC:
         return self._defer("flagMAD", locals())
 
+    @doc(saqc.funcs.outliers.flagOffset.__doc__)
     def flagOffset(
         self,
         field: str,
@@ -86,6 +93,7 @@ class Outliers:
     ) -> saqc.SaQC:
         return self._defer("flagOffset", locals())
 
+    @doc(saqc.funcs.outliers.flagByGrubbs.__doc__)
     def flagByGrubbs(
         self,
         field: str,
@@ -98,6 +106,7 @@ class Outliers:
     ) -> saqc.SaQC:
         return self._defer("flagByGrubbs", locals())
 
+    @doc(saqc.funcs.outliers.flagRange.__doc__)
     def flagRange(
         self,
         field: str,
@@ -108,6 +117,7 @@ class Outliers:
     ) -> saqc.SaQC:
         return self._defer("flagRange", locals())
 
+    @doc(saqc.funcs.outliers.flagCrossStatistics.__doc__)
     def flagCrossStatistics(
         self,
         field: Sequence[str],
