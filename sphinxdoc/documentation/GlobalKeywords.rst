@@ -2,8 +2,8 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-GlobalKeywords
-==============
+Global Keywords
+===============
 
 0. `Example data`_
 1. `label keyword`_
@@ -61,7 +61,7 @@ It is especially useful for enriching figures with custom context information an
 different function calls distinguishable with respect to their purpose and parameterisation.
 Check out the following example:
 
-At first, we apply some flagging functions to mark anomalies, at first, without usage of the ``label`` keyword
+At first, we apply some flagging functions to mark anomalies without usage of the ``label`` keyword:
 
 .. doctest:: exampleLabel
 
@@ -84,7 +84,7 @@ At first, we apply some flagging functions to mark anomalies, at first, without 
 In the above plot, one might want to discern the two results from the call to :py:meth:`saqc.SaQC.flagRange` with
 respect to the parameters they where called with, also, one might want to give some hints about what is the context of
 the flags "manually" determined by the call to :py:meth:`saqc.SaQC.flagManual`. Lets repeat the procedure and
-enrich the call with this informations by making use of the label keyword:
+enrich the call with this information by making use of the label keyword:
 
 Label Example Usage
 ^^^^^^^^^^^^^^^^^^^
@@ -113,17 +113,18 @@ Label Example Usage
 dfilter and flag keyword
 ------------------------
 
-The ``flag`` keyword controls the level flagging ``f(v)``, a test assigns to a value ``v`` it sets a flag to. So,
+The ``flag`` keyword controls a tests level of flagging :math:`f(v)` for any value :math:`v`. So,
 in short, the keyword controls the output flag level of any flagging function.
 
 The ``dfilter`` keyword controls the threshold up to which a flagged value is masked, when passed
-on to any flagging function. So, in short, it controls the input threshold, up to wich flagged values are visible to
+on to any flagging function. So, in short, it controls the input threshold, up to which flagged values are visible to
 any function that operates on the values.
 
-In more detail: Any value ``v`` with a flag ``f(v)`` will be masked, if ``f(v) >= dfilter``. A masked value
-will appear as `not a number`, or `missing` to the flagging function, so it will neither be part of any calculations
-performed. Lets at first visualize this interplay with the :py:plot:`saqc.SaqC.plot` method. (We are reusing data and code
-from `Example Data`_ section). First, we set some flags to the data:
+In more detail: Any value :math:`v` with a flag :math:`f(v)` will be masked, if :math:`f(v) >=` ``dfilter``. A masked value
+will appear as ``NaN`` (`not a number`, or `missing`) to the flagging function and will be numerically treated as such.
+(This means, its excluded from most arithmetic calculations, but may be implicitly part of operations, such as `count(NaN)` or `isnan`).
+Lets at first visualize this interplay with the :py:meth:`saqc.SaqC.plot` method. (We are reusing data and code
+from the `Example Data`_ section). First, we set some flags to the data:
 
 .. doctest:: exampleLabel
 
@@ -161,8 +162,8 @@ and thus, the resulting plot will be cleared from the flags:
 Flags of Different Significance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We can also use the interplay between ``dfilter`` keyword and ``flag`` keyword, to order flags priority.
-By default, the ``dfilter`` keyword is set to the highest flag value (``255``). So, the flag second call
+We can also use the interplay between the ``dfilter`` keyword and ``flag`` keyword, to order flags priorities.
+By default, the ``dfilter`` keyword is set to the highest flag value (`255`). So, the second call
 to :py:meth:`saqc.SaQC.flagRange` in the example below, wont get passed the values already flagged by the first call to
 :py:meth:`saqc.SaQC.flagRange` - so it cant check the value level and assign no flag.
 
@@ -182,25 +183,8 @@ to :py:meth:`saqc.SaQC.flagRange` in the example below, wont get passed the valu
    qc = qc.flagRange('data', max=0, label='value > 0')
    qc.plot('data')
 
-We could either lower the significance if the flags set by the first call to :py:meth:`saqc.SaQC.flagRange`, or increase the
-``dfilter`` threshold of the second call above the default flag level of ``255``.
-Both possibilities and results are shown below:
-
-.. doctest:: exampleLabel
-
-   >>> qc = saqc.SaQC(data)
-   >>> qc = qc.flagRange('data', max=15, label='value > 15', flag=200)
-   >>> qc = qc.flagRange('data', max=0, label='value > 0')
-   >>> qc.plot('data') # doctest:+SKIP
-
-.. plot::
-   :context: close-figs
-   :include-source: False
-
-   qc = saqc.SaQC(data)
-   qc = qc.flagRange('data', max=15, label='value > 15', flag=200)
-   qc = qc.flagRange('data', max=0, label='value > 0')
-   qc.plot('data')
+We can make the value flagged by both the flagging functions by increasing the
+``dfilter`` threshold of the flagging function called second, above the default flag level of ``255``:
 
 .. doctest:: exampleLabel
 
@@ -221,10 +205,11 @@ Both possibilities and results are shown below:
 Unflagging Values
 ^^^^^^^^^^^^^^^^^
 
-With the ``flag`` keyword it is as also possible, to "revoke" or "unflag" a value, that is marked by an other function.
-This way, it is possible to associate flags with complex conditions. For example, if we want to flag all values below
-a level of `0.5`, but not those that belong to a constant value course, we can achieve that, by combining the ``flag``
-and the ``dfilter`` keyword. Lets first flag all the data below a level of `0.5`
+With the ``flag`` keyword it is as also possible, to `revoke` or `unflag` a flag from a value.
+This way, it is possible to associate flags with conditions determined by other functions.
+For example, if we want to flag all values below a level of `0.5`, but not those that belong to a constant value
+course, we can achieve that, by combining the ``flag`` and the ``dfilter`` keyword.
+Lets first flag all the data below a level of `0.5`:
 
 .. doctest:: exampleLabel
 
@@ -240,8 +225,8 @@ and the ``dfilter`` keyword. Lets first flag all the data below a level of `0.5`
    qc = qc.flagRange('data', min=0.5)
    qc.plot('data')
 
-Now we can override the flags for the constant value course with the lowes (unflagged) flag level, wich is ``-np.inf``.
-Also for the override to work, we have to rise the input filter, so that the :py:meth:`saqc.SaQC.flagConstants` method
+Now we can override the flags for the constant value course with the lowest (unflagged) flag level, which is ``-np.inf``.
+Also, for the override to work, we have to rise the input filter, so that the :py:meth:`saqc.SaQC.flagConstants` method
 gets the already flagged values passed to test them.
 
 .. doctest:: exampleLabel
