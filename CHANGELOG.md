@@ -19,6 +19,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - `flagOffsets` parameters `thresh` and `thresh_relative` now both are optional
 - flags concatenation tasks (for squeezed and explicit histories) are now all channeled through the function `concatFlags`
 - corrected false notion of *residual* concept (old notion: *residue* got replaced by *residual*)
+- constants `FILTER_NONE` and `FILTER_ALL` are now imported to `saqc.__init__`
 ### Removed
 ### Fixed
 - `flagOffset` bug with zero-valued threshold
