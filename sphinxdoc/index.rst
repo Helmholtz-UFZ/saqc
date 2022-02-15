@@ -41,6 +41,7 @@ Getting Started
    documentation/FlaggingTranslation
    documentation/GenericFunctions
    documentation/SourceTarget
+   documentation/GlobalKeywords
 
 
 .. toctree::
@@ -75,6 +76,9 @@ Getting Started
    :maxdepth: 2
 
    Package <moduleAPIs/saqc>
+   Core <moduleAPIs/saqcCore>
+   Constants <moduleAPIs/saqcConstants>
+   Methods <funcSummaries/allFunctions>
    Config Environment <environment/configEnv>
 
 

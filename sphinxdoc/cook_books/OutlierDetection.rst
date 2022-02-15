@@ -219,10 +219,10 @@ To see all the results obtained so far, plotted in one figure window, we make us
 
 
 Residuals and Scores
--------------------
+-------------------_
 
 Residuals
-^^^^^^^^
+^^^^^^^^^
 
 We want to evaluate the residuals of one of our models model, in order to score the outlierish-nes of every point.
 Therefor we just stick to the initially calculated rolling mean curve.
