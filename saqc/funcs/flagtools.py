@@ -19,6 +19,7 @@ import warnings
 
 from saqc.core.register import flagging
 from saqc.funcs.generic import flagGeneric
+from saqc.funcs.resampling import concatFlags
 
 
 @register(mask=[], demask=[], squeeze=["field"])
@@ -399,6 +400,7 @@ def transferFlags(
     See Also
     --------
     * :py:meth:`saqc.SaQC.flagGeneric`
+    * :py:meth:`saqc.SaQC.concatFlags`
 
     Examples
     --------
@@ -444,7 +446,7 @@ def transferFlags(
        1        255.0  255.0  255.0
     """
 
-    data, flags = flagGeneric(
-        data, field, flags, target=target, func=lambda x: isflagged(x), **kwargs
+    data, flags = concatFlags(
+        data, field, flags, target=target, method="match", squeeze=False
     )
     return data, flags

@@ -82,9 +82,11 @@ class Resampling:
             "inverse_bshift",
             "inverse_nshift",
             "inverse_interpolation",
+            "match",
         ],
         freq: Optional[str] = None,
         drop: Optional[bool] = False,
+        squeeze: Optional[bool] = False,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("concatFlags", locals())
