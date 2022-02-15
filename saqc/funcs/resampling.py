@@ -436,9 +436,11 @@ def concatFlags(
         "inverse_bshift",
         "inverse_nshift",
         "inverse_interpolation",
-    ],
+        "match",
+    ] = "match",
     freq: Optional[str] = None,
     drop: Optional[bool] = False,
+    squeeze: Optional[bool] = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -485,15 +487,19 @@ def concatFlags(
         Field name of flags history to append to.
 
     method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift',
-             'match'}
+             'match'}, default 'match'
         The method used for projection of ``field`` flags onto ``target`` flags. See description above for more details.
 
-    freq : {None, str},default None
+    freq : str or None, default None
         The ``freq`` determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of ``field`` is used.
 
-    drop : default False
+    drop : bool, default False
         If set to `True`, the `field` column will be removed after processing
+
+    squeeze : bool, default False
+        If set to `True`, the appended flags frame will be squeezed - resulting in function specific flags informations
+        getting lost.
 
     Returns
     -------
@@ -551,7 +557,22 @@ def concatFlags(
         raise ValueError(f"unknown method {method}")
 
     history = flags.history[field].apply(dummy.index, func, func_kws)
-    flags.history[target].append(history)
+    if squeeze:
+        history = history.max()
+        meta = {
+            "func": f"concatFlags({field})",
+            "args": (field, target),
+            "kwargs": {
+                "method": method,
+                "freq": freq,
+                "drop": drop,
+                "squeeze": squeeze,
+                **kwargs,
+            },
+        }
+        flags.history[target].append(history, meta)
+    else:
+        flags.history[target].append(history)
 
     if drop:
         data, flags = tools.dropField(data=data, flags=flags, field=field)
