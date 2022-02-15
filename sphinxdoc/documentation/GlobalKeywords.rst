@@ -5,16 +5,28 @@
 Global Keywords
 ===============
 
-0. `Example data`_
+Introduction to the usage of the global keywords. (Keywords that can be passed to any :py:class:`saqc.SaQC` method.)
+
+0. `Set Up`_
+ * `Example data`_
+ * `Flagging Scheme Constraint`_
 1. `label keyword`_
  * `label Example Usage`_
 2. `dfilter and flag keyword`_
  * `Flags of Different Significance`_
  * `Unflagging Values`_
 
+Set Up
+------
+
+Flagging Scheme Constraint
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Tutorial currently only works when instantiating an :py:class:`~saqc.SaQC` object with the default
+:ref:`flagging scheme <FlagsHistoryTranslations>`, which is the :py:class:`~saqc.core.FloatScheme`.
 
 Example Data
-------------
+^^^^^^^^^^^^
 
 .. plot::
    :context: close-figs
@@ -124,7 +136,10 @@ In more detail: Any value :math:`v` with a flag :math:`f(v)` will be masked, if 
 will appear as ``NaN`` (`not a number`, or `missing`) to the flagging function and will be numerically treated as such.
 (This means, its excluded from most arithmetic calculations, but may be implicitly part of operations, such as `count(NaN)` or `isnan`).
 Lets at first visualize this interplay with the :py:meth:`saqc.SaqC.plot` method. (We are reusing data and code
-from the `Example Data`_ section). First, we set some flags to the data:
+from the `Example Data`_ section). First, we set some flags to the data. As pointed out in
+`Flagging Scheme Constraint`_ , we are referring to defaultly instantiated :py:class:`saqc.SaQC` objects, that use the
+:py:class:`~saqc.core.FlaggingScheme` , (which uses a real valued scale of flags levels,
+ranging from ``-inf`` to ``255.0``):
 
 .. doctest:: exampleLabel
 
@@ -184,13 +199,17 @@ to :py:meth:`saqc.SaQC.flagRange` in the example below, wont get passed the valu
    qc.plot('data')
 
 We can make the value flagged by both the flagging functions by increasing the
-``dfilter`` threshold of the flagging function called second, above the default flag level of ``255``:
+``dfilter`` threshold of the flagging function called second, above the default flag level of
+:py:attr:`~saqc.constants.BAD`. This can be achieved, by passing the flagging constant
+:py:attr:`~saqc.constants.FILTER_NONE`,
+
 
 .. doctest:: exampleLabel
 
+   >>> from saqc.constants import FILTER_NONE
    >>> qc = saqc.SaQC(data)
    >>> qc = qc.flagRange('data', max=15, label='value > 15')
-   >>> qc = qc.flagRange('data', max=0, label='value > 0', dfilter=300)
+   >>> qc = qc.flagRange('data', max=0, label='value > 0', dfilter=FILTER_NONE)
    >>> qc.plot('data') # doctest:+SKIP
 
 .. plot::
@@ -225,13 +244,16 @@ Lets first flag all the data below a level of `0.5`:
    qc = qc.flagRange('data', min=0.5)
    qc.plot('data')
 
-Now we can override the flags for the constant value course with the lowest (unflagged) flag level, which is ``-np.inf``.
-Also, for the override to work, we have to rise the input filter, so that the :py:meth:`saqc.SaQC.flagConstants` method
+Now we can override the flags for the constant value course with the lowest (unflagged) flag level, which, for the
+:py:class:`~saqc.core.FloatScheme` is the value ``-np.inf``. Alternatively to the explicit value, we can use the
+:py:attr:`~saqc.constants.UNFLAGGED` constant.
+Also, for the override to work, we have to rise (or deactivate) the input filter, so that the :py:meth:`saqc.SaQC.flagConstants` method
 gets the already flagged values passed to test them.
 
 .. doctest:: exampleLabel
 
-   >>> qc = qc.flagConstants('data', window='2D', thresh=0, dfilter=300, flag=-np.inf)
+   >>> from saqc.constants import UNFLAGGED, FILTER_NONE
+   >>> qc = qc.flagConstants('data', window='2D', thresh=0, dfilter=FILTER_NONE, flag=UNFLAGGED)
    >>> qc.plot('data') #doctest:+SKIP
 
 .. plot::
