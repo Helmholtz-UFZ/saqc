@@ -60,6 +60,8 @@ class DmpScheme(TranslationScheme):
 
     ARGUMENTS = {"comment": "", "cause": "OTHER"}
 
+    DFILTER_DEFAULT = GOOD + 1
+
     _FORWARD: ForwardMap = {
         "NIL": UNFLAGGED,
         "OK": GOOD,
