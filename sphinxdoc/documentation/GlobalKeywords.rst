@@ -138,8 +138,8 @@ will appear as ``NaN`` (`not a number`, or `missing`) to the flagging function a
 Lets at first visualize this interplay with the :py:meth:`saqc.SaqC.plot` method. (We are reusing data and code
 from the `Example Data`_ section). First, we set some flags to the data. As pointed out in
 `Flagging Scheme Constraint`_ , we are referring to defaultly instantiated :py:class:`saqc.SaQC` objects, that use the
-:py:class:`~saqc.core.FlaggingScheme` , (which uses a real valued scale of flags levels,
-ranging from ``-inf`` to ``255.0``):
+:py:class:`~saqc.core.FloatScheme` , (which uses a real valued scale of flags levels,
+ranging from ``-inf`` to ``255.0``).:
 
 .. doctest:: exampleLabel
 
@@ -178,9 +178,11 @@ Flags of Different Significance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We can also use the interplay between the ``dfilter`` keyword and ``flag`` keyword, to order flags priorities.
-By default, the ``dfilter`` keyword is set to the highest flag value (`255`). So, the second call
+By default, the ``dfilter`` keyword is set to the highest flag value of the instantiated
+:ref:`flagging scheme <FlagsHistoryTranslations>`, referred to, as :py:attr:`~saqc.constants.BAD`.
+Since the flag set by a test also defaults to :py:attr:`~saqc.constants.BAD`, the second call
 to :py:meth:`saqc.SaQC.flagRange` in the example below, wont get passed the values already flagged by the first call to
-:py:meth:`saqc.SaQC.flagRange` - so it cant check the value level and assign no flag.
+:py:meth:`saqc.SaQC.flagRange` - so it cant check the value level and assign no additional flag by its self.
 
 .. doctest:: exampleLabel
 
