@@ -594,7 +594,7 @@ def correctOffset(
 def _driftFit(x, shift_target, cal_mean, driftModel):
     x_index = x.index - x.index[0]
     x_data = x_index.total_seconds().values
-    x_data = x_data / x_data[-1]
+    x_data = x_data / x_data[-1] if len(x_data) > 1 else x_data
     y_data = x.values
     origin_mean = np.mean(y_data[:cal_mean])
     target_mean = np.mean(y_data[-cal_mean:])
