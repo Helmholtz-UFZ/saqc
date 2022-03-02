@@ -558,7 +558,10 @@ def concatFlags(
 
     history = flags.history[field].apply(dummy.index, func, func_kws)
     if squeeze:
+        untouched_mask = history.hist.isna().all(axis=1)
         history = history.max()
+        history[untouched_mask] = np.nan
+
         meta = {
             "func": f"concatFlags({field})",
             "args": (field, target),
