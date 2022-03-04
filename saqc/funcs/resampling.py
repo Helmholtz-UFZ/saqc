@@ -558,7 +558,8 @@ def concatFlags(
 
     history = flags.history[field].apply(dummy.index, func, func_kws)
     if squeeze:
-        history = history.max()
+        history = history.max(raw=True)
+
         meta = {
             "func": f"concatFlags({field})",
             "args": (field, target),
