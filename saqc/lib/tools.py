@@ -644,8 +644,9 @@ def statPass(
         exceeds = exceeding_sub & exceeds
 
     to_set = pd.Series(False, index=exceeds.index)
-    for exceed, group in exceeds.groupby(by=exceeds.values):
-        if exceed:
+    exceeds_df = pd.DataFrame({'g':exceeds.diff().cumsum().values, 'ex_val':exceeds.values}, index=exceeds.index)
+    for _, group in exceeds_df.groupby(by='g'):
+        if group['ex_val'].iloc[0]:
             # dt-slices include both bounds, so we subtract 1ns
             start = group.index[0] - (winsz - pd.Timedelta("1ns"))
             end = group.index[-1]

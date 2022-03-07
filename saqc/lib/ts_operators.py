@@ -21,6 +21,7 @@ from sklearn.neighbors import NearestNeighbors
 from scipy.stats import iqr, median_abs_deviation
 from scipy.signal import filtfilt, butter
 import numpy.polynomial.polynomial as poly
+from saqc.lib.tools import getFreqDelta
 
 
 def identity(ts):
@@ -383,8 +384,8 @@ def butterFilter(
     x: pd.Series
         input timeseries
 
-    cutoff: float
-        The cutoff-frequency, expressed in multiples of the sampling rate.
+    cutoff: {float, str}
+        The cutoff-frequency, either an offset freq string, or expressed in multiples of the sampling rate.
 
     nyq: float
         The niquist-frequency. expressed in multiples if the sampling rate.
@@ -398,6 +399,9 @@ def butterFilter(
     Returns
     -------
     """
+    if isinstance(cutoff, str):
+        cutoff = getFreqDelta(x.index) / pd.Timedelta(cutoff)
+
     na_mask = x.isna()
     x = x.interpolate(fill_method).interpolate("ffill").interpolate("bfill")
     b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
