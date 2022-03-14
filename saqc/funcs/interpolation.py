@@ -186,9 +186,9 @@ def interpolateInvalid(
         inter_limit=limit,
         downgrade_interpolation=downgrade,
     )
-    data[field] = inter_data
 
     interpolated = data[field].isna() & inter_data.notna()
+    data[field] = inter_data
     new_col = pd.Series(np.nan, index=flags[field].index)
     new_col.loc[interpolated] = np.nan if flag is None else flag
 
