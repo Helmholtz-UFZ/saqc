@@ -318,7 +318,7 @@ Lets resample the *SoilMoisture* data to have a *20* minutes sample rate by aggr
 content with the arithmetic mean (which is implemented by numpies ``numpy.mean`` function for example).
 
    >>> import numpy as np
-   >>> qc = qc.resample('SoilMoisture', target='SoilMoisture_mean', freq='20min', method='bagg', agg_func=np.mean)
+   >>> qc = qc.resample('SoilMoisture', target='SoilMoisture_mean', freq='20min', method='bagg', func=np.mean)
    >>> qc.dataRaw # doctest: +SKIP
                        SoilMoisture |                     SoilMoisture_mean |
    ================================ | ===================================== |
@@ -349,7 +349,7 @@ content with the arithmetic mean (which is implemented by numpies ``numpy.mean``
 Aggregation functions
 ^^^^^^^^^^^^^^^^^^^^^
 
-You can pass arbitrary function objects to the ``agg_func`` parameter, to be applied to calculate every intervals result,
+You can pass arbitrary function objects to the ``func`` parameter, to be applied to calculate every intervals result,
 as long as this function returns a scalar *float* value upon an array-like input. (So ``np.median`` would be propper
 for calculating the median, ``sum``\ , for assigning the value sum, and so on.)
 

@@ -244,18 +244,18 @@ def resample(
 
     The data will be sampled at regular (equidistant) timestamps aka. Grid points.
     Sampling intervals therefore get aggregated with a function, specified by
-    'agg_func' parameter and the result gets projected onto the new timestamps with a
+    'func' parameter and the result gets projected onto the new timestamps with a
     method, specified by "method". The following method (keywords) are available:
 
     * ``'nagg'``: all values in the range (+/- `freq`/2) of a grid point get
-        aggregated with agg_func and assigned to it.
-    * ``'bagg'``: all values in a sampling interval get aggregated with agg_func and
+        aggregated with func and assigned to it.
+    * ``'bagg'``: all values in a sampling interval get aggregated with func and
         the result gets assigned to the last grid point.
-    * ``'fagg'``: all values in a sampling interval get aggregated with agg_func and
+    * ``'fagg'``: all values in a sampling interval get aggregated with func and
         the result gets assigned to the next grid point.
 
 
-    Note, that. if possible, functions passed to agg_func will get projected
+    Note, that. if possible, functions passed to func will get projected
     internally onto pandas.resample methods, wich results in some reasonable
     performance boost - however, for this to work, you should pass functions that
     have the __name__ attribute initialised and the according methods name assigned
@@ -342,7 +342,7 @@ def resample(
     kws = dict(
         method=method,
         freq=freq,
-        agg_func=flag_func,
+        func=flag_func,
         fill_value=np.nan,
         max_invalid_total=maxna_flags,
         max_invalid_consec=maxna_group_flags,
