@@ -15,6 +15,7 @@ from typing_extensions import Literal
 
 import numpy as np
 import pandas as pd
+import inspect
 
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
@@ -601,19 +602,20 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
 
     dataFitFunc = functools.partial(driftModel, origin=origin_mean, target=target_mean)
     # if drift model has free parameters:
-    try:
-        # try fitting free parameters
-        fit_paras, *_ = curve_fit(dataFitFunc, x_data, y_data)
-        data_fit = dataFitFunc(x_data, *fit_paras)
-        data_shift = driftModel(
-            x_data, *fit_paras, origin=origin_mean, target=shift_target
-        )
-    except RuntimeError:
-        # if fit fails -> make no correction
-        data_fit = np.array([0] * len(x_data))
-        data_shift = np.array([0] * len(x_data))
+    if len(inspect.getfullargspec(dataFitFunc).args) > 1:
+        try:
+            # try fitting free parameters
+            fit_paras, *_ = curve_fit(dataFitFunc, x_data, y_data)
+            data_fit = dataFitFunc(x_data, *fit_paras)
+            data_shift = driftModel(
+                x_data, *fit_paras, origin=origin_mean, target=shift_target
+            )
+        except RuntimeError:
+            # if fit fails -> make no correction
+            data_fit = np.array([0] * len(x_data))
+            data_shift = np.array([0] * len(x_data))
     # when there are no free parameters in the model:
-    except ValueError:
+    else:
         data_fit = dataFitFunc(x_data)
         data_shift = driftModel(x_data, origin=origin_mean, target=shift_target)
 
