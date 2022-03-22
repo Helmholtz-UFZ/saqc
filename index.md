@@ -1,5 +1,1 @@
-.. raw:: html
-
-    <script type="text/javascript">
-        window.location.replace('https://rdm-software.pages.ufz.de/saqc');
-    </script>
+<meta http-equiv="refresh" content="0; URL=https://rdm-software.pages.ufz.de/saqc">
