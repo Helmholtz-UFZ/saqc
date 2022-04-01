@@ -24,21 +24,13 @@ def doc(doc_string: str, template="saqc_methods", source="function_string"):
     return docFunc
 
 
-def getDocstringIndent(doc_string: list) -> str:
+def getDocstringIndent(lines: list) -> str:
     """returns a whitespace string matching the indent size of the passed docstring_list"""
-    regular_line = False
-    current_line = 0
-    while not regular_line:
-        # check if line is empty
-        if len(doc_string[current_line]) == 0 or re.match(
-            " *$", doc_string[current_line]
-        ):
-            current_line += 1
-        else:
-            regular_line = True
-    # get indent-string (smth. like "   ")
-    indent_str = re.match(" *", doc_string[current_line])[0]
-    return indent_str
+    for line in lines:
+        if len(line) == 0 or re.match(" *$", line):
+            continue
+        return re.match(" *", line)[0]
+    return ""
 
 
 def getSections(doc_string: list, indent_str: str) -> dict:
