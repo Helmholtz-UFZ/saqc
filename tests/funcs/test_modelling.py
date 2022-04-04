@@ -14,7 +14,7 @@ import dios
 
 from saqc import BAD, UNFLAGGED
 from saqc.core import initFlagsLike
-from saqc.funcs.tools import maskTime
+from saqc.funcs.tools import selectTime
 from saqc.funcs.residuals import calculatePolynomialResiduals, calculateRollingResiduals
 
 from tests.fixtures import *
@@ -86,21 +86,23 @@ def test_modelling_mask(dat):
     flags[:, field] = BAD
 
     common = dict(data=data, field=field, flags=flags, mode="periodic")
-    data_seasonal, flags_seasonal = maskTime(
+    data_seasonal, flags_seasonal = selectTime(
         **common, start="20:00", end="40:00", closed=False
     )
     flagscol = flags_seasonal[field]
-    m = (20 <= flagscol.index.minute) & (flagscol.index.minute <= 40)
+    m = (20 > flagscol.index.minute) | (flagscol.index.minute > 40)
     assert all(flags_seasonal[field][m] == UNFLAGGED)
     assert all(data_seasonal[field][m].isna())
 
-    data_seasonal, flags_seasonal = maskTime(**common, start="15:00:00", end="02:00:00")
+    data_seasonal, flags_seasonal = selectTime(
+        **common, start="15:00:00", end="02:00:00"
+    )
     flagscol = flags_seasonal[field]
     m = (15 <= flagscol.index.hour) & (flagscol.index.hour <= 2)
     assert all(flags_seasonal[field][m] == UNFLAGGED)
     assert all(data_seasonal[field][m].isna())
 
-    data_seasonal, flags_seasonal = maskTime(
+    data_seasonal, flags_seasonal = selectTime(
         **common, start="03T00:00:00", end="10T00:00:00"
     )
     flagscol = flags_seasonal[field]
@@ -112,8 +114,8 @@ def test_modelling_mask(dat):
     mask_ser[::5] = True
     data["mask_ser"] = mask_ser
     flags = initFlagsLike(data)
-    data_masked, flags_masked = maskTime(
-        data, "data", flags, mode="mask_field", mask_field="mask_ser"
+    data_masked, flags_masked = selectTime(
+        data, "data", flags, mode="selection_field", selection_field="mask_ser"
     )
     m = mask_ser
     assert all(flags_masked[field][m] == UNFLAGGED)

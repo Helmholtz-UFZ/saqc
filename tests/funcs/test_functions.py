@@ -20,7 +20,7 @@ from saqc.funcs.drift import (
 )
 from saqc.funcs.outliers import flagRange
 from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
-from saqc.funcs.tools import dropField, copyField, maskTime
+from saqc.funcs.tools import dropField, copyField, selectTime
 from saqc.funcs.resampling import concatFlags
 from saqc.funcs.breaks import flagIsolated
 
@@ -99,7 +99,7 @@ def test_flagSesonalRange(data, field):
         end = f"{test['endmonth']:02}-{test['endday']:02}T00:00:00"
 
         data, flags = copyField(data, field, flags, field + "_masked")
-        data, flags = maskTime(
+        data, flags = selectTime(
             data,
             newfield,
             flags,
