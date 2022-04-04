@@ -170,7 +170,7 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
     Returns
     -------
     dfilter : pandas.Series[bool]
-        A series, indexed with the input index and having value `True` for all the values that are to be masked.
+        A series, indexed with the input index and having value `False` for all the values that are to be masked.
 
     Examples
     --------
@@ -217,34 +217,48 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
         stamp_kwargs = dict(zip(keys, stamp_list))
 
         def _replace(index):
+            if len(index) == 0:
+                return None
             if "day" in stamp_kwargs:
                 stamp_kwargs["day"] = min(stamp_kwargs["day"], index[0].daysinmonth)
-
             out = index[0].replace(**stamp_kwargs)
             return out.strftime("%Y-%m-%dT%H:%M:%S")
 
         return _replace
 
-    mask = pd.Series(include_bounds, index=dtindex)
+    mask = pd.Series(True, index=dtindex)
 
     start_replacer = _replaceBuilder(season_start)
     end_replacer = _replaceBuilder(season_end)
 
-    if pd.Timestamp(start_replacer(dtindex)) <= pd.Timestamp(end_replacer(dtindex)):
+    invert = False
 
-        def _selector(x, base_bool=include_bounds):
-            x[start_replacer(x.index) : end_replacer(x.index)] = not base_bool
+    if pd.Timestamp(start_replacer(dtindex)) > pd.Timestamp(end_replacer(dtindex)):
+        start_replacer, end_replacer = end_replacer, start_replacer
+        include_bounds = not include_bounds
+        invert = True
+
+    if include_bounds:
+
+        def _selector(x):
+            x[start_replacer(x.index) : end_replacer(x.index)] = False
             return x
 
     else:
 
-        def _selector(x, base_bool=include_bounds):
-            x[: end_replacer(x.index)] = not base_bool
-            x[start_replacer(x.index) :] = not base_bool
+        def _selector(x):
+            s = start_replacer(x.index)
+            e = end_replacer(x.index)
+            x[s:e] = False
+            x[s:s] = True
+            x[e:e] = True
             return x
 
     freq = "1" + "mmmhhhdddMMMYYY"[len(season_start)]
-    return mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
+    out = mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
+    if invert:
+        out = ~out
+    return out
 
 
 def assertDictOfSeries(df: Any, argname: str = "arg") -> None:

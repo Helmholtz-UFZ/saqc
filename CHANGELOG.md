@@ -22,6 +22,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - flags concatenation tasks (for squeezed and explicit histories) are now all channeled through the function `concatFlags`
 - corrected false notion of *residual* concept (old notion: *residue* got replaced by *residual*)
 - constants `FILTER_NONE` and `FILTER_ALL` are now imported to `saqc.__init__`
+- renamed `maskTime` to `selectTime`
 ### Removed
 ### Fixed
 - `flagOffset` bug with zero-valued threshold
@@ -32,6 +33,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - `concatFlags`: fixed bug in context of squeezed history appending (UNTOUCHED vs UNFLAGGED information now doesnt get lost)
 - `interpolateInvalid`: Fix: replacement of flags for interpolated values now works
 - `resample`: resampling func now actually gets passed on to `history.appy()`
+- `tools.seasonalMask`: fixed bug that swaps the entire mask upon `include_bounds=True`
 
 
 ## [2.0.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2021-12-20

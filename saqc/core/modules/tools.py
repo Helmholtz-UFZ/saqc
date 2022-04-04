@@ -33,18 +33,18 @@ class Tools:
     def renameField(self, field: str, new_name: str, **kwargs) -> saqc.SaQC:
         return self._defer("renameField", locals())
 
-    @doc(saqc.funcs.tools.maskTime.__doc__)
+    @doc(saqc.funcs.tools.selectTime.__doc__)
     def maskTime(
         self,
         field: str,
-        mode: Literal["periodic", "mask_field"],
+        mode: Literal["periodic", "selection_field"],
         mask_field: Optional[str] = None,
         start: Optional[str] = None,
         end: Optional[str] = None,
         closed: bool = True,
         **kwargs,
     ) -> saqc.SaQC:
-        return self._defer("maskTime", locals())
+        return self._defer("selectTime", locals())
 
     @doc(saqc.funcs.tools.plot.__doc__)
     def plot(

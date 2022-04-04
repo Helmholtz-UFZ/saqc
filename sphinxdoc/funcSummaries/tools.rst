@@ -14,5 +14,5 @@ tools
    ~SaQC.copyField
    ~SaQC.dropField
    ~SaQC.renameField
-   ~SaQC.maskTime
+   ~SaQC.selectTime
    ~SaQC.plot
