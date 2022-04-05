@@ -90,3 +90,34 @@ class Drift:
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("correctOffset", locals())
+
+    @doc(saqc.funcs.drift.flagRegimeAnomaly.__doc__)
+    def flagRegimeAnomaly(
+        self,
+        field: str,
+        cluster_field: str,
+        spread: float,
+        method: LinkageString = "single",
+        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(
+            np.nanmean(x) - np.nanmean(y)
+        ),
+        frac: float = 0.5,
+        flag: float = BAD,
+        **kwargs,
+    ) -> saqc.SaQC:
+        return self._defer("flagRegimeAnomaly", locals())
+
+    @doc(saqc.funcs.drift.assignRegimeAnomaly.__doc__)
+    def assignRegimeAnomaly(
+        self,
+        field: str,
+        cluster_field: str,
+        spread: float,
+        method: LinkageString = "single",
+        metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(
+            np.nanmean(x) - np.nanmean(y)
+        ),
+        frac: float = 0.5,
+        **kwargs,
+    ) -> saqc.SaQC:
+        return self._defer("assignRegimeAnomaly", locals())

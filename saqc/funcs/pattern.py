@@ -30,10 +30,10 @@ def flagPatternByWavelet(
     Pattern recognition via wavelets.
 
     The steps are:
-     1. work on chunks returned by a moving window
-     2. each chunk is compared to the given pattern, using the wavelet algorithm as
-        presented in [1]
-     3. if the compared chunk is equal to the given pattern it gets flagged
+    1. work on chunks returned by a moving window
+    2. each chunk is compared to the given pattern, using the wavelet algorithm as
+       presented in [1]
+    3. if the compared chunk is equal to the given pattern it gets flagged
 
     Parameters
     ----------
@@ -199,10 +199,10 @@ def flagPatternByDTW(
     """Pattern Recognition via Dynamic Time Warping.
 
     The steps are:
-     1. work on a moving window
-     2. for each data chunk extracted from each window, a distance to the given pattern
-        is calculated, by the dynamic time warping algorithm [1]
-     3. if the distance is below the threshold, all the data in the window gets flagged
+    1. work on a moving window
+    2. for each data chunk extracted from each window, a distance to the given pattern
+       is calculated, by the dynamic time warping algorithm [1]
+    3. if the distance is below the threshold, all the data in the window gets flagged
 
     Parameters
     ----------

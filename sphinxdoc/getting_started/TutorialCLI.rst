@@ -236,12 +236,12 @@ which gives you separate plots for each call to plot:
 
    * - SM1
      - SM2
-   * - .. image:: ../resources/images/SM1processingResults.png
-          :target: ../resources/images/SM1processingResults.png
+   * - .. image:: ../resources/temp/SM1processingResults.png
+          :target: ../resources/temp/SM1processingResults.png
           :alt:
 
-     - .. image:: ../resources/images/SM2processingResults.png
-          :target: ../resources/images/SM2processingResults.png
+     - .. image:: ../resources/temp/SM2processingResults.png
+          :target: ../resources/temp/SM2processingResults.png
           :alt:
 
 
