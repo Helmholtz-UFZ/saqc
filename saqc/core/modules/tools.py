@@ -34,7 +34,7 @@ class Tools:
         return self._defer("renameField", locals())
 
     @doc(saqc.funcs.tools.selectTime.__doc__)
-    def maskTime(
+    def selectTime(
         self,
         field: str,
         mode: Literal["periodic", "selection_field"],
