@@ -8,6 +8,7 @@
 
 
 # see test/functs/fixtures.py for global fixtures "course_..."
+import pytest
 
 import dios
 
@@ -131,6 +132,7 @@ def test_interpolateGrid(course_5, course_3):
     )
 
 
+@pytest.mark.slow
 def test_offsetCorrecture():
     data = pd.Series(0, index=pd.date_range("2000", freq="1d", periods=100), name="dat")
     data.iloc[30:40] = -100

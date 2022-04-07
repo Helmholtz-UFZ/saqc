@@ -216,6 +216,7 @@ def test_flagTargetExistingFail(data_diff):
         fromConfig(fobj, data_diff)
 
 
+@pytest.mark.slow
 def test_callableArgumentsUnary(data):
 
     window = 5

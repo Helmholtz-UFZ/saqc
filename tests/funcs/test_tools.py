@@ -11,6 +11,7 @@ import saqc
 import dios
 
 
+@pytest.mark.slow
 def test_makeFig():
     # just testing for no errors to occure...
     data = dios.DictOfSeries(

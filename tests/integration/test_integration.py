@@ -3,11 +3,13 @@
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import pytest
 from click.testing import CliRunner
 from pathlib import Path
 
 
+# tmp_path: pytest internal fixture
+@pytest.mark.slow
 def test__main__py(tmp_path):
     import saqc.__main__
 
