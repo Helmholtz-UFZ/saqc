@@ -129,6 +129,7 @@ def test_rolling_expand_forward(data, kws, expected):
     assert np.allclose(result, expected, rtol=0, atol=0, equal_nan=True)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("window", ["0H", "1H", "2H", "3H", "4H"])
 @pytest.mark.parametrize("closed", ["both", "neither", "left", "right"])
 @pytest.mark.parametrize("center", [False, True], ids=lambda x: f" center={x} ")

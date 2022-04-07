@@ -7,6 +7,7 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
+import pytest
 
 from hypothesis import given, settings
 
@@ -16,6 +17,7 @@ from saqc.core.register import FunctionWrapper
 from tests.fuzzy.lib import dataFieldFlags, MAX_EXAMPLES
 
 
+@pytest.mark.slow
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
 @given(data_field_flags=dataFieldFlags())
 def test_maskingMasksData(data_field_flags):
@@ -30,6 +32,7 @@ def test_maskingMasksData(data_field_flags):
     assert (flags[field].iloc[mask[field].index] > UNFLAGGED).all()
 
 
+@pytest.mark.slow
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
 @given(data_field_flags=dataFieldFlags())
 def test_dataMutationPreventsUnmasking(data_field_flags):
@@ -49,6 +52,7 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
     assert (data_out[field] == filler).all(axis=None)
 
 
+@pytest.mark.slow
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
 @given(data_field_flags=dataFieldFlags())
 def test_flagsMutationPreventsUnmasking(data_field_flags):
@@ -66,6 +70,7 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
     assert (data_out.loc[flags[field] == BAD, field].isna()).all(axis=None)
 
 
+@pytest.mark.slow
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
 @given(data_field_flags=dataFieldFlags())
 def test_reshapingPreventsUnmasking(data_field_flags):
@@ -95,6 +100,7 @@ def test_reshapingPreventsUnmasking(data_field_flags):
     assert (data_out[field] == filler).all(axis=None)
 
 
+@pytest.mark.slow
 @settings(max_examples=MAX_EXAMPLES, deadline=None)
 @given(data_field_flags=dataFieldFlags())
 def test_unmaskingInvertsMasking(data_field_flags):

@@ -18,60 +18,16 @@ default:
 
 
 # ===========================================================
-# normal jobs (non scheduled)
+# Testing stage
 # ===========================================================
 
-# test saqc with python 3.7
-python37:
-  stage: test
-  image: python:3.7
-  script:
-    - pytest tests/core tests/funcs tests/integration dios/test -Werror
-    - python -m saqc --config sphinxdoc/resources/data/config.csv --data sphinxdoc/resources/data/data.csv --outfile /tmp/test.csv
-
-
-# test saqc with python 3.8
-python38:
-  stage: test
-  script:
-    - pytest tests/core tests/funcs tests/integration dios/test -Werror
-    - python -m saqc --config sphinxdoc/resources/data/config.csv --data sphinxdoc/resources/data/data.csv --outfile /tmp/test.csv
-
-
-# test saqc with python 3.9
-python39:
-  stage: test
-  image: python:3.9
-  script:
-    - pytest tests/core tests/funcs tests/integration dios/test -Werror
-    - python -m saqc --config sphinxdoc/resources/data/config.csv --data sphinxdoc/resources/data/data.csv --outfile /tmp/test.csv
-
-
-# check if everthing is properly formatted
+# check if everything is properly formatted
 black:
   stage: test
   script:
     - pip install black
     - black --check .
 
-
-# make (visual) coverage in gitlab merge request diff's
-coverage:
-  stage: test
-  allow_failure: true
-  script:
-    - pip install pytest-cov coverage
-    - pytest --cov=saqc tests/core tests/funcs -Werror
-  after_script:
-    - coverage xml
-
-  # regex to find the coverage percentage in the job output
-  coverage: '/^TOTAL.+?(\d+\%)$/'
-
-  artifacts:
-    when: always
-    reports:
-      cobertura: coverage.xml
 
 # Check compliance with the REUSE specification
 reuse_compliance:
@@ -83,6 +39,65 @@ reuse_compliance:
     - echo "Override default 'before_script'..."
   script:
     - reuse lint
+
+
+# make (visual) coverage in gitlab merge request diff's
+coverage:
+  stage: test
+  allow_failure: true
+  script:
+    - pip install pytest-cov coverage
+    - pytest --cov=saqc tests --ignore=tests/fuzzy -Werror
+  after_script:
+    - coverage xml
+  # regex to find the coverage percentage in the job output
+  coverage: '/^TOTAL.+?(\d+\%)$/'
+  artifacts:
+    when: always
+    reports:
+      cobertura: coverage.xml
+
+
+# test saqc with python 3.7
+python37:
+  stage: test
+  image: python:3.7
+  script:
+    - pytest tests dios/test -Werror --junitxml=report.xml
+    - python -m saqc --config sphinxdoc/resources/data/config.csv --data sphinxdoc/resources/data/data.csv --outfile /tmp/test.csv
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
+
+# test saqc with python 3.8
+python38:
+  stage: test
+  script:
+    - pytest tests dios/test -Werror --junitxml=report.xml
+    - python -m saqc --config sphinxdoc/resources/data/config.csv --data sphinxdoc/resources/data/data.csv --outfile /tmp/test.csv
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
+
+# test saqc with python 3.9
+python39:
+  stage: test
+  image: python:3.9
+  script:
+    - pytest tests dios/test -Werror --junitxml=report.xml
+    - python -m saqc --config sphinxdoc/resources/data/config.csv --data sphinxdoc/resources/data/data.csv --outfile /tmp/test.csv
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
+# ===========================================================
+# Extra Pipeline (run with a successful run of all other jobs on develop)
+# ===========================================================
 
 # make html docu with sphinx
 pages:
@@ -99,26 +114,3 @@ pages:
   artifacts:
     paths:
       - public
-
-
-# ===========================================================
-# scheduled jobs
-# ===========================================================
-
-# fuzzy testing saqc
-fuzzy:
-  stage: test
-  only:
-    - schedules
-  script:
-    - pytest tests/fuzzy -Werror
-
-
-# test lib saqc
-testLib:
-  stage: test
-  only:
-    - schedules
-  script:
-    - pytest tests/lib -Werror
-

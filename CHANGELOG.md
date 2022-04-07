@@ -16,6 +16,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - global keywords documentation resource added
 - generic documentation module `docurator.py` added to `lib`
 - flagging constants documentation resource added
+- `pytest.ini`: to setup default path and markers for pytest
 ### Changed
 - documentation pipeline changed to base on methods decorators
 - `flagOffsets` parameters `thresh` and `thresh_relative` now both are optional
@@ -23,6 +24,9 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - corrected false notion of *residual* concept (old notion: *residue* got replaced by *residual*)
 - constants `FILTER_NONE` and `FILTER_ALL` are now imported to `saqc.__init__`
 - renamed `maskTime` to `selectTime`
+- `.gitlab-ci.py`: always run all pytest-tests in CI/CD pipelines
+- `.gitlab-ci.py`: use reports to enable `Tests` in CI/CD pipeline results
+
 ### Removed
 ### Fixed
 - `flagOffset` bug with zero-valued threshold
