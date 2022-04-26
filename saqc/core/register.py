@@ -464,7 +464,9 @@ def processing(**kwargs):
     return register(mask=[], demask=[], squeeze=[])
 
 
-def _isflagged(flagscol: np.ndarray | pd.Series, thresh: float) -> np.array | pd.Series:
+def _isflagged(
+    flagscol: np.ndarray | pd.Series, thresh: float
+) -> np.ndarray | pd.Series:
     """
     Return a mask of flags accordingly to `thresh`. Return type is same as flags.
     """

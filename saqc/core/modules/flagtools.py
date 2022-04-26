@@ -7,14 +7,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any, Union, Sequence
 
 import pandas as pd
 import numpy as np
 from dios import DictOfSeries
 from typing_extensions import Literal
 
-from saqc.constants import BAD
+from saqc.constants import BAD, FILTER_ALL
 import saqc
 from saqc.lib.docurator import doc
 import saqc.funcs
@@ -61,3 +61,15 @@ class FlagTools:
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("transferFlags", locals())
+
+    @doc(saqc.funcs.flagtools.propagateFlags.__doc__)
+    def propagateFlags(
+        self,
+        field: str | Sequence[str],
+        window: Union[str, int],
+        method: Literal["ffill", "bfill"] = "ffill",
+        flag: float = BAD,
+        dfilter: float = FILTER_ALL,
+        **kwargs,
+    ) -> saqc.SaQC:
+        return self._defer("propagateFlags", locals())

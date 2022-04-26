@@ -17,6 +17,8 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - generic documentation module `docurator.py` added to `lib`
 - flagging constants documentation resource added
 - `pytest.ini`: to setup default path and markers for pytest
+- new function `progagateFlags`
+
 ### Changed
 - documentation pipeline changed to base on methods decorators
 - `flagOffsets` parameters `thresh` and `thresh_relative` now both are optional
