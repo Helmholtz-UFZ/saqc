@@ -48,11 +48,9 @@ def test_writeTargetFlagGeneric(data):
     for targets, func in params:
         expected_meta = {
             "func": "flagGeneric",
-            "args": (),
+            "args": (data.columns.tolist(), targets),
             "kwargs": {
-                "field": data.columns.tolist(),
                 "func": func.__name__,
-                "target": targets,
                 "flag": BAD,
                 "dfilter": FILTER_ALL,
             },
@@ -80,10 +78,8 @@ def test_overwriteFieldFlagGeneric(data):
     for fields, func in params:
         expected_meta = {
             "func": "flagGeneric",
-            "args": (),
+            "args": (fields, fields),
             "kwargs": {
-                "field": fields,
-                "target": fields,
                 "func": func.__name__,
                 "flag": flag,
                 "dfilter": FILTER_ALL,
@@ -104,11 +100,9 @@ def test_overwriteFieldFlagGeneric(data):
 
         res = saqc.flagGeneric(field=fields, func=func, flag=flag)
         for field in fields:
-            assert (data[field] == res.data[field]).all(axis=None)
-            histcol0 = res._flags.history[field].hist[0]
             histcol1 = res._flags.history[field].hist[1]
-            assert (histcol1[histcol0 == 127.0].isna()).all()
-            assert (histcol1[histcol0 != 127.0] == flag).all()
+            assert (histcol1 == flag).all()
+            assert (data[field] == res.data[field]).all(axis=None)
             assert res._flags.history[field].meta[0] == {}
             assert res._flags.history[field].meta[1] == expected_meta
 
@@ -128,10 +122,8 @@ def test_writeTargetProcGeneric(data):
 
         expected_meta = {
             "func": "procGeneric",
-            "args": (),
+            "args": (fields, targets),
             "kwargs": {
-                "field": data.columns.tolist(),
-                "target": targets,
                 "func": func.__name__,
                 "flag": BAD,
                 "dfilter": dfilter,
@@ -173,10 +165,8 @@ def test_overwriteFieldProcGeneric(data):
 
         expected_meta = {
             "func": "procGeneric",
-            "args": (),
+            "args": (fields, fields),
             "kwargs": {
-                "field": fields,
-                "target": fields,
                 "func": func.__name__,
                 "flag": flag,
                 "dfilter": dfilter,
