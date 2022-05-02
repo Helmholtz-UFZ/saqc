@@ -72,7 +72,7 @@ def processGeneric(
     flags: Flags,
     func: GenericFunction,
     target: str | Sequence[str] = None,
-    flag: float = UNFLAGGED,
+    flag: float = np.nan,
     dfilter: float = FILTER_ALL,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -106,10 +106,9 @@ def processGeneric(
         The variable(s) to write the result of ``func`` to. If not given, the variable(s)
         specified in ``field`` will be overwritten. If a ``target`` is not given, it will be
         created.
-    flag: float, default ``UNFLAGGED``
-        The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
-        ``processGeneric`` generates 'new' data without direct relation to the potentially
-        already present flags.
+    flag: float, default ``np.nan``
+        The quality flag to set. The default ``np.nan`` states the general idea, that
+        ``processGeneric`` generates 'new' data without any flags.
     dfilter: float, default ``FILTER_ALL``
         Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
         data value is inappropiate for further usage.
@@ -148,14 +147,12 @@ def processGeneric(
 
     meta = {
         "func": "procGeneric",
-        "args": (),
+        "args": (field, target),
         "kwargs": {
-            **kwargs,
-            "field": field,
             "func": func.__name__,
-            "target": target,
             "flag": flag,
             "dfilter": dfilter,
+            **kwargs,
         },
     }
 
@@ -222,8 +219,8 @@ def flagGeneric(
         The variable(s) to write the result of ``func`` to. If not given, the variable(s)
         specified in ``field`` will be overwritten. If a ``target`` is not given, it will be
         created.
-    flag: float, default ``UNFLAGGED``
-        The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
+    flag: float, default ``BAD``
+        The quality flag to set. The default ``BAD`` states the general idea, that
         ``processGeneric`` generates 'new' data without direct relation to the potentially
         already present flags.
     dfilter: float, default ``FILTER_ALL``
@@ -284,14 +281,12 @@ def flagGeneric(
 
     meta = {
         "func": "flagGeneric",
-        "args": (),
+        "args": (field, target),
         "kwargs": {
-            **kwargs,
-            "field": field,
             "func": func.__name__,
-            "target": target,
             "flag": flag,
             "dfilter": dfilter,
+            **kwargs,
         },
     }
 
@@ -308,7 +303,6 @@ def flagGeneric(
         if col not in data:
             data[col] = pd.Series(np.nan, index=maskcol.index)
 
-        maskcol = maskcol & ~_isflagged(flags[col], dfilter)
         flagcol = maskcol.replace({False: np.nan, True: flag}).astype(float)
 
         # we need equal indices to work on

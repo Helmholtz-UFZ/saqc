@@ -28,6 +28,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - renamed `maskTime` to `selectTime`
 - `.gitlab-ci.py`: always run all pytest-tests in CI/CD pipelines
 - `.gitlab-ci.py`: use reports to enable `Tests` in CI/CD pipeline results
+- `procGeneric`: changed default `flag` value to `np.nan`
 
 ### Removed
 ### Fixed
@@ -40,7 +41,10 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - `interpolateInvalid`: Fix: replacement of flags for interpolated values now works
 - `resample`: resampling func now actually gets passed on to `history.appy()`
 - `tools.seasonalMask`: fixed bug that swaps the entire mask upon `include_bounds=True`
-
+- `flagGeneric`:
+  - fixed inconsistent history meta writing
+  - fixed handling of existing flags
+- `proGeneeric`: fixed inconsistent history meta writing
 
 ## [2.0.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2021-12-20
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.0.0...v2.0.1)
