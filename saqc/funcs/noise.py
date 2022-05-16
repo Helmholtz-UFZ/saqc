@@ -5,13 +5,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 import pandas as pd
 import numpy as np
 import operator
 from dios import DictOfSeries
 from typing import Callable
 from saqc.constants import *
-from saqc.core import register, Flags
+from saqc.core import Flags
 from saqc.core.register import flagging
 from saqc.lib.tools import statPass
 
@@ -21,10 +22,10 @@ def flagByStatLowPass(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    func: Callable[[np.array, pd.Series], float],
-    window: str,
+    func: Callable[[np.ndarray, pd.Series], float],
+    window: str | pd.Timedelta,
     thresh: float,
-    sub_window: str = None,
+    sub_window: str | pd.Timedelta = None,
     sub_thresh: float = None,
     min_periods: int = None,
     flag: float = BAD,

@@ -22,10 +22,10 @@ class Noise:
     def flagByStatLowPass(
         self,
         field: str,
-        func: Callable[[np.array, pd.Series], float],
-        window: str,
+        func: Callable[[np.ndarray, pd.Series], float],
+        window: str | pd.Timedelta,
         thresh: float,
-        sub_window: str = None,
+        sub_window: str | pd.Timedelta = None,
         sub_thresh: float = None,
         min_periods: int = None,
         flag: float = BAD,
