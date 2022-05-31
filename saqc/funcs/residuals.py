@@ -85,9 +85,8 @@ def calculatePolynomialResiduals(
     data : dios.DictOfSeries
     flags : saqc.Flags
     """
-    reserved = ["residuals", "set_flags"]
-    filterKwargs(kwargs, reserved)
-    return _fitPolynomial(
+    orig = data[field]
+    data, flags = _fitPolynomial(
         data=data,
         field=field,
         flags=flags,
@@ -95,10 +94,9 @@ def calculatePolynomialResiduals(
         order=order,
         min_periods=min_periods,
         **kwargs,
-        # ctrl args
-        return_residuals=True,
-        set_flags=True,
     )
+    data[field] = orig - data[field]
+    return data, flags
 
 
 @register(mask=["field"], demask=[], squeeze=[])
@@ -146,9 +144,8 @@ def calculateRollingResiduals(
     flags : saqc.Flags
         The quality flags of data
     """
-    reserved = ["return_residuals", "set_flags"]
-    kwargs = filterKwargs(kwargs, reserved)
-    return _roll(
+    orig = data[field].copy()
+    data, flags = _roll(
         data=data,
         field=field,
         flags=flags,
@@ -157,7 +154,8 @@ def calculateRollingResiduals(
         min_periods=min_periods,
         center=center,
         **kwargs,
-        # ctrl args
-        set_flags=True,
-        return_residuals=True,
     )
+
+    # calculate residual
+    data[field] = orig - data[field]
+    return data, flags

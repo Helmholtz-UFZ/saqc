@@ -61,8 +61,6 @@ def roll(
     flags : saqc.Flags
         The quality flags of data
     """
-    reserved = ["return_residuals", "set_flags"]
-    kwargs = filterKwargs(kwargs, reserved)
     return _roll(
         data=data,
         field=field,
@@ -72,9 +70,6 @@ def roll(
         min_periods=min_periods,
         center=center,
         **kwargs,
-        # ctrl args
-        set_flags=True,
-        return_residuals=False,
     )
 
 
@@ -84,10 +79,8 @@ def _roll(
     flags: Flags,
     window: Union[str, int],
     func: Callable[[pd.Series], np.ndarray] = np.mean,
-    set_flags: bool = True,
     min_periods: int = 0,
     center: bool = True,
-    return_residuals=False,
     **kwargs
 ):
     to_fit = data[field].copy()
@@ -153,12 +146,8 @@ def _roll(
                 func
             )
 
-    if return_residuals:
-        means = to_fit - means
-
     data[field] = means
-    if set_flags:
-        worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()
-        flags[field] = worst
+    worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()
+    flags[field] = worst
 
     return data, flags

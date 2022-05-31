@@ -92,8 +92,6 @@ def fitPolynomial(
     flags : saqc.Flags
         Flags
     """
-    reserved = ["residuals", "set_flags"]
-    filterKwargs(kwargs, reserved)
     return _fitPolynomial(
         data=data,
         field=field,
@@ -102,9 +100,6 @@ def fitPolynomial(
         order=order,
         min_periods=min_periods,
         **kwargs,
-        # ctrl args
-        return_residuals=False,
-        set_flags=True,
     )
 
 
@@ -114,9 +109,7 @@ def _fitPolynomial(
     flags: Flags,
     window: Union[int, str],
     order: int,
-    set_flags: bool = True,
     min_periods: int = 0,
-    return_residuals: bool = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
 
@@ -140,7 +133,7 @@ def _fitPolynomial(
         ).floor()
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
-        residuals = to_fit.rolling(
+        fitted = to_fit.rolling(
             pd.Timedelta(window), closed="both", min_periods=min_periods
         ).apply(polyRollerIrregular, args=(centers, order))
 
@@ -153,11 +146,11 @@ def _fitPolynomial(
             .apply(center_func, raw=False)
             .astype(int)
         )
-        temp = residuals.copy()
+        temp = fitted.copy()
         for k in centers_iloc.iteritems():
-            residuals.iloc[k[1]] = temp[k[0]]
-        residuals[residuals.index[0] : residuals.index[centers_iloc[0]]] = np.nan
-        residuals[residuals.index[centers_iloc[-1]] : residuals.index[-1]] = np.nan
+            fitted.iloc[k[1]] = temp[k[0]]
+        fitted[fitted.index[0] : fitted.index[centers_iloc[0]]] = np.nan
+        fitted[fitted.index[centers_iloc[-1]] : fitted.index[-1]] = np.nan
     else:
         if isinstance(window, str):
             window = pd.Timedelta(window) // regular
@@ -185,7 +178,7 @@ def _fitPolynomial(
             na_mask = to_fit.isna()
             to_fit[na_mask] = miss_marker
             if numba:
-                residuals = to_fit.rolling(window).apply(
+                fitted = to_fit.rolling(window).apply(
                     polyRollerNumba,
                     args=(miss_marker, val_range, center_index, order),
                     raw=True,
@@ -194,18 +187,18 @@ def _fitPolynomial(
                 )
                 # due to a tiny bug - rolling with center=True doesnt work
                 # when using numba engine.
-                residuals = residuals.shift(-int(center_index))
+                fitted = fitted.shift(-int(center_index))
             else:
-                residuals = to_fit.rolling(window, center=True).apply(
+                fitted = to_fit.rolling(window, center=True).apply(
                     polyRoller,
                     args=(miss_marker, val_range, center_index, order),
                     raw=True,
                 )
-            residuals[na_mask] = np.nan
+            fitted[na_mask] = np.nan
         else:
             # we only fit fully populated intervals:
             if numba:
-                residuals = to_fit.rolling(window).apply(
+                fitted = to_fit.rolling(window).apply(
                     polyRollerNoMissingNumba,
                     args=(val_range, center_index, order),
                     engine="numba",
@@ -214,21 +207,16 @@ def _fitPolynomial(
                 )
                 # due to a tiny bug - rolling with center=True doesnt work
                 # when using numba engine.
-                residuals = residuals.shift(-int(center_index))
+                fitted = fitted.shift(-int(center_index))
             else:
-                residuals = to_fit.rolling(window, center=True).apply(
+                fitted = to_fit.rolling(window, center=True).apply(
                     polyRollerNoMissing,
                     args=(val_range, center_index, order),
                     raw=True,
                 )
 
-    if return_residuals:
-        residuals = to_fit - residuals
-
-    data[field] = residuals
-    if set_flags:
-        # TODO: we does not get any flags here, because of masking=field
-        worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()
-        flags[field] = worst
+    data[field] = fitted
+    worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()
+    flags[field] = worst
 
     return data, flags
