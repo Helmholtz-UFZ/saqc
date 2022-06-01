@@ -51,7 +51,7 @@ def readData(reader_dict, fname):
     reader = reader_dict.get(extension)
     if not reader:
         raise ValueError(
-            f"Unsupported file format '{extension}', use one of {tuple(reader.keys())}"
+            f"Unsupported file format '{extension}', use one of {tuple(reader_dict.keys())}"
         )
     return reader(fname)
 
@@ -61,7 +61,7 @@ def writeData(writer_dict, df, fname):
     writer = writer_dict.get(extension)
     if not writer:
         raise ValueError(
-            f"Unsupported file format '{extension}', use one of {tuple(writer.keys())}"
+            f"Unsupported file format '{extension}', use one of {tuple(writer_dict.keys())}"
         )
     writer(df, fname)
 
