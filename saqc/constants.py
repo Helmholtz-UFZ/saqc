@@ -69,9 +69,11 @@ FILTER_NONE = np.inf
 #: A :py:mod:`flag level constant <saqc.constants>`
 ENVIRONMENT = {
     # Infinity constant
+    "inf": np.inf,
     "INF": np.inf,
     # Not A number Constant.
     "NAN": np.nan,
+    "nan": np.nan,
     # Pointwise absolute Value Function.
     "abs": np.abs,
     # Maximum Value Function. Ignores NaN.
