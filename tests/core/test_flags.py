@@ -18,7 +18,7 @@ from tests.core.test_history import (
     is_equal as hist_equal,
 )
 
-_data = [
+_arrays = [
     np.array([[]]),
     np.zeros((1, 1)),
     np.zeros((3, 4)),
@@ -40,23 +40,16 @@ _data = [
     ),
 ]
 
-data = []
-for d in _data:
+testdata = []
+for d in _arrays:
     columns = list("abcdefgh")[: d.shape[1]]
     df = pd.DataFrame(d, dtype=float, columns=columns)
     dis = dios.DictOfSeries(df)
     di = {}
     di.update(df.items())
-    data.append(df)
-    data.append(di)
-    data.append(dis)
-
-
-@pytest.mark.parametrize("data", data)
-def test_init(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
-    flags = Flags(data)
-    assert isinstance(flags, Flags)
-    assert len(data.keys()) == len(flags)
+    testdata.append(df)
+    testdata.append(di)
+    testdata.append(dis)
 
 
 def is_equal(f1, f2):
@@ -65,7 +58,53 @@ def is_equal(f1, f2):
         assert hist_equal(f1.history[c], f2.history[c])
 
 
-@pytest.mark.parametrize("data", data)
+@pytest.mark.parametrize("data", testdata)
+@pytest.mark.parametrize("copy", [True, False])
+def test_init(data, copy):
+    flags = Flags(data, copy=copy)
+    assert isinstance(flags, Flags)
+    assert len(data.keys()) == len(flags)
+
+
+@pytest.mark.parametrize("data", testdata)
+@pytest.mark.parametrize("copy", [True, False])
+def test_init_from_other(data, copy):
+    first = Flags(data)
+    second = Flags(first, copy=copy)
+    assert isinstance(second, Flags)
+    assert first is not second
+    if copy:
+        assert first._data is not second._data
+    else:
+        assert first._data is second._data
+
+
+@pytest.mark.parametrize(
+    "data,msg",
+    [
+        ({1: pd.Series([1.0])}, "column names must be string"),
+        ({"a": pd.Series([1, 2], dtype=int)}, "dtype must be float"),
+    ],
+)
+def test_init_raise_ValueError(data, msg):
+    with pytest.raises(ValueError) as e:
+        Flags(data)
+    assert msg in str(e.value)
+
+
+@pytest.mark.parametrize(
+    "data,msg",
+    [
+        ({"a": [1, 2]}, "cannot init from 'dict' of 'list'"),
+    ],
+)
+def test_init_raise_TypeError(data, msg):
+    with pytest.raises(TypeError) as e:
+        Flags(data)
+    assert msg in str(e.value)
+
+
+@pytest.mark.parametrize("data", testdata)
 def test_copy(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
     shallow = flags.copy(deep=False)
@@ -93,7 +132,7 @@ def test_copy(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
         assert deep._data[c].index is not flags._data[c].index
 
 
-@pytest.mark.parametrize("data", data)
+@pytest.mark.parametrize("data", testdata)
 def test_flags_history(
     data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
 ):
@@ -115,7 +154,7 @@ def test_flags_history(
         assert len(hist) == hlen + 1
 
 
-@pytest.mark.parametrize("data", data)
+@pytest.mark.parametrize("data", testdata)
 def test_get_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
 
@@ -134,7 +173,7 @@ def test_get_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Ser
         assert all(flags[c] != var)
 
 
-@pytest.mark.parametrize("data", data)
+@pytest.mark.parametrize("data", testdata)
 def test_set_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
 
@@ -163,7 +202,7 @@ def test_set_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Ser
         assert all(flags.history[c].max() == 8888.0)
 
 
-@pytest.mark.parametrize("data", data)
+@pytest.mark.parametrize("data", testdata)
 def test_set_flags_with_mask(
     data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
 ):
@@ -210,7 +249,7 @@ def test_set_flags_with_mask(
                 flags[mask, c] = wrong_len
 
 
-@pytest.mark.parametrize("data", data)
+@pytest.mark.parametrize("data", testdata)
 def test_set_flags_with_index(
     data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
 ):
@@ -254,7 +293,7 @@ def _validate_flags_equals_frame(flags, df):
         assert df[c].equals(flags[c])  # respects nan's
 
 
-@pytest.mark.parametrize("data", data)
+@pytest.mark.parametrize("data", testdata)
 def test_to_dios(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
     df = flags.toDios()
@@ -263,10 +302,41 @@ def test_to_dios(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Serie
     _validate_flags_equals_frame(flags, df)
 
 
-@pytest.mark.parametrize("data", data)
+@pytest.mark.parametrize("data", testdata)
 def test_to_frame(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
     df = flags.toFrame()
 
     assert isinstance(df, pd.DataFrame)
     _validate_flags_equals_frame(flags, df)
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [["x", "y"], pd.Index(["x", "y"])],
+)
+def test_columns_setter(columns):
+    flags = Flags(
+        {"a": pd.Series([1, 2], dtype=float), "b": pd.Series([1, 2], dtype=float)}
+    )
+    flags.columns = columns
+    for c in columns:
+        assert c in flags.columns
+
+
+@pytest.mark.parametrize(
+    "columns,err",
+    [
+        ("foooo", TypeError),  # cannot cast to Index
+        (pd.Index(["x", "x"]), TypeError),  # duplicates
+        (pd.Index([1, 2]), TypeError),  # not string
+        (pd.Index(["x", "y", "z"]), ValueError),  # wrong length
+        (pd.Index(["x"]), ValueError),  # wrong length
+    ],
+)
+def test_columns_setter_raises(columns, err):
+    flags = Flags(
+        {"a": pd.Series([1, 2], dtype=float), "b": pd.Series([1, 2], dtype=float)}
+    )
+    with pytest.raises(err):
+        flags.columns = columns

@@ -32,7 +32,7 @@ ExternalFlag = Union[str, float, int]
 # needed for deeper type hinting magic
 class CurveFitter(Protocol):
     def __call__(self, data: np.ndarray, *params: float) -> np.ndarray:
-        ...
+        ...  # pragma: no cover
 
 
 class GenericFunction(Protocol):
@@ -41,7 +41,7 @@ class GenericFunction(Protocol):
     __globals__: Dict[str, Any]
 
     def __call__(self, *args: pd.Series) -> PandasLike:
-        ...
+        ...  # pragma: no cover
 
 
 class OptionalNone:

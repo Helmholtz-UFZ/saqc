@@ -14,6 +14,7 @@ from saqc.constants import BAD, UNFLAGGED
 from saqc.core import initFlagsLike
 from saqc.funcs.pattern import flagPatternByDTW
 from tests.common import initData
+from pandas.testing import assert_series_equal
 
 
 @pytest.fixture
@@ -26,7 +27,9 @@ def field(data):
     return data.columns[0]
 
 
-def test_flagPattern_dtw():
+@pytest.mark.parametrize("plot", [True, False])
+@pytest.mark.parametrize("normalize", [True, False])
+def test_flagPattern_dtw(plot, normalize):
     data = pd.Series(0, index=pd.date_range(start="2000", end="2001", freq="1d"))
     data.iloc[10:18] = [0, 5, 6, 7, 6, 8, 5, 0]
     pattern = data.iloc[10:18]
@@ -34,7 +37,13 @@ def test_flagPattern_dtw():
     data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
     flags = initFlagsLike(data, name="data")
     data, flags = flagPatternByDTW(
-        data, "data", flags, reference="pattern_data", flag=BAD
+        data,
+        "data",
+        flags,
+        reference="pattern_data",
+        plot=plot,
+        normalize=normalize,
+        flag=BAD,
     )
 
     assert all(flags["data"].iloc[10:18] == BAD)

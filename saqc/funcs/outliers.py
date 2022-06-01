@@ -23,7 +23,7 @@ from scipy.optimize import curve_fit
 from saqc.constants import BAD, UNFLAGGED
 from saqc.core import register, Flags
 from saqc.core.register import flagging
-from saqc.lib.tools import customRoller, findIndex, getFreqDelta, toSequence
+from saqc.lib.tools import customRoller, getFreqDelta, toSequence
 from saqc.funcs.scores import assignKNNScore
 from saqc.funcs.tools import copyField, dropField
 from saqc.funcs.transformation import transform
@@ -269,140 +269,6 @@ def _evalStrayLabels(
         flags[col[col].index, field] = flag
 
     return data, flags
-
-
-def _expFit(
-    val_frame,
-    scoring_method="kNNMaxGap",
-    n_neighbors=10,
-    iter_start=0.5,
-    alpha=0.05,
-    bin_frac=10,
-):
-    """
-    Find outliers in multi dimensional observations.
-
-    The general idea is to assigning scores to every observation based on the observations neighborhood in the space
-    of observations. Then, the gaps between the (greatest) scores are tested for beeing drawn from the same
-    distribution, as the majority of the scores.
-
-    Note, that no normalizations/transformations are applied to the different components (data columns)
-    - those are expected to be applied previously, if necessary.
-
-    Parameters
-    ----------
-    val_frame : (N,M) ndarray
-        Input NxM array of observations, where N is the number of observations and M the number of components per
-        observation.
-    scoring_method : {'kNNSum', 'kNNMaxGap'}, default 'kNNMaxGap'
-        Scoring method applied.
-        `'kNNSum'`: Assign to every point the sum of the distances to its 'n' nearest neighbors.
-        `'kNNMaxGap'`: Assign to every point the distance to the neighbor with the "maximum gap" to its predecessor
-        in the hierarchy of the `n` nearest neighbors. (see reference section for further descriptions)
-    n_neighbors : int, default 10
-        Number of neighbors included in the scoring process for every datapoint.
-    iter_start : float, default 0.5
-        Float in [0,1] that determines which percentage of data is considered "normal". 0.5 results in the expfit
-        algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
-        information)
-    alpha : float, default 0.05
-        Niveau of significance by which it is tested, if a score might be drawn from another distribution, than the
-        majority of the data.
-    bin_frac : {int, str}, default 10
-        Controls the binning for the histogram in the fitting step. If an integer is passed, the residuals will
-        equidistantly be covered by `bin_frac` bins, ranging from the minimum to the maximum of the residuals.
-        If a string is passed, it will be passed on to the ``numpy.histogram_bin_edges`` method.
-    """
-
-    kNNfunc = getattr(ts_ops, scoring_method)
-    resids = kNNfunc(val_frame.values, n_neighbors=n_neighbors, algorithm="ball_tree")
-    data_len = resids.shape[0]
-
-    # sorting
-    sorted_i = resids.argsort()
-    resids = resids[sorted_i]
-    iter_index = int(np.floor(resids.size * iter_start))
-    # initialize condition variables:
-    crit_val = np.inf
-    test_val = 0
-    neg_log_alpha = -np.log(alpha)
-
-    # define exponential dist density function:
-    def fit_function(x, lambd):
-        return lambd * np.exp(-lambd * x)
-
-    # initialise sampling bins
-    if isinstance(bin_frac, int):
-        binz = np.linspace(
-            resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac))
-        )
-    elif bin_frac in [
-        "auto",
-        "fd",
-        "doane",
-        "scott",
-        "stone",
-        "rice",
-        "sturges",
-        "sqrt",
-    ]:
-        binz = np.histogram_bin_edges(resids, bins=bin_frac)
-    else:
-        raise ValueError(f"Can't interpret {bin_frac} as an binning technique.")
-
-    binzenters = np.array([0.5 * (binz[i] + binz[i + 1]) for i in range(len(binz) - 1)])
-    # inititialize full histogram:
-    full_hist, binz = np.histogram(resids, bins=binz)
-    # check if start index is sufficiently high (pointing at resids value beyond histogram maximum at least):
-    hist_argmax = full_hist.argmax()
-
-    if hist_argmax >= findIndex(binz, resids[iter_index - 1], 0):
-        raise ValueError(
-            "Either the data histogram is too strangely shaped for oddWater OD detection - "
-            "or a too low value for 'offset' was passed "
-            "(offset better be much greater 0.5)"
-        )
-    # GO!
-    iter_max_bin_index = findIndex(binz, resids[iter_index - 1], 0)
-    upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
-    resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
-    upper_tail_hist, bins = np.histogram(
-        resids[resids_tail_index:iter_index],
-        bins=binz[upper_tail_index : iter_max_bin_index + 1],
-    )
-
-    while (test_val < crit_val) & (iter_index < resids.size - 1):
-        iter_index += 1
-        new_iter_max_bin_index = findIndex(binz, resids[iter_index - 1], 0)
-        # following if/else block "manually" expands the data histogram and circumvents calculation of the complete
-        # histogram in any new iteration.
-        if new_iter_max_bin_index == iter_max_bin_index:
-            upper_tail_hist[-1] += 1
-        else:
-            upper_tail_hist = np.append(
-                upper_tail_hist, np.zeros([new_iter_max_bin_index - iter_max_bin_index])
-            )
-            upper_tail_hist[-1] += 1
-            iter_max_bin_index = new_iter_max_bin_index
-            upper_tail_index_new = int(
-                np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index)
-            )
-            upper_tail_hist = upper_tail_hist[upper_tail_index_new - upper_tail_index :]
-            upper_tail_index = upper_tail_index_new
-
-        # fitting
-
-        lambdA, _ = curve_fit(
-            fit_function,
-            xdata=binzenters[upper_tail_index:iter_max_bin_index],
-            ydata=upper_tail_hist,
-            p0=[-np.log(alpha / resids[iter_index])],
-        )
-
-        crit_val = neg_log_alpha / lambdA
-        test_val = resids[iter_index]
-
-    return val_frame.index[sorted_i[iter_index:]]
 
 
 @register(

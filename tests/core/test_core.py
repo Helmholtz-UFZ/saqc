@@ -13,12 +13,12 @@ import pandas as pd
 import saqc
 from saqc.core import initFlagsLike, SaQC, register
 from saqc.core.flags import Flags
-from saqc.core.register import processing
+from saqc.core.register import processing, flagging
+import copy
 
 from tests.common import initData, flagAll
 
 OPTIONAL = [False, True]
-
 
 register(mask=["field"], demask=["field"], squeeze=["field"])(flagAll)
 
@@ -40,22 +40,10 @@ def test_errorHandling(data):
         raise TypeError
 
     var1 = data.columns[0]
+    qc = SaQC(data)
 
     with pytest.raises(TypeError):
-        SaQC(data).raisingFunc(var1)
-
-
-def test_duplicatedVariable():
-    data = initData(1)
-    var1 = data.columns[0]
-
-    pflags = SaQC(data).flagDummy(var1).result.flags
-
-    if isinstance(pflags.columns, pd.MultiIndex):
-        cols = pflags.columns.get_level_values(0).drop_duplicates()
-        assert np.all(cols == [var1])
-    else:
-        assert (pflags.columns == [var1]).all()
+        qc.raisingFunc(var1)
 
 
 @pytest.mark.parametrize("optional", OPTIONAL)
@@ -191,3 +179,62 @@ def test_sourceTargetMulti():
         return data, flags
 
     SaQC(data, flags).flagMulti(field=fields, target=targets)
+
+
+def test_unknown_attribute():
+    qc = SaQC()
+    with pytest.raises(AttributeError):
+        qc._construct(_spam="eggs")
+
+
+def test_validation(data):
+    """Test if validation detects different columns in data and flags."""
+    df = pd.DataFrame(
+        data=np.arange(8).reshape(4, 2),
+        index=pd.date_range("2020", None, 4, "1d"),
+        columns=list("ab"),
+    )
+    qc = SaQC(df)
+
+    @flagging()
+    def flagFoo(data, field, flags, **kwargs):
+        data["spam"] = data[field]
+        return data, flags
+
+    with pytest.raises(RuntimeError):
+        qc.flagFoo("a")
+
+
+@pytest.mark.skip(reason="bug in register, see #GL 342")
+def test_validation_flags(data):
+    """Test if validation detects different columns in data and flags."""
+    df = pd.DataFrame(
+        data=np.arange(8).reshape(4, 2),
+        index=pd.date_range("2020", None, 4, "1d"),
+        columns=list("ab"),
+    )
+    qc = SaQC(df)
+
+    @flagging()
+    def flagFoo(data, field, flags, **kwargs):
+        flags["spam"] = flags[field]
+        return data, flags
+
+    with pytest.raises(RuntimeError):
+        qc.flagFoo("a")
+
+
+def test__copy__():
+    orig = SaQC()
+    orig.attrs["spam"] = []  # a higher object
+    shallow = copy.copy(orig)
+    assert shallow is not orig
+    assert shallow.attrs["spam"] is orig.attrs["spam"]
+
+
+def test__deepcopy__():
+    orig = SaQC()
+    orig.attrs["spam"] = []  # a higher object
+    shallow = copy.deepcopy(orig)
+    assert shallow is not orig
+    assert shallow.attrs["spam"] is not orig.attrs["spam"]
