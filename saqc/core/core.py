@@ -61,7 +61,6 @@ class SaQC(FunctionsMixin):
         "_flags",
         "_scheme",
         "_attrs",
-        "_called",
     }
 
     def __init__(
@@ -69,12 +68,10 @@ class SaQC(FunctionsMixin):
         data=None,
         flags=None,
         scheme: str | TranslationScheme = "float",
-        copy: bool = True,
     ):
-        self._data = self._initData(data, copy)
-        self._flags = self._initFlags(flags, copy)
+        self._data = self._initData(data)
+        self._flags = self._initFlags(flags)
         self._scheme = self._initTranslationScheme(scheme)
-        self._called = []
         self._attrs = {}
         self._validate(reason="init")
 
@@ -197,7 +194,7 @@ class SaQC(FunctionsMixin):
             fields, targets = self._expandFields(
                 regex=regex, field=field, target=target
             )
-            out = self
+            out = self.copy(deep=True)
 
             if not func.handles_target:
                 if len(fields) != len(targets):
@@ -250,12 +247,9 @@ class SaQC(FunctionsMixin):
         # but data is the original and flags is a copy (as currently implemented),
         # data and flags of the original saqc obj may change inconsistently.
         self._data, self._flags = res
-        self._called += [(field, (function, args, kwargs))]
         self._validate(reason=f"call to {repr(function.__name__)}")
 
-        return self._construct(
-            _data=self._data, _flags=self._flags, _called=self._called
-        )
+        return self._construct(_data=self._data, _flags=self._flags)
 
     def __getattr__(self, key):
         """
@@ -292,7 +286,7 @@ class SaQC(FunctionsMixin):
             f"or an initialized Translator object, got '{scheme}'"
         )
 
-    def _initData(self, data, copy: bool) -> DictOfSeries:
+    def _initData(self, data) -> DictOfSeries:
 
         if data is None:
             return DictOfSeries()
@@ -300,11 +294,11 @@ class SaQC(FunctionsMixin):
         if isinstance(data, list):
             results = []
             for d in data:
-                results.append(self._castToDios(d, copy=copy))
+                results.append(self._castToDios(d))
             return concatDios(results, warn=True, stacklevel=3)
 
         if isinstance(data, (DictOfSeries, pd.DataFrame, pd.Series)):
-            return self._castToDios(data, copy)
+            return self._castToDios(data)
 
         raise TypeError(
             "'data' must be of type pandas.Series, "
@@ -312,7 +306,7 @@ class SaQC(FunctionsMixin):
             "a list of those."
         )
 
-    def _castToDios(self, data, copy: bool):
+    def _castToDios(self, data):
         if isinstance(data, pd.Series):
             if not isinstance(data.name, str):
                 raise ValueError(f"Cannot init from unnamed pd.Series")
@@ -325,18 +319,16 @@ class SaQC(FunctionsMixin):
         for c in data.columns:
             if not isinstance(c, str):
                 raise TypeError("columns labels must be of type string")
-        if copy:
-            data = data.copy()
         return data
 
-    def _initFlags(self, flags, copy: bool) -> Flags:
+    def _initFlags(self, flags) -> Flags:
         if flags is None:
             return initFlagsLike(self._data)
 
         if isinstance(flags, list):
             result = Flags()
             for f in flags:
-                f = self._castToFlags(f, copy=copy)
+                f = self._castToFlags(f)
                 for c in f.columns:
                     if c in result.columns:
                         warnings.warn(
@@ -348,7 +340,7 @@ class SaQC(FunctionsMixin):
             flags = result
 
         elif isinstance(flags, (pd.DataFrame, DictOfSeries, Flags)):
-            flags = self._castToFlags(flags, copy=copy)
+            flags = self._castToFlags(flags)
 
         else:
             raise TypeError(
@@ -371,15 +363,13 @@ class SaQC(FunctionsMixin):
                     )
         return flags
 
-    def _castToFlags(self, flags, copy):
+    def _castToFlags(self, flags):
         if isinstance(flags, pd.DataFrame):
             for idx in [flags.index, flags.columns]:
                 if isinstance(idx, pd.MultiIndex):
                     raise TypeError("'flags' should not have MultiIndex")
         if not isinstance(flags, Flags):
             flags = Flags(flags)
-        if copy:
-            flags = flags.copy()
         return flags
 
 

@@ -71,7 +71,6 @@ def test_copy(data):
 
     for copy in [deep, shallow]:
         assert copy is not qc
-        assert copy._called is not qc._called
         assert copy._scheme is not qc._scheme
         assert copy._attrs is not qc._attrs
 
@@ -238,3 +237,11 @@ def test__deepcopy__():
     shallow = copy.deepcopy(orig)
     assert shallow is not orig
     assert shallow.attrs["spam"] is not orig.attrs["spam"]
+
+
+def test_immutability(data):
+    field = data.columns[0]
+    saqc_before = SaQC(data)
+    saqc_after = saqc_before.flagDummy(field)
+    for name in SaQC._attributes:
+        assert getattr(saqc_before, name) is not getattr(saqc_after, name)
