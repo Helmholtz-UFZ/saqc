@@ -12,12 +12,13 @@ n = np.nan
 
 
 def test_rolling_existence_of_attrs():
-    r = pd.DataFrame().rolling(0).validate()
+    # Rolling.validate is deprectaed, the wrapped method, however,
+    # is not. So, let's call the private method for now...
+    r = pd.DataFrame().rolling(0)._validate()
     c = customRoller(pd.DataFrame(), 0, min_periods=0)
     expected = [attr for attr in dir(r) if not attr.startswith("_")]
     result = [attr for attr in dir(c) if not attr.startswith("_")]
     diff = [attr for attr in expected if attr not in result]
-    print(diff)
     assert len(diff) == 0
 
 

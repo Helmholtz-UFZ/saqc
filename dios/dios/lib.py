@@ -2,8 +2,16 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pandas as pd
 import warnings
+from contextlib import contextmanager
+import pandas as pd
+
+
+@contextmanager
+def no_index_warning():
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        yield
 
 
 class ItypeWarning(RuntimeWarning):
@@ -33,15 +41,18 @@ class DtItype(__Itype):
 class IntItype(__Itype):
     name = "integer"
     unique = True
-    subtypes = (pd.RangeIndex, pd.Int64Index, pd.UInt64Index, int)
-    min_pdindex = pd.Int64Index([])
+    with no_index_warning():
+        subtypes = (pd.RangeIndex, pd.Int64Index, pd.UInt64Index, int)
+        min_pdindex = pd.Int64Index([])
 
 
 class FloatItype(__Itype):
     name = "float"
-    subtypes = (pd.Float64Index, float)
     unique = True
-    min_pdindex = pd.Float64Index([])
+
+    with no_index_warning():
+        subtypes = (pd.Float64Index, float)
+        min_pdindex = pd.Float64Index([])
 
 
 # class MultiItype(__Itype):
@@ -55,7 +66,8 @@ class NumItype(__Itype):
     _subitypes = (IntItype, FloatItype)
     subtypes = _subitypes + IntItype.subtypes + FloatItype.subtypes
     unique = False
-    min_pdindex = pd.Float64Index([])
+    with no_index_warning():
+        min_pdindex = pd.Float64Index([])
 
 
 class ObjItype(__Itype):

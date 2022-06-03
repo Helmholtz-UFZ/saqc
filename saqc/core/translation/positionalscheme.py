@@ -99,7 +99,7 @@ class PositionalScheme(TranslationScheme):
         """
         out = {}
         for field in flags.columns:
-            thist = flags.history[field].hist.replace(self._BACKWARD).astype(int)
+            thist = flags.history[field].hist.replace(self._BACKWARD).astype(float)
             # concatenate the single flag values
             ncols = thist.shape[-1]
             init = 9 * 10**ncols

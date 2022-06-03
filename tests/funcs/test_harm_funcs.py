@@ -65,7 +65,7 @@ def test_gridInterpolation(data, method):
     freq = "15T"
     field = "data"
     data = data[field]
-    data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
+    data = pd.concat([data * np.sin(data), data.shift(1, "2h")]).shift(1, "3s")
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
 

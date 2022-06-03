@@ -163,8 +163,9 @@ def course_3(char_dict):
         insertion_index = pd.DatetimeIndex(dates)
 
         data.iloc[int(np.floor(periods / 2))] = out_val
-        data = data.append(pd.Series(data=out_val, index=insertion_index))
-        data.sort_index(inplace=True)
+        data = pd.concat(
+            [data, pd.Series(data=out_val, index=insertion_index)]
+        ).sort_index()
         anomaly_index = insertion_index.insert(
             0, data.index[int(np.floor(periods / 2))]
         )

@@ -322,11 +322,9 @@ def flagManual(
             mdata = mdata.ffill()
 
         if method == "left-open":
-            mdata = (
-                mdata.replace({mflag: not_mflag, not_mflag: mflag})
-                .append(app_entry)
-                .bfill()
-            )
+            mdata = pd.concat(
+                [mdata.replace({mflag: not_mflag, not_mflag: mflag}), app_entry]
+            ).bfill()
 
         if method == "closed":
             mdata[mdata.ffill() == mflag] = mflag
