@@ -248,7 +248,7 @@ class Flags:
             errm += f"of column {colname} "
 
         # this ensures that the mask does not shadow UNFLAGGED with a NaN.
-        if history.max().hasnans:
+        if history.squeeze().hasnans:
             raise ValueError(errm + "is not valid (result of max() contains NaNs)")
 
         return history
@@ -320,7 +320,7 @@ class Flags:
     # item access
 
     def __getitem__(self, key: str) -> pd.Series:
-        return self._data[key].max()
+        return self._data[key].squeeze()
 
     def __setitem__(self, key: SelectT, value: ValueT):
         # force-KW is only internally available

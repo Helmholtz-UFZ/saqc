@@ -20,6 +20,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - new function `progagateFlags`
 
 ### Changed
+- renamed `History.max` to renamed `History.squeeze`
 - documentation pipeline changed to base on methods decorators
 - `flagOffsets` parameters `thresh` and `thresh_relative` now both are optional
 - flags concatenation tasks (for squeezed and explicit histories) are now all channeled through the function `concatFlags`
