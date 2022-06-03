@@ -14,6 +14,4 @@ pandas==1.4.2
 scikit-learn==1.1.1
 scipy==1.8.1
 typing_extensions==4.2.0
-pytest==6.2.5
-pytest-lazy-fixture==0.6.3
 seaborn==0.11.2

@@ -13,8 +13,8 @@ default:
   image: python:3.8
   before_script:
     - pip install --upgrade pip
-    - pip install pytest
     - pip install -r requirements.txt
+    - pip install -r tests/requirements.txt
 
 
 # ===========================================================

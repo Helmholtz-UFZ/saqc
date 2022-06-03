@@ -51,7 +51,7 @@ and a python module with a simple API.
 The command line application is controlled by a semicolon-separated text
 file listing the variables in the dataset and the routines to inspect,
 quality control and/or process them. The content of such a configuration
-could look like [this](https://git.ufz.de/rdm-software/saqc/raw/develop/resources/data/config.csv):
+could look like [this](https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/resources/data/config.csv):
 
 ```
 varname    ; test
@@ -76,8 +76,8 @@ saqc \
 A full `SaQC` run against provided example data can be invoked with:
 ```sh
 saqc \
-    --config https://git.ufz.de/rdm-software/saqc/raw/develop/resources/data/config.csv \
-    --data https://git.ufz.de/rdm-software/saqc/raw/develop/resources/data/data.csv \
+    --config https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/resources/data/config.csv \
+    --data https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/resources/data/data.csv \
     --outfile saqc_test.csv
 ```
 
@@ -91,7 +91,7 @@ import pandas as pd
 from saqc import SaQC
 
 data = pd.read_csv(
-    "https://git.ufz.de/rdm-software/saqc/raw/develop/resources/data/data.csv",
+    "https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/resources/data/data.csv",
     index_col=0, parse_dates=True,
 )
 
