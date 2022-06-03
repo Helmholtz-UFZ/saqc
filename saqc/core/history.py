@@ -208,7 +208,7 @@ class History:
         self.meta += value_meta
         return self
 
-    def max(self, raw=False) -> pd.Series:
+    def squeeze(self, raw=False) -> pd.Series:
         """
         Get the maximum value per row of the FH.
 

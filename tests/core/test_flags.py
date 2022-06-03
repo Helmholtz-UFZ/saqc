@@ -163,7 +163,7 @@ def test_get_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Ser
         var = flags[c]
         assert isinstance(var, pd.Series)
         assert not var.empty
-        assert var.equals(flags._data[c].max())
+        assert var.equals(flags._data[c].squeeze())
 
         # always a copy
         assert var is not flags[c]
@@ -184,22 +184,22 @@ def test_set_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Ser
 
         flags[c] = new
         assert len(flags.history[c]) == hlen + 1
-        assert all(flags.history[c].max() == 9999.0)
-        assert all(flags.history[c].max() == flags[c])
+        assert all(flags.history[c].squeeze() == 9999.0)
+        assert all(flags.history[c].squeeze() == flags[c])
 
         # check if deep-copied correctly
         new[:] = 8888.0
-        assert all(flags.history[c].max() == 9999.0)
+        assert all(flags.history[c].squeeze() == 9999.0)
 
         # flags always overwrite former
         flags[c] = new
         assert len(flags.history[c]) == hlen + 2
-        assert all(flags.history[c].max() == 8888.0)
-        assert all(flags.history[c].max() == flags[c])
+        assert all(flags.history[c].squeeze() == 8888.0)
+        assert all(flags.history[c].squeeze() == flags[c])
 
         # check if deep-copied correctly
         new[:] = 7777.0
-        assert all(flags.history[c].max() == 8888.0)
+        assert all(flags.history[c].squeeze() == 8888.0)
 
 
 @pytest.mark.parametrize("data", testdata)

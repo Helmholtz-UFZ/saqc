@@ -273,7 +273,7 @@ class FunctionWrapper:
             start = len(old_history.columns)
             new_history = self._sliceHistory(new_history, slice(start, None))
 
-            squeezed = new_history.max(raw=True)
+            squeezed = new_history.squeeze(raw=True)
             out.history[col] = out.history[col].append(squeezed, meta=meta)
 
         return out
