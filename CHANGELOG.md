@@ -29,6 +29,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - `.gitlab-ci.py`: always run all pytest-tests in CI/CD pipelines
 - `.gitlab-ci.py`: use reports to enable `Tests` in CI/CD pipeline results
 - `procGeneric`: changed default `flag` value to `np.nan`
+- `SaQC` data attributes are not muted by method calls
 
 ### Removed
 ### Fixed
