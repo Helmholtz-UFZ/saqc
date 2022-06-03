@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+pytest==7.1.2
+pytest-lazy-fixture==0.6.3
+Markdown==3.3.7
+beautifulsoup4==4.11.1
+requests==2.27.1
