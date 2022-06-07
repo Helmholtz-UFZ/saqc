@@ -172,7 +172,7 @@ comprehensible from one look.
 Shifted data
 ^^^^^^^^^^^^
 
-   >>> qc.dataRaw # doctest: +SKIP
+   >>> qc.data # doctest: +SKIP
                        SoilMoisture |                     SoilMoisture_bshift |
    ================================ | ======================================= |
    2021-01-01 00:09:07    23.429701 | 2021-01-01 00:00:00           23.429701 |
@@ -180,7 +180,7 @@ Shifted data
    2021-01-01 00:28:42    23.343100 | 2021-01-01 00:20:00           23.343100 |
    2021-01-01 00:38:30    23.476400 | 2021-01-01 00:30:00           23.476400 |
    2021-01-01 00:48:18    23.343100 | 2021-01-01 00:40:00           23.343100 |
-                             ... | ...                                 ... |
+                                ... | ...                                 ... |
    2021-03-20 07:13:49   152.883102 | 2021-03-20 08:10:00                 NaN |
    2021-03-20 07:26:16   156.587906 | 2021-03-20 08:20:00                 NaN |
    2021-03-20 07:40:37   166.146194 | 2021-03-20 08:30:00                 NaN |
@@ -249,7 +249,7 @@ within the *10* minutes interval ranging from ``2021-01-01 07:30:00`` to ``2021-
 in the original data - and only the first of the two reappears in the shifted data set, as representation
 for that interval.
 
-   >>> qc.dataRaw["2021-01-01 07:00:00":"2021-01-01 08:00:00"] # doctest: +SKIP
+   >>> qc.data["2021-01-01 07:00:00":"2021-01-01 08:00:00"] # doctest: +SKIP
                 SoilMoisture_bshift |                              SoilMoisture |
    ================================ | ========================================= |
    Date Time                        | Date Time                                 |
@@ -271,7 +271,7 @@ To shift to any frequncy aligned timestamp the value that is closest to that tim
 can perform a *nearest shift* instead of a simple *back shift*\ , by using the shift method ``"nshift"``\ :
 
    >>> qc = qc.shift('SoilMoisture', target='SoilMoisture_nshift', freq='10min', method='nshift')
-   >>> qc.dataRaw['2021-01-01T07:00:00':'2021-01-01T08:00:00'] # doctest: +SKIP
+   >>> qc.data['2021-01-01T07:00:00':'2021-01-01T08:00:00'] # doctest: +SKIP
                 SoilMoisture_nshift |                              SoilMoisture |
    ================================ | ========================================= |
    Date Time                        | Date Time                                 |
@@ -288,7 +288,7 @@ timestamp would get assigned the nearest value of all the values, that preceed o
 
 Maybe check out, what happens with the chunk of the final 2 hours of our shifted *Soil Moisture* dataset, to get an idea.
 
-   >>> qc.dataRaw['2021-03-20 07:00:00':] # doctest: +SKIP
+   >>> qc.data['2021-03-20 07:00:00':] # doctest: +SKIP
                 SoilMoisture_nshift |                              SoilMoisture |
    ================================ | ========================================= |
    Date Time                        | Date Time                                 |
@@ -319,7 +319,7 @@ content with the arithmetic mean (which is implemented by numpies ``numpy.mean``
 
    >>> import numpy as np
    >>> qc = qc.resample('SoilMoisture', target='SoilMoisture_mean', freq='20min', method='bagg', func=np.mean)
-   >>> qc.dataRaw # doctest: +SKIP
+   >>> qc.data # doctest: +SKIP
                        SoilMoisture |                     SoilMoisture_mean |
    ================================ | ===================================== |
    Date Time                        | Date Time                             |
@@ -380,7 +380,7 @@ of the possible interpolation methods in the :py:meth:`~saqc.SaQC.interpolate>`
 documentation. Lets check the results:
 
    >>> qc = qc.interpolate('SoilMoisture', target='SoilMoisture_linear', freq='10min', method='time')
-   >>> qc.dataRaw # doctest: +SKIP
+   >>> qc.data # doctest: +SKIP
                        SoilMoisture |                       SoilMoisture_linear |
    ================================ | ========================================= |
    Date Time                        | Date Time                                 |
@@ -439,7 +439,7 @@ it can be of advantage, to flag data before regularisation in order to effective
 from the resulting regularly sampled data set. Lets see an example for the *SoilMoisture* data set.
 
 >>> qc = qc.linear('SoilMoisture', target='SoilMoisture_linear', freq='10min') # doctest: +SKIP
->>> qc.dataRaw['2021-01-01 15:00:00':'2021-01-01 16:00:00'] # doctest: +SKIP
+>>> qc.data['2021-01-01 15:00:00':'2021-01-01 16:00:00'] # doctest: +SKIP
              SoilMoisture_linear |                              SoilMoisture |
 ================================ | ========================================= |
 Date Time                        | Date Time                                 |
@@ -470,7 +470,7 @@ do the interpolation.
 
    >>> qc = qc.flagRange('SoilMoisture', min=0)
    >>> qc = qc.interpolate('SoilMoisture', freq='10min', method='time')
-   >>> qc.dataRaw['2021-01-01T07:00:00':'2021-01-01T08:00:00'] # doctest: +SKIP
+   >>> qc.data['2021-01-01T07:00:00':'2021-01-01T08:00:00'] # doctest: +SKIP
                        SoilMoisture |                     SoilMoisture_original |
    ================================ | ========================================= |
    Date Time                        | Date Time                                 |

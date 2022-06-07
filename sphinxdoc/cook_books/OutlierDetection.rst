@@ -144,7 +144,7 @@ Rolling Median
 
 You can pass arbitrary function objects to the ``func`` parameter, to be applied to calculate every single windows "score".
 For example, you could go for the *median* instead of the *mean*. The numpy library provides a `median <https://numpy.org/doc/stable/reference/generated/numpy.median.html>`_ function
-under the name ``ǹp.median``. We just calculate another model curve for the ``"incidents"`` data with the ``np.median`` function from the ``numpy`` library.
+under the name ``np.median``. We just calculate another model curve for the ``"incidents"`` data with the ``np.median`` function from the ``numpy`` library.
 
 .. doctest:: exampleOD
 
@@ -219,7 +219,7 @@ To see all the results obtained so far, plotted in one figure window, we make us
 
 
 Residuals and Scores
--------------------_
+--------------------
 
 Residuals
 ^^^^^^^^^

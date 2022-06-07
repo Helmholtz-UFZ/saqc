@@ -101,36 +101,41 @@ number of different attributes, of which you likely might want to use the follow
 
 .. doctest:: python
 
-   >>> qc.data # retrieve the data as a pandas.DataFrame
-   columns        a
-   2020-01-01   8.0
-   2020-01-02  24.0
-   2020-01-03  67.0
-   2020-01-04  87.0
-   2020-01-05  79.0
-   ...          ...
-   2020-04-05  38.0
-   2020-04-06  86.0
-   2020-04-07  94.0
-   2020-04-08  98.0
-   2020-04-09  42.0
+   >>> qc.data # retrieve data
+                  a | 
+   ================ | 
+   2020-01-01  13.0 | 
+   2020-01-02  15.0 | 
+   2020-01-03   3.0 | 
+   2020-01-04  98.0 | 
+   2020-01-05  60.0 | 
+   ...          ... | 
+   2020-04-05  34.0 | 
+   2020-04-06  29.0 | 
+   2020-04-07  11.0 | 
+   2020-04-08  42.0 | 
+   2020-04-09  33.0 | 
+   [100]              
    <BLANKLINE>
-   [100 rows x 1 columns]
-   >>> qc.flags # retrieve the flags as a pandas.DataFrame
-   columns             a
-   2020-01-01        BAD
-   2020-01-02  UNFLAGGED
-   2020-01-03  UNFLAGGED
-   2020-01-04        BAD
-   2020-01-05  UNFLAGGED
-   ...               ...
-   2020-04-05  UNFLAGGED
-   2020-04-06        BAD
-   2020-04-07        BAD
-   2020-04-08        BAD
-   2020-04-09  UNFLAGGED
+   max: [100 rows x 1 columns]
+
+   >>> qc.flags # retrieve the flags
+                       a | 
+   ===================== | 
+   2020-01-01  UNFLAGGED | 
+   2020-01-02        BAD | 
+   2020-01-03  UNFLAGGED | 
+   2020-01-04  UNFLAGGED | 
+   2020-01-05  UNFLAGGED | 
+   ...               ... | 
+   2020-04-05        BAD | 
+   2020-04-06        BAD | 
+   2020-04-07  UNFLAGGED | 
+   2020-04-08        BAD | 
+   2020-04-09  UNFLAGGED | 
+   [100]                   
    <BLANKLINE>
-   [100 rows x 1 columns]
+   max: [100 rows x 1 columns]
 
 
 Putting it together - The complete workflow
@@ -161,10 +166,10 @@ The snippet below provides you with a compete example from the things we have se
          .flagByGrubbs("a", window="10D")
          .flagRange("a", min=20, max=80))
 
-   # retrieve the data as a pandas.DataFrame
+   # retrieve the data
    qc.data
 
-   # retrieve the flags as a pandas.DataFrame
+   # retrieve the flags
    qc.flags
 
 
