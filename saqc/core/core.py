@@ -12,6 +12,7 @@ from typing import (
     Any,
     Callable,
     List,
+    MutableMapping,
     Sequence,
     Hashable,
     Tuple,
@@ -116,28 +117,16 @@ class SaQC(FunctionsMixin):
         self._attrs = dict(value)
 
     @property
-    def data_raw(self) -> DictOfSeries:
-        return self._data
-
-    @property
-    def flags_raw(self) -> Flags:
-        return self._flags
-
-    @property
-    def data(self) -> pd.DataFrame:
-        data: pd.DataFrame = self._data.to_df()
+    def data(self) -> MutableMapping:
+        data = self._data
         data.attrs = self._attrs.copy()
         return data
 
     @property
-    def flags(self) -> pd.DataFrame:
-        data: pd.DataFrame = self._scheme.backward(self._flags, attrs=self._attrs)
-        data.attrs = self._attrs.copy()
-        return data
-
-    @property
-    def result(self) -> SaQCResult:
-        return SaQCResult(self._data, self._flags, self._attrs, self._scheme)
+    def flags(self) -> MutableMapping:
+        flags = self._scheme.backward(self._flags, attrs=self._attrs, raw=True)
+        flags.attrs = self._attrs.copy()
+        return flags
 
     def _expandFields(
         self,
@@ -371,81 +360,3 @@ class SaQC(FunctionsMixin):
         if not isinstance(flags, Flags):
             flags = Flags(flags)
         return flags
-
-
-class SaQCResult:
-    def __init__(
-        self,
-        data: DictOfSeries,
-        flags: Flags,
-        attrs: dict,
-        scheme: TranslationScheme,
-    ):
-        assert isinstance(data, DictOfSeries)
-        assert isinstance(flags, Flags)
-        assert isinstance(attrs, dict)
-        assert isinstance(scheme, TranslationScheme)
-        self._data = data.copy()
-        self._flags = flags.copy()
-        self._attrs = attrs.copy()
-        self._scheme = scheme
-        self._validate()
-
-        try:
-            self._scheme.backward(self._flags, attrs=self._attrs)
-        except Exception as e:
-            raise RuntimeError("Translation of flags failed") from e
-
-    def _validate(self):
-        if not self._data.columns.equals(self._flags.columns):
-            raise AssertionError(
-                "Consistency broken. data and flags have not the same columns"
-            )
-
-    @property
-    def data(self) -> pd.DataFrame:
-        data: pd.DataFrame = self._data.copy().to_df()
-        data.attrs = self._attrs.copy()
-        return data
-
-    @property
-    def flags(self) -> pd.DataFrame:
-        data: pd.DataFrame = self._scheme.backward(self._flags, attrs=self._attrs)
-        data.attrs = self._attrs.copy()
-        return data
-
-    @property
-    def data_raw(self) -> DictOfSeries:
-        return self._data
-
-    @property
-    def flags_raw(self) -> Flags:
-        return self._flags
-
-    @property
-    def columns(self) -> DictOfSeries():
-        self._validate()
-        return self._data.columns
-
-    def __getitem__(self, key):
-        self._validate()
-        if key not in self.columns:
-            raise KeyError(key)
-        data_series = self._data[key].copy()
-        # slice flags to one column
-        flags = Flags({key: self._flags._data[key]}, copy=True)
-
-        df = self._scheme.backward(flags, attrs=self._attrs)
-        if isinstance(df.columns, pd.MultiIndex):
-            df = df.droplevel(level=0, axis=1)
-
-        if len(df.columns) == 1:
-            df.columns = ["flags"]
-
-        df.insert(0, column="data", value=data_series)
-        df.columns.name = None
-        df.index.name = None
-        return df
-
-    def __repr__(self):
-        return f"SaQCResult\nColumns: {self.columns.to_list()}"

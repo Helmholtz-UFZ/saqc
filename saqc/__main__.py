@@ -9,12 +9,14 @@
 import logging
 from functools import partial
 from pathlib import Path
+from _pytest.fixtures import resolve_fixture_function
 
 import click
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+from dios.dios.dios import DictOfSeries
 
 from saqc.core.reader import fromConfig
 from saqc.core.core import TRANSLATION_SCHEMES
@@ -104,11 +106,7 @@ def main(config, data, scheme, outfile, nodata, log_level):
     _setupLogging(log_level)
     reader, writer = setupIO(nodata)
 
-    _data = []
-    for dfile in data:
-        df = readData(reader, dfile)
-        _data.append(df)
-    data = _data
+    data = [readData(reader, f) for f in data]
 
     saqc = fromConfig(
         config,
@@ -116,7 +114,10 @@ def main(config, data, scheme, outfile, nodata, log_level):
         scheme=TRANSLATION_SCHEMES[scheme or "simple"](),
     )
 
-    data_result, flags_result = saqc.result.data, saqc.result.flags
+    data_result = saqc.data.to_df()
+    flags_result = saqc.flags
+    if isinstance(flags_result, DictOfSeries):
+        flags_result = flags_result.to_df()
 
     if outfile:
 

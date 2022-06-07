@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Union, Any
+from typing import Dict, MutableMapping, Union, Any
 
 import numpy as np
 import pandas as pd
@@ -84,8 +84,8 @@ class TranslationScheme:
 
     @staticmethod
     def _translate(
-        flags: Union[Flags, pd.DataFrame, pd.Series],
-        trans_map: Union[ForwardMap, BackwardMap],
+        flags: Flags | pd.DataFrame | pd.Series,
+        trans_map: ForwardMap | BackwardMap,
     ) -> DictOfSeries:
         """
         Translate a given flag data structure to another according to the
@@ -154,7 +154,7 @@ class TranslationScheme:
         raw: bool = False,
         attrs: dict | None = None,
         **kwargs,
-    ) -> Union[pd.DataFrame, DictOfSeries]:
+    ) -> pd.DataFrame | DictOfSeries:
         """
         Translate from 'internal flags' to 'external flags'
 

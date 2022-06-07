@@ -65,7 +65,6 @@ class DictOfSeries(_DiosBase):
         """Return pandas.Series with the indexes of all columns."""
         return self.for_each("index")
 
-    @property
     def values(self):
         """Return a numpy.array of numpy.arrays with the values of all columns.
 

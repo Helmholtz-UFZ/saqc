@@ -30,9 +30,13 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - `.gitlab-ci.py`: always run all pytest-tests in CI/CD pipelines
 - `.gitlab-ci.py`: use reports to enable `Tests` in CI/CD pipeline results
 - `procGeneric`: changed default `flag` value to `np.nan`
-- `SaQC` data attributes are not muted by method calls
+- `SaQC.data` returns `dios.DictOfSeries`
+- `SaQC.flags` returns `dios.DictOfSeries` or `pd.DataFrame`
+- `SaQC` data attributes are not mutated by method calls
 
 ### Removed
+- data accessors `SaQC.result`, `SaQC.data_raw`, `SaQC.flags_raw`
+
 ### Fixed
 - `flagOffset` bug with zero-valued threshold
 - `flagCrossStatistics` bug with unaligned input variables
