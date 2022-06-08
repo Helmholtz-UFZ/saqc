@@ -329,12 +329,14 @@ def plot(
         'x_label', 'y_label', 'title', 'fontsize', 'cycleskip'.
 
     """
+    # keep the very original, not the copy
+    orig = data, flags
+    data, flags = data.copy(), flags.copy()
 
     interactive = path is None
     level = kwargs.get("flag", UNFLAGGED)
 
     if dfilter < np.inf:
-        data_temp = data[field].copy()
         data.loc[flags[field] >= dfilter, field] = np.nan
 
     if store_kwargs is None:
@@ -371,7 +373,4 @@ def plot(
         else:
             fig.savefig(path, **store_kwargs)
 
-    if dfilter < np.inf:
-        data[field] = data_temp
-
-    return data, flags
+    return orig
