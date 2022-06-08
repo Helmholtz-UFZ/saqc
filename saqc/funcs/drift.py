@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Tuple, Sequence, Callable
+from typing import Optional, Tuple, Sequence, Callable
 from typing_extensions import Literal
 
 import numpy as np
@@ -411,7 +411,7 @@ def correctRegimeAnomaly(
     flags: Flags,
     cluster_field: str,
     model: CurveFitter,
-    tolerance: str = None,
+    tolerance: Optional[str] = None,
     epoch: bool = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -532,7 +532,7 @@ def correctOffset(
     spread: float,
     window: str,
     min_periods: int,
-    tolerance: str = None,
+    tolerance: Optional[str] = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """

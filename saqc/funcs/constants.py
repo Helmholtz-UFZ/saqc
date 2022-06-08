@@ -6,6 +6,8 @@
 
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 from typing import Tuple
 
 import numpy as np
@@ -15,7 +17,7 @@ import operator
 from dios import DictOfSeries
 
 from saqc.constants import *
-from saqc.core import register, Flags
+from saqc.core import Flags
 from saqc.core.register import flagging
 from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta, statPass
@@ -99,9 +101,9 @@ def flagByVariance(
     field: str,
     flags: Flags,
     window: str,
-    thresh: float = 0.0005,
-    maxna: int = None,
-    maxna_group: int = None,
+    thresh: float,
+    maxna: int | None = None,
+    maxna_group: int | None = None,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:

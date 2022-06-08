@@ -18,10 +18,10 @@ class Constants:
     def flagByVariance(
         self,
         field: str,
-        window: str = "12h",
-        thresh: float = 0.0005,
-        maxna: int = None,
-        maxna_group: int = None,
+        window: str,
+        thresh: float,
+        maxna: int | None = None,
+        maxna_group: int | None = None,
         flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:

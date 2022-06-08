@@ -6,6 +6,8 @@
 
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 import uuid
 from typing import Optional, Union, Tuple, Sequence, Callable
 from typing_extensions import Literal
@@ -14,11 +16,9 @@ import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
-import warnings
 
 from dios import DictOfSeries
 from outliers import smirnov_grubbs
-from scipy.optimize import curve_fit
 
 from saqc.constants import BAD, UNFLAGGED
 from saqc.core import register, Flags
@@ -27,7 +27,6 @@ from saqc.lib.tools import customRoller, getFreqDelta, toSequence
 from saqc.funcs.scores import assignKNNScore
 from saqc.funcs.tools import copyField, dropField
 from saqc.funcs.transformation import transform
-import saqc.lib.ts_operators as ts_ops
 
 
 @flagging()

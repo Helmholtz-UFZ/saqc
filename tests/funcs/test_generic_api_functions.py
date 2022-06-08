@@ -13,7 +13,6 @@ from dios.dios.dios import DictOfSeries
 from saqc.constants import BAD, UNFLAGGED, FILTER_ALL
 from saqc.core.flags import Flags
 from saqc import SaQC
-from saqc.core.register import _isflagged
 from saqc.lib.tools import toSequence
 
 from tests.common import initData
@@ -125,7 +124,6 @@ def test_writeTargetProcGeneric(data):
             "args": (fields, targets),
             "kwargs": {
                 "func": func.__name__,
-                "flag": BAD,
                 "dfilter": dfilter,
                 "label": "generic",
             },
@@ -140,14 +138,13 @@ def test_writeTargetProcGeneric(data):
             field=fields,
             target=targets,
             func=func,
-            flag=BAD,
             dfilter=dfilter,
             label="generic",
         )
         assert (expected_data == res.data[targets].squeeze()).all(axis=None)
         # check that new histories where created
         for target in targets:
-            assert res._flags.history[target].hist.iloc[0].tolist() == [BAD]
+            assert res._flags.history[target].hist.iloc[0].isna().all()
             assert res._flags.history[target].meta[0] == expected_meta
 
 
@@ -157,7 +154,6 @@ def test_overwriteFieldProcGeneric(data):
         (["var1", "var2"], lambda x, y: (x + y, y * 2)),
     ]
     dfilter = 128
-    flag = 12
     for fields, func in params:
         expected_data = DictOfSeries(
             func(*[data[f] for f in fields]), columns=fields
@@ -168,7 +164,6 @@ def test_overwriteFieldProcGeneric(data):
             "args": (fields, fields),
             "kwargs": {
                 "func": func.__name__,
-                "flag": flag,
                 "dfilter": dfilter,
                 "label": "generic",
             },
@@ -182,12 +177,12 @@ def test_overwriteFieldProcGeneric(data):
         )
 
         res = saqc.processGeneric(
-            field=fields, func=func, flag=flag, dfilter=dfilter, label="generic"
+            field=fields, func=func, dfilter=dfilter, label="generic"
         )
         assert (expected_data == res.data[fields].squeeze()).all(axis=None)
         # check that the histories got appended
         for field in fields:
             assert (res._flags.history[field].hist[0] == 127.0).all()
-            assert (res._flags.history[field].hist[1] == 12.0).all()
+            assert res._flags.history[field].hist[1].isna().all()
             assert res._flags.history[field].meta[0] == {}
             assert res._flags.history[field].meta[1] == expected_meta

@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 import json
-from typing import Any
 from functools import reduce
 
 import numpy as np

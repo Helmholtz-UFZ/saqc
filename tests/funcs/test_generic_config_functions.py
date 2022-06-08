@@ -169,7 +169,7 @@ def test_processExistingTarget(data):
     config = f"""
     varname ; test
     var2   ; flagMissing()
-    var2   ; processGeneric(func=y - 1, flag=DOUBTFUL)
+    var2   ; processGeneric(func=y - 1)
     """
 
     fobj = writeIO(config)
@@ -177,7 +177,7 @@ def test_processExistingTarget(data):
     assert (saqc._data["var2"] == data["var2"] - 1).all()
     assert len(saqc._flags.history["var2"]) == 2
     assert saqc._flags.history["var2"].hist[0].isna().all()
-    assert (saqc._flags.history["var2"].hist[1] == DOUBTFUL).all()
+    assert saqc._flags.history["var2"].hist[1].isna().all()
 
 
 def test_flagTargetExisting(data):
