@@ -122,11 +122,24 @@ def clearTrailingWhitespace(doc: list) -> list:
     return doc[:k]
 
 
+def rmParameter(para_name: str, section: list, indent_str: str):
+    params = getParameters(section, indent_str=indent_str)
+    if para_name in params:
+        rm_idx = [
+            sidx
+            for sidx in range(len(section))
+            if params[para_name] == section[sidx : sidx + len(params[para_name])]
+        ][0]
+        section = section[:rm_idx] + section[rm_idx + len(params[para_name]) :]
+    return section
+
+
 def saqcMethodsTemplate(doc_string: str, source="function_string"):
     if source == "function_string":
         doc_string = doc_string.splitlines()
         indent_string = getDocstringIndent(doc_string)
         sections = getSections(doc_string, indent_str=indent_string)
+        # modify returns section
         sections.pop("Returns", None)
         returns_section = makeSection(section_name="Returns", indent_str=indent_string)
         out_para = mkParameter(
@@ -137,6 +150,14 @@ def saqcMethodsTemplate(doc_string: str, source="function_string"):
         )
         returns_section["Returns"] += out_para["out"]
         sections.update(returns_section)
+        # remove flags and data parameter from docstring
+        if "Parameters" in sections:
+            para_sec = sections["Parameters"]
+            sections.pop("Parameters", None)
+            para_sec = rmParameter("data", para_sec, indent_string)
+            para_sec = rmParameter("flags", para_sec, indent_string)
+            sections["Parameters"] = para_sec
+
         doc_string = composeDocstring(
             section_dict=sections, order=FUNC_NAPOLEAN_STYLE_ORDER
         )
