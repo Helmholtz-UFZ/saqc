@@ -22,7 +22,7 @@ class Curvefit:
     def fitPolynomial(
         self,
         field: str,
-        window: Union[int, str],
+        window: int | str,
         order: int,
         min_periods: int = 0,
         **kwargs,

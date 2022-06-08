@@ -5,16 +5,20 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 from typing import Tuple, Union, Callable
 from typing_extensions import Literal
+
 import numpy as np
 import pandas as pd
 from dios import DictOfSeries
 
 from saqc.constants import *
 from saqc.core import register, Flags
-from saqc.core.register import _isflagged, processing
+from saqc.core.register import _isflagged
 from saqc.lib.ts_operators import interpolateNANs
+
 
 _SUPPORTED_METHODS = Literal[
     "linear",

@@ -57,7 +57,6 @@ class FlagTools:
         self,
         field: str | Sequence[str],
         target: str | Sequence[str],
-        flag: float = BAD,
         **kwargs,
     ) -> saqc.SaQC:
         return self._defer("transferFlags", locals())

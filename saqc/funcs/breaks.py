@@ -15,11 +15,12 @@ gaps (:py:func:`flagMissing`), jumps and drops (:py:func:`flagJumps`) or tempora
 isolated values (:py:func:`flagIsolated`).
 """
 
+from __future__ import annotations
+
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import pandas.tseries.frequencies
 
 from dios import DictOfSeries
 

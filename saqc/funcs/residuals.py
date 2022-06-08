@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 from typing import Tuple, Union, Optional, Callable
 
@@ -17,7 +18,6 @@ from saqc.constants import *
 from saqc.core import register, Flags
 from saqc.funcs.rolling import _roll
 from saqc.funcs.curvefit import _fitPolynomial
-from saqc.lib.tools import filterKwargs
 
 
 @register(mask=["field"], demask=[], squeeze=[])
@@ -28,7 +28,7 @@ def calculatePolynomialResiduals(
     window: Union[str, int],
     order: int,
     min_periods: Optional[int] = 0,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Fits a polynomial model to the data and calculate the residuals.
@@ -108,7 +108,7 @@ def calculateRollingResiduals(
     func: Callable[[pd.Series], np.ndarray] = np.mean,
     min_periods: Optional[int] = 0,
     center: bool = True,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Calculate the diff of a rolling-window function and the data.

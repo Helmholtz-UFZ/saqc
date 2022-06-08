@@ -9,8 +9,10 @@ from __future__ import annotations
 
 from typing import Sequence, Union
 
+import numpy as np
+
 import saqc
-from saqc.constants import UNFLAGGED, BAD, FILTER_ALL
+from saqc.constants import BAD, FILTER_ALL
 from saqc.lib.types import GenericFunction
 from saqc.lib.docurator import doc
 import saqc.funcs
@@ -22,8 +24,7 @@ class Generic:
         self,
         field: str | Sequence[str],
         func: GenericFunction,
-        target: str | Sequence[str] = None,
-        flag: float = UNFLAGGED,
+        target: str | Sequence[str] | None = None,
         dfilter: float = FILTER_ALL,
         **kwargs,
     ) -> saqc.SaQC:

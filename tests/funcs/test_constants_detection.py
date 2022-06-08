@@ -38,10 +38,11 @@ def test_constants_flagBasic(data):
 
 
 def test_constants_flagVarianceBased(data):
-    expected = np.arange(5, 25)
     field, *_ = data.columns
     flags = initFlagsLike(data)
-    data, flags_result1 = flagByVariance(data, field, flags, window="1h", flag=BAD)
+    data, flags_result1 = flagByVariance(
+        data, field, flags, window="1h", thresh=0.0005, flag=BAD
+    )
 
     flagscol = flags_result1[field]
     assert np.all(flagscol[5:25] == BAD)

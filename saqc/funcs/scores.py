@@ -5,8 +5,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
-from typing import Union, Tuple, Callable, Sequence, Optional
+from __future__ import annotations
+
+from typing import Union, Tuple, Callable, Sequence
 from typing_extensions import Literal
+
 import numpy as np
 import pandas as pd
 from dios import DictOfSeries

@@ -14,11 +14,12 @@ import pandas as pd
 
 from dios import DictOfSeries
 
-from saqc.constants import BAD, UNFLAGGED, ENVIRONMENT, FILTER_ALL
+from saqc.constants import BAD, ENVIRONMENT, FILTER_ALL
 from saqc.core.history import History
 from saqc.lib.tools import toSequence
 from saqc.lib.types import GenericFunction, PandasLike
 from saqc.core.flags import Flags
+from saqc.core.history import History
 from saqc.core.register import register, _isflagged, FunctionWrapper
 
 
@@ -71,8 +72,7 @@ def processGeneric(
     field: str | Sequence[str],
     flags: Flags,
     func: GenericFunction,
-    target: str | Sequence[str] = None,
-    flag: float = np.nan,
+    target: str | Sequence[str] | None = None,
     dfilter: float = FILTER_ALL,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -150,7 +150,6 @@ def processGeneric(
         "args": (field, target),
         "kwargs": {
             "func": func.__name__,
-            "flag": flag,
             "dfilter": dfilter,
             **kwargs,
         },
@@ -171,7 +170,7 @@ def processGeneric(
                 "because of incompatible indices, please choose another 'target'"
             )
 
-        flags.history[col].append(pd.Series(flag, index=datacol.index), meta)
+        flags.history[col].append(pd.Series(np.nan, index=datacol.index), meta)
 
     return data, flags
 

@@ -83,7 +83,7 @@ class Resampling:
             "inverse_nshift",
             "inverse_interpolation",
             "match",
-        ],
+        ] = "match",
         freq: Optional[str] = None,
         drop: Optional[bool] = False,
         squeeze: Optional[bool] = False,
