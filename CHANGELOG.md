@@ -18,6 +18,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - flagging constants documentation resource added
 - `pytest.ini`: to setup default path and markers for pytest
 - new function `progagateFlags`
+- *sphinx-doc*: automatically scrape typehints from signature and include those into the parameter section
 
 ### Changed
 - renamed `History.max` to renamed `History.squeeze`
