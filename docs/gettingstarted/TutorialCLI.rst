@@ -65,7 +65,7 @@ of dates to reference to and that you are free to use more columns of any name
 that you like.
 
 Now have a look at a basic sonfiguration file, as
-`this one <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/resources/data/myconfig.csv>`_.
+`this one <https://git.ufz.de/rdm-software/saqc/-/blob/develop/docs/resources/data/myconfig.csv>`_.
 It contains the following lines:
 
 .. literalinclude:: ../resources/data/myconfig.csv

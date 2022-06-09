@@ -45,8 +45,8 @@ Data Preparation
 ----------------
 
 First import the data (from the repository), and generate an saqc instance from it. You will need to download the `sensor
-data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/resources/data/hydro_data.csv>`_ and the
-`maintenance data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/sphinxdoc/resources/data/hydro_maint.csv>`_
+data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/docs/resources/data/hydro_data.csv>`_ and the
+`maintenance data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/docs/resources/data/hydro_maint.csv>`_
 from the `repository <https://git.ufz.de/rdm-software/saqc.git>`_ and make variables `datapath` and `maintpath` be
 paths pointing at those downloaded files. Note, that the :py:class:`~saqc.SaQC` digests the loaded data in a list.
 This is done, to circumvent having to concatenate both datasets in a pandas Dataframe instance, which would introduce

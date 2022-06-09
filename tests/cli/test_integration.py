@@ -74,9 +74,9 @@ def test__main__py(tmp_path, scheme, expected):
     outfile = Path(tmp_path, "test.csv")  # the filesystem's temp dir
     args = [
         "--config",
-        Path(projpath, "sphinxdoc/resources/data/config.csv"),
+        Path(projpath, "docs/resources/data/config.csv"),
         "--data",
-        Path(projpath, "sphinxdoc/resources/data/data.csv"),
+        Path(projpath, "docs/resources/data/data.csv"),
         "--outfile",
         outfile,
         "--scheme",

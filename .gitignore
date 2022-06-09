@@ -6,8 +6,8 @@
 *.pyc
 *.automodsumm
 *.automodapi
-sphinxdoc/_api
-sphinxdoc/_build
+docs/_api
+docs/_build
 coverage.xml
 venv*/
 **/.*

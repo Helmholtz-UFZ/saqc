@@ -5,11 +5,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 <a href="https://www.ufz.de/index.php?en=33573">
-    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/resources/images/Representative/UFZLogo.png" width="400"/>
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/Representative/UFZLogo.png" width="400"/>
 </a>
 
 <a href="https://www.ufz.de/index.php?en=45348">
-    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/resources/images/Representative/RDMLogo.png" align="right" width="220"/>
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/Representative/RDMLogo.png" align="right" width="220"/>
 </a>
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
@@ -51,7 +51,7 @@ and a python module with a simple API.
 The command line application is controlled by a semicolon-separated text
 file listing the variables in the dataset and the routines to inspect,
 quality control and/or process them. The content of such a configuration
-could look like [this](https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/resources/data/config.csv):
+could look like [this](https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/data/config.csv):
 
 ```
 varname    ; test
@@ -76,8 +76,8 @@ saqc \
 A full `SaQC` run against provided example data can be invoked with:
 ```sh
 saqc \
-    --config https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/resources/data/config.csv \
-    --data https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/resources/data/data.csv \
+    --config https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/data/config.csv \
+    --data https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/data/data.csv \
     --outfile saqc_test.csv
 ```
 
@@ -91,7 +91,7 @@ import pandas as pd
 from saqc import SaQC
 
 data = pd.read_csv(
-    "https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/resources/data/data.csv",
+    "https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/data/data.csv",
     index_col=0, parse_dates=True,
 )
 

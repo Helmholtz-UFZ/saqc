@@ -19,7 +19,7 @@ help:
 .PHONY: help Makefile clean
 
 test:
-	for k in $(MDLIST); do echo sphinxdoc/"$$k"; done
+	for k in $(MDLIST); do echo docs/"$$k"; done
 
 # clean sphinx generated stuff
 clean:

@@ -63,7 +63,7 @@ python38:
   stage: test
   script:
     - pytest tests dios/test -Werror --junitxml=report.xml
-    - python -m saqc --config sphinxdoc/resources/data/config.csv --data sphinxdoc/resources/data/data.csv --outfile /tmp/test.csv
+    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
     when: always
     reports:
@@ -76,7 +76,7 @@ python39:
   image: python:3.9
   script:
     - pytest tests dios/test -Werror --junitxml=report.xml
-    - python -m saqc --config sphinxdoc/resources/data/config.csv --data sphinxdoc/resources/data/data.csv --outfile /tmp/test.csv
+    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
     when: always
     reports:
@@ -88,7 +88,7 @@ python310:
   image: python:3.10
   script:
     - pytest tests dios/test -Werror --junitxml=report.xml
-    - python -m saqc --config sphinxdoc/resources/data/config.csv --data sphinxdoc/resources/data/data.csv --outfile /tmp/test.csv
+    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
     when: always
     reports:
@@ -107,7 +107,7 @@ pages:
   except:
     - schedules
   script:
-    - cd sphinxdoc/
+    - cd docs/
     - pip install -r requirements.txt
     - make doc
     - cp -r _build/html ../public

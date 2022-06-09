@@ -293,7 +293,7 @@ Run doctest locally
 Since doctest checks guard the push to the develop branch, you might wish to chek if your local modification passes
 all doctests beforehand.
 
-There for go to the sphinxdoc directory and run:
+There for go to the docs directory and run:
 
 .. code-block::
 

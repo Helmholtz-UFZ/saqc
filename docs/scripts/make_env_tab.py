@@ -26,7 +26,7 @@ import pickle
     "--targetpath",
     type=str,
     required=True,
-    default="sphinxdoc/environment",
+    default="docs/environment",
     help="Output path to contain configEnv.rst (relative to sphinx root).",
 )
 @click.option(
