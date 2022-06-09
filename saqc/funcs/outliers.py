@@ -34,7 +34,7 @@ def flagByStray(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    freq: Optional[Union[int, str]] = None,
+    window: Optional[Union[int, str]] = None,
     min_periods: int = 11,
     iter_start: float = 0.5,
     alpha: float = 0.05,
@@ -92,17 +92,17 @@ def flagByStray(
     if scores.empty:
         return data, flags
 
-    if not freq:
-        freq = scores.shape[0]
+    if not window:
+        window = scores.shape[0]
 
-    if isinstance(freq, str):
-        partitions = scores.groupby(pd.Grouper(freq=freq))
+    if isinstance(window, str):
+        partitions = scores.groupby(pd.Grouper(freq=window))
 
     else:
         grouper_series = pd.Series(
             data=np.arange(0, scores.shape[0]), index=scores.index
         )
-        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / freq)))
+        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / window)))
         partitions = scores.groupby(grouper_series)
 
     # calculate flags for every partition
