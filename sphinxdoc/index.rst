@@ -87,7 +87,7 @@ Getting Started
    :hidden:
    :maxdepth: 1
 
-   Documentation Guide <how_to_doc/HowToDoc>
+   Documentation Guide <howtodoc/HowToDoc>
    Writing Functions <documentation/WritingFunctions>
 
 
