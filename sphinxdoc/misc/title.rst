@@ -71,7 +71,7 @@ Features
         * or use SaQC as a commandline application and configure your pipelines via plain text
     * - |sacRaw|
       - * easily load data from multiple sources, concatenating them in a SaQC object
-        * :ref:`preprocess your data, by aligning it to shared frequency grids <cook_books/DataRegularisation:Data Regularisation>`
+        * :ref:`preprocess your data, by aligning it to shared frequency grids <cookbooks/DataRegularisation:Data Regularisation>`
     * - |sacFlagged|
       - * apply basic plausibility checks, as well as
         * more complex, univariat flagging Functions
@@ -79,7 +79,7 @@ Features
       - * automatically keep track of flagging history and flags significance for every datapoint
         * define and use custom schemes to translate your flags to and from SaQC
     * - |sacProc|
-      - * modify your data by :ref:`interpolations <cook_books/DataRegularisation:Interpolation>`, corrections and :ref:`transformations <cook_books/DataRegularisation:Aggregation>`
-        * calculate data products, such as :ref:`residuals or outlier scores <cook_books/OutlierDetection:Residuals and Scores>`
+      - * modify your data by :ref:`interpolations <cookbooks/DataRegularisation:Interpolation>`, corrections and :ref:`transformations <cookbooks/DataRegularisation:Aggregation>`
+        * calculate data products, such as :ref:`residuals or outlier scores <cookbooks/OutlierDetection:Residuals and Scores>`
     * - |sacMV|
-      - * apply :ref:`multivariate flagging functions <cook_books/MultivariateFlagging:Multivariate Flagging>`
+      - * apply :ref:`multivariate flagging functions <cookbooks/MultivariateFlagging:Multivariate Flagging>`

@@ -271,7 +271,7 @@ series. Also, you can write your own tests using a python-based
 
 The above executes an internal framework that aligns the timestamps of SM2
 to a 15min-grid (:py:meth:`saqc.SaQC.shift`). Further information on harmonization can be
-found in the :doc:`Resampling cookbook <../cook_books/DataRegularisation>`.
+found in the :doc:`Resampling cookbook <../cookbooks/DataRegularisation>`.
 
 
 .. literalinclude:: ../resources/temp/TutorialCLIHarmData.csv

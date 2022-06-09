@@ -1,7 +1,3 @@
-.. SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
-..
-.. SPDX-License-Identifier: GPL-3.0-or-later
-
 Config file Environment
 =======================
 
@@ -10,7 +6,13 @@ Config file Environment
 
    * - Env-Value
      - Env-Doc
+   * - "inf"
+     - 
+   * - "INF"
+     -  Not A number Constant.
    * - "NAN"
+     - 
+   * - "nan"
      -  Pointwise absolute Value Function.
    * - "abs"
      -  Maximum Value Function. Ignores NaN.

@@ -14,45 +14,45 @@ library.
 
 #. Initially, we introduce and motivate regularisation techniques and we do import the tutorial data.
 
-   * :ref:`Why Regularisation <cook_books/DataRegularisation:Why Regularisation>`
-   * :ref:`Tutorial Data <cook_books/DataRegularisation:Tutorial Data>`
+   * :ref:`Why Regularisation <cookbooks/DataRegularisation:Why Regularisation>`
+   * :ref:`Tutorial Data <cookbooks/DataRegularisation:Tutorial Data>`
 
-#. We will get an overview over the main :ref:`Regularisation <cook_books/DataRegularisation:regularisations>` methods, starting with the shift.
+#. We will get an overview over the main :ref:`Regularisation <cookbooks/DataRegularisation:regularisations>` methods, starting with the shift.
 
-   * :ref:`Shift <cook_books/DataRegularisation:shift>`
-   * :ref:`Target Parameter <cook_books/DataRegularisation:target parameter>`
+   * :ref:`Shift <cookbooks/DataRegularisation:shift>`
+   * :ref:`Target Parameter <cookbooks/DataRegularisation:target parameter>`
 
-     * :ref:`Freq Parameter <cook_books/DataRegularisation:freq parameter>`
-     * :ref:`Method Parameter <cook_books/DataRegularisation:shifting method>`
-     * :ref:`Valid Data <cook_books/DataRegularisation:Valid Data>`
+     * :ref:`Freq Parameter <cookbooks/DataRegularisation:freq parameter>`
+     * :ref:`Method Parameter <cookbooks/DataRegularisation:shifting method>`
+     * :ref:`Valid Data <cookbooks/DataRegularisation:Valid Data>`
 
 #. We introduce the notion of *valid* data and see how sparse intervals and those with multiple values interact with
    regularisation.
 
 
-   * :ref:`Data Loss and Empty Intervals <cook_books/DataRegularisation:data loss and empty intervals>`
+   * :ref:`Data Loss and Empty Intervals <cookbooks/DataRegularisation:data loss and empty intervals>`
 
-     * :ref:`Empty Intervals <cook_books/DataRegularisation:empty intervals>`
+     * :ref:`Empty Intervals <cookbooks/DataRegularisation:empty intervals>`
 
-       * :ref:`Valid Data <cook_books/DataRegularisation:Valid Data>`
-       * :ref:`Data Reduction <cook_books/DataRegularisation:data reduction>`
-       * :ref:`Minimize Shifting <cook_books/DataRegularisation:minimize shifting distance>`
+       * :ref:`Valid Data <cookbooks/DataRegularisation:Valid Data>`
+       * :ref:`Data Reduction <cookbooks/DataRegularisation:data reduction>`
+       * :ref:`Minimize Shifting <cookbooks/DataRegularisation:minimize shifting distance>`
 
 #. We use the Aggregation and the Interpolation method.
 
 
-   * :ref:`Aggregation <cook_books/DataRegularisation:aggregation>`
+   * :ref:`Aggregation <cookbooks/DataRegularisation:aggregation>`
 
-     * :ref:`Function Parameter <cook_books/DataRegularisation:aggregation functions>`
-     * :ref:`Method Parameter <cook_books/DataRegularisation:shifting method>`
+     * :ref:`Function Parameter <cookbooks/DataRegularisation:aggregation functions>`
+     * :ref:`Method Parameter <cookbooks/DataRegularisation:shifting method>`
 
-   * :ref:`Interpolation <cook_books/DataRegularisation:interpolation>`
+   * :ref:`Interpolation <cookbooks/DataRegularisation:interpolation>`
 
-   * :ref:`Representing Data Sparsity <cook_books/DataRegularisation:interpolation and data sparsity>`
+   * :ref:`Representing Data Sparsity <cookbooks/DataRegularisation:interpolation and data sparsity>`
 
 #. We see how regularisation interacts with Flags.
 
-   * :ref:`Flags and Regularisation <cook_books/DataRegularisation:flags and regularisation>`
+   * :ref:`Flags and Regularisation <cookbooks/DataRegularisation:flags and regularisation>`
 
 Why Regularisation
 ------------------
@@ -126,9 +126,9 @@ Basically, there are three types of :doc:`regularisations <../funcSummaries/resa
 
 
 #. We could keep the values as they are, and thus,
-   just :ref:`shift <cook_books/DataRegularisation:Shift>` them in time to match the equidistant *10* minutes frequency grid, we want the data to exhibit.
-#. We could calculate new, synthetic data values for the regular timestamps, via an :ref:`interpolation <cook_books/DataRegularisation:Interpolation>` method.
-#. We could apply some :ref:`aggregation <cook_books/DataRegularisation:Aggregation>` to up- or down sample the data.
+   just :ref:`shift <cookbooks/DataRegularisation:Shift>` them in time to match the equidistant *10* minutes frequency grid, we want the data to exhibit.
+#. We could calculate new, synthetic data values for the regular timestamps, via an :ref:`interpolation <cookbooks/DataRegularisation:Interpolation>` method.
+#. We could apply some :ref:`aggregation <cookbooks/DataRegularisation:Aggregation>` to up- or down sample the data.
 
 Shift
 -----
@@ -208,7 +208,7 @@ transformation as well. That change stems from 2 sources mainly:
 Empty Intervals
 ^^^^^^^^^^^^^^^
 
-If there is no :ref:`valid <cook_books/DataRegularisation:valid data>` data point available within an interval of the passed frequency,
+If there is no :ref:`valid <cookbooks/DataRegularisation:valid data>` data point available within an interval of the passed frequency,
 that could be shifted to match a multiple of the frequency, a ``NaN`` value gets inserted to represent the fact,
 that in the interval that is represented by that date time index, there was data missing.
 
@@ -228,8 +228,8 @@ Data points are referred to, as *valid*\ , in context of a regularisation, if:
 
 Note, that, from point *2* above, it follows, that flagging data values
 before regularisation, will effectively exclude them from the regularistaion process. See chapter
-:ref:`flagging and resampling <cook_books/DataRegularisation:flags and regularisation>` for an example of this effect and how it can help
-control :ref:`data reduction <cook_books/DataRegularisation:data reduction>`.
+:ref:`flagging and resampling <cookbooks/DataRegularisation:flags and regularisation>` for an example of this effect and how it can help
+control :ref:`data reduction <cookbooks/DataRegularisation:data reduction>`.
 
 data reduction
 ^^^^^^^^^^^^^^
@@ -240,7 +240,7 @@ interval.
 
 This reduction depends on the selected :doc:`regularisation <../funcSummaries/resampling>` method.
 
-For example, :ref:`above <cook_books/DataRegularisation:shift>`\ , we applied a backwards :py:meth:`~saqc.SaQC.shift` with a *10* minutes frequency.
+For example, :ref:`above <cookbooks/DataRegularisation:shift>`\ , we applied a backwards :py:meth:`~saqc.SaQC.shift` with a *10* minutes frequency.
 As a result, the first value, encountered after any multiple of *10* minutes, gets shifted backwards to be aligned with
 the desired frequency and any other value in that *10* minutes interval just gets discarded.
 
@@ -356,13 +356,13 @@ for calculating the median, ``sum``\ , for assigning the value sum, and so on.)
 Aggregation method
 ^^^^^^^^^^^^^^^^^^
 
-As it is with the :ref:`shift <cook_books/DataRegularisation:Shift>` functionality, a ``method`` keyword controlls, weather the
+As it is with the :ref:`shift <cookbooks/DataRegularisation:Shift>` functionality, a ``method`` keyword controlls, weather the
 aggregation result for the interval in between 2 regular timestamps gets assigned to the left (=\ ``bagg``\ ) or to the
 right (\ ``fagg``\ ) boundary timestamp.
 
 
 * Also, analogous to to the shift functionality, intervals of size ``freq``\ , that do
-  not contain any :ref:`valid <cook_books/DataRegularisation:valid data>` data, that could be aggregated, get ``ǹp.nan`` assigned.
+  not contain any :ref:`valid <cookbooks/DataRegularisation:valid data>` data, that could be aggregated, get ``ǹp.nan`` assigned.
 
 Interpolation
 -------------
@@ -411,15 +411,15 @@ Interpolation and Data Sparsity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The regularisation by interpolation is strict in the sense, that regular timestamps *only* get
-interpolated, if they have at least one :ref:`valid <cook_books/DataRegularisation:valid data>` data value preceeding them *and* one
+interpolated, if they have at least one :ref:`valid <cookbooks/DataRegularisation:valid data>` data value preceeding them *and* one
 succeeding them *within* the given frequency range (wich is controlled by the ``freq`` keyword.).
 
 Thats, why, you have no interpolation value at ``2021-03-20 07:30:00`` - bacause it is preceeded
-by a :ref:`valid <cook_books/DataRegularisation:valid data>` value at ``2021-03-20 07:26:16``\ , but there is no :ref:`valid <cook_books/DataRegularisation:valid data>` value
+by a :ref:`valid <cookbooks/DataRegularisation:valid data>` value at ``2021-03-20 07:26:16``\ , but there is no :ref:`valid <cookbooks/DataRegularisation:valid data>` value
 available in between the succeeding *10* minutes interval from ``2021-03-20 07:30:00`` to ``2021-03-20 07:30:00``.
 
 On the other hand, there is an interpolated value assigned to ``2021-03-20 07:50:00``\ , it is preceeded by
-a :ref:`valid <cook_books/DataRegularisation:valid data>` value at ``2021-03-20 07:40:37`` and one succeeding at ``2021-03-20 07:54:59``.
+a :ref:`valid <cookbooks/DataRegularisation:valid data>` value at ``2021-03-20 07:40:37`` and one succeeding at ``2021-03-20 07:54:59``.
 
 This behavior is intended to reflect the sparsity of the original data in the
 regularized data set. The behavior can be circumvented by applying the more general
@@ -434,7 +434,7 @@ Flags and Regularisation
 ------------------------
 
 Since data, that is flagged by a level higher or equal to the passed ``to_mask`` value
-(default=:py:const:~saqc.constants.BAD), is not regarded :ref:`valid <cook_books/DataRegularisation:valid data>` by the applied function,
+(default=:py:const:~saqc.constants.BAD), is not regarded :ref:`valid <cookbooks/DataRegularisation:valid data>` by the applied function,
 it can be of advantage, to flag data before regularisation in order to effectively exclude it
 from the resulting regularly sampled data set. Lets see an example for the *SoilMoisture* data set.
 

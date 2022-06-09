@@ -29,9 +29,9 @@ Getting Started
    :maxdepth: 1
    :hidden:
 
-   cook_books/DataRegularisation
-   cook_books/OutlierDetection
-   cook_books/MultivariateFlagging
+   cookbooks/DataRegularisation
+   cookbooks/OutlierDetection
+   cookbooks/MultivariateFlagging
 
 .. toctree::
    :caption: Documentation
