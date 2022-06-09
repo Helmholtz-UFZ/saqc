@@ -24,7 +24,7 @@ class Outliers:
     def flagByStray(
         self,
         field: str,
-        freq: Optional[Union[int, str]] = None,
+        window: Optional[Union[int, str]] = None,
         min_periods: int = 11,
         iter_start: float = 0.5,
         alpha: float = 0.05,

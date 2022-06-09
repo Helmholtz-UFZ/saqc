@@ -21,7 +21,6 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - *sphinx-doc*: automatically scrape typehints from signature and include those into the parameter section
 
 ### Changed
-- renamed `History.max` to renamed `History.squeeze`
 - documentation pipeline changed to base on methods decorators
 - `flagOffsets` parameters `thresh` and `thresh_relative` now both are optional
 - flags concatenation tasks (for squeezed and explicit histories) are now all channeled through the function `concatFlags`
@@ -34,6 +33,8 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - `SaQC.data` returns `dios.DictOfSeries`
 - `SaQC.flags` returns `dios.DictOfSeries` or `pd.DataFrame`
 - `SaQC` data attributes are not mutated by method calls
+- renamed `History.max` to renamed `History.squeeze`
+- renamed parameter `freq` of function flagByStray to `window`
 
 ### Removed
 - data accessors `SaQC.result`, `SaQC.data_raw`, `SaQC.flags_raw`
