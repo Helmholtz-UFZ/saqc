@@ -66,8 +66,8 @@ Features
 .. list-table::
 
     * - |pyLogo| |csvConfig|
-      - * :ref:`get and install SaQC <getting_started/InstallationGuide:installation guide>`
-        * :ref:`use the SaQC python API, enabling integration into larger programs <getting_started/TutorialAPI:python api>`
+      - * :ref:`get and install SaQC <gettingstarted/InstallationGuide:installation guide>`
+        * :ref:`use the SaQC python API, enabling integration into larger programs <gettingstarted/TutorialAPI:python api>`
         * or use SaQC as a commandline application and configure your pipelines via plain text
     * - |sacRaw|
       - * easily load data from multiple sources, concatenating them in a SaQC object

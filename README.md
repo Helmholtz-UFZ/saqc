@@ -40,7 +40,7 @@ can be installed using [pip](https://pip.pypa.io/en/stable/):
 ```sh
 python -m pip install saqc
 ```
-For a more detailed installion guide, see the [installation guide](https://rdm-software.pages.ufz.de/saqc/getting_started/InstallationGuide.html).
+For a more detailed installion guide, see the [installation guide](https://rdm-software.pages.ufz.de/saqc/gettingstarted/InstallationGuide.html).
 
 ## Usage
 
@@ -106,7 +106,7 @@ saqc = (saqc
 ```
 
 A more detailed description of the Python API is available in the 
-[respective section](https://rdm-software.pages.ufz.de/saqc/getting_started/TutorialAPI.html)
+[respective section](https://rdm-software.pages.ufz.de/saqc/gettingstarted/TutorialAPI.html)
 of the documentation.
 
 ## Changelog

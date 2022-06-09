@@ -19,9 +19,9 @@ Getting Started
    :maxdepth: 1
    :hidden:
 
-   getting_started/InstallationGuide
-   getting_started/TutorialAPI
-   getting_started/TutorialCLI
+   gettingstarted/InstallationGuide
+   gettingstarted/TutorialAPI
+   gettingstarted/TutorialCLI
 
 
 .. toctree::

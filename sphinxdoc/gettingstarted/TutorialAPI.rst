@@ -178,7 +178,7 @@ Can I get something visual, please?
 -----------------------------------
 
 We provide an elaborated plotting method to generate and show or write matplotlib figures. Building on
-the example :ref:`above <getting_started/TutorialAPI:putting it together - the complete workflow>` above
+the example :ref:`above <gettingstarted/TutorialAPI:putting it together - the complete workflow>` above
 simply call:
 
 .. testcode:: python

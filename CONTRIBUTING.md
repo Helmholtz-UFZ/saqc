@@ -5,7 +5,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 # Development Environment
-We recommend a virtual python environment for development, a more detailed description of the setup process can be found in the [docs](https://rdm-software.pages.ufz.de/saqc/getting_started/InstallationGuide.html#set-up-a-virtual-environment).
+We recommend a virtual python environment for development, a more detailed description of the setup process can be found in the [docs](https://rdm-software.pages.ufz.de/saqc/gettingstarted/InstallationGuide.html#set-up-a-virtual-environment).
 
 # Testing
 SaQC comes with an extensive test suite based on [pytest](https://docs.pytest.org/en/latest/).

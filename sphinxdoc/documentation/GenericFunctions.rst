@@ -35,7 +35,7 @@ signature looks like that:
 
 where ``<expression>`` is composed of the `supported constructs`_
 and ``<flag_constant>`` is one of the predefined
-:ref:`flagging constants <getting_started/ParameterDescriptions:flagging constants>` (default: ``BAD``\ ).
+:ref:`flagging constants <gettingstarted/ParameterDescriptions:flagging constants>` (default: ``BAD``\ ).
 Generic flagging functions are expected to return a boolean value, i.e. ``True`` or ``False``. All other expressions will
 fail during the runtime of ``SaQC``.
 
@@ -322,4 +322,4 @@ Constants
 ^^^^^^^^^
 
 Generic functions support the same constants as normal functions, a detailed 
-list is available :ref:`here <getting_started/ParameterDescriptions:constants>`.
+list is available :ref:`here <gettingstarted/ParameterDescriptions:constants>`.
