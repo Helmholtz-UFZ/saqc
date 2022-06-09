@@ -6,13 +6,12 @@
 
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
+import pytest
 
-from saqc.constants import *
-from saqc.funcs.constants import flagConstants, flagByVariance
-from saqc.core import initFlagsLike, Flags
-
+from saqc.constants import BAD, UNFLAGGED
+from saqc.core import initFlagsLike
+from saqc.funcs.constants import flagByVariance, flagConstants
 from tests.common import initData
 
 

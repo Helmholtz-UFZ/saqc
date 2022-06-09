@@ -8,14 +8,14 @@
 from __future__ import annotations
 
 from typing import Optional
+
+import numpy as np
 from typing_extensions import Literal
 
 import saqc
-import numpy as np
-
+import saqc.funcs
 from saqc.constants import FILTER_NONE
 from saqc.lib.docurator import doc
-import saqc.funcs
 
 
 class Tools:

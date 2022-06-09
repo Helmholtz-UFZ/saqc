@@ -8,7 +8,6 @@ import pytest
 
 from .test_setup import *
 
-
 __author__ = "Bert Palm"
 __email__ = "bert.palm@ufz.de"
 __copyright__ = "Copyright 2018, Helmholtz-Centrum für Umweltforschung GmbH - UFC"

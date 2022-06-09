@@ -4,13 +4,14 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 import dios
 
 
 def test_init():
-    from saqc import SaQC, Flags
+    from saqc import Flags, SaQC
 
     arr = np.array(
         [

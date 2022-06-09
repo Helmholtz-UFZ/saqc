@@ -5,7 +5,6 @@
 # do not import dios-stuff here
 import operator as op
 
-
 _OP1_MAP = {
     op.inv: "~",
     op.neg: "-",

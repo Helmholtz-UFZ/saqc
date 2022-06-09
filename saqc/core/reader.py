@@ -6,19 +6,18 @@
 
 # -*- coding: utf-8 -*-
 
-import io
 import ast
+import io
 from pathlib import Path
-from urllib.request import urlopen
-from urllib.error import URLError
 from typing import TextIO
+from urllib.error import URLError
+from urllib.request import urlopen
 
 import pandas as pd
 
 from saqc.core.core import SaQC
 from saqc.core.visitor import ConfigFunctionParser
 from saqc.lib.tools import isQuoted
-
 
 COMMENT = "#"
 SEPARATOR = ";"

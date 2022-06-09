@@ -7,20 +7,20 @@
 # -*- coding: utf-8 -*-
 
 import ast
-from saqc.core.flags import Flags
-from saqc.core.reader import fromConfig
-import pytest
+
 import numpy as np
 import pandas as pd
+import pytest
+
 import dios
-
-from saqc.constants import *
-from saqc.core import initFlagsLike
-from saqc.core.visitor import ConfigFunctionParser
-from saqc.core.register import register
-from saqc.funcs.generic import _execGeneric
 from saqc import SaQC
-
+from saqc.constants import BAD, UNFLAGGED
+from saqc.core import initFlagsLike
+from saqc.core.flags import Flags
+from saqc.core.reader import fromConfig
+from saqc.core.register import register
+from saqc.core.visitor import ConfigFunctionParser
+from saqc.funcs.generic import _execGeneric
 from tests.common import initData, writeIO
 
 

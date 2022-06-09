@@ -6,14 +6,14 @@
 
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable
+from typing import Callable, Union
 
 import numpy as np
 import pandas as pd
 
+import saqc.funcs
 from saqc.constants import BAD
 from saqc.lib.docurator import doc
-import saqc.funcs
 
 
 class Rolling:

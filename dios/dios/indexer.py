@@ -2,15 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from . import pandas_bridge as pdextra
-from .base import (
-    _DiosBase,
-    _is_dios_like,
-    _is_bool_dios_like,
-)
-
 import numpy as np
 import pandas as pd
+
+from . import pandas_bridge as pdextra
+from .base import _DiosBase, _is_bool_dios_like, _is_dios_like
 
 
 class _Indexer:

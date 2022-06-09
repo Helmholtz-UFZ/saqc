@@ -6,14 +6,13 @@
 
 from __future__ import annotations
 
-import pandas as pd
+from typing import DefaultDict, Dict, Iterable, Mapping, Optional, Tuple, Type, Union
+
 import numpy as np
+import pandas as pd
+
 import dios
-from typing import Mapping, Union, Dict, DefaultDict, Optional, Type, Tuple, Iterable
-
-from saqc.constants import *
 from saqc.core.history import History
-
 
 _VAL = Union[pd.Series, History]
 DictLike = Union[

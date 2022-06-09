@@ -8,20 +8,20 @@
 from __future__ import annotations
 
 from typing import Tuple, Union
-from typing_extensions import Literal
+
 import numpy as np
 import pandas as pd
-from dios import DictOfSeries
 
-from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.lib.tools import getFreqDelta, filterKwargs
+from dios import DictOfSeries
+from saqc.core.flags import Flags
+from saqc.core.register import register
+from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import (
-    polyRollerIrregular,
-    polyRollerNumba,
     polyRoller,
-    polyRollerNoMissingNumba,
+    polyRollerIrregular,
     polyRollerNoMissing,
+    polyRollerNoMissingNumba,
+    polyRollerNumba,
 )
 
 

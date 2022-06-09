@@ -2,8 +2,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from .test_setup import *
 from pandas.core.dtypes.common import is_scalar
+
+from .test_setup import *
 
 
 @pytest.mark.parametrize(

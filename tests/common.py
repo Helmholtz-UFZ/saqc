@@ -7,11 +7,12 @@
 # -*- coding: utf-8 -*-
 
 import io
+
 import numpy as np
 import pandas as pd
-import dios
 
-from saqc.constants import *
+import dios
+from saqc.constants import BAD
 from saqc.core import Flags
 from saqc.core.history import History, createHistoryFromData
 

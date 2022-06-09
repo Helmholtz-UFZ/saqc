@@ -25,6 +25,7 @@ __all__ = [
 
 import numpy as np
 import scipy.stats as st
+
 import saqc.lib.ts_operators as ts_ops
 
 # ----------------------------------------------------------------------

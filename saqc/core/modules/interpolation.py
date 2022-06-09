@@ -7,16 +7,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Union, Callable
+from typing import Callable, Union
 
 import numpy as np
 import pandas as pd
 
-from saqc.constants import UNFLAGGED
 import saqc
+import saqc.funcs
+from saqc.constants import UNFLAGGED
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
 from saqc.lib.docurator import doc
-import saqc.funcs
 
 
 class Interpolation:

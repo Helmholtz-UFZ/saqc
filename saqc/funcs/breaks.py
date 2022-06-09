@@ -23,12 +23,11 @@ import numpy as np
 import pandas as pd
 
 from dios import DictOfSeries
-
-from saqc.constants import *
-from saqc.lib.tools import groupConsecutives
-from saqc.funcs.changepoints import _assignChangePointCluster
+from saqc.constants import BAD, FILTER_ALL
 from saqc.core.flags import Flags
-from saqc.core.register import _isflagged, register, flagging
+from saqc.core.register import _isflagged, flagging, register
+from saqc.funcs.changepoints import _assignChangePointCluster
+from saqc.lib.tools import groupConsecutives
 
 
 @register(mask=[], demask=[], squeeze=["field"])

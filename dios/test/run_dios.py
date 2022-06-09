@@ -4,8 +4,9 @@
 
 from builtins import range
 
-from dios import *
 import numpy as np
+
+from dios import *
 
 if __name__ == "__main__":
     dios_options[OptsFields.mixed_itype_warn_policy] = Opts.itype_warn

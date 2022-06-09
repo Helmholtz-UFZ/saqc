@@ -5,6 +5,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+
 from saqc.lib.tools import periodicMask
 
 unmasked, masked = True, False

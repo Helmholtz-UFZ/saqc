@@ -2,9 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pandas as pd
-import numpy as np
 import time
+
+import numpy as np
+import pandas as pd
+
 from .generate_testsets import get_testset, var_prefix
 
 profile_assignment = False

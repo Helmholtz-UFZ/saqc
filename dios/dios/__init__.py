@@ -2,8 +2,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from .lib import *
 from .dios import *
+from .lib import *
 
 __all__ = [
     "DictOfSeries",

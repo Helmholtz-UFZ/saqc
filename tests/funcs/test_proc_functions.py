@@ -7,26 +7,26 @@
 # -*- coding: utf-8 -*-
 
 
+import numpy as np
+import pandas as pd
+
 # see test/functs/fixtures.py for global fixtures "course_..."
 import pytest
 
-import pandas as pd
-import saqc
 import dios
-
-from saqc.constants import *
+import saqc
+from saqc.constants import UNFLAGGED
 from saqc.core import initFlagsLike
-from saqc.funcs.transformation import transform
 from saqc.funcs.drift import correctOffset
 from saqc.funcs.interpolation import (
     interpolateByRolling,
-    interpolateInvalid,
     interpolateIndex,
+    interpolateInvalid,
 )
 from saqc.funcs.resampling import resample
+from saqc.funcs.transformation import transform
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
-
-from tests.fixtures import *
+from tests.fixtures import char_dict, course_3, course_5
 
 
 def test_rollingInterpolateMissing(course_5):

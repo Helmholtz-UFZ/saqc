@@ -7,18 +7,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Tuple, Union, Callable
-from typing_extensions import Literal
+from typing import Callable, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from typing_extensions import Literal
+
 from dios import DictOfSeries
-
-from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.core.register import _isflagged
+from saqc.constants import UNFLAGGED
+from saqc.core.flags import Flags
+from saqc.core.register import _isflagged, register
 from saqc.lib.ts_operators import interpolateNANs
-
 
 _SUPPORTED_METHODS = Literal[
     "linear",

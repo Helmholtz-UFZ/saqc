@@ -7,18 +7,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Sequence, Callable, Optional, Union
-from typing_extensions import Literal
+from typing import Callable, Optional, Sequence, Union
 
 import numpy as np
 from scipy.spatial.distance import pdist
+from typing_extensions import Literal
 
-from saqc.constants import BAD
 import saqc
-from saqc.funcs import LinkageString
-from saqc.lib.types import CurveFitter
-from saqc.lib.docurator import doc
 import saqc.funcs
+from saqc.constants import BAD
+from saqc.funcs import LinkageString
+from saqc.lib.docurator import doc
+from saqc.lib.types import CurveFitter
 
 
 class Drift:

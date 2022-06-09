@@ -9,8 +9,8 @@
 import inspect
 from typing import Callable, Set
 
-import pytest
 import pandas as pd
+import pytest
 
 from saqc import SaQC
 from saqc.core.register import FUNC_MAP, FunctionWrapper

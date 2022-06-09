@@ -6,15 +6,15 @@
 
 # -*- coding: utf-8 -*-
 
-import pytest
 import pandas as pd
-import dios
+import pytest
+from pandas.testing import assert_series_equal
 
+import dios
 from saqc.constants import BAD, UNFLAGGED
 from saqc.core import initFlagsLike
 from saqc.funcs.pattern import flagPatternByDTW
 from tests.common import initData
-from pandas.testing import assert_series_equal
 
 
 @pytest.fixture

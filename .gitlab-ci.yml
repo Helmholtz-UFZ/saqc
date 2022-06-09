@@ -28,6 +28,12 @@ black:
     - pip install black
     - black --check .
 
+# check if imports are sorted
+black:
+  stage: test
+  script:
+    - pip install isort
+    - isort --check .
 
 # Check compliance with the REUSE specification
 reuse_compliance:

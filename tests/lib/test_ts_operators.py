@@ -2,12 +2,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 import numpy as np
+import pandas as pd
 import pytest
+from numpy.testing import assert_array_equal, assert_equal
+from pandas.testing import assert_series_equal
 
 import saqc.lib.ts_operators as tsops
-import pandas as pd
-from pandas.testing import assert_series_equal
-from numpy.testing import assert_array_equal, assert_equal
 
 
 def test_butterFilter():

@@ -6,14 +6,14 @@
 
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
 import pandas as pd
-import dios
+import pytest
 
-from saqc.core import initFlagsLike, Flags
+import dios
 from saqc.constants import BAD, UNFLAGGED
-from saqc.funcs.resampling import linear, interpolate, shift, concatFlags, resample
+from saqc.core import Flags, initFlagsLike
+from saqc.funcs.resampling import concatFlags, interpolate, linear, resample, shift
 from saqc.funcs.tools import copyField, dropField
 from tests.common import checkDataFlagsInvariants
 

@@ -6,11 +6,12 @@
 
 from __future__ import annotations
 
-from copy import deepcopy, copy as shallowcopy
-from typing import Dict, Tuple, Union, List, Any
+from copy import copy as shallowcopy
+from copy import deepcopy
+from typing import Any, Dict, List, Tuple, Union
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from saqc.constants import UNFLAGGED
 

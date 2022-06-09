@@ -7,22 +7,16 @@
 # -*- coding: utf-8 -*-
 
 import json
-from typing import Dict, Union, Sequence
+from typing import Dict, Sequence, Union
 
 import numpy as np
 import pandas as pd
-
 import pytest
 
-from saqc.constants import UNFLAGGED, BAD, DOUBTFUL, FILTER_NONE
-from saqc.core.translation import (
-    PositionalScheme,
-    TranslationScheme,
-    DmpScheme,
-)
-from saqc.core.flags import Flags
+from saqc.constants import BAD, DOUBTFUL, FILTER_NONE, UNFLAGGED
 from saqc.core.core import SaQC
-
+from saqc.core.flags import Flags
+from saqc.core.translation import DmpScheme, PositionalScheme, TranslationScheme
 from tests.common import initData
 
 

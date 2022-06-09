@@ -2,12 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
 
 from dios import DictOfSeries
-
 
 # TODO: this is odd
 #  Why not simple fixtures with talking-names,
