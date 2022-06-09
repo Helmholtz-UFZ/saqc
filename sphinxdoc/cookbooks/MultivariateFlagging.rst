@@ -169,7 +169,7 @@ But checking out values around *2017-10-29*, we notice, that the sampling rate s
    2017-10-29 08:32:01    39.4337 | 2017-10-29 08:32:01   112.027 | 2017-10-29 08:32:01          10.66 | 
 
 Those instabilities do bias most statistical evaluations and it is common practice to apply some
-:doc:`resampling functions <../funcSummaries/resampling>` onto the data, to obtain a regularly spaced timestamp.
+:doc:`resampling functions <../funcs/resampling>` onto the data, to obtain a regularly spaced timestamp.
 (See also the :ref:`harmonization tutorial <cookbooks/DataRegularisation:data regularisation>` for more informations
 on that topic.)
 

@@ -82,4 +82,4 @@ Features
       - * modify your data by :ref:`interpolations <cookbooks/DataRegularisation:Interpolation>`, corrections and :ref:`transformations <cookbooks/DataRegularisation:Aggregation>`
         * calculate data products, such as :ref:`residuals or outlier scores <cookbooks/OutlierDetection:Residuals and Scores>`
     * - |sacMV|
-      - * apply :ref:`multivariate flagging functions <cookbooks/MultivariateFlagging:Multivariate Flagging>`
+      - * apply :ref:`multivariate flagging functions <cookbooks/MurecommonmarkltivariateFlagging:Multivariate Flagging>`

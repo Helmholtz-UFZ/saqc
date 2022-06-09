@@ -9,7 +9,7 @@ The tutorial aims to introduce the usage of ``SaQC`` methods, in order to obtain
 from given time series data input. Regularly sampled time series data, is data, that exhibits a constant temporal
 spacing in between subsequent data points.
 
-In the following steps, the tutorial guides through the usage of the *SaQC* :doc:`resampling <../funcSummaries/generic>`
+In the following steps, the tutorial guides through the usage of the *SaQC* :doc:`resampling <../funcs/generic>`
 library.
 
 #. Initially, we introduce and motivate regularisation techniques and we do import the tutorial data.
@@ -122,7 +122,7 @@ Regularisations
 So lets transform the measurements timestamps to have a regular *10* minutes frequency. In order to do so,
 we have to decide what to do with each time stamps associated data, when we alter the timestamps value.
 
-Basically, there are three types of :doc:`regularisations <../funcSummaries/resampling>` methods:
+Basically, there are three types of :doc:`regularisations <../funcs/resampling>` methods:
 
 
 #. We could keep the values as they are, and thus,
@@ -153,7 +153,7 @@ Freq parameter
 
 We passed the ``freq`` keyword of the intended sampling frequency in terms of a
 `date alias <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_ string. All of
-the :doc:`regularisations <../funcSummaries/resampling>` methods have such a frequency keyword,
+the :doc:`regularisations <../funcs/resampling>` methods have such a frequency keyword,
 and it just determines the sampling rate, the resulting regular timeseries will have.
 
 Shifting Method
@@ -197,7 +197,7 @@ We see, the first and last *10* datapoints of both, the original data time serie
 Obveously, the shifted data series now exhibits a regular sampling rate of *10* minutes, with the index
 ranging from the latest timestamp, that is a multiple of *10* minutes and preceeds the initial timestamp
 of the original data, up to the first *10* minutes multiple, that succeeds the last original datas timestamp.
-This is default behavior to all the :doc:`regularisations <../funcSummaries/resampling>` provided by ``saqc``.
+This is default behavior to all the :doc:`regularisations <../funcs/resampling>` provided by ``saqc``.
 
 Data Loss and Empty Intervals
 -----------------------------
@@ -238,7 +238,7 @@ If there are multiple values present within an interval with size according to t
 ``freq``\ , this values get reduced to one single value, that will get assigned to the timestamp associated with the
 interval.
 
-This reduction depends on the selected :doc:`regularisation <../funcSummaries/resampling>` method.
+This reduction depends on the selected :doc:`regularisation <../funcs/resampling>` method.
 
 For example, :ref:`above <cookbooks/DataRegularisation:shift>`\ , we applied a backwards :py:meth:`~saqc.SaQC.shift` with a *10* minutes frequency.
 As a result, the first value, encountered after any multiple of *10* minutes, gets shifted backwards to be aligned with

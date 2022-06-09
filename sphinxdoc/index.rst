@@ -51,23 +51,23 @@ Getting Started
    :glob:
    :titlesonly:
 
-   resampling <funcSummaries/resampling>
-   generic <funcSummaries/generic>
-   outliers <funcSummaries/outliers>
-   breaks <funcSummaries/breaks>
-   constants <funcSummaries/constants>
-   changepoints <funcSummaries/changepoints>
-   drift <funcSummaries/drift>
-   curvefit <funcSummaries/curvefit>
-   interpolation <funcSummaries/interpolation>
-   residuals <funcSummaries/residuals>
-   tools <funcSummaries/tools>
-   flagtools <funcSummaries/flagtools>
-   rolling <funcSummaries/rolling>
-   scores <funcSummaries/scores>
-   transformation <funcSummaries/transformation>
-   noise <funcSummaries/noise>
-   pattern <funcSummaries/pattern>
+   resampling <funcs/resampling>
+   generic <funcs/generic>
+   outliers <funcs/outliers>
+   breaks <funcs/breaks>
+   constants <funcs/constants>
+   changepoints <funcs/changepoints>
+   drift <funcs/drift>
+   curvefit <funcs/curvefit>
+   interpolation <funcs/interpolation>
+   residuals <funcs/residuals>
+   tools <funcs/tools>
+   flagtools <funcs/flagtools>
+   rolling <funcs/rolling>
+   scores <funcs/scores>
+   transformation <funcs/transformation>
+   noise <funcs/noise>
+   pattern <funcs/pattern>
 
 
 .. toctree::
@@ -78,7 +78,7 @@ Getting Started
    Package <moduleAPIs/saqc>
    Core <moduleAPIs/saqcCore>
    Constants <moduleAPIs/saqcConstants>
-   Methods <funcSummaries/allFunctions>
+   Methods <funcs/allFunctions>
    Config Environment <environment/configEnv>
 
 
