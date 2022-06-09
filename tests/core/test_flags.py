@@ -5,18 +5,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from typing import Dict, Union
-import dios
-import pytest
+
 import numpy as np
 import pandas as pd
+import pytest
 
-from saqc.constants import *
+import dios
+from saqc.constants import UNFLAGGED
 from saqc.core.flags import Flags
-
-from tests.core.test_history import (
-    History,
-    is_equal as hist_equal,
-)
+from tests.core.test_history import History
+from tests.core.test_history import is_equal as hist_equal
 
 _arrays = [
     np.array([[]]),

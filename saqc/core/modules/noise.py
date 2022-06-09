@@ -7,14 +7,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import numpy as np
-import pandas as pd
 from typing import Callable
 
-from saqc.constants import BAD
+import numpy as np
+import pandas as pd
+
 import saqc
-from saqc.lib.docurator import doc
 import saqc.funcs
+from saqc.constants import BAD
+from saqc.lib.docurator import doc
 
 
 class Noise:

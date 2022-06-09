@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from __future__ import annotations
-from typing import Any, Mapping, Hashable
-
-from .base import _DiosBase, _is_dios_like
-from .lib import Opts, OptsFields, dios_options
-from .lib import _find_least_common_itype
-from . import pandas_bridge as pdextra
 
 import functools as ftools
-import pandas as pd
+from typing import Any, Hashable, Mapping
+
 import numpy as np
+import pandas as pd
+
+from . import pandas_bridge as pdextra
+from .base import _DiosBase, _is_dios_like
+from .lib import Opts, OptsFields, _find_least_common_itype, dios_options
 
 
 class DictOfSeries(_DiosBase):

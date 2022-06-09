@@ -6,22 +6,24 @@
 
 # -*- coding: utf-8 -*-
 
+import numpy as np
+import pandas as pd
+
 # see test/functs/fixtures.py for global fixtures "course_..."
 import pytest
 
 import dios
-from tests.fixtures import *
-
+from saqc.constants import BAD, UNFLAGGED
+from saqc.core import initFlagsLike
 from saqc.funcs.outliers import (
-    flagMAD,
-    flagOffset,
-    flagRaise,
-    flagMVScores,
     flagByGrubbs,
     flagCrossStatistics,
+    flagMAD,
+    flagMVScores,
+    flagOffset,
+    flagRaise,
 )
-from saqc.constants import *
-from saqc.core import initFlagsLike
+from tests.fixtures import char_dict, course_1, course_2, course_3, course_4
 
 
 @pytest.fixture(scope="module")

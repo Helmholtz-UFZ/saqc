@@ -6,8 +6,8 @@
 
 # -*- coding: utf-8 -*-
 
-import pandas as pd
 import dtw
+import pandas as pd
 
 from saqc.constants import BAD
 from saqc.core.register import flagging

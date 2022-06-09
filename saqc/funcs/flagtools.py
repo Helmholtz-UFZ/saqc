@@ -8,18 +8,16 @@
 from __future__ import annotations
 
 import warnings
+from typing import Any, Sequence, Tuple, Union
 
-from typing import Any, Tuple, Union, Sequence
+import numpy as np
+import pandas as pd
 from typing_extensions import Literal
 
-import pandas as pd
-import numpy as np
-
 from dios import DictOfSeries
-
-from saqc.core import register, Flags, flagging
-from saqc.core.register import _isflagged
 from saqc.constants import BAD, FILTER_ALL, UNFLAGGED
+from saqc.core.flags import Flags
+from saqc.core.register import _isflagged, flagging, register
 from saqc.funcs.resampling import concatFlags
 
 

@@ -11,7 +11,6 @@ import pytest
 
 from saqc.core.modules import FunctionsMixin
 
-
 methods = [
     attr
     for attr in dir(FunctionsMixin)

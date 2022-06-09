@@ -2,14 +2,15 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import datetime as dt
+import os
+import pickle
 import time
 
-import pandas as pd
 import numpy as np
-import datetime as dt
+import pandas as pd
+
 from ..dios import DictOfSeries
-import pickle
-import os
 
 var_prefix = "var"
 

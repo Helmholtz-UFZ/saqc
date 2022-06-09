@@ -10,28 +10,23 @@
 from __future__ import annotations
 
 import functools
-from typing import Optional, Tuple, Sequence, Callable
-from typing_extensions import Literal
+import inspect
+from typing import Callable, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
-import inspect
-
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
+from typing_extensions import Literal
 
 from dios import DictOfSeries
 from saqc.constants import BAD
-
-from saqc.core.register import register, flagging, Flags
+from saqc.core.register import Flags, flagging, register
 from saqc.funcs.changepoints import _assignChangePointCluster
-from saqc.funcs.tools import dropField, copyField
-
-from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
-from saqc.lib.ts_operators import linearDriftModel, expDriftModel
+from saqc.funcs.tools import copyField, dropField
+from saqc.lib.tools import detectDeviants, filterKwargs, toSequence
+from saqc.lib.ts_operators import expDriftModel, linearDriftModel
 from saqc.lib.types import CurveFitter
-from saqc.lib.ts_operators import linearDriftModel, expDriftModel
-
 
 LinkageString = Literal[
     "single", "complete", "average", "weighted", "centroid", "median", "ward"

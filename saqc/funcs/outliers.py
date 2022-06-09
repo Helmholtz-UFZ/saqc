@@ -9,24 +9,23 @@
 from __future__ import annotations
 
 import uuid
-from typing import Optional, Union, Tuple, Sequence, Callable
-from typing_extensions import Literal
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
+from outliers import smirnov_grubbs
+from typing_extensions import Literal
 
 from dios import DictOfSeries
-from outliers import smirnov_grubbs
-
 from saqc.constants import BAD, UNFLAGGED
-from saqc.core import register, Flags
-from saqc.core.register import flagging
-from saqc.lib.tools import customRoller, getFreqDelta, toSequence
+from saqc.core.flags import Flags
+from saqc.core.register import flagging, register
 from saqc.funcs.scores import assignKNNScore
 from saqc.funcs.tools import copyField, dropField
 from saqc.funcs.transformation import transform
+from saqc.lib.tools import customRoller, getFreqDelta, toSequence
 
 
 @flagging()

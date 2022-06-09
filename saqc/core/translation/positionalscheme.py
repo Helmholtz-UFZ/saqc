@@ -10,19 +10,9 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from saqc.core.flags import (
-    Flags,
-    History,
-    UNFLAGGED,
-    GOOD,
-    DOUBTFUL,
-    BAD,
-)
-from saqc.core.translation.basescheme import (
-    TranslationScheme,
-    ForwardMap,
-    BackwardMap,
-)
+from saqc.constants import BAD, DOUBTFUL, GOOD, UNFLAGGED
+from saqc.core.flags import Flags, History
+from saqc.core.translation.basescheme import BackwardMap, ForwardMap, TranslationScheme
 
 
 class PositionalScheme(TranslationScheme):

@@ -7,25 +7,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import re
-import datetime
+import collections
 import itertools
+import re
 import warnings
-from typing import List, Sequence, TypeVar, Union, Any, Iterator, Callable, Collection
+from typing import Callable, Collection, Iterator, List, Sequence, TypeVar, Union
 
-import numpy as np
 import numba as nb
+import numpy as np
 import pandas as pd
 from scipy import fft
+from scipy.cluster.hierarchy import fcluster, linkage
 
 import dios
-import collections
-from scipy.cluster.hierarchy import linkage, fcluster
 
 # keep this for external imports
 # TODO: fix the external imports
 from saqc.lib.rolling import customRoller
-
 
 T = TypeVar("T", str, float, int)
 

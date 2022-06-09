@@ -14,20 +14,10 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 
+from saqc.constants import BAD, DOUBTFUL, GOOD, UNFLAGGED
+from saqc.core.flags import Flags
 from saqc.core.history import History
-from saqc.core.flags import (
-    Flags,
-    UNFLAGGED,
-    GOOD,
-    DOUBTFUL,
-    BAD,
-)
-from saqc.core.translation.basescheme import (
-    BackwardMap,
-    TranslationScheme,
-    ForwardMap,
-)
-
+from saqc.core.translation.basescheme import BackwardMap, ForwardMap, TranslationScheme
 
 _QUALITY_CAUSES = [
     "",

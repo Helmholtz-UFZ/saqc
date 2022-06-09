@@ -4,14 +4,15 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# -*- coding: utf-8 -*-
-import pytest
 import numpy as np
 import pandas as pd
 
+# -*- coding: utf-8 -*-
+import pytest
+
 
 def test_unknownFileExtention():
-    from saqc.__main__ import readData, writeData, setupIO
+    from saqc.__main__ import readData, setupIO, writeData
 
     reader, writer = setupIO(np.nan)
     with pytest.raises(ValueError):

@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import numpy as np
+import pandas as pd
 import pytest
 
-from dios import DictOfSeries as DoS
 import saqc.lib.tools as tools
-import pandas as pd
-import numpy as np
+from dios import DictOfSeries as DoS
 
 
 @pytest.mark.parametrize("optional", [False, True])

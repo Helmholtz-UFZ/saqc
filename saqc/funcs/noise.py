@@ -6,13 +6,16 @@
 
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-import pandas as pd
-import numpy as np
+
 import operator
-from dios import DictOfSeries
 from typing import Callable
-from saqc.constants import *
-from saqc.core import Flags
+
+import numpy as np
+import pandas as pd
+
+from dios import DictOfSeries
+from saqc.constants import BAD
+from saqc.core.flags import Flags
 from saqc.core.register import flagging
 from saqc.lib.tools import statPass
 

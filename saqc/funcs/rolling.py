@@ -6,14 +6,15 @@
 
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable, Tuple
+from typing import Callable, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from dios import DictOfSeries
 
-from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.lib.tools import getFreqDelta, filterKwargs
+from dios import DictOfSeries
+from saqc.core.flags import Flags
+from saqc.core.register import register
+from saqc.lib.tools import getFreqDelta
 
 
 @register(mask=["field"], demask=[], squeeze=[])

@@ -2,8 +2,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from setuptools import setup, find_packages
 from distutils.util import convert_path
+
+from setuptools import find_packages, setup
 
 # read the version string from saqc without importing it. See the
 # link for a more detailed description of the problem and the solution

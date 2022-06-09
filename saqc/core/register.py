@@ -6,15 +6,16 @@
 
 from __future__ import annotations
 
+import functools
 import inspect
 import warnings
-from typing import Dict, Tuple, Callable, Sequence, Any
-import functools
+from typing import Any, Callable, Dict, Sequence, Tuple
+
 import numpy as np
 import pandas as pd
-import dios
 
-from saqc.constants import UNFLAGGED, FILTER_ALL
+import dios
+from saqc.constants import FILTER_ALL, UNFLAGGED
 from saqc.core.flags import Flags, History
 from saqc.lib.tools import squeezeSequence, toSequence
 

@@ -6,18 +6,18 @@
 
 # -*- coding: utf-8 -*-
 
+import numpy as np
+import pandas as pd
 
 # see test/functs/fixtures.py for global fixtures "course_..."
 import pytest
 
 import dios
-
 from saqc import BAD, UNFLAGGED
 from saqc.core import initFlagsLike
-from saqc.funcs.tools import selectTime
 from saqc.funcs.residuals import calculatePolynomialResiduals, calculateRollingResiduals
-
-from tests.fixtures import *
+from saqc.funcs.tools import selectTime
+from tests.fixtures import char_dict, course_1, course_2
 
 
 @pytest.mark.filterwarnings("ignore: The fit may be poorly conditioned")

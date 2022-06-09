@@ -5,9 +5,9 @@
 import re
 import subprocess
 
+import markdown
 import pytest
 import requests
-import markdown
 from bs4 import BeautifulSoup
 
 

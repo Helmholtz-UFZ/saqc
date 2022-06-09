@@ -8,13 +8,11 @@
 
 import pandas as pd
 import pytest
-
 from hypothesis import given, settings
 
-from saqc.constants import UNFLAGGED, BAD
+from saqc.constants import BAD, UNFLAGGED
 from saqc.core.register import FunctionWrapper
-
-from tests.fuzzy.lib import dataFieldFlags, MAX_EXAMPLES
+from tests.fuzzy.lib import MAX_EXAMPLES, dataFieldFlags
 
 
 @pytest.mark.slow

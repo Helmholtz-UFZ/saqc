@@ -7,17 +7,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Tuple, Union, Optional, Callable
+from typing import Callable, Optional, Tuple, Union
 
-import pandas as pd
-from typing_extensions import Literal
 import numpy as np
-from dios import DictOfSeries
+import pandas as pd
 
-from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.funcs.rolling import _roll
+from dios import DictOfSeries
+from saqc.core.flags import Flags
+from saqc.core.register import register
 from saqc.funcs.curvefit import _fitPolynomial
+from saqc.funcs.rolling import _roll
 
 
 @register(mask=["field"], demask=[], squeeze=[])

@@ -7,17 +7,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from saqc.constants import BAD
 import saqc
+import saqc.funcs
+from saqc.constants import BAD
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
 from saqc.lib.docurator import doc
-import saqc.funcs
 
 
 class Resampling:

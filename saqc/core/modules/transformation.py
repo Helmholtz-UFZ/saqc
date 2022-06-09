@@ -12,8 +12,8 @@ from typing import Callable, Optional, Union
 import pandas as pd
 
 import saqc
-from saqc.lib.docurator import doc
 import saqc.funcs
+from saqc.lib.docurator import doc
 
 
 class Transformation:
