@@ -16,7 +16,7 @@ The Python API of SaQC consists of three distinct components:
 
 1. the core class, :py:class:`saqc.SaQC`
 2. a number of flagging schemes
-3. a collection of :doc:`functions <../moduleAPIs/saqcFuncTOC>`.
+3. a collection of :doc:`functions <../modules/saqcFuncTOC>`.
 
 One and two are implemented as distinct classes, the core object is called ``SaQC`` and we currently
 provide three flagging schemes, namely:

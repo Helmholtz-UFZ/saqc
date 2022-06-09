@@ -75,9 +75,9 @@ Getting Started
    :hidden:
    :maxdepth: 2
 
-   Package <moduleAPIs/saqc>
-   Core <moduleAPIs/saqcCore>
-   Constants <moduleAPIs/saqcConstants>
+   Package <modules/saqc>
+   Core <modules/saqcCore>
+   Constants <modules/saqcConstants>
    Methods <funcs/allFunctions>
    Config Environment <environment/configEnv>
 

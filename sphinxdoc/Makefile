@@ -27,8 +27,8 @@ clean:
 	mkdir _static
 	rm -f *.automodsumm
 	rm -f *.automodapi
-	rm -f moduleAPIs/*.automodsumm
-	rm -f moduleAPIs/*.automodapi
+	rm -f modules/*.automodsumm
+	rm -f modules/*.automodapi
 	rm -f */*.automodsumm
 	rm -f -r coredoc
 
@@ -40,8 +40,8 @@ doc:
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -f *.automodsumm
 	rm -f *.automodapi
-	rm -f moduleAPIs/*.automodsumm
-	rm -f moduleAPIs/*.automodapi
+	rm -f modules/*.automodsumm
+	rm -f modules/*.automodapi
 	rm -f */*.automodsumm
 
 # make documentation
@@ -57,8 +57,8 @@ testonly:
 	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -f *.automodsumm
 	rm -f *.automodapi
-	rm -f moduleAPIs/*.automodsumm
-	rm -f moduleAPIs/*.automodapi
+	rm -f modules/*.automodsumm
+	rm -f modules/*.automodapi
 	rm -f */*.automodsumm
 	rm -f -r coredoc
 
