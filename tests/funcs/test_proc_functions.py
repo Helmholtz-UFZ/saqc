@@ -10,6 +10,8 @@
 # see test/functs/fixtures.py for global fixtures "course_..."
 import pytest
 
+import pandas as pd
+import saqc
 import dios
 
 from saqc.constants import *
@@ -141,3 +143,9 @@ def test_offsetCorrecture():
     flags = initFlagsLike(data)
     data, _ = correctOffset(data, "dat", flags, 40, 20, "3d", 1)
     assert (data == 0).all()[0]
+
+
+# GL-333
+def test_resampleSingleEmptySeries():
+    qc = saqc.SaQC(pd.DataFrame(1, columns=["a"], index=pd.DatetimeIndex([])))
+    qc.resample("a", freq="1d")

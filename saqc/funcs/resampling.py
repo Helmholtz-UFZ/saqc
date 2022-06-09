@@ -14,7 +14,7 @@ from typing_extensions import Literal
 import numpy as np
 import pandas as pd
 
-from dios import DictOfSeries
+from dios import DictOfSeries, DtItype
 
 from saqc.constants import *
 from saqc.core import register, Flags
@@ -331,6 +331,11 @@ def resample(
     """
 
     datcol = data[field]
+
+    # workaround for #GL-333
+    if datcol.empty and data.itype in [None, DtItype]:
+        datcol = pd.Series(index=pd.DatetimeIndex([]), dtype=datcol.dtype)
+
     freq = evalFreqStr(freq, freq_check, datcol.index)
 
     datcol = aggregate2Freq(
