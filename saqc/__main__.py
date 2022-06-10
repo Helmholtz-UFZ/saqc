@@ -14,7 +14,6 @@ import click
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-from _pytest.fixtures import resolve_fixture_function
 
 from dios.dios.dios import DictOfSeries
 from saqc.core.core import TRANSLATION_SCHEMES
