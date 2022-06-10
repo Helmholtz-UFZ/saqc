@@ -29,7 +29,7 @@ black:
     - black --check .
 
 # check if imports are sorted
-black:
+isort:
   stage: test
   script:
     - pip install isort
