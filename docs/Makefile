@@ -23,7 +23,7 @@ test:
 
 # clean sphinx generated stuff
 clean:
-	rm -rf _build _static
+	rm -rf _build _static _api
 	mkdir _static
 	rm -f *.automodsumm
 	rm -f *.automodapi
