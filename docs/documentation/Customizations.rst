@@ -6,15 +6,14 @@ Customizations
 ==============
 
 SaQC comes with a continuously growing number of pre-implemented
-:doc:`quality check and processing routines <FunctionIndex>` and 
-flagging schemes. 
+quality checking and processing routines as well as flagging schemes. 
 For any sufficiently large use case however it is very likely that the 
 functions provided won't fulfill all your needs and requirements.
 
 Acknowledging the impossibility to address all imaginable use cases, we 
 designed the system to allow for extensions and costumizations. The main extensions options, namely 
-:ref:`quality check routines <gettingstarted/Customizations:custom quality check routines>`
-and the :ref:`flagging scheme <gettingstarted/Customizations:custom flagging schemes>`
+:ref:`quality check routines <documentation/Customizations:custom quality check routines>`
+and the :ref:`flagging scheme <documentation/Customizations:custom flagging schemes>`
 are described within this documents.
 
 Custom quality check routines
@@ -28,7 +27,7 @@ SaQC provides two ways to integrate custom routines into the system:
 
 
 #. The :ref:`extension language <documentation/GenericFunctions:Generic Functions>`
-#. An :ref:`interface <gettingstarted/Customizations:interface>` to the evaluation machinery
+#. An :ref:`interface <documentation/Customizations:interface>` to the evaluation machinery
 
 Interface
 ^^^^^^^^^

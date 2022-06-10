@@ -26,8 +26,7 @@ Specification
 ^^^^^^^^^^^^^
 
 Generic flagging functions are used in the same manner as their
-:doc:`non-generic counterparts <FunctionIndex>`. The basic 
-signature looks like that:
+non-generic counterparts. The basic signature looks like that:
 
 .. code-block:: sh
 
@@ -35,7 +34,7 @@ signature looks like that:
 
 where ``<expression>`` is composed of the `supported constructs`_
 and ``<flag_constant>`` is one of the predefined
-:ref:`flagging constants <gettingstarted/ParameterDescriptions:flagging constants>` (default: ``BAD``\ ).
+:ref:`flagging constants <modules/saqcConstants>` (default: ``BAD``\ ).
 Generic flagging functions are expected to return a boolean value, i.e. ``True`` or ``False``. All other expressions will
 fail during the runtime of ``SaQC``.
 
@@ -298,10 +297,3 @@ Special Functions
      - check for missing values
    * - ``isflagged``
      - check for flags
-
-
-Constants
-^^^^^^^^^
-
-Generic functions support the same constants as normal functions, a detailed 
-list is available :ref:`here <gettingstarted/ParameterDescriptions:constants>`.
