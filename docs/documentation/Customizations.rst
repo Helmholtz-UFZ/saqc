@@ -23,7 +23,7 @@ Custom quality check routines
 In case you are missing quality check routines, you are of course very
 welcome to file a feature request issue on the project's
 `gitlab repository <https://git.ufz.de/rdm-software/saqc>`_. However, if 
-you are more the "no-way-I-get-this-done-by-myself" type of person,
+you are more the "I-get-this-done-by-myself" type of person,
 SaQC provides two ways to integrate custom routines into the system:
 
 
@@ -33,7 +33,8 @@ SaQC provides two ways to integrate custom routines into the system:
 Interface
 ^^^^^^^^^
 
-In order to make a function usable within the evaluation framework of SaQC the following interface is needed:
+In order to make a function usable within the evaluation framework of SaQC it needs to
+implement the following function interface
 
 .. code-block:: python
 
@@ -42,7 +43,7 @@ In order to make a function usable within the evaluation framework of SaQC the f
    import saqc
 
    def yourTestFunction(
-      data: pandas.DataFrame,
+      data: dios.DictOfSeries,
       field: str,
       flags: saqc.Flags,
       *args,
@@ -58,11 +59,11 @@ Argument Descriptions
    * - Name
      - Description
    * - ``data``
-     - The actual dataset.
+     - The actual dataset, an instance of ``dios.DictOfSeries``.
    * - ``field``
-     - The field/column within ``data``\ , that function is processing.
+     - The field/column within ``data``, that function is processing.
    * - ``flags``
-     - An instance of Flags, responsible for the translation of test results into quality attributes.
+     - An instance of saqc.Flags, responsible for the translation of test results into quality attributes.
    * - ``args``
      - Any other arguments needed to parameterize the function.
    * - ``kwargs``
@@ -73,22 +74,22 @@ Integrate into SaQC
 ^^^^^^^^^^^^^^^^^^^
 
 In order make your function available to the system it needs to be registered. We provide a decorator 
-`\ ``register`` <saqc/functions/register.py>`_ with saqc, to integrate your 
+`\ ``flagging`` <saqc/functions/register.py>`_ with saqc, to integrate your 
 test functions into SaQC. Here is a complete dummy example:
 
 .. code-block:: python
 
    from saqc import register
 
-   @register()
+   @flagging()
    def yourTestFunction(data, field, flags, *args, **kwargs):
        return data, flags
 
 Example
 ^^^^^^^
 
-The function `\ ``flagRange`` <saqc/funcs/functions.py>`_ provides a simple, yet complete implementation of 
-a quality check routine. You might want to look into its implementation as a reference for your own.
+The function `\ ``flagRange`` <saqc/funcs/outliers.py>`_ provides a simple, yet complete implementation of 
+a quality check routine. You might want to look into its implementation as an example.
 
 Custom flagging schemes
 -----------------------
