@@ -8,13 +8,16 @@ Global Keywords
 Introduction to the usage of the global keywords. (Keywords that can be passed to any :py:class:`saqc.SaQC` method.)
 
 0. `Set Up`_
+
    * `Example data`_
    * `Flagging Scheme Constraint`_
 
 1. `label keyword`_
+
    * `label Example Usage`_
 
 2. `dfilter and flag keyword`_
+
    * `Flags of Different Significance`_
    * `Unflagging Values`_
 
