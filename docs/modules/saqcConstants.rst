@@ -6,3 +6,4 @@ SaQC
 ====
 
 .. automodapi:: saqc.constants
+   :skip: ENVIRONMENT
