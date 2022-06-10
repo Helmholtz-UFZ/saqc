@@ -22,6 +22,7 @@ def test_codeSnippets(fname):
         try:
             subprocess.check_output(["python", "-c", snippet])
         except subprocess.CalledProcessError:
+            print(snippet)
             raise AssertionError("failed to execute code snippet")
 
 

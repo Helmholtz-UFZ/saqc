@@ -164,7 +164,7 @@ which applies a *backwards* shift, so data points get shifted *backwards*\ , unt
 that is a multiple of *10* minutes. (See :py:meth:`~saqc.SaQC.shift` documentation for more
 details on the keywords.)
 
-Lets see, how the data is now sampled. Therefore, we use the ``data_raw`` Atribute from the
+Lets see, how the data is now sampled. Therefore, we use the ``data`` Atribute from the
 :py:class:`SaQC <saqc.core.core.SaQC>` object. This will prevent the methods output from
 being merged to a ``pandas.DataFrame`` object, and the changes from the resampling will be easier
 comprehensible from one look.
