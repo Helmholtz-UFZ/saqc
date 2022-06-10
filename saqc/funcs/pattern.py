@@ -94,12 +94,15 @@ def flagPatternByDTW(
     flag=BAD,
     **kwargs,
 ):
-    """Pattern Recognition via Dynamic Time Warping.
+    """
+    Pattern Recognition via Dynamic Time Warping.
 
     The steps are:
     1. work on a moving window
+
     2. for each data chunk extracted from each window, a distance to the given pattern
        is calculated, by the dynamic time warping algorithm [1]
+
     3. if the distance is below the threshold, all the data in the window gets flagged
 
     Parameters

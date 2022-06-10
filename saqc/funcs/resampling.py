@@ -121,7 +121,7 @@ def interpolate(
         The fieldname of the column, holding the data-to-be-regularized.
 
     flags : saqc.Flags
-        Container to store flags of the data.  freq
+        Container to store flags of the data. 
 
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
@@ -454,32 +454,36 @@ def concatFlags(
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The Function appends flags history of ``fields`` to flags history of ``target``.
-    Before Appending, columns in ``field`` history are projected onto the target index via ``method``
+    Before appending, columns in ``field`` history are projected onto the target index via ``method``
 
-    method: (field_flag in associated with "field", source_flags associated with "source")
+    method: (field_flag associated with "field", source_flags associated with "source")
 
-    'inverse_nagg' - all target_flags within the range +/- freq/2 of a field_flag, get assigned this field flags value.
-        (if field_flag > target_flag)
-    'inverse_bagg' - all target_flags succeeding a field_flag within the range of "freq", get assigned this field flags
-        value. (if field_flag > target_flag)
-    'inverse_fagg' - all target_flags preceeding a field_flag within the range of "freq", get assigned this field flags
-        value. (if field_flag > target_flag)
+    * 'inverse_nagg' - all target_flags within the range +/- freq/2 of a field_flag, get assigned this field flags value.
+       (if field_flag > target_flag)
 
-    'inverse_interpolation' - all target_flags within the range +/- freq of a field_flag, get assigned this source flags value.
-        (if field_flag > target_flag)
+    * 'inverse_bagg' - all target_flags succeeding a field_flag within the range of "freq", get assigned this field flags
+       value. (if field_flag > target_flag)
 
-    'inverse_nshift' - That target_flag within the range +/- freq/2, that is nearest to a field_flag, gets the source
-        flags value. (if field_flag > target_flag)
-    'inverse_bshift' - That target_flag succeeding a field flag within the range freq, that is nearest to a
-        field_flag, gets assigned this field flags value. (if field_flag > target_flag)
-    'inverse_nshift' - That target_flag preceeding a field flag within the range freq, that is nearest to a
-        field_flag, gets assigned this field flags value. (if field_flag > target_flag)
+    * 'inverse_fagg' - all target_flags preceeding a field_flag within the range of "freq", get assigned this field flags
+       value. (if field_flag > target_flag)
 
-    'match' - any target_flag with a timestamp matching a field_flags timestamp gets this field_flags value
-    (if field_flag > target_flag)
+    * 'inverse_interpolation' - all target_flags within the range +/- freq of a field_flag, get assigned this source flags value.
+      (if field_flag > target_flag)
+
+    * 'inverse_nshift' - That target_flag within the range +/- freq/2, that is nearest to a field_flag, gets the source
+      flags value. (if field_flag > target_flag)
+
+    * 'inverse_bshift' - That target_flag succeeding a field flag within the range freq, that is nearest to a
+       field_flag, gets assigned this field flags value. (if field_flag > target_flag)
+
+    * 'inverse_nshift' - That target_flag preceeding a field flag within the range freq, that is nearest to a
+       field_flag, gets assigned this field flags value. (if field_flag > target_flag)
+
+    * 'match' - any target_flag with a timestamp matching a field_flags timestamp gets this field_flags value
+       (if field_flag > target_flag)
 
     Note, to undo or backtrack a resampling/shifting/interpolation that has been performed with a certain method,
-    you can just pass the associated "inverse" method. Also you should pass the same drop flags keyword.
+    you can just pass the associated "inverse" method. Also you should pass the same ``drop`` keyword.
 
     Parameters
     ----------
@@ -495,8 +499,7 @@ def concatFlags(
     target : str
         Field name of flags history to append to.
 
-    method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift',
-             'match'}, default 'match'
+    method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift', 'match'}, default 'match'
         The method used for projection of ``field`` flags onto ``target`` flags. See description above for more details.
 
     freq : str or None, default None
