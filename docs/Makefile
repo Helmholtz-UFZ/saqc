@@ -34,7 +34,6 @@ clean:
 # make doctest, make documentation, make clean
 doc:
 	# generate environment table from dictionary
-	python scripts/make_env_tab.py
 	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -f *.automodsumm
@@ -46,13 +45,11 @@ doc:
 # make documentation
 doconly:
 	# generate environment table from dictionary
-	python scripts/make_env_tab.py
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # make test, clean up
 testonly:
     # generate parent fake module for the functions to be documented
-	python scripts/make_env_tab.py
 	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -f *.automodsumm
 	rm -f *.automodapi
