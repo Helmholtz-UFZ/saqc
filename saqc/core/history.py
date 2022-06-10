@@ -280,8 +280,7 @@ class History:
         - the functions mustn't alter the passed objects
         - the functions are not allowed to add or remove columns
         - the function must return same type as first argument
-        - the returned object must have same index as the passed ``index`` to ``apply``
-            as first argument
+        - the returned object must have same index as the passed ``index`` to ``apply`` as first argument
 
         Parameters
         ----------
