@@ -12,10 +12,10 @@ from typing import Sequence, Union
 import numpy as np
 
 import saqc
-from saqc.constants import BAD, FILTER_ALL
-from saqc.lib.types import GenericFunction
-from saqc.lib.docurator import doc
 import saqc.funcs
+from saqc.constants import BAD, FILTER_ALL
+from saqc.lib.docurator import doc
+from saqc.lib.types import GenericFunction
 
 
 class Generic:

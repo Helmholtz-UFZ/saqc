@@ -7,13 +7,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Optional, Callable, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 from dios import DictOfSeries
-from saqc.core import register, Flags
+from saqc.core.flags import Flags
+from saqc.core.register import register
 
 
 @register(mask=["field"], demask=[], squeeze=[])

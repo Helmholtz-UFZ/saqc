@@ -4,13 +4,14 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
-from .test_setup import *
-
-import pandas as pd
-from pandas.core.dtypes.common import is_dict_like, is_nested_list_like
-import numpy as np
 from copy import deepcopy
+
+import numpy as np
+import pandas as pd
+import pytest
+from pandas.core.dtypes.common import is_dict_like, is_nested_list_like
+
+from .test_setup import *
 
 __author__ = "Bert Palm"
 __email__ = "bert.palm@ufz.de"

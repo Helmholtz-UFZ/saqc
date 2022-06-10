@@ -8,22 +8,19 @@
 
 from __future__ import annotations
 
-from typing import Callable, Tuple, Optional, Union
-from typing_extensions import Literal
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from typing_extensions import Literal
 
-from dios import DictOfSeries, DtItype
-
-from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.core.register import _isflagged
-from saqc.lib.tools import evalFreqStr, getFreqDelta, filterKwargs
-from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
-from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
 import saqc.funcs.tools as tools
-
+from dios import DictOfSeries, DtItype
+from saqc.core.flags import Flags
+from saqc.core.register import _isflagged, register
+from saqc.funcs.interpolation import _SUPPORTED_METHODS, interpolateIndex
+from saqc.lib.tools import evalFreqStr, filterKwargs, getFreqDelta
+from saqc.lib.ts_operators import aggregate2Freq, shift2Freq
 
 METHOD2ARGS = {
     "inverse_fshift": ("backward", pd.Timedelta),

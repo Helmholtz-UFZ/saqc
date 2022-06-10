@@ -7,19 +7,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import pandas as pd
-import numpy as np
-import numba
-
 from typing import Callable, Tuple
+
+import numba
+import numpy as np
+import pandas as pd
 from typing_extensions import Literal
 
 from dios import DictOfSeries
-
-from saqc.constants import *
-from saqc.core.register import flagging
+from saqc.constants import BAD, UNFLAGGED
+from saqc.core.flags import Flags
+from saqc.core.register import flagging, register
 from saqc.lib.tools import customRoller, filterKwargs
-from saqc.core import register, Flags
 
 
 @flagging()

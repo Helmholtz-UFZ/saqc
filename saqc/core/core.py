@@ -8,40 +8,31 @@
 from __future__ import annotations
 
 import warnings
-from typing import (
-    Any,
-    Callable,
-    List,
-    MutableMapping,
-    Sequence,
-    Hashable,
-    Tuple,
-)
-from copy import deepcopy, copy as shallowcopy
+from copy import copy as shallowcopy
+from copy import deepcopy
+from typing import Any, Callable, Hashable, List, MutableMapping, Sequence, Tuple
 
-import pandas as pd
 import numpy as np
-
-from dios import DictOfSeries, to_dios
-from saqc.constants import BAD
-
-from saqc.core.modules import FunctionsMixin
-from saqc.core.flags import initFlagsLike, Flags
-from saqc.core.history import History
-from saqc.core.register import FUNC_MAP, FunctionWrapper
-from saqc.core.translation import (
-    TranslationScheme,
-    FloatScheme,
-    SimpleScheme,
-    PositionalScheme,
-    DmpScheme,
-)
-from saqc.lib.tools import toSequence, concatDios
-from saqc.lib.types import ExternalFlag, OptionalNone
+import pandas as pd
 
 # the import is needed to trigger the registration
 # of the built-in (test-)functions
 import saqc.funcs  # noqa
+from dios import DictOfSeries, to_dios
+from saqc.constants import BAD
+from saqc.core.flags import Flags, initFlagsLike
+from saqc.core.history import History
+from saqc.core.modules import FunctionsMixin
+from saqc.core.register import FUNC_MAP, FunctionWrapper
+from saqc.core.translation import (
+    DmpScheme,
+    FloatScheme,
+    PositionalScheme,
+    SimpleScheme,
+    TranslationScheme,
+)
+from saqc.lib.tools import concatDios, toSequence
+from saqc.lib.types import ExternalFlag, OptionalNone
 
 # warnings
 pd.set_option("mode.chained_assignment", "warn")

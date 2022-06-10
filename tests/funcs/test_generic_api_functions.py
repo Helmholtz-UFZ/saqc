@@ -6,15 +6,14 @@
 
 # -*- coding: utf-8 -*-
 
-import pytest
 import pandas as pd
+import pytest
+
 from dios.dios.dios import DictOfSeries
-
-from saqc.constants import BAD, UNFLAGGED, FILTER_ALL
-from saqc.core.flags import Flags
 from saqc import SaQC
+from saqc.constants import BAD, FILTER_ALL, UNFLAGGED
+from saqc.core.flags import Flags
 from saqc.lib.tools import toSequence
-
 from tests.common import initData
 
 

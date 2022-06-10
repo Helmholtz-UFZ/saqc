@@ -7,17 +7,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Any, Union, Sequence
+from typing import Any, Sequence, Union
 
-import pandas as pd
 import numpy as np
-from dios import DictOfSeries
+import pandas as pd
 from typing_extensions import Literal
 
-from saqc.constants import BAD, FILTER_ALL
 import saqc
-from saqc.lib.docurator import doc
 import saqc.funcs
+from dios import DictOfSeries
+from saqc.constants import BAD, FILTER_ALL
+from saqc.lib.docurator import doc
 
 
 class FlagTools:

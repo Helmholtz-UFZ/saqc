@@ -6,22 +6,21 @@
 
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from typing import Optional, Tuple, Union
 
-
-from typing_extensions import Literal
-import numpy as np
-from dios import DictOfSeries
+import pickle
+from typing import Optional, Tuple
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import pickle
+import numpy as np
+from typing_extensions import Literal
 
-from saqc.constants import *
-from saqc.core.register import processing
-from saqc.core import register, Flags
-from saqc.lib.tools import periodicMask, filterKwargs
+from dios import DictOfSeries
+from saqc.constants import FILTER_NONE, UNFLAGGED
+from saqc.core.flags import Flags
+from saqc.core.register import processing, register
 from saqc.lib.plotting import makeFig
+from saqc.lib.tools import periodicMask
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 

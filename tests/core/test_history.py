@@ -4,9 +4,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
 
 from saqc.core.history import History, createHistoryFromData
 from tests.common import dummyHistory

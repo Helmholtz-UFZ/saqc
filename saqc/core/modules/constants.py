@@ -7,10 +7,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from saqc.constants import BAD
 import saqc
-from saqc.lib.docurator import doc
 import saqc.funcs
+from saqc.constants import BAD
+from saqc.lib.docurator import doc
 
 
 class Constants:

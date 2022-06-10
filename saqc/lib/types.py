@@ -15,10 +15,12 @@ __all__ = [
     "OptionalNone",
 ]
 
-from typing import Any, TypeVar, Union, Dict
-from typing_extensions import Protocol, Literal
+from typing import Any, Dict, TypeVar, Union
+
 import numpy as np
 import pandas as pd
+from typing_extensions import Literal, Protocol
+
 from dios import DictOfSeries
 
 T = TypeVar("T")

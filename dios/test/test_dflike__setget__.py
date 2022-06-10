@@ -2,8 +2,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from .test_setup import *
 import pytest
+
+from .test_setup import *
 
 
 def _test(res, exp):

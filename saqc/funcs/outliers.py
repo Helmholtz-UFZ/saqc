@@ -9,24 +9,23 @@
 from __future__ import annotations
 
 import uuid
-from typing import Optional, Union, Tuple, Sequence, Callable
-from typing_extensions import Literal
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
+from outliers import smirnov_grubbs
+from typing_extensions import Literal
 
 from dios import DictOfSeries
-from outliers import smirnov_grubbs
-
 from saqc.constants import BAD, UNFLAGGED
-from saqc.core import register, Flags
-from saqc.core.register import flagging
-from saqc.lib.tools import customRoller, getFreqDelta, toSequence
+from saqc.core.flags import Flags
+from saqc.core.register import flagging, register
 from saqc.funcs.scores import assignKNNScore
 from saqc.funcs.tools import copyField, dropField
 from saqc.funcs.transformation import transform
+from saqc.lib.tools import customRoller, getFreqDelta, toSequence
 
 
 @flagging()
@@ -34,7 +33,7 @@ def flagByStray(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    freq: Optional[Union[int, str]] = None,
+    window: Optional[Union[int, str]] = None,
     min_periods: int = 11,
     iter_start: float = 0.5,
     alpha: float = 0.05,
@@ -92,17 +91,17 @@ def flagByStray(
     if scores.empty:
         return data, flags
 
-    if not freq:
-        freq = scores.shape[0]
+    if not window:
+        window = scores.shape[0]
 
-    if isinstance(freq, str):
-        partitions = scores.groupby(pd.Grouper(freq=freq))
+    if isinstance(window, str):
+        partitions = scores.groupby(pd.Grouper(freq=window))
 
     else:
         grouper_series = pd.Series(
             data=np.arange(0, scores.shape[0]), index=scores.index
         )
-        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / freq)))
+        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / window)))
         partitions = scores.groupby(grouper_series)
 
     # calculate flags for every partition

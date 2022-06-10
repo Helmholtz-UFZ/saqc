@@ -8,22 +8,15 @@
 
 from __future__ import annotations
 
-from typing import Dict, MutableMapping, Union, Any
+from typing import Any, Dict, MutableMapping, Union
 
 import numpy as np
 import pandas as pd
 
 from dios import DictOfSeries
-from saqc.constants import (
-    FILTER_ALL,
-    UNFLAGGED,
-    BAD,
-    GOOD,
-)
-
+from saqc.constants import BAD, FILTER_ALL, GOOD, UNFLAGGED
 from saqc.core.flags import Flags
 from saqc.lib.types import ExternalFlag
-
 
 ForwardMap = Dict[ExternalFlag, float]
 BackwardMap = Dict[float, ExternalFlag]

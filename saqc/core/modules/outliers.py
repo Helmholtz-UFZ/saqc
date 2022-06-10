@@ -7,16 +7,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Optional, Union, Callable, Sequence
+from typing import Callable, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from saqc.constants import BAD
 import saqc
-from saqc.lib.docurator import doc
 import saqc.funcs
+from saqc.constants import BAD
+from saqc.lib.docurator import doc
 
 
 class Outliers:
@@ -24,7 +24,7 @@ class Outliers:
     def flagByStray(
         self,
         field: str,
-        freq: Optional[Union[int, str]] = None,
+        window: Optional[Union[int, str]] = None,
         min_periods: int = 11,
         iter_start: float = 0.5,
         alpha: float = 0.05,

@@ -8,19 +8,18 @@
 
 from __future__ import annotations
 
+import operator
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import operator
 
 from dios import DictOfSeries
-
-from saqc.constants import *
-from saqc.core import Flags
+from saqc.constants import BAD
+from saqc.core.flags import Flags
 from saqc.core.register import flagging
-from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta, statPass
+from saqc.lib.ts_operators import varQC
 
 
 @flagging()

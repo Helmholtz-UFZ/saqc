@@ -10,17 +10,18 @@
 The module gathers all kinds of timeseries tranformations.
 """
 import re
+import sys
 import warnings
 from typing import Union
-import sys
 
-import pandas as pd
-import numpy as np
 import numba as nb
-from sklearn.neighbors import NearestNeighbors
-from scipy.stats import iqr, median_abs_deviation
-from scipy.signal import filtfilt, butter
+import numpy as np
 import numpy.polynomial.polynomial as poly
+import pandas as pd
+from scipy.signal import butter, filtfilt
+from scipy.stats import iqr, median_abs_deviation
+from sklearn.neighbors import NearestNeighbors
+
 from saqc.lib.tools import getFreqDelta
 
 

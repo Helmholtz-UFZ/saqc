@@ -6,14 +6,13 @@
 
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
-import dios
+import pytest
 
+import dios
 from saqc.core.flags import Flags
 from saqc.core.reader import fromConfig, readFile
 from saqc.core.register import flagging
-
 from tests.common import initData, writeIO
 
 

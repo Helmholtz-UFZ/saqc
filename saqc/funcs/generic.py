@@ -13,14 +13,12 @@ import numpy as np
 import pandas as pd
 
 from dios import DictOfSeries
-
 from saqc.constants import BAD, ENVIRONMENT, FILTER_ALL
-from saqc.core.history import History
-from saqc.lib.tools import toSequence
-from saqc.lib.types import GenericFunction, PandasLike
 from saqc.core.flags import Flags
 from saqc.core.history import History
-from saqc.core.register import register, _isflagged, FunctionWrapper
+from saqc.core.register import FunctionWrapper, _isflagged, register
+from saqc.lib.tools import toSequence
+from saqc.lib.types import GenericFunction, PandasLike
 
 
 def _prepare(

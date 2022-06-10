@@ -4,12 +4,13 @@
 
 import ast
 import os
-import click
-import pkgutil
-import shutil
-import re
-from collections import OrderedDict
 import pickle
+import pkgutil
+import re
+import shutil
+from collections import OrderedDict
+
+import click
 
 
 @click.command()

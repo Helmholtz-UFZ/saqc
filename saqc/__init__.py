@@ -7,13 +7,8 @@
 # -*- coding: utf-8 -*-
 """The system for automated quality controll package."""
 
-from saqc.version import __version__
-
-from saqc.constants import UNFLAGGED, GOOD, DOUBTFUL, BAD, FILTER_NONE, FILTER_ALL
+from saqc.constants import BAD, DOUBTFUL, FILTER_ALL, FILTER_NONE, GOOD, UNFLAGGED
 
 # import order: from small to big, to a void cycles
-from saqc.core import (
-    Flags,
-    SaQC,
-    fromConfig,
-)
+from saqc.core import Flags, SaQC, fromConfig
+from saqc.version import __version__

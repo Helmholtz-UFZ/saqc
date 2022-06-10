@@ -4,14 +4,15 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# -*- coding: utf-8 -*-
-import pytest
-
 import numpy as np
 import pandas as pd
 
+# -*- coding: utf-8 -*-
+import pytest
+
+from saqc import BAD as B
+from saqc import UNFLAGGED as U
 from saqc import SaQC
-from saqc import BAD as B, UNFLAGGED as U
 
 N = np.nan
 

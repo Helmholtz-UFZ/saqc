@@ -6,19 +6,19 @@
 
 # -*- coding: utf-8 -*-
 
-from typing import Optional, Union
-from typing_extensions import Literal
-from saqc.lib.tools import toSequence
-import pandas as pd
-import numpy as np
-import matplotlib as mpl
 import itertools
-import matplotlib.pyplot as plt
-import seaborn
-from saqc.constants import *
-from saqc.core import Flags
-from saqc.lib.types import DiosLikeT
+from typing import Optional, Union
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn
+from typing_extensions import Literal
+
+from saqc.core.flags import Flags
+from saqc.lib.tools import toSequence
+from saqc.lib.types import DiosLikeT
 
 STATSDICT = {
     "values total": lambda x, y, z: len(x),
