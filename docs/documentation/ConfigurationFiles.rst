@@ -68,4 +68,4 @@ variable name as a regular expression, it needs to be quoted with ``'`` or ``"``
    varname    ; test
    #----------;------------------------------
    '.*'       ; harm_shift2Grid(freq="15Min")
-   '(x \| y)' ; flagMissing()
+   '(x | y)' ; flagMissing()
