@@ -45,13 +45,9 @@ Examples
 Simple comparisons
 ~~~~~~~~~~~~~~~~~~
 
-Task
-""""
+**Task**: Flag all values of ``x`` where ``y`` falls below 0.
 
-Flag all values of ``x`` where ``y`` falls below 0.
-
-Configuration file
-""""""""""""""""""
+**Configuration file**
 
 .. code-block::
 
@@ -59,16 +55,13 @@ Configuration file
    #-------;------------------------
    x       ; flagGeneric(func=y < 0)
 
+
 Calculations
 ~~~~~~~~~~~~
 
-Task
-""""
+**Task**: Flag all values of ``x`` that exceed 3 standard deviations of ``y``.
 
-Flag all values of ``x`` that exceed 3 standard deviations of ``y``.
-
-Configuration file
-""""""""""""""""""
+**Configuration file**:
 
 .. code-block::
 
@@ -79,13 +72,9 @@ Configuration file
 Special functions
 ~~~~~~~~~~~~~~~~~
 
-Task
-""""
+**Task**: Flag all values of ``x`` where: ``y`` is flagged and ``z`` has missing values.
 
-Flag all values of ``x`` where: ``y`` is flagged and ``z`` has missing values.
-
-Configuration file
-""""""""""""""""""
+**Configuration file**:
 
 .. code-block::
 
@@ -127,16 +116,9 @@ Let's consider the following dataset:
      - 
 
 
-Task
-""""
+**Task**: Flag ``meas`` where ``fan`` equals 0 and ``volt`` is lower than ``12.0``.
 
-Flag ``meas`` where ``fan`` equals 0 and ``volt``
-is lower than ``12.0``.
-
-Configuration file
-""""""""""""""""""
-
-There are various options. We can directly implement the condition as follows:
+**Configuration file**: There are various options. We can directly implement the condition as follows:
 
 .. code-block::
 
