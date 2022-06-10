@@ -45,7 +45,6 @@ Getting Started
    documentation/ConfigurationFiles
    documentation/Customizations
 
-
 .. toctree::
    :caption: Functions
    :hidden:
