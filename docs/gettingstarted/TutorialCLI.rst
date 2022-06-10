@@ -71,13 +71,14 @@ It contains the following lines:
 .. literalinclude:: ../resources/data/myconfig.csv
 
 These lines illustrate how different quality control tests can be specified for
-different variables.
+different variables, for a more detailed explanation of the configuration format, please refer
+to respective :doc:`documentation page <../documentation/ConfigurationFiles>`
 
 In this case, we trigger a :py:meth:`range <saqc.SaQC.flagRange>` test, that flags all values exceeding
 the range of the bounds of the interval *[10,60]*. Subsequently, a test to detect spikes, is applied,
 using the MAD-method. (:py:meth:`~saqc.SaQC.flagMAD`).
 You can find an overview of all available quality control tests
-:ref:`here <moduleAPI/saqcFuncTOC:SaQC Flagging Functions>`. Note that the tests are
+:ref:`here <modules/saqcFuncTOC:SaQC Flagging Functions>`. Note that the tests are
 *executed in the order that you define in the configuration file*. The quality
 flags that are set during one test are always passed on to the subsequent one.
 

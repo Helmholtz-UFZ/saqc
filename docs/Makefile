@@ -23,14 +23,13 @@ test:
 
 # clean sphinx generated stuff
 clean:
-	rm -rf _build _static _api
+	rm -rf _build _static _api coredoc
 	mkdir _static
 	rm -f *.automodsumm
 	rm -f *.automodapi
 	rm -f modules/*.automodsumm
 	rm -f modules/*.automodapi
 	rm -f */*.automodsumm
-	rm -f -r coredoc
 
 # make doctest, make documentation, make clean
 doc:

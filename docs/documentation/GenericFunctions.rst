@@ -22,8 +22,8 @@ drops below a certain threshold. While these dependencies are easy to
 :ref:`formalize <documentation/GenericFunctions:a real world example>` on a per dataset basis, it is quite
 challenging to translate them into generic source code.
 
-Specification
-^^^^^^^^^^^^^
+Generic Flagging - Specification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Generic flagging functions are used in the same manner as their
 non-generic counterparts. The basic signature looks like that:
@@ -33,8 +33,8 @@ non-generic counterparts. The basic signature looks like that:
    flagGeneric(func=<expression>, flag=<flagging_constant>)
 
 where ``<expression>`` is composed of the `supported constructs`_
-and ``<flag_constant>`` is one of the predefined
-:ref:`flagging constants <modules/saqcConstants>` (default: ``BAD``\ ).
+and ``<flag_constant>`` is either one of the predefined
+:ref:`flagging constants <modules/saqcConstants:Flagging Constants>` (default: ``BAD``\ ) or a valid value of the choosen flagging scheme.
 Generic flagging functions are expected to return a boolean value, i.e. ``True`` or ``False``. All other expressions will
 fail during the runtime of ``SaQC``.
 
@@ -152,8 +152,8 @@ requirements as a part of the quality control itself. Generic processing
 functions make it easy to enrich a dataset through the evaluation of a
 given expression.
 
-Specification
-^^^^^^^^^^^^^
+Generic Processing - Specification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The basic signature looks like that:
 

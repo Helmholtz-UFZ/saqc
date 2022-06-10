@@ -78,8 +78,8 @@ Getting Started
 
    Package <modules/saqc>
    Core <modules/saqcCore>
+   Methods <modules/saqcFuncTOC>
    Constants <modules/saqcConstants>
-   Methods <funcs/allFunctions>
    Config Environment <environment/configEnv>
 
 

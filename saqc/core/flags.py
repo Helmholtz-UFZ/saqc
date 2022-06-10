@@ -50,7 +50,7 @@ class _HistAccess:
 
 class Flags:
     """
-    Saqc's flags container.
+    SaQC's flags container.
 
     This container class holds the quality flags associated with the data. It hold key-value pairs, where
     the key is the name of the column and the value is a ``pandas.Series`` of flags. The index of the series

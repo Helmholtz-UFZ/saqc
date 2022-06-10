@@ -2,9 +2,7 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-saqc
+SaQC
 ====
 
 .. automodapi:: saqc.constants
-   :include-all-objects:
-   :skip: ENVIRONMENT
