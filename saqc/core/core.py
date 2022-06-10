@@ -19,7 +19,6 @@ import pandas as pd
 # of the built-in (test-)functions
 import saqc.funcs  # noqa
 from dios import DictOfSeries, to_dios
-from saqc.constants import BAD
 from saqc.core.flags import Flags, initFlagsLike
 from saqc.core.history import History
 from saqc.core.modules import FunctionsMixin

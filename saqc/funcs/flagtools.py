@@ -215,11 +215,11 @@ def flagManual(
 
     .. doctest:: ExampleFlagManual
 
-       >>> mdata = pd.Series([1,0,1], index=pd.to_datetime(['2000-02', '2000-03', '2001-05']))
+       >>> mdata = pd.Series([1, 0, 1], index=pd.to_datetime(['2000-02-01', '2000-03-01', '2000-05-01']))
        >>> mdata
        2000-02-01    1
        2000-03-01    0
-       2001-05-01    1
+       2000-05-01    1
        dtype: int64
 
     On *dayly* data, with the 'ontime' method, only the provided timestamps are used.
@@ -228,49 +228,42 @@ def flagManual(
 
     .. doctest:: ExampleFlagManual
 
-       >>> data = a=pd.Series(0, index=pd.date_range('2000-01-31', '2000-03-02', freq='1D'), name='dailyData')
+       >>> data = pd.Series(0, index=pd.to_datetime(['2000-01-31', '2000-02-01', '2000-02-02', '2000-03-01', '2000-05-01']), name='daily_data')
        >>> qc = saqc.SaQC(data)
-       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='ontime')
-       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mdata', method='ontime')
+       >>> qc.flags['daily_data'] > UNFLAGGED
        2000-01-31    False
-       2000-02-01    True
+       2000-02-01     True
        2000-02-02    False
-       2000-02-03    False
-       ..            ..
-       2000-02-29    False
-       2000-03-01    True
-       2000-03-02    False
-       Freq: D, dtype: bool
+       2000-03-01    False
+       2000-05-01     True
+       Name: daily_data, dtype: bool
 
     With the 'right-open' method, the mdata is forward fill:
 
     .. doctest:: ExampleFlagManual
 
-       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='right-open')
-       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mdata', method='right-open')
+       >>> qc.flags['daily_data'] > UNFLAGGED
        2000-01-31    False
-       2000-02-01    True
-       2000-02-02    True
-       ..            ..
-       2000-02-29    True
+       2000-02-01     True
+       2000-02-02     True
        2000-03-01    False
-       2000-03-02    False
-       Freq: D, dtype: bool
+       2000-05-01     True
+       Name: daily_data, dtype: bool
 
     With the 'left-open' method, backward filling is used:
 
     .. doctest:: ExampleFlagManual
 
-       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='left-open')
-       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mdata', method='left-open')
+       >>> qc.flags['daily_data'] > UNFLAGGED
        2000-01-31    False
-       2000-02-01    False
-       2000-02-02    True
-       ..            ..
-       2000-02-29    True
-       2000-03-01    True
-       2000-03-02    False
-       Freq: D, dtype: bool
+       2000-02-01     True
+       2000-02-02     True
+       2000-03-01     True
+       2000-05-01     True
+       Name: daily_data, dtype: bool
     """
     dat = data[field]
     # internal not-mflag-value -> cant go for np.nan
@@ -405,12 +398,10 @@ def transferFlags(
 
     .. doctest:: exampleTransfer
 
-       >>> import pandas as pd #doctest:+SKIP
-       >>> import saqc #doctest:+SKIP
-       >>> data = pd.DataFrame({'a':[1,2], 'b':[1,2], 'c':[1,2]})
+       >>> data = pd.DataFrame({'a': [1, 2], 'b': [1, 2], 'c': [1, 2]})
        >>> qc = saqc.SaQC(data)
        >>> qc = qc.flagRange('a', max=1.5)
-       >>> qc.flags
+       >>> qc.flags.to_df()
        columns      a    b    c
        0         -inf -inf -inf
        1        255.0 -inf -inf
@@ -420,7 +411,7 @@ def transferFlags(
     .. doctest:: exampleTransfer
 
        >>> qc = qc.transferFlags('a', target='b')
-       >>> qc.flags
+       >>> qc.flags.to_df()
        columns      a      b    c
        0         -inf   -inf -inf
        1        255.0  255.0 -inf
@@ -437,7 +428,7 @@ def transferFlags(
     .. doctest:: exampleTransfer
 
        >>> qc = qc.transferFlags(['a','a'], ['b', 'c'])
-       >>> qc.flags
+       >>> qc.flags.to_df()
        columns      a      b      c
        0         -inf   -inf   -inf
        1        255.0  255.0  255.0
@@ -495,63 +486,59 @@ def propagateFlags(
 
     .. doctest:: propagateFlags
 
-       >>> import pandas as pd #doctest:+SKIP
-       >>> import saqc #doctest:+SKIP
        >>> data = pd.DataFrame({"a": [-3, -2, -1, 0, 1, 2, 3]})
        >>> flags = pd.DataFrame({"a": [-np.inf, -np.inf, -np.inf, 255.0, -np.inf, -np.inf, -np.inf]})
        >>> qc = saqc.SaQC(data=data, flags=flags)
-       >>> qc.flags
-       columns      a
-       0         -inf
-       1         -inf
-       2         -inf
-       3        255.0
-       4         -inf
-       5         -inf
-       6         -inf
+       >>> qc.flags["a"]
+       0     -inf
+       1     -inf
+       2     -inf
+       3    255.0
+       4     -inf
+       5     -inf
+       6     -inf
+       Name: a, dtype: float64
 
     Now, to repeat the flag '255.0' two times in direction of ascending indices, execute:
 
     .. doctest:: propagateFlags
 
-       >>> qc = qc.propagateFlags('a', window=2, method="ffill")
-       >>> qc.flags
-       columns      a
-       0         -inf
-       1         -inf
-       2         -inf
-       3        255.0
-       4        255.0
-       5        255.0
-       6         -inf
+       >>> qc.propagateFlags('a', window=2, method="ffill").flags["a"]
+       0     -inf
+       1     -inf
+       2     -inf
+       3    255.0
+       4    255.0
+       5    255.0
+       6     -inf
+       Name: a, dtype: float64
 
     Choosing "bfill" will result in
+
     .. doctest:: propagateFlags
 
-       >>> qc = qc.propagateFlags('a', window=2, method="bfill")
-       >>> qc.flags
-       columns      a
-       0         -inf
-       1        255.0
-       2        255.0
-       3        255.0
-       4         -inf
-       5         -inf
-       6         -inf
+       >>> qc.propagateFlags('a', window=2, method="bfill").flags["a"]
+       0     -inf
+       1    255.0
+       2    255.0
+       3    255.0
+       4     -inf
+       5     -inf
+       6     -inf
+       Name: a, dtype: float64
 
     If an explicit flag is passed, it will be used to fill the repetition window
     .. doctest:: propagateFlags
 
-       >>> qc = qc.propagateFlags('a', window=2, method="bfill", flag=111)
-       >>> qc.flags
-       columns      a
-       0         -inf
-       1        111.0
-       2        111.0
-       3        255.0
-       4         -inf
-       5         -inf
-       6         -inf
+       >>> qc.propagateFlags('a', window=2, method="bfill", flag=111).flags["a"]
+       0     -inf
+       1    111.0
+       2    111.0
+       3    255.0
+       4     -inf
+       5     -inf
+       6     -inf
+       Name: a, dtype: float64
     """
 
     if method not in {"bfill", "ffill"}:

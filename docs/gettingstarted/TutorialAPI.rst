@@ -49,13 +49,13 @@ with something more elaborate, is in fact a one line change. So let's start with
    from saqc import SaQC
 
    # we need some dummy data
-   values = np.random.randint(low=0, high=100, size=100)
+   values = np.array([12, 24, 36, 33, 89, 87, 45, 31, 18, 99])
    dates = pd.date_range(start="2020-01-01", periods=len(values), freq="D")
    data = pd.DataFrame({"a": values}, index=dates)
    # let's insert some constant values ...
-   data.iloc[30:40] = values.mean()
+   data.iloc[3:6] = values.mean()
    # ... and an outlier
-   data.iloc[70] = 175
+   data.iloc[8] = 175
 
    # initialize saqc
    qc = SaQC(data=data, scheme="simple")
@@ -101,41 +101,33 @@ number of different attributes, of which you likely might want to use the follow
 
 .. doctest:: python
 
-   >>> qc.data # retrieve data
-                  a | 
-   ================ | 
-   2020-01-01  13.0 | 
-   2020-01-02  15.0 | 
-   2020-01-03   3.0 | 
-   2020-01-04  98.0 | 
-   2020-01-05  60.0 | 
-   ...          ... | 
-   2020-04-05  34.0 | 
-   2020-04-06  29.0 | 
-   2020-04-07  11.0 | 
-   2020-04-08  42.0 | 
-   2020-04-09  33.0 | 
-   [100]              
-   <BLANKLINE>
-   max: [100 rows x 1 columns]
+   >>> qc.data  #doctest:+NORMALIZE_WHITESPACE
+                   a | 
+   ================= | 
+   2020-01-01   12.0 | 
+   2020-01-02   24.0 | 
+   2020-01-03   36.0 | 
+   2020-01-04   47.4 | 
+   2020-01-05   47.4 | 
+   2020-01-06   47.4 | 
+   2020-01-07   45.0 | 
+   2020-01-08   31.0 | 
+   2020-01-09  175.0 | 
+   2020-01-10   99.0 | 
 
-   >>> qc.flags # retrieve the flags
+   >>> qc.flags  #doctest:+NORMALIZE_WHITESPACE
                        a | 
    ===================== | 
-   2020-01-01  UNFLAGGED | 
-   2020-01-02        BAD | 
+   2020-01-01        BAD | 
+   2020-01-02  UNFLAGGED | 
    2020-01-03  UNFLAGGED | 
    2020-01-04  UNFLAGGED | 
    2020-01-05  UNFLAGGED | 
-   ...               ... | 
-   2020-04-05        BAD | 
-   2020-04-06        BAD | 
-   2020-04-07  UNFLAGGED | 
-   2020-04-08        BAD | 
-   2020-04-09  UNFLAGGED | 
-   [100]                   
-   <BLANKLINE>
-   max: [100 rows x 1 columns]
+   2020-01-06  UNFLAGGED | 
+   2020-01-07  UNFLAGGED | 
+   2020-01-08  UNFLAGGED | 
+   2020-01-09        BAD | 
+   2020-01-10        BAD | 
 
 
 Putting it together - The complete workflow

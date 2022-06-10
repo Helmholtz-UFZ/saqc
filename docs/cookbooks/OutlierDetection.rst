@@ -210,7 +210,7 @@ To see all the results obtained so far, plotted in one figure window, we make us
 
 .. doctest:: exampleOD
 
-   >>> data.plot()
+   >>> data.to_df().plot()
    <AxesSubplot:>
 
 .. image:: ../resources/images/cbooks_incidents2.png

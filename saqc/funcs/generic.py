@@ -129,12 +129,12 @@ def processGeneric(
     Compute the sum of the variables 'rainfall' and 'snowfall' and save the result to
     a (new) variable 'precipitation'
 
-    .. testsetup::
-
-       qc = saqc.SaQC(pd.DataFrame({'rainfall':[0], 'snowfall':[0], 'precipitation':[0]}, index=pd.DatetimeIndex([0])))
-
-
-    >>> qc = qc.processGeneric(field=["rainfall", "snowfall"], target="precipitation'", func=lambda x, y: x + y)
+    >>> from saqc import SaQC
+    >>> qc = SaQC(pd.DataFrame({'rainfall':[1], 'snowfall':[2]}, index=pd.DatetimeIndex([0])))
+    >>> qc = qc.processGeneric(field=["rainfall", "snowfall"], target="precipitation", func=lambda x, y: x + y)
+    >>> qc.data.to_df()
+    columns     rainfall  snowfall  precipitation
+    1970-01-01         1         2              3
     """
 
     fields = toSequence(field)

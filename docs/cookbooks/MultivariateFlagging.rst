@@ -130,7 +130,7 @@ the desired variables as column names and have a look at the console output to g
 .. doctest:: exampleMV
 
    >>> qc.data[['sac254_raw', 'level_raw', 'water_temp_raw']] # doctest:+NORMALIZE_WHITESPACE
-                    sac254_raw |                     level_raw |                     water_temp_raw | 
+                       sac254_raw |                     level_raw |                     water_temp_raw | 
    ============================== | ============================= | ================================== | 
    Timestamp                      | Timestamp                     | Timestamp                          | 
    2016-01-01 00:02:00    18.4500 | 2016-01-01 00:02:00   103.290 | 2016-01-01 00:02:00           4.84 | 
@@ -193,19 +193,19 @@ The resulting timeseries now has has regular timestamp.
 .. doctest:: exampleMV
 
    >>> qc.data['sac254_raw'] #doctest:+NORMALIZE_WHITESPACE
-   Timestamp
-   2016-01-01 00:02:00    18.4500
-   2016-01-01 00:17:00    18.6437
-   2016-01-01 00:32:00    18.9887
-   2016-01-01 00:47:00    18.8388
-   2016-01-01 01:02:00    18.7438
-                           ...   
-   2017-12-31 22:47:00    43.2275
-   2017-12-31 23:02:00    43.6937
-   2017-12-31 23:17:00    43.6012
-   2017-12-31 23:32:00    43.2237
-   2017-12-31 23:47:00    43.7438
-   Name: sac254_raw, Length: 70163, dtype: float64
+   Timestamp                                                                                                          
+   2016-01-01 00:00:00          NaN                                                                                   
+   2016-01-01 00:15:00    18.617873                                                                                   
+   2016-01-01 00:30:00    18.942700                                                                                   
+   2016-01-01 00:45:00    18.858787                                                                                   
+   2016-01-01 01:00:00    18.756467                                                                                   
+                            ...                                                                                       
+   2017-12-31 23:00:00    43.631540                                                                                   
+   2017-12-31 23:15:00    43.613533                                                                                   
+   2017-12-31 23:30:00    43.274033                                                                                   
+   2017-12-31 23:45:00    43.674453                                                                                   
+   2018-01-01 00:00:00          NaN                                                                                   
+   Name: sac254_raw, Length: 70177, dtype: float64     
 
 Since points, that were identified as malicous get excluded before the harmonization, the resulting regularly sampled
 timeseries does not include them anymore:
