@@ -42,6 +42,8 @@ Getting Started
    documentation/GenericFunctions
    documentation/SourceTarget
    documentation/GlobalKeywords
+   documentation/ConfigurationFiles
+   documentation/Customizations
 
 
 .. toctree::
