@@ -118,7 +118,7 @@ def interpolate(
         The fieldname of the column, holding the data-to-be-regularized.
 
     flags : saqc.Flags
-        Container to store flags of the data. 
+        Container to store flags of the data.
 
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
