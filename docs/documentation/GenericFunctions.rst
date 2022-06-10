@@ -285,8 +285,8 @@ Mathematical Functions
      - the number of values for variable
 
 
-Special Functions
-~~~~~~~~~~~~~~~~~
+Available Functions
+~~~~~~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
@@ -294,6 +294,24 @@ Special Functions
    * - Name
      - Description
    * - ``ismissing``
-     - check for missing values
+     - Pointwise, checks is value is mising
    * - ``isflagged``
-     - check for flags
+     - Pointwise, checks if a value is flagged
+   * - ``abs``
+     -  Pointwise absolute value function
+   * - ``max``
+     -  Maximum value function, ignores NaN
+   * - ``min``
+     -  Minimum value function, ignores NaN
+   * - ``mean``
+     -  Mean value function, Ignores NaN
+   * - ``sum``
+     -  Summation, ignores NaN
+   * - ``std``
+     -  Standart Deviation, ignores NaN
+   * - ``len``
+     - Returns the length of passed series
+   * - ``len``
+     - Pointwise exponential
+   * - ``log``
+     -  Pointwise logarithm, returns NaN for zero input

@@ -80,8 +80,6 @@ Getting Started
    Core <modules/saqcCore>
    Methods <modules/saqcFuncTOC>
    Constants <modules/saqcConstants>
-   Config Environment <environment/configEnv>
-
 
 .. toctree::
    :caption: Developer Resources
