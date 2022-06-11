@@ -59,8 +59,8 @@ is selected to be small, comprehendable and its single anomalous outlier
 can be identified easily visually:
 
 
-.. image:: ../resources/images/cbooks_incidents1.png
-   :target: ../resources/images/cbooks_incidents1.png
+.. image:: ../resources/images/cbooks_incidents_1.png
+   :target: ../resources/images/cbooks_incidents_1.png
    :alt:
 
 
@@ -213,8 +213,8 @@ To see all the results obtained so far, plotted in one figure window, we make us
    >>> data.to_df().plot()
    <AxesSubplot:>
 
-.. image:: ../resources/images/cbooks_incidents2.png
-   :target: ../resources/images/cbooks_incidents2.png
+.. image:: ../resources/images/cbooks_incidents_2.png
+   :target: ../resources/images/cbooks_incidents_2.png
    :alt:
 
 
@@ -305,8 +305,8 @@ Let's have a look at the resulting scores:
 
    >>> qc.plot('incidents_scores') # doctest:+SKIP
 
-.. image:: ../resources/images/cbook_incidents_scoresUnflagged.png
-   :target: ../resources/images/cbook_incidents_scoresUnflagged.png
+.. image:: ../resources/images/cbooks_incidents_scores_unflagged.png
+   :target: ../resources/images/cbooks_incidents_scores_unflagged.png
    :alt:
 
 
@@ -355,8 +355,8 @@ Lets check out the results:
 
    >>> qc.plot('incidents') # doctest: +SKIP
 
-.. image:: ../resources/images/cbooks_incidentsOverflagged.png
-   :target: ../resources/images/cbooks_incidentsOverflagged.png
+.. image:: ../resources/images/cbooks_incidents_overflagged.png
+   :target: ../resources/images/cbooks_incidents_overflagged.png
    :alt:
 
 
@@ -409,8 +409,8 @@ Plotting proofs the tweaking did in deed improve the flagging result:
 
    >>> qc.plot("incidents") # doctest:+SKIP
 
-.. image:: ../resources/images/cbooks_incidents_correctFlagged.png
-   :target: ../resources/images/cbooks_incidents_correctFlagged.png
+.. image:: ../resources/images/cbooks_incidents_correct_flagged.png
+   :target: ../resources/images/cbooks_incidents_correct_flagged.png
    :alt:
 
 
@@ -427,7 +427,7 @@ could circumvent the :ref:`unflagging <cookbooks/OutlierDetection:Unflagging>` s
    >>> qc.plot("incidents") # doctest: +SKIP
 
 
-.. image:: ../resources/images/cbooks_incidents_correctFlagged.png
-   :target: ../resources/images/cbooks_incidents_correctFlagged.png
+.. image:: ../resources/images/cbooks_incidents_correct_flagged.png
+   :target: ../resources/images/cbooks_incidents_correct_flagged.png
    :alt:
 

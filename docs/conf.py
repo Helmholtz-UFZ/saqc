@@ -118,6 +118,9 @@ pygments_style = "sphinx"
 # a list of builtin themes.
 html_theme = "nature"
 
+html_logo = "resources/images/representative/SaQCLogo.png"
+html_favicon = "resources/images/representative/SaQCLogoSmall.png"
+
 # use pandas theme
 # html_theme = "pydata_sphinx_theme"
 
@@ -132,11 +135,11 @@ html_static_path = ["_static"]
 
 # -- RST options -------
 rst_prolog = """
-.. |ufzLogo| image:: /resources/images/Representative/UFZLogo.png
+.. |ufzLogo| image:: /resources/images/representative/UFZLogo.png
    :width: 40 %
    :target: https://www.ufz.de/
 
-.. |rdmLogo| image:: /resources/images/Representative/RDMLogo.png
+.. |rdmLogo| image:: /resources/images/representative/RDMLogo.png
    :width: 22 %
    :target: https://www.ufz.de/index.php?de=45348
    :class: align-right

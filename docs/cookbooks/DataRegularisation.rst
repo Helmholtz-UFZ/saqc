@@ -76,8 +76,8 @@ The following `dataset <../resources/data/SoilMoisture.csv>`_ of Soil Moisture m
 example data set:
 
 
-.. image:: ../resources/images/cbooks_SoilMoisture.png
-   :target: ../resources/images/cbooks_SoilMoisture.png
+.. image:: ../resources/images/cbooks_soil_moisture.png
+   :target: ../resources/images/cbooks_soil_moisture.png
    :alt:
 
 

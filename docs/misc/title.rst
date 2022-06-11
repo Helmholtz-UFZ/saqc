@@ -2,35 +2,33 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-.. |sacRaw| image:: /resources/images/Representative/RawData.png
+.. |sacRaw| image:: /resources/images/representative/RawData.png
     :height: 150 px
     :width: 288 px
 
-.. |sacFlagged| image:: /resources/images/Representative/DifferentFlags.png
+.. |sacFlagged| image:: /resources/images/representative/DifferentFlags.png
     :height: 150 px
     :width: 288 px
 
-.. |sacMV| image:: /resources/images/Representative/MultivarSAC.png
+.. |sacMV| image:: /resources/images/representative/MultivarSAC.png
     :height: 150 px
     :width: 288 px
 
-.. |sacProc| image:: /resources/images/Representative/ProcessingDrift.png
+.. |sacProc| image:: /resources/images/representative/ProcessingDrift.png
     :height: 150 px
     :width: 288 px
 
-.. |pyLogo| image:: /resources/images/Representative/pythonLogo.png
+.. |pyLogo| image:: /resources/images/representative/PythonLogo.png
     :height: 108 px
     :width: 105 px
 
-.. |csvConfig| image:: /resources/images/Representative/csvConfig.png
+.. |csvConfig| image:: /resources/images/representative/CsvConfig.png
     :height: 100 px
     :width: 176 px
 
-
-.. |legendEXMPL| image:: /resources/images/Representative/legendEXMPL.png
+.. |legendEXMPL| image:: /resources/images/representative/LegendEXMPL.png
     :height: 100 px
     :width: 200
-
 
 
 ===========================================

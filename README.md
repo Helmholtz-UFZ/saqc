@@ -5,11 +5,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 <a href="https://www.ufz.de/index.php?en=33573">
-    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/Representative/UFZLogo.png" width="400"/>
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/representative/UFZLogo.png" width="400"/>
 </a>
 
 <a href="https://www.ufz.de/index.php?en=45348">
-    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/Representative/RDMLogo.png" align="right" width="220"/>
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/representative/RDMLogo.png" align="right" width="220"/>
 </a>
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
