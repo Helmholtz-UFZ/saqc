@@ -9,6 +9,11 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
+stages:
+  - compliance
+  - test
+  - deploy
+
 default:
   image: python:3.8
   before_script:
@@ -16,35 +21,27 @@ default:
     - pip install -r requirements.txt
     - pip install -r tests/requirements.txt
 
-
 # ===========================================================
-# Testing stage
+# Compliance stage
 # ===========================================================
 
 # check if everything is properly formatted
 black:
-  stage: test
+  stage: compliance
   script:
     - pip install black
     - black --check .
 
 # check if imports are sorted
 isort:
-  stage: test
+  stage: compliance
   script:
     - pip install isort
     - isort --check .
 
-# check if we are able to build a wheel
-wheel:
-  stage: test
-  script:
-    - pip install wheel
-    - pip wheel .
-
 # Check compliance with the REUSE specification
-reuse_compliance:
-  stage: test
+reuse:
+  stage: compliance
   image:
     name: fsfe/reuse:latest
     entrypoint: [""]
@@ -53,6 +50,10 @@ reuse_compliance:
   script:
     - reuse lint
 
+
+# ===========================================================
+# Testing stage
+# ===========================================================
 
 # make (visual) coverage in gitlab merge request diff's
 coverage:
@@ -107,6 +108,12 @@ python310:
     reports:
       junit: report.xml
 
+# check if we are able to build a wheel
+wheel:
+  stage: test
+  script:
+    - pip install wheel
+    - pip wheel .
 
 # ===========================================================
 # Extra Pipeline (run with a successful run of all other jobs on develop)
