@@ -27,6 +27,7 @@ class PositionalScheme(TranslationScheme):
         -6: UNFLAGGED,
         -5: UNFLAGGED,
         -2: UNFLAGGED,
+        -1: UNFLAGGED,
         0: UNFLAGGED,
         1: DOUBTFUL,
         2: BAD,
