@@ -35,6 +35,13 @@ isort:
     - pip install isort
     - isort --check .
 
+# check if we are able to build a wheel
+wheel:
+  stage: test
+  script:
+    - pip install wheel
+    - pip wheel .
+
 # Check compliance with the REUSE specification
 reuse_compliance:
   stage: test
