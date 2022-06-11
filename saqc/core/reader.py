@@ -97,7 +97,10 @@ def fromConfig(fname, *args, **func_kwargs):
 
         func_kwargs["field" if "field" not in func_kwargs else "target"] = fld
         try:
-            saqc = getattr(saqc, func_name)(regex=regex, **func_kwargs)
+            # We explictly route all function calls through SaQC.__getattr__
+            # in order to do a FUNC_MAP lookup. Otherwise we wouldn't be able
+            # to overwrite exsiting test functions with custom register calls.
+            saqc = saqc.__getattr__(func_name)(regex=regex, **func_kwargs)
         except Exception as e:
             raise type(e)(f"failed to execute: {field} ; {expr}") from e
 
