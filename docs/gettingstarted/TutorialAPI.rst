@@ -71,7 +71,7 @@ available functions appear as methods of the :py:class:`~saqc.SaQC`  class, so w
 
    qc = qc.flagRange("a", min=20, max=80)
 
-:py:meth:`~saqc.SaQC.flagRange>` is the easiest of all functions and simply marks all values
+:py:meth:`~saqc.SaQC.flagRange` is the easiest of all functions and simply marks all values
 smaller than ``min`` and larger than ``max``. This feature by itself wouldn't be worth the trouble of getting
 into ``SaQC``, but it serves as a simple example. All functions expect the name of a column in the given
 ``data`` as their first positional argument (called ``field``). The function ``flagRange`` (like all other
