@@ -37,6 +37,7 @@ class TranslationScheme:
     the inverse of the 'forward' translation.
 
     The translation mechanism imposes a few restrictions:
+
     - The scheme must be well definied, i.e. we need a backward translation for
       every forward translation (each value in `self._forward` needs a key in
       `self._backward`).

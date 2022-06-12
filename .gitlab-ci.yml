@@ -12,6 +12,7 @@ variables:
 stages:
   - compliance
   - test
+  - build
   - deploy
 
 default:
@@ -108,12 +109,31 @@ python310:
     reports:
       junit: report.xml
 
+doctest:
+  stage: test
+  script:
+    - cd docs
+    - pip install -r requirements.txt
+    - make testonly
+
+
+# ===========================================================
+# Building stage
+# ===========================================================
 # check if we are able to build a wheel
 wheel:
-  stage: test
+  stage: build
   script:
     - pip install wheel
     - pip wheel .
+    - pip install .
+
+docs:
+  stage: build
+  script:
+    - cd docs
+    - pip install -r requirements.txt
+    - make doconly
 
 # ===========================================================
 # Extra Pipeline (run with a successful run of all other jobs on develop)

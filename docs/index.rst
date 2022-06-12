@@ -45,30 +45,31 @@ Getting Started
    documentation/ConfigurationFiles
    documentation/Customizations
 
-.. toctree::
-   :caption: Functions
-   :hidden:
-   :maxdepth: 1
-   :glob:
-   :titlesonly:
+..
+   .. toctree::
+      :caption: Functions
+      :hidden:
+      :maxdepth: 1
+      :glob:
+      :titlesonly:
 
-   resampling <funcs/resampling>
-   generic <funcs/generic>
-   outliers <funcs/outliers>
-   breaks <funcs/breaks>
-   constants <funcs/constants>
-   changepoints <funcs/changepoints>
-   drift <funcs/drift>
-   curvefit <funcs/curvefit>
-   interpolation <funcs/interpolation>
-   residuals <funcs/residuals>
-   tools <funcs/tools>
-   flagtools <funcs/flagtools>
-   rolling <funcs/rolling>
-   scores <funcs/scores>
-   transformation <funcs/transformation>
-   noise <funcs/noise>
-   pattern <funcs/pattern>
+      resampling <funcs/resampling>
+      generic <funcs/generic>
+      outliers <funcs/outliers>
+      breaks <funcs/breaks>
+      constants <funcs/constants>
+      changepoints <funcs/changepoints>
+      drift <funcs/drift>
+      curvefit <funcs/curvefit>
+      interpolation <funcs/interpolation>
+      residuals <funcs/residuals>
+      tools <funcs/tools>
+      flagtools <funcs/flagtools>
+      rolling <funcs/rolling>
+      scores <funcs/scores>
+      transformation <funcs/transformation>
+      noise <funcs/noise>
+      pattern <funcs/pattern>
 
 
 .. toctree::
@@ -76,10 +77,11 @@ Getting Started
    :hidden:
    :maxdepth: 2
 
-   Package <modules/saqc>
-   Core <modules/saqcCore>
-   Methods <modules/saqcFuncTOC>
-   Constants <modules/saqcConstants>
+   Package <modules/SaQC>
+   Core <modules/SaQCCore>
+   Test Functions <modules/SaQCFunctions>
+   Translations <modules/SaQCTranslation>
+   Constants <modules/SaQCConstants>
 
 .. toctree::
    :caption: Developer Resources

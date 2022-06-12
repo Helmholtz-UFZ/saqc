@@ -2,8 +2,11 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-SaQC Methods
-------------
+SaQC
+====
+
+Test Functions
+--------------
 
 .. toctree::
    :glob:

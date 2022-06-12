@@ -5,7 +5,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
-"""The system for automated quality controll package."""
+
+"""The System for automated Quality Control package."""
 
 from saqc.constants import BAD, DOUBTFUL, FILTER_ALL, FILTER_NONE, GOOD, UNFLAGGED
 
