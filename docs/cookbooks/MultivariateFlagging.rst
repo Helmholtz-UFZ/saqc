@@ -10,7 +10,7 @@
    configpath = './resources/data/hydro_config.csv'
 
 .. plot::
-   :context:
+   :context: reset
    :include-source: False
 
    import matplotlib
@@ -288,7 +288,8 @@ Now we can pass the function to the :py:meth:`~saqc.SaQC.transform` method.
 
 .. doctest:: exampleMV
 
-   >>> qc = qc.transform(['sac254_corrected', 'level_raw', 'water_temp_raw'], target=['sac254_norm', 'level_norm', 'water_temp_norm'], func=zscore_func, freq='30D')
+   >>> qc = qc.transform(['sac254_corrected', 'level_raw', 'water_temp_raw'],
+   ... target=['sac254_norm', 'level_norm', 'water_temp_norm'], func=zscore_func, freq='30D')
 
 
 .. plot::
@@ -306,7 +307,8 @@ neighbors in feature space. We can do this, via the :py:meth:`~saqc.SaQC.assignK
 
 .. doctest:: exampleMV
 
-   >>> qc = qc.assignKNNScore(field=['sac254_norm', 'level_norm', 'water_temp_norm'], target='kNNscores', freq='30D', n=5)
+   >>> qc = qc.assignKNNScore(field=['sac254_norm', 'level_norm', 'water_temp_norm'],
+   ... target='kNNscores', freq='30D', n=5)
 
 Lets have a look at the resulting score variable.
 
