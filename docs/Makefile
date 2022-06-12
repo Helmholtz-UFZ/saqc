@@ -36,11 +36,6 @@ doc:
 	# generate environment table from dictionary
 	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-	rm -f *.automodsumm
-	rm -f *.automodapi
-	rm -f modules/*.automodsumm
-	rm -f modules/*.automodapi
-	rm -f */*.automodsumm
 
 # make documentation
 doconly:
@@ -49,14 +44,8 @@ doconly:
 
 # make test, clean up
 testonly:
-    # generate parent fake module for the functions to be documented
+	# generate parent fake module for the functions to be documented
 	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-	rm -f *.automodsumm
-	rm -f *.automodapi
-	rm -f modules/*.automodsumm
-	rm -f modules/*.automodapi
-	rm -f */*.automodsumm
-	rm -f -r coredoc
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

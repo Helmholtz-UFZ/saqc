@@ -2,7 +2,7 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-saqc
+SaQC
 ====
 
 .. automodapi:: saqc.core

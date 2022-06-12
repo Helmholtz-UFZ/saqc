@@ -29,7 +29,6 @@ def test_codeSnippets(fname):
 FILEURL = "https://git.ufz.de/rdm-software/saqc/-/blob/develop/"
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize("fname", ["README.md"])
 def test_links(fname):
     with open(fname, "r") as f:
