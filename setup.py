@@ -28,7 +28,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://git.ufz.de/rdm-software/saqc",
     packages=find_packages(exclude=("tests", "docs")),
-    python_requires=">=3.8",
+    python_requires=">=3.7",
     install_requires=[
         "Click",
         "dtw",
@@ -41,7 +41,6 @@ setup(
         "scikit-learn",
         "scipy",
         "typing_extensions",
-        "seaborn",
     ],
     license_files=("LICENSE.md", "LICENSES/GPL-3.0-or-later.txt"),
     entry_points={

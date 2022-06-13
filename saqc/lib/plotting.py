@@ -13,7 +13,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn
 from typing_extensions import Literal
 
 from saqc.core.flags import Flags
@@ -30,9 +29,23 @@ STATSDICT = {
 
 PLOT_KWARGS = {"alpha": 0.8, "linewidth": 1}
 FIG_KWARGS = {"figsize": (16, 9)}
+
+_seaborn_color_palette = [
+    (0.00784313725490196, 0.24313725490196078, 1.0),
+    (1.0, 0.48627450980392156, 0.0),
+    (0.10196078431372549, 0.788235294117647, 0.2196078431372549),
+    (0.9098039215686274, 0.0, 0.043137254901960784),
+    (0.5450980392156862, 0.16862745098039217, 0.8862745098039215),
+    (0.6235294117647059, 0.2823529411764706, 0.0),
+    (0.9450980392156862, 0.2980392156862745, 0.7568627450980392),
+    (0.6392156862745098, 0.6392156862745098, 0.6392156862745098),
+    (1.0, 0.7686274509803922, 0.0),
+    (0.0, 0.8431372549019608, 1.0),
+]
+
 SCATTER_KWARGS = {
     "marker": ["s", "D", "^", "o"],
-    "color": seaborn.color_palette("bright"),
+    "color": _seaborn_color_palette,
     "alpha": 0.7,
     "zorder": 10,
     "edgecolors": "black",
