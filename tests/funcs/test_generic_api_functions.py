@@ -185,3 +185,20 @@ def test_overwriteFieldProcGeneric(data):
             assert res._flags.history[field].hist[1].isna().all()
             assert res._flags.history[field].meta[0] == {}
             assert res._flags.history[field].meta[1] == expected_meta
+
+
+def test_label():
+    dat = pd.DataFrame(
+        {"data1": [1, 1, 5, 2, 1], "data2": [1, 1, 2, 3, 4], "data3": [1, 1, 2, 3, 4]},
+        index=pd.date_range("2000", "2005", periods=5),
+    )
+
+    qc = SaQC(dat)
+    qc = qc.flagRange("data1", max=4, label="out of range")
+    qc = qc.flagRange("data1", max=0, label="out of range2")
+    qc = qc.flagGeneric(
+        ["data1", "data3"],
+        target="data2",
+        func=lambda x, y: isflagged(x, "out of range") | isflagged(y),
+    )
+    assert list((qc.flags["data2"] > 0).values) == [False, False, True, False, False]

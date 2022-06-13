@@ -21,10 +21,33 @@ from saqc.lib.tools import toSequence
 from saqc.lib.types import GenericFunction, PandasLike
 
 
+def _flagSelect(field, flags, label=None):
+    if label is None:
+        return flags[field]
+
+    h_meta = flags.history[field].meta
+    trg_col = None
+
+    for idx, item in enumerate(h_meta):
+        kwargs = item.get("kwargs")
+        if kwargs is None or "label" not in kwargs:
+            continue
+        if kwargs["label"] == label:
+            trg_col = idx
+
+    if trg_col is None:
+        raise KeyError(f"no such label {label} for field {field}")
+
+    out = flags.history[field].hist[trg_col].astype(float)
+    return out.fillna(-np.inf)
+
+
 def _prepare(
     data: DictOfSeries, flags: Flags, columns: Sequence[str], dfilter: float
 ) -> Tuple[DictOfSeries, Flags]:
     fchunk = Flags({f: flags[f] for f in columns})
+    for f in fchunk.columns:
+        fchunk.history[f] = flags.history[f]
     dchunk, _ = FunctionWrapper._maskData(
         data=data.loc[:, columns].copy(), flags=fchunk, columns=columns, thresh=dfilter
     )
@@ -39,7 +62,9 @@ def _execGeneric(
 ) -> DictOfSeries:
 
     globs = {
-        "isflagged": lambda data: _isflagged(flags[data.name], thresh=dfilter),
+        "isflagged": lambda data, label=None: _isflagged(
+            _flagSelect(data.name, flags, label), thresh=dfilter
+        ),
         **ENVIRONMENT,
     }
 
