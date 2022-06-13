@@ -316,7 +316,12 @@ def interpolateNANs(
         )
 
     pre_index = data.index
-    data = data[gap_mask]
+
+    if data[gap_mask].empty:
+        return data
+
+    else:
+        data = data[gap_mask]
 
     if method in ["linear", "time"]:
 
