@@ -469,7 +469,7 @@ We now can project those flags onto our original incidents timeseries:
 
    qc = qc.flagGeneric(field=['incidents_scores'], target='incidents', func=lambda x: isflagged(x))
 
-Note, that we could have skipped the :ref:`range flagging step <cook_books/OutlierDetection:Flagging the scores>`\ , by including the cutting off in our
+Note, that we could have skipped the :ref:`range flagging step <cookbooks/OutlierDetection:Flagging the scores>`\ , by including the cutting off in our
 
 generic expression:
 

@@ -38,12 +38,12 @@ Getting Started
    :maxdepth: 1
    :hidden:
 
-   documentation/FlaggingTranslation
-   documentation/GenericFunctions
-   documentation/SourceTarget
-   documentation/GlobalKeywords
    documentation/ConfigurationFiles
+   documentation/GenericFunctions
+   documentation/GlobalKeywords
    documentation/Customizations
+   documentation/SourceTarget
+   documentation/FlaggingTranslation
 
 ..
    .. toctree::

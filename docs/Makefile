@@ -7,7 +7,7 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS    ?=
+SPHINXOPTS    ?= -W
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
@@ -24,26 +24,19 @@ test:
 # clean sphinx generated stuff
 clean:
 	rm -rf _build _static _api
-	# mkdir _static
 	rm -f *.automodsumm
 	rm -f *.automodapi
 	rm -f modules/*.automodsumm
 	rm -f modules/*.automodapi
 	rm -f */*.automodsumm
 
-# make doctest, make documentation, make clean
-doc:
-	# generate environment table from dictionary
-	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-
 # make documentation
-doconly:
+doc:
 	# generate environment table from dictionary
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # make test, clean up
-testonly:
+test:
 	# generate parent fake module for the functions to be documented
 	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 

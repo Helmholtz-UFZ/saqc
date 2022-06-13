@@ -297,6 +297,6 @@ There for go to the docs directory and run:
 
 .. code-block::
 
-   make testonly
+   make test
 
 To only run the doctests.
