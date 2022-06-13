@@ -41,13 +41,7 @@ def data():
     [
         ("linear", dict()),
         ("shift", dict(method="nshift")),
-        (
-            pytest.param(
-                "interpolate",
-                dict(method="spline"),
-                marks=pytest.mark.xfail(reason="BUG, see GL#353"),
-            )
-        ),
+        ("interpolate", dict(method="spline")),
         ("resample", dict(func=np.nansum, method="nagg")),
     ],
 )
@@ -71,14 +65,45 @@ def test_wrapper(data, func, kws):
     assert data[field].index.inferred_freq == freq
 
 
-@pytest.mark.parametrize("method", ["time", "polynomial"])
-def test_gridInterpolation(data, method):
+_SUPPORTED_METHODS = [
+    "linear",
+    "time",
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "spline",
+    "barycentric",
+    "polynomial",
+    "krogh",
+    "piecewise_polynomial",
+    "spline",
+    "pchip",
+    "akima",
+]
+
+
+@pytest.mark.parametrize("method", _SUPPORTED_METHODS)
+@pytest.mark.parametrize("fill_history", ["some", "all", "none"])
+def test_gridInterpolation(data, method, fill_history):
     freq = "15T"
     field = "data"
     data = data[field]
     data = pd.concat([data * np.sin(data), data.shift(1, "2h")]).shift(1, "3s")
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
+
+    if fill_history == "none":
+        pass
+
+    if fill_history == "all":
+        for c in flags.columns:
+            flags[:, c] = BAD
+
+    if fill_history == "some":
+        for c in flags.columns:
+            flags[::2, c] = UNFLAGGED
 
     # we are just testing if the interpolation gets passed to the series without
     # causing an error:
