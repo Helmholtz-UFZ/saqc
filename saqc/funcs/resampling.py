@@ -348,7 +348,7 @@ def resample(
     kws = dict(
         method=method,
         freq=freq,
-        func=flag_func,
+        agg_func=flag_func,
         fill_value=np.nan,
         max_invalid_total=maxna_flags,
         max_invalid_consec=maxna_group_flags,
