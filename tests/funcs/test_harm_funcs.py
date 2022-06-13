@@ -41,7 +41,13 @@ def data():
     [
         ("linear", dict()),
         ("shift", dict(method="nshift")),
-        ("interpolate", dict(method="spline")),
+        (
+            pytest.param(
+                "interpolate",
+                dict(method="spline"),
+                marks=pytest.mark.xfail(reason="BUG, see GL#353"),
+            )
+        ),
         ("resample", dict(func=np.nansum, method="nagg")),
     ],
 )
@@ -49,6 +55,11 @@ def test_wrapper(data, func, kws):
     field = "data"
     freq = "15T"
     flags = initFlagsLike(data)
+
+    # GL-#352
+    # make a History, otherwise nothing important is tested
+    for c in flags.columns:
+        flags[:, c] = BAD
 
     import saqc
 
