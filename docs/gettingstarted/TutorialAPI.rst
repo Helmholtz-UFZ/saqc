@@ -21,7 +21,7 @@ The Python API of SaQC consists of three distinct components:
 One and two are implemented as distinct classes, the core object is called ``SaQC`` and we currently
 provide three flagging schemes, namely:
 
-1. ``FloatScheme``: Provides the quality flags ``-np.inf`` and ``[0..255]``.
+1. ``FloatScheme``: The default flagging scheme provides the quality flags ``-np.inf`` and ``[0..255]``.
    ``-np.inf`` denotes the absence of quality flags and ``255`` denotes, that
    the associated data value is considered to be bad. the absence of a flags,
    ``1`` the presence of flag (i.e. one of the tests provided a positive result)
@@ -30,8 +30,7 @@ provide three flagging schemes, namely:
 3. ``DmpScheme``: Provides the four distinct flags ``NIL``, ``OK``, ``DOUBTFUL``, ``BAD``, whereas each
    flag is extended by information about the generating function and optional comments.
 
-The third component, the actual test functions, appear as methods of
-:py:class:`~saqc.SaQC` instances.
+The third component, the actual test functions, appear as methods of :py:class:`~saqc.SaQC` instances.
 
 
 Getting started - Put something in

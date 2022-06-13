@@ -114,8 +114,7 @@ doctest:
   script:
     - cd docs
     - pip install -r requirements.txt
-    - make testonly
-
+    - make test
 
 # ===========================================================
 # Building stage
@@ -133,7 +132,7 @@ docs:
   script:
     - cd docs
     - pip install -r requirements.txt
-    - make doconly
+    - make doc
 
 # ===========================================================
 # Extra Pipeline (run with a successful run of all other jobs on develop)

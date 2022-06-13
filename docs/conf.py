@@ -10,6 +10,8 @@
 
 # -- Path setup --------------------------------------------------------------
 
+import logging
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -21,17 +23,33 @@ sys.path.insert(0, os.path.abspath(".."))
 package_path = os.path.abspath("..")
 os.environ["PYTHONPATH"] = ":".join((package_path, os.environ.get("PYTHONPATH", "")))
 
+# ---------- Version string --------------------------------------------------
+# read the version string without importing it
+vdict = {}
+with open("../saqc/version.py") as f:
+    exec(f.read(), vdict)
+version = vdict["__version__"]
+
+# -- Customize logging -------------------------------------------------------
+
+# couldn't get rid of a ignorable warning, so filter it
+# also see: https://issuemode.com/issues/sphinx-doc/sphinx/73994507
+
+
+def filterDuplicateObject(record):
+    return "duplicate object description of" not in record.getMessage()
+
+
+logging.getLogger("sphinx").addFilter(filterDuplicateObject)
 
 # -- Project information -----------------------------------------------------
 
 project = "SaQC"
-copyright = (
-    "2020, Bert Palm, David Schäfer, Peter Lünenschloß, Lennart Schmidt, Juliane Geller"
-)
-author = "Bert Palm, David Schäfer, Peter Lünenschloß, Lennart Schmidt, Juliane Geller"
+copyright = "2020, Bert Palm, David Schäfer, Peter Lünenschloß, Florian Gransee"
+author = "Bert Palm, David Schäfer, Peter Lünenschloß, Florian Gransee"
 
 # The full version, including alpha/beta/rc tags
-release = f"2.0"
+release = f"{version}"
 
 
 # -- General configuration ---------------------------------------------------
@@ -71,6 +89,7 @@ extensions = [
     "jupyter_sphinx",
     "sphinx_autodoc_typehints",
     # "numpydoc"
+    "sphinx_tabs.tabs",
 ]
 
 
@@ -131,7 +150,7 @@ html_favicon = "resources/images/representative/SaQCLogoSmall.png"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+# html_static_path = ["_static"]
 
 # -- RST options -------
 rst_prolog = """

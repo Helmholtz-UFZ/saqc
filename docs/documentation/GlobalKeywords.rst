@@ -16,7 +16,7 @@ Introduction to the usage of the global keywords. (Keywords that can be passed t
 
    * `label Example Usage`_
 
-2. `dfilter and flag keyword`_
+2. `dfilter and flag keywords`_
 
    * `Flags of Different Significance`_
    * `Unflagging Values`_
@@ -127,8 +127,8 @@ Label Example Usage
    qc.plot('data')
 
 
-dfilter and flag keyword
-------------------------
+dfilter and flag keywords
+-------------------------
 
 The ``flag`` keyword controls a tests level of flagging :math:`f(v)` for any value :math:`v`. So,
 in short, the keyword controls the output flag level of any flagging function.
