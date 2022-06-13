@@ -12,9 +12,13 @@ n = np.nan
 
 
 def test_rolling_existence_of_attrs():
-    # Rolling.validate is deprectaed, the wrapped method, however,
-    # is not. So, let's call the private method for now...
-    r = pd.DataFrame().rolling(0)._validate()
+    r = pd.DataFrame().rolling(0)
+    if int(pd.__version__.replace(".", "")) < 140:
+        r = r.validate()
+    else:
+        # after pandas 1.4 Rolling.validate() is deprecated,
+        # the wrapped method, however, is not. For now, we use this
+        r = r._validate()
     c = customRoller(pd.DataFrame(), 0, min_periods=0)
     expected = [attr for attr in dir(r) if not attr.startswith("_")]
     result = [attr for attr in dir(c) if not attr.startswith("_")]
