@@ -10,50 +10,53 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 
 
 ## Unreleased
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.0.1...develop)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.1.0...develop)
+### Added
+### Changed
+### Removed
+### Fixed
+
+## [2.1.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2022-06-14
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.0.1...v2.1.0)
 
 ### Added
-- global keywords documentation resource added
-- generic documentation module `docurator.py` added to `lib`
-- flagging constants documentation resource added
-- `pytest.ini`: to setup default path and markers for pytest
+- documentation of global keywords
+- generic documentation module `docurator.py`
+- documentation of flagging constants
+- `pyproject.toml`
 - new function `progagateFlags`
-- *sphinx-doc*: automatically scrape typehints from signature and include those into the parameter section
+- include function typehints in parameter documentation
+- `label` parameter to the generic function `isflagged`
 
 ### Changed
-- documentation pipeline changed to base on methods decorators
-- `flagOffsets` parameters `thresh` and `thresh_relative` now both are optional
-- flags concatenation tasks (for squeezed and explicit histories) are now all channeled through the function `concatFlags`
-- corrected false notion of *residual* concept (old notion: *residue* got replaced by *residual*)
-- constants `FILTER_NONE` and `FILTER_ALL` are now imported to `saqc.__init__`
+- `flagOffsets` parameters `thresh` and `thresh_relative` are optional
+- corrected false notion of the term *residual* (replace all occurences of *residue* by *residual*)
+- `FILTER_NONE` and `FILTER_ALL` are top level constants (imported in `saqc.__init__`)
 - renamed `maskTime` to `selectTime`
-- `.gitlab-ci.py`: always run all pytest-tests in CI/CD pipelines
-- `.gitlab-ci.py`: use reports to enable `Tests` in CI/CD pipeline results
-- `procGeneric`: changed default `flag` value to `np.nan`
 - `SaQC.data` returns `dios.DictOfSeries`
 - `SaQC.flags` returns `dios.DictOfSeries` or `pd.DataFrame`
-- `SaQC` data attributes are not mutated by method calls
-- renamed `History.max` to renamed `History.squeeze`
+- `SaQC.data` and `SaQC.flags` are not mutated by function calls
+- renamed `History.max` to `History.squeeze`
 - renamed parameter `freq` of function flagByStray to `window`
+- `DmpScheme`: set `DFILTER_DEFAULT` to 1 in order to not mask the flag 'OK'
 
 ### Removed
 - data accessors `SaQC.result`, `SaQC.data_raw`, `SaQC.flags_raw`
 
 ### Fixed
-- `flagOffset` bug with zero-valued threshold
-- `flagCrossStatistics` bug with unaligned input variables
-- `plot` fixed data loss when using *dfilter* kwarg
-- `DmpScheme`: set `DFILTER_DEFAULT` to 1 in order to not mask the flag 'OK'
-- `correctDrift`: fixed bug when correcting single value intervals
-- `concatFlags`: fixed bug in context of squeezed history appending (UNTOUCHED vs UNFLAGGED information now doesnt get lost)
-- `interpolateInvalid`: Fix: replacement of flags for interpolated values now works
-- `resample`: resampling func now actually gets passed on to `history.appy()`
-- `tools.seasonalMask`: fixed bug that swaps the entire mask upon `include_bounds=True`
+- `flagOffset` failure on falsy `thresh`
+- `flagCrossStatistics` failure on unaligned input variables
+- `plot` data loss when using *dfilter* kwarg
+- `correctDrift`: failure on single value intervals
+- `concatFlags`: information loss by appending squeezed histories
+- `interpolateInvalid`: replace flags by interpolated values
+- `resample`: pass resampling function to  `history.appy()`
+- `tools.seasonalMask`: mask swapping with `include_bounds=True`
 - `flagGeneric`:
   - fixed inconsistent history meta writing
   - fixed handling of existing flags
 - `proGeneeric`: fixed inconsistent history meta writing
-- `sphinx-doc`: removed documentation of data/flags parameters from automatic sphinx doc
+- `docs`: removed documentation of data/flags parameters from automatic sphinx doc
 
 ## [2.0.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2021-12-20
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.0.0...v2.0.1)

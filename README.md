@@ -55,7 +55,7 @@ could look like [this](https://git.ufz.de/rdm-software/saqc/raw/develop/docs/res
 
 ```
 varname    ; test
-#----------; -----------------------------------------------------
+#----------; ---------------------------------------------------------------------
 SM2        ; shift(freq="15Min")
 'SM(1|2)+' ; flagMissing()
 SM1        ; flagRange(min=10, max=60)
