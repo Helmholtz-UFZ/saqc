@@ -1,19 +1,24 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
-import pytest
+import copy
+
 import numpy as np
 import pandas as pd
+import pytest
 
 import saqc
-from saqc.core import initFlagsLike, SaQC, register
+from saqc.core import SaQC, initFlagsLike, register
 from saqc.core.flags import Flags
-from saqc.core.register import processing
-
-from tests.common import initData, flagAll
+from saqc.core.register import flagging, processing
+from tests.common import flagAll, initData
 
 OPTIONAL = [False, True]
-
 
 register(mask=["field"], demask=["field"], squeeze=["field"])(flagAll)
 
@@ -35,22 +40,10 @@ def test_errorHandling(data):
         raise TypeError
 
     var1 = data.columns[0]
+    qc = SaQC(data)
 
     with pytest.raises(TypeError):
-        SaQC(data).raisingFunc(var1)
-
-
-def test_duplicatedVariable():
-    data = initData(1)
-    var1 = data.columns[0]
-
-    pflags = SaQC(data).flagDummy(var1).result.flags
-
-    if isinstance(pflags.columns, pd.MultiIndex):
-        cols = pflags.columns.get_level_values(0).drop_duplicates()
-        assert np.all(cols == [var1])
-    else:
-        assert (pflags.columns == [var1]).all()
+        qc.raisingFunc(var1)
 
 
 @pytest.mark.parametrize("optional", OPTIONAL)
@@ -62,7 +55,7 @@ def test_dtypes(data, flags):
     flags_raw = flags.toDios()
     var1, var2 = data.columns[:2]
 
-    pflags = SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).result.flags_raw
+    pflags = SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).flags
 
     for c in pflags.columns:
         assert pflags[c].dtype == flags[c].dtype
@@ -78,7 +71,6 @@ def test_copy(data):
 
     for copy in [deep, shallow]:
         assert copy is not qc
-        assert copy._called is not qc._called
         assert copy._scheme is not qc._scheme
         assert copy._attrs is not qc._attrs
 
@@ -186,3 +178,70 @@ def test_sourceTargetMulti():
         return data, flags
 
     SaQC(data, flags).flagMulti(field=fields, target=targets)
+
+
+def test_unknown_attribute():
+    qc = SaQC()
+    with pytest.raises(AttributeError):
+        qc._construct(_spam="eggs")
+
+
+def test_validation(data):
+    """Test if validation detects different columns in data and flags."""
+    df = pd.DataFrame(
+        data=np.arange(8).reshape(4, 2),
+        index=pd.date_range("2020", None, 4, "1d"),
+        columns=list("ab"),
+    )
+    qc = SaQC(df)
+
+    @flagging()
+    def flagFoo(data, field, flags, **kwargs):
+        data["spam"] = data[field]
+        return data, flags
+
+    with pytest.raises(RuntimeError):
+        qc.flagFoo("a")
+
+
+@pytest.mark.skip(reason="bug in register, see #GL 342")
+def test_validation_flags(data):
+    """Test if validation detects different columns in data and flags."""
+    df = pd.DataFrame(
+        data=np.arange(8).reshape(4, 2),
+        index=pd.date_range("2020", None, 4, "1d"),
+        columns=list("ab"),
+    )
+    qc = SaQC(df)
+
+    @flagging()
+    def flagFoo(data, field, flags, **kwargs):
+        flags["spam"] = flags[field]
+        return data, flags
+
+    with pytest.raises(RuntimeError):
+        qc.flagFoo("a")
+
+
+def test__copy__():
+    orig = SaQC()
+    orig.attrs["spam"] = []  # a higher object
+    shallow = copy.copy(orig)
+    assert shallow is not orig
+    assert shallow.attrs["spam"] is orig.attrs["spam"]
+
+
+def test__deepcopy__():
+    orig = SaQC()
+    orig.attrs["spam"] = []  # a higher object
+    shallow = copy.deepcopy(orig)
+    assert shallow is not orig
+    assert shallow.attrs["spam"] is not orig.attrs["spam"]
+
+
+def test_immutability(data):
+    field = data.columns[0]
+    saqc_before = SaQC(data)
+    saqc_after = saqc_before.flagDummy(field)
+    for name in SaQC._attributes:
+        assert getattr(saqc_before, name) is not getattr(saqc_after, name)

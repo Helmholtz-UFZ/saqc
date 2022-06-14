@@ -1,11 +1,16 @@
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+import datetime as dt
+import os
+import pickle
 import time
 
-import pandas as pd
 import numpy as np
-import datetime as dt
+import pandas as pd
+
 from ..dios import DictOfSeries
-import pickle
-import os
 
 var_prefix = "var"
 
@@ -117,6 +122,6 @@ if __name__ == "__main__":
     # t1 = time.time()
     # print(t1-t0)
 
-    rr = [10 ** r for r in range(1, 6)]
+    rr = [10**r for r in range(1, 6)]
     c = range(10, 60, 10)
     gen_all(rr, c)

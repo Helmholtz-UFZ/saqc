@@ -1,6 +1,10 @@
-from setuptools import setup, find_packages
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import subprocess
 
+from setuptools import find_packages, setup
 
 with open("Readme.md", "r") as fh:
     long_description = fh.read()

@@ -1,31 +1,32 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
 
 from __future__ import annotations
 
 import functools
-from typing import Tuple, Sequence, Callable
-from typing_extensions import Literal
+import inspect
+from typing import Callable, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
-
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
+from typing_extensions import Literal
 
 from dios import DictOfSeries
 from saqc.constants import BAD
-
-from saqc.core.register import register, flagging, Flags
+from saqc.core.register import Flags, flagging, register
 from saqc.funcs.changepoints import _assignChangePointCluster
-from saqc.funcs.tools import dropField, copyField
-
-from saqc.lib.tools import detectDeviants, toSequence, filterKwargs
-from saqc.lib.ts_operators import linearDriftModel, expDriftModel
+from saqc.funcs.tools import copyField, dropField
+from saqc.lib.tools import detectDeviants, filterKwargs, toSequence
+from saqc.lib.ts_operators import expDriftModel, linearDriftModel
 from saqc.lib.types import CurveFitter
-from saqc.lib.ts_operators import linearDriftModel, expDriftModel
-
 
 LinkageString = Literal[
     "single", "complete", "average", "weighted", "centroid", "median", "ward"
@@ -405,7 +406,7 @@ def correctRegimeAnomaly(
     flags: Flags,
     cluster_field: str,
     model: CurveFitter,
-    tolerance: str = None,
+    tolerance: Optional[str] = None,
     epoch: bool = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -526,7 +527,7 @@ def correctOffset(
     spread: float,
     window: str,
     min_periods: int,
-    tolerance: str = None,
+    tolerance: Optional[str] = None,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
@@ -589,26 +590,27 @@ def correctOffset(
 def _driftFit(x, shift_target, cal_mean, driftModel):
     x_index = x.index - x.index[0]
     x_data = x_index.total_seconds().values
-    x_data = x_data / x_data[-1]
+    x_data = x_data / x_data[-1] if len(x_data) > 1 else x_data
     y_data = x.values
     origin_mean = np.mean(y_data[:cal_mean])
     target_mean = np.mean(y_data[-cal_mean:])
 
     dataFitFunc = functools.partial(driftModel, origin=origin_mean, target=target_mean)
     # if drift model has free parameters:
-    try:
-        # try fitting free parameters
-        fit_paras, *_ = curve_fit(dataFitFunc, x_data, y_data)
-        data_fit = dataFitFunc(x_data, *fit_paras)
-        data_shift = driftModel(
-            x_data, *fit_paras, origin=origin_mean, target=shift_target
-        )
-    except RuntimeError:
-        # if fit fails -> make no correction
-        data_fit = np.array([0] * len(x_data))
-        data_shift = np.array([0] * len(x_data))
+    if len(inspect.getfullargspec(dataFitFunc).args) > 1:
+        try:
+            # try fitting free parameters
+            fit_paras, *_ = curve_fit(dataFitFunc, x_data, y_data)
+            data_fit = dataFitFunc(x_data, *fit_paras)
+            data_shift = driftModel(
+                x_data, *fit_paras, origin=origin_mean, target=shift_target
+            )
+        except RuntimeError:
+            # if fit fails -> make no correction
+            data_fit = np.array([0] * len(x_data))
+            data_shift = np.array([0] * len(x_data))
     # when there are no free parameters in the model:
-    except ValueError:
+    else:
         data_fit = dataFitFunc(x_data)
         data_shift = driftModel(x_data, origin=origin_mean, target=shift_target)
 

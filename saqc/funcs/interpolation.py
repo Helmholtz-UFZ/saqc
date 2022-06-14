@@ -1,14 +1,22 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
-from typing import Tuple, Union, Callable
-from typing_extensions import Literal
+from __future__ import annotations
+
+from typing import Callable, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from dios import DictOfSeries
+from typing_extensions import Literal
 
-from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.core.register import _isflagged, processing
+from dios import DictOfSeries
+from saqc.constants import UNFLAGGED
+from saqc.core.flags import Flags
+from saqc.core.register import _isflagged, register
 from saqc.lib.ts_operators import interpolateNANs
 
 _SUPPORTED_METHODS = Literal[
@@ -181,9 +189,9 @@ def interpolateInvalid(
         inter_limit=limit,
         downgrade_interpolation=downgrade,
     )
-    data[field] = inter_data
 
     interpolated = data[field].isna() & inter_data.notna()
+    data[field] = inter_data
     new_col = pd.Series(np.nan, index=flags[field].index)
     new_col.loc[interpolated] = np.nan if flag is None else flag
 

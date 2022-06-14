@@ -1,11 +1,17 @@
 #!/usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from __future__ import annotations
 
-from copy import deepcopy, copy as shallowcopy
-from typing import Dict, Tuple, Union, List, Any
+from copy import copy as shallowcopy
+from copy import deepcopy
+from typing import Any, Callable, Dict, List, Tuple, Union
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from saqc.constants import UNFLAGGED
 
@@ -19,9 +25,8 @@ class History:
     names are increasing integers starting with 0. After initialisation
     the FH is empty and has no columns at all.
 
-    To get the worst flags (highest value) that are currently stored in
-    the FH, we provide a ``max()`` method. It returns a pd.Series indicating
-    the worst flag per row.
+    To get the latest flags, that are currently stored in the FH, we provide
+    a ``squeeze()`` method.
 
     For more details and a detailed discussion, why this is needed, how this
     works and possible other implementations, see #GL143 [1].
@@ -38,7 +43,7 @@ class History:
     createHistoryFromData: function to create History from existing data
     """
 
-    def __init__(self, index: pd.Index):
+    def __init__(self, index: pd.Index | None):
 
         self.hist = pd.DataFrame(index=index)
         self.meta = []
@@ -119,7 +124,9 @@ class History:
 
         return self
 
-    def append(self, value: Union[pd.Series, History], meta: dict = None) -> History:
+    def append(
+        self, value: Union[pd.Series, History], meta: dict | None = None
+    ) -> History:
         """
         Create a new FH column and insert given pd.Series to it.
 
@@ -203,13 +210,13 @@ class History:
         self.meta += value_meta
         return self
 
-    def max(self, raw=False) -> pd.Series:
+    def squeeze(self, raw=False) -> pd.Series:
         """
-        Get the maximum value per row of the FH.
+        Get the last flag value per row of the FH.
 
         Returns
         -------
-        pd.Series: maximum values
+        pd.Series
         """
         result = self.hist.astype(float)
         if result.empty:
@@ -260,7 +267,7 @@ class History:
     def apply(
         self,
         index: pd.Index,
-        func: callable,
+        func: Callable,
         func_kws: dict,
         func_handle_df: bool = False,
         copy: bool = True,
@@ -275,8 +282,7 @@ class History:
         - the functions mustn't alter the passed objects
         - the functions are not allowed to add or remove columns
         - the function must return same type as first argument
-        - the returned object must have same index as the passed ``index`` to ``apply``
-            as first argument
+        - the returned object must have same index as the passed ``index`` to ``apply`` as first argument
 
         Parameters
         ----------

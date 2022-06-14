@@ -1,5 +1,10 @@
-from setuptools import setup, find_packages
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from distutils.util import convert_path
+
+from setuptools import find_packages, setup
 
 # read the version string from saqc without importing it. See the
 # link for a more detailed description of the problem and the solution
@@ -16,29 +21,28 @@ with open("README.md", "r") as fh:
 setup(
     name="saqc",
     version=version,
-    author="Bert Palm, David Schaefer, Peter Luenenschloss, Lennard Schmidt",
+    author="Bert Palm, David Schaefer, Florian Gransee, Peter Luenenschloss",
     author_email="david.schaefer@ufz.de",
-    description="Data quality checking and processing tool/framework",
+    description="A timeseries data quality control and processing tool/framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://git.ufz.de/rdm-software/saqc",
-    packages=find_packages(exclude=("tests",)),
-    python_requires=">=3.7, <3.10",
+    packages=find_packages(exclude=("tests", "docs")),
+    python_requires=">=3.7",
     install_requires=[
-        "Click==8.0.*",
-        "dtw==1.4.*",
-        "matplotlib>=3.4,<3.6",
-        "numba==0.54.*",
-        "numpy==1.20.*",
-        "outlier-utils==0.0.3",
-        "pyarrow==6.0.*",
-        "pandas==1.3.*",
-        "scikit-learn==1.0.*",
-        "scipy==1.7.*",
-        "typing_extensions==4.*",
-        "seaborn==0.11.*",
+        "Click",
+        "dtw",
+        "matplotlib>=3.4",
+        "numba",
+        "numpy",
+        "outlier-utils",
+        "pyarrow",
+        "pandas>=1.2",
+        "scikit-learn",
+        "scipy",
+        "typing_extensions",
     ],
-    license_files=("LICENSE.md",),
+    license_files=("LICENSE.md", "LICENSES/GPL-3.0-or-later.txt"),
     entry_points={
         "console_scripts": ["saqc=saqc.__main__:main"],
     },

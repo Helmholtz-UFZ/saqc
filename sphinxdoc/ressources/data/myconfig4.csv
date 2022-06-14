@@ -1,8 +1,0 @@
-varname;test
-#------;--------------------------
-SM1;flagRange(min=10, max=60)
-SM2;flagRange(min=10, max=60)
-SM1;flagMAD(window="15d", z=3.5)
-SM2;flagMAD(window="30d", z=3.5)
-SM1;plot(store_kwargs={'format':'png','fname':'../ressources/temp/SM1processingResults'})
-SM2;plot(store_kwargs={'format':'png','fname':'../ressources/temp/SM2processingResults'})

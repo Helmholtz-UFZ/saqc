@@ -1,114 +1,17 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
-import pandas as pd
 import dtw
+import pandas as pd
 
 from saqc.constants import BAD
 from saqc.core.register import flagging
 from saqc.lib.tools import customRoller
-
-
-# todo should we mask `reference` even if the func fail if reference has NaNs
-@flagging()
-def flagPatternByWavelet(
-    data,
-    field,
-    flags,
-    reference,
-    widths=(1, 2, 4, 8),
-    waveform="mexh",
-    flag=BAD,
-    **kwargs,
-):
-    """
-    Pattern recognition via wavelets.
-
-    The steps are:
-     1. work on chunks returned by a moving window
-     2. each chunk is compared to the given pattern, using the wavelet algorithm as
-        presented in [1]
-     3. if the compared chunk is equal to the given pattern it gets flagged
-
-    Parameters
-    ----------
-
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-
-    field : str
-        The fieldname of the data column, you want to correct.
-
-    flags : saqc.Flags
-        The flags belonging to ``data``.
-
-    reference: str
-        The fieldname in ``data`' which holds the pattern.
-
-    widths: tuple of int
-        Widths for wavelet decomposition. [1] recommends a dyadic scale.
-        Default: (1,2,4,8)
-
-    waveform: str
-        Wavelet to be used for decomposition. Default: 'mexh'. See [2] for a list.
-
-    Returns
-    -------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-        Data values may have changed relatively to the data input.
-
-    flags : saqc.Flags
-        The flags belongiong to `data`.
-
-    References
-    ----------
-
-    The underlying pattern recognition algorithm using wavelets is documented here:
-    [1] Maharaj, E.A. (2002): Pattern Recognition of Time Series using Wavelets. In: Härdle W., Rönz B. (eds) Compstat. Physica, Heidelberg, 978-3-7908-1517-7.
-
-    The documentation of the python package used for the wavelt decomposition can be found here:
-    [2] https://pywavelets.readthedocs.io/en/latest/ref/cwt.html#continuous-wavelet-families
-    """
-
-    dat = data[field]
-    ref = data[reference].to_numpy()
-    cwtmat_ref, _ = pywt.cwt(ref, widths, waveform)
-    wavepower_ref = np.power(cwtmat_ref, 2)
-    len_width = len(widths)
-    sz = len(ref)
-
-    assert len_width
-    assert sz
-
-    def func(x, y):
-        return x.sum() / y.sum()
-
-    def pvalue(chunk):
-        cwtmat_chunk, _ = pywt.cwt(chunk, widths, waveform)
-        wavepower_chunk = np.power(cwtmat_chunk, 2)
-
-        # Permutation test on Powersum of matrix
-        for i in range(len_width):
-            x = wavepower_ref[i]
-            y = wavepower_chunk[i]
-            pval = permutation_test(
-                x, y, method="approximate", num_rounds=200, func=func, seed=0
-            )
-            pval = min(pval, 1 - pval)
-        return pval  # noqa # existence ensured by assert
-
-    rolling = customRoller(dat, window=sz, min_periods=sz, forward=True)
-    pvals = rolling.apply(pvalue, raw=True)
-    markers = pvals > 0.01  # nans -> False
-
-    # the markers are set on the left edge of the window. thus we must propagate
-    # `sz`-many True's to the right of every marker.
-    rolling = customRoller(markers, window=sz, min_periods=sz)
-    mask = rolling.sum().fillna(0).astype(bool)
-
-    flags[mask, field] = flag
-    return data, flags
 
 
 def calculateDistanceByDTW(
@@ -191,13 +94,16 @@ def flagPatternByDTW(
     flag=BAD,
     **kwargs,
 ):
-    """Pattern Recognition via Dynamic Time Warping.
+    """
+    Pattern Recognition via Dynamic Time Warping.
 
     The steps are:
-     1. work on a moving window
-     2. for each data chunk extracted from each window, a distance to the given pattern
-        is calculated, by the dynamic time warping algorithm [1]
-     3. if the distance is below the threshold, all the data in the window gets flagged
+    1. work on a moving window
+
+    2. for each data chunk extracted from each window, a distance to the given pattern
+       is calculated, by the dynamic time warping algorithm [1]
+
+    3. if the distance is below the threshold, all the data in the window gets flagged
 
     Parameters
     ----------

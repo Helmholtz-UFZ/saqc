@@ -1,41 +1,37 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import warnings
-from typing import (
-    Any,
-    Callable,
-    List,
-    Sequence,
-    Hashable,
-    Tuple,
-)
-from copy import deepcopy, copy as shallowcopy
+from copy import copy as shallowcopy
+from copy import deepcopy
+from typing import Any, Callable, Hashable, List, MutableMapping, Sequence, Tuple
 
-import pandas as pd
 import numpy as np
-
-from dios import DictOfSeries, to_dios
-from saqc.constants import BAD
-
-from saqc.core.modules import FunctionsMixin
-from saqc.core.flags import initFlagsLike, Flags
-from saqc.core.history import History
-from saqc.core.register import FUNC_MAP, FunctionWrapper
-from saqc.core.translation import (
-    TranslationScheme,
-    FloatScheme,
-    SimpleScheme,
-    PositionalScheme,
-    DmpScheme,
-)
-from saqc.lib.tools import toSequence, concatDios
-from saqc.lib.types import ExternalFlag, OptionalNone
+import pandas as pd
 
 # the import is needed to trigger the registration
 # of the built-in (test-)functions
 import saqc.funcs  # noqa
+from dios import DictOfSeries, to_dios
+from saqc.core.flags import Flags, initFlagsLike
+from saqc.core.history import History
+from saqc.core.modules import FunctionsMixin
+from saqc.core.register import FUNC_MAP, FunctionWrapper
+from saqc.core.translation import (
+    DmpScheme,
+    FloatScheme,
+    PositionalScheme,
+    SimpleScheme,
+    TranslationScheme,
+)
+from saqc.lib.tools import concatDios, toSequence
+from saqc.lib.types import ExternalFlag, OptionalNone
 
 # warnings
 pd.set_option("mode.chained_assignment", "warn")
@@ -56,7 +52,6 @@ class SaQC(FunctionsMixin):
         "_flags",
         "_scheme",
         "_attrs",
-        "_called",
     }
 
     def __init__(
@@ -64,12 +59,10 @@ class SaQC(FunctionsMixin):
         data=None,
         flags=None,
         scheme: str | TranslationScheme = "float",
-        copy: bool = True,
     ):
-        self._data = self._initData(data, copy)
-        self._flags = self._initFlags(flags, copy)
+        self._data = self._initData(data)
+        self._flags = self._initFlags(flags)
         self._scheme = self._initTranslationScheme(scheme)
-        self._called = []
         self._attrs = {}
         self._validate(reason="init")
 
@@ -114,28 +107,16 @@ class SaQC(FunctionsMixin):
         self._attrs = dict(value)
 
     @property
-    def data_raw(self) -> DictOfSeries:
-        return self._data
-
-    @property
-    def flags_raw(self) -> Flags:
-        return self._flags
-
-    @property
-    def data(self) -> pd.DataFrame:
-        data: pd.DataFrame = self._data.to_df()
+    def data(self) -> MutableMapping:
+        data = self._data
         data.attrs = self._attrs.copy()
         return data
 
     @property
-    def flags(self) -> pd.DataFrame:
-        data: pd.DataFrame = self._scheme.backward(self._flags, attrs=self._attrs)
-        data.attrs = self._attrs.copy()
-        return data
-
-    @property
-    def result(self) -> SaQCResult:
-        return SaQCResult(self._data, self._flags, self._attrs, self._scheme)
+    def flags(self) -> MutableMapping:
+        flags = self._scheme.backward(self._flags, attrs=self._attrs, raw=True)
+        flags.attrs = self._attrs.copy()
+        return flags
 
     def _expandFields(
         self,
@@ -182,7 +163,12 @@ class SaQC(FunctionsMixin):
             **kwargs,
         ) -> SaQC:
 
-            kwargs.setdefault("dfilter", self._scheme.DFILTER_DEFAULT)
+            if "dfilter" not in kwargs:
+                # let's see, if the function has an default value
+                default = func.func_signature.parameters.get("dfilter")
+                if default:
+                    default = default.default
+                kwargs["dfilter"] = default or self._scheme.DFILTER_DEFAULT
 
             if not isinstance(flag, OptionalNone):
                 # translation schemes might want to use a flag
@@ -192,7 +178,7 @@ class SaQC(FunctionsMixin):
             fields, targets = self._expandFields(
                 regex=regex, field=field, target=target
             )
-            out = self
+            out = self.copy(deep=True)
 
             if not func.handles_target:
                 if len(fields) != len(targets):
@@ -245,12 +231,9 @@ class SaQC(FunctionsMixin):
         # but data is the original and flags is a copy (as currently implemented),
         # data and flags of the original saqc obj may change inconsistently.
         self._data, self._flags = res
-        self._called += [(field, (function, args, kwargs))]
         self._validate(reason=f"call to {repr(function.__name__)}")
 
-        return self._construct(
-            _data=self._data, _flags=self._flags, _called=self._called
-        )
+        return self._construct(_data=self._data, _flags=self._flags)
 
     def __getattr__(self, key):
         """
@@ -287,7 +270,7 @@ class SaQC(FunctionsMixin):
             f"or an initialized Translator object, got '{scheme}'"
         )
 
-    def _initData(self, data, copy: bool) -> DictOfSeries:
+    def _initData(self, data) -> DictOfSeries:
 
         if data is None:
             return DictOfSeries()
@@ -295,11 +278,11 @@ class SaQC(FunctionsMixin):
         if isinstance(data, list):
             results = []
             for d in data:
-                results.append(self._castToDios(d, copy=copy))
+                results.append(self._castToDios(d))
             return concatDios(results, warn=True, stacklevel=3)
 
         if isinstance(data, (DictOfSeries, pd.DataFrame, pd.Series)):
-            return self._castToDios(data, copy)
+            return self._castToDios(data)
 
         raise TypeError(
             "'data' must be of type pandas.Series, "
@@ -307,7 +290,7 @@ class SaQC(FunctionsMixin):
             "a list of those."
         )
 
-    def _castToDios(self, data, copy: bool):
+    def _castToDios(self, data):
         if isinstance(data, pd.Series):
             if not isinstance(data.name, str):
                 raise ValueError(f"Cannot init from unnamed pd.Series")
@@ -320,18 +303,16 @@ class SaQC(FunctionsMixin):
         for c in data.columns:
             if not isinstance(c, str):
                 raise TypeError("columns labels must be of type string")
-        if copy:
-            data = data.copy()
         return data
 
-    def _initFlags(self, flags, copy: bool) -> Flags:
+    def _initFlags(self, flags) -> Flags:
         if flags is None:
             return initFlagsLike(self._data)
 
         if isinstance(flags, list):
             result = Flags()
             for f in flags:
-                f = self._castToFlags(f, copy=copy)
+                f = self._castToFlags(f)
                 for c in f.columns:
                     if c in result.columns:
                         warnings.warn(
@@ -343,7 +324,7 @@ class SaQC(FunctionsMixin):
             flags = result
 
         elif isinstance(flags, (pd.DataFrame, DictOfSeries, Flags)):
-            flags = self._castToFlags(flags, copy=copy)
+            flags = self._castToFlags(flags)
 
         else:
             raise TypeError(
@@ -366,91 +347,11 @@ class SaQC(FunctionsMixin):
                     )
         return flags
 
-    def _castToFlags(self, flags, copy):
+    def _castToFlags(self, flags):
         if isinstance(flags, pd.DataFrame):
             for idx in [flags.index, flags.columns]:
                 if isinstance(idx, pd.MultiIndex):
                     raise TypeError("'flags' should not have MultiIndex")
         if not isinstance(flags, Flags):
             flags = Flags(flags)
-        if copy:
-            flags = flags.copy()
         return flags
-
-
-class SaQCResult:
-    def __init__(
-        self,
-        data: DictOfSeries,
-        flags: Flags,
-        attrs: dict,
-        scheme: TranslationScheme,
-    ):
-        assert isinstance(data, DictOfSeries)
-        assert isinstance(flags, Flags)
-        assert isinstance(attrs, dict)
-        assert isinstance(scheme, TranslationScheme)
-        self._data = data.copy()
-        self._flags = flags.copy()
-        self._attrs = attrs.copy()
-        self._scheme = scheme
-        self._validate()
-
-        try:
-            self._scheme.backward(self._flags, attrs=self._attrs)
-        except Exception as e:
-            raise RuntimeError("Translation of flags failed") from e
-
-    def _validate(self):
-        if not self._data.columns.equals(self._flags.columns):
-            raise AssertionError(
-                "Consistency broken. data and flags have not the same columns"
-            )
-
-    @property
-    def data(self) -> pd.DataFrame:
-        data: pd.DataFrame = self._data.copy().to_df()
-        data.attrs = self._attrs.copy()
-        return data
-
-    @property
-    def flags(self) -> pd.DataFrame:
-        data: pd.DataFrame = self._scheme.backward(self._flags, attrs=self._attrs)
-        data.attrs = self._attrs.copy()
-        return data
-
-    @property
-    def data_raw(self) -> DictOfSeries:
-        return self._data
-
-    @property
-    def flags_raw(self) -> Flags:
-        return self._flags
-
-    @property
-    def columns(self) -> DictOfSeries():
-        self._validate()
-        return self._data.columns
-
-    def __getitem__(self, key):
-        self._validate()
-        if key not in self.columns:
-            raise KeyError(key)
-        data_series = self._data[key].copy()
-        # slice flags to one column
-        flags = Flags({key: self._flags._data[key]}, copy=True)
-
-        df = self._scheme.backward(flags, attrs=self._attrs)
-        if isinstance(df.columns, pd.MultiIndex):
-            df = df.droplevel(level=0, axis=1)
-
-        if len(df.columns) == 1:
-            df.columns = ["flags"]
-
-        df.insert(0, column="data", value=data_series)
-        df.columns.name = None
-        df.index.name = None
-        return df
-
-    def __repr__(self):
-        return f"SaQCResult\nColumns: {self.columns.to_list()}"

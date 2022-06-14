@@ -1,4 +1,9 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
 
@@ -10,19 +15,19 @@ gaps (:py:func:`flagMissing`), jumps and drops (:py:func:`flagJumps`) or tempora
 isolated values (:py:func:`flagIsolated`).
 """
 
+from __future__ import annotations
+
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import pandas.tseries.frequencies
 
 from dios import DictOfSeries
-
-from saqc.constants import *
-from saqc.lib.tools import groupConsecutives
-from saqc.funcs.changepoints import _assignChangePointCluster
+from saqc.constants import BAD, FILTER_ALL
 from saqc.core.flags import Flags
-from saqc.core.register import _isflagged, register, flagging
+from saqc.core.register import _isflagged, flagging, register
+from saqc.funcs.changepoints import _assignChangePointCluster
+from saqc.lib.tools import groupConsecutives
 
 
 @register(mask=[], demask=[], squeeze=["field"])

@@ -1,20 +1,24 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import pandas as pd
-import numpy as np
-import numba
-
 from typing import Callable, Tuple
+
+import numba
+import numpy as np
+import pandas as pd
 from typing_extensions import Literal
 
 from dios import DictOfSeries
-
-from saqc.constants import *
-from saqc.core.register import flagging
+from saqc.constants import BAD, UNFLAGGED
+from saqc.core.flags import Flags
+from saqc.core.register import flagging, register
 from saqc.lib.tools import customRoller, filterKwargs
-from saqc.core import register, Flags
 
 
 @flagging()
@@ -314,9 +318,9 @@ def _assignChangePointCluster(
     result_arr = stat_arr > thresh_arr
 
     if model_by_resids:
-        residues = pd.Series(np.nan, index=data[field].index)
-        residues[masked_index] = stat_arr
-        data[field] = residues
+        residuals = pd.Series(np.nan, index=data[field].index)
+        residuals[masked_index] = stat_arr
+        data[field] = residuals
         flags[:, field] = UNFLAGGED
         return data, flags
 

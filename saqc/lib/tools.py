@@ -1,38 +1,48 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import re
-import datetime
+import collections
 import itertools
+import re
 import warnings
-from typing import List, Sequence, TypeVar, Union, Any, Iterator, Callable, Collection
+from typing import Callable, Collection, Iterator, List, Sequence, TypeVar, Union
 
-import numpy as np
 import numba as nb
+import numpy as np
 import pandas as pd
 from scipy import fft
+from scipy.cluster.hierarchy import fcluster, linkage
 
 import dios
-import collections
-from scipy.cluster.hierarchy import linkage, fcluster
 
 # keep this for external imports
 # TODO: fix the external imports
 from saqc.lib.rolling import customRoller
 
-
 T = TypeVar("T", str, float, int)
 
 
 def assertScalar(name, value, optional=False):
-    if (not np.isscalar(value)) and (value is not None) and (optional is True):
-        raise ValueError(f"'{name}' needs to be a scalar or 'None'")
-    elif (not np.isscalar(value)) and optional is False:
-        raise ValueError(f"'{name}' needs to be a scalar")
+    if optional and value is None:
+        return
+    if np.isscalar(value):
+        return
+
+    msg = f"'{name}' needs to be a scalar"
+    if optional:
+        msg += " or 'None'"
+    raise ValueError(msg)
 
 
 def toSequence(value: T | Sequence[T]) -> List[T]:
+    if value is None:  # special case
+        return [None]
     if isinstance(value, T.__constraints__):
         return [value]
     return list(value)
@@ -42,101 +52,6 @@ def squeezeSequence(value: Sequence[T]) -> Union[T, Sequence[T]]:
     if len(value) == 1:
         return value[0]
     return value
-
-
-def toOffset(freq_string: str, raw: bool = False) -> datetime.timedelta:
-    offset = pd.tseries.frequencies.to_offset(freq_string)
-    if raw:
-        return offset
-    return offset.delta.to_pytimedelta()
-
-
-@nb.jit(nopython=True, cache=True)
-def findIndex(iterable, value, start):
-    i = start
-    while i < len(iterable):
-        v = iterable[i]
-        if v >= value:
-            return i
-        i = i + 1
-    return -1
-
-
-@nb.jit(nopython=True, cache=True)
-def valueRange(iterable):
-    minval = iterable[0]
-    maxval = minval
-    for v in iterable:
-        if v < minval:
-            minval = v
-        elif v > maxval:
-            maxval = v
-    return maxval - minval
-
-
-def slidingWindowIndices(dates, window_size, iter_delta=None):
-    """
-    this function is a building block of a custom implementation of
-    the pandas 'rolling' method. A number of shortcomings in the
-    'rolling' implementation might made this a worthwhil endavour,
-    namly:
-    + There is no way to provide a step size, i.e. to not start the
-      next rolling window at the very next row in the DataFrame/Series
-    + The inconsistent bahaviour with numerical vs frequency based
-      window sizes. When window is an integer, all windows are equally
-      large (window=5 -> windows contain 5 elements), but variable in
-      size, when the window is a frequency string (window="2D" ->
-      window grows from size 1 during the first iteration until it
-      covers the given frequency). Especially the bahaviour with
-      frequency strings is quite unfortunate when calling methods
-      relying on the size of the window (sum, mean, median)
-    """
-
-    if not isinstance(dates, pd.DatetimeIndex):
-        raise TypeError("Must pass pd.DatetimeIndex")
-
-    # lets work on numpy data structures for performance reasons
-    dates = np.array(dates, dtype=np.int64)
-
-    if np.any(np.diff(dates) <= 0):
-        raise ValueError("strictly monotonic index needed")
-
-    window_size = pd.to_timedelta(window_size).to_timedelta64().astype(np.int64)
-    if iter_delta:
-        iter_delta = pd.to_timedelta(iter_delta).to_timedelta64().astype(np.int64)
-
-    start_date = dates[0]
-    last_date = dates[-1]
-    start_idx = 0
-    end_idx = start_idx
-
-    while True:
-        end_date = start_date + window_size
-        if (end_date > last_date) or (start_idx == -1) or (end_idx == -1):
-            break
-
-        end_idx = findIndex(dates, end_date, end_idx)
-        yield start_idx, end_idx
-
-        if iter_delta:
-            start_idx = findIndex(dates, start_date + iter_delta, start_idx)
-        else:
-            start_idx += 1
-
-        start_date = dates[start_idx]
-
-
-def inferFrequency(data: pd.Series) -> pd.DateOffset:
-    return pd.tseries.frequencies.to_offset(pd.infer_freq(data.index))
-
-
-def offset2seconds(offset):
-    """Function returns total seconds upon "offset like input
-
-    :param offset:  offset string or pandas offset object.
-    """
-
-    return pd.Timedelta.total_seconds(pd.Timedelta(offset))
 
 
 def periodicMask(dtindex, season_start, season_end, include_bounds):
@@ -165,7 +80,7 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
     Returns
     -------
     dfilter : pandas.Series[bool]
-        A series, indexed with the input index and having value `True` for all the values that are to be masked.
+        A series, indexed with the input index and having value `False` for all the values that are to be masked.
 
     Examples
     --------
@@ -212,46 +127,48 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
         stamp_kwargs = dict(zip(keys, stamp_list))
 
         def _replace(index):
+            if len(index) == 0:
+                return None
             if "day" in stamp_kwargs:
                 stamp_kwargs["day"] = min(stamp_kwargs["day"], index[0].daysinmonth)
-
             out = index[0].replace(**stamp_kwargs)
             return out.strftime("%Y-%m-%dT%H:%M:%S")
 
         return _replace
 
-    mask = pd.Series(include_bounds, index=dtindex)
+    mask = pd.Series(True, index=dtindex)
 
     start_replacer = _replaceBuilder(season_start)
     end_replacer = _replaceBuilder(season_end)
 
-    if pd.Timestamp(start_replacer(dtindex)) <= pd.Timestamp(end_replacer(dtindex)):
+    invert = False
 
-        def _selector(x, base_bool=include_bounds):
-            x[start_replacer(x.index) : end_replacer(x.index)] = not base_bool
+    if pd.Timestamp(start_replacer(dtindex)) > pd.Timestamp(end_replacer(dtindex)):
+        start_replacer, end_replacer = end_replacer, start_replacer
+        include_bounds = not include_bounds
+        invert = True
+
+    if include_bounds:
+
+        def _selector(x):
+            x[start_replacer(x.index) : end_replacer(x.index)] = False
             return x
 
     else:
 
-        def _selector(x, base_bool=include_bounds):
-            x[: end_replacer(x.index)] = not base_bool
-            x[start_replacer(x.index) :] = not base_bool
+        def _selector(x):
+            s = start_replacer(x.index)
+            e = end_replacer(x.index)
+            x[s:e] = False
+            x[s:s] = True
+            x[e:e] = True
             return x
 
     freq = "1" + "mmmhhhdddMMMYYY"[len(season_start)]
-    return mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
-
-
-def assertDictOfSeries(df: Any, argname: str = "arg") -> None:
-    if not isinstance(df, dios.DictOfSeries):
-        raise TypeError(
-            f"{argname} must be of type dios.DictOfSeries, {type(df)} was given"
-        )
-
-
-def assertSeries(srs: Any, argname: str = "arg") -> None:
-    if not isinstance(srs, pd.Series):
-        raise TypeError(f"{argname} must be of type pd.Series, {type(srs)} was given")
+    out = mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
+    if invert:
+        out = ~out
+    return out
 
 
 @nb.jit(nopython=True, cache=True)
@@ -425,11 +342,11 @@ def estimateFrequency(
     min_energy = delta_f[0] * min_energy
     # calc/assign low/high freq cut offs (makes life easier):
     min_rate_i = int(
-        len_f / (pd.Timedelta(min_rate).total_seconds() * (10 ** delta_precision))
+        len_f / (pd.Timedelta(min_rate).total_seconds() * (10**delta_precision))
     )
     delta_f[:min_rate_i] = 0
     max_rate_i = int(
-        len_f / (pd.Timedelta(max_rate).total_seconds() * (10 ** delta_precision))
+        len_f / (pd.Timedelta(max_rate).total_seconds() * (10**delta_precision))
     )
     hf_cutoff = min(max_rate_i, len_f // 2)
     delta_f[hf_cutoff:] = 0
@@ -639,8 +556,12 @@ def statPass(
         exceeds = exceeding_sub & exceeds
 
     to_set = pd.Series(False, index=exceeds.index)
-    for exceed, group in exceeds.groupby(by=exceeds.values):
-        if exceed:
+    exceeds_df = pd.DataFrame(
+        {"g": exceeds.diff().cumsum().values, "ex_val": exceeds.values},
+        index=exceeds.index,
+    )
+    for _, group in exceeds_df.groupby(by="g"):
+        if group["ex_val"].iloc[0]:
             # dt-slices include both bounds, so we subtract 1ns
             start = group.index[0] - (winsz - pd.Timedelta("1ns"))
             end = group.index[-1]

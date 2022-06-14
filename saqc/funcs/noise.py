@@ -1,12 +1,21 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
-import pandas as pd
-import numpy as np
+from __future__ import annotations
+
 import operator
-from dios import DictOfSeries
 from typing import Callable
-from saqc.constants import *
-from saqc.core import register, Flags
+
+import numpy as np
+import pandas as pd
+
+from dios import DictOfSeries
+from saqc.constants import BAD
+from saqc.core.flags import Flags
 from saqc.core.register import flagging
 from saqc.lib.tools import statPass
 
@@ -16,10 +25,10 @@ def flagByStatLowPass(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    func: Callable[[np.array, pd.Series], float],
-    window: str,
+    func: Callable[[np.ndarray, pd.Series], float],
+    window: str | pd.Timedelta,
     thresh: float,
-    sub_window: str = None,
+    sub_window: str | pd.Timedelta = None,
     sub_thresh: float = None,
     min_periods: int = None,
     flag: float = BAD,

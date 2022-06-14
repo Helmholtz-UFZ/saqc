@@ -1,27 +1,31 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 import uuid
-from typing import Optional, Union, Tuple, Sequence, Callable
-from typing_extensions import Literal
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
+from outliers import smirnov_grubbs
+from typing_extensions import Literal
 
 from dios import DictOfSeries
-from outliers import smirnov_grubbs
-from scipy.optimize import curve_fit
-
 from saqc.constants import BAD, UNFLAGGED
-from saqc.core import register, Flags
-from saqc.core.register import flagging
-from saqc.lib.tools import customRoller, findIndex, getFreqDelta, toSequence
+from saqc.core.flags import Flags
+from saqc.core.register import flagging, register
 from saqc.funcs.scores import assignKNNScore
 from saqc.funcs.tools import copyField, dropField
 from saqc.funcs.transformation import transform
-import saqc.lib.ts_operators as ts_ops
+from saqc.lib.tools import customRoller, getFreqDelta, toSequence
 
 
 @flagging()
@@ -29,7 +33,7 @@ def flagByStray(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    freq: Optional[Union[int, str]] = None,
+    window: Optional[Union[int, str]] = None,
     min_periods: int = 11,
     iter_start: float = 0.5,
     alpha: float = 0.05,
@@ -87,17 +91,17 @@ def flagByStray(
     if scores.empty:
         return data, flags
 
-    if not freq:
-        freq = scores.shape[0]
+    if not window:
+        window = scores.shape[0]
 
-    if isinstance(freq, str):
-        partitions = scores.groupby(pd.Grouper(freq=freq))
+    if isinstance(window, str):
+        partitions = scores.groupby(pd.Grouper(freq=window))
 
     else:
         grouper_series = pd.Series(
             data=np.arange(0, scores.shape[0]), index=scores.index
         )
-        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / freq)))
+        grouper_series = grouper_series.transform(lambda x: int(np.floor(x / window)))
         partitions = scores.groupby(grouper_series)
 
     # calculate flags for every partition
@@ -238,12 +242,12 @@ def _evalStrayLabels(
 
             x = test_slice.index.values.astype(float)
             x_0 = x[0]
-            x = (x - x_0) / 10 ** 12
+            x = (x - x_0) / 10**12
 
             polyfitted = poly.polyfit(y=test_slice.values, x=x, deg=polydeg)
 
             testval = poly.polyval(
-                (float(index[1].to_numpy()) - x_0) / 10 ** 12, polyfitted
+                (float(index[1].to_numpy()) - x_0) / 10**12, polyfitted
             )
             testval = val_frame[var][index[1]] - testval
 
@@ -263,140 +267,6 @@ def _evalStrayLabels(
         flags[col[col].index, field] = flag
 
     return data, flags
-
-
-def _expFit(
-    val_frame,
-    scoring_method="kNNMaxGap",
-    n_neighbors=10,
-    iter_start=0.5,
-    alpha=0.05,
-    bin_frac=10,
-):
-    """
-    Find outliers in multi dimensional observations.
-
-    The general idea is to assigning scores to every observation based on the observations neighborhood in the space
-    of observations. Then, the gaps between the (greatest) scores are tested for beeing drawn from the same
-    distribution, as the majority of the scores.
-
-    Note, that no normalizations/transformations are applied to the different components (data columns)
-    - those are expected to be applied previously, if necessary.
-
-    Parameters
-    ----------
-    val_frame : (N,M) ndarray
-        Input NxM array of observations, where N is the number of observations and M the number of components per
-        observation.
-    scoring_method : {'kNNSum', 'kNNMaxGap'}, default 'kNNMaxGap'
-        Scoring method applied.
-        `'kNNSum'`: Assign to every point the sum of the distances to its 'n' nearest neighbors.
-        `'kNNMaxGap'`: Assign to every point the distance to the neighbor with the "maximum gap" to its predecessor
-        in the hierarchy of the `n` nearest neighbors. (see reference section for further descriptions)
-    n_neighbors : int, default 10
-        Number of neighbors included in the scoring process for every datapoint.
-    iter_start : float, default 0.5
-        Float in [0,1] that determines which percentage of data is considered "normal". 0.5 results in the expfit
-        algorithm to search only the upper 50 % of the scores for the cut off point. (See reference section for more
-        information)
-    alpha : float, default 0.05
-        Niveau of significance by which it is tested, if a score might be drawn from another distribution, than the
-        majority of the data.
-    bin_frac : {int, str}, default 10
-        Controls the binning for the histogram in the fitting step. If an integer is passed, the residues will
-        equidistantly be covered by `bin_frac` bins, ranging from the minimum to the maximum of the residues.
-        If a string is passed, it will be passed on to the ``numpy.histogram_bin_edges`` method.
-    """
-
-    kNNfunc = getattr(ts_ops, scoring_method)
-    resids = kNNfunc(val_frame.values, n_neighbors=n_neighbors, algorithm="ball_tree")
-    data_len = resids.shape[0]
-
-    # sorting
-    sorted_i = resids.argsort()
-    resids = resids[sorted_i]
-    iter_index = int(np.floor(resids.size * iter_start))
-    # initialize condition variables:
-    crit_val = np.inf
-    test_val = 0
-    neg_log_alpha = -np.log(alpha)
-
-    # define exponential dist density function:
-    def fit_function(x, lambd):
-        return lambd * np.exp(-lambd * x)
-
-    # initialise sampling bins
-    if isinstance(bin_frac, int):
-        binz = np.linspace(
-            resids[0], resids[-1], 10 * int(np.ceil(data_len / bin_frac))
-        )
-    elif bin_frac in [
-        "auto",
-        "fd",
-        "doane",
-        "scott",
-        "stone",
-        "rice",
-        "sturges",
-        "sqrt",
-    ]:
-        binz = np.histogram_bin_edges(resids, bins=bin_frac)
-    else:
-        raise ValueError(f"Can't interpret {bin_frac} as an binning technique.")
-
-    binzenters = np.array([0.5 * (binz[i] + binz[i + 1]) for i in range(len(binz) - 1)])
-    # inititialize full histogram:
-    full_hist, binz = np.histogram(resids, bins=binz)
-    # check if start index is sufficiently high (pointing at resids value beyond histogram maximum at least):
-    hist_argmax = full_hist.argmax()
-
-    if hist_argmax >= findIndex(binz, resids[iter_index - 1], 0):
-        raise ValueError(
-            "Either the data histogram is too strangely shaped for oddWater OD detection - "
-            "or a too low value for 'offset' was passed "
-            "(offset better be much greater 0.5)"
-        )
-    # GO!
-    iter_max_bin_index = findIndex(binz, resids[iter_index - 1], 0)
-    upper_tail_index = int(np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index))
-    resids_tail_index = findIndex(resids, binz[upper_tail_index], 0)
-    upper_tail_hist, bins = np.histogram(
-        resids[resids_tail_index:iter_index],
-        bins=binz[upper_tail_index : iter_max_bin_index + 1],
-    )
-
-    while (test_val < crit_val) & (iter_index < resids.size - 1):
-        iter_index += 1
-        new_iter_max_bin_index = findIndex(binz, resids[iter_index - 1], 0)
-        # following if/else block "manually" expands the data histogram and circumvents calculation of the complete
-        # histogram in any new iteration.
-        if new_iter_max_bin_index == iter_max_bin_index:
-            upper_tail_hist[-1] += 1
-        else:
-            upper_tail_hist = np.append(
-                upper_tail_hist, np.zeros([new_iter_max_bin_index - iter_max_bin_index])
-            )
-            upper_tail_hist[-1] += 1
-            iter_max_bin_index = new_iter_max_bin_index
-            upper_tail_index_new = int(
-                np.floor(0.5 * hist_argmax + 0.5 * iter_max_bin_index)
-            )
-            upper_tail_hist = upper_tail_hist[upper_tail_index_new - upper_tail_index :]
-            upper_tail_index = upper_tail_index_new
-
-        # fitting
-
-        lambdA, _ = curve_fit(
-            fit_function,
-            xdata=binzenters[upper_tail_index:iter_max_bin_index],
-            ydata=upper_tail_hist,
-            p0=[-np.log(alpha / resids[iter_index])],
-        )
-
-        crit_val = neg_log_alpha / lambdA
-        test_val = resids[iter_index]
-
-    return val_frame.index[sorted_i[iter_index:]]
 
 
 @register(
@@ -873,27 +743,29 @@ def flagOffset(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    thresh: float,
     tolerance: float,
     window: Union[int, str],
+    thresh: Optional[float] = None,
     thresh_relative: Optional[float] = None,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
-    A basic outlier test that work on regular and irregular sampled data
+    A basic outlier test that works on regularly and irregularly sampled data.
 
     The test classifies values/value courses as outliers by detecting not only a rise
-    in value, but also, checking for a return to the initial value level.
+    in value, but also, by checking for a return to the initial value level.
 
     Values :math:`x_n, x_{n+1}, .... , x_{n+k}` of a timeseries :math:`x` with
     associated timestamps :math:`t_n, t_{n+1}, .... , t_{n+k}` are considered spikes, if
 
     1. :math:`|x_{n-1} - x_{n + s}| >` `thresh`, for all :math:`s \\in [0,1,2,...,k]`
 
-    2. :math:`|x_{n-1} - x_{n+k+1}| <` `tolerance`
+    2. :math:`(x_{n + s} - x_{n - 1}) / x_{n - 1} >` `thresh_relative`
 
-    3. :math:`|t_{n-1} - t_{n+k+1}| <` `window`
+    3. :math:`|x_{n-1} - x_{n+k+1}| <` `tolerance`
+
+    4. :math:`|t_{n-1} - t_{n+k+1}| <` `window`
 
     Note, that this definition of a "spike" not only includes one-value outliers, but
     also plateau-ish value courses.
@@ -906,15 +778,19 @@ def flagOffset(
         The field in data.
     flags : saqc.Flags
         Container to store flags of the data.
-    thresh : float
-        Minimum difference between to values, to consider the latter one as a spike. See condition (1)
     tolerance : float
-        Maximum difference between pre-spike and post-spike values. See condition (2)
+        Maximum difference allowed, between the value, directly preceding and the value, directly succeeding an offset,
+        to trigger flagging of the values forming the offset.
+        See condition (3).
     window : {str, int}, default '15min'
-        Maximum length of "spiky" value courses. See condition (3). Integer defined window length are only allowed for
-        regularly sampled timeseries.
+        Maximum length allowed for offset value courses, to trigger flagging of the values forming the offset.
+        See condition (4). Integer defined window length are only allowed for regularly sampled timeseries.
+    thresh : float: {float, None}, default None
+        Minimum difference between a value and its successors, to consider the successors an anomalous offset group.
+        See condition (1). If None is passed, condition (1) is not tested.
     thresh_relative : {float, None}, default None
-        Relative threshold.
+        Minimum relative change between and its successors, to consider the successors an anomalous offset group.
+        See condition (2). If None is passed, condition (2) is not tested.
     flag : float, default BAD
         flag to set.
 
@@ -926,6 +802,99 @@ def flagOffset(
         The quality flags of data
         Flags values may have changed, relatively to the flags input.
 
+    Examples
+    --------
+
+    .. plot::
+       :context:
+       :include-source: False
+
+       import matplotlib
+       import saqc
+       import pandas as pd
+       data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
+
+
+
+    Lets generate a simple, regularly sampled timeseries with an hourly sampling rate and generate an
+    :py:class:`saqc.SaQC` instance from it.
+
+    .. doctest:: flagOffsetExample
+
+       >>> data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
+       >>> data
+                            data
+       2000-01-01 00:00:00     5
+       2000-01-01 01:00:00     5
+       2000-01-01 02:00:00     8
+       2000-01-01 03:00:00    16
+       2000-01-01 04:00:00    17
+       2000-01-01 05:00:00     7
+       2000-01-01 06:00:00     4
+       2000-01-01 07:00:00     4
+       2000-01-01 08:00:00     4
+       2000-01-01 09:00:00     1
+       2000-01-01 10:00:00     1
+       2000-01-01 11:00:00     4
+       >>> qc = saqc.SaQC(data)
+
+    Now we are applying :py:meth:`~saqc.SaQC.flagOffset` and try to flag offset courses, that dont extend longer than
+    *6 hours* in time (``window``) and that have an initial value jump higher than *2* (``thresh``), and that do return
+    to the initial value level within a tolerance of *1.5* (``tolerance``).
+
+    .. doctest:: flagOffsetExample
+
+       >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
+       >>> qc.plot('data') # doctest:+SKIP
+
+    .. plot::
+       :context: close-figs
+       :include-source: False
+
+       >>> qc = saqc.SaQC(data)
+       >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
+       >>> qc.plot('data')
+
+    Note, that both, negative and positive jumps are considered starting points of negative or positive offsets.
+    If you want to impose the additional condition, that the initial value jump must exceed *+90%* of the value level,
+    you can additionally set the ``thresh_relative`` parameter:
+
+    .. doctest:: flagOffsetExample
+
+       >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6H')
+       >>> qc.plot('data') # doctest:+SKIP
+
+    .. plot::
+       :context: close-figs
+       :include-source: False
+
+       >>> qc = saqc.SaQC(data)
+       >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6H')
+       >>> qc.plot('data')
+
+    Now, only positive jumps, that exceed a value gain of *+90%* are considered starting points of offsets.
+
+    In the same way, you can aim for only negative offsets, by setting a negative relative threshold. The below
+    example only flags offsets, that fall off by at least *50 %* in value, with an absolute value drop of at least *2*.
+
+    .. doctest:: flagOffsetExample
+
+       >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6H')
+       >>> qc.plot('data') # doctest:+SKIP
+
+    .. plot::
+       :context: close-figs
+       :include-source: False
+
+       >>> qc = saqc.SaQC(data)
+       >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6H')
+       >>> qc.plot('data')
+
+
+
+
+
+
     References
     ----------
     The implementation is a time-window based version of an outlier test from the UFZ Python library,
@@ -934,6 +903,12 @@ def flagOffset(
     https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py
 
     """
+    if (thresh is None) and (thresh_relative is None):
+        raise ValueError(
+            "At least one of parameters 'thresh' and 'thresh_relative' has to be given. Got 'thresh'=None, "
+            "'thresh_relative'=None instead."
+        )
+
     dataseries = data[field].dropna()
     if dataseries.empty:
         return data, flags
@@ -949,19 +924,19 @@ def flagOffset(
         window = delta * window
         if not delta:
             raise TypeError(
-                "Only offset string defined window sizes allowed for irrgegularily sampled timeseries"
+                "Only offset string defined window sizes allowed for timeseries not sampled regularly."
             )
 
     # get all the entries preceding a significant jump
-    if thresh:
+    if thresh is not None:
         post_jumps = dataseries.diff().abs() > thresh
 
-    if thresh_relative:
+    if thresh_relative is not None:
         s = np.sign(thresh_relative)
         rel_jumps = s * (dataseries.shift(1) - dataseries).div(dataseries.abs()) > abs(
             thresh_relative
         )
-        if thresh:
+        if thresh is not None:
             post_jumps = rel_jumps & post_jumps
         else:
             post_jumps = rel_jumps
@@ -977,11 +952,13 @@ def flagOffset(
     ).dropna()
     to_roll = dataseries[to_roll]
 
-    if thresh_relative:
+    if thresh_relative is not None:
 
-        def spikeTester(chunk, thresh=abs(thresh_relative), tol=tolerance):
+        def spikeTester(
+            chunk, thresh_r=abs(thresh_relative), thresh_a=thresh or 0, tol=tolerance
+        ):
             jump = chunk[-2] - chunk[-1]
-            thresh = thresh * abs(jump)
+            thresh = max(thresh_r * abs(chunk[-1]), thresh_a)
             chunk_stair = (np.sign(jump) * (chunk - chunk[-1]) < thresh)[::-1].cumsum()
             initial = np.searchsorted(chunk_stair, 2)
             if initial == len(chunk):
@@ -1257,19 +1234,20 @@ def flagCrossStatistics(
         The quality flags of data
         Flags values may have changed relatively to the input flags.
 
+
+    Notes
+    -----
+
+    The input variables dont necessarily have to be aligned. If the variables are unaligned, scoring
+    and flagging will be only performed on the subset of inices shared among all input variables.
+
+
     References
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
 
     fields = toSequence(field)
-
-    for src in fields[1:]:
-        if (data[src].index != data[fields[0]].index).any():
-            raise ValueError(
-                f"indices of '{fields[0]}' and '{src}' are not compatibble, "
-                "please resample all variables to a common (time-)grid"
-            )
 
     df = data[fields].loc[data[fields].index_of("shared")].to_df()
 
@@ -1307,6 +1285,7 @@ def flagCrossStatistics(
         return data, flags
 
     for f in fields:
-        flags[mask[f], f] = flag
+        m = mask[f].reindex(index=flags[f].index, fill_value=False)
+        flags[m, f] = flag
 
     return data, flags

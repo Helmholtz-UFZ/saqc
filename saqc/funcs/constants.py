@@ -1,19 +1,25 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
+import operator
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import operator
 
 from dios import DictOfSeries
-
-from saqc.constants import *
-from saqc.core import register, Flags
+from saqc.constants import BAD
+from saqc.core.flags import Flags
 from saqc.core.register import flagging
-from saqc.lib.ts_operators import varQC
 from saqc.lib.tools import customRoller, getFreqDelta, statPass
+from saqc.lib.ts_operators import varQC
 
 
 @flagging()
@@ -22,7 +28,7 @@ def flagConstants(
     field: str,
     flags: Flags,
     thresh: float,
-    window: str,
+    window: int | str,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -94,9 +100,9 @@ def flagByVariance(
     field: str,
     flags: Flags,
     window: str,
-    thresh: float = 0.0005,
-    maxna: int = None,
-    maxna_group: int = None,
+    thresh: float,
+    maxna: int | None = None,
+    maxna_group: int | None = None,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:

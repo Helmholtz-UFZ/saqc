@@ -1,5 +1,11 @@
+<!--
+SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Development Environment
-We recommend a virtual python environment for development, a more detailed description of the setup process can be found in the [docs](https://rdm-software.pages.ufz.de/saqc/getting_started/InstallationGuide.html#set-up-a-virtual-environment).
+We recommend a virtual python environment for development, a more detailed description of the setup process can be found in the [docs](https://rdm-software.pages.ufz.de/saqc/gettingstarted/InstallationGuide.html#set-up-a-virtual-environment).
 
 # Testing
 SaQC comes with an extensive test suite based on [pytest](https://docs.pytest.org/en/latest/).
@@ -18,41 +24,38 @@ We implement the following naming conventions:
 
 ### Argument names in public functions signatures
 
-first, its not necessary to have *talking* arg-names, in contrast to variable names in 
-code. This is, because one always must read the documentation. To use and parameterize a function,
-just by guessing the meaning of the argument names and not read the docs, 
-will almost never work. thats why, we dont have the obligation to make names (very) 
+First, in contrast to variable names in code, it is not necessary to have *talking* function argument names. 
+A user is always expected to have had acknowledged the documentation. Using and parameterizing a function,
+just by guessing the meaning of the argument names, without having read the documentation, 
+will almost never work. That is the reason, why we dont have the obligation to make names (very) 
 talkative.
 
-second, because of the nature of a function (to have a *simple* way to use complex code), 
-its common to use simple and short names. This means, to omit any *irrelevant* information. 
+Second, from the nature of a function to deliver a *simple* way of using complex code, it follows, that simple and short names are to prefer. This means, the encoding of *irrelevant* informations in names should be omitted. 
 
-For example if we have a function that fit a polynomial on some data with three arguments.
+For example, take a function of three arguments, that fits a polynomial to some data.
 Lets say we have:
  - the data input, 
- - a threshold that defines a cutoff point for a calculation on a polynomial and
+ - a threshold, that defines a cutoff point for a calculation on a polynomial and
  - a third argument. 
 
-one could name the args `data, poly_cutoff_threshold, ...`, but much better names would 
-be `data, thresh, ...`, because a caller dont need the extra information, 
-stuffed in the name. 
+One could name the corresponding arguments: `data, poly_cutoff_threshold, ...`. However, much better names would 
+be: `data, thresh, ...`, because a caller that is aware of a functions documentation doesnt need the extra information, 
+encoded in the name. 
 If the third argument is also some kind of threshold, 
 one can use `data, cutoff, thresh`, because the *thresh-* information of the `cutoff` 
-parameter is not crucial and the caller knows that this is a threshold from the docstring.
+parameter is not crucial, and the caller knows that this is a threshold from having studied the docstring, anyways.
 
-third, underscores give a nice feedback if one doing wrong or over complex. 
-No underscore is fine, one underscore is ok, if the information is *really necessary* (see above), 
-but if one use two or more underscores, one should think of a better naming, 
-or omit some information. 
-Sure, seldom but sometimes it is necessary to use 2 underscores, but we consider it as bad style.
-Using 3 or more underscores, is not allowed unless have write an reasoning and get it
-signed by at least as many core developers as underscores one want to use.
+Third, underscores give a nice implicit feedback, on whether one is doing wrong or getting over complex in the naming behavior. 
+To have no underscore, is just fine. Having one underscore, is ok, if the encoded information appended through the underscore is *really necessary* (see above). 
+If one uses two or more underscores, one should think of a better naming or omit some information. 
+Sure, although it is seldom, it might sometimes be necessary to use two underscores, but still the usage of two underscores is considered bad style.
+Using three or more underscores is not allowed unless having issued a exhaustive and accepted (by at least one core developer per underscore) reasoning.
 
 
-In short the naming should *give a very, very rough idea* of the purpose of the argument, 
+In short, the naming should *give a very, very rough idea* of the purpose of the argument, 
 but not *explain* the usage or the purpose. 
-It is not a shame to name a parameter just `n` or `alpha` etc. if for example the algorithm 
-(from the paper etc.) name it alike. 
+It is not a shame to name a parameter just `n` or `alpha` etc., if, for example, the algorithm 
+(from the paper etc.) names it alike. 
 
 
 ### Test Functions

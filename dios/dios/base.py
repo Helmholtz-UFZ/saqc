@@ -1,23 +1,24 @@
 #!/usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from __future__ import annotations
 
-from copy import deepcopy, copy as shallowcopy
-from typing import Mapping, Hashable, Any, Sequence, overload
+import functools as ftools
+import operator as op
+from abc import abstractmethod
+from copy import copy as shallowcopy
+from copy import deepcopy
+from typing import Any, Hashable, Mapping, Sequence, overload
 
+import pandas as pd
+
+from . import lib
 from . import operators as ops
 from . import pandas_bridge as pdextra
-from . import lib
-
-from .lib import (
-    _CAST_POLICIES,
-    _throw_MixedItype_err_or_warn,
-    _find_least_common_itype,
-)
-
-from abc import abstractmethod
-import pandas as pd
-import operator as op
-import functools as ftools
+from .lib import _CAST_POLICIES, _find_least_common_itype, _throw_MixedItype_err_or_warn
 
 __author__ = "Bert Palm"
 __email__ = "bert.palm@ufz.de"
@@ -739,4 +740,4 @@ def _is_bool_dios_like(obj) -> bool:
 
 
 # keep this here to prevent cyclic import
-from .indexer import _aLocIndexer, _iLocIndexer, _LocIndexer, _iAtIndexer, _AtIndexer
+from .indexer import _aLocIndexer, _AtIndexer, _iAtIndexer, _iLocIndexer, _LocIndexer

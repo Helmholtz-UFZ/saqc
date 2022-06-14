@@ -1,19 +1,24 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from typing import Any, Tuple, Union, Sequence
-from typing_extensions import Literal
-import pandas as pd
-from dateutil.parser import ParserError
-import numpy as np
-from dios import DictOfSeries
 
-from saqc.constants import BAD, UNFLAGGED
-from saqc.core import register, Flags
 import warnings
+from typing import Any, Sequence, Tuple, Union
 
-from saqc.core.register import flagging
-from saqc.funcs.generic import flagGeneric
+import numpy as np
+import pandas as pd
+from typing_extensions import Literal
+
+from dios import DictOfSeries
+from saqc.constants import BAD, FILTER_ALL, UNFLAGGED
+from saqc.core.flags import Flags
+from saqc.core.register import _isflagged, flagging, register
+from saqc.funcs.resampling import concatFlags
 
 
 @register(mask=[], demask=[], squeeze=["field"])
@@ -210,11 +215,11 @@ def flagManual(
 
     .. doctest:: ExampleFlagManual
 
-       >>> mdata = pd.Series([1,0,1], index=pd.to_datetime(['2000-02', '2000-03', '2001-05']))
+       >>> mdata = pd.Series([1, 0, 1], index=pd.to_datetime(['2000-02-01', '2000-03-01', '2000-05-01']))
        >>> mdata
        2000-02-01    1
        2000-03-01    0
-       2001-05-01    1
+       2000-05-01    1
        dtype: int64
 
     On *dayly* data, with the 'ontime' method, only the provided timestamps are used.
@@ -223,49 +228,42 @@ def flagManual(
 
     .. doctest:: ExampleFlagManual
 
-       >>> data = a=pd.Series(0, index=pd.date_range('2000-01-31', '2000-03-02', freq='1D'), name='dailyData')
+       >>> data = pd.Series(0, index=pd.to_datetime(['2000-01-31', '2000-02-01', '2000-02-02', '2000-03-01', '2000-05-01']), name='daily_data')
        >>> qc = saqc.SaQC(data)
-       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='ontime')
-       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mdata', method='ontime')
+       >>> qc.flags['daily_data'] > UNFLAGGED
        2000-01-31    False
-       2000-02-01    True
+       2000-02-01     True
        2000-02-02    False
-       2000-02-03    False
-       ..            ..
-       2000-02-29    False
-       2000-03-01    True
-       2000-03-02    False
-       Freq: D, dtype: bool
+       2000-03-01    False
+       2000-05-01     True
+       Name: daily_data, dtype: bool
 
     With the 'right-open' method, the mdata is forward fill:
 
     .. doctest:: ExampleFlagManual
 
-       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='right-open')
-       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mdata', method='right-open')
+       >>> qc.flags['daily_data'] > UNFLAGGED
        2000-01-31    False
-       2000-02-01    True
-       2000-02-02    True
-       ..            ..
-       2000-02-29    True
+       2000-02-01     True
+       2000-02-02     True
        2000-03-01    False
-       2000-03-02    False
-       Freq: D, dtype: bool
+       2000-05-01     True
+       Name: daily_data, dtype: bool
 
     With the 'left-open' method, backward filling is used:
 
     .. doctest:: ExampleFlagManual
 
-       >>> qc = qc.flagManual('dailyData', mdata, mflag=1, mformat='mdata', method='left-open')
-       >>> qc.flags['dailyData'] > UNFLAGGED #doctest:+SKIP
+       >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mdata', method='left-open')
+       >>> qc.flags['daily_data'] > UNFLAGGED
        2000-01-31    False
-       2000-02-01    False
-       2000-02-02    True
-       ..            ..
-       2000-02-29    True
-       2000-03-01    True
-       2000-03-02    False
-       Freq: D, dtype: bool
+       2000-02-01     True
+       2000-02-02     True
+       2000-03-01     True
+       2000-05-01     True
+       Name: daily_data, dtype: bool
     """
     dat = data[field]
     # internal not-mflag-value -> cant go for np.nan
@@ -315,11 +313,9 @@ def flagManual(
             mdata = mdata.ffill()
 
         if method == "left-open":
-            mdata = (
-                mdata.replace({mflag: not_mflag, not_mflag: mflag})
-                .append(app_entry)
-                .bfill()
-            )
+            mdata = pd.concat(
+                [mdata.replace({mflag: not_mflag, not_mflag: mflag}), app_entry]
+            ).bfill()
 
         if method == "closed":
             mdata[mdata.ffill() == mflag] = mflag
@@ -394,6 +390,7 @@ def transferFlags(
     See Also
     --------
     * :py:meth:`saqc.SaQC.flagGeneric`
+    * :py:meth:`saqc.SaQC.concatFlags`
 
     Examples
     --------
@@ -401,12 +398,10 @@ def transferFlags(
 
     .. doctest:: exampleTransfer
 
-       >>> import pandas as pd #doctest:+SKIP
-       >>> import saqc #doctest:+SKIP
-       >>> data = pd.DataFrame({'a':[1,2], 'b':[1,2], 'c':[1,2]})
+       >>> data = pd.DataFrame({'a': [1, 2], 'b': [1, 2], 'c': [1, 2]})
        >>> qc = saqc.SaQC(data)
        >>> qc = qc.flagRange('a', max=1.5)
-       >>> qc.flags
+       >>> qc.flags.to_df()
        columns      a    b    c
        0         -inf -inf -inf
        1        255.0 -inf -inf
@@ -416,7 +411,7 @@ def transferFlags(
     .. doctest:: exampleTransfer
 
        >>> qc = qc.transferFlags('a', target='b')
-       >>> qc.flags
+       >>> qc.flags.to_df()
        columns      a      b    c
        0         -inf   -inf -inf
        1        255.0  255.0 -inf
@@ -433,13 +428,141 @@ def transferFlags(
     .. doctest:: exampleTransfer
 
        >>> qc = qc.transferFlags(['a','a'], ['b', 'c'])
-       >>> qc.flags
+       >>> qc.flags.to_df()
        columns      a      b      c
        0         -inf   -inf   -inf
        1        255.0  255.0  255.0
     """
 
-    data, flags = flagGeneric(
-        data, field, flags, target=target, func=lambda x: isflagged(x), **kwargs
+    data, flags = concatFlags(
+        data, field, flags, target=target, method="match", squeeze=False
     )
+    return data, flags
+
+
+@flagging()
+def propagateFlags(
+    data: DictOfSeries,
+    field: str,
+    flags: Flags,
+    window: Union[str, int],
+    method: Literal["ffill", "bfill"] = "ffill",
+    flag: float = BAD,
+    dfilter: float = FILTER_ALL,
+    **kwargs,
+) -> Tuple[DictOfSeries, Flags]:
+    """
+    Flag values before or after flags set by the last test.
+
+    Parameters
+    ----------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    field : str
+        The fieldname of the column, holding the data-to-be-flagged.
+    flags : saqc.Flags
+        A flags object, holding flags and additional informations related to `data`.
+    window : int, str
+        Size of the repetition window. An integer defines the exact number of repetitions,
+        strings are interpreted as time offsets to fill with .
+    method : {"ffill", "bfill"}
+        Direction of repetetion. With "ffill" the subsequent values receive the flag to
+        repeat, with "bfill" the previous values.
+    flag : float, default BAD
+        Flag to set.
+    dfilter : float, default FILTER_ALL
+        Threshold flag.
+
+    Returns
+    -------
+    data : dios.DictOfSeries
+        A dictionary of pandas.Series, holding all the data.
+    flags : saqc.Flags
+        The quality flags of data
+
+    Examples
+    --------
+    First, generate some data and some flags:
+
+    .. doctest:: propagateFlags
+
+       >>> data = pd.DataFrame({"a": [-3, -2, -1, 0, 1, 2, 3]})
+       >>> flags = pd.DataFrame({"a": [-np.inf, -np.inf, -np.inf, 255.0, -np.inf, -np.inf, -np.inf]})
+       >>> qc = saqc.SaQC(data=data, flags=flags)
+       >>> qc.flags["a"]
+       0     -inf
+       1     -inf
+       2     -inf
+       3    255.0
+       4     -inf
+       5     -inf
+       6     -inf
+       Name: a, dtype: float64
+
+    Now, to repeat the flag '255.0' two times in direction of ascending indices, execute:
+
+    .. doctest:: propagateFlags
+
+       >>> qc.propagateFlags('a', window=2, method="ffill").flags["a"]
+       0     -inf
+       1     -inf
+       2     -inf
+       3    255.0
+       4    255.0
+       5    255.0
+       6     -inf
+       Name: a, dtype: float64
+
+    Choosing "bfill" will result in
+
+    .. doctest:: propagateFlags
+
+       >>> qc.propagateFlags('a', window=2, method="bfill").flags["a"]
+       0     -inf
+       1    255.0
+       2    255.0
+       3    255.0
+       4     -inf
+       5     -inf
+       6     -inf
+       Name: a, dtype: float64
+
+    If an explicit flag is passed, it will be used to fill the repetition window
+
+    .. doctest:: propagateFlags
+
+       >>> qc.propagateFlags('a', window=2, method="bfill", flag=111).flags["a"]
+       0     -inf
+       1    111.0
+       2    111.0
+       3    255.0
+       4     -inf
+       5     -inf
+       6     -inf
+       Name: a, dtype: float64
+    """
+
+    if method not in {"bfill", "ffill"}:
+        raise ValueError(f"supported methods are 'bfill', 'ffill', got '{method}'")
+
+    # get the last history column
+    hc = flags.history[field].hist.iloc[:, -1].astype(float)
+
+    if method == "bfill":
+        hc = hc[::-1]
+
+    flagged = _isflagged(hc, dfilter)
+
+    repeated = (
+        flagged.rolling(window, min_periods=1, closed="left")
+        .max()
+        .fillna(0)
+        .astype(bool)
+    )
+
+    if method == "bfill":
+        repeated = repeated[::-1]
+
+    flags[repeated, field] = flag
+
     return data, flags

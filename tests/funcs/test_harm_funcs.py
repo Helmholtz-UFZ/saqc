@@ -1,14 +1,19 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
 import pandas as pd
-import dios
+import pytest
 
-from saqc.core import initFlagsLike, Flags
+import dios
 from saqc.constants import BAD, UNFLAGGED
-from saqc.funcs.resampling import linear, interpolate, shift, concatFlags, resample
+from saqc.core import Flags, initFlagsLike
+from saqc.funcs.resampling import concatFlags, interpolate, linear, resample, shift
 from saqc.funcs.tools import copyField, dropField
 from tests.common import checkDataFlagsInvariants
 
@@ -45,6 +50,11 @@ def test_wrapper(data, func, kws):
     freq = "15T"
     flags = initFlagsLike(data)
 
+    # GL-#352
+    # make a History, otherwise nothing important is tested
+    for c in flags.columns:
+        flags[:, c] = BAD
+
     import saqc
 
     func = getattr(saqc.funcs, func)
@@ -55,14 +65,45 @@ def test_wrapper(data, func, kws):
     assert data[field].index.inferred_freq == freq
 
 
-@pytest.mark.parametrize("method", ["time", "polynomial"])
-def test_gridInterpolation(data, method):
+_SUPPORTED_METHODS = [
+    "linear",
+    "time",
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "spline",
+    "barycentric",
+    "polynomial",
+    "krogh",
+    "piecewise_polynomial",
+    "spline",
+    "pchip",
+    "akima",
+]
+
+
+@pytest.mark.parametrize("method", _SUPPORTED_METHODS)
+@pytest.mark.parametrize("fill_history", ["some", "all", "none"])
+def test_gridInterpolation(data, method, fill_history):
     freq = "15T"
     field = "data"
     data = data[field]
-    data = (data * np.sin(data)).append(data.shift(1, "2h")).shift(1, "3s")
+    data = pd.concat([data * np.sin(data), data.shift(1, "2h")]).shift(1, "3s")
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
+
+    if fill_history == "none":
+        pass
+
+    if fill_history == "all":
+        for c in flags.columns:
+            flags[:, c] = BAD
+
+    if fill_history == "some":
+        for c in flags.columns:
+            flags[::2, c] = UNFLAGGED
 
     # we are just testing if the interpolation gets passed to the series without
     # causing an error:

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # ===========================================================
 # preparation
 # ===========================================================
@@ -5,51 +9,52 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
+stages:
+  - compliance
+  - test
+  - build
+  - deploy
+
 default:
   image: python:3.8
   before_script:
     - pip install --upgrade pip
-    - pip install pytest
     - pip install -r requirements.txt
-
+    - pip install -r tests/requirements.txt
 
 # ===========================================================
-# normal jobs (non scheduled)
+# Compliance stage
 # ===========================================================
 
-# test saqc with python 3.7
-python37:
-  stage: test
-  image: python:3.7
-  script:
-    - pytest tests/core tests/funcs tests/integration dios/test -Werror
-    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv --outfile /tmp/test.csv
-
-
-# test saqc with python 3.8
-python38:
-  stage: test
-  script:
-    - pytest tests/core tests/funcs tests/integration dios/test -Werror
-    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv --outfile /tmp/test.csv
-
-
-# test saqc with python 3.9
-python39:
-  stage: test
-  image: python:3.9
-  script:
-    - pytest tests/core tests/funcs tests/integration dios/test -Werror
-    - python -m saqc --config ressources/data/config.csv --data ressources/data/data.csv --outfile /tmp/test.csv
-
-
-# check if everthing is properly formatted
+# check if everything is properly formatted
 black:
-  stage: test
+  stage: compliance
   script:
     - pip install black
     - black --check .
 
+# check if imports are sorted
+isort:
+  stage: compliance
+  script:
+    - pip install isort
+    - isort --check .
+
+# Check compliance with the REUSE specification
+reuse:
+  stage: compliance
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: [""]
+  before_script:
+    - echo "Override default 'before_script'..."
+  script:
+    - reuse lint
+
+
+# ===========================================================
+# Testing stage
+# ===========================================================
 
 # make (visual) coverage in gitlab merge request diff's
 coverage:
@@ -57,18 +62,98 @@ coverage:
   allow_failure: true
   script:
     - pip install pytest-cov coverage
-    - pytest --cov=saqc tests/core tests/funcs -Werror
+    - pytest --cov=saqc tests --ignore=tests/fuzzy -Werror
   after_script:
     - coverage xml
-
   # regex to find the coverage percentage in the job output
   coverage: '/^TOTAL.+?(\d+\%)$/'
-
   artifacts:
     when: always
     reports:
       cobertura: coverage.xml
 
+
+# test saqc with python 3.7
+python37:
+  stage: test
+  image: python:3.7
+  script:
+    - pytest tests dios/test -Werror --junitxml=report.xml
+    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
+
+# test saqc with python 3.8
+python38:
+  stage: test
+  script:
+    - pytest tests dios/test -Werror --junitxml=report.xml
+    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
+
+# test saqc with python 3.9
+python39:
+  stage: test
+  image: python:3.9
+  script:
+    - pytest tests dios/test -Werror --junitxml=report.xml
+    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
+
+# test saqc with python 3.10
+python310:
+  stage: test
+  image: python:3.10
+  script:
+    - pytest tests dios/test -Werror --junitxml=report.xml
+    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
+
+doctest:
+  stage: test
+  script:
+    - cd docs
+    - pip install -r requirements.txt
+    - make doc  # needed for _api tests
+    - make test
+
+
+# ===========================================================
+# Building stage
+# ===========================================================
+# check if we are able to build a wheel
+wheel:
+  stage: build
+  script:
+    - pip install wheel
+    - pip wheel .
+    - pip install .
+
+docs:
+  stage: build
+  script:
+    - cd docs
+    - pip install -r requirements.txt
+    - make doc
+
+# ===========================================================
+# Extra Pipeline (run with a successful run of all other jobs on develop)
+# ===========================================================
 
 # make html docu with sphinx
 pages:
@@ -78,33 +163,10 @@ pages:
   except:
     - schedules
   script:
-    - cd sphinxdoc/
-    - pip install -r requirements_sphinx.txt
+    - cd docs/
+    - pip install -r requirements.txt
     - make doc
     - cp -r _build/html ../public
   artifacts:
     paths:
       - public
-
-
-# ===========================================================
-# scheduled jobs
-# ===========================================================
-
-# fuzzy testing saqc
-fuzzy:
-  stage: test
-  only:
-    - schedules
-  script:
-    - pytest tests/fuzzy -Werror
-
-
-# test lib saqc
-testLib:
-  stage: test
-  only:
-    - schedules
-  script:
-    - pytest tests/lib -Werror
-

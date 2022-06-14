@@ -1,12 +1,17 @@
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+import numpy as np
+import pandas as pd
 import pytest
 
-from saqc.lib.plotting import makeFig
-import pandas as pd
-import numpy as np
-import saqc
 import dios
+import saqc
+from saqc.lib.plotting import makeFig
 
 
+@pytest.mark.slow
 def test_makeFig():
     # just testing for no errors to occure...
     data = dios.DictOfSeries(

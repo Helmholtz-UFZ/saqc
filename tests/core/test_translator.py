@@ -1,23 +1,22 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
 import json
-from typing import Dict, Union, Sequence
+from typing import Dict, Sequence, Union
 
 import numpy as np
 import pandas as pd
-
 import pytest
 
-from saqc.constants import UNFLAGGED, BAD, DOUBTFUL, FILTER_NONE
-from saqc.core.translation import (
-    PositionalScheme,
-    TranslationScheme,
-    DmpScheme,
-)
-from saqc.core.flags import Flags
+from saqc.constants import BAD, DOUBTFUL, FILTER_NONE, UNFLAGGED
 from saqc.core.core import SaQC
-
+from saqc.core.flags import Flags
+from saqc.core.translation import DmpScheme, PositionalScheme, TranslationScheme
 from tests.common import initData
 
 
@@ -152,7 +151,7 @@ def test_positionalTranslatorIntegration():
     scheme = PositionalScheme()
     saqc = SaQC(data=data, scheme=scheme)
     saqc = saqc.flagMissing(col).flagRange(col, min=3, max=10, flag=DOUBTFUL)
-    flags = saqc.result.flags
+    flags = saqc.flags
 
     for field in flags.columns:
         assert flags[field].astype(str).str.match("^9[012]*$").all()
@@ -172,7 +171,7 @@ def test_dmpTranslatorIntegration():
     scheme = DmpScheme()
     saqc = SaQC(data=data, scheme=scheme)
     saqc = saqc.flagMissing(col).flagRange(col, min=3, max=10)
-    flags = saqc.result.flags
+    flags = saqc.flags
 
     qflags = flags.xs("quality_flag", axis="columns", level=1)
     qfunc = flags.xs("quality_comment", axis="columns", level=1).applymap(
@@ -204,11 +203,11 @@ def test_dmpValidCombinations():
     scheme = DmpScheme()
     saqc = SaQC(data=data, scheme=scheme)
 
-    with pytest.raises(RuntimeError):
-        saqc.flagRange(col, min=3, max=10, cause="SOMETHING_STUPID").result
+    with pytest.raises(ValueError):
+        saqc.flagRange(col, min=3, max=10, cause="SOMETHING_STUPID").flags
 
-    with pytest.raises(RuntimeError):
-        saqc.flagRange(col, min=3, max=10, cause="").result
+    with pytest.raises(ValueError):
+        saqc.flagRange(col, min=3, max=10, cause="").flags
 
 
 def _buildupSaQCObjects():
@@ -236,8 +235,8 @@ def _buildupSaQCObjects():
 def test_translationPreservesFlags():
 
     saqc1, saqc2 = _buildupSaQCObjects()
-    flags1 = saqc1.result.flags_raw
-    flags2 = saqc2.result.flags_raw
+    flags1 = saqc1._flags
+    flags2 = saqc2._flags
 
     for k in flags2.columns:
         got = flags2.history[k].hist
@@ -251,8 +250,8 @@ def test_translationPreservesFlags():
 
 def test_multicallsPreserveHistory():
     saqc1, saqc2 = _buildupSaQCObjects()
-    flags1 = saqc1.result.flags_raw
-    flags2 = saqc2.result.flags_raw
+    flags1 = saqc1._flags
+    flags2 = saqc2._flags
 
     # check, that the `History` is duplicated
     for col in flags2.columns:
@@ -275,8 +274,8 @@ def test_positionalMulitcallsPreserveState():
     saqc1, saqc2 = _buildupSaQCObjects()
 
     scheme = PositionalScheme()
-    flags1 = saqc1.result.flags_raw
-    flags2 = saqc2.result.flags_raw
+    flags1 = saqc1._flags
+    flags2 = saqc2._flags
     tflags1 = scheme.backward(flags1).astype(str)
     tflags2 = scheme.backward(flags2).astype(str)
 

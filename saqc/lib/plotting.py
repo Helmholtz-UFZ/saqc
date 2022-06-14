@@ -1,19 +1,23 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
-from typing import Optional
-from typing_extensions import Literal
-from saqc.lib.tools import toSequence
-import pandas as pd
-import numpy as np
-import matplotlib as mpl
 import itertools
-import matplotlib.pyplot as plt
-import seaborn
-from saqc.constants import *
-from saqc.core import Flags
-from saqc.lib.types import DiosLikeT
+from typing import Optional, Union
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from typing_extensions import Literal
+
+from saqc.core.flags import Flags
+from saqc.lib.tools import toSequence
+from saqc.lib.types import DiosLikeT
 
 STATSDICT = {
     "values total": lambda x, y, z: len(x),
@@ -25,9 +29,23 @@ STATSDICT = {
 
 PLOT_KWARGS = {"alpha": 0.8, "linewidth": 1}
 FIG_KWARGS = {"figsize": (16, 9)}
+
+_seaborn_color_palette = [
+    (0.00784313725490196, 0.24313725490196078, 1.0),
+    (1.0, 0.48627450980392156, 0.0),
+    (0.10196078431372549, 0.788235294117647, 0.2196078431372549),
+    (0.9098039215686274, 0.0, 0.043137254901960784),
+    (0.5450980392156862, 0.16862745098039217, 0.8862745098039215),
+    (0.6235294117647059, 0.2823529411764706, 0.0),
+    (0.9450980392156862, 0.2980392156862745, 0.7568627450980392),
+    (0.6392156862745098, 0.6392156862745098, 0.6392156862745098),
+    (1.0, 0.7686274509803922, 0.0),
+    (0.0, 0.8431372549019608, 1.0),
+]
+
 SCATTER_KWARGS = {
-    "marker": ["s", "D", "^", "o"],
-    "color": seaborn.color_palette("bright"),
+    "marker": ["s", "D", "^", "o", "v"],
+    "color": _seaborn_color_palette,
     "alpha": 0.7,
     "zorder": 10,
     "edgecolors": "black",
@@ -41,7 +59,7 @@ def makeFig(
     flags: Flags,
     level: float,
     max_gap: Optional[str] = None,
-    history: Optional[Literal["valid", "complete"]] = "valid",
+    history: Union[Optional[Literal["valid", "complete"]], list] = "valid",
     xscope: Optional[slice] = None,
     phaseplot: Optional[str] = None,
     ax_kwargs: Optional[dict] = None,
@@ -70,13 +88,16 @@ def makeFig(
         below `max_gap` get connected via the plotting line.
 
 
-    history : {"valid", "complete", None}, default "valid"
+     history : {"valid", "complete", None, list of strings}, default "valid"
         Discriminate the plotted flags with respect to the tests they originate from.
+
         * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
           in the legend, that actually contributed flags to the overall resault.
         * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
         * "clear" - clear plot from all the flagged values
         * None - just plot the resulting flags for one variable, without any historical meta information.
+        * list of strings - for any string ``s`` in the list, plot the flags set by test labeled, ``s`` - if ``s`` is
+          not present in the history labels, plot any flags, set by a test labeled ``s``
 
     xscope : slice or Offset, default None
         Parameter, that determines a chunk of the data to be plotted /
@@ -92,6 +113,8 @@ def makeFig(
 
     """
 
+    if ax_kwargs is None:
+        ax_kwargs = {}
     # data retrieval
     d = data[field]
     # data slicing:
@@ -104,6 +127,9 @@ def makeFig(
     # set fontsize:
     default = plt.rcParams["font.size"]
     plt.rcParams["font.size"] = ax_kwargs.pop("fontsize", None) or default
+
+    # set shapecycle start:
+    cyclestart = ax_kwargs.pop("cycleskip", 0)
 
     na_mask = d.isna()
     d = d[~na_mask]
@@ -142,6 +168,7 @@ def makeFig(
         plot_kwargs,
         ax_kwargs,
         SCATTER_KWARGS,
+        cyclestart,
     )
 
     plt.rcParams["font.size"] = default
@@ -160,10 +187,11 @@ def _plotVarWithFlags(
     plot_kwargs,
     ax_kwargs,
     scatter_kwargs,
+    cyclestart,
 ):
     scatter_kwargs = scatter_kwargs.copy()
     ax.set_title(datser.name)
-    ax.plot(datser, color="black", **plot_kwargs)
+    ax.plot(datser, color="black", label=" ", **plot_kwargs)
     ax.set(**ax_kwargs)
     shape_cycle = scatter_kwargs.get("marker", "o")
     shape_cycle = itertools.cycle(toSequence(shape_cycle))
@@ -171,8 +199,25 @@ def _plotVarWithFlags(
         "color", plt.rcParams["axes.prop_cycle"].by_key()["color"]
     )
     color_cycle = itertools.cycle(toSequence(color_cycle))
+    for k in range(0, cyclestart):
+        next(color_cycle)
+        next(shape_cycle)
+
     if history:
         for i in flags_hist.columns:
+            if isinstance(history, list):
+                meta_field = "label" if "label" in flags_meta[i].keys() else "func"
+                to_plot = (
+                    flags_meta[i][meta_field]
+                    if flags_meta[i][meta_field] in history
+                    else None
+                )
+                if not to_plot:
+                    continue
+                else:
+                    hist_key = "valid"
+            else:
+                hist_key = history
             # catch empty but existing history case (flags_meta={})
             if len(flags_meta[i]) == 0:
                 continue
@@ -182,18 +227,18 @@ def _plotVarWithFlags(
             )
             scatter_kwargs.update({"label": label})
             flags_i = flags_hist[i].astype(float)
-            if history == "complete":
+            if hist_key == "complete":
                 scatter_kwargs.update(
                     {"color": next(color_cycle), "marker": next(shape_cycle)}
                 )
                 _plotFlags(ax, datser, flags_i, na_mask, level, scatter_kwargs)
-            if history == "valid":
+            if hist_key == "valid":
                 # only plot those flags, that do not get altered later on:
                 mask = flags_i.eq(flags_vals)
                 flags_i[~mask] = np.nan
                 # Skip plot, if the test did not have no effect on the all over flagging result. This avoids
                 # legend overflow
-                if ~(flags_i >= level).any():
+                if ~(flags_i > level).any():
                     continue
 
                 # Also skip plot, if all flagged values are np.nans (to catch flag missing and masked results mainly)
@@ -214,6 +259,7 @@ def _plotVarWithFlags(
                     level,
                     scatter_kwargs,
                 )
+
         ax.legend()
     else:
         scatter_kwargs.update({"color": next(color_cycle), "marker": next(shape_cycle)})
@@ -221,7 +267,7 @@ def _plotVarWithFlags(
 
 
 def _plotFlags(ax, datser, flags, na_mask, level, scatter_kwargs):
-    is_flagged = flags.astype(float) >= level
+    is_flagged = flags.astype(float) > level
     is_flagged = is_flagged[~na_mask]
     is_flagged = datser[is_flagged[is_flagged].index]
     ax.scatter(is_flagged.index, is_flagged.values, **scatter_kwargs)

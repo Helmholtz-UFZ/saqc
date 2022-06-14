@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
-import pytest
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import numpy as np
 import pandas as pd
+import pytest
 
 from saqc.core.history import History, createHistoryFromData
 from tests.common import dummyHistory
@@ -80,7 +84,7 @@ def check_invariants(hist):
 
     # advanced
     assert hist.columns.equals(pd.Index(range(len(hist))))
-    assert isinstance(hist.max(), pd.Series)
+    assert isinstance(hist.squeeze(), pd.Series)
 
 
 def is_equal(hist1: History, hist2: History):
@@ -231,4 +235,4 @@ def test_append_force(__hist, s, max_val):
     hist = __hist
     hist.append(s)
     check_invariants(hist)
-    assert all(hist.max() == max_val)
+    assert all(hist.squeeze() == max_val)

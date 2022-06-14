@@ -1,20 +1,26 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
-from typing import Callable, Tuple, Optional, Union
-from typing_extensions import Literal
+from __future__ import annotations
+
+from typing import Callable, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from dios import DictOfSeries
+from typing_extensions import Literal
 
-from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.core.register import _isflagged, processing
-from saqc.lib.tools import evalFreqStr, getFreqDelta, filterKwargs
-from saqc.lib.ts_operators import shift2Freq, aggregate2Freq
-from saqc.funcs.interpolation import interpolateIndex, _SUPPORTED_METHODS
 import saqc.funcs.tools as tools
-
+from dios import DictOfSeries, DtItype
+from saqc.core.flags import Flags
+from saqc.core.register import _isflagged, register
+from saqc.funcs.interpolation import _SUPPORTED_METHODS, interpolateIndex
+from saqc.lib.tools import evalFreqStr, filterKwargs, getFreqDelta
+from saqc.lib.ts_operators import aggregate2Freq, shift2Freq
 
 METHOD2ARGS = {
     "inverse_fshift": ("backward", pd.Timedelta),
@@ -112,7 +118,7 @@ def interpolate(
         The fieldname of the column, holding the data-to-be-regularized.
 
     flags : saqc.Flags
-        Container to store flags of the data.  freq
+        Container to store flags of the data.
 
     freq : str
         An offset string. The frequency of the grid you want to interpolate your data at.
@@ -239,18 +245,18 @@ def resample(
 
     The data will be sampled at regular (equidistant) timestamps aka. Grid points.
     Sampling intervals therefore get aggregated with a function, specified by
-    'agg_func' parameter and the result gets projected onto the new timestamps with a
+    'func' parameter and the result gets projected onto the new timestamps with a
     method, specified by "method". The following method (keywords) are available:
 
     * ``'nagg'``: all values in the range (+/- `freq`/2) of a grid point get
-        aggregated with agg_func and assigned to it.
-    * ``'bagg'``: all values in a sampling interval get aggregated with agg_func and
+        aggregated with func and assigned to it.
+    * ``'bagg'``: all values in a sampling interval get aggregated with func and
         the result gets assigned to the last grid point.
-    * ``'fagg'``: all values in a sampling interval get aggregated with agg_func and
+    * ``'fagg'``: all values in a sampling interval get aggregated with func and
         the result gets assigned to the next grid point.
 
 
-    Note, that. if possible, functions passed to agg_func will get projected
+    Note, that. if possible, functions passed to func will get projected
     internally onto pandas.resample methods, wich results in some reasonable
     performance boost - however, for this to work, you should pass functions that
     have the __name__ attribute initialised and the according methods name assigned
@@ -322,6 +328,11 @@ def resample(
     """
 
     datcol = data[field]
+
+    # workaround for #GL-333
+    if datcol.empty and data.itype in [None, DtItype]:
+        datcol = pd.Series(index=pd.DatetimeIndex([]), dtype=datcol.dtype)
+
     freq = evalFreqStr(freq, freq_check, datcol.index)
 
     datcol = aggregate2Freq(
@@ -431,39 +442,45 @@ def concatFlags(
         "inverse_bshift",
         "inverse_nshift",
         "inverse_interpolation",
-    ],
+        "match",
+    ] = "match",
     freq: Optional[str] = None,
     drop: Optional[bool] = False,
+    squeeze: Optional[bool] = False,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     The Function appends flags history of ``fields`` to flags history of ``target``.
-    Before Appending, columns in ``field`` history are projected onto the target index via ``method``
+    Before appending, columns in ``field`` history are projected onto the target index via ``method``
 
-    method: (field_flag in associated with "field", source_flags associated with "source")
+    method: (field_flag associated with "field", source_flags associated with "source")
 
-    'inverse_nagg' - all target_flags within the range +/- freq/2 of a field_flag, get assigned this field flags value.
-        (if field_flag > target_flag)
-    'inverse_bagg' - all target_flags succeeding a field_flag within the range of "freq", get assigned this field flags
-        value. (if field_flag > target_flag)
-    'inverse_fagg' - all target_flags preceeding a field_flag within the range of "freq", get assigned this field flags
-        value. (if field_flag > target_flag)
+    * 'inverse_nagg' - all target_flags within the range +/- freq/2 of a field_flag, get assigned this field flags value.
+       (if field_flag > target_flag)
 
-    'inverse_interpolation' - all target_flags within the range +/- freq of a field_flag, get assigned this source flags value.
-        (if field_flag > target_flag)
+    * 'inverse_bagg' - all target_flags succeeding a field_flag within the range of "freq", get assigned this field flags
+       value. (if field_flag > target_flag)
 
-    'inverse_nshift' - That target_flag within the range +/- freq/2, that is nearest to a field_flag, gets the source
-        flags value. (if field_flag > target_flag)
-    'inverse_bshift' - That target_flag succeeding a field flag within the range freq, that is nearest to a
-        field_flag, gets assigned this field flags value. (if field_flag > target_flag)
-    'inverse_nshift' - That target_flag preceeding a field flag within the range freq, that is nearest to a
-        field_flag, gets assigned this field flags value. (if field_flag > target_flag)
+    * 'inverse_fagg' - all target_flags preceeding a field_flag within the range of "freq", get assigned this field flags
+       value. (if field_flag > target_flag)
 
-    'match' - any target_flag with a timestamp matching a field_flags timestamp gets this field_flags value
-    (if field_flag > target_flag)
+    * 'inverse_interpolation' - all target_flags within the range +/- freq of a field_flag, get assigned this source flags value.
+      (if field_flag > target_flag)
+
+    * 'inverse_nshift' - That target_flag within the range +/- freq/2, that is nearest to a field_flag, gets the source
+      flags value. (if field_flag > target_flag)
+
+    * 'inverse_bshift' - That target_flag succeeding a field flag within the range freq, that is nearest to a
+       field_flag, gets assigned this field flags value. (if field_flag > target_flag)
+
+    * 'inverse_nshift' - That target_flag preceeding a field flag within the range freq, that is nearest to a
+       field_flag, gets assigned this field flags value. (if field_flag > target_flag)
+
+    * 'match' - any target_flag with a timestamp matching a field_flags timestamp gets this field_flags value
+       (if field_flag > target_flag)
 
     Note, to undo or backtrack a resampling/shifting/interpolation that has been performed with a certain method,
-    you can just pass the associated "inverse" method. Also you should pass the same drop flags keyword.
+    you can just pass the associated "inverse" method. Also you should pass the same ``drop`` keyword.
 
     Parameters
     ----------
@@ -479,16 +496,19 @@ def concatFlags(
     target : str
         Field name of flags history to append to.
 
-    method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift',
-             'match'}
+    method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift', 'match'}, default 'match'
         The method used for projection of ``field`` flags onto ``target`` flags. See description above for more details.
 
-    freq : {None, str},default None
+    freq : str or None, default None
         The ``freq`` determines the projection range for the projection method. See above description for more details.
         Defaultly (None), the sampling frequency of ``field`` is used.
 
-    drop : default False
+    drop : bool, default False
         If set to `True`, the `field` column will be removed after processing
+
+    squeeze : bool, default False
+        If set to `True`, the appended flags frame will be squeezed - resulting in function specific flags informations
+        getting lost.
 
     Returns
     -------
@@ -546,7 +566,23 @@ def concatFlags(
         raise ValueError(f"unknown method {method}")
 
     history = flags.history[field].apply(dummy.index, func, func_kws)
-    flags.history[target].append(history)
+    if squeeze:
+        history = history.squeeze(raw=True)
+
+        meta = {
+            "func": f"concatFlags({field})",
+            "args": (field, target),
+            "kwargs": {
+                "method": method,
+                "freq": freq,
+                "drop": drop,
+                "squeeze": squeeze,
+                **kwargs,
+            },
+        }
+        flags.history[target].append(history, meta)
+    else:
+        flags.history[target].append(history)
 
     if drop:
         data, flags = tools.dropField(data=data, flags=flags, field=field)

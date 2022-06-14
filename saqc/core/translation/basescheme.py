@@ -1,24 +1,22 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
 from __future__ import annotations
 
-from typing import Dict, Union, Any
+from typing import Any, Dict, MutableMapping, Union
 
 import numpy as np
 import pandas as pd
 
 from dios import DictOfSeries
-from saqc.constants import (
-    FILTER_ALL,
-    UNFLAGGED,
-    BAD,
-    GOOD,
-)
-
+from saqc.constants import BAD, FILTER_ALL, GOOD, UNFLAGGED
 from saqc.core.flags import Flags
 from saqc.lib.types import ExternalFlag
-
 
 ForwardMap = Dict[ExternalFlag, float]
 BackwardMap = Dict[float, ExternalFlag]
@@ -39,6 +37,7 @@ class TranslationScheme:
     the inverse of the 'forward' translation.
 
     The translation mechanism imposes a few restrictions:
+
     - The scheme must be well definied, i.e. we need a backward translation for
       every forward translation (each value in `self._forward` needs a key in
       `self._backward`).
@@ -79,8 +78,8 @@ class TranslationScheme:
 
     @staticmethod
     def _translate(
-        flags: Union[Flags, pd.DataFrame, pd.Series],
-        trans_map: Union[ForwardMap, BackwardMap],
+        flags: Flags | pd.DataFrame | pd.Series,
+        trans_map: ForwardMap | BackwardMap,
     ) -> DictOfSeries:
         """
         Translate a given flag data structure to another according to the
@@ -149,7 +148,7 @@ class TranslationScheme:
         raw: bool = False,
         attrs: dict | None = None,
         **kwargs,
-    ) -> Union[pd.DataFrame, DictOfSeries]:
+    ) -> pd.DataFrame | DictOfSeries:
         """
         Translate from 'internal flags' to 'external flags'
 

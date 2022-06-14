@@ -1,7 +1,12 @@
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from builtins import range
 
-from dios import *
 import numpy as np
+
+from dios import *
 
 if __name__ == "__main__":
     dios_options[OptsFields.mixed_itype_warn_policy] = Opts.itype_warn
@@ -32,7 +37,7 @@ if __name__ == "__main__":
     )
 
     def f(s):
-        sec = 10 ** 9
+        sec = 10**9
         s.index = pd.to_datetime(s.index * sec)
         return s
 

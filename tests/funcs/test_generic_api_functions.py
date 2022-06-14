@@ -1,16 +1,19 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
-import pytest
 import pandas as pd
+import pytest
+
 from dios.dios.dios import DictOfSeries
-
-from saqc.constants import BAD, UNFLAGGED, FILTER_ALL
-from saqc.core.flags import Flags
 from saqc import SaQC
-from saqc.core.register import _isflagged
+from saqc.constants import BAD, FILTER_ALL, UNFLAGGED
+from saqc.core.flags import Flags
 from saqc.lib.tools import toSequence
-
 from tests.common import initData
 
 
@@ -43,11 +46,9 @@ def test_writeTargetFlagGeneric(data):
     for targets, func in params:
         expected_meta = {
             "func": "flagGeneric",
-            "args": (),
+            "args": (data.columns.tolist(), targets),
             "kwargs": {
-                "field": data.columns.tolist(),
                 "func": func.__name__,
-                "target": targets,
                 "flag": BAD,
                 "dfilter": FILTER_ALL,
             },
@@ -75,10 +76,8 @@ def test_overwriteFieldFlagGeneric(data):
     for fields, func in params:
         expected_meta = {
             "func": "flagGeneric",
-            "args": (),
+            "args": (fields, fields),
             "kwargs": {
-                "field": fields,
-                "target": fields,
                 "func": func.__name__,
                 "flag": flag,
                 "dfilter": FILTER_ALL,
@@ -99,11 +98,9 @@ def test_overwriteFieldFlagGeneric(data):
 
         res = saqc.flagGeneric(field=fields, func=func, flag=flag)
         for field in fields:
-            assert (data[field] == res.data[field]).all(axis=None)
-            histcol0 = res._flags.history[field].hist[0]
             histcol1 = res._flags.history[field].hist[1]
-            assert (histcol1[histcol0 == 127.0].isna()).all()
-            assert (histcol1[histcol0 != 127.0] == flag).all()
+            assert (histcol1 == flag).all()
+            assert (data[field] == res.data[field]).all(axis=None)
             assert res._flags.history[field].meta[0] == {}
             assert res._flags.history[field].meta[1] == expected_meta
 
@@ -123,12 +120,9 @@ def test_writeTargetProcGeneric(data):
 
         expected_meta = {
             "func": "procGeneric",
-            "args": (),
+            "args": (fields, targets),
             "kwargs": {
-                "field": data.columns.tolist(),
-                "target": targets,
                 "func": func.__name__,
-                "flag": BAD,
                 "dfilter": dfilter,
                 "label": "generic",
             },
@@ -143,14 +137,13 @@ def test_writeTargetProcGeneric(data):
             field=fields,
             target=targets,
             func=func,
-            flag=BAD,
             dfilter=dfilter,
             label="generic",
         )
         assert (expected_data == res.data[targets].squeeze()).all(axis=None)
         # check that new histories where created
         for target in targets:
-            assert res._flags.history[target].hist.iloc[0].tolist() == [BAD]
+            assert res._flags.history[target].hist.iloc[0].isna().all()
             assert res._flags.history[target].meta[0] == expected_meta
 
 
@@ -160,7 +153,6 @@ def test_overwriteFieldProcGeneric(data):
         (["var1", "var2"], lambda x, y: (x + y, y * 2)),
     ]
     dfilter = 128
-    flag = 12
     for fields, func in params:
         expected_data = DictOfSeries(
             func(*[data[f] for f in fields]), columns=fields
@@ -168,12 +160,9 @@ def test_overwriteFieldProcGeneric(data):
 
         expected_meta = {
             "func": "procGeneric",
-            "args": (),
+            "args": (fields, fields),
             "kwargs": {
-                "field": fields,
-                "target": fields,
                 "func": func.__name__,
-                "flag": flag,
                 "dfilter": dfilter,
                 "label": "generic",
             },
@@ -187,12 +176,29 @@ def test_overwriteFieldProcGeneric(data):
         )
 
         res = saqc.processGeneric(
-            field=fields, func=func, flag=flag, dfilter=dfilter, label="generic"
+            field=fields, func=func, dfilter=dfilter, label="generic"
         )
         assert (expected_data == res.data[fields].squeeze()).all(axis=None)
         # check that the histories got appended
         for field in fields:
             assert (res._flags.history[field].hist[0] == 127.0).all()
-            assert (res._flags.history[field].hist[1] == 12.0).all()
+            assert res._flags.history[field].hist[1].isna().all()
             assert res._flags.history[field].meta[0] == {}
             assert res._flags.history[field].meta[1] == expected_meta
+
+
+def test_label():
+    dat = pd.DataFrame(
+        {"data1": [1, 1, 5, 2, 1], "data2": [1, 1, 2, 3, 4], "data3": [1, 1, 2, 3, 4]},
+        index=pd.date_range("2000", "2005", periods=5),
+    )
+
+    qc = SaQC(dat)
+    qc = qc.flagRange("data1", max=4, label="out of range")
+    qc = qc.flagRange("data1", max=0, label="out of range2")
+    qc = qc.flagGeneric(
+        ["data1", "data3"],
+        target="data2",
+        func=lambda x, y: isflagged(x, "out of range") | isflagged(y),
+    )
+    assert list((qc.flags["data2"] > 0).values) == [False, False, True, False, False]

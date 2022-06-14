@@ -1,15 +1,24 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
-from typing import Union, Tuple, Callable, Sequence, Optional
-from typing_extensions import Literal
+from __future__ import annotations
+
+from typing import Callable, Sequence, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from dios import DictOfSeries
+from typing_extensions import Literal
 
-from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.lib.tools import toSequence
 import saqc.lib.ts_operators as ts_ops
+from dios import DictOfSeries
+from saqc.constants import UNFLAGGED
+from saqc.core.flags import Flags
+from saqc.core.register import register
+from saqc.lib.tools import toSequence
 
 
 @register(

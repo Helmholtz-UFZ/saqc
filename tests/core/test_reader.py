@@ -1,15 +1,18 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
+
 import dios
-from pathlib import Path
-
+from saqc.core.flags import Flags
 from saqc.core.reader import fromConfig, readFile
-from saqc.core.register import FUNC_MAP, flagging
-
+from saqc.core.register import flagging
 from tests.common import initData, writeIO
 
 
@@ -18,25 +21,19 @@ def data() -> dios.DictOfSeries:
     return initData(3)
 
 
-def test_packagedConfig():
-
-    path = Path(__file__).parents[2] / "ressources/data"
-
-    config_path = path / "config.csv"
-    data_path = path / "data.csv"
-
-    data = pd.read_csv(
-        data_path,
-        index_col=0,
-        parse_dates=True,
-    )
-    saqc = fromConfig(config_path, data)
-    saqc.result._validate()
+def getTestedVariables(flags: Flags, test: str):
+    out = []
+    for col in flags.columns:
+        for m in flags.history[col].meta:
+            if m["func"] == test:
+                out.append(col)
+    return out
 
 
 def test_variableRegex(data):
 
     header = f"varname;test"
+    function = "flagDummy"
     tests = [
         ("'.*'", data.columns),
         ("'var(1|2)'", [c for c in data.columns if c[-1] in ("1", "2")]),
@@ -45,19 +42,19 @@ def test_variableRegex(data):
     ]
 
     for regex, expected in tests:
-        fobj = writeIO(header + "\n" + f"{regex} ; flagDummy()")
+        fobj = writeIO(header + "\n" + f"{regex} ; {function}()")
         saqc = fromConfig(fobj, data=data)
-        result = [field for field, _ in saqc._called]
+        result = getTestedVariables(saqc._flags, function)
         assert np.all(result == expected)
 
     tests = [
-        ("var[12]", ["var[12]"]),  # not quoted -> not a regex
+        ("var[12]", []),  # not quoted -> not a regex
     ]
     for regex, expected in tests:
-        fobj = writeIO(header + "\n" + f"{regex} ; flagDummy()")
+        fobj = writeIO(header + "\n" + f"{regex} ; {function}()")
         with pytest.warns(RuntimeWarning):
             saqc = fromConfig(fobj, data=data)
-        result = [field for field, _ in saqc._called]
+        result = getTestedVariables(saqc._flags, function)
         assert np.all(result == expected)
 
 
@@ -68,12 +65,12 @@ def test_inlineComments(data):
     """
     config = f"""
     varname ; test
-    pre2        ; flagDummy() # test
+    var1    ; flagDummy() # test
     """
 
     saqc = fromConfig(writeIO(config), data)
-    _, func = saqc._called[0]
-    assert func[0] == FUNC_MAP["flagDummy"]
+    func = saqc._flags.history["var1"].meta[0]["func"]
+    assert func == "flagDummy"
 
 
 def test_configReaderLineNumbers():

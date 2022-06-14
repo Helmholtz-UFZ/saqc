@@ -1,14 +1,18 @@
 #!/usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from __future__ import annotations
 
-import pandas as pd
+from typing import DefaultDict, Dict, Iterable, Mapping, Optional, Tuple, Type, Union
+
 import numpy as np
+import pandas as pd
+
 import dios
-from typing import Mapping, Union, Dict, DefaultDict, Optional, Type, Tuple, Iterable
-
-from saqc.constants import *
 from saqc.core.history import History
-
 
 _VAL = Union[pd.Series, History]
 DictLike = Union[
@@ -45,7 +49,7 @@ class _HistAccess:
 
 class Flags:
     """
-    Saqc's flags container.
+    SaQC's flags container.
 
     This container class holds the quality flags associated with the data. It hold key-value pairs, where
     the key is the name of the column and the value is a ``pandas.Series`` of flags. The index of the series
@@ -243,7 +247,7 @@ class Flags:
             errm += f"of column {colname} "
 
         # this ensures that the mask does not shadow UNFLAGGED with a NaN.
-        if history.max().hasnans:
+        if history.squeeze().hasnans:
             raise ValueError(errm + "is not valid (result of max() contains NaNs)")
 
         return history
@@ -315,7 +319,7 @@ class Flags:
     # item access
 
     def __getitem__(self, key: str) -> pd.Series:
-        return self._data[key].max()
+        return self._data[key].squeeze()
 
     def __setitem__(self, key: SelectT, value: ValueT):
         # force-KW is only internally available

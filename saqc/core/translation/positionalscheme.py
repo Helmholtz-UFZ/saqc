@@ -1,23 +1,18 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
-from saqc.core.flags import (
-    Flags,
-    History,
-    UNFLAGGED,
-    GOOD,
-    DOUBTFUL,
-    BAD,
-)
-from saqc.core.translation.basescheme import (
-    TranslationScheme,
-    ForwardMap,
-    BackwardMap,
-)
+from saqc.constants import BAD, DOUBTFUL, GOOD, UNFLAGGED
+from saqc.core.flags import Flags, History
+from saqc.core.translation.basescheme import BackwardMap, ForwardMap, TranslationScheme
 
 
 class PositionalScheme(TranslationScheme):
@@ -32,6 +27,7 @@ class PositionalScheme(TranslationScheme):
         -6: UNFLAGGED,
         -5: UNFLAGGED,
         -2: UNFLAGGED,
+        -1: UNFLAGGED,
         0: UNFLAGGED,
         1: DOUBTFUL,
         2: BAD,
@@ -94,10 +90,10 @@ class PositionalScheme(TranslationScheme):
         """
         out = {}
         for field in flags.columns:
-            thist = flags.history[field].hist.replace(self._BACKWARD).astype(int)
+            thist = flags.history[field].hist.replace(self._BACKWARD).astype(float)
             # concatenate the single flag values
             ncols = thist.shape[-1]
-            init = 9 * 10 ** ncols
+            init = 9 * 10**ncols
             bases = 10 ** np.arange(ncols - 1, -1, -1)
 
             tflags = init + (thist * bases).sum(axis=1)
