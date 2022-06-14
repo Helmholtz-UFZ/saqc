@@ -1,9 +1,15 @@
+<!--
+SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <a href="https://www.ufz.de/index.php?en=33573">
-    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/ressources/images/Representative/UFZLogo.png" width="400"/>
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/representative/UFZLogo.png" width="400"/>
 </a>
 
 <a href="https://www.ufz.de/index.php?en=45348">
-    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/sphinxdoc/ressources/images/Representative/RDMLogo.png" align="right" width="220"/>
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/representative/RDMLogo.png" align="right" width="220"/>
 </a>
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
@@ -34,7 +40,7 @@ can be installed using [pip](https://pip.pypa.io/en/stable/):
 ```sh
 python -m pip install saqc
 ```
-For a more detailed installion guide, see the [installation guide](https://rdm-software.pages.ufz.de/saqc/getting_started/InstallationGuide.html).
+For a more detailed installion guide, see the [installation guide](https://rdm-software.pages.ufz.de/saqc/gettingstarted/InstallationGuide.html).
 
 ## Usage
 
@@ -45,11 +51,11 @@ and a python module with a simple API.
 The command line application is controlled by a semicolon-separated text
 file listing the variables in the dataset and the routines to inspect,
 quality control and/or process them. The content of such a configuration
-could look like [this](https://git.ufz.de/rdm-software/saqc/raw/develop/ressources/data/config.csv):
+could look like [this](https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/data/config.csv):
 
 ```
 varname    ; test
-#----------; -----------------------------------------------------
+#----------; ---------------------------------------------------------------------
 SM2        ; shift(freq="15Min")
 'SM(1|2)+' ; flagMissing()
 SM1        ; flagRange(min=10, max=60)
@@ -70,8 +76,8 @@ saqc \
 A full `SaQC` run against provided example data can be invoked with:
 ```sh
 saqc \
-    --config https://git.ufz.de/rdm-software/saqc/raw/develop/ressources/data/config.csv \
-    --data https://git.ufz.de/rdm-software/saqc/raw/develop/ressources/data/data.csv \
+    --config https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/data/config.csv \
+    --data https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/data/data.csv \
     --outfile saqc_test.csv
 ```
 
@@ -85,7 +91,7 @@ import pandas as pd
 from saqc import SaQC
 
 data = pd.read_csv(
-    "https://git.ufz.de/rdm-software/saqc/raw/develop/ressources/data/data.csv",
+    "https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/data/data.csv",
     index_col=0, parse_dates=True,
 )
 
@@ -100,14 +106,19 @@ saqc = (saqc
 ```
 
 A more detailed description of the Python API is available in the 
-[respective section](https://rdm-software.pages.ufz.de/saqc/getting_started/TutorialAPI.html)
+[respective section](https://rdm-software.pages.ufz.de/saqc/gettingstarted/TutorialAPI.html)
 of the documentation.
 
 ## Changelog
 All notable changes to this project will be documented in [CHANGELOG.md](CHANGELOG.md).
 
-## Contributing
+## Get involved
+
+### Contributing
 You found a bug or you want to suggest some cool features? Please refer to our [contributing guidelines](CONTRIBUTING.md) to see how you can contribute to SaQC.
+
+### User support
+If you need help or have a question, you can use the SaQC user support mailing list: [saqc-support@ufz.de](mailto:saqc-support@ufz.de)
 
 ## Copyright and License
 Copyright(c) 2021, [Helmholtz-Zentrum für Umweltforschung GmbH -- UFZ](https://www.ufz.de). All rights reserved.
@@ -121,8 +132,9 @@ For full details, see [LICENSE](LICENSE.md).
 ...
 
 ## Publications
-...
+coming soon...
 
 ## How to cite SaQC
-... 
+If SaQC is advancing your research, please cite as:
 
+> Schäfer, David; Palm, Bert; Lünenschloß, Peter. (2021). System for automated Quality Control - SaQC. Zenodo. https://doi.org/10.5281/zenodo.5888547

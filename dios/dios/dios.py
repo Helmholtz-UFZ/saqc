@@ -1,14 +1,18 @@
-from __future__ import annotations
-from typing import Any, Mapping, Hashable
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-from .base import _DiosBase, _is_dios_like
-from .lib import Opts, OptsFields, dios_options
-from .lib import _find_least_common_itype
-from . import pandas_bridge as pdextra
+from __future__ import annotations
 
 import functools as ftools
-import pandas as pd
+from typing import Any, Hashable, Mapping
+
 import numpy as np
+import pandas as pd
+
+from . import pandas_bridge as pdextra
+from .base import _DiosBase, _is_dios_like
+from .lib import Opts, OptsFields, _find_least_common_itype, dios_options
 
 
 class DictOfSeries(_DiosBase):
@@ -61,7 +65,6 @@ class DictOfSeries(_DiosBase):
         """Return pandas.Series with the indexes of all columns."""
         return self.for_each("index")
 
-    @property
     def values(self):
         """Return a numpy.array of numpy.arrays with the values of all columns.
 

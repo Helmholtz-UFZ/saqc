@@ -1,17 +1,25 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Sequence, Callable, Union
+from typing import Callable, Sequence, Union
 
 import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
 import saqc
+import saqc.funcs
+from saqc.lib.docurator import doc
 
 
 class Scores:
+    @doc(saqc.funcs.scores.assignKNNScore.__doc__)
     def assignKNNScore(
         self,
         field: Sequence[str],

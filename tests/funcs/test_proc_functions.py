@@ -1,24 +1,32 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
 
+import numpy as np
+import pandas as pd
+
 # see test/functs/fixtures.py for global fixtures "course_..."
+import pytest
 
 import dios
-
-from saqc.constants import *
+import saqc
+from saqc.constants import UNFLAGGED
 from saqc.core import initFlagsLike
-from saqc.funcs.transformation import transform
 from saqc.funcs.drift import correctOffset
 from saqc.funcs.interpolation import (
     interpolateByRolling,
-    interpolateInvalid,
     interpolateIndex,
+    interpolateInvalid,
 )
 from saqc.funcs.resampling import resample
+from saqc.funcs.transformation import transform
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
-
-from tests.fixtures import *
+from tests.fixtures import char_dict, course_3, course_5
 
 
 def test_rollingInterpolateMissing(course_5):
@@ -126,6 +134,7 @@ def test_interpolateGrid(course_5, course_3):
     )
 
 
+@pytest.mark.slow
 def test_offsetCorrecture():
     data = pd.Series(0, index=pd.date_range("2000", freq="1d", periods=100), name="dat")
     data.iloc[30:40] = -100
@@ -134,3 +143,9 @@ def test_offsetCorrecture():
     flags = initFlagsLike(data)
     data, _ = correctOffset(data, "dat", flags, 40, 20, "3d", 1)
     assert (data == 0).all()[0]
+
+
+# GL-333
+def test_resampleSingleEmptySeries():
+    qc = saqc.SaQC(pd.DataFrame(1, columns=["a"], index=pd.DatetimeIndex([])))
+    qc.resample("a", freq="1d")

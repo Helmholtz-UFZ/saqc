@@ -1,20 +1,29 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
-# see test/functs/fixtures.py for global fixtures "course_..."
-import dios
-from tests.fixtures import *
+import numpy as np
+import pandas as pd
 
+# see test/functs/fixtures.py for global fixtures "course_..."
+import pytest
+
+import dios
+from saqc.constants import BAD, UNFLAGGED
+from saqc.core import initFlagsLike
 from saqc.funcs.outliers import (
-    flagMAD,
-    flagOffset,
-    flagRaise,
-    flagMVScores,
     flagByGrubbs,
     flagCrossStatistics,
+    flagMAD,
+    flagMVScores,
+    flagOffset,
+    flagRaise,
 )
-from saqc.constants import *
-from saqc.core import initFlagsLike
+from tests.fixtures import char_dict, course_1, course_2, course_3, course_4
 
 
 @pytest.fixture(scope="module")
@@ -49,10 +58,11 @@ def test_flagSpikesBasic(spiky_data):
     assert test_sum == len(spiky_data[1])
 
 
-# see test/functs/fixtures.py for the 'course_N'
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "dat",
     [
+        # see test/functs/fixtures.py for the 'course_N'
         pytest.lazy_fixture("course_1"),
         pytest.lazy_fixture("course_2"),
         pytest.lazy_fixture("course_3"),

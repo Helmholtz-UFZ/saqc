@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from __future__ import annotations
 
 import warnings
+
 import numpy as np
 import pandas as pd
-
 from pandas.api.types import is_bool
 
 if pd.__version__ < "1.4":

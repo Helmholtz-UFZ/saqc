@@ -1,30 +1,32 @@
 #!/usr/bin/env python
 
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 import numbers
-import dios
+from contextlib import contextmanager
+from typing import get_type_hints
+
 import numpy as np
 import pandas as pd
-from typing import get_type_hints
-from contextlib import contextmanager
-
-from hypothesis.strategies import (
-    lists,
-    sampled_from,
-    composite,
-    from_regex,
-    sampled_from,
-    datetimes,
-    integers,
-    register_type_strategy,
-    from_type,
-)
 from hypothesis.extra.numpy import arrays, from_dtype
+from hypothesis.strategies import (
+    composite,
+    datetimes,
+    from_regex,
+    from_type,
+    integers,
+    lists,
+    register_type_strategy,
+    sampled_from,
+)
 from hypothesis.strategies._internal.types import _global_type_lookup
 
-from saqc.constants import *
-from saqc.core.register import FUNC_MAP
+import dios
+from saqc.constants import BAD
 from saqc.core import initFlagsLike
+from saqc.core.register import FUNC_MAP
 
 MAX_EXAMPLES = 50
 # MAX_EXAMPLES = 100000

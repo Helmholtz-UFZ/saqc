@@ -1,26 +1,28 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
-import dios
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
+
+import dios
 import saqc
-
-from saqc.funcs.noise import flagByStatLowPass
-from saqc.constants import *
+from saqc.constants import BAD, DOUBTFUL, UNFLAGGED
 from saqc.core import initFlagsLike
-from saqc.funcs.drift import (
-    flagDriftFromNorm,
-    flagDriftFromReference,
-)
-from saqc.funcs.outliers import flagRange
-from saqc.funcs.flagtools import flagManual, forceFlags, clearFlags
-from saqc.funcs.tools import dropField, copyField, maskTime
-from saqc.funcs.resampling import concatFlags
 from saqc.funcs.breaks import flagIsolated
-
-from tests.fixtures import *
+from saqc.funcs.drift import flagDriftFromNorm, flagDriftFromReference
+from saqc.funcs.flagtools import clearFlags, flagManual, forceFlags
+from saqc.funcs.noise import flagByStatLowPass
+from saqc.funcs.outliers import flagRange
+from saqc.funcs.resampling import concatFlags
+from saqc.funcs.tools import copyField, dropField, selectTime
 from tests.common import initData
+from tests.fixtures import char_dict, course_1
 
 
 @pytest.fixture
@@ -94,7 +96,7 @@ def test_flagSesonalRange(data, field):
         end = f"{test['endmonth']:02}-{test['endday']:02}T00:00:00"
 
         data, flags = copyField(data, field, flags, field + "_masked")
-        data, flags = maskTime(
+        data, flags = selectTime(
             data,
             newfield,
             flags,

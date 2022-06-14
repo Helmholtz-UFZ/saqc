@@ -1,4 +1,9 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
 import logging
@@ -6,14 +11,13 @@ from functools import partial
 from pathlib import Path
 
 import click
-
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from saqc.core.reader import fromConfig
+from dios.dios.dios import DictOfSeries
 from saqc.core.core import TRANSLATION_SCHEMES
-
+from saqc.core.reader import fromConfig
 
 logger = logging.getLogger("SaQC")
 
@@ -46,7 +50,7 @@ def readData(reader_dict, fname):
     reader = reader_dict.get(extension)
     if not reader:
         raise ValueError(
-            f"Unsupported file format '{extension}', use one of {tuple(reader.keys())}"
+            f"Unsupported file format '{extension}', use one of {tuple(reader_dict.keys())}"
         )
     return reader(fname)
 
@@ -56,7 +60,7 @@ def writeData(writer_dict, df, fname):
     writer = writer_dict.get(extension)
     if not writer:
         raise ValueError(
-            f"Unsupported file format '{extension}', use one of {tuple(writer.keys())}"
+            f"Unsupported file format '{extension}', use one of {tuple(writer_dict.keys())}"
         )
     writer(df, fname)
 
@@ -99,11 +103,7 @@ def main(config, data, scheme, outfile, nodata, log_level):
     _setupLogging(log_level)
     reader, writer = setupIO(nodata)
 
-    _data = []
-    for dfile in data:
-        df = readData(reader, dfile)
-        _data.append(df)
-    data = _data
+    data = [readData(reader, f) for f in data]
 
     saqc = fromConfig(
         config,
@@ -111,7 +111,10 @@ def main(config, data, scheme, outfile, nodata, log_level):
         scheme=TRANSLATION_SCHEMES[scheme or "simple"](),
     )
 
-    data_result, flags_result = saqc.result.data, saqc.result.flags
+    data_result = saqc.data.to_df()
+    flags_result = saqc.flags
+    if isinstance(flags_result, DictOfSeries):
+        flags_result = flags_result.to_df()
 
     if outfile:
 

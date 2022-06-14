@@ -1,25 +1,44 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
 """
 The module gathers all kinds of timeseries tranformations.
 """
 import re
+import sys
 import warnings
 from typing import Union
-import sys
 
-import pandas as pd
-import numpy as np
 import numba as nb
-from sklearn.neighbors import NearestNeighbors
-from scipy.stats import iqr, median_abs_deviation
-from scipy.signal import filtfilt, butter
+import numpy as np
 import numpy.polynomial.polynomial as poly
+import pandas as pd
+from scipy.signal import butter, filtfilt
+from scipy.stats import iqr, median_abs_deviation
+from sklearn.neighbors import NearestNeighbors
+
+from saqc.lib.tools import getFreqDelta
 
 
 def identity(ts):
-    # identity function
+    """
+    Returns the input.
+
+    Parameters
+    ----------
+    ts : pd.Series
+        A series with datetime index.
+
+    Returns
+    -------
+    ts: pd.Series
+        the original
+    """
     return ts
 
 
@@ -30,36 +49,56 @@ def count(ts):
     return ts.count()
 
 
-def first(ts):
-    # first is a dummy to trigger according built in count method of resamplers when
-    # passed to aggregate2freq. For consistency reasons, it works accordingly when
-    # applied directly:
-    return ts.first()
-
-
-def last(ts):
-    # last is a dummy to trigger according built in count method of resamplers when
-    # passed to aggregate2freq. For consistency reasons, it works accordingly when
-    # applied directly:
-    return ts.last()
-
-
 def zeroLog(ts):
-    # zero log returns np.nan instead of -np.inf, when passed 0. Usefull, because
-    # in internal processing, you only have to check for nan values if you need to
-    # remove "invalidish" values from the data.
+    """
+    Calculate log of values of series for (0, inf] and NaN otherwise.
+
+    Parameters
+    ----------
+    ts : pd.Series
+        A series with datetime index.
+
+    Returns
+    -------
+    pd.Series
+    """
     log_ts = np.log(ts)
     log_ts[log_ts == -np.inf] = sys.float_info.min
     return log_ts
 
 
 def derivative(ts, unit="1min"):
-    # calculates derivative of timeseries, expressed in slope per "unit"
-    return ts / (deltaT(ts, unit=unit))
+    """
+    Calculates derivative of timeseries, expressed in slope per `unit`.
+
+    Parameters
+    ----------
+    ts : pd.Series
+        A series with datetime index.
+
+    unit : str
+        Datetime offset unit.
+
+    Returns
+    -------
+    pd.Series
+    """
+    return ts / deltaT(ts, unit=unit)
 
 
 def deltaT(ts, unit="1min"):
-    # calculates series of time gaps in ts
+    """
+    Calculate the time difference of the index-values in seconds.
+
+    Parameters
+    ----------
+    ts : pd.Series
+        A series with datetime index.
+
+    Returns
+    -------
+    pd.Series
+    """
     return (
         ts.index.to_series().diff().dt.total_seconds()
         / pd.Timedelta(unit).total_seconds()
@@ -67,11 +106,34 @@ def deltaT(ts, unit="1min"):
 
 
 def difference(ts):
-    # NOTE: index of input series gets lost!
-    return np.diff(ts, prepend=np.nan)
+    """
+    Calculate the difference of subsequent values in the series.
+
+    Parameters
+    ----------
+    ts : pd.Series
+        A series with datetime index.
+
+    Returns
+    -------
+    pd.Series
+    """
+    return ts.diff(1)
 
 
 def rateOfChange(ts):
+    """
+    Calculate the rate of change of the series values.
+
+    Parameters
+    ----------
+    ts : pd.Series
+        A series with datetime index.
+
+    Returns
+    -------
+    pd.Series
+    """
     return difference(ts) / ts
 
 
@@ -83,7 +145,22 @@ def relativeDifference(ts):
 
 
 def scale(ts, target_range=1, projection_point=None):
-    # scales input series to have values ranging from - target_rang to + target_range
+    """
+    Scales input series values to a given range.
+
+
+    Parameters
+    ----------
+    ts : pd.Series
+        A series with datetime index.
+    target_range : int
+        The projection will range from ``[-target_range, target_range]``
+
+    Returns
+    -------
+    scaled: pd.Series
+        The scaled Series
+    """
     if not projection_point:
         projection_point = np.max(np.abs(ts))
     return (ts / projection_point) * target_range
@@ -133,9 +210,22 @@ def maxGap(in_arr):
 
 
 @nb.njit
-def _maxConsecutiveNan(arr, max_consec):
-    # checks if arr (boolean array) has not more then "max_consec" consecutive True
-    # values
+def _exceedConsecutiveNanLimit(arr, max_consec):
+    """
+    Check if array has more consecutive NaNs than allowed.
+
+    Parameters
+    ----------
+    arr : bool array
+        boolean array
+    max_consec : int
+        maximum allowed consecutive `True`s
+
+    Returns
+    -------
+    exceeded: bool
+        True if more than allowed consecutive NaNs appear, False otherwise.
+    """
     current = 0
     idx = 0
     while idx < arr.size:
@@ -143,10 +233,10 @@ def _maxConsecutiveNan(arr, max_consec):
             current += 1
             idx += 1
         if current > max_consec:
-            return False
+            return True
         current = 0
         idx += 1
-    return True
+    return False
 
 
 def validationTrafo(data, max_nan_total, max_nan_consec):
@@ -154,22 +244,17 @@ def validationTrafo(data, max_nan_total, max_nan_consec):
     # True-array of input array size for invalid input arrays False array for valid
     # ones
     data = data.copy()
-    if (max_nan_total is np.inf) & (max_nan_consec is np.inf):
+    if max_nan_total is np.inf and max_nan_consec is np.inf:
         return data
 
-    # nan_mask = np.isnan(data)
-
-    if data.sum() <= max_nan_total:
-        if max_nan_consec is np.inf:
-            data[:] = False
-            return data
-        elif _maxConsecutiveNan(np.asarray(data), max_nan_consec):
-            data[:] = False
-        else:
-            data[:] = True
+    if data.sum() > max_nan_total:
+        value = True
+    elif max_nan_consec is np.inf:
+        value = False
     else:
-        data[:] = True
+        value = _exceedConsecutiveNanLimit(np.asarray(data), max_nan_consec)
 
+    data[:] = value
     return data
 
 
@@ -231,7 +316,12 @@ def interpolateNANs(
         )
 
     pre_index = data.index
-    data = data[gap_mask]
+
+    if data[gap_mask].empty:
+        return data
+
+    else:
+        data = data[gap_mask]
 
     if method in ["linear", "time"]:
 
@@ -251,7 +341,7 @@ def interpolateNANs(
                 except (NotImplementedError, ValueError):
                     warnings.warn(
                         f"Interpolation with method {method} is not supported at order "
-                        f"{wrap_order}. and will be performed at order {wrap_order-1}"
+                        f"{wrap_order}. and will be performed at order {wrap_order - 1}"
                     )
                     return _interpolWrapper(x, int(wrap_order - 1), wrap_method)
             elif x.size < 3:
@@ -378,8 +468,8 @@ def butterFilter(
     x: pd.Series
         input timeseries
 
-    cutoff: float
-        The cutoff-frequency, expressed in multiples of the sampling rate.
+    cutoff: {float, str}
+        The cutoff-frequency, either an offset freq string, or expressed in multiples of the sampling rate.
 
     nyq: float
         The niquist-frequency. expressed in multiples if the sampling rate.
@@ -393,6 +483,9 @@ def butterFilter(
     Returns
     -------
     """
+    if isinstance(cutoff, str):
+        cutoff = getFreqDelta(x.index) / pd.Timedelta(cutoff)
+
     na_mask = x.isna()
     x = x.interpolate(fill_method).interpolate("ffill").interpolate("bfill")
     b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
@@ -410,7 +503,7 @@ def _coeffMat(x, deg):
     mat_[:, 1] = x
     if deg > 1:
         for n in range(2, deg + 1):
-            mat_[:, n] = x ** n
+            mat_[:, n] = x**n
     return mat_
 
 

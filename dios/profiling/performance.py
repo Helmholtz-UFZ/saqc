@@ -1,6 +1,12 @@
-import pandas as pd
-import numpy as np
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import time
+
+import numpy as np
+import pandas as pd
+
 from .generate_testsets import get_testset, var_prefix
 
 profile_assignment = False

@@ -1,15 +1,20 @@
-from dios import *
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import pytest
 from numpy.random import randint
 
+from dios import *
+
 try:
     from dios.operators import (
-        OP_MAP,
         _OP1_MAP,
-        _OP2_DIV_MAP,
         _OP2_ARITH_MAP,
         _OP2_BOOL_MAP,
         _OP2_COMP_MAP,
+        _OP2_DIV_MAP,
+        OP_MAP,
     )
 except ModuleNotFoundError:
     from dios.dios.operators import (
@@ -21,8 +26,8 @@ except ModuleNotFoundError:
         _OP2_COMP_MAP,
     )
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 a = pd.Series(range(0, 70, 7), dtype=int)
 b = pd.Series(range(5, 15, 1), dtype=int)
@@ -68,7 +73,7 @@ def df_unaligned__():
 def dios_fuzzy__(nr_cols=None, mincol=0, maxcol=10, itype=None):
     nr_of_cols = nr_cols if nr_cols else randint(mincol, maxcol + 1)
 
-    ns = 10 ** 9
+    ns = 10**9
     sec_per_year = 31536000
 
     ITYPES = [IntItype, FloatItype, DtItype, ObjItype]

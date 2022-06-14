@@ -1,4 +1,9 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
@@ -7,11 +12,14 @@ from typing import Callable, Tuple
 import numpy as np
 from typing_extensions import Literal
 
-from saqc.constants import BAD
 import saqc
+import saqc.funcs
+from saqc.constants import BAD
+from saqc.lib.docurator import doc
 
 
 class ChangePoints:
+    @doc(saqc.funcs.changepoints.flagChangePoints.__doc__)
     def flagChangePoints(
         self,
         field: str,
@@ -27,6 +35,7 @@ class ChangePoints:
     ) -> saqc.SaQC:
         return self._defer("flagChangePoints", locals())
 
+    @doc(saqc.funcs.changepoints.assignChangePointCluster.__doc__)
     def assignChangePointCluster(
         self,
         field: str,

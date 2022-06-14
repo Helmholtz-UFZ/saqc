@@ -1,8 +1,0 @@
-
-SaQC
-====
-
-.. automodapi:: sphinxdoc.coredoc
-
-
-

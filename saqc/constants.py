@@ -1,10 +1,27 @@
 #!/usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """
 The module comprises flag value constants in use throughout saqc.
-The constants order as follows (from "worse" to "best"):
 
-:py:const:`~saqc.constants.BAD` > :py:const:`~saqc.constants.DOUBTFUL` > :py:const:`~saqc.constants.GOOD` >
-:py:const:`~saqc.constants.UNFLAGGED`
+Flagging Constants
+------------------
+* :py:const:`~saqc.constants.UNFLAGGED`: indicates that no flag has been assigned yet
+* :py:const:`~saqc.constants.GOOD`: the lowest possible flag value larget than :py:const:`~saqc.constants.UNFLAGGED`
+* :py:const:`~saqc.constants.DOUBFUL`: a modest flag value, usually indicating some sort of suspiciousness
+* :py:const:`~saqc.constants.BAD`: the highest flag value available
+
+The flagging constants are ordered (from "worse" to "best") as:
+
+:py:const:`~saqc.constants.BAD` > :py:const:`~saqc.constants.DOUBTFUL` > :py:const:`~saqc.constants.GOOD` > :py:const:`~saqc.constants.UNFLAGGED`
+
+Filtering Constants
+-------------------
+* :py:const:`~saqc.constants.FILTER_ALL`: mask/filter all flagged data
+* :py:const:`~saqc.constants.FILTER_NONE`: mask/filter no data
 """
 
 __all__ = [
@@ -20,51 +37,36 @@ __all__ = [
 
 import numpy as np
 import scipy.stats as st
+
 import saqc.lib.ts_operators as ts_ops
 
 # ----------------------------------------------------------------------
 # global flag constants
 # ----------------------------------------------------------------------
 
-#: A :py:mod:`flag level constant <saqc.constants>`
-#: , evaluating to the level, that indicates, no flag has been assigned to yet.
 UNFLAGGED = -np.inf
-
-#: A :py:mod:`flag level constant <saqc.constants>`
-#: , evaluating to the lowest level level of flagging, that is
-#: not :py:const:`UNFLAGGED <saqc.constants.UNFLAGGED>`.
 GOOD = 0
-
-#: A :py:mod:`flag level constant <saqc.constants>`
-#: , evaluating to a somewhat modest flag level.
 DOUBTFUL = 25.0
-
-#: A :py:mod:`flag level constant <saqc.constants>`
-#: , evaluating to the highest (internal) flag level available.
 BAD = 255.0
-
 
 # ----------------------------------------------------------------------
 # global dfilter constants
 # ----------------------------------------------------------------------
 
-#: A :py:mod:`dfilter constant <saqc.constants>`
-#: , mask/filter all flagged data.
 FILTER_ALL = -np.inf
-
-#: A :py:mod:`dfilter constant <saqc.constants>`
-#: , mask/filter no data at all.
 FILTER_NONE = np.inf
-
 
 # ----------------------------------------------------------------------
 # other
 # ----------------------------------------------------------------------
 
-#: A :py:mod:`flag level constant <saqc.constants>`
 ENVIRONMENT = {
+    # Infinity constant
+    "inf": np.inf,
+    "INF": np.inf,
     # Not A number Constant.
     "NAN": np.nan,
+    "nan": np.nan,
     # Pointwise absolute Value Function.
     "abs": np.abs,
     # Maximum Value Function. Ignores NaN.
@@ -107,4 +109,6 @@ ENVIRONMENT = {
     "BAD": BAD,
     "UNFLAGGED": UNFLAGGED,
     "DOUBTFUL": DOUBTFUL,
+    "FILTER_ALL": FILTER_ALL,
+    "FILTER_NONE": FILTER_NONE,
 }

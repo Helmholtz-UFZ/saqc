@@ -1,8 +1,12 @@
 #!/usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import pytest
 
 from .test_setup import *
-
 
 __author__ = "Bert Palm"
 __email__ = "bert.palm@ufz.de"

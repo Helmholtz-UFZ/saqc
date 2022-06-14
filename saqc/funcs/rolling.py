@@ -1,14 +1,20 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable, Tuple
+from typing import Callable, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from dios import DictOfSeries
 
-from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.lib.tools import getFreqDelta, filterKwargs
+from dios import DictOfSeries
+from saqc.core.flags import Flags
+from saqc.core.register import register
+from saqc.lib.tools import getFreqDelta
 
 
 @register(mask=["field"], demask=[], squeeze=[])
@@ -56,8 +62,6 @@ def roll(
     flags : saqc.Flags
         The quality flags of data
     """
-    reserved = ["return_residues", "set_flags"]
-    kwargs = filterKwargs(kwargs, reserved)
     return _roll(
         data=data,
         field=field,
@@ -67,9 +71,6 @@ def roll(
         min_periods=min_periods,
         center=center,
         **kwargs,
-        # ctrl args
-        set_flags=True,
-        return_residues=False,
     )
 
 
@@ -79,10 +80,8 @@ def _roll(
     flags: Flags,
     window: Union[str, int],
     func: Callable[[pd.Series], np.ndarray] = np.mean,
-    set_flags: bool = True,
     min_periods: int = 0,
     center: bool = True,
-    return_residues=False,
     **kwargs
 ):
     to_fit = data[field].copy()
@@ -148,12 +147,8 @@ def _roll(
                 func
             )
 
-    if return_residues:
-        means = to_fit - means
-
     data[field] = means
-    if set_flags:
-        worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()
-        flags[field] = worst
+    worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()
+    flags[field] = worst
 
     return data, flags

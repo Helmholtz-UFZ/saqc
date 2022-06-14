@@ -1,12 +1,20 @@
 #! /usr/bin/env python
-# -*- coding: utf-8 -*-
 
-from typing import Optional, Callable, Tuple, Union
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# -*- coding: utf-8 -*-
+from __future__ import annotations
+
+from typing import Callable, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from dios import DictOfSeries
 
-from saqc.core import register, Flags
+from dios import DictOfSeries
+from saqc.core.flags import Flags
+from saqc.core.register import register
 
 
 @register(mask=["field"], demask=[], squeeze=[])
@@ -16,7 +24,7 @@ def transform(
     flags: Flags,
     func: Callable[[pd.Series], pd.Series],
     freq: Optional[Union[float, str]] = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Function to transform data columns with a transformation that maps series onto series of the same length.

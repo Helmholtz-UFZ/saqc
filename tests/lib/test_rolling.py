@@ -1,19 +1,28 @@
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+import numpy as np
+import pandas as pd
 import pytest
 
-import pandas as pd
-import numpy as np
 from saqc.lib.rolling import customRoller
 
 n = np.nan
 
 
 def test_rolling_existence_of_attrs():
-    r = pd.DataFrame().rolling(0).validate()
+    r = pd.DataFrame().rolling(0)
+    if int(pd.__version__.replace(".", "")) < 140:
+        r = r.validate()
+    else:
+        # after pandas 1.4 Rolling.validate() is deprecated,
+        # the wrapped method, however, is not. For now, we use this
+        r = r._validate()
     c = customRoller(pd.DataFrame(), 0, min_periods=0)
     expected = [attr for attr in dir(r) if not attr.startswith("_")]
     result = [attr for attr in dir(c) if not attr.startswith("_")]
     diff = [attr for attr in expected if attr not in result]
-    print(diff)
     assert len(diff) == 0
 
 
@@ -125,6 +134,7 @@ def test_rolling_expand_forward(data, kws, expected):
     assert np.allclose(result, expected, rtol=0, atol=0, equal_nan=True)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("window", ["0H", "1H", "2H", "3H", "4H"])
 @pytest.mark.parametrize("closed", ["both", "neither", "left", "right"])
 @pytest.mark.parametrize("center", [False, True], ids=lambda x: f" center={x} ")

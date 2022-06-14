@@ -1,4 +1,9 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
@@ -8,19 +13,41 @@ import numpy as np
 import pandas as pd
 
 from dios import DictOfSeries
-
-from saqc.constants import BAD, UNFLAGGED, ENVIRONMENT, FILTER_ALL
+from saqc.constants import BAD, ENVIRONMENT, FILTER_ALL
+from saqc.core.flags import Flags
 from saqc.core.history import History
+from saqc.core.register import FunctionWrapper, _isflagged, register
 from saqc.lib.tools import toSequence
 from saqc.lib.types import GenericFunction, PandasLike
-from saqc.core.flags import Flags
-from saqc.core.register import register, _isflagged, FunctionWrapper
+
+
+def _flagSelect(field, flags, label=None):
+    if label is None:
+        return flags[field]
+
+    h_meta = flags.history[field].meta
+    trg_col = None
+
+    for idx, item in enumerate(h_meta):
+        kwargs = item.get("kwargs")
+        if kwargs is None or "label" not in kwargs:
+            continue
+        if kwargs["label"] == label:
+            trg_col = idx
+
+    if trg_col is None:
+        raise KeyError(f"no such label {label} for field {field}")
+
+    out = flags.history[field].hist[trg_col].astype(float)
+    return out.fillna(-np.inf)
 
 
 def _prepare(
     data: DictOfSeries, flags: Flags, columns: Sequence[str], dfilter: float
 ) -> Tuple[DictOfSeries, Flags]:
     fchunk = Flags({f: flags[f] for f in columns})
+    for f in fchunk.columns:
+        fchunk.history[f] = flags.history[f]
     dchunk, _ = FunctionWrapper._maskData(
         data=data.loc[:, columns].copy(), flags=fchunk, columns=columns, thresh=dfilter
     )
@@ -35,7 +62,9 @@ def _execGeneric(
 ) -> DictOfSeries:
 
     globs = {
-        "isflagged": lambda data: _isflagged(flags[data.name], thresh=dfilter),
+        "isflagged": lambda data, label=None: _isflagged(
+            _flagSelect(data.name, flags, label), thresh=dfilter
+        ),
         **ENVIRONMENT,
     }
 
@@ -66,8 +95,7 @@ def processGeneric(
     field: str | Sequence[str],
     flags: Flags,
     func: GenericFunction,
-    target: str | Sequence[str] = None,
-    flag: float = UNFLAGGED,
+    target: str | Sequence[str] | None = None,
     dfilter: float = FILTER_ALL,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
@@ -101,10 +129,9 @@ def processGeneric(
         The variable(s) to write the result of ``func`` to. If not given, the variable(s)
         specified in ``field`` will be overwritten. If a ``target`` is not given, it will be
         created.
-    flag: float, default ``UNFLAGGED``
-        The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
-        ``processGeneric`` generates 'new' data without direct relation to the potentially
-        already present flags.
+    flag: float, default ``np.nan``
+        The quality flag to set. The default ``np.nan`` states the general idea, that
+        ``processGeneric`` generates 'new' data without any flags.
     dfilter: float, default ``FILTER_ALL``
         Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
         data value is inappropiate for further usage.
@@ -127,12 +154,12 @@ def processGeneric(
     Compute the sum of the variables 'rainfall' and 'snowfall' and save the result to
     a (new) variable 'precipitation'
 
-    .. testsetup::
-
-       qc = saqc.SaQC(pd.DataFrame({'rainfall':[0], 'snowfall':[0], 'precipitation':[0]}, index=pd.DatetimeIndex([0])))
-
-
-    >>> qc = qc.processGeneric(field=["rainfall", "snowfall"], target="precipitation'", func=lambda x, y: x + y)
+    >>> from saqc import SaQC
+    >>> qc = SaQC(pd.DataFrame({'rainfall':[1], 'snowfall':[2]}, index=pd.DatetimeIndex([0])))
+    >>> qc = qc.processGeneric(field=["rainfall", "snowfall"], target="precipitation", func=lambda x, y: x + y)
+    >>> qc.data.to_df()
+    columns     rainfall  snowfall  precipitation
+    1970-01-01         1         2              3
     """
 
     fields = toSequence(field)
@@ -143,14 +170,11 @@ def processGeneric(
 
     meta = {
         "func": "procGeneric",
-        "args": (),
+        "args": (field, target),
         "kwargs": {
-            **kwargs,
-            "field": field,
             "func": func.__name__,
-            "target": target,
-            "flag": flag,
             "dfilter": dfilter,
+            **kwargs,
         },
     }
 
@@ -169,7 +193,7 @@ def processGeneric(
                 "because of incompatible indices, please choose another 'target'"
             )
 
-        flags.history[col].append(pd.Series(flag, index=datacol.index), meta)
+        flags.history[col].append(pd.Series(np.nan, index=datacol.index), meta)
 
     return data, flags
 
@@ -217,8 +241,8 @@ def flagGeneric(
         The variable(s) to write the result of ``func`` to. If not given, the variable(s)
         specified in ``field`` will be overwritten. If a ``target`` is not given, it will be
         created.
-    flag: float, default ``UNFLAGGED``
-        The quality flag to set. The default ``UNFLAGGED`` states the general idea, that
+    flag: float, default ``BAD``
+        The quality flag to set. The default ``BAD`` states the general idea, that
         ``processGeneric`` generates 'new' data without direct relation to the potentially
         already present flags.
     dfilter: float, default ``FILTER_ALL``
@@ -279,14 +303,12 @@ def flagGeneric(
 
     meta = {
         "func": "flagGeneric",
-        "args": (),
+        "args": (field, target),
         "kwargs": {
-            **kwargs,
-            "field": field,
             "func": func.__name__,
-            "target": target,
             "flag": flag,
             "dfilter": dfilter,
+            **kwargs,
         },
     }
 
@@ -303,7 +325,6 @@ def flagGeneric(
         if col not in data:
             data[col] = pd.Series(np.nan, index=maskcol.index)
 
-        maskcol = maskcol & ~_isflagged(flags[col], dfilter)
         flagcol = maskcol.replace({False: np.nan, True: flag}).astype(float)
 
         # we need equal indices to work on

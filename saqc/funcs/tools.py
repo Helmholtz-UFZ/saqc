@@ -1,21 +1,26 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
+import pickle
 from typing import Optional, Tuple
-
-from typing_extensions import Literal
-import numpy as np
-from dios import DictOfSeries
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import pickle
+import numpy as np
+from typing_extensions import Literal
 
-from saqc.constants import *
-from saqc.core.register import processing
-from saqc.core import register, Flags
-from saqc.lib.tools import periodicMask, filterKwargs
+from dios import DictOfSeries
+from saqc.constants import FILTER_NONE, UNFLAGGED
+from saqc.core.flags import Flags
+from saqc.core.register import processing, register
 from saqc.lib.plotting import makeFig
+from saqc.lib.tools import periodicMask
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 
@@ -129,12 +134,12 @@ def renameField(
 
 
 @register(mask=[], demask=[], squeeze=["field"])
-def maskTime(
+def selectTime(
     data: DictOfSeries,
     field: str,
     flags: Flags,
-    mode: Literal["periodic", "mask_field"],
-    mask_field: Optional[str] = None,
+    mode: Literal["periodic", "selection_field"],
+    selection_field: Optional[str] = None,
     start: Optional[str] = None,
     end: Optional[str] = None,
     closed: bool = True,
@@ -151,7 +156,7 @@ def maskTime(
     Here comes a recipe on how to apply a flagging function only on a masked chunk of the variable field:
 
     1. dublicate "field" in the input data (`copyField`)
-    2. mask the dublicated data (this, `maskTime`)
+    2. mask the dublicated data (this, `selectTime`)
     3. apply the tests you only want to be applied onto the masked data chunks (a saqc function)
     4. project the flags, calculated on the dublicated and masked data onto the original field data
         (`concateFlags` or `flagGeneric`)
@@ -167,11 +172,11 @@ def maskTime(
         The fieldname of the column, holding the data-to-be-masked.
     flags : saqc.Flags
         Container to store flags of the data.
-    mode : {"periodic", "mask_var"}
+    mode : {"periodic", "mask_field"}
         The masking mode.
         - "periodic": parameters "period_start", "end" are evaluated to generate a periodical mask
         - "mask_var": data[mask_var] is expected to be a boolean valued timeseries and is used as mask.
-    mask_field : {None, str}, default None
+    selection_field : {None, str}, default None
         Only effective if mode == "mask_var"
         Fieldname of the column, holding the data that is to be used as mask. (must be boolean series)
         Neither the series` length nor its labels have to match data[field]`s index and length. An inner join of the
@@ -209,41 +214,38 @@ def maskTime(
     The highest date unit gives the period.
     For example:
 
-    >>> period_start = "01T15:00:00"
+    >>> start = "01T15:00:00"
     >>> end = "13T17:30:00"
 
     Will result in all values sampled between 15:00 at the first and  17:30 at the 13th of every month get masked
 
-    >>> period_start = "01:00"
+    >>> start = "01:00"
     >>> end = "04:00"
 
     All the values between the first and 4th minute of every hour get masked.
 
-    >>> period_start = "01-01T00:00:00"
+    >>> start = "01-01T00:00:00"
     >>> end = "01-03T00:00:00"
 
     Mask january and february of evcomprosed in theery year. masking is inclusive always, so in this case the mask will
     include 00:00:00 at the first of march. To exclude this one, pass:
 
-    >>> period_start = "01-01T00:00:00"
+    >>> start = "01-01T00:00:00"
     >>> end = "02-28T23:59:59"
 
     To mask intervals that lap over a seasons frame, like nights, or winter, exchange sequence of season start and
     season end. For example, to mask night hours between 22:00:00 in the evening and 06:00:00 in the morning, pass:
 
-    >>> period_start = "22:00:00"
+    >>> start = "22:00:00"
     >>> end = "06:00:00"
-
-    When inclusive_selection="season", all above examples work the same way, only that you now
-    determine wich values NOT TO mask (=wich values are to constitute the "seasons").
     """
     datcol_idx = data[field].index
 
     if mode == "periodic":
-        mask = periodicMask(datcol_idx, start, end, closed)
-    elif mode == "mask_field":
-        idx = data[mask_field].index.intersection(datcol_idx)
-        mask = data.loc[idx, mask_field]
+        mask = periodicMask(datcol_idx, start, end, ~closed)
+    elif mode == "selection_field":
+        idx = data[selection_field].index.intersection(datcol_idx)
+        mask = data.loc[idx, selection_field]
     else:
         raise ValueError("Keyword passed as masking mode is unknown ({})!".format(mode))
 
@@ -259,12 +261,12 @@ def plot(
     flags: Flags,
     path: Optional[str] = None,
     max_gap: Optional[str] = None,
-    history: Optional[Literal["valid", "complete", "clear"]] = "valid",
+    history: Optional[Literal["valid", "complete"] | list] = "valid",
     xscope: Optional[slice] = None,
     phaseplot: Optional[str] = None,
     store_kwargs: Optional[dict] = None,
     ax_kwargs: Optional[dict] = None,
-    dfilter: float = FILTER_ALL,
+    dfilter: Optional[float] = FILTER_NONE,
     **kwargs,
 ):
     """
@@ -299,14 +301,14 @@ def plot(
         before plotting. If an offset string is passed, only points that have a distance
         below `max_gap` get connected via the plotting line.
 
-    history : {"valid", "complete", None}, default "valid"
+    history : {"valid", "complete", None, list of strings}, default "valid"
         Discriminate the plotted flags with respect to the tests they originate from.
 
         * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
           in the legend, that actually contributed flags to the overall resault.
         * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
-        * "clear" - clear plot from all the flagged values
         * None - just plot the resulting flags for one variable, without any historical meta information.
+        * list of strings - plot only flags set by those tests listed.
 
     xscope : slice or Offset, default None
         Parameter, that determines a chunk of the data to be plotted
@@ -323,15 +325,17 @@ def plot(
 
     ax_kwargs : dict, default {}
         Axis keywords. Change the axis labeling defaults. Most important keywords:
-        'x_label', 'y_label', 'title', 'fontsize'.
+        'x_label', 'y_label', 'title', 'fontsize', 'cycleskip'.
 
     """
+    # keep the very original, not the copy
+    orig = data, flags
+    data, flags = data.copy(), flags.copy()
 
     interactive = path is None
-    level = kwargs.get("flag", BAD)
+    level = kwargs.get("flag", UNFLAGGED)
 
     if dfilter < np.inf:
-        data = data.copy()
         data.loc[flags[field] >= dfilter, field] = np.nan
 
     if store_kwargs is None:
@@ -368,4 +372,4 @@ def plot(
         else:
             fig.savefig(path, **store_kwargs)
 
-    return data, flags
+    return orig

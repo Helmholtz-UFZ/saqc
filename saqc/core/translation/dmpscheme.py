@@ -1,29 +1,23 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
 from __future__ import annotations
 
 import json
-from typing import Any
 from functools import reduce
 
 import numpy as np
 import pandas as pd
 
+from saqc.constants import BAD, DOUBTFUL, GOOD, UNFLAGGED
+from saqc.core.flags import Flags
 from saqc.core.history import History
-from saqc.core.flags import (
-    Flags,
-    UNFLAGGED,
-    GOOD,
-    DOUBTFUL,
-    BAD,
-)
-from saqc.core.translation.basescheme import (
-    BackwardMap,
-    TranslationScheme,
-    ForwardMap,
-)
-
+from saqc.core.translation.basescheme import BackwardMap, ForwardMap, TranslationScheme
 
 _QUALITY_CAUSES = [
     "",
@@ -55,6 +49,8 @@ class DmpScheme(TranslationScheme):
 
     ARGUMENTS = {"comment": "", "cause": "OTHER"}
 
+    DFILTER_DEFAULT = GOOD + 1
+
     _FORWARD: ForwardMap = {
         "NIL": UNFLAGGED,
         "OK": GOOD,
@@ -72,6 +68,28 @@ class DmpScheme(TranslationScheme):
 
     def __init__(self):
         super().__init__(forward=self._FORWARD, backward=self._BACKWARD)
+
+    def toHistory(self, field_flags: pd.DataFrame):
+        """
+        Translate a single field of external ``Flags`` to a ``History``
+        """
+        field_history = History(field_flags.index)
+
+        for (flag, cause, comment), values in field_flags.groupby(_QUALITY_LABELS):
+            try:
+                comment = json.loads(comment)
+            except json.decoder.JSONDecodeError:
+                comment = {"test": "unknown", "comment": ""}
+
+            histcol = pd.Series(np.nan, index=field_flags.index)
+            histcol.loc[values.index] = self(flag)
+
+            meta = {
+                "func": comment["test"],
+                "kwargs": {"comment": comment["comment"], "cause": cause},
+            }
+            field_history.append(histcol, meta=meta)
+        return field_history
 
     def forward(self, df: pd.DataFrame) -> Flags:
         """
@@ -91,27 +109,8 @@ class DmpScheme(TranslationScheme):
 
         data = {}
 
-        for field in df.columns.get_level_values(0):
-
-            field_flags = df[field]
-            field_history = History(field_flags.index)
-
-            for (flag, cause, comment), values in field_flags.groupby(_QUALITY_LABELS):
-                try:
-                    comment = json.loads(comment)
-                except json.decoder.JSONDecodeError:
-                    comment = {"test": "unknown", "comment": ""}
-
-                histcol = pd.Series(np.nan, index=field_flags.index)
-                histcol.loc[values.index] = self(flag)
-
-                meta = {
-                    "func": comment["test"],
-                    "kwargs": {"comment": comment["comment"], "cause": cause},
-                }
-                field_history.append(histcol, meta=meta)
-
-            data[str(field)] = field_history
+        for field in df.columns.get_level_values(0).drop_duplicates():
+            data[str(field)] = self.toHistory(df[field])
 
         return Flags(data)
 

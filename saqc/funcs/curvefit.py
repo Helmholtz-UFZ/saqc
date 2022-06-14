@@ -1,22 +1,27 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
 from typing import Tuple, Union
-from typing_extensions import Literal
+
 import numpy as np
 import pandas as pd
-from dios import DictOfSeries
 
-from saqc.constants import *
-from saqc.core import register, Flags
-from saqc.lib.tools import getFreqDelta, filterKwargs
+from dios import DictOfSeries
+from saqc.core.flags import Flags
+from saqc.core.register import register
+from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import (
-    polyRollerIrregular,
-    polyRollerNumba,
     polyRoller,
-    polyRollerNoMissingNumba,
+    polyRollerIrregular,
     polyRollerNoMissing,
+    polyRollerNoMissingNumba,
+    polyRollerNumba,
 )
 
 
@@ -28,7 +33,7 @@ def fitPolynomial(
     window: int | str,
     order: int,
     min_periods: int = 0,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     """
     Fits a polynomial model to the data.
@@ -42,7 +47,7 @@ def fitPolynomial(
     In case your data is sampled at an equidistant frequency grid:
 
     (1) If you know your data to have no significant number of missing values,
-    or if you do not want to calculate residues for windows containing missing values
+    or if you do not want to calculate residuals for windows containing missing values
     any way, performance can be increased by setting min_periods=window.
 
     Note, that the initial and final window/2 values do not get fitted.
@@ -87,8 +92,6 @@ def fitPolynomial(
     flags : saqc.Flags
         Flags
     """
-    reserved = ["residues", "set_flags"]
-    filterKwargs(kwargs, reserved)
     return _fitPolynomial(
         data=data,
         field=field,
@@ -97,9 +100,6 @@ def fitPolynomial(
         order=order,
         min_periods=min_periods,
         **kwargs,
-        # ctrl args
-        return_residues=False,
-        set_flags=True,
     )
 
 
@@ -109,10 +109,8 @@ def _fitPolynomial(
     flags: Flags,
     window: Union[int, str],
     order: int,
-    set_flags: bool = True,
     min_periods: int = 0,
-    return_residues: bool = False,
-    **kwargs
+    **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
 
     # TODO: some (rather large) parts are functional similar to saqc.funcs.rolling.roll
@@ -135,7 +133,7 @@ def _fitPolynomial(
         ).floor()
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
-        residues = to_fit.rolling(
+        fitted = to_fit.rolling(
             pd.Timedelta(window), closed="both", min_periods=min_periods
         ).apply(polyRollerIrregular, args=(centers, order))
 
@@ -148,11 +146,11 @@ def _fitPolynomial(
             .apply(center_func, raw=False)
             .astype(int)
         )
-        temp = residues.copy()
+        temp = fitted.copy()
         for k in centers_iloc.iteritems():
-            residues.iloc[k[1]] = temp[k[0]]
-        residues[residues.index[0] : residues.index[centers_iloc[0]]] = np.nan
-        residues[residues.index[centers_iloc[-1]] : residues.index[-1]] = np.nan
+            fitted.iloc[k[1]] = temp[k[0]]
+        fitted[fitted.index[0] : fitted.index[centers_iloc[0]]] = np.nan
+        fitted[fitted.index[centers_iloc[-1]] : fitted.index[-1]] = np.nan
     else:
         if isinstance(window, str):
             window = pd.Timedelta(window) // regular
@@ -180,7 +178,7 @@ def _fitPolynomial(
             na_mask = to_fit.isna()
             to_fit[na_mask] = miss_marker
             if numba:
-                residues = to_fit.rolling(window).apply(
+                fitted = to_fit.rolling(window).apply(
                     polyRollerNumba,
                     args=(miss_marker, val_range, center_index, order),
                     raw=True,
@@ -189,18 +187,18 @@ def _fitPolynomial(
                 )
                 # due to a tiny bug - rolling with center=True doesnt work
                 # when using numba engine.
-                residues = residues.shift(-int(center_index))
+                fitted = fitted.shift(-int(center_index))
             else:
-                residues = to_fit.rolling(window, center=True).apply(
+                fitted = to_fit.rolling(window, center=True).apply(
                     polyRoller,
                     args=(miss_marker, val_range, center_index, order),
                     raw=True,
                 )
-            residues[na_mask] = np.nan
+            fitted[na_mask] = np.nan
         else:
             # we only fit fully populated intervals:
             if numba:
-                residues = to_fit.rolling(window).apply(
+                fitted = to_fit.rolling(window).apply(
                     polyRollerNoMissingNumba,
                     args=(val_range, center_index, order),
                     engine="numba",
@@ -209,21 +207,16 @@ def _fitPolynomial(
                 )
                 # due to a tiny bug - rolling with center=True doesnt work
                 # when using numba engine.
-                residues = residues.shift(-int(center_index))
+                fitted = fitted.shift(-int(center_index))
             else:
-                residues = to_fit.rolling(window, center=True).apply(
+                fitted = to_fit.rolling(window, center=True).apply(
                     polyRollerNoMissing,
                     args=(val_range, center_index, order),
                     raw=True,
                 )
 
-    if return_residues:
-        residues = to_fit - residues
-
-    data[field] = residues
-    if set_flags:
-        # TODO: we does not get any flags here, because of masking=field
-        worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()
-        flags[field] = worst
+    data[field] = fitted
+    worst = flags[field].rolling(window, center=True, min_periods=min_periods).max()
+    flags[field] = worst
 
     return data, flags

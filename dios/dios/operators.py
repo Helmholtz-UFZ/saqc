@@ -1,6 +1,9 @@
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # do not import dios-stuff here
 import operator as op
-
 
 _OP1_MAP = {
     op.inv: "~",

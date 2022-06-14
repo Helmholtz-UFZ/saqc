@@ -1,21 +1,26 @@
 #! /usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # -*- coding: utf-8 -*-
 
 import ast
-from saqc.core.flags import Flags
-from saqc.core.reader import fromConfig
-import pytest
+
 import numpy as np
 import pandas as pd
+import pytest
+
 import dios
-
-from saqc.constants import *
-from saqc.core import initFlagsLike
-from saqc.core.visitor import ConfigFunctionParser
-from saqc.core.register import register
-from saqc.funcs.generic import _execGeneric
 from saqc import SaQC
-
+from saqc.constants import BAD, UNFLAGGED
+from saqc.core import initFlagsLike
+from saqc.core.flags import Flags
+from saqc.core.reader import fromConfig
+from saqc.core.register import register
+from saqc.core.visitor import ConfigFunctionParser
+from saqc.funcs.generic import _execGeneric
 from tests.common import initData, writeIO
 
 
@@ -102,7 +107,7 @@ def test_arithmeticOperators(data):
         ("var1 * 100 > 200", data * 100 > 200),
         ("var1 / 100 > .1", data / 100 > 0.1),
         ("var1 % 2 == 1", data % 2 == 1),
-        ("var1 ** 2 == 0", data ** 2 == 0),
+        ("var1 ** 2 == 0", data**2 == 0),
     ]
 
     for test, expected in tests:
@@ -164,7 +169,7 @@ def test_processExistingTarget(data):
     config = f"""
     varname ; test
     var2   ; flagMissing()
-    var2   ; processGeneric(func=y - 1, flag=DOUBTFUL)
+    var2   ; processGeneric(func=y - 1)
     """
 
     fobj = writeIO(config)
@@ -172,7 +177,7 @@ def test_processExistingTarget(data):
     assert (saqc._data["var2"] == data["var2"] - 1).all()
     assert len(saqc._flags.history["var2"]) == 2
     assert saqc._flags.history["var2"].hist[0].isna().all()
-    assert (saqc._flags.history["var2"].hist[1] == DOUBTFUL).all()
+    assert saqc._flags.history["var2"].hist[1].isna().all()
 
 
 def test_flagTargetExisting(data):
@@ -211,6 +216,7 @@ def test_flagTargetExistingFail(data_diff):
         fromConfig(fobj, data_diff)
 
 
+@pytest.mark.slow
 def test_callableArgumentsUnary(data):
 
     window = 5
@@ -235,8 +241,8 @@ def test_callableArgumentsUnary(data):
 
     for (name, func) in tests:
         fobj = writeIO(config.format(name))
-        result_config = fromConfig(fobj, data).result.data
-        result_api = SaQC(data).testFuncUnary(var, func=func).result.data
+        result_config = fromConfig(fobj, data).data
+        result_api = SaQC(data).testFuncUnary(var, func=func).data
         expected = data[var].rolling(window=window).apply(func)
         assert (result_config[var].dropna() == expected.dropna()).all(axis=None)
         assert (result_api[var].dropna() == expected.dropna()).all(axis=None)
@@ -262,8 +268,8 @@ def test_callableArgumentsBinary(data):
 
     for (name, func) in tests:
         fobj = writeIO(config.format(name))
-        result_config = fromConfig(fobj, data).result.data
-        result_api = SaQC(data).testFuncBinary(var1, func=func).result.data
+        result_config = fromConfig(fobj, data).data
+        result_api = SaQC(data).testFuncBinary(var1, func=func).data
         expected = func(data[var1], data[var2])
         assert (result_config[var1].dropna() == expected.dropna()).all(axis=None)
         assert (result_api[var1].dropna() == expected.dropna()).all(axis=None)

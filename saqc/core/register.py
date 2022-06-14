@@ -1,15 +1,21 @@
 #!/usr/bin/env python
+
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from __future__ import annotations
 
+import functools
 import inspect
 import warnings
-from typing import Dict, Tuple, Callable, Sequence, Any
-import functools
+from typing import Any, Callable, Dict, Sequence, Tuple
+
 import numpy as np
 import pandas as pd
-import dios
 
-from saqc.constants import UNFLAGGED, FILTER_ALL
+import dios
+from saqc.constants import FILTER_ALL, UNFLAGGED
 from saqc.core.flags import Flags, History
 from saqc.lib.tools import squeezeSequence, toSequence
 
@@ -268,7 +274,7 @@ class FunctionWrapper:
             start = len(old_history.columns)
             new_history = self._sliceHistory(new_history, slice(start, None))
 
-            squeezed = new_history.max(raw=True)
+            squeezed = new_history.squeeze(raw=True)
             out.history[col] = out.history[col].append(squeezed, meta=meta)
 
         return out
@@ -459,7 +465,9 @@ def processing(**kwargs):
     return register(mask=[], demask=[], squeeze=[])
 
 
-def _isflagged(flagscol: np.ndarray | pd.Series, thresh: float) -> np.array | pd.Series:
+def _isflagged(
+    flagscol: np.ndarray | pd.Series, thresh: float
+) -> np.ndarray | pd.Series:
     """
     Return a mask of flags accordingly to `thresh`. Return type is same as flags.
     """
