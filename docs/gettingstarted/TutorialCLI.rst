@@ -104,7 +104,7 @@ config-file on the toy dataset via the ``-c`` and ``-d`` options:
 
 .. code-block:: sh
 
-   python3 -m saqc -c resources/data/myconfig.csv -d resources/data/data.csv
+   python3 -m saqc -c docs/resources/data/myconfig.csv -d docs/resources/data/data.csv
 
 On Windows
 """"""""""
@@ -126,7 +126,7 @@ config-file on the toy dataset via the ``-c`` and ``-d`` options:
 
 .. code-block:: sh
 
-   py -3 -m saqc -c resources/data/myconfig.csv -d resources/data/data.csv
+   py -3 -m saqc -c docs/resources/data/myconfig.csv -d docs/resources/data/data.csv
 
 If you installed saqc via PYPi, you can omit ``sh python -m``.
 
@@ -159,7 +159,7 @@ use of the ``-o`` option:
 
 .. code-block:: sh
 
-   saqc -c resources/data/config.csv -d resources/data/data.csv -o resources/data/out.csv
+   saqc -c docs/resources/data/config.csv -d docs/resources/data/data.csv -o out.csv
 
 Which saves a dataframe that contains both the original data and the quality
 flags that were assigned by SaQC for each of the variables:
