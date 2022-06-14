@@ -163,7 +163,12 @@ class SaQC(FunctionsMixin):
             **kwargs,
         ) -> SaQC:
 
-            kwargs.setdefault("dfilter", self._scheme.DFILTER_DEFAULT)
+            if "dfilter" not in kwargs:
+                # let's see, if the function has an default value
+                default = func.func_signature.parameters.get("dfilter")
+                if default:
+                    default = default.default
+                kwargs["dfilter"] = default or self._scheme.DFILTER_DEFAULT
 
             if not isinstance(flag, OptionalNone):
                 # translation schemes might want to use a flag
