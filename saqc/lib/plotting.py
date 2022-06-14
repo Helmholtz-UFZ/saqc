@@ -44,7 +44,7 @@ _seaborn_color_palette = [
 ]
 
 SCATTER_KWARGS = {
-    "marker": ["s", "D", "^", "o"],
+    "marker": ["s", "D", "^", "o", "v"],
     "color": _seaborn_color_palette,
     "alpha": 0.7,
     "zorder": 10,
