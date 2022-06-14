@@ -29,6 +29,6 @@ class Constants:
 
     @doc(saqc.funcs.constants.flagConstants.__doc__)
     def flagConstants(
-        self, field: str, thresh: float, window: str, flag: float = BAD, **kwargs
+        self, field: str, thresh: float, window: int | str, flag: float = BAD, **kwargs
     ) -> saqc.SaQC:
         return self._defer("flagConstants", locals())

@@ -28,7 +28,7 @@ def flagConstants(
     field: str,
     flags: Flags,
     thresh: float,
-    window: str,
+    window: int | str,
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
