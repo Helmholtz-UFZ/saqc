@@ -129,6 +129,7 @@ doctest:
   script:
     - cd docs
     - pip install -r requirements.txt
+    - make doc  # needed for _api tests
     - make test
 
 

@@ -528,6 +528,7 @@ def propagateFlags(
        Name: a, dtype: float64
 
     If an explicit flag is passed, it will be used to fill the repetition window
+
     .. doctest:: propagateFlags
 
        >>> qc.propagateFlags('a', window=2, method="bfill", flag=111).flags["a"]
