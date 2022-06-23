@@ -245,3 +245,15 @@ def test_immutability(data):
     saqc_after = saqc_before.flagDummy(field)
     for name in SaQC._attributes:
         assert getattr(saqc_before, name) is not getattr(saqc_after, name)
+
+
+def test_columnConsitency(data):
+    @flagging()
+    def flagFoo(data, field, flags, **kwargs):
+        flags["spam"] = flags[field]
+        return data, flags
+
+    field = data.columns[0]
+    qc = SaQC(data)
+    with pytest.raises(RuntimeError):
+        qc.flagFoo(field)
