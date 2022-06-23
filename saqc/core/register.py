@@ -163,6 +163,7 @@ class FunctionWrapper:
         # find columns that need squeezing
         columns = self._argnamesToColumns(self.decorator_squeeze, all_args)
         self._warn(columns.difference(flags.columns).to_list(), source="squeeze")
+
         columns = columns.intersection(flags.columns)
 
         # if the function did not want to set any flags at all,
@@ -257,11 +258,10 @@ class FunctionWrapper:
         """
         out = self.flags.copy()  # the old flags
         meta = self._createMeta()
-        for col in columns:
+        for col in columns.union(
+            flags.columns.difference(self.flags.columns)
+        ):  # account for newly added columns
 
-            # todo: shouldn't we fail or warn here or even have a explicit test upstream
-            #  because the function should ensure consistence, especially because
-            #  a empty history maybe issnt what is expected, but this happens silently
             if col not in out:  # ensure existence
                 out.history[col] = History(index=flags.history[col].index)
 
