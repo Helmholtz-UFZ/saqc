@@ -70,7 +70,9 @@ coverage:
   artifacts:
     when: always
     reports:
-      cobertura: coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
 
 
 # test saqc with python 3.7
