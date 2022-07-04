@@ -27,7 +27,6 @@ from saqc.constants import BAD, FILTER_ALL
 from saqc.core.flags import Flags
 from saqc.core.register import _isflagged, flagging, register
 from saqc.funcs.changepoints import _assignChangePointCluster
-from saqc.lib.tools import groupConsecutives
 
 
 @register(mask=[], demask=[], squeeze=["field"])
@@ -138,29 +137,33 @@ def flagIsolated(
     3. None of the :math:`x_j` with :math:`0 < t_j - t_(k+n) <` `gap_window`,
         is valid (succeding gap).
     """
-    gap_window = pd.tseries.frequencies.to_offset(gap_window)
-    group_window = pd.tseries.frequencies.to_offset(group_window)
 
-    mask = data[field].isna()
+    dat = data[field].dropna()
+    if dat.empty:
+        return data, flags
 
-    bools = pd.Series(data=0, index=mask.index, dtype=bool)
-    for srs in groupConsecutives(mask):
-        if np.all(~srs):
-            # we found a chunk of non-nan values
-            start = srs.index[0]
-            stop = srs.index[-1]
-            if stop - start <= group_window:
-                # the chunk is large enough
-                left = mask[start - gap_window : start].iloc[:-1]
-                if left.all():
-                    # the section before our chunk is nan-only
-                    right = mask[stop : stop + gap_window].iloc[1:]
-                    if right.all():
-                        # the section after our chunk is nan-only
-                        # -> we found a chunk of isolated non-values
-                        bools[start:stop] = True
+    gap_ends = dat.rolling(gap_window).count() == 1
+    gap_ends[0] = False
+    gap_ends = gap_ends[gap_ends]
+    gap_starts = dat[::-1].rolling(gap_window).count()[::-1] == 1
+    gap_starts[-1] = False
+    gap_starts = gap_starts[gap_starts]
+    if gap_starts.empty:
+        return data, flags
 
-    flags[bools, field] = flag
+    gap_starts = gap_starts[1:]
+    gap_ends = gap_ends[:-1]
+    isolated_groups = gap_starts.index - gap_ends.index < group_window
+    gap_starts = gap_starts[isolated_groups]
+    gap_ends = gap_ends[isolated_groups]
+    to_flag = pd.Series(False, index=dat.index)
+    for s, e in zip(gap_starts.index, gap_ends.index):
+        # what gets flagged are the groups between the gaps, those range from
+        # the end of one gap (gap_end) to the beginning of the next (gap_start)
+        to_flag[e:s] = True
+
+    to_flag = to_flag.reindex(data[field].index, fill_value=False)
+    flags[to_flag.values, field] = flag
     return data, flags
 
 

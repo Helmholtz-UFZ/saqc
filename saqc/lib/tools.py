@@ -171,35 +171,6 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
     return out
 
 
-@nb.jit(nopython=True, cache=True)
-def otherIndex(values: np.ndarray, start: int = 0) -> int:
-    """
-    returns the index of the first non value not equal to values[0]
-    -> values[start:i] are all identical
-    """
-    val = values[start]
-    for i in range(start, len(values)):
-        if values[i] != val:
-            return i
-    return -1
-
-
-def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
-    """
-    group consecutive values into distinct pd.Series
-    """
-    index = series.index
-    values = series.values
-
-    start = 0
-    while True:
-        stop = otherIndex(values, start)
-        if stop == -1:
-            break
-        yield pd.Series(data=values[start:stop], index=index[start:stop])
-        start = stop
-
-
 def concatDios(data: List[dios.DictOfSeries], warn: bool = True, stacklevel: int = 2):
     # fast path for most common case
     if len(data) == 1 and data[0].columns.is_unique:
