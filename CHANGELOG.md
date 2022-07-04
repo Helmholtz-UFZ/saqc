@@ -15,6 +15,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 ### Changed
 ### Removed
 ### Fixed
+- fixed undesired behavior `flagIsolated` for not harmonized data 
 
 ## [2.1.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2022-06-14
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.0.1...v2.1.0)

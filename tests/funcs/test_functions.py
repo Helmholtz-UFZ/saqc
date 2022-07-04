@@ -137,7 +137,7 @@ def test_forceFlags(data, field):
 
 def test_flagIsolated(data, field):
     flags = initFlagsLike(data)
-
+    d_len = data.shape[0][0]
     data.iloc[1:3, 0] = np.nan
     data.iloc[4:5, 0] = np.nan
     flags[data[field].index[5:6], field] = BAD
@@ -159,7 +159,9 @@ def test_flagIsolated(data, field):
         data, field, flags, group_window="1D", gap_window="2.1D", flag=BAD
     )
 
-    assert flags_result[field].iloc[[3, 5]].all()
+    assert (flags_result[field].iloc[[3, 5]] == BAD).all()
+    neg_list = [k for k in range(d_len) if k not in [3, 5]]
+    assert (flags_result[field].iloc[neg_list] == UNFLAGGED).all()
 
     data, flags_result = flagIsolated(
         data,
@@ -167,10 +169,11 @@ def test_flagIsolated(data, field):
         flags_result,
         group_window="2D",
         gap_window="2.1D",
-        continuation_range="1.1D",
         flag=BAD,
     )
-    assert flags_result[field].iloc[[3, 5, 13, 14]].all()
+    assert (flags_result[field].iloc[[3, 5, 13, 14]] == BAD).all()
+    neg_list = [k for k in range(d_len) if k not in [3, 5, 13, 14]]
+    assert (flags_result[field].iloc[neg_list] == UNFLAGGED).all()
 
 
 def test_flagManual(data, field):
