@@ -5,6 +5,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import dtw
 import pandas as pd
@@ -12,6 +15,9 @@ import pandas as pd
 from saqc.constants import BAD
 from saqc.core.register import flagging
 from saqc.lib.tools import customRoller
+
+if TYPE_CHECKING:
+    from saqc.core.core import SaQC
 
 
 def calculateDistanceByDTW(
@@ -81,112 +87,104 @@ def calculateDistanceByDTW(
     return distances.reindex(index=data.index)  # reinsert NaNs
 
 
-# todo should we mask `reference` even if the func fail if reference has NaNs
-@flagging()
-def flagPatternByDTW(
-    data,
-    field,
-    flags,
-    reference,
-    max_distance=0.0,
-    normalize=True,
-    plot=False,
-    flag=BAD,
-    **kwargs,
-):
-    """
-    Pattern Recognition via Dynamic Time Warping.
+class PatternMixin:
 
-    The steps are:
-    1. work on a moving window
+    # todo should we mask `reference` even if the func fail if reference has NaNs
+    @flagging()
+    def flagPatternByDTW(
+        self: "SaQC",
+        field,
+        reference,
+        max_distance=0.0,
+        normalize=True,
+        plot=False,
+        flag=BAD,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Pattern Recognition via Dynamic Time Warping.
 
-    2. for each data chunk extracted from each window, a distance to the given pattern
-       is calculated, by the dynamic time warping algorithm [1]
+        The steps are:
+        1. work on a moving window
 
-    3. if the distance is below the threshold, all the data in the window gets flagged
+        2. for each data chunk extracted from each window, a distance to the given pattern
+           is calculated, by the dynamic time warping algorithm [1]
 
-    Parameters
-    ----------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
+        3. if the distance is below the threshold, all the data in the window gets flagged
 
-    field : str
-        The name of the data column
+        Parameters
+        ----------
+        field : str
+            The name of the data column
 
-    flags : saqc.Flags
-        The flags belonging to `data`.
+        reference : str
+            The name in `data` which holds the pattern. The pattern must not have NaNs,
+            have a datetime index and must not be empty.
 
-    reference : str
-        The name in `data` which holds the pattern. The pattern must not have NaNs,
-        have a datetime index and must not be empty.
+        max_distance : float, default 0.0
+            Maximum dtw-distance between chunk and pattern, if the distance is lower than
+            ``max_distance`` the data gets flagged. With default, ``0.0``, only exact
+            matches are flagged.
 
-    max_distance : float, default 0.0
-        Maximum dtw-distance between chunk and pattern, if the distance is lower than
-        ``max_distance`` the data gets flagged. With default, ``0.0``, only exact
-        matches are flagged.
+        normalize : bool, default True
+            If `False`, return unmodified distances.
+            If `True`, normalize distances by the number of observations of the reference.
+            This helps to make it easier to find a good cutoff threshold for further
+            processing. The distances then refer to the mean distance per datapoint,
+            expressed in the datas units.
 
-    normalize : bool, default True
-        If `False`, return unmodified distances.
-        If `True`, normalize distances by the number of observations of the reference.
-        This helps to make it easier to find a good cutoff threshold for further
-        processing. The distances then refer to the mean distance per datapoint,
-        expressed in the datas units.
+        plot: bool, default False
+            Show a calibration plot, which can be quite helpful to find the right threshold
+            for `max_distance`. It works best with `normalize=True`. Do not use in automatic
+            setups / pipelines. The plot show three lines:
 
-    plot: bool, default False
-        Show a calibration plot, which can be quite helpful to find the right threshold
-        for `max_distance`. It works best with `normalize=True`. Do not use in automatic
-        setups / pipelines. The plot show three lines:
+            - data: the data the function was called on
+            - distances: the calculated distances by the algorithm
+            - indicator: have to distinct levels: `0` and the value of `max_distance`.
+              If `max_distance` is `0.0` it defaults to `1`. Everywhere where the
+              indicator is not `0` the data will be flagged.
 
-        - data: the data the function was called on
-        - distances: the calculated distances by the algorithm
-        - indicator: have to distinct levels: `0` and the value of `max_distance`.
-          If `max_distance` is `0.0` it defaults to `1`. Everywhere where the
-          indicator is not `0` the data will be flagged.
+        Returns
+        -------
+        saqc.SaQC
 
-    Returns
-    -------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-        Data values may have changed relatively to the data input.
+        Notes
+        -----
+        The window size of the moving window is set to equal the temporal extension of the
+        reference datas datetime index.
 
-    flags : saqc.Flags
-        The flags belonging to `data`.
+        References
+        ----------
+        Find a nice description of underlying the Dynamic Time Warping Algorithm here:
 
-    Notes
-    -----
-    The window size of the moving window is set to equal the temporal extension of the
-    reference datas datetime index.
+        [1] https://cran.r-project.org/web/packages/dtw/dtw.pdf
+        """
+        ref = self._data[reference]
+        dat = self._data[field]
 
-    References
-    ----------
-    Find a nice description of underlying the Dynamic Time Warping Algorithm here:
+        distances = calculateDistanceByDTW(dat, ref, forward=True, normalize=normalize)
+        winsz = ref.index.max() - ref.index.min()
 
-    [1] https://cran.r-project.org/web/packages/dtw/dtw.pdf
-    """
-    ref = data[reference]
-    dat = data[field]
+        # prevent nan propagation
+        distances = distances.fillna(max_distance + 1)
 
-    distances = calculateDistanceByDTW(dat, ref, forward=True, normalize=normalize)
-    winsz = ref.index.max() - ref.index.min()
+        # find minima filter by threshold
+        fw = customRoller(
+            distances, window=winsz, forward=True, closed="both", expand=True
+        )
+        bw = customRoller(distances, window=winsz, closed="both", expand=True)
+        minima = (fw.min() == bw.min()) & (distances <= max_distance)
 
-    # prevent nan propagation
-    distances = distances.fillna(max_distance + 1)
+        # Propagate True's to size of pattern.
+        rolling = customRoller(minima, window=winsz, closed="both", expand=True)
+        mask = rolling.sum() > 0
 
-    # find minima filter by threshold
-    fw = customRoller(distances, window=winsz, forward=True, closed="both", expand=True)
-    bw = customRoller(distances, window=winsz, closed="both", expand=True)
-    minima = (fw.min() == bw.min()) & (distances <= max_distance)
+        if plot:
+            df = pd.DataFrame()
+            df["data"] = dat
+            df["distances"] = distances
+            df["indicator"] = mask.astype(float) * (max_distance or 1)
+            df.plot()
 
-    # Propagate True's to size of pattern.
-    rolling = customRoller(minima, window=winsz, closed="both", expand=True)
-    mask = rolling.sum() > 0
-
-    if plot:
-        df = pd.DataFrame()
-        df["data"] = dat
-        df["distances"] = distances
-        df["indicator"] = mask.astype(float) * (max_distance or 1)
-        df.plot()
-
-    flags[mask, field] = flag
-    return data, flags
+        self._flags[mask, field] = flag
+        return self

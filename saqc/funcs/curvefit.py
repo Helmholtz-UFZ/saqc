@@ -7,7 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Tuple, Union
+from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -24,83 +24,78 @@ from saqc.lib.ts_operators import (
     polyRollerNumba,
 )
 
+if TYPE_CHECKING:
+    from saqc.core.core import SaQC
 
-@register(mask=["field"], demask=[], squeeze=[])
-def fitPolynomial(
-    data: DictOfSeries,
-    field: str,
-    flags: Flags,
-    window: int | str,
-    order: int,
-    min_periods: int = 0,
-    **kwargs,
-) -> Tuple[DictOfSeries, Flags]:
-    """
-    Fits a polynomial model to the data.
 
-    The fit is calculated by fitting a polynomial of degree `order` to a data slice
-    of size `window`, that has x at its center.
-
-    Note that the result is stored in `field` and overwrite it unless a
-    `target` is given.
-
-    In case your data is sampled at an equidistant frequency grid:
-
-    (1) If you know your data to have no significant number of missing values,
-    or if you do not want to calculate residuals for windows containing missing values
-    any way, performance can be increased by setting min_periods=window.
-
-    Note, that the initial and final window/2 values do not get fitted.
-
-    Each residual gets assigned the worst flag present in the interval of
-    the original data.
-
-    Parameters
-    ----------
-    data : DictOfSeries
-        The data container.
-
-    field : str
-        A column in flags and data.
-
-    flags : Flags
-        The flags container.
-
-    window : str, int
-        Size of the window you want to use for fitting. If an integer is passed,
-        the size refers to the number of periods for every fitting window. If an
-        offset string is passed, the size refers to the total temporal extension. The
-        window will be centered around the vaule-to-be-fitted. For regularly sampled
-        data always a odd number of periods will be used for the fit (periods-1 if
-        periods is even).
-
-    order : int
-        Degree of the polynomial used for fitting
-
-    min_periods : int or None, default 0
-        Minimum number of observations in a window required to perform the fit,
-        otherwise NaNs will be assigned.
-        If ``None``, `min_periods` defaults to 1 for integer windows and to the
-        size of the window for offset based windows.
-        Passing 0, disables the feature and will result in over-fitting for too
-        sparse windows.
-
-    Returns
-    -------
-    data : dios.DictOfSeries
-        Modified data
-    flags : saqc.Flags
-        Flags
-    """
-    return _fitPolynomial(
-        data=data,
-        field=field,
-        flags=flags,
-        window=window,
-        order=order,
-        min_periods=min_periods,
+class CurvefitMixin:
+    @register(mask=["field"], demask=[], squeeze=[])
+    def fitPolynomial(
+        self: "SaQC",
+        field: str,
+        window: int | str,
+        order: int,
+        min_periods: int = 0,
         **kwargs,
-    )
+    ) -> "SaQC":
+        """
+        Fits a polynomial model to the data.
+
+        The fit is calculated by fitting a polynomial of degree `order` to a data slice
+        of size `window`, that has x at its center.
+
+        Note that the result is stored in `field` and overwrite it unless a
+        `target` is given.
+
+        In case your data is sampled at an equidistant frequency grid:
+
+        (1) If you know your data to have no significant number of missing values,
+        or if you do not want to calculate residuals for windows containing missing values
+        any way, performance can be increased by setting min_periods=window.
+
+        Note, that the initial and final window/2 values do not get fitted.
+
+        Each residual gets assigned the worst flag present in the interval of
+        the original data.
+
+        Parameters
+        ----------
+        field : str
+            A column in flags and data.
+
+        window : str, int
+            Size of the window you want to use for fitting. If an integer is passed,
+            the size refers to the number of periods for every fitting window. If an
+            offset string is passed, the size refers to the total temporal extension. The
+            window will be centered around the vaule-to-be-fitted. For regularly sampled
+            data always a odd number of periods will be used for the fit (periods-1 if
+            periods is even).
+
+        order : int
+            Degree of the polynomial used for fitting
+
+        min_periods : int or None, default 0
+            Minimum number of observations in a window required to perform the fit,
+            otherwise NaNs will be assigned.
+            If ``None``, `min_periods` defaults to 1 for integer windows and to the
+            size of the window for offset based windows.
+            Passing 0, disables the feature and will result in over-fitting for too
+            sparse windows.
+
+        Returns
+        -------
+        saqc.SaQC
+        """
+        self._data, self._flags = _fitPolynomial(
+            data=self._data,
+            field=field,
+            flags=self._flags,
+            window=window,
+            order=order,
+            min_periods=min_periods,
+            **kwargs,
+        )
+        return self
 
 
 def _fitPolynomial(

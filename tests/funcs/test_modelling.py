@@ -13,10 +13,8 @@ import pandas as pd
 import pytest
 
 import dios
-from saqc import BAD, UNFLAGGED
+from saqc import BAD, UNFLAGGED, SaQC
 from saqc.core import initFlagsLike
-from saqc.funcs.residuals import calculatePolynomialResiduals, calculateRollingResiduals
-from saqc.funcs.tools import selectTime
 from tests.fixtures import char_dict, course_1, course_2
 
 
@@ -30,22 +28,22 @@ def test_modelling_polyFit_forRegular(dat):
     data = data + 10 * np.sin(np.arange(0, len(data.indexes[0])))
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
-    result1, _ = calculatePolynomialResiduals(data, "data", flags, 11, 2, numba=False)
-    result2, _ = calculatePolynomialResiduals(data, "data", flags, 11, 2, numba=True)
-    assert (result1["data"] - result2["data"]).abs().max() < 10**-10
-    result3, _ = calculatePolynomialResiduals(
-        data, "data", flags, "110min", 2, numba=False
+    qc1 = SaQC(data, flags).calculatePolynomialResiduals("data", 11, 2, numba=False)
+    qc2 = SaQC(data, flags).calculatePolynomialResiduals("data", 11, 2, numba=True)
+    assert (qc1.data["data"] - qc2.data["data"]).abs().max() < 10**-10
+    qc3 = SaQC(data, flags).calculatePolynomialResiduals(
+        "data", "110min", 2, numba=False
     )
-    assert result3["data"].equals(result1["data"])
-    result4, _ = calculatePolynomialResiduals(
-        data, "data", flags, 11, 2, numba=True, min_periods=11
+    assert qc3.data["data"].equals(qc1.data["data"])
+    qc4 = SaQC(data, flags).calculatePolynomialResiduals(
+        "data", 11, 2, numba=True, min_periods=11
     )
-    assert (result4["data"] - result2["data"]).abs().max() < 10**-10
+    assert (qc4.data["data"] - qc2.data["data"]).abs().max() < 10**-10
     data.iloc[13:16] = np.nan
-    result5, _ = calculatePolynomialResiduals(
-        data, "data", flags, 11, 2, numba=True, min_periods=9
+    qc5 = SaQC(data, flags).calculatePolynomialResiduals(
+        "data", 11, 2, numba=True, min_periods=9
     )
-    assert result5["data"].iloc[10:19].isna().all()
+    assert qc5.data["data"].iloc[10:19].isna().all()
 
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_2")])
@@ -55,19 +53,16 @@ def test_modelling_rollingMean_forRegular(dat):
     )
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
-    calculateRollingResiduals(
-        data,
+    qc = SaQC(data, flags)
+    qc.calculateRollingResiduals(
         "data",
-        flags,
         5,
         func=np.mean,
         min_periods=0,
         center=True,
     )
-    calculateRollingResiduals(
-        data,
+    qc.calculateRollingResiduals(
         "data",
-        flags,
         5,
         func=np.mean,
         min_periods=0,
@@ -80,43 +75,38 @@ def test_modelling_mask(dat):
     data, _ = dat()
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
+    qc = SaQC(data, flags)
     field = "data"
 
     # set flags everywhere to test unflagging
     flags[:, field] = BAD
 
-    common = dict(data=data, field=field, flags=flags, mode="periodic")
-    data_seasonal, flags_seasonal = selectTime(
-        **common, start="20:00", end="40:00", closed=False
-    )
-    flagscol = flags_seasonal[field]
+    common = dict(field=field, mode="periodic")
+    result = qc.selectTime(**common, start="20:00", end="40:00", closed=False)
+    flagscol = result.flags[field]
     m = (20 > flagscol.index.minute) | (flagscol.index.minute > 40)
-    assert all(flags_seasonal[field][m] == UNFLAGGED)
-    assert all(data_seasonal[field][m].isna())
+    assert all(result.flags[field][m] == UNFLAGGED)
+    assert all(result.data[field][m].isna())
 
-    data_seasonal, flags_seasonal = selectTime(
-        **common, start="15:00:00", end="02:00:00"
-    )
-    flagscol = flags_seasonal[field]
+    result = qc.selectTime(**common, start="15:00:00", end="02:00:00")
+    flagscol = result.flags[field]
     m = (15 <= flagscol.index.hour) & (flagscol.index.hour <= 2)
-    assert all(flags_seasonal[field][m] == UNFLAGGED)
-    assert all(data_seasonal[field][m].isna())
+    assert all(result.flags[field][m] == UNFLAGGED)
+    assert all(result.data[field][m].isna())
 
-    data_seasonal, flags_seasonal = selectTime(
-        **common, start="03T00:00:00", end="10T00:00:00"
-    )
-    flagscol = flags_seasonal[field]
+    result = qc.selectTime(**common, start="03T00:00:00", end="10T00:00:00")
+    flagscol = result.flags[field]
     m = (3 <= flagscol.index.hour) & (flagscol.index.hour <= 10)
-    assert all(flags_seasonal[field][m] == UNFLAGGED)
-    assert all(data_seasonal[field][m].isna())
+    assert all(result.flags[field][m] == UNFLAGGED)
+    assert all(result.data[field][m].isna())
 
     mask_ser = pd.Series(False, index=data["data"].index)
     mask_ser[::5] = True
     data["mask_ser"] = mask_ser
     flags = initFlagsLike(data)
-    data_masked, flags_masked = selectTime(
-        data, "data", flags, mode="selection_field", selection_field="mask_ser"
+    result = SaQC(data, flags).selectTime(
+        "data", mode="selection_field", selection_field="mask_ser"
     )
     m = mask_ser
-    assert all(flags_masked[field][m] == UNFLAGGED)
-    assert all(data_masked[field][m].isna())
+    assert all(result.flags[field][m] == UNFLAGGED)
+    assert all(result.data[field][m].isna())

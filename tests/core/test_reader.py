@@ -141,9 +141,9 @@ def test_supportedArguments(data):
     # TODO: necessary?
 
     @flagging()
-    def func(data, field, flags, kwarg, **kwargs):
-        flags[:, field] = np.nan
-        return data, flags
+    def func(saqc, field, kwarg, **kwargs):
+        saqc._flags[:, field] = np.nan
+        return saqc
 
     var1 = data.columns[0]
 

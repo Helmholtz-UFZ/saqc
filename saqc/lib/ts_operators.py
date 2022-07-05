@@ -446,8 +446,8 @@ def shift2Freq(
     }
     direction, tolerance = methods[method](freq)
     target_ind = pd.date_range(
-        start=data.index[0].floor(freq),
-        end=data.index[-1].ceil(freq),
+        start=pd.Timestamp(data.index[0]).floor(freq),
+        end=pd.Timestamp(data.index[-1]).ceil(freq),
         freq=freq,
         name=data.index.name,
     )

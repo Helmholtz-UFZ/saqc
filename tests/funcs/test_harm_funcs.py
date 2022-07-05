@@ -12,9 +12,7 @@ import pytest
 
 import dios
 from saqc.constants import BAD, UNFLAGGED
-from saqc.core import Flags, initFlagsLike
-from saqc.funcs.resampling import concatFlags, interpolate, linear, resample, shift
-from saqc.funcs.tools import copyField, dropField
+from saqc.core import SaQC, initFlagsLike
 from tests.common import checkDataFlagsInvariants
 
 
@@ -55,14 +53,13 @@ def test_wrapper(data, func, kws):
     for c in flags.columns:
         flags[:, c] = BAD
 
-    import saqc
+    qc = SaQC(data, flags)
 
-    func = getattr(saqc.funcs, func)
-    data, flags = func(data, field, flags, freq, **kws)
+    qc = getattr(qc, func)(field, freq, **kws)
 
     # check minimal requirements
-    checkDataFlagsInvariants(data, flags, field)
-    assert data[field].index.inferred_freq == freq
+    checkDataFlagsInvariants(qc._data, qc._flags, field)
+    assert qc.data[field].index.inferred_freq == freq
 
 
 _SUPPORTED_METHODS = [
@@ -105,31 +102,27 @@ def test_gridInterpolation(data, method, fill_history):
         for c in flags.columns:
             flags[::2, c] = UNFLAGGED
 
+    qc = SaQC(data, flags)
+
     # we are just testing if the interpolation gets passed to the series without
     # causing an error:
-    res = interpolate(
-        data.copy(),
+    res = qc.interpolate(
         field,
-        flags.copy(),
         freq,
         method=method,
         downcast_interpolation=True,
     )
 
     if method == "polynomial":
-        res = interpolate(
-            data.copy(),
+        res = qc.interpolate(
             field,
-            flags.copy(),
             freq,
             order=2,
             method=method,
             downcast_interpolation=True,
         )
-        res = interpolate(
-            data.copy(),
+        res = qc.interpolate(
             field,
-            flags.copy(),
             freq,
             order=10,
             method=method,
@@ -137,9 +130,8 @@ def test_gridInterpolation(data, method, fill_history):
         )
 
     # check minimal requirements
-    rdata, rflags = res
-    checkDataFlagsInvariants(rdata, rflags, field, identical=False)
-    assert rdata[field].index.inferred_freq == freq
+    checkDataFlagsInvariants(res._data, res._flags, field, identical=False)
+    assert res.data[field].index.inferred_freq == freq
 
 
 @pytest.mark.parametrize(
@@ -181,21 +173,27 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
 
     pre_data = data.copy()
     pre_flags = flags.copy()
-    data, flags = copyField(data, field, flags, field + "_interpolated")
-    data, flags = linear(data, field + "_interpolated", flags, freq=freq)
-    checkDataFlagsInvariants(data, flags, field + "_interpolated", identical=True)
-    assert data[field + "_interpolated"].index.inferred_freq == freq
+    qc = SaQC(data, flags)
+
+    qc = qc.copyField(field, field + "_interpolated")
+    qc = qc.linear(field + "_interpolated", freq=freq)
+    checkDataFlagsInvariants(
+        qc._data, qc._flags, field + "_interpolated", identical=True
+    )
+    assert qc._data[field + "_interpolated"].index.inferred_freq == freq
 
     # flag something bad
-    flags[data[field + "_interpolated"].index[3:4], field + "_interpolated"] = BAD
-    data, flags = concatFlags(
-        data, field + "_interpolated", flags, method="inverse_" + reshaper, target=field
+    qc._flags[
+        qc._data[field + "_interpolated"].index[3:4], field + "_interpolated"
+    ] = BAD
+    qc = qc.concatFlags(
+        field + "_interpolated", method="inverse_" + reshaper, target=field
     )
-    data, flags = dropField(data, field + "_interpolated", flags)
+    qc = qc.dropField(field + "_interpolated")
 
-    assert len(data[field]) == len(flags[field])
-    assert data[field].equals(pre_data[field])
-    assert flags[field].index.equals(pre_flags[field].index)
+    assert len(qc.data[field]) == len(qc.flags[field])
+    assert qc.data[field].equals(pre_data[field])
+    assert qc.flags[field].index.equals(pre_flags[field].index)
 
     if "agg" in reshaper:
         if reshaper == "nagg":
@@ -207,9 +205,9 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
         else:
             raise NotImplementedError("untested test case")
 
-        assert all(flags[field].iloc[start:end] > UNFLAGGED)
-        assert all(flags[field].iloc[:start] == UNFLAGGED)
-        assert all(flags[field].iloc[end:] == UNFLAGGED)
+        assert all(qc._flags[field].iloc[start:end] > UNFLAGGED)
+        assert all(qc._flags[field].iloc[:start] == UNFLAGGED)
+        assert all(qc._flags[field].iloc[end:] == UNFLAGGED)
 
     elif "shift" in reshaper:
         if reshaper == "nshift":
@@ -221,7 +219,7 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
         else:
             raise NotImplementedError("untested test case")
 
-        flagged = flags[field] > UNFLAGGED
+        flagged = qc._flags[field] > UNFLAGGED
         assert all(flagged == exp)
 
     elif reshaper == "interpolation":
@@ -281,21 +279,20 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
     pre_flaggger = flags.copy()
     method, freq = params
 
-    data_harm, flags_harm = copyField(data, "data", flags, "data_harm")
-    data_harm, flags_harm = resample(
-        data_harm, h_field, flags_harm, freq, func=np.sum, method=method
-    )
-    checkDataFlagsInvariants(data_harm, flags_harm, h_field, identical=True)
-    assert data_harm[h_field].index.freq == pd.Timedelta(freq)
-    assert data_harm[h_field].equals(expected)
+    qc = SaQC(data, flags)
 
-    data_deharm, flags_deharm = concatFlags(
-        data_harm, h_field, flags_harm, target=field, method="inverse_" + method
-    )
-    data_deharm, flags_deharm = dropField(data_deharm, h_field, flags_deharm)
-    checkDataFlagsInvariants(data_deharm, flags_deharm, field, identical=True)
-    assert data_deharm[field].equals(pre_data[field])
-    assert flags_deharm[field].equals(pre_flaggger[field])
+    qc = qc.copyField("data", "data_harm")
+    qc = qc.resample(h_field, freq, func=np.sum, method=method)
+
+    checkDataFlagsInvariants(qc._data, qc._flags, h_field, identical=True)
+    assert qc._data[h_field].index.freq == pd.Timedelta(freq)
+    assert qc._data[h_field].equals(expected)
+
+    qc = qc.concatFlags(h_field, target=field, method="inverse_" + method)
+    qc = qc.dropField(h_field)
+    checkDataFlagsInvariants(qc._data, qc._flags, field, identical=True)
+    assert qc.data[field].equals(pre_data[field])
+    assert qc.flags[field].equals(pre_flaggger[field])
 
 
 @pytest.mark.parametrize(
@@ -365,16 +362,16 @@ def test_harmSingleVarInterpolationShift(data, params, expected):
     pre_flags = flags.copy()
     method, freq = params
 
-    data_harm, flags_harm = copyField(data, "data", flags, "data_harm")
-    data_harm, flags_harm = shift(data_harm, h_field, flags_harm, freq, method=method)
-    assert data_harm[h_field].equals(expected)
-    checkDataFlagsInvariants(data_harm, flags_harm, field, identical=True)
+    qc = SaQC(data, flags)
 
-    data_deharm, flags_deharm = concatFlags(
-        data_harm, h_field, flags_harm, target=field, method="inverse_" + method
-    )
-    checkDataFlagsInvariants(data_deharm, flags_deharm, field, identical=True)
+    qc = qc.copyField("data", "data_harm")
+    qc = qc.shift(h_field, freq, method=method)
+    assert qc.data[h_field].equals(expected)
+    checkDataFlagsInvariants(qc._data, qc._flags, field, identical=True)
 
-    data_deharm, flags_deharm = dropField(data_deharm, h_field, flags_deharm)
-    assert data_deharm[field].equals(pre_data[field])
-    assert flags_deharm[field].equals(pre_flags[field])
+    qc = qc.concatFlags(h_field, target=field, method="inverse_" + method)
+    checkDataFlagsInvariants(qc._data, qc._flags, field, identical=True)
+
+    qc = qc.dropField(h_field)
+    assert qc.data[field].equals(pre_data[field])
+    assert qc.flags[field].equals(pre_flags[field])
