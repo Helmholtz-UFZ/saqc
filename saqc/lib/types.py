@@ -19,7 +19,7 @@ from typing import Any, Dict, TypeVar, Union
 
 import numpy as np
 import pandas as pd
-from typing_extensions import Literal, Protocol
+from typing_extensions import Protocol
 
 from dios import DictOfSeries
 

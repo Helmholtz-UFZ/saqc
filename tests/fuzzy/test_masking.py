@@ -11,7 +11,7 @@ import pytest
 from hypothesis import given, settings
 
 from saqc.constants import BAD, UNFLAGGED
-from saqc.core.register import FunctionWrapper
+from saqc.core.register import _maskData, _unmaskData
 from tests.fuzzy.lib import MAX_EXAMPLES, dataFieldFlags
 
 
@@ -23,7 +23,7 @@ def test_maskingMasksData(data_field_flags):
     test if flagged values are replaced by np.nan
     """
     data_in, field, flags = data_field_flags
-    data_masked, mask = FunctionWrapper._maskData(
+    data_masked, mask = _maskData(
         data_in, flags, columns=[field], thresh=UNFLAGGED
     )  # thresh UNFLAGGED | np.inf
     assert data_masked[field].iloc[mask[field].index].isna().all()
@@ -42,11 +42,9 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
 
     data_in, field, flags = data_field_flags
 
-    data_masked, mask = FunctionWrapper._maskData(
-        data_in, flags, columns=[field], thresh=UNFLAGGED
-    )
+    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     data_masked[field] = filler
-    data_out = FunctionWrapper._unmaskData(data_masked, mask)
+    data_out = _unmaskData(data_masked, mask)
     assert (data_out[field] == filler).all(axis=None)
 
 
@@ -60,11 +58,9 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
     """
     data_in, field, flags = data_field_flags
 
-    data_masked, mask = FunctionWrapper._maskData(
-        data_in, flags, columns=[field], thresh=UNFLAGGED
-    )
+    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     flags[:, field] = UNFLAGGED
-    data_out = FunctionWrapper._unmaskData(data_masked, mask)
+    data_out = _unmaskData(data_masked, mask)
     assert (data_out.loc[flags[field] == BAD, field].isna()).all(axis=None)
 
 
@@ -82,9 +78,7 @@ def test_reshapingPreventsUnmasking(data_field_flags):
 
     data_in, field, flags = data_field_flags
 
-    data_masked, mask = FunctionWrapper._maskData(
-        data_in, flags, columns=[field], thresh=UNFLAGGED
-    )
+    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     # mutate indexes of `data` and `flags`
     index = data_masked[field].index.to_series()
     index.iloc[-len(data_masked[field]) // 2 :] += pd.Timedelta("7.5Min")
@@ -94,7 +88,7 @@ def test_reshapingPreventsUnmasking(data_field_flags):
     flags.drop(field)
     flags[field] = pd.Series(data=fflags.values, index=index)
 
-    data_out = FunctionWrapper._unmaskData(data_masked, mask)
+    data_out = _unmaskData(data_masked, mask)
     assert (data_out[field] == filler).all(axis=None)
 
 
@@ -107,10 +101,8 @@ def test_unmaskingInvertsMasking(data_field_flags):
     """
     data_in, field, flags = data_field_flags
 
-    data_masked, mask = FunctionWrapper._maskData(
-        data_in, flags, columns=[field], thresh=UNFLAGGED
-    )
-    data_out = FunctionWrapper._unmaskData(data_masked, mask)
+    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
+    data_out = _unmaskData(data_masked, mask)
     assert pd.DataFrame.equals(
         data_out.to_df().astype(float), data_in.to_df().astype(float)
     )

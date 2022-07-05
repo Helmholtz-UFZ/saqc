@@ -17,13 +17,6 @@ from saqc.core import Flags
 from saqc.core.history import History, createHistoryFromData
 
 
-def flagAll(data, field, flags, **kwargs):
-    # NOTE: remember to rename flag -> flag_values
-    flags.copy()
-    flags[:, field] = BAD
-    return data, flags
-
-
 def initData(
     cols=2, start_date="2017-01-01", end_date="2017-12-31", freq=None, rows=None
 ):

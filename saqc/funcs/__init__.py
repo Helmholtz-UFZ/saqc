@@ -6,22 +6,42 @@
 
 # -*- coding: utf-8 -*-
 
-# imports needed to make the functions register themself
-from saqc.core.register import register
-from saqc.funcs.breaks import *
-from saqc.funcs.changepoints import *
-from saqc.funcs.constants import *
-from saqc.funcs.curvefit import *
-from saqc.funcs.drift import *
-from saqc.funcs.flagtools import *
-from saqc.funcs.generic import *
-from saqc.funcs.interpolation import *
-from saqc.funcs.noise import *
-from saqc.funcs.outliers import *
-from saqc.funcs.pattern import *
-from saqc.funcs.resampling import *
-from saqc.funcs.residuals import *
-from saqc.funcs.rolling import *
-from saqc.funcs.scores import *
-from saqc.funcs.tools import *
-from saqc.funcs.transformation import *
+from saqc.funcs.breaks import BreaksMixin
+from saqc.funcs.changepoints import ChangepointsMixin
+from saqc.funcs.constants import ConstantsMixin
+from saqc.funcs.curvefit import CurvefitMixin
+from saqc.funcs.drift import DriftMixin
+from saqc.funcs.flagtools import FlagtoolsMixin
+from saqc.funcs.generic import GenericMixin
+from saqc.funcs.interpolation import InterpolationMixin
+from saqc.funcs.noise import NoiseMixin
+from saqc.funcs.outliers import OutliersMixin
+from saqc.funcs.pattern import PatternMixin
+from saqc.funcs.resampling import ResamplingMixin
+from saqc.funcs.residuals import ResidualsMixin
+from saqc.funcs.rolling import RollingMixin
+from saqc.funcs.scores import ScoresMixin
+from saqc.funcs.tools import ToolsMixin
+from saqc.funcs.transformation import TransformationMixin
+
+
+class FunctionsMixin(
+    BreaksMixin,
+    ChangepointsMixin,
+    ConstantsMixin,
+    CurvefitMixin,
+    DriftMixin,
+    FlagtoolsMixin,
+    GenericMixin,
+    InterpolationMixin,
+    NoiseMixin,
+    OutliersMixin,
+    PatternMixin,
+    ResamplingMixin,
+    ResidualsMixin,
+    RollingMixin,
+    ScoresMixin,
+    ToolsMixin,
+    TransformationMixin,
+):
+    pass

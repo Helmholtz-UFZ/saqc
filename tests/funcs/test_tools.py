@@ -8,7 +8,6 @@ import pytest
 
 import dios
 import saqc
-from saqc.lib.plotting import makeFig
 
 
 @pytest.mark.slow

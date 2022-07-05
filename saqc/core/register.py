@@ -9,15 +9,17 @@ from __future__ import annotations
 import functools
 import inspect
 import warnings
-from typing import Any, Callable, Dict, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Sequence, Tuple, TypeVar
 
 import numpy as np
 import pandas as pd
+from typing_extensions import ParamSpec
 
 import dios
 from saqc.constants import FILTER_ALL, UNFLAGGED
 from saqc.core.flags import Flags, History
 from saqc.lib.tools import squeezeSequence, toSequence
+from saqc.lib.types import ExternalFlag, OptionalNone
 
 # NOTE:
 # the global SaQC function store,
@@ -26,329 +28,234 @@ FUNC_MAP: Dict[str, Callable] = {}
 
 _is_list_like = pd.api.types.is_list_like
 
+T = TypeVar("T")
+P = ParamSpec("P")
 
-class FunctionWrapper:
-    def __init__(
-        self,
-        func: Callable,
-        mask: list,
-        demask: list,
-        squeeze: list,
-        multivariate: bool = False,
-        handles_target: bool = False,
-    ):
-        # todo:
-        #  - meta only is written with squeeze
 
-        self.func = func
-        self.func_name = func.__name__
-        self.func_signature = inspect.signature(func)
-
-        # ensure type and all elements exist in signature
-        self._checkDecoratorKeywords(mask, demask, squeeze)
-
-        self.decorator_mask = mask
-        self.decorator_demask = demask
-        self.decorator_squeeze = squeeze
-        self.multivariate = multivariate
-        self.handles_target = handles_target
-
-        # set in __call__
-        self.data = None
-        self.flags = None
-        self.fields = None
-        self.args = None
-        self.kwargs = None
-        self.mask_thresh = None
-        self.stored_data = None
-
-        # make ourself look like the wrapped function, especially the docstring
-        functools.update_wrapper(self, func)
-
-    def _checkDecoratorKeywords(self, mask, demask, squeeze):
-        params = self.func_signature.parameters.keys()
-        for dec_arg, name in zip(
-            [mask, demask, squeeze], ["mask", "demask", "squeeze"]
-        ):
-            typeerr = TypeError(
-                f"type of decorator argument '{name}' must "
-                f"be a list of strings, not {repr(type(dec_arg))}"
-            )
-            if not isinstance(dec_arg, list):
+def _checkDecoratorKeywords(func_signature, mask, demask, squeeze, handles_target):
+    params = func_signature.parameters.keys()
+    if "target" in params and not handles_target:
+        raise TypeError(
+            "functions defining a parameter named 'target' "
+            "need to decorated with 'handles_target=True'"
+        )
+    for dec_arg, name in zip([mask, demask, squeeze], ["mask", "demask", "squeeze"]):
+        typeerr = TypeError(
+            f"type of decorator argument '{name}' must "
+            f"be a list of strings, not {repr(type(dec_arg))}"
+        )
+        if not isinstance(dec_arg, list):
+            raise typeerr
+        for elem in dec_arg:
+            if not isinstance(elem, str):
                 raise typeerr
-            for elem in dec_arg:
-                if not isinstance(elem, str):
-                    raise typeerr
-                if elem not in params:
-                    raise ValueError(
-                        f"passed value {repr(elem)} in {repr(name)} is not an "
-                        f"parameter in decorated function {repr(self.func_name)}"
-                    )
+            if elem not in params:
+                raise ValueError(
+                    f"passed value {repr(elem)} in {repr(name)} is not an "
+                    f"parameter in decorated function {repr(self.func_name)}"
+                )
 
-    @staticmethod
-    def _argnamesToColumns(names: list, values: dict):
-        clist = []
-        for name in names:
-            value = values.get(name)  # eg. the value behind 'field'
 
-            # NOTE: do not change order of the tests
-            if value is None:
-                pass
-            elif isinstance(value, str):
-                clist.append(value)
-            # we ignore DataFrame, Series, DictOfSeries
-            # and high order types alike
-            elif hasattr(value, "columns"):
-                pass
-            elif _is_list_like(value) and all([isinstance(e, str) for e in value]):
-                clist += value
-        return pd.Index(clist)
+def _argnamesToColumns(names: list, values: dict):
+    clist = []
+    for name in names:
+        value = values.get(name)  # eg. the value behind 'field'
 
-    @staticmethod
-    def _warn(missing, source):
-        if len(missing) == 0:
-            return
-        action = source + "ed"
-        obj = "flags" if source == "squeeze" else "data"
-        warnings.warn(
-            f"Column(s) {repr(missing)} cannot not be {action} "
-            f"because they are not present in {obj}. ",
-            RuntimeWarning,
-        )
+        # NOTE: do not change order of the tests
+        if value is None:
+            pass
+        elif isinstance(value, str):
+            clist.append(value)
+        # we ignore DataFrame, Series, DictOfSeries
+        # and high order types alike
+        elif hasattr(value, "columns"):
+            pass
+        elif _is_list_like(value) and all([isinstance(e, str) for e in value]):
+            clist += value
+    return pd.Index(clist)
 
-    def __call__(
-        self, data: dios.DictOfSeries, field: str, flags: Flags, *args, **kwargs
-    ) -> Tuple[dios.DictOfSeries, Flags]:
-        """
-        This wraps a call to a saqc function.
 
-        Before the saqc function call it copies flags and maybe mask data (inplace).
-        After the call it maybe squeezes modified histories and maybe reinsert the
-        masked data locations.
+def _warn(missing, source):
+    if len(missing) == 0:
+        return
+    action = source + "ed"
+    obj = "flags" if source == "squeeze" else "data"
+    warnings.warn(
+        f"Column(s) {repr(missing)} cannot not be {action} "
+        f"because they are not present in {obj}. ",
+        RuntimeWarning,
+    )
 
-        If the squeezing and/or the masking and/or the demasking will happen, depends
-        on the decorator keywords `handles` and `datamask`. See ``_determineActions``,
-        for that.
-        """
-        # keep this the original values
-        self.data = data
-        self.flags = flags
-        self.fields = toSequence(field)
-        self.args = args
-        self.kwargs = self._checkKwargs(kwargs)
 
-        self.mask_thresh = self._getMaskingThresh()
+def _checkKwargs(kwargs: dict) -> dict[str, Any]:
+    if "dfilter" in kwargs and not isinstance(kwargs["dfilter"], (bool, float, int)):
+        raise TypeError(f"'dfilter' must be of type bool or float")
+    return kwargs
 
-        # skip (data, field, flags)
-        names = list(self.func_signature.parameters.keys())[3 : 3 + len(args)]
-        all_args = {"field": field, **dict(zip(names, args)), **kwargs}
 
-        # find columns that need masking
-        columns = self._argnamesToColumns(self.decorator_mask, all_args)
-        self._warn(columns.difference(self.data.columns).to_list(), source="mask")
-        columns = columns.intersection(self.data.columns)
+def _getMaskingThresh(kwargs) -> float:
+    """
+    Generate a float threshold by the value of the `dfilter` keyword
 
-        masked, stored = self._maskData(
-            data=self.data,
-            flags=self.flags,
-            columns=columns,
-            thresh=self.mask_thresh,
-        )
-        self.data = masked
-        self.stored_data = stored
+    Returns
+    -------
+    threshold: float
+        All data gets masked, if the flags are equal or worse than the threshold.
 
-        args, kwargs = self._prepareArgs()
-        data, flags = self.func(*args, **kwargs)
+    Notes
+    -----
+    If ``dfilter`` is **not** in the kwargs, the threshold defaults to `FILTER_ALL`.
+    For any floatish value, it is taken as the threshold.
+    """
+    if "dfilter" not in kwargs:
+        return FILTER_ALL
+    return float(kwargs["dfilter"])  # handle int
 
-        # find columns that need squeezing
-        columns = self._argnamesToColumns(self.decorator_squeeze, all_args)
-        self._warn(columns.difference(flags.columns).to_list(), source="squeeze")
 
-        columns = columns.intersection(flags.columns)
+def _squeezeFlags(old_flags, new_flags: Flags, columns: pd.Index, meta) -> Flags:
+    """
+    Generate flags from the temporary result-flags and the original flags.
 
-        # if the function did not want to set any flags at all,
-        # we assume a processing function that altered the flags
-        # in an unpredictable manner or do nothing with the flags.
-        # in either case we take the returned flags as the new truth.
-        if columns.empty:
-            result_flags = flags
-        else:
-            # even if this looks like a noop for columns=[],
-            # it returns the old instead the new flags and
-            # therefore ignores any possible processing changes
-            result_flags = self._squeezeFlags(flags, columns)
+    Parameters
+    ----------
+    flags : Flags
+        The flags-frame, which is the result from a saqc-function
 
-        # find columns that need demasking
-        columns = self._argnamesToColumns(self.decorator_demask, all_args)
-        self._warn(columns.difference(data.columns).to_list(), source="demask")
-        columns = columns.intersection(data.columns)
+    Returns
+    -------
+    Flags
+    """
+    out = old_flags.copy()  # the old flags
 
-        result_data = self._unmaskData(data, self.stored_data, columns=columns)
+    for col in columns.union(
+        new_flags.columns.difference(old_flags.columns)
+    ):  # account for newly added columns
 
-        return result_data, result_flags
+        if col not in out:  # ensure existence
+            out.history[col] = History(index=new_flags.history[col].index)
 
-    @staticmethod
-    def _checkKwargs(kwargs: dict) -> dict[str, Any]:
-        if "dfilter" in kwargs and not isinstance(
-            kwargs["dfilter"], (bool, float, int)
-        ):
-            raise TypeError(f"'dfilter' must be of type bool or float")
-        return kwargs
+        old_history = out.history[col]
+        new_history = new_flags.history[col]
 
-    def _prepareArgs(self) -> Tuple[tuple, dict[str, Any]]:
-        """
-        Prepare the args and kwargs passed to the function
-        Returns
-        -------
-        args: tuple
-            arguments to be passed to the actual call
-        kwargs: dict
-            keyword-arguments to be passed to the actual call
-        """
-        kwargs = self.kwargs.copy()
-        kwargs["dfilter"] = self.mask_thresh
+        # We only want to add new columns, that were appended during the last
+        # function call. If no such columns exist, we end up with an empty
+        # new_history.
+        start = len(old_history.columns)
+        new_history = _sliceHistory(new_history, slice(start, None))
 
-        # always pass a list to multivariate functions and
-        # unpack single element lists for univariate functions
-        if self.multivariate:
-            field = self.fields
-        else:
-            field = squeezeSequence(self.fields)
+        squeezed = new_history.squeeze(raw=True)
+        out.history[col] = out.history[col].append(squeezed, meta=meta)
 
-        args = self.data, field, self.flags.copy(), *self.args
-        return args, kwargs
+    return out
 
-    def _getMaskingThresh(self) -> float:
-        """
-        Generate a float threshold by the value of the `dfilter` keyword
 
-        Returns
-        -------
-        threshold: float
-            All data gets masked, if the flags are equal or worse than the threshold.
+def _sliceHistory(history: History, sl: slice) -> History:
+    history.hist = history.hist.iloc[:, sl]
+    history.meta = history.meta[sl]
+    return history
 
-        Notes
-        -----
-        If ``dfilter`` is **not** in the kwargs, the threshold defaults to `FILTER_ALL`.
-        For any floatish value, it is taken as the threshold.
-        """
-        if "dfilter" not in self.kwargs:
-            return FILTER_ALL
-        return float(self.kwargs["dfilter"])  # handle int
 
-    def _createMeta(self) -> dict:
-        return {
-            "func": self.func_name,
-            "args": self.args,
-            "kwargs": self.kwargs,
-        }
+def _maskData(
+    data: dios.DictOfSeries, flags: Flags, columns: Sequence[str], thresh: float
+) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
+    """
+    Mask data with Nans, if the flags are worse than a threshold.
+        - mask only passed `columns` (preselected by `datamask`-kw from decorator)
 
-    def _squeezeFlags(self, flags: Flags, columns: pd.Index) -> Flags:
-        """
-        Generate flags from the temporary result-flags and the original flags.
+    Returns
+    -------
+    masked : dios.DictOfSeries
+        masked data, same dim as original
+    mask : dios.DictOfSeries
+        dios holding iloc-data-pairs for every column in `data`
+    """
+    mask = dios.DictOfSeries(columns=columns)
 
-        Parameters
-        ----------
-        flags : Flags
-            The flags-frame, which is the result from a saqc-function
+    # we use numpy here because it is faster
+    for c in columns:
+        col_mask = _isflagged(flags[c], thresh)
 
-        Returns
-        -------
-        Flags
-        """
-        out = self.flags.copy()  # the old flags
-        meta = self._createMeta()
-        for col in columns.union(
-            flags.columns.difference(self.flags.columns)
-        ):  # account for newly added columns
+        if col_mask.any():
+            col_data = data[c].to_numpy(dtype=np.float64)
 
-            if col not in out:  # ensure existence
-                out.history[col] = History(index=flags.history[col].index)
+            mask[c] = pd.Series(col_data[col_mask], index=np.where(col_mask)[0])
 
-            old_history = out.history[col]
-            new_history = flags.history[col]
+            col_data[col_mask] = np.nan
+            data[c] = col_data
 
-            # We only want to add new columns, that were appended during the last
-            # function call. If no such columns exist, we end up with an empty
-            # new_history.
-            start = len(old_history.columns)
-            new_history = self._sliceHistory(new_history, slice(start, None))
+    return data, mask
 
-            squeezed = new_history.squeeze(raw=True)
-            out.history[col] = out.history[col].append(squeezed, meta=meta)
 
-        return out
+def _unmaskData(
+    data: dios.DictOfSeries, mask: dios.DictOfSeries, columns: pd.Index | None = None
+) -> dios.DictOfSeries:
+    """
+    Restore the masked data.
 
-    @staticmethod
-    def _sliceHistory(history: History, sl: slice) -> History:
-        history.hist = history.hist.iloc[:, sl]
-        history.meta = history.meta[sl]
-        return history
+    Notes
+    -----
+    - Even if this returns data, it works inplace !
+    - `mask` is not a boolean mask, instead it holds the original values.
+      The index of mask is numeric and represent the integer location
+      in the original data.
+    """
+    if columns is None:
+        columns = data.columns  # field was in old, is in mask and is in new
+    columns = mask.columns.intersection(columns)
 
-    @staticmethod
-    def _maskData(
-        data: dios.DictOfSeries, flags: Flags, columns: Sequence[str], thresh: float
-    ) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
-        """
-        Mask data with Nans, if the flags are worse than a threshold.
-            - mask only passed `columns` (preselected by `datamask`-kw from decorator)
+    for c in columns:
 
-        Returns
-        -------
-        masked : dios.DictOfSeries
-            masked data, same dim as original
-        mask : dios.DictOfSeries
-            dios holding iloc-data-pairs for every column in `data`
-        """
-        mask = dios.DictOfSeries(columns=columns)
+        # ignore
+        if data[c].empty or mask[c].empty:
+            continue
 
-        # we use numpy here because it is faster
-        for c in columns:
-            col_mask = _isflagged(flags[c].to_numpy(), thresh)
+        # get the positions of values to unmask
+        candidates = mask[c]
+        # if the mask was removed during the function call, don't replace
+        unmask = candidates[data[c].iloc[candidates.index].isna().to_numpy()]
+        if unmask.empty:
+            continue
+        data[c].iloc[unmask.index] = unmask
 
-            if col_mask.any():
-                col_data = data[c].to_numpy(dtype=np.float64)
+    return data
 
-                mask[c] = pd.Series(col_data[col_mask], index=np.where(col_mask)[0])
 
-                col_data[col_mask] = np.nan
-                data[c] = col_data
+def _expandField(regex, columns, field) -> List[str]:
+    """
+    Expand regular expressions to concrete field names.
+    """
+    if regex:
+        fmask = columns.str.match(field)
+        return columns[fmask].tolist()
+    return toSequence(field)
 
-        return data, mask
 
-    @staticmethod
-    def _unmaskData(
-        data: dios.DictOfSeries, mask: dios.DictOfSeries, columns: pd.Index = None
-    ) -> dios.DictOfSeries:
-        """
-        Restore the masked data.
+def _homogenizeFieldsTargets(
+    multivariate,
+    handles_target,
+    fields,
+    targets,
+):
+    """
+    Ensure, that fields and flags are of identical length.
 
-        Notes
-        -----
-        - Even if this returns data, it works inplace !
-        - `mask` is not a boolean mask, instead it holds the original values.
-          The index of mask is numeric and represent the integer location
-          in the original data.
-        """
-        if columns is None:
-            columns = data.columns  # field was in old, is in mask and is in new
-        columns = mask.columns.intersection(columns)
+    Note
+    ----
+    We have four cases to consider:
+    1. multivariate=False & handles_target=False
+    2. multivariate=False & handles_target=True
+    3. multivariate=True  & handles_target=False
+    4. multivariate=True  & handles_target=True
+    """
 
-        for c in columns:
+    if not (multivariate and handles_target):
+        if len(fields) != len(targets):
+            raise ValueError("expected the same number of 'field' and 'target' values")
 
-            # ignore
-            if data[c].empty or mask[c].empty:
-                continue
+    if multivariate:
+        fields, targets = [fields], [targets]
 
-            # get the positions of values to unmask
-            candidates = mask[c]
-            # if the mask was removed during the function call, don't replace
-            unmask = candidates[data[c].iloc[candidates.index].isna().to_numpy()]
-            if unmask.empty:
-                continue
-            data[c].iloc[unmask.index] = unmask
-
-        return data
+    return fields, targets
 
 
 def register(
@@ -409,14 +316,118 @@ def register(
         itself. Mandatory for multivariate functions.
     """
 
-    def inner(func):
-        wrapper = FunctionWrapper(
-            func, mask, demask, squeeze, multivariate, handles_target
-        )
-        FUNC_MAP[wrapper.func_name] = wrapper
-        return wrapper
+    def outer(func: Callable[P, T]) -> Callable[P, T]:
 
-    return inner
+        func_signature = inspect.signature(func)
+        _checkDecoratorKeywords(func_signature, mask, demask, squeeze, handles_target)
+
+        @functools.wraps(func)
+        def inner(
+            saqc,
+            field,
+            *args,
+            regex: bool = False,
+            flag: ExternalFlag | OptionalNone = OptionalNone(),
+            **kwargs,
+        ) -> "SaQC":
+
+            # args -> kwargs
+            paramnames = tuple(func_signature.parameters.keys())[
+                2:
+            ]  # skip (self, field)
+            kwargs = {**dict(zip(paramnames, args)), **kwargs}
+
+            # special argument handling
+            if "dfilter" not in kwargs:
+                # let's see, if the function has an default value
+                default = func_signature.parameters.get("dfilter")
+                if default:
+                    default = default.default
+                kwargs["dfilter"] = default or saqc._scheme.DFILTER_DEFAULT
+
+            if not isinstance(flag, OptionalNone):
+                # translation schemes might want to use a flag
+                # `None` so we introduce a special class here
+                kwargs["flag"] = saqc._scheme(flag)
+
+            kwargs = _checkKwargs(kwargs)
+            kwargs["dfilter"] = _getMaskingThresh(kwargs)
+
+            fields = _expandField(regex, saqc._data.columns, field)
+            targets = toSequence(kwargs.pop("target", fields))
+
+            fields, targets = _homogenizeFieldsTargets(
+                multivariate, handles_target, fields, targets
+            )
+
+            out = saqc.copy(deep=True)
+
+            # initialize target fields
+            if not handles_target:
+                # initialize all target variables
+                for src, trg in zip(fields, targets):
+                    out = out.copyField(field=src, target=trg)
+
+            for src, trg in zip(fields, targets):
+                kwargs = {**kwargs, "field": src, "target": trg}
+                if not handles_target:
+                    kwargs["field"] = kwargs.pop("target")
+
+                # find columns that need masking
+                # func_signature = func_signature.bind(field=field)
+                columns = _argnamesToColumns(mask, kwargs)
+                _warn(columns.difference(out._data.columns).to_list(), source="mask")
+                columns = columns.intersection(out._data.columns)
+
+                out._data, stored_data = _maskData(
+                    data=out._data,
+                    flags=out._flags,
+                    columns=columns,
+                    thresh=kwargs["dfilter"],
+                )
+
+                # always pass a list to multivariate functions and
+                # unpack single element lists for univariate functions
+                if not multivariate:
+                    kwargs["field"] = squeezeSequence(kwargs["field"])
+
+                old_flags = out._flags.copy()
+
+                out = func(out, **kwargs)
+
+                # find columns that need squeezing
+                columns = _argnamesToColumns(squeeze, kwargs)
+                _warn(
+                    columns.difference(out._flags.columns).to_list(), source="squeeze"
+                )
+                columns = columns.intersection(out._flags.columns)
+
+                # if the function did not want to set any flags at all,
+                # we assume a processing function that altered the flags
+                # in an unpredictable manner or do nothing with the flags.
+                # in either case we take the returned flags as the new truth.
+                if not columns.empty:
+                    meta = {
+                        "func": func.__name__,
+                        "args": args,
+                        "kwargs": kwargs,
+                    }
+                    out._flags = _squeezeFlags(old_flags, out._flags, columns, meta)
+
+                # find columns that need demasking
+                columns = _argnamesToColumns(demask, kwargs)
+                _warn(columns.difference(out._data.columns).to_list(), source="demask")
+                columns = columns.intersection(out._data.columns)
+
+                out._data = _unmaskData(out._data, stored_data, columns=columns)
+                out._validate(reason=f"call to {repr(func.__name__)}")
+
+            return out
+
+        FUNC_MAP[func.__name__] = inner
+        return inner
+
+    return outer
 
 
 def flagging(**kwargs):
@@ -465,9 +476,10 @@ def processing(**kwargs):
     return register(mask=[], demask=[], squeeze=[])
 
 
-def _isflagged(
-    flagscol: np.ndarray | pd.Series, thresh: float
-) -> np.ndarray | pd.Series:
+A = TypeVar("A", np.ndarray, pd.Series)
+
+
+def _isflagged(flagscol: A, thresh: float) -> A:
     """
     Return a mask of flags accordingly to `thresh`. Return type is same as flags.
     """

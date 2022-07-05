@@ -222,10 +222,10 @@ def test_callableArgumentsUnary(data):
     window = 5
 
     @register(mask=["field"], demask=["field"], squeeze=["field"])
-    def testFuncUnary(data, field, flags, func, **kwargs):
-        value = data[field].rolling(window=window).apply(func)
-        data[field] = value
-        return data, initFlagsLike(data)
+    def testFuncUnary(saqc, field, func, **kwargs):
+        value = saqc._data[field].rolling(window=window).apply(func)
+        saqc._data[field] = value
+        return saqc
 
     var = data.columns[0]
 
@@ -252,9 +252,9 @@ def test_callableArgumentsBinary(data):
     var1, var2 = data.columns[:2]
 
     @register(mask=["field"], demask=["field"], squeeze=["field"])
-    def testFuncBinary(data, field, flags, func, **kwargs):
-        data[field] = func(data[var1], data[var2])
-        return data, initFlagsLike(data)
+    def testFuncBinary(saqc, field, func, **kwargs):
+        saqc._data[field] = func(data[var1], data[var2])
+        return saqc
 
     config = f"""
     varname ; test

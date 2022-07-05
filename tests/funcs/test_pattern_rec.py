@@ -8,12 +8,10 @@
 
 import pandas as pd
 import pytest
-from pandas.testing import assert_series_equal
 
 import dios
 from saqc.constants import BAD, UNFLAGGED
-from saqc.core import initFlagsLike
-from saqc.funcs.pattern import flagPatternByDTW
+from saqc.core import SaQC, initFlagsLike
 from tests.common import initData
 
 
@@ -36,16 +34,14 @@ def test_flagPattern_dtw(plot, normalize):
 
     data = dios.DictOfSeries(dict(data=data, pattern_data=pattern))
     flags = initFlagsLike(data, name="data")
-    data, flags = flagPatternByDTW(
-        data,
+    qc = SaQC(data, flags).flagPatternByDTW(
         "data",
-        flags,
         reference="pattern_data",
         plot=plot,
         normalize=normalize,
         flag=BAD,
     )
 
-    assert all(flags["data"].iloc[10:18] == BAD)
-    assert all(flags["data"].iloc[:9] == UNFLAGGED)
-    assert all(flags["data"].iloc[18:] == UNFLAGGED)
+    assert all(qc.flags["data"].iloc[10:18] == BAD)
+    assert all(qc.flags["data"].iloc[:9] == UNFLAGGED)
+    assert all(qc.flags["data"].iloc[18:] == UNFLAGGED)

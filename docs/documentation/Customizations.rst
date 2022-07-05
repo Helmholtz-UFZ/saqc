@@ -7,7 +7,7 @@ Customizations
 
 SaQC comes with a continuously growing number of pre-implemented
 quality checking and processing routines as well as flagging schemes. 
-For any sufficiently large use case however it is very likely that the 
+For any sufficiently large use case however, it is very likely that the 
 functions provided won't fulfill all your needs and requirements.
 
 Acknowledging the impossibility to address all imaginable use cases, we 
@@ -32,7 +32,7 @@ SaQC provides two ways to integrate custom routines into the system:
 Interface
 ^^^^^^^^^
 
-In order to make a function usable within the evaluation framework of SaQC it needs to
+In order to make a function usable within the evaluation framework of SaQC, it needs to
 implement the following function interface
 
 .. code-block:: python
@@ -42,12 +42,11 @@ implement the following function interface
    import saqc
 
    def yourTestFunction(
-      data: dios.DictOfSeries,
+      saqc: SaQC
       field: str,
-      flags: saqc.Flags,
       *args,
       **kwargs
-      ) -> (dios.DictOfSeries, saqc.Flags)
+      ) -> SaQC
 
 Argument Descriptions
 ~~~~~~~~~~~~~~~~~~~~~
@@ -81,8 +80,8 @@ test functions into SaQC. Here is a complete dummy example:
    from saqc import register
 
    @flagging()
-   def yourTestFunction(data, field, flags, *args, **kwargs):
-       return data, flags
+   def yourTestFunction(saqc: SaQC, field: str, *args, **kwargs):
+       return saqc
 
 Example
 ^^^^^^^
