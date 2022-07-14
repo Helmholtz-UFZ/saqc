@@ -619,7 +619,9 @@ class OutliersMixin:
 
         1. :math:`|x_{n-1} - x_{n + s}| >` `thresh`, for all :math:`s \\in [0,1,2,...,k]`
 
-        2. :math:`(x_{n + s} - x_{n - 1}) / x_{n - 1} >` `thresh_relative`
+        2.1 if `thresh_relative` > 0, :math:`x_{n + s} > x_{n - 1}*(1+` `thresh_relative` :math:`)`
+
+        2.2 if `thresh_relative` < 0, :math:`x_{n + s} < x_{n - 1}*(1+` `thresh_relative` :math:`)`
 
         3. :math:`|x_{n-1} - x_{n+k+1}| <` `tolerance`
 
@@ -630,32 +632,35 @@ class OutliersMixin:
 
         Parameters
         ----------
+        data : dios.DictOfSeries
+            A dictionary of pandas.Series, holding all the data.
         field : str
             The field in data.
-
+        flags : saqc.Flags
+            Container to store flags of the data.
         tolerance : float
             Maximum difference allowed, between the value, directly preceding and the value, directly succeeding an offset,
             to trigger flagging of the values forming the offset.
             See condition (3).
-
         window : {str, int}, default '15min'
             Maximum length allowed for offset value courses, to trigger flagging of the values forming the offset.
             See condition (4). Integer defined window length are only allowed for regularly sampled timeseries.
-
         thresh : float: {float, None}, default None
             Minimum difference between a value and its successors, to consider the successors an anomalous offset group.
             See condition (1). If None is passed, condition (1) is not tested.
-
         thresh_relative : {float, None}, default None
-            Minimum relative change between and its successors, to consider the successors an anomalous offset group.
+            Minimum relative change between a value and its successors, to consider the successors an anomalous offset group.
             See condition (2). If None is passed, condition (2) is not tested.
-
         flag : float, default BAD
             flag to set.
 
         Returns
         -------
-        saqc.SaQC
+        data : dios.DictOfSeries
+            A dictionary of pandas.Series, holding all the data.
+        flags : saqc.Flags
+            The quality flags of data
+            Flags values may have changed, relatively to the flags input.
 
         Examples
         --------
@@ -668,6 +673,7 @@ class OutliersMixin:
            import saqc
            import pandas as pd
            data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
+
 
 
         Lets generate a simple, regularly sampled timeseries with an hourly sampling rate and generate an
@@ -758,111 +764,53 @@ class OutliersMixin:
                 "At least one of parameters 'thresh' and 'thresh_relative' has to be given. Got 'thresh'=None, "
                 "'thresh_relative'=None instead."
             )
+        if thresh is None:
+            thresh = 0
 
-        dataseries = self._data[field].dropna()
-        if dataseries.empty:
-            return self
-
-        # using reverted series - because ... long story.
-        ind = dataseries.index
-        rev_ind = ind[0] + ((ind[-1] - ind)[::-1])
-        map_i = pd.Series(ind, index=rev_ind)
-        dataseries = pd.Series(dataseries.values, index=rev_ind)
-
-        if isinstance(window, int):
-            delta = getFreqDelta(dataseries.index)
-            window = delta * window
-            if not delta:
-                raise TypeError(
-                    "Only offset string defined window sizes allowed for timeseries not sampled regularly."
-                )
-
-        # get all the entries preceding a significant jump
-        if thresh is not None:
-            post_jumps = dataseries.diff().abs() > thresh
-
+        dat = self._data[field].dropna()
         if thresh_relative is not None:
-            s = np.sign(thresh_relative)
-            rel_jumps = s * (dataseries.shift(1) - dataseries).div(
-                dataseries.abs()
-            ) > abs(thresh_relative)
-            if thresh is not None:
-                post_jumps = rel_jumps & post_jumps
-            else:
-                post_jumps = rel_jumps
+            rel_jumps = np.sign(thresh_relative) * dat > np.sign(
+                thresh_relative
+            ) * dat.shift(+1) * (1 + thresh_relative)
 
-        post_jumps = post_jumps[post_jumps]
-        if post_jumps.empty:
-            return self
+        data_diff = dat.diff()
+        initial_jumps = data_diff.abs() > thresh
+        if thresh_relative:
+            initial_jumps &= rel_jumps
+        return_in_time = (
+            dat[::-1]
+            .rolling(window, min_periods=2)
+            .apply(lambda x: np.abs(x[-1] - x[:-1]).min() < tolerance, raw=True)[::-1]
+            .astype(bool)
+        )
+        return_in_time = return_in_time & initial_jumps.reindex(
+            dat.index, fill_value=False
+        ).shift(-1, fill_value=False)
+        offset_start_candidates = dat[return_in_time]
+        win_delta = pd.Timedelta(window)
+        corners = pd.Series(False, index=dat.index)
+        to_flag = pd.Series(False, index=dat.index)
+        ns = pd.Timedelta("1ns")
+        for c in zip(offset_start_candidates.index, offset_start_candidates.values):
+            ret = (dat[c[0]] - dat[c[0] + ns : c[0] + win_delta]).abs()[1:] < tolerance
+            if not ret.empty:
+                r = ret.idxmax()
+                chunk = dat[c[0] : r]
+                sgn = np.sign(chunk[1] - c[1])
+                t_val = ((chunk[1:-1] - c[1]) * sgn > thresh).all()
+                r_val = True
+                if thresh_relative:
+                    r_val = (
+                        np.sign(thresh_relative) * chunk[1:-1]
+                        > np.sign(thresh_relative) * c[1] * (1 + thresh_relative)
+                    ).all()
+                if t_val and r_val and (not corners[c[0]]):
+                    flag_i = dat[c[0] + ns : chunk.index[-1] - ns].index
+                    to_flag[flag_i] = True
+                    corners.loc[flag_i[-1]] = True
+        to_flag = to_flag.reindex(self._data[field].index, fill_value=False)
 
-        # get all the entries preceding a significant jump
-        # and its successors within "length" range
-        to_roll = post_jumps.reindex(
-            dataseries.index, method="bfill", tolerance=window, fill_value=False
-        ).dropna()
-        to_roll = dataseries[to_roll]
-
-        if thresh_relative is not None:
-
-            def spikeTester(
-                chunk,
-                thresh_r=abs(thresh_relative),
-                thresh_a=thresh or 0,
-                tol=tolerance,
-            ):
-                jump = chunk[-2] - chunk[-1]
-                thresh = max(thresh_r * abs(chunk[-1]), thresh_a)
-                chunk_stair = (np.sign(jump) * (chunk - chunk[-1]) < thresh)[
-                    ::-1
-                ].cumsum()
-                initial = np.searchsorted(chunk_stair, 2)
-                if initial == len(chunk):
-                    return 0
-                if np.abs(chunk[-initial - 1] - chunk[-1]) < tol:
-                    return initial - 1
-                return 0
-
-        else:
-
-            # define spike testing function to roll with (no  rel_check):
-            def spikeTester(chunk, thresh=thresh, tol=tolerance):
-                # signum change!!!
-                chunk_stair = (
-                    np.sign(chunk[-2] - chunk[-1]) * (chunk - chunk[-1]) < thresh
-                )[::-1].cumsum()
-                initial = np.searchsorted(chunk_stair, 2)
-                if initial == len(chunk):
-                    return 0
-                if np.abs(chunk[-initial - 1] - chunk[-1]) < tol:
-                    return initial - 1
-                return 0
-
-        roller = customRoller(to_roll, window=window, min_periods=2, closed="both")
-        engine = None if len(to_roll) < 200000 else "numba"
-        result = roller.apply(spikeTester, raw=True, engine=engine)
-
-        ignore = pd.Series(True, index=to_roll.index)
-        ignore[post_jumps.index] = False
-        result[ignore] = np.nan
-
-        result.index = map_i[result.index]
-
-        # correct the result: only those values define plateaus, that do not have
-        # values at their left starting point, that belong to other plateaus themself:
-        def calcResult(result):
-            var_num = result.shape[0]
-            flag_scopes = np.zeros(var_num, dtype=bool)
-            for k in range(var_num):
-                if result[k] > 0:
-                    k_r = int(result[k])
-                    # validity check: plateuas start isnt another plateaus end:
-                    if not flag_scopes[k - k_r - 1]:
-                        flag_scopes[(k - k_r) : k] = True
-            return pd.Series(flag_scopes, index=result.index)
-
-        cresult = calcResult(result)
-        cresult = cresult[cresult].index
-        self._flags[cresult, field] = flag
+        self._flags[to_flag, field] = flag
         return self
 
     @flagging()
