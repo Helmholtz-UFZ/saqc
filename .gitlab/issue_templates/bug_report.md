@@ -40,4 +40,4 @@ Paste any relevant stacktrace inside the ```
 
 (If you can, link to the line of code that might be responsible for the problem)
 
-/label ~bug ~needs-investigation
+/label ~BUG ~needs-investigation
