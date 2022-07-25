@@ -12,11 +12,12 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.1.0...develop)
 ### Added
+- translation of `dfilter`
 ### Changed
 - test function interface changed to `func(saqc: SaQC, field: str | Sequence[str], *args, **kwargs)`
 ### Removed
 ### Fixed
-- fixed undesired behavior `flagIsolated` for not harmonized data 
+- fixed undesired behavior in `flagIsolated` for not harmonized data 
 
 ## [2.1.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2022-06-14
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.0.1...v2.1.0)

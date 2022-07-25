@@ -225,7 +225,7 @@ We can make the value flagged by both the flagging functions by increasing the
 
    qc = saqc.SaQC(data)
    qc = qc.flagRange('data', max=15, label='value > 15')
-   qc = qc.flagRange('data', max=0, label='value > 0', dfilter=300)
+   qc = qc.flagRange('data', max=0, label='value > 0', dfilter=255)
    qc.plot('data')
 
 Unflagging Values
@@ -267,5 +267,5 @@ gets the already flagged values passed to test them.
    :context: close-figs
    :include-source: False
 
-   qc = qc.flagConstants('data', window='2D', thresh=0, dfilter=300, flag=-np.inf)
+   qc = qc.flagConstants('data', window='2D', thresh=0, dfilter=255, flag=-np.inf)
    qc.plot('data')

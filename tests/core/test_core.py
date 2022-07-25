@@ -13,10 +13,11 @@ import pandas as pd
 import pytest
 
 import saqc
-from saqc.constants import BAD
+from saqc.constants import BAD, FILTER_ALL, FILTER_NONE, UNFLAGGED
 from saqc.core import SaQC, initFlagsLike
 from saqc.core.flags import Flags
 from saqc.core.register import flagging, processing, register
+from saqc.lib.types import OptionalNone
 from tests.common import initData
 
 OPTIONAL = [False, True]
@@ -345,3 +346,24 @@ def test_columnConsitency(data):
     qc = SaQC(data)
     with pytest.raises(RuntimeError):
         qc.flagFoo(field)
+
+
+@pytest.mark.parametrize(
+    "user_flag,internal_flag",
+    (
+        [FILTER_ALL, FILTER_ALL],
+        [FILTER_NONE, FILTER_NONE],
+        [OptionalNone(), FILTER_ALL],
+        ["BAD", BAD],
+        ["UNFLAGGED", UNFLAGGED],
+    ),
+)
+def test_dfilterTranslation(data, user_flag, internal_flag):
+    @flagging()
+    def flagFoo(saqc, field, dfilter, **kwargs):
+        assert dfilter == internal_flag
+        return saqc
+
+    field = data.columns[0]
+    qc = SaQC(data, scheme="simple")
+    qc.flagFoo(field, dfilter=user_flag)

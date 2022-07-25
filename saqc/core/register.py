@@ -16,8 +16,9 @@ import pandas as pd
 from typing_extensions import ParamSpec
 
 import dios
-from saqc.constants import FILTER_ALL, UNFLAGGED
+from saqc.constants import FILTER_ALL, FILTER_NONE, UNFLAGGED
 from saqc.core.flags import Flags, History
+from saqc.core.translation.basescheme import TranslationScheme
 from saqc.lib.tools import squeezeSequence, toSequence
 from saqc.lib.types import ExternalFlag, OptionalNone
 
@@ -87,29 +88,30 @@ def _warn(missing, source):
     )
 
 
-def _checkKwargs(kwargs: dict) -> dict[str, Any]:
-    if "dfilter" in kwargs and not isinstance(kwargs["dfilter"], (bool, float, int)):
-        raise TypeError(f"'dfilter' must be of type bool or float")
-    return kwargs
-
-
-def _getMaskingThresh(kwargs) -> float:
+def _getDfilter(
+    func_signature: inspect.Signature,
+    translation_scheme: TranslationScheme,
+    kwargs: Dict[str, Any],
+) -> float:
     """
-    Generate a float threshold by the value of the `dfilter` keyword
-
-    Returns
-    -------
-    threshold: float
-        All data gets masked, if the flags are equal or worse than the threshold.
-
-    Notes
-    -----
-    If ``dfilter`` is **not** in the kwargs, the threshold defaults to `FILTER_ALL`.
-    For any floatish value, it is taken as the threshold.
+    Find a default value for dfilter, either from the choosen translation scheme
+    or a possibly defined method default value. Translate, if necessary.
     """
-    if "dfilter" not in kwargs:
-        return FILTER_ALL
-    return float(kwargs["dfilter"])  # handle int
+    dfilter = kwargs.get("dfilter")
+    if dfilter is None or isinstance(dfilter, OptionalNone):
+        # let's see, if the function has an default value
+        default = func_signature.parameters.get("dfilter")
+        if default:
+            default = default.default
+        if default == inspect.Signature.empty:
+            # function did not define a positional dfilter argument
+            default = None
+        dfilter = default or translation_scheme.DFILTER_DEFAULT
+    else:
+        # try to translate dfilter
+        if dfilter not in (FILTER_ALL, FILTER_NONE):
+            dfilter = translation_scheme(dfilter)
+    return float(dfilter)
 
 
 def _squeezeFlags(old_flags, new_flags: Flags, columns: pd.Index, meta) -> Flags:
@@ -336,22 +338,13 @@ def register(
                 2:
             ]  # skip (self, field)
             kwargs = {**dict(zip(paramnames, args)), **kwargs}
+            kwargs["dfilter"] = _getDfilter(func_signature, saqc._scheme, kwargs)
 
-            # special argument handling
-            if "dfilter" not in kwargs:
-                # let's see, if the function has an default value
-                default = func_signature.parameters.get("dfilter")
-                if default:
-                    default = default.default
-                kwargs["dfilter"] = default or saqc._scheme.DFILTER_DEFAULT
-
+            # translate flag
             if not isinstance(flag, OptionalNone):
                 # translation schemes might want to use a flag
                 # `None` so we introduce a special class here
                 kwargs["flag"] = saqc._scheme(flag)
-
-            kwargs = _checkKwargs(kwargs)
-            kwargs["dfilter"] = _getMaskingThresh(kwargs)
 
             fields = _expandField(regex, saqc._data.columns, field)
             targets = toSequence(kwargs.pop("target", fields))
