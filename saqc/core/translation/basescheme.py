@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, MutableMapping, Union
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
@@ -41,8 +41,11 @@ class TranslationScheme:
     - The scheme must be well definied, i.e. we need a backward translation for
       every forward translation (each value in `self._forward` needs a key in
       `self._backward`).
-    - We need translations for the special flags `saqc.constants.UNFLAGGED` and
-      `saqc.constants.BAD`. That implies, that every valid translation scheme
+    - We need translations for the special flags:
+      * `saqc.constants.UNFLAGGED`
+      * `saqc.constants.BAD`
+
+    . That implies, that every valid translation scheme
       provides at least one user flag that maps to `BAD` and one that maps to
       `UNFLAGGED`.
     """
