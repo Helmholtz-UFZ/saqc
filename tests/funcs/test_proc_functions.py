@@ -131,3 +131,25 @@ def test_offsetCorrecture():
 def test_resampleSingleEmptySeries():
     qc = saqc.SaQC(pd.DataFrame(1, columns=["a"], index=pd.DatetimeIndex([])))
     qc.resample("a", freq="1d")
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pd.Series(
+            [
+                np.random.normal(loc=1 + k * 0.1, scale=3 * (1 - (k * 0.001)))
+                for k in range(100)
+            ],
+            index=pd.date_range("2000", freq="1D", periods=100),
+            name="data",
+        )
+    ],
+)
+def test_assignZScore(data):
+    qc = saqc.SaQC(data)
+    qc = qc.assignZScore("data", window="20D")
+    mean_res = qc.data["data"].mean()
+    std_res = qc.data["data"].std()
+    assert -0.1 < mean_res < 0.1
+    assert 0.9 < std_res < 1.1
