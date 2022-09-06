@@ -13,6 +13,7 @@ import pandas as pd
 import pytest
 
 import dios
+import saqc
 from saqc.constants import BAD, UNFLAGGED
 from saqc.core import SaQC, initFlagsLike
 from tests.fixtures import char_dict, course_1, course_2, course_3, course_4
@@ -143,3 +144,33 @@ def test_flagCrossStatistics(dat):
     for field in fields:
         isflagged = qc.flags[field] > UNFLAGGED
         assert isflagged[characteristics["raise"]].all()
+
+
+def test_flagZScores():
+    np.random.seed(seed=1)
+    data = pd.Series(
+        [np.random.normal() for k in range(100)],
+        index=pd.date_range("2000", freq="1D", periods=100),
+        name="data",
+    )
+    data.iloc[[5, 80]] = 5
+    data.iloc[[40]] = -6
+    qc = saqc.SaQC(data)
+    qc = qc.flagZScore("data", window=None)
+
+    assert (qc.flags.to_df().iloc[[5, 40, 80], 0] > 0).all()
+
+    qc = saqc.SaQC(data)
+    qc = qc.flagZScore("data", window=None, min_residuals=10)
+
+    assert (qc.flags.to_df()["data"] < 0).all()
+
+    qc = saqc.SaQC(data)
+    qc = qc.flagZScore("data", window="20D")
+
+    assert (qc.flags.to_df().iloc[[40, 80], 0] > 0).all()
+
+    qc = saqc.SaQC(data)
+    qc = qc.flagZScore("data", window=20)
+
+    assert (qc.flags.to_df().iloc[[40, 80], 0] > 0).all()

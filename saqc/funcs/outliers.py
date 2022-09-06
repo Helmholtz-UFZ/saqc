@@ -16,12 +16,14 @@ import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
 from outliers import smirnov_grubbs
+from scipy.stats import median_abs_deviation
 from typing_extensions import Literal
 
 from dios import DictOfSeries
 from saqc.constants import BAD, UNFLAGGED
 from saqc.core.flags import Flags
 from saqc.core.register import flagging, register
+from saqc.funcs.scores import _univarScoring
 from saqc.lib.tools import customRoller, getFreqDelta, toSequence
 
 if TYPE_CHECKING:
@@ -539,8 +541,11 @@ class OutliersMixin:
     def flagMAD(
         self: "SaQC",
         field: str,
-        window: str,
+        window: Optional[str, int] = None,
         z: float = 3.5,
+        min_residuals: Optional[int] = None,
+        min_periods: Optional[int] = None,
+        center: bool = False,
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
@@ -555,46 +560,49 @@ class OutliersMixin:
         ----------
         field : str
             The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
-
-        window : str
-           Offset string. Denoting the windows size that the "Z-scored" values have to lie in.
-
+        window : {str, int}, default None
+            Size of the window. Either determined via an Offset String, denoting the windows temporal extension or
+            by an integer, denoting the windows number of periods.
+            `NaN` measurements also count as periods.
+            If `None` is passed, All data points share the same scoring window, which than equals the whole
+            data.
         z: float, default 3.5
             The value the Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
-
+        min_periods
+            Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
+        center
+            Weather or not to center the target value in the scoring window. If `False`, the
+            target value is the last value in the window.
         flag : float, default BAD
             flag to set.
 
         Returns
         -------
-        saqc.SaQC
+        data : dios.DictOfSeries
+            A dictionary of pandas.Series, holding all the data.
+        flags : saqc.Flags
+            The quality flags of data
+            Flags values may have changed, relatively to the flags input.
 
         References
         ----------
         [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
         """
-        d = self._data[field]
-        if d.empty:
-            return self
 
-        median = d.rolling(window=window, closed="both").median()
-        diff = (d - median).abs()
-        mad = diff.rolling(window=window, closed="both").median()
-        mask = (mad > 0) & (0.6745 * diff > z * mad)
-        # NOTE:
-        # In pandas <= 0.25.3, the window size is not fixed if the
-        # window-argument to rolling is a frequency. That implies,
-        # that during the first iterations the window has a size of
-        # 1, 2, 3, ... until it eventually covers the desired time
-        # span. For stuff like the calculation of median, that is rather
-        # unfortunate, as the size of the calculation base might differ
-        # heavily. So don't flag something until, the window reaches
-        # its target size
-        if not isinstance(window, int):
-            index = mask.index
-            mask.loc[index < index[0] + pd.to_timedelta(window)] = False
+        self = self.flagZScore(
+            field,
+            window=window,
+            thresh=z,
+            min_residuals=min_residuals,
+            model_func=np.median,
+            norm_func=lambda x: median_abs_deviation(
+                x, scale="normal", nan_policy="omit"
+            ),
+            center=center,
+            min_periods=min_periods,
+            flag=flag,
+        )
 
-        self._flags[mask, field] = flag
         return self
 
     @flagging()
@@ -1037,6 +1045,95 @@ class OutliersMixin:
             m = mask[f].reindex(index=self._flags[f].index, fill_value=False)
             self._flags[m, f] = flag
 
+        return self
+
+    @flagging()
+    def flagZScore(
+        self: "SaQC",
+        field: str,
+        window: Optional[str, int] = None,
+        thresh: float = 3,
+        min_residuals: Optional[int] = None,
+        min_periods: Optional[int] = None,
+        model_func: Callable = np.mean,
+        norm_func: Callable = np.std,
+        center: bool = True,
+        flag: float = BAD,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Flag data where its (rolling) Zscore exceeds a threshold.
+
+        The function implements flagging derived from a basic Zscore calculation.
+        To handle non stationary data, the Zscoring can be applied with a rolling window.
+        Therefor, the function allows for a minimum residual to be specified in order to mitigate overflagging in
+        local regimes of low variance.
+
+        See the Notes section for a detailed overview of the calculation
+
+
+        Parameters
+        ----------
+        field : str
+            The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
+        window : {str, int}, default None
+            Size of the window. Either determined via an Offset String, denoting the windows temporal extension or
+            by an integer, denoting the windows number of periods.
+            `NaN` measurements also count as periods.
+            If `None` is passed, All data points share the same scoring window, which than equals the whole
+            data.
+        thresh
+            Cutoff level for the Zscores, above which associated points are getting flagged.
+        min_residuals
+            Minimum residual level points must have to be considered outliers.
+        min_periods
+            Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
+        model_func
+            Function to calculate the center moment in every window.
+        norm_func
+            Function to calculate the scaling for every window
+        center
+            Weather or not to center the target value in the scoring window. If `False`, the
+            target value is the last value in the window.
+
+        Returns
+        -------
+        data : dios.DictOfSeries
+            A dictionary of pandas.Series, holding all the data.
+        flags : saqc.Flags
+            The quality flags of data
+            Flags values may have changed, relatively to the flags input.
+
+        Notes
+        -----
+        Steps of calculation:
+
+        1. Consider a window :math:`W` of successive points :math:`W = x_{1},...x_{w}`
+        containing the value :math:`y_{K}` wich is to be checked.
+        (The index of :math:`K` depends on the selection of the parameter `center`.)
+
+        2. The "moment" :math:`M` for the window gets calculated via :math:`M=` `model_func(:math:`W`)
+
+        3. The "scaling" :math:`N` for the window gets calculated via :math:`N=` `norm_func(:math:`W`)
+
+        4. The "score" :math:`S` for the point :math:`x_{k}`gets calculated via :math:`S=(x_{k} - M) / N`
+
+        5. Finally, :math:`x_{k}` gets flagged, if :math:`|S| >` `thresh` and :math:`|M - x_{k}| >= `residuals_min`
+        """
+        datser = self._data[field]
+        if min_residuals is None:
+            min_residuals = 0
+
+        score, model, _ = _univarScoring(
+            datser,
+            window=window,
+            norm_func=norm_func,
+            model_func=model_func,
+            center=center,
+            min_periods=min_periods,
+        )
+        to_flag = (score.abs() > thresh) & ((model - datser).abs() >= min_residuals)
+        self._flags[to_flag, field] = flag
         return self
 
 

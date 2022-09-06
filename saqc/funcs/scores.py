@@ -7,7 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Sequence, Union
+from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -16,10 +16,61 @@ from typing_extensions import Literal
 import saqc.lib.ts_operators as ts_ops
 from saqc.constants import UNFLAGGED
 from saqc.core.register import register
-from saqc.lib.tools import toSequence
+from saqc.lib.tools import getApply, toSequence
 
 if TYPE_CHECKING:
     from saqc.core.core import SaQC
+
+
+def _univarScoring(
+    data: pd.Series,
+    window: Optional[str, int] = None,
+    norm_func: Callable = np.std,
+    model_func: Callable = np.mean,
+    center: bool = True,
+    min_periods: Optional[int] = None,
+) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    """
+    Calculate (rolling) normalisation scores.
+
+    Parameters
+    ----------
+    data
+        A dictionary of pandas.Series, holding all the data.
+    window : {str, int}, default None
+            Size of the window. Either determined via an Offset String, denoting the windows temporal extension or
+            by an integer, denoting the windows number of periods.
+            `NaN` measurements also count as periods.
+            If `None` is passed, All data points share the same scoring window, which than equals the whole
+            data.
+    model_func
+        Function to calculate the center moment in every window.
+    norm_func
+        Function to calculate the scaling for every window
+    center
+        Weather or not to center the target value in the scoring window. If `False`, the
+        target value is the last value in the window.
+    min_periods
+        Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
+    """
+    if data.empty:
+        return data, data, data
+    if min_periods is None:
+        min_periods = 0
+
+    if window is None:
+        # in case of stationary analysis, broadcast statistics to series for compatibility reasons
+        norm = pd.Series(norm_func(data.values), index=data.index)
+        model = pd.Series(model_func(data.values), index=data.index)
+
+    else:
+        # wrap passed func with rolling built in if possible and rolling.apply else
+        roller = data.rolling(window=window, min_periods=min_periods, center=center)
+        norm = getApply(roller, norm_func)
+        model = getApply(roller, model_func)
+
+    score = (data - model) / norm
+    return score, model, norm
 
 
 class ScoresMixin:
@@ -169,4 +220,77 @@ class ScoresMixin:
         self._flags[target] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)
         self._data[target] = score_ser
 
+        return self
+
+    @register(mask=["field"], demask=[], squeeze=[])
+    def assignZScore(
+        self: "SaQC",
+        field: str,
+        window: Optional[str] = None,
+        norm_func: Callable = np.std,
+        model_func: Callable = np.mean,
+        center: bool = True,
+        min_periods: Optional[int] = None,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Calculate (rolling) Zscores.
+
+        See the Notes section for a detailed overview of the calculation
+
+        Parameters
+        ----------
+        field : str
+            The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
+        window : {str, int}, default None
+            Size of the window. Either determined via an Offset String, denoting the windows temporal extension or
+            by an integer, denoting the windows number of periods.
+            `NaN` measurements also count as periods.
+            If `None` is passed, All data points share the same scoring window, which than equals the whole
+            data.
+        model_func
+            Function to calculate the center moment in every window.
+        norm_func
+            Function to calculate the scaling for every window
+        center
+            Weather or not to center the target value in the scoring window. If `False`, the
+            target value is the last value in the window.
+        min_periods
+            Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
+
+        Returns
+        -------
+        data : dios.DictOfSeries
+            A dictionary of pandas.Series, holding all the data.
+        flags : saqc.Flags
+            The quality flags of data
+            Flags values may have changed, relatively to the flags input.
+
+        Notes
+        -----
+        Steps of calculation:
+
+        1. Consider a window :math:`W` of successive points :math:`W = x_{1},...x_{w}`
+        containing the value :math:`y_{K}` wich is to be checked.
+        (The index of :math:`K` depends on the selection of the parameter `center`.)
+
+        2. The "moment" :math:`M` for the window gets calculated via :math:`M=` `model_func(:math:`W`)
+
+        3. The "scaling" :math:`N` for the window gets calculated via :math:`N=` `norm_func(:math:`W`)
+
+        4. The "score" :math:`S` for the point :math:`x_{k}`gets calculated via :math:`S=(x_{k} - M) / N`
+        """
+
+        if min_periods is None:
+            min_periods = 0
+
+        score, _, _ = _univarScoring(
+            self._data[field],
+            window=window,
+            norm_func=norm_func,
+            model_func=model_func,
+            center=center,
+            min_periods=min_periods,
+        )
+        self._data[field] = score
         return self
