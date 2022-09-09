@@ -109,7 +109,7 @@ def _getDfilter(
         dfilter = default or translation_scheme.DFILTER_DEFAULT
     else:
         # try to translate dfilter
-        if dfilter not in (FILTER_ALL, FILTER_NONE):
+        if dfilter not in {FILTER_ALL, FILTER_NONE, translation_scheme.DFILTER_DEFAULT}:
             dfilter = translation_scheme(dfilter)
     return float(dfilter)
 
