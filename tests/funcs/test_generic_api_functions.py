@@ -60,7 +60,6 @@ def test_writeTargetFlagGeneric(data, targets, func):
     saqc = saqc.flagGeneric(field=data.columns, target=targets, func=func, flag=BAD)
     for target in targets:
         assert saqc._flags.history[target].hist.iloc[0].tolist() == [BAD]
-        # import ipdb; ipdb.set_trace()
         assert saqc._flags.history[target].meta[0] == expected_meta
 
 
@@ -204,3 +203,31 @@ def test_label():
         func=lambda x, y: isflagged(x, "out of range") | isflagged(y),
     )
     assert list((qc.flags["data2"] > 0).values) == [False, False, True, False, False]
+
+
+@pytest.mark.parametrize(
+    "kwargs, got, expected",
+    [
+        (
+            {
+                "lower": 0,
+            },
+            [-9, -2, 1, 2, 9],
+            [0, 0, 1, 2, 9],
+        ),
+        ({"upper": 3}, [-9, -2, 1, 2, 9], [-9, -2, 1, 2, 3]),
+        ({"lower": -6, "upper": 3}, [-9, -2, 1, 2, 9], [-6, -2, 1, 2, 3]),
+    ],
+)
+def test_processGenericClip(kwargs, got, expected):
+    field = "data"
+    got = pd.DataFrame(
+        got, columns=[field], index=pd.date_range("2020-06-30", periods=len(got))
+    )
+    expected = pd.DataFrame(
+        expected,
+        columns=[field],
+        index=pd.date_range("2020-06-30", periods=len(expected)),
+    )
+    qc = SaQC(got).processGeneric(field, func=lambda x: clip(x, **kwargs))
+    assert (qc._data[field] == expected[field]).all()

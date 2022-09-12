@@ -167,7 +167,7 @@ class SaQC(FunctionsMixin):
 
         raise TypeError(
             "'data' must be of type pandas.Series, "
-            "pandas.DataFrame or dios.DictOfSeries or"
+            "pandas.DataFrame or dios.DictOfSeries or "
             "a list of those."
         )
 

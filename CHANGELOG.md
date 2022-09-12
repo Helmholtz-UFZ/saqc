@@ -13,6 +13,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.1.0...develop)
 ### Added
 - translation of `dfilter`
+- new generic function `clip`
 ### Changed
 - test function interface changed to `func(saqc: SaQC, field: str | Sequence[str], *args, **kwargs)`
 ### Removed
