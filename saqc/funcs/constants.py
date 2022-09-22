@@ -30,6 +30,7 @@ class ConstantsMixin:
         field: str,
         thresh: float,
         window: int | str,
+        min_periods: int = 2,
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
@@ -72,7 +73,7 @@ class ConstantsMixin:
 
         # min_periods=2 ensures that at least two non-nan values are present
         # in each window and also min() == max() == d[i] is not possible.
-        kws = dict(window=window, min_periods=2, expand=False)
+        kws = dict(window=window, min_periods=min_periods, expand=False)
 
         # 1. find starting points of consecutive constant values as a boolean mask
         # 2. fill the whole window with True's
