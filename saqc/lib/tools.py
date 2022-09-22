@@ -490,7 +490,12 @@ def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply"):
     try:
         out = getattr(in_obj, getattr(apply_obj, attr_access))()
     except AttributeError:
-        out = getattr(in_obj, attr_or)(apply_obj)
+        try:
+            # let's try to run it somewhat optimized
+            out = getattr(in_obj, attr_or)(apply_obj, raw=True)
+        except:
+            # did't work out, fallback
+            out = getattr(in_obj, attr_or)(apply_obj)
 
     return out
 
