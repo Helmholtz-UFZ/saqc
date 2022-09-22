@@ -1118,7 +1118,7 @@ class OutliersMixin:
 
         4. The "score" :math:`S` for the point :math:`x_{k}`gets calculated via :math:`S=(x_{k} - M) / N`
 
-        5. Finally, :math:`x_{k}` gets flagged, if :math:`|S| >` `thresh` and :math:`|M - x_{k}| >= `residuals_min`
+        5. Finally, :math:`x_{k}` gets flagged, if :math:`|S| >` `thresh` and :math:`|M - x_{k}| >= `min_residuals`
         """
         datser = self._data[field]
         if min_residuals is None:
