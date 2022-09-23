@@ -640,12 +640,8 @@ class OutliersMixin:
 
         Parameters
         ----------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
         field : str
             The field in data.
-        flags : saqc.Flags
-            Container to store flags of the data.
         tolerance : float
             Maximum difference allowed, between the value, directly preceding and the value, directly succeeding an offset,
             to trigger flagging of the values forming the offset.

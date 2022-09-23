@@ -56,10 +56,10 @@ class SaQC(FunctionsMixin):
         flags=None,
         scheme: str | TranslationScheme = "float",
     ):
-        self._data = self._initData(data)
-        self._flags = self._initFlags(flags)
-        self._scheme = self._initTranslationScheme(scheme)
-        self._attrs = {}
+        self._data: DictOfSeries = self._initData(data)
+        self._flags: Flags = self._initFlags(flags)
+        self._scheme: TranslationScheme = self._initTranslationScheme(scheme)
+        self._attrs: dict = {}
         self._validate(reason="init")
 
     def _construct(self, **attributes) -> "SaQC":
