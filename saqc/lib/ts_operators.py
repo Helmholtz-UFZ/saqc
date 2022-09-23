@@ -335,7 +335,9 @@ def interpolateNANs(
         data = pd.merge(gap_mask, data, how="inner", left_index=True, right_index=True)
 
         def _interpolWrapper(x, wrap_order=order, wrap_method=method):
-            if x.count() > wrap_order:
+            if wrap_order < 0:
+                return x
+            elif x.count() > wrap_order:
                 try:
                     return x.interpolate(method=wrap_method, order=int(wrap_order))
                 except (NotImplementedError, ValueError):

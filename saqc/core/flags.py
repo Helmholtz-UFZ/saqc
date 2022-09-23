@@ -195,7 +195,7 @@ class Flags:
         self, raw_data: Optional[Union[DictLike, Flags]] = None, copy: bool = False
     ):
 
-        self._data : dict[str, History]
+        self._data: dict[str, History]
 
         if raw_data is None:
             raw_data = {}
