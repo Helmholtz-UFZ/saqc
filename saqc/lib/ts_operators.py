@@ -491,6 +491,8 @@ def butterFilter(
     na_mask = x.isna()
     x = x.interpolate(fill_method).interpolate("ffill").interpolate("bfill")
     b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
+    if x.shape[0] < 3 * max(len(a), len(b)):
+        return pd.Series(np.nan, x.index, name=x.name)
     y = pd.Series(filtfilt(b, a, x), x.index, name=x.name)
     y[na_mask] = np.nan
     return y

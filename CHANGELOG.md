@@ -17,7 +17,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - parameter `min_periods` to `SaQC.flagConstants`
 ### Changed
 - test function interface changed to `func(saqc: SaQC, field: str | Sequence[str], *args, **kwargs)`
-- changed defaults for model and norm function in `assignZscore` and `flagZscore` so that data containing `NaN` wont result in `NaN` result as long as `min_periods` is respected
+- lib function `butterFilter` returns `NaN` for too-short series
 ### Removed
 ### Fixed
 - fixed undesired behavior in `flagIsolated` for not harmonized data 
