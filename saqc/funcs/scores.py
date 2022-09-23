@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 def _univarScoring(
     data: pd.Series,
     window: Optional[str, int] = None,
-    norm_func: Callable = np.std,
-    model_func: Callable = np.mean,
+    norm_func: Callable = np.nanstd,
+    model_func: Callable = np.nanmean,
     center: bool = True,
     min_periods: Optional[int] = None,
 ) -> Tuple[pd.Series, pd.Series, pd.Series]:
@@ -59,10 +59,13 @@ def _univarScoring(
         min_periods = 0
 
     if window is None:
-        # in case of stationary analysis, broadcast statistics to series for compatibility reasons
-        norm = pd.Series(norm_func(data.values), index=data.index)
-        model = pd.Series(model_func(data.values), index=data.index)
-
+        if data.notna().sum() >= min_periods:
+            # in case of stationary analysis, broadcast statistics to series for compatibility reasons
+            norm = pd.Series(norm_func(data.values), index=data.index)
+            model = pd.Series(model_func(data.values), index=data.index)
+        else:
+            norm = pd.Series(np.nan, index=data.index)
+            model = pd.Series(np.nan, index=data.index)
     else:
         # wrap passed func with rolling built in if possible and rolling.apply else
         roller = data.rolling(window=window, min_periods=min_periods, center=center)
