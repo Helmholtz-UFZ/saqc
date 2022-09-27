@@ -558,6 +558,8 @@ def polyRoller(in_slice, miss_marker, val_range, center_index, poly_deg):
     miss_mask = in_slice == miss_marker
     x_data = val_range[~miss_mask]
     y_data = in_slice[~miss_mask]
+    if len(x_data) == 0:
+        return np.nan
     fitted = poly.polyfit(x=x_data, y=y_data, deg=poly_deg)
     return poly.polyval(center_index, fitted)
 
