@@ -79,7 +79,7 @@ class NoiseMixin:
             sub_thresh = thresh
         window = pd.Timedelta(window)
 
-        if sub_window:
+        if sub_window is not None:
             sub_window = pd.Timedelta(sub_window)
 
         to_set = statPass(

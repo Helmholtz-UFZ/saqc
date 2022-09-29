@@ -5,6 +5,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+from abc import abstractmethod
+
 __all__ = [
     "T",
     "ArrayLike",
@@ -14,6 +17,7 @@ __all__ = [
     "ExternalFlag",
     "OptionalNone",
 ]
+
 
 from typing import Any, Dict, TypeVar, Union
 
@@ -28,7 +32,7 @@ ArrayLike = TypeVar("ArrayLike", np.ndarray, pd.Series, pd.DataFrame)
 PandasLike = Union[pd.Series, pd.DataFrame, DictOfSeries]
 DiosLikeT = Union[DictOfSeries, pd.DataFrame]
 
-ExternalFlag = Union[str, float, int]
+ExternalFlag = str | float | int
 
 
 # needed for deeper type hinting magic
@@ -44,6 +48,15 @@ class GenericFunction(Protocol):
 
     def __call__(self, *args: pd.Series) -> PandasLike:
         ...  # pragma: no cover
+
+
+class Comparable(Protocol):
+    @abstractmethod
+    def __gt__(self: CompT, other: CompT) -> bool:
+        pass
+
+
+CompT = TypeVar("CompT", bound=Comparable)
 
 
 class OptionalNone:

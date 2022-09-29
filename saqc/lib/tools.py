@@ -11,9 +11,8 @@ import collections
 import itertools
 import re
 import warnings
-from typing import Callable, Collection, Iterator, List, Sequence, TypeVar, Union
+from typing import Callable, Collection, List, Sequence, TypeVar, Union
 
-import numba as nb
 import numpy as np
 import pandas as pd
 from scipy import fft
@@ -24,6 +23,9 @@ import dios
 # keep this for external imports
 # TODO: fix the external imports
 from saqc.lib.rolling import customRoller
+
+from saqc.lib.types import CompT
+
 
 T = TypeVar("T", str, float, int)
 
@@ -480,7 +482,7 @@ def getFreqDelta(index):
     return delta
 
 
-def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply"):
+def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply") -> pd.Series:
     """
     For the repeating task of applying build in (accelerated) methods/funcs (`apply_obj`),
     of rolling/resampling - like objects (`in_obj`) ,
@@ -502,13 +504,13 @@ def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply"):
 
 def statPass(
     datcol: pd.Series,
-    stat: Callable[[np.array, pd.Series], float],
+    stat: Callable[[np.ndarray, pd.Series], float],
     winsz: pd.Timedelta,
     thresh: float,
-    comparator: Callable[[float, float], bool],
-    sub_winsz: pd.Timedelta = None,
-    sub_thresh: float = None,
-    min_periods: int = None,
+    comparator: Callable[[CompT, CompT], bool],
+    sub_winsz: pd.Timedelta | None = None,
+    sub_thresh: float | None = None,
+    min_periods: int | None = None,
 ) -> pd.Series:
     """
     Check `datcol`, if it contains chunks of length `window`, exceeding `thresh` with
