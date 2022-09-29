@@ -470,7 +470,10 @@ class _DiosBase:
         >>> di.dropna().empty
         True
         """
-        return len(self) == 0 or all(s.empty for s in self._data)
+        try:
+            return len(self) == 0 or all(s.empty for s in self._data)
+        except:
+            import ipdb; ipdb.set_trace()
 
     def __iter__(self):
         yield from self.columns

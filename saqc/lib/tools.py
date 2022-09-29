@@ -23,9 +23,7 @@ import dios
 # keep this for external imports
 # TODO: fix the external imports
 from saqc.lib.rolling import customRoller
-
 from saqc.lib.types import CompT
-
 
 T = TypeVar("T", str, float, int)
 
