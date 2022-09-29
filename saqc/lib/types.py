@@ -33,7 +33,7 @@ ArrayLike = TypeVar("ArrayLike", np.ndarray, pd.Series, pd.DataFrame)
 PandasLike = Union[pd.Series, pd.DataFrame, DictOfSeries]
 DiosLikeT = Union[DictOfSeries, pd.DataFrame]
 
-ExternalFlag = str | float | int
+ExternalFlag = Union[str, float, int]
 
 
 # needed for deeper type hinting magic
