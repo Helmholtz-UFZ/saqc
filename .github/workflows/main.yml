@@ -1,0 +1,71 @@
+# SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  push:
+    branches:
+      - master
+      - develop
+    tags: 
+      - v**
+      
+  pull_request:
+
+  # Allow to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+
+jobs:
+  build:
+    name: build (py${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+    defaults:
+      run:
+        # somehow this also works for windows O.o ??
+        shell: bash -l {0}
+    
+    steps:
+      
+      # checkout the repository under $GITHUB_WORKSPACE
+      - uses: actions/checkout@v3
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          activate-environment: venv
+      
+      - name: show conda info
+        run: conda info
+      
+      - name: install requirements
+        run: | 
+          pip install -r requirements.txt
+          pip install -r tests/requirements.txt
+      
+      - name: show installed packages 
+        run: conda list
+      
+      - name: run SaQC test suite
+        run: |
+          pytest tests dios/test -Werror 
+          python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
+      
+      - name: run doc tests    
+        run: |
+          cd docs
+          pip install -r requirements.txt
+          make doc
+          make test
+          
+          
