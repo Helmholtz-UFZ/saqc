@@ -13,19 +13,44 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+# jobs:
+#   # This workflow contains a single job called "build"
+#   win_build:
+#     runs-on: windows-latest
+#     steps:
+#       # Checks-out repository under $GITHUB_WORKSPACE, so your job can access it
+#       - uses: actions/checkout@v3
+#       - run: |
+#           $psversiontable
+#           echo "foo"
+#           echo %cd%
+#           write-host %cd%
+#           pip install -r requirements.txt
+#           pip install -r tests/requirements.txt
+#           python -V
 jobs:
-  # This workflow contains a single job called "build"
-  win_build:
-    runs-on: windows-latest
+  build:
+    name: test-build ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        python-version: ["3.8", "3.9"]
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
-      # Checks-out repository under $GITHUB_WORKSPACE, so your job can access it
+      # checkout the repository under $GITHUB_WORKSPACE
       - uses: actions/checkout@v3
-      - run: |
-          $psversiontable
-          echo "foo"
-          echo %cd%
-          write-host %cd%
-          pip install -r requirements.txt
-          pip install -r tests/requirements.txt
-          python -V
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          activate-environment: venv
+      - name: Conda info
+        run: conda info
+      - name: Conda list
+        shell: pwsh
+        run: conda list
           
