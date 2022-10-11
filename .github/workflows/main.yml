@@ -4,19 +4,22 @@ name: CI
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "master" branch
   push:
-    branches: [ "ci-test-build" ]
+    branches:
+      - master
+      - develop
+    tags: 
+      - v**
+      
   pull_request:
-    branches: [ "ci-test-build" ]
 
-  # Allows you to run this workflow manually from the Actions tab
+  # Allow to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 
 jobs:
   build:
-    name: test-build ${{ matrix.python-version }} on ${{ matrix.os }}
+    name: build (py${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
