@@ -27,8 +27,12 @@ def test__eq__(left, right):
             assert res == exp
 
 
-@pytest.mark.filterwarnings("ignore: invalid value encountered in long_scalars")
-@pytest.mark.filterwarnings("ignore: divide by zero encountered in long_scalars")
+@pytest.mark.filterwarnings(
+    "ignore: invalid value encountered in .*_scalars", category=RuntimeWarning
+)
+@pytest.mark.filterwarnings(
+    "ignore: divide by zero encountered in .*_scalars", category=RuntimeWarning
+)
 @pytest.mark.parametrize("left", diosFromMatr(DATA_ALIGNED))
 @pytest.mark.parametrize("right", diosFromMatr(DATA_ALIGNED))
 @pytest.mark.parametrize("op", OP2)
@@ -47,8 +51,12 @@ def test__op2__aligningops(left, right, op):
             assert res == exp
 
 
-@pytest.mark.filterwarnings("ignore: invalid value encountered in long_scalars")
-@pytest.mark.filterwarnings("ignore: divide by zero encountered in long_scalars")
+@pytest.mark.filterwarnings(
+    "ignore: invalid value encountered in .*_scalars", category=RuntimeWarning
+)
+@pytest.mark.filterwarnings(
+    "ignore: divide by zero encountered in .*_scalars", category=RuntimeWarning
+)
 @pytest.mark.parametrize("left", diosFromMatr(DATA_UNALIGNED))
 @pytest.mark.parametrize("right", diosFromMatr(DATA_UNALIGNED))
 @pytest.mark.parametrize("op", OPNOCOMP)
