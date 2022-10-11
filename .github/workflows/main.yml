@@ -13,21 +13,7 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# jobs:
-#   # This workflow contains a single job called "build"
-#   win_build:
-#     runs-on: windows-latest
-#     steps:
-#       # Checks-out repository under $GITHUB_WORKSPACE, so your job can access it
-#       - uses: actions/checkout@v3
-#       - run: |
-#           $psversiontable
-#           echo "foo"
-#           echo %cd%
-#           write-host %cd%
-#           pip install -r requirements.txt
-#           pip install -r tests/requirements.txt
-#           python -V
+
 jobs:
   build:
     name: test-build ${{ matrix.python-version }} on ${{ matrix.os }}
@@ -36,11 +22,14 @@ jobs:
       fail-fast: false
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.8", "3.9"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
     defaults:
       run:
+        # somehow this also works for windows O.o ??
         shell: bash -l {0}
+    
     steps:
+      
       # checkout the repository under $GITHUB_WORKSPACE
       - uses: actions/checkout@v3
       - uses: conda-incubator/setup-miniconda@v2
@@ -48,9 +37,28 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           activate-environment: venv
-      - name: Conda info
+      
+      - name: show conda info
         run: conda info
-      - name: Conda list
-        shell: pwsh
+      
+      - name: install requirements
+        run: | 
+          pip install -r requirements.txt
+          pip install -r tests/requirements.txt
+      
+      - name: show installed packages 
         run: conda list
+      
+      - name: run SaQC test suite
+        run: |
+          pytest tests dios/test -Werror 
+          python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
+      
+      - name: run doc tests    
+        run: |
+          cd docs
+          pip install -r requirements.txt
+          make doc
+          make test
+          
           
