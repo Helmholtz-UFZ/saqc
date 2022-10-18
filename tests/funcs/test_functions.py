@@ -287,3 +287,16 @@ def test_transferFlags():
     qc = qc.transferFlags(["a", "a"], ["b", "c"])
     assert np.all(qc.flags["b"].values == np.array([UNFLAGGED, BAD]))
     assert np.all(qc.flags["c"].values == np.array([UNFLAGGED, BAD]))
+
+
+def test_flagJumps():
+    data = pd.DataFrame(
+        {"a": [1, 1, 1, 1, 1, 6, 6, 6, 6, 6]},
+        index=pd.date_range(start="2020-01-01", periods=10, freq="D"),
+    )
+    qc = SaQC(data=data)
+    qc = qc.flagJumps(field="a", thresh=1, window="2D")
+    assert qc.flags["a"][5] == BAD
+    assert np.all(qc.flags["a"].values[:5] == UNFLAGGED) & np.all(
+        qc.flags["a"].values[6:] == UNFLAGGED
+    )
