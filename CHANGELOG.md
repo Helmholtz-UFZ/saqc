@@ -19,6 +19,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - test function interface changed to `func(saqc: SaQC, field: str | Sequence[str], *args, **kwargs)`
 - lib function `butterFilter` returns `NaN` for too-short series
 ### Removed
+- `closed` keyword in `flagJumps`
 ### Fixed
 - fixed undesired behavior in `flagIsolated` for not harmonized data 
 - fixed failing translation of `dfilter`-defaults
@@ -26,6 +27,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - fixed not working min_periods condition if `window=None` in `assignZScore`
 - fixed Exception occuring when fitting polynomials via `polyfit` to harmonized data, containing all-NaN gaps wider than the polynomial fitting window size.
 - fixed bug in function parameter checking
+- fixed bug one-off bug in `flagJumps`
 
 ## [2.1.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2022-06-14
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.0.1...v2.1.0)
