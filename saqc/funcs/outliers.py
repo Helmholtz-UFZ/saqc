@@ -40,6 +40,27 @@ class OutliersMixin:
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
+        """
+        Function flags values exceeding the closed interval [`min`, `max`].
+
+        Parameters
+        ----------
+        field : str
+            The field name of the column, holding the data-to-be-flagged.
+        min : float
+            Lower bound for valid data.
+        max : float
+            Upper bound for valid data.
+        flag : float, default BAD
+            flag to set.
+
+        Returns
+        -------
+        data : dios.DictOfSeries
+            A dictionary of pandas.Series, holding all the data.
+        flags : saqc.Flags
+            The quality flags of data
+        """
 
         # using .values is much faster
         datacol = self._data[field].to_numpy()
