@@ -627,13 +627,13 @@ class OutliersMixin:
 
         1. :math:`|x_{n-1} - x_{n + s}| >` `thresh`, for all :math:`s \\in [0,1,2,...,k]`
 
-        2.1 if `thresh_relative` > 0, :math:`x_{n + s} > x_{n - 1}*(1+` `thresh_relative` :math:`)`
+        2. if `thresh_relative` > 0, :math:`x_{n + s} > x_{n - 1}*(1+` `thresh_relative` :math:`)`
 
-        2.2 if `thresh_relative` < 0, :math:`x_{n + s} < x_{n - 1}*(1+` `thresh_relative` :math:`)`
+        3. if `thresh_relative` < 0, :math:`x_{n + s} < x_{n - 1}*(1+` `thresh_relative` :math:`)`
 
-        3. :math:`|x_{n-1} - x_{n+k+1}| <` `tolerance`
+        4. :math:`|x_{n-1} - x_{n+k+1}| <` `tolerance`
 
-        4. :math:`|t_{n-1} - t_{n+k+1}| <` `window`
+        5. :math:`|t_{n-1} - t_{n+k+1}| <` `window`
 
         Note, that this definition of a "spike" not only includes one-value outliers, but
         also plateau-ish value courses.
@@ -645,10 +645,10 @@ class OutliersMixin:
         tolerance : float
             Maximum difference allowed, between the value, directly preceding and the value, directly succeeding an offset,
             to trigger flagging of the values forming the offset.
-            See condition (3).
+            See condition (4).
         window : {str, int}, default '15min'
             Maximum length allowed for offset value courses, to trigger flagging of the values forming the offset.
-            See condition (4). Integer defined window length are only allowed for regularly sampled timeseries.
+            See condition (5). Integer defined window length are only allowed for regularly sampled timeseries.
         thresh : float: {float, None}, default None
             Minimum difference between a value and its successors, to consider the successors an anomalous offset group.
             See condition (1). If None is passed, condition (1) is not tested.
@@ -668,6 +668,18 @@ class OutliersMixin:
 
         Examples
         --------
+        Below picture gives an abstract interpretation of the parameter interplay in case of a positive value jump,
+        initialising an offset course.
+        Note, that the four values marked red, are flagged, since the initial value jump *exceeds* the value given by `thresh`,
+        the temporal extension of the group does *not exceed* the range given by `window` and the returning value after the
+        group, lies *within* the value range determined by `tolerance`:
+
+        .. figure:: /resources/images/flagOffsetPic.png
+
+           The four values marked red, are flagged, because (1) the initial value jump *exceeds* the value given by `thresh`,
+           (2) the temporal extension of the group does *not exceed* the range given by `window` and (3) the returning
+           value after the group, lies *within* the value range determined by `tolerance`
+
 
         .. plot::
            :context:
@@ -677,7 +689,6 @@ class OutliersMixin:
            import saqc
            import pandas as pd
            data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
-
 
 
         Lets generate a simple, regularly sampled timeseries with an hourly sampling rate and generate an
