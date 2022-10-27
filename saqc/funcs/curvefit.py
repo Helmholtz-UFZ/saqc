@@ -11,12 +11,14 @@ from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from typing_extensions import Literal
 
 from dios import DictOfSeries
 from saqc.core.flags import Flags
 from saqc.core.register import register
 from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import (
+    butterFilter,
     polyRoller,
     polyRollerIrregular,
     polyRollerNoMissing,
@@ -26,6 +28,18 @@ from saqc.lib.ts_operators import (
 
 if TYPE_CHECKING:
     from saqc.core.core import SaQC
+
+_FILL_METHODS = Literal[
+    "linear",
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "spline",
+    "barycentric",
+    "polynomial",
+]
 
 
 class CurvefitMixin:
@@ -61,7 +75,7 @@ class CurvefitMixin:
         Parameters
         ----------
         field : str
-            A column in flags and data.
+             A column in flags and data.
 
         window : str, int
             Size of the window you want to use for fitting. If an integer is passed,
@@ -94,6 +108,54 @@ class CurvefitMixin:
             order=order,
             min_periods=min_periods,
             **kwargs,
+        )
+        return self
+
+    @register(mask=["field"], demask=[], squeeze=[])
+    def fitLowpassFilter(
+        self: "SaQC",
+        field: str,
+        cutoff: float | str,
+        nyq: float = 0.5,
+        filter_order: int = 2,
+        fill_method: _FILL_METHODS = "linear",
+        **kwargs,
+    ):
+        """
+        Fits the data using the butterworth filter.
+
+        Note
+        ----
+        The data is expected to be regularly sampled.
+
+        Parameters
+        ----------
+        field: str
+            A column in flags and data.
+
+        cutoff: {float, str}
+            The cutoff-frequency, either an offset freq string, or expressed in multiples of the sampling rate.
+
+        nyq: float
+            The niquist-frequency. expressed in multiples if the sampling rate.
+
+        fill_method: Literal[‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘spline’, ‘barycentric’, ‘polynomial’]
+            Fill method to be applied on the data before filtering (butterfilter cant
+            handle ''np.nan''). See documentation of pandas.Series.interpolate method for
+            details on the methods associated with the different keywords.
+
+        filter_type: Literal["lowpass", "highpass", "bandpass", "bandstop"]
+            The type of filter. Default is ‘lowpass’.
+
+        """
+
+        self._data[field] = butterFilter(
+            self._data[field],
+            cutoff=cutoff,
+            nyq=nyq,
+            filter_order=filter_order,
+            fill_method=fill_method,
+            filter_type="lowpass",
         )
         return self
 
