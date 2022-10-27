@@ -15,6 +15,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - translation of `dfilter`
 - new generic function `clip`
 - parameter `min_periods` to `SaQC.flagConstants`
+- function `fitButterworth`
 ### Changed
 - test function interface changed to `func(saqc: SaQC, field: str | Sequence[str], *args, **kwargs)`
 - lib function `butterFilter` returns `NaN` for too-short series
