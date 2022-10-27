@@ -43,7 +43,7 @@ class BreaksMixin:
         Flag NaNs in data.
 
         By default only NaNs are flagged, that not already have a flag.
-        `to_mask` can be used to pass a flag that is used as threshold.
+        `dfilter` can be used to pass a flag that is used as threshold.
         Each flag worse than the threshold is replaced by the function.
         This is, because the data gets masked (with NaNs) before the
         function evaluates the NaNs.

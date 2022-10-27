@@ -506,6 +506,8 @@ class FlagtoolsMixin:
         if method == "bfill":
             hc = hc[::-1]
 
+        # get dfilter from meta or get of rid of this and
+        # consider everything != np.nan as flag
         flagged = _isflagged(hc, dfilter)
 
         repeated = (

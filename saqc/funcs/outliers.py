@@ -1047,10 +1047,10 @@ class OutliersMixin:
     def flagZScore(
         self: "SaQC",
         field: str,
-        window: Optional[str, int] = None,
+        window: str | int | None = None,
         thresh: float = 3,
-        min_residuals: Optional[int] = None,
-        min_periods: Optional[int] = None,
+        min_residuals: int | None = None,
+        min_periods: int | None = None,
         model_func: Callable = np.nanmean,
         norm_func: Callable = np.nanstd,
         center: bool = True,
@@ -1105,7 +1105,7 @@ class OutliersMixin:
         Steps of calculation:
 
         1. Consider a window :math:`W` of successive points :math:`W = x_{1},...x_{w}`
-        containing the value :math:`y_{K}` wich is to be checked.
+        containing the value :math:`y_{K}` which is to be checked.
         (The index of :math:`K` depends on the selection of the parameter `center`.)
 
         2. The "moment" :math:`M` for the window gets calculated via :math:`M=` `model_func(:math:`W`)
