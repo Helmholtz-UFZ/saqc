@@ -691,9 +691,6 @@ class OutliersMixin:
         --------
         Below picture gives an abstract interpretation of the parameter interplay in case of a positive value jump,
         initialising an offset course.
-        Note, that the four values marked red, are flagged, since the initial value jump *exceeds* the value given by `thresh`,
-        the temporal extension of the group does *not exceed* the range given by `window` and the returning value after the
-        group, lies *within* the value range determined by `tolerance`:
 
         .. figure:: /resources/images/flagOffsetPic.png
 
