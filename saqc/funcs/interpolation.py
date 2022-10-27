@@ -311,7 +311,7 @@ class InterpolationMixin:
                 **kwargs,
             },
         }
-        flagcol = pd.Series(UNFLAGGED, index=inter_data.index)
+        flagcol = pd.Series(UNFLAGGED, index=history.index)
         history.append(flagcol, meta)
 
         self._flags.history[field] = history
