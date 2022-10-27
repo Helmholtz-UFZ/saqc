@@ -160,7 +160,12 @@ class BreaksMixin:
         """
         Flag jumps and drops in data.
 
-        Flag data where the mean of its values significantly changes (the data "jumps").
+        Flag data where the mean of its values significantly changes (, where the data "jumps" from one value level to
+        another).
+        The changes in value level are detected by comparing the mean for two adjacently rolling windows.
+        Whenever the difference between the mean in the two windows exceeds `thresh`, the value between the windows
+        is flagged a jump.
+
 
         Parameters
         ----------
@@ -168,18 +173,40 @@ class BreaksMixin:
             Column(s) in flags and data.
 
         thresh : float
-            Threshold value by which the mean of data has to change to trigger flagging.
+            Threshold value by which the mean of data has to jump, to trigger flagging.
 
         window : str
-            Size of the moving window. This is the number of observations used
-            for calculating the statistic.
+            Size of the two moving windows. This determines the number of observations used
+            for calculating the mean in every window.
+            The window size should be big enough to yield enough samples for a reliable mean calculation,
+            but it should also not be arbitrarily big, since it also limits the density of jumps that can be detected.
+            More precisely: Jumps that are not distanced to each other by more than three fourth (3/4) of the
+            selected window size, will not be detected reliably.
 
         min_periods : int, default 1
-            Minimum number of observations in window required to calculate a valid
+            The minimum number of observations in window required to calculate a valid
             mean value.
 
         flag : float, default BAD
             Flag to set.
+
+        Examples
+        --------
+
+        Below picture gives an abstract interpretation of the parameter interplay in case of a positive value jump,
+        initialising a new mean level.
+
+        .. figure:: /resources/images/flagJumpsPic.png
+
+           The two adjacent windows of size `window` roll through the whole data series. Whenever the mean values in
+           the two windows differ by more than `thresh`, flagging is triggered.
+
+        Notes
+        -----
+
+        Jumps that are not distanced to each other by more than three fourth (3/4) of the
+        selected window size, will not be detected reliably.
+
 
         Returns
         -------
