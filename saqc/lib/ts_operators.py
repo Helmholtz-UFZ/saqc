@@ -459,7 +459,7 @@ def shift2Freq(
 
 
 def butterFilter(
-    x, cutoff, nyq=0.5, filter_order=2, fill_method="linear", filter_type="low"
+    x, cutoff, nyq=0.5, filter_order=2, fill_method="linear", filter_type="lowpass"
 ):
     """
     Applies butterworth filter.
@@ -481,6 +481,8 @@ def butterFilter(
         handle ''np.nan''). See documentation of pandas.Series.interpolate method for
         details on the methods associated with the different keywords.
 
+    filter_type: Literal["lowpass", "highpass", "bandpass", "bandstop"]
+        The type of filter. Default is ‘lowpass’.
 
     Returns
     -------

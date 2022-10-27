@@ -33,7 +33,6 @@ class ChangepointsMixin:
         thresh_func: Callable[[np.ndarray, np.ndarray], float],
         window: str | Tuple[str, str],
         min_periods: int | Tuple[int, int],
-        closed: Literal["right", "left", "both", "neither"] = "both",
         reduce_window: str | None = None,
         reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
         flag: float = BAD,
@@ -76,9 +75,6 @@ class ChangepointsMixin:
             test. If it is a tuple of two int, the first refer to the backward-,
             the second to the forward-facing window.
 
-        closed : {'right', 'left', 'both', 'neither'}, default 'both'
-            Determines the closure of the sliding windows.
-
         reduce_window : str or None, default None
             The sliding window search method is not an exact CP search method and usually
             there wont be detected a single changepoint, but a "region" of change around
@@ -114,7 +110,6 @@ class ChangepointsMixin:
             thresh_func=thresh_func,
             window=window,
             min_periods=min_periods,
-            closed=closed,
             reduce_window=reduce_window,
             reduce_func=reduce_func,
             set_flags=True,
@@ -133,7 +128,6 @@ class ChangepointsMixin:
         thresh_func: Callable[[np.ndarray, np.ndarray], float],
         window: str | Tuple[str, str],
         min_periods: int | Tuple[int, int],
-        closed: Literal["right", "left", "both", "neither"] = "both",
         reduce_window: str | None = None,
         reduce_func: Callable[
             [np.ndarray, np.ndarray], float
@@ -178,9 +172,6 @@ class ChangepointsMixin:
             test. If it is a tuple of two int, the first refer to the backward-,
             the second to the forward-facing window.
 
-        closed : {'right', 'left', 'both', 'neither'}, default 'both'
-            Determines the closure of the sliding windows.
-
         reduce_window : {None, str}, default None
             The sliding window search method is not an exact CP search method and usually
             there wont be detected a single changepoint, but a "region" of change around
@@ -214,7 +205,6 @@ class ChangepointsMixin:
             thresh_func=thresh_func,
             window=window,
             min_periods=min_periods,
-            closed=closed,
             reduce_window=reduce_window,
             reduce_func=reduce_func,
             model_by_resids=model_by_resids,
@@ -234,7 +224,6 @@ def _assignChangePointCluster(
     thresh_func: Callable[[np.ndarray, np.ndarray], float],
     window: str | Tuple[str, str],
     min_periods: int | Tuple[int, int],
-    closed: Literal["right", "left", "both", "neither"] = "both",
     reduce_window: str | None = None,
     reduce_func: Callable[[np.ndarray, np.ndarray], float] = lambda x, _: x.argmax(),
     model_by_resids: bool = False,
@@ -261,22 +250,16 @@ def _assignChangePointCluster(
         )
         reduce_window = f"{s}s"
 
-    roller = customRoller(data_ser, window=bwd_window, min_periods=bwd_min_periods)
-    bwd_start, bwd_end = roller.window_indexer.get_window_bounds(
-        len(data_ser), min_periods=bwd_min_periods, closed=closed
+    roller = customRoller(data_ser, window=bwd_window, min_periods=0)
+    bwd_start, bwd_end = roller.window_indexer.get_window_bounds(len(data_ser))
+
+    roller = customRoller(data_ser, window=fwd_window, forward=True, min_periods=0)
+    fwd_start, fwd_end = roller.window_indexer.get_window_bounds(len(data_ser))
+
+    min_mask = (fwd_end - fwd_start >= fwd_min_periods) & (
+        bwd_end - bwd_start >= bwd_min_periods
     )
 
-    roller = customRoller(
-        data_ser, window=fwd_window, forward=True, min_periods=fwd_min_periods
-    )
-    fwd_start, fwd_end = roller.window_indexer.get_window_bounds(
-        len(data_ser), min_periods=fwd_min_periods, closed=closed
-    )
-
-    min_mask = ~(
-        (fwd_end - fwd_start <= fwd_min_periods)
-        | (bwd_end - bwd_start <= bwd_min_periods)
-    )
     fwd_end = fwd_end[min_mask]
     split = bwd_end[min_mask]
     bwd_start = bwd_start[min_mask]
@@ -325,6 +308,15 @@ def _assignChangePointCluster(
         )
         det_index = det_index[detected]
 
+    # the changepoint is the point "after" the change - so detected index has to be shifted once with regard to the
+    # data index:
+    shifted = (
+        pd.Series(True, index=det_index)
+        .reindex(data_ser.index, fill_value=False)
+        .shift(fill_value=False)
+    )
+    det_index = shifted.index[shifted]
+
     if assign_cluster:
         cluster = pd.Series(False, index=data[field].index)
         cluster[det_index] = True
@@ -372,7 +364,7 @@ def _reduceCPCluster(stat_arr, thresh_arr, start, end, obj_func, num_val):
         s, e = start[win_i], end[win_i]
         x = stat_arr[s:e]
         y = thresh_arr[s:e]
-        pos = s + obj_func(x, y) + 1
+        pos = s + obj_func(x, y)
         out_arr[s:e] = False
         out_arr[pos] = True
 

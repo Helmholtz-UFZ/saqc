@@ -9,7 +9,7 @@ from __future__ import annotations
 import functools
 import inspect
 import warnings
-from typing import Any, Callable, Dict, List, Sequence, Tuple, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Sequence, Tuple, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -22,6 +22,9 @@ from saqc.core.translation.basescheme import TranslationScheme
 from saqc.lib.tools import squeezeSequence, toSequence
 from saqc.lib.types import ExternalFlag, OptionalNone
 
+if TYPE_CHECKING:
+    from saqc.core.core import SaQC
+
 # NOTE:
 # the global SaQC function store,
 # will be filled by calls to register
@@ -33,7 +36,9 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-def _checkDecoratorKeywords(func_signature, mask, demask, squeeze, handles_target):
+def _checkDecoratorKeywords(
+    func_signature, func_name, mask, demask, squeeze, handles_target
+):
     params = func_signature.parameters.keys()
     if "target" in params and not handles_target:
         raise TypeError(
@@ -53,7 +58,7 @@ def _checkDecoratorKeywords(func_signature, mask, demask, squeeze, handles_targe
             if elem not in params:
                 raise ValueError(
                     f"passed value {repr(elem)} in {repr(name)} is not an "
-                    f"parameter in decorated function {repr(self.func_name)}"
+                    f"parameter in decorated function {repr(func_name)}"
                 )
 
 
@@ -318,10 +323,12 @@ def register(
         itself. Mandatory for multivariate functions.
     """
 
-    def outer(func: Callable[P, T]) -> Callable[P, T]:
+    def outer(func: Callable[P, SaQC]) -> Callable[P, SaQC]:
 
         func_signature = inspect.signature(func)
-        _checkDecoratorKeywords(func_signature, mask, demask, squeeze, handles_target)
+        _checkDecoratorKeywords(
+            func_signature, func.__name__, mask, demask, squeeze, handles_target
+        )
 
         @functools.wraps(func)
         def inner(
