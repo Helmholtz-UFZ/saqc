@@ -113,13 +113,23 @@ class InterpolationMixin:
         datcol[na_mask] = rolled[na_mask]
         self._data[field] = datcol
 
-        new_col = pd.Series(np.nan, index=self._flags[field].index)
-        new_col.loc[interpolated] = np.nan if flag is None else flag
+        flagcol = pd.Series(np.nan, index=self._flags[field].index)
+        flagcol.loc[interpolated] = np.nan if flag is None else flag
 
         # todo kwargs must have all passed args except data,field,flags
-        self._flags.history[field].append(
-            new_col, {"func": "interpolateByRolling", "args": (), "kwargs": kwargs}
-        )
+        meta = {
+            "func": "interpolateByRolling",
+            "args": (field,),
+            "kwargs": {
+                "window": window,
+                "func": func,
+                "center": center,
+                "min_periods": min_periods,
+                "flag": flag,
+                **kwargs,
+            },
+        }
+        self._flags.history[field].append(flagcol, meta)
 
         return self
 
@@ -286,8 +296,24 @@ class InterpolationMixin:
         history = self._flags.history[field].apply(
             index=self._data[field].index,
             func=_resampleOverlapping,
-            func_kws=dict(freq=freq, fill_value=UNFLAGGED),
+            func_kws=dict(freq=freq, fill_value=np.nan),
         )
 
+        meta = {
+            "func": "interpolateIndex",
+            "args": (field,),
+            "kwargs": {
+                "freq": freq,
+                "method": method,
+                "order": order,
+                "limit": limit,
+                "downgrade": downgrade,
+                **kwargs,
+            },
+        }
+        flagcol = pd.Series(UNFLAGGED, index=inter_data.index)
+        history.append(flagcol, meta)
+
         self._flags.history[field] = history
+
         return self
