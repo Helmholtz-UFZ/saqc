@@ -111,7 +111,7 @@ def _getDfilter(
         if default == inspect.Signature.empty:
             # function did not define a positional dfilter argument
             default = None
-        dfilter = default or translation_scheme.DFILTER_DEFAULT
+        dfilter = translation_scheme.DFILTER_DEFAULT or default
     else:
         # try to translate dfilter
         if dfilter not in {FILTER_ALL, FILTER_NONE, translation_scheme.DFILTER_DEFAULT}:
