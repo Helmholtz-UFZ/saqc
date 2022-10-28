@@ -6,11 +6,15 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Changelog
 
-This changelog starts with version 2.0.0. Basically all parts of the system, including the format of this changelog, have been reworked between the releases 1.4 and 2.0. Preceding the major breaking release 2.0, the maintenance of this file was rather sloppy, so we won't provide a detailed change history for early versions.
-
-
 ## Unreleased
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.1.0...develop)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.0...develop)
+### Added
+### Changed
+### Removed
+### Fixed
+
+## [2.2.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2022-10-28
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.1.0...v2.2.0)
 ### Added
 - translation of `dfilter`
 - new generic function `clip`
@@ -20,6 +24,7 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 ### Changed
 - test function interface changed to `func(saqc: SaQC, field: str | Sequence[str], *args, **kwargs)`
 - lib function `butterFilter` returns `NaN` for too-short series
+- `dfilter` default value precedence order
 ### Removed
 - `closed` keyword in `flagJumps`
 ### Fixed
@@ -33,7 +38,6 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 
 ## [2.1.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2022-06-14
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.0.1...v2.1.0)
-
 ### Added
 - documentation of global keywords
 - generic documentation module `docurator.py`
@@ -42,7 +46,6 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - new function `progagateFlags`
 - include function typehints in parameter documentation
 - `label` parameter to the generic function `isflagged`
-
 ### Changed
 - `flagOffsets` parameters `thresh` and `thresh_relative` are optional
 - corrected false notion of the term *residual* (replace all occurences of *residue* by *residual*)
@@ -54,10 +57,8 @@ This changelog starts with version 2.0.0. Basically all parts of the system, inc
 - renamed `History.max` to `History.squeeze`
 - renamed parameter `freq` of function flagByStray to `window`
 - `DmpScheme`: set `DFILTER_DEFAULT` to 1 in order to not mask the flag 'OK'
-
 ### Removed
 - data accessors `SaQC.result`, `SaQC.data_raw`, `SaQC.flags_raw`
-
 ### Fixed
 - `flagOffset` failure on falsy `thresh`
 - `flagCrossStatistics` failure on unaligned input variables
