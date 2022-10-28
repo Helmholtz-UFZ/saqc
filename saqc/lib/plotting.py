@@ -191,7 +191,7 @@ def _plotVarWithFlags(
 ):
     scatter_kwargs = scatter_kwargs.copy()
     ax.set_title(datser.name)
-    ax.plot(datser, color="black", label=" ", **plot_kwargs)
+    ax.plot(datser, color="black", label="data", **plot_kwargs)
     ax.set(**ax_kwargs)
     shape_cycle = scatter_kwargs.get("marker", "o")
     shape_cycle = itertools.cycle(toSequence(shape_cycle))
