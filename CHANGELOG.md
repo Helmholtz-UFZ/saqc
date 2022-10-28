@@ -13,7 +13,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Removed
 ### Fixed
 
-## [2.2.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.2.1) - 2022-10-28
+## [2.2.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.2.1) - 2022-10-29
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.0...v2.2.1)
 ### Added
 - data label to `plot` legend
