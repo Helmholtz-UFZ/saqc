@@ -14,8 +14,8 @@ library.
 
 #. Initially, we introduce and motivate regularization techniques and we do import the tutorial data.
 
-   * :ref:`Why Regularization <cookbooks/DataRegularisation:Why Regularization>`
-   * :ref:`Tutorial Data <cookbooks/Regularization:Tutorial Data>`
+   * :ref:`Why Regularization <cookbooks/DataRegularisation:Why Regularization?>`
+   * :ref:`Tutorial Data <cookbooks/DataRegularisation:Tutorial Data>`
 
 #. We will get an overview over the main :ref:`Regularization <cookbooks/DataRegularisation:regularization>` methods, starting with the shift.
 

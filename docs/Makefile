@@ -35,7 +35,7 @@ doc:
 	# generate environment table from dictionary
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-# make test, clean up
+# run tests
 test:
 	# generate parent fake module for the functions to be documented
 	@$(SPHINXBUILD) -M doctest "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
