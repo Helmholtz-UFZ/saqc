@@ -14,7 +14,7 @@ importlib-metadata==1.7.0
 Jinja2==2.11.2
 Markdown==3.2.2
 MarkupSafe==1.1.1
-numpy==1.19.1
+numpy==1.22.0
 packaging==20.4
 pandas==1.1.1
 Pygments==2.6.1
