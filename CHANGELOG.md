@@ -7,13 +7,23 @@ SPDX-License-Identifier: GPL-3.0-or-later
 # Changelog
 
 ## Unreleased
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.0...develop)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.1...develop)
 ### Added
 ### Changed
 ### Removed
 ### Fixed
 
-## [2.2.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2022-10-28
+## [2.2.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.2.1) - 2022-10-29
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.0...v2.2.1)
+### Added
+- data label to `plot` legend
+### Changed
+- `dfilter` default value inference to respect the function default value of `plot`
+### Removed
+### Fixed
+- functions not handling `target` failed to overwrite existing variables
+
+## [2.2.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.2.0) - 2022-10-28
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.1.0...v2.2.0)
 ### Added
 - translation of `dfilter`
@@ -36,7 +46,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - fixed bug in function parameter checking
 - fixed bug one-off bug in `flagJumps`
 
-## [2.1.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.0.1) - 2022-06-14
+## [2.1.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.1.0) - 2022-06-14
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.0.1...v2.1.0)
 ### Added
 - documentation of global keywords

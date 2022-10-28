@@ -104,14 +104,13 @@ def _getDfilter(
     """
     dfilter = kwargs.get("dfilter")
     if dfilter is None or isinstance(dfilter, OptionalNone):
-        # let's see, if the function has an default value
+        # let's see, if the function has a default value
         default = func_signature.parameters.get("dfilter")
-        if default:
+        if default is None or default.default == inspect.Signature.empty:
+            default = FILTER_ALL
+        else:
             default = default.default
-        if default == inspect.Signature.empty:
-            # function did not define a positional dfilter argument
-            default = None
-        dfilter = translation_scheme.DFILTER_DEFAULT or default
+        dfilter = max(translation_scheme.DFILTER_DEFAULT, default)
     else:
         # try to translate dfilter
         if dfilter not in {FILTER_ALL, FILTER_NONE, translation_scheme.DFILTER_DEFAULT}:
@@ -367,7 +366,7 @@ def register(
                 # initialize all target variables
                 for src, trg in zip(fields, targets):
                     if src != trg:
-                        out = out.copyField(field=src, target=trg)
+                        out = out.copyField(field=src, target=trg, overwrite=True)
 
             for src, trg in zip(fields, targets):
                 kwargs = {**kwargs, "field": src, "target": trg}
