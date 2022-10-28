@@ -335,7 +335,9 @@ def interpolateNANs(
         data = pd.merge(gap_mask, data, how="inner", left_index=True, right_index=True)
 
         def _interpolWrapper(x, wrap_order=order, wrap_method=method):
-            if x.count() > wrap_order:
+            if wrap_order < 0:
+                return x
+            elif x.count() > wrap_order:
                 try:
                     return x.interpolate(method=wrap_method, order=int(wrap_order))
                 except (NotImplementedError, ValueError):
@@ -446,8 +448,8 @@ def shift2Freq(
     }
     direction, tolerance = methods[method](freq)
     target_ind = pd.date_range(
-        start=data.index[0].floor(freq),
-        end=data.index[-1].ceil(freq),
+        start=pd.Timestamp(data.index[0]).floor(freq),
+        end=pd.Timestamp(data.index[-1]).ceil(freq),
         freq=freq,
         name=data.index.name,
     )
@@ -457,7 +459,7 @@ def shift2Freq(
 
 
 def butterFilter(
-    x, cutoff, nyq=0.5, filter_order=2, fill_method="linear", filter_type="low"
+    x, cutoff, nyq=0.5, filter_order=2, fill_method="linear", filter_type="lowpass"
 ):
     """
     Applies butterworth filter.
@@ -479,6 +481,8 @@ def butterFilter(
         handle ''np.nan''). See documentation of pandas.Series.interpolate method for
         details on the methods associated with the different keywords.
 
+    filter_type: Literal["lowpass", "highpass", "bandpass", "bandstop"]
+        The type of filter. Default is ‘lowpass’.
 
     Returns
     -------
@@ -489,6 +493,8 @@ def butterFilter(
     na_mask = x.isna()
     x = x.interpolate(fill_method).interpolate("ffill").interpolate("bfill")
     b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
+    if x.shape[0] < 3 * max(len(a), len(b)):
+        return pd.Series(np.nan, x.index, name=x.name)
     y = pd.Series(filtfilt(b, a, x), x.index, name=x.name)
     y[na_mask] = np.nan
     return y
@@ -554,6 +560,8 @@ def polyRoller(in_slice, miss_marker, val_range, center_index, poly_deg):
     miss_mask = in_slice == miss_marker
     x_data = val_range[~miss_mask]
     y_data = in_slice[~miss_mask]
+    if len(x_data) == 0:
+        return np.nan
     fitted = poly.polyfit(x=x_data, y=y_data, deg=poly_deg)
     return poly.polyval(center_index, fitted)
 

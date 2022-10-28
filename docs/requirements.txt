@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 recommonmark==0.7.1
-sphinx<5
+sphinx<6
 sphinx-automodapi==0.14.1
 sphinxcontrib-fulltoc==1.2.0
-sphinx-markdown-tables==0.0.15
+sphinx-markdown-tables==0.0.17
 m2r==0.2.1
 jupyter-sphinx==0.3.2
 sphinx_autodoc_typehints==1.18.2
-sphinx-tabs==3.3.1
+sphinx-tabs==3.4.1

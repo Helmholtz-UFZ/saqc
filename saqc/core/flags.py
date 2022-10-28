@@ -25,6 +25,7 @@ DictLike = Union[
 _Field = str
 SelectT = Union[
     _Field,
+    Tuple[np.ndarray, _Field],
     Tuple[pd.Series, _Field],
     Tuple[pd.Index, _Field],
     Tuple[slice, _Field],
@@ -193,6 +194,8 @@ class Flags:
     def __init__(
         self, raw_data: Optional[Union[DictLike, Flags]] = None, copy: bool = False
     ):
+
+        self._data: dict[str, History]
 
         if raw_data is None:
             raw_data = {}

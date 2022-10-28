@@ -14,13 +14,7 @@ import dios
 import saqc
 from saqc.constants import BAD, DOUBTFUL, UNFLAGGED
 from saqc.core import initFlagsLike
-from saqc.funcs.breaks import flagIsolated
-from saqc.funcs.drift import flagDriftFromNorm, flagDriftFromReference
-from saqc.funcs.flagtools import clearFlags, flagManual, forceFlags
-from saqc.funcs.noise import flagByStatLowPass
-from saqc.funcs.outliers import flagRange
-from saqc.funcs.resampling import concatFlags
-from saqc.funcs.tools import copyField, dropField, selectTime
+from saqc.core.core import SaQC
 from tests.common import initData
 from tests.fixtures import char_dict, course_1
 
@@ -42,19 +36,20 @@ def test_statPass():
     data[200:210] = noise[:10]
     data = dios.DictOfSeries(data)
     flags = initFlagsLike(data)
-    data, flags = flagByStatLowPass(
-        data, "data", flags, np.std, "20D", 0.999, "5D", 0.999, 0, flag=BAD
+    qc = SaQC(data, flags).flagByStatLowPass(
+        "data", np.std, "20D", 0.999, "5D", 0.999, 0, flag=BAD
     )
-    assert (flags["data"].iloc[:100] == UNFLAGGED).all()
-    assert (flags["data"].iloc[100:120] == BAD).all()
-    assert (flags["data"].iloc[121:] == UNFLAGGED).all()
+    assert (qc.flags["data"].iloc[:100] == UNFLAGGED).all()
+    assert (qc.flags["data"].iloc[100:120] == BAD).all()
+    assert (qc.flags["data"].iloc[121:] == UNFLAGGED).all()
 
 
 def test_flagRange(data, field):
     min, max = 10, 90
     flags = initFlagsLike(data)
-    data, flags = flagRange(data, field, flags, min=min, max=max, flag=BAD)
-    flagged = flags[field] > UNFLAGGED
+    qc = SaQC(data, flags)
+    qc = qc.flagRange(field, min=min, max=max, flag=BAD)
+    flagged = qc.flags[field] > UNFLAGGED
     expected = (data[field] < min) | (data[field] > max)
     assert all(flagged == expected)
 
@@ -89,31 +84,26 @@ def test_flagSesonalRange(data, field):
         ),
     ]
 
+    flags = initFlagsLike(data)
+    qc = SaQC(data, flags)
     for test, expected in tests:
-        flags = initFlagsLike(data)
         newfield = f"{field}_masked"
         start = f"{test['startmonth']:02}-{test['startday']:02}T00:00:00"
         end = f"{test['endmonth']:02}-{test['endday']:02}T00:00:00"
 
-        data, flags = copyField(data, field, flags, field + "_masked")
-        data, flags = selectTime(
-            data,
+        qc = qc.copyField(field, field + "_masked")
+        qc = qc.selectTime(
             newfield,
-            flags,
             mode="periodic",
             start=start,
             end=end,
             closed=True,
             flag=BAD,
         )
-        data, flags = flagRange(
-            data, newfield, flags, min=test["min"], max=test["max"], flag=BAD
-        )
-        data, flags = concatFlags(
-            data, newfield, flags, method="match", target=field, flag=BAD
-        )
-        data, flags = dropField(data, newfield, flags)
-        flagged = flags[field] > UNFLAGGED
+        qc = qc.flagRange(newfield, min=test["min"], max=test["max"], flag=BAD)
+        qc = qc.concatFlags(newfield, method="match", target=field, flag=BAD)
+        qc = qc.dropField(newfield)
+        flagged = qc._flags[field] > UNFLAGGED
         assert flagged.sum() == expected
 
 
@@ -122,8 +112,9 @@ def test_clearFlags(data, field):
     flags[:, field] = BAD
     assert all(flags[field] == BAD)
 
-    _, flags = clearFlags(data, field, flags)
-    assert all(flags[field] == UNFLAGGED)
+    qc = SaQC(data, flags)
+    qc = qc.clearFlags(field)
+    assert all(qc._flags[field] == UNFLAGGED)
 
 
 def test_forceFlags(data, field):
@@ -131,13 +122,13 @@ def test_forceFlags(data, field):
     flags[:, field] = BAD
     assert all(flags[field] == BAD)
 
-    _, flags = forceFlags(data, field, flags, flag=DOUBTFUL)
-    assert all(flags[field] == DOUBTFUL)
+    qc = SaQC(data, flags).forceFlags(field, flag=DOUBTFUL)
+    assert all(qc._flags[field] == DOUBTFUL)
 
 
 def test_flagIsolated(data, field):
     flags = initFlagsLike(data)
-
+    d_len = data.shape[0][0]
     data.iloc[1:3, 0] = np.nan
     data.iloc[4:5, 0] = np.nan
     flags[data[field].index[5:6], field] = BAD
@@ -155,22 +146,22 @@ def test_flagIsolated(data, field):
     # 2016-01-08   7.0   -inf
     #         ..    ..     ..
 
-    _, flags_result = flagIsolated(
-        data, field, flags, group_window="1D", gap_window="2.1D", flag=BAD
+    qc = SaQC(data, flags).flagIsolated(
+        field, group_window="1D", gap_window="2.1D", flag=BAD
     )
+    assert (qc._flags[field].iloc[[3, 5]] == BAD).all()
+    neg_list = [k for k in range(d_len) if k not in [3, 5]]
+    assert (qc._flags[field].iloc[neg_list] == UNFLAGGED).all()
 
-    assert flags_result[field].iloc[[3, 5]].all()
-
-    data, flags_result = flagIsolated(
-        data,
+    qc = qc.flagIsolated(
         field,
-        flags_result,
         group_window="2D",
         gap_window="2.1D",
-        continuation_range="1.1D",
         flag=BAD,
     )
-    assert flags_result[field].iloc[[3, 5, 13, 14]].all()
+    assert (qc._flags[field].iloc[[3, 5, 13, 14]] == BAD).all()
+    neg_list = [k for k in range(d_len) if k not in [3, 5, 13, 14]]
+    assert (qc._flags[field].iloc[neg_list] == UNFLAGGED).all()
 
 
 def test_flagManual(data, field):
@@ -190,22 +181,20 @@ def test_flagManual(data, field):
     ]
 
     for kw in kwargs_list:
-        _, fl = flagManual(data.copy(), field, flags.copy(), **kw)
-        isflagged = fl[field] > UNFLAGGED
+        qc = SaQC(data, flags).flagManual(field, **kw)
+        isflagged = qc._flags[field] > UNFLAGGED
         assert isflagged[isflagged].index.equals(index_exp)
 
     # flag not exist in mdata
-    _, fl = flagManual(
-        data.copy(),
+    qc = SaQC(data, flags).flagManual(
         field,
-        flags.copy(),
         mdata=mdata,
         mflag="i do not exist",
         method="ontime",
         mformat="mflag",
         flag=BAD,
     )
-    isflagged = fl[field] > UNFLAGGED
+    isflagged = qc._flags[field] > UNFLAGGED
     assert isflagged[isflagged].index.equals(pd.DatetimeIndex([]))
 
     # check closure methods
@@ -233,17 +222,15 @@ def test_flagManual(data, field):
     ]
     bound_drops = {"right-open": [1], "left-open": [0], "closed": []}
     for method in ["right-open", "left-open", "closed"]:
-        _, fl = flagManual(
-            data.copy(),
+        qc = qc.flagManual(
             field,
-            flags.copy(),
             mdata=mdata,
             mflag=1,
             method=method,
             mformat="mflag",
             flag=BAD,
         )
-        isflagged = fl[field] > UNFLAGGED
+        isflagged = qc._flags[field] > UNFLAGGED
         for flag_i in flag_intervals:
             f_i = isflagged[slice(flag_i[0], flag_i[-1])].index
             check_i = f_i.drop(
@@ -264,15 +251,13 @@ def test_flagDriftFromNorm(dat):
     fields = ["field1", "field2", "field3"]
 
     flags = initFlagsLike(data)
-    _, flags_norm = flagDriftFromNorm(
-        data=data.copy(),
+    qc = SaQC(data, flags).flagDriftFromNorm(
         field=fields,
-        flags=flags.copy(),
         freq="200min",
         spread=5,
         flag=BAD,
     )
-    assert all(flags_norm["field3"] > UNFLAGGED)
+    assert all(qc._flags["field3"] > UNFLAGGED)
 
 
 @pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
@@ -285,16 +270,14 @@ def test_flagDriftFromReference(dat):
 
     flags = initFlagsLike(data)
 
-    _, flags_ref = flagDriftFromReference(
-        data=data.copy(),
+    qc = SaQC(data, flags).flagDriftFromReference(
         field=fields,
-        flags=flags.copy(),
         reference="field1",
         freq="3D",
         thresh=20,
         flag=BAD,
     )
-    assert all(flags_ref["field3"] > UNFLAGGED)
+    assert all(qc._flags["field3"] > UNFLAGGED)
 
 
 def test_transferFlags():
@@ -302,9 +285,18 @@ def test_transferFlags():
     qc = saqc.SaQC(data)
     qc = qc.flagRange("a", max=1.5)
     qc = qc.transferFlags(["a", "a"], ["b", "c"])
-    assert np.all(
-        qc.flags["b"].values == np.array([saqc.constants.UNFLAGGED, saqc.constants.BAD])
+    assert np.all(qc.flags["b"].values == np.array([UNFLAGGED, BAD]))
+    assert np.all(qc.flags["c"].values == np.array([UNFLAGGED, BAD]))
+
+
+def test_flagJumps():
+    data = pd.DataFrame(
+        {"a": [1, 1, 1, 1, 1, 6, 6, 6, 6, 6]},
+        index=pd.date_range(start="2020-01-01", periods=10, freq="D"),
     )
-    assert np.all(
-        qc.flags["c"].values == np.array([saqc.constants.UNFLAGGED, saqc.constants.BAD])
+    qc = SaQC(data=data)
+    qc = qc.flagJumps(field="a", thresh=1, window="2D")
+    assert qc.flags["a"][5] == BAD
+    assert np.all(qc.flags["a"].values[:5] == UNFLAGGED) & np.all(
+        qc.flags["a"].values[6:] == UNFLAGGED
     )

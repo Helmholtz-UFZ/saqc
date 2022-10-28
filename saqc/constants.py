@@ -59,6 +59,9 @@ FILTER_NONE = np.inf
 # ----------------------------------------------------------------------
 # other
 # ----------------------------------------------------------------------
+def clip(series, lower=None, upper=None):
+    return series.clip(lower=lower, upper=upper)
+
 
 ENVIRONMENT = {
     # Infinity constant
@@ -105,6 +108,7 @@ ENVIRONMENT = {
     "madScore": ts_ops.standardizeByMedian,
     # Standardize with Median and inter quantile range.
     "iqsScore": ts_ops.standardizeByIQR,
+    "clip": clip,
     "GOOD": GOOD,
     "BAD": BAD,
     "UNFLAGGED": UNFLAGGED,

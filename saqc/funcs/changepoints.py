@@ -7,7 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Callable, Tuple
+from typing import TYPE_CHECKING, Callable, Tuple
 
 import numba
 import numpy as np
@@ -20,9 +20,203 @@ from saqc.core.flags import Flags
 from saqc.core.register import flagging, register
 from saqc.lib.tools import customRoller, filterKwargs
 
+if TYPE_CHECKING:
+    from saqc.core.core import SaQC
 
-@flagging()
-def flagChangePoints(
+
+class ChangepointsMixin:
+    @flagging()
+    def flagChangePoints(
+        self: "SaQC",
+        field: str,
+        stat_func: Callable[[np.ndarray, np.ndarray], float],
+        thresh_func: Callable[[np.ndarray, np.ndarray], float],
+        window: str | Tuple[str, str],
+        min_periods: int | Tuple[int, int],
+        reduce_window: str | None = None,
+        reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
+        flag: float = BAD,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Flag data where it significantly changes.
+
+        Flag data points, where the parametrization of the process, the data is assumed to
+        generate by, significantly changes.
+
+        The change points detection is based on a sliding window search.
+
+        Parameters
+        ----------
+        field : str
+            A column in flags and data.
+
+        stat_func : Callable
+             A function that assigns a value to every twin window. The backward-facing
+             window content will be passed as the first array, the forward-facing window
+             content as the second.
+
+        thresh_func : Callable
+            A function that determines the value level, exceeding wich qualifies a
+            timestamps func value as denoting a change-point.
+
+        window : str, tuple of str
+            Size of the moving windows. This is the number of observations used for
+            calculating the statistic.
+
+            If it is a single frequency offset, it applies for the backward- and the
+            forward-facing window.
+
+            If two offsets (as a tuple) is passed the first defines the size of the
+            backward facing window, the second the size of the forward facing window.
+
+        min_periods : int or tuple of int
+            Minimum number of observations in a window required to perform the changepoint
+            test. If it is a tuple of two int, the first refer to the backward-,
+            the second to the forward-facing window.
+
+        reduce_window : str or None, default None
+            The sliding window search method is not an exact CP search method and usually
+            there wont be detected a single changepoint, but a "region" of change around
+            a changepoint.
+
+            If `reduce_window` is given, for every window of size `reduce_window`, there
+            will be selected the value with index `reduce_func(x, y)` and the others will
+            be dropped.
+
+            If `reduce_window` is None, the reduction window size equals the twin window
+            size, the changepoints have been detected with.
+
+        reduce_func : Callable, default ``lambda x, y: x.argmax()``
+            A function that must return an index value upon input of two arrays x and y.
+            First input parameter will hold the result from the stat_func evaluation for
+            every reduction window. Second input parameter holds the result from the
+            `thresh_func` evaluation.
+            The default reduction function just selects the value that maximizes the
+            `stat_func`.
+
+        flag : float, default BAD
+            flag to set.
+
+        Returns
+        -------
+        saqc.SaQC
+        """
+        self._data, self._flags = _assignChangePointCluster(
+            self._data,
+            field,
+            self._flags,
+            stat_func=stat_func,
+            thresh_func=thresh_func,
+            window=window,
+            min_periods=min_periods,
+            reduce_window=reduce_window,
+            reduce_func=reduce_func,
+            set_flags=True,
+            model_by_resids=False,
+            assign_cluster=False,
+            flag=flag,
+            **kwargs,
+        )
+        return self
+
+    @register(mask=["field"], demask=[], squeeze=[])
+    def assignChangePointCluster(
+        self: "SaQC",
+        field: str,
+        stat_func: Callable[[np.ndarray, np.ndarray], float],
+        thresh_func: Callable[[np.ndarray, np.ndarray], float],
+        window: str | Tuple[str, str],
+        min_periods: int | Tuple[int, int],
+        reduce_window: str | None = None,
+        reduce_func: Callable[
+            [np.ndarray, np.ndarray], float
+        ] = lambda x, _: x.argmax(),
+        model_by_resids: bool = False,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Label data where it changes significantly.
+
+        The labels will be stored in data. Unless `target` is given the labels will
+        overwrite the data in `field`. The flags will always set to `UNFLAGGED`.
+
+        Assigns label to the data, aiming to reflect continuous regimes of the processes
+        the data is assumed to be generated by. The regime change points detection is
+        based on a sliding window search.
+
+
+        Parameters
+        ----------
+        field : str
+            The reference variable, the deviation from wich determines the flagging.
+
+        stat_func : Callable[[numpy.array, numpy.array], float]
+            A function that assigns a value to every twin window. Left window content will
+            be passed to first variable,
+            right window content will be passed to the second.
+
+        thresh_func : Callable[numpy.array, numpy.array], float]
+            A function that determines the value level, exceeding wich qualifies a
+            timestamps func func value as denoting a changepoint.
+
+        window : str, tuple of string
+            Size of the rolling windows the calculation is performed in. If it is a single
+            frequency offset, it applies for the backward- and the forward-facing window.
+
+            If two offsets (as a tuple) is passed the first defines the size of the
+            backward facing window, the second the size of the forward facing window.
+
+        min_periods : int or tuple of int
+            Minimum number of observations in a window required to perform the changepoint
+            test. If it is a tuple of two int, the first refer to the backward-,
+            the second to the forward-facing window.
+
+        reduce_window : {None, str}, default None
+            The sliding window search method is not an exact CP search method and usually
+            there wont be detected a single changepoint, but a "region" of change around
+            a changepoint. If `reduce_window` is given, for every window of size
+            `reduce_window`, there will be selected the value with index `reduce_func(x,
+            y)` and the others will be dropped. If `reduce_window` is None, the reduction
+            window size equals the twin window size, the changepoints have been detected
+            with.
+
+        reduce_func : callable, default lambda x,y: x.argmax()
+            A function that must return an index value upon input of two arrays x and y.
+            First input parameter will hold the result from the stat_func evaluation for
+            every reduction window. Second input parameter holds the result from the
+            thresh_func evaluation. The default reduction function just selects the value
+            that maximizes the stat_func.
+
+        model_by_resids : bool, default False
+            If True, the results of `stat_funcs` are written, otherwise the regime labels.
+
+        Returns
+        -------
+        saqc.SaQC
+        """
+        reserved = ["assign_cluster", "set_flags", "flag"]
+        kwargs = filterKwargs(kwargs, reserved)
+        self._data, self._flags = _assignChangePointCluster(
+            data=self._data,
+            field=field,
+            flags=self._flags,
+            stat_func=stat_func,
+            thresh_func=thresh_func,
+            window=window,
+            min_periods=min_periods,
+            reduce_window=reduce_window,
+            reduce_func=reduce_func,
+            model_by_resids=model_by_resids,
+            **kwargs,
+            # control args
+            assign_cluster=True,
+            set_flags=False,
+        )
+        return self
+
+
+def _assignChangePointCluster(
     data: DictOfSeries,
     field: str,
     flags: Flags,
@@ -30,225 +224,7 @@ def flagChangePoints(
     thresh_func: Callable[[np.ndarray, np.ndarray], float],
     window: str | Tuple[str, str],
     min_periods: int | Tuple[int, int],
-    closed: Literal["right", "left", "both", "neither"] = "both",
-    reduce_window: str = None,
-    reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
-    flag: float = BAD,
-    **kwargs,
-) -> Tuple[DictOfSeries, Flags]:
-    """
-    Flag data where it significantly changes.
-
-    Flag data points, where the parametrization of the process, the data is assumed to
-    generate by, significantly changes.
-
-    The change points detection is based on a sliding window search.
-
-    Parameters
-    ----------
-    data : dios.DictOfSeries
-        The data container.
-
-    field : str
-        A column in flags and data.
-
-    flags : saqc.Flags
-        The flags container.
-
-    stat_func : Callable
-         A function that assigns a value to every twin window. The backward-facing
-         window content will be passed as the first array, the forward-facing window
-         content as the second.
-
-    thresh_func : Callable
-        A function that determines the value level, exceeding wich qualifies a
-        timestamps func value as denoting a change-point.
-
-    window : str, tuple of str
-        Size of the moving windows. This is the number of observations used for
-        calculating the statistic.
-
-        If it is a single frequency offset, it applies for the backward- and the
-        forward-facing window.
-
-        If two offsets (as a tuple) is passed the first defines the size of the
-        backward facing window, the second the size of the forward facing window.
-
-    min_periods : int or tuple of int
-        Minimum number of observations in a window required to perform the changepoint
-        test. If it is a tuple of two int, the first refer to the backward-,
-        the second to the forward-facing window.
-
-    closed : {'right', 'left', 'both', 'neither'}, default 'both'
-        Determines the closure of the sliding windows.
-
-    reduce_window : str or None, default None
-        The sliding window search method is not an exact CP search method and usually
-        there wont be detected a single changepoint, but a "region" of change around
-        a changepoint.
-
-        If `reduce_window` is given, for every window of size `reduce_window`, there
-        will be selected the value with index `reduce_func(x, y)` and the others will
-        be dropped.
-
-        If `reduce_window` is None, the reduction window size equals the twin window
-        size, the changepoints have been detected with.
-
-    reduce_func : Callable, default ``lambda x, y: x.argmax()``
-        A function that must return an index value upon input of two arrays x and y.
-        First input parameter will hold the result from the stat_func evaluation for
-        every reduction window. Second input parameter holds the result from the
-        `thresh_func` evaluation.
-        The default reduction function just selects the value that maximizes the
-        `stat_func`.
-
-    flag : float, default BAD
-        flag to set.
-
-    Returns
-    -------
-    data : dios.DictOfSeries
-        Unmodified data container
-    flags : saqc.Flags
-        The flags container
-    """
-    return _assignChangePointCluster(
-        data,
-        field,
-        flags,
-        stat_func=stat_func,
-        thresh_func=thresh_func,
-        window=window,
-        min_periods=min_periods,
-        closed=closed,
-        reduce_window=reduce_window,
-        reduce_func=reduce_func,
-        set_flags=True,
-        model_by_resids=False,
-        assign_cluster=False,
-        flag=flag,
-        **kwargs,
-    )
-
-
-@register(mask=["field"], demask=[], squeeze=[])
-def assignChangePointCluster(
-    data: DictOfSeries,
-    field: str,
-    flags: Flags,
-    stat_func: Callable[[np.array, np.array], float],
-    thresh_func: Callable[[np.array, np.array], float],
-    window: str | Tuple[str, str],
-    min_periods: int | Tuple[int, int],
-    closed: Literal["right", "left", "both", "neither"] = "both",
-    reduce_window: str = None,
-    reduce_func: Callable[[np.ndarray, np.ndarray], float] = lambda x, _: x.argmax(),
-    model_by_resids: bool = False,
-    **kwargs,
-):
-    """
-    Label data where it changes significantly.
-
-    The labels will be stored in data. Unless `target` is given the labels will
-    overwrite the data in `field`. The flags will always set to `UNFLAGGED`.
-
-    Assigns label to the data, aiming to reflect continuous regimes of the processes
-    the data is assumed to be generated by. The regime change points detection is
-    based on a sliding window search.
-
-
-    Parameters
-    ----------
-    data : dios.DictOfSeries
-        A dictionary of pandas.Series, holding all the data.
-
-    field : str
-        The reference variable, the deviation from wich determines the flagging.
-
-    flags : saqc.flags
-        A flags object, holding flags and additional informations related to `data`.
-
-    stat_func : Callable[[numpy.array, numpy.array], float]
-        A function that assigns a value to every twin window. Left window content will
-        be passed to first variable,
-        right window content will be passed to the second.
-
-    thresh_func : Callable[numpy.array, numpy.array], float]
-        A function that determines the value level, exceeding wich qualifies a
-        timestamps func func value as denoting a changepoint.
-
-    window : str, tuple of string
-        Size of the rolling windows the calculation is performed in. If it is a single
-        frequency offset, it applies for the backward- and the forward-facing window.
-
-        If two offsets (as a tuple) is passed the first defines the size of the
-        backward facing window, the second the size of the forward facing window.
-
-    min_periods : int or tuple of int
-        Minimum number of observations in a window required to perform the changepoint
-        test. If it is a tuple of two int, the first refer to the backward-,
-        the second to the forward-facing window.
-
-    closed : {'right', 'left', 'both', 'neither'}, default 'both'
-        Determines the closure of the sliding windows.
-
-    reduce_window : {None, str}, default None
-        The sliding window search method is not an exact CP search method and usually
-        there wont be detected a single changepoint, but a "region" of change around
-        a changepoint. If `reduce_window` is given, for every window of size
-        `reduce_window`, there will be selected the value with index `reduce_func(x,
-        y)` and the others will be dropped. If `reduce_window` is None, the reduction
-        window size equals the twin window size, the changepoints have been detected
-        with.
-
-    reduce_func : callable, default lambda x,y: x.argmax()
-        A function that must return an index value upon input of two arrays x and y.
-        First input parameter will hold the result from the stat_func evaluation for
-        every reduction window. Second input parameter holds the result from the
-        thresh_func evaluation. The default reduction function just selects the value
-        that maximizes the stat_func.
-
-    model_by_resids : bool, default False
-        If True, the results of `stat_funcs` are written, otherwise the regime labels.
-
-    Returns
-    -------
-    data : dios.DictOfSeries
-        Modified data.
-    flags : saqc.Flags
-        The flags container
-    """
-    reserved = ["assign_cluster", "set_flags", "flag"]
-    kwargs = filterKwargs(kwargs, reserved)
-    return _assignChangePointCluster(
-        data=data,
-        field=field,
-        flags=flags,
-        stat_func=stat_func,
-        thresh_func=thresh_func,
-        window=window,
-        min_periods=min_periods,
-        closed=closed,
-        reduce_window=reduce_window,
-        reduce_func=reduce_func,
-        model_by_resids=model_by_resids,
-        **kwargs,
-        # control args
-        assign_cluster=True,
-        set_flags=False,
-    )
-
-
-def _assignChangePointCluster(
-    data: DictOfSeries,
-    field: str,
-    flags: Flags,
-    stat_func: Callable[[np.array, np.array], float],
-    thresh_func: Callable[[np.array, np.array], float],
-    window: str | Tuple[str, str],
-    min_periods: int | Tuple[int, int],
-    closed: Literal["right", "left", "both", "neither"] = "both",
-    reduce_window: str = None,
+    reduce_window: str | None = None,
     reduce_func: Callable[[np.ndarray, np.ndarray], float] = lambda x, _: x.argmax(),
     model_by_resids: bool = False,
     set_flags: bool = False,
@@ -274,22 +250,16 @@ def _assignChangePointCluster(
         )
         reduce_window = f"{s}s"
 
-    roller = customRoller(data_ser, window=bwd_window, min_periods=bwd_min_periods)
-    bwd_start, bwd_end = roller.window_indexer.get_window_bounds(
-        len(data_ser), min_periods=bwd_min_periods, closed=closed
+    roller = customRoller(data_ser, window=bwd_window, min_periods=0)
+    bwd_start, bwd_end = roller.window_indexer.get_window_bounds(len(data_ser))
+
+    roller = customRoller(data_ser, window=fwd_window, forward=True, min_periods=0)
+    fwd_start, fwd_end = roller.window_indexer.get_window_bounds(len(data_ser))
+
+    min_mask = (fwd_end - fwd_start >= fwd_min_periods) & (
+        bwd_end - bwd_start >= bwd_min_periods
     )
 
-    roller = customRoller(
-        data_ser, window=fwd_window, forward=True, min_periods=fwd_min_periods
-    )
-    fwd_start, fwd_end = roller.window_indexer.get_window_bounds(
-        len(data_ser), min_periods=fwd_min_periods, closed=closed
-    )
-
-    min_mask = ~(
-        (fwd_end - fwd_start <= fwd_min_periods)
-        | (bwd_end - bwd_start <= bwd_min_periods)
-    )
     fwd_end = fwd_end[min_mask]
     split = bwd_end[min_mask]
     bwd_start = bwd_start[min_mask]
@@ -338,6 +308,15 @@ def _assignChangePointCluster(
         )
         det_index = det_index[detected]
 
+    # the changepoint is the point "after" the change - so detected index has to be shifted once with regard to the
+    # data index:
+    shifted = (
+        pd.Series(True, index=det_index)
+        .reindex(data_ser.index, fill_value=False)
+        .shift(fill_value=False)
+    )
+    det_index = shifted.index[shifted]
+
     if assign_cluster:
         cluster = pd.Series(False, index=data[field].index)
         cluster[det_index] = True
@@ -385,7 +364,7 @@ def _reduceCPCluster(stat_arr, thresh_arr, start, end, obj_func, num_val):
         s, e = start[win_i], end[win_i]
         x = stat_arr[s:e]
         y = thresh_arr[s:e]
-        pos = s + obj_func(x, y) + 1
+        pos = s + obj_func(x, y)
         out_arr[s:e] = False
         out_arr[pos] = True
 

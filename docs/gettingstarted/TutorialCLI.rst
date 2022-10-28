@@ -292,4 +292,3 @@ You can learn more about the syntax of these custom functions
    :align: center
 
    qc.plot('SM2')
-

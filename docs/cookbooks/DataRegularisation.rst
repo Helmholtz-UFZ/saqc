@@ -2,7 +2,7 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-Data Regularisation
+Data Regularization
 ===================
 
 The tutorial aims to introduce the usage of ``SaQC`` methods, in order to obtain regularly sampled data derivatives
@@ -12,12 +12,12 @@ spacing in between subsequent data points.
 In the following steps, the tutorial guides through the usage of the *SaQC* :doc:`resampling <../funcs/generic>`
 library.
 
-#. Initially, we introduce and motivate regularisation techniques and we do import the tutorial data.
+#. Initially, we introduce and motivate regularization techniques and we do import the tutorial data.
 
-   * :ref:`Why Regularisation <cookbooks/DataRegularisation:Why Regularisation>`
+   * :ref:`Why Regularization <cookbooks/DataRegularisation:Why Regularization?>`
    * :ref:`Tutorial Data <cookbooks/DataRegularisation:Tutorial Data>`
 
-#. We will get an overview over the main :ref:`Regularisation <cookbooks/DataRegularisation:regularisations>` methods, starting with the shift.
+#. We will get an overview over the main :ref:`Regularization <cookbooks/DataRegularisation:regularization>` methods, starting with the shift.
 
    * :ref:`Shift <cookbooks/DataRegularisation:shift>`
    * :ref:`Target Parameter <cookbooks/DataRegularisation:target parameter>`
@@ -27,7 +27,7 @@ library.
      * :ref:`Valid Data <cookbooks/DataRegularisation:Valid Data>`
 
 #. We introduce the notion of *valid* data and see how sparse intervals and those with multiple values interact with
-   regularisation.
+   regularization.
 
 
    * :ref:`Data Loss and Empty Intervals <cookbooks/DataRegularisation:data loss and empty intervals>`
@@ -50,12 +50,12 @@ library.
 
    * :ref:`Representing Data Sparsity <cookbooks/DataRegularisation:interpolation and data sparsity>`
 
-#. We see how regularisation interacts with Flags.
+#. We see how regularization interacts with Flags.
 
-   * :ref:`Flags and Regularisation <cookbooks/DataRegularisation:flags and regularisation>`
+   * :ref:`Flags and Regularization <cookbooks/DataRegularisation:flags and regularization>`
 
-Why Regularisation
-------------------
+Why Regularization?
+-------------------
 
 Often, measurement data does not come in regularly sampled time series. The reasons, why one usually would
 like to have time series data, that exhibits a constant temporal gap size
@@ -112,17 +112,17 @@ rate of *15* minutes.
 Finding out about the proper sampling a series should be regularized to, is a subject on its own and wont be covered
 here. Usually, the intended sampling rate of sensor data is known from the specification of the sensor.
 
-If that is not the case, and if there seem to be more than one candidates for a rate regularisation, a rough rule of
-thumb, aiming at minimisation of data loss and data manipulation, may be,
+If that is not the case, and if there seem to be more than one candidates for a rate regularization, a rough rule of
+thumb, aiming at minimization of data loss and data manipulation, may be,
 to go for the smallest rate seemingly present in the data.
 
-Regularisations
----------------
+Regularization
+--------------
 
 So lets transform the measurements timestamps to have a regular *10* minutes frequency. In order to do so,
 we have to decide what to do with each time stamps associated data, when we alter the timestamps value.
 
-Basically, there are three types of :doc:`regularisations <../funcs/resampling>` methods:
+Basically, there are three types of :doc:`regularization <../funcs/resampling>` methods:
 
 
 #. We could keep the values as they are, and thus,
@@ -145,7 +145,7 @@ Lets apply a simple shift via the :py:meth:`~saqc.SaQC.shift` method.
 Target parameter
 ^^^^^^^^^^^^^^^^
 
-We selected a new ``target`` field, to store the shifted data to a new field, so that our original data wouldnt be
+We selected a new ``target`` field, to store the shifted data to a new field, so that our original data wouldn't be
 overridden.
 
 Freq parameter
@@ -153,7 +153,7 @@ Freq parameter
 
 We passed the ``freq`` keyword of the intended sampling frequency in terms of a
 `date alias <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_ string. All of
-the :doc:`regularisations <../funcs/resampling>` methods have such a frequency keyword,
+the :doc:`regularization <../funcs/resampling>` methods have such a frequency keyword,
 and it just determines the sampling rate, the resulting regular timeseries will have.
 
 Shifting Method
@@ -164,7 +164,7 @@ which applies a *backwards* shift, so data points get shifted *backwards*\ , unt
 that is a multiple of *10* minutes. (See :py:meth:`~saqc.SaQC.shift` documentation for more
 details on the keywords.)
 
-Lets see, how the data is now sampled. Therefore, we use the ``data`` Atribute from the
+Lets see, how the data is now sampled. Therefore, we use the ``data`` Attribute from the
 :py:class:`SaQC <saqc.core.core.SaQC>` object. This will prevent the methods output from
 being merged to a ``pandas.DataFrame`` object, and the changes from the resampling will be easier
 comprehensible from one look.
@@ -192,17 +192,17 @@ Shifted data
    <BLANKLINE>
 
 
-We see, the first and last *10* datapoints of both, the original data time series and the shifted one.
+We see, the first and last *10* data points of both, the original data time series and the shifted one.
 
-Obveously, the shifted data series now exhibits a regular sampling rate of *10* minutes, with the index
-ranging from the latest timestamp, that is a multiple of *10* minutes and preceeds the initial timestamp
-of the original data, up to the first *10* minutes multiple, that succeeds the last original datas timestamp.
-This is default behavior to all the :doc:`regularisations <../funcs/resampling>` provided by ``saqc``.
+Obviously, the shifted data series now exhibits a regular sampling rate of *10* minutes, with the index
+ranging from the latest timestamp, that is a multiple of *10* minutes and precedes the initial timestamp
+of the original data, up to the first *10* minutes multiple, that succeeds the last original data timestamp.
+This is default behavior to all the :doc:`regularization <../funcs/resampling>` provided by ``saqc``.
 
 Data Loss and Empty Intervals
 -----------------------------
 
-The number of datapoints  (displayed at the bottom of the table columns) has changed through the
+The number of data points  (displayed at the bottom of the table columns) has changed through the
 transformation as well. That change stems from 2 sources mainly:
 
 Empty Intervals
@@ -215,20 +215,20 @@ that in the interval that is represented by that date time index, there was data
 Valid Data
 ^^^^^^^^^^
 
-Data points are referred to, as *valid*\ , in context of a regularisation, if:
+Data points are referred to, as *valid*\ , in context of a regularization, if:
 
 
 #.
    the data points value is not ``NaN``
 
 #.
-   the *flag* of that datapoint has a value lower than the value passed to the methods
+   the *flag* of that data point has a value lower than the value passed to the methods
    ``to_mask`` keyword - since this keyword defaults to the highest flag level available,
-   defaultly, all data flagged :py:const:`~saqc.constants.BAD`, is considered invalid by that method.
+   by default, all data flagged :py:const:`~saqc.constants.BAD`, is considered invalid by that method.
 
 Note, that, from point *2* above, it follows, that flagging data values
-before regularisation, will effectively exclude them from the regularistaion process. See chapter
-:ref:`flagging and resampling <cookbooks/DataRegularisation:flags and regularisation>` for an example of this effect and how it can help
+before regularization, will effectively exclude them from the regularization process. See chapter
+:ref:`flagging and regularization <cookbooks/DataRegularisation:flags and regularization>` for an example of this effect and how it can help
 control :ref:`data reduction <cookbooks/DataRegularisation:data reduction>`.
 
 data reduction
@@ -238,7 +238,7 @@ If there are multiple values present within an interval with size according to t
 ``freq``\ , this values get reduced to one single value, that will get assigned to the timestamp associated with the
 interval.
 
-This reduction depends on the selected :doc:`regularisation <../funcs/resampling>` method.
+This reduction depends on the selected :doc:`regularization <../funcs/resampling>` method.
 
 For example, :ref:`above <cookbooks/DataRegularisation:shift>`\ , we applied a backwards :py:meth:`~saqc.SaQC.shift` with a *10* minutes frequency.
 As a result, the first value, encountered after any multiple of *10* minutes, gets shifted backwards to be aligned with
@@ -267,7 +267,7 @@ Notice, how, for example, the data point for ``2021-01-01 07:49:41`` gets shifte
 ``2021-01-01 07:40:00`` - although, shifting it forward to ``07:40:00`` would be less a manipulation, since this timestamp
 appears to be closer to the original one.
 
-To shift to any frequncy aligned timestamp the value that is closest to that timestamp, we
+To shift to any frequency aligned timestamp the value that is closest to that timestamp, we
 can perform a *nearest shift* instead of a simple *back shift*\ , by using the shift method ``"nshift"``\ :
 
    >>> qc = qc.shift('SoilMoisture', target='SoilMoisture_nshift', freq='10min', method='nshift')
@@ -284,7 +284,7 @@ can perform a *nearest shift* instead of a simple *back shift*\ , by using the s
 
 Now, any timestamp got assigned, the value that is nearest to it, *if* there is one valid data value available in the
 interval surrounding that timestamp with a range of half the frequency. In our example, this would mean, the regular
-timestamp would get assigned the nearest value of all the values, that preceed or succeed it by less than *5* minutes.
+timestamp would get assigned the nearest value of all the values, that precede or succeed it by less than *5* minutes.
 
 Maybe check out, what happens with the chunk of the final 2 hours of our shifted *Soil Moisture* dataset, to get an idea.
 
@@ -315,7 +315,7 @@ Aggregation
 If we want to comprise several values by aggregation and assign the result to the new regular timestamp, instead of
 selecting a single one, we can do this, with the :py:meth:`~saqc.SaQC.resample` method.
 Lets resample the *SoilMoisture* data to have a *20* minutes sample rate by aggregating every *20* minutes intervals
-content with the arithmetic mean (which is implemented by numpies ``numpy.mean`` function for example).
+content with the arithmetic mean (which is provided by the ``numpy.mean`` function for example).
 
    >>> import numpy as np
    >>> qc = qc.resample('SoilMoisture', target='SoilMoisture_mean', freq='20min', method='bagg', func=np.mean)
@@ -333,7 +333,7 @@ content with the arithmetic mean (which is implemented by numpies ``numpy.mean``
    2021-01-01 01:17:41    23.343100 | 2021-01-01 02:20:00         23.343100 |
    2021-01-01 01:27:29    23.298800 | 2021-01-01 02:40:00         23.343100 |
    2021-01-01 01:37:17    23.343100 | 2021-01-01 03:00:00         23.343100 |
-                             ... | ...                               ... |
+                                ... | ...                               ... |
    2021-03-20 05:07:02   137.271500 | 2021-03-20 05:40:00        154.116806 |
    2021-03-20 05:21:35   138.194107 | 2021-03-20 06:00:00        150.567505 |
    2021-03-20 05:41:59   154.116806 | 2021-03-20 06:20:00               NaN |
@@ -350,32 +350,32 @@ Aggregation functions
 ^^^^^^^^^^^^^^^^^^^^^
 
 You can pass arbitrary function objects to the ``func`` parameter, to be applied to calculate every intervals result,
-as long as this function returns a scalar *float* value upon an array-like input. (So ``np.median`` would be propper
+as long as this function returns a scalar *float* value upon an array-like input. (So ``np.median`` would be proper
 for calculating the median, ``sum``\ , for assigning the value sum, and so on.)
 
 Aggregation method
 ^^^^^^^^^^^^^^^^^^
 
-As it is with the :ref:`shift <cookbooks/DataRegularisation:Shift>` functionality, a ``method`` keyword controlls, weather the
+As it is with the :ref:`shift <cookbooks/DataRegularisation:Shift>` functionality, a ``method`` keyword controls, weather the
 aggregation result for the interval in between 2 regular timestamps gets assigned to the left (=\ ``bagg``\ ) or to the
 right (\ ``fagg``\ ) boundary timestamp.
 
 
-* Also, analogous to to the shift functionality, intervals of size ``freq``\ , that do
-  not contain any :ref:`valid <cookbooks/DataRegularisation:valid data>` data, that could be aggregated, get ``ǹp.nan`` assigned.
+* Also, analogous to the shift functionality, intervals of size ``freq``\ , that do
+  not contain any :ref:`valid <cookbooks/DataRegularisation:valid data>` data, that could be aggregated, get ``np.nan`` assigned.
 
 Interpolation
 -------------
 
 Another common way of obtaining regular timestamps, is, the interpolation of data at regular timestamps.
 
-In the pool of py:mod:`regularisation <Functions.saqc.resampling>` methods, is available the
+In the pool of py:mod:`regularization <Functions.saqc.resampling>` methods, is available the
 :py:meth:`~saqc.SaQC.interpolate` method.
 
 Lets apply a linear interpolation onto the dataset. To access
 linear interpolation, we pass the ``method`` parameter the string ``"time"``. This
 applies an interpolation, that is sensitive to the difference in temporal gaps
-(as opposed by ``"linear"``\ , wich expects all the gaps to be equal). Get an overview
+(as opposed by ``"linear"``\ , which expects all the gaps to be equal). Get an overview
 of the possible interpolation methods in the :py:meth:`~saqc.SaQC.interpolate>`
 documentation. Lets check the results:
 
@@ -394,7 +394,7 @@ documentation. Lets check the results:
    2021-01-01 01:10:00    23.377891 | 2021-01-01 01:17:41             23.343100 |
    2021-01-01 01:20:00    23.332627 | 2021-01-01 01:27:29             23.298800 |
    2021-01-01 01:30:00    23.310176 | 2021-01-01 01:37:17             23.343100 |
-                             ... | ...                                   ... |
+                                ... | ...                                   ... |
    2021-03-20 07:20:00   154.723105 | 2021-03-20 05:07:02            137.271500 |
    2021-03-20 07:30:00          NaN | 2021-03-20 05:21:35            138.194107 |
    2021-03-20 07:40:00          NaN | 2021-03-20 05:41:59            154.116806 |
@@ -410,15 +410,15 @@ documentation. Lets check the results:
 Interpolation and Data Sparsity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The regularisation by interpolation is strict in the sense, that regular timestamps *only* get
-interpolated, if they have at least one :ref:`valid <cookbooks/DataRegularisation:valid data>` data value preceeding them *and* one
-succeeding them *within* the given frequency range (wich is controlled by the ``freq`` keyword.).
+The regularization by interpolation is strict in the sense, that regular timestamps *only* get
+interpolated, if they have at least one :ref:`valid <cookbooks/DataRegularisation:valid data>` data value preceding them *and* one
+succeeding them *within* the given frequency range (which is controlled by the ``freq`` keyword.).
 
-Thats, why, you have no interpolation value at ``2021-03-20 07:30:00`` - bacause it is preceeded
+That's why, you have no interpolation value at ``2021-03-20 07:30:00`` - because it is preceded
 by a :ref:`valid <cookbooks/DataRegularisation:valid data>` value at ``2021-03-20 07:26:16``\ , but there is no :ref:`valid <cookbooks/DataRegularisation:valid data>` value
 available in between the succeeding *10* minutes interval from ``2021-03-20 07:30:00`` to ``2021-03-20 07:30:00``.
 
-On the other hand, there is an interpolated value assigned to ``2021-03-20 07:50:00``\ , it is preceeded by
+On the other hand, there is an interpolated value assigned to ``2021-03-20 07:50:00``\ , it is preceded by
 a :ref:`valid <cookbooks/DataRegularisation:valid data>` value at ``2021-03-20 07:40:37`` and one succeeding at ``2021-03-20 07:54:59``.
 
 This behavior is intended to reflect the sparsity of the original data in the
@@ -430,12 +430,12 @@ Linear Interpolation
 
 Note, that there is a wrapper available for linear interpolation: :py:meth:`~saqc.SaQC.linear`.
 
-Flags and Regularisation
+Flags and Regularization
 ------------------------
 
 Since data, that is flagged by a level higher or equal to the passed ``to_mask`` value
 (default=:py:const:~saqc.constants.BAD), is not regarded :ref:`valid <cookbooks/DataRegularisation:valid data>` by the applied function,
-it can be of advantage, to flag data before regularisation in order to effectively exclude it
+it can be of advantage, to flag data before regularization in order to effectively exclude it
 from the resulting regularly sampled data set. Lets see an example for the *SoilMoisture* data set.
 
 >>> qc = qc.linear('SoilMoisture', target='SoilMoisture_linear', freq='10min') # doctest: +SKIP
@@ -454,12 +454,12 @@ At ``2021-01-01 15:40:02`` the original data exhibits a measurement value
 of ``-120`` - which is obviously not a valid data point, regarding the fact, that *SoilMoisture* measurements
 should be percentage values in between *0* and *100*.
 
-Since we dont exclude the value from interpolation, it gets included in the interpolation
-process for the regular timstamp at ``2021-01-01 15:40:00`` - wich, as a result, also exhibits
-a non - sence value of *-119.512446*. We could now flag the resulting regular dataset and
-exclude this calculated non sence value from further processing and analysis.
+Since we don't exclude the value from interpolation, it gets included in the interpolation
+process for the regular timestamp at ``2021-01-01 15:40:00`` - which, as a result, also exhibits
+a nonsense value of *-119.512446*. We could now flag the resulting regular dataset and
+exclude this calculated nonsense value from further processing and analysis.
 
-But, this would mean, that we would have a small data gap at this point.
+But, this would introduce a small data gap at this point.
 
 We can circumvent having that gap, by flagging that value before interpolation. This
 works, because there is actually another, now valid value, available in the interval
@@ -480,6 +480,7 @@ do the interpolation.
    2021-01-01 15:30:00    23.341000 | 2021-01-01 15:30:14               23.3410 |
    2021-01-01 15:40:00    23.319971 | 2021-01-01 15:40:02             -120.0000 |
    2021-01-01 15:50:00    23.299553 | 2021-01-01 15:49:50               23.2988 |
+
 
 back projection of flags
 ------------------------

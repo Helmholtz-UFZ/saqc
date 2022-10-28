@@ -12,16 +12,8 @@ import numpy as np
 import pandas as pd
 
 import dios
-from saqc.constants import BAD
 from saqc.core import Flags
 from saqc.core.history import History, createHistoryFromData
-
-
-def flagAll(data, field, flags, **kwargs):
-    # NOTE: remember to rename flag -> flag_values
-    flags.copy()
-    flags[:, field] = BAD
-    return data, flags
 
 
 def initData(

@@ -170,7 +170,7 @@ But checking out values around *2017-10-29*, we notice, that the sampling rate s
 
 Those instabilities do bias most statistical evaluations and it is common practice to apply some
 :doc:`resampling functions <../funcs/resampling>` onto the data, to obtain a regularly spaced timestamp.
-(See also the :ref:`harmonization tutorial <cookbooks/DataRegularisation:data regularisation>` for more informations
+(See also the :ref:`harmonization tutorial <cookbooks/DataRegularisation:data regularization>` for more informations
 on that topic.)
 
 We will apply :py:meth:`linear harmonisation <saqc.SaQC.linear>` to all the sensor data variables,

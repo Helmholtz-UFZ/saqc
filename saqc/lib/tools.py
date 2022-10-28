@@ -11,9 +11,8 @@ import collections
 import itertools
 import re
 import warnings
-from typing import Callable, Collection, Iterator, List, Sequence, TypeVar, Union
+from typing import Callable, Collection, List, Sequence, TypeVar, Union
 
-import numba as nb
 import numpy as np
 import pandas as pd
 from scipy import fft
@@ -24,6 +23,7 @@ import dios
 # keep this for external imports
 # TODO: fix the external imports
 from saqc.lib.rolling import customRoller
+from saqc.lib.types import CompT
 
 T = TypeVar("T", str, float, int)
 
@@ -169,35 +169,6 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
     if invert:
         out = ~out
     return out
-
-
-@nb.jit(nopython=True, cache=True)
-def otherIndex(values: np.ndarray, start: int = 0) -> int:
-    """
-    returns the index of the first non value not equal to values[0]
-    -> values[start:i] are all identical
-    """
-    val = values[start]
-    for i in range(start, len(values)):
-        if values[i] != val:
-            return i
-    return -1
-
-
-def groupConsecutives(series: pd.Series) -> Iterator[pd.Series]:
-    """
-    group consecutive values into distinct pd.Series
-    """
-    index = series.index
-    values = series.values
-
-    start = 0
-    while True:
-        stop = otherIndex(values, start)
-        if stop == -1:
-            break
-        yield pd.Series(data=values[start:stop], index=index[start:stop])
-        start = stop
 
 
 def concatDios(data: List[dios.DictOfSeries], warn: bool = True, stacklevel: int = 2):
@@ -509,7 +480,7 @@ def getFreqDelta(index):
     return delta
 
 
-def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply"):
+def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply") -> pd.Series:
     """
     For the repeating task of applying build in (accelerated) methods/funcs (`apply_obj`),
     of rolling/resampling - like objects (`in_obj`) ,
@@ -519,20 +490,25 @@ def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply"):
     try:
         out = getattr(in_obj, getattr(apply_obj, attr_access))()
     except AttributeError:
-        out = getattr(in_obj, attr_or)(apply_obj)
+        try:
+            # let's try to run it somewhat optimized
+            out = getattr(in_obj, attr_or)(apply_obj, raw=True)
+        except:
+            # did't work out, fallback
+            out = getattr(in_obj, attr_or)(apply_obj)
 
     return out
 
 
 def statPass(
     datcol: pd.Series,
-    stat: Callable[[np.array, pd.Series], float],
+    stat: Callable[[np.ndarray, pd.Series], float],
     winsz: pd.Timedelta,
     thresh: float,
-    comparator: Callable[[float, float], bool],
-    sub_winsz: pd.Timedelta = None,
-    sub_thresh: float = None,
-    min_periods: int = None,
+    comparator: Callable[[CompT, CompT], bool],
+    sub_winsz: pd.Timedelta | None = None,
+    sub_thresh: float | None = None,
+    min_periods: int | None = None,
 ) -> pd.Series:
     """
     Check `datcol`, if it contains chunks of length `window`, exceeding `thresh` with

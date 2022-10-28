@@ -10,19 +10,15 @@ from __future__ import annotations
 import warnings
 from copy import copy as shallowcopy
 from copy import deepcopy
-from typing import Any, Callable, Hashable, List, MutableMapping, Sequence, Tuple
+from typing import Any, Hashable, MutableMapping
 
 import numpy as np
 import pandas as pd
 
-# the import is needed to trigger the registration
-# of the built-in (test-)functions
-import saqc.funcs  # noqa
 from dios import DictOfSeries, to_dios
 from saqc.core.flags import Flags, initFlagsLike
 from saqc.core.history import History
-from saqc.core.modules import FunctionsMixin
-from saqc.core.register import FUNC_MAP, FunctionWrapper
+from saqc.core.register import FUNC_MAP
 from saqc.core.translation import (
     DmpScheme,
     FloatScheme,
@@ -30,8 +26,8 @@ from saqc.core.translation import (
     SimpleScheme,
     TranslationScheme,
 )
-from saqc.lib.tools import concatDios, toSequence
-from saqc.lib.types import ExternalFlag, OptionalNone
+from saqc.funcs import FunctionsMixin
+from saqc.lib.tools import concatDios
 
 # warnings
 pd.set_option("mode.chained_assignment", "warn")
@@ -60,13 +56,13 @@ class SaQC(FunctionsMixin):
         flags=None,
         scheme: str | TranslationScheme = "float",
     ):
-        self._data = self._initData(data)
-        self._flags = self._initFlags(flags)
-        self._scheme = self._initTranslationScheme(scheme)
-        self._attrs = {}
+        self._data: DictOfSeries = self._initData(data)
+        self._flags: Flags = self._initFlags(flags)
+        self._scheme: TranslationScheme = self._initTranslationScheme(scheme)
+        self._attrs: dict = {}
         self._validate(reason="init")
 
-    def _construct(self, **attributes) -> SaQC:
+    def _construct(self, **attributes) -> "SaQC":
         """
         Construct a new `SaQC`-Object from `self` and optionally inject
         attributes with any chechking and overhead.
@@ -118,132 +114,17 @@ class SaQC(FunctionsMixin):
         flags.attrs = self._attrs.copy()
         return flags
 
-    def _expandFields(
-        self,
-        regex: bool,
-        field: str | Sequence[str],
-        target: str | Sequence[str] = None,
-    ) -> Tuple[List[str], List[str]]:
-        """
-        check and expand `field` and `target`
-        """
-
-        # expand regular expressions
-        if regex:
-            fmask = self._data.columns.str.match(field)
-            fields = self._data.columns[fmask].tolist()
-        else:
-            fields = toSequence(field)
-
-        targets = fields if target is None else toSequence(target)
-
-        return fields, targets
-
-    def _wrap(self, func: FunctionWrapper):
-        """
-        prepare user function input:
-          - expand fields and targets
-          - translate user given ``flag`` values or set the default ``BAD``
-          - translate user given ``dfilter`` values or set the scheme default
-          - dependeing on the workflow: initialize ``target`` variables
-
-        Here we add the following parameters to all registered functions, regardless
-        of their repsective definition:
-          - ``regex``
-          - ``target``
-
-        """
-
-        def inner(
-            field: str | Sequence[str],
-            *args,
-            target: str | Sequence[str] = None,
-            regex: bool = False,
-            flag: ExternalFlag | OptionalNone = OptionalNone(),
-            **kwargs,
-        ) -> SaQC:
-
-            if "dfilter" not in kwargs:
-                # let's see, if the function has an default value
-                default = func.func_signature.parameters.get("dfilter")
-                if default:
-                    default = default.default
-                kwargs["dfilter"] = default or self._scheme.DFILTER_DEFAULT
-
-            if not isinstance(flag, OptionalNone):
-                # translation schemes might want to use a flag
-                # `None` so we introduce a special class here
-                kwargs["flag"] = self._scheme(flag)
-
-            fields, targets = self._expandFields(
-                regex=regex, field=field, target=target
-            )
-            out = self.copy(deep=True)
-
-            if not func.handles_target:
-                if len(fields) != len(targets):
-                    raise ValueError(
-                        "expected the same number of 'field' and 'target' values"
-                    )
-
-                # initialize all target variables
-                for src, trg in zip(fields, targets):
-                    if src != trg:
-                        out = out._callFunction(
-                            FUNC_MAP["copyField"],
-                            field=src,
-                            target=trg,
-                            overwrite=True,
-                        )
-
-            if func.multivariate:
-                # pass all fields and targets
-                out = out._callFunction(
-                    func,
-                    field=fields,
-                    target=targets,
-                    *args,
-                    **kwargs,
-                )
-            else:
-                # call the function on target
-                for src, trg in zip(fields, targets):
-                    fkwargs = {**kwargs, "field": src, "target": trg}
-                    if not func.handles_target:
-                        fkwargs["field"] = fkwargs.pop("target")
-                    out = out._callFunction(func, *args, **fkwargs)
-
-            return out
-
-        return inner
-
-    def _callFunction(
-        self,
-        function: Callable,
-        field: str | Sequence[str],
-        *args: Any,
-        **kwargs: Any,
-    ) -> SaQC:
-
-        res = function(data=self._data, flags=self._flags, field=field, *args, **kwargs)
-
-        # keep consistence: if we modify data and flags inplace in a function,
-        # but data is the original and flags is a copy (as currently implemented),
-        # data and flags of the original saqc obj may change inconsistently.
-        self._data, self._flags = res
-        self._validate(reason=f"call to {repr(function.__name__)}")
-
-        return self._construct(_data=self._data, _flags=self._flags)
-
     def __getattr__(self, key):
         """
         All failing attribute accesses are redirected to __getattr__.
         We use this mechanism to make the registered functions appear
         as `SaQC`-methods without actually implementing them.
         """
+        from functools import partial
+
         if key not in FUNC_MAP:
             raise AttributeError(f"SaQC has no attribute {repr(key)}")
-        return self._wrap(FUNC_MAP[key])
+        return partial(FUNC_MAP[key], self)
 
     def copy(self, deep=True):
         copyfunc = deepcopy if deep else shallowcopy
@@ -286,7 +167,7 @@ class SaQC(FunctionsMixin):
 
         raise TypeError(
             "'data' must be of type pandas.Series, "
-            "pandas.DataFrame or dios.DictOfSeries or"
+            "pandas.DataFrame or dios.DictOfSeries or "
             "a list of those."
         )
 

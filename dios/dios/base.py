@@ -11,7 +11,7 @@ import operator as op
 from abc import abstractmethod
 from copy import copy as shallowcopy
 from copy import deepcopy
-from typing import Any, Hashable, Mapping, Sequence, overload
+from typing import Any, Hashable, Mapping, Sequence, TypeVar, overload
 
 import pandas as pd
 
@@ -25,10 +25,13 @@ __email__ = "bert.palm@ufz.de"
 __copyright__ = "Copyright 2018, Helmholtz-Zentrum für Umweltforschung GmbH - UFZ"
 
 
+D = TypeVar("D", bound="_DiosBase")
+
+
 class _DiosBase:
     @property
     @abstractmethod
-    def _constructor(self) -> type[_DiosBase]:
+    def _constructor(self: D) -> type[D]:
         raise NotImplementedError
 
     def _finalize(self, other: _DiosBase):
@@ -187,19 +190,13 @@ class _DiosBase:
         self._data.at[col] = val.copy(deep=True)
 
     @overload
-    def __getitem__(self, key: str | int) -> pd.Series:
+    def __getitem__(self, key: str | int | slice) -> pd.Series:
         ...
 
     @overload
-    def __getitem__(self, key: slice) -> pd.Series:
-        ...
-
-    @overload
-    def __getitem__(self, key: "_DiosBase" | pd.DataFrame) -> "_DiosBase":
-        ...
-
-    @overload
-    def __getitem__(self, key: Sequence[str | int]) -> "_DiosBase":
+    def __getitem__(
+        self: D, key: "_DiosBase" | pd.DataFrame | Sequence[str | int]
+    ) -> D:
         ...
 
     def __getitem__(self, key):
