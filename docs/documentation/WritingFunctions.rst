@@ -10,7 +10,7 @@ Writing non-standard functions
 
 When implementing non-standard functions, i.e. all function not decorated with ``flagging``, some special care is
 needed to comply to the standard ``SaQC`` behaviour. The following passages guide you through the jungle of
-``register`` arguments and there semantics.
+``register`` arguments and their semantics.
 
 Masking
 """""""
