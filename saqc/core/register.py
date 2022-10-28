@@ -367,7 +367,7 @@ def register(
                 # initialize all target variables
                 for src, trg in zip(fields, targets):
                     if src != trg:
-                        out = out.copyField(field=src, target=trg)
+                        out = out.copyField(field=src, target=trg, overwrite=True)
 
             for src, trg in zip(fields, targets):
                 kwargs = {**kwargs, "field": src, "target": trg}
