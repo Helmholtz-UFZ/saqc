@@ -79,9 +79,9 @@ or
    pip install git+https://git.ufz.de/rdm-software/saqc@master
 
 
-If you feel more adventurous feel free to use the latest development version from our
-`GitLab-repository <https://git.ufz.de/rdm-software/saqc>`_. While we try to keep the
-develop branch in a workable state, we sill won't make any guarantees here.
+If you feel more adventurous, feel free to use the latest development version from our
+`GitLab-repository <https://git.ufz.de/rdm-software/saqc>`_. We try to keep the
+develop branch in a workable state, but sill don't make any guarantees here.
 
 .. code-block:: sh
 
