@@ -375,3 +375,55 @@ def test_harmSingleVarInterpolationShift(data, params, expected):
     qc = qc.dropField(h_field)
     assert qc.data[field].equals(pre_data[field])
     assert qc.flags[field].equals(pre_flags[field])
+
+
+def test_concatFlags():
+    index = pd.to_datetime(
+        [
+            "2020-01-01 00:00",
+            "2020-01-01 00:10",
+            "2020-01-01 00:30",
+            "2020-01-01 00:40",
+            "2020-01-01 01:00",
+        ]
+    )
+
+    df = pd.DataFrame(
+        data={
+            "a": [
+                1,
+                2,
+                5,
+                4,
+                3,
+            ]
+        },
+        index=index,
+    )
+
+    qc = SaQC(df)
+
+    qc = qc.flagRange(field="a", max=4)
+
+    # branch out to another variable
+    qc = qc.flagRange(field="a", target="b", max=3)
+
+    # bring the flags back again
+    qc_overwrite = qc.concatFlags("b", target="a", overwrite=True, squeeze=True)
+    hist_overwrite = qc_overwrite._flags.history["a"].hist.astype(float)
+    assert hist_overwrite[0].equals(
+        pd.Series([np.nan, np.nan, 255.0, np.nan, np.nan], index=index)
+    )
+    assert hist_overwrite[1].equals(
+        pd.Series([np.nan, np.nan, 255.0, 255.0, np.nan], index=index)
+    )
+
+    # bring the flags back again
+    qc_respect = qc.concatFlags("b", target="a", overwrite=False, squeeze=True)
+    hist_respect = qc_respect._flags.history["a"].hist.astype(float)
+    assert hist_respect[0].equals(
+        pd.Series([np.nan, np.nan, 255.0, np.nan, np.nan], index=index)
+    )
+    assert hist_respect[1].equals(
+        pd.Series([np.nan, np.nan, np.nan, 255.0, np.nan], index=index)
+    )
