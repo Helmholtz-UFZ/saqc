@@ -9,6 +9,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.1...develop)
 ### Added
+- add option to not overwrite existing flags to `concatFlags`
 ### Changed
 ### Removed
 ### Fixed
