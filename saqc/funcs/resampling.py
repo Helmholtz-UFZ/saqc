@@ -334,9 +334,10 @@ class ResamplingMixin:
             "inverse_interpolation",
             "match",
         ] = "match",
-        freq: Optional[str] = None,
-        drop: Optional[bool] = False,
-        squeeze: Optional[bool] = False,
+        freq: str | None = None,
+        drop: bool = False,
+        squeeze: bool = False,
+        overwrite: bool = True,
         **kwargs,
     ) -> "SaQC":
         """
@@ -394,6 +395,10 @@ class ResamplingMixin:
             If set to `True`, the appended flags frame will be squeezed - resulting in function specific flags informations
             getting lost.
 
+        overwrite: bool, default True
+            If set to True, the newly appended flags will overwrite exsiting flags. This might result in a loss of previous
+            flagging information.
+
         Returns
         -------
         saqc.SaQC
@@ -449,13 +454,19 @@ class ResamplingMixin:
             raise ValueError(f"unknown method {method}")
 
         history = self._flags.history[field].apply(dummy.index, func, func_kws)
+
+        if overwrite is False:
+            mask = _isflagged(self._flags[target], thresh=kwargs["dfilter"])
+            history.hist[mask] = np.nan
+
         if squeeze:
             history = history.squeeze(raw=True)
 
             meta = {
-                "func": f"concatFlags({field})",
-                "args": (field, target),
+                "func": f"concatFlags",
+                "args": (field,),
                 "kwargs": {
+                    "target": target,
                     "method": method,
                     "freq": freq,
                     "drop": drop,
