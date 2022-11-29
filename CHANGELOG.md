@@ -30,7 +30,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - translation of `dfilter`
 - new generic function `clip`
 - parameter `min_periods` to `SaQC.flagConstants`
-- function `fitButterworth`
+- function `fitLowpassFilter`
 - tracking interpolation routines in `History`
 ### Changed
 - test function interface changed to `func(saqc: SaQC, field: str | Sequence[str], *args, **kwargs)`
