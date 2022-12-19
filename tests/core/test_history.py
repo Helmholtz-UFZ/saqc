@@ -7,6 +7,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from pandas.api.types import is_categorical_dtype, is_float_dtype
 
 from saqc.core.history import History, createHistoryFromData
 from tests.common import dummyHistory
@@ -75,7 +76,10 @@ def check_invariants(hist):
     assert isinstance(hist.hist, pd.DataFrame)
     assert isinstance(hist.meta, list)
     assert all(
-        [isinstance(dtype, (float, pd.CategoricalDtype)) for dtype in hist.hist.dtypes]
+        [
+            is_float_dtype(dtype) or is_categorical_dtype(dtype)
+            for dtype in hist.hist.dtypes
+        ]
     )
     assert all([isinstance(e, dict) for e in hist.meta])
     assert hist.columns is hist.hist.columns

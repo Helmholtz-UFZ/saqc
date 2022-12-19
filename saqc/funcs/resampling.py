@@ -457,7 +457,7 @@ class ResamplingMixin:
 
         if overwrite is False:
             mask = _isflagged(self._flags[target], thresh=kwargs["dfilter"])
-            history.hist[mask] = np.nan
+            history._hist[mask] = np.nan
 
         if squeeze:
             history = history.squeeze(raw=True)
