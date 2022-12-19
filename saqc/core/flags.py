@@ -147,7 +147,7 @@ class Flags:
        0     True
        1    False
        2     True
-       Name: 2, dtype: bool
+       dtype: bool
 
     .. doctest:: exampleFlags
 

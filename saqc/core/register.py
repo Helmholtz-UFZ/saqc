@@ -147,18 +147,10 @@ def _squeezeFlags(old_flags, new_flags: Flags, columns: pd.Index, meta) -> Flags
         # function call. If no such columns exist, we end up with an empty
         # new_history.
         start = len(old_history.columns)
-        new_history = _sliceHistory(new_history, slice(start, None))
-
-        squeezed = new_history.squeeze(raw=True)
+        squeezed = new_history.squeeze(raw=True, start=start)
         out.history[col] = out.history[col].append(squeezed, meta=meta)
 
     return out
-
-
-def _sliceHistory(history: History, sl: slice) -> History:
-    history.hist = history.hist.iloc[:, sl]
-    history.meta = history.meta[sl]
-    return history
 
 
 def _maskData(
