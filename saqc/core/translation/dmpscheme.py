@@ -17,7 +17,7 @@ import pandas as pd
 from saqc.constants import BAD, DOUBTFUL, GOOD, UNFLAGGED
 from saqc.core.flags import Flags
 from saqc.core.history import History
-from saqc.core.translation.basescheme import BackwardMap, ForwardMap, TranslationScheme
+from saqc.core.translation.basescheme import BackwardMap, ForwardMap, MappingScheme
 
 _QUALITY_CAUSES = [
     "",
@@ -40,7 +40,7 @@ _QUALITY_LABELS = [
 ]
 
 
-class DmpScheme(TranslationScheme):
+class DmpScheme(MappingScheme):
 
     """
     Implements the translation from and to the flagging scheme implemented in
@@ -91,7 +91,7 @@ class DmpScheme(TranslationScheme):
             field_history.append(histcol, meta=meta)
         return field_history
 
-    def forward(self, df: pd.DataFrame) -> Flags:
+    def toInternal(self, df: pd.DataFrame) -> Flags:
         """
         Translate from 'external flags' to 'internal flags'
 
@@ -114,7 +114,7 @@ class DmpScheme(TranslationScheme):
 
         return Flags(data)
 
-    def backward(
+    def toExternal(
         self, flags: Flags, attrs: dict | None = None, **kwargs
     ) -> pd.DataFrame:
         """
@@ -131,7 +131,7 @@ class DmpScheme(TranslationScheme):
         -------
         translated flags
         """
-        tflags = super().backward(flags, raw=True, attrs=attrs)
+        tflags = super().toExternal(flags, attrs=attrs)
 
         out = pd.DataFrame(
             index=reduce(lambda x, y: x.union(y), tflags.indexes).sort_values(),

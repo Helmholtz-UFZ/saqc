@@ -11,6 +11,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Added
 - add option to not overwrite existing flags to `concatFlags`
 ### Changed
+- Remove all flag value restrictions from the default flagging scheme `FloatTranslator` 
+- Renamed `TranslationScheme.forward` to `TranslationScheme.toInternal` 
+- Renamed `TranslationScheme.backward` to `TranslationScheme.toExternal` 
 ### Removed
 ### Fixed
 

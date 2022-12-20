@@ -110,7 +110,7 @@ class SaQC(FunctionsMixin):
 
     @property
     def flags(self) -> MutableMapping:
-        flags = self._scheme.backward(self._flags, attrs=self._attrs, raw=True)
+        flags = self._scheme.toExternal(self._flags, attrs=self._attrs)
         flags.attrs = self._attrs.copy()
         return flags
 

@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import DefaultDict, Dict, Iterable, Mapping, Optional, Tuple, Type, Union
+from typing import DefaultDict, Dict, Iterable, Mapping, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -191,9 +191,7 @@ class Flags:
        2   -inf  25.0  25.0  0.0  99.0
     """
 
-    def __init__(
-        self, raw_data: Optional[Union[DictLike, Flags]] = None, copy: bool = False
-    ):
+    def __init__(self, raw_data: DictLike | Flags | None = None, copy: bool = False):
 
         self._data: dict[str, History]
 
