@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from abc import abstractmethod, abstractproperty
 from typing import Any, Dict
 
 import numpy as np
@@ -22,7 +23,26 @@ ForwardMap = Dict[ExternalFlag, float]
 BackwardMap = Dict[float, ExternalFlag]
 
 
-class TranslationScheme:
+class TranslationScheme:  # pragma: no cover
+    @property
+    @abstractmethod
+    def DFILTER_DEFAULT(self):
+        pass
+
+    @abstractmethod
+    def __call__(self, flag: ExternalFlag) -> float:
+        pass
+
+    @abstractmethod
+    def toInternal(self, flags: pd.DataFrame | DictOfSeries) -> Flags:
+        pass
+
+    @abstractmethod
+    def toExternal(self, flags: Flags, attrs: dict | None = None) -> DictOfSeries:
+        pass
+
+
+class MappingScheme(TranslationScheme):
     """
     This class provides the basic translation mechanism and should serve as
     a base class for every other translation scheme.
@@ -81,7 +101,7 @@ class TranslationScheme:
 
     @staticmethod
     def _translate(
-        flags: Flags | pd.DataFrame | pd.Series,
+        flags: Flags | pd.DataFrame | pd.Series | DictOfSeries,
         trans_map: ForwardMap | BackwardMap,
     ) -> DictOfSeries:
         """
@@ -95,7 +115,7 @@ class TranslationScheme:
 
         Returns
         -------
-        pd.DataFrame, Flags
+        DictOfSeries
         """
         if isinstance(flags, pd.Series):
             flags = flags.to_frame()
@@ -128,9 +148,9 @@ class TranslationScheme:
             if flag not in self._backward:
                 raise ValueError(f"invalid flag: {flag}")
             return float(flag)
-        return self._forward[flag]
+        return float(self._forward[flag])
 
-    def forward(self, flags: pd.DataFrame) -> Flags:
+    def toInternal(self, flags: pd.DataFrame | DictOfSeries | pd.Series) -> Flags:
         """
         Translate from 'external flags' to 'internal flags'
 
@@ -145,13 +165,11 @@ class TranslationScheme:
         """
         return Flags(self._translate(flags, self._forward))
 
-    def backward(
+    def toExternal(
         self,
         flags: Flags,
-        raw: bool = False,
         attrs: dict | None = None,
-        **kwargs,
-    ) -> pd.DataFrame | DictOfSeries:
+    ) -> DictOfSeries:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -159,9 +177,6 @@ class TranslationScheme:
         ----------
         flags : pd.DataFrame
             The external flags to translate
-
-        raw: bool, default False
-            if True return data as DictOfSeries, otherwise as pandas DataFrame.
 
         attrs : dict or None, default None
             global meta information of saqc-object
@@ -172,8 +187,6 @@ class TranslationScheme:
         """
         out = self._translate(flags, self._backward)
         out.attrs = attrs or {}
-        if not raw:
-            out = out.to_df()
         return out
 
 
@@ -184,16 +197,30 @@ class FloatScheme(TranslationScheme):
     internal float flags
     """
 
-    _MAP = {
-        -np.inf: -np.inf,
-        **{k: k for k in np.arange(0, 256, dtype=float)},
-    }
+    DFILTER_DEFAULT: float = FILTER_ALL
 
-    def __init__(self):
-        super().__init__(self._MAP, self._MAP)
+    def __call__(self, flag: float | int) -> float:
+
+        try:
+            return float(flag)
+        except (TypeError, ValueError, OverflowError):
+            raise ValueError(f"invalid flag, expected a numerical value, got: {flag}")
+
+    def toInternal(self, flags: pd.DataFrame | DictOfSeries) -> Flags:
+        try:
+            return Flags(flags.astype(float))
+        except (TypeError, ValueError, OverflowError):
+            raise ValueError(
+                f"invalid flag(s), expected a collection of numerical values, got: {flags}"
+            )
+
+    def toExternal(self, flags: Flags, attrs: dict | None = None) -> DictOfSeries:
+        out = flags.toDios()
+        out.attrs = attrs or {}
+        return out
 
 
-class SimpleScheme(TranslationScheme):
+class SimpleScheme(MappingScheme):
 
     """
     Acts as the default Translator, provides a changeable subset of the

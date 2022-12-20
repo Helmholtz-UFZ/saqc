@@ -7,6 +7,7 @@
 # -*- coding: utf-8 -*-
 from saqc.core.translation.basescheme import (
     FloatScheme,
+    MappingScheme,
     SimpleScheme,
     TranslationScheme,
 )
