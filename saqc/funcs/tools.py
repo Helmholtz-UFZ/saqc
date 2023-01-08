@@ -234,6 +234,7 @@ class ToolsMixin:
         xscope: Optional[slice] = None,
         phaseplot: Optional[str] = None,
         store_kwargs: Optional[dict] = None,
+        ax: mpl.axes.Axes | None = None,
         ax_kwargs: Optional[dict] = None,
         dfilter: float = FILTER_NONE,
         **kwargs,
@@ -297,7 +298,6 @@ class ToolsMixin:
         """
         data, flags = self._data.copy(), self._flags.copy()
 
-        interactive = path is None
         level = kwargs.get("flag", UNFLAGGED)
 
         if dfilter < np.inf:
@@ -309,9 +309,8 @@ class ToolsMixin:
         if ax_kwargs is None:
             ax_kwargs = {}
 
-        if interactive:
+        if not path:
             mpl.use(_MPL_DEFAULT_BACKEND)
-
         else:
             mpl.use("Agg")
 
@@ -324,13 +323,14 @@ class ToolsMixin:
             history=history,
             xscope=xscope,
             phaseplot=phaseplot,
+            ax=ax,
             ax_kwargs=ax_kwargs,
         )
 
-        if interactive:
+        if ax is None:
             plt.show()
 
-        else:
+        if path:
             if store_kwargs.pop("pickle", False):
                 with open(path, "wb") as f:
                     pickle.dump(fig, f)
