@@ -301,7 +301,7 @@ def interpolateNANs(
 
     :return:
     """
-    inter_limit = int(inter_limit)
+    inter_limit = int(inter_limit or len(data) + 1)
     data = pd.Series(data, copy=True)
     gap_mask = data.isna().rolling(inter_limit, min_periods=0).sum() != inter_limit
 

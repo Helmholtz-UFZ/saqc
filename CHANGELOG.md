@@ -15,6 +15,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Remove all flag value restrictions from the default flagging scheme `FloatTranslator` 
 - Renamed `TranslationScheme.forward` to `TranslationScheme.toInternal` 
 - Renamed `TranslationScheme.backward` to `TranslationScheme.toExternal` 
+- Changed Default value of the parameter `limit` for `SaQC.interpolateIndex` and `SaQC.interpolateInvalid` to ``None`
 ### Removed
 ### Fixed
 

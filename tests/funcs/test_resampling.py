@@ -124,7 +124,7 @@ def test_gridInterpolation(data, method, fill_history):
         res = qc.interpolate(
             field,
             freq,
-            order=10,
+            order=9,
             method=method,
             downcast_interpolation=True,
         )
