@@ -143,7 +143,7 @@ class InterpolationMixin:
         field: str,
         method: _SUPPORTED_METHODS,
         order: int = 2,
-        limit: int = 2,
+        limit: int | None = None,
         downgrade: bool = False,
         flag: float = UNFLAGGED,
         **kwargs,
@@ -167,9 +167,8 @@ class InterpolationMixin:
             If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
             order.
 
-        limit : int, default 2
-            Maximum number of consecutive 'nan' values allowed for a gap to be interpolated. This really restricts the
-            interpolation to chunks, containing not more than `limit` successive nan entries.
+        limit : int, optional
+            Maximum number of consecutive `nan` values to fill. Must be greater than 0.
 
         flag : float or None, default UNFLAGGED
             Flag that is set for interpolated values. If ``None``, no flags are set at all.
@@ -210,7 +209,7 @@ class InterpolationMixin:
         freq: str,
         method: _SUPPORTED_METHODS,
         order: int = 2,
-        limit: int = 2,
+        limit: int | None = None,
         downgrade: bool = False,
         **kwargs,
     ) -> "SaQC":
@@ -237,9 +236,8 @@ class InterpolationMixin:
             If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
             order.
 
-        limit : int, default 2
-            Maximum number of consecutive 'nan' values allowed for a gap to be interpolated. This really restricts the
-            interpolation to chunks, containing not more than `limit` successive nan entries.
+        limit : int, optional
+            Maximum number of missing index values (with respect to `freq`) to fill. Must be greater than 0.
 
         downgrade : bool, default False
             If `True` and the interpolation can not be performed at current order, retry with a lower order.
