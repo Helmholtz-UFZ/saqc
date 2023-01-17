@@ -144,12 +144,12 @@ class InterpolationMixin:
         method: _SUPPORTED_METHODS,
         order: int = 2,
         limit: int | None = None,
-        downgrade: bool = False,
+        extrapolate: Literal["forward", "backward", "both"] = None,
         flag: float = UNFLAGGED,
         **kwargs,
     ) -> "SaQC":
         """
-        Function to interpolate nan values in the data.
+        Function to interpolate nan values in data.
 
         There are available all the interpolation methods from the pandas.interpolate method and they are applicable by
         the very same key words, that you would pass to the ``pd.Series.interpolate``'s method parameter.
@@ -167,8 +167,11 @@ class InterpolationMixin:
             If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
             order.
 
-        limit : int, optional
-            Maximum number of consecutive `nan` values to fill. Must be greater than 0.
+        limit : int or str, default None
+            Upper limit of missing index values (with respect to `freq`) to fill. The limit can either be expressed
+            as the number of consecutive missing values (integer) or temporal extension of the gaps to be filled
+            (Offset String).
+            If `None` is passed, no Limit is set.
 
         flag : float or None, default UNFLAGGED
             Flag that is set for interpolated values. If ``None``, no flags are set at all.
@@ -186,8 +189,8 @@ class InterpolationMixin:
             self._data[field],
             method,
             order=order,
-            inter_limit=limit,
-            downgrade_interpolation=downgrade,
+            gap_limit=limit,
+            extrapolate=extrapolate,
         )
 
         interpolated = self._data[field].isna() & inter_data.notna()
@@ -209,15 +212,12 @@ class InterpolationMixin:
         freq: str,
         method: _SUPPORTED_METHODS,
         order: int = 2,
-        limit: int | None = None,
-        downgrade: bool = False,
+        limit: int | None = 2,
+        extrapolate: Literal["forward", "backward", "both"] = None,
         **kwargs,
     ) -> "SaQC":
         """
-        Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
-
-        Note, that the interpolation will only be calculated, for grid timestamps that have a preceding AND a succeeding
-        valid data value within "freq" range.
+        Function to interpolate the data at regular (äquidistant) timestamps (or Grid points).
 
         Parameters
         ----------
@@ -233,17 +233,22 @@ class InterpolationMixin:
             The interpolation method you want to apply.
 
         order : int, default 2
-            If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
+            If your selected interpolation method can be performed at different 'orders' - here you pass the desired
             order.
 
         limit : int, optional
-            Maximum number of missing index values (with respect to `freq`) to fill. Must be greater than 0.
+            Upper limit of missing index values (with respect to `freq`) to fill. The limit can either be expressed
+            as the number of consecutive missing values (integer) or temporal extension of the gaps to be filled
+            (Offset String).
+            If `None` is passed, no Limit is set.
 
-        downgrade : bool, default False
-            If `True` and the interpolation can not be performed at current order, retry with a lower order.
-            This can happen, because the chosen ``method`` does not support the passed ``order``, or
-            simply because not enough values are present in a interval.
+        extraplate : {'forward', 'backward', 'both'}, default None
+            Use parameter to perform extrapolation instead of interpolation onto the trailing and/or leading chunks of
+            NaN values in data series.
 
+            * 'None' (default) - perform interpolation
+            * 'forward'/'backward' - perform forward/backward extrapolation
+            * 'both' - perform forward and backward extrapolation
 
         Returns
         -------
@@ -281,8 +286,8 @@ class InterpolationMixin:
             data=datcol,
             method=method,
             order=order,
-            inter_limit=limit,
-            downgrade_interpolation=downgrade,
+            gap_limit=limit,
+            extrapolate=extrapolate,
         )
 
         # override falsely interpolated values:
@@ -305,7 +310,7 @@ class InterpolationMixin:
                 "method": method,
                 "order": order,
                 "limit": limit,
-                "downgrade": downgrade,
+                "extrapolate": extrapolate,
                 **kwargs,
             },
         }
