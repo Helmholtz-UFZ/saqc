@@ -109,7 +109,6 @@ python310:
     reports:
       junit: report.xml
 
-
 doctest:
   stage: test
   script:
