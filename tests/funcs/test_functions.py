@@ -286,9 +286,10 @@ def test_transferFlags():
     data = pd.DataFrame({"a": [1, 2], "b": [1, 2], "c": [1, 2]})
     qc = saqc.SaQC(data)
     qc = qc.flagRange("a", max=1.5)
-    qc = qc.transferFlags(["a", "a"], ["b", "c"])
-    assert np.all(qc.flags["b"].values == np.array([UNFLAGGED, BAD]))
-    assert np.all(qc.flags["c"].values == np.array([UNFLAGGED, BAD]))
+    with pytest.deprecated_call():
+        qc = qc.transferFlags(["a", "a"], ["b", "c"])
+        assert np.all(qc.flags["b"].values == np.array([UNFLAGGED, BAD]))
+        assert np.all(qc.flags["c"].values == np.array([UNFLAGGED, BAD]))
 
 
 def test_flagJumps():

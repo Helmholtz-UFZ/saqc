@@ -327,7 +327,7 @@ class ToolsMixin:
             ax_kwargs=ax_kwargs,
         )
 
-        if ax is None:
+        if ax is None and not path:
             plt.show()
 
         if path:

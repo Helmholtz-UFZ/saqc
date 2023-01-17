@@ -396,7 +396,15 @@ class FlagtoolsMixin:
            0         -inf   -inf   -inf
            1        255.0  255.0  255.0
         """
+        import warnings
 
+        warnings.warn(
+            f"""The method 'transferFlags' is deprecated and
+            will be removed in version 2.5 of SaQC. Please use
+            'SaQC.concatFlags(field={field}, target={target}, method="match", squeeze=False)'
+            instead""",
+            DeprecationWarning,
+        )
         return self.concatFlags(field, target=target, method="match", squeeze=False)
 
     @flagging()
