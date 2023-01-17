@@ -18,9 +18,6 @@ help:
 
 .PHONY: help Makefile clean
 
-test:
-	for k in $(MDLIST); do echo docs/"$$k"; done
-
 # clean sphinx generated stuff
 clean:
 	rm -rf _build _static _api

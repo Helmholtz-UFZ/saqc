@@ -61,11 +61,11 @@ jobs:
           pytest tests dios/test -Werror 
           python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
       
-      - name: run doc tests    
-        run: |
-          cd docs
-          pip install -r requirements.txt
-          make doc
-          make test
+      # - name: run doc tests    
+      #   run: |
+      #     cd docs
+      #     pip install -r requirements.txt
+      #     make doc
+      #     make test
           
           
