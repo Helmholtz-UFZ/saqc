@@ -101,7 +101,9 @@ def test_flagSesonalRange(data, field):
             flag=BAD,
         )
         qc = qc.flagRange(newfield, min=test["min"], max=test["max"], flag=BAD)
-        qc = qc.concatFlags(newfield, method="match", target=field, flag=BAD)
+        qc = qc.concatFlags(
+            newfield, method="match", target=field, flag=BAD, overwrite=True
+        )
         qc = qc.dropField(newfield)
         flagged = qc._flags[field] > UNFLAGGED
         assert flagged.sum() == expected

@@ -337,7 +337,7 @@ class ResamplingMixin:
         freq: str | None = None,
         drop: bool = False,
         squeeze: bool = False,
-        overwrite: bool = True,
+        overwrite: bool = False,
         **kwargs,
     ) -> "SaQC":
         """
@@ -395,7 +395,7 @@ class ResamplingMixin:
             If set to `True`, the appended flags frame will be squeezed - resulting in function specific flags informations
             getting lost.
 
-        overwrite: bool, default True
+        overwrite: bool, default False
             If set to True, the newly appended flags will overwrite exsiting flags. This might result in a loss of previous
             flagging information.
 
@@ -471,6 +471,7 @@ class ResamplingMixin:
                     "freq": freq,
                     "drop": drop,
                     "squeeze": squeeze,
+                    "overwrite": overwrite,
                     **kwargs,
                 },
             }
