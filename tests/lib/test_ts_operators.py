@@ -1,13 +1,15 @@
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 import pytest
-from numpy.testing import assert_array_equal, assert_equal
 from pandas.testing import assert_series_equal
 
 import saqc.lib.ts_operators as tsops
+from saqc.lib.ts_operators import interpolateNANs
 
 
 def test_butterFilter():
@@ -193,3 +195,66 @@ def test_rateOfChange(data, expected):
 
     result = rateOfChange(data)
     assert_series_equal(result, expected, check_names=False)
+
+
+@pytest.mark.parametrize(
+    "limit,extrapolate,data,expected",
+    [
+        (
+            1,
+            None,
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+        ),
+        (
+            2,
+            "backward",
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+            [0, 0, np.nan, np.nan, np.nan, 4, np.nan],
+        ),
+        (
+            2,
+            None,
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+        ),
+        (
+            3,
+            None,
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+        ),
+        (
+            3,
+            "forward",
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, 4],
+        ),
+        (
+            4,
+            None,
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+            [np.nan, 0, 1, 2, 3, 4, np.nan],
+        ),
+        (
+            4,
+            "both",
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+            [np.nan, 0, 1, 2, 3, 4, np.nan],
+        ),
+        (
+            None,
+            None,
+            [np.nan, 0, np.nan, np.nan, np.nan, 4, np.nan],
+            [np.nan, 0, 1, 2, 3, 4, np.nan],
+        ),
+    ],
+)
+def test_interpolatNANs(limit, extrapolate, data, expected):
+    got = interpolateNANs(
+        pd.Series(data), gap_limit=limit, method="linear", extrapolate=extrapolate
+    )
+    try:
+        assert got.equals(pd.Series(expected, dtype=float))
+    except AssertionError:
+        print("stop")
