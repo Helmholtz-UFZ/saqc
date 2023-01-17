@@ -34,7 +34,7 @@ setup(
         "dtw",
         "matplotlib>=3.4",
         "numba",
-        "numpy",
+        "numpy<1.24",
         "outlier-utils",
         "pyarrow",
         "pandas>=1.2,<1.5",
