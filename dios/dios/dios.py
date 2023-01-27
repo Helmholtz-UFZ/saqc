@@ -1179,8 +1179,9 @@ def pprint_dios(
     # stringified values of the series upto max_rows+1, where
     # the additional row is the column-name
     outer = []
-    for colname in data.index:
-        s = data.at[colname]
+    for i, colname in enumerate(data.index):
+        # use iat instead of at, see #GL391
+        s = data.iat[i]
 
         isempty = s.empty
         if isempty:
