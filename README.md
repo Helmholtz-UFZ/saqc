@@ -137,4 +137,4 @@ coming soon...
 ## How to cite SaQC
 If SaQC is advancing your research, please cite as:
 
-> Schäfer, David; Palm, Bert; Lünenschloß, Peter. (2021). System for automated Quality Control - SaQC. Zenodo. https://doi.org/10.5281/zenodo.5888547
+> Schäfer, David, Palm, Bert, Lünenschloß, Peter, Schmidt, Lennart, & Bumberger, Jan. (2023). System for automated Quality Control - SaQC (2.3.0). Zenodo. https://doi.org/10.5281/zenodo.5888547
