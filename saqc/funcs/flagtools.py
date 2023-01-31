@@ -7,8 +7,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import operator
 import warnings
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Callable, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -17,6 +18,7 @@ from typing_extensions import Literal
 from dios import DictOfSeries
 from saqc.constants import BAD, FILTER_ALL, UNFLAGGED
 from saqc.core.register import _isflagged, flagging, register
+from saqc.lib.tools import toSequence
 
 if TYPE_CHECKING:
     from saqc.core.core import SaQC
@@ -531,3 +533,139 @@ class FlagtoolsMixin:
         self._flags[repeated, field] = flag
 
         return self
+
+    @register(
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field"],
+        multivariate=False,
+        handles_target=True,
+    )
+    def andGroup(
+        self: "SaQC",
+        field: str,
+        group: Sequence["SaQC"] | dict["SaQC", str | Sequence[str]],
+        target: str | None = None,
+        flag: float = BAD,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Flag all values, if a given variable is also flagged in all other given SaQC objects.
+
+        Parameters
+        ----------
+        field : str
+            Name of the field to check for flags. 'field' needs to present in all
+            objects in 'qcs'.
+
+        qcs : list of SaQC
+            A list of SaQC objects to check for flags.
+
+        target : str, default none
+            Name of the field the generated flags will be written to. If None, the result
+            will be written to 'field',
+
+        flag: float, default ``BAD``
+            The quality flag to set.
+
+        Returns
+        -------
+        saqc.SaQC
+        """
+
+        return _groupOperation(
+            base=self,
+            field=field,
+            target=target,
+            func=operator.and_,
+            group=group,
+            flag=flag,
+            **kwargs,
+        )
+
+    @register(
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field"],
+        multivariate=False,
+        handles_target=True,
+    )
+    def orGroup(
+        self: "SaQC",
+        field: str,
+        group: Sequence["SaQC"] | dict["SaQC", str | Sequence[str]],
+        target: str | None = None,
+        flag: float = BAD,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Flag all values, if a given variable is also flagged in at least one other of the given SaQC objects.
+
+        Parameters
+        ----------
+        field : str
+            Name of the field to check for flags. 'field' needs to present in all
+            objects in 'qcs'.
+
+        qcs : list of SaQC
+            A list of SaQC objects to check for flags.
+
+        target : str, default none
+            Name of the field the generated flags will be written to. If None, the result
+            will be written to 'field',
+
+        flag: float, default ``BAD``
+            The quality flag to set.
+
+        Returns
+        -------
+        saqc.SaQC
+        """
+        return _groupOperation(
+            base=self,
+            field=field,
+            target=target,
+            func=operator.or_,
+            group=group,
+            flag=flag,
+            **kwargs,
+        )
+
+
+def _groupOperation(
+    base: "SaQC",
+    field: str,
+    func: Callable[[pd.Series, pd.Series], pd.Series],
+    group: Sequence["SaQC"] | dict["SaQC", str | Sequence[str]],
+    target: str | None = None,
+    flag: float = BAD,
+    **kwargs,
+) -> "SaQC":
+    # Should this be multivariate? And what would multivariate mean in this context
+
+    dfilter = kwargs.get("dfilter", FILTER_ALL)
+    if target is None:
+        target = field
+
+    # harmonise `group` to type dict[SaQC, list[str]]
+    if not isinstance(group, dict):
+        group = {qc: field for qc in group}
+
+    for k, v in group.items():
+        group[k] = toSequence(v)
+
+    qcs_items: list[tuple["SaQC", list[str]]] = list(group.items())
+    # generate initial mask from the first `qc` object on the popped first field
+    mask = _isflagged(qcs_items[0][0]._flags[qcs_items[0][1].pop(0)], thresh=dfilter)
+
+    for qc, fields in qcs_items:
+        if field not in qc._flags:
+            raise KeyError(f"variable {field} is missing in given SaQC object")
+        for field in fields:
+            mask = func(mask, _isflagged(qc._flags[field], thresh=FILTER_ALL))
+
+    if target not in base._data:
+        base = base.copyField(field=field, target=target)
+
+    base._flags[mask, target] = flag
+    return base
