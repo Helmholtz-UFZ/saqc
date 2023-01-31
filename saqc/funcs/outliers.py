@@ -122,8 +122,10 @@ class OutliersMixin:
 
         References
         ----------
-        [1] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in
-            high dimensional data. arXiv preprint arXiv:1908.04000.
+        [1]  Priyanga Dilini Talagala, Rob J. Hyndman & Kate Smith-Miles (2021):
+             Anomaly Detection in High-Dimensional Data,
+             Journal of Computational and Graphical Statistics, 30:2, 360-374,
+             DOI: 10.1080/10618600.2020.1807997
         """
         scores = self._data[field].dropna()
 
@@ -280,10 +282,6 @@ class OutliersMixin:
         flag : float, default BAD
             flag to set.
 
-        Returns
-        -------
-        saqc.SaQC
-
         Notes
         -----
         The basic steps are:
@@ -321,6 +319,18 @@ class OutliersMixin:
         this gap, get flagged outliers. See description of the `threshing` parameter for
         more details. Although [2] gives a fully detailed overview over the `stray`
         algorithm.
+
+        Returns
+        -------
+        saqc.SaQC
+
+        References
+        ----------
+        [1]  Priyanga Dilini Talagala, Rob J. Hyndman & Kate Smith-Miles (2021):
+             Anomaly Detection in High-Dimensional Data,
+             Journal of Computational and Graphical Statistics, 30:2, 360-374,
+             DOI: 10.1080/10618600.2020.1807997
+
         """
 
         fields = toSequence(field)
@@ -571,11 +581,13 @@ class OutliersMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        The function represents an implementation of the modyfied Z-score outlier detection method.
+        Flag outiers using the modified Z-score outlier detection method.
 
         See references [1] for more details on the algorithm.
 
-        Note, that the test needs the input data to be sampled regularly (fixed sampling rate).
+        Note
+        ----
+        Data needs to be sampled at a regular equidistant time grid.
 
         Parameters
         ----------
@@ -858,20 +870,19 @@ class OutliersMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        The function flags values that are regarded outliers due to the grubbs test.
+        Flag outliers using the Grubbs algorithm.
 
-        See reference [1] for more information on the grubbs tests definition.
+        See [1] for more information on the grubbs tests definition.
 
-        The (two-sided) test gets applied onto data chunks of size "window". The tests
-        application  will be iterated on each data-chunk under test, till no more
-        outliers are detected in that chunk.
+        The (two-sided) test gets applied to data chunks of size ``window``. The
+        tests will be iterated chunkwise until no more outliers are detected.
 
-        Note, that the test performs poorely for small data chunks (resulting in heavy
-        overflagging). Therefor you should select "window" so that every window contains
-        at least > 8 values and also adjust the min_periods values accordingly.
-
-        Note, that the data to be tested by the grubbs test are expected to be distributed
-        "normalish".
+        Note
+        ----
+        * The test performs poorly for small data chunks, resulting in considerable
+          overflagging. Select ``window`` such that every data chunck contains at
+          least 8 values and also adjust the ``min_periods`` values accordingly.
+        * The dara is expected to be normally distributed
 
         Parameters
         ----------
@@ -879,25 +890,22 @@ class OutliersMixin:
             The fieldname of the column, holding the data-to-be-flagged.
 
         window : {int, str}
-            The size of the window you want to use for outlier testing. If an integer is
-            passed, the size refers to the number of periods of every testing window. If a
-            string is passed, it has to be an offset string, and will denote the total
-            temporal extension of every window.
+            Size of the testing window.
+            If an integer, the fixed number of observations used for each window.
+            If an offset string the time period of each window.
 
         alpha : float, default 0.05
-            The level of significance, the grubbs test is to be performed at. (between 0 and 1)
+            Level of significance, the grubbs test is to be performed at. Must be between 0 and 1
 
         min_periods : int, default 8
-            The minimum number of values that have to be present in an interval under test,
-            for a grubbs test result to be accepted. Only makes sence in case `window` is
-            an offset string.
+            Minimum number of values needed in a ``window`` in order to perform the grubs test.
+            Ignored if ``window`` is an integer.
 
         pedantic: boolean, default False
-            If True, every value gets checked twice for being an outlier. Ones in the
-            initial rolling window and one more time in a rolling window that is lagged
-            by half the windows delimeter (window/2). Recommended for avoiding false
-            positives at the window edges. Only available when rolling with integer
-            defined window size.
+            If ``True``, every value gets checked twice. First in the initial rolling ``window``
+            and second in a rolling window that is lagging by ``window``/2. Recommended to avoid
+            false positives at the window edges.
+            Ignored if ``window`` is an offset string.
 
         flag : float, default BAD
             flag to set.

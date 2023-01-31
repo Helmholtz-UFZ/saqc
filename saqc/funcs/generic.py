@@ -105,14 +105,7 @@ class GenericMixin:
         """
         Generate/process data with user defined functions.
 
-        Formally, what the function does, is the following:
-
-        1.  Let F be a Callable, depending on fields f_1, f_2,...f_K, (F = F(f_1, f_2,...f_K))
-            Than, for every timestamp t_i that occurs in at least one of the timeseries data[f_j] (outer join),
-            The value v_i is computed via:
-            v_i = data([f_1][t_i], data[f_2][t_i], ..., data[f_K][t_i]), if all data[f_j][t_i] do exist
-            v_i = ``np.nan``, if at least one of the data[f_j][t_i] is missing.
-        2.  The result is stored to ``data[target]``, if ``target`` is given or to ``data[field]`` otherwise
+        Call the given ``func`` on the variables given in ``field``.
 
         Parameters
         ----------
@@ -214,12 +207,9 @@ class GenericMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flag data with user defined functions.
+        Flag data based on a given function.
 
-        Formally, what the function does, is the following:
-        Let X be a Callable, depending on fields f_1, f_2,...f_K, (X = X(f_1, f_2,...f_K))
-        Than for every timestamp t_i in data[field]:
-        data[field][t_i] is flagged if X(data[f_1][t_i], data[f_2][t_i], ..., data[f_K][t_i]) is True.
+        Evaluate ``func`` on all variables given in ``field``.
 
         Parameters
         ----------
@@ -227,21 +217,18 @@ class GenericMixin:
             The variable(s) passed to func.
 
         func : callable
-            Function to call on the variables given in ``field``. The function needs to accept the same
-            number of arguments (of type pandas.Series) as variables given in ``field`` and return an
-            iterable of array-like objects of with dtype bool and with the same number of elements as
-            given in ``target`` (or ``field`` if ``target`` is not specified). The function output
-            determines the values to flag.
+            Function to call. The function needs to accept the same number of arguments
+            (of type pandas.Series) as variables given in ``field`` and return an
+            iterable of array-like objects of data type ``bool`` with the same length as
+            ``target``.
 
         target: str or list of str
             The variable(s) to write the result of ``func`` to. If not given, the variable(s)
-            specified in ``field`` will be overwritten. If a ``target`` is not given, it will be
-            created.
+            specified in ``field`` will be overwritten. Non-existing ``target``s  will be created
+            as all ``NaN`` timeseries.
 
         flag: float, default ``BAD``
-            The quality flag to set. The default ``BAD`` states the general idea, that
-            ``processGeneric`` generates 'new' data without direct relation to the potentially
-            already present flags.
+            Quality flag to set.
 
         dfilter: float, default ``FILTER_ALL``
             Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
@@ -250,10 +237,6 @@ class GenericMixin:
         Returns
         -------
         saqc.SaQC
-
-        Note
-        -----
-        All the numpy functions are available within the generic expressions.
 
         Examples
         --------

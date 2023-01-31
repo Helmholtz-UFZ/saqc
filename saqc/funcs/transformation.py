@@ -23,14 +23,12 @@ class TransformationMixin:
     def transform(
         self: "SaQC",
         field: str,
-        func: Callable[[pd.Series], pd.Series],
+        func: Callable[[pd.Series | np.ndarray], pd.Series],
         freq: Optional[Union[float, str]] = None,
         **kwargs,
     ) -> "SaQC":
         """
-        Function to transform data columns with a transformation that maps series onto series of the same length.
-
-        Note, that flags get preserved.
+        Transform data by applying a custom function on data chunks of variable size. Existing flags are preserved.
 
         Parameters
         ----------
@@ -38,15 +36,14 @@ class TransformationMixin:
             The fieldname of the column, holding the data-to-be-transformed.
 
         func : Callable[{pd.Series, np.array}, np.array]
-            Function to transform data[field] with.
+            Transformation function.
 
         freq : {None, float, str}, default None
-            Determines the segmentation of the data into partitions, the transformation is applied on individually
+            Size of the data partition. The transformation is applied on each partition individually
 
-            * ``np.inf``: Apply transformation on whole data set at once
-            * ``x`` > 0 : Apply transformation on successive data chunks of periods length ``x``
-            * Offset String : Apply transformation on successive partitions of temporal extension matching the passed offset
-              string
+            * ``None``: Apply transformation on the entire data set at once
+            * ``int`` : Apply transformation on successive data chunks of the given length. Must be grater than 0.
+            * Offset String : Apply transformation on successive data chunks of the given temporal extension.
 
         Returns
         -------
