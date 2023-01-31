@@ -571,7 +571,7 @@ class DriftMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flags anomalous regimes regarding to modelling regimes of field.
+        Flags anomalous regimes regarding to modelling regimes of ``field``.
 
         "Normality" is determined in terms of a maximum spreading distance,
         regimes must not exceed in respect to a certain metric and linkage method.

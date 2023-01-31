@@ -132,7 +132,7 @@ class ResamplingMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Function to shift data and flags to a regular (equidistant) timestamp grid, according to ``method``.
+        Shift data points and flags to a regular frequency grid.
 
         Parameters
         ----------
@@ -140,24 +140,19 @@ class ResamplingMixin:
             The fieldname of the column, holding the data-to-be-shifted.
 
         freq : str
-            An frequency Offset String that will be interpreted as the sampling rate you want the data to be shifted to.
+            Offset string. Sampling rate of the target frequency.
 
         method : {'fshift', 'bshift', 'nshift'}, default 'nshift'
-            Specifies how misaligned data-points get propagated to a grid timestamp.
-            Following choices are available:
+            Method to propagate values:
 
-            * 'nshift' : every grid point gets assigned the nearest value in its range. (range = +/- 0.5 * `freq`)
-            * 'bshift' : every grid point gets assigned its first succeeding value, if one is available in
-              the succeeding sampling interval.
-            * 'fshift' : every grid point gets assigned its ultimately preceding value, if one is available in
-              the preceeding sampling interval.
+            * 'nshift' : shift grid points to the nearest time stamp in the range = +/- 0.5 * ``freq``
+            * 'bshift' : shift grid points to the first succeeding time stamp (if any)
+            * 'fshift' : shift grid points to the last preceeding time stamp (if any)
 
         freq_check : {None, 'check', 'auto'}, default None
-
-            * ``None`` : do not validate frequency-string passed to `freq`
-            * 'check' : estimate frequency and log a warning if estimate miss matches frequency string passed to `freq`,
-              or if no uniform sampling rate could be estimated
-            * 'auto' : estimate frequency and use estimate. (Ignores `freq` parameter.)
+            * ``None`` : do not validate the ``freq`` string.
+            * 'check' : check ``freq`` against an frequency estimation, produces a warning in case of miss matches.
+            * 'auto' : estimate frequency, `freq` is ignored.
 
         Returns
         -------
@@ -202,12 +197,12 @@ class ResamplingMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Function to resample the data.
+        Resample data points and flags to a regular frequency.
 
-        The data will be sampled at regular (equidistant) timestamps aka. Grid points.
+        The data will be sampled to regular (equidistant) timestamps.
         Sampling intervals therefore get aggregated with a function, specified by
-        'func' parameter and the result gets projected onto the new timestamps with a
-        method, specified by "method". The following method (keywords) are available:
+        ``func``, the result is projected to the new timestamps using
+        ``method``. The following methods are available:
 
         * ``'nagg'``: all values in the range (+/- `freq`/2) of a grid point get
             aggregated with func and assigned to it.
@@ -217,15 +212,13 @@ class ResamplingMixin:
             the result gets assigned to the next grid point.
 
 
-        Note, that. if possible, functions passed to func will get projected
-        internally onto pandas.resample methods, wich results in some reasonable
-        performance boost - however, for this to work, you should pass functions that
-        have the __name__ attribute initialised and the according methods name assigned
-        to it. Furthermore, you shouldnt pass numpys nan-functions (``nansum``,
-        ``nanmean``,...) because those for example, have ``__name__ == 'nansum'`` and
-        they will thus not trigger ``resample.func()``, but the slower ``resample.apply(
-        nanfunc)``. Also, internally, no nans get passed to the functions anyway,
-        so that there is no point in passing the nan functions.
+        Note
+        ----
+        For perfomance reasons, ``func`` will be mapped to pandas.resample methods,
+        if possible. However, for this to work, functions need an initialized
+        ``__name__`` attribute, holding the function's name. Furthermore, you should
+        not pass numpys nan-functions (``nansum``, ``nanmean``,...) because they
+        cannot be optimised and the handling of ``NaN`` is already taken care of.
 
         Parameters
         ----------
@@ -233,19 +226,18 @@ class ResamplingMixin:
             The fieldname of the column, holding the data-to-be-resampled.
 
         freq : str
-            An Offset String, that will be interpreted as the frequency you want to
-            resample your data with.
+            Offset string. Sampling rate of the target frequency grid.
 
         func : Callable
-            The function you want to use for aggregation.
+            Aggregation function. See notes for performance considerations.
 
         method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
             Specifies which intervals to be aggregated for a certain timestamp. (preceding,
             succeeding or "surrounding" interval). See description above for more details.
 
         maxna : {None, int}, default None
-            Maximum number NaNs in a resampling interval. If maxna is exceeded, the interval
-            is set entirely to NaN.
+            Maximum number of allowed ``NaN``s in a resampling interval. If exceeded, the
+            entire interval is filled with ``NaN``.
 
         maxna_group : {None, int}, default None
             Same as `maxna` but for consecutive NaNs.
@@ -341,37 +333,14 @@ class ResamplingMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        The Function appends flags history of ``fields`` to flags history of ``target``.
-        Before appending, columns in ``field`` history are projected onto the target index via ``method``
+        Append the flags/history of ``field`` to ``target``. If necessary the flags are
+        projected to the ``target`` frequency grid.
 
-        method: (field_flag associated with "field", source_flags associated with "source")
-
-        * 'inverse_nagg' - all target_flags within the range +/- freq/2 of a field_flag, get assigned this field flags value.
-           (if field_flag > target_flag)
-
-        * 'inverse_bagg' - all target_flags succeeding a field_flag within the range of "freq", get assigned this field flags
-           value. (if field_flag > target_flag)
-
-        * 'inverse_fagg' - all target_flags preceeding a field_flag within the range of "freq", get assigned this field flags
-           value. (if field_flag > target_flag)
-
-        * 'inverse_interpolation' - all target_flags within the range +/- freq of a field_flag, get assigned this source flags value.
-          (if field_flag > target_flag)
-
-        * 'inverse_nshift' - That target_flag within the range +/- freq/2, that is nearest to a field_flag, gets the source
-          flags value. (if field_flag > target_flag)
-
-        * 'inverse_bshift' - That target_flag succeeding a field flag within the range freq, that is nearest to a
-           field_flag, gets assigned this field flags value. (if field_flag > target_flag)
-
-        * 'inverse_nshift' - That target_flag preceeding a field flag within the range freq, that is nearest to a
-           field_flag, gets assigned this field flags value. (if field_flag > target_flag)
-
-        * 'match' - any target_flag with a timestamp matching a field_flags timestamp gets this field_flags value
-           (if field_flag > target_flag)
-
-        Note, to undo or backtrack a resampling/shifting/interpolation that has been performed with a certain method,
-        you can just pass the associated "inverse" method. Also you should pass the same ``drop`` keyword.
+        Note
+        ----
+        To undo or backtrack resampling, shifting or interpolation operations, use the
+        associated inversion method (e.g. to undo a former interpolation use
+        ``method="inverse_interpolation"``).
 
         Parameters
         ----------
@@ -382,22 +351,28 @@ class ResamplingMixin:
             Field name of flags history to append to.
 
         method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift', 'match'}, default 'match'
-            The method used for projection of ``field`` flags onto ``target`` flags. See description above for more details.
+            Method to project the flags of ``field`` the flags to ``target``:
+
+           * 'inverse_nagg': project a flag of ``field`` to all timestamps of ``target`` within the range +/- ``freq``/2.
+           * 'inverse_bagg': project a flag of ``field`` to all preceeding timestamps of ``target`` within the range ``freq``
+           * 'inverse_fagg': project a flag of ``field`` to all succeeding timestamps of ``target`` within the range ``freq``
+           * 'inverse_interpolation' - project a flag of ``field`` to all timestamps of ``target`` within the range +/- ``freq``
+           * 'inverse_nshift' - project a flag of ``field`` to the neaerest timestamps in ``target`` within the range +/- ``freq``/2
+           * 'inverse_bshift' - project a flag of ``field`` to nearest preceeding timestamps in ``target``
+           * 'inverse_nshift' - project a flag of ``field`` to nearest succeeding timestamps in ``target``
+           * 'match' - project a flag of ``field`` to all identical timestamps ``target``
 
         freq : str or None, default None
-            The ``freq`` determines the projection range for the projection method. See above description for more details.
-            Defaultly (None), the sampling frequency of ``field`` is used.
+            Projection range. If ``None`` the sampling frequency of ``field`` is used.
 
         drop : bool, default False
-            If set to `True`, the `field` column will be removed after processing
+            Remove ``field`` if ``True``
 
         squeeze : bool, default False
-            If set to `True`, the appended flags frame will be squeezed - resulting in function specific flags informations
-            getting lost.
+            Squueze the history into a single column if ``True``. Function specific flag information is lost.
 
         overwrite: bool, default False
-            If set to True, the newly appended flags will overwrite exsiting flags. This might result in a loss of previous
-            flagging information.
+            Overwrite existing flags if ``True``
 
         Returns
         -------

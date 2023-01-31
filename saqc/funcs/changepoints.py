@@ -39,12 +39,10 @@ class ChangepointsMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flag data where it significantly changes.
+        Flag values that represent a system state transition.
 
-        Flag data points, where the parametrization of the process, the data is assumed to
-        generate by, significantly changes.
-
-        The change points detection is based on a sliding window search.
+        Flag data points, where the parametrization of the assumed process generating this data,
+        significantly changes.
 
         Parameters
         ----------

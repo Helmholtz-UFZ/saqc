@@ -36,11 +36,11 @@ class NoiseMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flag *chunks* of length, `window`:
+        Flag data chunks of length ``window``, if:
 
-        1. If they excexceed `thresh` with regard to `stat`:
-        2. If all (maybe overlapping) *sub-chunks* of *chunk*, with length `sub_window`,
-           `excexceed `sub_thresh` with regard to `stat`:
+        1. they excexceed ``thresh`` with regard to ``func`` and
+        2. all (maybe overlapping) sub-chunks of the data chunks with length ``sub_window``,
+           exceed ``sub_thresh`` with regard to ``func``
 
         Parameters
         ----------
@@ -48,21 +48,24 @@ class NoiseMixin:
             The fieldname of the column, holding the data-to-be-flagged.
 
         func: Callable[[np.array, pd.Series], float]
-            Function to aggregate chunk contnent with.
+            Aggregation function applied on every chunk.
 
         window: str
-            Temporal extension of the chunks to test
+            Window (i.e. chunk) size.
 
         thresh: float
-            Threshold, that triggers flagging, if exceeded by stat value.
+            Threshold. A given chunk is flagged, if the return value of ``func`` excceeds ``thresh``.
 
         sub_window: str, default None,
-            Window size of the sub chunks, that are additionally tested for exceeding
-            `sub_thresh` with respect to `stat`.
+            Window size of sub chunks, that are additionally tested for exceeding ``sub_thresh``
+            with respect to ``func``.
 
         sub_thresh: float, default None
+            Threshold. A given sub chunk is flagged, if the return value of ``func` excceeds ``sub_thresh``.
 
         min_periods: int, default None
+            Minimum number of values needed in a chunk to perfom the test.
+            Ignored if ``window`` is an integer.
 
         flag : float, default BAD
             flag to set
