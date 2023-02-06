@@ -8,7 +8,6 @@ from .test_setup import *
 
 
 def _test(res, exp):
-
     if isinstance(exp, pd.DataFrame):
         eq, msg = dios_eq_df(res, exp, with_msg=True)
         assert eq, msg

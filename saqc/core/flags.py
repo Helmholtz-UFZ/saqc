@@ -192,7 +192,6 @@ class Flags:
     """
 
     def __init__(self, raw_data: DictLike | Flags | None = None, copy: bool = False):
-
         self._data: dict[str, History]
 
         if raw_data is None:
@@ -215,7 +214,6 @@ class Flags:
         result = {}
 
         for k, item in data.items():
-
             if not isinstance(k, str):
                 raise ValueError("column names must be string")
             if k in result:
@@ -524,7 +522,6 @@ def initFlagsLike(
         reference = reference.to_frame(name=name)
 
     for k, item in reference.items():
-
         if not isinstance(k, str):
             raise TypeError(
                 f"cannot use '{k}' as a column name, currently only string keys are allowed"

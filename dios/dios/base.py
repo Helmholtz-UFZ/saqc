@@ -47,7 +47,6 @@ class _DiosBase:
         cast_policy="save",
         fastpath=False,
     ):
-
         self._attrs = {}
         self.cast_policy = cast_policy  # set via property
 
@@ -62,7 +61,6 @@ class _DiosBase:
                 self._data = pd.Series(dtype="O", index=columns)
 
         else:
-
             if index is not None and not isinstance(index, pd.Index):
                 index = pd.Index(index)
 
@@ -295,7 +293,6 @@ class _DiosBase:
                     self._data.at[c][series.index] = series
 
     def _setitem_listlike(self, data, value):
-
         value = value.values if isinstance(value, pd.Series) else value
 
         if len(value) != len(data.columns):

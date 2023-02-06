@@ -110,7 +110,6 @@ def test_propagateFlagsIrregularIndex(got, expected, kwargs):
     ],
 )
 def test_andGroup(left, right, expected):
-
     data = pd.DataFrame({"data": [1, 2, 3, 4]})
 
     base = SaQC(data=data)
@@ -130,7 +129,6 @@ def test_andGroup(left, right, expected):
     ],
 )
 def test_orGroup(left, right, expected):
-
     data = pd.DataFrame({"data": [1, 2, 3, 4]})
 
     base = SaQC(data=data)
@@ -150,7 +148,6 @@ def test_orGroup(left, right, expected):
     ],
 )
 def test__groupOperation(left, right, expected):
-
     data = pd.DataFrame(
         {"x": [0, 1, 2, 3], "y": [0, 11, 22, 33], "z": [0, 111, 222, 333]}
     )

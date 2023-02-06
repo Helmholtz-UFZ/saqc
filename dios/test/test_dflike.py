@@ -33,7 +33,6 @@ TESTDATA = [
 @pytest.mark.parametrize("data", TESTDATA)
 @pytest.mark.parametrize("with_column_param", [False, True])
 def test_dios_create(data, with_column_param):
-
     data_copy0 = deepcopy(data)
     data_copy1 = deepcopy(data)
 

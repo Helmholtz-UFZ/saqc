@@ -117,7 +117,6 @@ def main(config, data, scheme, outfile, nodata, log_level):
         flags_result = flags_result.to_df()
 
     if outfile:
-
         data_result.columns = pd.MultiIndex.from_product(
             [data_result.columns.tolist(), ["data"]]
         )

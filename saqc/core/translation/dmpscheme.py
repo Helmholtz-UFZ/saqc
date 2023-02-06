@@ -139,7 +139,6 @@ class DmpScheme(MappingScheme):
         )
 
         for field in tflags.columns:
-
             df = pd.DataFrame(
                 {
                     "quality_flag": tflags[field],
@@ -150,7 +149,6 @@ class DmpScheme(MappingScheme):
 
             history = flags.history[field]
             for col in history.columns:
-
                 valid = (history.hist[col] != UNFLAGGED) & history.hist[col].notna()
 
                 # extract from meta
@@ -191,7 +189,6 @@ class DmpScheme(MappingScheme):
             )
 
         for field in df.columns.get_level_values(0):
-
             # we might have NaN injected by DictOfSeries -> DataFrame conversions
             field_df = df[field].dropna(how="all", axis="index")
             flags = field_df["quality_flag"]

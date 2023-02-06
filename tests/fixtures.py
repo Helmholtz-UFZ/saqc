@@ -69,6 +69,7 @@ def course_2(char_dict):
     one "anomalous" or "outlierish" value of magnitude "out_val" at position "periods/2"
     number of periods better be even!
     """
+
     # SINGLE_SPIKE
     def fix_funk(
         freq="10min",
@@ -149,7 +150,6 @@ def course_3(char_dict):
         crowd_size=5,
         crowd_spacing=1,
     ):
-
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
         data = np.linspace(initial_level, final_level, int(np.floor(len(t_index))))
         data = pd.Series(data=data, index=t_index)

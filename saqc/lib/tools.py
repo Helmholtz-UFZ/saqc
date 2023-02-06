@@ -245,7 +245,6 @@ def estimateFrequency(
     max_freqs=10,
     bins=None,
 ):
-
     """
     Function to estimate the sampling rate of an index.
 

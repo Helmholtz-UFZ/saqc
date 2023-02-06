@@ -144,7 +144,6 @@ class DriftMixin:
 
         segments = data_to_flag.groupby(pd.Grouper(freq=freq))
         for segment in segments:
-
             if segment[1].shape[0] <= 1:
                 continue
 
@@ -229,7 +228,6 @@ class DriftMixin:
 
         segments = data_to_flag.groupby(pd.Grouper(freq=freq))
         for segment in segments:
-
             if segment[1].shape[0] <= 1:
                 continue
 

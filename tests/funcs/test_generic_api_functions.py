@@ -74,7 +74,6 @@ def test_writeTargetFlagGeneric(data, targets, func):
     ],
 )
 def test_overwriteFieldFlagGeneric(data, fields, func):
-
     flag = 12
 
     expected_meta = {
