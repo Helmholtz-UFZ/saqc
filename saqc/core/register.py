@@ -136,7 +136,6 @@ def _squeezeFlags(old_flags, new_flags: Flags, columns: pd.Index, meta) -> Flags
     for col in columns.union(
         new_flags.columns.difference(old_flags.columns)
     ):  # account for newly added columns
-
         if col not in out:  # ensure existence
             out.history[col] = History(index=new_flags.history[col].index)
 
@@ -202,7 +201,6 @@ def _unmaskData(
     columns = mask.columns.intersection(columns)
 
     for c in columns:
-
         # ignore
         if data[c].empty or mask[c].empty:
             continue
@@ -315,7 +313,6 @@ def register(
     """
 
     def outer(func: Callable[P, SaQC]) -> Callable[P, SaQC]:
-
         func_signature = inspect.signature(func)
         _checkDecoratorKeywords(
             func_signature, func.__name__, mask, demask, squeeze, handles_target
@@ -330,7 +327,6 @@ def register(
             flag: ExternalFlag | OptionalNone = OptionalNone(),
             **kwargs,
         ) -> "SaQC":
-
             # args -> kwargs
             paramnames = tuple(func_signature.parameters.keys())[
                 2:

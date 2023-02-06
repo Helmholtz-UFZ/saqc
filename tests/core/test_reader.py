@@ -31,7 +31,6 @@ def getTestedVariables(flags: Flags, test: str):
 
 
 def test_variableRegex(data):
-
     header = f"varname;test"
     function = "flagDummy"
     tests = [
@@ -92,7 +91,6 @@ def test_configReaderLineNumbers():
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_configFile(data):
-
     # check that the reader accepts different whitespace patterns
 
     config = f"""
@@ -111,7 +109,6 @@ def test_configFile(data):
 
 
 def test_configChecks(data):
-
     var1, _, var3, *_ = data.columns
 
     @flagging()
@@ -134,7 +131,6 @@ def test_configChecks(data):
 
 
 def test_supportedArguments(data):
-
     # test if the following function arguments
     # are supported (i.e. parsing does not fail)
 

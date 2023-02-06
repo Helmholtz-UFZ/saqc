@@ -30,12 +30,10 @@ class ForwardMixin:
         center: bool | None = None,
         closed: str | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-
         if closed is None:
             closed = "right"
 
         if self.forward:
-
             # this is only set with variable window indexer
             if self.index_array is not None:  # noqa
                 self.index_array = self.index_array[::-1]  # noqa

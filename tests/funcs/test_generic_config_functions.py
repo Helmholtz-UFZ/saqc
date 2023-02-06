@@ -95,7 +95,6 @@ def test_comparisonOperators(data):
 
 
 def test_arithmeticOperators(data):
-
     var1, *_ = data.columns
 
     data = data[var1]
@@ -150,7 +149,6 @@ def test_bitOps(data):
 
 
 def test_variableAssignments(data):
-
     config = f"""
     varname ; test
     dummy1  ; processGeneric(field=["var1", "var2"], func=x + y)
@@ -218,7 +216,6 @@ def test_flagTargetExistingFail(data_diff):
 
 @pytest.mark.slow
 def test_callableArgumentsUnary(data):
-
     window = 5
 
     @register(mask=["field"], demask=["field"], squeeze=["field"])
@@ -239,7 +236,7 @@ def test_callableArgumentsUnary(data):
         ("std(exp(x))", lambda x: np.std(np.exp(x))),
     ]
 
-    for (name, func) in tests:
+    for name, func in tests:
         fobj = writeIO(config.format(name))
         result_config = fromConfig(fobj, data).data
         result_api = SaQC(data).testFuncUnary(var, func=func).data
@@ -266,7 +263,7 @@ def test_callableArgumentsBinary(data):
         ("y - (x * 2)", lambda y, x: y - (x * 2)),
     ]
 
-    for (name, func) in tests:
+    for name, func in tests:
         fobj = writeIO(config.format(name))
         result_config = fromConfig(fobj, data).data
         result_api = SaQC(data).testFuncBinary(var1, func=func).data
@@ -276,7 +273,6 @@ def test_callableArgumentsBinary(data):
 
 
 def test_isflagged(data):
-
     var1, var2, *_ = data.columns
     flags = initFlagsLike(data)
     flags[data[var1].index[::2], var1] = BAD

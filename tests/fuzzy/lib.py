@@ -134,7 +134,6 @@ def functionCalls(draw, module: str = None):
 
 @contextmanager
 def applyStrategies(strategies: dict):
-
     for dtype, strategy in strategies.items():
         register_type_strategy(dtype, strategy)
 

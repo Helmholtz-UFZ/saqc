@@ -88,7 +88,6 @@ def calculateDistanceByDTW(
 
 
 class PatternMixin:
-
     # todo should we mask `reference` even if the func fail if reference has NaNs
     @flagging()
     def flagPatternByDTW(

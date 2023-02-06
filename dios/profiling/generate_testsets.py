@@ -25,7 +25,6 @@ def _gen_testset(rowsz, colsz, freq="1min", disalign=True, randstart=True):
     freqv = int(freq[: -len(frequ)])
 
     for i in range(colsz):
-
         if randstart:
             # generate random startpoint for each series
             r = str(np.random.randint(int(rowsz * 0.05), int(rowsz * 0.6) + 2)) + frequ

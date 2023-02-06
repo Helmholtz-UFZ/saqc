@@ -200,7 +200,6 @@ class FloatScheme(TranslationScheme):
     DFILTER_DEFAULT: float = FILTER_ALL
 
     def __call__(self, flag: float | int) -> float:
-
         try:
             return float(flag)
         except (TypeError, ValueError, OverflowError):

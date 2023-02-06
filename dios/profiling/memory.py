@@ -40,7 +40,6 @@ def rows_by_time(nsec, mdays):
 
 
 if __name__ == "__main__":
-
     # dios      - linear in rows and colums, same size for r=10,c=100 or r=100,c=10
     do_real_check = True
     cols = 10

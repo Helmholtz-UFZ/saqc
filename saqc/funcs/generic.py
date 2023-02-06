@@ -63,7 +63,6 @@ def _execGeneric(
     func: GenericFunction,
     dfilter: float = FILTER_ALL,
 ) -> DictOfSeries:
-
     globs = {
         "isflagged": lambda data, label=None: _isflagged(
             _flagSelect(data.name, flags, label), thresh=dfilter
@@ -171,7 +170,6 @@ class GenericMixin:
 
         # update data & flags
         for i, col in enumerate(targets):
-
             datacol = result.iloc[:, i]
             self._data[col] = datacol
 
@@ -291,7 +289,6 @@ class GenericMixin:
 
         # update flags & data
         for i, col in enumerate(targets):
-
             maskcol = result.iloc[:, i]
 
             # make sure the column exists

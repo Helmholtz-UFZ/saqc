@@ -59,7 +59,6 @@ class PositionalScheme(MappingScheme):
 
         data = {}
         for field, field_flags in flags.items():
-
             # explode the flags into sperate columns and drop the leading `9`
             df = pd.DataFrame(
                 field_flags.astype(str).str.slice(start=1).apply(tuple).tolist(),

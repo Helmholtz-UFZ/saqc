@@ -32,7 +32,6 @@ def _genTranslators():
 
 
 def _genFlags(data: Dict[str, Union[Sequence, pd.Series]]) -> Flags:
-
     flags = Flags()
     for k, v in data.items():
         if not isinstance(v, pd.Series):
@@ -76,7 +75,6 @@ def test_backwardTranslationFail():
 
 
 def test_dmpTranslator():
-
     scheme = DmpScheme()
     # generate a bunch of dummy flags
     keys = np.array(tuple(scheme._backward.keys()) * 50)
@@ -144,7 +142,6 @@ def test_positionalTranslator():
 
 
 def test_positionalTranslatorIntegration():
-
     data = initData(3)
     col: str = data.columns[0]
 
@@ -164,7 +161,6 @@ def test_positionalTranslatorIntegration():
 
 
 def test_dmpTranslatorIntegration():
-
     data = initData(1)
     col = data.columns[0]
 
@@ -211,7 +207,6 @@ def test_dmpValidCombinations():
 
 
 def _buildupSaQCObjects():
-
     """
     return two evaluated saqc objects calling the same functions,
     whereas the flags from the evaluetion of the first objetc are
@@ -233,7 +228,6 @@ def _buildupSaQCObjects():
 
 
 def test_translationPreservesFlags():
-
     saqc1, saqc2 = _buildupSaQCObjects()
     flags1 = saqc1._flags
     flags2 = saqc2._flags
@@ -270,7 +264,6 @@ def test_multicallsPreserveHistory():
 
 
 def test_positionalMulitcallsPreserveState():
-
     saqc1, saqc2 = _buildupSaQCObjects()
 
     scheme = PositionalScheme()

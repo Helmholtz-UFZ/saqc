@@ -149,7 +149,6 @@ class OutliersMixin:
 
         # calculate flags for every partition
         for _, partition in partitions:
-
             if partition.empty | (partition.shape[0] < min_periods):
                 continue
 
@@ -1042,7 +1041,6 @@ class OutliersMixin:
         df = self._data[fields].loc[self._data[fields].index_of("shared")].to_df()
 
         if isinstance(method, str):
-
             if method == "modZscore":
                 MAD_series = df.subtract(df.median(axis=1), axis=0).abs().median(axis=1)
                 diff_scores = (
@@ -1062,7 +1060,6 @@ class OutliersMixin:
                 raise ValueError(method)
 
         else:
-
             try:
                 stat = getattr(df, method.__name__)(axis=1)
             except AttributeError:
@@ -1248,7 +1245,6 @@ def _evalStrayLabels(
 
     for var in target:
         for index in enumerate(to_flag_frame.index):
-
             index_slice = slice(
                 index[1] - pd.Timedelta(reduction_range),
                 index[1] + pd.Timedelta(reduction_range),

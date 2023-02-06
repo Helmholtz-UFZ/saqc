@@ -43,7 +43,6 @@ class CurveFitter(Protocol):
 
 
 class GenericFunction(Protocol):
-
     __name__: str
     __globals__: Dict[str, Any]
 

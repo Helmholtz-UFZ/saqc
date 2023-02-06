@@ -169,7 +169,6 @@ def _fitPolynomial(
     min_periods: int = 0,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
-
     # TODO: some (rather large) parts are functional similar to saqc.funcs.rolling.roll
     if data[field].empty:
         return data, flags

@@ -15,7 +15,6 @@ class _Indexer:
         self._data = obj._data
 
     def _unpack_key(self, key):
-
         key = list(key) if pdextra.is_iterator(key) else key
 
         if isinstance(key, tuple):
@@ -89,7 +88,6 @@ class _LocIndexer(_Indexer):
         super().__init__(*args, **kwargs)
 
     def __getitem__(self, key):
-
         rowkey, colkey = self._unpack_key(key)
         if _is_dios_like(rowkey) or _is_dios_like(colkey):
             raise ValueError("Could not index with multidimensional key")
@@ -109,7 +107,6 @@ class _LocIndexer(_Indexer):
         else:
             k = "?"
             try:
-
                 for k in data.index:
                     data.at[k] = data.at[k].loc[rowkey]
 
@@ -128,14 +125,12 @@ class _LocIndexer(_Indexer):
         return new
 
     def __setitem__(self, key, value):
-
         rowkey, colkey = self._unpack_key(key)
         if _is_dios_like(rowkey) or _is_dios_like(colkey):
             raise ValueError("Cannot index with multi-dimensional key")
 
         # .loc[any, scalar] - set on single column
         if pdextra.is_hashable(colkey):
-
             # .loc[dont-care, new-scalar] = val
             if colkey not in self.obj.columns:
                 self.obj._insert(colkey, value)
@@ -180,7 +175,6 @@ class _iLocIndexer(_Indexer):
         else:
             k = "?"
             try:
-
                 for k in data.index:
                     data.at[k] = data.at[k].iloc[rowkey]
 
@@ -248,7 +242,6 @@ class _aLocIndexer(_Indexer):
 
         c = "?"
         try:
-
             for i, c in enumerate(data.index):
                 data.at[c] = self._data.at[c].loc[rowkeys[i]]
 
@@ -268,7 +261,6 @@ class _aLocIndexer(_Indexer):
         def iter_self(colkeys, position=False):
             c = "?"
             try:
-
                 for i, c in enumerate(colkeys):
                     dat = self._data.at[c]
                     rk = rowkeys[i]
@@ -347,7 +339,6 @@ class _aLocIndexer(_Indexer):
 
         # .aloc[dios]
         if _is_dios_like(rowkey):
-
             if not pdextra.is_null_slice(colkey):
                 raise ValueError(
                     f"Could not index with a dios-like indexer as rowkey,"
@@ -385,7 +376,6 @@ class _aLocIndexer(_Indexer):
         return rowkey, colkey, lowdim
 
     def _get_rowkey(self, rowkey, colkey, depth=0):
-
         if pdextra.is_nested_list_like(rowkey) and depth == 0:
             rowkey = rowkey.values if isinstance(rowkey, pd.Series) else rowkey
             if len(rowkey) != len(colkey):

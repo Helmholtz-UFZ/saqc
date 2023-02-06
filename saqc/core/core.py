@@ -152,7 +152,6 @@ class SaQC(FunctionsMixin):
         )
 
     def _initData(self, data) -> DictOfSeries:
-
         if data is None:
             return DictOfSeries()
 

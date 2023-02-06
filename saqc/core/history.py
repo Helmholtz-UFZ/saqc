@@ -45,7 +45,6 @@ class History:
     """
 
     def __init__(self, index: pd.Index | None):
-
         self._hist = pd.DataFrame(index=index)
         self._meta = []
 
@@ -451,7 +450,6 @@ class History:
         return len(self._hist.columns)
 
     def __repr__(self):
-
         if self.empty:
             return str(self._hist).replace("DataFrame", "History")
 

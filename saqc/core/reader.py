@@ -44,7 +44,6 @@ def _closeFile(fobj):
 
 
 def readFile(fname) -> pd.DataFrame:
-
     fobj = _openFile(fname)
 
     out = []
@@ -81,7 +80,6 @@ def fromConfig(fname, *args, **func_kwargs):
     config = readFile(fname)
 
     for _, field, expr in config.itertuples():
-
         regex = False
         if isQuoted(field):
             fld = field[1:-1]
