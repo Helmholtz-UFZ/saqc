@@ -12,16 +12,15 @@ from typing import TYPE_CHECKING, Sequence, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from dios import DictOfSeries
-from saqc.constants import BAD, ENVIRONMENT, FILTER_ALL
-from saqc.core.flags import Flags
-from saqc.core.history import History
-from saqc.core.register import _isflagged, _maskData, register
-from saqc.lib.tools import toSequence
+from saqc import BAD, FILTER_ALL
+from saqc.core import DictOfSeries, Flags, History, register
+from saqc.core.register import _maskData
+from saqc.lib.tools import isflagged, toSequence
 from saqc.lib.types import GenericFunction, PandasLike
+from saqc.parsing.environ import ENVIRONMENT
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 def _flagSelect(field, flags, label=None):
@@ -64,7 +63,7 @@ def _execGeneric(
     dfilter: float = FILTER_ALL,
 ) -> DictOfSeries:
     globs = {
-        "isflagged": lambda data, label=None: _isflagged(
+        "isflagged": lambda data, label=None: isflagged(
             _flagSelect(data.name, flags, label), thresh=dfilter
         ),
         **ENVIRONMENT,

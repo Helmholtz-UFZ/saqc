@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 from hypothesis import given, settings
 
-from saqc.constants import BAD, UNFLAGGED
+from saqc import BAD, UNFLAGGED
 from saqc.core.register import _maskData, _unmaskData
 from tests.fuzzy.lib import MAX_EXAMPLES, dataFieldFlags
 

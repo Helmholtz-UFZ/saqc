@@ -15,13 +15,12 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from dios import DictOfSeries
-from saqc.constants import BAD, FILTER_ALL, UNFLAGGED
-from saqc.core.register import _isflagged, flagging, register
-from saqc.lib.tools import toSequence
+from saqc import BAD, FILTER_ALL, UNFLAGGED
+from saqc.core import DictOfSeries, flagging, register
+from saqc.lib.tools import isflagged, toSequence
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 class FlagtoolsMixin:
@@ -518,7 +517,7 @@ class FlagtoolsMixin:
 
         # get dfilter from meta or get of rid of this and
         # consider everything != np.nan as flag
-        flagged = _isflagged(hc, dfilter)
+        flagged = isflagged(hc, dfilter)
 
         repeated = (
             flagged.rolling(window, min_periods=1, closed="left")
@@ -656,13 +655,13 @@ def _groupOperation(
 
     qcs_items: list[tuple["SaQC", list[str]]] = list(group.items())
     # generate initial mask from the first `qc` object on the popped first field
-    mask = _isflagged(qcs_items[0][0]._flags[qcs_items[0][1].pop(0)], thresh=dfilter)
+    mask = isflagged(qcs_items[0][0]._flags[qcs_items[0][1].pop(0)], thresh=dfilter)
 
     for qc, fields in qcs_items:
         if field not in qc._flags:
             raise KeyError(f"variable {field} is missing in given SaQC object")
         for field in fields:
-            mask = func(mask, _isflagged(qc._flags[field], thresh=FILTER_ALL))
+            mask = func(mask, isflagged(qc._flags[field], thresh=FILTER_ALL))
 
     if target not in base._data:
         base = base.copyField(field=field, target=target)

@@ -12,11 +12,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import saqc
-from saqc.constants import BAD, FILTER_ALL, FILTER_NONE, UNFLAGGED
-from saqc.core import SaQC, initFlagsLike
-from saqc.core.flags import Flags
-from saqc.core.register import flagging, processing, register
+from saqc import BAD, FILTER_ALL, FILTER_NONE, UNFLAGGED, SaQC
+from saqc.core import Flags, flagging, initFlagsLike, processing, register
 from saqc.lib.types import OptionalNone
 from tests.common import initData
 
@@ -68,12 +65,12 @@ def test_dtypes(data, flags):
 
 
 def test_new_call(data):
-    qc = saqc.SaQC(data)
+    qc = SaQC(data)
     qc = qc.flagRange("var1", max=5)
 
 
 def test_copy(data):
-    qc = saqc.SaQC(data)
+    qc = SaQC(data)
 
     qc = qc.flagRange("var1").flagRange("var1", min=0, max=0)
 

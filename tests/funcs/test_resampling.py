@@ -10,9 +10,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import dios
-from saqc.constants import BAD, UNFLAGGED
-from saqc.core import SaQC, initFlagsLike
+from saqc import BAD, UNFLAGGED, SaQC
+from saqc.core import DictOfSeries, initFlagsLike
 from tests.common import checkDataFlagsInvariants
 
 
@@ -30,7 +29,7 @@ def data():
     dat = pd.Series(np.linspace(-50, 50, index.size), index=index, name="data")
     # good to have some nan
     dat[-3] = np.nan
-    data = dios.DictOfSeries(dat)
+    data = DictOfSeries(dat)
     return data
 
 
@@ -88,7 +87,7 @@ def test_gridInterpolation(data, method, fill_history):
     field = "data"
     data = data[field]
     data = pd.concat([data * np.sin(data), data.shift(1, "2h")]).shift(1, "3s")
-    data = dios.DictOfSeries(data)
+    data = DictOfSeries(data)
     flags = initFlagsLike(data)
 
     if fill_history == "none":

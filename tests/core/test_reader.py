@@ -9,15 +9,13 @@
 import numpy as np
 import pytest
 
-import dios
-from saqc.core.flags import Flags
-from saqc.core.reader import fromConfig, readFile
-from saqc.core.register import flagging
+from saqc.core import DictOfSeries, Flags, flagging
+from saqc.parsing.reader import fromConfig, readFile
 from tests.common import initData, writeIO
 
 
 @pytest.fixture
-def data() -> dios.DictOfSeries:
+def data() -> DictOfSeries:
     return initData(3)
 
 

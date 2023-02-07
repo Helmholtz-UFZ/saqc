@@ -15,13 +15,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing_extensions import Literal
 
-from saqc.constants import FILTER_NONE, UNFLAGGED
-from saqc.core.register import processing, register
+from saqc import FILTER_NONE, UNFLAGGED
+from saqc.core import processing, register
 from saqc.lib.plotting import makeFig
 from saqc.lib.tools import periodicMask
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()

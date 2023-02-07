@@ -11,13 +11,12 @@ from typing import DefaultDict, Dict, Iterable, Mapping, Tuple, Type, Union
 import numpy as np
 import pandas as pd
 
-import dios
-from saqc.core.history import History
+from saqc.core import DictOfSeries, History
 
 _VAL = Union[pd.Series, History]
 DictLike = Union[
     pd.DataFrame,
-    dios.DictOfSeries,
+    DictOfSeries,
     Dict[str, _VAL],
     DefaultDict[str, _VAL],
 ]
@@ -77,8 +76,8 @@ class Flags:
 
     .. doctest:: exampleFlags
 
-       >>> from saqc.constants import UNFLAGGED, BAD, DOUBTFUL
-       >>> flags = saqc.Flags()
+       >>> from saqc import UNFLAGGED, BAD, DOUBTFUL, Flags
+       >>> flags = Flags()
        >>> flags
        Empty Flags
        Columns: []
@@ -394,7 +393,7 @@ class Flags:
 
         Access via ``flags.history['var']``.
         To set a new history use ``flags.history['var'] = value``.
-        The passed value must be a instance of History or must be convertible to a
+        The passed value must be an instance of History or must be convertible to a
         history.
 
         Returns
@@ -444,15 +443,15 @@ class Flags:
     # ----------------------------------------------------------------------
     # transformation and representation
 
-    def toDios(self) -> dios.DictOfSeries:
+    def toDios(self) -> DictOfSeries:
         """
-        Transform the flags container to a ``dios.DictOfSeries``.
+        Transform the flags container to a ``DictOfSeries``.
 
         Returns
         -------
-        dios.DictOfSeries
+        DictOfSeries
         """
-        di = dios.DictOfSeries(columns=self.columns)
+        di = DictOfSeries(columns=self.columns)
 
         for k in self._data.keys():
             di[k] = self[k]
@@ -478,11 +477,11 @@ def initFlagsLike(
     name: str = None,
 ) -> Flags:
     """
-    Create empty Flags, from an reference data structure.
+    Create empty Flags, from a reference data structure.
 
     Parameters
     ----------
-    reference : pd.DataFrame, pd.Series, dios.DictOfSeries, dict of pd.Series
+    reference : pd.DataFrame, pd.Series, DictOfSeries, dict of pd.Series
         The reference structure to initialize for.
 
     name : str, default None

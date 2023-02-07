@@ -13,9 +13,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from saqc.constants import BAD, DOUBTFUL, FILTER_NONE, UNFLAGGED
-from saqc.core.core import SaQC
-from saqc.core.flags import Flags
+from saqc import BAD, DOUBTFUL, FILTER_NONE, UNFLAGGED, SaQC
+from saqc.core import Flags
 from saqc.core.translation import DmpScheme, MappingScheme, PositionalScheme
 from tests.common import initData
 

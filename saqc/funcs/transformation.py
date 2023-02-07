@@ -12,10 +12,10 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 import numpy as np
 import pandas as pd
 
-from saqc.core.register import register
+from saqc.core import register
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 class TransformationMixin:

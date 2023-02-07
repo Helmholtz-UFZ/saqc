@@ -6,15 +6,14 @@
 
 from __future__ import annotations
 
-from copy import copy as shallowcopy
-from copy import deepcopy
+import copy as _copy
 from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_categorical_dtype, is_float_dtype
 
-from saqc.constants import UNFLAGGED
+from saqc import UNFLAGGED
 
 
 class History:
@@ -70,7 +69,7 @@ class History:
     @meta.setter
     def meta(self, value: list[dict[str, Any]]) -> None:
         self._validateMetaList(value, self._hist)
-        self._meta = deepcopy(value)
+        self._meta = _copy.deepcopy(value)
 
     @property
     def index(self) -> pd.Index:
@@ -428,7 +427,7 @@ class History:
         copy : History
             the copied FH
         """
-        copyfunc = deepcopy if deep else shallowcopy
+        copyfunc = _copy.deepcopy if deep else _copy.copy
         new = History(self.index)
         new._hist = self._hist.copy(deep)
         new._meta = copyfunc(self._meta)
@@ -564,7 +563,7 @@ class History:
 
         if copy:
             hist = hist.copy()
-            meta = deepcopy(meta)
+            meta = _copy.deepcopy(meta)
 
         history = cls(index=None)  # noqa
         history._hist = hist.astype("category", copy=False)

@@ -23,9 +23,8 @@ from hypothesis.strategies import (
 )
 from hypothesis.strategies._internal.types import _global_type_lookup
 
-import dios
-from saqc.constants import BAD
-from saqc.core import initFlagsLike
+from saqc import BAD
+from saqc.core import DictOfSeries, initFlagsLike
 from saqc.core.register import FUNC_MAP
 
 MAX_EXAMPLES = 50
@@ -46,7 +45,7 @@ def dioses(draw, min_cols=1):
 
     cols = draw(lists(columnNames(), unique=True, min_size=min_cols))
     columns = {c: draw(dataSeries(min_size=3)) for c in cols}
-    return dios.DictOfSeries(columns)
+    return DictOfSeries(columns)
 
 
 @composite

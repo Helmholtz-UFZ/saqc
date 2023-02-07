@@ -9,10 +9,8 @@
 import pandas as pd
 import pytest
 
-from dios.dios.dios import DictOfSeries
-from saqc import SaQC
-from saqc.constants import BAD, FILTER_ALL, UNFLAGGED
-from saqc.core.flags import Flags
+from saqc import BAD, FILTER_ALL, UNFLAGGED, SaQC
+from saqc.core import DictOfSeries, Flags
 from saqc.lib.tools import toSequence
 from tests.common import initData
 

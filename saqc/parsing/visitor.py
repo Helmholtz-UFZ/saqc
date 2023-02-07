@@ -8,8 +8,8 @@
 
 import ast
 
-from saqc.constants import ENVIRONMENT
 from saqc.core.register import FUNC_MAP
+from saqc.parsing.environ import ENVIRONMENT
 
 
 class ConfigExpressionParser(ast.NodeVisitor):

@@ -38,7 +38,6 @@ implement the following function interface
 .. code-block:: python
 
    import pandas
-   import dios
    import saqc
 
    def yourTestFunction(

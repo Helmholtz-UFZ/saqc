@@ -19,16 +19,15 @@ from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
 from typing_extensions import Literal
 
-from dios import DictOfSeries
-from saqc.constants import BAD
-from saqc.core.register import Flags, flagging, register
+from saqc import BAD
+from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.lib.tools import detectDeviants, filterKwargs, toSequence
 from saqc.lib.ts_operators import expDriftModel, linearDriftModel
 from saqc.lib.types import CurveFitter
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 LinkageString = Literal[

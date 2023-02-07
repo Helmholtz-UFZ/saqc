@@ -1,14 +1,7 @@
+#! /usr/bin/env python
+
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-**/__pycache__
-*.pyc
-*.automodsumm
-*.automodapi
-docs/_api
-docs/_build
-docs/resources/temp/*
-coverage.xml
-venv*/
-**/.*
+# -*- coding: utf-8 -*-
