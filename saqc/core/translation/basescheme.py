@@ -8,15 +8,14 @@
 
 from __future__ import annotations
 
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod
 from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
 
-from dios import DictOfSeries
-from saqc.constants import BAD, FILTER_ALL, GOOD, UNFLAGGED
-from saqc.core.flags import Flags
+from saqc import BAD, FILTER_ALL, GOOD, UNFLAGGED
+from saqc.core import DictOfSeries, Flags
 from saqc.lib.types import ExternalFlag
 
 ForwardMap = Dict[ExternalFlag, float]
@@ -35,25 +34,52 @@ class TranslationScheme:  # pragma: no cover
 
     @abstractmethod
     def toInternal(self, flags: pd.DataFrame | DictOfSeries) -> Flags:
+        """
+        Translate from 'external flags' to 'internal flags'
+
+        Parameters
+        ----------
+        flags : pd.DataFrame
+            The external flags to translate
+
+        Returns
+        -------
+        Flags object
+        """
         pass
 
     @abstractmethod
     def toExternal(self, flags: Flags, attrs: dict | None = None) -> DictOfSeries:
+        """
+        Translate from 'internal flags' to 'external flags'
+
+        Parameters
+        ----------
+        flags : pd.DataFrame
+            The external flags to translate
+
+        attrs : dict or None, default None
+            global meta information of saqc-object
+
+        Returns
+        -------
+        pd.DataFrame
+        """
         pass
 
 
 class MappingScheme(TranslationScheme):
     """
     This class provides the basic translation mechanism and should serve as
-    a base class for every other translation scheme.
+    a base class for most other translation scheme.
 
-    The general translation is realized through dictionary lookups, altough
+    The general translation is realized through dictionary lookups, although
     we might need to extend this logic to also allow calls to translation
-    functions in the future. Currently at least one `dict` defining the
+    functions in the future. Currently, at least one `dict` defining the
     'forward' translation  from 'user flags' -> 'internal flags' needs to be
     provided.
     Optionally a second `dict` can be passed to map 'internal flags' -> 'user flags',
-    if the latter is not given, this 'backward' translation will inferred as
+    if the latter is not given, this 'backward' translation is inferred as
     the inverse of the 'forward' translation.
 
     The translation mechanism imposes a few restrictions:
@@ -217,27 +243,3 @@ class FloatScheme(TranslationScheme):
         out = flags.toDios()
         out.attrs = attrs or {}
         return out
-
-
-class SimpleScheme(MappingScheme):
-
-    """
-    Acts as the default Translator, provides a changeable subset of the
-    internal float flags
-    """
-
-    _FORWARD = {
-        "UNFLAGGED": UNFLAGGED,
-        "BAD": BAD,
-        "OK": GOOD,
-    }
-
-    _BACKWARD = {
-        UNFLAGGED: "UNFLAGGED",
-        np.nan: "UNFLAGGED",
-        BAD: "BAD",
-        GOOD: "OK",
-    }
-
-    def __init__(self):
-        super().__init__(forward=self._FORWARD, backward=self._BACKWARD)

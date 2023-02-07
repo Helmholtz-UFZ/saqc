@@ -13,18 +13,17 @@ import pandas as pd
 # see test/functs/fixtures.py for global fixtures "course_..."
 import pytest
 
-import dios
 import saqc
-from saqc.constants import UNFLAGGED
-from saqc.core import SaQC, initFlagsLike
+from saqc import UNFLAGGED, SaQC
+from saqc.core import DictOfSeries, initFlagsLike
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
-from tests.fixtures import char_dict, course_3, course_5
+from tests.fixtures import char_dict, course_3, course_5  # noqa, todo: fix fixtures
 
 
 def test_rollingInterpolateMissing(course_5):
     data, characteristics = course_5(periods=10, nan_slice=[5, 6])
     field = data.columns[0]
-    data = dios.DictOfSeries(data)
+    data = DictOfSeries(data)
     flags = initFlagsLike(data)
     qc = SaQC(data, flags).interpolateByRolling(
         field,
@@ -49,7 +48,7 @@ def test_rollingInterpolateMissing(course_5):
 def test_interpolateMissing(course_5):
     data, characteristics = course_5(periods=10, nan_slice=[5])
     field = data.columns[0]
-    data = dios.DictOfSeries(data)
+    data = DictOfSeries(data)
     flags = initFlagsLike(data)
     qc = SaQC(data, flags)
 
@@ -73,7 +72,7 @@ def test_interpolateMissing(course_5):
 def test_transform(course_5):
     data, characteristics = course_5(periods=10, nan_slice=[5, 6])
     field = data.columns[0]
-    data = dios.DictOfSeries(data)
+    data = DictOfSeries(data)
     flags = initFlagsLike(data)
     qc = SaQC(data, flags)
 
@@ -93,7 +92,7 @@ def test_transform(course_5):
 def test_resample(course_5):
     data, _ = course_5(freq="1min", periods=30, nan_slice=[1, 11, 12, 22, 24, 26])
     field = data.columns[0]
-    data = dios.DictOfSeries(data)
+    data = DictOfSeries(data)
     flags = initFlagsLike(data)
     qc = SaQC(data, flags).resample(
         field,

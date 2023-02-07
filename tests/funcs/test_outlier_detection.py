@@ -12,10 +12,9 @@ import pandas as pd
 # see test/functs/fixtures.py for global fixtures "course_..."
 import pytest
 
-import dios
 import saqc
-from saqc.constants import BAD, UNFLAGGED
-from saqc.core import SaQC, initFlagsLike
+from saqc import BAD, UNFLAGGED
+from saqc.core import DictOfSeries, SaQC, initFlagsLike
 from tests.fixtures import char_dict, course_1, course_2, course_3, course_4
 
 
@@ -26,7 +25,7 @@ def spiky_data():
     s.iloc[100] = 100
     s.iloc[1000] = -100
     flag_assertion = [100, 1000]
-    return dios.DictOfSeries(s), flag_assertion
+    return DictOfSeries(s), flag_assertion
 
 
 def test_flagMad(spiky_data):
@@ -99,7 +98,7 @@ def test_flagMVScores(dat):
     s1, s2 = data1.squeeze(), data2.squeeze()
     s1 = pd.Series(data=s1.values, index=s1.index)
     s2 = pd.Series(data=s2.values, index=s1.index)
-    data = dios.DictOfSeries([s1, s2], columns=["field1", "field2"])
+    data = DictOfSeries([s1, s2], columns=["field1", "field2"])
     flags = initFlagsLike(data)
     qc = SaQC(data, flags).flagMVScores(
         field=fields,
@@ -135,7 +134,7 @@ def test_flagCrossStatistics(dat):
     s1, s2 = data1.squeeze(), data2.squeeze()
     s1 = pd.Series(data=s1.values, index=s1.index)
     s2 = pd.Series(data=s2.values, index=s1.index)
-    data = dios.DictOfSeries([s1, s2], columns=["field1", "field2"])
+    data = DictOfSeries([s1, s2], columns=["field1", "field2"])
     flags = initFlagsLike(data)
 
     qc = SaQC(data, flags).flagCrossStatistics(

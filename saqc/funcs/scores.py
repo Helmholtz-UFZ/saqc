@@ -13,13 +13,13 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-import saqc.lib.ts_operators as ts_ops
-from saqc.constants import UNFLAGGED
-from saqc.core.register import register
+from saqc import UNFLAGGED
+from saqc.core import register
 from saqc.lib.tools import getApply, toSequence
+from saqc.lib.ts_operators import kNN
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 def _univarScoring(
@@ -210,7 +210,7 @@ class ScoresMixin:
 
             sample_size = partition.shape[0]
             nn_neighbors = min(n, max(sample_size, 2) - 1)
-            dist, *_ = ts_ops.kNN(
+            dist, *_ = kNN(
                 partition.values, nn_neighbors, algorithm=method, metric=metric, p=p
             )
             try:

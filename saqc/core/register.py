@@ -3,7 +3,6 @@
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
 from __future__ import annotations
 
 import functools
@@ -15,15 +14,20 @@ import numpy as np
 import pandas as pd
 from typing_extensions import ParamSpec
 
-import dios
-from saqc.constants import FILTER_ALL, FILTER_NONE, UNFLAGGED
-from saqc.core.flags import Flags, History
+from saqc import FILTER_ALL, FILTER_NONE
+from saqc.core import DictOfSeries, Flags, History
 from saqc.core.translation.basescheme import TranslationScheme
-from saqc.lib.tools import squeezeSequence, toSequence
+from saqc.lib.tools import isflagged, squeezeSequence, toSequence
 from saqc.lib.types import ExternalFlag, OptionalNone
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
+
+__all__ = [
+    "register",
+    "processing",
+    "flagging",
+]
 
 # NOTE:
 # the global SaQC function store,
@@ -153,24 +157,24 @@ def _squeezeFlags(old_flags, new_flags: Flags, columns: pd.Index, meta) -> Flags
 
 
 def _maskData(
-    data: dios.DictOfSeries, flags: Flags, columns: Sequence[str], thresh: float
-) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
+    data: DictOfSeries, flags: Flags, columns: Sequence[str], thresh: float
+) -> Tuple[DictOfSeries, DictOfSeries]:
     """
     Mask data with Nans, if the flags are worse than a threshold.
         - mask only passed `columns` (preselected by `datamask`-kw from decorator)
 
     Returns
     -------
-    masked : dios.DictOfSeries
+    masked : DictOfSeries
         masked data, same dim as original
-    mask : dios.DictOfSeries
+    mask : DictOfSeries
         dios holding iloc-data-pairs for every column in `data`
     """
-    mask = dios.DictOfSeries(columns=columns)
+    mask = DictOfSeries(columns=columns)
 
     # we use numpy here because it is faster
     for c in columns:
-        col_mask = _isflagged(flags[c], thresh)
+        col_mask = isflagged(flags[c], thresh)
 
         if col_mask.any():
             col_data = data[c].to_numpy(dtype=np.float64)
@@ -184,8 +188,8 @@ def _maskData(
 
 
 def _unmaskData(
-    data: dios.DictOfSeries, mask: dios.DictOfSeries, columns: pd.Index | None = None
-) -> dios.DictOfSeries:
+    data: DictOfSeries, mask: DictOfSeries, columns: pd.Index | None = None
+) -> DictOfSeries:
     """
     Restore the masked data.
 
@@ -462,19 +466,3 @@ def processing(**kwargs):
     if kwargs:
         raise ValueError("use '@register' to pass keywords")
     return register(mask=[], demask=[], squeeze=[])
-
-
-A = TypeVar("A", np.ndarray, pd.Series)
-
-
-def _isflagged(flagscol: A, thresh: float) -> A:
-    """
-    Return a mask of flags accordingly to `thresh`. Return type is same as flags.
-    """
-    if not isinstance(thresh, (float, int)):
-        raise TypeError(f"thresh must be of type float, not {repr(type(thresh))}")
-
-    if thresh == FILTER_ALL:
-        return flagscol > UNFLAGGED
-
-    return flagscol >= thresh

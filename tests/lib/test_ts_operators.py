@@ -9,7 +9,6 @@ import pytest
 from pandas.testing import assert_series_equal
 
 import saqc.lib.ts_operators as tsops
-from saqc.lib.ts_operators import interpolateNANs
 
 
 def test_butterFilter():
@@ -251,7 +250,7 @@ def test_rateOfChange(data, expected):
     ],
 )
 def test_interpolatNANs(limit, extrapolate, data, expected):
-    got = interpolateNANs(
+    got = tsops.interpolateNANs(
         pd.Series(data), gap_limit=limit, method="linear", extrapolate=extrapolate
     )
     try:

@@ -10,11 +10,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import dios
-from saqc.constants import UNFLAGGED
-from saqc.core.flags import Flags
-from tests.core.test_history import History
-from tests.core.test_history import is_equal as hist_equal
+import tests.core.test_history as test_hist
+from saqc import UNFLAGGED
+from saqc.core import DictOfSeries, Flags, History
 
 _arrays = [
     np.array([[]]),
@@ -42,7 +40,7 @@ testdata = []
 for d in _arrays:
     columns = list("abcdefgh")[: d.shape[1]]
     df = pd.DataFrame(d, dtype=float, columns=columns)
-    dis = dios.DictOfSeries(df)
+    dis = DictOfSeries(df)
     di = {}
     di.update(df.items())
     testdata.append(df)
@@ -53,7 +51,7 @@ for d in _arrays:
 def is_equal(f1, f2):
     assert f1.columns.equals(f2.columns)
     for c in f1.columns:
-        assert hist_equal(f1.history[c], f2.history[c])
+        assert test_hist.is_equal(f1.history[c], f2.history[c])
 
 
 @pytest.mark.parametrize("data", testdata)
@@ -103,7 +101,7 @@ def test_init_raise_TypeError(data, msg):
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_copy(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
+def test_copy(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
     shallow = flags.copy(deep=False)
     deep = flags.copy(deep=True)
@@ -131,9 +129,7 @@ def test_copy(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_flags_history(
-    data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
-):
+def test_flags_history(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
 
     # get
@@ -153,7 +149,7 @@ def test_flags_history(
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_get_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
+def test_get_flags(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
 
     for c in flags.columns:
@@ -172,7 +168,7 @@ def test_get_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Ser
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_set_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
+def test_set_flags(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
 
     for c in flags.columns:
@@ -202,7 +198,7 @@ def test_set_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Ser
 
 @pytest.mark.parametrize("data", testdata)
 def test_set_flags_with_mask(
-    data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
+    data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]
 ):
     flags = Flags(data)
 
@@ -249,7 +245,7 @@ def test_set_flags_with_mask(
 
 @pytest.mark.parametrize("data", testdata)
 def test_set_flags_with_index(
-    data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
+    data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]
 ):
     flags = Flags(data)
 
@@ -292,16 +288,16 @@ def _validate_flags_equals_frame(flags, df):
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_to_dios(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
+def test_to_dios(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
     df = flags.toDios()
 
-    assert isinstance(df, dios.DictOfSeries)
+    assert isinstance(df, DictOfSeries)
     _validate_flags_equals_frame(flags, df)
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_to_frame(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
+def test_to_frame(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
     df = flags.toFrame()
 

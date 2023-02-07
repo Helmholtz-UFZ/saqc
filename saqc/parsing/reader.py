@@ -15,9 +15,9 @@ from urllib.request import urlopen
 
 import pandas as pd
 
-from saqc.core.core import SaQC
-from saqc.core.visitor import ConfigFunctionParser
+from saqc import SaQC
 from saqc.lib.tools import isQuoted
+from saqc.parsing.visitor import ConfigFunctionParser
 
 COMMENT = "#"
 SEPARATOR = ";"

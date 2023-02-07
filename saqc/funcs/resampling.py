@@ -14,14 +14,13 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from dios import DtItype
-from saqc.core.register import _isflagged, register
+from saqc.core import register
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
-from saqc.lib.tools import evalFreqStr, filterKwargs, getFreqDelta
+from saqc.lib.tools import evalFreqStr, filterKwargs, getFreqDelta, isflagged
 from saqc.lib.ts_operators import aggregate2Freq, shift2Freq
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 METHOD2ARGS = {
@@ -272,8 +271,12 @@ class ResamplingMixin:
         datcol = self._data[field]
 
         # workaround for #GL-333
-        if datcol.empty and self._data.itype in [None, DtItype]:
-            datcol = pd.Series(index=pd.DatetimeIndex([]), dtype=datcol.dtype)
+        if datcol.empty:
+            if self._data.itype is None:
+                index = pd.DatetimeIndex([])
+            else:
+                index = self._data.itype.min_pdindex
+            datcol = pd.Series(index=index, dtype=datcol.dtype)
 
         freq = evalFreqStr(freq, freq_check, datcol.index)
 
@@ -407,7 +410,7 @@ class ResamplingMixin:
             func_kws = dict(freq=tolerance, method=projection_method, target=dummy)
 
         elif method[-5:] == "shift":
-            drop_mask = target_datcol.isna() | _isflagged(
+            drop_mask = target_datcol.isna() | isflagged(
                 target_flagscol, kwargs["dfilter"]
             )
             projection_method = METHOD2ARGS[method][0]
@@ -431,7 +434,7 @@ class ResamplingMixin:
         history = self._flags.history[field].apply(dummy.index, func, func_kws)
 
         if overwrite is False:
-            mask = _isflagged(self._flags[target], thresh=kwargs["dfilter"])
+            mask = isflagged(self._flags[target], thresh=kwargs["dfilter"])
             history._hist[mask] = np.nan
 
         if squeeze:

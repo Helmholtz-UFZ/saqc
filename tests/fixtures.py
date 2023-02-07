@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dios import DictOfSeries
+from saqc.core import DictOfSeries
 
 # TODO: this is odd
 #  Why not simple fixtures with talking-names,

@@ -15,8 +15,8 @@ from typing import Any, Hashable, MutableMapping
 import numpy as np
 import pandas as pd
 
-from dios import DictOfSeries, to_dios
 from saqc.core.flags import Flags, initFlagsLike
+from saqc.core.frame import DictOfSeries, concatDios, to_dios
 from saqc.core.history import History
 from saqc.core.register import FUNC_MAP
 from saqc.core.translation import (
@@ -27,7 +27,6 @@ from saqc.core.translation import (
     TranslationScheme,
 )
 from saqc.funcs import FunctionsMixin
-from saqc.lib.tools import concatDios
 
 # warnings
 pd.set_option("mode.chained_assignment", "warn")

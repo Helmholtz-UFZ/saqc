@@ -145,7 +145,7 @@ def saqcMethodsTemplate(doc_string: str, source="function_string"):
         out_para = mkParameter(
             parameter_name="out",
             parameter_type="saqc.SaQC",
-            parameter_doc="An :py:meth:`saqc.SaQC` object, holding the (possibly) modified data",
+            parameter_doc="An :py:meth:`saqc.SaQC` object, holding the data",
             indent_str=indent_string,
         )
         returns_section["Returns"] += out_para["out"]

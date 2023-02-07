@@ -18,11 +18,9 @@ import pandas as pd
 from scipy import fft
 from scipy.cluster.hierarchy import fcluster, linkage
 
-import dios
-
 # keep this for external imports
 # TODO: fix the external imports
-from saqc.lib.rolling import customRoller
+from saqc.lib.rolling import customRoller  # noqa
 from saqc.lib.types import CompT
 
 T = TypeVar("T", str, float, int)
@@ -169,59 +167,6 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
     if invert:
         out = ~out
     return out
-
-
-def concatDios(data: List[dios.DictOfSeries], warn: bool = True, stacklevel: int = 2):
-    # fast path for most common case
-    if len(data) == 1 and data[0].columns.is_unique:
-        return data[0]
-
-    result = dios.DictOfSeries()
-    for di in data:
-        for c in di.columns:
-            if c in result.columns:
-                if warn:
-                    warnings.warn(
-                        f"Column {c} already exist. Data is overwritten. "
-                        f"Avoid duplicate columns names over all inputs.",
-                        stacklevel=stacklevel,
-                    )
-            result[c] = di[c]
-
-    return result
-
-
-def mergeDios(left, right, subset=None, join="merge"):
-    # use dios.merge() as soon as it implemented
-    # see https://git.ufz.de/rdm/dios/issues/15
-
-    merged = left.copy()
-    if subset is not None:
-        right_subset_cols = right.columns.intersection(subset)
-    else:
-        right_subset_cols = right.columns
-
-    shared_cols = left.columns.intersection(right_subset_cols)
-
-    for c in shared_cols:
-        l, r = left[c], right[c]
-        if join == "merge":
-            # NOTE:
-            # our merge behavior is nothing more than an
-            # outer join, where the right join argument
-            # overwrites the left at the shared indices,
-            # while on a normal outer join common indices
-            # hold the values from the left join argument
-            r, l = l.align(r, join="outer")
-        else:
-            l, r = l.align(r, join=join)
-        merged[c] = l.combine_first(r)
-
-    newcols = right_subset_cols.difference(left.columns)
-    for c in newcols:
-        merged[c] = right[c].copy()
-
-    return merged
 
 
 def isQuoted(string):
@@ -594,3 +539,21 @@ def filterKwargs(
             )
         kwargs.pop(key, None)
     return kwargs
+
+
+from saqc import FILTER_ALL, UNFLAGGED
+
+A = TypeVar("A", np.ndarray, pd.Series)
+
+
+def isflagged(flagscol: A, thresh: float) -> A:
+    """
+    Return a mask of flags accordingly to `thresh`. Return type is same as flags.
+    """
+    if not isinstance(thresh, (float, int)):
+        raise TypeError(f"thresh must be of type float, not {repr(type(thresh))}")
+
+    if thresh == FILTER_ALL:
+        return flagscol > UNFLAGGED
+
+    return flagscol >= thresh

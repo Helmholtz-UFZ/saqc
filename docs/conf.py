@@ -32,7 +32,7 @@ version = vdict["__version__"]
 
 # -- Customize logging -------------------------------------------------------
 
-# couldn't get rid of a ignorable warning, so filter it
+# couldn't get rid of an ignorable warning, so filter it
 # also see: https://issuemode.com/issues/sphinx-doc/sphinx/73994507
 
 

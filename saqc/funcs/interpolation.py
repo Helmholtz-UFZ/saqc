@@ -13,12 +13,13 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from saqc.constants import UNFLAGGED
-from saqc.core.register import _isflagged, register
+from saqc import UNFLAGGED
+from saqc.core import register
+from saqc.lib.tools import isflagged
 from saqc.lib.ts_operators import interpolateNANs
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 _SUPPORTED_METHODS = Literal[
@@ -267,7 +268,7 @@ class InterpolationMixin:
         # TODO:
         # in future we could use `register(mask=[field], [], [])`
         # and dont handle masking manually here
-        flagged = _isflagged(self._flags[field], kwargs["dfilter"])
+        flagged = isflagged(self._flags[field], kwargs["dfilter"])
 
         # drop all points that hold no relevant grid information
         datcol = datcol[~flagged].dropna()

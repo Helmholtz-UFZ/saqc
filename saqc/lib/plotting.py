@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 import itertools
-from typing import Optional, Union
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -17,7 +16,7 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from saqc.core.flags import Flags
+from saqc.core import Flags
 from saqc.lib.tools import toSequence
 from saqc.lib.types import DiosLikeT
 

@@ -10,13 +10,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import dios
 import saqc
-from saqc.constants import BAD, DOUBTFUL, UNFLAGGED
-from saqc.core import initFlagsLike
-from saqc.core.core import SaQC
+from saqc import BAD, DOUBTFUL, UNFLAGGED, SaQC
+from saqc.core import DictOfSeries, initFlagsLike
 from tests.common import initData
-from tests.fixtures import char_dict, course_1
+from tests.fixtures import char_dict, course_1  # noqa, todo: fix fixtures
 
 
 @pytest.fixture
@@ -34,7 +32,7 @@ def test_statPass():
     noise = [-1, 1] * 10
     data[100:120] = noise
     data[200:210] = noise[:10]
-    data = dios.DictOfSeries(data)
+    data = DictOfSeries(data)
     flags = initFlagsLike(data)
     qc = SaQC(data, flags).flagByStatLowPass(
         "data", np.std, "20D", 0.999, "5D", 0.999, 0, flag=BAD
@@ -287,7 +285,7 @@ def test_transferFlags():
     qc = saqc.SaQC(data)
     qc = qc.flagRange("a", max=1.5)
     with pytest.deprecated_call():
-        qc = qc.transferFlags(["a", "a"], ["b", "c"])
+        qc = qc.transferFlags(["a", "a"], ["b", "c"])  # noqa
         assert np.all(qc.flags["b"].values == np.array([UNFLAGGED, BAD]))
         assert np.all(qc.flags["c"].values == np.array([UNFLAGGED, BAD]))
 

@@ -1278,6 +1278,7 @@ def _to_aligned_df(dios, no_value=" "):
 
 
 def to_dios(obj) -> DictOfSeries:
+    """try cast obj to DictOfSeries."""
     if isinstance(obj, DictOfSeries):
         return obj
     return DictOfSeries(data=obj)

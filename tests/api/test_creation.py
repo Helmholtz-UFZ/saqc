@@ -7,6 +7,8 @@
 import numpy as np
 import pandas as pd
 
+# directly import container class to avoid importing
+# saqc here.
 import dios
 
 

@@ -7,7 +7,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from abc import abstractmethod
+import abc
+from typing import Any, Dict, TypeVar, Union
+
+import numpy as np
+import pandas as pd
+from typing_extensions import Protocol
+
+from saqc.core import DictOfSeries
 
 __all__ = [
     "T",
@@ -18,15 +25,6 @@ __all__ = [
     "ExternalFlag",
     "OptionalNone",
 ]
-
-
-from typing import Any, Dict, TypeVar, Union
-
-import numpy as np
-import pandas as pd
-from typing_extensions import Protocol
-
-from dios import DictOfSeries
 
 T = TypeVar("T")
 ArrayLike = TypeVar("ArrayLike", np.ndarray, pd.Series, pd.DataFrame)
@@ -51,7 +49,7 @@ class GenericFunction(Protocol):
 
 
 class Comparable(Protocol):
-    @abstractmethod
+    @abc.abstractmethod
     def __gt__(self: CompT, other: CompT) -> bool:
         pass
 

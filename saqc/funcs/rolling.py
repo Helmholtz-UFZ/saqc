@@ -11,13 +11,11 @@ from typing import TYPE_CHECKING, Callable, Union
 import numpy as np
 import pandas as pd
 
-from dios import DictOfSeries
-from saqc.core.flags import Flags
-from saqc.core.register import register
+from saqc.core import DictOfSeries, Flags, register
 from saqc.lib.tools import getFreqDelta
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 class RollingMixin:

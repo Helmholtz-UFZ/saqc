@@ -15,19 +15,17 @@ import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
-from outliers import smirnov_grubbs
+from outliers import smirnov_grubbs  # noqa, on pypi as outlier-utils
 from scipy.stats import median_abs_deviation
 from typing_extensions import Literal
 
-from dios import DictOfSeries
-from saqc.constants import BAD, UNFLAGGED
-from saqc.core.flags import Flags
-from saqc.core.register import flagging, register
+from saqc import BAD, UNFLAGGED
+from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.funcs.scores import _univarScoring
 from saqc.lib.tools import customRoller, getFreqDelta, toSequence
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 class OutliersMixin:

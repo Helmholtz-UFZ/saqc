@@ -9,7 +9,7 @@
 import numpy as np
 import pytest
 
-from saqc.constants import BAD, UNFLAGGED
+from saqc import BAD, UNFLAGGED
 from saqc.core import SaQC, initFlagsLike
 from tests.common import initData
 

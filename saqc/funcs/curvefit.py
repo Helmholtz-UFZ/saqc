@@ -13,9 +13,7 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from dios import DictOfSeries
-from saqc.core.flags import Flags
-from saqc.core.register import register
+from saqc.core import DictOfSeries, Flags, register
 from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import (
     butterFilter,
@@ -27,7 +25,7 @@ from saqc.lib.ts_operators import (
 )
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 _FILL_METHODS = Literal[
     "linear",

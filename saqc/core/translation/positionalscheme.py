@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from saqc.constants import BAD, DOUBTFUL, GOOD, UNFLAGGED
-from saqc.core.flags import Flags, History
+from saqc.core import Flags, History
 from saqc.core.translation.basescheme import BackwardMap, ForwardMap, MappingScheme
 
 

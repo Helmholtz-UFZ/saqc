@@ -12,15 +12,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import dios
-from saqc import SaQC
-from saqc.constants import BAD, UNFLAGGED
-from saqc.core import initFlagsLike
-from saqc.core.flags import Flags
-from saqc.core.reader import fromConfig
-from saqc.core.register import register
-from saqc.core.visitor import ConfigFunctionParser
+from saqc import BAD, UNFLAGGED, SaQC
+from saqc.core import DictOfSeries, Flags, initFlagsLike, register
 from saqc.funcs.generic import _execGeneric
+from saqc.parsing.reader import fromConfig
+from saqc.parsing.visitor import ConfigFunctionParser
 from tests.common import initData, writeIO
 
 
@@ -36,7 +32,7 @@ def data_diff():
     col1 = data[data.columns[1]]
     mid = len(col0) // 2
     offset = len(col0) // 8
-    return dios.DictOfSeries(
+    return DictOfSeries(
         data={
             col0.name: col0.iloc[: mid + offset],
             col1.name: col1.iloc[mid - offset :],
