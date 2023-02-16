@@ -185,6 +185,80 @@ class InterpolationMixin:
         Returns
         -------
         saqc.SaQC
+
+        Examples
+        --------
+        See some examples of the keyword interplay below:
+
+        Lets generate some dummy data:
+
+        .. doctest:: interpolateInvalid
+
+           >>> data = pd.DataFrame({'data':np.array([np.nan, 0, np.nan, np.nan, np.nan, 4, 5, np.nan, np.nan, 8, 9, np.nan, np.nan])}, index=pd.date_range('2000',freq='1H', periods=13))
+           >>> data
+                                data
+           2000-01-01 00:00:00   NaN
+           2000-01-01 01:00:00   0.0
+           2000-01-01 02:00:00   NaN
+           2000-01-01 03:00:00   NaN
+           2000-01-01 04:00:00   NaN
+           2000-01-01 05:00:00   4.0
+           2000-01-01 06:00:00   5.0
+           2000-01-01 07:00:00   NaN
+           2000-01-01 08:00:00   NaN
+           2000-01-01 09:00:00   8.0
+           2000-01-01 10:00:00   9.0
+           2000-01-01 11:00:00   NaN
+           2000-01-01 12:00:00   NaN
+
+        Use :py:meth:`~saqc.SaQC.interpolateInvalid` to do linear interpolation of up to 2 consecutive missing values:
+
+        .. doctest:: interpolateInvalid
+
+           >>> qc = saqc.SaQC(data)
+           >>> qc = qc.interpolateInvalid("data", limit=3, method='time')
+           >>> qc.data # doctest:+NORMALIZE_WHITESPACE
+                               data |
+           ======================== |
+           2000-01-01 00:00:00  NaN |
+           2000-01-01 01:00:00  0.0 |
+           2000-01-01 02:00:00  NaN |
+           2000-01-01 03:00:00  NaN |
+           2000-01-01 04:00:00  NaN |
+           2000-01-01 05:00:00  4.0 |
+           2000-01-01 06:00:00  5.0 |
+           2000-01-01 07:00:00  6.0 |
+           2000-01-01 08:00:00  7.0 |
+           2000-01-01 09:00:00  8.0 |
+           2000-01-01 10:00:00  9.0 |
+           2000-01-01 11:00:00  NaN |
+           2000-01-01 12:00:00  NaN |
+           <BLANKLINE>
+
+
+        Use :py:meth:`~saqc.SaQC.interpolateInvalid` to do linear extrapolaiton of up to 1 consecutive missing values:
+
+        .. doctest:: interpolateInvalid
+
+           >>> qc = saqc.SaQC(data)
+           >>> qc = qc.interpolateInvalid("data", limit=2, method='time', extrapolate='both')
+           >>> qc.data # doctest:+NORMALIZE_WHITESPACE
+                               data |
+           ======================== |
+           2000-01-01 00:00:00  0.0 |
+           2000-01-01 01:00:00  0.0 |
+           2000-01-01 02:00:00  NaN |
+           2000-01-01 03:00:00  NaN |
+           2000-01-01 04:00:00  NaN |
+           2000-01-01 05:00:00  4.0 |
+           2000-01-01 06:00:00  5.0 |
+           2000-01-01 07:00:00  NaN |
+           2000-01-01 08:00:00  NaN |
+           2000-01-01 09:00:00  8.0 |
+           2000-01-01 10:00:00  9.0 |
+           2000-01-01 11:00:00  NaN |
+           2000-01-01 12:00:00  NaN |
+           <BLANKLINE>
         """
         inter_data = interpolateNANs(
             self._data[field],
