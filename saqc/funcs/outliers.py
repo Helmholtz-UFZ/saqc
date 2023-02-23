@@ -131,14 +131,14 @@ class OutliersMixin:
             return self
 
         if not window:
-            window = scores.shape[0]
+            window = len(scores)
 
         if isinstance(window, str):
             partitions = scores.groupby(pd.Grouper(freq=window))
 
         else:
             grouper_series = pd.Series(
-                data=np.arange(0, scores.shape[0]), index=scores.index
+                data=np.arange(0, len(scores)), index=scores.index
             )
             grouper_series = grouper_series.transform(
                 lambda x: int(np.floor(x / window))
@@ -147,10 +147,10 @@ class OutliersMixin:
 
         # calculate flags for every partition
         for _, partition in partitions:
-            if partition.empty | (partition.shape[0] < min_periods):
+            if partition.empty | (len(partition) < min_periods):
                 continue
 
-            sample_size = partition.shape[0]
+            sample_size = len(partition)
 
             sorted_i = partition.values.argsort()
             resids = partition.values[sorted_i]
@@ -931,7 +931,7 @@ class OutliersMixin:
         # period number defined test intervals
         if isinstance(window, int):
             grouper_series = pd.Series(
-                data=np.arange(0, datcol.shape[0]), index=datcol.index
+                data=np.arange(0, len(datcol)), index=datcol.index
             )
             grouper_series_lagged = grouper_series + (window / 2)
             grouper_series = grouper_series.transform(lambda x: x // window)
@@ -1036,7 +1036,7 @@ class OutliersMixin:
 
         fields = toSequence(field)
 
-        df = self._data[fields].loc[self._data[fields].index_of("shared")].to_df()
+        df = self._data[fields].to_df(how="inner")
 
         if isinstance(method, str):
             if method == "modZscore":
@@ -1265,7 +1265,7 @@ def _evalStrayLabels(
             if reduction_drop_flagged:
                 test_slice = test_slice.drop(to_flag_frame.index, errors="ignore")
 
-            if test_slice.shape[0] < reduction_min_periods:
+            if len(test_slice) < reduction_min_periods:
                 to_flag_frame.loc[index[1], var] = True
                 continue
 

@@ -214,13 +214,14 @@ class ToolsMixin:
             mask = periodicMask(datcol_idx, start, end, ~closed)
         elif mode == "selection_field":
             idx = self._data[selection_field].index.intersection(datcol_idx)
-            mask = self._data.loc[idx, selection_field]
+            mask = self._data[selection_field].loc[idx]
         else:
             raise ValueError(
                 "Keyword passed as masking mode is unknown ({})!".format(mode)
             )
 
-        self._data.aloc[mask, field] = np.nan
+        mask = mask.reindex(self._data[field].index, fill_value=False).astype(bool)
+        self._data[field].loc[mask] = np.nan
         self._flags[mask, field] = UNFLAGGED
         return self
 
@@ -301,7 +302,7 @@ class ToolsMixin:
         level = kwargs.get("flag", UNFLAGGED)
 
         if dfilter < np.inf:
-            data.loc[flags[field] >= dfilter, field] = np.nan
+            data[field].loc[flags[field] >= dfilter] = np.nan
 
         if store_kwargs is None:
             store_kwargs = {}

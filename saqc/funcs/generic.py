@@ -15,7 +15,7 @@ import pandas as pd
 from saqc import BAD, FILTER_ALL
 from saqc.core import DictOfSeries, Flags, History, register
 from saqc.core.register import _maskData
-from saqc.lib.tools import isflagged, toSequence
+from saqc.lib.tools import isAllBoolean, isflagged, toSequence
 from saqc.lib.types import GenericFunction, PandasLike
 from saqc.parsing.environ import ENVIRONMENT
 
@@ -51,7 +51,7 @@ def _prepare(
     for f in fchunk.columns:
         fchunk.history[f] = flags.history[f]
     dchunk, _ = _maskData(
-        data=data.loc[:, columns].copy(), flags=fchunk, columns=columns, thresh=dfilter
+        data=data[columns].copy(), flags=fchunk, columns=columns, thresh=dfilter
     )
     return dchunk, fchunk.copy()
 
@@ -169,7 +169,7 @@ class GenericMixin:
 
         # update data & flags
         for i, col in enumerate(targets):
-            datacol = result.iloc[:, i]
+            datacol = result[result.columns[i]]
             self._data[col] = datacol
 
             if col not in self._flags:
@@ -272,7 +272,7 @@ class GenericMixin:
                 f"the generic function returned {len(result.columns)} field(s), but only {len(targets)} target(s) were given"
             )
 
-        if not result.empty and not (result.dtypes == bool).all():
+        if not result.empty and not isAllBoolean(result):
             raise TypeError(f"generic expression does not return a boolean array")
 
         meta = {
@@ -288,7 +288,7 @@ class GenericMixin:
 
         # update flags & data
         for i, col in enumerate(targets):
-            maskcol = result.iloc[:, i]
+            maskcol = result[result.columns[i]]
 
             # make sure the column exists
             if col not in self._flags:

@@ -52,14 +52,12 @@ class TransformationMixin:
         val_ser = self._data[field].copy()
         # partitioning
         if not freq:
-            freq = val_ser.shape[0]
+            freq = len(val_ser)
 
         if isinstance(freq, str):
             grouper = pd.Grouper(freq=freq)
         else:
-            grouper = pd.Series(
-                data=np.arange(0, val_ser.shape[0]), index=val_ser.index
-            )
+            grouper = pd.Series(data=np.arange(0, len(val_ser)), index=val_ser.index)
             grouper = grouper.transform(lambda x: int(np.floor(x / freq)))
 
         partitions = val_ser.groupby(grouper)

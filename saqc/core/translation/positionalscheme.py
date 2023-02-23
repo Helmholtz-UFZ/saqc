@@ -91,7 +91,7 @@ class PositionalScheme(MappingScheme):
         for field in flags.columns:
             thist = flags.history[field].hist.replace(self._BACKWARD).astype(float)
             # concatenate the single flag values
-            ncols = thist.shape[-1]
+            ncols = len(thist.columns)
             init = 9 * 10**ncols
             bases = 10 ** np.arange(ncols - 1, -1, -1)
 

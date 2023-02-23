@@ -106,19 +106,38 @@ def test_overwriteFieldFlagGeneric(data, fields, func):
 
 
 @pytest.mark.parametrize(
-    "targets, func",
+    "data, targets, func, expected_data",
     [
-        (["tmp"], lambda x, y: x + y),
-        (["tmp1", "tmp2"], lambda x, y: (x + y, y * 2)),
+        (
+            DictOfSeries(dict(a=pd.Series([1.0, 2.0]), b=pd.Series([10.0, 20.0]))),
+            ["t1"],
+            lambda x, y: x + y,
+            DictOfSeries(
+                dict(
+                    a=pd.Series([1.0, 2.0]),
+                    b=pd.Series([10.0, 20.0]),
+                    t1=pd.Series([11.0, 22.0]),
+                )
+            ),
+        ),
+        (
+            DictOfSeries(dict(a=pd.Series([1.0, 2.0]), b=pd.Series([10.0, 20.0]))),
+            ["t1", "t2"],
+            lambda x, y: (x + y, y * 2),
+            DictOfSeries(
+                dict(
+                    a=pd.Series([1.0, 2.0]),
+                    b=pd.Series([10.0, 20.0]),
+                    t1=pd.Series([11.0, 22.0]),
+                    t2=pd.Series([20.0, 40.0]),
+                )
+            ),
+        ),
     ],
 )
-def test_writeTargetProcGeneric(data, targets, func):
-    fields = ["var1", "var2"]
+def test_writeTargetProcGeneric(data, targets, func, expected_data):
+    fields = data.columns.tolist()
     dfilter = 128
-
-    expected_data = DictOfSeries(
-        func(*[data[f] for f in fields]), columns=toSequence(targets)
-    ).squeeze()
 
     expected_meta = {
         "func": "procGeneric",
@@ -140,7 +159,7 @@ def test_writeTargetProcGeneric(data, targets, func):
         dfilter=dfilter,
         label="generic",
     )
-    assert (expected_data == res.data[targets].squeeze()).all(axis=None)
+    assert (expected_data == res.data).all(axis=None)
     # check that new histories where created
     for target in targets:
         assert res._flags.history[target].hist.iloc[0].isna().all()
@@ -148,17 +167,24 @@ def test_writeTargetProcGeneric(data, targets, func):
 
 
 @pytest.mark.parametrize(
-    "fields, func",
+    "data, fields, func, expected_data",
     [
-        (["var1"], lambda x: x * 2),
-        (["var1", "var2"], lambda x, y: (x + y, y * 2)),
+        (
+            DictOfSeries(dict(a=pd.Series([1.0, 2.0]), b=pd.Series([10.0, 20.0]))),
+            ["a"],
+            lambda x: x * 2,
+            DictOfSeries(dict(a=pd.Series([2.0, 4.0]), b=pd.Series([10.0, 20.0]))),
+        ),
+        (
+            DictOfSeries(dict(a=pd.Series([1.0, 2.0]), b=pd.Series([10.0, 20.0]))),
+            ["a", "b"],
+            lambda x, y: (x + y, y * 2),
+            DictOfSeries(dict(a=pd.Series([11.0, 22.0]), b=pd.Series([20.0, 40.0]))),
+        ),
     ],
 )
-def test_overwriteFieldProcGeneric(data, fields, func):
+def test_overwriteFieldProcGeneric(data, fields, func, expected_data):
     dfilter = 128
-    expected_data = DictOfSeries(
-        func(*[data[f] for f in fields]), columns=fields
-    ).squeeze()
 
     expected_meta = {
         "func": "procGeneric",
@@ -176,7 +202,7 @@ def test_overwriteFieldProcGeneric(data, fields, func):
     )
 
     res = saqc.processGeneric(field=fields, func=func, dfilter=dfilter, label="generic")
-    assert (expected_data == res.data[fields].squeeze()).all(axis=None)
+    assert (expected_data == res.data).all(axis=None)
     # check that the histories got appended
     for field in fields:
         assert (res._flags.history[field].hist[0] == 127.0).all()
