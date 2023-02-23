@@ -212,7 +212,7 @@ def _fitPolynomial(
             window = int(window - 1)
         if min_periods is None:
             min_periods = window
-        if to_fit.shape[0] < 200000:
+        if len(to_fit) < 200000:
             numba = False
         else:
             numba = True

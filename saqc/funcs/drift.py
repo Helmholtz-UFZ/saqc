@@ -138,12 +138,12 @@ class DriftMixin:
         """
         fields = toSequence(field)
 
-        data_to_flag = self._data[fields].to_df()
-        data_to_flag.dropna(inplace=True)
+        data = self._data[fields].to_df()
+        data.dropna(inplace=True)
 
-        segments = data_to_flag.groupby(pd.Grouper(freq=freq))
+        segments = data.groupby(pd.Grouper(freq=freq))
         for segment in segments:
-            if segment[1].shape[0] <= 1:
+            if len(segment[1]) <= 1:
                 continue
 
             drifters = detectDeviants(
@@ -223,11 +223,11 @@ class DriftMixin:
         if reference not in fields:
             fields.append(reference)
 
-        data_to_flag = self._data[fields].to_df().dropna()
+        data = self._data[fields].to_df().dropna()
 
-        segments = data_to_flag.groupby(pd.Grouper(freq=freq))
+        segments = data.groupby(pd.Grouper(freq=freq))
         for segment in segments:
-            if segment[1].shape[0] <= 1:
+            if len(segment[1]) <= 1:
                 continue
 
             for i in range(len(fields)):
@@ -346,7 +346,7 @@ class DriftMixin:
         drift_frame = pd.DataFrame(d, index=to_correct_clean.index)
 
         # group the drift frame
-        for k in range(0, maint_data.shape[0] - 1):
+        for k in range(0, len(maint_data) - 1):
             # assign group numbers for the timespans in between one maintenance ending and the beginning of the next
             # maintenance time itself remains np.nan assigned
             drift_frame.loc[
@@ -460,13 +460,13 @@ class DriftMixin:
         first_valid = np.array(
             [
                 ~pd.isna(para_dict[unique_successive[i]]).any()
-                for i in range(0, unique_successive.shape[0])
+                for i in range(0, len(unique_successive))
             ]
         )
         first_valid = np.where(first_normal & first_valid)[0][0]
         last_valid = 1
 
-        for k in range(0, unique_successive.shape[0]):
+        for k in range(0, len(unique_successive)):
             if unique_successive[k] < 0 & (
                 not pd.isna(para_dict[unique_successive[k]]).any()
             ):
@@ -757,8 +757,8 @@ def _assignRegimeAnomaly(
     plateaus = detectDeviants(cluster_dios, metric, spread, frac, method, "samples")
 
     if set_flags:
-        for p in plateaus:
-            flags[cluster_dios.iloc[:, p].index, field] = flag
+        for p, cols in zip(plateaus, cluster_dios.columns[plateaus]):
+            flags[cluster_dios[cols].index, field] = flag
 
     if set_cluster:
         for p in plateaus:

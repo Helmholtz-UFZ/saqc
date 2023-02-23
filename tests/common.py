@@ -22,14 +22,14 @@ def initData(
     if rows is None:
         freq = freq or "1h"
 
-    di = DictOfSeries(itype="datetime")
+    di = dict()
     dates = pd.date_range(start=start_date, end=end_date, freq=freq, periods=rows)
     dummy = np.arange(len(dates))
 
     for col in range(1, cols + 1):
         di[f"var{col}"] = pd.Series(data=dummy * col, index=dates)
 
-    return di
+    return DictOfSeries(di)
 
 
 def dummyHistory(hist: pd.DataFrame = None, meta: list = None):

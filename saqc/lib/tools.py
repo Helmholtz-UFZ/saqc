@@ -8,10 +8,11 @@
 from __future__ import annotations
 
 import collections
+import functools
 import itertools
 import re
 import warnings
-from typing import Callable, Collection, List, Sequence, TypeVar, Union
+from typing import Any, Callable, Collection, List, Sequence, TypeVar, Union
 
 import numpy as np
 import pandas as pd
@@ -374,7 +375,9 @@ def detectDeviants(
     dist_mat = np.zeros((var_num, var_num))
     combs = list(itertools.combinations(range(0, var_num), 2))
     for i, j in combs:
-        dist = metric(data.iloc[:, i].values, data.iloc[:, j].values)
+        d_i = data[data.columns[i]]
+        d_j = data[data.columns[j]]
+        dist = metric(d_i.values, d_j.values)
         dist_mat[i, j] = dist
 
     condensed = np.abs(dist_mat[tuple(zip(*combs))])
@@ -386,7 +389,8 @@ def detectDeviants(
     elif population == "samples":
         counts = {cluster[j]: 0 for j in range(0, var_num)}
         for c in range(var_num):
-            counts[cluster[c]] += data.iloc[:, c].dropna().shape[0]
+            field = data.columns[c]
+            counts[cluster[c]] += data[field].dropna().shape[0]
         pop_num = np.sum(list(counts.values()))
     else:
         raise ValueError(
@@ -557,3 +561,32 @@ def isflagged(flagscol: A, thresh: float) -> A:
         return flagscol > UNFLAGGED
 
     return flagscol >= thresh
+
+
+def getUnionIndex(obj, default: pd.DatetimeIndex | None = None):
+    assert hasattr(obj, "columns")
+    if default is None:
+        default = pd.DatetimeIndex([])
+    indexes = [obj[k].index for k in obj.columns]
+    if indexes:
+        return functools.reduce(pd.Index.union, indexes).sort_values()
+    return default
+
+
+def getSharedIndex(obj, default: pd.DatetimeIndex | None = None):
+    assert hasattr(obj, "columns")
+    if default is None:
+        default = pd.DatetimeIndex([])
+    indexes = [obj[k].index for k in obj.columns]
+    if indexes:
+        return functools.reduce(pd.Index.intersection, indexes).sort_values()
+    return default
+
+
+def isAllBoolean(obj: Any):
+    if not hasattr(obj, "columns"):
+        return pd.api.types.is_bool_dtype(obj)
+    for c in obj.columns:
+        if not pd.api.types.is_bool_dtype(obj[c]):
+            return False
+    return True

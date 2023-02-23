@@ -113,7 +113,7 @@ def test_arithmeticOperators(data):
 
 def test_nonReduncingBuiltins(data):
     var1, *_ = data.columns
-    data = data.iloc[1:10, 0]
+    data = data[var1].iloc[1:10]
     flags = Flags({var1: pd.Series(UNFLAGGED, index=data.index)})
 
     tests = [

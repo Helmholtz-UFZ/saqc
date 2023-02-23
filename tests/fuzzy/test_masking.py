@@ -61,7 +61,7 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     flags[:, field] = UNFLAGGED
     data_out = _unmaskData(data_masked, mask)
-    assert (data_out.loc[flags[field] == BAD, field].isna()).all(axis=None)
+    assert (data_out[field].loc[flags[field] == BAD].isna()).all(axis=None)
 
 
 @pytest.mark.slow

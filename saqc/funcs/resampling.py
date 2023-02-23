@@ -270,13 +270,9 @@ class ResamplingMixin:
 
         datcol = self._data[field]
 
-        # workaround for #GL-333
         if datcol.empty:
-            if self._data.itype is None:
-                index = pd.DatetimeIndex([])
-            else:
-                index = self._data.itype.min_pdindex
-            datcol = pd.Series(index=index, dtype=datcol.dtype)
+            # see for #GL-374
+            datcol = pd.Series(index=pd.DatetimeIndex([]), dtype=datcol.dtype)
 
         freq = evalFreqStr(freq, freq_check, datcol.index)
 

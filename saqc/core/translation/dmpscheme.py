@@ -17,6 +17,7 @@ import pandas as pd
 from saqc import BAD, DOUBTFUL, GOOD, UNFLAGGED
 from saqc.core import Flags, History
 from saqc.core.translation.basescheme import BackwardMap, ForwardMap, MappingScheme
+from saqc.lib.tools import getUnionIndex
 
 _QUALITY_CAUSES = [
     "",
@@ -133,7 +134,7 @@ class DmpScheme(MappingScheme):
         tflags = super().toExternal(flags, attrs=attrs)
 
         out = pd.DataFrame(
-            index=reduce(lambda x, y: x.union(y), tflags.indexes).sort_values(),
+            index=getUnionIndex(tflags),
             columns=pd.MultiIndex.from_product([flags.columns, _QUALITY_LABELS]),
         )
 
