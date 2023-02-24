@@ -31,6 +31,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - python 3.7 support
 ### Fixed
 - Error for interpolations with limits set to be greater than 2 (`interpolateNANs`)
+- Error when fitting polynomials to irregularly sampled data (`fitPolynomial`)
 
 ## [2.2.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.2.1) - 2022-10-29
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.0...v2.2.1)
