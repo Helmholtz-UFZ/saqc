@@ -7,13 +7,9 @@
 import numpy as np
 import pandas as pd
 
-# directly import container class to avoid importing
-# saqc here.
-import dios
-
 
 def test_init():
-    from saqc import Flags, SaQC
+    from saqc import DictOfSeries, Flags, SaQC
 
     arr = np.array(
         [
@@ -26,4 +22,4 @@ def test_init():
 
     assert isinstance(qc, SaQC)
     assert isinstance(qc._flags, Flags)
-    assert isinstance(qc._data, dios.DictOfSeries)
+    assert isinstance(qc._data, DictOfSeries)

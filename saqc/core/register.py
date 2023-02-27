@@ -170,19 +170,17 @@ def _maskData(
     mask : DictOfSeries
         dios holding iloc-data-pairs for every column in `data`
     """
-    mask = DictOfSeries(columns=columns)
+    mask = DictOfSeries()
 
     # we use numpy here because it is faster
     for c in columns:
-        col_mask = isflagged(flags[c], thresh)
+        col_mask = isflagged(flags[c].to_numpy(), thresh)
 
         if col_mask.any():
             col_data = data[c].to_numpy(dtype=np.float64)
-
             mask[c] = pd.Series(col_data[col_mask], index=np.where(col_mask)[0])
-
             col_data[col_mask] = np.nan
-            data[c] = col_data
+            data[c] = pd.Series(col_data, index=data[c].index, dtype=data[c].dtype)
 
     return data, mask
 

@@ -159,7 +159,7 @@ def test_writeTargetProcGeneric(data, targets, func, expected_data):
         dfilter=dfilter,
         label="generic",
     )
-    assert (expected_data == res.data).all(axis=None)
+    assert expected_data == res.data
     # check that new histories where created
     for target in targets:
         assert res._flags.history[target].hist.iloc[0].isna().all()
@@ -202,7 +202,7 @@ def test_overwriteFieldProcGeneric(data, fields, func, expected_data):
     )
 
     res = saqc.processGeneric(field=fields, func=func, dfilter=dfilter, label="generic")
-    assert (expected_data == res.data).all(axis=None)
+    assert expected_data == res.data
     # check that the histories got appended
     for field in fields:
         assert (res._flags.history[field].hist[0] == 127.0).all()
@@ -223,7 +223,7 @@ def test_label():
     qc = qc.flagGeneric(
         ["data1", "data3"],
         target="data2",
-        func=lambda x, y: isflagged(x, "out of range") | isflagged(y),
+        func=lambda x, y: isflagged(x, "out of range") | isflagged(y),  # noqa
     )
     assert list((qc.flags["data2"] > 0).values) == [False, False, True, False, False]
 

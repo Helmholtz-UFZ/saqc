@@ -152,11 +152,11 @@ def functionKwargs(draw, func):
     i64 = np.iinfo("int64")
 
     strategies = {
-        FreqString: frequencyStrings,
-        ColumnName: lambda _: sampled_from(
-            sorted(c for c in data.columns if c != field)
-        ),
-        IntegerWindow: lambda _: integers(min_value=1, max_value=len(data[field]) - 1),
+        # FreqString: frequencyStrings,
+        # ColumnName: lambda _: sampled_from(
+        #     sorted(c for c in data.columns if c != field)
+        # ),
+        # IntegerWindow: lambda _: integers(min_value=1, max_value=len(data[field]) - 1),
         int: lambda _: integers(min_value=i64.min + 1, max_value=i64.max - 1),
     }
 

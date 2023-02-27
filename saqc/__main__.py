@@ -111,10 +111,10 @@ def main(config, data, scheme, outfile, nodata, log_level):
         scheme=TRANSLATION_SCHEMES[scheme or "simple"](),
     )
 
-    data_result = saqc.data.to_df()
+    data_result = saqc.data.to_pandas()
     flags_result = saqc.flags
     if isinstance(flags_result, DictOfSeries):
-        flags_result = flags_result.to_df()
+        flags_result = flags_result.to_pandas()
 
     if outfile:
         data_result.columns = pd.MultiIndex.from_product(

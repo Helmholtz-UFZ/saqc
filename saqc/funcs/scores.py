@@ -180,7 +180,7 @@ class ScoresMixin:
             target = target[0]
 
         fields = toSequence(field)
-        val_frame = self._data[fields].copy().to_df(how="inner")
+        val_frame = self._data[fields].copy().to_pandas(how="inner")
         score_ser = pd.Series(np.nan, index=val_frame.index, name=target)
         val_frame.dropna(inplace=True)
 

@@ -109,7 +109,7 @@ def test_resample(course_5):
 def test_interpolateGrid(course_5, course_3):
     data, _ = course_5()
     data_grid, _ = course_3()
-    data["grid"] = data_grid.to_df()
+    data["grid"] = data_grid["data"]
     flags = initFlagsLike(data)
     SaQC(data, flags).interpolateIndex(
         "data", "1h", "time", grid_field="grid", limit=10
@@ -123,7 +123,7 @@ def test_offsetCorrecture():
     data.iloc[70:80] = 100
     flags = initFlagsLike(data)
     qc = SaQC(data, flags).correctOffset("dat", 40, 20, "3d", 1)
-    assert (qc.data == 0).all()[0]
+    assert (qc.data["dat"] == 0).all()
 
 
 # GL-333

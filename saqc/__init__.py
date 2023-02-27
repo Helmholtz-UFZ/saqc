@@ -8,7 +8,7 @@
 """The System for automated Quality Control package."""
 
 from saqc.constants import BAD, DOUBTFUL, FILTER_ALL, FILTER_NONE, GOOD, UNFLAGGED
-from saqc.core import Flags, SaQC
+from saqc.core import Flags, DictOfSeries, SaQC
 from saqc.core.translation import DmpScheme, FloatScheme, PositionalScheme, SimpleScheme
 from saqc.parsing.reader import fromConfig
 from saqc.version import __version__

@@ -21,11 +21,11 @@ from tests.fixtures import char_dict, course_1, course_2, course_3, course_4
 @pytest.fixture(scope="module")
 def spiky_data():
     index = pd.date_range(start="2011-01-01", end="2011-01-05", freq="5min")
-    s = pd.Series(np.linspace(1, 2, index.size), index=index, name="spiky_data")
+    s = pd.Series(np.linspace(1, 2, index.size), index=index)
     s.iloc[100] = 100
     s.iloc[1000] = -100
     flag_assertion = [100, 1000]
-    return DictOfSeries(s), flag_assertion
+    return DictOfSeries(spiky_data=s), flag_assertion
 
 
 def test_flagMad(spiky_data):
@@ -95,10 +95,10 @@ def test_flagMVScores(dat):
         periods=1000, initial_level=20, final_level=1, out_val=30
     )
     fields = ["field1", "field2"]
-    s1, s2 = data1.squeeze(), data2.squeeze()
+    s1, s2 = data1["data"], data2["data"]
     s1 = pd.Series(data=s1.values, index=s1.index)
     s2 = pd.Series(data=s2.values, index=s1.index)
-    data = DictOfSeries([s1, s2], columns=["field1", "field2"])
+    data = DictOfSeries(field1=s1, field2=s2)
     flags = initFlagsLike(data)
     qc = SaQC(data, flags).flagMVScores(
         field=fields,
@@ -131,10 +131,10 @@ def test_flagCrossStatistics(dat):
     data1, characteristics = dat(initial_level=0, final_level=0, out_val=0)
     data2, characteristics = dat(initial_level=0, final_level=0, out_val=10)
     fields = ["field1", "field2"]
-    s1, s2 = data1.squeeze(), data2.squeeze()
+    s1, s2 = data1["data"], data2["data"]
     s1 = pd.Series(data=s1.values, index=s1.index)
     s2 = pd.Series(data=s2.values, index=s1.index)
-    data = DictOfSeries([s1, s2], columns=["field1", "field2"])
+    data = DictOfSeries(field1=s1, field2=s2)
     flags = initFlagsLike(data)
 
     qc = SaQC(data, flags).flagCrossStatistics(
@@ -157,19 +157,19 @@ def test_flagZScores():
     qc = saqc.SaQC(data)
     qc = qc.flagZScore("data", window=None)
 
-    assert (qc.flags.to_df().iloc[[5, 40, 80], 0] > 0).all()
+    assert (qc.flags.to_pandas().iloc[[5, 40, 80], 0] > 0).all()
 
     qc = saqc.SaQC(data)
     qc = qc.flagZScore("data", window=None, min_residuals=10)
 
-    assert (qc.flags.to_df()["data"] < 0).all()
+    assert (qc.flags.to_pandas()["data"] < 0).all()
 
     qc = saqc.SaQC(data)
     qc = qc.flagZScore("data", window="20D")
 
-    assert (qc.flags.to_df().iloc[[40, 80], 0] > 0).all()
+    assert (qc.flags.to_pandas().iloc[[40, 80], 0] > 0).all()
 
     qc = saqc.SaQC(data)
     qc = qc.flagZScore("data", window=20)
 
-    assert (qc.flags.to_df().iloc[[40, 80], 0] > 0).all()
+    assert (qc.flags.to_pandas().iloc[[40, 80], 0] > 0).all()

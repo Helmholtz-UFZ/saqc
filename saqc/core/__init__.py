@@ -4,7 +4,7 @@
 # -*- coding: utf-8 -*-
 
 # isort: skip_file
-from saqc.core.frame import DictOfSeries, to_dios  # noqa
+from saqc.core.frame import DictOfSeries
 from saqc.core.history import History
 from saqc.core.flags import Flags, initFlagsLike
 from saqc.core.register import flagging, processing, register
