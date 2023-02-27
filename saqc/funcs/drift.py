@@ -138,7 +138,7 @@ class DriftMixin:
         """
         fields = toSequence(field)
 
-        data = self._data[fields].to_df()
+        data = self._data[fields].to_pandas()
         data.dropna(inplace=True)
 
         segments = data.groupby(pd.Grouper(freq=freq))
@@ -223,7 +223,7 @@ class DriftMixin:
         if reference not in fields:
             fields.append(reference)
 
-        data = self._data[fields].to_df().dropna()
+        data = self._data[fields].to_pandas().dropna()
 
         segments = data.groupby(pd.Grouper(freq=freq))
         for segment in segments:
@@ -342,7 +342,7 @@ class DriftMixin:
         maint_data = self._data[maintenance_field].copy()
 
         to_correct_clean = to_correct.dropna()
-        d = {"drift_group": np.nan, to_correct.name: to_correct_clean.values}
+        d = {"drift_group": np.nan, field: to_correct_clean.values}
         drift_frame = pd.DataFrame(d, index=to_correct_clean.index)
 
         # group the drift frame
@@ -361,7 +361,7 @@ class DriftMixin:
         )
 
         for k, group in drift_grouper:
-            data_series = group[to_correct.name]
+            data_series = group[field]
             data_fit, data_shiftTarget = _driftFit(
                 data_series, shift_targets.loc[k, :][0], cal_range, model
             )
@@ -753,7 +753,7 @@ def _assignRegimeAnomaly(
 ) -> Tuple[DictOfSeries, Flags]:
     series = data[cluster_field]
     cluster = np.unique(series)
-    cluster_dios = DictOfSeries({i: data[field][series == i] for i in cluster})
+    cluster_dios = DictOfSeries({str(i): data[field][series == i] for i in cluster})
     plateaus = detectDeviants(cluster_dios, metric, spread, frac, method, "samples")
 
     if set_flags:

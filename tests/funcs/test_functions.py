@@ -32,7 +32,7 @@ def test_statPass():
     noise = [-1, 1] * 10
     data[100:120] = noise
     data[200:210] = noise[:10]
-    data = DictOfSeries(data)
+    data = DictOfSeries(data=data)
     flags = initFlagsLike(data)
     qc = SaQC(data, flags).flagByStatLowPass(
         "data", np.std, "20D", 0.999, "5D", 0.999, 0, flag=BAD

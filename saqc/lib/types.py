@@ -19,8 +19,6 @@ from saqc.core import DictOfSeries
 __all__ = [
     "T",
     "ArrayLike",
-    "PandasLike",
-    "DiosLikeT",
     "CurveFitter",
     "ExternalFlag",
     "OptionalNone",
@@ -28,8 +26,6 @@ __all__ = [
 
 T = TypeVar("T")
 ArrayLike = TypeVar("ArrayLike", np.ndarray, pd.Series, pd.DataFrame)
-PandasLike = Union[pd.Series, pd.DataFrame, DictOfSeries]
-DiosLikeT = Union[DictOfSeries, pd.DataFrame]
 
 ExternalFlag = Union[str, float, int]
 
@@ -44,7 +40,7 @@ class GenericFunction(Protocol):
     __name__: str
     __globals__: Dict[str, Any]
 
-    def __call__(self, *args: pd.Series) -> PandasLike:
+    def __call__(self, *args: pd.Series) -> pd.Series | pd.DataFrame | DictOfSeries:
         ...  # pragma: no cover
 
 

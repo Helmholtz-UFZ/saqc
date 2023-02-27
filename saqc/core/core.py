@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from saqc.core.flags import Flags, initFlagsLike
-from saqc.core.frame import DictOfSeries, concatDios, to_dios
+from saqc.core.frame import DictOfSeries
 from saqc.core.history import History
 from saqc.core.register import FUNC_MAP
 from saqc.core.translation import (
@@ -153,23 +153,34 @@ class SaQC(FunctionsMixin):
     def _initData(self, data) -> DictOfSeries:
         if data is None:
             return DictOfSeries()
-
         if isinstance(data, list):
-            results = []
+            result = DictOfSeries()
+            doubles = pd.Index([])
             for d in data:
-                results.append(self._castToDios(d))
-            return concatDios(results, warn=True, stacklevel=3)
+                new = self._castData(d)
+                doubles = doubles.union(result.columns.intersection(new.columns))
+                result.update(new)
+            if not doubles.empty:
+                warnings.warn(
+                    f"Column(s) {doubles.tolist()} was present multiple "
+                    f"times in input data. Some data was overwritten. "
+                    f"Avoid duplicate columns names over all inputs.",
+                    stacklevel=2,
+                )
+            return result
+        try:
+            return self._castData(data)
+        except ValueError as e:
+            raise e from None
+        except TypeError as e:
+            raise TypeError(
+                "'data' must be of type pandas.Series, "
+                "pandas.DataFrame or saqc.DictOfSeries or "
+                "a list of those or a dict with string keys "
+                "and pandas.Series as values."
+            ) from e
 
-        if isinstance(data, (DictOfSeries, pd.DataFrame, pd.Series)):
-            return self._castToDios(data)
-
-        raise TypeError(
-            "'data' must be of type pandas.Series, "
-            "pandas.DataFrame or dios.DictOfSeries or "
-            "a list of those."
-        )
-
-    def _castToDios(self, data):
+    def _castData(self, data) -> DictOfSeries:
         if isinstance(data, pd.Series):
             if not isinstance(data.name, str):
                 raise ValueError(f"Cannot init from unnamed pd.Series")
@@ -177,12 +188,12 @@ class SaQC(FunctionsMixin):
         if isinstance(data, pd.DataFrame):
             for idx in [data.index, data.columns]:
                 if isinstance(idx, pd.MultiIndex):
-                    raise TypeError("'data' should not have MultiIndex")
-        data = to_dios(data)  # noop for DictOfSeries
-        for c in data.columns:
-            if not isinstance(c, str):
-                raise TypeError("columns labels must be of type string")
-        return data
+                    raise ValueError("'data' should not have MultiIndex")
+        try:
+            # This ensures that values are pd.Series
+            return DictOfSeries(data)
+        except Exception:
+            raise TypeError(f"Cannot cast {type(data)} to DictOfSeries") from None
 
     def _initFlags(self, flags) -> Flags:
         if flags is None:

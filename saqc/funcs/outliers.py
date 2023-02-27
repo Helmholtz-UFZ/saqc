@@ -723,6 +723,7 @@ class OutliersMixin:
 
         .. doctest:: flagOffsetExample
 
+           >>> import saqc
            >>> data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
            >>> data
                                 data
@@ -747,7 +748,7 @@ class OutliersMixin:
         .. doctest:: flagOffsetExample
 
            >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
-           >>> qc.plot('data') # doctest:+SKIP
+           >>> qc.plot('data')  # doctest: +SKIP
 
         .. plot::
            :context: close-figs
@@ -755,7 +756,7 @@ class OutliersMixin:
 
            >>> qc = saqc.SaQC(data)
            >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
-           >>> qc.plot('data')
+           >>> qc.plot('data')  # doctest: +SKIP
 
         Note, that both, negative and positive jumps are considered starting points of negative or positive offsets.
         If you want to impose the additional condition, that the initial value jump must exceed *+90%* of the value level,
@@ -772,7 +773,7 @@ class OutliersMixin:
 
            >>> qc = saqc.SaQC(data)
            >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6H')
-           >>> qc.plot('data')
+           >>> qc.plot('data')  # doctest: +SKIP
 
         Now, only positive jumps, that exceed a value gain of *+90%* are considered starting points of offsets.
 
@@ -790,7 +791,7 @@ class OutliersMixin:
 
            >>> qc = saqc.SaQC(data)
            >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6H')
-           >>> qc.plot('data')
+           >>> qc.plot('data')  # doctest: +SKIP
 
 
         References
@@ -1036,7 +1037,7 @@ class OutliersMixin:
 
         fields = toSequence(field)
 
-        df = self._data[fields].to_df(how="inner")
+        df = self._data[fields].to_pandas(how="inner")
 
         if isinstance(method, str):
             if method == "modZscore":
@@ -1231,7 +1232,7 @@ def _evalStrayLabels(
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
-    val_frame = data[target].to_df()
+    val_frame = data[target].to_pandas()
     stray_detects = flags[field] > UNFLAGGED
     stray_detects = stray_detects[stray_detects]
     to_flag_frame = pd.DataFrame(False, columns=target, index=stray_detects.index)

@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import typing
+import warnings
 from typing import DefaultDict, Dict, Iterable, Mapping, Tuple, Type, Union
 
 import numpy as np
@@ -80,7 +82,6 @@ class Flags:
        >>> flags = Flags()
        >>> flags
        Empty Flags
-       Columns: []
 
     .. doctest:: exampleFlags
 
@@ -256,6 +257,9 @@ class Flags:
 
     # ----------------------------------------------------------------------
     # meta data
+
+    def keys(self) -> typing.KeysView:
+        return self._data.keys()
 
     @property
     def columns(self) -> pd.Index:
@@ -447,16 +451,19 @@ class Flags:
         """
         Transform the flags container to a ``DictOfSeries``.
 
+
+        .. deprecated:: 2.4
+           use `saqc.DictOfSeries(obj)` instead.
+
         Returns
         -------
         DictOfSeries
         """
-        di = DictOfSeries(columns=self.columns)
-
-        for k in self._data.keys():
-            di[k] = self[k]
-
-        return di.copy()
+        warnings.warn(
+            "toDios is deprecated, use `saqc.DictOfSeries(obj)` instead.",
+            category=DeprecationWarning,
+        )
+        return DictOfSeries(self).copy()
 
     def toFrame(self) -> pd.DataFrame:
         """
@@ -466,10 +473,10 @@ class Flags:
         -------
         pd.DataFrame
         """
-        return self.toDios().to_df()
+        return pd.DataFrame(dict(self))
 
     def __repr__(self) -> str:
-        return str(self.toDios()).replace("DictOfSeries", type(self).__name__)
+        return str(DictOfSeries(self)).replace("DictOfSeries", type(self).__name__)
 
 
 def initFlagsLike(

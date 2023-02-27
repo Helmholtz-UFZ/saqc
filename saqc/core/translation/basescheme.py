@@ -153,7 +153,8 @@ class MappingScheme(TranslationScheme):
             diff = pd.Index(out[field]).difference(expected)
             if not diff.empty:
                 raise ValueError(
-                    f"flags were not translated: {diff.drop_duplicates().to_list()}"
+                    f"following flag values could not be "
+                    f"translated: {diff.drop_duplicates().to_list()}"
                 )
         return out
 
@@ -240,6 +241,6 @@ class FloatScheme(TranslationScheme):
             )
 
     def toExternal(self, flags: Flags, attrs: dict | None = None) -> DictOfSeries:
-        out = flags.toDios()
+        out = DictOfSeries(flags)
         out.attrs = attrs or {}
         return out

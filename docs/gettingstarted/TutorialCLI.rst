@@ -267,7 +267,7 @@ series. Also, you can write your own tests using a python-based
 
    import os
    qc = saqc.fromConfig(configpath('3'), data)
-   qc.data.to_csv(temppath('TutorialCLIHarmData.csv'))
+   qc.data.to_pandas().to_csv(temppath('TutorialCLIHarmData.csv'))
 
 
 The above executes an internal framework that aligns the timestamps of SM2

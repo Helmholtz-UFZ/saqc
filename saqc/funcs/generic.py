@@ -16,7 +16,7 @@ from saqc import BAD, FILTER_ALL
 from saqc.core import DictOfSeries, Flags, History, register
 from saqc.core.register import _maskData
 from saqc.lib.tools import isAllBoolean, isflagged, toSequence
-from saqc.lib.types import GenericFunction, PandasLike
+from saqc.lib.types import GenericFunction
 from saqc.parsing.environ import ENVIRONMENT
 
 if TYPE_CHECKING:
@@ -58,7 +58,7 @@ def _prepare(
 
 def _execGeneric(
     flags: Flags,
-    data: PandasLike,
+    data: pd.DataFrame | pd.Series | DictOfSeries,
     func: GenericFunction,
     dfilter: float = FILTER_ALL,
 ) -> DictOfSeries:
@@ -74,14 +74,35 @@ def _execGeneric(
     if isinstance(data, pd.Series):
         data = data.to_frame()
 
-    out = func(*[data[c] for c in data.columns])
-    if pd.api.types.is_scalar(out):
-        raise ValueError(
-            "generic function should return a sequence object, "
-            f"got '{type(out)}' instead"
-        )
+    # set series.name, because `isflagged` relies on it
+    cols = []
+    for c in data.columns:
+        data[c].name = c
+        cols.append(data[c])
+    return func(*cols)
 
-    return DictOfSeries(out)
+
+def _castResult(obj) -> DictOfSeries:
+    # Note: the actual keys aka. column names
+    # we use here to create a DictOfSeries
+    # are never used, and only exists temporary.
+
+    if isinstance(obj, pd.Series):
+        return DictOfSeries({"0": obj})
+    if pd.api.types.is_dict_like(obj):
+        # includes pd.Series and
+        # everything with keys and __getitem__
+        return DictOfSeries(obj)
+    if pd.api.types.is_list_like(obj):
+        # includes pd.Series and dict
+        return DictOfSeries({str(i): val for i, val in enumerate(obj)})
+
+    if pd.api.types.is_scalar(obj):
+        raise TypeError(
+            "generic function should return a sequence object, "
+            f"got '{type(obj)}' instead"
+        )
+    raise TypeError(f"unprocessable result type {type(obj)}.")
 
 
 class GenericMixin:
@@ -146,8 +167,8 @@ class GenericMixin:
         >>> from saqc import SaQC
         >>> qc = SaQC(pd.DataFrame({'rainfall':[1], 'snowfall':[2]}, index=pd.DatetimeIndex([0])))
         >>> qc = qc.processGeneric(field=["rainfall", "snowfall"], target="precipitation", func=lambda x, y: x + y)
-        >>> qc.data.to_df()
-        columns     rainfall  snowfall  precipitation
+        >>> qc.data.to_pandas()
+                    rainfall  snowfall  precipitation
         1970-01-01         1         2              3
         """
 
@@ -156,6 +177,7 @@ class GenericMixin:
 
         dchunk, fchunk = _prepare(self._data, self._flags, fields, dfilter)
         result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
+        result = _castResult(result)
 
         meta = {
             "func": "procGeneric",
@@ -266,10 +288,12 @@ class GenericMixin:
 
         dchunk, fchunk = _prepare(self._data, self._flags, fields, dfilter)
         result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
+        result = _castResult(result)
 
         if len(targets) != len(result.columns):
             raise ValueError(
-                f"the generic function returned {len(result.columns)} field(s), but only {len(targets)} target(s) were given"
+                f"the generic function returned {len(result.columns)} field(s), "
+                f"but {len(targets)} target(s) were given"
             )
 
         if not result.empty and not isAllBoolean(result):
@@ -296,9 +320,14 @@ class GenericMixin:
 
             # dummy column to ensure consistency between flags and data
             if col not in self._data:
-                self._data[col] = pd.Series(np.nan, index=maskcol.index)
+                self._data[col] = pd.Series(np.nan, index=maskcol.index, dtype=float)
 
-            flagcol = maskcol.replace({False: np.nan, True: flag}).astype(float)
+            # Note: big speedup for series, because replace works
+            # with a loop and setting with mask is vectorized.
+            # old code:
+            # >>> flagcol = maskcol.replace({False: np.nan, True: flag}).astype(float)
+            flagcol = pd.Series(np.nan, index=maskcol.index, dtype=float)
+            flagcol[maskcol] = flag
 
             # we need equal indices to work on
             if not self._flags[col].index.equals(maskcol.index):

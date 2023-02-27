@@ -209,6 +209,7 @@ class FlagtoolsMixin:
 
         .. doctest:: ExampleFlagManual
 
+           >>> import saqc
            >>> mdata = pd.Series([1, 0, 1], index=pd.to_datetime(['2000-02-01', '2000-03-01', '2000-05-01']))
            >>> mdata
            2000-02-01    1
@@ -231,7 +232,7 @@ class FlagtoolsMixin:
            2000-02-02    False
            2000-03-01    False
            2000-05-01     True
-           Name: daily_data, dtype: bool
+           dtype: bool
 
         With the 'right-open' method, the mdata is forward fill:
 
@@ -244,7 +245,7 @@ class FlagtoolsMixin:
            2000-02-02     True
            2000-03-01    False
            2000-05-01     True
-           Name: daily_data, dtype: bool
+           dtype: bool
 
         With the 'left-open' method, backward filling is used:
 
@@ -257,7 +258,7 @@ class FlagtoolsMixin:
            2000-02-02     True
            2000-03-01     True
            2000-05-01     True
-           Name: daily_data, dtype: bool
+           dtype: bool
         """
         dat = self._data[field]
         # internal not-mflag-value -> cant go for np.nan
@@ -362,23 +363,24 @@ class FlagtoolsMixin:
 
         .. doctest:: exampleTransfer
 
+           >>> import saqc
            >>> data = pd.DataFrame({'a': [1, 2], 'b': [1, 2], 'c': [1, 2]})
            >>> qc = saqc.SaQC(data)
            >>> qc = qc.flagRange('a', max=1.5)
-           >>> qc.flags.to_df()
-           columns      a    b    c
-           0         -inf -inf -inf
-           1        255.0 -inf -inf
+           >>> qc.flags.to_pandas()
+                  a    b    c
+           0   -inf -inf -inf
+           1  255.0 -inf -inf
 
         Now we can project the flag from `a` to `b` via
 
         .. doctest:: exampleTransfer
 
            >>> qc = qc.transferFlags('a', target='b')
-           >>> qc.flags.to_df()
-           columns      a      b    c
-           0         -inf   -inf -inf
-           1        255.0  255.0 -inf
+           >>> qc.flags.to_pandas()
+                  a      b    c
+           0   -inf   -inf -inf
+           1  255.0  255.0 -inf
 
         You can skip the explicit target parameter designation:
 
@@ -392,10 +394,10 @@ class FlagtoolsMixin:
         .. doctest:: exampleTransfer
 
            >>> qc = qc.transferFlags(['a','a'], ['b', 'c'])
-           >>> qc.flags.to_df()
-           columns      a      b      c
-           0         -inf   -inf   -inf
-           1        255.0  255.0  255.0
+           >>> qc.flags.to_pandas()
+                  a      b      c
+           0   -inf   -inf   -inf
+           1  255.0  255.0  255.0
         """
         import warnings
 
@@ -450,6 +452,7 @@ class FlagtoolsMixin:
 
         .. doctest:: propagateFlags
 
+           >>> import saqc
            >>> data = pd.DataFrame({"a": [-3, -2, -1, 0, 1, 2, 3]})
            >>> flags = pd.DataFrame({"a": [-np.inf, -np.inf, -np.inf, 255.0, -np.inf, -np.inf, -np.inf]})
            >>> qc = saqc.SaQC(data=data, flags=flags)
@@ -461,7 +464,7 @@ class FlagtoolsMixin:
            4     -inf
            5     -inf
            6     -inf
-           Name: a, dtype: float64
+           dtype: float64
 
         Now, to repeat the flag '255.0' two times in direction of ascending indices, execute:
 
@@ -475,7 +478,7 @@ class FlagtoolsMixin:
            4    255.0
            5    255.0
            6     -inf
-           Name: a, dtype: float64
+           dtype: float64
 
         Choosing "bfill" will result in
 
@@ -489,7 +492,7 @@ class FlagtoolsMixin:
            4     -inf
            5     -inf
            6     -inf
-           Name: a, dtype: float64
+           dtype: float64
 
         If an explicit flag is passed, it will be used to fill the repetition window
 
@@ -503,7 +506,7 @@ class FlagtoolsMixin:
            4     -inf
            5     -inf
            6     -inf
-           Name: a, dtype: float64
+           dtype: float64
         """
 
         if method not in {"bfill", "ffill"}:

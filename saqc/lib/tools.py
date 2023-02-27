@@ -342,12 +342,9 @@ def detectDeviants(
     In addition, only a group is considered "normal" if it contains more then `frac` percent of the
     variables in "fields".
 
-    Note, that the function also can be used to detect anormal regimes in a variable by assigning the different regimes
-    dios.DictOfSeries columns and passing this dios.
-
     Parameters
     ----------
-    data : {pandas.DataFrame, dios.DictOfSeries}
+    data : {pandas.DataFrame, DictOfSeries}
         Input data
     metric : Callable[[numpy.array, numpy.array], float]
         A metric function that for calculating the dissimilarity between 2 variables.
@@ -365,8 +362,8 @@ def detectDeviants(
 
     Returns
     -------
-    deviants : List
-        A list containing the column positions of deviant variables in the input frame/dios.
+    deviants : list
+        A list containing the column positions of deviant variables in the input
 
     """
     var_num = len(data.columns)
@@ -394,7 +391,8 @@ def detectDeviants(
         pop_num = np.sum(list(counts.values()))
     else:
         raise ValueError(
-            "Not a valid normality criteria keyword passed. Pass either 'variables' or 'population'."
+            "Not a valid normality criteria keyword passed. "
+            "Pass either 'variables' or 'population'."
         )
     norm_cluster = -1
 

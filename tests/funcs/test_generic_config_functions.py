@@ -33,9 +33,9 @@ def data_diff():
     mid = len(col0) // 2
     offset = len(col0) // 8
     return DictOfSeries(
-        data={
-            col0.name: col0.iloc[: mid + offset],
-            col1.name: col1.iloc[mid - offset :],
+        {
+            data.columns[0]: col0.iloc[: mid + offset],
+            data.columns[1]: col1.iloc[mid - offset :],
         }
     )
 

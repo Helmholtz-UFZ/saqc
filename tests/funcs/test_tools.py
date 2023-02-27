@@ -16,10 +16,9 @@ from saqc.core import DictOfSeries
 def test_makeFig(tmp_path):
     # just testing for no errors to occure...
     data = DictOfSeries(
-        pd.Series(
+        data=pd.Series(
             np.linspace(0, 1000, 1000),
             pd.date_range("2000", "2001", periods=1000),
-            name="data",
         )
     )
     d_saqc = saqc.SaQC(data)

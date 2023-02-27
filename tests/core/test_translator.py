@@ -149,7 +149,7 @@ def test_positionalTranslatorIntegration():
     saqc = saqc.flagMissing(col).flagRange(col, min=3, max=10, flag=DOUBTFUL)
     flags = saqc.flags
 
-    for field in flags.columns:
+    for field in flags.keys():
         assert flags[field].astype(str).str.match("^9[012]*$").all()
 
     round_trip = scheme.toExternal(scheme.toInternal(flags))

@@ -31,7 +31,7 @@ def test_flagPattern_dtw(plot, normalize):
     data.iloc[10:18] = [0, 5, 6, 7, 6, 8, 5, 0]
     pattern = data.iloc[10:18]
 
-    data = DictOfSeries(dict(data=data, pattern_data=pattern))
+    data = DictOfSeries(data=data, pattern_data=pattern)
     flags = initFlagsLike(data, name="data")
     qc = SaQC(data, flags).flagPatternByDTW(
         "data",

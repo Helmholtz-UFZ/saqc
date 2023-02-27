@@ -26,10 +26,10 @@ def data():
     index = index.insert(5, pd.Timestamp(2011, 1, 1, 0, 31, 0))
     index = index.insert(0, pd.Timestamp(2010, 12, 31, 23, 57, 0))
     index = index.drop(pd.Timestamp("2011-01-01 00:30:00"))
-    dat = pd.Series(np.linspace(-50, 50, index.size), index=index, name="data")
+    dat = pd.Series(np.linspace(-50, 50, index.size), index=index)
     # good to have some nan
     dat[-3] = np.nan
-    data = DictOfSeries(dat)
+    data = DictOfSeries(data=dat)
     return data
 
 
@@ -87,7 +87,7 @@ def test_gridInterpolation(data, method, fill_history):
     field = "data"
     data = data[field]
     data = pd.concat([data * np.sin(data), data.shift(1, "2h")]).shift(1, "3s")
-    data = DictOfSeries(data)
+    data = DictOfSeries(data=data)
     flags = initFlagsLike(data)
 
     if fill_history == "none":
