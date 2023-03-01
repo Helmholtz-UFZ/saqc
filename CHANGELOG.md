@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.3.0...develop)
 ### Added
 - Methods `logicalAnd` and `logicalOr`
+- `Flags` supports slicing and column selection with `list` or a `pd.Index`.
 ### Changed
 ### Removed
 ### Fixed
