@@ -320,8 +320,28 @@ class Flags:
     # ----------------------------------------------------------------------
     # item access
 
-    def __getitem__(self, key: str) -> pd.Series:
-        return self._data[key].squeeze()
+    def __getitem__(self, key: str | list | pd.Index) -> pd.Series | Flags:
+        if isinstance(key, str):
+            return self._data[key].squeeze()
+
+        if isinstance(key, slice):
+            key = self.columns[key]
+
+        if isinstance(key, (list, pd.Index)):
+            # only copy necessary data
+            data = self._data
+            try:
+                self._data = {}
+                new = self.copy()
+            finally:
+                self._data = data
+            new._data = {k: self._data[k].copy() for k in key}
+            return new
+
+        raise TypeError(
+            "Key must be of type str, list or index of string or slice,"
+            f"not {type(key)}."
+        )
 
     def __setitem__(self, key: SelectT, value: ValueT):
         # force-KW is only internally available
