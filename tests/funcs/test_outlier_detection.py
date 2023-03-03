@@ -6,6 +6,8 @@
 
 # -*- coding: utf-8 -*-
 
+import itertools
+
 import numpy as np
 import pandas as pd
 
@@ -173,3 +175,32 @@ def test_flagZScores():
     qc = qc.flagZScore("data", window=20)
 
     assert (qc.flags.to_pandas().iloc[[40, 80], 0] > 0).all()
+
+
+@pytest.mark.parametrize("n", [1, 10])
+@pytest.mark.parametrize("p", [1, 2])
+@pytest.mark.parametrize("thresh", ["auto", 2])
+def test_flagUniLOF(spiky_data, n, p, thresh):
+    data = spiky_data[0]
+    field, *_ = data.columns
+    qc = SaQC(data).flagUniLOF(field, n=n, p=p, thresh=thresh)
+    flag_result = qc.flags[field]
+    test_sum = (flag_result[spiky_data[1]] == BAD).sum()
+    try:
+        assert test_sum == len(spiky_data[1])
+    except AssertionError:
+        print("stop")
+
+
+@pytest.mark.parametrize("vars", [1, 2, 3])
+@pytest.mark.parametrize("p", [1, 2])
+@pytest.mark.parametrize("thresh", ["auto", 2])
+def test_flagLOF(spiky_data, vars, p, thresh):
+    data = pd.DataFrame(
+        {f"data{v}": spiky_data[0].to_pandas().squeeze() for v in range(vars)}
+    )
+    field, *_ = data.columns
+    qc = SaQC(data).flagLOF(field)
+    flag_result = qc.flags[field]
+    test_sum = (flag_result[spiky_data[1]] == BAD).sum()
+    assert test_sum == len(spiky_data[1])

@@ -10,3 +10,4 @@ sphinx-markdown-tables==0.0.17
 jupyter-sphinx==0.3.2
 sphinx_autodoc_typehints==1.22
 sphinx-tabs==3.4.1
+fancy-collections==0.1.3
