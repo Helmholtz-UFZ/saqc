@@ -556,18 +556,21 @@ class FlagtoolsMixin:
 
         Parameters
         ----------
-        field : str
-            Name of the field to check for flags. 'field' needs to present in all
-            objects in 'qcs'.
+        field:
+            Name of the field to check for flags. ``field`` needs to present in all SaQC objects in ``group``.
 
-        qcs : list of SaQC
-            A list of SaQC objects to check for flags.
+        group:
+            A collection of ``SaQC`` objects to check for flags:
 
-        target : str, default none
+            1. If given as a list of ``SaQC`` objects, the variable named ``field`` is checked for flags.
+            2. If given as dictionary the keys represent ``SaQC`` objects and the value one or more
+               variables of the respective object to check for flags.
+
+        target:
             Name of the field the generated flags will be written to. If None, the result
             will be written to 'field',
 
-        flag: float, default ``BAD``
+        flag:
             The quality flag to set.
 
         Returns
@@ -605,18 +608,21 @@ class FlagtoolsMixin:
 
         Parameters
         ----------
-        field : str
-            Name of the field to check for flags. 'field' needs to present in all
-            objects in 'qcs'.
+        field:
+            Name of the field to check for flags. ``field`` needs to present in all SaQC objects in ``group``.
 
-        qcs : list of SaQC
-            A list of SaQC objects to check for flags.
+        group:
+            A collection of ``SaQC`` objects to check for flags:
 
-        target : str, default none
+            1. If given as a list of ``SaQC`` objects, the variable named ``field`` is checked for flags.
+            2. If given as dictionary the keys represent ``SaQC`` objects and the value one or more
+               variables of the respective object to check for flags.
+
+        target:
             Name of the field the generated flags will be written to. If None, the result
             will be written to 'field',
 
-        flag: float, default ``BAD``
+        flag:
             The quality flag to set.
 
         Returns
