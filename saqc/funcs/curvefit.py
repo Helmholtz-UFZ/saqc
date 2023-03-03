@@ -13,9 +13,7 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from dios import DictOfSeries
-from saqc.core.flags import Flags
-from saqc.core.register import register
+from saqc.core import DictOfSeries, Flags, register
 from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import (
     butterFilter,
@@ -27,7 +25,7 @@ from saqc.lib.ts_operators import (
 )
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 _FILL_METHODS = Literal[
     "linear",
@@ -169,7 +167,6 @@ def _fitPolynomial(
     min_periods: int = 0,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
-
     # TODO: some (rather large) parts are functional similar to saqc.funcs.rolling.roll
     if data[field].empty:
         return data, flags
@@ -183,31 +180,14 @@ def _fitPolynomial(
                 "sample series."
             )
         # get interval centers
-        centers = (
-            to_fit.rolling(
-                pd.Timedelta(window) / 2, closed="both", min_periods=min_periods
-            ).count()
-        ).floor()
+        centers = to_fit.rolling(
+            pd.Timedelta(window) / 2, closed="both", min_periods=min_periods
+        ).count()
         centers = centers.drop(centers[centers.isna()].index)
         centers = centers.astype(int)
         fitted = to_fit.rolling(
-            pd.Timedelta(window), closed="both", min_periods=min_periods
+            pd.Timedelta(window), closed="both", min_periods=min_periods, center=True
         ).apply(polyRollerIrregular, args=(centers, order))
-
-        def center_func(x, y=centers):
-            pos = x.index[int(len(x) - y[x.index[-1]])]
-            return y.index.get_loc(pos)
-
-        centers_iloc = (
-            centers.rolling(window, closed="both")
-            .apply(center_func, raw=False)
-            .astype(int)
-        )
-        temp = fitted.copy()
-        for k in centers_iloc.iteritems():
-            fitted.iloc[k[1]] = temp[k[0]]
-        fitted[fitted.index[0] : fitted.index[centers_iloc[0]]] = np.nan
-        fitted[fitted.index[centers_iloc[-1]] : fitted.index[-1]] = np.nan
     else:
         if isinstance(window, str):
             window = pd.Timedelta(window) // regular
@@ -215,7 +195,7 @@ def _fitPolynomial(
             window = int(window - 1)
         if min_periods is None:
             min_periods = window
-        if to_fit.shape[0] < 200000:
+        if len(to_fit) < 200000:
             numba = False
         else:
             numba = True

@@ -12,11 +12,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import saqc
-from saqc.constants import BAD, FILTER_ALL, FILTER_NONE, UNFLAGGED
-from saqc.core import SaQC, initFlagsLike
-from saqc.core.flags import Flags
-from saqc.core.register import flagging, processing, register
+from saqc import BAD, FILTER_ALL, FILTER_NONE, UNFLAGGED, SaQC
+from saqc.core import DictOfSeries, Flags, flagging, initFlagsLike, processing, register
 from saqc.lib.types import OptionalNone
 from tests.common import initData
 
@@ -30,8 +27,9 @@ def data():
 
 @pytest.fixture
 def flags(data, optional):
-    if not optional:
-        return initFlagsLike(data[data.columns[::2]]).toDios()
+    if optional:
+        return None
+    return DictOfSeries(initFlagsLike(data[data.columns[::2]]))
 
 
 def test_errorHandling(data):
@@ -58,7 +56,7 @@ def test_dtypes(data, flags):
         return saqc
 
     flags = initFlagsLike(data)
-    flags_raw = flags.toDios()
+    flags_raw = DictOfSeries(flags)
     var1, var2 = data.columns[:2]
 
     pflags = SaQC(data, flags=flags_raw).flagAll(var1).flagAll(var2).flags
@@ -68,38 +66,43 @@ def test_dtypes(data, flags):
 
 
 def test_new_call(data):
-    qc = saqc.SaQC(data)
+    qc = SaQC(data)
     qc = qc.flagRange("var1", max=5)
 
 
-def test_copy(data):
-    qc = saqc.SaQC(data)
+def test_SaQC_attributes():
+    """Test if all instance attributes are in SaQC._attributes"""
+    qc = SaQC()
+    for name in [n for n in dir(qc) if not n.startswith("__")]:
+        if hasattr(SaQC, name):  # skip class attributes
+            continue
+        assert name in SaQC._attributes
 
+
+def test_copy(data):
+    qc = SaQC(data)
     qc = qc.flagRange("var1").flagRange("var1", min=0, max=0)
 
     deep = qc.copy(deep=True)
     shallow = qc.copy(deep=False)
-
     for copy in [deep, shallow]:
         assert copy is not qc
-        assert copy._scheme is not qc._scheme
-        assert copy._attrs is not qc._attrs
+        for name in [n for n in dir(qc) if not n.startswith("__")]:
+            if hasattr(SaQC, name):  # skip class attributes
+                continue
+            qc_attr = getattr(qc, name)
+            other_attr = getattr(copy, name)
+            assert qc_attr is not other_attr
 
-        assert copy._data is not qc._data
-        assert copy._flags is not qc._flags
-
-        assert copy._data._data is not qc._data._data
-        assert copy._flags._data is not qc._flags._data
-
-    # underling data copied
-    assert deep._data._data.iloc[0] is not qc._data._data.iloc[0]
-    assert (
-        deep._flags._data["var1"].hist.index is not qc._flags._data["var1"].hist.index
-    )
+    # History is always copied
+    assert deep._flags._data["var1"] is not qc._flags._data["var1"]
+    assert shallow._flags._data["var1"] is not qc._flags._data["var1"]
 
     # underling data NOT copied
-    assert shallow._data._data.iloc[0] is qc._data._data.iloc[0]
-    assert shallow._flags._data["var1"].hist.index is qc._flags._data["var1"].hist.index
+    assert shallow._data["var1"] is qc._data["var1"]
+
+    # underling data copied
+    assert deep._data["var1"] is not qc._data["var1"]
 
 
 def test_sourceTargetCopy():
@@ -367,3 +370,48 @@ def test_dfilterTranslation(data, user_flag, internal_flag):
     field = data.columns[0]
     qc = SaQC(data, scheme="simple")
     qc.flagFoo(field, dfilter=user_flag)
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        # 2c + 1c -> 3c
+        (
+            [
+                DictOfSeries(a=pd.Series([1]), b=pd.Series([2])),
+                DictOfSeries(c=pd.Series([3])),
+            ],
+            DictOfSeries(a=pd.Series([1]), b=pd.Series([2]), c=pd.Series([3])),
+        ),
+        # 1c + 1c + 1c -> 3c
+        (
+            [
+                DictOfSeries(a=pd.Series([1])),
+                DictOfSeries(b=pd.Series([2])),
+                DictOfSeries(c=pd.Series([3])),
+            ],
+            DictOfSeries(a=pd.Series([1]), b=pd.Series([2]), c=pd.Series([3])),
+        ),
+    ],
+)
+def test_concatDios(data, expected):
+    result = SaQC(data)
+    assert result.data == expected
+
+
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        (
+            [
+                DictOfSeries(a=pd.Series([1]), b=pd.Series([2])),
+                DictOfSeries(b=pd.Series([99])),
+            ],
+            DictOfSeries(a=pd.Series([1]), b=pd.Series([99])),
+        )
+    ],
+)
+def test_concatDios_warning(data, expected):
+    with pytest.warns(UserWarning):
+        result = SaQC(data)
+    assert result.data == expected

@@ -8,21 +8,20 @@
 from __future__ import annotations
 
 import collections
+import functools
 import itertools
 import re
 import warnings
-from typing import Callable, Collection, List, Sequence, TypeVar, Union
+from typing import Any, Callable, Collection, List, Sequence, TypeVar, Union
 
 import numpy as np
 import pandas as pd
 from scipy import fft
 from scipy.cluster.hierarchy import fcluster, linkage
 
-import dios
-
 # keep this for external imports
 # TODO: fix the external imports
-from saqc.lib.rolling import customRoller
+from saqc.lib.rolling import customRoller  # noqa
 from saqc.lib.types import CompT
 
 T = TypeVar("T", str, float, int)
@@ -171,59 +170,6 @@ def periodicMask(dtindex, season_start, season_end, include_bounds):
     return out
 
 
-def concatDios(data: List[dios.DictOfSeries], warn: bool = True, stacklevel: int = 2):
-    # fast path for most common case
-    if len(data) == 1 and data[0].columns.is_unique:
-        return data[0]
-
-    result = dios.DictOfSeries()
-    for di in data:
-        for c in di.columns:
-            if c in result.columns:
-                if warn:
-                    warnings.warn(
-                        f"Column {c} already exist. Data is overwritten. "
-                        f"Avoid duplicate columns names over all inputs.",
-                        stacklevel=stacklevel,
-                    )
-            result[c] = di[c]
-
-    return result
-
-
-def mergeDios(left, right, subset=None, join="merge"):
-    # use dios.merge() as soon as it implemented
-    # see https://git.ufz.de/rdm/dios/issues/15
-
-    merged = left.copy()
-    if subset is not None:
-        right_subset_cols = right.columns.intersection(subset)
-    else:
-        right_subset_cols = right.columns
-
-    shared_cols = left.columns.intersection(right_subset_cols)
-
-    for c in shared_cols:
-        l, r = left[c], right[c]
-        if join == "merge":
-            # NOTE:
-            # our merge behavior is nothing more than an
-            # outer join, where the right join argument
-            # overwrites the left at the shared indices,
-            # while on a normal outer join common indices
-            # hold the values from the left join argument
-            r, l = l.align(r, join="outer")
-        else:
-            l, r = l.align(r, join=join)
-        merged[c] = l.combine_first(r)
-
-    newcols = right_subset_cols.difference(left.columns)
-    for c in newcols:
-        merged[c] = right[c].copy()
-
-    return merged
-
-
 def isQuoted(string):
     return bool(re.search(r"'.*'|\".*\"", string))
 
@@ -245,7 +191,6 @@ def estimateFrequency(
     max_freqs=10,
     bins=None,
 ):
-
     """
     Function to estimate the sampling rate of an index.
 
@@ -397,12 +342,9 @@ def detectDeviants(
     In addition, only a group is considered "normal" if it contains more then `frac` percent of the
     variables in "fields".
 
-    Note, that the function also can be used to detect anormal regimes in a variable by assigning the different regimes
-    dios.DictOfSeries columns and passing this dios.
-
     Parameters
     ----------
-    data : {pandas.DataFrame, dios.DictOfSeries}
+    data : {pandas.DataFrame, DictOfSeries}
         Input data
     metric : Callable[[numpy.array, numpy.array], float]
         A metric function that for calculating the dissimilarity between 2 variables.
@@ -420,8 +362,8 @@ def detectDeviants(
 
     Returns
     -------
-    deviants : List
-        A list containing the column positions of deviant variables in the input frame/dios.
+    deviants : list
+        A list containing the column positions of deviant variables in the input
 
     """
     var_num = len(data.columns)
@@ -430,7 +372,9 @@ def detectDeviants(
     dist_mat = np.zeros((var_num, var_num))
     combs = list(itertools.combinations(range(0, var_num), 2))
     for i, j in combs:
-        dist = metric(data.iloc[:, i].values, data.iloc[:, j].values)
+        d_i = data[data.columns[i]]
+        d_j = data[data.columns[j]]
+        dist = metric(d_i.values, d_j.values)
         dist_mat[i, j] = dist
 
     condensed = np.abs(dist_mat[tuple(zip(*combs))])
@@ -442,11 +386,13 @@ def detectDeviants(
     elif population == "samples":
         counts = {cluster[j]: 0 for j in range(0, var_num)}
         for c in range(var_num):
-            counts[cluster[c]] += data.iloc[:, c].dropna().shape[0]
+            field = data.columns[c]
+            counts[cluster[c]] += data[field].dropna().shape[0]
         pop_num = np.sum(list(counts.values()))
     else:
         raise ValueError(
-            "Not a valid normality criteria keyword passed. Pass either 'variables' or 'population'."
+            "Not a valid normality criteria keyword passed. "
+            "Pass either 'variables' or 'population'."
         )
     norm_cluster = -1
 
@@ -595,3 +541,50 @@ def filterKwargs(
             )
         kwargs.pop(key, None)
     return kwargs
+
+
+from saqc import FILTER_ALL, UNFLAGGED
+
+A = TypeVar("A", np.ndarray, pd.Series)
+
+
+def isflagged(flagscol: A, thresh: float) -> A:
+    """
+    Return a mask of flags accordingly to `thresh`. Return type is same as flags.
+    """
+    if not isinstance(thresh, (float, int)):
+        raise TypeError(f"thresh must be of type float, not {repr(type(thresh))}")
+
+    if thresh == FILTER_ALL:
+        return flagscol > UNFLAGGED
+
+    return flagscol >= thresh
+
+
+def getUnionIndex(obj, default: pd.DatetimeIndex | None = None):
+    assert hasattr(obj, "columns")
+    if default is None:
+        default = pd.DatetimeIndex([])
+    indexes = [obj[k].index for k in obj.columns]
+    if indexes:
+        return functools.reduce(pd.Index.union, indexes).sort_values()
+    return default
+
+
+def getSharedIndex(obj, default: pd.DatetimeIndex | None = None):
+    assert hasattr(obj, "columns")
+    if default is None:
+        default = pd.DatetimeIndex([])
+    indexes = [obj[k].index for k in obj.columns]
+    if indexes:
+        return functools.reduce(pd.Index.intersection, indexes).sort_values()
+    return default
+
+
+def isAllBoolean(obj: Any):
+    if not hasattr(obj, "columns"):
+        return pd.api.types.is_bool_dtype(obj)
+    for c in obj.columns:
+        if not pd.api.types.is_bool_dtype(obj[c]):
+            return False
+    return True

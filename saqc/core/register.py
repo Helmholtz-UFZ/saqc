@@ -3,7 +3,6 @@
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
 from __future__ import annotations
 
 import functools
@@ -15,15 +14,20 @@ import numpy as np
 import pandas as pd
 from typing_extensions import ParamSpec
 
-import dios
-from saqc.constants import FILTER_ALL, FILTER_NONE, UNFLAGGED
-from saqc.core.flags import Flags, History
+from saqc import FILTER_ALL, FILTER_NONE
+from saqc.core import DictOfSeries, Flags, History
 from saqc.core.translation.basescheme import TranslationScheme
-from saqc.lib.tools import squeezeSequence, toSequence
+from saqc.lib.tools import isflagged, squeezeSequence, toSequence
 from saqc.lib.types import ExternalFlag, OptionalNone
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
+
+__all__ = [
+    "register",
+    "processing",
+    "flagging",
+]
 
 # NOTE:
 # the global SaQC function store,
@@ -136,7 +140,6 @@ def _squeezeFlags(old_flags, new_flags: Flags, columns: pd.Index, meta) -> Flags
     for col in columns.union(
         new_flags.columns.difference(old_flags.columns)
     ):  # account for newly added columns
-
         if col not in out:  # ensure existence
             out.history[col] = History(index=new_flags.history[col].index)
 
@@ -147,54 +150,44 @@ def _squeezeFlags(old_flags, new_flags: Flags, columns: pd.Index, meta) -> Flags
         # function call. If no such columns exist, we end up with an empty
         # new_history.
         start = len(old_history.columns)
-        new_history = _sliceHistory(new_history, slice(start, None))
-
-        squeezed = new_history.squeeze(raw=True)
+        squeezed = new_history.squeeze(raw=True, start=start)
         out.history[col] = out.history[col].append(squeezed, meta=meta)
 
     return out
 
 
-def _sliceHistory(history: History, sl: slice) -> History:
-    history.hist = history.hist.iloc[:, sl]
-    history.meta = history.meta[sl]
-    return history
-
-
 def _maskData(
-    data: dios.DictOfSeries, flags: Flags, columns: Sequence[str], thresh: float
-) -> Tuple[dios.DictOfSeries, dios.DictOfSeries]:
+    data: DictOfSeries, flags: Flags, columns: Sequence[str], thresh: float
+) -> Tuple[DictOfSeries, DictOfSeries]:
     """
     Mask data with Nans, if the flags are worse than a threshold.
         - mask only passed `columns` (preselected by `datamask`-kw from decorator)
 
     Returns
     -------
-    masked : dios.DictOfSeries
+    masked : DictOfSeries
         masked data, same dim as original
-    mask : dios.DictOfSeries
+    mask : DictOfSeries
         dios holding iloc-data-pairs for every column in `data`
     """
-    mask = dios.DictOfSeries(columns=columns)
+    mask = DictOfSeries()
 
     # we use numpy here because it is faster
     for c in columns:
-        col_mask = _isflagged(flags[c], thresh)
+        col_mask = isflagged(flags[c].to_numpy(), thresh)
 
         if col_mask.any():
             col_data = data[c].to_numpy(dtype=np.float64)
-
             mask[c] = pd.Series(col_data[col_mask], index=np.where(col_mask)[0])
-
             col_data[col_mask] = np.nan
-            data[c] = col_data
+            data[c] = pd.Series(col_data, index=data[c].index, dtype=data[c].dtype)
 
     return data, mask
 
 
 def _unmaskData(
-    data: dios.DictOfSeries, mask: dios.DictOfSeries, columns: pd.Index | None = None
-) -> dios.DictOfSeries:
+    data: DictOfSeries, mask: DictOfSeries, columns: pd.Index | None = None
+) -> DictOfSeries:
     """
     Restore the masked data.
 
@@ -210,7 +203,6 @@ def _unmaskData(
     columns = mask.columns.intersection(columns)
 
     for c in columns:
-
         # ignore
         if data[c].empty or mask[c].empty:
             continue
@@ -323,7 +315,6 @@ def register(
     """
 
     def outer(func: Callable[P, SaQC]) -> Callable[P, SaQC]:
-
         func_signature = inspect.signature(func)
         _checkDecoratorKeywords(
             func_signature, func.__name__, mask, demask, squeeze, handles_target
@@ -338,7 +329,6 @@ def register(
             flag: ExternalFlag | OptionalNone = OptionalNone(),
             **kwargs,
         ) -> "SaQC":
-
             # args -> kwargs
             paramnames = tuple(func_signature.parameters.keys())[
                 2:
@@ -474,19 +464,3 @@ def processing(**kwargs):
     if kwargs:
         raise ValueError("use '@register' to pass keywords")
     return register(mask=[], demask=[], squeeze=[])
-
-
-A = TypeVar("A", np.ndarray, pd.Series)
-
-
-def _isflagged(flagscol: A, thresh: float) -> A:
-    """
-    Return a mask of flags accordingly to `thresh`. Return type is same as flags.
-    """
-    if not isinstance(thresh, (float, int)):
-        raise TypeError(f"thresh must be of type float, not {repr(type(thresh))}")
-
-    if thresh == FILTER_ALL:
-        return flagscol > UNFLAGGED
-
-    return flagscol >= thresh

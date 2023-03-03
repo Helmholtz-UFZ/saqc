@@ -75,24 +75,11 @@ coverage:
         path: coverage.xml
 
 
-# test saqc with python 3.7
-python37:
-  stage: test
-  image: python:3.7
-  script:
-    - pytest tests dios/test -Werror --junitxml=report.xml
-    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
-  artifacts:
-    when: always
-    reports:
-      junit: report.xml
-
-
-# test saqc with python 3.8
 python38:
   stage: test
+  image: python:3.8
   script:
-    - pytest tests dios/test -Werror --junitxml=report.xml
+    - pytest tests -Werror --junitxml=report.xml
     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
     when: always
@@ -100,12 +87,11 @@ python38:
       junit: report.xml
 
 
-# test saqc with python 3.9
 python39:
   stage: test
   image: python:3.9
   script:
-    - pytest tests dios/test -Werror --junitxml=report.xml
+    - pytest tests -Werror --junitxml=report.xml
     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
     when: always
@@ -113,18 +99,16 @@ python39:
       junit: report.xml
 
 
-# test saqc with python 3.10
 python310:
   stage: test
   image: python:3.10
   script:
-    - pytest tests dios/test -Werror --junitxml=report.xml
+    - pytest tests -Werror --junitxml=report.xml
     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
     when: always
     reports:
       junit: report.xml
-
 
 doctest:
   stage: test

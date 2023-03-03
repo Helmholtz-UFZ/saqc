@@ -10,11 +10,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import dios
-from saqc.constants import UNFLAGGED
-from saqc.core.flags import Flags
-from tests.core.test_history import History
-from tests.core.test_history import is_equal as hist_equal
+import tests.core.test_history as test_hist
+from saqc import UNFLAGGED
+from saqc.core import DictOfSeries, Flags, History
 
 _arrays = [
     np.array([[]]),
@@ -42,7 +40,7 @@ testdata = []
 for d in _arrays:
     columns = list("abcdefgh")[: d.shape[1]]
     df = pd.DataFrame(d, dtype=float, columns=columns)
-    dis = dios.DictOfSeries(df)
+    dis = DictOfSeries(df)
     di = {}
     di.update(df.items())
     testdata.append(df)
@@ -51,9 +49,10 @@ for d in _arrays:
 
 
 def is_equal(f1, f2):
+    """assert Flags instance equals other"""
     assert f1.columns.equals(f2.columns)
     for c in f1.columns:
-        assert hist_equal(f1.history[c], f2.history[c])
+        assert test_hist.is_equal(f1.history[c], f2.history[c])
 
 
 @pytest.mark.parametrize("data", testdata)
@@ -103,7 +102,7 @@ def test_init_raise_TypeError(data, msg):
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_copy(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
+def test_copy(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
     shallow = flags.copy(deep=False)
     deep = flags.copy(deep=True)
@@ -131,9 +130,7 @@ def test_copy(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_flags_history(
-    data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
-):
+def test_flags_history(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
 
     # get
@@ -153,7 +150,7 @@ def test_flags_history(
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_get_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
+def test_get_flags(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
 
     for c in flags.columns:
@@ -172,7 +169,7 @@ def test_get_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Ser
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_set_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
+def test_set_flags(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
 
     for c in flags.columns:
@@ -202,7 +199,7 @@ def test_set_flags(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Ser
 
 @pytest.mark.parametrize("data", testdata)
 def test_set_flags_with_mask(
-    data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
+    data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]
 ):
     flags = Flags(data)
 
@@ -249,7 +246,7 @@ def test_set_flags_with_mask(
 
 @pytest.mark.parametrize("data", testdata)
 def test_set_flags_with_index(
-    data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]
+    data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]
 ):
     flags = Flags(data)
 
@@ -292,16 +289,16 @@ def _validate_flags_equals_frame(flags, df):
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_to_dios(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
+def test_to_dios(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
-    df = flags.toDios()
-
-    assert isinstance(df, dios.DictOfSeries)
-    _validate_flags_equals_frame(flags, df)
+    with pytest.deprecated_call():
+        result = flags.toDios()
+        assert isinstance(result, DictOfSeries)
+        _validate_flags_equals_frame(flags, result)
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_to_frame(data: Union[pd.DataFrame, dios.DictOfSeries, Dict[str, pd.Series]]):
+def test_toFrame(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
     df = flags.toFrame()
 
@@ -338,3 +335,50 @@ def test_columns_setter_raises(columns, err):
     )
     with pytest.raises(err):
         flags.columns = columns
+
+
+@pytest.mark.parametrize(
+    "data,key,expected",
+    [
+        (dict(a=[0, 1], b=[]), "a", pd.Series([0, 1], dtype=float)),
+        (dict(a=[0, 1], b=[]), "b", pd.Series([], dtype=float)),
+    ],
+)
+def test__getitem__scalar(data, key, expected):
+    flags = Flags({k: pd.Series(v, dtype=float) for k, v in data.items()})
+    result: pd.Series = flags[key]
+    assert isinstance(result, pd.Series)
+    assert result.equals(expected)
+    # assert copying
+    assert flags[key] is not flags[key]
+
+
+@pytest.mark.parametrize(
+    "data,key,expected",
+    [
+        (dict(a=[0, 1], b=[]), [], dict()),
+        (dict(a=[0, 1], b=[]), ["a"], dict(a=[0, 1])),
+        (dict(a=[0, 1], b=[]), ["a", "b"], dict(a=[0, 1], b=[])),
+        (dict(a=[0, 1], b=[]), pd.Index([]), dict()),
+        (dict(a=[0, 1], b=[]), pd.Index(["a"]), dict(a=[0, 1])),
+        (dict(a=[0, 1], b=[]), pd.Index(["a", "b"]), dict(a=[0, 1], b=[])),
+        (dict(a=[0, 1], b=[]), slice(None), dict(a=[0, 1], b=[])),
+        (dict(a=[0, 1], b=[]), slice(0, 1), dict(a=[0, 1])),
+        (dict(a=[0, 1], b=[]), slice(1, 99), dict(b=[])),
+        (dict(a=[0, 1], b=[]), slice(5, 99), dict()),
+    ],
+)
+def test__getitem__listlike_and_slice(data, key, expected):
+    flags = Flags({k: pd.Series(v, dtype=float) for k, v in data.items()})
+    result: Flags = flags[key]
+    assert isinstance(result, Flags)
+    # assert that a new Flags object was created
+    assert flags[key] is not flags[key]
+    # assert that internal data is copied
+    if len(result):
+        left = result._data[result.columns[0]]
+        right = flags._data[result.columns[0]]
+        assert left is not right
+
+    expected = Flags({k: pd.Series(v, dtype=float) for k, v in expected.items()})
+    is_equal(result, expected)

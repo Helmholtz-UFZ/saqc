@@ -14,13 +14,13 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from saqc.constants import BAD
-from saqc.core.register import flagging
+from saqc import BAD
+from saqc.core import flagging
 from saqc.lib.tools import customRoller, getFreqDelta, statPass
 from saqc.lib.ts_operators import varQC
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 class ConstantsMixin:

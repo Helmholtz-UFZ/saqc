@@ -13,13 +13,13 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-import saqc.lib.ts_operators as ts_ops
-from saqc.constants import UNFLAGGED
-from saqc.core.register import register
+from saqc import UNFLAGGED
+from saqc.core import register
 from saqc.lib.tools import getApply, toSequence
+from saqc.lib.ts_operators import kNN
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 def _univarScoring(
@@ -180,11 +180,8 @@ class ScoresMixin:
             target = target[0]
 
         fields = toSequence(field)
-        val_frame = self._data[fields].copy()
-        score_index = val_frame.index_of("shared")
-        score_ser = pd.Series(np.nan, index=score_index, name=target)
-
-        val_frame = val_frame.loc[val_frame.index_of("shared")].to_df()
+        val_frame = self._data[fields].copy().to_pandas(how="inner")
+        score_ser = pd.Series(np.nan, index=val_frame.index, name=target)
         val_frame.dropna(inplace=True)
 
         if val_frame.empty:
@@ -192,25 +189,25 @@ class ScoresMixin:
 
         # partitioning
         if not freq:
-            freq = val_frame.shape[0]
+            freq = len(val_frame.index)
 
         if isinstance(freq, str):
             grouper = pd.Grouper(freq=freq)
         else:
             grouper = pd.Series(
-                data=np.arange(0, val_frame.shape[0]), index=val_frame.index
+                data=np.arange(0, len(val_frame)), index=val_frame.index
             )
             grouper = grouper.transform(lambda x: int(np.floor(x / freq)))
 
         partitions = val_frame.groupby(grouper)
 
         for _, partition in partitions:
-            if partition.empty or (partition.shape[0] < min_periods):
+            if partition.empty or (len(partition) < min_periods):
                 continue
 
-            sample_size = partition.shape[0]
+            sample_size = len(partition)
             nn_neighbors = min(n, max(sample_size, 2) - 1)
-            dist, *_ = ts_ops.kNN(
+            dist, *_ = kNN(
                 partition.values, nn_neighbors, algorithm=method, metric=metric, p=p
             )
             try:

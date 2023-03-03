@@ -12,15 +12,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import dios
-from saqc import SaQC
-from saqc.constants import BAD, UNFLAGGED
-from saqc.core import initFlagsLike
-from saqc.core.flags import Flags
-from saqc.core.reader import fromConfig
-from saqc.core.register import register
-from saqc.core.visitor import ConfigFunctionParser
+from saqc import BAD, UNFLAGGED, SaQC
+from saqc.core import DictOfSeries, Flags, initFlagsLike, register
 from saqc.funcs.generic import _execGeneric
+from saqc.parsing.reader import fromConfig
+from saqc.parsing.visitor import ConfigFunctionParser
 from tests.common import initData, writeIO
 
 
@@ -36,10 +32,10 @@ def data_diff():
     col1 = data[data.columns[1]]
     mid = len(col0) // 2
     offset = len(col0) // 8
-    return dios.DictOfSeries(
-        data={
-            col0.name: col0.iloc[: mid + offset],
-            col1.name: col1.iloc[mid - offset :],
+    return DictOfSeries(
+        {
+            data.columns[0]: col0.iloc[: mid + offset],
+            data.columns[1]: col1.iloc[mid - offset :],
         }
     )
 
@@ -95,7 +91,6 @@ def test_comparisonOperators(data):
 
 
 def test_arithmeticOperators(data):
-
     var1, *_ = data.columns
 
     data = data[var1]
@@ -118,7 +113,7 @@ def test_arithmeticOperators(data):
 
 def test_nonReduncingBuiltins(data):
     var1, *_ = data.columns
-    data = data.iloc[1:10, 0]
+    data = data[var1].iloc[1:10]
     flags = Flags({var1: pd.Series(UNFLAGGED, index=data.index)})
 
     tests = [
@@ -150,7 +145,6 @@ def test_bitOps(data):
 
 
 def test_variableAssignments(data):
-
     config = f"""
     varname ; test
     dummy1  ; processGeneric(field=["var1", "var2"], func=x + y)
@@ -218,7 +212,6 @@ def test_flagTargetExistingFail(data_diff):
 
 @pytest.mark.slow
 def test_callableArgumentsUnary(data):
-
     window = 5
 
     @register(mask=["field"], demask=["field"], squeeze=["field"])
@@ -239,7 +232,7 @@ def test_callableArgumentsUnary(data):
         ("std(exp(x))", lambda x: np.std(np.exp(x))),
     ]
 
-    for (name, func) in tests:
+    for name, func in tests:
         fobj = writeIO(config.format(name))
         result_config = fromConfig(fobj, data).data
         result_api = SaQC(data).testFuncUnary(var, func=func).data
@@ -266,7 +259,7 @@ def test_callableArgumentsBinary(data):
         ("y - (x * 2)", lambda y, x: y - (x * 2)),
     ]
 
-    for (name, func) in tests:
+    for name, func in tests:
         fobj = writeIO(config.format(name))
         result_config = fromConfig(fobj, data).data
         result_api = SaQC(data).testFuncBinary(var1, func=func).data
@@ -276,7 +269,6 @@ def test_callableArgumentsBinary(data):
 
 
 def test_isflagged(data):
-
     var1, var2, *_ = data.columns
     flags = initFlagsLike(data)
     flags[data[var1].index[::2], var1] = BAD

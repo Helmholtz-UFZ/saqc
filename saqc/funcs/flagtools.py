@@ -7,19 +7,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import operator
 import warnings
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Callable, Sequence, Union
 
 import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from dios import DictOfSeries
-from saqc.constants import BAD, FILTER_ALL, UNFLAGGED
-from saqc.core.register import _isflagged, flagging, register
+from saqc import BAD, FILTER_ALL, UNFLAGGED
+from saqc.core import DictOfSeries, flagging, register
+from saqc.lib.tools import isflagged, toSequence
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 class FlagtoolsMixin:
@@ -208,6 +209,7 @@ class FlagtoolsMixin:
 
         .. doctest:: ExampleFlagManual
 
+           >>> import saqc
            >>> mdata = pd.Series([1, 0, 1], index=pd.to_datetime(['2000-02-01', '2000-03-01', '2000-05-01']))
            >>> mdata
            2000-02-01    1
@@ -230,7 +232,7 @@ class FlagtoolsMixin:
            2000-02-02    False
            2000-03-01    False
            2000-05-01     True
-           Name: daily_data, dtype: bool
+           dtype: bool
 
         With the 'right-open' method, the mdata is forward fill:
 
@@ -243,7 +245,7 @@ class FlagtoolsMixin:
            2000-02-02     True
            2000-03-01    False
            2000-05-01     True
-           Name: daily_data, dtype: bool
+           dtype: bool
 
         With the 'left-open' method, backward filling is used:
 
@@ -256,7 +258,7 @@ class FlagtoolsMixin:
            2000-02-02     True
            2000-03-01     True
            2000-05-01     True
-           Name: daily_data, dtype: bool
+           dtype: bool
         """
         dat = self._data[field]
         # internal not-mflag-value -> cant go for np.nan
@@ -361,23 +363,24 @@ class FlagtoolsMixin:
 
         .. doctest:: exampleTransfer
 
+           >>> import saqc
            >>> data = pd.DataFrame({'a': [1, 2], 'b': [1, 2], 'c': [1, 2]})
            >>> qc = saqc.SaQC(data)
            >>> qc = qc.flagRange('a', max=1.5)
-           >>> qc.flags.to_df()
-           columns      a    b    c
-           0         -inf -inf -inf
-           1        255.0 -inf -inf
+           >>> qc.flags.to_pandas()
+                  a    b    c
+           0   -inf -inf -inf
+           1  255.0 -inf -inf
 
         Now we can project the flag from `a` to `b` via
 
         .. doctest:: exampleTransfer
 
            >>> qc = qc.transferFlags('a', target='b')
-           >>> qc.flags.to_df()
-           columns      a      b    c
-           0         -inf   -inf -inf
-           1        255.0  255.0 -inf
+           >>> qc.flags.to_pandas()
+                  a      b    c
+           0   -inf   -inf -inf
+           1  255.0  255.0 -inf
 
         You can skip the explicit target parameter designation:
 
@@ -391,12 +394,20 @@ class FlagtoolsMixin:
         .. doctest:: exampleTransfer
 
            >>> qc = qc.transferFlags(['a','a'], ['b', 'c'])
-           >>> qc.flags.to_df()
-           columns      a      b      c
-           0         -inf   -inf   -inf
-           1        255.0  255.0  255.0
+           >>> qc.flags.to_pandas()
+                  a      b      c
+           0   -inf   -inf   -inf
+           1  255.0  255.0  255.0
         """
+        import warnings
 
+        warnings.warn(
+            f"""The method 'transferFlags' is deprecated and
+            will be removed in version 2.5 of SaQC. Please use
+            'SaQC.concatFlags(field={field}, target={target}, method="match", squeeze=False)'
+            instead""",
+            DeprecationWarning,
+        )
         return self.concatFlags(field, target=target, method="match", squeeze=False)
 
     @flagging()
@@ -441,6 +452,7 @@ class FlagtoolsMixin:
 
         .. doctest:: propagateFlags
 
+           >>> import saqc
            >>> data = pd.DataFrame({"a": [-3, -2, -1, 0, 1, 2, 3]})
            >>> flags = pd.DataFrame({"a": [-np.inf, -np.inf, -np.inf, 255.0, -np.inf, -np.inf, -np.inf]})
            >>> qc = saqc.SaQC(data=data, flags=flags)
@@ -452,7 +464,7 @@ class FlagtoolsMixin:
            4     -inf
            5     -inf
            6     -inf
-           Name: a, dtype: float64
+           dtype: float64
 
         Now, to repeat the flag '255.0' two times in direction of ascending indices, execute:
 
@@ -466,7 +478,7 @@ class FlagtoolsMixin:
            4    255.0
            5    255.0
            6     -inf
-           Name: a, dtype: float64
+           dtype: float64
 
         Choosing "bfill" will result in
 
@@ -480,7 +492,7 @@ class FlagtoolsMixin:
            4     -inf
            5     -inf
            6     -inf
-           Name: a, dtype: float64
+           dtype: float64
 
         If an explicit flag is passed, it will be used to fill the repetition window
 
@@ -494,7 +506,7 @@ class FlagtoolsMixin:
            4     -inf
            5     -inf
            6     -inf
-           Name: a, dtype: float64
+           dtype: float64
         """
 
         if method not in {"bfill", "ffill"}:
@@ -508,7 +520,7 @@ class FlagtoolsMixin:
 
         # get dfilter from meta or get of rid of this and
         # consider everything != np.nan as flag
-        flagged = _isflagged(hc, dfilter)
+        flagged = isflagged(hc, dfilter)
 
         repeated = (
             flagged.rolling(window, min_periods=1, closed="left")
@@ -523,3 +535,145 @@ class FlagtoolsMixin:
         self._flags[repeated, field] = flag
 
         return self
+
+    @register(
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field"],
+        multivariate=False,
+        handles_target=True,
+    )
+    def andGroup(
+        self: "SaQC",
+        field: str,
+        group: Sequence["SaQC"] | dict["SaQC", str | Sequence[str]],
+        target: str | None = None,
+        flag: float = BAD,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Flag all values, if a given variable is also flagged in all other given SaQC objects.
+
+        Parameters
+        ----------
+        field:
+            Name of the field to check for flags. ``field`` needs to present in all SaQC objects in ``group``.
+
+        group:
+            A collection of ``SaQC`` objects to check for flags:
+
+            1. If given as a list of ``SaQC`` objects, the variable named ``field`` is checked for flags.
+            2. If given as dictionary the keys represent ``SaQC`` objects and the value one or more
+               variables of the respective object to check for flags.
+
+        target:
+            Name of the field the generated flags will be written to. If None, the result
+            will be written to 'field',
+
+        flag:
+            The quality flag to set.
+
+        Returns
+        -------
+        saqc.SaQC
+        """
+
+        return _groupOperation(
+            base=self,
+            field=field,
+            target=target,
+            func=operator.and_,
+            group=group,
+            flag=flag,
+            **kwargs,
+        )
+
+    @register(
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field"],
+        multivariate=False,
+        handles_target=True,
+    )
+    def orGroup(
+        self: "SaQC",
+        field: str,
+        group: Sequence["SaQC"] | dict["SaQC", str | Sequence[str]],
+        target: str | None = None,
+        flag: float = BAD,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Flag all values, if a given variable is also flagged in at least one other of the given SaQC objects.
+
+        Parameters
+        ----------
+        field:
+            Name of the field to check for flags. ``field`` needs to present in all SaQC objects in ``group``.
+
+        group:
+            A collection of ``SaQC`` objects to check for flags:
+
+            1. If given as a list of ``SaQC`` objects, the variable named ``field`` is checked for flags.
+            2. If given as dictionary the keys represent ``SaQC`` objects and the value one or more
+               variables of the respective object to check for flags.
+
+        target:
+            Name of the field the generated flags will be written to. If None, the result
+            will be written to 'field',
+
+        flag:
+            The quality flag to set.
+
+        Returns
+        -------
+        saqc.SaQC
+        """
+        return _groupOperation(
+            base=self,
+            field=field,
+            target=target,
+            func=operator.or_,
+            group=group,
+            flag=flag,
+            **kwargs,
+        )
+
+
+def _groupOperation(
+    base: "SaQC",
+    field: str,
+    func: Callable[[pd.Series, pd.Series], pd.Series],
+    group: Sequence["SaQC"] | dict["SaQC", str | Sequence[str]],
+    target: str | None = None,
+    flag: float = BAD,
+    **kwargs,
+) -> "SaQC":
+    # Should this be multivariate? And what would multivariate mean in this context
+
+    dfilter = kwargs.get("dfilter", FILTER_ALL)
+    if target is None:
+        target = field
+
+    # harmonise `group` to type dict[SaQC, list[str]]
+    if not isinstance(group, dict):
+        group = {qc: field for qc in group}
+
+    for k, v in group.items():
+        group[k] = toSequence(v)
+
+    qcs_items: list[tuple["SaQC", list[str]]] = list(group.items())
+    # generate initial mask from the first `qc` object on the popped first field
+    mask = isflagged(qcs_items[0][0]._flags[qcs_items[0][1].pop(0)], thresh=dfilter)
+
+    for qc, fields in qcs_items:
+        if field not in qc._flags:
+            raise KeyError(f"variable {field} is missing in given SaQC object")
+        for field in fields:
+            mask = func(mask, isflagged(qc._flags[field], thresh=FILTER_ALL))
+
+    if target not in base._data:
+        base = base.copyField(field=field, target=target)
+
+    base._flags[mask, target] = flag
+    return base

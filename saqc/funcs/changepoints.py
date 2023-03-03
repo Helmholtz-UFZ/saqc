@@ -12,16 +12,13 @@ from typing import TYPE_CHECKING, Callable, Tuple
 import numba
 import numpy as np
 import pandas as pd
-from typing_extensions import Literal
 
-from dios import DictOfSeries
-from saqc.constants import BAD, UNFLAGGED
-from saqc.core.flags import Flags
-from saqc.core.register import flagging, register
+from saqc import BAD, UNFLAGGED
+from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.lib.tools import customRoller, filterKwargs
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 class ChangepointsMixin:
@@ -39,12 +36,10 @@ class ChangepointsMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flag data where it significantly changes.
+        Flag values that represent a system state transition.
 
-        Flag data points, where the parametrization of the process, the data is assumed to
-        generate by, significantly changes.
-
-        The change points detection is based on a sliding window search.
+        Flag data points, where the parametrization of the assumed process generating this data,
+        significantly changes.
 
         Parameters
         ----------

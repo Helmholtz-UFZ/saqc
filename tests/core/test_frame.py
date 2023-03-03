@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
 
-# isort: skip_file
+
+import pytest
+
 from saqc.core.frame import DictOfSeries
-from saqc.core.history import History
-from saqc.core.flags import Flags, initFlagsLike
-from saqc.core.register import flagging, processing, register
-from saqc.core.core import SaQC
+
+# todo : test for DictOfSeries

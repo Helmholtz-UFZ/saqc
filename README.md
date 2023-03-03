@@ -4,18 +4,15 @@ SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
-<a href="https://www.ufz.de/index.php?en=33573">
-    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/representative/UFZLogo.png" width="400"/>
-</a>
+<br>
+<div align="center">
+  <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/representative/SaQCLogo.png" width="300">
+</div>
 
-<a href="https://www.ufz.de/index.php?en=45348">
-    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/representative/RDMLogo.png" align="right" width="220"/>
-</a>
-
+-----------------
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
-
-# System for automated Quality Control (SaQC)
+#  SaQC: System for automated Quality Control
 
 Anomalies and errors are the rule not the exception when working with 
 time series data. This is especially true, if such data originates
@@ -137,4 +134,14 @@ coming soon...
 ## How to cite SaQC
 If SaQC is advancing your research, please cite as:
 
-> Schäfer, David; Palm, Bert; Lünenschloß, Peter. (2021). System for automated Quality Control - SaQC. Zenodo. https://doi.org/10.5281/zenodo.5888547
+> Schäfer, David, Palm, Bert, Lünenschloß, Peter, Schmidt, Lennart, & Bumberger, Jan. (2023). System for automated Quality Control - SaQC (2.3.0). Zenodo. https://doi.org/10.5281/zenodo.5888547
+
+-----------------
+
+<a href="https://www.ufz.de/index.php?en=33573">
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/representative/UFZLogo.png" width="400"/>
+</a>
+
+<a href="https://www.ufz.de/index.php?en=45348">
+    <img src="https://git.ufz.de/rdm-software/saqc/raw/develop/docs/resources/images/representative/RDMLogo.png" align="right" width="220"/>
+</a>

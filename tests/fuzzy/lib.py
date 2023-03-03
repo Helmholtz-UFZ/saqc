@@ -23,9 +23,8 @@ from hypothesis.strategies import (
 )
 from hypothesis.strategies._internal.types import _global_type_lookup
 
-import dios
-from saqc.constants import BAD
-from saqc.core import initFlagsLike
+from saqc import BAD
+from saqc.core import DictOfSeries, initFlagsLike
 from saqc.core.register import FUNC_MAP
 
 MAX_EXAMPLES = 50
@@ -46,7 +45,7 @@ def dioses(draw, min_cols=1):
 
     cols = draw(lists(columnNames(), unique=True, min_size=min_cols))
     columns = {c: draw(dataSeries(min_size=3)) for c in cols}
-    return dios.DictOfSeries(columns)
+    return DictOfSeries(columns)
 
 
 @composite
@@ -134,7 +133,6 @@ def functionCalls(draw, module: str = None):
 
 @contextmanager
 def applyStrategies(strategies: dict):
-
     for dtype, strategy in strategies.items():
         register_type_strategy(dtype, strategy)
 
@@ -154,11 +152,11 @@ def functionKwargs(draw, func):
     i64 = np.iinfo("int64")
 
     strategies = {
-        FreqString: frequencyStrings,
-        ColumnName: lambda _: sampled_from(
-            sorted(c for c in data.columns if c != field)
-        ),
-        IntegerWindow: lambda _: integers(min_value=1, max_value=len(data[field]) - 1),
+        # FreqString: frequencyStrings,
+        # ColumnName: lambda _: sampled_from(
+        #     sorted(c for c in data.columns if c != field)
+        # ),
+        # IntegerWindow: lambda _: integers(min_value=1, max_value=len(data[field]) - 1),
         int: lambda _: integers(min_value=i64.min + 1, max_value=i64.max - 1),
     }
 

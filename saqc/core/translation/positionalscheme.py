@@ -11,11 +11,11 @@ import numpy as np
 import pandas as pd
 
 from saqc.constants import BAD, DOUBTFUL, GOOD, UNFLAGGED
-from saqc.core.flags import Flags, History
-from saqc.core.translation.basescheme import BackwardMap, ForwardMap, TranslationScheme
+from saqc.core import Flags, History
+from saqc.core.translation.basescheme import BackwardMap, ForwardMap, MappingScheme
 
 
-class PositionalScheme(TranslationScheme):
+class PositionalScheme(MappingScheme):
 
     """
     Implements the translation from and to the flagging scheme implemented by CHS
@@ -43,7 +43,7 @@ class PositionalScheme(TranslationScheme):
     def __init__(self):
         super().__init__(forward=self._FORWARD, backward=self._BACKWARD)
 
-    def forward(self, flags: pd.DataFrame) -> Flags:
+    def toInternal(self, flags: pd.DataFrame) -> Flags:
         """
         Translate from 'external flags' to 'internal flags'
 
@@ -59,7 +59,6 @@ class PositionalScheme(TranslationScheme):
 
         data = {}
         for field, field_flags in flags.items():
-
             # explode the flags into sperate columns and drop the leading `9`
             df = pd.DataFrame(
                 field_flags.astype(str).str.slice(start=1).apply(tuple).tolist(),
@@ -75,7 +74,7 @@ class PositionalScheme(TranslationScheme):
 
         return Flags(data)
 
-    def backward(self, flags: Flags, **kwargs) -> pd.DataFrame:
+    def toExternal(self, flags: Flags, **kwargs) -> pd.DataFrame:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -92,7 +91,7 @@ class PositionalScheme(TranslationScheme):
         for field in flags.columns:
             thist = flags.history[field].hist.replace(self._BACKWARD).astype(float)
             # concatenate the single flag values
-            ncols = thist.shape[-1]
+            ncols = len(thist.columns)
             init = 9 * 10**ncols
             bases = 10 ** np.arange(ncols - 1, -1, -1)
 

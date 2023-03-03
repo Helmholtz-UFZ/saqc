@@ -276,91 +276,129 @@ def meanQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     )
 
 
-def interpolateNANs(
-    data, method, order=2, inter_limit=2, downgrade_interpolation=False
+def _interpolWrapper(
+    x, order=1, method="time", limit_area="inside", limit_direction=None
 ):
+    """
+    Function that automatically modifies the interpolation level or returns uninterpolated
+    input data if the data configuration breaks the interpolation method at the selected degree.
+    """
+
+    min_vals_dict = {
+        "nearest": 2,
+        "slinear": 2,
+        "quadratic": 3,
+        "cubic": 4,
+        "spline": order + 1,
+        "polynomial": order + 1,
+        "piecewise_polynomial": 2,
+        "pchip": 2,
+        "akima": 2,
+        "cubicspline": 2,
+    }
+    min_vals = min_vals_dict.get(method, 0)
+
+    if (x.size < 3) | (x.count() < min_vals):
+        return x
+    else:
+        return x.interpolate(
+            method=method,
+            order=order,
+            limit_area=limit_area,
+            limit_direction=limit_direction,
+        )
+
+
+def interpolateNANs(data, method, order=2, gap_limit=2, extrapolate=None):
     """
     The function interpolates nan-values (and nan-grids) in timeseries data. It can
     be passed all the method keywords from the pd.Series.interpolate method and will
     than apply this very methods. Note, that the limit keyword really restricts
-    the interpolation to chunks, not containing more than "limit" nan entries (
+    the interpolation to gaps, not containing more than "limit" nan entries (
     thereby not being identical to the "limit" keyword of pd.Series.interpolate).
 
     :param data:                    pd.Series or np.array. The data series to be interpolated
     :param method:                  String. Method keyword designating interpolation method to use.
     :param order:                   Integer. If your desired interpolation method needs an order to be passed -
                                     here you pass it.
-    :param inter_limit:             Integer. Default = 2. Limit up to which consecutive nan - values in the data get
-                                    replaced by interpolation.
+    :param gap_limit:               Integer or Offset String. Default = 2.
+                                    Number up to which consecutive nan - values in the data get
+                                    replaced by interpolated values.
                                     Its default value suits an interpolation that only will apply to points of an
                                     inserted frequency grid. (regularization by interpolation)
-                                    Gaps wider than "limit" will NOT be interpolated at all.
-    :param downgrade_interpolation:  Boolean. Default False. If True:
+                                    Gaps of size "limit" or greater will NOT be interpolated at all.
+    :param extrapolate:             Str or None. Default None. If True:
                                     If a data chunk not contains enough values for interpolation of the order "order",
                                     the highest order possible will be selected for that chunks interpolation.
 
     :return:
     """
-    inter_limit = int(inter_limit)
+
+    # helper variable for checking numerical value of gap limit, if its a numeric value (to avoid comparison to str)
+    gap_check = np.nan if isinstance(gap_limit, str) else gap_limit
     data = pd.Series(data, copy=True)
-    gap_mask = data.isna().rolling(inter_limit, min_periods=0).sum() != inter_limit
-
-    if inter_limit == 2:
-        gap_mask = gap_mask & gap_mask.shift(-1, fill_value=True)
+    limit_area = "inside" if not extrapolate else "outside"
+    if gap_check is None:
+        # if there is actually no limit set to the gaps to-be interpolated, generate a dummy mask for the gaps
+        gap_mask = pd.Series(True, index=data.index, name=data.name)
     else:
-        gap_mask = (
-            gap_mask.replace(True, np.nan)
-            .fillna(method="bfill", limit=inter_limit)
-            .replace(np.nan, True)
-            .astype(bool)
-        )
+        if gap_check < 2:
+            # breaks execution down the line and is thus catched here since it basically means "do nothing"
+            return data
+        else:
+            # if there is a limit to the gaps to be interpolated, generate a mask that evaluates to False at the right
+            # side of each too-large gap with a rolling.sum combo
+            gap_mask = data.rolling(gap_limit, min_periods=0).count() > 0
 
+            # correction for initial gap
+            if isinstance(gap_limit, int):
+                gap_mask.iloc[:gap_limit] = True
+
+            if gap_limit == 2:
+                # for the common case of gap_limit=2 (default "harmonisation"), we efficiently back propagate the False
+                # value to fill the whole too-large gap by a shift and a conjunction.
+                gap_mask = gap_mask & gap_mask.shift(-1, fill_value=True)
+            else:
+                # If the gap_size is bigger we make a flip-rolling combo to backpropagate the False values
+                gap_mask = ~(
+                    (~gap_mask[::-1]).rolling(gap_limit, min_periods=0).sum() > 0
+                )[::-1]
+
+    # memorizing the index for later reindexing
     pre_index = data.index
-
-    if data[gap_mask].empty:
+    # drop the gaps that are too large with regard to the gap_limit from the data-to-be interpolated
+    data = data[gap_mask]
+    if data.empty:
         return data
 
-    else:
-        data = data[gap_mask]
-
     if method in ["linear", "time"]:
-
+        # in the case of linear interpolation, not much can go wrong/break so this conditional branch has efficient
+        # finish by just calling pandas interpolation routine to fill the gaps remaining in the data:
         data.interpolate(
-            method=method, inplace=True, limit=inter_limit - 1, limit_area="inside"
+            method=method,
+            inplace=True,
+            limit_area=limit_area,
+            limit_direction=extrapolate,
         )
 
     else:
-        dat_name = data.name
-        gap_mask = (~gap_mask).cumsum()
-        data = pd.merge(gap_mask, data, how="inner", left_index=True, right_index=True)
-
-        def _interpolWrapper(x, wrap_order=order, wrap_method=method):
-            if wrap_order < 0:
-                return x
-            elif x.count() > wrap_order:
-                try:
-                    return x.interpolate(method=wrap_method, order=int(wrap_order))
-                except (NotImplementedError, ValueError):
-                    warnings.warn(
-                        f"Interpolation with method {method} is not supported at order "
-                        f"{wrap_order}. and will be performed at order {wrap_order - 1}"
-                    )
-                    return _interpolWrapper(x, int(wrap_order - 1), wrap_method)
-            elif x.size < 3:
-                return x
-            else:
-                if downgrade_interpolation:
-                    return _interpolWrapper(x, int(x.count() - 1), wrap_method)
-                else:
-                    return x
-
-        data = data.groupby(data.columns[0]).transform(_interpolWrapper)
-        # squeezing the 1-dimensional frame resulting from groupby for consistency
-        # reasons
-        data = data.squeeze(axis=1)
-        data.name = dat_name
+        # if the method that is interpolated with, depends on not only the left and right border points of any gap,
+        # but includes more points, it has to be applied on any data chunk seperated by the too-big gaps individually.
+        # So we use the gap_mask to group the data into chunks and perform the interpolation on every chunk seperatly
+        # with the .transform method of the grouper.
+        gap_mask = (~gap_mask).cumsum()[data.index]
+        chunk_groups = data.groupby(by=gap_mask)
+        data = chunk_groups.transform(
+            _interpolWrapper,
+            **{
+                "order": order,
+                "method": method,
+                "limit_area": limit_area,
+                "limit_direction": extrapolate,
+            },
+        )
+    # finally reinsert the dropped data gaps
     data = data.reindex(pre_index)
-
     return data
 
 
@@ -599,10 +637,8 @@ def linearDriftModel(x, origin, target):
 
 
 def linearInterpolation(data, inter_limit=2):
-    return interpolateNANs(data, "time", inter_limit=inter_limit)
+    return interpolateNANs(data, "time", gap_limit=inter_limit)
 
 
 def polynomialInterpolation(data, inter_limit=2, inter_order=2):
-    return interpolateNANs(
-        data, "polynomial", inter_limit=inter_limit, order=inter_order
-    )
+    return interpolateNANs(data, "polynomial", gap_limit=inter_limit, order=inter_order)

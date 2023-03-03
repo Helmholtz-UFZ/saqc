@@ -12,16 +12,15 @@ from typing import TYPE_CHECKING, Sequence, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from dios import DictOfSeries
-from saqc.constants import BAD, ENVIRONMENT, FILTER_ALL
-from saqc.core.flags import Flags
-from saqc.core.history import History
-from saqc.core.register import _isflagged, _maskData, register
-from saqc.lib.tools import toSequence
-from saqc.lib.types import GenericFunction, PandasLike
+from saqc import BAD, FILTER_ALL
+from saqc.core import DictOfSeries, Flags, History, register
+from saqc.core.register import _maskData
+from saqc.lib.tools import isAllBoolean, isflagged, toSequence
+from saqc.lib.types import GenericFunction
+from saqc.parsing.environ import ENVIRONMENT
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 def _flagSelect(field, flags, label=None):
@@ -52,20 +51,19 @@ def _prepare(
     for f in fchunk.columns:
         fchunk.history[f] = flags.history[f]
     dchunk, _ = _maskData(
-        data=data.loc[:, columns].copy(), flags=fchunk, columns=columns, thresh=dfilter
+        data=data[columns].copy(), flags=fchunk, columns=columns, thresh=dfilter
     )
     return dchunk, fchunk.copy()
 
 
 def _execGeneric(
     flags: Flags,
-    data: PandasLike,
+    data: pd.DataFrame | pd.Series | DictOfSeries,
     func: GenericFunction,
     dfilter: float = FILTER_ALL,
 ) -> DictOfSeries:
-
     globs = {
-        "isflagged": lambda data, label=None: _isflagged(
+        "isflagged": lambda data, label=None: isflagged(
             _flagSelect(data.name, flags, label), thresh=dfilter
         ),
         **ENVIRONMENT,
@@ -76,14 +74,35 @@ def _execGeneric(
     if isinstance(data, pd.Series):
         data = data.to_frame()
 
-    out = func(*[data[c] for c in data.columns])
-    if pd.api.types.is_scalar(out):
-        raise ValueError(
-            "generic function should return a sequence object, "
-            f"got '{type(out)}' instead"
-        )
+    # set series.name, because `isflagged` relies on it
+    cols = []
+    for c in data.columns:
+        data[c].name = c
+        cols.append(data[c])
+    return func(*cols)
 
-    return DictOfSeries(out)
+
+def _castResult(obj) -> DictOfSeries:
+    # Note: the actual keys aka. column names
+    # we use here to create a DictOfSeries
+    # are never used, and only exists temporary.
+
+    if isinstance(obj, pd.Series):
+        return DictOfSeries({"0": obj})
+    if pd.api.types.is_dict_like(obj):
+        # includes pd.Series and
+        # everything with keys and __getitem__
+        return DictOfSeries(obj)
+    if pd.api.types.is_list_like(obj):
+        # includes pd.Series and dict
+        return DictOfSeries({str(i): val for i, val in enumerate(obj)})
+
+    if pd.api.types.is_scalar(obj):
+        raise TypeError(
+            "generic function should return a sequence object, "
+            f"got '{type(obj)}' instead"
+        )
+    raise TypeError(f"unprocessable result type {type(obj)}.")
 
 
 class GenericMixin:
@@ -105,14 +124,7 @@ class GenericMixin:
         """
         Generate/process data with user defined functions.
 
-        Formally, what the function does, is the following:
-
-        1.  Let F be a Callable, depending on fields f_1, f_2,...f_K, (F = F(f_1, f_2,...f_K))
-            Than, for every timestamp t_i that occurs in at least one of the timeseries data[f_j] (outer join),
-            The value v_i is computed via:
-            v_i = data([f_1][t_i], data[f_2][t_i], ..., data[f_K][t_i]), if all data[f_j][t_i] do exist
-            v_i = ``np.nan``, if at least one of the data[f_j][t_i] is missing.
-        2.  The result is stored to ``data[target]``, if ``target`` is given or to ``data[field]`` otherwise
+        Call the given ``func`` on the variables given in ``field``.
 
         Parameters
         ----------
@@ -155,8 +167,8 @@ class GenericMixin:
         >>> from saqc import SaQC
         >>> qc = SaQC(pd.DataFrame({'rainfall':[1], 'snowfall':[2]}, index=pd.DatetimeIndex([0])))
         >>> qc = qc.processGeneric(field=["rainfall", "snowfall"], target="precipitation", func=lambda x, y: x + y)
-        >>> qc.data.to_df()
-        columns     rainfall  snowfall  precipitation
+        >>> qc.data.to_pandas()
+                    rainfall  snowfall  precipitation
         1970-01-01         1         2              3
         """
 
@@ -165,6 +177,7 @@ class GenericMixin:
 
         dchunk, fchunk = _prepare(self._data, self._flags, fields, dfilter)
         result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
+        result = _castResult(result)
 
         meta = {
             "func": "procGeneric",
@@ -178,8 +191,7 @@ class GenericMixin:
 
         # update data & flags
         for i, col in enumerate(targets):
-
-            datacol = result.iloc[:, i]
+            datacol = result[result.columns[i]]
             self._data[col] = datacol
 
             if col not in self._flags:
@@ -214,12 +226,9 @@ class GenericMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flag data with user defined functions.
+        Flag data based on a given function.
 
-        Formally, what the function does, is the following:
-        Let X be a Callable, depending on fields f_1, f_2,...f_K, (X = X(f_1, f_2,...f_K))
-        Than for every timestamp t_i in data[field]:
-        data[field][t_i] is flagged if X(data[f_1][t_i], data[f_2][t_i], ..., data[f_K][t_i]) is True.
+        Evaluate ``func`` on all variables given in ``field``.
 
         Parameters
         ----------
@@ -227,21 +236,18 @@ class GenericMixin:
             The variable(s) passed to func.
 
         func : callable
-            Function to call on the variables given in ``field``. The function needs to accept the same
-            number of arguments (of type pandas.Series) as variables given in ``field`` and return an
-            iterable of array-like objects of with dtype bool and with the same number of elements as
-            given in ``target`` (or ``field`` if ``target`` is not specified). The function output
-            determines the values to flag.
+            Function to call. The function needs to accept the same number of arguments
+            (of type pandas.Series) as variables given in ``field`` and return an
+            iterable of array-like objects of data type ``bool`` with the same length as
+            ``target``.
 
         target: str or list of str
             The variable(s) to write the result of ``func`` to. If not given, the variable(s)
-            specified in ``field`` will be overwritten. If a ``target`` is not given, it will be
-            created.
+            specified in ``field`` will be overwritten. Non-existing ``target``s  will be created
+            as all ``NaN`` timeseries.
 
         flag: float, default ``BAD``
-            The quality flag to set. The default ``BAD`` states the general idea, that
-            ``processGeneric`` generates 'new' data without direct relation to the potentially
-            already present flags.
+            Quality flag to set.
 
         dfilter: float, default ``FILTER_ALL``
             Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
@@ -250,10 +256,6 @@ class GenericMixin:
         Returns
         -------
         saqc.SaQC
-
-        Note
-        -----
-        All the numpy functions are available within the generic expressions.
 
         Examples
         --------
@@ -286,13 +288,15 @@ class GenericMixin:
 
         dchunk, fchunk = _prepare(self._data, self._flags, fields, dfilter)
         result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
+        result = _castResult(result)
 
         if len(targets) != len(result.columns):
             raise ValueError(
-                f"the generic function returned {len(result.columns)} field(s), but only {len(targets)} target(s) were given"
+                f"the generic function returned {len(result.columns)} field(s), "
+                f"but {len(targets)} target(s) were given"
             )
 
-        if not result.empty and not (result.dtypes == bool).all():
+        if not result.empty and not isAllBoolean(result):
             raise TypeError(f"generic expression does not return a boolean array")
 
         meta = {
@@ -308,8 +312,7 @@ class GenericMixin:
 
         # update flags & data
         for i, col in enumerate(targets):
-
-            maskcol = result.iloc[:, i]
+            maskcol = result[result.columns[i]]
 
             # make sure the column exists
             if col not in self._flags:
@@ -317,9 +320,14 @@ class GenericMixin:
 
             # dummy column to ensure consistency between flags and data
             if col not in self._data:
-                self._data[col] = pd.Series(np.nan, index=maskcol.index)
+                self._data[col] = pd.Series(np.nan, index=maskcol.index, dtype=float)
 
-            flagcol = maskcol.replace({False: np.nan, True: flag}).astype(float)
+            # Note: big speedup for series, because replace works
+            # with a loop and setting with mask is vectorized.
+            # old code:
+            # >>> flagcol = maskcol.replace({False: np.nan, True: flag}).astype(float)
+            flagcol = pd.Series(np.nan, index=maskcol.index, dtype=float)
+            flagcol[maskcol] = flag
 
             # we need equal indices to work on
             if not self._flags[col].index.equals(maskcol.index):

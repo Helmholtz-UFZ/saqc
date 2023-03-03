@@ -2,22 +2,23 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 
-import dios
 import saqc
+from saqc.core import DictOfSeries
 
 
 @pytest.mark.slow
-def test_makeFig():
+def test_makeFig(tmp_path):
     # just testing for no errors to occure...
-    data = dios.DictOfSeries(
-        pd.Series(
+    data = DictOfSeries(
+        data=pd.Series(
             np.linspace(0, 1000, 1000),
             pd.date_range("2000", "2001", periods=1000),
-            name="data",
         )
     )
     d_saqc = saqc.SaQC(data)
@@ -28,11 +29,11 @@ def test_makeFig():
     )
 
     # not interactive, no storing
-    dummy_path = ""
+    outfile = str(Path(tmp_path, "test.png"))  # the filesystem's temp dir
 
-    d_saqc = d_saqc.plot(field="data", path="")
-    d_saqc = d_saqc.plot(field="data", path=dummy_path, history="valid", stats=True)
-    d_saqc = d_saqc.plot(field="data", path=dummy_path, history="complete")
+    d_saqc = d_saqc.plot(field="data", path=outfile)
+    d_saqc = d_saqc.plot(field="data", path=outfile, history="valid", stats=True)
+    d_saqc = d_saqc.plot(field="data", path=outfile, history="complete")
     d_saqc = d_saqc.plot(
-        field="data", path=dummy_path, ax_kwargs={"ylabel": "data is data"}, stats=True
+        field="data", path=outfile, ax_kwargs={"ylabel": "data is data"}, stats=True
     )

@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 from hypothesis import given, settings
 
-from saqc.constants import BAD, UNFLAGGED
+from saqc import BAD, UNFLAGGED, DictOfSeries
 from saqc.core.register import _maskData, _unmaskData
 from tests.fuzzy.lib import MAX_EXAMPLES, dataFieldFlags
 
@@ -23,11 +23,17 @@ def test_maskingMasksData(data_field_flags):
     test if flagged values are replaced by np.nan
     """
     data_in, field, flags = data_field_flags
-    data_masked, mask = _maskData(
-        data_in, flags, columns=[field], thresh=UNFLAGGED
-    )  # thresh UNFLAGGED | np.inf
-    assert data_masked[field].iloc[mask[field].index].isna().all()
-    assert (flags[field].iloc[mask[field].index] > UNFLAGGED).all()
+    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
+    assert isinstance(data_masked, DictOfSeries)
+    assert isinstance(mask, DictOfSeries)
+    assert field in data_masked.columns
+    if field in mask.columns:
+        assert data_masked[field].iloc[mask[field].index].isna().all()
+        assert (flags[field].iloc[mask[field].index] > UNFLAGGED).all()
+    else:
+        # if nothing gets masked in a column,
+        # the column does not appear in mask
+        assert (flags[field] == UNFLAGGED).all()
 
 
 @pytest.mark.slow
@@ -38,9 +44,8 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
 
     if `data` is mutated after `_maskData`, `_unmaskData` should be a no-op
     """
-    filler = -9999
-
     data_in, field, flags = data_field_flags
+    filler = pd.Series(-9999.0, index=data_in[field].index, dtype=float)
 
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     data_masked[field] = filler
@@ -61,7 +66,7 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     flags[:, field] = UNFLAGGED
     data_out = _unmaskData(data_masked, mask)
-    assert (data_out.loc[flags[field] == BAD, field].isna()).all(axis=None)
+    assert (data_out[field].loc[flags[field] == BAD].isna()).all(axis=None)
 
 
 @pytest.mark.slow
@@ -104,7 +109,7 @@ def test_unmaskingInvertsMasking(data_field_flags):
     data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
     data_out = _unmaskData(data_masked, mask)
     assert pd.DataFrame.equals(
-        data_out.to_df().astype(float), data_in.to_df().astype(float)
+        data_out.to_pandas().astype(float), data_in.to_pandas().astype(float)
     )
 
 

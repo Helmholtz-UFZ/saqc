@@ -8,8 +8,8 @@
 
 import ast
 
-from saqc.constants import ENVIRONMENT
 from saqc.core.register import FUNC_MAP
+from saqc.parsing.environ import ENVIRONMENT
 
 
 class ConfigExpressionParser(ast.NodeVisitor):
@@ -81,7 +81,6 @@ class ConfigExpressionParser(ast.NodeVisitor):
 
 
 class ConfigFunctionParser(ast.NodeVisitor):
-
     SUPPORTED_NODES = (
         ast.Call,
         ast.Num,
@@ -107,7 +106,6 @@ class ConfigFunctionParser(ast.NodeVisitor):
         return func, self.kwargs
 
     def visit_Call(self, node):
-
         if not isinstance(node, ast.Call):
             raise TypeError("expected function call")
 
@@ -126,7 +124,6 @@ class ConfigFunctionParser(ast.NodeVisitor):
         return func_name
 
     def visit_keyword(self, node):
-
         key, value = node.arg, node.value
         check_tree = True
 

@@ -12,10 +12,10 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 import numpy as np
 import pandas as pd
 
-from saqc.core.register import register
+from saqc.core import register
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 class TransformationMixin:
@@ -23,14 +23,12 @@ class TransformationMixin:
     def transform(
         self: "SaQC",
         field: str,
-        func: Callable[[pd.Series], pd.Series],
+        func: Callable[[pd.Series | np.ndarray], pd.Series],
         freq: Optional[Union[float, str]] = None,
         **kwargs,
     ) -> "SaQC":
         """
-        Function to transform data columns with a transformation that maps series onto series of the same length.
-
-        Note, that flags get preserved.
+        Transform data by applying a custom function on data chunks of variable size. Existing flags are preserved.
 
         Parameters
         ----------
@@ -38,15 +36,14 @@ class TransformationMixin:
             The fieldname of the column, holding the data-to-be-transformed.
 
         func : Callable[{pd.Series, np.array}, np.array]
-            Function to transform data[field] with.
+            Transformation function.
 
         freq : {None, float, str}, default None
-            Determines the segmentation of the data into partitions, the transformation is applied on individually
+            Size of the data partition. The transformation is applied on each partition individually
 
-            * ``np.inf``: Apply transformation on whole data set at once
-            * ``x`` > 0 : Apply transformation on successive data chunks of periods length ``x``
-            * Offset String : Apply transformation on successive partitions of temporal extension matching the passed offset
-              string
+            * ``None``: Apply transformation on the entire data set at once
+            * ``int`` : Apply transformation on successive data chunks of the given length. Must be grater than 0.
+            * Offset String : Apply transformation on successive data chunks of the given temporal extension.
 
         Returns
         -------
@@ -55,14 +52,12 @@ class TransformationMixin:
         val_ser = self._data[field].copy()
         # partitioning
         if not freq:
-            freq = val_ser.shape[0]
+            freq = len(val_ser)
 
         if isinstance(freq, str):
             grouper = pd.Grouper(freq=freq)
         else:
-            grouper = pd.Series(
-                data=np.arange(0, val_ser.shape[0]), index=val_ser.index
-            )
+            grouper = pd.Series(data=np.arange(0, len(val_ser)), index=val_ser.index)
             grouper = grouper.transform(lambda x: int(np.floor(x / freq)))
 
         partitions = val_ser.groupby(grouper)

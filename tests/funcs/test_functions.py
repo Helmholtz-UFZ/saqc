@@ -10,13 +10,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import dios
 import saqc
-from saqc.constants import BAD, DOUBTFUL, UNFLAGGED
-from saqc.core import initFlagsLike
-from saqc.core.core import SaQC
+from saqc import BAD, DOUBTFUL, UNFLAGGED, SaQC
+from saqc.core import DictOfSeries, initFlagsLike
 from tests.common import initData
-from tests.fixtures import char_dict, course_1
+from tests.fixtures import char_dict, course_1  # noqa, todo: fix fixtures
 
 
 @pytest.fixture
@@ -34,7 +32,7 @@ def test_statPass():
     noise = [-1, 1] * 10
     data[100:120] = noise
     data[200:210] = noise[:10]
-    data = dios.DictOfSeries(data)
+    data = DictOfSeries(data=data)
     flags = initFlagsLike(data)
     qc = SaQC(data, flags).flagByStatLowPass(
         "data", np.std, "20D", 0.999, "5D", 0.999, 0, flag=BAD
@@ -55,8 +53,8 @@ def test_flagRange(data, field):
 
 
 def test_flagSesonalRange(data, field):
-    data.iloc[::2] = 0
-    data.iloc[1::2] = 50
+    data[field].iloc[::2] = 0
+    data[field].iloc[1::2] = 50
     nyears = len(data[field].index.year.unique())
 
     tests = [
@@ -91,7 +89,7 @@ def test_flagSesonalRange(data, field):
         start = f"{test['startmonth']:02}-{test['startday']:02}T00:00:00"
         end = f"{test['endmonth']:02}-{test['endday']:02}T00:00:00"
 
-        qc = qc.copyField(field, field + "_masked")
+        qc = qc.copyField(field, newfield)
         qc = qc.selectTime(
             newfield,
             mode="periodic",
@@ -101,7 +99,9 @@ def test_flagSesonalRange(data, field):
             flag=BAD,
         )
         qc = qc.flagRange(newfield, min=test["min"], max=test["max"], flag=BAD)
-        qc = qc.concatFlags(newfield, method="match", target=field, flag=BAD)
+        qc = qc.concatFlags(
+            newfield, method="match", target=field, flag=BAD, overwrite=True
+        )
         qc = qc.dropField(newfield)
         flagged = qc._flags[field] > UNFLAGGED
         assert flagged.sum() == expected
@@ -128,12 +128,12 @@ def test_forceFlags(data, field):
 
 def test_flagIsolated(data, field):
     flags = initFlagsLike(data)
-    d_len = data.shape[0][0]
-    data.iloc[1:3, 0] = np.nan
-    data.iloc[4:5, 0] = np.nan
+    d_len = len(data[field].index)
+    data[field].iloc[1:3] = np.nan
+    data[field].iloc[4:5] = np.nan
     flags[data[field].index[5:6], field] = BAD
-    data.iloc[11:13, 0] = np.nan
-    data.iloc[15:17, 0] = np.nan
+    data[field].iloc[11:13] = np.nan
+    data[field].iloc[15:17] = np.nan
 
     #              data  flags
     # 2016-01-01   0.0   -inf
@@ -284,9 +284,10 @@ def test_transferFlags():
     data = pd.DataFrame({"a": [1, 2], "b": [1, 2], "c": [1, 2]})
     qc = saqc.SaQC(data)
     qc = qc.flagRange("a", max=1.5)
-    qc = qc.transferFlags(["a", "a"], ["b", "c"])
-    assert np.all(qc.flags["b"].values == np.array([UNFLAGGED, BAD]))
-    assert np.all(qc.flags["c"].values == np.array([UNFLAGGED, BAD]))
+    with pytest.deprecated_call():
+        qc = qc.transferFlags(["a", "a"], ["b", "c"])  # noqa
+        assert np.all(qc.flags["b"].values == np.array([UNFLAGGED, BAD]))
+        assert np.all(qc.flags["c"].values == np.array([UNFLAGGED, BAD]))
 
 
 def test_flagJumps():

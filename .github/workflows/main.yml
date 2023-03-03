@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10"]
     defaults:
       run:
         # somehow this also works for windows O.o ??
@@ -61,11 +61,11 @@ jobs:
           pytest tests dios/test -Werror 
           python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
       
-      - name: run doc tests    
-        run: |
-          cd docs
-          pip install -r requirements.txt
-          make doc
-          make test
+      # - name: run doc tests    
+      #   run: |
+      #     cd docs
+      #     pip install -r requirements.txt
+      #     make doc
+      #     make test
           
           

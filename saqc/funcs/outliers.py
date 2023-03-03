@@ -15,19 +15,17 @@ import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
-from outliers import smirnov_grubbs
+from outliers import smirnov_grubbs  # noqa, on pypi as outlier-utils
 from scipy.stats import median_abs_deviation
 from typing_extensions import Literal
 
-from dios import DictOfSeries
-from saqc.constants import BAD, UNFLAGGED
-from saqc.core.flags import Flags
-from saqc.core.register import flagging, register
+from saqc import BAD, UNFLAGGED
+from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.funcs.scores import _univarScoring
 from saqc.lib.tools import customRoller, getFreqDelta, toSequence
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 class OutliersMixin:
@@ -122,8 +120,10 @@ class OutliersMixin:
 
         References
         ----------
-        [1] Talagala, P. D., Hyndman, R. J., & Smith-Miles, K. (2019). Anomaly detection in
-            high dimensional data. arXiv preprint arXiv:1908.04000.
+        [1]  Priyanga Dilini Talagala, Rob J. Hyndman & Kate Smith-Miles (2021):
+             Anomaly Detection in High-Dimensional Data,
+             Journal of Computational and Graphical Statistics, 30:2, 360-374,
+             DOI: 10.1080/10618600.2020.1807997
         """
         scores = self._data[field].dropna()
 
@@ -131,14 +131,14 @@ class OutliersMixin:
             return self
 
         if not window:
-            window = scores.shape[0]
+            window = len(scores)
 
         if isinstance(window, str):
             partitions = scores.groupby(pd.Grouper(freq=window))
 
         else:
             grouper_series = pd.Series(
-                data=np.arange(0, scores.shape[0]), index=scores.index
+                data=np.arange(0, len(scores)), index=scores.index
             )
             grouper_series = grouper_series.transform(
                 lambda x: int(np.floor(x / window))
@@ -147,11 +147,10 @@ class OutliersMixin:
 
         # calculate flags for every partition
         for _, partition in partitions:
-
-            if partition.empty | (partition.shape[0] < min_periods):
+            if partition.empty | (len(partition) < min_periods):
                 continue
 
-            sample_size = partition.shape[0]
+            sample_size = len(partition)
 
             sorted_i = partition.values.argsort()
             resids = partition.values[sorted_i]
@@ -280,10 +279,6 @@ class OutliersMixin:
         flag : float, default BAD
             flag to set.
 
-        Returns
-        -------
-        saqc.SaQC
-
         Notes
         -----
         The basic steps are:
@@ -321,6 +316,18 @@ class OutliersMixin:
         this gap, get flagged outliers. See description of the `threshing` parameter for
         more details. Although [2] gives a fully detailed overview over the `stray`
         algorithm.
+
+        Returns
+        -------
+        saqc.SaQC
+
+        References
+        ----------
+        [1]  Priyanga Dilini Talagala, Rob J. Hyndman & Kate Smith-Miles (2021):
+             Anomaly Detection in High-Dimensional Data,
+             Journal of Computational and Graphical Statistics, 30:2, 360-374,
+             DOI: 10.1080/10618600.2020.1807997
+
         """
 
         fields = toSequence(field)
@@ -571,11 +578,13 @@ class OutliersMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        The function represents an implementation of the modyfied Z-score outlier detection method.
+        Flag outiers using the modified Z-score outlier detection method.
 
         See references [1] for more details on the algorithm.
 
-        Note, that the test needs the input data to be sampled regularly (fixed sampling rate).
+        Note
+        ----
+        Data needs to be sampled at a regular equidistant time grid.
 
         Parameters
         ----------
@@ -714,6 +723,7 @@ class OutliersMixin:
 
         .. doctest:: flagOffsetExample
 
+           >>> import saqc
            >>> data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
            >>> data
                                 data
@@ -738,7 +748,7 @@ class OutliersMixin:
         .. doctest:: flagOffsetExample
 
            >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
-           >>> qc.plot('data') # doctest:+SKIP
+           >>> qc.plot('data')  # doctest: +SKIP
 
         .. plot::
            :context: close-figs
@@ -746,7 +756,7 @@ class OutliersMixin:
 
            >>> qc = saqc.SaQC(data)
            >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
-           >>> qc.plot('data')
+           >>> qc.plot('data')  # doctest: +SKIP
 
         Note, that both, negative and positive jumps are considered starting points of negative or positive offsets.
         If you want to impose the additional condition, that the initial value jump must exceed *+90%* of the value level,
@@ -763,7 +773,7 @@ class OutliersMixin:
 
            >>> qc = saqc.SaQC(data)
            >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6H')
-           >>> qc.plot('data')
+           >>> qc.plot('data')  # doctest: +SKIP
 
         Now, only positive jumps, that exceed a value gain of *+90%* are considered starting points of offsets.
 
@@ -781,7 +791,7 @@ class OutliersMixin:
 
            >>> qc = saqc.SaQC(data)
            >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6H')
-           >>> qc.plot('data')
+           >>> qc.plot('data')  # doctest: +SKIP
 
 
         References
@@ -858,20 +868,19 @@ class OutliersMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        The function flags values that are regarded outliers due to the grubbs test.
+        Flag outliers using the Grubbs algorithm.
 
-        See reference [1] for more information on the grubbs tests definition.
+        See [1] for more information on the grubbs tests definition.
 
-        The (two-sided) test gets applied onto data chunks of size "window". The tests
-        application  will be iterated on each data-chunk under test, till no more
-        outliers are detected in that chunk.
+        The (two-sided) test gets applied to data chunks of size ``window``. The
+        tests will be iterated chunkwise until no more outliers are detected.
 
-        Note, that the test performs poorely for small data chunks (resulting in heavy
-        overflagging). Therefor you should select "window" so that every window contains
-        at least > 8 values and also adjust the min_periods values accordingly.
-
-        Note, that the data to be tested by the grubbs test are expected to be distributed
-        "normalish".
+        Note
+        ----
+        * The test performs poorly for small data chunks, resulting in considerable
+          overflagging. Select ``window`` such that every data chunck contains at
+          least 8 values and also adjust the ``min_periods`` values accordingly.
+        * The dara is expected to be normally distributed
 
         Parameters
         ----------
@@ -879,25 +888,22 @@ class OutliersMixin:
             The fieldname of the column, holding the data-to-be-flagged.
 
         window : {int, str}
-            The size of the window you want to use for outlier testing. If an integer is
-            passed, the size refers to the number of periods of every testing window. If a
-            string is passed, it has to be an offset string, and will denote the total
-            temporal extension of every window.
+            Size of the testing window.
+            If an integer, the fixed number of observations used for each window.
+            If an offset string the time period of each window.
 
         alpha : float, default 0.05
-            The level of significance, the grubbs test is to be performed at. (between 0 and 1)
+            Level of significance, the grubbs test is to be performed at. Must be between 0 and 1
 
         min_periods : int, default 8
-            The minimum number of values that have to be present in an interval under test,
-            for a grubbs test result to be accepted. Only makes sence in case `window` is
-            an offset string.
+            Minimum number of values needed in a ``window`` in order to perform the grubs test.
+            Ignored if ``window`` is an integer.
 
         pedantic: boolean, default False
-            If True, every value gets checked twice for being an outlier. Ones in the
-            initial rolling window and one more time in a rolling window that is lagged
-            by half the windows delimeter (window/2). Recommended for avoiding false
-            positives at the window edges. Only available when rolling with integer
-            defined window size.
+            If ``True``, every value gets checked twice. First in the initial rolling ``window``
+            and second in a rolling window that is lagging by ``window``/2. Recommended to avoid
+            false positives at the window edges.
+            Ignored if ``window`` is an offset string.
 
         flag : float, default BAD
             flag to set.
@@ -926,7 +932,7 @@ class OutliersMixin:
         # period number defined test intervals
         if isinstance(window, int):
             grouper_series = pd.Series(
-                data=np.arange(0, datcol.shape[0]), index=datcol.index
+                data=np.arange(0, len(datcol)), index=datcol.index
             )
             grouper_series_lagged = grouper_series + (window / 2)
             grouper_series = grouper_series.transform(lambda x: x // window)
@@ -1031,10 +1037,9 @@ class OutliersMixin:
 
         fields = toSequence(field)
 
-        df = self._data[fields].loc[self._data[fields].index_of("shared")].to_df()
+        df = self._data[fields].to_pandas(how="inner")
 
         if isinstance(method, str):
-
             if method == "modZscore":
                 MAD_series = df.subtract(df.median(axis=1), axis=0).abs().median(axis=1)
                 diff_scores = (
@@ -1054,7 +1059,6 @@ class OutliersMixin:
                 raise ValueError(method)
 
         else:
-
             try:
                 stat = getattr(df, method.__name__)(axis=1)
             except AttributeError:
@@ -1228,7 +1232,7 @@ def _evalStrayLabels(
     ----------
     [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
     """
-    val_frame = data[target].to_df()
+    val_frame = data[target].to_pandas()
     stray_detects = flags[field] > UNFLAGGED
     stray_detects = stray_detects[stray_detects]
     to_flag_frame = pd.DataFrame(False, columns=target, index=stray_detects.index)
@@ -1240,7 +1244,6 @@ def _evalStrayLabels(
 
     for var in target:
         for index in enumerate(to_flag_frame.index):
-
             index_slice = slice(
                 index[1] - pd.Timedelta(reduction_range),
                 index[1] + pd.Timedelta(reduction_range),
@@ -1263,7 +1266,7 @@ def _evalStrayLabels(
             if reduction_drop_flagged:
                 test_slice = test_slice.drop(to_flag_frame.index, errors="ignore")
 
-            if test_slice.shape[0] < reduction_min_periods:
+            if len(test_slice) < reduction_min_periods:
                 to_flag_frame.loc[index[1], var] = True
                 continue
 

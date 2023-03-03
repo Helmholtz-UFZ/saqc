@@ -13,10 +13,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from saqc.constants import BAD, DOUBTFUL, FILTER_NONE, UNFLAGGED
-from saqc.core.core import SaQC
-from saqc.core.flags import Flags
-from saqc.core.translation import DmpScheme, PositionalScheme, TranslationScheme
+from saqc import BAD, DOUBTFUL, FILTER_NONE, UNFLAGGED, SaQC
+from saqc.core import Flags
+from saqc.core.translation import DmpScheme, MappingScheme, PositionalScheme
 from tests.common import initData
 
 
@@ -27,12 +26,11 @@ def _genTranslators():
             dtype(-1): BAD,
             **{dtype(f * 10): float(f) for f in range(10)},
         }
-        scheme = TranslationScheme(flags, {v: k for k, v in flags.items()})
+        scheme = MappingScheme(flags, {v: k for k, v in flags.items()})
         yield flags, scheme
 
 
 def _genFlags(data: Dict[str, Union[Sequence, pd.Series]]) -> Flags:
-
     flags = Flags()
     for k, v in data.items():
         if not isinstance(v, pd.Series):
@@ -60,7 +58,7 @@ def test_backwardTranslation():
     for _, scheme in _genTranslators():
         keys = tuple(scheme._backward.keys())
         flags = _genFlags({field: np.array(keys)})
-        translated = scheme.backward(flags)
+        translated = scheme.toExternal(flags)
         expected = set(scheme._backward.values())
         assert not (set(translated[field]) - expected)
 
@@ -72,11 +70,10 @@ def test_backwardTranslationFail():
         # add an scheme invalid value to the flags
         flags = _genFlags({field: np.array(keys + (max(keys) + 1,))})
         with pytest.raises(ValueError):
-            scheme.backward(flags)
+            scheme.toExternal(flags)
 
 
 def test_dmpTranslator():
-
     scheme = DmpScheme()
     # generate a bunch of dummy flags
     keys = np.array(tuple(scheme._backward.keys()) * 50)
@@ -94,7 +91,7 @@ def test_dmpTranslator():
         {"func": "flagFoo", "kwargs": {"cause": "BELOW_OR_ABOVE_MIN_MAX"}}
     )
 
-    tflags = scheme.backward(flags)
+    tflags = scheme.toExternal(flags)
 
     assert set(tflags.columns.get_level_values(1)) == {
         "quality_flag",
@@ -137,14 +134,13 @@ def test_positionalTranslator():
     flags[1::3, "var1"] = DOUBTFUL
     flags[2::3, "var1"] = BAD
 
-    tflags = scheme.backward(flags)
+    tflags = scheme.toExternal(flags)
     assert (tflags["var2"].replace(-9999, np.nan).dropna() == 90).all(axis=None)
     assert (tflags["var1"].iloc[1::3] == 90210).all(axis=None)
     assert (tflags["var1"].iloc[2::3] == 90002).all(axis=None)
 
 
 def test_positionalTranslatorIntegration():
-
     data = initData(3)
     col: str = data.columns[0]
 
@@ -153,10 +149,10 @@ def test_positionalTranslatorIntegration():
     saqc = saqc.flagMissing(col).flagRange(col, min=3, max=10, flag=DOUBTFUL)
     flags = saqc.flags
 
-    for field in flags.columns:
+    for field in flags.keys():
         assert flags[field].astype(str).str.match("^9[012]*$").all()
 
-    round_trip = scheme.backward(scheme.forward(flags))
+    round_trip = scheme.toExternal(scheme.toInternal(flags))
 
     assert (flags.values == round_trip.values).all()
     assert (flags.index == round_trip.index).all()
@@ -164,7 +160,6 @@ def test_positionalTranslatorIntegration():
 
 
 def test_dmpTranslatorIntegration():
-
     data = initData(1)
     col = data.columns[0]
 
@@ -183,7 +178,7 @@ def test_dmpTranslatorIntegration():
     assert qfunc.isin({"", "flagMissing", "flagRange"}).all(axis=None)
     assert (qcause[qflags[col] == "BAD"] == "OTHER").all(axis=None)
 
-    round_trip = scheme.backward(scheme.forward(flags))
+    round_trip = scheme.toExternal(scheme.toInternal(flags))
 
     assert round_trip.xs("quality_flag", axis="columns", level=1).equals(qflags)
 
@@ -211,7 +206,6 @@ def test_dmpValidCombinations():
 
 
 def _buildupSaQCObjects():
-
     """
     return two evaluated saqc objects calling the same functions,
     whereas the flags from the evaluetion of the first objetc are
@@ -233,7 +227,6 @@ def _buildupSaQCObjects():
 
 
 def test_translationPreservesFlags():
-
     saqc1, saqc2 = _buildupSaQCObjects()
     flags1 = saqc1._flags
     flags2 = saqc2._flags
@@ -270,14 +263,13 @@ def test_multicallsPreserveHistory():
 
 
 def test_positionalMulitcallsPreserveState():
-
     saqc1, saqc2 = _buildupSaQCObjects()
 
     scheme = PositionalScheme()
     flags1 = saqc1._flags
     flags2 = saqc2._flags
-    tflags1 = scheme.backward(flags1).astype(str)
-    tflags2 = scheme.backward(flags2).astype(str)
+    tflags1 = scheme.toExternal(flags1).astype(str)
+    tflags2 = scheme.toExternal(flags2).astype(str)
 
     for k in flags2.columns:
         expected = tflags1[k].str.slice(start=1) * 2

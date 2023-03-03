@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dios import DictOfSeries
+from saqc.core import DictOfSeries
 
 # TODO: this is odd
 #  Why not simple fixtures with talking-names,
@@ -54,7 +54,7 @@ def course_1(char_dict):
             int(np.floor(len(t_index) / 2)) - 1 : int(np.floor(len(t_index) / 2)) + 1
         ]
 
-        data = DictOfSeries(data=s, columns=[name])
+        data = DictOfSeries({name: s})
         return data, char_dict
 
     return fix_funk
@@ -69,6 +69,7 @@ def course_2(char_dict):
     one "anomalous" or "outlierish" value of magnitude "out_val" at position "periods/2"
     number of periods better be even!
     """
+
     # SINGLE_SPIKE
     def fix_funk(
         freq="10min",
@@ -93,7 +94,7 @@ def course_2(char_dict):
         char_dict[kind] = data.index[int(np.floor(periods / 2))]
         char_dict["return"] = data.index[int(np.floor(len(t_index) / 2)) + 1]
 
-        data = DictOfSeries(data=data, columns=["data"])
+        data = DictOfSeries(data=data)
         return data, char_dict
 
     return fix_funk
@@ -119,7 +120,7 @@ def course_test(char_dict):
         data.iloc[2] = out_val
         data.iloc[3] = out_val
 
-        data = DictOfSeries(data=data, columns=["data"])
+        data = DictOfSeries(data=data)
         return data, char_dict
 
     return fix_funk
@@ -149,7 +150,6 @@ def course_3(char_dict):
         crowd_size=5,
         crowd_spacing=1,
     ):
-
         t_index = pd.date_range(initial_index, freq=freq, periods=periods)
         data = np.linspace(initial_level, final_level, int(np.floor(len(t_index))))
         data = pd.Series(data=data, index=t_index)
@@ -177,7 +177,7 @@ def course_3(char_dict):
         char_dict[kind] = anomaly_index
         char_dict["return"] = t_index[int(len(t_index) / 2) + 1]
 
-        data = DictOfSeries(data=data, columns=["data"])
+        data = DictOfSeries(data=data)
         return data, char_dict
 
     return fix_funk
@@ -207,7 +207,7 @@ def course_4(char_dict):
         char_dict["raise"] = t_index[int(len(t_index) / 2) :: 2]
         char_dict["return"] = t_index[int((len(t_index) / 2) + 1) :: 2]
 
-        data = DictOfSeries(data=data, columns=["data"])
+        data = DictOfSeries(data=data)
         return data, char_dict
 
     return fix_funk
@@ -239,7 +239,7 @@ def course_5(char_dict):
         s.iloc[nan_slice] = np.nan
         char_dict["missing"] = s.iloc[nan_slice].index
 
-        data = DictOfSeries(data=s, columns=["data"])
+        data = DictOfSeries(data=s)
         return data, char_dict
 
     return fix_funk

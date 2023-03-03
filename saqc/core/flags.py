@@ -6,18 +6,19 @@
 
 from __future__ import annotations
 
-from typing import DefaultDict, Dict, Iterable, Mapping, Optional, Tuple, Type, Union
+import typing
+import warnings
+from typing import DefaultDict, Dict, Iterable, Mapping, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
 
-import dios
-from saqc.core.history import History
+from saqc.core import DictOfSeries, History
 
 _VAL = Union[pd.Series, History]
 DictLike = Union[
     pd.DataFrame,
-    dios.DictOfSeries,
+    DictOfSeries,
     Dict[str, _VAL],
     DefaultDict[str, _VAL],
 ]
@@ -77,11 +78,10 @@ class Flags:
 
     .. doctest:: exampleFlags
 
-       >>> from saqc.constants import UNFLAGGED, BAD, DOUBTFUL
-       >>> flags = saqc.Flags()
+       >>> from saqc import UNFLAGGED, BAD, DOUBTFUL, Flags
+       >>> flags = Flags()
        >>> flags
        Empty Flags
-       Columns: []
 
     .. doctest:: exampleFlags
 
@@ -147,7 +147,7 @@ class Flags:
        0     True
        1    False
        2     True
-       Name: 2, dtype: bool
+       dtype: bool
 
     .. doctest:: exampleFlags
 
@@ -191,10 +191,7 @@ class Flags:
        2   -inf  25.0  25.0  0.0  99.0
     """
 
-    def __init__(
-        self, raw_data: Optional[Union[DictLike, Flags]] = None, copy: bool = False
-    ):
-
+    def __init__(self, raw_data: DictLike | Flags | None = None, copy: bool = False):
         self._data: dict[str, History]
 
         if raw_data is None:
@@ -217,7 +214,6 @@ class Flags:
         result = {}
 
         for k, item in data.items():
-
             if not isinstance(k, str):
                 raise ValueError("column names must be string")
             if k in result:
@@ -261,6 +257,9 @@ class Flags:
 
     # ----------------------------------------------------------------------
     # meta data
+
+    def keys(self) -> typing.KeysView:
+        return self._data.keys()
 
     @property
     def columns(self) -> pd.Index:
@@ -321,8 +320,28 @@ class Flags:
     # ----------------------------------------------------------------------
     # item access
 
-    def __getitem__(self, key: str) -> pd.Series:
-        return self._data[key].squeeze()
+    def __getitem__(self, key: str | list | pd.Index) -> pd.Series | Flags:
+        if isinstance(key, str):
+            return self._data[key].squeeze()
+
+        if isinstance(key, slice):
+            key = self.columns[key]
+
+        if isinstance(key, (list, pd.Index)):
+            # only copy necessary data
+            data = self._data
+            try:
+                self._data = {}
+                new = self.copy()
+            finally:
+                self._data = data
+            new._data = {k: self._data[k].copy() for k in key}
+            return new
+
+        raise TypeError(
+            "Key must be of type str, list or index of string or slice,"
+            f"not {type(key)}."
+        )
 
     def __setitem__(self, key: SelectT, value: ValueT):
         # force-KW is only internally available
@@ -398,7 +417,7 @@ class Flags:
 
         Access via ``flags.history['var']``.
         To set a new history use ``flags.history['var'] = value``.
-        The passed value must be a instance of History or must be convertible to a
+        The passed value must be an instance of History or must be convertible to a
         history.
 
         Returns
@@ -448,20 +467,23 @@ class Flags:
     # ----------------------------------------------------------------------
     # transformation and representation
 
-    def toDios(self) -> dios.DictOfSeries:
+    def toDios(self) -> DictOfSeries:
         """
-        Transform the flags container to a ``dios.DictOfSeries``.
+        Transform the flags container to a ``DictOfSeries``.
+
+
+        .. deprecated:: 2.4
+           use `saqc.DictOfSeries(obj)` instead.
 
         Returns
         -------
-        dios.DictOfSeries
+        DictOfSeries
         """
-        di = dios.DictOfSeries(columns=self.columns)
-
-        for k in self._data.keys():
-            di[k] = self[k]
-
-        return di.copy()
+        warnings.warn(
+            "toDios is deprecated, use `saqc.DictOfSeries(obj)` instead.",
+            category=DeprecationWarning,
+        )
+        return DictOfSeries(self).copy()
 
     def toFrame(self) -> pd.DataFrame:
         """
@@ -471,10 +493,10 @@ class Flags:
         -------
         pd.DataFrame
         """
-        return self.toDios().to_df()
+        return pd.DataFrame(dict(self))
 
     def __repr__(self) -> str:
-        return str(self.toDios()).replace("DictOfSeries", type(self).__name__)
+        return str(DictOfSeries(self)).replace("DictOfSeries", type(self).__name__)
 
 
 def initFlagsLike(
@@ -482,11 +504,11 @@ def initFlagsLike(
     name: str = None,
 ) -> Flags:
     """
-    Create empty Flags, from an reference data structure.
+    Create empty Flags, from a reference data structure.
 
     Parameters
     ----------
-    reference : pd.DataFrame, pd.Series, dios.DictOfSeries, dict of pd.Series
+    reference : pd.DataFrame, pd.Series, DictOfSeries, dict of pd.Series
         The reference structure to initialize for.
 
     name : str, default None
@@ -526,7 +548,6 @@ def initFlagsLike(
         reference = reference.to_frame(name=name)
 
     for k, item in reference.items():
-
         if not isinstance(k, str):
             raise TypeError(
                 f"cannot use '{k}' as a column name, currently only string keys are allowed"

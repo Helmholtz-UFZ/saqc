@@ -15,13 +15,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing_extensions import Literal
 
-from saqc.constants import FILTER_NONE, UNFLAGGED
-from saqc.core.register import processing, register
+from saqc import FILTER_NONE, UNFLAGGED
+from saqc.core import processing, register
 from saqc.lib.plotting import makeFig
 from saqc.lib.tools import periodicMask
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
@@ -214,13 +214,14 @@ class ToolsMixin:
             mask = periodicMask(datcol_idx, start, end, ~closed)
         elif mode == "selection_field":
             idx = self._data[selection_field].index.intersection(datcol_idx)
-            mask = self._data.loc[idx, selection_field]
+            mask = self._data[selection_field].loc[idx]
         else:
             raise ValueError(
                 "Keyword passed as masking mode is unknown ({})!".format(mode)
             )
 
-        self._data.aloc[mask, field] = np.nan
+        mask = mask.reindex(self._data[field].index, fill_value=False).astype(bool)
+        self._data[field].loc[mask] = np.nan
         self._flags[mask, field] = UNFLAGGED
         return self
 
@@ -234,6 +235,7 @@ class ToolsMixin:
         xscope: Optional[slice] = None,
         phaseplot: Optional[str] = None,
         store_kwargs: Optional[dict] = None,
+        ax: mpl.axes.Axes | None = None,
         ax_kwargs: Optional[dict] = None,
         dfilter: float = FILTER_NONE,
         **kwargs,
@@ -297,11 +299,10 @@ class ToolsMixin:
         """
         data, flags = self._data.copy(), self._flags.copy()
 
-        interactive = path is None
         level = kwargs.get("flag", UNFLAGGED)
 
         if dfilter < np.inf:
-            data.loc[flags[field] >= dfilter, field] = np.nan
+            data[field].loc[flags[field] >= dfilter] = np.nan
 
         if store_kwargs is None:
             store_kwargs = {}
@@ -309,9 +310,8 @@ class ToolsMixin:
         if ax_kwargs is None:
             ax_kwargs = {}
 
-        if interactive:
+        if not path:
             mpl.use(_MPL_DEFAULT_BACKEND)
-
         else:
             mpl.use("Agg")
 
@@ -324,13 +324,14 @@ class ToolsMixin:
             history=history,
             xscope=xscope,
             phaseplot=phaseplot,
+            ax=ax,
             ax_kwargs=ax_kwargs,
         )
 
-        if interactive:
+        if ax is None and not path:
             plt.show()
 
-        else:
+        if path:
             if store_kwargs.pop("pickle", False):
                 with open(path, "wb") as f:
                     pickle.dump(fig, f)

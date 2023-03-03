@@ -13,12 +13,13 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from saqc.constants import UNFLAGGED
-from saqc.core.register import _isflagged, register
+from saqc import UNFLAGGED
+from saqc.core import register
+from saqc.lib.tools import isflagged
 from saqc.lib.ts_operators import interpolateNANs
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 _SUPPORTED_METHODS = Literal[
@@ -143,13 +144,13 @@ class InterpolationMixin:
         field: str,
         method: _SUPPORTED_METHODS,
         order: int = 2,
-        limit: int = 2,
-        downgrade: bool = False,
+        limit: int | None = None,
+        extrapolate: Literal["forward", "backward", "both"] = None,
         flag: float = UNFLAGGED,
         **kwargs,
     ) -> "SaQC":
         """
-        Function to interpolate nan values in the data.
+        Function to interpolate nan values in data.
 
         There are available all the interpolation methods from the pandas.interpolate method and they are applicable by
         the very same key words, that you would pass to the ``pd.Series.interpolate``'s method parameter.
@@ -167,9 +168,11 @@ class InterpolationMixin:
             If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
             order.
 
-        limit : int, default 2
-            Maximum number of consecutive 'nan' values allowed for a gap to be interpolated. This really restricts the
-            interpolation to chunks, containing not more than `limit` successive nan entries.
+        limit : int or str, default None
+            Upper limit of missing index values (with respect to `freq`) to fill. The limit can either be expressed
+            as the number of consecutive missing values (integer) or temporal extension of the gaps to be filled
+            (Offset String).
+            If `None` is passed, no Limit is set.
 
         flag : float or None, default UNFLAGGED
             Flag that is set for interpolated values. If ``None``, no flags are set at all.
@@ -182,13 +185,87 @@ class InterpolationMixin:
         Returns
         -------
         saqc.SaQC
+
+        Examples
+        --------
+        See some examples of the keyword interplay below:
+
+        Lets generate some dummy data:
+
+        .. doctest:: interpolateInvalid
+
+           >>> data = pd.DataFrame({'data':np.array([np.nan, 0, np.nan, np.nan, np.nan, 4, 5, np.nan, np.nan, 8, 9, np.nan, np.nan])}, index=pd.date_range('2000',freq='1H', periods=13))
+           >>> data
+                                data
+           2000-01-01 00:00:00   NaN
+           2000-01-01 01:00:00   0.0
+           2000-01-01 02:00:00   NaN
+           2000-01-01 03:00:00   NaN
+           2000-01-01 04:00:00   NaN
+           2000-01-01 05:00:00   4.0
+           2000-01-01 06:00:00   5.0
+           2000-01-01 07:00:00   NaN
+           2000-01-01 08:00:00   NaN
+           2000-01-01 09:00:00   8.0
+           2000-01-01 10:00:00   9.0
+           2000-01-01 11:00:00   NaN
+           2000-01-01 12:00:00   NaN
+
+        Use :py:meth:`~saqc.SaQC.interpolateInvalid` to do linear interpolation of up to 2 consecutive missing values:
+
+        .. doctest:: interpolateInvalid
+
+           >>> qc = saqc.SaQC(data)
+           >>> qc = qc.interpolateInvalid("data", limit=3, method='time')
+           >>> qc.data # doctest:+NORMALIZE_WHITESPACE
+                               data |
+           ======================== |
+           2000-01-01 00:00:00  NaN |
+           2000-01-01 01:00:00  0.0 |
+           2000-01-01 02:00:00  NaN |
+           2000-01-01 03:00:00  NaN |
+           2000-01-01 04:00:00  NaN |
+           2000-01-01 05:00:00  4.0 |
+           2000-01-01 06:00:00  5.0 |
+           2000-01-01 07:00:00  6.0 |
+           2000-01-01 08:00:00  7.0 |
+           2000-01-01 09:00:00  8.0 |
+           2000-01-01 10:00:00  9.0 |
+           2000-01-01 11:00:00  NaN |
+           2000-01-01 12:00:00  NaN |
+           <BLANKLINE>
+
+
+        Use :py:meth:`~saqc.SaQC.interpolateInvalid` to do linear extrapolaiton of up to 1 consecutive missing values:
+
+        .. doctest:: interpolateInvalid
+
+           >>> qc = saqc.SaQC(data)
+           >>> qc = qc.interpolateInvalid("data", limit=2, method='time', extrapolate='both')
+           >>> qc.data # doctest:+NORMALIZE_WHITESPACE
+                               data |
+           ======================== |
+           2000-01-01 00:00:00  0.0 |
+           2000-01-01 01:00:00  0.0 |
+           2000-01-01 02:00:00  NaN |
+           2000-01-01 03:00:00  NaN |
+           2000-01-01 04:00:00  NaN |
+           2000-01-01 05:00:00  4.0 |
+           2000-01-01 06:00:00  5.0 |
+           2000-01-01 07:00:00  NaN |
+           2000-01-01 08:00:00  NaN |
+           2000-01-01 09:00:00  8.0 |
+           2000-01-01 10:00:00  9.0 |
+           2000-01-01 11:00:00  NaN |
+           2000-01-01 12:00:00  NaN |
+           <BLANKLINE>
         """
         inter_data = interpolateNANs(
             self._data[field],
             method,
             order=order,
-            inter_limit=limit,
-            downgrade_interpolation=downgrade,
+            gap_limit=limit,
+            extrapolate=extrapolate,
         )
 
         interpolated = self._data[field].isna() & inter_data.notna()
@@ -210,15 +287,12 @@ class InterpolationMixin:
         freq: str,
         method: _SUPPORTED_METHODS,
         order: int = 2,
-        limit: int = 2,
-        downgrade: bool = False,
+        limit: int | None = 2,
+        extrapolate: Literal["forward", "backward", "both"] = None,
         **kwargs,
     ) -> "SaQC":
         """
-        Function to interpolate the data at regular (equidistant) timestamps (or Grid points).
-
-        Note, that the interpolation will only be calculated, for grid timestamps that have a preceding AND a succeeding
-        valid data value within "freq" range.
+        Function to interpolate the data at regular (äquidistant) timestamps (or Grid points).
 
         Parameters
         ----------
@@ -234,18 +308,22 @@ class InterpolationMixin:
             The interpolation method you want to apply.
 
         order : int, default 2
-            If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
+            If your selected interpolation method can be performed at different 'orders' - here you pass the desired
             order.
 
-        limit : int, default 2
-            Maximum number of consecutive 'nan' values allowed for a gap to be interpolated. This really restricts the
-            interpolation to chunks, containing not more than `limit` successive nan entries.
+        limit : int, optional
+            Upper limit of missing index values (with respect to `freq`) to fill. The limit can either be expressed
+            as the number of consecutive missing values (integer) or temporal extension of the gaps to be filled
+            (Offset String).
+            If `None` is passed, no Limit is set.
 
-        downgrade : bool, default False
-            If `True` and the interpolation can not be performed at current order, retry with a lower order.
-            This can happen, because the chosen ``method`` does not support the passed ``order``, or
-            simply because not enough values are present in a interval.
+        extraplate : {'forward', 'backward', 'both'}, default None
+            Use parameter to perform extrapolation instead of interpolation onto the trailing and/or leading chunks of
+            NaN values in data series.
 
+            * 'None' (default) - perform interpolation
+            * 'forward'/'backward' - perform forward/backward extrapolation
+            * 'both' - perform forward and backward extrapolation
 
         Returns
         -------
@@ -264,7 +342,7 @@ class InterpolationMixin:
         # TODO:
         # in future we could use `register(mask=[field], [], [])`
         # and dont handle masking manually here
-        flagged = _isflagged(self._flags[field], kwargs["dfilter"])
+        flagged = isflagged(self._flags[field], kwargs["dfilter"])
 
         # drop all points that hold no relevant grid information
         datcol = datcol[~flagged].dropna()
@@ -283,8 +361,8 @@ class InterpolationMixin:
             data=datcol,
             method=method,
             order=order,
-            inter_limit=limit,
-            downgrade_interpolation=downgrade,
+            gap_limit=limit,
+            extrapolate=extrapolate,
         )
 
         # override falsely interpolated values:
@@ -307,7 +385,7 @@ class InterpolationMixin:
                 "method": method,
                 "order": order,
                 "limit": limit,
-                "downgrade": downgrade,
+                "extrapolate": extrapolate,
                 **kwargs,
             },
         }

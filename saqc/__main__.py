@@ -15,9 +15,9 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from dios.dios.dios import DictOfSeries
+from saqc.core import DictOfSeries
 from saqc.core.core import TRANSLATION_SCHEMES
-from saqc.core.reader import fromConfig
+from saqc.parsing.reader import fromConfig
 
 logger = logging.getLogger("SaQC")
 
@@ -111,13 +111,12 @@ def main(config, data, scheme, outfile, nodata, log_level):
         scheme=TRANSLATION_SCHEMES[scheme or "simple"](),
     )
 
-    data_result = saqc.data.to_df()
+    data_result = saqc.data.to_pandas()
     flags_result = saqc.flags
     if isinstance(flags_result, DictOfSeries):
-        flags_result = flags_result.to_df()
+        flags_result = flags_result.to_pandas()
 
     if outfile:
-
         data_result.columns = pd.MultiIndex.from_product(
             [data_result.columns.tolist(), ["data"]]
         )

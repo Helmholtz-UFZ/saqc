@@ -8,6 +8,7 @@
 *.automodapi
 docs/_api
 docs/_build
+docs/resources/temp/*
 coverage.xml
 venv*/
 **/.*

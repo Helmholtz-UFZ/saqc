@@ -19,16 +19,15 @@ from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
 from typing_extensions import Literal
 
-from dios import DictOfSeries
-from saqc.constants import BAD
-from saqc.core.register import Flags, flagging, register
+from saqc import BAD
+from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.funcs.changepoints import _assignChangePointCluster
 from saqc.lib.tools import detectDeviants, filterKwargs, toSequence
 from saqc.lib.ts_operators import expDriftModel, linearDriftModel
 from saqc.lib.types import CurveFitter
 
 if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+    from saqc import SaQC
 
 
 LinkageString = Literal[
@@ -139,13 +138,12 @@ class DriftMixin:
         """
         fields = toSequence(field)
 
-        data_to_flag = self._data[fields].to_df()
-        data_to_flag.dropna(inplace=True)
+        data = self._data[fields].to_pandas()
+        data.dropna(inplace=True)
 
-        segments = data_to_flag.groupby(pd.Grouper(freq=freq))
+        segments = data.groupby(pd.Grouper(freq=freq))
         for segment in segments:
-
-            if segment[1].shape[0] <= 1:
+            if len(segment[1]) <= 1:
                 continue
 
             drifters = detectDeviants(
@@ -225,12 +223,11 @@ class DriftMixin:
         if reference not in fields:
             fields.append(reference)
 
-        data_to_flag = self._data[fields].to_df().dropna()
+        data = self._data[fields].to_pandas().dropna()
 
-        segments = data_to_flag.groupby(pd.Grouper(freq=freq))
+        segments = data.groupby(pd.Grouper(freq=freq))
         for segment in segments:
-
-            if segment[1].shape[0] <= 1:
+            if len(segment[1]) <= 1:
                 continue
 
             for i in range(len(fields)):
@@ -345,11 +342,11 @@ class DriftMixin:
         maint_data = self._data[maintenance_field].copy()
 
         to_correct_clean = to_correct.dropna()
-        d = {"drift_group": np.nan, to_correct.name: to_correct_clean.values}
+        d = {"drift_group": np.nan, field: to_correct_clean.values}
         drift_frame = pd.DataFrame(d, index=to_correct_clean.index)
 
         # group the drift frame
-        for k in range(0, maint_data.shape[0] - 1):
+        for k in range(0, len(maint_data) - 1):
             # assign group numbers for the timespans in between one maintenance ending and the beginning of the next
             # maintenance time itself remains np.nan assigned
             drift_frame.loc[
@@ -364,7 +361,7 @@ class DriftMixin:
         )
 
         for k, group in drift_grouper:
-            data_series = group[to_correct.name]
+            data_series = group[field]
             data_fit, data_shiftTarget = _driftFit(
                 data_series, shift_targets.loc[k, :][0], cal_range, model
             )
@@ -463,13 +460,13 @@ class DriftMixin:
         first_valid = np.array(
             [
                 ~pd.isna(para_dict[unique_successive[i]]).any()
-                for i in range(0, unique_successive.shape[0])
+                for i in range(0, len(unique_successive))
             ]
         )
         first_valid = np.where(first_normal & first_valid)[0][0]
         last_valid = 1
 
-        for k in range(0, unique_successive.shape[0]):
+        for k in range(0, len(unique_successive)):
             if unique_successive[k] < 0 & (
                 not pd.isna(para_dict[unique_successive[k]]).any()
             ):
@@ -571,7 +568,7 @@ class DriftMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flags anomalous regimes regarding to modelling regimes of field.
+        Flags anomalous regimes regarding to modelling regimes of ``field``.
 
         "Normality" is determined in terms of a maximum spreading distance,
         regimes must not exceed in respect to a certain metric and linkage method.
@@ -756,12 +753,12 @@ def _assignRegimeAnomaly(
 ) -> Tuple[DictOfSeries, Flags]:
     series = data[cluster_field]
     cluster = np.unique(series)
-    cluster_dios = DictOfSeries({i: data[field][series == i] for i in cluster})
+    cluster_dios = DictOfSeries({str(i): data[field][series == i] for i in cluster})
     plateaus = detectDeviants(cluster_dios, metric, spread, frac, method, "samples")
 
     if set_flags:
-        for p in plateaus:
-            flags[cluster_dios.iloc[:, p].index, field] = flag
+        for p, cols in zip(plateaus, cluster_dios.columns[plateaus]):
+            flags[cluster_dios[cols].index, field] = flag
 
     if set_cluster:
         for p in plateaus:

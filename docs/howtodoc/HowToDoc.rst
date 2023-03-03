@@ -46,7 +46,7 @@ use this:
 
    def foo(data, field, flagger):
        """
-       data : dios.DictOfSeries
+       data : saqc.DictOfSeries
        A saqc-data object.
 
        field : str
@@ -239,8 +239,8 @@ This will be rendered as:
 >>> 1+1
 2
 
-It can be a little tricky, to match complexer std_out strings, like dios or DataFrames. There are some
-doctest flags that can mitigate frustration:
+It can be a little tricky, to match complexer std_out strings, like DictOfSeries or
+DataFrames. There are some doctest flags that can mitigate frustration:
 
 #. NORMALIZE_WHITESPACE will map all whitespace/tab combos onto a single whitespace. Use like:
 

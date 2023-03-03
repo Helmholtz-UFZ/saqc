@@ -38,7 +38,6 @@ implement the following function interface
 .. code-block:: python
 
    import pandas
-   import dios
    import saqc
 
    def yourTestFunction(
@@ -57,7 +56,7 @@ Argument Descriptions
    * - Name
      - Description
    * - ``data``
-     - The actual dataset, an instance of ``dios.DictOfSeries``.
+     - The actual dataset, an instance of ``saqc.DictOfSeries``.
    * - ``field``
      - The field/column within ``data``, that function is processing.
    * - ``flags``

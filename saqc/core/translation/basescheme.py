@@ -8,32 +8,78 @@
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
 
-from dios import DictOfSeries
-from saqc.constants import BAD, FILTER_ALL, GOOD, UNFLAGGED
-from saqc.core.flags import Flags
+from saqc import BAD, FILTER_ALL, GOOD, UNFLAGGED
+from saqc.core import DictOfSeries, Flags
 from saqc.lib.types import ExternalFlag
 
 ForwardMap = Dict[ExternalFlag, float]
 BackwardMap = Dict[float, ExternalFlag]
 
 
-class TranslationScheme:
+class TranslationScheme:  # pragma: no cover
+    @property
+    @abstractmethod
+    def DFILTER_DEFAULT(self):
+        pass
+
+    @abstractmethod
+    def __call__(self, flag: ExternalFlag) -> float:
+        pass
+
+    @abstractmethod
+    def toInternal(self, flags: pd.DataFrame | DictOfSeries) -> Flags:
+        """
+        Translate from 'external flags' to 'internal flags'
+
+        Parameters
+        ----------
+        flags : pd.DataFrame
+            The external flags to translate
+
+        Returns
+        -------
+        Flags object
+        """
+        pass
+
+    @abstractmethod
+    def toExternal(self, flags: Flags, attrs: dict | None = None) -> DictOfSeries:
+        """
+        Translate from 'internal flags' to 'external flags'
+
+        Parameters
+        ----------
+        flags : pd.DataFrame
+            The external flags to translate
+
+        attrs : dict or None, default None
+            global meta information of saqc-object
+
+        Returns
+        -------
+        pd.DataFrame
+        """
+        pass
+
+
+class MappingScheme(TranslationScheme):
     """
     This class provides the basic translation mechanism and should serve as
-    a base class for every other translation scheme.
+    a base class for most other translation scheme.
 
-    The general translation is realized through dictionary lookups, altough
+    The general translation is realized through dictionary lookups, although
     we might need to extend this logic to also allow calls to translation
-    functions in the future. Currently at least one `dict` defining the
+    functions in the future. Currently, at least one `dict` defining the
     'forward' translation  from 'user flags' -> 'internal flags' needs to be
     provided.
     Optionally a second `dict` can be passed to map 'internal flags' -> 'user flags',
-    if the latter is not given, this 'backward' translation will inferred as
+    if the latter is not given, this 'backward' translation is inferred as
     the inverse of the 'forward' translation.
 
     The translation mechanism imposes a few restrictions:
@@ -81,7 +127,7 @@ class TranslationScheme:
 
     @staticmethod
     def _translate(
-        flags: Flags | pd.DataFrame | pd.Series,
+        flags: Flags | pd.DataFrame | pd.Series | DictOfSeries,
         trans_map: ForwardMap | BackwardMap,
     ) -> DictOfSeries:
         """
@@ -95,7 +141,7 @@ class TranslationScheme:
 
         Returns
         -------
-        pd.DataFrame, Flags
+        DictOfSeries
         """
         if isinstance(flags, pd.Series):
             flags = flags.to_frame()
@@ -107,7 +153,8 @@ class TranslationScheme:
             diff = pd.Index(out[field]).difference(expected)
             if not diff.empty:
                 raise ValueError(
-                    f"flags were not translated: {diff.drop_duplicates().to_list()}"
+                    f"following flag values could not be "
+                    f"translated: {diff.drop_duplicates().to_list()}"
                 )
         return out
 
@@ -128,9 +175,9 @@ class TranslationScheme:
             if flag not in self._backward:
                 raise ValueError(f"invalid flag: {flag}")
             return float(flag)
-        return self._forward[flag]
+        return float(self._forward[flag])
 
-    def forward(self, flags: pd.DataFrame) -> Flags:
+    def toInternal(self, flags: pd.DataFrame | DictOfSeries | pd.Series) -> Flags:
         """
         Translate from 'external flags' to 'internal flags'
 
@@ -145,13 +192,11 @@ class TranslationScheme:
         """
         return Flags(self._translate(flags, self._forward))
 
-    def backward(
+    def toExternal(
         self,
         flags: Flags,
-        raw: bool = False,
         attrs: dict | None = None,
-        **kwargs,
-    ) -> pd.DataFrame | DictOfSeries:
+    ) -> DictOfSeries:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -159,9 +204,6 @@ class TranslationScheme:
         ----------
         flags : pd.DataFrame
             The external flags to translate
-
-        raw: bool, default False
-            if True return data as DictOfSeries, otherwise as pandas DataFrame.
 
         attrs : dict or None, default None
             global meta information of saqc-object
@@ -172,8 +214,6 @@ class TranslationScheme:
         """
         out = self._translate(flags, self._backward)
         out.attrs = attrs or {}
-        if not raw:
-            out = out.to_df()
         return out
 
 
@@ -184,34 +224,23 @@ class FloatScheme(TranslationScheme):
     internal float flags
     """
 
-    _MAP = {
-        -np.inf: -np.inf,
-        **{k: k for k in np.arange(0, 256, dtype=float)},
-    }
+    DFILTER_DEFAULT: float = FILTER_ALL
 
-    def __init__(self):
-        super().__init__(self._MAP, self._MAP)
+    def __call__(self, flag: float | int) -> float:
+        try:
+            return float(flag)
+        except (TypeError, ValueError, OverflowError):
+            raise ValueError(f"invalid flag, expected a numerical value, got: {flag}")
 
+    def toInternal(self, flags: pd.DataFrame | DictOfSeries) -> Flags:
+        try:
+            return Flags(flags.astype(float))
+        except (TypeError, ValueError, OverflowError):
+            raise ValueError(
+                f"invalid flag(s), expected a collection of numerical values, got: {flags}"
+            )
 
-class SimpleScheme(TranslationScheme):
-
-    """
-    Acts as the default Translator, provides a changeable subset of the
-    internal float flags
-    """
-
-    _FORWARD = {
-        "UNFLAGGED": UNFLAGGED,
-        "BAD": BAD,
-        "OK": GOOD,
-    }
-
-    _BACKWARD = {
-        UNFLAGGED: "UNFLAGGED",
-        np.nan: "UNFLAGGED",
-        BAD: "BAD",
-        GOOD: "OK",
-    }
-
-    def __init__(self):
-        super().__init__(forward=self._FORWARD, backward=self._BACKWARD)
+    def toExternal(self, flags: Flags, attrs: dict | None = None) -> DictOfSeries:
+        out = DictOfSeries(flags)
+        out.attrs = attrs or {}
+        return out

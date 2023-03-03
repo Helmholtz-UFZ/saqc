@@ -126,7 +126,7 @@ Simple constraints
         ...     ),
         ...     data
         ... )
-        >>> (tmp.flags == qc1.flags).all(axis=None) #doctest:+NORMALIZE_WHITESPACE
+        >>> tmp.flags == qc1.flags  #doctest:+NORMALIZE_WHITESPACE
         True
 
 
@@ -187,7 +187,7 @@ Cross variable constraints
         ...     ),
         ...     data
         ... )
-        >>> (tmp.flags == qc2.flags).all(axis=None) #doctest:+NORMALIZE_WHITESPACE
+        >>> tmp.flags == qc2.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
 
@@ -251,7 +251,7 @@ need to be put in parentheses.
         ...     ),
         ...     data
         ... )
-        >>> (tmp.flags == qc3.flags).all(axis=None) #doctest:+NORMALIZE_WHITESPACE
+        >>> tmp.flags == qc3.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
 
@@ -303,7 +303,7 @@ Arithmetics
         ...     ),
         ...     data
         ... )
-        >>> (tmp.flags == qc4.flags).all(axis=None) #doctest:+NORMALIZE_WHITESPACE
+        >>> tmp.flags == qc4.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
 
@@ -361,7 +361,7 @@ Special functions
         ...     ),
         ...     data
         ... )
-        >>> (tmp.flags == qc5.flags).all(axis=None) #doctest:+NORMALIZE_WHITESPACE
+        >>> tmp.flags == qc5.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
 
@@ -413,7 +413,7 @@ Special functions
         ...     ),
         ...     data
         ... )
-        >>> (tmp.flags == qc6.flags).all(axis=None) #doctest:+NORMALIZE_WHITESPACE
+        >>> tmp.flags == qc6.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
 
@@ -439,12 +439,12 @@ Let's consider the following dataset:
 .. doctest:: python
 
    >>> qc.data  #doctest:+NORMALIZE_WHITESPACE
-                        meas |                     fan |                      volt | 
-   ========================= | ======================= | ========================= | 
-   2018-06-01 12:00:00  3.56 | 2018-06-01 12:00:00   1 | 2018-06-01 12:00:00  12.1 | 
-   2018-06-01 12:10:00  4.70 | 2018-06-01 12:10:00   0 | 2018-06-01 12:10:00  12.0 | 
-   2018-06-01 12:20:00  0.10 | 2018-06-01 12:20:00   1 | 2018-06-01 12:20:00  11.5 | 
-   2018-06-01 12:30:00  3.62 | 2018-06-01 12:30:00   1 | 2018-06-01 12:30:00  12.1 | 
+                        meas |                    fan |                      volt |
+   ========================= | ====================== | ========================= |
+   2018-06-01 12:00:00  3.56 | 2018-06-01 12:00:00  1 | 2018-06-01 12:00:00  12.1 |
+   2018-06-01 12:10:00  4.70 | 2018-06-01 12:10:00  0 | 2018-06-01 12:10:00  12.0 |
+   2018-06-01 12:20:00  0.10 | 2018-06-01 12:20:00  1 | 2018-06-01 12:20:00  11.5 |
+   2018-06-01 12:30:00  3.62 | 2018-06-01 12:30:00  1 | 2018-06-01 12:30:00  12.1 |
 
 
 **Task**: Flag ``meas`` where ``fan`` equals 0 and ``volt`` is lower than ``12.0``.
@@ -491,7 +491,7 @@ Let's consider the following dataset:
         ...     ),
         ...     data
         ... )
-        >>> (tmp.flags == qc7.flags).all(axis=None) #doctest:+NORMALIZE_WHITESPACE
+        >>> tmp.flags == qc7.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
 
@@ -546,7 +546,7 @@ But we could also quality check our independent variables first and than leverag
         ...     ),
         ...     data
         ... )
-        >>> (tmp.flags == qc8.flags).all(axis=None) #doctest:+NORMALIZE_WHITESPACE
+        >>> tmp.flags == qc8.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
 
@@ -644,7 +644,7 @@ variables in a given dataset. We start with dummy data again:
         ...     ),
         ...     data
         ... )
-        >>> (tmp.data == qc1.data).all(axis=None) #doctest:+NORMALIZE_WHITESPACE
+        >>> tmp.data == qc1.data #doctest:+NORMALIZE_WHITESPACE
         True
 
 

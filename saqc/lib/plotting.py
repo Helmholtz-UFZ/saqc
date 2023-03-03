@@ -6,8 +6,9 @@
 
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
 import itertools
-from typing import Optional, Union
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -15,9 +16,8 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
-from saqc.core.flags import Flags
+from saqc.core import DictOfSeries, Flags
 from saqc.lib.tools import toSequence
-from saqc.lib.types import DiosLikeT
 
 STATSDICT = {
     "values total": lambda x, y, z: len(x),
@@ -54,25 +54,26 @@ SCATTER_KWARGS = {
 
 
 def makeFig(
-    data: DiosLikeT,
+    data: DictOfSeries,
     field: str,
     flags: Flags,
     level: float,
-    max_gap: Optional[str] = None,
-    history: Union[Optional[Literal["valid", "complete"]], list] = "valid",
-    xscope: Optional[slice] = None,
-    phaseplot: Optional[str] = None,
-    ax_kwargs: Optional[dict] = None,
+    max_gap: str | None = None,
+    history: Literal["valid", "complete"] | None | list[str] = "valid",
+    xscope: slice | None = None,
+    phaseplot: str | None = None,
+    ax: mpl.axes.Axes | None = None,
+    ax_kwargs: dict | None = None,
 ):
     """
     Returns a figure object, containing data graph with flag marks for field.
 
     Parameters
     ----------
-    data : {pd.DataFrame, dios.DictOfSeries}
+    data : {pd.DataFrame, DictOfSeries}
         data
 
-    flags : {pd.DataFrame, dios.DictOfSeries, saqc.flagger}
+    flags : {pd.DataFrame, DictOfSeries, saqc.flagger}
         Flags or flagger object
 
     field : str
@@ -116,7 +117,8 @@ def makeFig(
     if ax_kwargs is None:
         ax_kwargs = {}
     # data retrieval
-    d = data[field]
+    d = data[field].copy(deep=False)
+    d.name = field
     # data slicing:
     xscope = xscope or slice(xscope)
     d = d[xscope]
@@ -152,9 +154,10 @@ def makeFig(
         d = _insertBlockingNaNs(d, max_gap)
 
     # figure composition
-    fig = mpl.pyplot.figure(constrained_layout=True, **FIG_KWARGS)
-    grid = fig.add_gridspec()
-    ax = fig.add_subplot(grid[0])
+    if ax is None:
+        fig = mpl.pyplot.figure(constrained_layout=True, **FIG_KWARGS)
+        grid = fig.add_gridspec()
+        ax = fig.add_subplot(grid[0])
 
     _plotVarWithFlags(
         ax,
@@ -172,7 +175,7 @@ def makeFig(
     )
 
     plt.rcParams["font.size"] = default
-    return fig
+    return ax.figure
 
 
 def _plotVarWithFlags(

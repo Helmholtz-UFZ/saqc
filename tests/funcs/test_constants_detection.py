@@ -9,7 +9,7 @@
 import numpy as np
 import pytest
 
-from saqc.constants import BAD, UNFLAGGED
+from saqc import BAD, UNFLAGGED
 from saqc.core import SaQC, initFlagsLike
 from tests.common import initData
 
@@ -19,7 +19,8 @@ def data():
     constants_data = initData(
         1, start_date="2011-01-01 00:00:00", end_date="2011-01-01 03:00:00", freq="5min"
     )
-    constants_data.iloc[5:25] = 200
+    for c in constants_data.columns:
+        constants_data[c].iloc[5:25] = 200
     return constants_data
 
 
