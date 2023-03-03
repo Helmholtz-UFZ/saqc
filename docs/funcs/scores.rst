@@ -12,4 +12,6 @@ scores
 .. autosummary::
 
    ~SaQC.assignKNNScore
+   ~SaQC.assignLOF
+   ~SaQC.assignUniLOF
    ~SaQC.assignZScore
