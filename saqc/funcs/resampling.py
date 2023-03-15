@@ -40,6 +40,7 @@ class ResamplingMixin:
         self: "SaQC",
         field: str,
         freq: str,
+        limit: int | str | None = None,
         **kwargs,
     ) -> "SaQC":
         """
@@ -62,21 +63,30 @@ class ResamplingMixin:
         freq : str
             An offset string. The frequency of the grid you want to interpolate your data at.
 
+        limit : int or str, optional
+            Upper limit of missing values (with respect to `freq`) to fill. The limit can either be expressed
+            as the number of consecutive missing values (integer) or temporal extension of the gaps to be filled
+            (Offset String).
+            If `None` is passed, no Limit is set.
+
         Returns
         -------
         saqc.SaQC
         """
-        reserved = ["method", "order", "limit", "downgrade"]
+        reserved = ["method", "order", "downgrade"]
         kwargs = filterKwargs(kwargs, reserved)
-        return self.interpolateIndex(field, freq, "time", **kwargs)
+        return self.interpolateIndex(
+            field=field, freq=freq, method="time", limit=limit, **kwargs
+        )
 
     @register(mask=["field"], demask=[], squeeze=[])
     def interpolate(
         self: "SaQC",
         field: str,
         freq: str,
-        method: _SUPPORTED_METHODS,
+        method: _SUPPORTED_METHODS = "linear",
         order: int = 1,
+        limit: int | str | None = None,
         **kwargs,
     ) -> "SaQC":
         """
@@ -106,20 +116,28 @@ class ResamplingMixin:
             An offset string. The frequency of the grid you want to interpolate your data at.
 
         method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-            "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}
+            "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}, default "linear"
             The interpolation method you want to apply.
 
         order : int, default 1
             If your selected interpolation method can be performed at different *orders* - here you pass the desired
             order.
 
+        limit : int or str, optional
+            Upper limit of missing values (with respect to `freq`) to fill. The limit can either be expressed
+            as the number of consecutive missing values (integer) or temporal extension of the gaps to be filled
+            (Offset String).
+            If `None` is passed, no Limit is set.
+
         Returns
         -------
         saqc.SaQC
         """
-        reserved = ["limit", "downgrade"]
+        reserved = ["downgrade"]
         kwargs = filterKwargs(kwargs, reserved)
-        return self.interpolateIndex(field, freq, method=method, order=order, **kwargs)
+        return self.interpolateIndex(
+            field=field, freq=freq, method=method, limit=limit, order=order, **kwargs
+        )
 
     @register(mask=["field"], demask=[], squeeze=[])
     def shift(

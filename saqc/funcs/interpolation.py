@@ -287,7 +287,7 @@ class InterpolationMixin:
         freq: str,
         method: _SUPPORTED_METHODS,
         order: int = 2,
-        limit: int | None = 2,
+        limit: int | str | None = 2,
         extrapolate: Literal["forward", "backward", "both"] = None,
         **kwargs,
     ) -> "SaQC":
