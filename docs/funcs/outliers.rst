@@ -19,4 +19,7 @@ outliers
    ~SaQC.flagByGrubbs
    ~SaQC.flagRange
    ~SaQC.flagCrossStatistics
+   ~SaQC.flagLOF
+   ~SaQC.flagUniLOF
    ~SaQC.flagZScore
+

@@ -7,10 +7,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from sklearn.neighbors import LocalOutlierFactor
 from typing_extensions import Literal
 
 from saqc import UNFLAGGED
@@ -20,6 +21,69 @@ from saqc.lib.ts_operators import kNN
 
 if TYPE_CHECKING:
     from saqc import SaQC
+
+
+def _kNNApply(vals, n_neighbors, func=np.sum, **kwargs):
+    dist, *_ = kNN(vals, n_neighbors=n_neighbors, **kwargs)
+    try:
+        resids = getattr(dist, func.__name__)(axis=1)
+    except AttributeError:
+        resids = np.apply_along_axis(func, 1, dist)
+    return resids
+
+
+def _LOFApply(vals, n_neighbors, ret="scores", **kwargs):
+    clf = LocalOutlierFactor(n_neighbors=n_neighbors, **kwargs)
+    labels = clf.fit_predict(vals)
+    resids = clf.negative_outlier_factor_
+    if ret == "scores":
+        return resids
+    else:
+        return labels == -1
+
+
+def _groupedScoring(
+    val_frame: pd.DataFrame,
+    n: int = 20,
+    freq: float | str | None = np.inf,
+    min_periods: int = 2,
+    score_func: Callable = _LOFApply,
+    score_kwargs: Optional[dict] = None,
+) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    score_kwargs = score_kwargs or {}
+    score_index = val_frame.index
+    score_ser = pd.Series(np.nan, index=score_index)
+
+    val_frame = val_frame.loc[score_index]
+    val_frame = val_frame.dropna()
+
+    if val_frame.empty:
+        return score_ser
+
+    # partitioning
+    if not freq:
+        freq = val_frame.shape[0]
+
+    if isinstance(freq, str):
+        grouper = pd.Grouper(freq=freq)
+    else:
+        grouper = pd.Series(
+            data=np.arange(0, val_frame.shape[0]), index=val_frame.index
+        )
+        grouper = grouper.transform(lambda x: int(np.floor(x / freq)))
+
+    partitions = val_frame.groupby(grouper)
+
+    for _, partition in partitions:
+        if partition.empty or (partition.shape[0] < min_periods):
+            continue
+
+        sample_size = partition.shape[0]
+        nn_neighbors = min(n, max(sample_size, 2) - 1)
+        resids = score_func(partition.values, nn_neighbors, **score_kwargs)
+        score_ser[partition.index] = resids
+
+    return score_ser
 
 
 def _univarScoring(
@@ -92,7 +156,7 @@ class ScoresMixin:
         func: Callable[[pd.Series], float] = np.sum,
         freq: float | str | None = np.inf,
         min_periods: int = 2,
-        method: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
+        algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         metric: str = "minkowski",
         p: int = 2,
         **kwargs,
@@ -148,7 +212,7 @@ class ScoresMixin:
             to be applied. If the number of periods present is below `min_periods`, the score for the
             datapoints in that partition will be np.nan.
 
-        method : {'ball_tree', 'kd_tree', 'brute', 'auto'}, default 'ball_tree'
+        algorithm : {'ball_tree', 'kd_tree', 'brute', 'auto'}, default 'ball_tree'
             The search algorithm to find each datapoints k nearest neighbors.
             The keyword just gets passed on to the underlying sklearn method.
             See reference [1] for more information on the algorithm.
@@ -173,51 +237,32 @@ class ScoresMixin:
         [1] https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html
         """
         if isinstance(target, list):
-            if (len(target) > 1) or (target[0] in self._data.columns):
+            if len(target) > 1:
                 raise ValueError(
-                    f"'target' must not exist and be of length 1. {target} was passed instead."
+                    f"'target' must be of length 1. {target} was passed instead."
                 )
             target = target[0]
+        if target in self._data.columns:
+            self = self.dropField(target)
 
         fields = toSequence(field)
-        val_frame = self._data[fields].copy().to_pandas(how="inner")
-        score_ser = pd.Series(np.nan, index=val_frame.index, name=target)
-        val_frame.dropna(inplace=True)
+        val_frame = self._data[fields].copy().to_pandas()
+        score_ser = _groupedScoring(
+            val_frame,
+            n=n,
+            freq=freq,
+            min_periods=min_periods,
+            score_func=_kNNApply,
+            score_kwargs={
+                "func": func,
+                "metric": metric,
+                "p": p,
+                "algorithm": algorithm,
+            },
+        )
+        score_ser.name = target
 
-        if val_frame.empty:
-            return self
-
-        # partitioning
-        if not freq:
-            freq = len(val_frame.index)
-
-        if isinstance(freq, str):
-            grouper = pd.Grouper(freq=freq)
-        else:
-            grouper = pd.Series(
-                data=np.arange(0, len(val_frame)), index=val_frame.index
-            )
-            grouper = grouper.transform(lambda x: int(np.floor(x / freq)))
-
-        partitions = val_frame.groupby(grouper)
-
-        for _, partition in partitions:
-            if partition.empty or (len(partition) < min_periods):
-                continue
-
-            sample_size = len(partition)
-            nn_neighbors = min(n, max(sample_size, 2) - 1)
-            dist, *_ = kNN(
-                partition.values, nn_neighbors, algorithm=method, metric=metric, p=p
-            )
-            try:
-                resids = getattr(dist, func.__name__)(axis=1)
-            except AttributeError:
-                resids = np.apply_along_axis(func, 1, dist)
-
-            score_ser[partition.index] = resids
-
-        self._flags[target] = pd.Series(UNFLAGGED, index=score_ser.index, dtype=float)
+        self._flags[target] = pd.Series(np.nan, index=score_ser.index, dtype=float)
         self._data[target] = score_ser
 
         return self
@@ -293,4 +338,207 @@ class ScoresMixin:
             min_periods=min_periods,
         )
         self._data[field] = score
+        return self
+
+    @register(
+        mask=["field"],
+        demask=[],
+        squeeze=["target"],
+        multivariate=True,
+        handles_target=True,
+    )
+    def assignLOF(
+        self: "SaQC",
+        field: Sequence[str],
+        target: str,
+        n: int = 20,
+        freq: Union[float, str, None] = np.inf,
+        min_periods: int = 2,
+        algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
+        p: int = 2,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Assign Local Outlier Factor (LOF).
+
+        Parameters
+        ----------
+        field :
+            The field name of the column, holding the data-to-be-flagged.
+        target :
+            A new Column name, where the result is stored.
+        n :
+            Number of periods to be included into the LOF calculation. Defaults to `20`, which is a value found to be
+            suitable in the literature.
+
+            * `n` determines the "locality" of an observation (its `n` nearest neighbors) and sets the upper limit of
+              values of an outlier clusters (i.e. consecutive outliers). Outlier clusters of size greater than `n/2`
+              may not be detected reliably.
+            * The larger `n`, the lesser the algorithm's sensitivity to local outliers and small or singleton outliers
+              points. Higher values greatly increase numerical costs.
+
+        freq : {float, str, None}, default np.inf
+            Determines the segmentation of the data into partitions, the kNN algorithm is
+            applied onto individually.
+        algorithm :
+            Algorithm used for calculating the `n`-nearest neighbors needed for LOF calculation.
+        p :
+            Degree of the metric ("Minkowski"), according to wich distance to neighbors is determined.
+            Most important values are:
+            * `1` - Manhatten Metric
+            * `2` - Euclidian Metric
+
+        Returns
+        -------
+        data : dios.DictOfSeries
+            A dictionary of pandas.Series, holding all the data.
+        flags : saqc.Flags
+            The quality flags of data
+        """
+        if isinstance(target, list):
+            if len(target) > 1:
+                raise ValueError(
+                    f"'target' must be of length 1. {target} was passed instead."
+                )
+            target = target[0]
+        if target in self._data.columns:
+            self = self.dropField(target)
+
+        fields = toSequence(field)
+        val_frame = self._data[fields].copy().to_pandas()
+
+        score_ser = _groupedScoring(
+            val_frame,
+            n=n,
+            freq=freq,
+            min_periods=min_periods,
+            score_func=_LOFApply,
+            score_kwargs={
+                "metric": "minkowski",
+                "contamination": "auto",
+                "p": p,
+                "algorithm": algorithm,
+            },
+        )
+        score_ser.name = target
+        self._flags[target] = pd.Series(np.nan, index=score_ser.index, dtype=float)
+        self._data[target] = score_ser
+
+        return self
+
+    @register(mask=["field"], demask=[], squeeze=[])
+    def assignUniLOF(
+        self: "SaQC",
+        field: str,
+        n: int = 20,
+        algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
+        p: int = 1,
+        density: Union[Literal["auto"], float, Callable] = "auto",
+        fill_na: str = "linear",
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Assign "univariate" Local Outlier Factor (LOF).
+
+        The Function is a wrapper around a usual LOF implementation, aiming for an easy to use, parameter minimal
+        outlier scoring function for singleton variables, that does not necessitate prior modelling of the variable.
+        LOF is applied onto a concatenation of the `field` variable and a "temporal density", or "penalty" variable,
+        that measures temporal distance between data points.
+
+        See the Notes section for more details on the algorithm.
+
+        Parameters
+        ----------
+        field :
+            The field name of the column, holding the data-to-be-flagged.
+        n :
+            Number of periods to be included into the LOF calculation. Defaults to `20`, which is a value found to be
+            suitable in the literature.
+
+            * `n` determines the "locality" of an observation (its `n` nearest neighbors) and sets the upper limit of
+              values of an outlier clusters (i.e. consecutive outliers). Outlier clusters of size greater than `n/2`
+              may not be detected reliably.
+            * The larger `n`, the lesser the algorithm's sensitivity to local outliers and small or singleton outliers
+              points. Higher values greatly increase numerical costs.
+
+        algorithm :
+            Algorithm used for calculating the `n`-nearest neighbors needed for LOF calculation.
+        p :
+            Degree of the metric ("Minkowski"), according to wich distance to neighbors is determined.
+            Most important values are:
+            * `1` - Manhatten Metric
+            * `2` - Euclidian Metric
+
+        density :
+            How to calculate the temporal distance/density for the variable-to-be-flagged.
+
+            * `auto` - introduces linear density with an increment equal to the median of the absolute diff of the
+              variable to be flagged
+            * float - introduces linear density with an increment equal to `density`
+            * Callable - calculates the density by applying the function passed onto the variable to be flagged
+              (passed as Series).
+
+        fill_na :
+            Weather or not to fill NaN values in the data with a linear interpolation.
+
+        Returns
+        -------
+        data : dios.DictOfSeries
+            A dictionary of pandas.Series, holding all the data.
+        flags : saqc.Flags
+            The quality flags of data
+
+        Notes
+        -----
+        Algorithm steps for uniLOF flagging of variable `x`:
+
+        1. The temporal density `dt(x)` is calculated according o the `density` parameter.
+        2. LOF scores `LOF(x)` are calculated for the concatenation [`x`, `dt(x)`]
+        3. `x` is flagged where `LOF(x)` exceeds the threshold determined by the parameter `thresh`.
+
+        Examples
+        --------
+
+        """
+
+        vals = self._data[field]
+        if fill_na is not None:
+            vals = vals.interpolate(fill_na)
+
+        if density == "auto":
+            density = vals.diff().abs().median()
+            if density == 0:
+                density = vals.diff().abs().mean()
+        elif isinstance(density, Callable):
+            density = density(vals)
+        if isinstance(density, pd.Series):
+            density = density.values
+
+        d_var = pd.Series(np.arange(len(vals)) * density, index=vals.index)
+        na_bool_ser = vals.isna() | d_var.isna()
+        na_idx = na_bool_ser.index[na_bool_ser.values]
+        # notna_bool = vals.notna()
+        val_no = (~na_bool_ser).sum()
+        if 1 < val_no < n:
+            n = val_no
+        elif val_no <= 1:
+            return self
+
+        d_var = d_var.drop(na_idx, axis=0).values
+        vals = vals.drop(na_idx, axis=0).values
+        vals_extended = np.array(
+            list(vals[::-1][-n:]) + list(vals) + list(vals[::-1][:n])
+        )
+        d_extended = np.array(
+            list(d_var[:n] + (d_var[0] - d_var[n + 1]))
+            + list(d_var)
+            + list(d_var[-n:] + (d_var[-1] - d_var[-n - 1]))
+        )
+
+        LOF_vars = np.array([vals_extended, d_extended]).T
+        scores = _LOFApply(LOF_vars, n, p=p, algorithm=algorithm, metric="minkowski")
+        scores = scores[n:-n]
+        score_ser = pd.Series(scores, index=na_bool_ser.index[~na_bool_ser.values])
+        score_ser = score_ser.reindex(na_bool_ser.index)
+        self._data[field] = score_ser
         return self
