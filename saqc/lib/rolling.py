@@ -10,7 +10,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_bool
+from pandas.api.types import is_bool, is_datetime64_any_dtype
 
 if pd.__version__ < "1.4":
     import pandas.core.window.indexers as indexers
@@ -170,6 +170,9 @@ class CustomRoller:
 
         if not is_bool(forward):
             raise ValueError("forward must be a boolean")
+
+        if isinstance(window, str) and not is_datetime64_any_dtype(obj.index):
+            raise ValueError("expected datetime index when using offset windows")
 
         # only relevant for datetime-like windows
         if expand is None:
