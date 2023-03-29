@@ -333,7 +333,15 @@ def register(
             paramnames = tuple(func_signature.parameters.keys())[
                 2:
             ]  # skip (self, field)
-            kwargs = {**dict(zip(paramnames, args)), **kwargs}
+
+            # check for duplicated arguments
+            args_map = dict(zip(paramnames, args))
+            intersection = set(args_map).intersection(set(kwargs))
+            if intersection:
+                raise TypeError(
+                    f"SaQC.{func.__name__}() got multiple values for argument '{intersection.pop()}'"
+                )
+            kwargs = {**args_map, **kwargs}
             kwargs["dfilter"] = _getDfilter(func_signature, saqc._scheme, kwargs)
 
             # translate flag
