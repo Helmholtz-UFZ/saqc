@@ -10,7 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.3.0...develop)
 ### Added
 - Methods `logicalAnd` and `logicalOr`
-- `Flags` supports slicing and column selection with `list` or a `pd.Index`.
+- `Flags` supports slicing and column selection with `list` or a `pd.Index`
 ### Changed
 - Deprecate `interpolate`, `linear` and `shift` in favor of `align`
 - Rename `interplateInvalid` to `interpolate`
@@ -18,6 +18,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Removed
 - Parameter `limit` from `align`
 ### Fixed
+- `func` arguments in text configurations were not parsed correctly
 - fail on duplicated arguments to test methods
 
 ## [2.3.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.3.0) - 2023-01-17
