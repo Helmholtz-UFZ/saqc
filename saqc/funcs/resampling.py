@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
@@ -71,57 +72,6 @@ class ResamplingMixin:
         return self.interpolateIndex(field, freq, "time", **kwargs)
 
     @register(mask=["field"], demask=[], squeeze=[])
-    def interpolate(
-        self: "SaQC",
-        field: str,
-        freq: str,
-        method: _SUPPORTED_METHODS,
-        order: int = 1,
-        **kwargs,
-    ) -> "SaQC":
-        """
-        A method to "regularize" data by interpolating the data at regular timestamp.
-
-        A series of data is considered "regular", if it is sampled regularly (= having uniform sampling rate).
-
-        Interpolated values will get assigned the worst flag within freq-range.
-
-        There are available all the interpolations from the pandas.Series.interpolate method and they are called by
-        the very same keywords.
-
-        Note, that, to perform a timestamp aware, linear interpolation, you have to pass ``'time'`` as `method`,
-        and NOT ``'linear'``.
-
-        Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
-        not-na) datapoint preceeding them and one succeeding them within freq range.
-        Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
-        ``UNFLAGGED``.
-
-        Parameters
-        ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-regularized.
-
-        freq : str
-            An offset string. The frequency of the grid you want to interpolate your data at.
-
-        method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-            "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}
-            The interpolation method you want to apply.
-
-        order : int, default 1
-            If your selected interpolation method can be performed at different *orders* - here you pass the desired
-            order.
-
-        Returns
-        -------
-        saqc.SaQC
-        """
-        reserved = ["limit", "downgrade"]
-        kwargs = filterKwargs(kwargs, reserved)
-        return self.interpolateIndex(field, freq, method=method, order=order, **kwargs)
-
-    @register(mask=["field"], demask=[], squeeze=[])
     def shift(
         self: "SaQC",
         field: str,
@@ -157,28 +107,16 @@ class ResamplingMixin:
         -------
         saqc.SaQC
         """
-        datcol = self._data[field]
-        if datcol.empty:
-            return self
-
-        freq = evalFreqStr(freq, freq_check, datcol.index)
-
-        # do the shift
-        datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
-
-        # do the shift on the history
-        kws = dict(method=method, freq=freq)
-
-        history = self._flags.history[field].apply(
-            index=datcol.index,
-            func_handle_df=True,
-            func=shift2Freq,
-            func_kws={**kws, "fill_value": np.nan},
+        warnings.warn(
+            f"""
+            The method `shift` is deprecated and will be removed with version 2.6 of saqc.
+            To achieve the same behavior please use:
+            `qc.align(field={field}, freq={freq}. method={method})`
+            """,
+            DeprecationWarning,
         )
-
-        self._flags.history[field] = history
-        self._data[field] = datcol
-        return self
+        freq = evalFreqStr(freq, freq_check, self._data[field].index)
+        return self.align(field=field, freq=freq, method=method, **kwargs)
 
     @register(mask=["field"], demask=[], squeeze=[])
     def resample(

@@ -12,7 +12,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Methods `logicalAnd` and `logicalOr`
 - `Flags` supports slicing and column selection with `list` or a `pd.Index`.
 ### Changed
+- Deprecate `interpolate`, `linear` and `shift` in favor of `align`
+- Rename `interplateInvalid` to `interpolate`
+- Rename `interpolateIndex` to `align`
 ### Removed
+- Parameter `limit` from `align`
 ### Fixed
 - fail on duplicated arguments to test methods
 
