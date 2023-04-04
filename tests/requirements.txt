@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-beautifulsoup4==4.11.2
+beautifulsoup4==4.12.0
 hypothesis==6.70.1
 Markdown==3.3.7
 pytest==7.2.2
