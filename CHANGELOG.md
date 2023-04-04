@@ -20,6 +20,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Fixed
 - `func` arguments in text configurations were not parsed correctly
 - fail on duplicated arguments to test methods
+- `reample` was not writing meta entries
 
 ## [2.3.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.3.0) - 2023-01-17
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.1...v2.3.0)
