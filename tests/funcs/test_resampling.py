@@ -257,8 +257,10 @@ def test_alignShiftInvert(data, method, freq, expected):
 
     qc = qc.copyField(field, field_aligned)
     qc = qc.align(field_aligned, freq, method=method)
+    meta = qc._flags.history[field_aligned].meta[-1]
 
     assert qc.data[field_aligned].equals(expected)
+    assert (meta["func"], meta["kwargs"]["method"]) == ("align", method)
     checkInvariants(qc._data, qc._flags, field, identical=True)
 
     qc = qc.concatFlags(field_aligned, target=field, method="inverse_" + method)
