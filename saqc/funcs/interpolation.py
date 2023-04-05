@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Callable, Union
+from typing import TYPE_CHECKING, Callable, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -16,6 +16,7 @@ from typing_extensions import Literal
 
 from saqc import UNFLAGGED
 from saqc.core import register
+from saqc.core.history import History
 from saqc.lib.tools import isflagged
 from saqc.lib.ts_operators import interpolateNANs, shift2Freq
 
@@ -361,7 +362,7 @@ class InterpolationMixin:
             "from_derivatives",
         ] = "time",
         order: int = 2,
-        extrapolate: Literal["forward", "backward", "both"] = None,
+        extrapolate: Literal["forward", "backward", "both"] | None = None,
         **kwargs,
     ) -> "SaQC":
         """
@@ -416,49 +417,19 @@ class InterpolationMixin:
             return self
 
         if method in ("fshift", "bshift", "nshift"):
-            return _shift(saqc=self, field=field, freq=freq, method=method, **kwargs)
-
-        datcol = self._data[field].copy()
-
-        start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
-        grid_index = pd.date_range(
-            start=start, end=end, freq=freq, name=datcol.index.name
-        )
-
-        flagged = isflagged(self._flags[field], kwargs["dfilter"])
-
-        # drop all points that hold no relevant grid information
-        datcol = datcol[~flagged].dropna()
-
-        # account for annoying case of subsequent frequency aligned values,
-        # that differ exactly by the margin of 2*freq
-        gaps = datcol.index[1:] - datcol.index[:-1] == 2 * pd.Timedelta(freq)
-        gaps = datcol.index[1:][gaps]
-        gaps = gaps.intersection(grid_index).shift(-1, freq)
-
-        # prepare grid interpolation:
-        datcol = datcol.reindex(datcol.index.union(grid_index))
-
-        # do the grid interpolation
-        inter_data = interpolateNANs(
-            data=datcol,
-            method=method,
-            order=order,
-            gap_limit=2,
-            extrapolate=extrapolate,
-        )
-
-        # override falsely interpolated values:
-        inter_data[gaps] = np.nan
-
-        # store interpolated grid
-        self._data[field] = inter_data[grid_index]
-
-        history = self._flags.history[field].apply(
-            index=self._data[field].index,
-            func=_resampleOverlapping,
-            func_kws=dict(freq=freq, fill_value=np.nan),
-        )
+            datacol, history = _shift(
+                saqc=self, field=field, freq=freq, method=method, **kwargs
+            )
+        else:
+            datacol, history = _interpolate(
+                saqc=self,
+                field=field,
+                freq=freq,
+                method=method,
+                order=order,
+                extrapolate=extrapolate,
+                dfilter=kwargs["dfilter"],
+            )
 
         meta = {
             "func": "align",
@@ -471,9 +442,11 @@ class InterpolationMixin:
                 **kwargs,
             },
         }
+
         flagcol = pd.Series(UNFLAGGED, index=history.index)
         history.append(flagcol, meta)
 
+        self._data[field] = datacol
         self._flags.history[field] = history
 
         return self
@@ -602,7 +575,7 @@ def _shift(
     freq: str,
     method: Literal["fshift", "bshift", "nshift"] = "nshift",
     **kwargs,
-) -> "SaQC":
+) -> Tuple[pd.Series, History]:
     """
     Shift data points and flags to a regular frequency grid.
 
@@ -650,6 +623,52 @@ def _shift(
         func_kws={**kws, "fill_value": np.nan},
     )
 
-    saqc._flags.history[field] = history
-    saqc._data[field] = datcol
-    return saqc
+    return datcol, history
+
+
+def _interpolate(
+    saqc: "SaQC",
+    field: str,
+    freq: str,
+    method: str,
+    order: int | None,
+    dfilter: float,
+    extrapolate: Literal["forward", "backward", "both"] | None = None,
+) -> Tuple[pd.Series, History]:
+    datcol = saqc._data[field].copy()
+
+    start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
+    grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
+
+    flagged = isflagged(saqc._flags[field], dfilter)
+
+    # drop all points that hold no relevant grid information
+    datcol = datcol[~flagged].dropna()
+
+    # account for annoying case of subsequent frequency aligned values,
+    # that differ exactly by the margin of 2*freq
+    gaps = datcol.index[1:] - datcol.index[:-1] == 2 * pd.Timedelta(freq)
+    gaps = datcol.index[1:][gaps]
+    gaps = gaps.intersection(grid_index).shift(-1, freq)
+
+    # prepare grid interpolation:
+    datcol = datcol.reindex(datcol.index.union(grid_index))
+
+    # do the grid interpolation
+    inter_data = interpolateNANs(
+        data=datcol,
+        method=method,
+        order=order,
+        gap_limit=2,
+        extrapolate=extrapolate,
+    )
+    # override falsely interpolatet values:
+    inter_data[gaps] = np.nan
+    inter_data = inter_data[grid_index]
+
+    history = saqc._flags.history[field].apply(
+        index=inter_data.index,
+        func=_resampleOverlapping,
+        func_kws=dict(freq=freq, fill_value=np.nan),
+    )
+    return inter_data, history
