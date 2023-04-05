@@ -113,6 +113,7 @@ def test_resampleAggregateInvert(data, method, freq, expected):
     qc = qc.resample(field_aggregated, freq, func=np.sum, method=method)
     assert qc._data[field_aggregated].index.freq == pd.Timedelta(freq)
     assert qc._data[field_aggregated].equals(expected)
+    assert qc._flags.history[field_aggregated].meta[-1]["func"] == "resample"
     checkInvariants(qc._data, qc._flags, field_aggregated, identical=True)
 
     qc = qc.concatFlags(field_aggregated, target=field, method="inverse_" + method)

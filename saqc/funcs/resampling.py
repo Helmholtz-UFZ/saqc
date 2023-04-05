@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
+from saqc.constants import UNFLAGGED
 from saqc.core import register
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
 from saqc.lib.tools import evalFreqStr, filterKwargs, getFreqDelta, isflagged
@@ -238,6 +239,24 @@ class ResamplingMixin:
             func=aggregate2Freq,
             func_kws=kws,
         )
+        meta = {
+            "func": "resample",
+            "args": (),
+            "kwargs": {
+                "freq": freq,
+                "func": func,
+                "method": method,
+                "maxna": maxna,
+                "maxna_group": maxna_group,
+                "maxna_flags": maxna_flags,
+                "maxna_group_flags": maxna_group_flags,
+                "flag_func": flag_func,
+                "freq_check": freq_check,
+                **kwargs,
+            },
+        }
+        flagcol = pd.Series(UNFLAGGED, index=history.index)
+        history.append(flagcol, meta)
 
         self._data[field] = datcol
         self._flags.history[field] = history
