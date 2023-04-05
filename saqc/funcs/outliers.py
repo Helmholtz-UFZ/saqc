@@ -202,26 +202,35 @@ class OutliersMixin:
         Notes
         -----
 
-        * The :py:meth:`~saqc.SaQC.flagUniLOF` function calculates an univariat Local Outlier Factor (UniLOF) - score for
-          every point in the one dimensional input data series.
-          *UniLOF* is a scalar value, that roughly correlates to the *reachability*, or "outlierishnes" of the evaluated
-          datapoint in the 2 dimensional space constituted by the data-values and the time axis. So the Algorithm
-          basically operates on the "graph", or the "plot" of the input timeseries.
-        * If a point in this "graph" is as reachable, as all its :py:attr:`n`-nearest neighbors, the *UniLOF* score
-          evaluates to around `1`. If it is only as half as reachable as all its `n`-nearest neighbors are
-          (so to say, as double as "outlierish"), the score evaluates to `2` roughly.
-          So, the Univariat Local Outlier *Factor* relates a points *reachability* to the *reachability* of its
-          :py:attr:`n`-nearest neighbors in a multiplicative fashion (as a "factor").
-        * The `reachability` of a point thereby is determined as an aggregation of the points distance to its
-          :py:attr:`n`-nearest
+        * The :py:meth:`~saqc.SaQC.flagUniLOF` function calculates an univariate
+          Local Outlier Factor (UniLOF) - score for every point in the one dimensional input
+          data series.
+          The *UniLOF* score of any data point is a scalar value, that roughly correlates to
+          its *reachability*, or "outlierishnes" in the 2-dimensional space constituted by the
+          data-values and the time axis. So the Algorithm basically operates on the "graph",
+          or the "plot" of the input timeseries.
+        * If a point in this "graph" is as reachable, as all its :py:attr:`n`-nearest
+          neighbors, its *UniLOF* score evaluates to around `1`. If it is only as half as
+          reachable as all its :py:attr:`n` neighbors are
+          (so to say, as double as "outlierish"), its score evaluates to `2` roughly.
+          So, the Univariat Local Outlier *Factor* relates a points *reachability* to the
+          *reachability* of its :py:attr:`n`-nearest neighbors in a multiplicative fashion
+          (as a "factor").
+        * The `reachability` of a point thereby is derived as an aggregation of the
+          points distance to its :py:attr:`n`-nearest
           neighbors, measured with regard to the minkowski metric of degree :py:attr:`p` (usually euclidean).
         * The parameter :py:attr:`density` thereby determines how dimensionality of the time is removed, to make it a
           dimension less, real valued coordinate.
         * To derive a binary label for every point (outlier: *yes*, or *no*), the scores are cut off at a level,
           determined by :py:attr:`thresh`.
 
+
+
         Examples
         --------
+
+        See the :ref:`outlier detection cookbook <cookbooks/OutlierDetection:Outlier Detection>` for a detailed
+        introduction into the usage and tuning of the function.
 
         .. plot::
            :context: reset
@@ -235,8 +244,7 @@ class OutliersMixin:
            data.index = pd.DatetimeIndex(data.index)
            qc = saqc.SaQC(data)
 
-        Example usage on the `hydrologic data <https://git.ufz.de/rdm-software/saqc/-/blob/develop/docs/resources/data/hydro_data.csv>`_
-        from the repository.
+        Example usage with default parameter configuration:
 
         Loading data via pandas csv file parser, casting index to DateTime type, generating a :py:class:`~saqc.SaQC`
         instance from the data and plotting the variable representing light scattering at 254 nanometers wavelength.
@@ -274,160 +282,10 @@ class OutliersMixin:
            qc = qc.flagUniLOF('sac254_raw')
            qc.plot('sac254_raw')
 
-        So the flagging pattern does not look too bad. Quite surely, there is no overflagging present. Actually,
-        zooming in, one could get the impression, the function underflagged alittle.
+        See Also
+        --------
 
-        .. plot::
-           :context: close-figs
-           :include-source: False
-           :class: center
-
-           qc.plot('sac254_raw', xscope=slice('2016-09','2016-11'))
-
-        Tuning Parameter thresh
-
-
-        The best way to tune the parameter :py:attr:`thresh`, is, to find a good starting value, that slightly
-        underflags the data, and from there on,
-        to *reapply* the function with evermore decreased values of :py:attr:`thresh`.
-
-        .. doctest:: flagUniLOFExample
-
-           >>> qc = qc.flagUniLOF('sac254_raw', thresh=1.3, label='threshold = 1.3')
-           >>> qc.plot('sac254_raw') # doctest: +SKIP
-
-        .. plot::
-           :context: close-figs
-           :include-source: False
-           :class: center
-
-           qc = qc.flagUniLOF('sac254_raw', thresh=1.3, label='threshold=1.3')
-           qc.plot('sac254_raw', xscope=slice('2016-09','2016-11'))
-
-        So, we catched some more of the outlierish, flickering values. Lets lower the threshold even more:
-
-        .. doctest:: flagUniLOFExample
-
-           >>> qc = qc.flagUniLOF('sac254_raw', thresh=1.1, label='threshold = 1.1')
-           >>> qc.plot('sac254_raw') # doctest: +SKIP
-
-        .. plot::
-           :context: close-figs
-           :include-source: False
-           :class: center
-
-           qc = qc.flagUniLOF('sac254_raw', thresh=1.1, label='thresh=1.1')
-           qc.plot('sac254_raw', xscope=slice('2016-09','2016-11'))
-
-        .. doctest:: flagUniLOFExample
-
-           >>> qc = qc.flagUniLOF('sac254_raw', thresh=1.05, label='threshold = 1.05')
-           >>> qc.plot('sac254_raw') # doctest: +SKIP
-
-        .. plot::
-           :context: close-figs
-           :include-source: False
-           :class: center
-
-           qc = qc.flagUniLOF('sac254_raw', thresh=1.05, label='thresh=1.05')
-           qc.plot('sac254_raw', xscope=slice('2016-09','2016-11'))
-
-        Value `1` is the lower bound for meaningfull :py:attr:`thresh` values. At `1` the method will flag all the data:
-
-        .. doctest:: flagUniLOFExample
-
-           >>> qc = qc.flagUniLOF('sac254_raw', thresh=1, label='threshold = 1')
-           >>> qc.plot('sac254_raw') # doctest: +SKIP
-
-        .. plot::
-           :context: close-figs
-           :include-source: False
-           :class: center
-
-           qc = qc.flagUniLOF('sac254_raw', thresh=1, label='thresh=1')
-           qc.plot('sac254_raw', xscope=slice('2016-09','2016-11'))
-
-        Maybe, iterating until `1.1` gets us the best overall flagging result:
-
-        .. plot::
-           :context: close-figs
-           :include-source: False
-           :class: center
-
-           qc = saqc.SaQC(data)
-           qc = qc.flagUniLOF('sac254_raw', thresh=1.5, label='thresh=1.5')
-           qc = qc.flagUniLOF('sac254_raw', thresh=1.3, label='thresh=1.3')
-           qc = qc.flagUniLOF('sac254_raw', thresh=1.1, label='thresh=1.1')
-           qc.plot('sac254_raw')
-
-        With some overflagging, where the data jumps erratically. We will see in the next section, how to finetune the
-        algorithm by shrinking the locality value :py:attr:`n` and make the process more robust in anomalies surroundings.
-
-        First, note, that even this outlier cluster, at march 2016, got correctly flagged:
-
-        .. plot::
-           :context: close-figs
-           :include-source: False
-           :class: center
-
-           qc.plot('sac254_raw', xscope=slice('2016-03-15','2016-03-17'))
-
-        :py:meth:`~saqc.SaQC.flagUniLOF` will reliably catch groups of outlier, that do not consist of more than :py:attr:`n`/2
-        periods.
-
-        Parameter n
-
-        Shrinking the locality Parameter :py:attr:`n`, can lead to clearer results, since jumps for example, do not
-        interfere with the scores of too much close points.:
-
-        .. doctest:: flagUniLOFExample
-
-           >>> qc = saqc.SaQC(data)
-           >>> qc = qc.flagUniLOF('sac254_raw', thresh=1.5, n=8, label='thresh=1.5, n= 8')
-           >>> qc.plot('sac254_raw', xscope=slice('2016-09','2016-11')) # doctest: +SKIP
-
-        .. plot::
-           :context: close-figs
-           :include-source: False
-           :class: center
-
-           qc = saqc.SaQC(data)
-           qc = qc.flagUniLOF('sac254_raw', n=8)
-           qc.plot('sac254_raw', xscope=slice('2016-09','2016-11'))
-
-        But as mentioned above, since :py:attr:`n` correlates with the maximal size of outlier clusters that can be
-        detected, the group we catched with :py:attr:`n` =20, this time goes unflagged:
-
-        .. plot::
-           :context: close-figs
-           :include-source: False
-           :class: center
-
-           qc.plot('sac254_raw', xscope=slice('2016-03-15','2016-03-17'))
-
-        Also note, that, when changing :py:attr:`n`, you might have to restart calibrating a good starting point for the
-        py:attr:`thresh` parameter.
-
-        Increasingly higher values of :py:attr:`n` will make :py:meth:`~sacq.SaQC.flagUniLOF` increasingly invariant to local
-        variance and make it more of a global flagging function. So, an approach could be, to start with a
-        really high value of :py:attr:`n` to first clear the data from global outliers before proceeding:
-
-        .. doctest:: flagUniLOFExample
-
-           >>> qc = saqc.SaQC(data)
-           >>> qc = qc.flagUniLOF('sac254_raw', thresh=1.5, n=100, label='thresh=1.5, n=100')
-           >>> qc.plot('sac254_raw')# doctest: +SKIP
-
-        .. plot::
-           :context: close-figs
-           :include-source: False
-           :class: center
-
-           qc = saqc.SaQC(data)
-           qc = qc.flagUniLOF('sac254_raw', thresh=1.5, n=100, label='thresh=1.5, n=100')
-           qc.plot('sac254_raw')
-
-        done
+        * :ref:`introduction to outlier detection with saqc <cookbooks/OutlierDetection:Outlier Detection>`
 
         """
         field_ = str(uuid.uuid4())
