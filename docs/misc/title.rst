@@ -78,6 +78,6 @@ Features
         * define and use custom schemes to translate your flags to and from SaQC
     * - |sacProc|
       - * modify your data by :ref:`interpolations <cookbooks/DataRegularisation:Interpolation>`, corrections and :ref:`transformations <cookbooks/DataRegularisation:Aggregation>`
-        * calculate data products, such as :ref:`residuals or outlier scores <cookbooks/OutlierDetection:Residuals and Scores>`
+        * calculate data products, such as :ref:`residuals or outlier scores <cookbooks/ResidualOutlierDetection:Residuals and Scores>`
     * - |sacMV|
       - * apply :ref:`multivariate flagging functions <cookbooks/MultivariateFlagging:Multivariate Flagging>`

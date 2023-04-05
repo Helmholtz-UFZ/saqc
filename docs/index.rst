@@ -31,6 +31,7 @@ Getting Started
 
    cookbooks/DataRegularisation
    cookbooks/OutlierDetection
+   cookbooks/ResidualOutlierDetection
    cookbooks/MultivariateFlagging
 
 .. toctree::
