@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import typing
 import warnings
-from typing import DefaultDict, Dict, Iterable, Mapping, Tuple, Type, Union
+from typing import DefaultDict, Dict, Iterable, Mapping, Tuple, Type, Union, overload
 
 import numpy as np
 import pandas as pd
@@ -319,6 +319,14 @@ class Flags:
 
     # ----------------------------------------------------------------------
     # item access
+
+    @overload
+    def __getitem__(self, key: str) -> pd.Series:
+        ...
+
+    @overload
+    def __getitem__(self, key: list | pd.Index) -> Flags:
+        ...
 
     def __getitem__(self, key: str | list | pd.Index) -> pd.Series | Flags:
         if isinstance(key, str):

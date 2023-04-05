@@ -14,8 +14,6 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Protocol
 
-from saqc.core import DictOfSeries
-
 __all__ = [
     "T",
     "ArrayLike",
@@ -33,14 +31,6 @@ ExternalFlag = Union[str, float, int]
 # needed for deeper type hinting magic
 class CurveFitter(Protocol):
     def __call__(self, data: np.ndarray, *params: float) -> np.ndarray:
-        ...  # pragma: no cover
-
-
-class GenericFunction(Protocol):
-    __name__: str
-    __globals__: Dict[str, Any]
-
-    def __call__(self, *args: pd.Series) -> pd.Series | pd.DataFrame | DictOfSeries:
         ...  # pragma: no cover
 
 
