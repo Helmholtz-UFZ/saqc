@@ -11,6 +11,7 @@ interpolation
 
 .. autosummary::
 
+   ~SaQC.align
    ~SaQC.interpolateByRolling
    ~SaQC.interpolateInvalid
    ~SaQC.interpolateIndex

@@ -5,9 +5,9 @@ sac254_raw              ; flagManual(mdata='maint', method='closed')
 level_raw               ; flagRange(min=0)
 water_temp_raw          ; flagRange(min=-1)
 sac254_raw              ; flagRange(min=0, max=60)
-level_raw               ; linear(freq='15min')
-water_temp_raw          ; linear(freq='15min')
-sac254_raw              ; linear(freq='15min')
+level_raw               ; align(freq='15min')
+water_temp_raw          ; align(freq='15min')
+sac254_raw              ; align(freq='15min')
 # Drift Correcture
 sac254_raw              ; correctDrift(target='sac254_corr', maintenance_field='maint', model='exponential')
 # Multivariate Flagging Procedure

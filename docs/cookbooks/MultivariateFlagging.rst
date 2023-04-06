@@ -167,22 +167,22 @@ But checking out values around *2017-10-29*, we notice, that the sampling rate s
    dtype: float64
 
 Those instabilities do bias most statistical evaluations and it is common practice to apply some
-:doc:`resampling functions <../funcs/resampling>` onto the data, to obtain a regularly spaced timestamp.
+alignment onto the data, to obtain a regularly spaced timestamp.
 (See also the :ref:`harmonization tutorial <cookbooks/DataRegularisation:data regularization>` for more informations
 on that topic.)
 
-We will apply :py:meth:`linear harmonisation <saqc.SaQC.linear>` to all the sensor data variables,
+We will apply :py:meth:`linearly <saqc.SaQC.align>` obtained alignment to all the sensor data variables,
 to interpolate pillar points of multiples of *15* minutes linearly.
 
 .. doctest:: exampleMV
 
-   >>> qc = qc.linear(['sac254_raw', 'level_raw', 'water_temp_raw'], freq='15min')
+   >>> qc = qc.align(['sac254_raw', 'level_raw', 'water_temp_raw'], freq='15min')
 
 .. plot::
    :context: close-figs
    :include-source: False
 
-   qc = qc.linear(['sac254_raw', 'level_raw', 'water_temp_raw'], freq='15min')
+   qc = qc.align(['sac254_raw', 'level_raw', 'water_temp_raw'], freq='15min')
 
 
 The resulting timeseries now has has regular timestamp.
