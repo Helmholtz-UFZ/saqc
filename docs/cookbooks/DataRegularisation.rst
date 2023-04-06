@@ -122,7 +122,7 @@ Regularization
 So lets transform the measurements timestamps to have a regular *10* minutes frequency. In order to do so,
 we have to decide what to do with each time stamps associated data, when we alter the timestamps value.
 
-Basically, there are three types of :doc:`regularization <../funcs/resampling>` methods:
+Basically, there are three ways to align data to a regular frequency grid:
 
 
 #. We could keep the values as they are, and thus,
@@ -133,13 +133,13 @@ Basically, there are three types of :doc:`regularization <../funcs/resampling>` 
 Shift
 -----
 
-Lets apply a simple shift via the :py:meth:`~saqc.SaQC.shift` method.
+Lets apply a simple shift via the :py:meth:`~saqc.SaQC.align` method:
 
 .. doctest::
 
    >>> import saqc
    >>> qc = saqc.SaQC(data)
-   >>> qc = qc.shift('SoilMoisture', target='SoilMoisture_bshift', freq='10min', method='bshift')
+   >>> qc = qc.align('SoilMoisture', target='SoilMoisture_bshift', freq='10min', method='bshift')
 
 
 Target parameter
@@ -152,16 +152,14 @@ Freq parameter
 ^^^^^^^^^^^^^^
 
 We passed the ``freq`` keyword of the intended sampling frequency in terms of a
-`date alias <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_ string. All of
-the :doc:`regularization <../funcs/resampling>` methods have such a frequency keyword,
-and it just determines the sampling rate, the resulting regular timeseries will have.
+`date alias <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_ it just determines the sampling rate, the resulting regular timeseries will have.
 
 Shifting Method
 ^^^^^^^^^^^^^^^
 
 With the ``method`` keyword, we determined the direction of the shift. We passed it the string ``bshift`` -
 which applies a *backwards* shift, so data points get shifted *backwards*\ , until they match a timestamp
-that is a multiple of *10* minutes. (See :py:meth:`~saqc.SaQC.shift` documentation for more
+that is a multiple of *10* minutes. (See :py:meth:`~saqc.SaQC.align` documentation for more
 details on the keywords.)
 
 Lets see, how the data is now sampled. Therefore, we use the ``data`` Attribute from the
@@ -197,7 +195,7 @@ We see, the first and last *10* data points of both, the original data time seri
 Obviously, the shifted data series now exhibits a regular sampling rate of *10* minutes, with the index
 ranging from the latest timestamp, that is a multiple of *10* minutes and precedes the initial timestamp
 of the original data, up to the first *10* minutes multiple, that succeeds the last original data timestamp.
-This is default behavior to all the :doc:`regularization <../funcs/resampling>` provided by ``saqc``.
+This is default behavior to the frequency alignment functionality provided by ``saqc``.
 
 Data Loss and Empty Intervals
 -----------------------------
@@ -238,9 +236,9 @@ If there are multiple values present within an interval with size according to t
 ``freq``\ , this values get reduced to one single value, that will get assigned to the timestamp associated with the
 interval.
 
-This reduction depends on the selected :doc:`regularization <../funcs/resampling>` method.
+This reduction depends on the selected :py:attr:`method` keyword.
 
-For example, :ref:`above <cookbooks/DataRegularisation:shift>`\ , we applied a backwards :py:meth:`~saqc.SaQC.shift` with a *10* minutes frequency.
+For example, :ref:`above <cookbooks/DataRegularisation:shift>`\ , we applied a backwards shift with a *10* minutes frequency.
 As a result, the first value, encountered after any multiple of *10* minutes, gets shifted backwards to be aligned with
 the desired frequency and any other value in that *10* minutes interval just gets discarded.
 
@@ -270,7 +268,7 @@ appears to be closer to the original one.
 To shift to any frequency aligned timestamp the value that is closest to that timestamp, we
 can perform a *nearest shift* instead of a simple *back shift*\ , by using the shift method ``"nshift"``\ :
 
-   >>> qc = qc.shift('SoilMoisture', target='SoilMoisture_nshift', freq='10min', method='nshift')
+   >>> qc = qc.align('SoilMoisture', target='SoilMoisture_nshift', freq='10min', method='nshift')
    >>> qc.data['2021-01-01T07:00:00':'2021-01-01T08:00:00'] # doctest: +SKIP
                 SoilMoisture_nshift |                              SoilMoisture |
    ================================ | ========================================= |
@@ -356,7 +354,7 @@ for calculating the median, ``sum``\ , for assigning the value sum, and so on.)
 Aggregation method
 ^^^^^^^^^^^^^^^^^^
 
-As it is with the :ref:`shift <cookbooks/DataRegularisation:Shift>` functionality, a ``method`` keyword controls, weather the
+As it is with the shift functionality realized via :py:meth:`~saqc.SaQC.align` functionality, a ``method`` keyword controls, weather the
 aggregation result for the interval in between 2 regular timestamps gets assigned to the left (=\ ``bagg``\ ) or to the
 right (\ ``fagg``\ ) boundary timestamp.
 
@@ -367,19 +365,16 @@ right (\ ``fagg``\ ) boundary timestamp.
 Interpolation
 -------------
 
-Another common way of obtaining regular timestamps, is, the interpolation of data at regular timestamps.
-
-In the pool of py:mod:`regularization <Functions.saqc.resampling>` methods, is available the
-:py:meth:`~saqc.SaQC.interpolate` method.
+Another way of obtaining data values at regularly spaced timestamps, is, to apply an interpolation.
 
 Lets apply a linear interpolation onto the dataset. To access
 linear interpolation, we pass the ``method`` parameter the string ``"time"``. This
 applies an interpolation, that is sensitive to the difference in temporal gaps
 (as opposed by ``"linear"``\ , which expects all the gaps to be equal). Get an overview
-of the possible interpolation methods in the :py:meth:`~saqc.SaQC.interpolate>`
+of the possible interpolation methods in the :py:meth:`~saqc.SaQC.align`
 documentation. Lets check the results:
 
-   >>> qc = qc.interpolate('SoilMoisture', target='SoilMoisture_linear', freq='10min', method='time')
+   >>> qc = qc.align('SoilMoisture', target='SoilMoisture_linear', freq='10min', method='time')
    >>> qc.data # doctest: +SKIP
                        SoilMoisture |                       SoilMoisture_linear |
    ================================ | ========================================= |
@@ -422,13 +417,12 @@ On the other hand, there is an interpolated value assigned to ``2021-03-20 07:50
 a :ref:`valid <cookbooks/DataRegularisation:valid data>` value at ``2021-03-20 07:40:37`` and one succeeding at ``2021-03-20 07:54:59``.
 
 This behavior is intended to reflect the sparsity of the original data in the
-regularized data set. The behavior can be circumvented by applying the more general
-:py:meth:`~saqc.SaQC.interpolateIndex`.
+regularized data set.
 
 Linear Interpolation
 ~~~~~~~~~~~~~~~~~~~~
 
-Note, that there is a wrapper available for linear interpolation: :py:meth:`~saqc.SaQC.linear`.
+Note, that :py:meth:`~saqc.SaQC.align` defaults to alignment via linear interpolation.
 
 Flags and Regularization
 ------------------------
@@ -438,7 +432,7 @@ Since data, that is flagged by a level higher or equal to the passed ``to_mask``
 it can be of advantage, to flag data before regularization in order to effectively exclude it
 from the resulting regularly sampled data set. Lets see an example for the *SoilMoisture* data set.
 
->>> qc = qc.linear('SoilMoisture', target='SoilMoisture_linear', freq='10min') # doctest: +SKIP
+>>> qc = qc.align('SoilMoisture', target='SoilMoisture_linear', freq='10min') # doctest: +SKIP
 >>> qc.data['2021-01-01 15:00:00':'2021-01-01 16:00:00'] # doctest: +SKIP
              SoilMoisture_linear |                              SoilMoisture |
 ================================ | ========================================= |
@@ -469,7 +463,7 @@ with the :py:meth:`~saqc.SaQC.flagRange` method and after this,
 do the interpolation.
 
    >>> qc = qc.flagRange('SoilMoisture', min=0)
-   >>> qc = qc.interpolate('SoilMoisture', freq='10min', method='time')
+   >>> qc = qc.align('SoilMoisture', freq='10min', method='time')
    >>> qc.data['2021-01-01T07:00:00':'2021-01-01T08:00:00'] # doctest: +SKIP
                        SoilMoisture |                     SoilMoisture_original |
    ================================ | ========================================= |
