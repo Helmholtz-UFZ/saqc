@@ -36,17 +36,17 @@ ValueT = Union[pd.Series, Iterable, float]
 
 class _HistAccess:
     def __init__(self, obj: Flags):
-        self.obj = obj
+        self._obj = obj
 
     def __getitem__(self, key: str) -> History:
-        return self.obj._data[key]
+        return self._obj._data[key]
 
     def __setitem__(self, key: str, value: History):
         if not isinstance(value, History):
             raise TypeError("Not a History")
 
-        self.obj._validateHistForFlags(value)
-        self.obj._data[key] = value
+        self._obj._validateHistForFlags(value)
+        self._obj._data[key] = value
 
 
 class Flags:

@@ -11,6 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Added
 - Methods `logicalAnd` and `logicalOr`
 - `Flags` supports slicing and column selection with `list` or a `pd.Index`
+- Expose the `History` via `SaQC._history_`
 ### Changed
 - Deprecate `interpolate`, `linear` and `shift` in favor of `align`
 - Depreacte `roll` in favor of `rolling`
