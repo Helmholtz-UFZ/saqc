@@ -13,9 +13,9 @@ from typing import TYPE_CHECKING, Callable
 import numpy as np
 import pandas as pd
 
-from saqc import BAD
-from saqc.core import flagging
-from saqc.lib.tools import statPass
+from saqc.constants import BAD
+from saqc.core.register import flagging
+from saqc.lib.tools import isflagged, statPass
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -95,5 +95,6 @@ class NoiseMixin:
             sub_thresh,
             min_periods,
         )
-        self._flags[to_set, field] = flag
+        mask = ~isflagged(self._flags[field], kwargs["dfilter"]) & to_set
+        self._flags[mask, field] = flag
         return self
