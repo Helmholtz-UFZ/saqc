@@ -15,7 +15,7 @@ from typing import Any, Hashable, MutableMapping
 import numpy as np
 import pandas as pd
 
-from saqc.core.flags import Flags, initFlagsLike
+from saqc.core.flags import Flags, _HistAccess, initFlagsLike
 from saqc.core.frame import DictOfSeries
 from saqc.core.history import History
 from saqc.core.register import FUNC_MAP
@@ -112,6 +112,10 @@ class SaQC(FunctionsMixin):
         flags = self._scheme.toExternal(self._flags, attrs=self._attrs)
         flags.attrs = self._attrs.copy()
         return flags
+
+    @property
+    def _history(self) -> _HistAccess:
+        return self._flags.history
 
     def __getattr__(self, key):
         """
