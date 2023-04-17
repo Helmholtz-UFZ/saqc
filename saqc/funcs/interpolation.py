@@ -363,6 +363,7 @@ class InterpolationMixin:
         ] = "time",
         order: int = 2,
         extrapolate: Literal["forward", "backward", "both"] | None = None,
+        overwrite: bool = False,
         **kwargs,
     ) -> "SaQC":
         """
@@ -397,13 +398,16 @@ class InterpolationMixin:
         order:
             Order of the interpolation method, ignored if not supported by the chosen ``method``
 
-        extraplate : {'forward', 'backward', 'both'}, default None
+        extrapolate : {'forward', 'backward', 'both'}, default None
             Use parameter to perform extrapolation instead of interpolation onto the trailing and/or leading chunks of
             NaN values in data series.
 
             * 'None' (default) - perform interpolation
             * 'forward'/'backward' - perform forward/backward extrapolation
             * 'both' - perform forward and backward extrapolation
+
+        overwrite:
+           If set to True, existing flags will be cleared
 
         Returns
         -------
@@ -443,7 +447,7 @@ class InterpolationMixin:
             },
         }
 
-        flagcol = pd.Series(UNFLAGGED, index=history.index)
+        flagcol = pd.Series(UNFLAGGED if overwrite else np.nan, index=history.index)
         history.append(flagcol, meta)
 
         self._data[field] = datacol
