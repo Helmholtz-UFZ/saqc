@@ -16,9 +16,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Deprecate `interpolate`, `linear` and `shift` in favor of `align`
 - Depreacte `roll` in favor of `rolling`
 - Rename `interplateInvalid` to `interpolate`
-- Rename `interpolateIndex` to `align`
+- Rename `interpolateIndex` to `align` 
 ### Removed
 - Parameter `limit` from `align`
+- Parameter `max_na_group_flags`, `max_na_flags`, `flag_func`, `freq_check` removed from `resample`
 ### Fixed
 - `func` arguments in text configurations were not parsed correctly
 - fail on duplicated arguments to test methods

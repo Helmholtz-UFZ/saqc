@@ -18,7 +18,7 @@ from typing_extensions import Literal
 from saqc.constants import UNFLAGGED
 from saqc.core import register
 from saqc.funcs.interpolation import _SUPPORTED_METHODS
-from saqc.lib.tools import evalFreqStr, filterKwargs, getFreqDelta, isflagged
+from saqc.lib.tools import filterKwargs, getFreqDelta, isflagged
 from saqc.lib.ts_operators import aggregate2Freq, shift2Freq
 
 if TYPE_CHECKING:
@@ -78,7 +78,6 @@ class ResamplingMixin:
         field: str,
         freq: str,
         method: Literal["fshift", "bshift", "nshift"] = "nshift",
-        freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs,
     ) -> "SaQC":
         """
@@ -99,11 +98,6 @@ class ResamplingMixin:
             * 'bshift' : shift grid points to the first succeeding time stamp (if any)
             * 'fshift' : shift grid points to the last preceeding time stamp (if any)
 
-        freq_check : {None, 'check', 'auto'}, default None
-            * ``None`` : do not validate the ``freq`` string.
-            * 'check' : check ``freq`` against an frequency estimation, produces a warning in case of miss matches.
-            * 'auto' : estimate frequency, `freq` is ignored.
-
         Returns
         -------
         saqc.SaQC
@@ -116,7 +110,7 @@ class ResamplingMixin:
             """,
             DeprecationWarning,
         )
-        freq = evalFreqStr(freq, freq_check, self._data[field].index)
+
         return self.align(field=field, freq=freq, method=method, **kwargs)
 
     @register(mask=["field"], demask=[], squeeze=[])
@@ -128,10 +122,6 @@ class ResamplingMixin:
         method: Literal["fagg", "bagg", "nagg"] = "bagg",
         maxna: Optional[int] = None,
         maxna_group: Optional[int] = None,
-        maxna_flags: Optional[int] = None,  # TODO: still a case ??
-        maxna_group_flags: Optional[int] = None,
-        flag_func: Callable[[pd.Series], float] = max,
-        freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs,
     ) -> "SaQC":
         """
@@ -180,28 +170,6 @@ class ResamplingMixin:
         maxna_group : {None, int}, default None
             Same as `maxna` but for consecutive NaNs.
 
-        maxna_flags : {None, int}, default None
-            Same as `max_invalid`, only applying for the flags. The flag regarded
-            as "invalid" value, is the one passed to empty_intervals_flag (
-            default=``BAD``). Also this is the flag assigned to invalid/empty intervals.
-
-        maxna_group_flags : {None, int}, default None
-            Same as `maxna_flags`, only applying onto flags. The flag regarded as
-            "invalid" value, is the one passed to empty_intervals_flag. Also this is the
-            flag assigned to invalid/empty intervals.
-
-        flag_func : Callable, default: max
-            The function you want to aggregate the flags with. It should be capable of
-            operating on the flags dtype (usually ordered categorical).
-
-        freq_check : {None, 'check', 'auto'}, default None
-
-            * ``None``: do not validate frequency-string passed to `freq`
-            * ``'check'``: estimate frequency and log a warning if estimate miss matchs
-                frequency string passed to 'freq', or if no uniform sampling rate could be
-                estimated
-            * ``'auto'``: estimate frequency and use estimate. (Ignores `freq` parameter.)
-
         Returns
         -------
         saqc.SaQC
@@ -212,8 +180,6 @@ class ResamplingMixin:
         if datcol.empty:
             # see for #GL-374
             datcol = pd.Series(index=pd.DatetimeIndex([]), dtype=datcol.dtype)
-
-        freq = evalFreqStr(freq, freq_check, datcol.index)
 
         datcol = aggregate2Freq(
             datcol,
@@ -228,10 +194,10 @@ class ResamplingMixin:
         kws = dict(
             method=method,
             freq=freq,
-            agg_func=flag_func,
+            agg_func=max,
             fill_value=np.nan,
-            max_invalid_total=maxna_flags,
-            max_invalid_consec=maxna_group_flags,
+            max_invalid_total=maxna,
+            max_invalid_consec=maxna_group,
         )
 
         history = self._flags.history[field].apply(
@@ -248,10 +214,6 @@ class ResamplingMixin:
                 "method": method,
                 "maxna": maxna,
                 "maxna_group": maxna_group,
-                "maxna_flags": maxna_flags,
-                "maxna_group_flags": maxna_group_flags,
-                "flag_func": flag_func,
-                "freq_check": freq_check,
                 **kwargs,
             },
         }
