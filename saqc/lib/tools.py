@@ -292,38 +292,6 @@ def estimateFrequency(
     return str(int(gcd_freq)) + "min", [str(int(i)) + "min" for i in freqs]
 
 
-def evalFreqStr(freq, check, index):
-    if check in ["check", "auto"]:
-        f_passed = freq
-        freq = index.inferred_freq
-        freqs = [freq]
-        if freq is None:
-            freq, freqs = estimateFrequency(index)
-        if freq is None:
-            warnings.warn("Sampling rate could not be estimated.")
-        if len(freqs) > 1:
-            warnings.warn(
-                f"Sampling rate seems to be not uniform!." f"Detected: {freqs}"
-            )
-
-        if check == "check":
-            f_passed_seconds = pd.Timedelta(f_passed).total_seconds()
-            freq_seconds = pd.Timedelta(freq).total_seconds()
-            if f_passed_seconds != freq_seconds:
-                warnings.warn(
-                    f"Sampling rate estimate ({freq}) missmatches passed frequency ({f_passed})."
-                )
-        elif check == "auto":
-            if freq is None:
-                raise ValueError(
-                    "Frequency estimation for non-empty series failed with no fall back frequency passed."
-                )
-            f_passed = freq
-    else:
-        f_passed = freq
-    return f_passed
-
-
 def detectDeviants(
     data,
     metric,
