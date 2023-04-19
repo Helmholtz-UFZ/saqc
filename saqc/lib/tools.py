@@ -375,7 +375,7 @@ def detectDeviants(
         return [i for i, x in enumerate(cluster) if x != norm_cluster]
 
 
-def getFreqDelta(index):
+def getFreqDelta(index: pd.Index) -> None | pd.Timedelta:
     """
     Function checks if the passed index is regularly sampled.
 
