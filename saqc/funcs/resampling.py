@@ -17,9 +17,9 @@ from typing_extensions import Literal
 
 from saqc.constants import UNFLAGGED
 from saqc.core import register
-from saqc.funcs.interpolation import _SUPPORTED_METHODS
+from saqc.core.history import History
 from saqc.lib.tools import filterKwargs, getFreqDelta, isflagged
-from saqc.lib.ts_operators import aggregate2Freq, shift2Freq
+from saqc.lib.ts_operators import aggregate2Freq
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -233,7 +233,7 @@ class ResamplingMixin:
     def concatFlags(
         self: "SaQC",
         field: str,
-        target: str,
+        target: str | None = None,
         method: Literal[
             "inverse_fagg",
             "inverse_bagg",
@@ -243,6 +243,7 @@ class ResamplingMixin:
             "inverse_nshift",
             "inverse_interpolation",
             "match",
+            "auto",
         ] = "match",
         freq: str | None = None,
         drop: bool = False,
@@ -251,8 +252,8 @@ class ResamplingMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Append the flags/history of ``field`` to ``target``. If necessary the flags are
-        projected to the ``target`` frequency grid.
+        Project flags/history of ``field`` to ``target`` and adjust to the frequeny grid
+        of ``target`` by 'undoing' former interpolation, shifting or resampling operations
 
         Note
         ----
@@ -262,15 +263,16 @@ class ResamplingMixin:
 
         Parameters
         ----------
-        field : str
+        field:
             Fieldname of flags history to append.
 
-        target : str
+        target:
             Field name of flags history to append to.
 
-        method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift', 'match'}, default 'match'
+        method:
             Method to project the flags of ``field`` the flags to ``target``:
 
+           * 'auto': inverse the last alignment/resampling operations
            * 'inverse_nagg': project a flag of ``field`` to all timestamps of ``target`` within the range +/- ``freq``/2.
            * 'inverse_bagg': project a flag of ``field`` to all preceeding timestamps of ``target`` within the range ``freq``
            * 'inverse_fagg': project a flag of ``field`` to all succeeding timestamps of ``target`` within the range ``freq``
@@ -296,6 +298,10 @@ class ResamplingMixin:
         -------
         saqc.SaQC
         """
+
+        if target is None:
+            target = field
+
         flagscol = self._flags[field]
         target_datcol = self._data[target]
         target_flagscol = self._flags[target]
@@ -313,18 +319,36 @@ class ResamplingMixin:
                     "pass custom projection range to freq parameter."
                 )
 
-        if method[-13:] == "interpolation":
+        if method == "auto":
+            stack = []
+            for meta in self._flags.history[field].meta:
+                func = meta["func"]
+                meth = meta["kwargs"].get("method")
+                if func in ("align", "resample"):
+                    if meth[1:] in ("agg", "shift"):
+                        stack.append(f"inverse_{meth}")
+                    else:
+                        stack.append("inverse_interpolation")
+                elif func == "concatFlags":
+                    stack.pop()
+            if not stack:
+                raise ValueError(
+                    "unable to derive an inversion method, please specify an appropiate 'method'"
+                )
+            method = stack[-1]
+
+        if method.endswith("interpolation"):
             ignore = _getChunkBounds(target_datcol, flagscol, freq)
             func = _inverseInterpolation
             func_kws = dict(freq=freq, chunk_bounds=ignore, target=dummy)
 
-        elif method[-3:] == "agg":
+        elif method.endswith("agg"):
             projection_method = METHOD2ARGS[method][0]
             tolerance = METHOD2ARGS[method][1](freq)
             func = _inverseAggregation
             func_kws = dict(freq=tolerance, method=projection_method, target=dummy)
 
-        elif method[-5:] == "shift":
+        elif method.endswith("shift"):
             drop_mask = target_datcol.isna() | isflagged(
                 target_flagscol, kwargs["dfilter"]
             )
@@ -347,30 +371,34 @@ class ResamplingMixin:
             raise ValueError(f"unknown method {method}")
 
         history = self._flags.history[field].apply(dummy.index, func, func_kws)
-
         if overwrite is False:
             mask = isflagged(self._flags[target], thresh=kwargs["dfilter"])
             history._hist[mask] = np.nan
 
-        if squeeze:
-            history = history.squeeze(raw=True)
+        # append a dummy column
+        meta = {
+            "func": f"concatFlags",
+            "args": (),
+            "kwargs": {
+                "field": field,
+                "target": target,
+                "method": method,
+                "freq": freq,
+                "drop": drop,
+                "squeeze": squeeze,
+                "overwrite": overwrite,
+                **kwargs,
+            },
+        }
 
-            meta = {
-                "func": f"concatFlags",
-                "args": (field,),
-                "kwargs": {
-                    "target": target,
-                    "method": method,
-                    "freq": freq,
-                    "drop": drop,
-                    "squeeze": squeeze,
-                    "overwrite": overwrite,
-                    **kwargs,
-                },
-            }
-            self._flags.history[target].append(history, meta)
+        if squeeze:
+            flags = history.squeeze(raw=True)
+            history = History(index=history.index)
         else:
-            self._flags.history[target].append(history)
+            flags = pd.Series(np.nan, index=history.index, dtype=float)
+
+        history.append(flags, meta)
+        self._flags.history[target].append(history)
 
         if drop:
             return self.dropField(field=field)

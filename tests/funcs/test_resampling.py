@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from saqc import BAD, UNFLAGGED, SaQC
+from saqc import SaQC
 from saqc.core import DictOfSeries, initFlagsLike
 from tests.common import checkInvariants
 
@@ -298,5 +298,97 @@ def test_concatFlags(data, overwrite, expected_col0, expected_col1):
         "data_", target="data", overwrite=overwrite, squeeze=True
     )
     hist_concat = qc_concat._flags.history["data"].hist.astype(float)
+    meta_concat = qc_concat._flags.history["data"].meta
     assert hist_concat[0].equals(pd.Series(expected_col0, index=data["data"].index))
     assert hist_concat[1].equals(pd.Series(expected_col1, index=data["data"].index))
+    assert meta_concat[-1]["func"] == "concatFlags"
+
+
+@pytest.mark.parametrize(
+    "method, inversion_method, freq",
+    [
+        ("linear", "inverse_interpolation", "15min"),
+        ("bshift", "inverse_bshift", "15Min"),
+        ("fshift", "inverse_fshift", "15Min"),
+        ("nshift", "inverse_nshift", "15min"),
+        ("pad", "inverse_interpolation", "15min"),
+    ],
+)
+def test_alignAutoInvert(data, method, inversion_method, freq):
+    flags = initFlagsLike(data)
+    field = data.columns[0]
+    field_aligned = f"{field}_aligned"
+
+    qc = SaQC(data, flags)
+    qc = qc.align(field=field, target=field_aligned, method=method, freq=freq)
+    qc = qc.flagDummy(field=field_aligned)
+    qc_expected = qc.concatFlags(
+        field=field_aligned, target=field, method=inversion_method
+    )
+    qc_got = qc.concatFlags(field=field_aligned, target=field, method="auto")
+
+    _assertEqual(qc_expected, qc_got)
+
+
+def test_alignMultiAutoInvert(data):
+    flags = initFlagsLike(data)
+    field = data.columns[0]
+    field_aligned = f"{field}_aligned"
+
+    qc = SaQC(data, flags)
+    qc = qc.align(field=field, target=field_aligned, method="fshift", freq="30Min")
+    qc = qc.align(field=field_aligned, method="time", freq="10Min")
+    qc = qc.flagDummy(field=field_aligned)
+
+    # resolve the last alignment operation
+    _assertEqual(
+        qc.concatFlags(field=field_aligned, target=field, method="auto"),
+        qc.concatFlags(
+            field=field_aligned, target=field, method="inverse_interpolation"
+        ),
+    )
+    # resolve the first alignment operation
+    _assertEqual(
+        (
+            qc.concatFlags(field=field_aligned, method="auto").concatFlags(
+                field=field_aligned, target=field, method="auto"
+            )
+        ),
+        (
+            qc.concatFlags(
+                field=field_aligned, method="inverse_interpolation"
+            ).concatFlags(field=field_aligned, target=field, method="inverse_fshift")
+        ),
+    )
+
+
+def _assertEqual(left: SaQC, right: SaQC):
+    for field in left.data.columns:
+        assert left._data[field].equals(right._data[field])
+        assert left._flags[field].equals(right._flags[field])
+        assert left._flags.history[field].hist.equals(right._flags.history[field].hist)
+        assert left._flags.history[field].meta == right._flags.history[field].meta
+
+
+@pytest.mark.parametrize(
+    "method, inversion_method, freq",
+    [
+        ("bagg", "inverse_bagg", "15Min"),
+        ("fagg", "inverse_fagg", "15Min"),
+        ("nagg", "inverse_nagg", "15min"),
+    ],
+)
+def test_resampleAutoInvert(data, method, inversion_method, freq):
+    flags = initFlagsLike(data)
+    field = data.columns[0]
+    field_aligned = f"{field}_aligned"
+
+    qc = SaQC(data, flags)
+    qc = qc.resample(field=field, target=field_aligned, method=method, freq=freq)
+    qc = qc.flagRange(field=field_aligned, min=0, max=100)
+    qc_expected = qc.concatFlags(
+        field=field_aligned, target=field, method=inversion_method
+    )
+    qc_got = qc.concatFlags(field=field_aligned, target=field, method="auto")
+
+    _assertEqual(qc_got, qc_expected)
