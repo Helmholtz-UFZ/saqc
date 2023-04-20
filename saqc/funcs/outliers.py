@@ -367,7 +367,7 @@ class OutliersMixin:
         field : str
             The fieldname of the column, holding the data-to-be-flagged.
 
-        freq : str, int, or None, default None
+        window : str, int, or None, default None
             Determines the segmentation of the data into partitions, the kNN algorithm is
             applied onto individually.
 
