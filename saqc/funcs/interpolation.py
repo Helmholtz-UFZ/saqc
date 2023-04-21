@@ -128,7 +128,7 @@ class InterpolationMixin:
                 "window": window,
                 "func": func,
                 "center": center,
-                "min_periods": min_periods,
+                "min_periods_r": min_periods,
                 "flag": flag,
                 **kwargs,
             },

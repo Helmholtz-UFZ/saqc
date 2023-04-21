@@ -113,7 +113,7 @@ class CustomRoller:
         min_periods : int, default None
             Minimum number of observations in window required to have a value (
             otherwise result is NA). For a window that is specified by an offset,
-            min_periods will default to 1. Otherwise, min_periods will default to the
+            min_periods_r will default to 1. Otherwise, min_periods_r will default to the
             size of the window.
 
         center : bool, default False
@@ -147,7 +147,7 @@ class CustomRoller:
             backward-windows it only expands at the left border, for forward-windows
             it shrinks on the right border and for centered windows both apply.
 
-            Also bear in mind that even if this is True, an many as `min_periods` values are necessary to get a
+            Also bear in mind that even if this is True, an many as `min_periods_r` values are necessary to get a
             valid value, see there for more info.
 
         Returns
@@ -158,7 +158,7 @@ class CustomRoller:
         Notes
         -----
         If for some reason the start and end numeric indices of the window are needed, one can call
-        `start, end = customRoller(obj, window).window.get_window_bounds(num_values, min_periods)`,
+        `start, end = customRoller(obj, window).window.get_window_bounds(num_values, min_periods_r)`,
         which return two np.arrays, that are holding the start and end indices. Fill at least all
         parameter which are shown in the example.
 
@@ -179,10 +179,10 @@ class CustomRoller:
             if min_periods is None:
                 expand = False
                 warnings.warn(
-                    "`expand` defaults to False, if min_periods is None. The result "
+                    "`expand` defaults to False, if min_periods_r is None. The result "
                     "will differ from pandas rolling implementation. To fallback to "
                     "pandas rolling, use `expand=True`, to silence this warning and "
-                    "use our rolling use `expand=False` or specify `min_periods`."
+                    "use our rolling use `expand=False` or specify `min_periods_r`."
                 )
             else:
                 expand = True
@@ -239,7 +239,7 @@ class CustomRoller:
         #    of `_roller` are accessible on self
         self._roller = obj.rolling(
             window=self.window_indexer,
-            min_periods=verified.min_periods,  # roller.min_periods
+            min_periods=verified.min_periods,  # roller.min_periods_r
             win_type=verified._win_type,  # use private here to silence warning
             on=verified.on,
             center=verified.center,
@@ -301,7 +301,7 @@ class CustomRoller:
     exclusions = AttrWrapper("exclusions")
     is_datetimelike = AttrWrapper("is_datetimelike")
     is_freq_type = AttrWrapper("is_freq_type")
-    min_periods = AttrWrapper("min_periods")
+    min_periods = AttrWrapper("min_periods_r")
     ndim = AttrWrapper("ndim")
     on = AttrWrapper("on")
     sparse = AttrWrapper("sparse")

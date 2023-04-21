@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import uuid
+import warnings
 from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple, Union
 
 import numba
@@ -377,8 +378,8 @@ class OutliersMixin:
               matching the passed offset string
 
         min_periods : int, default 11
-            Minimum number of periods per partition that have to be present for a valid
-            outlier dettection to be made in this partition. (Only of effect, if `freq`
+            Minimum number of periods per window that have to be present for a valid
+            outlier dettection to be made in this window. (Only of effect, if `freq`
             is an integer.) Partition min value must always be greater then the
             nn_neighbors value.
 
@@ -425,7 +426,7 @@ class OutliersMixin:
             )
             partitions = scores.groupby(grouper_series)
 
-        # calculate flags for every partition
+        # calculate flags for every window
         for _, partition in partitions:
             if partition.empty | (len(partition) < min_periods):
                 continue
@@ -471,12 +472,12 @@ class OutliersMixin:
         n: int = 10,
         func: Callable[[pd.Series], float] = np.sum,
         iter_start: float = 0.5,
-        partition: Optional[Union[int, str]] = None,
-        partition_min: int = 11,
+        window: Optional[Union[int, str]] = None,
+        min_periods: int = 11,
         stray_range: Optional[str] = None,
         drop_flagged: bool = False,  # TODO: still a case ?
         thresh: float = 3.5,
-        min_periods: int = 1,
+        min_periods_r: int = 1,
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
@@ -516,22 +517,22 @@ class OutliersMixin:
             % of the scores for the cut off point. (See reference section for more
             information)
 
-        partition : {None, str, int}, default None
+        window : {None, str, int}, default None
             Only effective when `threshing` = 'stray'. Determines the size of the data
-            partitions, the data is decomposed into. Each partition is checked seperately
+            partitions, the data is decomposed into. Each window is checked seperately
             for outliers. If a String is passed, it has to be an offset string and it
             results in partitioning the data into parts of according temporal length. If
             an integer is passed, the data is simply split up into continous chunks of
             `freq` periods. if ``None`` is passed (default), all the data will be tested
             in one run.
 
-        partition_min : int, default 11
+        min_periods : int, default 11
             Only effective when `threshing` = 'stray'. Minimum number of periods per
-            partition that have to be present for a valid outlier detection to be made in
-            this partition. (Only of effect, if `stray_partition` is an integer.)
+            window that have to be present for a valid outlier detection to be made in
+            this window. (Only of effect, if `stray_partition` is an integer.)
 
         partition_trafo : bool, default True
-            Whether or not to apply the passed transformation on every partition the
+            Whether or not to apply the passed transformation on every window the
             algorithm is applied on, separately.
 
         stray_range : {None, str}, default None
@@ -551,7 +552,7 @@ class OutliersMixin:
             not. Higher values result in less rigid flagging. The default value is widely
             considered apropriate in the literature.
 
-        min_periods : int, 1
+        min_periods_r : int, 1
             Only effective when `range` is not ``None``. Minimum number of meassurements
             necessarily present in a reduction interval for reduction actually to be
             performed.
@@ -610,13 +611,48 @@ class OutliersMixin:
 
         """
 
+        # parameter deprecations
+
+        if "partition" in kwargs:
+            warnings.warn(
+                """
+                The parameter `partition` is deprecated and will be removed in version 3.0 of saqc.
+                Please us the parameter `window` instead.'
+                """,
+                DeprecationWarning,
+            )
+            window = kwargs["partition"]
+
+        if "partition_min" in kwargs:
+            warnings.warn(
+                """
+                The parameter `partition_min` is deprecated and will be removed in version 3.0 of saqc.
+                Please us the parameter `min_periods` instead.'
+                """,
+                DeprecationWarning,
+            )
+            min_periods = kwargs["partition_min"]
+
+        if min_periods != 11:
+            warnings.warn(
+                """
+                You were setting a customary value for the `min_periods` parameter: note that this parameter 
+                does no longer refer to the reduction interval length, but now controls the number of periods 
+                having to be present in an interval of size `window` (deprecated:`partition`) for the algorithm to be 
+                performed in that interval.
+                To alter the size of the reduction window, use the parameter `min_periods_r`. Changes readily apply. 
+                Warning will be removed in saqc version 3.0.
+                """,
+                DeprecationWarning,
+            )
+
         fields = toSequence(field)
 
         fields_ = []
         for f in fields:
             field_ = str(uuid.uuid4())
             self = self.copyField(field=f, target=field_)
-            self = self.transform(field=field_, func=trafo, freq=partition)
+            self = self.transform(field=field_, func=trafo, freq=window)
             fields_.append(field_)
 
         knn_field = str(uuid.uuid4())
@@ -625,9 +661,9 @@ class OutliersMixin:
             target=knn_field,
             n=n,
             func=func,
-            freq=partition,
+            freq=window,
             algorithm="ball_tree",
-            min_periods=partition_min,
+            min_periods=min_periods,
             **kwargs,
         )
         for field_ in fields_:
@@ -635,8 +671,8 @@ class OutliersMixin:
 
         self = self.flagByStray(
             field=knn_field,
-            freq=partition,
-            min_periods=partition_min,
+            freq=window,
+            min_periods=min_periods,
             iter_start=iter_start,
             alpha=alpha,
             flag=flag,
@@ -651,7 +687,7 @@ class OutliersMixin:
             reduction_range=stray_range,
             reduction_drop_flagged=drop_flagged,
             reduction_thresh=thresh,
-            reduction_min_periods=min_periods,
+            reduction_min_periods=min_periods_r,
             flag=flag,
             **kwargs,
         )
@@ -1160,7 +1196,7 @@ class OutliersMixin:
         ----
         * The test performs poorly for small data chunks, resulting in considerable
           overflagging. Select ``window`` such that every data chunck contains at
-          least 8 values and also adjust the ``min_periods`` values accordingly.
+          least 8 values and also adjust the ``min_periods_r`` values accordingly.
         * The dara is expected to be normally distributed
 
         Parameters

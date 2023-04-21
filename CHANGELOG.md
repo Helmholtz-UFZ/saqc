@@ -14,9 +14,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Expose the `History` via `SaQC._history_`
 ### Changed
 - Deprecate `interpolate`, `linear` and `shift` in favor of `align`
-- Depreacte `roll` in favor of `rolling`
+- Deprecate `roll` in favor of `rolling`
 - Rename `interplateInvalid` to `interpolate`
 - Rename `interpolateIndex` to `align` 
+- Deprecate `flagMVScore` parameters: `partition_min` in favor of `window`, `partition_min` in favor of `min_periods`, `min_periods` in favor of `min_periods_r`
 ### Removed
 - Parameter `limit` from `align`
 - Parameter `max_na_group_flags`, `max_na_flags`, `flag_func`, `freq_check` removed from `resample`
