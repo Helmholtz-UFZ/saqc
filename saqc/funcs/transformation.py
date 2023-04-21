@@ -39,7 +39,7 @@ class TransformationMixin:
             Transformation function.
 
         freq : {None, float, str}, default None
-            Size of the data partition. The transformation is applied on each partition individually
+            Size of the data window. The transformation is applied on each window individually
 
             * ``None``: Apply transformation on the entire data set at once
             * ``int`` : Apply transformation on successive data chunks of the given length. Must be grater than 0.

@@ -63,7 +63,7 @@ class CurvefitMixin:
 
         (1) If you know your data to have no significant number of missing values,
         or if you do not want to calculate residuals for windows containing missing values
-        any way, performance can be increased by setting min_periods=window.
+        any way, performance can be increased by setting min_periods_r=window.
 
         Note, that the initial and final window/2 values do not get fitted.
 
@@ -89,7 +89,7 @@ class CurvefitMixin:
         min_periods : int or None, default 0
             Minimum number of observations in a window required to perform the fit,
             otherwise NaNs will be assigned.
-            If ``None``, `min_periods` defaults to 1 for integer windows and to the
+            If ``None``, `min_periods_r` defaults to 1 for integer windows and to the
             size of the window for offset based windows.
             Passing 0, disables the feature and will result in over-fitting for too
             sparse windows.

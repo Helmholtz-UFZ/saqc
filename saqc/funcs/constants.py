@@ -71,7 +71,7 @@ class ConstantsMixin:
 
         d = self._data[field]
 
-        # min_periods=2 ensures that at least two non-nan values are present
+        # min_periods_r=2 ensures that at least two non-nan values are present
         # in each window and also min() == max() == d[i] is not possible.
         kws = dict(window=window, min_periods=min_periods, expand=False)
 
