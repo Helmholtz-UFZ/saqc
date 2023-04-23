@@ -44,7 +44,7 @@ class ResidualsMixin:
 
         (1) If you know your data to have no significant number of missing values,
         or if you do not want to calculate residuals for windows containing missing values
-        any way, performance can be increased by setting min_periods=window.
+        any way, performance can be increased by setting min_periods_r=window.
 
         Note, that the initial and final window/2 values do not get fitted.
 

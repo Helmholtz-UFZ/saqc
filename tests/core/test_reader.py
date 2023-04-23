@@ -9,7 +9,9 @@
 import numpy as np
 import pytest
 
-from saqc.core import DictOfSeries, Flags, flagging
+import saqc.lib.ts_operators as ts_ops
+from saqc.core import DictOfSeries, Flags, SaQC, flagging
+from saqc.parsing.environ import ENVIRONMENT
 from saqc.parsing.reader import fromConfig, readFile
 from tests.common import initData, writeIO
 
@@ -155,3 +157,21 @@ def test_supportedArguments(data):
     for test in tests:
         fobj = writeIO(header + "\n" + test)
         fromConfig(fobj, data)
+
+
+@pytest.mark.parametrize(
+    "func_string", [k for k, v in ENVIRONMENT.items() if callable(v)]
+)
+def test_funtionArguments(data, func_string):
+    @flagging()
+    def testFunction(saqc, field, func, **kwargs):
+        assert func is ENVIRONMENT[func_string]
+        return saqc
+
+    config = f"""
+    varname ; test
+    {data.columns[0]} ; testFunction(func={func_string})
+    {data.columns[0]} ; testFunction(func="{func_string}")
+    """
+
+    fromConfig(writeIO(config), data)

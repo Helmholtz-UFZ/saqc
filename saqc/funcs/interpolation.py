@@ -7,7 +7,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Union
+import warnings
+from typing import TYPE_CHECKING, Callable, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -15,13 +16,15 @@ from typing_extensions import Literal
 
 from saqc import UNFLAGGED
 from saqc.core import register
+from saqc.core.history import History
 from saqc.lib.tools import isflagged
-from saqc.lib.ts_operators import interpolateNANs
+from saqc.lib.ts_operators import interpolateNANs, shift2Freq
 
 if TYPE_CHECKING:
     from saqc import SaQC
 
 
+# TODO: remove, when `interpolateIndex` and `interpolateInvalid are removed`
 _SUPPORTED_METHODS = Literal[
     "linear",
     "time",
@@ -125,7 +128,7 @@ class InterpolationMixin:
                 "window": window,
                 "func": func,
                 "center": center,
-                "min_periods": min_periods,
+                "min_periods_r": min_periods,
                 "flag": flag,
                 **kwargs,
             },
@@ -136,51 +139,80 @@ class InterpolationMixin:
 
     @register(
         mask=["field"],
-        demask=["field"],
+        demask=[],
         squeeze=[],  # func handles history by itself
     )
-    def interpolateInvalid(
+    def interpolate(
         self: "SaQC",
         field: str,
-        method: _SUPPORTED_METHODS,
+        method: Literal[
+            "linear",
+            "time",
+            "index",
+            "values",
+            "pad",
+            "nearest",
+            "zero",
+            "slinear",
+            "quadratic",
+            "cubic",
+            "spline",
+            "barycentric",
+            "polynomial",
+            "krogh",
+            "spline",
+            "pchip",
+            "akima",
+            "cubicspline",
+            "from_derivatives",
+        ],
         order: int = 2,
-        limit: int | None = None,
-        extrapolate: Literal["forward", "backward", "both"] = None,
+        limit: int | str | None = None,
+        extrapolate: Literal["forward", "backward", "both"] | None = None,
         flag: float = UNFLAGGED,
         **kwargs,
     ) -> "SaQC":
         """
-        Function to interpolate nan values in data.
-
-        There are available all the interpolation methods from the pandas.interpolate method and they are applicable by
-        the very same key words, that you would pass to the ``pd.Series.interpolate``'s method parameter.
+        Fill NaN and flagged values using an interpolation method.
 
         Parameters
         ----------
-        field : str
-            Name of the column, holding the data-to-be-interpolated.
+        field:
+            Column(s) to interpolate.
 
-        method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-            "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}
-            The interpolation method to use.
+        method:
+            Interpolation technique to use. One of:
 
-        order : int, default 2
-            If there your selected interpolation method can be performed at different 'orders' - here you pass the desired
-            order.
+            * ‘linear’: Ignore the index and treat the values as equally spaced.
+            * ‘time’: Works on daily and higher resolution data to interpolate given length of interval.
+            * ‘index’, ‘values’: Use the actual numerical values of the index.
+            * ‘pad’: Fill in NaNs using existing values.
+            * ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘spline’, ‘barycentric’, ‘polynomial’:
+                 Passed to scipy.interpolate.interp1d. These methods use the numerical values of the index.
+                 Both ‘polynomial’ and ‘spline’ require that you also specify an order (int), e.g.
+                 ``qc.interpolate(method='polynomial', order=5)``.
+            * ‘krogh’, ‘spline’, ‘pchip’, ‘akima’, ‘cubicspline’:
+                 Wrappers around the SciPy interpolation methods of similar names.
+            * ‘from_derivatives’: Refers to scipy.interpolate.BPoly.from_derivatives
 
-        limit : int or str, default None
-            Upper limit of missing index values (with respect to `freq`) to fill. The limit can either be expressed
-            as the number of consecutive missing values (integer) or temporal extension of the gaps to be filled
-            (Offset String).
-            If `None` is passed, no Limit is set.
+        order:
+            Order of the interpolation method, ignored if not supported by the chosen ``method``
+
+        limit:
+            Maximum number of missing values to interpolate. Only gaps smaller than ``limit`` will be filled.
+            The gap size can be given as a number of values (integer) or a temporal extensions (offset string).
+            With ``None``, all missing values will be interpolated.
+
+        extrapolate:
+            Use parameter to perform extrapolation instead of interpolation onto the trailing and/or leading chunks of
+            NaN values in data series.
+
+            * 'None' (default) - perform interpolation
+            * 'forward'/'backward' - perform forward/backward extrapolation
+            * 'both' - perform forward and backward extrapolation
 
         flag : float or None, default UNFLAGGED
             Flag that is set for interpolated values. If ``None``, no flags are set at all.
-
-        downgrade : bool, default False
-            If `True` and the interpolation can not be performed at current order, retry with a lower order.
-            This can happen, because the chosen ``method`` does not support the passed ``order``, or
-            simply because not enough values are present in a interval.
 
         Returns
         -------
@@ -192,7 +224,7 @@ class InterpolationMixin:
 
         Lets generate some dummy data:
 
-        .. doctest:: interpolateInvalid
+        .. doctest:: interpolate
 
            >>> data = pd.DataFrame({'data':np.array([np.nan, 0, np.nan, np.nan, np.nan, 4, 5, np.nan, np.nan, 8, 9, np.nan, np.nan])}, index=pd.date_range('2000',freq='1H', periods=13))
            >>> data
@@ -211,12 +243,12 @@ class InterpolationMixin:
            2000-01-01 11:00:00   NaN
            2000-01-01 12:00:00   NaN
 
-        Use :py:meth:`~saqc.SaQC.interpolateInvalid` to do linear interpolation of up to 2 consecutive missing values:
+        Use :py:meth:`~saqc.SaQC.interpolate` to do linear interpolation of up to 2 consecutive missing values:
 
-        .. doctest:: interpolateInvalid
+        .. doctest:: interpolate
 
            >>> qc = saqc.SaQC(data)
-           >>> qc = qc.interpolateInvalid("data", limit=3, method='time')
+           >>> qc = qc.interpolate("data", limit=3, method='time')
            >>> qc.data # doctest:+NORMALIZE_WHITESPACE
                                data |
            ======================== |
@@ -236,12 +268,12 @@ class InterpolationMixin:
            <BLANKLINE>
 
 
-        Use :py:meth:`~saqc.SaQC.interpolateInvalid` to do linear extrapolaiton of up to 1 consecutive missing values:
+        Use :py:meth:`~saqc.SaQC.interpolate` to do linear extrapolaiton of up to 1 consecutive missing values:
 
-        .. doctest:: interpolateInvalid
+        .. doctest:: interpolate
 
            >>> qc = saqc.SaQC(data)
-           >>> qc = qc.interpolateInvalid("data", limit=2, method='time', extrapolate='both')
+           >>> qc = qc.interpolate("data", limit=2, method='time', extrapolate='both')
            >>> qc.data # doctest:+NORMALIZE_WHITESPACE
                                data |
            ======================== |
@@ -260,6 +292,26 @@ class InterpolationMixin:
            2000-01-01 12:00:00  NaN |
            <BLANKLINE>
         """
+
+        if "freq" in kwargs:
+            # the old interpolate version
+            warnings.warn(
+                f"""
+                The method `intepolate` is deprecated and will be removed in version 3.0 of saqc.
+                To achieve the same behaviour please use:
+                `qc.align(field={field}, freq={kwargs["freq"]}, method={method}, order={order}, flag={flag})`
+                """,
+                DeprecationWarning,
+            )
+            return self.align(
+                field=field,
+                freq=kwargs.pop("freq", method),
+                method=method,
+                order=order,
+                flag=flag,
+                **kwargs,
+            )
+
         inter_data = interpolateNANs(
             self._data[field],
             method,
@@ -279,6 +331,131 @@ class InterpolationMixin:
         )
 
         return self
+
+    @register(mask=["field"], demask=[], squeeze=[])
+    def align(
+        self: "SaQC",
+        field: str,
+        freq: str,
+        method: Literal[
+            "nshift",
+            "bshift",
+            "fshift",
+            "linear",
+            "time",
+            "index",
+            "values",
+            "pad",
+            "nearest",
+            "zero",
+            "slinear",
+            "quadratic",
+            "cubic",
+            "spline",
+            "barycentric",
+            "polynomial",
+            "krogh",
+            "spline",
+            "pchip",
+            "akima",
+            "cubicspline",
+            "from_derivatives",
+        ] = "time",
+        order: int = 2,
+        extrapolate: Literal["forward", "backward", "both"] | None = None,
+        overwrite: bool = False,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Convert time series to specified frequency. Values affected by frequency
+        changes will be inteprolated using the given method.
+
+        Parameters
+        ----------
+        field:
+            Column(s) to align.
+
+        freq:
+            Target frequency.
+
+        method:
+            Interpolation technique to use. One of:
+
+            * 'nshift': shift grid points to the nearest time stamp in the range = +/- 0.5 * ``freq``
+            * 'bshift' : shift grid points to the first succeeding time stamp (if any)
+            * 'fshift' : shift grid points to the last preceeding time stamp (if any)
+            * ‘linear’: Ignore the index and treat the values as equally spaced.
+            * 'time', ‘index’, ‘values’: Use the actual numerical values of the index.
+            * ‘pad’: Fill in NaNs using existing values.
+            * ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘spline’, ‘barycentric’, ‘polynomial’:
+                 Passed to scipy.interpolate.interp1d. These methods use the numerical values of the index.
+                 Both ‘polynomial’ and ‘spline’ require that you also specify an order (int), e.g.
+                 ``qc.interpolate(method='polynomial', order=5)``.
+            * ‘krogh’, ‘spline’, ‘pchip’, ‘akima’, ‘cubicspline’:
+                 Wrappers around the SciPy interpolation methods of similar names.
+            * ‘from_derivatives’: Refers to scipy.interpolate.BPoly.from_derivatives
+
+        order:
+            Order of the interpolation method, ignored if not supported by the chosen ``method``
+
+        extrapolate : {'forward', 'backward', 'both'}, default None
+            Use parameter to perform extrapolation instead of interpolation onto the trailing and/or leading chunks of
+            NaN values in data series.
+
+            * 'None' (default) - perform interpolation
+            * 'forward'/'backward' - perform forward/backward extrapolation
+            * 'both' - perform forward and backward extrapolation
+
+        overwrite:
+           If set to True, existing flags will be cleared
+
+        Returns
+        -------
+        saqc.SaQC
+        """
+
+        # TODO:
+        # - should we keep `extrapolate`
+
+        if self._data[field].empty:
+            return self
+
+        if method in ("fshift", "bshift", "nshift"):
+            datacol, history = _shift(
+                saqc=self, field=field, freq=freq, method=method, **kwargs
+            )
+        else:
+            datacol, history = _interpolate(
+                saqc=self,
+                field=field,
+                freq=freq,
+                method=method,
+                order=order,
+                extrapolate=extrapolate,
+                dfilter=kwargs["dfilter"],
+            )
+
+        meta = {
+            "func": "align",
+            "args": (field,),
+            "kwargs": {
+                "freq": freq,
+                "method": method,
+                "order": order,
+                "extrapolate": extrapolate,
+                **kwargs,
+            },
+        }
+
+        flagcol = pd.Series(UNFLAGGED if overwrite else np.nan, index=history.index)
+        history.append(flagcol, meta)
+
+        self._data[field] = datacol
+        self._flags.history[field] = history
+
+        return self
+
+    ### Deprecated functions
 
     @register(mask=["field"], demask=[], squeeze=[])
     def interpolateIndex(
@@ -329,69 +506,173 @@ class InterpolationMixin:
         -------
         saqc.SaQC
         """
-        if self._data[field].empty:
-            return self
 
-        datcol = self._data[field].copy()
+        msg = """
+        The method `interpolateIndex` is deprecated and will be removed in verion 3.0 of saqc.
+        To achieve the same behavior use:
+        """
+        call = "qc.align(field={field}, freq={freq}, method={method}, order={order}, extrapolate={extrapolate})"
+        if limit != 2:
+            call = f"{call}.interpolate(field={field}, method={method}, order={order}, limit={limit}, extrapolate={extrapolate})"
 
-        start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
-        grid_index = pd.date_range(
-            start=start, end=end, freq=freq, name=datcol.index.name
-        )
-
-        # TODO:
-        # in future we could use `register(mask=[field], [], [])`
-        # and dont handle masking manually here
-        flagged = isflagged(self._flags[field], kwargs["dfilter"])
-
-        # drop all points that hold no relevant grid information
-        datcol = datcol[~flagged].dropna()
-
-        # account for annoying case of subsequent frequency aligned values,
-        # that differ exactly by the margin of 2*freq
-        gaps = datcol.index[1:] - datcol.index[:-1] == 2 * pd.Timedelta(freq)
-        gaps = datcol.index[1:][gaps]
-        gaps = gaps.intersection(grid_index).shift(-1, freq)
-
-        # prepare grid interpolation:
-        datcol = datcol.reindex(datcol.index.union(grid_index))
-
-        # do the grid interpolation
-        inter_data = interpolateNANs(
-            data=datcol,
+        warnings.warn(f"{msg}`{call}`", DeprecationWarning)
+        out = self.align(
+            field=field,
+            freq=freq,
             method=method,
             order=order,
-            gap_limit=limit,
             extrapolate=extrapolate,
+            **kwargs,
         )
-
-        # override falsely interpolated values:
-        inter_data[gaps] = np.nan
-
-        # store interpolated grid
-        self._data[field] = inter_data[grid_index]
-
-        history = self._flags.history[field].apply(
-            index=self._data[field].index,
-            func=_resampleOverlapping,
-            func_kws=dict(freq=freq, fill_value=np.nan),
-        )
-
-        meta = {
-            "func": "interpolateIndex",
-            "args": (field,),
-            "kwargs": {
-                "freq": freq,
-                "method": method,
-                "order": order,
-                "limit": limit,
-                "extrapolate": extrapolate,
+        if limit != 2:
+            out = out.interpolate(
+                field=field,
+                freq=freq,
+                method=method,
+                order=order,
+                limit=limit,
+                extrapolate=extrapolate,
                 **kwargs,
-            },
-        }
-        flagcol = pd.Series(UNFLAGGED, index=history.index)
-        history.append(flagcol, meta)
+            )
+        return out
 
-        self._flags.history[field] = history
+    @register(
+        mask=["field"],
+        demask=["field"],
+        squeeze=[],  # func handles history by itself
+    )
+    def interpolateInvalid(
+        self: "SaQC",
+        field: str,
+        method: _SUPPORTED_METHODS,
+        order: int = 2,
+        limit: int | None = None,
+        extrapolate: Literal["forward", "backward", "both"] | None = None,
+        flag: float = UNFLAGGED,
+        **kwargs,
+    ) -> "SaQC":
+        warnings.warn(
+            f"""
+            The method `intepolateInvalid` is deprecated and will be removed
+            with version 3.0 of saqc. To achieve the same behavior, please use
+            `qc.interpolate(
+                field={field}, method={method}, order={order},
+                limit={limit}, extrapolate={extrapolate}, flag={flag}
+            )`
+            """
+        )
 
-        return self
+        return self.interpolate(
+            field=field,
+            method=method,
+            order=order,
+            limit=limit,
+            extrapolate=extrapolate,
+            flag=flag,
+            **kwargs,
+        )
+
+
+def _shift(
+    saqc: "SaQC",
+    field: str,
+    freq: str,
+    method: Literal["fshift", "bshift", "nshift"] = "nshift",
+    **kwargs,
+) -> Tuple[pd.Series, History]:
+    """
+    Shift data points and flags to a regular frequency grid.
+
+    Parameters
+    ----------
+    field : str
+        The fieldname of the column, holding the data-to-be-shifted.
+
+    freq : str
+        Offset string. Sampling rate of the target frequency.
+
+    method : {'fshift', 'bshift', 'nshift'}, default 'nshift'
+        Method to propagate values:
+
+        * 'nshift' : shift grid points to the nearest time stamp in the range = +/- 0.5 * ``freq``
+        * 'bshift' : shift grid points to the first succeeding time stamp (if any)
+        * 'fshift' : shift grid points to the last preceeding time stamp (if any)
+
+    freq_check : {None, 'check', 'auto'}, default None
+        * ``None`` : do not validate the ``freq`` string.
+        * 'check' : check ``freq`` against an frequency estimation, produces a warning in case of miss matches.
+        * 'auto' : estimate frequency, `freq` is ignored.
+
+    Returns
+    -------
+    saqc.SaQC
+    """
+    # TODO
+    # - Do we need `freq_check`? If so could we move it to `align`?
+
+    datcol = saqc._data[field]
+    if datcol.empty:
+        return saqc
+
+    # do the shift
+    datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
+
+    # do the shift on the history
+    kws = dict(method=method, freq=freq)
+
+    history = saqc._flags.history[field].apply(
+        index=datcol.index,
+        func_handle_df=True,
+        func=shift2Freq,
+        func_kws={**kws, "fill_value": np.nan},
+    )
+
+    return datcol, history
+
+
+def _interpolate(
+    saqc: "SaQC",
+    field: str,
+    freq: str,
+    method: str,
+    order: int | None,
+    dfilter: float,
+    extrapolate: Literal["forward", "backward", "both"] | None = None,
+) -> Tuple[pd.Series, History]:
+    datcol = saqc._data[field].copy()
+
+    start, end = datcol.index[0].floor(freq), datcol.index[-1].ceil(freq)
+    grid_index = pd.date_range(start=start, end=end, freq=freq, name=datcol.index.name)
+
+    flagged = isflagged(saqc._flags[field], dfilter)
+
+    # drop all points that hold no relevant grid information
+    datcol = datcol[~flagged].dropna()
+
+    # account for annoying case of subsequent frequency aligned values,
+    # that differ exactly by the margin of 2*freq
+    gaps = datcol.index[1:] - datcol.index[:-1] == 2 * pd.Timedelta(freq)
+    gaps = datcol.index[1:][gaps]
+    gaps = gaps.intersection(grid_index).shift(-1, freq)
+
+    # prepare grid interpolation:
+    datcol = datcol.reindex(datcol.index.union(grid_index))
+
+    # do the grid interpolation
+    inter_data = interpolateNANs(
+        data=datcol,
+        method=method,
+        order=order,
+        gap_limit=2,
+        extrapolate=extrapolate,
+    )
+    # override falsely interpolatet values:
+    inter_data[gaps] = np.nan
+    inter_data = inter_data[grid_index]
+
+    history = saqc._flags.history[field].apply(
+        index=inter_data.index,
+        func=_resampleOverlapping,
+        func_kws=dict(freq=freq, fill_value=np.nan),
+    )
+    return inter_data, history

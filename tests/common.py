@@ -49,7 +49,7 @@ def writeIO(content):
     return f
 
 
-def checkDataFlagsInvariants(data, flags, field, identical=True):
+def checkInvariants(data, flags, field, identical=True):
     """
     Check all invariants that must hold at any point for
         * field

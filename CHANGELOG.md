@@ -10,10 +10,22 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.3.0...develop)
 ### Added
 - Methods `logicalAnd` and `logicalOr`
-- `Flags` supports slicing and column selection with `list` or a `pd.Index`.
+- `Flags` supports slicing and column selection with `list` or a `pd.Index`
+- Expose the `History` via `SaQC._history_`
 ### Changed
+- Deprecate `interpolate`, `linear` and `shift` in favor of `align`
+- Deprecate `roll` in favor of `rolling`
+- Rename `interplateInvalid` to `interpolate`
+- Rename `interpolateIndex` to `align` 
+- Deprecate `flagMVScore` parameters: `partition_min` in favor of `window`, `partition_min` in favor of `min_periods`, `min_periods` in favor of `min_periods_r`
 ### Removed
+- Parameter `limit` from `align`
+- Parameter `max_na_group_flags`, `max_na_flags`, `flag_func`, `freq_check` removed from `resample`
 ### Fixed
+- `func` arguments in text configurations were not parsed correctly
+- fail on duplicated arguments to test methods
+- `reample` was not writing meta entries
+- `flagByStatLowPass` was overwriting existing flags
 
 ## [2.3.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.3.0) - 2023-01-17
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.1...v2.3.0)

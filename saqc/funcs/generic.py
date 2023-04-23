@@ -7,23 +7,29 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, Protocol, Sequence
 
 import numpy as np
 import pandas as pd
 
 from saqc import BAD, FILTER_ALL
-from saqc.core import DictOfSeries, Flags, History, register
-from saqc.core.register import _maskData
+from saqc.core import DictOfSeries, Flags, register
 from saqc.lib.tools import isAllBoolean, isflagged, toSequence
-from saqc.lib.types import GenericFunction
 from saqc.parsing.environ import ENVIRONMENT
 
 if TYPE_CHECKING:
     from saqc import SaQC
 
 
-def _flagSelect(field, flags, label=None):
+class GenericFunction(Protocol):
+    __name__: str
+    __globals__: dict[str, Any]
+
+    def __call__(self, *args: pd.Series) -> pd.Series | pd.DataFrame | DictOfSeries:
+        ...  # pragma: no cover
+
+
+def _flagSelect(field: str, flags: Flags, label: str | None = None) -> pd.Series:
     if label is None:
         return flags[field]
 
@@ -44,24 +50,12 @@ def _flagSelect(field, flags, label=None):
     return out.fillna(-np.inf)
 
 
-def _prepare(
-    data: DictOfSeries, flags: Flags, columns: Sequence[str], dfilter: float
-) -> Tuple[DictOfSeries, Flags]:
-    fchunk = Flags({f: flags[f] for f in columns})
-    for f in fchunk.columns:
-        fchunk.history[f] = flags.history[f]
-    dchunk, _ = _maskData(
-        data=data[columns].copy(), flags=fchunk, columns=columns, thresh=dfilter
-    )
-    return dchunk, fchunk.copy()
-
-
 def _execGeneric(
     flags: Flags,
     data: pd.DataFrame | pd.Series | DictOfSeries,
     func: GenericFunction,
     dfilter: float = FILTER_ALL,
-) -> DictOfSeries:
+) -> DictOfSeries | pd.DataFrame | pd.Series:
     globs = {
         "isflagged": lambda data, label=None: isflagged(
             _flagSelect(data.name, flags, label), thresh=dfilter
@@ -107,9 +101,9 @@ def _castResult(obj) -> DictOfSeries:
 
 class GenericMixin:
     @register(
-        mask=[],
-        demask=[],
-        squeeze=[],
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field", "target"],
         multivariate=True,
         handles_target=True,
     )
@@ -175,19 +169,9 @@ class GenericMixin:
         fields = toSequence(field)
         targets = fields if target is None else toSequence(target)
 
-        dchunk, fchunk = _prepare(self._data, self._flags, fields, dfilter)
+        dchunk, fchunk = self._data[fields].copy(), self._flags[fields].copy()
         result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
         result = _castResult(result)
-
-        meta = {
-            "func": "procGeneric",
-            "args": (field, target),
-            "kwargs": {
-                "func": func.__name__,
-                "dfilter": dfilter,
-                **kwargs,
-            },
-        }
 
         # update data & flags
         for i, col in enumerate(targets):
@@ -195,7 +179,7 @@ class GenericMixin:
             self._data[col] = datacol
 
             if col not in self._flags:
-                self._flags.history[col] = History(datacol.index)
+                self._flags[col] = pd.Series(np.nan, index=datacol.index)
 
             if not self._flags[col].index.equals(datacol.index):
                 raise ValueError(
@@ -203,16 +187,14 @@ class GenericMixin:
                     "because of incompatible indices, please choose another 'target'"
                 )
 
-            self._flags.history[col].append(
-                pd.Series(np.nan, index=datacol.index), meta
-            )
+            self._flags[:, col] = np.nan
 
         return self
 
     @register(
-        mask=[],
-        demask=[],
-        squeeze=[],
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field", "target"],
         multivariate=True,
         handles_target=True,
     )
@@ -222,7 +204,6 @@ class GenericMixin:
         func: GenericFunction,
         target: str | Sequence[str] | None = None,
         flag: float = BAD,
-        dfilter: float = FILTER_ALL,
         **kwargs,
     ) -> "SaQC":
         """
@@ -248,10 +229,6 @@ class GenericMixin:
 
         flag: float, default ``BAD``
             Quality flag to set.
-
-        dfilter: float, default ``FILTER_ALL``
-            Threshold flag. Flag values greater than ``dfilter`` indicate that the associated
-            data value is inappropiate for further usage.
 
         Returns
         -------
@@ -285,8 +262,9 @@ class GenericMixin:
 
         fields = toSequence(field)
         targets = fields if target is None else toSequence(target)
+        dfilter = kwargs.get("dfilter", BAD)
 
-        dchunk, fchunk = _prepare(self._data, self._flags, fields, dfilter)
+        dchunk, fchunk = self._data[fields].copy(), self._flags[fields].copy()
         result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
         result = _castResult(result)
 
@@ -299,43 +277,28 @@ class GenericMixin:
         if not result.empty and not isAllBoolean(result):
             raise TypeError(f"generic expression does not return a boolean array")
 
-        meta = {
-            "func": "flagGeneric",
-            "args": (field, target),
-            "kwargs": {
-                "func": func.__name__,
-                "flag": flag,
-                "dfilter": dfilter,
-                **kwargs,
-            },
-        }
-
         # update flags & data
         for i, col in enumerate(targets):
-            maskcol = result[result.columns[i]]
+            mask = result[result.columns[i]]
 
             # make sure the column exists
             if col not in self._flags:
-                self._flags.history[col] = History(maskcol.index)
+                self._flags[col] = pd.Series(np.nan, index=mask.index)
+
+            # respect existing flags
+            mask = ~isflagged(self._flags[col], thresh=dfilter) & mask
 
             # dummy column to ensure consistency between flags and data
             if col not in self._data:
-                self._data[col] = pd.Series(np.nan, index=maskcol.index, dtype=float)
-
-            # Note: big speedup for series, because replace works
-            # with a loop and setting with mask is vectorized.
-            # old code:
-            # >>> flagcol = maskcol.replace({False: np.nan, True: flag}).astype(float)
-            flagcol = pd.Series(np.nan, index=maskcol.index, dtype=float)
-            flagcol[maskcol] = flag
+                self._data[col] = pd.Series(np.nan, index=mask.index, dtype=float)
 
             # we need equal indices to work on
-            if not self._flags[col].index.equals(maskcol.index):
+            if not self._flags[col].index.equals(mask.index):
                 raise ValueError(
                     f"cannot assign function result to the existing variable {repr(col)} "
                     "because of incompatible indices, please choose another 'target'"
                 )
 
-            self._flags.history[col].append(flagcol, meta)
+            self._flags[mask, col] = flag
 
         return self

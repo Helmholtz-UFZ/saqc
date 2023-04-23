@@ -21,7 +21,7 @@ from typing_extensions import Literal
 
 from saqc import BAD
 from saqc.core import DictOfSeries, Flags, flagging, register
-from saqc.funcs.changepoints import _assignChangePointCluster
+from saqc.funcs.changepoints import _getChangePoints
 from saqc.lib.tools import detectDeviants, filterKwargs, toSequence
 from saqc.lib.ts_operators import expDriftModel, linearDriftModel
 from saqc.lib.types import CurveFitter
@@ -531,26 +531,32 @@ class DriftMixin:
         -------
         saqc.SaQC
         """
-        self = self.copyField(field, field + "_CPcluster")
-        self._data, self._flags = _assignChangePointCluster(
-            self._data,
-            field + "_CPcluster",
-            self._flags,
-            lambda x, y: np.abs(np.mean(x) - np.mean(y)),
-            lambda x, y: max_jump,
+        # Hint: This whole function does not set any flags
+
+        cluster_field = field + "_CPcluster"
+        self = self.copyField(field, cluster_field)
+        self.data[cluster_field] = _getChangePoints(
+            data=self._data[cluster_field],
+            stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
+            thresh_func=lambda x, y: max_jump,
             window=window,
             min_periods=min_periods,
+            result="cluster",
         )
         self._data, self._flags = _assignRegimeAnomaly(
-            self._data, field, self._flags, field + "_CPcluster", spread
+            data=self._data,
+            field=field,
+            flags=self._flags,
+            cluster_field=cluster_field,
+            spread=spread,
         )
         self = self.correctRegimeAnomaly(
             field,
-            field + "_CPcluster",
+            cluster_field,
             lambda x, p1: np.array([p1] * x.shape[0]),
             tolerance=tolerance,
         )
-        self = self.dropField(field + "_CPcluster")
+        self = self.dropField(cluster_field)
         return self
 
     @flagging()

@@ -9,9 +9,9 @@
 import pandas as pd
 import pytest
 
-from saqc import BAD, FILTER_ALL, UNFLAGGED, SaQC
+from saqc import BAD, UNFLAGGED, SaQC
+from saqc.constants import FILTER_NONE
 from saqc.core import DictOfSeries, Flags
-from saqc.lib.tools import toSequence
 from tests.common import initData
 
 
@@ -44,21 +44,10 @@ def test_emptyData():
     ],
 )
 def test_writeTargetFlagGeneric(data, targets, func):
-    expected_meta = {
-        "func": "flagGeneric",
-        "args": (data.columns.tolist(), targets),
-        "kwargs": {
-            "func": func.__name__,
-            "flag": BAD,
-            "dfilter": FILTER_ALL,
-        },
-    }
-
     saqc = SaQC(data=data)
     saqc = saqc.flagGeneric(field=data.columns, target=targets, func=func, flag=BAD)
     for target in targets:
         assert saqc._flags.history[target].hist.iloc[0].tolist() == [BAD]
-        assert saqc._flags.history[target].meta[0] == expected_meta
 
 
 @pytest.mark.parametrize(
@@ -74,16 +63,6 @@ def test_writeTargetFlagGeneric(data, targets, func):
 def test_overwriteFieldFlagGeneric(data, fields, func):
     flag = 12
 
-    expected_meta = {
-        "func": "flagGeneric",
-        "args": (fields, fields),
-        "kwargs": {
-            "func": func.__name__,
-            "flag": flag,
-            "dfilter": FILTER_ALL,
-        },
-    }
-
     saqc = SaQC(
         data=data.copy(),
         flags=Flags(
@@ -96,13 +75,12 @@ def test_overwriteFieldFlagGeneric(data, fields, func):
         ),
     )
 
-    res = saqc.flagGeneric(field=fields, func=func, flag=flag)
+    res = saqc.flagGeneric(field=fields, func=func, flag=flag, dfilter=FILTER_NONE)
     for field in fields:
         histcol1 = res._flags.history[field].hist[1]
         assert (histcol1 == flag).all()
         assert (data[field] == res.data[field]).all(axis=None)
         assert res._flags.history[field].meta[0] == {}
-        assert res._flags.history[field].meta[1] == expected_meta
 
 
 @pytest.mark.parametrize(
@@ -139,15 +117,6 @@ def test_writeTargetProcGeneric(data, targets, func, expected_data):
     fields = data.columns.tolist()
     dfilter = 128
 
-    expected_meta = {
-        "func": "procGeneric",
-        "args": (fields, targets),
-        "kwargs": {
-            "func": func.__name__,
-            "dfilter": dfilter,
-            "label": "generic",
-        },
-    }
     saqc = SaQC(
         data=data,
         flags=Flags({k: pd.Series(127.0, index=data[k].index) for k in data.columns}),
@@ -163,7 +132,6 @@ def test_writeTargetProcGeneric(data, targets, func, expected_data):
     # check that new histories where created
     for target in targets:
         assert res._flags.history[target].hist.iloc[0].isna().all()
-        assert res._flags.history[target].meta[0] == expected_meta
 
 
 @pytest.mark.parametrize(
@@ -186,16 +154,6 @@ def test_writeTargetProcGeneric(data, targets, func, expected_data):
 def test_overwriteFieldProcGeneric(data, fields, func, expected_data):
     dfilter = 128
 
-    expected_meta = {
-        "func": "procGeneric",
-        "args": (fields, fields),
-        "kwargs": {
-            "func": func.__name__,
-            "dfilter": dfilter,
-            "label": "generic",
-        },
-    }
-
     saqc = SaQC(
         data=data,
         flags=Flags({k: pd.Series(127.0, index=data[k].index) for k in data.columns}),
@@ -208,7 +166,6 @@ def test_overwriteFieldProcGeneric(data, fields, func, expected_data):
         assert (res._flags.history[field].hist[0] == 127.0).all()
         assert res._flags.history[field].hist[1].isna().all()
         assert res._flags.history[field].meta[0] == {}
-        assert res._flags.history[field].meta[1] == expected_meta
 
 
 def test_label():

@@ -8,16 +8,18 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
+from saqc.constants import UNFLAGGED
 from saqc.core import register
-from saqc.funcs.interpolation import _SUPPORTED_METHODS
-from saqc.lib.tools import evalFreqStr, filterKwargs, getFreqDelta, isflagged
-from saqc.lib.ts_operators import aggregate2Freq, shift2Freq
+from saqc.core.history import History
+from saqc.lib.tools import filterKwargs, getFreqDelta, isflagged
+from saqc.lib.ts_operators import aggregate2Freq
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -71,63 +73,11 @@ class ResamplingMixin:
         return self.interpolateIndex(field, freq, "time", **kwargs)
 
     @register(mask=["field"], demask=[], squeeze=[])
-    def interpolate(
-        self: "SaQC",
-        field: str,
-        freq: str,
-        method: _SUPPORTED_METHODS,
-        order: int = 1,
-        **kwargs,
-    ) -> "SaQC":
-        """
-        A method to "regularize" data by interpolating the data at regular timestamp.
-
-        A series of data is considered "regular", if it is sampled regularly (= having uniform sampling rate).
-
-        Interpolated values will get assigned the worst flag within freq-range.
-
-        There are available all the interpolations from the pandas.Series.interpolate method and they are called by
-        the very same keywords.
-
-        Note, that, to perform a timestamp aware, linear interpolation, you have to pass ``'time'`` as `method`,
-        and NOT ``'linear'``.
-
-        Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
-        not-na) datapoint preceeding them and one succeeding them within freq range.
-        Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
-        ``UNFLAGGED``.
-
-        Parameters
-        ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-regularized.
-
-        freq : str
-            An offset string. The frequency of the grid you want to interpolate your data at.
-
-        method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-            "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}
-            The interpolation method you want to apply.
-
-        order : int, default 1
-            If your selected interpolation method can be performed at different *orders* - here you pass the desired
-            order.
-
-        Returns
-        -------
-        saqc.SaQC
-        """
-        reserved = ["limit", "downgrade"]
-        kwargs = filterKwargs(kwargs, reserved)
-        return self.interpolateIndex(field, freq, method=method, order=order, **kwargs)
-
-    @register(mask=["field"], demask=[], squeeze=[])
     def shift(
         self: "SaQC",
         field: str,
         freq: str,
         method: Literal["fshift", "bshift", "nshift"] = "nshift",
-        freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs,
     ) -> "SaQC":
         """
@@ -148,37 +98,20 @@ class ResamplingMixin:
             * 'bshift' : shift grid points to the first succeeding time stamp (if any)
             * 'fshift' : shift grid points to the last preceeding time stamp (if any)
 
-        freq_check : {None, 'check', 'auto'}, default None
-            * ``None`` : do not validate the ``freq`` string.
-            * 'check' : check ``freq`` against an frequency estimation, produces a warning in case of miss matches.
-            * 'auto' : estimate frequency, `freq` is ignored.
-
         Returns
         -------
         saqc.SaQC
         """
-        datcol = self._data[field]
-        if datcol.empty:
-            return self
-
-        freq = evalFreqStr(freq, freq_check, datcol.index)
-
-        # do the shift
-        datcol = shift2Freq(datcol, method, freq, fill_value=np.nan)
-
-        # do the shift on the history
-        kws = dict(method=method, freq=freq)
-
-        history = self._flags.history[field].apply(
-            index=datcol.index,
-            func_handle_df=True,
-            func=shift2Freq,
-            func_kws={**kws, "fill_value": np.nan},
+        warnings.warn(
+            f"""
+            The method `shift` is deprecated and will be removed with version 2.6 of saqc.
+            To achieve the same behavior please use:
+            `qc.align(field={field}, freq={freq}. method={method})`
+            """,
+            DeprecationWarning,
         )
 
-        self._flags.history[field] = history
-        self._data[field] = datcol
-        return self
+        return self.align(field=field, freq=freq, method=method, **kwargs)
 
     @register(mask=["field"], demask=[], squeeze=[])
     def resample(
@@ -189,10 +122,6 @@ class ResamplingMixin:
         method: Literal["fagg", "bagg", "nagg"] = "bagg",
         maxna: Optional[int] = None,
         maxna_group: Optional[int] = None,
-        maxna_flags: Optional[int] = None,  # TODO: still a case ??
-        maxna_group_flags: Optional[int] = None,
-        flag_func: Callable[[pd.Series], float] = max,
-        freq_check: Optional[Literal["check", "auto"]] = None,
         **kwargs,
     ) -> "SaQC":
         """
@@ -241,28 +170,6 @@ class ResamplingMixin:
         maxna_group : {None, int}, default None
             Same as `maxna` but for consecutive NaNs.
 
-        maxna_flags : {None, int}, default None
-            Same as `max_invalid`, only applying for the flags. The flag regarded
-            as "invalid" value, is the one passed to empty_intervals_flag (
-            default=``BAD``). Also this is the flag assigned to invalid/empty intervals.
-
-        maxna_group_flags : {None, int}, default None
-            Same as `maxna_flags`, only applying onto flags. The flag regarded as
-            "invalid" value, is the one passed to empty_intervals_flag. Also this is the
-            flag assigned to invalid/empty intervals.
-
-        flag_func : Callable, default: max
-            The function you want to aggregate the flags with. It should be capable of
-            operating on the flags dtype (usually ordered categorical).
-
-        freq_check : {None, 'check', 'auto'}, default None
-
-            * ``None``: do not validate frequency-string passed to `freq`
-            * ``'check'``: estimate frequency and log a warning if estimate miss matchs
-                frequency string passed to 'freq', or if no uniform sampling rate could be
-                estimated
-            * ``'auto'``: estimate frequency and use estimate. (Ignores `freq` parameter.)
-
         Returns
         -------
         saqc.SaQC
@@ -273,8 +180,6 @@ class ResamplingMixin:
         if datcol.empty:
             # see for #GL-374
             datcol = pd.Series(index=pd.DatetimeIndex([]), dtype=datcol.dtype)
-
-        freq = evalFreqStr(freq, freq_check, datcol.index)
 
         datcol = aggregate2Freq(
             datcol,
@@ -289,10 +194,10 @@ class ResamplingMixin:
         kws = dict(
             method=method,
             freq=freq,
-            agg_func=flag_func,
+            agg_func=max,
             fill_value=np.nan,
-            max_invalid_total=maxna_flags,
-            max_invalid_consec=maxna_group_flags,
+            max_invalid_total=maxna,
+            max_invalid_consec=maxna_group,
         )
 
         history = self._flags.history[field].apply(
@@ -300,6 +205,20 @@ class ResamplingMixin:
             func=aggregate2Freq,
             func_kws=kws,
         )
+        meta = {
+            "func": "resample",
+            "args": (),
+            "kwargs": {
+                "freq": freq,
+                "func": func,
+                "method": method,
+                "maxna": maxna,
+                "maxna_group": maxna_group,
+                **kwargs,
+            },
+        }
+        flagcol = pd.Series(UNFLAGGED, index=history.index)
+        history.append(flagcol, meta)
 
         self._data[field] = datcol
         self._flags.history[field] = history
@@ -314,7 +233,7 @@ class ResamplingMixin:
     def concatFlags(
         self: "SaQC",
         field: str,
-        target: str,
+        target: str | None = None,
         method: Literal[
             "inverse_fagg",
             "inverse_bagg",
@@ -324,6 +243,7 @@ class ResamplingMixin:
             "inverse_nshift",
             "inverse_interpolation",
             "match",
+            "auto",
         ] = "match",
         freq: str | None = None,
         drop: bool = False,
@@ -332,8 +252,8 @@ class ResamplingMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Append the flags/history of ``field`` to ``target``. If necessary the flags are
-        projected to the ``target`` frequency grid.
+        Project flags/history of ``field`` to ``target`` and adjust to the frequeny grid
+        of ``target`` by 'undoing' former interpolation, shifting or resampling operations
 
         Note
         ----
@@ -343,15 +263,16 @@ class ResamplingMixin:
 
         Parameters
         ----------
-        field : str
+        field:
             Fieldname of flags history to append.
 
-        target : str
+        target:
             Field name of flags history to append to.
 
-        method : {'inverse_fagg', 'inverse_bagg', 'inverse_nagg', 'inverse_fshift', 'inverse_bshift', 'inverse_nshift', 'match'}, default 'match'
+        method:
             Method to project the flags of ``field`` the flags to ``target``:
 
+           * 'auto': inverse the last alignment/resampling operations
            * 'inverse_nagg': project a flag of ``field`` to all timestamps of ``target`` within the range +/- ``freq``/2.
            * 'inverse_bagg': project a flag of ``field`` to all preceeding timestamps of ``target`` within the range ``freq``
            * 'inverse_fagg': project a flag of ``field`` to all succeeding timestamps of ``target`` within the range ``freq``
@@ -377,6 +298,10 @@ class ResamplingMixin:
         -------
         saqc.SaQC
         """
+
+        if target is None:
+            target = field
+
         flagscol = self._flags[field]
         target_datcol = self._data[target]
         target_flagscol = self._flags[target]
@@ -394,18 +319,36 @@ class ResamplingMixin:
                     "pass custom projection range to freq parameter."
                 )
 
-        if method[-13:] == "interpolation":
+        if method == "auto":
+            stack = []
+            for meta in self._flags.history[field].meta:
+                func = meta["func"]
+                meth = meta["kwargs"].get("method")
+                if func in ("align", "resample"):
+                    if meth[1:] in ("agg", "shift"):
+                        stack.append(f"inverse_{meth}")
+                    else:
+                        stack.append("inverse_interpolation")
+                elif func == "concatFlags":
+                    stack.pop()
+            if not stack:
+                raise ValueError(
+                    "unable to derive an inversion method, please specify an appropiate 'method'"
+                )
+            method = stack[-1]
+
+        if method.endswith("interpolation"):
             ignore = _getChunkBounds(target_datcol, flagscol, freq)
             func = _inverseInterpolation
             func_kws = dict(freq=freq, chunk_bounds=ignore, target=dummy)
 
-        elif method[-3:] == "agg":
+        elif method.endswith("agg"):
             projection_method = METHOD2ARGS[method][0]
             tolerance = METHOD2ARGS[method][1](freq)
             func = _inverseAggregation
             func_kws = dict(freq=tolerance, method=projection_method, target=dummy)
 
-        elif method[-5:] == "shift":
+        elif method.endswith("shift"):
             drop_mask = target_datcol.isna() | isflagged(
                 target_flagscol, kwargs["dfilter"]
             )
@@ -428,30 +371,34 @@ class ResamplingMixin:
             raise ValueError(f"unknown method {method}")
 
         history = self._flags.history[field].apply(dummy.index, func, func_kws)
-
         if overwrite is False:
             mask = isflagged(self._flags[target], thresh=kwargs["dfilter"])
             history._hist[mask] = np.nan
 
-        if squeeze:
-            history = history.squeeze(raw=True)
+        # append a dummy column
+        meta = {
+            "func": f"concatFlags",
+            "args": (),
+            "kwargs": {
+                "field": field,
+                "target": target,
+                "method": method,
+                "freq": freq,
+                "drop": drop,
+                "squeeze": squeeze,
+                "overwrite": overwrite,
+                **kwargs,
+            },
+        }
 
-            meta = {
-                "func": f"concatFlags",
-                "args": (field,),
-                "kwargs": {
-                    "target": target,
-                    "method": method,
-                    "freq": freq,
-                    "drop": drop,
-                    "squeeze": squeeze,
-                    "overwrite": overwrite,
-                    **kwargs,
-                },
-            }
-            self._flags.history[target].append(history, meta)
+        if squeeze:
+            flags = history.squeeze(raw=True)
+            history = History(index=history.index)
         else:
-            self._flags.history[target].append(history)
+            flags = pd.Series(np.nan, index=history.index, dtype=float)
+
+        history.append(flags, meta)
+        self._flags.history[target].append(history)
 
         if drop:
             return self.dropField(field=field)

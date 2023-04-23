@@ -7,6 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import typing
 from typing import TYPE_CHECKING, Callable, Tuple
 
 import numba
@@ -97,22 +98,17 @@ class ChangepointsMixin:
         -------
         saqc.SaQC
         """
-        self._data, self._flags = _assignChangePointCluster(
-            self._data,
-            field,
-            self._flags,
+        mask = _getChangePoints(
+            data=self._data[field],
             stat_func=stat_func,
             thresh_func=thresh_func,
             window=window,
             min_periods=min_periods,
             reduce_window=reduce_window,
             reduce_func=reduce_func,
-            set_flags=True,
-            model_by_resids=False,
-            assign_cluster=False,
-            flag=flag,
-            **kwargs,
+            result="mask",
         )
+        self._flags[mask, field] = flag
         return self
 
     @register(mask=["field"], demask=[], squeeze=[])
@@ -153,7 +149,7 @@ class ChangepointsMixin:
 
         thresh_func : Callable[numpy.array, numpy.array], float]
             A function that determines the value level, exceeding wich qualifies a
-            timestamps func func value as denoting a changepoint.
+            timestamps func value as denoting a changepoint.
 
         window : str, tuple of string
             Size of the rolling windows the calculation is performed in. If it is a single
@@ -169,7 +165,7 @@ class ChangepointsMixin:
 
         reduce_window : {None, str}, default None
             The sliding window search method is not an exact CP search method and usually
-            there wont be detected a single changepoint, but a "region" of change around
+            there won't be detected a single changepoint, but a "region" of change around
             a changepoint. If `reduce_window` is given, for every window of size
             `reduce_window`, there will be selected the value with index `reduce_func(x,
             y)` and the others will be dropped. If `reduce_window` is None, the reduction
@@ -190,44 +186,37 @@ class ChangepointsMixin:
         -------
         saqc.SaQC
         """
-        reserved = ["assign_cluster", "set_flags", "flag"]
-        kwargs = filterKwargs(kwargs, reserved)
-        self._data, self._flags = _assignChangePointCluster(
-            data=self._data,
-            field=field,
-            flags=self._flags,
+        rtyp = "residual" if model_by_resids else "cluster"
+        cluster = _getChangePoints(
+            data=self._data[field],
             stat_func=stat_func,
             thresh_func=thresh_func,
             window=window,
             min_periods=min_periods,
             reduce_window=reduce_window,
             reduce_func=reduce_func,
-            model_by_resids=model_by_resids,
-            **kwargs,
-            # control args
-            assign_cluster=True,
-            set_flags=False,
+            result=rtyp,  # type: ignore
         )
+        self._data[field] = cluster
+        # we set flags here against our standard policy,
+        # which is not to overwrite existing flags
+        self._flags[:, field] = UNFLAGGED
         return self
 
 
-def _assignChangePointCluster(
-    data: DictOfSeries,
-    field: str,
-    flags: Flags,
+def _getChangePoints(
+    data: pd.Series,
     stat_func: Callable[[np.ndarray, np.ndarray], float],
     thresh_func: Callable[[np.ndarray, np.ndarray], float],
     window: str | Tuple[str, str],
     min_periods: int | Tuple[int, int],
     reduce_window: str | None = None,
     reduce_func: Callable[[np.ndarray, np.ndarray], float] = lambda x, _: x.argmax(),
-    model_by_resids: bool = False,
-    set_flags: bool = False,
-    assign_cluster: bool = True,
-    flag: float = BAD,
-    **kwargs,
-) -> Tuple[DictOfSeries, Flags]:
-    data_ser = data[field].dropna()
+    result: typing.Literal["cluster", "residual", "mask"] = "mask",
+) -> pd.Series:
+    orig_index = data.index
+    data = data.dropna()  # implicit copy
+
     if isinstance(window, (list, tuple)):
         bwd_window, fwd_window = window
     else:
@@ -245,11 +234,11 @@ def _assignChangePointCluster(
         )
         reduce_window = f"{s}s"
 
-    roller = customRoller(data_ser, window=bwd_window, min_periods=0)
-    bwd_start, bwd_end = roller.window_indexer.get_window_bounds(len(data_ser))
+    roller = customRoller(data, window=bwd_window, min_periods=0)
+    bwd_start, bwd_end = roller.window_indexer.get_window_bounds(len(data))
 
-    roller = customRoller(data_ser, window=fwd_window, forward=True, min_periods=0)
-    fwd_start, fwd_end = roller.window_indexer.get_window_bounds(len(data_ser))
+    roller = customRoller(data, window=fwd_window, forward=True, min_periods=0)
+    fwd_start, fwd_end = roller.window_indexer.get_window_bounds(len(data))
 
     min_mask = (fwd_end - fwd_start >= fwd_min_periods) & (
         bwd_end - bwd_start >= bwd_min_periods
@@ -258,9 +247,9 @@ def _assignChangePointCluster(
     fwd_end = fwd_end[min_mask]
     split = bwd_end[min_mask]
     bwd_start = bwd_start[min_mask]
-    masked_index = data_ser.index[min_mask]
+    masked_index = data.index[min_mask]
     check_len = len(fwd_end)
-    data_arr = data_ser.values
+    data_arr = data.values
 
     try_to_jit = True
     jit_sf = numba.jit(stat_func, nopython=True)
@@ -282,12 +271,10 @@ def _assignChangePointCluster(
 
     result_arr = stat_arr > thresh_arr
 
-    if model_by_resids:
-        residuals = pd.Series(np.nan, index=data[field].index)
+    if result == "residuals":
+        residuals = pd.Series(np.nan, index=orig_index)
         residuals[masked_index] = stat_arr
-        data[field] = residuals
-        flags[:, field] = UNFLAGGED
-        return data, flags
+        return residuals
 
     det_index = masked_index[result_arr]
     detected = pd.Series(True, index=det_index)
@@ -303,27 +290,29 @@ def _assignChangePointCluster(
         )
         det_index = det_index[detected]
 
-    # the changepoint is the point "after" the change - so detected index has to be shifted once with regard to the
-    # data index:
+    # The changepoint is the point "after" the change.
+    # So the detected index has to be shifted by one
+    # with regard to the data index.
     shifted = (
         pd.Series(True, index=det_index)
-        .reindex(data_ser.index, fill_value=False)
+        .reindex(data.index, fill_value=False)
         .shift(fill_value=False)
     )
     det_index = shifted.index[shifted]
 
-    if assign_cluster:
-        cluster = pd.Series(False, index=data[field].index)
-        cluster[det_index] = True
-        cluster = cluster.cumsum()
-        # (better to start cluster labels with number one)
-        cluster += 1
-        data[field] = cluster
-        flags[:, field] = UNFLAGGED
+    mask = pd.Series(False, index=orig_index)
+    mask[det_index] = True
+    if result == "mask":
+        return mask
 
-    if set_flags:
-        flags[det_index, field] = flag
-    return data, flags
+    cluster = mask.cumsum()
+    cluster += 1  # start cluster labels with one, not zero
+    if result == "cluster":
+        return cluster
+
+    raise ValueError(
+        f"'result' must be one of 'cluster', 'mask' or 'residuals' not {result}"
+    )
 
 
 @numba.jit(parallel=True, nopython=True)

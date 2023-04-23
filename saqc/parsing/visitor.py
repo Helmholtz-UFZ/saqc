@@ -7,6 +7,9 @@
 # -*- coding: utf-8 -*-
 
 import ast
+import importlib
+
+import numpy as np
 
 from saqc.core.register import FUNC_MAP
 from saqc.parsing.environ import ENVIRONMENT
@@ -127,18 +130,33 @@ class ConfigFunctionParser(ast.NodeVisitor):
         key, value = node.arg, node.value
         check_tree = True
 
+        imports = {}
         if key == "func":
-            visitor = ConfigExpressionParser(value)
-            args = ast.arguments(
-                posonlyargs=[],
-                kwonlyargs=[],
-                kw_defaults=[],
-                defaults=[],
-                args=[ast.arg(arg=a, annotation=None) for a in visitor.args],
-                kwarg=None,
-                vararg=None,
-            )
-            value = ast.Lambda(args=args, body=value)
+            if (isinstance(value, ast.Name) and value.id in ENVIRONMENT) or (
+                isinstance(value, ast.Constant) and value.value in ENVIRONMENT
+            ):
+                func = ENVIRONMENT[
+                    value.id if isinstance(value, ast.Name) else value.value
+                ]
+                # handle the missing attribute for numpy.ufunc
+                module = getattr(func, "__module__", "numpy")
+                if module.startswith("saqc"):
+                    # if it's an saqc function, we need to import the top level package first
+                    imports["saqc"] = importlib.import_module("saqc")
+                imports[module] = importlib.import_module(module)
+                value = ast.parse(f"{module}.{func.__name__}").body[0].value
+            else:
+                visitor = ConfigExpressionParser(value)
+                args = ast.arguments(
+                    posonlyargs=[],
+                    kwonlyargs=[],
+                    kw_defaults=[],
+                    defaults=[],
+                    args=[ast.arg(arg=a, annotation=None) for a in visitor.args],
+                    kwarg=None,
+                    vararg=None,
+                )
+                value = ast.Lambda(args=args, body=value)
             # NOTE:
             # don't pass the generated functions down
             # to the checks implemented in this class...
@@ -159,8 +177,7 @@ class ConfigFunctionParser(ast.NodeVisitor):
             mode="single",
         )
         # NOTE: only pass a copy to not clutter the ENVIRONMENT
-        # try:
-        exec(co, {**ENVIRONMENT}, self.kwargs)
+        exec(co, {**ENVIRONMENT, **imports}, self.kwargs)
 
         # let's do some more validity checks
         if check_tree:

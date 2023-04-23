@@ -10,9 +10,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from saqc import BAD, UNFLAGGED, SaQC
+from saqc import SaQC
 from saqc.core import DictOfSeries, initFlagsLike
-from tests.common import checkDataFlagsInvariants
+from tests.common import checkInvariants
 
 
 @pytest.fixture
@@ -33,116 +33,7 @@ def data():
     return data
 
 
-@pytest.mark.parametrize(
-    "func, kws",
-    [
-        ("linear", dict()),
-        ("shift", dict(method="nshift")),
-        ("interpolate", dict(method="spline")),
-        ("resample", dict(func=np.nansum, method="nagg")),
-    ],
-)
-def test_wrapper(data, func, kws):
-    field = "data"
-    freq = "15T"
-    flags = initFlagsLike(data)
-
-    # GL-#352
-    # make a History, otherwise nothing important is tested
-    for c in flags.columns:
-        flags[:, c] = BAD
-
-    qc = SaQC(data, flags)
-
-    qc = getattr(qc, func)(field, freq, **kws)
-
-    # check minimal requirements
-    checkDataFlagsInvariants(qc._data, qc._flags, field)
-    assert qc.data[field].index.inferred_freq == freq
-
-
-_SUPPORTED_METHODS = [
-    "linear",
-    "time",
-    "nearest",
-    "zero",
-    "slinear",
-    "quadratic",
-    "cubic",
-    "spline",
-    "barycentric",
-    "polynomial",
-    "krogh",
-    "piecewise_polynomial",
-    "spline",
-    "pchip",
-    "akima",
-]
-
-
-@pytest.mark.parametrize("method", _SUPPORTED_METHODS)
-@pytest.mark.parametrize("fill_history", ["some", "all", "none"])
-def test_gridInterpolation(data, method, fill_history):
-    freq = "15T"
-    field = "data"
-    data = data[field]
-    data = pd.concat([data * np.sin(data), data.shift(1, "2h")]).shift(1, "3s")
-    data = DictOfSeries(data=data)
-    flags = initFlagsLike(data)
-
-    if fill_history == "none":
-        pass
-
-    if fill_history == "all":
-        for c in flags.columns:
-            flags[:, c] = BAD
-
-    if fill_history == "some":
-        for c in flags.columns:
-            flags[::2, c] = UNFLAGGED
-
-    qc = SaQC(data, flags)
-
-    # we are just testing if the interpolation gets passed to the series without
-    # causing an error:
-    res = qc.interpolate(
-        field,
-        freq,
-        method=method,
-        downcast_interpolation=True,
-    )
-
-    if method == "polynomial":
-        res = qc.interpolate(
-            field,
-            freq,
-            order=2,
-            method=method,
-            downcast_interpolation=True,
-        )
-        res = qc.interpolate(
-            field,
-            freq,
-            order=9,
-            method=method,
-            downcast_interpolation=True,
-        )
-
-    # check minimal requirements
-    checkDataFlagsInvariants(res._data, res._flags, field, identical=False)
-    assert res.data[field].index.inferred_freq == freq
-
-
-@pytest.mark.parametrize(
-    "func, kws",
-    [
-        ("linear", dict()),
-        ("shift", dict(method="nshift")),
-        ("interpolate", dict(method="spline")),
-        ("aggregate", dict(value_func=np.nansum, method="nagg")),
-    ],
-)
-def test_flagsSurviveReshaping(func, kws):
+def test_flagsSurviveReshaping():
     """
     flagging -> reshaping -> test (flags also was reshaped correctly)
     """
@@ -163,76 +54,11 @@ def test_flagsSurviveBackprojection():
 
 
 @pytest.mark.parametrize(
-    "reshaper", ["nshift", "fshift", "bshift", "nagg", "bagg", "fagg", "interpolation"]
-)
-def test_harmSingleVarIntermediateFlagging(data, reshaper):
-    flags = initFlagsLike(data)
-    field = "data"
-    freq = "15T"
-
-    pre_data = data.copy()
-    pre_flags = flags.copy()
-    qc = SaQC(data, flags)
-
-    qc = qc.copyField(field, field + "_interpolated")
-    qc = qc.linear(field + "_interpolated", freq=freq)
-    checkDataFlagsInvariants(
-        qc._data, qc._flags, field + "_interpolated", identical=True
-    )
-    assert qc._data[field + "_interpolated"].index.inferred_freq == freq
-
-    # flag something bad
-    qc._flags[
-        qc._data[field + "_interpolated"].index[3:4], field + "_interpolated"
-    ] = BAD
-    qc = qc.concatFlags(
-        field + "_interpolated", method="inverse_" + reshaper, target=field
-    )
-    qc = qc.dropField(field + "_interpolated")
-
-    assert len(qc.data[field]) == len(qc.flags[field])
-    assert qc.data[field].equals(pre_data[field])
-    assert qc.flags[field].index.equals(pre_flags[field].index)
-
-    if "agg" in reshaper:
-        if reshaper == "nagg":
-            start, end = 3, 7
-        elif reshaper == "fagg":
-            start, end = 3, 5
-        elif reshaper == "bagg":
-            start, end = 5, 7
-        else:
-            raise NotImplementedError("untested test case")
-
-        assert all(qc._flags[field].iloc[start:end] > UNFLAGGED)
-        assert all(qc._flags[field].iloc[:start] == UNFLAGGED)
-        assert all(qc._flags[field].iloc[end:] == UNFLAGGED)
-
-    elif "shift" in reshaper:
-        if reshaper == "nshift":
-            exp = [False, False, False, False, True, False, False, False, False]
-        elif reshaper == "fshift":
-            exp = [False, False, False, False, True, False, False, False, False]
-        elif reshaper == "bshift":
-            exp = [False, False, False, False, False, True, False, False, False]
-        else:
-            raise NotImplementedError("untested test case")
-
-        flagged = qc._flags[field] > UNFLAGGED
-        assert all(flagged == exp)
-
-    elif reshaper == "interpolation":
-        pytest.skip("no testcase for interpolation")
-
-    else:
-        raise NotImplementedError("untested test case")
-
-
-@pytest.mark.parametrize(
-    "params, expected",
+    "method, freq, expected",
     [
         (
-            ("nagg", "15Min"),
+            "nagg",
+            "15Min",
             pd.Series(
                 data=[-87.5, -25.0, 0.0, 37.5, 50.0],
                 index=pd.date_range(
@@ -241,7 +67,8 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
             ),
         ),
         (
-            ("nagg", "30Min"),
+            "nagg",
+            "30Min",
             pd.Series(
                 data=[-87.5, -25.0, 87.5],
                 index=pd.date_range(
@@ -250,7 +77,8 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
             ),
         ),
         (
-            ("bagg", "15Min"),
+            "bagg",
+            "15Min",
             pd.Series(
                 data=[-50.0, -37.5, -37.5, 12.5, 37.5, 50.0],
                 index=pd.date_range(
@@ -259,7 +87,8 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
             ),
         ),
         (
-            ("bagg", "30Min"),
+            "bagg",
+            "30Min",
             pd.Series(
                 data=[-50.0, -75.0, 50.0, 50.0],
                 index=pd.date_range(
@@ -269,36 +98,94 @@ def test_harmSingleVarIntermediateFlagging(data, reshaper):
         ),
     ],
 )
-def test_harmSingleVarInterpolationAgg(data, params, expected):
+def test_resampleAggregateInvert(data, method, freq, expected):
     flags = initFlagsLike(data)
     field = "data"
-    h_field = "data_harm"
+    field_aggregated = "data_aggregated"
 
     pre_data = data.copy()
     pre_flaggger = flags.copy()
-    method, freq = params
 
     qc = SaQC(data, flags)
 
-    qc = qc.copyField("data", "data_harm")
-    qc = qc.resample(h_field, freq, func=np.sum, method=method)
+    qc = qc.copyField(field, field_aggregated)
 
-    checkDataFlagsInvariants(qc._data, qc._flags, h_field, identical=True)
-    assert qc._data[h_field].index.freq == pd.Timedelta(freq)
-    assert qc._data[h_field].equals(expected)
+    qc = qc.resample(field_aggregated, freq, func=np.sum, method=method)
+    assert qc._data[field_aggregated].index.freq == pd.Timedelta(freq)
+    assert qc._data[field_aggregated].equals(expected)
+    assert qc._flags.history[field_aggregated].meta[-1]["func"] == "resample"
+    checkInvariants(qc._data, qc._flags, field_aggregated, identical=True)
 
-    qc = qc.concatFlags(h_field, target=field, method="inverse_" + method)
-    qc = qc.dropField(h_field)
-    checkDataFlagsInvariants(qc._data, qc._flags, field, identical=True)
+    qc = qc.concatFlags(field_aggregated, target=field, method="inverse_" + method)
     assert qc.data[field].equals(pre_data[field])
     assert qc.flags[field].equals(pre_flaggger[field])
+    checkInvariants(qc._data, qc._flags, field, identical=True)
 
 
 @pytest.mark.parametrize(
-    "params, expected",
+    "method, freq, expected",
     [
         (
-            ("bshift", "15Min"),
+            "linear",
+            "15Min",
+            pd.Series(
+                data=[np.nan, -37.5, -25, 6.25, 37.50, 50],
+                index=pd.date_range(
+                    "2010-12-31 23:45:00", "2011-01-01 01:00:00", freq="15Min"
+                ),
+            ),
+        ),
+        (
+            "time",
+            "30Min",
+            pd.Series(
+                data=[np.nan, -37.5, 6.25, 50.0],
+                index=pd.date_range(
+                    "2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"
+                ),
+            ),
+        ),
+        (
+            "pad",
+            "30Min",
+            pd.Series(
+                data=[np.nan, -37.5, 0, 50.0],
+                index=pd.date_range(
+                    "2010-12-31 23:30:00", "2011-01-01 01:00:00", freq="30Min"
+                ),
+            ),
+        ),
+    ],
+)
+def test_alignInterpolateInvert(data, method, freq, expected):
+    flags = initFlagsLike(data)
+
+    field = "data"
+    field_aligned = "data_aligned"
+
+    pre_data = data.copy()
+    pre_flags = flags.copy()
+
+    qc = SaQC(data, flags)
+
+    qc = qc.copyField(field, field_aligned)
+    qc = qc.align(field_aligned, freq, method=method)
+
+    assert qc.data[field_aligned].equals(expected)
+    checkInvariants(qc._data, qc._flags, field, identical=True)
+
+    qc = qc.concatFlags(field_aligned, target=field, method="inverse_interpolation")
+    assert qc.data[field].equals(pre_data[field])
+    assert qc.flags[field].equals(pre_flags[field])
+    checkInvariants(qc._data, qc._flags, field, identical=True)
+
+
+@pytest.mark.parametrize(
+    "method, freq, expected",
+    [
+        (
+            "bshift",
+            "15Min",
             pd.Series(
                 data=[-50.0, -37.5, -25.0, 12.5, 37.5, 50.0],
                 index=pd.date_range(
@@ -307,7 +194,8 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
             ),
         ),
         (
-            ("fshift", "15Min"),
+            "fshift",
+            "15Min",
             pd.Series(
                 data=[np.nan, -37.5, -25.0, 0.0, 37.5, 50.0],
                 index=pd.date_range(
@@ -316,7 +204,8 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
             ),
         ),
         (
-            ("nshift", "15min"),
+            "nshift",
+            "15min",
             pd.Series(
                 data=[np.nan, -37.5, -25.0, 12.5, 37.5, 50.0],
                 index=pd.date_range(
@@ -325,7 +214,8 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
             ),
         ),
         (
-            ("bshift", "30Min"),
+            "bshift",
+            "30Min",
             pd.Series(
                 data=[-50.0, -37.5, 12.5, 50.0],
                 index=pd.date_range(
@@ -334,7 +224,8 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
             ),
         ),
         (
-            ("fshift", "30Min"),
+            "fshift",
+            "30Min",
             pd.Series(
                 data=[np.nan, -37.5, 0.0, 50.0],
                 index=pd.date_range(
@@ -343,7 +234,8 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
             ),
         ),
         (
-            ("nshift", "30min"),
+            "nshift",
+            "30min",
             pd.Series(
                 data=[np.nan, -37.5, 12.5, 50.0],
                 index=pd.date_range(
@@ -353,76 +245,150 @@ def test_harmSingleVarInterpolationAgg(data, params, expected):
         ),
     ],
 )
-def test_harmSingleVarInterpolationShift(data, params, expected):
+def test_alignShiftInvert(data, method, freq, expected):
     flags = initFlagsLike(data)
+
     field = "data"
-    h_field = "data_harm"
+    field_aligned = "data_aligned"
+
     pre_data = data.copy()
     pre_flags = flags.copy()
-    method, freq = params
 
     qc = SaQC(data, flags)
 
-    qc = qc.copyField("data", "data_harm")
-    qc = qc.shift(h_field, freq, method=method)
-    assert qc.data[h_field].equals(expected)
-    checkDataFlagsInvariants(qc._data, qc._flags, field, identical=True)
+    qc = qc.copyField(field, field_aligned)
+    qc = qc.align(field_aligned, freq, method=method)
+    meta = qc._flags.history[field_aligned].meta[-1]
 
-    qc = qc.concatFlags(h_field, target=field, method="inverse_" + method)
-    checkDataFlagsInvariants(qc._data, qc._flags, field, identical=True)
+    assert qc.data[field_aligned].equals(expected)
+    assert (meta["func"], meta["kwargs"]["method"]) == ("align", method)
+    checkInvariants(qc._data, qc._flags, field, identical=True)
 
-    qc = qc.dropField(h_field)
+    qc = qc.concatFlags(field_aligned, target=field, method="inverse_" + method)
     assert qc.data[field].equals(pre_data[field])
     assert qc.flags[field].equals(pre_flags[field])
+    checkInvariants(qc._data, qc._flags, field, identical=True)
 
 
-def test_concatFlags():
-    index = pd.to_datetime(
-        [
-            "2020-01-01 00:00",
-            "2020-01-01 00:10",
-            "2020-01-01 00:30",
-            "2020-01-01 00:40",
-            "2020-01-01 01:00",
-        ]
-    )
+@pytest.mark.parametrize(
+    "overwrite, expected_col0, expected_col1",
+    [
+        (
+            True,
+            [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 255, 255],
+            [np.nan, np.nan, np.nan, np.nan, np.nan, 255, np.nan, 255, 255],
+        ),
+        (
+            False,
+            [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 255, 255],
+            [np.nan, np.nan, np.nan, np.nan, np.nan, 255, np.nan, np.nan, np.nan],
+        ),
+    ],
+)
+def test_concatFlags(data, overwrite, expected_col0, expected_col1):
+    qc = SaQC(data)
 
-    df = pd.DataFrame(
-        data={
-            "a": [
-                1,
-                2,
-                5,
-                4,
-                3,
-            ]
-        },
-        index=index,
-    )
-
-    qc = SaQC(df)
-
-    qc = qc.flagRange(field="a", max=4)
+    qc = qc.flagRange(field="data", max=20)
 
     # branch out to another variable
-    qc = qc.flagRange(field="a", target="b", max=3)
+    qc = qc.flagRange(field="data", target="data_", max=3)
 
-    # bring the flags back again
-    qc_overwrite = qc.concatFlags("b", target="a", overwrite=True, squeeze=True)
-    hist_overwrite = qc_overwrite._flags.history["a"].hist.astype(float)
-    assert hist_overwrite[0].equals(
-        pd.Series([np.nan, np.nan, 255.0, np.nan, np.nan], index=index)
+    # bring the flags back again - overwrite
+    qc_concat = qc.concatFlags(
+        "data_", target="data", overwrite=overwrite, squeeze=True
     )
-    assert hist_overwrite[1].equals(
-        pd.Series([np.nan, np.nan, 255.0, 255.0, np.nan], index=index)
+    hist_concat = qc_concat._flags.history["data"].hist.astype(float)
+    meta_concat = qc_concat._flags.history["data"].meta
+    assert hist_concat[0].equals(pd.Series(expected_col0, index=data["data"].index))
+    assert hist_concat[1].equals(pd.Series(expected_col1, index=data["data"].index))
+    assert meta_concat[-1]["func"] == "concatFlags"
+
+
+@pytest.mark.parametrize(
+    "method, inversion_method, freq",
+    [
+        ("linear", "inverse_interpolation", "15min"),
+        ("bshift", "inverse_bshift", "15Min"),
+        ("fshift", "inverse_fshift", "15Min"),
+        ("nshift", "inverse_nshift", "15min"),
+        ("pad", "inverse_interpolation", "15min"),
+    ],
+)
+def test_alignAutoInvert(data, method, inversion_method, freq):
+    flags = initFlagsLike(data)
+    field = data.columns[0]
+    field_aligned = f"{field}_aligned"
+
+    qc = SaQC(data, flags)
+    qc = qc.align(field=field, target=field_aligned, method=method, freq=freq)
+    qc = qc.flagDummy(field=field_aligned)
+    qc_expected = qc.concatFlags(
+        field=field_aligned, target=field, method=inversion_method
+    )
+    qc_got = qc.concatFlags(field=field_aligned, target=field, method="auto")
+
+    _assertEqual(qc_expected, qc_got)
+
+
+def test_alignMultiAutoInvert(data):
+    flags = initFlagsLike(data)
+    field = data.columns[0]
+    field_aligned = f"{field}_aligned"
+
+    qc = SaQC(data, flags)
+    qc = qc.align(field=field, target=field_aligned, method="fshift", freq="30Min")
+    qc = qc.align(field=field_aligned, method="time", freq="10Min")
+    qc = qc.flagDummy(field=field_aligned)
+
+    # resolve the last alignment operation
+    _assertEqual(
+        qc.concatFlags(field=field_aligned, target=field, method="auto"),
+        qc.concatFlags(
+            field=field_aligned, target=field, method="inverse_interpolation"
+        ),
+    )
+    # resolve the first alignment operation
+    _assertEqual(
+        (
+            qc.concatFlags(field=field_aligned, method="auto").concatFlags(
+                field=field_aligned, target=field, method="auto"
+            )
+        ),
+        (
+            qc.concatFlags(
+                field=field_aligned, method="inverse_interpolation"
+            ).concatFlags(field=field_aligned, target=field, method="inverse_fshift")
+        ),
     )
 
-    # bring the flags back again
-    qc_respect = qc.concatFlags("b", target="a", overwrite=False, squeeze=True)
-    hist_respect = qc_respect._flags.history["a"].hist.astype(float)
-    assert hist_respect[0].equals(
-        pd.Series([np.nan, np.nan, 255.0, np.nan, np.nan], index=index)
+
+def _assertEqual(left: SaQC, right: SaQC):
+    for field in left.data.columns:
+        assert left._data[field].equals(right._data[field])
+        assert left._flags[field].equals(right._flags[field])
+        assert left._flags.history[field].hist.equals(right._flags.history[field].hist)
+        assert left._flags.history[field].meta == right._flags.history[field].meta
+
+
+@pytest.mark.parametrize(
+    "method, inversion_method, freq",
+    [
+        ("bagg", "inverse_bagg", "15Min"),
+        ("fagg", "inverse_fagg", "15Min"),
+        ("nagg", "inverse_nagg", "15min"),
+    ],
+)
+def test_resampleAutoInvert(data, method, inversion_method, freq):
+    flags = initFlagsLike(data)
+    field = data.columns[0]
+    field_aligned = f"{field}_aligned"
+
+    qc = SaQC(data, flags)
+    qc = qc.resample(field=field, target=field_aligned, method=method, freq=freq)
+    qc = qc.flagRange(field=field_aligned, min=0, max=100)
+    qc_expected = qc.concatFlags(
+        field=field_aligned, target=field, method=inversion_method
     )
-    assert hist_respect[1].equals(
-        pd.Series([np.nan, np.nan, np.nan, 255.0, np.nan], index=index)
-    )
+    qc_got = qc.concatFlags(field=field_aligned, target=field, method="auto")
+
+    _assertEqual(qc_got, qc_expected)

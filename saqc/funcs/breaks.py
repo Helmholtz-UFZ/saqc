@@ -24,7 +24,7 @@ import pandas as pd
 
 from saqc import BAD, FILTER_ALL
 from saqc.core import flagging, register
-from saqc.funcs.changepoints import _assignChangePointCluster
+from saqc.funcs.changepoints import _getChangePoints
 from saqc.lib.tools import isflagged
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ class BreaksMixin:
         """
         Flag NaNs in data.
 
-        By default only NaNs are flagged, that not already have a flag.
+        By default, only NaNs are flagged, that not already have a flag.
         `dfilter` can be used to pass a flag that is used as threshold.
         Each flag worse than the threshold is replaced by the function.
         This is, because the data gets masked (with NaNs) before the
@@ -156,6 +156,7 @@ class BreaksMixin:
         window: str,
         min_periods: int = 1,
         flag: float = BAD,
+        dfilter: float = FILTER_ALL,
         **kwargs,
     ) -> "SaQC":
         """
@@ -213,18 +214,15 @@ class BreaksMixin:
         -------
         saqc.SaQC
         """
-        self._data, self._flags = _assignChangePointCluster(
-            self._data,
-            field,
-            self._flags,
+        mask = _getChangePoints(
+            data=self._data[field],
             stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
             thresh_func=lambda x, y: thresh,
             window=window,
             min_periods=min_periods,
-            set_flags=True,
-            model_by_resids=False,
-            assign_cluster=False,
-            flag=flag,
-            **kwargs,
+            result="mask",
         )
+
+        mask = ~isflagged(self._flags[field], dfilter) & mask
+        self._flags[mask, field] = flag
         return self
