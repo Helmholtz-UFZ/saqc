@@ -10,11 +10,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import dtw
+import numpy as np
 import pandas as pd
 
 from saqc import BAD
 from saqc.core import flagging
-from saqc.lib.tools import customRoller
+from saqc.lib.rolling import removeRollingRamps
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -69,17 +70,21 @@ def calculateDistanceByDTW(
     if reference.hasnans or reference.empty:
         raise ValueError("reference must not have nan's and must not be empty.")
 
-    winsz = reference.index.max() - reference.index.min()
+    winsz: pd.Timedelta = reference.index.max() - reference.index.min()
     reference = reference.to_numpy()
 
     def isPattern(chunk):
-        return dtw.accelerated_dtw(chunk, reference, "euclidean")[0]
+        if forward:
+            return dtw.accelerated_dtw(chunk[::-1], reference, "euclidean")[0]
+        else:
+            return dtw.accelerated_dtw(chunk, reference, "euclidean")[0]
 
     # generate distances, excluding NaNs
-    rolling = customRoller(
-        data.dropna(), window=winsz, forward=forward, expand=False, closed="both"
-    )
-    distances: pd.Series = rolling.apply(isPattern, raw=True)
+    nonas = data.dropna()
+    rollover = nonas[::-1] if forward else nonas
+    arr = rollover.rolling(winsz, closed="both").apply(isPattern, raw=True).to_numpy()
+    distances = pd.Series(arr[::-1] if forward else arr, index=nonas.index)
+    removeRollingRamps(distances, window=winsz, inplace=True)
 
     if normalize:
         distances /= len(reference)
@@ -168,15 +173,12 @@ class PatternMixin:
         distances = distances.fillna(max_distance + 1)
 
         # find minima filter by threshold
-        fw = customRoller(
-            distances, window=winsz, forward=True, closed="both", expand=True
-        )
-        bw = customRoller(distances, window=winsz, closed="both", expand=True)
-        minima = (fw.min() == bw.min()) & (distances <= max_distance)
+        fw_min = distances[::-1].rolling(window=winsz, closed="both").min()[::-1]
+        bw_min = distances.rolling(window=winsz, closed="both").min()
+        minima = (fw_min == bw_min) & (distances <= max_distance)
 
         # Propagate True's to size of pattern.
-        rolling = customRoller(minima, window=winsz, closed="both", expand=True)
-        mask = rolling.sum() > 0
+        mask = minima.rolling(window=winsz, closed="both").sum() > 0
 
         if plot:
             df = pd.DataFrame()

@@ -23,7 +23,7 @@ from typing_extensions import Literal
 from saqc import BAD, UNFLAGGED
 from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.funcs.scores import _univarScoring
-from saqc.lib.tools import customRoller, getFreqDelta, toSequence
+from saqc.lib.tools import getFreqDelta, toSequence
 
 if TYPE_CHECKING:
     from saqc import SaQC

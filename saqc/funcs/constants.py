@@ -16,7 +16,8 @@ import pandas as pd
 
 from saqc import BAD
 from saqc.core import flagging
-from saqc.lib.tools import customRoller, getFreqDelta, statPass
+from saqc.lib.rolling import removeRollingRamps
+from saqc.lib.tools import getFreqDelta, statPass
 from saqc.lib.ts_operators import varQC
 
 if TYPE_CHECKING:
@@ -69,19 +70,34 @@ class ConstantsMixin:
         if not isinstance(window, (str, int)):
             raise TypeError("window must be offset string or int.")
 
-        d = self._data[field]
+        d: pd.Series = self._data[field]
+
+        if not isinstance(window, int) and not pd.api.types.is_datetime64_any_dtype(
+            d.index
+        ):
+            raise ValueError(
+                f"A time based value for 'window' is only possible for variables "
+                f"with a datetime based index, but variable '{field}' has an index "
+                f"of dtype {d.index.dtype}. Use an integer window instead."
+            )
 
         # min_periods_r=2 ensures that at least two non-nan values are present
         # in each window and also min() == max() == d[i] is not possible.
-        kws = dict(window=window, min_periods=min_periods, expand=False)
+        min_periods = max(min_periods, 2)
 
         # 1. find starting points of consecutive constant values as a boolean mask
         # 2. fill the whole window with True's
-        rolling = customRoller(d, **kws)
+        rolling = d.rolling(window=window, min_periods=min_periods)
         starting_points_mask = rolling.max() - rolling.min() <= thresh
-        rolling = customRoller(starting_points_mask, **kws, forward=True)
+
+        removeRollingRamps(starting_points_mask, window=window, inplace=True)
+
+        # mimic forward rolling by roll over inverse [::-1]
+        rolling = starting_points_mask[::-1].rolling(
+            window=window, min_periods=min_periods
+        )
         # mimic any()
-        mask = (rolling.sum() > 0) & d.notna()
+        mask = (rolling.sum()[::-1] > 0) & d.notna()
 
         self._flags[mask, field] = flag
         return self
