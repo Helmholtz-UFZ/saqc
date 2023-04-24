@@ -7,6 +7,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pandas as pd
 import scipy.stats as st
 
 import saqc.lib.ts_operators as ts_ops
@@ -19,6 +20,14 @@ def clip(series, lower=None, upper=None):
 
 def zscore(obj):
     return st.zscore(obj, nan_policy="omit")
+
+
+def cv(series: pd.Series) -> pd.Series:
+    """
+    calculates the coefficient of variation on a min-max scaled time series
+    """
+    series_ = (series - series.min()) / (series.max() - series.min())
+    return series_.std() / series_.mean()
 
 
 ENVIRONMENT = {
@@ -50,6 +59,8 @@ ENVIRONMENT = {
     "std": np.nanstd,
     # Variance. Ignores NaN.
     "var": np.nanvar,
+    # Coefficient of variation.
+    "cv": cv,
     # Median. Ignores NaN.
     "median": np.nanmedian,
     # Count Number of values. Ignores NaNs.
