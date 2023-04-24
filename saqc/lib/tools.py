@@ -19,9 +19,6 @@ import pandas as pd
 from scipy import fft
 from scipy.cluster.hierarchy import fcluster, linkage
 
-# keep this for external imports
-# TODO: fix the external imports
-from saqc.lib.rolling import customRoller  # noqa
 from saqc.lib.types import CompT
 
 T = TypeVar("T", str, float, int)
@@ -527,6 +524,10 @@ def isflagged(flagscol: A, thresh: float) -> A:
         return flagscol > UNFLAGGED
 
     return flagscol >= thresh
+
+
+def isunflagged(flagscol: A, thresh: float) -> A:
+    return ~isflagged(flagscol, thresh)
 
 
 def getUnionIndex(obj, default: pd.DatetimeIndex | None = None):

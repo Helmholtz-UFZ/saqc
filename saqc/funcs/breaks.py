@@ -25,7 +25,7 @@ import pandas as pd
 from saqc import BAD, FILTER_ALL
 from saqc.core import flagging, register
 from saqc.funcs.changepoints import _getChangePoints
-from saqc.lib.tools import isflagged
+from saqc.lib.tools import isunflagged
 
 if TYPE_CHECKING:
     from saqc.core.core import SaQC
@@ -65,7 +65,7 @@ class BreaksMixin:
         datacol = self._data[field]
         mask = datacol.isna()
 
-        mask = ~isflagged(self._flags[field], dfilter) & mask
+        mask = isunflagged(self._flags[field], dfilter) & mask
 
         self._flags[mask, field] = flag
         return self
@@ -223,6 +223,6 @@ class BreaksMixin:
             result="mask",
         )
 
-        mask = ~isflagged(self._flags[field], dfilter) & mask
+        mask = isunflagged(self._flags[field], dfilter) & mask
         self._flags[mask, field] = flag
         return self

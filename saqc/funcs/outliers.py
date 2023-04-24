@@ -23,7 +23,7 @@ from typing_extensions import Literal
 from saqc import BAD, UNFLAGGED
 from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.funcs.scores import _univarScoring
-from saqc.lib.tools import customRoller, getFreqDelta, toSequence
+from saqc.lib.tools import getFreqDelta, isflagged, toSequence
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -121,9 +121,10 @@ class OutliersMixin:
             s_mask = s < abs(thresh)
 
         for f in fields:
-            self._flags[s_mask, f] = flag
-        self = self.dropField(field_)
-        return self
+            mask = ~isflagged(self._flags[f], kwargs["dfilter"]) & s_mask
+            self._flags[mask, f] = flag
+
+        return self.dropField(field_)
 
     @flagging()
     def flagUniLOF(
@@ -306,6 +307,7 @@ class OutliersMixin:
         else:
             s_mask = s < -abs(thresh)
 
+        s_mask = ~isflagged(self._flags[field], kwargs["dfilter"]) & s_mask
         self._flags[s_mask, field] = flag
         self = self.dropField(field_)
         return self

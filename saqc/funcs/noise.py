@@ -15,7 +15,7 @@ import pandas as pd
 
 from saqc.constants import BAD
 from saqc.core.register import flagging
-from saqc.lib.tools import isflagged, statPass
+from saqc.lib.tools import isunflagged, statPass
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -95,6 +95,6 @@ class NoiseMixin:
             sub_thresh,
             min_periods,
         )
-        mask = ~isflagged(self._flags[field], kwargs["dfilter"]) & to_set
+        mask = isunflagged(self._flags[field], kwargs["dfilter"]) & to_set
         self._flags[mask, field] = flag
         return self
