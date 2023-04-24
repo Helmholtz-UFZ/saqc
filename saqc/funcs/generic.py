@@ -14,7 +14,7 @@ import pandas as pd
 
 from saqc import BAD, FILTER_ALL
 from saqc.core import DictOfSeries, Flags, register
-from saqc.lib.tools import isAllBoolean, isflagged, toSequence
+from saqc.lib.tools import isAllBoolean, isflagged, isunflagged, toSequence
 from saqc.parsing.environ import ENVIRONMENT
 
 if TYPE_CHECKING:
@@ -286,7 +286,7 @@ class GenericMixin:
                 self._flags[col] = pd.Series(np.nan, index=mask.index)
 
             # respect existing flags
-            mask = ~isflagged(self._flags[col], thresh=dfilter) & mask
+            mask = isunflagged(self._flags[col], thresh=dfilter) & mask
 
             # dummy column to ensure consistency between flags and data
             if col not in self._data:
