@@ -526,6 +526,10 @@ def isflagged(flagscol: A, thresh: float) -> A:
     return flagscol >= thresh
 
 
+def isunflagged(flagscol: A, thresh: float) -> A:
+    return ~isflagged(flagscol, thresh)
+
+
 def getUnionIndex(obj, default: pd.DatetimeIndex | None = None):
     assert hasattr(obj, "columns")
     if default is None:
