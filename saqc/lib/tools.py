@@ -19,9 +19,6 @@ import pandas as pd
 from scipy import fft
 from scipy.cluster.hierarchy import fcluster, linkage
 
-# keep this for external imports
-# TODO: fix the external imports
-from saqc.lib.rolling import customRoller  # noqa
 from saqc.lib.types import CompT
 
 T = TypeVar("T", str, float, int)
