@@ -177,10 +177,10 @@ def _maskData(
         col_mask = isflagged(flags[c].to_numpy(), thresh)
 
         if col_mask.any():
-            col_data = data[c].to_numpy(dtype=np.float64)
+            col_data = data[c].to_numpy(dtype=np.float64, copy=True)
             mask[c] = pd.Series(col_data[col_mask], index=np.where(col_mask)[0])
             col_data[col_mask] = np.nan
-            data[c] = pd.Series(col_data, index=data[c].index, dtype=data[c].dtype)
+            data[c] = pd.Series(col_data, index=data[c].index)
 
     return data, mask
 

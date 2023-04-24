@@ -210,7 +210,7 @@ class DmpScheme(MappingScheme):
                     "quality flags other than 'OK and 'NIL' need a non-empty quality cause"
                 )
 
-            if ((causes == "OTHER") & (comments == "")).any(None):
+            if ((causes == "OTHER") & (comments == "")).any(axis=None):
                 raise ValueError(
                     "quality cause 'OTHER' needs a non-empty quality comment"
                 )
