@@ -10,7 +10,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.3.0...develop)
 ### Added
 - Methods `logicalAnd` and `logicalOr`
-- `Flags` supports slicing and column selection with `list` or a `pd.Index`
+- `Flags` supports slicing and column selection with `list` or a `pd.Index`.
+- `orGroup` and `andGroup` support groups of type `str`
 - Expose the `History` via `SaQC._history_`
 - Config function `cov` (coefficient of variation)
 ### Changed

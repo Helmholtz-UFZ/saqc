@@ -147,7 +147,7 @@ def test_orGroup(left, right, expected):
         ([U, U, U, U], [U, U, U, U], [U, U, U, U]),
     ],
 )
-def test__groupOperation(left, right, expected):
+def test__groupOperationUnivariate(left, right, expected):
     data = pd.DataFrame(
         {"x": [0, 1, 2, 3], "y": [0, 11, 22, 33], "z": [0, 111, 222, 333]}
     )
@@ -163,3 +163,41 @@ def test__groupOperation(left, right, expected):
     )
 
     assert pd.Series(expected).equals(result.flags["x"])
+
+
+@pytest.mark.parametrize(
+    "left,right,expected",
+    [
+        (pd.Series([B, U, U, B]), pd.Series([B, B, U, U]), pd.Series([B, B, U, B])),
+        (pd.Series([B, B, B, B]), pd.Series([B, B, B, B]), pd.Series([B, B, B, B])),
+        (pd.Series([U, U, U, U]), pd.Series([U, U, U, U]), pd.Series([U, U, U, U])),
+    ],
+)
+def test__groupOperationMultivariate(left, right, expected):
+    data = pd.DataFrame({"x": [0, 1, 2, 3], "y": [0, 11, 22, 33]})
+    flags = pd.DataFrame({"x": pd.Series(left), "y": pd.Series(right)})
+
+    qc = SaQC(data=data, flags=flags)
+
+    # multi fields, no target
+    result = _groupOperation(base=qc.copy(), field=["x", "y"], func=operator.or_)
+    for v in ["x", "y"]:
+        assert expected.equals(result.flags[v])
+
+    # multi fields, multi target
+    result = _groupOperation(
+        base=qc.copy(), target=["a", "b"], field=["x", "y"], func=operator.or_
+    )
+    for v in ["a", "b"]:
+        assert expected.equals(result.flags[v])
+    for v, e in zip(["x", "y"], [left, right]):
+        assert e.equals(result.flags[v])
+
+    # multi fields, single target
+    result = _groupOperation(
+        base=qc.copy(), target="a", field=["x", "y"], func=operator.or_
+    )
+    assert expected.equals(result.flags["a"])
+    assert result.data["a"].isna().all()
+    for v, e in zip(["x", "y"], [left, right]):
+        assert e.equals(result.flags[v])
