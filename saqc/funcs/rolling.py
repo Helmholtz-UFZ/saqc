@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Union
 
@@ -23,11 +24,11 @@ class RollingMixin:
     def rolling(
         self: "SaQC",
         field: str,
-        window: Union[str, int],
+        window: str | int,
         func: Callable[[pd.Series], np.ndarray] = np.mean,
         min_periods: int = 0,
         center: bool = True,
-        **kwargs
+        **kwargs,
     ) -> "SaQC":
         """
         Calculate a rolling-window function on the data.
@@ -36,31 +37,21 @@ class RollingMixin:
 
         Parameters
         ----------
-        field : str
-            The column to calculate on.
-
-        flags : saqc.Flags
-            Container to store quality flags to data.
-
-        window : {int, str}
+        window :
             The size of the window you want to roll with. If an integer is passed, the size
             refers to the number of periods for every fitting window. If an offset string
             is passed, the size refers to the total temporal extension. For regularly
             sampled timeseries, the period number will be casted down to an odd number if
             ``center=True``.
 
-        func : Callable, default np.mean
+        func : default mean
             Function to roll with.
 
-        min_periods : int, default 0
+        min_periods :
             The minimum number of periods to get a valid value
 
-        center : bool, default True
+        center :
             If True, center the rolling window.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         self._data, self._flags = _roll(
             data=self._data,
@@ -82,7 +73,7 @@ class RollingMixin:
         func: Callable[[pd.Series], np.ndarray] = np.mean,
         min_periods: int = 0,
         center: bool = True,
-        **kwargs
+        **kwargs,
     ) -> "SaQC":
         """
         Calculate a rolling-window function on the data.
@@ -91,31 +82,21 @@ class RollingMixin:
 
         Parameters
         ----------
-        field : str
-            The column to calculate on.
-
-        flags : saqc.Flags
-            Container to store quality flags to data.
-
-        window : {int, str}
+        window :
             The size of the window you want to roll with. If an integer is passed, the size
             refers to the number of periods for every fitting window. If an offset string
             is passed, the size refers to the total temporal extension. For regularly
             sampled timeseries, the period number will be casted down to an odd number if
             ``center=True``.
 
-        func : Callable, default np.mean
+        func : default mean
             Function to roll with.
 
-        min_periods : int, default 0
+        min_periods :
             The minimum number of periods to get a valid value
 
-        center : bool, default True
+        center :
             If True, center the rolling window.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         import warnings
 
@@ -146,7 +127,7 @@ def _roll(
     func: Callable[[pd.Series], np.ndarray] = np.mean,
     min_periods: int = 0,
     center: bool = True,
-    **kwargs
+    **kwargs,
 ):
     to_fit = data[field].copy()
     if to_fit.empty:

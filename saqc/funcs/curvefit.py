@@ -27,7 +27,7 @@ from saqc.lib.ts_operators import (
 if TYPE_CHECKING:
     from saqc import SaQC
 
-_FILL_METHODS = Literal[
+FILL_METHODS = Literal[
     "linear",
     "nearest",
     "zero",
@@ -72,10 +72,7 @@ class CurvefitMixin:
 
         Parameters
         ----------
-        field : str
-             A column in flags and data.
-
-        window : str, int
+        window :
             Size of the window you want to use for fitting. If an integer is passed,
             the size refers to the number of periods for every fitting window. If an
             offset string is passed, the size refers to the total temporal extension. The
@@ -83,20 +80,16 @@ class CurvefitMixin:
             data always a odd number of periods will be used for the fit (periods-1 if
             periods is even).
 
-        order : int
+        order :
             Degree of the polynomial used for fitting
 
-        min_periods : int or None, default 0
+        min_periods :
             Minimum number of observations in a window required to perform the fit,
             otherwise NaNs will be assigned.
             If ``None``, `min_periods` defaults to 1 for integer windows and to the
             size of the window for offset based windows.
             Passing 0, disables the feature and will result in over-fitting for too
             sparse windows.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         self._data, self._flags = _fitPolynomial(
             data=self._data,
@@ -116,9 +109,9 @@ class CurvefitMixin:
         cutoff: float | str,
         nyq: float = 0.5,
         filter_order: int = 2,
-        fill_method: _FILL_METHODS = "linear",
+        fill_method: FILL_METHODS = "linear",
         **kwargs,
-    ):
+    ) -> "SaQC":
         """
         Fits the data using the butterworth filter.
 
@@ -128,25 +121,20 @@ class CurvefitMixin:
 
         Parameters
         ----------
-        field: str
-            A column in flags and data.
-
-        cutoff: {float, str}
+        cutoff :
             The cutoff-frequency, either an offset freq string, or expressed in multiples of the sampling rate.
 
-        nyq: float
+        nyq :
             The niquist-frequency. expressed in multiples if the sampling rate.
 
-        fill_method: Literal[‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘spline’, ‘barycentric’, ‘polynomial’]
+        fill_method :
             Fill method to be applied on the data before filtering (butterfilter cant
             handle ''np.nan''). See documentation of pandas.Series.interpolate method for
             details on the methods associated with the different keywords.
 
-        filter_type: Literal["lowpass", "highpass", "bandpass", "bandstop"]
+        filter_type :
             The type of filter. Default is ‘lowpass’.
-
         """
-
         self._data[field] = butterFilter(
             self._data[field],
             cutoff=cutoff,

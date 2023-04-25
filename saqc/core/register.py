@@ -17,6 +17,7 @@ from typing_extensions import ParamSpec
 from saqc import FILTER_ALL, FILTER_NONE
 from saqc.core import DictOfSeries, Flags, History
 from saqc.core.translation.basescheme import TranslationScheme
+from saqc.lib.docs import ParamDict, docurator
 from saqc.lib.tools import isflagged, squeezeSequence, toSequence
 from saqc.lib.types import ExternalFlag, OptionalNone
 
@@ -262,6 +263,7 @@ def register(
     squeeze: list[str],
     multivariate: bool = False,
     handles_target: bool = False,
+    docstring: dict[str, ParamDict] | None = None,
 ):
     """
     Generalized decorator for any saqc functions.
@@ -276,8 +278,8 @@ def register(
     Parameters
     ----------
     mask : list of string
-        A list of all parameter of the decorated function, that specify a column in
-        data, that is read by the function and therefore should be masked by flags.
+        List of parameters of the decorated function, that specify column(s) in
+        ``SaQC._data``, that are read by the function and therefore should be masked.
 
         The masking takes place before the call of the decorated function and
         temporary sets data to `NaN` at flagged locations. It is undone by ``demask``.
@@ -285,15 +287,15 @@ def register(
         via ``dfilter``, a parameter each function takes.
 
     demask : list of string
-        A list of all parameter of the decorated function, that specify a column in
-        data, that was masked (see ``mask``) and needs unmasking after the call.
+        List of parameters of the decorated function, that specify column(s) in
+        ``SaQC._data``, that were masked (see ``mask``) and needs unmasking after the call.
 
-        The unmasking replace all remaining(!) ``NaN`` by its original values from
-        before the call of the decorated function.
+        The unmasking replaces all remaining(!) ``NaN`` inserted in the masking process by
+        its their original values.
 
     squeeze : list of string
-        A list of all parameter of the decorated function, that specify a column in
-        flags, that is written by the function.
+        List of parameters of the decorated function, that specify flag column(s),
+        that are written by the function.
 
         The squeezing combines multiple columns in the history of flags to one
         single column. This is because, multiple writes to flags, (eg. using
@@ -302,16 +304,20 @@ def register(
         happened.
 
     multivariate : bool, default False
-        If ``True``, the decorated function, process multiple data or flags
+        If ``True``, the decorated function, processes multiple data or flag
         columns at once. Therefore the decorated function must handle a list
         of columns in the parameter ``field``.
 
-        If ``False``, the decorated function must take a single column (``str``)
-        in ``field``.
+        If ``False``, the decorated function must define ``field: str``
 
     handles_target : bool, default False
         If ``True``, the decorated function, handles the target parameter by
         itself. Mandatory for multivariate functions.
+
+    docstring : dict, default None
+        Allows to modify the default docstring description of the parameters ``field``,
+        ``target``, ``dfilter`` and ``flag``
+
     """
 
     def outer(func: Callable[P, SaQC]) -> Callable[P, SaQC]:
@@ -319,6 +325,7 @@ def register(
         _checkDecoratorKeywords(
             func_signature, func.__name__, mask, demask, squeeze, handles_target
         )
+        func = docurator(func, docstring)
 
         @functools.wraps(func)
         def inner(

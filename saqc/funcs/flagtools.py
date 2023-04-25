@@ -28,15 +28,6 @@ class FlagtoolsMixin:
     def flagDummy(self: "SaQC", field: str, **kwargs) -> "SaQC":
         """
         Function does nothing but returning data and flags.
-
-        Parameters
-        ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         return self
 
@@ -44,21 +35,6 @@ class FlagtoolsMixin:
     def forceFlags(self: "SaQC", field: str, flag: float = BAD, **kwargs) -> "SaQC":
         """
         Set whole column to a flag value.
-
-        Parameters
-        ----------
-        field : str
-            columns name that holds the data
-
-        flag : float, default BAD
-            flag to set
-
-        kwargs : dict
-            unused
-
-        Returns
-        -------
-        saqc.SaQC
 
         See Also
         --------
@@ -72,18 +48,6 @@ class FlagtoolsMixin:
     def clearFlags(self: "SaQC", field: str, **kwargs) -> "SaQC":
         """
         Set whole column to UNFLAGGED.
-
-        Parameters
-        ----------
-        field : str
-            columns name that holds the data
-
-        kwargs : dict
-            unused
-
-        Returns
-        -------
-        saqc.SaQC
 
         Notes
         -----
@@ -110,30 +74,14 @@ class FlagtoolsMixin:
         """
         Function sets a flag at all unflagged positions.
 
-        Parameters
-        ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged.
-
-        flag : float, default BAD
-            flag value to set
-
-        kwargs : Dict
-            unused
-
-        Returns
-        -------
-        saqc.SaQC
-
-        Notes
-        -----
-        This function ignores the ``dfilter`` keyword, because the data is not relevant
-        for processing.
-
         See Also
         --------
         clearFlags : set whole column to UNFLAGGED
         forceFlags : set whole column to a flag value
+
+        Notes
+        -----
+        This function ignores the ``dfilter`` keyword, because the data is not relevant for processing.
         """
         unflagged = self._flags[field].isna() | (self._flags[field] == UNFLAGGED)
         self._flags[unflagged, field] = flag
@@ -143,7 +91,7 @@ class FlagtoolsMixin:
     def flagManual(
         self: "SaQC",
         field: str,
-        mdata: Union[pd.Series, pd.DataFrame, DictOfSeries, list, np.ndarray],
+        mdata: pd.Series | pd.DataFrame | DictOfSeries | list | np.ndarray,
         method: Literal[
             "left-open", "right-open", "closed", "plain", "ontime"
         ] = "left-open",
@@ -162,14 +110,11 @@ class FlagtoolsMixin:
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged.
-
-        mdata : pd.Series, pd.DataFrame, DictOfSeries, str, list or np.ndarray
+        mdata :
             The Data determining, wich intervals are to be flagged, or a string, denoting under which field the data is
             accessable.
 
-        method : {'plain', 'ontime', 'left-open', 'right-open', 'closed'}, default 'plain'
+        method :
             Defines how mdata is projected on data. Except for the 'plain' method, the methods assume mdata to have an
             index.
 
@@ -186,22 +131,15 @@ class FlagtoolsMixin:
             * 'left-open': like 'right-open', but the projected interval now covers all t with t_1 < t <= t_2.
             * 'closed': like 'right-open', but the projected interval now covers all t with t_1 <= t <= t_2.
 
-        mformat : {"start-end", "mflag"}, default "start-end"
+        mformat :
 
             * "start-end": mdata is a Series, where every entry indicates an interval to-flag. The index defines the left
               bound, the value defines the right bound.
             * "mflag": mdata is an array like, with entries containing 'mflag',where flags shall be set. See documentation
               for examples.
 
-        mflag : scalar
+        mflag :
             The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
-
-        flag : float, default BAD
-            flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
 
         Examples
         --------
@@ -339,19 +277,6 @@ class FlagtoolsMixin:
         """
         Transfer Flags of one variable to another.
 
-        Parameters
-        ----------
-
-        field : str or List of str
-           Variable or list of variables, the flags of which are to be transferred.
-
-        target : str or List of str
-            Variable or list of variables, the flags of `field` are to be transferred to.
-
-        Returns
-        -------
-        saqc.SaQC
-
         See Also
         --------
         * :py:meth:`saqc.SaQC.flagGeneric`
@@ -414,7 +339,7 @@ class FlagtoolsMixin:
     def propagateFlags(
         self: "SaQC",
         field: str,
-        window: Union[str, int],
+        window: str | int,
         method: Literal["ffill", "bfill"] = "ffill",
         flag: float = BAD,
         dfilter: float = FILTER_ALL,
@@ -425,26 +350,13 @@ class FlagtoolsMixin:
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged.
-
-        window : int, str
+        window :
             Size of the repetition window. An integer defines the exact number of repetitions,
             strings are interpreted as time offsets to fill with .
 
-        method : {"ffill", "bfill"}
+        method :
             Direction of repetetion. With "ffill" the subsequent values receive the flag to
             repeat, with "bfill" the previous values.
-
-        flag : float, default BAD
-            Flag to set.
-
-        dfilter : float, default FILTER_ALL
-            Threshold flag.
-
-        Returns
-        -------
-        saqc.SaQC
 
         Examples
         --------
@@ -556,10 +468,6 @@ class FlagtoolsMixin:
 
         Parameters
         ----------
-        field:
-            Name of the field to check for flags. :py:attr:`field` needs to present in all SaQC
-            objects in :py:attr:`group`.
-
         group:
             A collection of ``SaQC`` objects to check for flags, defaults to the current object.
 
@@ -567,19 +475,7 @@ class FlagtoolsMixin:
                variable named :py:attr:`field`.
             2. If given as dictionary the keys are interpreted as ``SaQC`` objects and the corresponding
                values as variables of the respective ``SaQC`` object to check for flags.
-
-        target:
-            Name of the field the generated flags will be written to. If None, the result
-            will be written to 'field',
-
-        flag:
-            The quality flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
         """
-
         return _groupOperation(
             base=self,
             field=field,
@@ -610,10 +506,6 @@ class FlagtoolsMixin:
 
         Parameters
         ----------
-        field:
-            Name of the field to check for flags. :py:attr:`field` needs to present in all SaQC objects
-            in :py:attr:`group`.
-
         group:
             A collection of ``SaQC`` objects to check for flags, defaults to the current object.
 
@@ -621,17 +513,6 @@ class FlagtoolsMixin:
                variable named :py:attr:`field`.
             2. If given as dictionary the keys are interpreted as ``SaQC`` objects and the corresponding
                values as variables of the respective ``SaQC`` object to check for flags.
-
-        target:
-            Name of the field the generated flags will be written to. If None, the result
-            will be written to :py:attr:`field`,
-
-        flag:
-            The quality flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         return _groupOperation(
             base=self,
