@@ -47,25 +47,15 @@ class ConstantsMixin:
 
         Parameters
         ----------
-        field : str
-            A column in flags and data.
-
-        thresh : float
+        thresh :
             Maximum total change allowed per window.
 
-        window : str | int
+        window :
             Size of the moving window. This is the number of observations used
             for calculating the statistic. Each window will be a fixed size.
             If its an offset then this will be the time period of each window.
             Each window will be a variable sized based on the observations included
             in the time-period.
-
-        flag : float, default BAD
-            Flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         if not isinstance(window, (str, int)):
             raise TypeError("window must be offset string or int.")
@@ -126,32 +116,22 @@ class ConstantsMixin:
 
         Parameters
         ----------
-        field : str
-            A column in flags and data.
-
-        window : str | int
+        window :
             Size of the moving window. This is the number of observations used
             for calculating the statistic. Each window will be a fixed size.
             If its an offset then this will be the time period of each window.
             Each window will be sized, based on the number of observations included
             in the time-period.
 
-        thresh : float, default 0.0005
+        thresh :
             Maximum total variance allowed per window.
 
-        maxna : int, default None
+        maxna :
             Maximum number of NaNs allowed in window.
             If more NaNs are present, the window is not flagged.
 
-        maxna_group : int, default None
+        maxna_group :
             Same as `maxna` but for consecutive NaNs.
-
-        flag : float, default BAD
-            Flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         dataseries = self._data[field]
         delta = getFreqDelta(dataseries.index)

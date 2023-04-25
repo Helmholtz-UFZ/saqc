@@ -118,26 +118,23 @@ class PatternMixin:
 
         Parameters
         ----------
-        field : str
-            The name of the data column
-
-        reference : str
+        reference :
             The name in `data` which holds the pattern. The pattern must not have NaNs,
             have a datetime index and must not be empty.
 
-        max_distance : float, default 0.0
+        max_distance :
             Maximum dtw-distance between chunk and pattern, if the distance is lower than
             ``max_distance`` the data gets flagged. With default, ``0.0``, only exact
             matches are flagged.
 
-        normalize : bool, default True
+        normalize :
             If `False`, return unmodified distances.
             If `True`, normalize distances by the number of observations of the reference.
             This helps to make it easier to find a good cutoff threshold for further
             processing. The distances then refer to the mean distance per datapoint,
             expressed in the datas units.
 
-        plot: bool, default False
+        plot :
             Show a calibration plot, which can be quite helpful to find the right threshold
             for `max_distance`. It works best with `normalize=True`. Do not use in automatic
             setups / pipelines. The plot show three lines:
@@ -147,10 +144,6 @@ class PatternMixin:
             - indicator: have to distinct levels: `0` and the value of `max_distance`.
               If `max_distance` is `0.0` it defaults to `1`. Everywhere where the
               indicator is not `0` the data will be flagged.
-
-        Returns
-        -------
-        saqc.SaQC
 
         Notes
         -----

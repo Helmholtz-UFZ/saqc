@@ -44,35 +44,25 @@ class NoiseMixin:
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged.
-
-        func: Callable[[np.array, pd.Series], float]
+        func :
             Aggregation function applied on every chunk.
 
-        window: str
+        window :
             Window (i.e. chunk) size.
 
-        thresh: float
+        thresh :
             Threshold. A given chunk is flagged, if the return value of ``func`` excceeds ``thresh``.
 
-        sub_window: str, default None,
+        sub_window :
             Window size of sub chunks, that are additionally tested for exceeding ``sub_thresh``
             with respect to ``func``.
 
-        sub_thresh: float, default None
+        sub_thresh :
             Threshold. A given sub chunk is flagged, if the return value of ``func` excceeds ``sub_thresh``.
 
-        min_periods: int, default None
+        min_periods :
             Minimum number of values needed in a chunk to perfom the test.
             Ignored if ``window`` is an integer.
-
-        flag : float, default BAD
-            flag to set
-
-        Returns
-        -------
-        saqc.SaQC
         """
 
         datcol = self._data[field]

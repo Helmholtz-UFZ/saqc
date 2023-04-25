@@ -23,6 +23,7 @@ from typing_extensions import Literal
 from saqc import BAD, UNFLAGGED
 from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.funcs.scores import _univarScoring
+from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import getFreqDelta, isflagged, toSequence
 
 if TYPE_CHECKING:
@@ -41,64 +42,59 @@ class OutliersMixin:
         self: "SaQC",
         field: Sequence[str],
         n: int = 20,
-        thresh: Union[Literal["auto"], float] = 1.5,
+        thresh: Literal["auto"] | float = 1.5,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: int = 1,
-        density: Union[Literal["auto"], float, Callable] = "auto",
+        density: Literal["auto"] | float | Callable = "auto",
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
         """
-        Flag Local Outlier Factor (LOF) exceeding cutoff.
+        Flag values where the Local Outlier Factor (LOF) exceeds cutoff.
 
         Parameters
         ----------
-        field :
-            The field name of the column, holding the data-to-be-flagged.
         n :
-            Number of neighbors to be included into the LOF calculation. Defaults to `20`, which is a value found to be
-            suitable in the literature.
+            Number of neighbors to be included into the LOF calculation. Defaults to ``20``, which is a
+            value found to be suitable in the literature.
 
-            * `n` determines the "locality" of an observation (its `n` nearest neighbors) and sets the upper limit of
-              values of an outlier clusters (i.e. consecutive outliers). Outlier clusters of size greater than `n/2`
-              may not be detected reliably.
-            * The larger `n`, the lesser the algorithm's sensitivity to local outliers and small or singleton outliers
-              points. Higher values greatly increase numerical costs.
+            * :py:attr:`n` determines the "locality" of an observation (its :py:attr:`n` nearest neighbors)
+              and sets the upper limit to the number of values in outlier clusters (i.e. consecutive outliers). Outlier
+              clusters of size greater than :py:attr:`n`/2 may not be detected reliably.
+            * The larger :py:attr:`n`, the lesser the algorithm's sensitivity to local outliers and small
+              or singleton outliers points. Higher values greatly increase numerical costs.
+
         thresh :
-            The threshold for flagging the calculated LOF. A LOF of around `1` is considered normal and most likely
-            corresponds to inlier points.
+            The threshold for flagging the calculated LOF. A LOF of around ``1`` is considered normal and
+            most likely corresponds to inlier points.
 
-            * The "automatic" threshing introduced with the publication of the algorithm defaults to `1.5`.
-            * In this implementation, `thresh` defaults ('auto') to flagging the scores with a modified 3-sigma rule,
-              resulting in a thresh > 1.5 which usually mitigates overflagging compared to the
-              literature recommendation.
+            * The "automatic" threshing introduced with the publication of the algorithm defaults to ``1.5``.
+            * In this implementation, :py:attr:`thresh` defaults (``'auto'``) to flagging the scores with a
+              modified 3-sigma rule, resulting in a :py:attr:`thresh` `` > 1.5`` which usually mitigates
+              overflagging compared to the literature recommendation.
 
         algorithm :
-            Algorithm used for calculating the `n`-nearest neighbors.
-        p :
-            Degree of the metric ("Minkowski"), according to which distance to neighbors is determined.
-            Most important values are:
-            * `1` - Manhatten Metric
-            * `2` - Euclidian Metric
-        flag :
-            flag to set.
+            Algorithm used for calculating the :py:attr:`n`-nearest neighbors.
 
-        Returns
-        -------
-        saqc.SaQC
+        p :
+            Degree of the metric ("Minkowski"), according to which the distance to neighbors is determined.
+            Most important values are:
+
+            * ``1`` - Manhatten Metric
+            * ``2`` - Euclidian Metric
 
         Notes
         -----
-
-        * The :py:meth:`~saqc.SaQC.flagLOF` function calculates the Local Outlier Factor (LOF) for every point in the data. The
-          *LOF* is a scalar value, that roughly correlates to the *reachability*, or "outlierishnes" of the evaluated
-          datapoint. If a point is as reachable, as all its :py:attr:`n`-nearest neighbors, the *LOF* score evaluates to
-          around `1`. If it is only as half as reachable as all its `n`-nearest neighbors are
-          (so to say, as double as "outlierish"), the score evaluates to `2` roughly.
-          So, the Local Outlier *Factor* relates a points *reachability* to the *reachability* of its
-          :py:attr:`n`-nearest neighbors in a multiplicative fashion (as a "factor").
-        * The `reachability` of a point thereby is determined as an aggregation of the points distance to its :py:attr:`n`-nearest
-          neighbors, measured with regard to the minkowski metric of degree :py:attr:`p` (usually euclidean).
+        * The :py:meth:`~saqc.SaQC.flagLOF` function calculates the Local Outlier Factor (LOF) for every point
+          in the input timeseries. The *LOF* is a scalar value, that roughly correlates to the *reachability*,
+          or "outlierishnes" of the evaluated datapoint. If a point is as reachable, as all its
+          :py:attr:`n`-nearest neighbors, the *LOF* score evaluates to around ``1``. If it is only as half as
+          reachable as all its ``n``-nearest neighbors are (so to say, as double as "outlierish"), the score
+          is about ``2``. So, the Local Outlier *Factor* relates a point's *reachability* to the *reachability*
+          of its :py:attr:`n`-nearest neighbors in a multiplicative fashion (as a "factor").
+        * The *reachability* of a point thereby is determined as an aggregation of the points distances to its
+          :py:attr:`n`-nearest neighbors, measured with regard to the minkowski metric of degree :py:attr:`p`
+          (usually euclidean).
         * To derive a binary label for every point (outlier: *yes*, or *no*), the scores are cut off at a level,
           determined by :py:attr:`thresh`.
 
@@ -131,10 +127,10 @@ class OutliersMixin:
         self: "SaQC",
         field: str,
         n: int = 20,
-        thresh: Union[Literal["auto"], float] = 1.5,
+        thresh: Literal["auto"] | float = 1.5,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: int = 1,
-        density: Union[Literal["auto"], float, Callable] = "auto",
+        density: Literal["auto"] | float | Callable = "auto",
         fill_na: str = "linear",
         flag: float = BAD,
         **kwargs,
@@ -142,68 +138,62 @@ class OutliersMixin:
         """
         Flag "univariate" Local Outlier Factor (LOF) exceeding cutoff.
 
-        The Function is a wrapper around a usual LOF implementation, aiming for an easy to use, parameter minimal
-        outlier detection function for singleton variables, that does not necessitate prior modelling of the variable.
-        LOF is applied onto a concatenation of the `field` variable and a "temporal density", or "penalty" variable,
-        that measures temporal distance between data points. See notes Section or a more exhaustive Explaination.
+        The function is a wrapper around a usual LOF implementation, aiming for an easy to use,
+        parameter minimal outlier detection function for single variables, that does not necessitate
+        prior modelling of the variable. LOF is applied onto a concatenation of the `field` variable
+        and a "temporal density", or "penalty" variable, that measures temporal distance between data
+        points. See notes Section for a more exhaustive explaination.
 
         See the Notes section for more details on the algorithm.
 
         Parameters
         ----------
-        field :
-            The field name of the column, holding the data-to-be-flagged.
         n :
-            Number of periods to be included into the LOF calculation. Defaults to `20`, which is a value found to be
-            suitable in the literature.
+            Number of periods to be included into the LOF calculation. Defaults to `20`, which is a
+            value found to be suitable in the literature.
 
-            * `n` determines the "locality" of an observation (its `n` nearest neighbors) and sets the upper limit of
-              values of an outlier clusters (i.e. consecutive outliers). Outlier clusters of size greater than `n/2`
-              may not be detected reliably.
-            * The larger `n`, the lesser the algorithm's sensitivity to local outliers and small or singleton outliers
-              points. Higher values greatly increase numerical costs.
+            * :py:attr:`n` determines the "locality" of an observation (its :py:attr:`n` nearest neighbors)
+              and sets the upper limit to the number of values in an outlier clusters (i.e. consecutive outliers). Outlier
+              clusters of size greater than :py:attr:`n`/2 may not be detected reliably.
+            * The larger :py:attr:`n`, the lesser the algorithm's sensitivity to local outliers and small
+              or singleton outlier points. Higher values greatly increase numerical costs.
 
         thresh :
-            The threshold for flagging the calculated LOF. A LOF of around `1` is considered normal and most likely
-            corresponds to inlier points. This parameter is considered the main calibration parameter of the algorithm.
+            The threshold for flagging the calculated LOF. A LOF of around ``1`` is considered normal and
+            most likely corresponds to inlier points. This parameter is considered the main calibration
+            parameter of the algorithm.
 
-            * The threshing defaults to `1.5`, wich is the default value found to be suitable in the literature.
-            * 'auto' enables flagging the scores with a modified 3-sigma rule,
-              resulting in a thresh around `4`, which usually greatly mitigates overflagging compared to the
+            * The threshing defaults to ``1.5``, wich is the default value found to be suitable in the literature.
+            * ``'auto'`` enables flagging the scores with a modified 3-sigma rule,
+              resulting in a thresh around ``4``, which usually greatly mitigates overflagging compared to the
               literature recommendation, but often is too high.
-            * sensitive range for the parameter may be [1,15], assuming default settings for the other parameters.
+            * sensitive range for the parameter may be ``[1,15]``, assuming default settings for the other parameters.
 
         algorithm :
-            Algorithm used for calculating the `n`-nearest neighbors needed for LOF calculation.
+            Algorithm used for calculating the :py:attr:`n`-nearest neighbors needed for LOF calculation.
         p :
             Degree of the metric ("Minkowski"), according to which distance to neighbors is determined.
             Most important values are:
-            * `1` - Manhatten Metric
-            * `2` - Euclidian Metric
+            * ``1`` - Manhatten Metric
+            * ``2`` - Euclidian Metric
         density :
-            How to calculate the temporal distance/density for the variable-to-be-flagged.
+            How to calculate the temporal distance/density for the variable to flag.
 
-            * `auto` - introduces linear density with an increment equal to the median of the absolute diff of the
-              variable to be flagged
-            * float - introduces linear density with an increment equal to `density`
-            * Callable - calculates the density by applying the function passed onto the variable to be flagged
+            * ``'auto'`` - introduces linear density with an increment equal to the median of the absolute
+              diff of the variable to flag.
+            * ``float`` - introduces linear density with an increment equal to :py:attr:`density`
+            * Callable - calculates the density by applying the function passed onto the variable to flag
               (passed as Series).
 
         fill_na :
             Weather or not to fill NaN values in the data with a linear interpolation.
-        flag :
-            flag to set.
 
-        Returns
-        -------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
-        flags : saqc.Flags
-            The quality flags of data
+        See Also
+        --------
+        :ref:`introduction to outlier detection with saqc <cookbooks/OutlierDetection:Outlier Detection>`
 
         Notes
         -----
-
         * The :py:meth:`~saqc.SaQC.flagUniLOF` function calculates an univariate
           Local Outlier Factor (UniLOF) - score for every point in the one dimensional input
           data series.
@@ -212,21 +202,19 @@ class OutliersMixin:
           data-values and the time axis. So the Algorithm basically operates on the "graph",
           or the "plot" of the input timeseries.
         * If a point in this "graph" is as reachable, as all its :py:attr:`n`-nearest
-          neighbors, its *UniLOF* score evaluates to around `1`. If it is only as half as
+          neighbors, its *UniLOF* score evaluates to around ``1``. If it is only as half as
           reachable as all its :py:attr:`n` neighbors are
-          (so to say, as double as "outlierish"), its score evaluates to `2` roughly.
-          So, the Univariat Local Outlier *Factor* relates a points *reachability* to the
+          (so to say, as double as "outlierish"), its score evaluates to ``2`` roughly.
+          So, the Univariate Local Outlier *Factor* relates a points *reachability* to the
           *reachability* of its :py:attr:`n`-nearest neighbors in a multiplicative fashion
           (as a "factor").
-        * The `reachability` of a point thereby is derived as an aggregation of the
-          points distance to its :py:attr:`n`-nearest
-          neighbors, measured with regard to the minkowski metric of degree :py:attr:`p` (usually euclidean).
-        * The parameter :py:attr:`density` thereby determines how dimensionality of the time is removed, to make it a
-          dimension less, real valued coordinate.
-        * To derive a binary label for every point (outlier: *yes*, or *no*), the scores are cut off at a level,
-          determined by :py:attr:`thresh`.
-
-
+        * The *reachability* of a point thereby is derived as an aggregation of the points
+          distance to its :py:attr:`n`-nearest neighbors, measured with regard to the minkowski
+          metric of degree :py:attr:`p` (usually euclidean).
+        * The parameter :py:attr:`density` thereby determines how dimensionality of the time is
+          removed, to make it a dimensionless, real valued coordinate.
+        * To derive a binary label for every point (outlier: *yes*, or *no*), the scores are cut
+          off at a level, determined by :py:attr:`thresh`.
 
         Examples
         --------
@@ -248,7 +236,7 @@ class OutliersMixin:
 
         Example usage with default parameter configuration:
 
-        Loading data via pandas csv file parser, casting index to DateTime type, generating a :py:class:`~saqc.SaQC`
+        Loading data via pandas csv file parser, casting index to DateTime, generating a :py:class:`~saqc.SaQC`
         instance from the data and plotting the variable representing light scattering at 254 nanometers wavelength.
 
         .. doctest:: flagUniLOFExample
@@ -267,8 +255,8 @@ class OutliersMixin:
 
             qc.plot('sac254_raw')
 
-        We apply :py:meth:`~saqc.SaqC.flagUniLOF` in with default parameter values. Meaning, that the main calibration paramters
-        :py:attr:`n` and :py:attr:`thresh` evaluate to `20` and `1.5` respectively.
+        We apply :py:meth:`~saqc.SaqC.flagUniLOF` in with default parameter values. Meaning, that the main
+        calibration paramters :py:attr:`n` and :py:attr:`thresh` evaluate to `20` and `1.5` respectively.
 
         .. doctest:: flagUniLOFExample
 
@@ -283,11 +271,6 @@ class OutliersMixin:
 
            qc = qc.flagUniLOF('sac254_raw')
            qc.plot('sac254_raw')
-
-        See Also
-        --------
-
-        * :ref:`introduction to outlier detection with saqc <cookbooks/OutlierDetection:Outlier Detection>`
 
         """
         field_ = str(uuid.uuid4())
@@ -322,25 +305,14 @@ class OutliersMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Function flags values exceeding the closed interval [`min`, `max`].
+        Function flags values exceeding the closed interval [:py:attr:`min`, :py:attr:`max`].
 
         Parameters
         ----------
-        field : str
-            The field name of the column, holding the data-to-be-flagged.
-        min : float
+        min :
             Lower bound for valid data.
-        max : float
+        max :
             Upper bound for valid data.
-        flag : float, default BAD
-            flag to set.
-
-        Returns
-        -------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
-        flags : saqc.Flags
-            The quality flags of data
         """
 
         # using .values is much faster
@@ -361,45 +333,36 @@ class OutliersMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flag outliers in 1-dimensional (score) data with the STRAY Algorithm.
+        Flag outliers in 1-dimensional (score) data using the STRAY Algorithm.
 
-        Find more information on the algorithm in References [1].
+        For more details about the algorithm please refer to [1].
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged.
 
-        window : str, int, or None, default None
+        window :
             Determines the segmentation of the data into partitions, the kNN algorithm is
             applied onto individually.
 
-            * ``np.inf``: Apply Scoring on whole data set at once
-            * ``x`` > 0 : Apply scoring on successive data chunks of periods length ``x``
+            * ``None``: Apply Scoring on whole data set at once
+            * ``int``: Apply scoring on successive data chunks of periods with the given length.
+              Must be greater than 0.
             * Offset String : Apply scoring on successive partitions of temporal extension
               matching the passed offset string
 
-        min_periods : int, default 11
-            Minimum number of periods per window that have to be present for a valid
-            outlier dettection to be made in this window. (Only of effect, if `freq`
-            is an integer.) Partition min value must always be greater then the
-            nn_neighbors value.
+        min_periods :
+            Minimum number of periods per partition that have to be present for a valid
+            outlier detection to be made in this partition (only of effect, if :py:attr:`freq`
+            is an integer).
 
-        iter_start : float, default 0.5
-            Float in [0,1] that determines which percentage of data is considered
-            "normal". 0.5 results in the stray algorithm to search only the upper 50 % of
+        iter_start :
+            Float in ``[0, 1]`` that determines which percentage of data is considered
+            "normal". ``0.5`` results in the stray algorithm to search only the upper 50% of
             the scores for the cut off point. (See reference section for more information)
 
-        alpha : float, default 0.05
+        alpha :
             Level of significance by which it is tested, if a score might be drawn from
-            another distribution, than the majority of the data.
-
-        flag : float, default BAD
-            flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
+            another distribution than the majority of the data.
 
         References
         ----------
@@ -465,6 +428,7 @@ class OutliersMixin:
         squeeze=["field"],
         multivariate=True,
         handles_target=False,
+        docstring={"field": DOC_TEMPLATES["field"]},
     )
     def flagMVScores(
         self: "SaQC",
@@ -474,9 +438,9 @@ class OutliersMixin:
         n: int = 10,
         func: Callable[[pd.Series], float] = np.sum,
         iter_start: float = 0.5,
-        window: Optional[Union[int, str]] = None,
+        window: int | str | None = None,
         min_periods: int = 11,
-        stray_range: Optional[str] = None,
+        stray_range: str | None = None,
         drop_flagged: bool = False,  # TODO: still a case ?
         thresh: float = 3.5,
         min_periods_r: int = 1,
@@ -487,80 +451,65 @@ class OutliersMixin:
         The algorithm implements a 3-step outlier detection procedure for simultaneously
         flagging of higher dimensional data (dimensions > 3).
 
-        In references [1], the procedure is introduced and exemplified with an
-        application on hydrological data. See the notes section for an overview over the
-        algorithms basic steps.
+        In [1], the procedure is introduced and exemplified with an application on hydrological
+        data. See the notes section for an overview over the algorithms basic steps.
 
         Parameters
         ----------
-        field : list of str
-            List of fieldnames, corresponding to the variables that are to be included
-            into the flagging process.
+        trafo : default identity
+            Transformation to be applied onto every column before scoring. For more fine-grained
+            control, the data could also be transformed before :py:meth:`~saqc.SaQC.flagMVScores`
+            is called.
 
-        trafo : callable, default lambda x:x
-            Transformation to be applied onto every column before scoring. Will likely
-            get deprecated soon. Its better to transform the data in a processing step,
-            preceeeding the call to ``flagMVScores``.
-
-        alpha : float, default 0.05
+        alpha :
             Level of significance by which it is tested, if an observations score might
-            be drawn from another distribution than the majority of the observation.
+            be drawn from another distribution than the majority of the data.
 
-        n : int, default 10
+        n :
             Number of neighbors included in the scoring process for every datapoint.
 
-        func : Callable[numpy.array, float], default np.sum
-            The function that maps the set of every points k-nearest neighbor distances
-            onto a certain scoring.
+        func : default sum
+            Function that aggregates a value's k-smallest distances, returning a scalar score.
 
-        iter_start : float, default 0.5
-            Float in [0,1] that determines which percentage of data is considered
-            "normal". 0.5 results in the threshing algorithm to search only the upper 50
-            % of the scores for the cut off point. (See reference section for more
+        iter_start :
+            Value in ``[0,1]`` that determines which percentage of data is considered
+            "normal". 0.5 results in the threshing algorithm to search only the upper 50%
+            of the scores for the cut off point. (See reference section for more
             information)
 
-        window : {None, str, int}, default None
-            Only effective when `threshing` = 'stray'. Determines the size of the data
-            partitions, the data is decomposed into. Each window is checked seperately
-            for outliers. If a String is passed, it has to be an offset string and it
-            results in partitioning the data into parts of according temporal length. If
-            an integer is passed, the data is simply split up into continous chunks of
-            `freq` periods. if ``None`` is passed (default), all the data will be tested
-            in one run.
+        window :
+            Only effective if :py:attr:`threshing` is set to ``'stray'``. Determines the
+            size of the data partitions, the data is decomposed into. Each partition is checked
+            seperately for outliers.
+            Either given as an Offset String, denoting the windows temporal extension or
+            as an integer, denoting the windows number of periods. ``NaN`` also count as periods.
+            If ``None``, all data points share the same scoring window, which than equals the whole
+            data.
 
-        min_periods : int, default 11
-            Only effective when `threshing` = 'stray'. Minimum number of periods per
-            window that have to be present for a valid outlier detection to be made in
-            this window. (Only of effect, if `stray_partition` is an integer.)
+        min_periods :
+            Only effective if :py:attr:`threshing` is set to ``'stray'`` and :py:attr:`partition` is an integer.
+            Minimum number of periods per :py:attr:`partition` that have to be present for a valid outlier
+            detection to be made in this partition.
 
-        partition_trafo : bool, default True
-            Whether or not to apply the passed transformation on every window the
-            algorithm is applied on, separately.
-
-        stray_range : {None, str}, default None
-            If not None, it is tried to reduce the stray result onto single outlier
-            components of the input fields. An offset string, denoting the range of the
+        stray_range :
+            If not ``None``, it is tried to reduce the stray result onto single outlier components
+            of the input :py:attr:`field`. The offset string denotes the range of the
             temporal surrounding to include into the MAD testing while trying to reduce
             flags.
 
-        drop_flagged : bool, default False
-            Only effective when `range` is not ``None``. Whether or not to drop flagged
-            values other than the value under test from the temporal surrounding before
-            checking the value with MAD.
+        drop_flagged :
+            Only effective when :py:attr:`stray_range` is not ``None``. Whether or not to drop flagged
+            values from the temporal surroundings.
 
-        thresh : float, default 3.5
-            Only effective when `range` is not ``None``. The `critical` value,
+        thresh :
+            Only effective when :py:attr:`stray_range` is not ``None``. The 'critical' value,
             controlling wheather the MAD score is considered referring to an outlier or
             not. Higher values result in less rigid flagging. The default value is widely
             considered apropriate in the literature.
 
-        min_periods_r : int, 1
-            Only effective when `range` is not ``None``. Minimum number of meassurements
-            necessarily present in a reduction interval for reduction actually to be
-            performed.
-
-        flag : float, default BAD
-            flag to set.
+        min_periods_r :
+            Only effective when :py:attr:`stray_range` is not ``None``. Minimum number of measurements
+            necessary in an interval to actually perform the reduction step.
 
         Notes
         -----
@@ -575,8 +524,8 @@ class OutliersMixin:
         This step is usually subject to a phase of research/try and error. See [1] for more
         details.
 
-        Note, that the data transformation as an built-in step of the algorithm,
-        will likely get deprecated soon. Its better to transform the data in a processing
+        Note, that the data transformation as an built-in step of the algorithm, will likely
+        get deprecated in the future. Its better to transform the data in a processing
         step, preceeding the multivariate flagging process. Also, by doing so, one gets
         mutch more control and variety in the transformation applied, since the `trafo`
         parameter only allows for application of the same transformation to all of the
@@ -586,7 +535,7 @@ class OutliersMixin:
 
         Every observation gets assigned a score depending on its k nearest neighbors. See
         the `scoring_method` parameter description for details on the different scoring
-        methods. Furthermore [1], [2] may give some insight in the pro and cons of the
+        methods. Furthermore [1] may give some insight in the pro and cons of the
         different methods.
 
         3. threshing
@@ -597,12 +546,8 @@ class OutliersMixin:
         distribution as the one all the smaller gaps are drawn from, than the observation
         belonging to this gap, and all the observations belonging to gaps larger then
         this gap, get flagged outliers. See description of the `threshing` parameter for
-        more details. Although [2] gives a fully detailed overview over the `stray`
+        more details. Although [1] gives a fully detailed overview over the `stray`
         algorithm.
-
-        Returns
-        -------
-        saqc.SaQC
 
         References
         ----------
@@ -702,9 +647,9 @@ class OutliersMixin:
         thresh: float,
         raise_window: str,
         freq: str,
-        average_window: Optional[str] = None,
+        average_window: str | None = None,
         raise_factor: float = 2.0,
-        slope: Optional[float] = None,
+        slope: float | None = None,
         weight: float = 0.8,
         flag: float = BAD,
         **kwargs,
@@ -713,76 +658,61 @@ class OutliersMixin:
         The function flags raises and drops in value courses, that exceed a certain threshold
         within a certain timespan.
 
-        The parameter variety of the function is owned to the intriguing
-        case of values, that "return" from outlierish or anomalious value levels and
-        thus exceed the threshold, while actually being usual values.
-
-        NOTE: the dataset is NOT supposed to be harmonized to a time series with an
-        equidistant frequency grid.
-
-        Parameters
-        ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged.
-
-        thresh : float
-            The threshold, for the total rise (thresh > 0), or total drop (thresh < 0),
-            value courses must not exceed within a timespan of length `raise_window`.
-
-        raise_window : str
-            An offset string, determining the timespan, the rise/drop thresholding refers
-            to. Window is inclusively defined.
-
-        freq : str
-            An offset string, determining The frequency, the timeseries to-be-flagged is
-            supposed to be sampled at. The window is inclusively defined.
-
-        average_window : {None, str}, default None
-            See condition (2) of the description linked in the references. Window is
-            inclusively defined. The window defaults to 1.5 times the size of `raise_window`
-
-        raise_factor : float, default 2
-            See second condition listed in the notes below.
-
-        slope : {None, float}, default None
-            See third condition listed in the notes below.
-
-        weight : float, default 0.8
-            See third condition listed in the notes below.
-
-        flag : float, default BAD
-            flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
+        The parameter variety of the function is owned to the intriguing case of values, that
+        "return" from outlierish or anomalious value levels and thus exceed the threshold,
+        while actually being usual values.
 
         Notes
         -----
+        The dataset is NOT supposed to be harmonized to a time series with an equidistant
+        requency grid.
+
         The value :math:`x_{k}` of a time series :math:`x` with associated
         timestamps :math:`t_i`, is flagged a raise, if:
 
-        * There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within `raise_window`
-          range, so that:
+        1. There is any value :math:`x_{s}`, preceeding :math:`x_{k}` within
+           :py:attr:`raise_window` range, so that
+           :math:`M = |x_k - x_s | >`  :py:attr:`thresh` :math:`> 0`
 
-          * :math:`M = |x_k - x_s | >`  `thresh` :math:`> 0`
+        2. The weighted average :math:`\\mu^{*}` of the values, preceding :math:`x_{k}`
+           within :py:attr:`average_window` range indicates, that :math:`x_{k}` does not
+           return from an "outlierish" value course, meaning that
+           :math:`x_k > \\mu^* + ( M` / :py:attr:`raise_factor` :math:`)`
 
-        * The weighted average :math:`\\mu^{*}` of the values, preceding :math:`x_{k}`
-          within `average_window`
-          range indicates, that :math:`x_{k}` does not return from an "outlierish" value
-          course, meaning that:
+        3. Additionally, if :py:attr:`slope` is not ``None``, :math:`x_{k}` is checked for being
+           sufficiently divergent from its very predecessor :math:`x_{k-1}`, meaning that, it
+           is additionally checked if:
+           * :math:`x_k - x_{k-1} >` :py:attr:`slope`
+           * :math:`t_k - t_{k-1} >` :py:attr:`weight` :math:`\\times` :py:attr:`freq`
 
-          * :math:`x_k > \\mu^* + ( M` / `mean_raise_factor` :math:`)`
+        Parameters
+        ----------
+        thresh :
+            The threshold, for the total rise (:py:attr:`thresh` ``> 0``), or total drop
+            (:py:attr:`thresh` ``< 0``), value courses must not exceed within a timespan
+            of length :py:attr:`raise_window`.
 
-        * Additionally, if ``min_slope`` is not `None`, :math:`x_{k}` is checked for being
-          sufficiently divergent from its very predecessor :math:`x_{k-1}`, meaning that, it
-          is additionally checked if:
+        raise_window :
+            An offset string, determining the timespan, the rise/drop thresholding refers
+            to. Window is inclusively defined.
 
-          * :math:`x_k - x_{k-1} >` `min_slope`
-          * :math:`t_k - t_{k-1} >` `weight` :math:`\\times` `freq`
+        freq :
+            An offset string, determining the frequency, the timeseries to flag is supposed
+            to be sampled at. The window is inclusively defined.
 
+        average_window :
+            See condition (2) of the description given in the Notes. Window is
+            inclusively defined, defaults to 1.5 times the size of :py:attr:`raise_window`.
+
+        raise_factor :
+            See condition (2).
+
+        slope :
+            See condition (3).
+
+        weight :
+            See condition (3).
         """
-
         # prepare input args
         dataseries = self._data[field].dropna()
         raise_window_td = pd.Timedelta(raise_window)
@@ -887,17 +817,16 @@ class OutliersMixin:
     def flagMAD(
         self: "SaQC",
         field: str,
-        window: Optional[str, int] = None,
+        window: str | int | None = None,
         z: float = 3.5,
-        min_residuals: Optional[int] = None,
-        min_periods: Optional[int] = None,
+        min_residuals: int | None = None,
+        min_periods: int | None = None,
         center: bool = False,
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
         """
         Flag outiers using the modified Z-score outlier detection method.
-
 
         See references [1] for more details on the algorithm.
 
@@ -907,31 +836,17 @@ class OutliersMixin:
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
-        window : {str, int}, default None
-            Size of the window. Either determined via an Offset String, denoting the windows temporal extension or
-            by an integer, denoting the windows number of periods.
-            `NaN` measurements also count as periods.
-            If `None` is passed, All data points share the same scoring window, which than equals the whole
-            data.
-        z: float, default 3.5
-            The value the Z-score is tested against. Defaulting to 3.5 (Recommendation of [1])
-        min_periods
+        window :
+            Size of the window. Either given as an Offset String, denoting the window's temporal extension or
+            as an integer, denoting the window's number of periods. ``NaN`` also count as periods.
+            If ``None``, all data points share the same scoring window, which than equals the whole data.
+        z :
+            The value the Z-score is tested against. Defaulting to ``3.5`` (Recommendation of [1])
+        min_periods :
             Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
-        center
-            Weather or not to center the target value in the scoring window. If `False`, the
+        center :
+            Weather or not to center the target value in the scoring window. If ``False``, the
             target value is the last value in the window.
-        flag : float, default BAD
-            flag to set.
-
-        Returns
-        -------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
-        flags : saqc.Flags
-            The quality flags of data
-            Flags values may have changed, relatively to the flags input.
 
         References
         ----------
@@ -959,9 +874,9 @@ class OutliersMixin:
         self: "SaQC",
         field: str,
         tolerance: float,
-        window: Union[int, str],
-        thresh: Optional[float] = None,
-        thresh_relative: Optional[float] = None,
+        window: int | str,
+        thresh: float | None = None,
+        thresh_relative: float | None = None,
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
@@ -971,60 +886,46 @@ class OutliersMixin:
         The test classifies values/value courses as outliers by detecting not only a rise
         in value, but also, by checking for a return to the initial value level.
 
+        Notes
+        -----
+        This definition of a "spike" not only includes one-value outliers, but also plateau-ish value courses.
+
         Values :math:`x_n, x_{n+1}, .... , x_{n+k}` of a timeseries :math:`x` with
-        associated timestamps :math:`t_n, t_{n+1}, .... , t_{n+k}` are considered spikes, if
+        associated timestamps :math:`t_n, t_{n+1}, .... , t_{n+k}` are considered spikes, if:
+        1. :math:`|x_{n-1} - x_{n + s}| >` :py:attr:`thresh`, for all :math:`s \\in [0,1,2,...,k]`
+        2. if :py:attr:`thresh_relative` > 0, :math:`x_{n + s} > x_{n - 1}*(1+` :py:attr:`thresh_relative` :math:`)`
+        3. if :py:attr:`thresh_relative` < 0, :math:`x_{n + s} < x_{n - 1}*(1+` :py:attr:`thresh_relative` :math:`)`
+        4. :math:`|x_{n-1} - x_{n+k+1}| <` :py:attr:`tolerance`
+        5. :math:`|t_{n-1} - t_{n+k+1}| <` :py:attr:`window`
 
-        1. :math:`|x_{n-1} - x_{n + s}| >` `thresh`, for all :math:`s \\in [0,1,2,...,k]`
-
-        2. if `thresh_relative` > 0, :math:`x_{n + s} > x_{n - 1}*(1+` `thresh_relative` :math:`)`
-
-        3. if `thresh_relative` < 0, :math:`x_{n + s} < x_{n - 1}*(1+` `thresh_relative` :math:`)`
-
-        4. :math:`|x_{n-1} - x_{n+k+1}| <` `tolerance`
-
-        5. :math:`|t_{n-1} - t_{n+k+1}| <` `window`
-
-        Note, that this definition of a "spike" not only includes one-value outliers, but
-        also plateau-ish value courses.
 
         Parameters
         ----------
-        field : str
-            The field in data.
-        tolerance : float
-            Maximum difference allowed, between the value, directly preceding and the value, directly succeeding an offset,
-            to trigger flagging of the values forming the offset.
-            See condition (4).
-        window : {str, int}, default '15min'
-            Maximum length allowed for offset value courses, to trigger flagging of the values forming the offset.
-            See condition (5). Integer defined window length are only allowed for regularly sampled timeseries.
-        thresh : float: {float, None}, default None
-            Minimum difference between a value and its successors, to consider the successors an anomalous offset group.
-            See condition (1). If None is passed, condition (1) is not tested.
-        thresh_relative : {float, None}, default None
-            Minimum relative change between a value and its successors, to consider the successors an anomalous offset group.
-            See condition (2). If None is passed, condition (2) is not tested.
-        flag : float, default BAD
-            flag to set.
-
-        Returns
-        -------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
-        flags : saqc.Flags
-            The quality flags of data
-            Flags values may have changed, relatively to the flags input.
+        tolerance :
+            Maximum difference allowed between the value, directly preceding and the value directly
+            succeeding an offset to trigger flagging of the offsetting values. See condition (4).
+        window :
+            Maximum length allowed for offset value courses, to trigger flagging of the offsetting values.
+            See condition (5). Integer defined window length are only allowed for regularly sampled
+            timeseries.
+        thresh :
+            Minimum difference between a value and its successors, to consider the successors an anomalous
+            offset group. See condition (1). If ``None``, condition (1) is not tested.
+        thresh_relative :
+            Minimum relative change between a value and its successors, to consider the successors an anomalous
+            offset group. See condition (2). If ``None``, condition (2) is not tested.
 
         Examples
         --------
-        Below picture gives an abstract interpretation of the parameter interplay in case of a positive value jump,
-        initialising an offset course.
+        Below picture gives an abstract interpretation of the parameter interplay in case of a positive
+        value jump, initialising an offset course.
 
         .. figure:: /resources/images/flagOffsetPic.png
 
-           The four values marked red, are flagged, because (1) the initial value jump *exceeds* the value given by `thresh`,
-           (2) the temporal extension of the group does *not exceed* the range given by `window` and (3) the returning
-           value after the group, lies *within* the value range determined by `tolerance`
+           The four values marked red, are flagged, because (1) the initial value jump *exceeds* the value
+           given by :py:attr:`thresh`, (2) the temporal extension of the group does *not exceed* the range
+           given by `window` and (3) the returning value after the group, lies *within* the value range
+           determined by :py:attr:`tolerance`
 
 
         .. plot::
@@ -1060,9 +961,10 @@ class OutliersMixin:
            2000-01-01 11:00:00     4
            >>> qc = saqc.SaQC(data)
 
-        Now we are applying :py:meth:`~saqc.SaQC.flagOffset` and try to flag offset courses, that dont extend longer than
-        *6 hours* in time (``window``) and that have an initial value jump higher than *2* (``thresh``), and that do return
-        to the initial value level within a tolerance of *1.5* (``tolerance``).
+        Now we are applying :py:meth:`~saqc.SaQC.flagOffset` and try to flag offset courses, that dont extend
+        longer than *6 hours* in time (:py:attr:`window`) and that have an initial value jump higher than ``2``
+        (:py:attr:`thresh`), and that do return to the initial value level within a tolerance of ``1.5``
+        (:py:attr:`tolerance`).
 
         .. doctest:: flagOffsetExample
 
@@ -1077,9 +979,9 @@ class OutliersMixin:
            >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
            >>> qc.plot('data')  # doctest: +SKIP
 
-        Note, that both, negative and positive jumps are considered starting points of negative or positive offsets.
-        If you want to impose the additional condition, that the initial value jump must exceed *+90%* of the value level,
-        you can additionally set the ``thresh_relative`` parameter:
+        Note, that both, negative and positive jumps are considered starting points of negative or positive
+        offsets. If you want to impose the additional condition, that the initial jump must exceed
+        +90%* of the value level, you can additionally set the :py:attr:`thresh_relative` parameter:
 
         .. doctest:: flagOffsetExample
 
@@ -1094,10 +996,11 @@ class OutliersMixin:
            >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6H')
            >>> qc.plot('data')  # doctest: +SKIP
 
-        Now, only positive jumps, that exceed a value gain of *+90%* are considered starting points of offsets.
+        Now, only positive jumps, that exceed a value gain of +90%* are considered starting points of offsets.
 
-        In the same way, you can aim for only negative offsets, by setting a negative relative threshold. The below
-        example only flags offsets, that fall off by at least *50 %* in value, with an absolute value drop of at least *2*.
+        In the same way, you can aim for only negative offsets, by setting a negative relative threshold.
+        The below example only flags offsets, that fall off by at least *50%* in value, with an absolute
+        value drop of at least 2.
 
         .. doctest:: flagOffsetExample
 
@@ -1111,15 +1014,6 @@ class OutliersMixin:
            >>> qc = saqc.SaQC(data)
            >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6H')
            >>> qc.plot('data')  # doctest: +SKIP
-
-
-        References
-        ----------
-        The implementation is a time-window based version of an outlier test from the UFZ Python library,
-        that can be found here:
-
-        https://git.ufz.de/chs/python/blob/master/ufz/level1/spike.py
-
         """
         if (thresh is None) and (thresh_relative is None):
             raise ValueError(
@@ -1179,7 +1073,7 @@ class OutliersMixin:
     def flagByGrubbs(
         self: "SaQC",
         field: str,
-        window: Union[str, int],
+        window: str | int,
         alpha: float = 0.05,
         min_periods: int = 8,
         pedantic: bool = False,
@@ -1191,45 +1085,35 @@ class OutliersMixin:
 
         See [1] for more information on the grubbs tests definition.
 
-        The (two-sided) test gets applied to data chunks of size ``window``. The
+        The (two-sided) test gets applied to data chunks of size :py:attr:`window`. The
         tests will be iterated chunkwise until no more outliers are detected.
 
         Note
         ----
+        * The data is expected to be normally distributed!
         * The test performs poorly for small data chunks, resulting in considerable
-          overflagging. Select ``window`` such that every data chunck contains at
-          least 8 values and also adjust the ``min_periods`` values accordingly.
-        * The dara is expected to be normally distributed
+          overflagging. Select :py:attr:`window` such that every data chunk contains at
+          least 8 values and also adjust the :py:attr:`min_periods` values accordingly.
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged.
 
-        window : {int, str}
+        window :
             Size of the testing window.
             If an integer, the fixed number of observations used for each window.
             If an offset string the time period of each window.
 
-        alpha : float, default 0.05
-            Level of significance, the grubbs test is to be performed at. Must be between 0 and 1
+        alpha :
+            Level of significance, the grubbs test is to be performed at. Must be between 0 and 1.
 
-        min_periods : int, default 8
-            Minimum number of values needed in a ``window`` in order to perform the grubs test.
-            Ignored if ``window`` is an integer.
+        min_periods :
+            Minimum number of values needed in a :py:attr:`window` in order to perform the grubs test.
+            Ignored if :py:attr:`window` is an integer.
 
-        pedantic: boolean, default False
-            If ``True``, every value gets checked twice. First in the initial rolling ``window``
-            and second in a rolling window that is lagging by ``window``/2. Recommended to avoid
-            false positives at the window edges.
-            Ignored if ``window`` is an offset string.
-
-        flag : float, default BAD
-            flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
+        pedantic :
+            If ``True``, every value gets checked twice. First in the initial rolling :py:attr:`window`
+            and second in a rolling window that is lagging by :py:attr:`window` / 2. Recommended to avoid
+            false positives at the window edges. Ignored if :py:attr:`window` is an offset string.
 
         References
         ----------
@@ -1296,6 +1180,7 @@ class OutliersMixin:
         squeeze=["field"],
         multivariate=True,
         handles_target=False,
+        docstring={"field": DOC_TEMPLATES["field"]},
     )
     def flagCrossStatistics(
         self: "SaQC",
@@ -1308,45 +1193,33 @@ class OutliersMixin:
         """
         Function checks for outliers relatively to the "horizontal" input data axis.
 
-        For `fields` :math:`=[f_1,f_2,...,f_N]` and timestamps :math:`[t_1,t_2,...,t_K]`, the following steps are taken
-        for outlier detection:
+        Notes
+        -----
+        The input variables dont necessarily have to be aligned. If the variables are unaligned, scoring
+        and flagging will only be performed on the subset of indices shared among all input variables.
 
-        1. All timestamps :math:`t_i`, where there is one :math:`f_k`, with :math:`data[f_K]` having no entry at
-           :math:`t_i`, are excluded from the following process (inner join of the :math:`f_i` fields.)
+        For :py:attr:`field` :math:`=[f_1,f_2,...,f_N]` and timestamps :math:`[t_1,t_2,...,t_K]`,
+        the following steps are taken for outlier detection:
+
+        1. All timestamps :math:`t_i`, where there is one :math:`f_k`, with :math:`data[f_K]` having no
+           entry at :math:`t_i`, are excluded from the following process (inner join of the :math:`f_i` fields.)
         2. for every :math:`0 <= i <= K`, the value
            :math:`m_j = median(\\{data[f_1][t_i], data[f_2][t_i], ..., data[f_N][t_i]\\})` is calculated
         3. for every :math:`0 <= i <= K`, the set
-           :math:`\\{data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j\\}` is tested for outliers with the
-           specified algorithm (`cross_stat` parameter).
+           :math:`\\{data[f_1][t_i] - m_j, data[f_2][t_i] - m_j, ..., data[f_N][t_i] - m_j\\}` is tested for
+           outliers with the specified algorithm (:py:attr:`method` parameter).
 
         Parameters
         ----------
-        field : list of str
-            List of fieldnames in data, determining wich variables are to be included into the flagging process.
-
-        thresh : float
+        thresh :
             Threshold which the outlier score of an value must exceed, for being flagged an outlier.
 
-        method : {'modZscore', 'Zscore'}, default 'modZscore'
+        method :
             Method used for calculating the outlier scores.
 
-            * ``'modZscore'``: Median based "sigma"-ish approach. See Referenecs [1].
-            * ``'Zscore'``: Score values by how many times the standard deviation they differ from the median.
-              See References [1]
-
-        flag : float, default BAD
-            flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
-
-
-        Notes
-        -----
-
-        The input variables dont necessarily have to be aligned. If the variables are unaligned, scoring
-        and flagging will be only performed on the subset of inices shared among all input variables.
+            * ``'modZscore'``: Median based "sigma"-ish approach. See References [1].
+            * ``'Zscore'``: Score values by how many times the standard deviation they differ from the
+              median. See References [1].
 
 
         References
@@ -1386,12 +1259,10 @@ class OutliersMixin:
             diff_scores = df.subtract(stat, axis=0).abs()
 
         mask = diff_scores > thresh
-        if mask.empty:
-            return self
-
-        for f in fields:
-            m = mask[f].reindex(index=self._flags[f].index, fill_value=False)
-            self._flags[m, f] = flag
+        if not mask.empty:
+            for f in fields:
+                m = mask[f].reindex(index=self._flags[f].index, fill_value=False)
+                self._flags[m, f] = flag
 
         return self
 
@@ -1403,8 +1274,8 @@ class OutliersMixin:
         thresh: float = 3,
         min_residuals: int | None = None,
         min_periods: int | None = None,
-        model_func: Callable = np.nanmean,
-        norm_func: Callable = np.nanstd,
+        model_func: Callable[[np.ndarray | pd.Series], float] = np.nanmean,
+        norm_func: Callable[[np.ndarray | pd.Series], float] = np.nanstd,
         center: bool = True,
         flag: float = BAD,
         **kwargs,
@@ -1412,61 +1283,46 @@ class OutliersMixin:
         """
         Flag data where its (rolling) Zscore exceeds a threshold.
 
-        The function implements flagging derived from a basic Zscore calculation.
-        To handle non stationary data, the Zscoring can be applied with a rolling window.
-        Therefor, the function allows for a minimum residual to be specified in order to mitigate overflagging in
-        local regimes of low variance.
+        The function implements flagging derived from a basic Zscore calculation. To handle non
+        stationary data, the Zscoring can be applied with a rolling window. Therefor, the function
+        allows for a minimum residual to be specified in order to mitigate overflagging in local
+        regimes of low variance.
 
         See the Notes section for a detailed overview of the calculation
 
-
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
-        window : {str, int}, default None
-            Size of the window. Either determined via an Offset String, denoting the windows temporal extension or
-            by an integer, denoting the windows number of periods.
-            `NaN` measurements also count as periods.
-            If `None` is passed, All data points share the same scoring window, which than equals the whole
-            data.
-        thresh
-            Cutoff level for the Zscores, above which associated points are getting flagged.
-        min_residuals
-            Minimum residual level points must have to be considered outliers.
-        min_periods
+        window :
+            Size of the window. Either determined via an Offset String, denoting the windows temporal
+            extension or by an integer, denoting the windows number of periods. ``NaN`` also count as
+            periods. If ``None`` is passed, all data points share the same scoring window, which than
+            equals the whole data.
+        thresh :
+            Cutoff level for the Zscores, above which associated points are marked as outliers.
+        min_residuals :
+            Minimum residual value points must have to be considered outliers.
+        min_periods :
             Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
-        model_func
+        model_func : default mean
             Function to calculate the center moment in every window.
-        norm_func
-            Function to calculate the scaling for every window
-        center
-            Weather or not to center the target value in the scoring window. If `False`, the
+        norm_func : default std
+            Function to calculate the scaling for every window.
+        center :
+            Weather or not to center the target value in the scoring window. If ``False``, the
             target value is the last value in the window.
-
-        Returns
-        -------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
-        flags : saqc.Flags
-            The quality flags of data
-            Flags values may have changed, relatively to the flags input.
 
         Notes
         -----
         Steps of calculation:
 
         1. Consider a window :math:`W` of successive points :math:`W = x_{1},...x_{w}`
-        containing the value :math:`y_{K}` which is to be checked.
-        (The index of :math:`K` depends on the selection of the parameter `center`.)
-
-        2. The "moment" :math:`M` for the window gets calculated via :math:`M=` `model_func(:math:`W`)
-
-        3. The "scaling" :math:`N` for the window gets calculated via :math:`N=` `norm_func(:math:`W`)
-
-        4. The "score" :math:`S` for the point :math:`x_{k}`gets calculated via :math:`S=(x_{k} - M) / N`
-
-        5. Finally, :math:`x_{k}` gets flagged, if :math:`|S| >` `thresh` and :math:`|M - x_{k}| >= `min_residuals`
+           containing the value :math:`y_{K}` which is to be checked.
+           (The index of :math:`K` depends on the selection of the parameter :py:attr:`center`.)
+        2. The "moment" :math:`M` for the window gets calculated via :math:`M=` :py:attr:`model_func` :math:`(W)`.
+        3. The "scaling" :math:`N` for the window gets calculated via :math:`N=` :py:attr:`norm_func` :math:`(W)`.
+        4. The "score" :math:`S` for the point :math:`x_{k}` gets calculated via :math:`S=(x_{k} - M) / N`.
+        5. Finally, :math:`x_{k}` gets flagged, if :math:`|S| >` :py:attr:`thresh` and
+           :math:`|M - x_{k}| >=` :py:attr:`min_residuals`.
         """
         datser = self._data[field]
         if min_residuals is None:
@@ -1504,43 +1360,43 @@ def _evalStrayLabels(
 
     Parameters
     ----------
-    data : dios.DictOfSeries
+    data :
         A dictionary of pandas.Series, holding all the data.
 
-    field : str
+    field :
         The fieldname of the column, holding the labels to be evaluated.
 
-    flags : saqc.Flags
+    flags :
         Container to store quality flags to data.
 
-    target : list of str
+    target :
         A list of strings, holding the column names of the variables, the stray labels
         shall be projected onto.
 
-    val_frame : (N,M) pd.DataFrame
+    val_frame :
         Input NxM DataFrame of observations, where N is the number of observations and
         M the number of components per observation.
 
-    to_flag_frame : pandas.DataFrame
+    to_flag_frame :
         Input dataframe of observations to be tested, where N is the number of
         observations and M the number of components per observation.
 
-    reduction_range : {None, str}
+    reduction_range :
         An offset string, denoting the range of the temporal surrounding to include
         into the MAD testing. If ``None`` is passed, no testing will be performed and
         all targets will have the stray flag projected.
 
-    reduction_drop_flagged : bool, default False
+    reduction_drop_flagged :
         Wheather or not to drop flagged values other than the value under test, from the
         temporal surrounding before checking the value with MAD.
 
-    reduction_thresh : float, default 3.5
+    reduction_thresh :
         The `critical` value, controlling wheather the MAD score is considered
         referring to an outlier or not. Higher values result in less rigid flagging.
         The default value is widely used in the literature. See references section
         for more details ([1]).
 
-    at_least_one : bool, default True
+    at_least_one :
         If none of the variables, the outlier label shall be reduced to, is an outlier
         with regard to the test, all (True) or none (False) of the variables are flagged
 

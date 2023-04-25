@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 # TODO: remove, when `interpolateIndex` and `interpolateInvalid are removed`
-_SUPPORTED_METHODS = Literal[
+INTERPOLATION_METHODS = Literal[
     "linear",
     "time",
     "nearest",
@@ -76,31 +76,20 @@ class InterpolationMixin:
 
         Parameters
         ----------
-        field : str
-            Name of the column, holding the data-to-be-interpolated.
-
-        window : int, str
+        window :
             The size of the window, the aggregation is computed from. An integer define the number of periods to be used,
             an string is interpreted as an offset. ( see `pandas.rolling` for more information).
             Integer windows may result in screwed aggregations if called on none-harmonized or irregular data.
 
-        func : Callable
+        func : default median
             The function used for aggregation.
 
-        center : bool, default True
+        center :
             Center the window around the value. Can only be used with integer windows, otherwise it is silently ignored.
 
-        min_periods : int
+        min_periods :
             Minimum number of valid (not np.nan) values that have to be available in a window for its aggregation to be
             computed.
-
-        flag : float or None, default UNFLAGGED
-            Flag that is to be inserted for the interpolated values.
-            If `None` the old flags are kept, even if the data is valid now.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         datcol = self._data[field]
         roller = datcol.rolling(window=window, center=center, min_periods=min_periods)
@@ -145,27 +134,7 @@ class InterpolationMixin:
     def interpolate(
         self: "SaQC",
         field: str,
-        method: Literal[
-            "linear",
-            "time",
-            "index",
-            "values",
-            "pad",
-            "nearest",
-            "zero",
-            "slinear",
-            "quadratic",
-            "cubic",
-            "spline",
-            "barycentric",
-            "polynomial",
-            "krogh",
-            "spline",
-            "pchip",
-            "akima",
-            "cubicspline",
-            "from_derivatives",
-        ],
+        method: INTERPOLATION_METHODS = "time",
         order: int = 2,
         limit: int | str | None = None,
         extrapolate: Literal["forward", "backward", "both"] | None = None,
@@ -177,10 +146,7 @@ class InterpolationMixin:
 
         Parameters
         ----------
-        field:
-            Column(s) to interpolate.
-
-        method:
+        method :
             Interpolation technique to use. One of:
 
             * ‘linear’: Ignore the index and treat the values as equally spaced.
@@ -195,28 +161,21 @@ class InterpolationMixin:
                  Wrappers around the SciPy interpolation methods of similar names.
             * ‘from_derivatives’: Refers to scipy.interpolate.BPoly.from_derivatives
 
-        order:
+        order :
             Order of the interpolation method, ignored if not supported by the chosen ``method``
 
-        limit:
+        limit :
             Maximum number of missing values to interpolate. Only gaps smaller than ``limit`` will be filled.
             The gap size can be given as a number of values (integer) or a temporal extensions (offset string).
             With ``None``, all missing values will be interpolated.
 
-        extrapolate:
+        extrapolate :
             Use parameter to perform extrapolation instead of interpolation onto the trailing and/or leading chunks of
             NaN values in data series.
 
             * 'None' (default) - perform interpolation
             * 'forward'/'backward' - perform forward/backward extrapolation
             * 'both' - perform forward and backward extrapolation
-
-        flag : float or None, default UNFLAGGED
-            Flag that is set for interpolated values. If ``None``, no flags are set at all.
-
-        Returns
-        -------
-        saqc.SaQC
 
         Examples
         --------
@@ -337,30 +296,7 @@ class InterpolationMixin:
         self: "SaQC",
         field: str,
         freq: str,
-        method: Literal[
-            "nshift",
-            "bshift",
-            "fshift",
-            "linear",
-            "time",
-            "index",
-            "values",
-            "pad",
-            "nearest",
-            "zero",
-            "slinear",
-            "quadratic",
-            "cubic",
-            "spline",
-            "barycentric",
-            "polynomial",
-            "krogh",
-            "spline",
-            "pchip",
-            "akima",
-            "cubicspline",
-            "from_derivatives",
-        ] = "time",
+        method: INTERPOLATION_METHODS = "time",
         order: int = 2,
         extrapolate: Literal["forward", "backward", "both"] | None = None,
         overwrite: bool = False,
@@ -372,46 +308,38 @@ class InterpolationMixin:
 
         Parameters
         ----------
-        field:
-            Column(s) to align.
-
-        freq:
+        freq :
             Target frequency.
 
-        method:
+        method :
             Interpolation technique to use. One of:
 
-            * 'nshift': shift grid points to the nearest time stamp in the range = +/- 0.5 * ``freq``
-            * 'bshift' : shift grid points to the first succeeding time stamp (if any)
-            * 'fshift' : shift grid points to the last preceeding time stamp (if any)
-            * ‘linear’: Ignore the index and treat the values as equally spaced.
-            * 'time', ‘index’, ‘values’: Use the actual numerical values of the index.
-            * ‘pad’: Fill in NaNs using existing values.
-            * ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘spline’, ‘barycentric’, ‘polynomial’:
-                 Passed to scipy.interpolate.interp1d. These methods use the numerical values of the index.
-                 Both ‘polynomial’ and ‘spline’ require that you also specify an order (int), e.g.
-                 ``qc.interpolate(method='polynomial', order=5)``.
-            * ‘krogh’, ‘spline’, ‘pchip’, ‘akima’, ‘cubicspline’:
-                 Wrappers around the SciPy interpolation methods of similar names.
-            * ‘from_derivatives’: Refers to scipy.interpolate.BPoly.from_derivatives
+            * ``'nshift'``: shift grid points to the nearest time stamp in the range = +/- 0.5 * ``freq``
+            * ``'bshift'``: shift grid points to the first succeeding time stamp (if any)
+            * ``'fshift'``: shift grid points to the last preceeding time stamp (if any)
+            * ``'linear'``: Ignore the index and treat the values as equally spaced.
+            * ``'time'``, ``'index'``, 'values': Use the actual numerical values of the index.
+            * ``'pad'``: Fill in NaNs using existing values.
+            * ``'nearest'``, ``'zero'``, ``'slinear'``, ``'quadratic'``, ``'cubic'``, ``'spline'``, ``'barycentric'``, ``'polynomial'``:
+              Passed to ``scipy.interpolate.interp1d``. These methods use the numerical values of the index. Both ``'polynomial'`` and
+              ``'spline'`` require that you also specify an ``order``, e.g. ``qc.interpolate(method='polynomial', order=5)``.
+            * ``'krogh'``, ``'spline'``, ``'pchip'``, ``'akima'``, ``'cubicspline'``:
+              Wrappers around the SciPy interpolation methods of similar names.
+            * ``'from_derivatives'``: Refers to ``scipy.interpolate.BPoly.from_derivatives``
 
-        order:
+        order :
             Order of the interpolation method, ignored if not supported by the chosen ``method``
 
-        extrapolate : {'forward', 'backward', 'both'}, default None
+        extrapolate :
             Use parameter to perform extrapolation instead of interpolation onto the trailing and/or leading chunks of
             NaN values in data series.
 
-            * 'None' (default) - perform interpolation
-            * 'forward'/'backward' - perform forward/backward extrapolation
-            * 'both' - perform forward and backward extrapolation
+            * ``None`` (default) - perform interpolation
+            * ``'forward'``/``'backward'`` - perform forward/backward extrapolation
+            * ``'both'`` - perform forward and backward extrapolation
 
-        overwrite:
+        overwrite :
            If set to True, existing flags will be cleared
-
-        Returns
-        -------
-        saqc.SaQC
         """
 
         # TODO:
@@ -462,7 +390,7 @@ class InterpolationMixin:
         self: "SaQC",
         field: str,
         freq: str,
-        method: _SUPPORTED_METHODS,
+        method: INTERPOLATION_METHODS,
         order: int = 2,
         limit: int | None = 2,
         extrapolate: Literal["forward", "backward", "both"] = None,
@@ -473,38 +401,30 @@ class InterpolationMixin:
 
         Parameters
         ----------
-        field : str
-            Name of the column, holding the data-to-be-interpolated.
-
-        freq : str
+        freq :
             An Offset String, interpreted as the frequency of
-            the grid you want to interpolate your data at.
+            the grid you want to interpolate your data to.
 
-        method : {"linear", "time", "nearest", "zero", "slinear", "quadratic", "cubic", "spline", "barycentric",
-            "polynomial", "krogh", "piecewise_polynomial", "spline", "pchip", "akima"}: string
+        method :
             The interpolation method you want to apply.
 
-        order : int, default 2
+        order :
             If your selected interpolation method can be performed at different 'orders' - here you pass the desired
             order.
 
-        limit : int, optional
-            Upper limit of missing index values (with respect to `freq`) to fill. The limit can either be expressed
+        limit :
+            Upper limit of missing index values (with respect to ``freq``) to fill. The limit can either be expressed
             as the number of consecutive missing values (integer) or temporal extension of the gaps to be filled
             (Offset String).
-            If `None` is passed, no Limit is set.
+            If ``None`` is passed, no limit is set.
 
-        extraplate : {'forward', 'backward', 'both'}, default None
+        extraplate :
             Use parameter to perform extrapolation instead of interpolation onto the trailing and/or leading chunks of
             NaN values in data series.
 
-            * 'None' (default) - perform interpolation
-            * 'forward'/'backward' - perform forward/backward extrapolation
-            * 'both' - perform forward and backward extrapolation
-
-        Returns
-        -------
-        saqc.SaQC
+            * ``None`` (default) - perform interpolation
+            * ``'forward'``/``'backward'`` - perform forward/backward extrapolation
+            * ``'both'`` - perform forward and backward extrapolation
         """
 
         msg = """
@@ -544,7 +464,7 @@ class InterpolationMixin:
     def interpolateInvalid(
         self: "SaQC",
         field: str,
-        method: _SUPPORTED_METHODS,
+        method: INTERPOLATION_METHODS,
         order: int = 2,
         limit: int | None = None,
         extrapolate: Literal["forward", "backward", "both"] | None = None,
@@ -585,20 +505,20 @@ def _shift(
 
     Parameters
     ----------
-    field : str
+    field :
         The fieldname of the column, holding the data-to-be-shifted.
 
-    freq : str
+    freq :
         Offset string. Sampling rate of the target frequency.
 
-    method : {'fshift', 'bshift', 'nshift'}, default 'nshift'
+    method :
         Method to propagate values:
 
         * 'nshift' : shift grid points to the nearest time stamp in the range = +/- 0.5 * ``freq``
         * 'bshift' : shift grid points to the first succeeding time stamp (if any)
         * 'fshift' : shift grid points to the last preceeding time stamp (if any)
 
-    freq_check : {None, 'check', 'auto'}, default None
+    freq_check :
         * ``None`` : do not validate the ``freq`` string.
         * 'check' : check ``freq`` against an frequency estimation, produces a warning in case of miss matches.
         * 'auto' : estimate frequency, `freq` is ignored.

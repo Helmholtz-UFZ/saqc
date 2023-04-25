@@ -48,18 +48,6 @@ class BreaksMixin:
         Each flag worse than the threshold is replaced by the function.
         This is, because the data gets masked (with NaNs) before the
         function evaluates the NaNs.
-
-        Parameters
-        ----------
-        field : str
-            Column(s) in flags and data.
-
-        flag : float, default BAD
-            Flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
         """
 
         datacol = self._data[field]
@@ -88,25 +76,15 @@ class BreaksMixin:
 
         Parameters
         ----------
-        field : str
-            Column(s) in flags and data.
-
-        gap_window : str
+        gap_window :
             Minimum gap size required before and after a data group to consider it
             isolated. See condition (2) and (3)
 
-        group_window : str
+        group_window :
             Maximum size of a data chunk to consider it a candidate for an isolated group.
             Data chunks that are bigger than the ``group_window`` are ignored.
             This does not include the possible gaps surrounding it.
             See condition (1).
-
-        flag : float, default BAD
-            Flag to set.
-
-        Returns
-        -------
-        saqc.SaQC
 
         Notes
         -----
@@ -168,16 +146,12 @@ class BreaksMixin:
         Whenever the difference between the mean in the two windows exceeds `thresh`, the value between the windows
         is flagged a jump.
 
-
         Parameters
         ----------
-        field : str
-            Column(s) in flags and data.
-
-        thresh : float
+        thresh :
             Threshold value by which the mean of data has to jump, to trigger flagging.
 
-        window : str
+        window :
             Size of the two moving windows. This determines the number of observations used
             for calculating the mean in every window.
             The window size should be big enough to yield enough samples for a reliable mean calculation,
@@ -185,12 +159,9 @@ class BreaksMixin:
             More precisely: Jumps that are not distanced to each other by more than three fourth (3/4) of the
             selected window size, will not be detected reliably.
 
-        min_periods : int, default 1
+        min_periods :
             The minimum number of observations in window required to calculate a valid
             mean value.
-
-        flag : float, default BAD
-            Flag to set.
 
         Examples
         --------
@@ -208,11 +179,6 @@ class BreaksMixin:
 
         Jumps that are not distanced to each other by more than three fourth (3/4) of the
         selected window size, will not be detected reliably.
-
-
-        Returns
-        -------
-        saqc.SaQC
         """
         mask = _getChangePoints(
             data=self._data[field],

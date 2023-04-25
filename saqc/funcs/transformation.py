@@ -24,7 +24,7 @@ class TransformationMixin:
         self: "SaQC",
         field: str,
         func: Callable[[pd.Series | np.ndarray], pd.Series],
-        freq: Optional[Union[float, str]] = None,
+        freq: float | str | None = None,
         **kwargs,
     ) -> "SaQC":
         """
@@ -32,22 +32,15 @@ class TransformationMixin:
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-transformed.
-
-        func : Callable[{pd.Series, np.array}, np.array]
+        func :
             Transformation function.
 
-        freq : {None, float, str}, default None
+        freq :
             Size of the data window. The transformation is applied on each window individually
 
             * ``None``: Apply transformation on the entire data set at once
             * ``int`` : Apply transformation on successive data chunks of the given length. Must be grater than 0.
             * Offset String : Apply transformation on successive data chunks of the given temporal extension.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         val_ser = self._data[field].copy()
         # partitioning
