@@ -2,14 +2,20 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-residuals
-=========
-
+Data Products
+=============
 
 
 .. currentmodule:: saqc
 
 .. autosummary::
+   :nosignatures:
 
+   ~SaQC.assignKNNScore
+   ~SaQC.assignLOF
+   ~SaQC.assignUniLOF
+   ~SaQC.assignZScore
    ~SaQC.calculatePolynomialResiduals
    ~SaQC.calculateRollingResiduals
+   ~SaQC.fitPolynomial
+   ~SaQC.fitLowpassFilter

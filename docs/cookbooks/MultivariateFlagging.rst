@@ -123,7 +123,7 @@ Lets check out the resulting flags for the *sac254* variable with the :py:meth:`
 
 
 Now we should figure out, what sampling rate the data is intended to have, by accessing the *_raw* variables
-constituting the sensor data. Since :py:attr:`saqc.SaQC.data` yields a 
+constituting the sensor data. Since :py:attr:`saqc.SaQC.data` yields a
 `pandas.DataFrame <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_ like object, we can index it with
 the desired variables as column names and have a look at the console output to get a first impression.
 
@@ -191,18 +191,18 @@ The resulting timeseries now has has regular timestamp.
 .. doctest:: exampleMV
 
    >>> qc.data['sac254_raw'] #doctest:+NORMALIZE_WHITESPACE
-   Timestamp                                                                                                          
-   2016-01-01 00:00:00          NaN                                                                                   
-   2016-01-01 00:15:00    18.617873                                                                                   
-   2016-01-01 00:30:00    18.942700                                                                                   
-   2016-01-01 00:45:00    18.858787                                                                                   
-   2016-01-01 01:00:00    18.756467                                                                                   
-                            ...                                                                                       
-   2017-12-31 23:00:00    43.631540                                                                                   
-   2017-12-31 23:15:00    43.613533                                                                                   
-   2017-12-31 23:30:00    43.274033                                                                                   
-   2017-12-31 23:45:00    43.674453                                                                                   
-   2018-01-01 00:00:00          NaN                                                                                   
+   Timestamp
+   2016-01-01 00:00:00          NaN
+   2016-01-01 00:15:00    18.617873
+   2016-01-01 00:30:00    18.942700
+   2016-01-01 00:45:00    18.858787
+   2016-01-01 01:00:00    18.756467
+                            ...
+   2017-12-31 23:00:00    43.631540
+   2017-12-31 23:15:00    43.613533
+   2017-12-31 23:30:00    43.274033
+   2017-12-31 23:45:00    43.674453
+   2018-01-01 00:00:00          NaN
    Length: 70177, dtype: float64
 
 Since points, that were identified as malicous get excluded before the harmonization, the resulting regularly sampled
@@ -394,4 +394,3 @@ To configure `saqc` to execute the above data processing and flagging steps, the
 as follows:
 
 .. literalinclude:: ../resources/data/hydro_config.csv
-

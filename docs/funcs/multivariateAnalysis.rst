@@ -2,13 +2,17 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-rolling
-=======
+Multivariate Analysis
+=====================
 
-
+Multivariate outlier detection.
 
 .. currentmodule:: saqc
 
 .. autosummary::
+   :nosignatures:
 
-   ~SaQC.roll
+   ~SaQC.flagMVScores
+   ~SaQC.flagCrossStatistics
+   ~SaQC.flagLOF
+

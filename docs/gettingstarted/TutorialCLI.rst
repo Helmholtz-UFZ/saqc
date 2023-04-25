@@ -23,6 +23,8 @@
    data = pd.read_csv(datapath, index_col=0)
    data.index = pd.DatetimeIndex(data.index)
 
+.. _tutorialcli:
+
 Command Line Application
 ========================
 

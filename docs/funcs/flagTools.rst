@@ -2,14 +2,16 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-constants
+flagtools
 =========
-
-
 
 .. currentmodule:: saqc
 
 .. autosummary::
 
-   ~SaQC.flagConstants
-   ~SaQC.flagByVariance
+   ~SaQC.forceFlags
+   ~SaQC.clearFlags
+   ~SaQC.flagUnflagged
+   ~SaQC.flagManual
+   ~SaQC.flagDummy
+   ~SaQC.transferFlags

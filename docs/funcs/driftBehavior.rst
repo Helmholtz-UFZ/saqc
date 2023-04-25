@@ -2,14 +2,13 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-drift
-=====
-
-
+Drift detection and correction
+==============================
 
 .. currentmodule:: saqc
 
 .. autosummary::
+   :nosignatures:
 
    ~SaQC.flagDriftFromNorm
    ~SaQC.flagDriftFromReference

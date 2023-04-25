@@ -2,16 +2,17 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-interpolation
-=============
-
+generic wrapper
+===============
 
 
 .. currentmodule:: saqc
 
 .. autosummary::
+   :nosignatures:
 
-   ~SaQC.align
-   ~SaQC.interpolateByRolling
-   ~SaQC.interpolateInvalid
-   ~SaQC.interpolateIndex
+   ~SaQC.processGeneric
+   ~SaQC.flagGeneric
+   ~SaQC.roll
+   ~SaQC.transform
+   ~SaQC.resample
