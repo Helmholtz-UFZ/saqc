@@ -5,11 +5,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # -*- coding: utf-8 -*-
-
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Union
 
 import numpy as np
 import pandas as pd
@@ -18,6 +17,7 @@ from typing_extensions import Literal
 from saqc.constants import UNFLAGGED
 from saqc.core import register
 from saqc.core.history import History
+from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import filterKwargs, getFreqDelta, isflagged
 from saqc.lib.ts_operators import aggregate2Freq
 
@@ -58,15 +58,8 @@ class ResamplingMixin:
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-regularized.
-
-        freq : str
+        freq :
             An offset string. The frequency of the grid you want to interpolate your data at.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         reserved = ["method", "order", "limit", "downgrade"]
         kwargs = filterKwargs(kwargs, reserved)
@@ -85,22 +78,15 @@ class ResamplingMixin:
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-shifted.
-
-        freq : str
+        freq :
             Offset string. Sampling rate of the target frequency.
 
-        method : {'fshift', 'bshift', 'nshift'}, default 'nshift'
+        method :
             Method to propagate values:
 
             * 'nshift' : shift grid points to the nearest time stamp in the range = +/- 0.5 * ``freq``
             * 'bshift' : shift grid points to the first succeeding time stamp (if any)
             * 'fshift' : shift grid points to the last preceeding time stamp (if any)
-
-        Returns
-        -------
-        saqc.SaQC
         """
         warnings.warn(
             f"""
@@ -120,8 +106,8 @@ class ResamplingMixin:
         freq: str,
         func: Callable[[pd.Series], pd.Series] = np.mean,
         method: Literal["fagg", "bagg", "nagg"] = "bagg",
-        maxna: Optional[int] = None,
-        maxna_group: Optional[int] = None,
+        maxna: int | None = None,
+        maxna_group: int | None = None,
         **kwargs,
     ) -> "SaQC":
         """
@@ -139,7 +125,6 @@ class ResamplingMixin:
         * ``'fagg'``: all values in a sampling interval get aggregated with func and
             the result gets assigned to the next grid point.
 
-
         Note
         ----
         For perfomance reasons, ``func`` will be mapped to pandas.resample methods,
@@ -150,29 +135,22 @@ class ResamplingMixin:
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-resampled.
-
-        freq : str
+        freq :
             Offset string. Sampling rate of the target frequency grid.
 
-        func : Callable
+        func : default mean
             Aggregation function. See notes for performance considerations.
 
-        method: {'fagg', 'bagg', 'nagg'}, default 'bagg'
+        method :
             Specifies which intervals to be aggregated for a certain timestamp. (preceding,
             succeeding or "surrounding" interval). See description above for more details.
 
-        maxna : {None, int}, default None
+        maxna :
             Maximum number of allowed ``NaN``s in a resampling interval. If exceeded, the
             entire interval is filled with ``NaN``.
 
-        maxna_group : {None, int}, default None
+        maxna_group :
             Same as `maxna` but for consecutive NaNs.
-
-        Returns
-        -------
-        saqc.SaQC
         """
 
         datcol = self._data[field]
@@ -229,6 +207,7 @@ class ResamplingMixin:
         demask=[],
         squeeze=[],
         handles_target=True,  # target is mandatory in func, so its allowed
+        docstring={"target": DOC_TEMPLATES["target"]},
     )
     def concatFlags(
         self: "SaQC",
@@ -252,8 +231,8 @@ class ResamplingMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Project flags/history of ``field`` to ``target`` and adjust to the frequeny grid
-        of ``target`` by 'undoing' former interpolation, shifting or resampling operations
+        Project flags/history of :py:attr:`field` to :py:attr:`target` and adjust to the frequeny grid
+        of :py:attr:`target` by 'undoing' former interpolation, shifting or resampling operations
 
         Note
         ----
@@ -263,40 +242,38 @@ class ResamplingMixin:
 
         Parameters
         ----------
-        field:
-            Fieldname of flags history to append.
+        method :
+            Method to project the flags of :py:attr:`field` the flags to :py:attr:`target`:
 
-        target:
-            Field name of flags history to append to.
+           * ``'auto'``: inverse the last alignment/resampling operations
+           * ``'inverse_nagg'``: project a flag of :py:attr:`field` to all timestamps of
+             :py:attr:`target` within the range +/- :py:attr:`freq`/2.
+           * ``'inverse_bagg'``: project a flag of :py:attr:`field` to all preceeding timestamps
+             of :py:attr:`target` within the range :py:attr:`freq`
+           * ``'inverse_fagg'``: project a flag of :py:attr:`field` to all succeeding timestamps
+             of :py:attr:`target` within the range :py:attr:`freq`
+           * ``'inverse_interpolation'`` - project a flag of :py:attr:`field` to all timestamps
+             of :py:attr:`target` within the range +/- :py:attr:`freq`
+           * ``'inverse_nshift'`` - project a flag of :py:attr:`field` to the neaerest timestamps
+             in :py:attr:`target` within the range +/- :py:attr:`freq`/2
+           * ``'inverse_bshift'`` - project a flag of :py:attr:`field` to nearest preceeding
+             timestamps in :py:attr:`target`
+           * ``'inverse_nshift'`` - project a flag of :py:attr:`field` to nearest succeeding
+             timestamps in :py:attr:`target`
+           * ``'match'`` - project a flag of :py:attr:`field` to all identical timestamps
+             :py:attr:`target`
 
-        method:
-            Method to project the flags of ``field`` the flags to ``target``:
+        freq :
+            Projection range. If ``None`` the sampling frequency of :py:attr:`field` is used.
 
-           * 'auto': inverse the last alignment/resampling operations
-           * 'inverse_nagg': project a flag of ``field`` to all timestamps of ``target`` within the range +/- ``freq``/2.
-           * 'inverse_bagg': project a flag of ``field`` to all preceeding timestamps of ``target`` within the range ``freq``
-           * 'inverse_fagg': project a flag of ``field`` to all succeeding timestamps of ``target`` within the range ``freq``
-           * 'inverse_interpolation' - project a flag of ``field`` to all timestamps of ``target`` within the range +/- ``freq``
-           * 'inverse_nshift' - project a flag of ``field`` to the neaerest timestamps in ``target`` within the range +/- ``freq``/2
-           * 'inverse_bshift' - project a flag of ``field`` to nearest preceeding timestamps in ``target``
-           * 'inverse_nshift' - project a flag of ``field`` to nearest succeeding timestamps in ``target``
-           * 'match' - project a flag of ``field`` to all identical timestamps ``target``
+        drop :
+            Remove :py:attr:`field` if ``True``
 
-        freq : str or None, default None
-            Projection range. If ``None`` the sampling frequency of ``field`` is used.
-
-        drop : bool, default False
-            Remove ``field`` if ``True``
-
-        squeeze : bool, default False
+        squeeze :
             Squueze the history into a single column if ``True``. Function specific flag information is lost.
 
-        overwrite: bool, default False
+        overwrite :
             Overwrite existing flags if ``True``
-
-        Returns
-        -------
-        saqc.SaQC
         """
 
         if target is None:

@@ -53,30 +53,23 @@ class ResidualsMixin:
 
         Parameters
         ----------
-        field : str
-            The column, holding the data-to-be-modelled.
-
-        window : {str, int}
+        window :
             The size of the window you want to use for fitting. If an integer is passed,
             the size refers to the number of periods for every fitting window. If an
             offset string is passed, the size refers to the total temporal extension. The
             window will be centered around the vaule-to-be-fitted. For regularly sampled
             timeseries the period number will be casted down to an odd number if even.
 
-        order : int
+        order :
             The degree of the polynomial used for fitting
 
-        min_periods : int or None, default 0
+        min_periods :
             The minimum number of periods, that has to be available in every values
             fitting surrounding for the polynomial fit to be performed. If there are not
             enough values, np.nan gets assigned. Default (0) results in fitting
             regardless of the number of values present (results in overfitting for too
             sparse intervals). To automatically set the minimum number of periods to the
             number of values in an offset defined window size, pass np.nan.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         orig = self._data[field]
         data, _ = _fitPolynomial(
@@ -108,31 +101,21 @@ class ResidualsMixin:
 
         Parameters
         ----------
-        field : str
-            The column to calculate on.
-
-        flags : saqc.Flags
-            Container to store quality flags to data.
-
-        window : {int, str}
+        window :
             The size of the window you want to roll with. If an integer is passed, the size
             refers to the number of periods for every fitting window. If an offset string
             is passed, the size refers to the total temporal extension. For regularly
             sampled timeseries, the period number will be casted down to an odd number if
             ``center=True``.
 
-        func : Callable, default np.mean
+        func : default mean
             Function to roll with.
 
-        min_periods : int, default 0
+        min_periods :
             The minimum number of periods to get a valid value
 
-        center : bool, default True
+        center :
             If True, center the rolling window.
-
-        Returns
-        -------
-        saqc.SaQC
         """
         orig = self._data[field].copy()
         data, _ = _roll(

@@ -16,6 +16,7 @@ from typing_extensions import Literal
 
 from saqc import UNFLAGGED
 from saqc.core import register
+from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import getApply, toSequence
 from saqc.lib.ts_operators import kNN
 
@@ -99,17 +100,17 @@ def _univarScoring(
 
     Parameters
     ----------
-    data
+    data :
         A dictionary of pandas.Series, holding all the data.
-    window : {str, int}, default None
+    window :
             Size of the window. Either determined via an Offset String, denoting the windows temporal extension or
             by an integer, denoting the windows number of periods.
             `NaN` measurements also count as periods.
             If `None` is passed, All data points share the same scoring window, which than equals the whole
             data.
-    model_func
+    model_func : default std
         Function to calculate the center moment in every window.
-    norm_func
+    norm_func : default mean
         Function to calculate the scaling for every window
     center
         Weather or not to center the target value in the scoring window. If `False`, the
@@ -147,6 +148,7 @@ class ScoresMixin:
         squeeze=["target"],
         multivariate=True,
         handles_target=True,
+        docstring={"field": DOC_TEMPLATES["field"], "target": DOC_TEMPLATES["target"]},
     )
     def assignKNNScore(
         self: "SaQC",
@@ -162,7 +164,6 @@ class ScoresMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        TODO: docstring need a rework
         Score datapoints by an aggregation of the dictances to their k nearest neighbors.
 
         The function is a wrapper around the NearestNeighbors method from pythons sklearn library (See reference [1]).
@@ -185,20 +186,14 @@ class ScoresMixin:
 
         Parameters
         ----------
-        field : list of str
-            input variable names.
-
-        target : str, default "kNNscores"
-            A new Column name, where the result is stored.
-
-        n : int, default 10
+        n : :
             The number of nearest neighbors to which the distance is comprised in every datapoints scoring calculation.
 
-        func : Callable[numpy.array, float], default np.sum
+        func : default sum
             A function that assigns a score to every one dimensional array, containing the distances
             to every datapoints `n` nearest neighbors.
 
-        freq : {float, str, None}, default np.inf
+        freq :
             Determines the segmentation of the data into partitions, the kNN algorithm is
             applied onto individually.
 
@@ -207,30 +202,26 @@ class ScoresMixin:
             * Offset String : Apply scoring on successive partitions of temporal extension matching the passed offset
               string
 
-        min_periods : int, default 2
+        min_periods :
             The minimum number of periods that have to be present in a window for the kNN scoring
             to be applied. If the number of periods present is below `min_periods`, the score for the
             datapoints in that window will be np.nan.
 
-        algorithm : {'ball_tree', 'kd_tree', 'brute', 'auto'}, default 'ball_tree'
+        algorithm :
             The search algorithm to find each datapoints k nearest neighbors.
             The keyword just gets passed on to the underlying sklearn method.
             See reference [1] for more information on the algorithm.
 
-        metric : str, default 'minkowski'
+        metric :
             The metric the distances to any datapoints neighbors is computed with. The default of `metric`
             together with the default of `p` result in the euclidian to be applied.
             The keyword just gets passed on to the underlying sklearn method.
             See reference [1] for more information on the algorithm.
 
-        p : int, default 2
+        p : :
             The grade of the metrice specified by parameter `metric`.
             The keyword just gets passed on to the underlying sklearn method.
             See reference [1] for more information on the algorithm.
-
-        Returns
-        -------
-        saqc.SaQC
 
         References
         ----------
@@ -271,11 +262,11 @@ class ScoresMixin:
     def assignZScore(
         self: "SaQC",
         field: str,
-        window: Optional[str] = None,
+        window: str | None = None,
         norm_func: Callable = np.nanstd,
         model_func: Callable = np.nanmean,
         center: bool = True,
-        min_periods: Optional[int] = None,
+        min_periods: int | None = None,
         **kwargs,
     ) -> "SaQC":
         """
@@ -285,31 +276,21 @@ class ScoresMixin:
 
         Parameters
         ----------
-        field : str
-            The fieldname of the column, holding the data-to-be-flagged. (Here a dummy, for structural reasons)
-        window : {str, int}, default None
+        window :
             Size of the window. Either determined via an Offset String, denoting the windows temporal extension or
             by an integer, denoting the windows number of periods.
             `NaN` measurements also count as periods.
             If `None` is passed, All data points share the same scoring window, which than equals the whole
             data.
-        model_func
+        model_func : default std
             Function to calculate the center moment in every window.
-        norm_func
+        norm_func : default mean
             Function to calculate the scaling for every window
-        center
+        center :
             Weather or not to center the target value in the scoring window. If `False`, the
             target value is the last value in the window.
-        min_periods
+        min_periods :
             Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
-
-        Returns
-        -------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
-        flags : saqc.Flags
-            The quality flags of data
-            Flags values may have changed, relatively to the flags input.
 
         Notes
         -----
@@ -346,13 +327,14 @@ class ScoresMixin:
         squeeze=["target"],
         multivariate=True,
         handles_target=True,
+        docstring={"field": DOC_TEMPLATES["field"], "target": DOC_TEMPLATES["target"]},
     )
     def assignLOF(
         self: "SaQC",
         field: Sequence[str],
         target: str,
         n: int = 20,
-        freq: Union[float, str, None] = np.inf,
+        freq: float | str | None = np.inf,
         min_periods: int = 2,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: int = 2,
@@ -363,10 +345,6 @@ class ScoresMixin:
 
         Parameters
         ----------
-        field :
-            The field name of the column, holding the data-to-be-flagged.
-        target :
-            A new Column name, where the result is stored.
         n :
             Number of periods to be included into the LOF calculation. Defaults to `20`, which is a value found to be
             suitable in the literature.
@@ -377,7 +355,7 @@ class ScoresMixin:
             * The larger `n`, the lesser the algorithm's sensitivity to local outliers and small or singleton outliers
               points. Higher values greatly increase numerical costs.
 
-        freq : {float, str, None}, default np.inf
+        freq :
             Determines the segmentation of the data into partitions, the kNN algorithm is
             applied onto individually.
         algorithm :
@@ -387,13 +365,6 @@ class ScoresMixin:
             Most important values are:
             * `1` - Manhatten Metric
             * `2` - Euclidian Metric
-
-        Returns
-        -------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
-        flags : saqc.Flags
-            The quality flags of data
         """
         if isinstance(target, list):
             if len(target) > 1:
@@ -433,7 +404,7 @@ class ScoresMixin:
         n: int = 20,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: int = 1,
-        density: Union[Literal["auto"], float, Callable] = "auto",
+        density: Literal["auto"] | float | Callable = "auto",
         fill_na: str = "linear",
         **kwargs,
     ) -> "SaQC":
@@ -449,8 +420,6 @@ class ScoresMixin:
 
         Parameters
         ----------
-        field :
-            The field name of the column, holding the data-to-be-flagged.
         n :
             Number of periods to be included into the LOF calculation. Defaults to `20`, which is a value found to be
             suitable in the literature.
@@ -463,6 +432,7 @@ class ScoresMixin:
 
         algorithm :
             Algorithm used for calculating the `n`-nearest neighbors needed for LOF calculation.
+
         p :
             Degree of the metric ("Minkowski"), according to wich distance to neighbors is determined.
             Most important values are:
@@ -480,13 +450,6 @@ class ScoresMixin:
 
         fill_na :
             Weather or not to fill NaN values in the data with a linear interpolation.
-
-        Returns
-        -------
-        data : dios.DictOfSeries
-            A dictionary of pandas.Series, holding all the data.
-        flags : saqc.Flags
-            The quality flags of data
 
         Notes
         -----
