@@ -32,6 +32,8 @@ setup(
     install_requires=[
         "Click",
         "dtw",
+        "docstring_parser",
+        "fancy-collections",
         "matplotlib>=3.4",
         "numba",
         "numpy",
