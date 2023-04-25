@@ -2,17 +2,19 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-tools
-=====
-
+Basic Anomalies
+===============
 
 .. currentmodule:: saqc
 
 .. autosummary::
    :nosignatures:
 
-   ~SaQC.copyField
-   ~SaQC.dropField
-   ~SaQC.renameField
-   ~SaQC.selectTime
-   ~SaQC.plot
+   ~SaQC.flagMissing
+   ~SaQC.flagIsolated
+   ~SaQC.flagJumps
+   ~SaQC.flagRaise
+   ~SaQC.flagConstants
+   ~SaQC.flagByVariance
+
+

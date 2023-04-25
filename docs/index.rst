@@ -11,14 +11,13 @@
 
    Repository <https://git.ufz.de/rdm-software/saqc>
 
-Getting Started
-===============
 
 .. toctree::
    :caption: Getting started
    :maxdepth: 1
    :hidden:
 
+   gettingstarted/GettingStartedPanels
    gettingstarted/InstallationGuide
    gettingstarted/TutorialAPI
    gettingstarted/TutorialCLI
@@ -29,6 +28,7 @@ Getting Started
    :maxdepth: 1
    :hidden:
 
+   cookbooks/CookBooksPanels
    cookbooks/DataRegularisation
    cookbooks/OutlierDetection
    cookbooks/ResidualOutlierDetection
@@ -39,6 +39,7 @@ Getting Started
    :maxdepth: 1
    :hidden:
 
+   documentation/documentationPanels
    documentation/ConfigurationFiles
    documentation/GenericFunctions
    documentation/GlobalKeywords
@@ -89,8 +90,9 @@ Getting Started
    :hidden:
    :maxdepth: 1
 
-   Documentation Guide <howtodoc/HowToDoc>
-   Writing Functions <documentation/WritingFunctions>
+   devresources/devResPanels
+   Documentation Guide <devresources/HowToDoc>
+   Writing Functions <devresources/WritingFunctions>
 
 
 ..

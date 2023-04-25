@@ -2,24 +2,22 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-outliers
-========
+Outlier Detection
+=================
 
-
+Univariate Outlier Detection
 
 .. currentmodule:: saqc
 
 .. autosummary::
+   :nosignatures:
 
+   ~SaQC.flagUniLOF
    ~SaQC.flagByStray
-   ~SaQC.flagMVScores
-   ~SaQC.flagRaise
    ~SaQC.flagMAD
    ~SaQC.flagOffset
    ~SaQC.flagByGrubbs
    ~SaQC.flagRange
-   ~SaQC.flagCrossStatistics
    ~SaQC.flagLOF
-   ~SaQC.flagUniLOF
    ~SaQC.flagZScore
 
