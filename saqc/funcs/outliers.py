@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 import warnings
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
 
 import numba
 import numpy as np
@@ -1226,6 +1226,10 @@ class OutliersMixin:
         ----------
         [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
         """
+        warnings.warn(
+            "The method `flagCrossStatistics` will be deprecated in a future version of saqc",
+            PendingDeprecationWarning,
+        )
 
         fields = toSequence(field)
 
