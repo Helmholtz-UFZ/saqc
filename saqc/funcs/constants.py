@@ -81,7 +81,7 @@ class ConstantsMixin:
                 f"of dtype {d.index.dtype}. Use an integer window instead."
             )
 
-        # min_periods_r=2 ensures that at least two non-nan values are present
+        # min_periods=2 ensures that at least two non-nan values are present
         # in each window and also min() == max() == d[i] is not possible.
         min_periods = max(min_periods, 2)
 

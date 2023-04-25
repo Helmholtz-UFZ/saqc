@@ -1198,7 +1198,7 @@ class OutliersMixin:
         ----
         * The test performs poorly for small data chunks, resulting in considerable
           overflagging. Select ``window`` such that every data chunck contains at
-          least 8 values and also adjust the ``min_periods_r`` values accordingly.
+          least 8 values and also adjust the ``min_periods`` values accordingly.
         * The dara is expected to be normally distributed
 
         Parameters

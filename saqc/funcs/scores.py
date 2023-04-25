@@ -209,7 +209,7 @@ class ScoresMixin:
 
         min_periods : int, default 2
             The minimum number of periods that have to be present in a window for the kNN scoring
-            to be applied. If the number of periods present is below `min_periods_r`, the score for the
+            to be applied. If the number of periods present is below `min_periods`, the score for the
             datapoints in that window will be np.nan.
 
         algorithm : {'ball_tree', 'kd_tree', 'brute', 'auto'}, default 'ball_tree'
