@@ -12,9 +12,9 @@ on:
     branches:
       - master
       - develop
-    tags: 
+    tags:
       - v**
-      
+
   pull_request:
 
   # Allow to run this workflow manually from the Actions tab
@@ -34,9 +34,9 @@ jobs:
       run:
         # somehow this also works for windows O.o ??
         shell: bash -l {0}
-    
+
     steps:
-      
+
       # checkout the repository under $GITHUB_WORKSPACE
       - uses: actions/checkout@v3
       - uses: conda-incubator/setup-miniconda@v2
@@ -44,28 +44,26 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           activate-environment: venv
-      
+
       - name: show conda info
         run: conda info
-      
+
       - name: install requirements
-        run: | 
+        run: |
           pip install -r requirements.txt
           pip install -r tests/requirements.txt
-      
-      - name: show installed packages 
+
+      - name: show installed packages
         run: conda list
-      
+
       - name: run SaQC test suite
         run: |
-          pytest tests dios/test -Werror 
+          pytest tests dios/test -Werror
           python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
-      
-      # - name: run doc tests    
+
+      # - name: run doc tests
       #   run: |
       #     cd docs
       #     pip install -r requirements.txt
       #     make doc
       #     make test
-          
-          

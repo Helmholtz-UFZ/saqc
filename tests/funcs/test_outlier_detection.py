@@ -6,8 +6,6 @@
 
 # -*- coding: utf-8 -*-
 
-import itertools
-
 import numpy as np
 import pandas as pd
 
@@ -139,9 +137,10 @@ def test_flagCrossStatistics(dat):
     data = DictOfSeries(field1=s1, field2=s2)
     flags = initFlagsLike(data)
 
-    qc = SaQC(data, flags).flagCrossStatistics(
-        fields, thresh=3, method=np.mean, flag=BAD
-    )
+    with pytest.deprecated_call():
+        qc = SaQC(data, flags).flagCrossStatistics(
+            fields, thresh=3, method=np.mean, flag=BAD
+        )
     for field in fields:
         isflagged = qc.flags[field] > UNFLAGGED
         assert isflagged[characteristics["raise"]].all()
