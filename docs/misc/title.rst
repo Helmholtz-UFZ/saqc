@@ -2,34 +2,6 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-.. |sacRaw| image:: /resources/images/representative/RawData.png
-    :height: 150 px
-    :width: 288 px
-
-.. |sacFlagged| image:: /resources/images/representative/DifferentFlags.png
-    :height: 150 px
-    :width: 288 px
-
-.. |sacMV| image:: /resources/images/representative/MultivarSAC.png
-    :height: 150 px
-    :width: 288 px
-
-.. |sacProc| image:: /resources/images/representative/ProcessingDrift.png
-    :height: 150 px
-    :width: 288 px
-
-.. |pyLogo| image:: /resources/images/representative/PythonLogo.png
-    :height: 108 px
-    :width: 105 px
-
-.. |csvConfig| image:: /resources/images/representative/CsvConfig.png
-    :height: 100 px
-    :width: 176 px
-
-.. |legendEXMPL| image:: /resources/images/representative/LegendEXMPL.png
-    :height: 100 px
-    :width: 200
-
 
 ===========================================
 SaQC - System for automated Quality Control
@@ -45,6 +17,79 @@ to quality control. SaQC provides all the building blocks to comfortably
 bridge the gap between 'usually faulty' and 'expected to be corrected' in
 a accessible, consistent, objective and reproducible way.
 
+
+-------------
+Documentation
+-------------
+
+.. grid:: 2
+   :gutter: 2
+
+   .. grid-item-card:: Getting Started
+      :link: gettingstarted
+      :link-type: ref
+
+      * installation
+      * first steps
+      * python API introduction
+      * command line syntax
+      +++
+      *Setting up and test-running SaQC on your system*
+
+   .. grid-item-card:: SaQC Configurator
+      :link: https://webapp.ufz.de/saqc-config-app/
+
+      * parametrisation tool and sand-box for all the SaQC methods
+      * accessible without having any environment
+      +++
+      *Configuring and testing SaQC in a readily available sandbox*
+
+
+   .. grid-item-card:: Functionality Overview (API)
+      :link: funcs
+      :link-type: ref
+
+      * flagging methods overview
+      * processing algorithms overview
+      * tools overview
+      +++
+      *Overview of the API access to the available algorithms*
+
+
+   .. grid-item-card:: Cookbooks
+      :link: cookbooks
+      :link-type: ref
+
+      * outlier detection
+      * frequency alignment
+      * data modelling
+      * wrapping generic or custom functionality
+      +++
+      *Step-by-step guides to the implementation of basic QC tasks in SaQC*
+
+   .. grid-item-card:: Documentations
+      :link: ../documentation/documentationPanels
+      :link-type: doc
+
+      * CSV file-controlled flagging
+      * flagging schemes
+      * managing sources and targets Of algorithm application
+      +++
+      *Introductions to core mechanics and principles*
+
+
+
+
+   .. grid-item-card:: Developer Resources
+      :link: ../devresources/devResPanels
+      :link-type: doc
+
+      * writing documentation
+      * implementing SaQC methods
+      +++
+      *All the materials needed, to get involved in SaQC development*
+
+
 SaQC is developed and maintained by the
 `Research Data Management <https://www.ufz.de/index.php?en=45348>`_ Team at the
 `Helmholtz-Centre for Environmental Research - UFZ <https://www.ufz.de/>`_.
@@ -57,27 +102,3 @@ extensible, traceable, approachable for non-programmers and usable in a wide ran
 of applications, from exploratory interactive programming environments to large-scale
 fully automated, managed workflows.
 
---------
-Features
---------
-
-.. list-table::
-
-    * - |pyLogo| |csvConfig|
-      - * :ref:`get and install SaQC <gettingstarted/InstallationGuide:installation guide>`
-        * :ref:`use the SaQC python API, enabling integration into larger programs <gettingstarted/TutorialAPI:python api>`
-        * or use SaQC as a commandline application and configure your pipelines via plain text
-    * - |sacRaw|
-      - * easily load data from multiple sources, concatenating them in a SaQC object
-        * :ref:`preprocess your data, by aligning it to shared frequency grids <cookbooks/DataRegularisation:Data Regularization>`
-    * - |sacFlagged|
-      - * apply basic plausibility checks, as well as
-        * more complex, univariat flagging Functions
-    * - |legendEXMPL|
-      - * automatically keep track of flagging history and flags significance for every datapoint
-        * define and use custom schemes to translate your flags to and from SaQC
-    * - |sacProc|
-      - * modify your data by :ref:`interpolations <cookbooks/DataRegularisation:Interpolation>`, corrections and :ref:`transformations <cookbooks/DataRegularisation:Aggregation>`
-        * calculate data products, such as :ref:`residuals or outlier scores <cookbooks/ResidualOutlierDetection:Residuals and Scores>`
-    * - |sacMV|
-      - * apply :ref:`multivariate flagging functions <cookbooks/MultivariateFlagging:Multivariate Flagging>`

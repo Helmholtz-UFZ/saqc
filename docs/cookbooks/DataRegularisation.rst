@@ -2,6 +2,8 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
+.. _dataalignment:
+
 Data Regularization
 ===================
 
@@ -9,7 +11,7 @@ The tutorial aims to introduce the usage of ``SaQC`` methods, in order to obtain
 from given time series data input. Regularly sampled time series data, is data, that exhibits a constant temporal
 spacing in between subsequent data points.
 
-In the following steps, the tutorial guides through the usage of the *SaQC* :doc:`resampling <../funcs/generic>`
+In the following steps, the tutorial guides through the usage of the *SaQC* :doc:`resampling <../funcs/genericWrapper>`
 library.
 
 #. Initially, we introduce and motivate regularization techniques and we do import the tutorial data.

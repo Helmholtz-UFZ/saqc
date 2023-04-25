@@ -6,6 +6,8 @@
 
    np.random.seed(100)
 
+.. _tutorialapi:
+
 Python API
 ==========
 

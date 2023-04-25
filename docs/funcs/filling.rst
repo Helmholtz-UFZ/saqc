@@ -2,14 +2,15 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-changepoints
-============
+Gap filling
+===========
 
 
 
 .. currentmodule:: saqc
 
 .. autosummary::
+   :nosignatures:
 
-   ~SaQC.flagChangePoints
-   ~SaQC.assignChangePointCluster
+   ~SaQC.interpolateByRolling
+   ~SaQC.interpolate

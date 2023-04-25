@@ -2,13 +2,17 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-transformation
-==============
-
-
+Sampling Alignment
+==================
 
 .. currentmodule:: saqc
 
 .. autosummary::
+   :nosignatures:
 
-   ~SaQC.transform
+   ~SaQC.linear
+   ~SaQC.shift
+   ~SaQC.align
+   ~SaQC.concatFlags
+   ~SaQC.interpolateIndex
+   ~SaQC.resample
