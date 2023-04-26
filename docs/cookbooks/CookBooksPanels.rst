@@ -7,6 +7,17 @@
 Cook Books
 ==========
 
+.. toctree::
+   :caption: Cookbooks
+   :maxdepth: 1
+   :hidden:
+
+   DataRegularisation
+   OutlierDetection
+   ResidualOutlierDetection
+   MultivariateFlagging
+   ../documentation/GenericFunctions
+
 
 .. grid:: 2
    :gutter: 2

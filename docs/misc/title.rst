@@ -67,6 +67,7 @@ Documentation
       +++
       *Step-by-step guides to the implementation of basic QC tasks in SaQC*
 
+
    .. grid-item-card:: Documentations
       :link: ../documentation/documentationPanels
       :link-type: doc
@@ -76,8 +77,6 @@ Documentation
       * managing sources and targets Of algorithm application
       +++
       *Introductions to core mechanics and principles*
-
-
 
 
    .. grid-item-card:: Developer Resources
