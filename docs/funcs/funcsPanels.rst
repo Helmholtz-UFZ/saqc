@@ -4,6 +4,7 @@
 
 .. _funcs:
 
+
 Anomaly Detection
 ------------------
 
@@ -69,7 +70,7 @@ Data and Flags Tools
       * copy and delete variables
       +++
 
-   .. grid-item-card:: generic and custom function wrapper
+   .. grid-item-card:: Generic and Custom Functions
       :link: genericWrapper
       :link-type: doc
 
@@ -86,7 +87,7 @@ Data Manipulation
 .. grid:: 2
    :gutter: 2
 
-   .. grid-item-card:: Data products
+   .. grid-item-card:: Data Products
       :link: dataProducts
       :link-type: doc
 

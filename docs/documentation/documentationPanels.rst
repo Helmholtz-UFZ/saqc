@@ -7,6 +7,17 @@ Documentation
 =============
 
 
+.. toctree::
+   :caption: Documentation
+   :maxdepth: 1
+   :hidden:
+
+   ConfigurationFiles
+   GlobalKeywords
+   Customizations
+   SourceTarget
+   FlaggingTranslation
+
 .. grid:: 3
    :gutter: 2
 

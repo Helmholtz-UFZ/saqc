@@ -7,6 +7,15 @@
 Getting Started
 ===============
 
+.. toctree::
+   :caption: Getting started
+   :maxdepth: 1
+   :titlesonly:
+   :hidden:
+
+   InstallationGuide
+   TutorialAPI
+   TutorialCLI
 
 .. grid:: 3
    :gutter: 2

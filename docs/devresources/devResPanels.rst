@@ -5,6 +5,13 @@
 Developers Resources
 ====================
 
+.. toctree::
+   :caption: Developer Resources
+   :hidden:
+   :maxdepth: 1
+
+   Documentation Guide <HowToDoc>
+   Writing Functions <WritingFunctions>
 
 .. grid:: 3
    :gutter: 2
