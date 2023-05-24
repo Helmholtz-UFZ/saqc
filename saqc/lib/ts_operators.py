@@ -551,7 +551,7 @@ def _coeffMat(x, deg):
     return mat_
 
 
-@nb.jit
+@nb.jit(nopython=True)
 def _fitX(a, b):
     # helper function to construct numba-compatible polynomial fit function
     # linalg solves ax = b
@@ -559,7 +559,7 @@ def _fitX(a, b):
     return det_
 
 
-@nb.jit
+@nb.jit(nopython=True)
 def _fitPoly(x, y, deg):
     # a numba compatible polynomial fit function
     a = _coeffMat(x, deg)
@@ -568,7 +568,7 @@ def _fitPoly(x, y, deg):
     return p[::-1]
 
 
-@nb.jit
+@nb.jit(nopython=True)
 def evalPolynomial(P, x):
     # a numba compatible polynomial evaluator
     result = 0
