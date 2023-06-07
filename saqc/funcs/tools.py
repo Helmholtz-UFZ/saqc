@@ -198,14 +198,14 @@ class ToolsMixin:
     def plot(
         self: "SaQC",
         field: str,
-        path: Optional[str] = None,
-        max_gap: Optional[str] = None,
-        history: Optional[Literal["valid", "complete"] | list] = "valid",
-        xscope: Optional[slice] = None,
-        phaseplot: Optional[str] = None,
-        store_kwargs: Optional[dict] = None,
+        path: str | None = None,
+        max_gap: str | None = None,
+        history: Literal["valid", "complete"] | list[str] | None = "valid",
+        xscope: slice | None = None,
+        phaseplot: str | None = None,
+        store_kwargs: dict | None = None,
         ax: mpl.axes.Axes | None = None,
-        ax_kwargs: Optional[dict] = None,
+        ax_kwargs: dict | None = None,
         dfilter: float = FILTER_NONE,
         **kwargs,
     ) -> "SaQC":
@@ -227,36 +227,45 @@ class ToolsMixin:
             the plot is stored unter the passed location.
 
         max_gap :
-            If None, all the points in the data will be connected, resulting in long linear
-            lines, where continous chunks of data is missing. Nans in the data get dropped
-            before plotting. If an offset string is passed, only points that have a distance
-            below `max_gap` get connected via the plotting line.
+            If ``None``, all data points will be connected, resulting in long linear
+            lines, in case of large data gaps. ``NaN`` values will be removed before
+            plotting. If an offset string is passed, only points that have a distance
+            below ``max_gap`` are connected via the plotting line.
 
         history :
             Discriminate the plotted flags with respect to the tests they originate from.
 
-            * "valid" - Only plot those flags, that do not get altered or "unflagged" by subsequent tests. Only list tests
-              in the legend, that actually contributed flags to the overall resault.
-            * "complete" - plot all the flags set and list all the tests ran on a variable. Suitable for debugging/tracking.
-            * None - just plot the resulting flags for one variable, without any historical meta information.
-            * list of strings - plot only flags set by those tests listed.
+            * ``"valid"``: Only plot flags, that are not overwritten by subsequent tests.
+              Only list tests in the legend, that actually contributed flags to the overall
+              result.
+            * ``"complete"``: Plot all flags set and list all the tests executed on a variable.
+              Suitable for debugging/tracking.
+            * ``None``: Just plot the resulting flags for one variable, without any historical
+              and/or meta information.
+            * list of strings: List of tests. Plot flags from the given tests, only.
 
         xscope :
-            Parameter, that determines a chunk of the data to be plotted
-            processed. `xscope` can be anything, that is a valid argument to the ``pandas.Series.__getitem__`` method.
+            Determine a chunk of the data to be plotted processed. ``xscope`` can be anything,
+            that is a valid argument to the ``pandas.Series.__getitem__`` method.
 
         phaseplot :
-            If a string is passed, plot ``field`` in the phase space it forms together with the Variable ``phaseplot``.
+            If a string is passed, plot ``field`` in the phase space it forms together with the
+            variable ``phaseplot``.
+
+        ax :
+            If not ``None``, plot into the given ``matplotlib.Axes`` instance, instead of a
+            newly created ``matplotlib.Figure``. This option offers a possibility to integrate
+            ``SaQC`` plots into custom figure layouts.
 
         store_kwargs :
             Keywords to be passed on to the ``matplotlib.pyplot.savefig`` method, handling
             the figure storing. To store an pickle object of the figure, use the option
-            ``{'pickle': True}``, but note that all other store_kwargs are ignored then.
-            Reopen with: ``pickle.load(open(savepath,'w')).show()``
+            ``{"pickle": True}``, but note that all other ``store_kwargs`` are ignored then.
+            To reopen a pickled figure execute: ``pickle.load(open(savepath, "w")).show()``
 
         ax_kwargs :
             Axis keywords. Change the axis labeling defaults. Most important keywords:
-            'x_label', 'y_label', 'title', 'fontsize', 'cycleskip'.
+            ``"xlabel"``, ``"ylabel"``, ``"title"``, ``"fontsize"``, ``"cycleskip"``.
         """
         data, flags = self._data.copy(), self._flags.copy()
 
