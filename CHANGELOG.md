@@ -9,8 +9,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)
 ### Added
+- Parameter `axis` in flagZScore (enables calculation along data column axis.)
 ### Changed
+- deprecated `flagCrossStatistics` in favor of `flagZScore`
+- deprecated `flagMAD` in favor of `flagZScore`
+- deprecated parameters `norm_func` and `model_func` of `flagZScore` in favor of parameter `method`
 ### Removed
+- Support for ZScoring with function composites resulting in operators other than standard or modified ZScore in `flagZScore`
 ### Fixed
 
 ## [2.4.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.0) - 2023-04-25
@@ -24,6 +29,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Deprecate `interpolate`, `linear` and `shift` in favor of `align`
 - Deprecate `roll` in favor of `rolling`
 - Rename `interplateInvalid` to `interpolate`
+- Rename parameter `freq` of `flagDriftFromNorm` to `window`
 - Rename `interpolateIndex` to `align`
 - Deprecate `flagMVScore` parameters: `partition_min` in favor of `window`, `partition_min` in favor of `min_periods`, `min_periods` in favor of `min_periods_r`
 ### Removed

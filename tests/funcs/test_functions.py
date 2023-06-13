@@ -253,7 +253,7 @@ def test_flagDriftFromNorm(dat):
     flags = initFlagsLike(data)
     qc = SaQC(data, flags).flagDriftFromNorm(
         field=fields,
-        freq="200min",
+        window="200min",
         spread=5,
         flag=BAD,
     )

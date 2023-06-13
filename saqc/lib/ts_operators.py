@@ -509,7 +509,7 @@ def butterFilter(
         input timeseries
 
     cutoff: {float, str}
-        The cutoff-frequency, either an offset freq string, or expressed in multiples of the sampling rate.
+        The cutoff-frequency, either an offset window string, or expressed in multiples of the sampling rate.
 
     nyq: float
         The niquist-frequency. expressed in multiples if the sampling rate.

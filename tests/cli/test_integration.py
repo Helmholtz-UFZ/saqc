@@ -55,7 +55,7 @@ DMP = [
     "2016-04-01 00:05:48,3573.0,NIL,,,32.685,NIL,,,nan,nan,nan,nan\n",
     "2016-04-01 00:15:00,nan,nan,nan,nan,nan,nan,nan,nan,29.3157,NIL,,\n",
     "2016-04-01 00:20:42,3572.0,NIL,,,32.7428,NIL,,,nan,nan,nan,nan\n",
-    '2016-04-01 00:30:00,nan,nan,nan,nan,nan,nan,nan,nan,29.3679,BAD,OTHER,"{""test"": ""flagMAD"", ""comment"": """"}"\n',
+    '2016-04-01 00:30:00,nan,nan,nan,nan,nan,nan,nan,nan,29.3679,BAD,OTHER,"{""test"": ""flagZScore"", ""comment"": """"}"\n',
     "2016-04-01 00:35:37,3572.0,NIL,,,32.6186,NIL,,,nan,nan,nan,nan\n",
     "2016-04-01 00:45:00,nan,nan,nan,nan,nan,nan,nan,nan,29.3679,NIL,,\n",
 ]
