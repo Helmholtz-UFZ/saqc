@@ -52,7 +52,7 @@ class ResamplingMixin:
         Interpolated values will get assigned the worst flag within freq-range.
 
         Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
-        not-na) datapoint preceeding them and one succeeding them within freq range.
+        not-na) datapoint preceeding them and one succeeding them within window range.
         Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
         ``UNFLAGGED``.
 

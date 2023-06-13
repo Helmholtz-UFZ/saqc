@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from scipy.stats import median_abs_deviation
 from sklearn.neighbors import LocalOutlierFactor
 from typing_extensions import Literal
 
@@ -177,7 +178,7 @@ class ScoresMixin:
         3. For every data point, the distance to its `n` nearest neighbors is calculated by applying the
            metric `metric` at grade `p` onto the feature space. The defaults lead to the euclidian to be applied.
            If `radius` is not None, it sets the upper bound of distance for a neighbor to be considered one of the
-           `n` nearest neighbors. Furthermore, the `freq` argument determines wich samples can be
+           `n` nearest neighbors. Furthermore, the `window` argument determines wich samples can be
            included into a datapoints nearest neighbors list, by segmenting the data into chunks of specified temporal
            extension and feeding that chunks to the kNN algorithm seperatly.
         4. For every datapoint, the calculated nearest neighbors distances get aggregated to a score, by the function
@@ -262,9 +263,10 @@ class ScoresMixin:
     def assignZScore(
         self: "SaQC",
         field: str,
+        method: Literal["standard", "modified"] = "standard",
         window: str | None = None,
-        norm_func: Callable = np.nanstd,
-        model_func: Callable = np.nanmean,
+        norm_func: Callable = None,
+        model_func: Callable = None,
         center: bool = True,
         min_periods: int | None = None,
         **kwargs,
@@ -282,9 +284,14 @@ class ScoresMixin:
             `NaN` measurements also count as periods.
             If `None` is passed, All data points share the same scoring window, which than equals the whole
             data.
-        model_func : default std
-            Function to calculate the center moment in every window.
-        norm_func : default mean
+        method :
+            Which of the most common methods to use for ZScoring:
+            * `"standard"`: standard Zscoring, using *mean* as the first and *standard deviation (std)* as second moment
+            * `"modified"`: modified Zscoring, using *median* as the first and *median absolute deviation (MAD)* as the second moment
+            The `method` parameter is ignored if both, `model_func` and `norm_func` are passed.
+        model_func :
+            Function to calculate the center moment in every window
+        norm_func :
             Function to calculate the scaling for every window
         center :
             Weather or not to center the target value in the scoring window. If `False`, the
@@ -306,6 +313,21 @@ class ScoresMixin:
 
         4. The "score" :math:`S` for the point :math:`x_{k}`gets calculated via :math:`S=(x_{k} - M) / N`
         """
+        if norm_func is None and model_func is None:
+            if method == "standard":
+                norm_func = np.nanstd
+                model_func = np.nanmean
+            elif method == "modified":
+                norm_func = lambda x: median_abs_deviation(
+                    x, scale="normal", nan_policy="omit"
+                )
+                model_func = np.median
+            else:
+                raise Exception(f"Zscoring method {method} unknown.")
+        elif (norm_func is None) | (model_func is None):
+            raise Exception(
+                f"Either both parameters 'norm_func' and 'model_func' have to be callables, or neither of them"
+            )
 
         if min_periods is None:
             min_periods = 0

@@ -136,7 +136,7 @@ def course_3(char_dict):
     The "crowd/group" of anomalous values starts at position "periods/2" and continues with an additional amount
     of "crowd_size" values, that are each spaced "crowd_spacing" minutes from there predecessors.
     number of periods better be even!
-    chrowd_size * crowd_spacing better be less then freq[minutes].
+    chrowd_size * crowd_spacing better be less then window[minutes].
     """
 
     def fix_funk(

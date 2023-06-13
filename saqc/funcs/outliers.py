@@ -476,7 +476,6 @@ class OutliersMixin:
             "normal". 0.5 results in the threshing algorithm to search only the upper 50%
             of the scores for the cut off point. (See reference section for more
             information)
-
         window :
             Only effective if :py:attr:`threshing` is set to ``'stray'``. Determines the
             size of the data partitions, the data is decomposed into. Each partition is checked
@@ -853,15 +852,20 @@ class OutliersMixin:
         [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
         """
 
+        msg = """
+                The method `flagMAD` is deprecated and will be removed in verion 3.0 of saqc.
+                To achieve the same behavior use:
+                """
+        call = f"qc.flagZScore(field={field}, window={window}, method='modified', thresh={z}, min_residuals={min_residuals}, min_periods={min_periods}, center={center})"
+
+        warnings.warn(f"{msg}`{call}`", DeprecationWarning)
+
         self = self.flagZScore(
             field,
             window=window,
             thresh=z,
             min_residuals=min_residuals,
-            model_func=np.median,
-            norm_func=lambda x: median_abs_deviation(
-                x, scale="normal", nan_policy="omit"
-            ),
+            method="modified",
             center=center,
             min_periods=min_periods,
             flag=flag,
@@ -935,7 +939,7 @@ class OutliersMixin:
            import matplotlib
            import saqc
            import pandas as pd
-           data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
+           data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000', freq='1H', periods=12))
 
 
         Lets generate a simple, regularly sampled timeseries with an hourly sampling rate and generate an
@@ -1226,68 +1230,53 @@ class OutliersMixin:
         ----------
         [1] https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
         """
-        warnings.warn(
-            "The method `flagCrossStatistics` will be deprecated in a future version of saqc",
-            PendingDeprecationWarning,
+        msg = """
+              The method `flagCrossStatistics` is deprecated and will be removed in verion 3.0 of saqc.
+              To achieve the same behavior use:
+              """
+        new_method_string = {
+            "modZscore": "modified",
+            "Zscore": "standard",
+            np.mean: "standard",
+            np.median: "modified",
+        }
+        call = f"qc.flagZScore(field={field}, window=1, method={new_method_string[method]}, thresh={thresh}, axis=1)"
+
+        warnings.warn(f"{msg}`{call}`", DeprecationWarning)
+
+        return self.flagZScore(
+            field={field},
+            window=1,
+            method={new_method_string[method]},
+            thresh={thresh},
+            axis=1,
+            flag=flag,
         )
 
-        fields = toSequence(field)
-
-        df = self._data[fields].to_pandas(how="inner")
-
-        if isinstance(method, str):
-            if method == "modZscore":
-                MAD_series = df.subtract(df.median(axis=1), axis=0).abs().median(axis=1)
-                diff_scores = (
-                    (0.6745 * (df.subtract(df.median(axis=1), axis=0)))
-                    .divide(MAD_series, axis=0)
-                    .abs()
-                )
-
-            elif method == "Zscore":
-                diff_scores = (
-                    df.subtract(df.mean(axis=1), axis=0)
-                    .divide(df.std(axis=1), axis=0)
-                    .abs()
-                )
-
-            else:
-                raise ValueError(method)
-
-        else:
-            try:
-                stat = getattr(df, method.__name__)(axis=1)
-            except AttributeError:
-                stat = df.aggregate(method, axis=1)
-
-            diff_scores = df.subtract(stat, axis=0).abs()
-
-        mask = diff_scores > thresh
-        if not mask.empty:
-            for f in fields:
-                m = mask[f].reindex(index=self._flags[f].index, fill_value=False)
-                self._flags[m, f] = flag
-
-        return self
-
-    @flagging()
+    @register(
+        mask=["field"],
+        demask=["field"],
+        squeeze=["field"],
+        multivariate=True,
+        docstring={"field": DOC_TEMPLATES["field"]},
+    )
     def flagZScore(
         self: "SaQC",
-        field: str,
+        field: Sequence[str],
+        method: Literal["standard", "modified"] = "standard",
         window: str | int | None = None,
         thresh: float = 3,
         min_residuals: int | None = None,
         min_periods: int | None = None,
-        model_func: Callable[[np.ndarray | pd.Series], float] = np.nanmean,
-        norm_func: Callable[[np.ndarray | pd.Series], float] = np.nanstd,
         center: bool = True,
+        axis: int = 0,
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
         """
         Flag data where its (rolling) Zscore exceeds a threshold.
 
-        The function implements flagging derived from a basic Zscore calculation. To handle non
+        The function implements flagging derived from standard or modified Zscore calculation. To handle non
         stationary data, the Zscoring can be applied with a rolling window. Therefor, the function
         allows for a minimum residual to be specified in order to mitigate overflagging in local
         regimes of low variance.
@@ -1297,51 +1286,195 @@ class OutliersMixin:
         Parameters
         ----------
         window :
-            Size of the window. Either determined via an Offset String, denoting the windows temporal
+            Size of the window. Either determined via an offset string, denoting the windows temporal
             extension or by an integer, denoting the windows number of periods. ``NaN`` also count as
             periods. If ``None`` is passed, all data points share the same scoring window, which than
             equals the whole data.
+        method :
+            Which method to use for ZScoring:
+
+            * `"standard"`: standard Zscoring, using *mean* for the expectation and *standard deviation (std)* as scaling factor
+            * `"modified"`: modified Zscoring, using *median* as the expectation and *median absolute deviation (MAD)* as the scaling Factor
+
+            See notes section for detailed scoring formula
         thresh :
             Cutoff level for the Zscores, above which associated points are marked as outliers.
         min_residuals :
             Minimum residual value points must have to be considered outliers.
         min_periods :
             Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
-        model_func : default mean
-            Function to calculate the center moment in every window.
-        norm_func : default std
-            Function to calculate the scaling for every window.
         center :
             Weather or not to center the target value in the scoring window. If ``False``, the
             target value is the last value in the window.
+        axis :
+            Along which axis to calculate the scoring statistics:
+
+            * `0` (default) - calculate statistics along time axis
+            * `1` - calculate statistics over multiple variables
+
+            See Notes section for a visual clarification of the workings
+            of `axis` and `window`.
 
         Notes
         -----
-        Steps of calculation:
 
-        1. Consider a window :math:`W` of successive points :math:`W = x_{1},...x_{w}`
-           containing the value :math:`y_{K}` which is to be checked.
-           (The index of :math:`K` depends on the selection of the parameter :py:attr:`center`.)
-        2. The "moment" :math:`M` for the window gets calculated via :math:`M=` :py:attr:`model_func` :math:`(W)`.
-        3. The "scaling" :math:`N` for the window gets calculated via :math:`N=` :py:attr:`norm_func` :math:`(W)`.
-        4. The "score" :math:`S` for the point :math:`x_{k}` gets calculated via :math:`S=(x_{k} - M) / N`.
-        5. Finally, :math:`x_{k}` gets flagged, if :math:`|S| >` :py:attr:`thresh` and
-           :math:`|M - x_{k}| >=` :py:attr:`min_residuals`.
+        The flag for :math:`x` is determined as follows:
+
+        1. Depending on ``window`` and ``axis``, the context population :math:`X` is collected (see pictures below)
+
+           * If ``axis=0``, any value is flagged in the context of those values of the same variable (``field``), that are
+             in `window` range.
+           * If ``axis=1``, any value is flagged in the context of all values of all variables (``fields``), that are
+             in `window` range.
+           * If ``axis=0`` and ``window=1``, any value is flagged in the context of all values of all variables (``fields``),
+             that share the same timestamp.
+
+        .. figure:: /resources/images/ZscorePopulation.png
+           :class: with-border
+
+
+
+
+        2. Depending on ``method``, a score :math:`Z` is calculated for :math:`x` via :math:`Z = \\frac{|E(X) - X|}{S(X)}`
+
+           * ``method="standard"``: :math:`E(X)=mean(X)`, :math:`S(X)=std(X)`
+           * ``method="modified"``: :math:`E(X)=median(X)`, :math:`S(X)=MAD(X)`
+
+        3. :math:`x` is flagged, if :math:`Z >` ``thresh``
         """
-        datser = self._data[field]
+
+        if "norm_func" in kwargs or "model_func" in kwargs:
+            warnings.warn(
+                "Parameters norm_func and model_func are deprecated, use parameter method instead.\n"
+                'To model with mean and scale with standard deviation, use method="standard".\n'
+                'To model with median and scale with median absolute deviation (MAD) use method="modified".\n'
+                "Other/Custom model and scaling functions are not supported any more"
+            )
+            if (
+                "mean" in kwargs.get("model_func", "").__name__
+                or "std" in kwargs.get("norm_func", "").__name__
+            ):
+                method = "standard"
+            elif (
+                "median" in kwargs.get("model_func", lambda x: x).__name__
+                or "median" in kwargs.get("norm_func", lambda x: x).__name__
+            ):
+                method = "modified"
+            else:
+                raise ValueError(
+                    "Support for scoring with functions not similar to either Zscore or modified Zscore is "
+                    "not supported anymore"
+                )
+
+        dat = self._data[field].to_pandas(how="outer")
         if min_residuals is None:
             min_residuals = 0
 
-        score, model, _ = _univarScoring(
-            datser,
-            window=window,
-            norm_func=norm_func,
-            model_func=model_func,
-            center=center,
-            min_periods=min_periods,
-        )
-        to_flag = (score.abs() > thresh) & ((model - datser).abs() >= min_residuals)
-        self._flags[to_flag, field] = flag
+        if dat.empty:
+            return self
+
+        if min_periods is None:
+            min_periods = 0
+
+        if window is None:
+            if dat.notna().sum().sum() >= min_periods:
+                if method == "standard":
+                    mod = pd.DataFrame(
+                        {f: dat[f].mean() for f in dat.columns}, index=dat.index
+                    )
+                    norm = pd.DataFrame(
+                        {f: dat[f].std() for f in dat.columns}, index=dat.index
+                    )
+
+                else:
+                    mod = pd.DataFrame(
+                        {f: dat[f].median() for f in dat.columns}, index=dat.index
+                    )
+                    norm = pd.DataFrame(
+                        {f: (dat[f] - mod[f]).abs().median() for f in dat.columns},
+                        index=dat.index,
+                    )
+            else:
+                return self
+        else:  # window is not None
+            if axis == 0:
+                if method == "standard":
+                    mod = dat.rolling(
+                        window, center=center, min_periods=min_periods
+                    ).mean()
+                    norm = dat.rolling(
+                        window, center=center, min_periods=min_periods
+                    ).std()
+                else:
+                    mod = dat.rolling(
+                        window, center=center, min_periods=min_periods
+                    ).median()
+                    norm = (
+                        (mod - dat)
+                        .abs()
+                        .rolling(window, center=center, min_periods=min_periods)
+                        .median()
+                    )
+
+            else:  # axis == 1:
+                if window == 1:
+                    if method == "standard":
+                        mod = dat.mean(axis=1)
+                        norm = dat.std(axis=1)
+                    else:  # method == 'modified'
+                        mod = dat.median(axis=1)
+                        norm = (dat.subtract(mod, axis=0)).abs().median(axis=1)
+                else:  # window > 1
+                    if method == "standard":
+                        mod = (
+                            dat.rolling(
+                                window,
+                                center=center,
+                                min_periods=min_periods,
+                                method="table",
+                            )
+                            .apply(func=np.mean, engine="numba", raw=True)
+                            .iloc[:, 0]
+                        )
+                        norm = (
+                            dat.rolling(
+                                window,
+                                center=center,
+                                min_periods=min_periods,
+                                method="table",
+                            )
+                            .apply(func=np.std, engine="numba", raw=True)
+                            .iloc[:, 0]
+                        )
+                    else:  # method == 'modified'
+                        mod = (
+                            dat.rolling(
+                                window,
+                                center=center,
+                                min_periods=min_periods,
+                                method="table",
+                            )
+                            .apply(func=np.median, engine="numba", raw=True)
+                            .iloc[:, 0]
+                        )
+                        norm = (
+                            (dat.subtract(mod, axis=0))
+                            .abs()
+                            .rolling(
+                                window,
+                                center=center,
+                                min_periods=min_periods,
+                                method="table",
+                            )
+                            .apply(func=np.median, engine="numba", raw=True)
+                            .iloc[:, 0]
+                        )
+        residuals = dat.subtract(mod, axis=0).abs()
+        score = residuals.divide(norm, axis=0)
+
+        to_flag = (score.abs() > thresh) & (residuals >= min_residuals)
+        for f in field:
+            self._flags[to_flag[f], f] = flag
         return self
 
 

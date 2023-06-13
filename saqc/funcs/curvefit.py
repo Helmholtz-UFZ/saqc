@@ -127,13 +127,15 @@ class CurvefitMixin:
         nyq :
             The niquist-frequency. expressed in multiples if the sampling rate.
 
+        filter_order :
+            Order of the butterworth filter applied. Higher values make the attenuation above cut off frequency kick in
+            more steeply.
+
         fill_method :
             Fill method to be applied on the data before filtering (butterfilter cant
             handle ''np.nan''). See documentation of pandas.Series.interpolate method for
             details on the methods associated with the different keywords.
 
-        filter_type :
-            The type of filter. Default is ‘lowpass’.
         """
         self._data[field] = butterFilter(
             self._data[field],
