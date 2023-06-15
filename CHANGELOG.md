@@ -25,7 +25,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Deprecate `roll` in favor of `rolling`
 - Rename `interplateInvalid` to `interpolate`
 - Rename `interpolateIndex` to `align`
-- Deprecate `flagMVScore` parameters: `partition_min` in favor of `window`, `partition_min` in favor of `min_periods`, `min_periods` in favor of `min_periods_r`
+- Deprecate `flagMVScore` parameters: `partition` in favor of `window`, `partition_min` in favor of `min_periods`, `min_periods` in favor of `min_periods_r`
 - Rewrite of `dios.DictOfSeries`
 ### Removed
 - Parameter `limit` from `align`

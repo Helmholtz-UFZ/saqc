@@ -78,6 +78,9 @@ class RollingMixin:
         """
         Calculate a rolling-window function on the data.
 
+        .. deprecated:: 2.4.0
+           Use :py:meth:`~saqc.SaQC.rolling` instead.
+
         Note, that the data gets assigned the worst flag present in the original data.
 
         Parameters

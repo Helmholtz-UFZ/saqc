@@ -47,10 +47,11 @@ class ResamplingMixin:
         """
         A method to "regularize" data by interpolating linearly the data at regular timestamp.
 
+        .. deprecated:: 2.4.0
+           Use :py:meth:`~saqc.SaQC.align` with ``method="linear"`` instead.
+
         A series of data is considered "regular", if it is sampled regularly (= having uniform sampling rate).
-
         Interpolated values will get assigned the worst flag within freq-range.
-
         Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
         not-na) datapoint preceeding them and one succeeding them within freq range.
         Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
@@ -61,6 +62,15 @@ class ResamplingMixin:
         freq :
             An offset string. The frequency of the grid you want to interpolate your data at.
         """
+        warnings.warn(
+            f"""
+            The method `shift` is deprecated and will be removed with version 2.6 of saqc.
+            To achieve the same behavior please use:
+            `qc.align(field={field}, freq={freq}. method="linear")`
+            """,
+            DeprecationWarning,
+        )
+
         reserved = ["method", "order", "limit", "downgrade"]
         kwargs = filterKwargs(kwargs, reserved)
         return self.interpolateIndex(field, freq, "time", **kwargs)
@@ -75,6 +85,9 @@ class ResamplingMixin:
     ) -> "SaQC":
         """
         Shift data points and flags to a regular frequency grid.
+
+        .. deprecated:: 2.4.0
+           Use :py:meth:`~saqc.SaQC.align` instead.
 
         Parameters
         ----------
