@@ -479,7 +479,6 @@ class Flags:
         """
         Transform the flags container to a ``DictOfSeries``.
 
-
         .. deprecated:: 2.4
            use `saqc.DictOfSeries(obj)` instead.
 

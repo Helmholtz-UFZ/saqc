@@ -144,6 +144,9 @@ class InterpolationMixin:
         """
         Fill NaN and flagged values using an interpolation method.
 
+        .. deprecated:: 2.4.0
+           Use :py:meth:`~saqc.SaQC.align` instead.
+
         Parameters
         ----------
         method :
@@ -399,6 +402,9 @@ class InterpolationMixin:
         """
         Function to interpolate the data at regular (äquidistant) timestamps (or Grid points).
 
+        .. deprecated:: 2.4.0
+           Use :py:meth:`~saqc.SaQC.align` instead.
+
         Parameters
         ----------
         freq :
@@ -471,6 +477,10 @@ class InterpolationMixin:
         flag: float = UNFLAGGED,
         **kwargs,
     ) -> "SaQC":
+        """
+        .. deprecated:: 2.4.0
+           Use :py:meth:`~saqc.SaQC.interpolate` instead.
+        """
         warnings.warn(
             f"""
             The method `intepolateInvalid` is deprecated and will be removed

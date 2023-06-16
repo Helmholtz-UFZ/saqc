@@ -277,6 +277,9 @@ class FlagtoolsMixin:
         """
         Transfer Flags of one variable to another.
 
+        .. deprecated:: 2.4.0
+           Use :py:meth:`~saqc.SaQC.concatFlags` with ``method="match"`` and ``squeeze=False`` instead.
+
         See Also
         --------
         * :py:meth:`saqc.SaQC.flagGeneric`
