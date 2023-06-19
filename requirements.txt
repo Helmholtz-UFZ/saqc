@@ -14,4 +14,4 @@ pandas==2.0.1
 scikit-learn==1.2.2
 scipy==1.10.1
 typing_extensions==4.5.0
-fancy-collections==0.1.3
+fancy-collections==0.2.0

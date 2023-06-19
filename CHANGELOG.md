@@ -11,7 +11,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Added
 ### Changed
 ### Removed
+- removed deprecated `DictOfSeries.to_df` 
 ### Fixed
+### Deprecated
 
 ## [2.4.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.0) - 2023-04-25
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.3.0...v2.4.0)
@@ -21,11 +23,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Expose the `History` via `SaQC._history`
 - Config function `cv` (coefficient of variation)
 ### Changed
-- Deprecate `interpolate`, `linear` and `shift` in favor of `align`
-- Deprecate `roll` in favor of `rolling`
 - Rename `interplateInvalid` to `interpolate`
 - Rename `interpolateIndex` to `align`
-- Deprecate `flagMVScore` parameters: `partition` in favor of `window`, `partition_min` in favor of `min_periods`, `min_periods` in favor of `min_periods_r`
 - Rewrite of `dios.DictOfSeries`
 ### Removed
 - Parameter `limit` from `align`
@@ -36,6 +35,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `reample` was not writing meta entries
 - `flagByStatLowPass` was overwriting existing flags
 - `flagUniLOF` and `flagLOF` were overwriting existing flags
+### Deprecated
+- Deprecate `flagMVScore` parameters: `partition` in favor of `window`, `partition_min` in favor of `min_periods`, `min_periods` in favor of `min_periods_r`
+- Deprecate `interpolate`, `linear` and `shift` in favor of `align`
+- Deprecate `roll` in favor of `rolling`
+- Deprecate `DictOfSeries.to_df` in favor of `DictOfSeries.to_pandas`
 
 ## [2.3.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.3.0) - 2023-01-17
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.1...v2.3.0)

@@ -4,10 +4,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import warnings
 from typing import Any, Hashable, Mapping
 
-import numpy as np
 import pandas as pd
 from fancy_collections import DictOfPandas
 
@@ -37,35 +35,12 @@ class DictOfSeries(DictOfPandas):
     def attrs(self, value: Mapping[Hashable, Any]) -> None:
         self._attrs = dict(value)
 
-    def to_df(self, how="outer") -> pd.DataFrame:
-        """
-        Transform DictOfSeries to a pandas.DataFrame.
-
-        .. deprecated:: 2.4
-           use `DictOfSeries.to_pandas()` instead.
-        """
-        warnings.warn(
-            f"`to_df()` is deprecated use `to_pandas()` instead.",
-            category=DeprecationWarning,
-        )
-        return self.to_pandas(how)
-
     def flatten(self, promote_index: bool = False) -> DictOfSeries:
         """
         Return a copy.
         DictOfPandas compatibility
         """
         return self.copy()
-
-    def to_pandas(self, how="outer"):
-        # This is a future feature from fancy_collections.DictOfPandas
-        # wich probably will come in the next version 0.1.4.
-        # We adopt this early, to prevent a second refactoring.
-        # The docstring will be different, so we keep the
-        # dynamic docstring allocation, down below.
-        # If the feature is present we just need to delete the
-        # entire method here.
-        return self.to_dataframe(how)
 
     def index_of(self, method="union") -> pd.Index:
         """Return an index with indices from all columns.
@@ -194,8 +169,3 @@ or is dropped if `how='inner'`
       a     b     c
 1  11.0  22.0  33.0
 """
-
-
-DictOfSeries.to_dataframe.__doc__ = DictOfSeries.to_pandas.__doc__.replace(
-    "to_pandas", "to_dataframe"
-)
