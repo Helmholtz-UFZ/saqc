@@ -272,7 +272,7 @@ To see all the results obtained so far, plotted in one figure window, we make us
 
 .. doctest:: exampleOD
 
-   >>> data.to_df().plot()
+   >>> data.to_pandas().plot()
    <Axes...>
 
 .. plot::
@@ -281,7 +281,7 @@ To see all the results obtained so far, plotted in one figure window, we make us
    :width: 80 %
    :class: center
 
-   data.to_df().plot()
+   data.to_pandas().plot()
 
 
 Residuals and Scores

@@ -212,7 +212,7 @@ class ToolsMixin:
         """
         Plot data and flags or store plot to file.
 
-        There are two modes, 'interactive' and 'store', which are determind through the
+        There are two modes, 'interactive' and 'store', which are determined through the
         ``save_path`` keyword. In interactive mode (default) the plot is shown at runtime
         and the program execution stops until the plot window is closed manually. In
         store mode the generated plot is stored to disk and no manually interaction is
