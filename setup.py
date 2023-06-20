@@ -39,7 +39,7 @@ setup(
         "numpy",
         "outlier-utils",
         "pyarrow",
-        "pandas",
+        "pandas>=2.0.0",
         "scikit-learn",
         "scipy",
         "typing_extensions",

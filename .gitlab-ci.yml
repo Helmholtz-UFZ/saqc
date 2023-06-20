@@ -134,12 +134,39 @@ doctest:
 # Building stage
 # ===========================================================
 # check if we are able to build a wheel
-wheel:
+# and if the import works
+wheel38:
   stage: build
+  image: python:3.8
   script:
     - pip install wheel
     - pip wheel .
     - pip install .
+    - python -c 'import saqc; print(f"{saqc.__version__=}")'
+wheel39:
+  stage: build
+  image: python:3.9
+  script:
+    - pip install wheel
+    - pip wheel .
+    - pip install .
+    - python -c 'import saqc; print(f"{saqc.__version__=}")'
+wheel310:
+  stage: build
+  image: python:3.10
+  script:
+    - pip install wheel
+    - pip wheel .
+    - pip install .
+    - python -c 'import saqc; print(f"{saqc.__version__=}")'
+wheel311:
+  stage: build
+  image: python:3.11
+  script:
+    - pip install wheel
+    - pip wheel .
+    - pip install .
+    - python -c 'import saqc; print(f"{saqc.__version__=}")'
 
 docs:
   stage: build
