@@ -10,9 +10,20 @@ from __future__ import annotations
 import collections
 import functools
 import itertools
+import operator as op
 import re
 import warnings
-from typing import Any, Callable, Collection, List, Sequence, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    List,
+    Literal,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 import pandas as pd
@@ -22,6 +33,40 @@ from scipy.cluster.hierarchy import fcluster, linkage
 from saqc.lib.types import CompT
 
 T = TypeVar("T", str, float, int)
+BOUND_OPERATORS = {
+    None: (op.le, op.ge),
+    "both": (op.lt, op.gt),
+    "right": (op.le, op.gt),
+    "left": (op.gt, op.le),
+}
+
+
+def isInBounds(
+    val: int | float,
+    bounds: Tuple[int | float],
+    closed: Literal["left", "right", "both"] = None,
+):
+    """
+    check if val falls into the interval [left, right] and return boolean accordingly
+
+    val :
+        value to check
+
+    bounds :
+        Tuple containing left and right interval bounds. Pass `(a, b)` to define the interval [`a`, `b`].
+        Set `a=-inf` or `b=+inf` to set one sided restriction.
+
+    closed :
+        Enclosure includes the interval bounds into the constraint interval. By default, the bounds
+        are not included. Pass:
+        * `"both"`: to include both sides of the interval
+        * `"left"`: to include left bound
+        * `"right"`: to include right bound
+    """
+    ops = BOUND_OPERATORS[closed]
+    if ops[0](val, bounds[0]) or ops[1](val, bounds[1]):
+        return False
+    return True
 
 
 def assertScalar(name, value, optional=False):
@@ -253,7 +298,6 @@ def estimateFrequency(
 
     len_f = len(delta_f) * 2
     min_energy = delta_f[0] * min_energy
-    # calc/assign low/high freq cut offs (makes life easier):
     min_rate_i = int(
         len_f / (pd.Timedelta(min_rate).total_seconds() * (10**delta_precision))
     )
@@ -383,7 +427,7 @@ def getFreqDelta(index: pd.Index) -> None | pd.Timedelta:
     (``None`` will also be returned for pd.RangeIndex type.)
 
     """
-    delta = getattr(index, "freq", None)
+    delta = getattr(index, "window", None)
     if delta is None and not index.empty:
         i = pd.date_range(index[0], index[-1], len(index))
         if i.equals(index):

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import functools
 import inspect
+import warnings
 from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
 
 import numpy as np
@@ -22,7 +23,8 @@ from saqc import BAD
 from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.funcs.changepoints import _getChangePoints
 from saqc.lib.docs import DOC_TEMPLATES
-from saqc.lib.tools import detectDeviants, filterKwargs, toSequence
+from saqc.lib.exceptions import ParameterOutOfBounds
+from saqc.lib.tools import detectDeviants, filterKwargs, isInBounds, toSequence
 from saqc.lib.ts_operators import expDriftModel, linearDriftModel
 from saqc.lib.types import CurveFitter
 
@@ -53,7 +55,7 @@ class DriftMixin:
     def flagDriftFromNorm(
         self: "SaQC",
         field: Sequence[str],
-        freq: str,
+        window: str,
         spread: float,
         frac: float = 0.5,
         metric: Callable[
@@ -74,7 +76,7 @@ class DriftMixin:
 
         Parameters
         ----------
-        freq :
+        window :
             Frequency, that split the data in chunks.
 
         spread :
@@ -130,12 +132,25 @@ class DriftMixin:
         Introduction to Hierarchical clustering:
             [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
         """
+        if not isInBounds(frac, (0.5, 1), closed="both"):
+            raise ParameterOutOfBounds(frac, "frac", (0.5, 1), "both")
+
+        if "freq" in kwargs:
+            warnings.warn(
+                """
+                The parameter `freq` is deprecated and will be removed in version 3.0 of saqc.
+                Please us the parameter `window` instead.'
+                """,
+                DeprecationWarning,
+            )
+            window = kwargs["freq"]
+
         fields = toSequence(field)
 
         data = self._data[fields].to_pandas()
         data.dropna(inplace=True)
 
-        segments = data.groupby(pd.Grouper(freq=freq))
+        segments = data.groupby(pd.Grouper(freq=window))
         for segment in segments:
             if len(segment[1]) <= 1:
                 continue

@@ -15,6 +15,7 @@ Cook Books
    DataRegularisation
    OutlierDetection
    ResidualOutlierDetection
+   DriftDetection
    MultivariateFlagging
    ../documentation/GenericFunctions
 
@@ -62,6 +63,16 @@ Cook Books
       * freely formulate logical quality control conditions
       +++
       *Wrap your custom logical and arithmetic expressions with the generic functions*
+
+
+   .. grid-item-card:: Drift Detection
+      :link: DriftDetection
+      :link-type: doc
+
+      * define metrics to measure distance between data series
+      * automatically determine majority and anomalous data groups
+      +++
+      *Detecting datachunks drifting apart from a reference group*
 
    .. grid-item-card:: Modelling, Residuals and Arithmetics
       :link: ResidualOutlierDetection

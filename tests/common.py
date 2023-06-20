@@ -88,7 +88,7 @@ def checkInvariants(data, flags, field, identical=True):
 
     assert flags[field].dtype == float
 
-    # `pd.Index.identical` also check index attributes like `freq`
+    # `pd.Index.identical` also check index attributes like `window`
     if identical:
         assert data[field].index.identical(flags[field].index)
     else:
