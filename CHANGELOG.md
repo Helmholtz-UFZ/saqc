@@ -10,8 +10,19 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)
 ### Added
 ### Changed
+- pin pandas to versions >= 2.0
 ### Removed
-- removed deprecated `DictOfSeries.to_df` 
+- removed deprecated `DictOfSeries.to_df`
+### Fixed
+### Deprecated
+
+## [2.4.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)
+### Added
+### Changed
+- pin pandas to versions >= 2.0
+### Removed
+- removed deprecated `DictOfSeries.to_df`
 ### Fixed
 ### Deprecated
 
