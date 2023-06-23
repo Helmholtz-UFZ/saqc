@@ -3,4 +3,4 @@ varname    ; test
 SM2        ; align(freq="15Min", method="nshift")
 SM2        ; flagMissing()
 'SM(1|2)+' ; flagRange(min=10, max=60)
-SM2        ; flagMAD(window="30d", z=3.5)
+SM2        ; flagZScore(window="30d", thresh=3.5, method='modified', center=False)
