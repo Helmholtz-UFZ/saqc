@@ -2,8 +2,8 @@ varname;test
 #------;--------------------------
 SM1;flagRange(min=10, max=60)
 SM2;flagRange(min=10, max=60)
-SM1;flagMAD(window="15d", z=3.5)
-SM2;flagMAD(window="30d", z=3.5)
+SM1;flagZScore(window="15d", thresh=3.5, method='modified')
+SM2;flagZScore(window="30d", thresh=3.5, method='modified')
 SM1;plot(path='../resources/temp/SM1processingResults')
 SM2;plot(path='../resources/temp/SM2processingResults')
 

@@ -57,7 +57,7 @@ SM2        ; shift(freq="15Min")
 'SM(1|2)+' ; flagMissing()
 SM1        ; flagRange(min=10, max=60)
 SM2        ; flagRange(min=10, max=40)
-SM2        ; flagMAD(window="30d", z=3.5)
+SM2        ; flagZScore(window="30d", thresh=3.5, method='modified', center=False)
 Dummy      ; flagGeneric(field=["SM1", "SM2"], func=(isflagged(x) | isflagged(y)))
 ```
 
@@ -98,7 +98,7 @@ saqc = (saqc
         .flagMissing("SM(1|2)+", regex=True)
         .flagRange("SM1", min=10, max=60)
         .flagRange("SM2", min=10, max=40)
-        .flagMAD("SM2", window="30d", z=3.5)
+        .flagZScore("SM2", window="30d", thresh=3.5, method='modified', center=False)
         .flagGeneric(field=["SM1", "SM2"], target="Dummy", func=lambda x, y: (isflagged(x) | isflagged(y))))
 ```
 
