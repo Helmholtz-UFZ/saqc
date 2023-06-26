@@ -8,9 +8,8 @@
 from __future__ import annotations
 
 import typing
-from typing import TYPE_CHECKING, Callable, Tuple
+from typing import TYPE_CHECKING, Callable, Literal, Tuple
 
-import numba
 import numpy as np
 import pandas as pd
 
@@ -44,9 +43,11 @@ class ChangepointsMixin:
         Parameters
         ----------
         stat_func :
-             A function that assigns a value to every twin window. The backward-facing
-             window content will be passed as the first array, the forward-facing window
-             content as the second.
+             * If callable: A function that assigns a scalar value to every twin window. The backward-facing
+               window content will be passed as the first array, the forward-facing window
+               content as the second.
+             * If string: The respective statistic will be calculated for both the windows and the absolute difference of
+               the results will be returned.
 
         thresh_func :
             A function that determines the value level, exceeding wich qualifies a
@@ -245,31 +246,8 @@ def _getChangePoints(
     check_len = len(fwd_end)
     data_arr = data.values
 
-    # Please keep this as I sometimes need to disable jitting manually
-    # to make it work with my debugger :/
-    # --palmb
-    try_to_jit = True
-    if try_to_jit:
-        jit_sf = numba.jit(stat_func, nopython=True)
-        jit_tf = numba.jit(thresh_func, nopython=True)
-        try:
-            jit_sf(
-                data_arr[bwd_start[0] : bwd_end[0]], data_arr[fwd_start[0] : fwd_end[0]]
-            )
-            jit_tf(
-                data_arr[bwd_start[0] : bwd_end[0]], data_arr[fwd_start[0] : fwd_end[0]]
-            )
-            stat_func = jit_sf
-            thresh_func = jit_tf
-        except (numba.TypingError, numba.UnsupportedError, IndexError):
-            try_to_jit = False
-
     args = data_arr, bwd_start, fwd_end, split, stat_func, thresh_func, check_len
-
-    if try_to_jit:
-        stat_arr, thresh_arr = _slidingWindowSearchNumba(*args)
-    else:
-        stat_arr, thresh_arr = _slidingWindowSearch(*args)
+    stat_arr, thresh_arr = _slidingWindowSearch(*args)
 
     result_arr = stat_arr > thresh_arr
 
@@ -324,20 +302,6 @@ def _getChangePoints(
     )
 
 
-@numba.jit(parallel=True, nopython=True)
-def _slidingWindowSearchNumba(
-    data_arr, bwd_start, fwd_end, split, stat_func, thresh_func, num_val
-):
-    stat_arr = np.zeros(num_val)
-    thresh_arr = np.zeros(num_val)
-    for win_i in numba.prange(0, num_val - 1):
-        x = data_arr[bwd_start[win_i] : split[win_i]]
-        y = data_arr[split[win_i] : fwd_end[win_i]]
-        stat_arr[win_i] = stat_func(x, y)
-        thresh_arr[win_i] = thresh_func(x, y)
-    return stat_arr, thresh_arr
-
-
 def _slidingWindowSearch(
     data_arr, bwd_start, fwd_end, split, stat_func, thresh_func, num_val
 ):
@@ -353,7 +317,7 @@ def _slidingWindowSearch(
 
 def _reduceCPCluster(stat_arr, thresh_arr, start, end, obj_func, num_val):
     out_arr = np.zeros(shape=num_val, dtype=bool)
-    for win_i in numba.prange(0, num_val):
+    for win_i in range(num_val):
         s, e = start[win_i], end[win_i]
         x = stat_arr[s:e]
         y = thresh_arr[s:e]

@@ -72,7 +72,6 @@ def test_flagSpikesLimitRaise(dat):
         thresh=2,
         freq="10min",
         raise_window="20min",
-        numba_boost=False,
         flag=BAD,
     )
     assert np.all(qc.flags[field][characteristics["raise"]] > UNFLAGGED)
@@ -221,10 +220,7 @@ def test_flagUniLOF(spiky_data, n, p, thresh):
     qc = SaQC(data).flagUniLOF(field, n=n, p=p, thresh=thresh)
     flag_result = qc.flags[field]
     test_sum = (flag_result[spiky_data[1]] == BAD).sum()
-    try:
-        assert test_sum == len(spiky_data[1])
-    except AssertionError:
-        print("stop")
+    assert test_sum == len(spiky_data[1])
 
 
 @pytest.mark.parametrize("vars", [1, 2, 3])
