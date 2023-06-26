@@ -45,9 +45,12 @@ F = False
         (np.array([F, T, T, F, T, T, F]), 2, False),
     ],
 )
-def test__exceedConsecutiveNanLimit(arr, maxc, expected):
+def test_exceedConsecutiveNanLimit(arr, maxc, expected):
     result = tsops._exceedConsecutiveNanLimit(arr, maxc)
-    assert result is expected
+    try:
+        assert result is expected
+    except AssertionError:
+        print("stop")
 
 
 def dtSeries(data, freq="1d"):

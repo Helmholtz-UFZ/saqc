@@ -14,7 +14,6 @@ import sys
 import warnings
 from typing import Union
 
-import numba as nb
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
@@ -209,7 +208,6 @@ def maxGap(in_arr):
     return max(in_arr[0], max(np.diff(in_arr)))
 
 
-@nb.njit
 def _exceedConsecutiveNanLimit(arr, max_consec):
     """
     Check if array has more consecutive NaNs than allowed.
@@ -226,17 +224,13 @@ def _exceedConsecutiveNanLimit(arr, max_consec):
     exceeded: bool
         True if more than allowed consecutive NaNs appear, False otherwise.
     """
-    current = 0
-    idx = 0
-    while idx < arr.size:
-        while idx < arr.size and arr[idx]:
-            current += 1
-            idx += 1
-        if current > max_consec:
-            return True
-        current = 0
-        idx += 1
-    return False
+    s = arr.shape[0]
+    if s <= max_consec:
+        return False
+    views = np.lib.stride_tricks.sliding_window_view(
+        arr, window_shape=min(s, max_consec + 1)
+    )
+    return bool(views.all(axis=1).any())
 
 
 def validationTrafo(data, max_nan_total, max_nan_consec):
@@ -536,61 +530,6 @@ def butterFilter(
     y = pd.Series(filtfilt(b, a, x), x.index, name=x.name)
     y[na_mask] = np.nan
     return y
-
-
-@nb.njit
-def _coeffMat(x, deg):
-    # helper function to construct numba-compatible polynomial fit function
-    mat_ = np.zeros(shape=(x.shape[0], deg + 1))
-    const = np.ones_like(x)
-    mat_[:, 0] = const
-    mat_[:, 1] = x
-    if deg > 1:
-        for n in range(2, deg + 1):
-            mat_[:, n] = x**n
-    return mat_
-
-
-@nb.jit(nopython=True)
-def _fitX(a, b):
-    # helper function to construct numba-compatible polynomial fit function
-    # linalg solves ax = b
-    det_ = np.linalg.lstsq(a, b)[0]
-    return det_
-
-
-@nb.jit(nopython=True)
-def _fitPoly(x, y, deg):
-    # a numba compatible polynomial fit function
-    a = _coeffMat(x, deg)
-    p = _fitX(a, y)
-    # Reverse order so p[0] is coefficient of highest order
-    return p[::-1]
-
-
-@nb.jit(nopython=True)
-def evalPolynomial(P, x):
-    # a numba compatible polynomial evaluator
-    result = 0
-    for coeff in P:
-        result = x * result + coeff
-    return result
-
-
-def polyRollerNumba(in_slice, miss_marker, val_range, center_index, poly_deg):
-    # numba compatible function to roll with when modelling data with polynomial model
-    miss_mask = in_slice == miss_marker
-    x_data = val_range[~miss_mask]
-    y_data = in_slice[~miss_mask]
-    fitted = _fitPoly(x_data, y_data, deg=poly_deg)
-    return evalPolynomial(fitted, center_index)
-
-
-def polyRollerNoMissingNumba(in_slice, val_range, center_index, poly_deg):
-    # numba compatible function to roll with when modelling data with polynomial model -
-    # it is assumed, that in slice is an equidistant sample
-    fitted = _fitPoly(val_range, in_slice, deg=poly_deg)
-    return evalPolynomial(fitted, center_index)
 
 
 def polyRoller(in_slice, miss_marker, val_range, center_index, poly_deg):

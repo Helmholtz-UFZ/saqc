@@ -12,7 +12,6 @@ import uuid
 import warnings
 from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
 
-import numba
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
@@ -742,14 +741,7 @@ class OutliersMixin:
         # get invalid-raise/drop mask:
         raise_series = dataseries.rolling(raise_window_td, min_periods=2, closed="both")
 
-        numba_boost = True
-        if numba_boost:
-            raise_check_boosted = numba.jit(raise_check, nopython=True)
-            raise_series = raise_series.apply(
-                raise_check_boosted, args=(thresh,), raw=True, engine="numba"
-            )
-        else:
-            raise_series = raise_series.apply(raise_check, args=(thresh,), raw=True)
+        raise_series = raise_series.apply(raise_check, args=(thresh,), raw=True)
 
         if raise_series.isna().all():
             return self
@@ -790,21 +782,10 @@ class OutliersMixin:
         weights_rolling_sum = weights.rolling(
             average_window, min_periods=2, closed="both"
         )
-        if numba_boost:
-            custom_rolling_mean_boosted = numba.jit(custom_rolling_mean, nopython=True)
-            weighted_rolling_mean = weighted_rolling_mean.apply(
-                custom_rolling_mean_boosted, raw=True, engine="numba"
-            )
-            weights_rolling_sum = weights_rolling_sum.apply(
-                custom_rolling_mean_boosted, raw=True, engine="numba"
-            )
-        else:
-            weighted_rolling_mean = weighted_rolling_mean.apply(
-                custom_rolling_mean, raw=True
-            )
-            weights_rolling_sum = weights_rolling_sum.apply(
-                custom_rolling_mean, raw=True, engine="numba"
-            )
+        weighted_rolling_mean = weighted_rolling_mean.apply(
+            custom_rolling_mean, raw=True
+        )
+        weights_rolling_sum = weights_rolling_sum.apply(custom_rolling_mean, raw=True)
 
         weighted_rolling_mean = weighted_rolling_mean / weights_rolling_sum
         # check means against critical raise value:
