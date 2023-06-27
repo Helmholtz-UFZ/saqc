@@ -110,16 +110,16 @@ python310:
     reports:
       junit: report.xml
 
-# python311:
-#   stage: test
-#   image: python:3.11
-#   script:
-#     - pytest tests -Werror --junitxml=report.xml
-#     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
-#   artifacts:
-#     when: always
-#     reports:
-#       junit: report.xml
+python311:
+  stage: test
+  image: python:3.11
+  script:
+    - pytest tests -Werror --junitxml=report.xml
+    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
 
 doctest:
   stage: test
