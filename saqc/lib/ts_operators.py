@@ -331,7 +331,7 @@ def interpolateNANs(data, method, order=2, gap_limit=2, extrapolate=None):
     # helper variable for checking numerical value of gap limit, if its a numeric value (to avoid comparison to str)
     gap_check = np.nan if isinstance(gap_limit, str) else gap_limit
     data = pd.Series(data, copy=True)
-    limit_area = "inside" if not extrapolate else "outside"
+    limit_area = None if extrapolate else "inside"
     if gap_check is None:
         # if there is actually no limit set to the gaps to-be interpolated, generate a dummy mask for the gaps
         gap_mask = pd.Series(True, index=data.index, name=data.name)
