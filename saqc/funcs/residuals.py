@@ -71,6 +71,7 @@ class ResidualsMixin:
             sparse intervals). To automatically set the minimum number of periods to the
             number of values in an offset defined window size, pass np.nan.
         """
+        # HINT: checking in  _fitPolynomial
         orig = self._data[field]
         data, _ = _fitPolynomial(
             data=self._data,
@@ -117,6 +118,7 @@ class ResidualsMixin:
         center :
             If True, center the rolling window.
         """
+        # HINT: checking in  _roll
         orig = self._data[field].copy()
         data, _ = _roll(
             data=self._data,

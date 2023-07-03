@@ -10,7 +10,9 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
+from numpy.lib.stride_tricks import sliding_window_view
 
+from saqc.lib.checking import validateChoice, validateMinPeriods, validateWindow
 from saqc.lib.tools import getFreqDelta
 
 
@@ -26,35 +28,35 @@ def windowRoller(
     * implements efficient 2d rolling in case of regular timestamps or integer defined window
     * else: dispatches to not optimized (no-numba) version in case of irregular timestamp
     """
-    supportedFuncs = ["mean", "median", "std", "var", "sum"]
-    if func not in supportedFuncs:
-        raise ValueError(f'"func" has to be one of {supportedFuncs}. Got {func}.')
+    validateWindow(window)
+    validateMinPeriods(min_periods, optional=False)
+    validateChoice(func, "func", ["mean", "median", "std", "var", "sum"])
+
     func_kwargs = {}
     if func in ["std", "var"]:
         func_kwargs.update({"ddof": 1})
+
     roll_func = getattr(np, "nan" + func)
     regularFreq = getFreqDelta(data.index)
-    vals = data.values
     if regularFreq is not None:
-        window = (
-            int(pd.Timedelta(window) / pd.Timedelta(regularFreq))
-            if isinstance(window, str)
-            else window
-        )
+        if isinstance(window, str):
+            window = int(pd.Timedelta(window) / pd.Timedelta(regularFreq))
+        vals = data.values
         ramp = np.empty(((window - 1), vals.shape[1]))
         ramp.fill(np.nan)
         vals = np.concatenate([ramp, vals])
         if center:
             vals = np.roll(vals, axis=0, shift=-int(window / 2))
 
-        views = np.lib.stride_tricks.sliding_window_view(
-            vals, (window, vals.shape[1])
-        ).squeeze()
+        views = sliding_window_view(vals, (window, vals.shape[1])).squeeze()
         result = roll_func(views, axis=(1, 2), **func_kwargs)
+
         if min_periods > 0:
             invalid_wins = (~np.isnan(views)).sum(axis=(1, 2)) < min_periods
             result[invalid_wins] = np.nan
+
         out = pd.Series(result, index=data.index, name="result")
+
     else:  # regularFreq is None
         i_ser = pd.Series(range(data.shape[0]), index=data.index, name="result")
         result = i_ser.rolling(window=window, center=center).apply(

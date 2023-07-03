@@ -25,6 +25,7 @@ import pandas as pd
 from saqc import BAD, FILTER_ALL
 from saqc.core import flagging, register
 from saqc.funcs.changepoints import _getChangePoints
+from saqc.lib.checking import validateMinPeriods, validateWindow
 from saqc.lib.tools import isunflagged
 
 if TYPE_CHECKING:
@@ -97,6 +98,8 @@ class BreaksMixin:
         3. None of the :math:`x_j` with :math:`0 < t_j - t_(k+n) <` `gap_window`,
             is valid (succeding gap).
         """
+        validateWindow(gap_window, name="gap_window", allow_int=False)
+        validateWindow(group_window, name="group_window", allow_int=False)
 
         dat = self._data[field].dropna()
         if dat.empty:
@@ -180,6 +183,9 @@ class BreaksMixin:
         Jumps that are not distanced to each other by more than three fourth (3/4) of the
         selected window size, will not be detected reliably.
         """
+        validateWindow(window, allow_int=False)
+        validateMinPeriods(min_periods)
+
         mask = _getChangePoints(
             data=self._data[field],
             stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),

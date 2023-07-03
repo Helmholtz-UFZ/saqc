@@ -16,6 +16,7 @@ import pandas as pd
 
 from saqc import BAD
 from saqc.core import flagging
+from saqc.lib.checking import validateMinPeriods, validateValueBounds, validateWindow
 from saqc.lib.rolling import removeRollingRamps
 from saqc.lib.tools import getFreqDelta, statPass
 from saqc.lib.ts_operators import varQC
@@ -50,30 +51,22 @@ class ConstantsMixin:
         thresh :
             Maximum total change allowed per window.
 
+        min_periods :
+            Minimum number of observations in window required to generate
+            a flag. Must be an integer greater or equal `2`, because a
+            single value would always be considered constant.
+            Defaults to `2`.
+
         window :
             Size of the moving window. This is the number of observations used
             for calculating the statistic. Each window will be a fixed size.
-            If its an offset then this will be the time period of each window.
+            If it is an offset then this will be the time period of each window.
             Each window will be a variable sized based on the observations included
             in the time-period.
         """
-        if not isinstance(window, (str, int)):
-            raise TypeError("window must be offset string or int.")
-
         d: pd.Series = self._data[field]
-
-        if not isinstance(window, int) and not pd.api.types.is_datetime64_any_dtype(
-            d.index
-        ):
-            raise ValueError(
-                f"A time based value for 'window' is only possible for variables "
-                f"with a datetime based index, but variable '{field}' has an index "
-                f"of dtype {d.index.dtype}. Use an integer window instead."
-            )
-
-        # min_periods=2 ensures that at least two non-nan values are present
-        # in each window and also min() == max() == d[i] is not possible.
-        min_periods = max(min_periods, 2)
+        validateWindow(window, index=d.index)
+        validateMinPeriods(min_periods, minimum=2, optional=False)
 
         # 1. find starting points of consecutive constant values as a boolean mask
         # 2. fill the whole window with True's
@@ -133,21 +126,27 @@ class ConstantsMixin:
         maxna_group :
             Same as `maxna` but for consecutive NaNs.
         """
-        dataseries = self._data[field]
-        delta = getFreqDelta(dataseries.index)
+        d: pd.Series = self._data[field]
+        validateWindow(window, allow_int=False, index=d.index)
+        window = pd.Timedelta(window)
+
+        delta = getFreqDelta(d.index)
         if not delta:
             raise IndexError("Timeseries irregularly sampled!")
 
         if maxna is None:
             maxna = np.inf
-
         if maxna_group is None:
             maxna_group = np.inf
 
+        validateValueBounds(maxna, "maxna", 0, closed="both", strict_int=True)
+        validateValueBounds(
+            maxna_group, "maxna_group", 0, closed="both", strict_int=True
+        )
+
         min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(delta)))
-        window = pd.Timedelta(window)
         to_set = statPass(
-            dataseries,
+            d,
             lambda x: varQC(x, maxna, maxna_group),
             window,
             thresh,

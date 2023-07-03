@@ -15,6 +15,7 @@ import pandas as pd
 
 from saqc.constants import BAD
 from saqc.core.register import flagging
+from saqc.lib.checking import validateCallable, validateMinPeriods, validateWindow
 from saqc.lib.tools import isunflagged, statPass
 
 if TYPE_CHECKING:
@@ -64,26 +65,22 @@ class NoiseMixin:
             Minimum number of values needed in a chunk to perfom the test.
             Ignored if ``window`` is an integer.
         """
-
-        datcol = self._data[field]
-        if not min_periods:
-            min_periods = 0
-        if not sub_thresh:
-            sub_thresh = thresh
-        window = pd.Timedelta(window)
-
+        validateCallable(func, "func")
+        validateWindow(window, allow_int=False)
+        validateMinPeriods(min_periods)
         if sub_window is not None:
+            validateWindow(sub_window, "sub_window", allow_int=False)
             sub_window = pd.Timedelta(sub_window)
 
         to_set = statPass(
-            datcol,
-            func,
-            window,
-            thresh,
-            operator.gt,
-            sub_window,
-            sub_thresh,
-            min_periods,
+            datcol=self._data[field],
+            stat=func,
+            winsz=pd.Timedelta(window),
+            thresh=thresh,
+            comparator=operator.gt,
+            sub_winsz=sub_window,
+            sub_thresh=sub_thresh or thresh,
+            min_periods=min_periods or 0,
         )
         mask = isunflagged(self._flags[field], kwargs["dfilter"]) & to_set
         self._flags[mask, field] = flag

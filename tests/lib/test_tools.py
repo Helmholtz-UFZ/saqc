@@ -6,25 +6,26 @@ import pandas as pd
 import pytest
 
 import saqc.lib.tools as tools
+from saqc.lib.checking import validateScalar
 
 
 @pytest.mark.parametrize("optional", [False, True])
 @pytest.mark.parametrize("value", [1, 0, "foo", np.nan, np.inf])
-def test_assertScalar(value, optional):
-    tools.assertScalar("value", value, optional)
+def test_validateScalar(value, optional):
+    validateScalar(value, "value", optional)
 
 
 @pytest.mark.parametrize("optional", [False, True])
 @pytest.mark.parametrize("value", [[1], [0, 1], {}, {1, 2}, pd.Series([1, 2])])
-def test_assertScalar_raises(value, optional):
+def test_validateScalar(value, optional):
     with pytest.raises(ValueError):
-        tools.assertScalar("value", value, optional)
+        validateScalar(value, "value", optional)
 
 
-def test_assertScalar_optional():
-    tools.assertScalar("value", None, optional=True)
+def test_validateScalar():
+    validateScalar("value", None, optional=True)
     with pytest.raises(ValueError):
-        tools.assertScalar("value", None, optional=False)
+        validateScalar(None, "value", optional=False)
 
 
 class _ListLike(list):

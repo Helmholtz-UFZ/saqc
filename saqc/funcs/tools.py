@@ -17,6 +17,7 @@ from typing_extensions import Literal
 
 from saqc import FILTER_NONE, UNFLAGGED
 from saqc.core import processing, register
+from saqc.lib.checking import validateChoice
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.plotting import makeFig
 from saqc.lib.tools import periodicMask
@@ -177,6 +178,8 @@ class ToolsMixin:
         >>> start = "22:00:00"
         >>> end = "06:00:00"
         """
+        validateChoice(mode, "mode", ["periodic", "selection_field"])
+
         datcol_idx = self._data[field].index
 
         if mode == "periodic":

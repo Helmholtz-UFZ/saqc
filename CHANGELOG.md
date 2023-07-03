@@ -9,11 +9,16 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)
 ### Added
+- added checks and unified error message for common inputs.
 ### Changed
 - pin pandas to versions >= 2.0
+- parameter `fill_na` of `SaQC.flagUniLOF` and `SaQC.assignUniLOF` is now of type 
+  `bool` instead of one of `[None, "linear"]`
 ### Removed
 - removed deprecated `DictOfSeries.to_df`
 ### Fixed
+- Bug in `SaQC.assignChangePointCluster` and `SaQC.flagChangePoints`: A tuple passed 
+  to `min_period` was only recognised if also `window` was a tuple.
 ### Deprecated
 
 ## [2.4.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
