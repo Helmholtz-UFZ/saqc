@@ -16,6 +16,12 @@ from typing_extensions import Literal
 
 from saqc import UNFLAGGED
 from saqc.core import register
+from saqc.lib.checking import (
+    validateCallable,
+    validateChoice,
+    validateMinPeriods,
+    validateWindow,
+)
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import getApply, toSequence
 from saqc.lib.ts_operators import kNN
@@ -50,7 +56,7 @@ def _groupedScoring(
     min_periods: int = 2,
     score_func: Callable = _LOFApply,
     score_kwargs: Optional[dict] = None,
-) -> Tuple[pd.Series, pd.Series, pd.Series]:
+) -> pd.Series:
     score_kwargs = score_kwargs or {}
     score_index = val_frame.index
     score_ser = pd.Series(np.nan, index=score_index)
@@ -118,6 +124,11 @@ def _univarScoring(
     min_periods
         Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
     """
+    validateWindow(window, optional=True)
+    validateCallable(model_func, "model_func")
+    validateCallable(norm_func, "norm_func")
+    validateMinPeriods(min_periods, optional=True)
+
     if data.empty:
         return data, data, data
     if min_periods is None:
@@ -227,6 +238,11 @@ class ScoresMixin:
         ----------
         [1] https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html
         """
+        validateChoice(
+            algorithm, "algorithm", ["ball_tree", "kd_tree", "brute", "auto"]
+        )
+        validateCallable(func, "func")
+
         if isinstance(target, list):
             if len(target) > 1:
                 raise ValueError(
@@ -366,6 +382,11 @@ class ScoresMixin:
             * `1` - Manhatten Metric
             * `2` - Euclidian Metric
         """
+        from saqc.funcs.outliers import OutliersMixin
+
+        validateMinPeriods(min_periods)
+        OutliersMixin._validateLOF(algorithm, n, p, 1.0)
+
         if isinstance(target, list):
             if len(target) > 1:
                 raise ValueError(
@@ -405,7 +426,7 @@ class ScoresMixin:
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: int = 1,
         density: Literal["auto"] | float | Callable = "auto",
-        fill_na: str = "linear",
+        fill_na: bool = True,
         **kwargs,
     ) -> "SaQC":
         """
@@ -449,7 +470,7 @@ class ScoresMixin:
               (passed as Series).
 
         fill_na :
-            Weather or not to fill NaN values in the data with a linear interpolation.
+            If True, NaNs in the data are filled with a linear interpolation.
 
         Notes
         -----
@@ -463,10 +484,13 @@ class ScoresMixin:
         --------
 
         """
+        from saqc.funcs.outliers import OutliersMixin
+
+        OutliersMixin._validateLOF(algorithm, n, p, density)
 
         vals = self._data[field]
-        if fill_na is not None:
-            vals = vals.interpolate(fill_na)
+        if fill_na:
+            vals = vals.interpolate("linear")
 
         if density == "auto":
             density = vals.diff().abs().median()

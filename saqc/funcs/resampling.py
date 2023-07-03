@@ -17,6 +17,7 @@ from typing_extensions import Literal
 from saqc.constants import UNFLAGGED
 from saqc.core import register
 from saqc.core.history import History
+from saqc.lib.checking import validateCallable, validateChoice
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import filterKwargs, getFreqDelta, isflagged
 from saqc.lib.ts_operators import aggregate2Freq
@@ -45,22 +46,27 @@ class ResamplingMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        A method to "regularize" data by interpolating linearly the data at regular timestamp.
+        A method to "regularize" data by interpolating linearly the data
+        at regular timestamp.
 
-        .. deprecated:: 2.4.0
-           Use :py:meth:`~saqc.SaQC.align` with ``method="linear"`` instead.
+            .. deprecated:: 2.4.0
+               Use :py:meth:`~saqc.SaQC.align` with ``method="linear"``
+               instead.
 
-        A series of data is considered "regular", if it is sampled regularly (= having uniform sampling rate).
-        Interpolated values will get assigned the worst flag within freq-range.
-        Note, that the data only gets interpolated at those (regular) timestamps, that have a valid (existing and
-        not-na) datapoint preceeding them and one succeeding them within freq range.
-        Regular timestamp that do not suffice this condition get nan assigned AND The associated flag will be of value
-        ``UNFLAGGED``.
+        A series of data is considered "regular", if it is sampled regularly
+        (= having uniform sampling rate). Interpolated values will get
+        assigned the worst flag within freq-range. Note, that the data
+        only gets interpolated at those (regular) timestamps, that have
+        a valid (existing and not-na) datapoint preceeding them and one
+        succeeding them within freq range. Regular timestamp that do
+        not suffice this condition get nan assigned AND The associated
+        flag will be of value ``UNFLAGGED``.
 
         Parameters
         ----------
         freq :
-            An offset string. The frequency of the grid you want to interpolate your data at.
+            An offset string. The frequency of the grid you want to interpolate
+            your data at.
         """
         warnings.warn(
             f"""
@@ -70,7 +76,6 @@ class ResamplingMixin:
             """,
             DeprecationWarning,
         )
-
         reserved = ["method", "order", "limit", "downgrade"]
         kwargs = filterKwargs(kwargs, reserved)
         return self.interpolateIndex(field, freq, "time", **kwargs)
@@ -86,8 +91,8 @@ class ResamplingMixin:
         """
         Shift data points and flags to a regular frequency grid.
 
-        .. deprecated:: 2.4.0
-           Use :py:meth:`~saqc.SaQC.align` instead.
+            .. deprecated:: 2.4.0
+               Use :py:meth:`~saqc.SaQC.align` instead.
 
         Parameters
         ----------
@@ -104,12 +109,11 @@ class ResamplingMixin:
         warnings.warn(
             f"""
             The method `shift` is deprecated and will be removed with version 2.6 of saqc.
-            To achieve the same behavior please use:
-            `qc.align(field={field}, freq={freq}. method={method})`
+            To achieve the same behavior please use: `qc.align(field={field}, freq={freq}. method={method})`
             """,
             DeprecationWarning,
         )
-
+        validateChoice(method, "method", ["fshift", "bshift", "nshift"])
         return self.align(field=field, freq=freq, method=method, **kwargs)
 
     @register(mask=["field"], demask=[], squeeze=[])
@@ -165,11 +169,12 @@ class ResamplingMixin:
         maxna_group :
             Same as `maxna` but for consecutive NaNs.
         """
+        validateChoice(method, "method", ["fagg", "bagg", "nagg"])
+        validateCallable(func, "func")
 
         datcol = self._data[field]
-
         if datcol.empty:
-            # see for #GL-374
+            # see #GL-374
             datcol = pd.Series(index=pd.DatetimeIndex([]), dtype=datcol.dtype)
 
         datcol = aggregate2Freq(
@@ -288,6 +293,21 @@ class ResamplingMixin:
         overwrite :
             Overwrite existing flags if ``True``
         """
+        validateChoice(
+            method,
+            "method",
+            [
+                "inverse_fagg",
+                "inverse_bagg",
+                "inverse_nagg",
+                "inverse_fshift",
+                "inverse_bshift",
+                "inverse_nshift",
+                "inverse_interpolation",
+                "match",
+                "auto",
+            ],
+        )
 
         if target is None:
             target = field

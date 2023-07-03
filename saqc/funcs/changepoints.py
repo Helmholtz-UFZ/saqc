@@ -7,7 +7,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import typing
 from typing import TYPE_CHECKING, Callable, Literal, Tuple
 
 import numpy as np
@@ -15,6 +14,14 @@ import pandas as pd
 
 from saqc import BAD, UNFLAGGED
 from saqc.core import DictOfSeries, Flags, flagging, register
+from saqc.lib.checking import (
+    isInBounds,
+    validateCallable,
+    validateChoice,
+    validateMinPeriods,
+    validateValueBounds,
+    validateWindow,
+)
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -43,11 +50,9 @@ class ChangepointsMixin:
         Parameters
         ----------
         stat_func :
-             * If callable: A function that assigns a scalar value to every twin window. The backward-facing
-               window content will be passed as the first array, the forward-facing window
-               content as the second.
-             * If string: The respective statistic will be calculated for both the windows and the absolute difference of
-               the results will be returned.
+             A function that assigns a value to every twin window. The backward-facing
+             window content will be passed as the first array, the forward-facing window
+             content as the second.
 
         thresh_func :
             A function that determines the value level, exceeding wich qualifies a
@@ -88,6 +93,11 @@ class ChangepointsMixin:
             The default reduction function just selects the value that maximizes the
             `stat_func`.
         """
+        validateCallable(stat_func, "stat_func")
+        validateCallable(thresh_func, "thresh_func")
+        validateCallable(reduce_func, "reduce_func")
+        # Hint: windows are checked in _getChangePoints
+
         mask = _getChangePoints(
             data=self._data[field],
             stat_func=stat_func,
@@ -169,6 +179,11 @@ class ChangepointsMixin:
         model_by_resids :
             If True, the results of `stat_funcs` are written, otherwise the regime labels.
         """
+        validateCallable(stat_func, "stat_func")
+        validateCallable(thresh_func, "thresh_func")
+        validateCallable(reduce_func, "reduce_func")
+        # Hint: windows are checked in _getChangePoints
+
         rtyp = "residual" if model_by_resids else "cluster"
         cluster = _getChangePoints(
             data=self._data[field],
@@ -195,19 +210,44 @@ def _getChangePoints(
     min_periods: int | Tuple[int, int],
     reduce_window: str | None = None,
     reduce_func: Callable[[np.ndarray, np.ndarray], float] = lambda x, _: x.argmax(),
-    result: typing.Literal["cluster", "residual", "mask"] = "mask",
+    result: Literal["cluster", "residual", "mask"] = "mask",
 ) -> pd.Series:
+    """
+    TODO: missing docstring
+
+    Parameters
+    ----------
+    data :
+    stat_func :
+    thresh_func :
+    window :
+    min_periods :
+    reduce_window :
+    reduce_func :
+    result :
+
+    Returns
+    -------
+    """
+    validateChoice(result, "result", ["cluster", "residual", "mask"])
+
     orig_index = data.index
     data = data.dropna()  # implicit copy
 
     if isinstance(window, (list, tuple)):
         bwd_window, fwd_window = window
+        validateWindow(fwd_window, name="window[0]", allow_int=False)
+        validateWindow(bwd_window, name="window[1]", allow_int=False)
     else:
+        validateWindow(window, name="window", allow_int=False)
         bwd_window = fwd_window = window
 
-    if isinstance(window, (list, tuple)):
+    if isinstance(min_periods, (list, tuple)):
         bwd_min_periods, fwd_min_periods = min_periods
+        validateMinPeriods(bwd_min_periods, "min_periods[0]")
+        validateMinPeriods(fwd_min_periods, "min_periods[1]")
     else:
+        validateMinPeriods(min_periods)
         bwd_min_periods = fwd_min_periods = min_periods
 
     if reduce_window is None:
@@ -216,13 +256,7 @@ def _getChangePoints(
             + pd.Timedelta(fwd_window).total_seconds()
         )
         reduce_window = f"{s}s"
-
-    for window in [fwd_window, bwd_window, reduce_window]:
-        if isinstance(window, int):
-            raise TypeError(
-                "all parameter defining a size of a window "
-                "must be time-offsets, not integer."
-            )
+    validateWindow(reduce_window, name="reduce_window", allow_int=False)
 
     # find window bounds arrays..
     num_index = pd.Series(range(len(data)), index=data.index, dtype=int)
@@ -258,24 +292,23 @@ def _getChangePoints(
 
     det_index = masked_index[result_arr]
     detected = pd.Series(True, index=det_index)
-    if reduce_window:
-        length = len(detected)
 
-        # find window bounds arrays
-        num_index = pd.Series(range(length), index=detected.index, dtype=int)
-        rolling = num_index.rolling(window=reduce_window, closed="both", center=True)
-        start = rolling.min().to_numpy(dtype=int)
-        end = (rolling.max() + 1).to_numpy(dtype=int)
+    length = len(detected)
+    # find window bounds arrays
+    num_index = pd.Series(range(length), index=detected.index, dtype=int)
+    rolling = num_index.rolling(window=reduce_window, closed="both", center=True)
+    start = rolling.min().to_numpy(dtype=int)
+    end = (rolling.max() + 1).to_numpy(dtype=int)
 
-        detected = _reduceCPCluster(
-            stat_arr[result_arr],
-            thresh_arr[result_arr],
-            start,
-            end,
-            reduce_func,
-            length,
-        )
-        det_index = det_index[detected]
+    detected = _reduceCPCluster(
+        stat_arr[result_arr],
+        thresh_arr[result_arr],
+        start,
+        end,
+        reduce_func,
+        length,
+    )
+    det_index = det_index[detected]
 
     # The changepoint is the point "after" the change.
     # So the detected index has to be shifted by one

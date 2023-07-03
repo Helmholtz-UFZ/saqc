@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 from saqc.core import DictOfSeries, Flags, register
+from saqc.lib.checking import validateCallable, validateMinPeriods, validateWindow
 from saqc.lib.tools import getFreqDelta
 
 if TYPE_CHECKING:
@@ -53,6 +54,7 @@ class RollingMixin:
         center :
             If True, center the rolling window.
         """
+        # HINT: checking in  _roll
         self._data, self._flags = _roll(
             data=self._data,
             field=field,
@@ -109,6 +111,8 @@ class RollingMixin:
             """,
             DeprecationWarning,
         )
+
+        # HINT: checking in  _roll
         self._data, self._flags = _roll(
             data=self._data,
             field=field,
@@ -132,6 +136,10 @@ def _roll(
     center: bool = True,
     **kwargs,
 ):
+    validateWindow(window)
+    validateMinPeriods(min_periods)
+    validateCallable(func, "func")
+
     to_fit = data[field].copy()
     if to_fit.empty:
         return data, flags

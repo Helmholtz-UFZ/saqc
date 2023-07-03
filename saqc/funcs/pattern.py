@@ -1,16 +1,12 @@
 #! /usr/bin/env python
-
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
-#
 # SPDX-License-Identifier: GPL-3.0-or-later
-
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 import dtw
-import numpy as np
 import pandas as pd
 
 from saqc import BAD
@@ -22,7 +18,7 @@ if TYPE_CHECKING:
 
 
 def calculateDistanceByDTW(
-    data: pd.Series, reference: pd.Series, forward=True, normalize=True
+    data: pd.Series, reference: pd.Series, forward: bool = True, normalize: bool = True
 ):
     """
     Calculate the DTW-distance of data to pattern in a rolling calculation.
@@ -35,19 +31,19 @@ def calculateDistanceByDTW(
 
     Parameters
     ----------
-    data : pd.Series
+    data :
         Data series. Must have datetime-like index, and must be regularly sampled.
 
-    reference : : pd.Series
+    reference :
         Reference series. Must have datetime-like index, must not contain NaNs
         and must not be empty.
 
-    forward: bool, default True
+    forward:
         If `True`, the distance value is set on the left edge of the data chunk. This
         means, with a perfect match, `0.0` marks the beginning of the pattern in
         the data. If `False`, `0.0` would mark the end of the pattern.
 
-    normalize : bool, default True
+    normalize :
         If `False`, return unmodified distances.
         If `True`, normalize distances by the number of observations in the reference.
         This helps to make it easier to find a good cutoff threshold for further
@@ -97,12 +93,12 @@ class PatternMixin:
     @flagging()
     def flagPatternByDTW(
         self: "SaQC",
-        field,
-        reference,
-        max_distance=0.0,
-        normalize=True,
-        plot=False,
-        flag=BAD,
+        field: str,
+        reference: str,
+        max_distance: float = 0.0,
+        normalize: bool = True,
+        plot: bool = False,
+        flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
         """
@@ -111,48 +107,54 @@ class PatternMixin:
         The steps are:
         1. work on a moving window
 
-        2. for each data chunk extracted from each window, a distance to the given pattern
-           is calculated, by the dynamic time warping algorithm [1]
+        2. for each data chunk extracted from each window, a distance
+           to the given pattern is calculated, by the dynamic time warping
+           algorithm [1]
 
-        3. if the distance is below the threshold, all the data in the window gets flagged
+        3. if the distance is below the threshold, all the data in the
+           window gets flagged
 
         Parameters
         ----------
         reference :
-            The name in `data` which holds the pattern. The pattern must not have NaNs,
-            have a datetime index and must not be empty.
+            The name in `data` which holds the pattern. The pattern must
+            not have NaNs, have a datetime index and must not be empty.
 
         max_distance :
-            Maximum dtw-distance between chunk and pattern, if the distance is lower than
-            ``max_distance`` the data gets flagged. With default, ``0.0``, only exact
-            matches are flagged.
+            Maximum dtw-distance between chunk and pattern, if the distance
+            is lower than ``max_distance`` the data gets flagged. With
+            default, ``0.0``, only exact matches are flagged.
 
         normalize :
             If `False`, return unmodified distances.
-            If `True`, normalize distances by the number of observations of the reference.
-            This helps to make it easier to find a good cutoff threshold for further
-            processing. The distances then refer to the mean distance per datapoint,
-            expressed in the datas units.
+            If `True`, normalize distances by the number of observations
+            of the reference. This helps to make it easier to find a
+            good cutoff threshold for further processing. The distances
+            then refer to the mean distance per datapoint, expressed
+            in the datas units.
 
         plot :
-            Show a calibration plot, which can be quite helpful to find the right threshold
-            for `max_distance`. It works best with `normalize=True`. Do not use in automatic
-            setups / pipelines. The plot show three lines:
+            Show a calibration plot, which can be quite helpful to find
+            the right threshold for `max_distance`. It works best with
+            `normalize=True`. Do not use in automatic setups / pipelines.
+            The plot show three lines:
 
             - data: the data the function was called on
             - distances: the calculated distances by the algorithm
-            - indicator: have to distinct levels: `0` and the value of `max_distance`.
-              If `max_distance` is `0.0` it defaults to `1`. Everywhere where the
-              indicator is not `0` the data will be flagged.
+            - indicator: have to distinct levels: `0` and the value of
+              `max_distance`. If `max_distance` is `0.0` it defaults to
+              `1`. Everywhere where the indicator is not `0` the data
+              will be flagged.
 
         Notes
         -----
-        The window size of the moving window is set to equal the temporal extension of the
-        reference datas datetime index.
+        The window size of the moving window is set to equal the temporal
+        extension of the reference datas datetime index.
 
         References
         ----------
-        Find a nice description of underlying the Dynamic Time Warping Algorithm here:
+        Find a nice description of underlying the Dynamic Time Warping
+        Algorithm here:
 
         [1] https://cran.r-project.org/web/packages/dtw/dtw.pdf
         """

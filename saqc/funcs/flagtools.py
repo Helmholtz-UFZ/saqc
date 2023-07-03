@@ -17,6 +17,7 @@ from typing_extensions import Literal
 
 from saqc import BAD, FILTER_ALL, UNFLAGGED
 from saqc.core import DictOfSeries, flagging, register
+from saqc.lib.checking import validateChoice, validateWindow
 from saqc.lib.tools import isflagged, toSequence
 
 if TYPE_CHECKING:
@@ -51,10 +52,10 @@ class FlagtoolsMixin:
 
         Notes
         -----
-        This function ignores the ``dfilter`` keyword, because the data is not relevant
-        for processing.
-        A warning is triggered if the ``flag`` keyword is given, because the flags are
-        always set to `UNFLAGGED`.
+        This function ignores the ``dfilter`` keyword, because the data
+        is not relevant for processing.
+        A warning is triggered if the ``flag`` keyword is given, because
+        the flags are always set to `UNFLAGGED`.
 
         See Also
         --------
@@ -81,7 +82,8 @@ class FlagtoolsMixin:
 
         Notes
         -----
-        This function ignores the ``dfilter`` keyword, because the data is not relevant for processing.
+        This function ignores the ``dfilter`` keyword, because the
+        data is not relevant for processing.
         """
         unflagged = self._flags[field].isna() | (self._flags[field] == UNFLAGGED)
         self._flags[unflagged, field] = flag
@@ -103,43 +105,55 @@ class FlagtoolsMixin:
         """
         Flag data by given, "manually generated" data.
 
-        The data is flagged at locations where `mdata` is equal to a provided flag (`mflag`).
-        The format of mdata can be an indexed object, like pd.Series, pd.Dataframe or dios.DictOfSeries,
-        but also can be a plain list- or array-like.
-        How indexed mdata is aligned to data is specified via the `method` parameter.
+        The data is flagged at locations where `mdata` is equal to a provided
+        flag (`mflag`). The format of mdata can be an indexed object,
+        like pd.Series, pd.Dataframe or dios.DictOfSeries, but also can
+        be a plain list- or array-like. How indexed mdata is aligned to
+        data is specified via the `method` parameter.
 
         Parameters
         ----------
         mdata :
-            The Data determining, wich intervals are to be flagged, or a string, denoting under which field the data is
+            The Data determining, wich intervals are to be flagged, or a
+            string, denoting under which field the data is
             accessable.
 
         method :
-            Defines how mdata is projected on data. Except for the 'plain' method, the methods assume mdata to have an
-            index.
+            Defines how mdata is projected on data. Except for the 'plain'
+            method, the methods assume mdata to have an index.
 
-            * 'plain': mdata must have the same length as data and is projected one-to-one on data.
-            * 'ontime': works only with indexed mdata. mdata entries are matched with data entries that have the same index.
-            * 'right-open': mdata defines intervals, values are to be projected on.
-              The intervals are defined,
+            * 'plain': mdata must have the same length as data and is
+                projected one-to-one on data.
+            * 'ontime': works only with indexed mdata. mdata entries are
+                matched with data entries that have the same index.
+            * 'right-open': mdata defines intervals, values are to be
+                projected on. The intervals are defined,
 
-              (1) Either, by any two consecutive timestamps t_1 and 1_2 where t_1 is valued with mflag, or by a series,
-              (2) Or, a Series, where the index contains in the t1 timestamps nd the values the respective t2 stamps.
+                (1) Either, by any two consecutive timestamps t_1 and 1_2
+                    where t_1 is valued with mflag, or by a series,
+                (2) Or, a Series, where the index contains in the t1 timestamps
+                    and the values the respective t2 stamps.
 
-              The value at t_1 gets projected onto all data timestamps t with t_1 <= t < t_2.
+                The value at t_1 gets projected onto all data timestamps t,
+                with t_1 <= t < t_2.
 
-            * 'left-open': like 'right-open', but the projected interval now covers all t with t_1 < t <= t_2.
-            * 'closed': like 'right-open', but the projected interval now covers all t with t_1 <= t <= t_2.
+            * 'left-open': like 'right-open', but the projected interval
+                now covers all t with t_1 < t <= t_2.
+            * 'closed': like 'right-open', but the projected interval
+                now covers all t with t_1 <= t <= t_2.
 
         mformat :
 
-            * "start-end": mdata is a Series, where every entry indicates an interval to-flag. The index defines the left
-              bound, the value defines the right bound.
-            * "mflag": mdata is an array like, with entries containing 'mflag',where flags shall be set. See documentation
-              for examples.
+            * "start-end": mdata is a Series, where every entry indicates
+                an interval to-flag. The index defines the left bound,
+                the value defines the right bound.
+            * "mflag": mdata is an array like, with entries containing
+                'mflag',where flags shall be set. See documentation for
+                examples.
 
         mflag :
-            The flag that indicates data points in `mdata`, of wich the projection in data should be flagged.
+            The flag that indicates data points in `mdata`, of wich the
+            projection in data should be flagged.
 
         Examples
         --------
@@ -155,15 +169,15 @@ class FlagtoolsMixin:
            2000-05-01    1
            dtype: int64
 
-        On *dayly* data, with the 'ontime' method, only the provided timestamps are used.
-        Bear in mind that only exact timestamps apply, any offset will result in ignoring
-        the timestamp.
+        On *dayly* data, with the 'ontime' method, only the provided timestamps
+        are used. Bear in mind that only exact timestamps apply, any offset
+        will result in ignoring the timestamp.
 
         .. doctest:: ExampleFlagManual
 
            >>> data = pd.Series(0, index=pd.to_datetime(['2000-01-31', '2000-02-01', '2000-02-02', '2000-03-01', '2000-05-01']), name='daily_data')
            >>> qc = saqc.SaQC(data)
-           >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mdata', method='ontime')
+           >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mflag', method='ontime')
            >>> qc.flags['daily_data'] > UNFLAGGED
            2000-01-31    False
            2000-02-01     True
@@ -176,7 +190,7 @@ class FlagtoolsMixin:
 
         .. doctest:: ExampleFlagManual
 
-           >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mdata', method='right-open')
+           >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mflag', method='right-open')
            >>> qc.flags['daily_data'] > UNFLAGGED
            2000-01-31    False
            2000-02-01     True
@@ -189,7 +203,7 @@ class FlagtoolsMixin:
 
         .. doctest:: ExampleFlagManual
 
-           >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mdata', method='left-open')
+           >>> qc = qc.flagManual('daily_data', mdata, mflag=1, mformat='mflag', method='left-open')
            >>> qc.flags['daily_data'] > UNFLAGGED
            2000-01-31    False
            2000-02-01     True
@@ -198,6 +212,11 @@ class FlagtoolsMixin:
            2000-05-01     True
            dtype: bool
         """
+        validateChoice(
+            method, "method", ["left-open", "right-open", "closed", "plain", "ontime"]
+        )
+        validateChoice(mformat, "mformat", ["start-end", "mflag"])
+
         dat = self._data[field]
         # internal not-mflag-value -> cant go for np.nan
         not_mflag = -1 if mflag == 0 else 0
@@ -218,7 +237,8 @@ class FlagtoolsMixin:
         if mformat == "start-end":
             if method in ["plain", "ontime"]:
                 raise ValueError(
-                    "'Start-End' formatting not compatible to 'plain' or 'ontime' methods"
+                    "'start-end'-format is not compatible "
+                    "with methods 'plain' or 'ontime'"
                 )
             else:
                 mdata = pd.Series(
@@ -227,7 +247,8 @@ class FlagtoolsMixin:
                 )
                 mdata[::2] = mflag
 
-        # get rid of values that are neither mflag nor not_mflag (for bw-compatibillity mainly)
+        # get rid of values that are neither mflag
+        # nor not_mflag (for bw-compatibility mainly)
         mdata[mdata != mflag] = not_mflag
 
         # evaluate methods
@@ -236,7 +257,6 @@ class FlagtoolsMixin:
         # reindex will do the job later
         elif method == "ontime":
             pass
-
         elif method in ["left-open", "right-open", "closed"]:
             mdata = mdata.drop(mdata.index[mdata.diff() == 0])
             app_entry = pd.Series(mdata[-1], dat.index.shift(freq="1min")[-1:])
@@ -316,8 +336,8 @@ class FlagtoolsMixin:
 
            >>> qc = qc.transferFlags('a', 'b')
 
-        To project the flags of `a` to both the variables `b` and `c` in one call, align the field and target variables in
-        2 lists:
+        To project the flags of `a` to both the variables `b` and `c`
+        in one call, align the field and target variables in 2 lists:
 
         .. doctest:: exampleTransfer
 
@@ -330,10 +350,9 @@ class FlagtoolsMixin:
         import warnings
 
         warnings.warn(
-            f"""The method 'transferFlags' is deprecated and
-            will be removed in version 2.5 of SaQC. Please use
-            'SaQC.concatFlags(field={field}, target={target}, method="match", squeeze=False)'
-            instead""",
+            f"The method 'transferFlags' is deprecated and will be removed "
+            f"in version 2.5 of SaQC. Please use `SaQC.concatFlags(field={field}, "
+            f"target={target}, method='match', squeeze=False)` instead",
             DeprecationWarning,
         )
         return self.concatFlags(field, target=target, method="match", squeeze=False)
@@ -354,12 +373,13 @@ class FlagtoolsMixin:
         Parameters
         ----------
         window :
-            Size of the repetition window. An integer defines the exact number of repetitions,
-            strings are interpreted as time offsets to fill with .
+            Size of the repetition window. An integer defines the exact
+            number of repetitions, strings are interpreted as time offsets
+            to fill with.
 
         method :
-            Direction of repetetion. With "ffill" the subsequent values receive the flag to
-            repeat, with "bfill" the previous values.
+            Direction of repetetion. With "ffill" the subsequent values
+            receive the flag to repeat, with "bfill" the previous values.
 
         Examples
         --------
@@ -381,7 +401,8 @@ class FlagtoolsMixin:
            6     -inf
            dtype: float64
 
-        Now, to repeat the flag '255.0' two times in direction of ascending indices, execute:
+        Now, to repeat the flag '255.0' two times in direction of ascending
+        indices, execute:
 
         .. doctest:: propagateFlags
 
@@ -409,7 +430,8 @@ class FlagtoolsMixin:
            6     -inf
            dtype: float64
 
-        If an explicit flag is passed, it will be used to fill the repetition window
+        If an explicit flag is passed, it will be used to fill the
+        repetition window
 
         .. doctest:: propagateFlags
 
@@ -423,9 +445,8 @@ class FlagtoolsMixin:
            6     -inf
            dtype: float64
         """
-
-        if method not in {"bfill", "ffill"}:
-            raise ValueError(f"supported methods are 'bfill', 'ffill', got '{method}'")
+        validateWindow(window)
+        validateChoice(method, "method", ["bfill", "ffill"])
 
         # get the last history column
         hc = self._flags.history[field].hist.iloc[:, -1].astype(float)
@@ -467,7 +488,7 @@ class FlagtoolsMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flag all values, if all of the given ``field`` values are already flagged.
+        Flag all values, if all the given ``field`` values are already flagged.
 
         Parameters
         ----------

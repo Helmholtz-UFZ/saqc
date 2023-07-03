@@ -22,9 +22,15 @@ from typing_extensions import Literal
 from saqc import BAD
 from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.funcs.changepoints import _getChangePoints
+from saqc.lib.checking import (
+    validateCallable,
+    validateChoice,
+    validateFrequency,
+    validateValueBounds,
+    validateWindow,
+)
 from saqc.lib.docs import DOC_TEMPLATES
-from saqc.lib.exceptions import ParameterOutOfBounds
-from saqc.lib.tools import detectDeviants, filterKwargs, isInBounds, toSequence
+from saqc.lib.tools import detectDeviants, filterKwargs, toSequence
 from saqc.lib.ts_operators import expDriftModel, linearDriftModel
 from saqc.lib.types import CurveFitter
 
@@ -36,7 +42,7 @@ LinkageString = Literal[
     "single", "complete", "average", "weighted", "centroid", "median", "ward"
 ]
 
-MODELDICT = {"linear": linearDriftModel, "exponential": expDriftModel}
+DRIFT_MODELS = {"linear": linearDriftModel, "exponential": expDriftModel}
 
 
 def cityblock(x: np.ndarray | pd.Series, y: np.ndarray | pd.Series) -> np.ndarray:
@@ -55,7 +61,7 @@ class DriftMixin:
     def flagDriftFromNorm(
         self: "SaQC",
         field: Sequence[str],
-        window: str,
+        window: str,  # TODO: this should be named 'freq'
         spread: float,
         frac: float = 0.5,
         metric: Callable[
@@ -132,19 +138,20 @@ class DriftMixin:
         Introduction to Hierarchical clustering:
             [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
         """
-        if not isInBounds(frac, (0.5, 1), closed="both"):
-            raise ParameterOutOfBounds(frac, "frac", (0.5, 1), "both")
+        validateValueBounds(frac, "frac", left=0, right=1, closed="both")
+        validateCallable(metric, "metric")
+        validateChoice(method, "method", LinkageString)
 
         if "freq" in kwargs:
             warnings.warn(
-                """
-                The parameter `freq` is deprecated and will be removed in version 3.0 of saqc.
-                Please us the parameter `window` instead.'
-                """,
+                "The parameter `freq` is deprecated and will be "
+                "removed in version 3.0 of saqc. Please us the "
+                "parameter `window` instead.'",
                 DeprecationWarning,
             )
             window = kwargs["freq"]
 
+        validateFrequency(window, "window")
         fields = toSequence(field)
 
         data = self._data[fields].to_pandas()
@@ -211,9 +218,10 @@ class DriftMixin:
         default, since it corresponds to the averaged value distance, two data sets have (as opposed
         by euclidean, for example).
         """
+        validateFrequency(freq, "freq")
+        validateCallable(metric, "metric")
 
         fields = toSequence(field)
-
         if reference not in fields:
             fields.append(reference)
 
@@ -314,13 +322,14 @@ class DriftMixin:
         ``expDriftModel`` and ``linearDriftModel``.
 
         """
-        # extract model func:
         if isinstance(model, str):
-            if model not in MODELDICT:
+            model = DRIFT_MODELS.get(model, None)
+            if model is None:
                 raise ValueError(
-                    f"invalid model '{model}', choose one of '{MODELDICT.keys()}'"
+                    f"unknown model {model!r}, available models: {list(DRIFT_MODELS)}"
                 )
-            model = MODELDICT[model]
+        validateCallable(model, "model")
+        validateValueBounds(cal_range, "cal_range", left=0, strict_int=True)
 
         # 1: extract fit intervals:
         if self._data[maintenance_field].empty:
@@ -403,14 +412,19 @@ class DriftMixin:
 
         tolerance :
             If an offset string is passed, a data chunk of length `offset` right at the
-            start and right at the end is ignored when fitting the model. This is to account
-            for the unreliability of data near the changepoints of regimes.
+            start and right at the end is ignored when fitting the model. This is to
+            account for the unreliability of data near the changepoints of regimes.
+            Defaults to None.
 
         epoch :
             If True, use "seconds from epoch" as x input to the model func, instead of
             "seconds from regime start".
 
         """
+        validateCallable(model, "model")
+        if tolerance is not None:
+            validateWindow(tolerance, name="tolerance", allow_int=False)
+
         cluster_ser = self._data[cluster_field]
         unique_successive = pd.unique(cluster_ser.values)
         data_ser = self._data[field]
@@ -419,7 +433,6 @@ class DriftMixin:
         x_dict = {}
         x_mask = {}
         if tolerance is not None:
-            # get seconds
             tolerance = pd.Timedelta(tolerance).total_seconds()
         for label, regime in regimes:
             if epoch is False:
@@ -512,33 +525,34 @@ class DriftMixin:
             This is to account for the unrelyability of data near the changepoints of regimes.
 
         """
-        # Hint: This whole function does not set any flags
-
+        # Hint:
+        #   - This whole function does not set any flags
+        #   - Checking is delegated to the called functions
         cluster_field = field + "_CPcluster"
-        self = self.copyField(field, cluster_field)
-        self.data[cluster_field] = _getChangePoints(
-            data=self._data[cluster_field],
+        qc = self.copyField(field, cluster_field)
+        qc.data[cluster_field] = _getChangePoints(
+            data=qc._data[cluster_field],
             stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
             thresh_func=lambda x, y: max_jump,
             window=window,
             min_periods=min_periods,
             result="cluster",
         )
-        self._data, self._flags = _assignRegimeAnomaly(
-            data=self._data,
+        qc._data, qc._flags = _assignRegimeAnomaly(
+            data=qc._data,
             field=field,
-            flags=self._flags,
+            flags=qc._flags,
             cluster_field=cluster_field,
             spread=spread,
         )
-        self = self.correctRegimeAnomaly(
+        qc = qc.correctRegimeAnomaly(
             field,
             cluster_field,
             lambda x, p1: np.array([p1] * x.shape[0]),
             tolerance=tolerance,
         )
-        self = self.dropField(cluster_field)
-        return self
+        qc = qc.dropField(cluster_field)
+        return qc
 
     @flagging()
     def flagRegimeAnomaly(
@@ -581,16 +595,21 @@ class DriftMixin:
         method :
             The linkage method for hierarchical (agglomerative) clustering of the variables.
 
-        metric : default absolute difference of means
+        metric :
             A metric function for calculating the dissimilarity between 2 regimes.
-            Defaults to the difference in mean.
+            Defaults to the absolute difference in mean.
 
         frac :
-            Has to be in [0,1]. Determines the minimum percentage of samples,
-            the "normal" group has to comprise to be the normal group actually.
+            The minimum percentage of samples, the "normal" group has to comprise to
+            actually be the normal group. Must be in the closed interval `[0,1]`,
+            otherwise a ValueError is raised.
         """
         reserverd = ["set_cluster", "set_flags"]
         kwargs = filterKwargs(kwargs, reserverd)
+        validateChoice(method, "method", LinkageString)
+        validateCallable(metric, "metric")
+        validateValueBounds(frac, "frac", left=0, right=1, closed="both")
+
         self._data, self._flags = _assignRegimeAnomaly(
             data=self._data,
             field=field,
@@ -648,16 +667,21 @@ class DriftMixin:
         method :
             The linkage method for hierarchical (agglomerative) clustering of the variables.
 
-        metric : default absolute difference of means
+        metric :
             A metric function for calculating the dissimilarity between 2 regimes.
-            Defaults to the difference in mean.
+            Defaults to the absolute difference in mean.
 
         frac :
-            Has to be in [0,1]. Determines the minimum percentage of samples,
-            the "normal" group has to comprise to be the normal group actually.
+            The minimum percentage of samples, the "normal" group has to comprise to
+            actually be the normal group. Must be in the closed interval `[0,1]`,
+            otherwise a ValueError is raised.
         """
         reserverd = ["set_cluster", "set_flags", "flag"]
         kwargs = filterKwargs(kwargs, reserverd)
+        validateChoice(method, "method", LinkageString)
+        validateCallable(metric, "metric")
+        validateValueBounds(frac, "frac", left=0, right=1, closed="both")
+
         self._data, self._flags = _assignRegimeAnomaly(
             data=self._data,
             field=field,
@@ -675,7 +699,10 @@ class DriftMixin:
         return self
 
 
-def _driftFit(x, shift_target, cal_mean, driftModel):
+def _driftFit(
+    x: pd.Series, shift_target: pd.Series, cal_mean: int, drift_model: callable
+):
+    """TODO: Docstring"""
     x_index = x.index - x.index[0]
     x_data = x_index.total_seconds().values
     x_data = x_data / x_data[-1] if len(x_data) > 1 else x_data
@@ -683,14 +710,14 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
     origin_mean = np.mean(y_data[:cal_mean])
     target_mean = np.mean(y_data[-cal_mean:])
 
-    dataFitFunc = functools.partial(driftModel, origin=origin_mean, target=target_mean)
+    dataFitFunc = functools.partial(drift_model, origin=origin_mean, target=target_mean)
     # if drift model has free parameters:
     if len(inspect.getfullargspec(dataFitFunc).args) > 1:
         try:
             # try fitting free parameters
             fit_paras, *_ = curve_fit(dataFitFunc, x_data, y_data)
             data_fit = dataFitFunc(x_data, *fit_paras)
-            data_shift = driftModel(
+            data_shift = drift_model(
                 x_data, *fit_paras, origin=origin_mean, target=shift_target
             )
         except RuntimeError:
@@ -700,7 +727,7 @@ def _driftFit(x, shift_target, cal_mean, driftModel):
     # when there are no free parameters in the model:
     else:
         data_fit = dataFitFunc(x_data)
-        data_shift = driftModel(x_data, origin=origin_mean, target=shift_target)
+        data_shift = drift_model(x_data, origin=origin_mean, target=shift_target)
 
     return data_fit, data_shift
 
@@ -721,14 +748,15 @@ def _assignRegimeAnomaly(
     flag: float = BAD,
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
+    """TODO: Docstring."""
     series = data[cluster_field]
     cluster = np.unique(series)
-    cluster_dios = DictOfSeries({str(i): data[field][series == i] for i in cluster})
-    plateaus = detectDeviants(cluster_dios, metric, spread, frac, method, "samples")
+    cluster_frame = DictOfSeries({str(i): data[field][series == i] for i in cluster})
+    plateaus = detectDeviants(cluster_frame, metric, spread, frac, method, "samples")
 
     if set_flags:
-        for p, cols in zip(plateaus, cluster_dios.columns[plateaus]):
-            flags[cluster_dios[cols].index, field] = flag
+        for p, cols in zip(plateaus, cluster_frame.columns[plateaus]):
+            flags[cluster_frame[cols].index, field] = flag
 
     if set_cluster:
         for p in plateaus:

@@ -17,12 +17,16 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Iterable,
     List,
     Literal,
     Sequence,
     Tuple,
     TypeVar,
     Union,
+    get_args,
+    get_origin,
+    overload,
 )
 
 import numpy as np
@@ -30,63 +34,31 @@ import pandas as pd
 from scipy import fft
 from scipy.cluster.hierarchy import fcluster, linkage
 
+from saqc.lib.checking import _isLiteral
 from saqc.lib.types import CompT
 
-T = TypeVar("T", str, float, int)
-BOUND_OPERATORS = {
-    None: (op.le, op.ge),
-    "both": (op.lt, op.gt),
-    "right": (op.le, op.gt),
-    "left": (op.gt, op.le),
-}
+T = TypeVar("T")
 
 
-def isInBounds(
-    val: int | float,
-    bounds: Tuple[int | float],
-    closed: Literal["left", "right", "both"] = None,
-):
-    """
-    check if val falls into the interval [left, right] and return boolean accordingly
-
-    val :
-        value to check
-
-    bounds :
-        Tuple containing left and right interval bounds. Pass `(a, b)` to define the interval [`a`, `b`].
-        Set `a=-inf` or `b=+inf` to set one sided restriction.
-
-    closed :
-        Enclosure includes the interval bounds into the constraint interval. By default, the bounds
-        are not included. Pass:
-        * `"both"`: to include both sides of the interval
-        * `"left"`: to include left bound
-        * `"right"`: to include right bound
-    """
-    ops = BOUND_OPERATORS[closed]
-    if ops[0](val, bounds[0]) or ops[1](val, bounds[1]):
-        return False
-    return True
+def extractLiteral(lit: type(Literal)) -> List:
+    """Return a list of values from a typing.Literal[...] at runtime."""
+    if not _isLiteral(lit):
+        raise TypeError("'lit' must be a typing.Literal")
+    return list(get_args(lit))
 
 
-def assertScalar(name, value, optional=False):
-    if optional and value is None:
-        return
-    if np.isscalar(value):
-        return
-
-    msg = f"'{name}' needs to be a scalar"
-    if optional:
-        msg += " or 'None'"
-    raise ValueError(msg)
-
-
-def toSequence(value: T | Sequence[T]) -> List[T]:
-    if value is None:  # special case
-        return [None]
-    if isinstance(value, T.__constraints__):
+# fmt: off
+@overload
+def toSequence(value: T) -> List[T]:
+    ...
+@overload
+def toSequence(value: Sequence[T]) -> List[T]:
+    ...
+def toSequence(value) -> List:
+    if value is None or isinstance(value, (str, float, int)):
         return [value]
     return list(value)
+# fmt: on
 
 
 def squeezeSequence(value: Sequence[T]) -> Union[T, Sequence[T]]:
@@ -95,7 +67,9 @@ def squeezeSequence(value: Sequence[T]) -> Union[T, Sequence[T]]:
     return value
 
 
-def periodicMask(dtindex, season_start, season_end, include_bounds):
+def periodicMask(
+    dtindex: pd.Index, season_start: str, season_end: str, include_bounds: bool
+):
     """
     This function generates date-periodic/seasonal masks from an index passed.
 
@@ -216,7 +190,7 @@ def isQuoted(string):
     return bool(re.search(r"'.*'|\".*\"", string))
 
 
-def mutateIndex(index, old_name, new_name):
+def mutateIndex(index: pd.Index, old_name, new_name):
     pos = index.get_loc(old_name)
     index = index.drop(index[pos])
     index = index.insert(pos, new_name)
@@ -224,13 +198,13 @@ def mutateIndex(index, old_name, new_name):
 
 
 def estimateFrequency(
-    index,
-    delta_precision=-1,
-    max_rate="10s",
-    min_rate="1D",
-    optimize=True,
-    min_energy=0.2,
-    max_freqs=10,
+    index: pd.Index,
+    delta_precision: int = -1,
+    max_rate: str = "10s",
+    min_rate: str = "1D",
+    optimize: bool = True,
+    min_energy: float = 0.2,
+    max_freqs: int = 10,
     bins=None,
 ):
     """
@@ -601,3 +575,53 @@ def isAllBoolean(obj: Any):
         if not pd.api.types.is_bool_dtype(obj[c]):
             return False
     return True
+
+
+def joinExt(sep: str, iterable: Iterable[str], last_sep: str | None = None) -> str:
+    """
+    Return a string which is the concatenation of the strings in iterable.
+    A TypeError will be raised if there are any non-string values in iterable,
+    including bytes objects. This works exactly as the buildin `str.join`, but
+    extends it by an optional last separator.
+
+    Parameters
+    ----------
+    sep :
+        Separator for default concatenation.
+
+    iterable :
+        Iterable to concatenate.
+
+    last_sep :
+        Separator for the second last and last element.
+
+    Returns
+    -------
+    string: str
+        Concatenated strings
+
+    Examples
+    ========
+
+    >>> joinExt(', ', ['a', 'b', 'c'], ' or ')
+    'a, b or c'
+
+    >>> joinExt(', ', ['a', 'b'], ' or ')
+    'a or c'
+
+    >>> joinExt(', ', ['a'], ' or ')
+    'a'
+
+    >>> joinExt(', ', ['a', 'b', 'c'])
+    'a, b, c'
+    """
+    if last_sep is None:
+        last_sep = sep
+    if not isinstance(sep, str):
+        raise TypeError("'sep' must be string")
+    if not isinstance(sep, str):
+        raise TypeError("'last_sep' must be string or None")
+    iterable = list(iterable)  # ensure __len__ and __getitem__
+    if len(iterable) < 2:
+        return sep.join(iterable)
+    return f"{sep.join(iterable[:-1])}{last_sep}{iterable[-1]}"

@@ -12,7 +12,7 @@ The module gathers all kinds of timeseries tranformations.
 import re
 import sys
 import warnings
-from typing import Union
+from typing import Literal, Union
 
 import numpy as np
 import numpy.polynomial.polynomial as poly
@@ -21,6 +21,7 @@ from scipy.signal import butter, filtfilt
 from scipy.stats import iqr, median_abs_deviation
 from sklearn.neighbors import NearestNeighbors
 
+from saqc.lib.checking import validateChoice, validateWindow
 from saqc.lib.tools import getFreqDelta
 
 
@@ -328,46 +329,53 @@ def interpolateNANs(data, method, order=2, gap_limit=2, extrapolate=None):
     :return:
     """
 
-    # helper variable for checking numerical value of gap limit, if its a numeric value (to avoid comparison to str)
+    # TODO: IMAO, this code desperately needs a refactoring/rewrite --palmb
+
     gap_check = np.nan if isinstance(gap_limit, str) else gap_limit
     data = pd.Series(data, copy=True)
     limit_area = None if extrapolate else "inside"
     if gap_check is None:
-        # if there is actually no limit set to the gaps to-be interpolated, generate a dummy mask for the gaps
+        # if there is actually no limit set to the gaps to-be interpolated,
+        # generate a dummy mask for the gaps
         gap_mask = pd.Series(True, index=data.index, name=data.name)
+    elif gap_check < 2:
+        # breaks execution down the line and is thus catched here since
+        # it basically means "do nothing"
+        return data
     else:
-        if gap_check < 2:
-            # breaks execution down the line and is thus catched here since it basically means "do nothing"
-            return data
+        # if there is a limit to the gaps to be interpolated, generate
+        # a mask that evaluates to False at the right side of each too-large
+        # gap with a rolling.sum combo
+        gap_mask = data.rolling(gap_limit, min_periods=0).count() > 0
+
+        # correction for initial gap
+        if isinstance(gap_limit, int):
+            gap_mask.iloc[:gap_limit] = True
+
+        if gap_limit == 2:
+            # for the common case of gap_limit=2 (default "harmonisation"),
+            # we efficiently back propagate the False value to fill the
+            # whole too-large gap by a shift and a conjunction.
+            gap_mask = gap_mask & gap_mask.shift(-1, fill_value=True)
         else:
-            # if there is a limit to the gaps to be interpolated, generate a mask that evaluates to False at the right
-            # side of each too-large gap with a rolling.sum combo
-            gap_mask = data.rolling(gap_limit, min_periods=0).count() > 0
-
-            # correction for initial gap
-            if isinstance(gap_limit, int):
-                gap_mask.iloc[:gap_limit] = True
-
-            if gap_limit == 2:
-                # for the common case of gap_limit=2 (default "harmonisation"), we efficiently back propagate the False
-                # value to fill the whole too-large gap by a shift and a conjunction.
-                gap_mask = gap_mask & gap_mask.shift(-1, fill_value=True)
-            else:
-                # If the gap_size is bigger we make a flip-rolling combo to backpropagate the False values
-                gap_mask = ~(
-                    (~gap_mask[::-1]).rolling(gap_limit, min_periods=0).sum() > 0
-                )[::-1]
+            # If the gap_size is bigger we make a flip-rolling combo to
+            # backpropagate the False values
+            gap_mask = ~((~gap_mask[::-1]).rolling(gap_limit, min_periods=0).sum() > 0)[
+                ::-1
+            ]
 
     # memorizing the index for later reindexing
     pre_index = data.index
-    # drop the gaps that are too large with regard to the gap_limit from the data-to-be interpolated
+    # drop the gaps that are too large with regard to the gap_limit from
+    # the data-to-be interpolated
     data = data[gap_mask]
     if data.empty:
         return data
 
     if method in ["linear", "time"]:
-        # in the case of linear interpolation, not much can go wrong/break so this conditional branch has efficient
-        # finish by just calling pandas interpolation routine to fill the gaps remaining in the data:
+        # in the case of linear interpolation, not much can go wrong/break
+        # so this conditional branch has efficient finish by just calling
+        # pandas interpolation routine to fill the gaps remaining in the data:
         data.interpolate(
             method=method,
             inplace=True,
@@ -376,10 +384,12 @@ def interpolateNANs(data, method, order=2, gap_limit=2, extrapolate=None):
         )
 
     else:
-        # if the method that is interpolated with, depends on not only the left and right border points of any gap,
-        # but includes more points, it has to be applied on any data chunk seperated by the too-big gaps individually.
-        # So we use the gap_mask to group the data into chunks and perform the interpolation on every chunk seperatly
-        # with the .transform method of the grouper.
+        # if the method that is interpolated with, depends on not only
+        # the left and right border points of any gap, but includes more
+        # points, it has to be applied on any data chunk seperated by
+        # the too-big gaps individually. So we use the gap_mask to group
+        # the data into chunks and perform the interpolation on every
+        # chunk seperatly with the .transform method of the grouper.
         gap_mask = (~gap_mask).cumsum()[data.index]
         chunk_groups = data.groupby(by=gap_mask)
         data = chunk_groups.transform(
@@ -410,13 +420,15 @@ def aggregate2Freq(
     Timestamps that gets no values projected, get filled with the fill-value. It
     also serves as a replacement for "invalid" intervals.
     """
+    validateChoice(method, "method", ["nagg", "bagg", "fagg"])
+    validateWindow(freq, "freq", allow_int=False)
+
     methods = {
         # offset, closed, label
         "nagg": lambda f: (f / 2, "left", "left"),
         "bagg": lambda _: (pd.Timedelta(0), "left", "left"),
         "fagg": lambda _: (pd.Timedelta(0), "right", "right"),
     }
-
     # filter data for invalid patterns (since filtering is expensive we pre-check if
     # it is demanded)
     if max_invalid_total is not None or max_invalid_consec is not None:
@@ -466,13 +478,17 @@ def aggregate2Freq(
 
 
 def shift2Freq(
-    data: Union[pd.Series, pd.DataFrame], method: str, freq: str, fill_value
+    data: Union[pd.Series, pd.DataFrame],
+    method: Literal["fshift", "bshift", "nshift"],
+    freq: str,
+    fill_value,
 ):
     """
     shift timestamps backwards/forwards in order to align them with an equidistant
     frequency grid. Resulting Nan's are replaced with the fill-value.
     """
-
+    validateWindow(freq, "freq", allow_int=False)
+    validateChoice(method, "method", ["fshift", "bshift", "nshift"])
     methods = {
         "fshift": lambda freq: ("ffill", pd.Timedelta(freq)),
         "bshift": lambda freq: ("bfill", pd.Timedelta(freq)),
