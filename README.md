@@ -92,14 +92,14 @@ data = pd.read_csv(
     index_col=0, parse_dates=True,
 )
 
-saqc = SaQC(data=data)
-saqc = (saqc
-        .shift("SM2", freq="15Min")
-        .flagMissing("SM(1|2)+", regex=True)
-        .flagRange("SM1", min=10, max=60)
-        .flagRange("SM2", min=10, max=40)
-        .flagZScore("SM2", window="30d", thresh=3.5, method='modified', center=False)
-        .flagGeneric(field=["SM1", "SM2"], target="Dummy", func=lambda x, y: (isflagged(x) | isflagged(y))))
+qc = SaQC(data=data)
+qc = (qc
+      .shift("SM2", freq="15Min")
+      .flagMissing("SM(1|2)+", regex=True)
+      .flagRange("SM1", min=10, max=60)
+      .flagRange("SM2", min=10, max=40)
+      .flagZScore("SM2", window="30d", thresh=3.5, method='modified', center=False)
+      .flagGeneric(field=["SM1", "SM2"], target="Dummy", func=lambda x, y: (isflagged(x) | isflagged(y))))
 ```
 
 A more detailed description of the Python API is available in the 
