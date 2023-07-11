@@ -44,23 +44,23 @@ N = np.nan
         ([B, U, U, U, U], [N, N, N, N, N], {"window": "10D", "method": "bfill"}),
         # playing with dfilter
         (
-            [1, 1, B, 1, 1],
-            [N, B, B, B, B],
+            [1, B, -1, -1, -1],
+            [N, N, B, B, N],
             {"window": 2, "method": "ffill", "dfilter": 0},
         ),
         (
-            [1, 1, B, 1, 1],
-            [B, B, B, B, N],
+            [-1, -1, -1, B, 1],
+            [N, B, B, N, N],
             {"window": 2, "method": "bfill", "dfilter": 0},
         ),
         (
-            [B, 1, 1, 1, 1],
-            [N, B, B, B, B],
+            [B, 1, -1, 1, 1],
+            [N, N, B, N, N],
             {"window": "2D", "method": "ffill", "dfilter": 0},
         ),
         (
-            [B, 1, 1, 1, 1],
-            [B, B, B, B, N],
+            [B, 1, 1, -1, 1],
+            [N, N, N, B, N],
             {"window": "2D", "method": "bfill", "dfilter": 0},
         ),
     ],
@@ -71,7 +71,7 @@ def test_propagateFlagsRegularIndex(got, expected, kwargs):
     expected = pd.Series(expected, index=index)
     data = pd.DataFrame({"x": np.nan}, index=index)
     saqc = SaQC(data=data, flags=flags).propagateFlags(field="x", **kwargs)
-    result = saqc._flags.history["x"].hist[1].astype(float)
+    result = saqc._history["x"].hist[1].astype(float)
     assert result.equals(expected)
 
 

@@ -19,6 +19,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Fixed
 - Bug in `SaQC.assignChangePointCluster` and `SaQC.flagChangePoints`: A tuple passed 
   to `min_period` was only recognised if also `window` was a tuple.
+- `SaQC.propagateFlags` was overwriting existing flags
 ### Deprecated
 
 ## [2.4.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
