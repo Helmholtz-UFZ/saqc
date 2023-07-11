@@ -18,7 +18,7 @@ from typing_extensions import Literal
 from saqc import BAD, FILTER_ALL, UNFLAGGED
 from saqc.core import DictOfSeries, flagging, register
 from saqc.lib.checking import validateChoice, validateWindow
-from saqc.lib.tools import isflagged, toSequence
+from saqc.lib.tools import isflagged, isunflagged, toSequence
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -458,7 +458,7 @@ class FlagtoolsMixin:
         # consider everything != np.nan as flag
         flagged = isflagged(hc, dfilter)
 
-        repeated = (
+        mask = (
             flagged.rolling(window, min_periods=1, closed="left")
             .max()
             .fillna(0)
@@ -466,9 +466,10 @@ class FlagtoolsMixin:
         )
 
         if method == "bfill":
-            repeated = repeated[::-1]
+            mask = mask[::-1]
+        mask = isunflagged(self._flags[field], thresh=dfilter) & mask
 
-        self._flags[repeated, field] = flag
+        self._flags[mask, field] = flag
 
         return self
 
