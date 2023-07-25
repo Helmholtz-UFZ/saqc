@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)
 ### Added
 - added checks and unified error message for common inputs.
+- added command line `--version` option
 ### Changed
 - pin pandas to versions >= 2.0
 - parameter `fill_na` of `SaQC.flagUniLOF` and `SaQC.assignUniLOF` is now of type 
