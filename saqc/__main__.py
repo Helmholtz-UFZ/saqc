@@ -18,6 +18,7 @@ import pyarrow as pa
 from saqc.core import DictOfSeries
 from saqc.core.core import TRANSLATION_SCHEMES
 from saqc.parsing.reader import fromConfig
+from saqc.version import __version__
 
 logger = logging.getLogger("SaQC")
 
@@ -66,6 +67,7 @@ def writeData(writer_dict, df, fname):
 
 
 @click.command()
+@click.version_option(__version__)
 @click.option(
     "-c",
     "--config",
@@ -82,11 +84,16 @@ def writeData(writer_dict, df, fname):
     help="path to the data file",
 )
 @click.option(
-    "-o", "--outfile", type=click.Path(exists=False), help="path to the output file"
+    "-o",
+    "--outfile",
+    type=click.Path(exists=False),
+    required=False,
+    help="path to the output file",
 )
 @click.option(
     "--scheme",
-    default=None,
+    default="simple",
+    show_default=True,
     type=click.Choice(tuple(TRANSLATION_SCHEMES.keys())),
     help="the flagging scheme to use",
 )
@@ -94,6 +101,7 @@ def writeData(writer_dict, df, fname):
 @click.option(
     "--log-level",
     default="INFO",
+    show_default=True,
     type=click.Choice(["DEBUG", "INFO", "WARNING"]),
     help="set output verbosity",
 )

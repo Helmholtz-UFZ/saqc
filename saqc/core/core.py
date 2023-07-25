@@ -35,8 +35,8 @@ np.seterr(invalid="ignore")
 
 
 TRANSLATION_SCHEMES = {
-    "float": FloatScheme,
     "simple": SimpleScheme,
+    "float": FloatScheme,
     "dmp": DmpScheme,
     "positional": PositionalScheme,
 }
