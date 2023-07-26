@@ -1,19 +1,17 @@
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
-from distutils.util import convert_path
+import os
 
 from setuptools import find_packages, setup
 
 # read the version string from saqc without importing it. See the
 # link for a more detailed description of the problem and the solution
 # https://stackoverflow.com/questions/2058802/how-can-i-get-the-version-defined-in-setup-py-setuptools-in-my-package
-vdict = {}
-version_fpath = convert_path("saqc/version.py")
-with open(version_fpath) as f:
+with open(os.path.join("saqc", "version.py")) as f:
+    vdict = {}
     exec(f.read(), vdict)
-version = vdict["__version__"]
+    version = vdict["__version__"]
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
