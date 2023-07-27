@@ -2,6 +2,20 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+
+# ===========================================================
+# Hints
+# ===========================================================
+
+# $PYPI_PKG_NAME
+#   The variable PYPI_PKG_NAME is used in setup.py to determine
+#   how to name the tarball package. If not set the package is
+#   named 'saqc'.
+
+# $TESTPYPI_TOKEN
+#   The upload token used for testpypi, set it on the gitlab
+#   page and enable masking to prevent revealing
+
 # ===========================================================
 # preparation
 # ===========================================================
@@ -138,6 +152,8 @@ doctest:
 wheel38:
   stage: build
   image: python:3.8
+  variables:
+    PYPI_PKG_NAME: "saqc-dev"
   script:
     - pip install wheel
     - pip wheel .
@@ -146,6 +162,8 @@ wheel38:
 wheel39:
   stage: build
   image: python:3.9
+  variables:
+    PYPI_PKG_NAME: "saqc-dev"
   script:
     - pip install wheel
     - pip wheel .
@@ -154,6 +172,8 @@ wheel39:
 wheel310:
   stage: build
   image: python:3.10
+  variables:
+    PYPI_PKG_NAME: "saqc-dev"
   script:
     - pip install wheel
     - pip wheel .
@@ -162,6 +182,8 @@ wheel310:
 wheel311:
   stage: build
   image: python:3.11
+  variables:
+    PYPI_PKG_NAME: "saqc-dev"
   script:
     - pip install wheel
     - pip wheel .
@@ -178,6 +200,24 @@ docs:
 # ===========================================================
 # Extra Pipeline (run with a successful run of all other jobs on develop)
 # ===========================================================
+
+upload_testpypi:
+  stage: deploy
+  only:
+    - develop
+  except:
+    - schedules
+  variables:
+    PYPI_PKG_NAME: "saqc-dev"
+    TWINE_USERNAME: __token__
+    TWINE_PASSWORD: $TESTPYPI_TOKEN
+  script:
+    - pip install build twine
+    - python -m build
+    - twine check --strict dist/*
+    - twine upload -r testpypi dist/*
+    - echo "install latest develop version with (all option flags are necessary):"
+    - echo "pip install --pre -U -i https://test.pypi.org/simple/ --extra-index-url http://pypi.org/simple saqc-dev`"
 
 # make html docu with sphinx
 pages:
