@@ -190,12 +190,6 @@ wheel311:
     - pip install .
     - python -c 'import saqc; print(f"{saqc.__version__=}")'
 
-docs:
-  stage: build
-  script:
-    - cd docs
-    - pip install -r requirements.txt
-    - make doc
 
 # ===========================================================
 # Extra Pipeline (run with a successful run of all other jobs on develop)
