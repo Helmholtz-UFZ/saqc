@@ -197,6 +197,7 @@ wheel311:
 
 upload_testpypi:
   stage: deploy
+  allow_failure: true
   only:
     - develop
   except:
