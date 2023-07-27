@@ -1,24 +1,19 @@
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
-#
 # SPDX-License-Identifier: GPL-3.0-or-later
-import os
 
+import versioneer
 from setuptools import find_packages, setup
 
 # read the version string from saqc without importing it. See the
 # link for a more detailed description of the problem and the solution
 # https://stackoverflow.com/questions/2058802/how-can-i-get-the-version-defined-in-setup-py-setuptools-in-my-package
-with open(os.path.join("saqc", "version.py")) as f:
-    vdict = {}
-    exec(f.read(), vdict)
-    version = vdict["__version__"]
-
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
     name="saqc",
-    version=version,
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     author="Bert Palm, David Schaefer, Florian Gransee, Peter Luenenschloss",
     author_email="david.schaefer@ufz.de",
     description="A timeseries data quality control and processing tool/framework",

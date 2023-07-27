@@ -1,5 +1,4 @@
 # SPDX-FileCopyrightText: 2021 Helmholtz-Zentrum für Umweltforschung GmbH - UFZ
-#
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 [tool.isort]
@@ -11,3 +10,14 @@ addopts = "--strict-markers"
 testpaths = "tests"
 markers = "slow: marks tests as slow (deselect with '-m \"not slow\"')"
 
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "saqc/_version.py"
+versionfile_build = "saqc/_version.py"
+tag_prefix = "v"
+parentdir_prefix = "saqc-"
+
+[build-system]
+requires = ["setuptools", "versioneer[toml]==0.29"]
+build-backend = "setuptools.build_meta"

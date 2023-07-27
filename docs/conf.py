@@ -24,11 +24,14 @@ package_path = os.path.abspath("..")
 os.environ["PYTHONPATH"] = ":".join((package_path, os.environ.get("PYTHONPATH", "")))
 
 # ---------- Version string --------------------------------------------------
-# read the version string without importing it
-vdict = {}
-with open("../saqc/version.py") as f:
-    exec(f.read(), vdict)
-version = vdict["__version__"]
+# TODO: what for we need `version` and the `release` variables for ?
+
+# import saqc for versioning, but prevent plots to pop up
+# by setting mpl backend to non-interactive
+import saqc.funcs
+
+version = saqc.__version__
+saqc.funcs.tools._MPL_DEFAULT_BACKEND = "Agg"
 
 # -- Customize logging -------------------------------------------------------
 

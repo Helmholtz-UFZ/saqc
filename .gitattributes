@@ -5,3 +5,4 @@
 *.feather filter=lfs diff=lfs merge=lfs -text
 *.pkl filter=lfs diff=lfs merge=lfs -text
 resources/machine_learning/data/soil_moisture_mwe.feather filter=lfs diff=lfs merge=lfs -text
+saqc/_version.py export-subst
