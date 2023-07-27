@@ -210,8 +210,6 @@ upload_testpypi:
     - python -m build
     - twine check --strict dist/*
     - twine upload -r testpypi dist/*
-    - echo "install latest develop version with (all option flags are necessary):"
-    - echo "pip install --pre -U -i https://test.pypi.org/simple/ --extra-index-url http://pypi.org/simple saqc-dev`"
 
 # make html docu with sphinx
 pages:
