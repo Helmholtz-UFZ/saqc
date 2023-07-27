@@ -159,6 +159,7 @@ wheel38:
     - pip wheel .
     - pip install .
     - python -c 'import saqc; print(f"{saqc.__version__=}")'
+
 wheel39:
   stage: build
   image: python:3.9
@@ -169,6 +170,7 @@ wheel39:
     - pip wheel .
     - pip install .
     - python -c 'import saqc; print(f"{saqc.__version__=}")'
+
 wheel310:
   stage: build
   image: python:3.10
@@ -179,6 +181,7 @@ wheel310:
     - pip wheel .
     - pip install .
     - python -c 'import saqc; print(f"{saqc.__version__=}")'
+
 wheel311:
   stage: build
   image: python:3.11
@@ -210,6 +213,7 @@ upload_testpypi:
     - python -m build
     - twine check --strict dist/*
     - twine upload -r testpypi dist/*
+
 
 # make html docu with sphinx
 pages:
