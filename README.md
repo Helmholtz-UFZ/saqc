@@ -39,6 +39,13 @@ python -m pip install saqc
 ```
 For a more detailed installion guide, see the [installation guide](https://rdm-software.pages.ufz.de/saqc/gettingstarted/InstallationGuide.html).
 
+Additionally SaQC is available via conda and can be installed with:
+
+```sh
+conda create -c conda-forge -n saqc saqc 
+```
+
+
 ## Usage
 
 `SaQC` is both, a command line application controlled by a text based configuration
