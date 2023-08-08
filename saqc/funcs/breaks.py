@@ -83,7 +83,7 @@ class BreaksMixin:
 
         group_window :
             Maximum size of a data chunk to consider it a candidate for an isolated group.
-            Data chunks that are bigger than the ``group_window`` are ignored.
+            Data chunks that are bigger than the :py:attr:`group_window` are ignored.
             This does not include the possible gaps surrounding it.
             See condition (1).
 
@@ -143,11 +143,11 @@ class BreaksMixin:
         """
         Flag jumps and drops in data.
 
-        Flag data where the mean of its values significantly changes (, where the data "jumps" from one value level to
-        another).
-        The changes in value level are detected by comparing the mean for two adjacently rolling windows.
-        Whenever the difference between the mean in the two windows exceeds `thresh`, the value between the windows
-        is flagged a jump.
+        Flag data where the mean of its values significantly changes (where the data "jumps" from one
+        value level to another).
+        Value changes are detected by comparing the mean for two adjacent rolling windows. Whenever
+        the difference between the mean in the two windows exceeds py:attr:`thresh`, the value between
+        the windows is flagged.
 
         Parameters
         ----------
@@ -155,22 +155,21 @@ class BreaksMixin:
             Threshold value by which the mean of data has to jump, to trigger flagging.
 
         window :
-            Size of the two moving windows. This determines the number of observations used
-            for calculating the mean in every window.
-            The window size should be big enough to yield enough samples for a reliable mean calculation,
-            but it should also not be arbitrarily big, since it also limits the density of jumps that can be detected.
-            More precisely: Jumps that are not distanced to each other by more than three fourth (3/4) of the
-            selected window size, will not be detected reliably.
+            Size of the two moving windows. This determines the number of observations used for
+            calculating the mean in every window. The window size should be big enough to yield enough
+            samples for a reliable mean calculation, but it should also not be arbitrarily big, since
+            it also limits the density of jumps that can be detected.
+            More precisely: Jumps that are not distanced to each other by more than three fourth (3/4)
+            of the selected py:attr:`window` size, will not be detected reliably.
 
         min_periods :
-            The minimum number of observations in window required to calculate a valid
-            mean value.
+            The minimum number of observations in py:attr:`window` required to calculate a valid mean value.
 
         Examples
         --------
 
-        Below picture gives an abstract interpretation of the parameter interplay in case of a positive value jump,
-        initialising a new mean level.
+        Below picture gives an abstract interpretation of the parameter interplay in case of a positive
+        value jump, initialising a new mean level.
 
         .. figure:: /resources/images/flagJumpsPic.png
 
