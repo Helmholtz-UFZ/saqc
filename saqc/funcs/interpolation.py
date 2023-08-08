@@ -477,15 +477,15 @@ class InterpolationMixin:
             * ``'both'`` - perform forward and backward extrapolation
         """
         call = (
-            f"qc.align(field={field}, freq={freq}, method={method}, "
-            f"order={order}, extrapolate={extrapolate})"
+            f'qc.align(field="{field}", freq="{freq}", method="{method}", '
+            f'order={order}, extrapolate="{extrapolate}")'
         )
         if limit != 2:
             call = (
-                f"{call}.interpolate(field={field}, method={method}, "
-                f"order={order}, limit={limit}, extrapolate={extrapolate})"
+                f'qc.interpolate(field="{field}", method="{method}", '
+                f'order="{order}", limit="{limit}", extrapolate="{extrapolate}")'
             )
-        warnings.warn(f"{msg}`{call}`", DeprecationWarning)
+        warnings.warn(f"The method interpolateIndex is deprectated and will be removed with SaQC==3.0. Use `{call}` instead", DeprecationWarning)
 
         # HINT: checking is delegated to called functions
 
