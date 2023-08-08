@@ -485,7 +485,10 @@ class InterpolationMixin:
                 f'qc.interpolate(field="{field}", method="{method}", '
                 f'order="{order}", limit="{limit}", extrapolate="{extrapolate}")'
             )
-        warnings.warn(f"The method interpolateIndex is deprectated and will be removed with SaQC==3.0. Use `{call}` instead", DeprecationWarning)
+        warnings.warn(
+            f"The method interpolateIndex is deprectated and will be removed with SaQC==3.0. Use `{call}` instead",
+            DeprecationWarning,
+        )
 
         # HINT: checking is delegated to called functions
 
