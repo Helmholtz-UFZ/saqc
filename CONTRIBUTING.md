@@ -59,7 +59,7 @@ It is not a shame to name a parameter just `n` or `alpha` etc., if, for example,
 
 
 ### Test Functions
-- testnames: [testmodule_]flagTestName
+- testnames: flagTestName
  
 ## Formatting
 We use [black](https://black.readthedocs.io/en/stable/) in its default settings.
@@ -70,6 +70,10 @@ Only absolute imports are accepted.
 
 
 # Development Workflow
+
+## Releases
+Every release is planned by an associated Milestone. This milestone should have a end date, usually, the first of the month the next release is planned and contain all issue/merge requests to include. 
+
 ## Repository Structure
 
 - `master` - branch:
