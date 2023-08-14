@@ -76,11 +76,11 @@ Every release is planned by an associated Milestone. This milestone should have 
 
 ## Repository Structure
 
-- `master` - branch:
+- `main` - branch:
   + Stable and usually protected.
   + Regular merges from `develop`, these merges are tagged and increasing at least the minor version.
   + Irregular merges from `develop` in case of critical bugs. Such merges increase at least the patch level.
-  + Merges into `master` usually lead to a PyPI release.
+  + Merges into `main` usually lead to a PyPI release.
 - `develop` - branch:
   + The main development branch, no hard stability requirements/guarantees.
   + Merges into `develop` should mostly follow a [Merge Request Workflow](#merge-request-workflow), minor changes can however be committed directly. Such minor changes include:
@@ -109,6 +109,6 @@ Every release is planned by an associated Milestone. This milestone should have 
   release date. Commits to `develop` after the merge window of a release closes need to be integrated during the subsequent release
   cycle
 - The release cycle is organized by Gitlab Milestones, the expiration date of a certain milestone indicates the end of the 
-  related merge window, the actual merge into `master` and the accompanying release is scheduled for the week after the
+  related merge window, the actual merge into `main` and the accompanying release is scheduled for the week after the
   milestones expiration date. 
 - Issues and Merge Requests can and should be associated to these milestone as this help in the organization of review activities.

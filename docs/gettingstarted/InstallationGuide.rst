@@ -78,7 +78,7 @@ or
 
 .. code-block:: sh
 
-   pip install git+https://git.ufz.de/rdm-software/saqc@master
+   pip install git+https://git.ufz.de/rdm-software/saqc@main
 
 
 If you feel more adventurous, feel free to use the latest development version from our
