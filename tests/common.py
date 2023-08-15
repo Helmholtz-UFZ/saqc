@@ -42,13 +42,6 @@ def dummyHistory(hist: pd.DataFrame = None, meta: list = None):
     return createHistoryFromData(hist, meta, copy=True)
 
 
-def writeIO(content):
-    f = io.StringIO()
-    f.write(content)
-    f.seek(0)
-    return f
-
-
 def checkInvariants(data, flags, field, identical=True):
     """
     Check all invariants that must hold at any point for

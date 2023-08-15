@@ -51,8 +51,7 @@ dummy dataset, to lead us through the following code snippets:
 
 .. testsetup:: python
 
-   from saqc import fromConfig
-   from tests.common import writeIO
+   from saqc.parsing.reader import _ConfigReader as ConfigReader
 
 .. testcode:: python
               
@@ -116,16 +115,13 @@ Simple constraints
      .. doctest:: python
         :hide:
 
-        >>> tmp = fromConfig(
-        ...     writeIO(
+        >>> tmp = ConfigReader(data).readString(
         ...         """
         ...         varname ; test                    
         ...         #-------;------------------------
         ...         x       ; flagGeneric(func=x < 30)
         ...         """
-        ...     ),
-        ...     data
-        ... )
+        ... ).run()
         >>> tmp.flags == qc1.flags  #doctest:+NORMALIZE_WHITESPACE
         True
 
@@ -177,16 +173,13 @@ Cross variable constraints
      .. doctest:: python
         :hide:
 
-        >>> tmp = fromConfig(
-        ...     writeIO(
+        >>> tmp = ConfigReader(data).readString(
         ...         """
         ...         varname ; test                    
         ...         #-------;------------------------------------
         ...         x       ; flagGeneric(field="y", func=y > 30)
         ...         """
-        ...     ),
-        ...     data
-        ... )
+        ... ).run()
         >>> tmp.flags == qc2.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
@@ -241,16 +234,13 @@ need to be put in parentheses.
      .. doctest:: python
         :hide:
 
-        >>> tmp = fromConfig(
-        ...     writeIO(
+        >>> tmp = ConfigReader(data).readString(
         ...         """
         ...         varname ; test                    
         ...         #-------;--------------------------------------------------------
         ...         x       ; flagGeneric(field=["y", "z"], func=(y > 30) & (z < 50))
         ...         """
-        ...     ),
-        ...     data
-        ... )
+        ... ).run()
         >>> tmp.flags == qc3.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
@@ -293,16 +283,13 @@ Arithmetics
      .. doctest:: python
         :hide:
 
-        >>> tmp = fromConfig(
-        ...     writeIO(
+        >>> tmp = ConfigReader(data).readString(
         ...         """
         ...         varname ; test
         ...         #-------;-------------------------------------------------------
         ...         x       ; flagGeneric(field=["x", "y", "z"], func=x > (y + z)/2)
         ...         """
-        ...     ),
-        ...     data
-        ... )
+        ... ).run()
         >>> tmp.flags == qc4.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
@@ -351,16 +338,13 @@ Special functions
       .. doctest:: python
         :hide:
 
-        >>> tmp = fromConfig(
-        ...     writeIO(
+        >>> tmp = ConfigReader(data).readString(
         ...         """
         ...         varname ; test
         ...         #-------;---------------------------------------------------
         ...         x       ; flagGeneric(field=["x", "z"], func=x > std(z) * 2)
         ...         """
-        ...     ),
-        ...     data
-        ... )
+        ... ).run()
         >>> tmp.flags == qc5.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
@@ -402,17 +386,14 @@ Special functions
       .. doctest:: python
         :hide:
 
-        >>> tmp = fromConfig(
-        ...     writeIO(
+        >>> tmp = ConfigReader(data).readString(
         ...         """
         ...         varname ; test
         ...         #-------;------------------------------------------
         ...         y       ; flagRange(min=10, max=60)
         ...         x       ; flagGeneric(field="y", func=isflagged(y))
         ...         """
-        ...     ),
-        ...     data
-        ... )
+        ... ).run()
         >>> tmp.flags == qc6.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
@@ -481,16 +462,13 @@ Let's consider the following dataset:
       .. doctest:: python
         :hide:
 
-        >>> tmp = fromConfig(
-        ...     writeIO(
+        >>> tmp = ConfigReader(data).readString(
         ...         """
         ...         varname ; test
         ...         #-------;---------------------------------------------------------------
         ...         meas    ; flagGeneric(field=["fan", "volt"], func=(x == 0) | (y < 12.0))
         ...         """
-        ...     ),
-        ...     data
-        ... )
+        ... ).run()
         >>> tmp.flags == qc7.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
@@ -533,8 +511,7 @@ But we could also quality check our independent variables first and than leverag
       .. doctest:: python
         :hide:
 
-        >>> tmp = fromConfig(
-        ...     writeIO(
+        >>> tmp = ConfigReader(data).readString(
         ...         """
         ...         varname ; test
         ...         #-------;--------------------------------------------------------------------------
@@ -543,9 +520,7 @@ But we could also quality check our independent variables first and than leverag
         ...         volt    ; flagGeneric(func=volt < 12.0)
         ...         meas    ; flagGeneric(field=["fan", "volt"], func=isflagged(fan) | isflagged(volt))
         ...         """
-        ...     ),
-        ...     data
-        ... )
+        ... ).run()
         >>> tmp.flags == qc8.flags #doctest:+NORMALIZE_WHITESPACE
         True
 
@@ -634,16 +609,13 @@ variables in a given dataset. We start with dummy data again:
      .. doctest:: python
         :hide:
 
-        >>> tmp = fromConfig(
-        ...     writeIO(
+        >>> tmp = ConfigReader(data).readString(
         ...         """
         ...         varname ; test                    
         ...         #-------;------------------------------------------------------
         ...         mean    ; processGeneric(field=["x", "y", "z"], func=(x+y+z)/2)
         ...         """
-        ...     ),
-        ...     data
-        ... )
+        ... ).run()
         >>> tmp.data == qc1.data #doctest:+NORMALIZE_WHITESPACE
         True
 
