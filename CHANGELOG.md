@@ -11,6 +11,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Added
 - added checks and unified error message for common inputs.
 - added command line `--version` option
+- `-ll` CLI option as a shorthand for `--log-level`
+- basic json support for CLI config files, which are detected by `.json`-extension.
+- `--json-field` CLI option to use a non-root element of a json file.
 ### Changed
 - pin pandas to versions >= 2.0
 - parameter `fill_na` of `SaQC.flagUniLOF` and `SaQC.assignUniLOF` is now of type 

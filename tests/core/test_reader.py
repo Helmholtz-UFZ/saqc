@@ -9,8 +9,8 @@
 import numpy as np
 import pytest
 
-import saqc.lib.ts_operators as ts_ops
 from saqc.core import DictOfSeries, Flags, SaQC, flagging
+from saqc.exceptions import ParsingError
 from saqc.parsing.environ import ENVIRONMENT
 from saqc.parsing.reader import fromConfig, readFile
 from tests.common import initData, writeIO
@@ -108,26 +108,25 @@ def test_configFile(data):
     fromConfig(writeIO(config), data)
 
 
-def test_configChecks(data):
-    var1, _, var3, *_ = data.columns
-
+@pytest.mark.parametrize(
+    "test, expected",
+    [
+        (f"var1; min", ParsingError),  # not a function call
+        (f"var3; flagNothing()", NameError),  # unknown function
+        (f"var1; flagFunc(mn=0)", TypeError),  # bad argument name
+        (f"var1; flagFunc()", TypeError),  # not enough arguments
+    ],
+)
+def test_configChecks(data, test, expected):
     @flagging()
     def flagFunc(data, field, flags, arg, opt_arg=None, **kwargs):
         flags[:, field] = np.nan
         return data, flags
 
     header = f"varname;test"
-    tests = [
-        (f"{var1};flagFunc(mn=0)", TypeError),  # bad argument name
-        (f"{var1};flagFunc()", TypeError),  # not enough arguments
-        (f"{var3};flagNothing()", NameError),  # unknown function
-        (f"{var1}; min", TypeError),  # not a function call
-    ]
-
-    for test, expected in tests:
-        fobj = writeIO(header + "\n" + test)
-        with pytest.raises(expected):
-            fromConfig(fobj, data=data)
+    fobj = writeIO(header + "\n" + test)
+    with pytest.raises(expected):
+        fromConfig(fobj, data=data)
 
 
 def test_supportedArguments(data):
