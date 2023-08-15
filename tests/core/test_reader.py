@@ -12,8 +12,8 @@ import pytest
 from saqc.core import DictOfSeries, Flags, SaQC, flagging
 from saqc.exceptions import ParsingError
 from saqc.parsing.environ import ENVIRONMENT
-from saqc.parsing.reader import fromConfig, readFile
-from tests.common import initData, writeIO
+from saqc.parsing.reader import _ConfigReader
+from tests.common import initData
 
 
 @pytest.fixture
@@ -41,8 +41,9 @@ def test_variableRegex(data):
     ]
 
     for regex, expected in tests:
-        fobj = writeIO(header + "\n" + f"{regex} ; {function}()")
-        saqc = fromConfig(fobj, data=data)
+        cr = _ConfigReader(data)
+        cr.readString(header + "\n" + f"{regex} ; {function}()")
+        saqc = cr.run()
         result = getTestedVariables(saqc._flags, function)
         assert np.all(result == expected)
 
@@ -50,9 +51,10 @@ def test_variableRegex(data):
         ("var[12]", []),  # not quoted -> not a regex
     ]
     for regex, expected in tests:
-        fobj = writeIO(header + "\n" + f"{regex} ; {function}()")
+        cr = _ConfigReader(data=data)
+        cr.readString(header + "\n" + f"{regex} ; {function}()")
         with pytest.warns(RuntimeWarning):
-            saqc = fromConfig(fobj, data=data)
+            saqc = cr.run()
         result = getTestedVariables(saqc._flags, function)
         assert np.all(result == expected)
 
@@ -67,7 +69,7 @@ def test_inlineComments(data):
     var1    ; flagDummy() # test
     """
 
-    saqc = fromConfig(writeIO(config), data)
+    saqc = _ConfigReader(data).readString(config).run()
     func = saqc._flags.history["var1"].meta[0]["func"]
     assert func == "flagDummy"
 
@@ -84,9 +86,9 @@ def test_configReaderLineNumbers():
 
     SM1         ; flagDummy()
     """
-    planned = readFile(writeIO(config))
+    planned = _ConfigReader().readString(config)
     expected = [4, 5, 6, 10]
-    assert (planned.index == expected).all()
+    assert (planned.config.index == expected).all()
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
@@ -105,7 +107,8 @@ def test_configFile(data):
 
     SM1;flagDummy()
     """
-    fromConfig(writeIO(config), data)
+    c = _ConfigReader().readString(config).config
+    assert len(c) == 4
 
 
 @pytest.mark.parametrize(
@@ -124,12 +127,15 @@ def test_configChecks(data, test, expected):
         return data, flags
 
     header = f"varname;test"
-    fobj = writeIO(header + "\n" + test)
+    cr = _ConfigReader(data).readString(header + "\n" + test)
     with pytest.raises(expected):
-        fromConfig(fobj, data=data)
+        cr.run()
 
 
-def test_supportedArguments(data):
+@pytest.mark.parametrize(
+    "kwarg", ["NAN", "'a string'", "5", "5.5", "-5", "True", "sum([1, 2, 3])"]
+)
+def test_supportedArguments(data, kwarg):
     # test if the following function arguments
     # are supported (i.e. parsing does not fail)
 
@@ -141,21 +147,8 @@ def test_supportedArguments(data):
         return saqc
 
     var1 = data.columns[0]
-
-    header = f"varname;test"
-    tests = [
-        f"{var1};func(kwarg=NAN)",
-        f"{var1};func(kwarg='str')",
-        f"{var1};func(kwarg=5)",
-        f"{var1};func(kwarg=5.5)",
-        f"{var1};func(kwarg=-5)",
-        f"{var1};func(kwarg=True)",
-        f"{var1};func(kwarg=sum([1, 2, 3]))",
-    ]
-
-    for test in tests:
-        fobj = writeIO(header + "\n" + test)
-        fromConfig(fobj, data)
+    conf = f"varname;test" + "\n" + f"{var1};func(kwarg={kwarg})"
+    _ConfigReader(data).readString(conf).run()
 
 
 @pytest.mark.parametrize(
@@ -172,5 +165,6 @@ def test_funtionArguments(data, func_string):
     {data.columns[0]} ; testFunction(func={func_string})
     {data.columns[0]} ; testFunction(func="{func_string}")
     """
-
-    fromConfig(writeIO(config), data)
+    cr = _ConfigReader(data)
+    cr.readString(config)
+    cr.run()
