@@ -6,6 +6,9 @@
 
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
+import json
 import logging
 from functools import partial
 from pathlib import Path
@@ -17,18 +20,18 @@ import pyarrow as pa
 
 from saqc.core import DictOfSeries
 from saqc.core.core import TRANSLATION_SCHEMES
-from saqc.parsing.reader import fromConfig
+from saqc.parsing.reader import _ConfigReader
 from saqc.version import __version__
 
 logger = logging.getLogger("SaQC")
+LOG_FORMAT = "[%(asctime)s][%(name)s][%(levelname)s]: %(message)s"
 
 
 def _setupLogging(loglvl):
     logger.setLevel(loglvl)
     handler = logging.StreamHandler()
-    formatter = logging.Formatter("[%(asctime)s][%(name)s][%(levelname)s]: %(message)s")
-    handler.setFormatter(formatter)
     logger.addHandler(handler)
+    logging.basicConfig(level=loglvl, format=LOG_FORMAT)
 
 
 def setupIO(nodata):
@@ -73,7 +76,8 @@ def writeData(writer_dict, df, fname):
     "--config",
     type=click.Path(),
     required=True,
-    help="path to the configuration file",
+    help="Path to a configuration file. Use a '.json' extension to provide a JSON-"
+    "configuration. Otherwise files are treated as CSV.",
 )
 @click.option(
     "-d",
@@ -81,43 +85,66 @@ def writeData(writer_dict, df, fname):
     type=click.Path(),
     multiple=True,
     required=True,
-    help="path to the data file",
+    help="Path to a data file.",
 )
 @click.option(
     "-o",
     "--outfile",
     type=click.Path(exists=False),
     required=False,
-    help="path to the output file",
+    help="Path to a output file.",
 )
 @click.option(
     "--scheme",
     default="simple",
     show_default=True,
     type=click.Choice(tuple(TRANSLATION_SCHEMES.keys())),
-    help="the flagging scheme to use",
+    help="A flagging scheme to use.",
 )
-@click.option("--nodata", default=np.nan, help="nodata value")
+@click.option(
+    "--nodata", default=np.nan, help="Set a custom nodata value.", show_default=True
+)
 @click.option(
     "--log-level",
+    "-ll",
     default="INFO",
     show_default=True,
     type=click.Choice(["DEBUG", "INFO", "WARNING"]),
-    help="set output verbosity",
+    help="Set log verbosity.",
 )
-def main(config, data, scheme, outfile, nodata, log_level):
+@click.option(
+    "--json-field",
+    default=None,
+    help="Use the value from the given FIELD from the root object of a json file. The "
+    "value must hold a array of saqc tests. If the option is not given, a passed "
+    "JSON config is assumed to have an array of saqc tests as root element.",
+)
+def main(
+    config: str,
+    data: str,
+    scheme: str,
+    outfile: str,
+    nodata: str | float,
+    log_level: str,
+    json_field: str | None,
+):
     # data is always a list of data files
 
     _setupLogging(log_level)
     reader, writer = setupIO(nodata)
-
     data = [readData(reader, f) for f in data]
 
-    saqc = fromConfig(
-        config,
-        data=data,
-        scheme=TRANSLATION_SCHEMES[scheme or "simple"](),
-    )
+    config = str(config)
+    cr = _ConfigReader(data=data, scheme=scheme)
+    if config.endswith("json"):
+        f = None
+        if json_field is not None:
+            f = lambda j: j[str(json_field)]
+        cr = cr.readJson(config, unpack=f)
+    else:
+        cr = cr.readCsv(config)
+
+    saqc = cr.run()
 
     data_result = saqc.data.to_pandas()
     flags_result = saqc.flags
