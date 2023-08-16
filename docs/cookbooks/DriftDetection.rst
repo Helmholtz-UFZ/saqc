@@ -100,18 +100,22 @@ Example Data Import
    import pandas as pd
    data = pd.read_csv('../resources/data/tempSensorGroup.csv', index_col=0)
    data.index = pd.DatetimeIndex(data.index)
+   variables = ['temp1 [degC]', 'temp2 [degC]', 'temp3 [degC]', 'temp4 [degC]', 'temp5 [degC]']
    qc = saqc.SaQC(data)
 
 We load the example `data set <https://git.ufz.de/rdm-software/saqc/-/blob/develop/docs/resources/data/tempsenorGroup.csv>`_
 from the *saqc* repository using the `pandas <https://pandas.pydata.org/>`_ csv
 file reader. Subsequently, we cast the index of the imported data to `DatetimeIndex`
-and use the dataframe's `plot` method, to inspect the imported data:
+instantiate a saqc object and plot the data:
 
 .. doctest:: flagDriftFromNorm
 
+   >>> import saqc
    >>> data = pd.read_csv('./resources/data/tempSensorGroup.csv', index_col=0)
    >>> data.index = pd.DatetimeIndex(data.index)
-   >>> data.plot() # doctest: +SKIP
+   >>> variables = ['temp1 [degC]', 'temp2 [degC]', 'temp3 [degC]', 'temp4 [degC]', 'temp5 [degC]']
+   >>> qc = saqc.SaQC(data)
+   >>> qc.plot(variables) # doctest: +SKIP
 
 
 .. plot::
@@ -119,22 +123,13 @@ and use the dataframe's `plot` method, to inspect the imported data:
    :include-source: False
    :class: center
 
-    data.plot()
+    qc.plot(variables)
 
 
 Example Algorithm Application
 -----------------------------
 
-Looking at our example data set more closely, we see that 2 of the 5 variables start to drift away.
-
-.. plot::
-   :context: close-figs
-   :include-source: False
-   :class: center
-   :caption: 2 variables start departing the majority group of variables (the group containing more than ``frac`` variables) around july.
-
-    data['2017-05':'2017-11'].plot()
-
+Looking at the example data set more closely, we see that 2 of the 5 variables start to drift away.
 
 .. plot::
    :context: close-figs
@@ -142,17 +137,9 @@ Looking at our example data set more closely, we see that 2 of the 5 variables s
    :class: center
    :caption: 2 variables are departed from the majority group of variables (the group containing more than ``frac`` variables) by the end of the year.
 
-    data['2017-09':'2018-01'].plot()
+    qc.plot(variables, xscope=slice('2017-05', '2017-11'))
 
-Lets try to detect those drifts via saqc. There for we import the *saqc* package and instantiate a :py:class:`saqc.SaQC`
-object with the data:
-
-.. doctest:: flagDriftFromNorm
-
-   >>> import saqc
-   >>> qc = saqc.SaQC(data)
-
-The changes we observe in the data seem to develop significantly only in temporal spans over a month,
+Lets try to detect those drifts via saqc. The changes we observe in the data seem to develop significantly only in temporal spans over a month,
 so we go for ``"1M"`` as value for the
 ``window`` parameter. We identified the majority group as a group containing three variables, whereby two variables
 seem to be scattered away, so that we can leave the ``frac`` value at its default ``.5`` level.
@@ -179,55 +166,12 @@ Lets check the results:
 
 .. doctest:: flagDriftFromNorm
 
-   >>> qc.plot('temp1 [degC]') # doctest: +SKIP
+   >>> qc.plot(variables, marker_kwargs={'alpha':.3, 's': 1, 'color': 'red', 'edgecolor': 'face'}) # doctest: +SKIP
 
 .. plot::
    :context: close-figs
    :include-source: False
    :class: center
 
-   qc.plot('temp1 [degC]')
+   qc.plot(variables, marker_kwargs={'alpha':.3, 's': 1, 'color': 'red', 'edgecolor': 'face'})
 
-.. doctest:: flagDriftFromNorm
-
-   >>> qc.plot('temp2 [degC]') # doctest: +SKIP
-
-.. plot::
-   :context: close-figs
-   :include-source: False
-   :class: center
-
-   qc.plot('temp2 [degC]')
-
-.. doctest:: flagDriftFromNorm
-
-   >>> qc.plot('temp3 [degC]') # doctest: +SKIP
-
-.. plot::
-   :context: close-figs
-   :include-source: False
-   :class: center
-
-   qc.plot('temp3 [degC]')
-
-.. doctest:: flagDriftFromNorm
-
-   >>> qc.plot('temp4 [degC]') # doctest: +SKIP
-
-.. plot::
-   :context: close-figs
-   :include-source: False
-   :class: center
-
-   qc.plot('temp4 [degC]')
-
-.. doctest:: flagDriftFromNorm
-
-   >>> qc.plot('temp5 [degC]') # doctest: +SKIP
-
-.. plot::
-   :context: close-figs
-   :include-source: False
-   :class: center
-
-   qc.plot('temp5 [degC]')

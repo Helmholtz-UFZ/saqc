@@ -9,6 +9,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)
 ### Added
+- add multivariate plotting options to `plot`
+- added `plot_kwargs` keyword to `plot` function
 - added checks and unified error message for common inputs.
 - added command line `--version` option
 - `-ll` CLI option as a shorthand for `--log-level`
@@ -20,11 +22,15 @@ SPDX-License-Identifier: GPL-3.0-or-later
   `bool` instead of one of `[None, "linear"]`
 ### Removed
 - removed deprecated `DictOfSeries.to_df`
+- removed plotting option with complete history (`history="complete"`)
 ### Fixed
 - Bug in `SaQC.assignChangePointCluster` and `SaQC.flagChangePoints`: A tuple passed 
   to `min_period` was only recognised if also `window` was a tuple.
 - `SaQC.propagateFlags` was overwriting existing flags
 ### Deprecated
+- Deprecate `plot` parameter `phaseplot` in favor of usage with `mode="biplot"`
+- Deprecate `plot` parameter `cyclestart` in favor of usage with `marker_kwargs`
+- Deprecate option `"complete"` for `plot` funcs parameter `history`
 
 ## [2.4.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)
@@ -61,7 +67,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Deprecate `interpolate`, `linear` and `shift` in favor of `align`
 - Deprecate `roll` in favor of `rolling`
 - Deprecate `DictOfSeries.to_df` in favor of `DictOfSeries.to_pandas`
-
 ## [2.3.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.3.0) - 2023-01-17
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.2.1...v2.3.0)
 ### Added

@@ -329,7 +329,7 @@ class OutliersMixin:
            :include-source: False
            :class: center
 
-            qc.plot('sac254_raw')
+           qc.plot('sac254_raw')
 
         We apply :py:meth:`~saqc.SaqC.flagUniLOF` in with default parameter
         values. Meaning, that the main calibration paramters :py:attr:`n`
