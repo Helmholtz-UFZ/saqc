@@ -33,7 +33,9 @@ def test_makeFig(tmp_path):
 
     d_saqc = d_saqc.plot(field="data", path=outfile)
     d_saqc = d_saqc.plot(field="data", path=outfile, history="valid", stats=True)
-    d_saqc = d_saqc.plot(field="data", path=outfile, history="complete")
+    with pytest.deprecated_call():
+        d_saqc = d_saqc.plot(field="data", path=outfile, history="complete")
+
     d_saqc = d_saqc.plot(
         field="data", path=outfile, ax_kwargs={"ylabel": "data is data"}, stats=True
     )

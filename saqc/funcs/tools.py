@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import pickle
+import warnings
 from typing import TYPE_CHECKING, Optional
 
 import matplotlib as mpl
@@ -197,18 +198,25 @@ class ToolsMixin:
         self._flags[mask, field] = UNFLAGGED
         return self
 
-    @register(mask=[], demask=[], squeeze=[])
+    @register(
+        mask=[],
+        demask=[],
+        squeeze=[],
+        multivariate=True,
+    )
     def plot(
         self: "SaQC",
-        field: str,
+        field: str | list[str],
         path: str | None = None,
         max_gap: str | None = None,
+        mode: Literal["subplots", "oneplot"] | str = "oneplot",
         history: Literal["valid", "complete"] | list[str] | None = "valid",
         xscope: slice | None = None,
-        phaseplot: str | None = None,
         store_kwargs: dict | None = None,
         ax: mpl.axes.Axes | None = None,
         ax_kwargs: dict | None = None,
+        marker_kwargs: dict | None = None,
+        plot_kwargs: dict | None = None,
         dfilter: float = FILTER_NONE,
         **kwargs,
     ) -> "SaQC":
@@ -235,25 +243,28 @@ class ToolsMixin:
             plotting. If an offset string is passed, only points that have a distance
             below ``max_gap`` are connected via the plotting line.
 
+        mode :
+           How to process multiple variables to be plotted:
+           * `"oneplot"` : plot all variables with their flags in one axis (default)
+           * `"subplots"` : generate subplot grid where each axis contains one variable plot with associated flags
+           * `"biplot"` : plotting first and second variable in field against each other in a scatter plot  (point cloud).
+
         history :
             Discriminate the plotted flags with respect to the tests they originate from.
 
             * ``"valid"``: Only plot flags, that are not overwritten by subsequent tests.
               Only list tests in the legend, that actually contributed flags to the overall
               result.
-            * ``"complete"``: Plot all flags set and list all the tests executed on a variable.
-              Suitable for debugging/tracking.
             * ``None``: Just plot the resulting flags for one variable, without any historical
               and/or meta information.
             * list of strings: List of tests. Plot flags from the given tests, only.
+            * ``complete`` (not recommended, deprecated): Plot all the flags set by any test, independently from them being removed or modified by
+              subsequent modifications. (this means: plotted flags do not necessarily match with flags ultimately
+              assigned to the data)
 
         xscope :
-            Determine a chunk of the data to be plotted processed. ``xscope`` can be anything,
+            Determine a chunk of the data to be plotted. ``xscope`` can be anything,
             that is a valid argument to the ``pandas.Series.__getitem__`` method.
-
-        phaseplot :
-            If a string is passed, plot ``field`` in the phase space it forms together with the
-            variable ``phaseplot``.
 
         ax :
             If not ``None``, plot into the given ``matplotlib.Axes`` instance, instead of a
@@ -267,21 +278,86 @@ class ToolsMixin:
             To reopen a pickled figure execute: ``pickle.load(open(savepath, "w")).show()``
 
         ax_kwargs :
-            Axis keywords. Change the axis labeling defaults. Most important keywords:
-            ``"xlabel"``, ``"ylabel"``, ``"title"``, ``"fontsize"``, ``"cycleskip"``.
+            Axis keywords. Change axis specifics. Those are passed on to the
+            `matplotlib.axes.Axes.set <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set.html>`_
+            method and can have the options listed there.
+            The following options are `saqc` specific:
+
+            * ``"xlabel"``: Either single string, that is to be attached to all x-axis´, or
+              a List of labels, matching the number of variables to plot in length, or a dictionary, directly
+              assigning labels to certain fields - defaults to ``None`` (no labels)
+            * ``"ylabel"``: Either single string, that is to be attached to all y-axis´, or
+              a List of labels, matching the number of variables to plot in length, or a dictionary, directly
+              assigning labels to certain fields - defaults to ``None`` (no labels)
+            * ``"title"``: Either a List of labels, matching the number of variables to plot in length, or a dictionary, directly
+              assigning labels to certain variables - defaults to ``None`` (every plot gets titled the plotted variables name)
+            * ``"fontsize"``: (float) Adjust labeling and titeling fontsize
+            * ``"nrows"``, ``"ncols"``: shape of the subplot matrix the plots go into: If both are assigned, a subplot
+              matrix of shape `nrows` x `ncols` is generated. If only one is assigned, the unassigned dimension is 1.
+              defaults to plotting into subplot matrix with 2 columns and the necessary number of rows to fit the
+              number of variables to plot.
+
+        marker_kwargs :
+            Keywords to modify flags marker appearance. The markers are set via the
+            `matplotlib.pyplot.scatter <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html>`_
+            method and can have the options listed there.
+            The following options are `saqc` specific:
+
+            * ``"cycleskip"``: (int) start the cycle of shapes that are assigned any flag-type with a certain lag - defaults to ``0`` (no skip)
+
+        plot_kwargs :
+            Keywords to modify data line appearance. The markers are set via the
+            `matplotlib.pyplot.plot <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html>`_
+            method and can have the options listed there.
+
+        Notes
+        -----
+
+        * Check/modify the module parameter `saqc.lib.plotting.SCATTER_KWARGS` to see/modify global marker defaults
+        * Check/modify the module parameter `saqc.lib.plotting.PLOT_KWARGS` to see/modify global plot line defaults
         """
+        if history == "complete":
+            warnings.warn(
+                "Plotting with history='complete' is deprecated and will be removed in a future release (2.5)."
+                "To get access to an saqc variables complete flagging history and analyze or plot it in detail, use flags"
+                "history acces via `qc._flags.history[variable_name].hist` and a plotting library, such as pyplot.\n"
+                "Minimal Pseudo example, having a saqc.SaQC instance `qc`, holding a variable `'data1'`, "
+                "and having matplotlib.pyplot imported as `plt`:\n\n"
+                "plt.plot(data)\n"
+                "for f in qc._flags.history['data1'].hist \n"
+                "    markers = qc._flags.history['data1'].hist[f] > level \n"
+                "    markers=data[markers] \n"
+                "    plt.scatter(markers.index, markers.values) \n",
+                DeprecationWarning,
+            )
+
+        if "phaseplot" in kwargs:
+            warnings.warn(
+                'Parameter "phaseplot" is deprecated and will be removed in a future release (2.5). Assign to parameter "mode" instead. (plot(field, mode=phaseplot))',
+                DeprecationWarning,
+            )
+            mode = kwargs["phaseplot"]
+
+        if "cycleskip" in (ax_kwargs or {}):
+            warnings.warn(
+                'Passing "cycleskip" option with the "ax_kwargs" parameter is deprecated and will be removed in a future release (2.5). '
+                'The option now has to be passed with the "marker_kwargs" parameter',
+                DeprecationWarning,
+            )
+            marker_kwargs["cycleskip"] = ax_kwargs.pop("cycleskip")
+
         data, flags = self._data.copy(), self._flags.copy()
 
         level = kwargs.get("flag", UNFLAGGED)
 
         if dfilter < np.inf:
-            data[field].loc[flags[field] >= dfilter] = np.nan
+            for f in field:
+                data[f].loc[flags[f] >= dfilter] = np.nan
 
-        if store_kwargs is None:
-            store_kwargs = {}
-
-        if ax_kwargs is None:
-            ax_kwargs = {}
+        store_kwargs = store_kwargs or {}
+        ax_kwargs = ax_kwargs or {}
+        marker_kwargs = marker_kwargs or {}
+        plot_kwargs = plot_kwargs or {}
 
         if not path:
             mpl.use(_MPL_DEFAULT_BACKEND)
@@ -293,12 +369,14 @@ class ToolsMixin:
             field=field,
             flags=flags,
             level=level,
+            mode=mode,
             max_gap=max_gap,
             history=history,
             xscope=xscope,
-            phaseplot=phaseplot,
             ax=ax,
             ax_kwargs=ax_kwargs,
+            scatter_kwargs=marker_kwargs,
+            plot_kwargs=plot_kwargs,
         )
 
         if ax is None and not path:
