@@ -255,25 +255,11 @@ This function object, we can pass on to the :py:meth:`~saqc.SaQC.processGeneric`
 Visualisation
 -------------
 
-We can obtain those updated informations by generating a `pandas dataframe <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_
-representation of it, with the :py:attr:`data <saqc.core.core.SaQC.data>` method:
+To see all the results obtained so far, plotted in one figure window, we make use of the :py:meth:`~saqc.SaQC.plot` method.
 
 .. doctest:: exampleOD
 
-   >>> data = qc.data
-
-.. plot::
-   :context:
-   :include-source: False
-
-   data = qc.data
-
-To see all the results obtained so far, plotted in one figure window, we make use of the dataframes `plot <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html>`_ method.
-
-.. doctest:: exampleOD
-
-   >>> data.to_pandas().plot()
-   <Axes...>
+   >>> qc.plot(".", regex=True) # doctest: +SKIP
 
 .. plot::
    :context:
@@ -281,7 +267,7 @@ To see all the results obtained so far, plotted in one figure window, we make us
    :width: 80 %
    :class: center
 
-   data.to_pandas().plot()
+   qc.plot(".", regex=True)
 
 
 Residuals and Scores

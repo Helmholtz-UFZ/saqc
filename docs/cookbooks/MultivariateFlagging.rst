@@ -246,17 +246,14 @@ Check out the results for the year *2016*
 
 .. doctest:: exampleMV
 
-   >>> plt.plot(qc.data['sac254_raw']['2016'], alpha=.5, color='black', label='original') # doctest:+SKIP
-   >>> plt.plot(qc.data['sac254_corrected']['2016'], color='black', label='corrected') # doctest:+SKIP
+   >>> qc.plot(['sac254_raw','sac254_corrected'], xscope='2016', plot_kwargs={'color':['black', 'black'], 'alpha':[.5, 1], 'label':['original', 'corrrected']}) # doctest:+SKIP
 
 .. plot::
    :context:
    :include-source: False
 
-   plt.figure(figsize=(16,9))
-   plt.plot(qc.data['sac254_raw']['2016'], alpha=.5, color='black', label='original')
-   plt.plot(qc.data['sac254_corrected']['2016'], color='black', label='corrected')
-   plt.legend()
+   >>> qc.plot(['sac254_raw','sac254_corrected'], xscope='2016', plot_kwargs={'color':['black', 'black'], 'alpha':[.5, 1], 'label':['original', 'corrrected']})
+
 
 Multivariate Flagging Procedure
 -------------------------------

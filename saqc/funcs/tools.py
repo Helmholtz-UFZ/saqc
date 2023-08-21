@@ -306,9 +306,16 @@ class ToolsMixin:
             * ``"cycleskip"``: (int) start the cycle of shapes that are assigned any flag-type with a certain lag - defaults to ``0`` (no skip)
 
         plot_kwargs :
-            Keywords to modify data line appearance. The markers are set via the
-            `matplotlib.pyplot.plot <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html>`_
-            method and can have the options listed there.
+            Keywords to modify the plot appearance. The plotting is delegated to
+            `matplotlib.pyplot.plot <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html>`_, all options listed there are available. Additionally the following saqc specific configurations are possible:
+
+            * ``"alpha"``: Either a scalar float in *[0,1]*, that determines all plots' transparencies, or
+              a list of floats, matching the number of variables to plot.
+
+            * ``"linewidth"``: Either single float in *[0,1]*, that determines the thickness of all plotted,
+              or a list of floats, matching the number of variables to plot.
+
+
 
         Notes
         -----
