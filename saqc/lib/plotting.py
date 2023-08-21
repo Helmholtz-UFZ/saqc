@@ -35,7 +35,7 @@ MARKER_COL_CYCLE = [
 ]
 
 # default color cycle for plot colors (many-in-one-plots)
-PLOT_COL_CYCLE = MARKER_COL_CYCLE  # itertools.cycle(MARKER_COL_CYCLE)
+PLOT_COL_CYCLE = [(0, 0, 0)] + MARKER_COL_CYCLE  # itertools.cycle(MARKER_COL_CYCLE)
 
 # default data plot configuration (color kwarg only effective for many-to-one-plots)
 PLOT_KWARGS = {"alpha": 0.8, "linewidth": 1, "color": PLOT_COL_CYCLE}
@@ -248,14 +248,15 @@ def makeFig(
         mode,
     )
 
+    # readability formattin fo the x-tick labels:
+    fig.autofmt_xdate()
     return fig
 
 
-def _instantiateKwargContext(
+def _instantiateAxesContext(
     plot_kwargs, scatter_kwargs, ax_kwargs, var_num, var_name, mode
 ):
     _scatter_mem = {}
-    _plot_kwargs = plot_kwargs.copy()
     _scatter_kwargs = scatter_kwargs.copy()
     _ax_kwargs = ax_kwargs.copy()
     _scatter_mem = {}
@@ -286,7 +287,6 @@ def _instantiateKwargContext(
     _ax_kwargs["title"] = var_name if title is None else title
 
     return (
-        _plot_kwargs,
         _scatter_kwargs,
         _ax_kwargs,
         _scatter_mem,
@@ -379,6 +379,26 @@ def _configMarkers(
     return flags_i, _scatter_kwargs, _scatter_mem, marker_shape_cycle, marker_col_cycle
 
 
+def _instantiatePlotContext(plot_kwargs, mode, var_name, var_num, plot_col_cycle):
+    _plot_kwargs = plot_kwargs.copy()
+    # get current plot color from plot color cycle
+    _plot_kwargs["color"] = next(plot_col_cycle)
+    # assign variable specific plot appearance
+    for plot_spec in ["alpha", "linewidth", "label"]:
+        spec = plot_kwargs.get(plot_spec, None)
+        if isinstance(spec, list):
+            _plot_kwargs[plot_spec] = spec[var_num]
+        elif isinstance(spec, dict):
+            _plot_kwargs[plot_spec] = spec.get(var_name, None)
+
+    if mode == "oneplot":
+        _plot_kwargs["label"] = _plot_kwargs.get("label", None) or var_name
+    # when plotting in subplots, plot black line and label it as 'data' (if not opted otherwise)
+    else:
+        _plot_kwargs["label"] = _plot_kwargs.get("label", None) or "data"
+    return _plot_kwargs
+
+
 def _plotVarWithFlags(
     axes,
     dat_dict,
@@ -410,25 +430,19 @@ def _plotVarWithFlags(
         # every time, axis target is fresh, reinstantiate the kwarg-contexts :
         if var_num == 0 or mode == "subplots":
             (
-                _plot_kwargs,
                 _scatter_kwargs,
                 _ax_kwargs,
                 _scatter_mem,
                 marker_col_cycle,
                 marker_shape_cycle,
-            ) = _instantiateKwargContext(
+            ) = _instantiateAxesContext(
                 plot_kwargs, scatter_kwargs, ax_kwargs, var_num, var_name, mode
             )
             ax.set(**_ax_kwargs)
 
-        # get current color from plot color cycle
-        _plot_kwargs["color"] = next(plot_col_cycle)
-        if mode == "oneplot":
-            _plot_kwargs["label"] = var_name
-        # when plotting in subplots, plot black line and label it as 'data' (if not opted otherwise)
-        else:
-            _plot_kwargs["label"] = _plot_kwargs.get("label", None) or "data"
-
+        _plot_kwargs = _instantiatePlotContext(
+            plot_kwargs, mode, var_name, var_num, plot_col_cycle
+        )
         # plot the data
         ax.plot(var_dat, **_plot_kwargs)
 
@@ -482,12 +496,14 @@ def _plotVarWithFlags(
                 _scatter_kwargs,
             )
 
-        _rmDupesFromLegend(ax, dat_dict)
-
+    _formatLegend(ax, dat_dict)
+    if mode == "subplots":
+        for ax in axes[1:]:
+            _formatLegend(ax, dat_dict)
     return
 
 
-def _rmDupesFromLegend(ax, dat_dict):
+def _formatLegend(ax, dat_dict):
     # the legend generated might contain dublucate entries, we remove those, since dubed entries are assigned all
     # the same marker color and shape:
     legend_h, legend_l = ax.get_legend_handles_labels()
@@ -503,7 +519,18 @@ def _rmDupesFromLegend(ax, dat_dict):
             legend_f.append((legend_h[l[0]], l[1]))
     leg_l = [l[1] for l in legend_v] + [l[1] for l in legend_f]
     leg_h = [l[0] for l in legend_v] + [l[0] for l in legend_f]
-    ax.legend(leg_h, leg_l)
+    # if more than one variable is plotted, list plot line and flag marker shapes in seperate
+    # legends
+    h_types = np.array([isinstance(h, mpl.lines.Line2D) for h in leg_h])
+    if sum(h_types) > 1:
+        lines_h = np.array(leg_h)[h_types]
+        lines_l = np.array(leg_l)[h_types]
+        flags_h = np.array(leg_h)[~h_types]
+        flags_l = np.array(leg_l)[~h_types]
+        ax.add_artist(plt.legend(flags_h, flags_l))
+        ax.legend(lines_h, lines_l)
+    else:
+        ax.legend(leg_h, leg_l)
     return
 
 

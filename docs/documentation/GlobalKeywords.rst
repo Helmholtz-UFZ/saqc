@@ -37,7 +37,6 @@ Example Data
    :context: close-figs
    :include-source: False
 
-   import matplotlib.pyplot as plt
    import pandas as pd
    import numpy as np
    import saqc
