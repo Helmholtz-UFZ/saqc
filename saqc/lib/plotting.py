@@ -497,9 +497,8 @@ def _plotVarWithFlags(
             )
 
     _formatLegend(ax, dat_dict)
-    if mode == "subplots":
-        for ax in axes[1:]:
-            _formatLegend(ax, dat_dict)
+    for axis in axes[:-1]:
+        _formatLegend(axis, dat_dict)
     return
 
 
@@ -507,18 +506,9 @@ def _formatLegend(ax, dat_dict):
     # the legend generated might contain dublucate entries, we remove those, since dubed entries are assigned all
     # the same marker color and shape:
     legend_h, legend_l = ax.get_legend_handles_labels()
-    legend_v = []
-    legend_f = []
-
-    for l in enumerate(legend_l):
-        if l[1] in [k[1] for k in legend_f]:
-            continue
-        if l[1] in dat_dict.keys():
-            legend_v.append((legend_h[l[0]], l[1]))
-        else:
-            legend_f.append((legend_h[l[0]], l[1]))
-    leg_l = [l[1] for l in legend_v] + [l[1] for l in legend_f]
-    leg_h = [l[0] for l in legend_v] + [l[0] for l in legend_f]
+    unique_idx = np.unique(legend_l, return_index=True)[1]
+    leg_h = [legend_h[idx] for idx in unique_idx]
+    leg_l = [legend_l[idx] for idx in unique_idx]
     # if more than one variable is plotted, list plot line and flag marker shapes in seperate
     # legends
     h_types = np.array([isinstance(h, mpl.lines.Line2D) for h in leg_h])
@@ -527,8 +517,12 @@ def _formatLegend(ax, dat_dict):
         lines_l = np.array(leg_l)[h_types]
         flags_h = np.array(leg_h)[~h_types]
         flags_l = np.array(leg_l)[~h_types]
-        ax.add_artist(plt.legend(flags_h, flags_l))
-        ax.legend(lines_h, lines_l)
+        ax.add_artist(
+            plt.legend(
+                flags_h, flags_l, loc="lower right", title="Flags", draggable=True
+            )
+        )
+        ax.legend(lines_h, lines_l, loc="upper right", title="Data", draggable=True)
     else:
         ax.legend(leg_h, leg_l)
     return
