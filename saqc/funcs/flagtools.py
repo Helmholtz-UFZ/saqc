@@ -93,7 +93,7 @@ class FlagtoolsMixin:
     def flagManual(
         self: "SaQC",
         field: str,
-        mdata: pd.Series | pd.DataFrame | DictOfSeries | list | np.ndarray,
+        mdata: str | pd.Series | np.ndarray | list | pd.DataFrame | DictOfSeries,
         method: Literal[
             "left-open", "right-open", "closed", "plain", "ontime"
         ] = "left-open",
@@ -103,61 +103,64 @@ class FlagtoolsMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flag data by given, "manually generated" data.
+        Include flags listed in external data.
 
-        The data is flagged at locations where `mdata` is equal to a provided
-        flag (`mflag`). The format of mdata can be an indexed object,
-        like pd.Series, pd.Dataframe or dios.DictOfSeries, but also can
-        be a plain list- or array-like. How indexed mdata is aligned to
-        data is specified via the `method` parameter.
+        The method allows to integrate pre-existing flagging information.
 
         Parameters
         ----------
         mdata :
-            The Data determining, wich intervals are to be flagged, or a
-            string, denoting under which field the data is
-            accessable.
+            Determines which values or intervals will be flagged. Supported input types:
 
+            * ``pd.Series``: Needs a datetime index and values of type:
+
+              - datetime, for :py:attr:`method` values ``"right-closed"``, ``"left-closed"``, ``"closed"``
+              - or any scalar, for :py:attr:`method` values ``"plain"``, ``"ontime"``
+
+            * ``str``: Variable holding the manual flag information.
+            * ``pd.DataFrame``, ``DictOfSeries``: Need to provide a ``pd.Series`` with column name
+              :py:attr:`field`.
+            * ``list``, ``np.ndarray``: Only supported with :py:attr:`method` value ``"plain"`` and
+              :py:attr:`mformat` value ``"mflag"``
         method :
-            Defines how mdata is projected on data. Except for the 'plain'
-            method, the methods assume mdata to have an index.
+            Defines how :py:attr:`mdata` is projected to data:
 
-            * 'plain': mdata must have the same length as data and is
-                projected one-to-one on data.
-            * 'ontime': works only with indexed mdata. mdata entries are
-                matched with data entries that have the same index.
-            * 'right-open': mdata defines intervals, values are to be
-                projected on. The intervals are defined,
-
-                (1) Either, by any two consecutive timestamps t_1 and 1_2
-                    where t_1 is valued with mflag, or by a series,
-                (2) Or, a Series, where the index contains in the t1 timestamps
-                    and the values the respective t2 stamps.
-
-                The value at t_1 gets projected onto all data timestamps t,
-                with t_1 <= t < t_2.
-
-            * 'left-open': like 'right-open', but the projected interval
-                now covers all t with t_1 < t <= t_2.
-            * 'closed': like 'right-open', but the projected interval
-                now covers all t with t_1 <= t <= t_2.
-
+            * ``"plain"``: :py:attr:`mdata` must have the same length as :py:attr:`field`, flags
+              are set, where the values in :py:attr:`mdata` equal :py:attr:`mflag`.
+            * ``"ontime"``: Expects datetime indexed :py:attr:`mdata` (types ``pd.Series``,
+              ``pd.DataFrame``, ``DictOfSeries``). Flags are set, where the values in
+              :py:attr:`mdata` equal :py:attr:`mflag` and the indices of :py:attr:`field` and
+              :py:attr:`mdata` match.
+            * ``"right-open"``: Expects datetime indexed :py:attr:`mdata`, which will be interpreted
+              as a number of time intervals ``t_1, t_2``. Flags are set to all timestamps ``t`` of
+              :py:attr:`field` with ``t_1 <= t < t_2``.
+            * ``"left-open"``: like ``"right-open"``, but the interval covers all ``t`` with
+              ``t_1 < t <= t_2``.
+            * ``"closed"``: like ``"right-open"``, but the interval now covers all ``t`` with
+              ``t_1 <= t <= t_2``.
         mformat :
+            Controls the interval definition in :py:attr:`mdata` (see examples):
 
-            * "start-end": mdata is a Series, where every entry indicates
-                an interval to-flag. The index defines the left bound,
-                the value defines the right bound.
-            * "mflag": mdata is an array like, with entries containing
-                'mflag',where flags shall be set. See documentation for
-                examples.
+            * ``"start-end"``: expects datetime indexed :py:attr:`mdata` (types ``pd.Series``,
+              ``pd.DataFrame``, ``DictOfSeries``) with values of type datetime. Each
+              index-value pair is interpreted as an interval to flag, the index defines the
+              left bound, the respective value the right bound.
+            * ``"mflag"``:
+
+              - :py:attr:`mdata` of type ``pd.Series``, ``pd.DataFrame``, ``DictOfSeries``:
+                Two successive index values ``i_1, i_2`` will be interpreted as an interval
+                ``t_1, t_2`` to flag, if the value of ``t_1`` equals :py:attr:`mflag`
+              - :py:attr:`mdata` of type ``list``, ``np.ndarray``: Flags all :py:attr:`field`
+                where :py:attr:`mdata` euqals :py:attr:`mflag`.
 
         mflag :
-            The flag that indicates data points in `mdata`, of wich the
-            projection in data should be flagged.
+            Value in :py:attr:`mdata` indicating that a flag should be set at the respective
+            position, timestamp or interval. Ignored if :py:attr:`mformat` is set to ``"start-end"``.
+
 
         Examples
         --------
-        An example for mdata
+        Usage of :py:attr:`mdata`
 
         .. doctest:: ExampleFlagManual
 
@@ -169,9 +172,8 @@ class FlagtoolsMixin:
            2000-05-01    1
            dtype: int64
 
-        On *dayly* data, with the 'ontime' method, only the provided timestamps
-        are used. Bear in mind that only exact timestamps apply, any offset
-        will result in ignoring the timestamp.
+        On *daily* data, with :py:attr:`method` ``"ontime"``, only the provided timestamps
+        are used. Only exact matches apply, offsets will be ignored.
 
         .. doctest:: ExampleFlagManual
 
@@ -186,7 +188,7 @@ class FlagtoolsMixin:
            2000-05-01     True
            dtype: bool
 
-        With the 'right-open' method, the mdata is forward fill:
+        With :py:attr:`method` ``"right-open"`` , :py:attr:`mdata` is forward filled:
 
         .. doctest:: ExampleFlagManual
 
@@ -199,7 +201,7 @@ class FlagtoolsMixin:
            2000-05-01     True
            dtype: bool
 
-        With the 'left-open' method, backward filling is used:
+        With :py:attr:`method` ``"left-open"`` , :py:attr:`mdata` is backward filled:
 
         .. doctest:: ExampleFlagManual
 
