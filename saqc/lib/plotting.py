@@ -176,6 +176,8 @@ def makeFig(
         ax_kwargs.pop("fontsize", None) or plt.rcParams["font.size"]
     )
 
+    plt.rcParams["figure.figsize"] = FIG_KWARGS["figsize"]
+
     # set default axis sharing behavior (share x axis over rows if not explicitly opted sharex=False):
     sharex = False
     if len(d) > 1:
