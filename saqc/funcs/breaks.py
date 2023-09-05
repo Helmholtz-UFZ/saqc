@@ -106,10 +106,10 @@ class BreaksMixin:
             return self
 
         gap_ends = dat.rolling(gap_window).count() == 1
-        gap_ends[0] = False
+        gap_ends.iloc[0] = False
         gap_ends = gap_ends[gap_ends]
         gap_starts = dat[::-1].rolling(gap_window).count()[::-1] == 1
-        gap_starts[-1] = False
+        gap_starts.iloc[-1] = False
         gap_starts = gap_starts[gap_starts]
         if gap_starts.empty:
             return self

@@ -23,11 +23,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
   `bool` instead of one of `[None, "linear"]`
 - in `plot` function: changed default color for single variables to `black` with `80% transparency`
 - in `plot` function: added seperate legend for flags
-- deprecated `flagStatLowPass` in favor of `flagScatterLowPass`
 
 ### Removed
 - removed deprecated `DictOfSeries.to_df`
 - removed plotting option with complete history (`history="complete"`)
+- Support for Python 3.8
 ### Fixed
 - Bug in `SaQC.assignChangePointCluster` and `SaQC.flagChangePoints`: A tuple passed
   to `min_period` was only recognised if also `window` was a tuple.
@@ -35,9 +35,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Deprecated
 - `SaQC.andGroup`: option to pass dictionaries to the parameter `group`.
 - `SaQC.orGroup`: option to pass dictionaries to the parameter `group`.
-- `plot`: parameter `phaseplot` in favor of usage with `mode="biplot"`
-- `plot`: parameter `cyclestart` in favor of usage with `marker_kwargs`
-- `plot`: option `"complete"` for parameter `history`
+- `SaQC.plot`: parameter `phaseplot` in favor of usage with `mode="biplot"`
+- `SaQC.plot`: parameter `cyclestart` in favor of usage with `marker_kwargs`
+- `SaQC.plot`: option `"complete"` for parameter `history`
+- `SaQC.flagStatLowPass` in favor of `SaQC.flagScatterLowpass`
+
 
 ## [2.4.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)

@@ -28,7 +28,7 @@ def data():
     index = index.drop(pd.Timestamp("2011-01-01 00:30:00"))
     dat = pd.Series(np.linspace(-50, 50, index.size), index=index)
     # good to have some nan
-    dat[-3] = np.nan
+    dat.iloc[-3] = np.nan
     data = DictOfSeries(data=dat)
     return data
 

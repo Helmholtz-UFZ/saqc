@@ -89,18 +89,6 @@ coverage:
         path: coverage.xml
 
 
-python38:
-  stage: test
-  image: python:3.8
-  script:
-    - pytest tests -Werror --junitxml=report.xml
-    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
-  artifacts:
-    when: always
-    reports:
-      junit: report.xml
-
-
 python39:
   stage: test
   image: python:3.9
@@ -149,17 +137,6 @@ doctest:
 # ===========================================================
 # check if we are able to build a wheel
 # and if the import works
-wheel38:
-  stage: build
-  image: python:3.8
-  variables:
-    PYPI_PKG_NAME: "saqc-dev"
-  script:
-    - pip install wheel
-    - pip wheel .
-    - pip install .
-    - python -c 'import saqc; print(f"{saqc.__version__=}")'
-
 wheel39:
   stage: build
   image: python:3.9

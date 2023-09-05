@@ -1136,7 +1136,7 @@ class OutliersMixin:
             if not ret.empty:
                 r = ret.idxmax()
                 chunk = dat[c[0] : r]
-                sgn = np.sign(chunk[1] - c[1])
+                sgn = np.sign(chunk.iloc[1] - c[1])
                 t_val = ((chunk[1:-1] - c[1]) * sgn > thresh).all()
                 r_val = True
                 if thresh_relative:
