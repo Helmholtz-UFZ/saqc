@@ -285,8 +285,8 @@ class InterpolationMixin:
         if "freq" in kwargs:
             # the old interpolate version
             warnings.warn(
-                f"The method `intepolate` is deprecated and will be removed "
-                f"in version 3.0 of saqc. To achieve the same behaviour "
+                f"The method `interpolate` is deprecated and will be removed "
+                f"in version 2.7 of saqc. To achieve the same behaviour "
                 f"please use: `qc.align(field={field}, freq={kwargs['freq']}, "
                 f"method={method}, order={order}, flag={flag})`",
                 DeprecationWarning,
@@ -533,7 +533,7 @@ class InterpolationMixin:
         """
         warnings.warn(
             "The method `intepolateInvalid` is deprecated and will be removed "
-            "with version 3.0 of saqc. To achieve the same behavior, please "
+            "with version 2.7 of saqc. To achieve the same behavior, please "
             f"use `qc.interpolate(field={field}, method={method}, order={order}, "
             f"limit={limit}, extrapolate={extrapolate}, flag={flag})`",
             DeprecationWarning,

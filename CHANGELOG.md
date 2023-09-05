@@ -5,44 +5,48 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 # Changelog
-
 ## Unreleased
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.5.0...develop)
 ### Added
-- add multivariate plotting options to `plot`
-- `plot_kwargs` keyword to `plot` function 
-- added checks and unified error message for common inputs.
-- added command line `--version` option
-- `-ll` CLI option as a shorthand for `--log-level`
-- basic json support for CLI config files, which are detected by `.json`-extension.
-- `--json-field` CLI option to use a non-root element of a json file.
-- `SaQC.transferFlags`: arguments `overwrite` and `squeeze`
-- String Selection Options for function selection in `flagScatterLowPass` 
 ### Changed
-- pin pandas to versions >= 2.0
-- parameter `fill_na` of `SaQC.flagUniLOF` and `SaQC.assignUniLOF` is now of type
-  `bool` instead of one of `[None, "linear"]`
-- in `plot` function: changed default color for single variables to `black` with `80% transparency`
-- in `plot` function: added seperate legend for flags
 ### Removed
-- removed deprecated `DictOfSeries.to_df`
-- removed plotting option with complete history (`history="complete"`)
+### Fixed
+
+## [2.5.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.1...v2.5.0)
+### Added
+- `SaQC.plot`:
+  - enable multivariate plots
+  - keyword `plot_kwargs` to pass matplotlib related arguments
+- CLI:
+  - `--version` to print the SaQC version
+  - `-ll` as a shorthand for `--log-level`
+  - `--json-field` to use a non-root element of a json file.
+  - basic json support for CLI config files, which are detected by `.json`-extension.
+- `SaQC.flagScatterLowpass`: option to select function based on string names.
+- Checks and unified error message for common function inputs.
+### Changed
+- Require pandas >= 2.0
+- `SaQC.flagUniLOF` and `SaQC.assignUniLOF`: changed parameter `fill_na` to type `bool`.
+- `SaQC.plot`:
+   - changed default color for single variables to `black` with `80% transparency`
+   - added seperate legend for flags
+### Removed
+- `SaQC.plot`: option to plot with complete history (`history="complete"`)
 - Support for Python 3.8
 ### Fixed
-- Bug in `SaQC.assignChangePointCluster` and `SaQC.flagChangePoints`: A tuple passed
-  to `min_period` was only recognised if also `window` was a tuple.
+- `SaQC.assignChangePointCluster` and `SaQC.flagChangePoints`: A tuple passed `min_period`
+   was only recognised if `window` was also a tuple.
 - `SaQC.propagateFlags` was overwriting existing flags
 ### Deprecated
-- `SaQC.andGroup`: option to pass dictionaries to the parameter `group`.
-- `SaQC.orGroup`: option to pass dictionaries to the parameter `group`.
-- `SaQC.plot`: parameter `phaseplot` in favor of usage with `mode="biplot"`
-- `SaQC.plot`: parameter `cyclestart` in favor of usage with `marker_kwargs`
-- `SaQC.plot`: option `"complete"` for parameter `history`
+- `SaQC.andGroup` and `SaQC.orGroup`: option to pass dictionaries to `group`.
+- `SaQC.plot`:
+  - `phaseplot` in favor of usage with `mode="biplot"`
+  - `cyclestart` in favor of usage with `marker_kwargs`
 - `SaQC.flagStatLowPass` in favor of `SaQC.flagScatterLowpass`
 
-
 ## [2.4.1](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...v.2.4.1)
 ### Added
 ### Changed
 - pin pandas to versions >= 2.0

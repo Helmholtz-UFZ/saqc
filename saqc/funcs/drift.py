@@ -145,7 +145,7 @@ class DriftMixin:
         if "freq" in kwargs:
             warnings.warn(
                 "The parameter `freq` is deprecated and will be "
-                "removed in version 3.0 of saqc. Please us the "
+                "removed in version 2.7 of saqc. Please us the "
                 "parameter `window` instead.'",
                 DeprecationWarning,
             )

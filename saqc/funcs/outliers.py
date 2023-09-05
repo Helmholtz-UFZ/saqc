@@ -646,8 +646,8 @@ class OutliersMixin:
         if "partition" in kwargs:
             warnings.warn(
                 """
-                The parameter `partition` is deprecated and will be removed in version 
-                3.0 of saqc. Please us the parameter `window` instead.
+                The parameter `partition` is deprecated and will be removed in version
+                2.7 of saqc. Please us the parameter `window` instead.
                 """,
                 DeprecationWarning,
             )
@@ -656,8 +656,8 @@ class OutliersMixin:
         if "partition_min" in kwargs:
             warnings.warn(
                 """
-                The parameter `partition_min` is deprecated and will be removed in 
-                version 3.0 of saqc. Please us the parameter `min_periods` instead.
+                The parameter `partition_min` is deprecated and will be removed in
+                version 2.7 of saqc. Please us the parameter `min_periods` instead.
                 """,
                 DeprecationWarning,
             )
@@ -666,14 +666,14 @@ class OutliersMixin:
         if min_periods != 11:
             warnings.warn(
                 """
-                You were setting a customary value for the `min_periods` parameter: 
-                note that this parameter does no longer refer to the reduction interval 
-                length, but now controls the number of periods having to be present in 
-                an interval of size `window` (deprecated:`partition`) for the algorithm 
+                You were setting a customary value for the `min_periods` parameter:
+                note that this parameter does no longer refer to the reduction interval
+                length, but now controls the number of periods having to be present in
+                an interval of size `window` (deprecated:`partition`) for the algorithm
                 to be performed in that interval.
-                To alter the size of the reduction window, use the parameter 
-                `min_periods_r`. Changes readily apply. 
-                This warning will be removed in saqc version 3.0.
+                To alter the size of the reduction window, use the parameter
+                `min_periods_r`. Changes readily apply.
+                This warning will be removed in saqc version 2.7.
                 """,
                 DeprecationWarning,
             )
@@ -931,7 +931,7 @@ class OutliersMixin:
         """
         warnings.warn(
             f"The method `flagMAD` is deprecated and will be removed in "
-            "version 3.0 of saqc. To achieve the same behavior use:"
+            "version 2.7 of saqc. To achieve the same behavior use:"
             f"`qc.flagZScore(field={field}, window={window}, method='modified', "
             f"thresh={z}, min_residuals={min_residuals}, min_periods={min_periods}, "
             f"center={center})`",
@@ -1327,7 +1327,7 @@ class OutliersMixin:
         )
         warnings.warn(
             f"The method `flagCrossStatistics` is deprecated and will "
-            f"be removed in verion 3.0 of saqc. To achieve the same behavior "
+            f"be removed in verion 2.7 of saqc. To achieve the same behavior "
             f"use:`{call}`",
             DeprecationWarning,
         )
