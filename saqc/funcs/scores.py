@@ -425,7 +425,7 @@ class ScoresMixin:
         n: int = 20,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: int = 1,
-        density: Literal["auto"] | float | Callable = "auto",
+        density: Literal["auto"] | float = "auto",
         fill_na: bool = True,
         **kwargs,
     ) -> "SaQC":
@@ -463,8 +463,6 @@ class ScoresMixin:
         density :
             How to calculate the temporal distance/density for the variable-to-be-flagged.
 
-            * `auto` - introduces linear density with an increment equal to the median of the absolute diff of the
-              variable to be flagged
             * float - introduces linear density with an increment equal to `density`
             * Callable - calculates the density by applying the function passed onto the variable to be flagged
               (passed as Series).

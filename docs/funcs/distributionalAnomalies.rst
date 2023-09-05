@@ -13,4 +13,4 @@ Change Points and Noise
 
    ~SaQC.flagChangePoints
    ~SaQC.assignChangePointCluster
-   ~SaQC.flagByStatLowPass
+   ~SaQC.flagByScatterLowpass
