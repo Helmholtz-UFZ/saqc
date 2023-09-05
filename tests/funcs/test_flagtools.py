@@ -4,6 +4,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import itertools
 import operator
 
 import numpy as np
@@ -14,6 +15,7 @@ from saqc import BAD as B
 from saqc import UNFLAGGED as U
 from saqc import SaQC
 from saqc.funcs.flagtools import _groupOperation
+from saqc.lib.tools import toSequence
 
 N = np.nan
 
@@ -140,64 +142,35 @@ def test_orGroup(left, right, expected):
 
 
 @pytest.mark.parametrize(
-    "left,right,expected",
+    "field, target, expected, copy",
     [
-        ([B, U, U, B], [B, B, U, U], [B, B, U, B]),
-        ([B, B, B, B], [B, B, B, B], [B, B, B, B]),
-        ([U, U, U, U], [U, U, U, U], [U, U, U, U]),
+        ("x", "a", [B, B, U, B], True),
+        (["y", "x"], "a", [B, B, U, B], False),
+        (["y", "x"], ["a", "b"], [B, B, U, B], True),
+        (["y", ["x", "y"]], "a", [B, B, B, B], False),
+        (["y", ["x", "y"]], ["c", ["a", "b"]], [B, B, B, B], True),
     ],
 )
-def test__groupOperationUnivariate(left, right, expected):
-    data = pd.DataFrame(
-        {"x": [0, 1, 2, 3], "y": [0, 11, 22, 33], "z": [0, 111, 222, 333]}
-    )
-    base = SaQC(data=data)
-    this = SaQC(
-        data=data, flags=pd.DataFrame({k: pd.Series(left) for k in data.columns})
+def test__groupOperation(field, target, expected, copy):
+    base = SaQC(
+        data=pd.DataFrame(
+            {"x": [0, 1, 2, 3], "y": [0, 11, 22, 33], "z": [0, 111, 222, 333]}
+        ),
+        flags=pd.DataFrame({"x": [B, U, U, B], "y": [B, B, U, U], "z": [B, B, U, B]}),
     )
     that = SaQC(
-        data=data, flags=pd.DataFrame({k: pd.Series(right) for k in data.columns})
+        data=pd.DataFrame({"x": [0, 1, 2, 3], "y": [0, 11, 22, 33]}),
+        flags=pd.DataFrame({"x": [U, B, U, B], "y": [U, U, B, U]}),
     )
     result = _groupOperation(
-        base=base, field="x", func=operator.or_, group={this: "y", that: ["y", "z"]}
+        saqc=base, field=field, target=target, func=operator.or_, group=[base, that]
     )
+    targets = toSequence(itertools.chain.from_iterable(target))
+    for t in targets:
+        assert pd.Series(expected).equals(result.flags[t])
 
-    assert pd.Series(expected).equals(result.flags["x"])
-
-
-@pytest.mark.parametrize(
-    "left,right,expected",
-    [
-        (pd.Series([B, U, U, B]), pd.Series([B, B, U, U]), pd.Series([B, B, U, B])),
-        (pd.Series([B, B, B, B]), pd.Series([B, B, B, B]), pd.Series([B, B, B, B])),
-        (pd.Series([U, U, U, U]), pd.Series([U, U, U, U]), pd.Series([U, U, U, U])),
-    ],
-)
-def test__groupOperationMultivariate(left, right, expected):
-    data = pd.DataFrame({"x": [0, 1, 2, 3], "y": [0, 11, 22, 33]})
-    flags = pd.DataFrame({"x": pd.Series(left), "y": pd.Series(right)})
-
-    qc = SaQC(data=data, flags=flags)
-
-    # multi fields, no target
-    result = _groupOperation(base=qc.copy(), field=["x", "y"], func=operator.or_)
-    for v in ["x", "y"]:
-        assert expected.equals(result.flags[v])
-
-    # multi fields, multi target
-    result = _groupOperation(
-        base=qc.copy(), target=["a", "b"], field=["x", "y"], func=operator.or_
-    )
-    for v in ["a", "b"]:
-        assert expected.equals(result.flags[v])
-    for v, e in zip(["x", "y"], [left, right]):
-        assert e.equals(result.flags[v])
-
-    # multi fields, single target
-    result = _groupOperation(
-        base=qc.copy(), target="a", field=["x", "y"], func=operator.or_
-    )
-    assert expected.equals(result.flags["a"])
-    assert result.data["a"].isna().all()
-    for v, e in zip(["x", "y"], [left, right]):
-        assert e.equals(result.flags[v])
+    # check source-target behavior
+    if copy:
+        fields = toSequence(itertools.chain.from_iterable(field))
+        for f, t in zip(fields, targets):
+            assert (result._data[f] == result._data[t]).all(axis=None)

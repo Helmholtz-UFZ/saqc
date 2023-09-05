@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import operator
 import warnings
-from typing import TYPE_CHECKING, Any, Callable, Sequence, Union
+from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ from typing_extensions import Literal
 from saqc import BAD, FILTER_ALL, UNFLAGGED
 from saqc.core import DictOfSeries, flagging, register
 from saqc.lib.checking import validateChoice, validateWindow
-from saqc.lib.tools import isflagged, isunflagged, toSequence
+from saqc.lib.tools import initializeTargets, isflagged, isunflagged, toSequence
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -484,9 +484,9 @@ class FlagtoolsMixin:
     )
     def andGroup(
         self: "SaQC",
-        field: str | list[str],
-        group: Sequence["SaQC"] | dict["SaQC", str | Sequence[str]] | None = None,
-        target: str | None = None,
+        field: str | list[str | list[str]],
+        group: Sequence["SaQC"] | None = None,
+        target: str | list[str | list[str]] | None = None,
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
@@ -496,15 +496,12 @@ class FlagtoolsMixin:
         Parameters
         ----------
         group:
-            A collection of ``SaQC`` objects to check for flags, defaults to the current object.
-
-            1. If given as a sequence of ``SaQC`` objects, all objects are checked for flags of a
-               variable named :py:attr:`field`.
-            2. If given as dictionary the keys are interpreted as ``SaQC`` objects and the corresponding
-               values as variables of the respective ``SaQC`` object to check for flags.
+            A collection of ``SaQC`` objects. Flag checks are performed on all ``SaQC`` objects
+            based on the variables specified in :py:attr:`field`. Whenever all monitored variables
+            are flagged, the associated timestamps will receive a flag.
         """
         return _groupOperation(
-            base=self,
+            saqc=self,
             field=field,
             target=target,
             func=operator.and_,
@@ -522,9 +519,9 @@ class FlagtoolsMixin:
     )
     def orGroup(
         self: "SaQC",
-        field: str | list[str],
-        group: Sequence["SaQC"] | dict["SaQC", str | Sequence[str]] | None = None,
-        target: str | None = None,
+        field: str | list[str | list[str]],
+        group: Sequence["SaQC"] | None = None,
+        target: str | list[str | list[str]] | None = None,
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
@@ -534,15 +531,12 @@ class FlagtoolsMixin:
         Parameters
         ----------
         group:
-            A collection of ``SaQC`` objects to check for flags, defaults to the current object.
-
-            1. If given as a sequence of ``SaQC`` objects, all objects are checked for flags of a
-               variable named :py:attr:`field`.
-            2. If given as dictionary the keys are interpreted as ``SaQC`` objects and the corresponding
-               values as variables of the respective ``SaQC`` object to check for flags.
+            A collection of ``SaQC`` objects. Flag checks are performed on all ``SaQC`` objects
+            based on the variables specified in :py:attr:`field`. Whenever any of monitored variables
+            is flagged, the associated timestamps will receive a flag.
         """
         return _groupOperation(
-            base=self,
+            saqc=self,
             field=field,
             target=target,
             func=operator.or_,
@@ -553,57 +547,101 @@ class FlagtoolsMixin:
 
 
 def _groupOperation(
-    base: "SaQC",
-    field: str | list[str],
+    saqc: "SaQC",
+    field: str | Sequence[str | Sequence[str]],
     func: Callable[[pd.Series, pd.Series], pd.Series],
-    group: Sequence["SaQC"] | dict["SaQC", str | Sequence[str]] | None = None,
-    target: str | list[str] | None = None,
+    group: Sequence["SaQC"] | None = None,
+    target: str | Sequence[str | Sequence[str]] | None = None,
     flag: float = BAD,
     **kwargs,
 ) -> "SaQC":
+    """
+    Perform a group operation on a collection of ``SaQC`` objects.
+
+    This function applies a specified function to perform a group operation on a collection
+    of `SaQC` objects. The operation involves checking specified :py:attr:`field` for flags,
+    and if satisfied, assigning a flag value to corresponding timestamps.
+
+    Parameters
+    ----------
+    saqc :
+        The main `SaQC` object on which the output flags will be set.
+    field :
+        The field(s) to be checked for flags for all mebers of :py:attr:`group`.
+    func :
+        The function used to combine flags across the specified :py:attr:`field`
+        and :py:attr:`group`.
+    group :
+        A sequence of ``SaQC`` objects forming the group for the group operation.
+        If not provided, the operation is performed on the main ``SaQC`` object.
+
+    Raises
+    ------
+    ValueError
+        If input lengths or conditions are invalid.
+
+    Notes
+    -----
+    - The `func` parameter should be a function that takes two boolean ``pd.Series`` objects,
+      representing information on existing flags, and return a boolean ``pd.Series`` that
+      representing the result od the elementwise logical combination of both.
+    """
+
+    def _flatten(seq: Sequence[str | Sequence[str]]) -> list[str]:
+        out = []
+        for e in seq:
+            if isinstance(e, str):
+                out.append(e)
+            else:  # Sequence[str]
+                out.extend(e)
+        return out
+
     if target is None:
         target = field
-    field, target = toSequence(field), toSequence(target)
 
-    if len(target) != 1 and len(target) != len(field):
-        raise ValueError(
-            "'target' needs to be a string or a sequence of the same length as 'field'"
+    if isinstance(group, dict):
+        warnings.warn(
+            "The option to pass dictionaries to 'group' is deprecated and will be removed in version 2.7",
+            DeprecationWarning,
         )
+        group = list(group.keys())
+        fields = list(group.values())
 
-    # harmonise `group` to type dict[SaQC, list[str]]
-    if group is None:
-        group = {base: field}
-    if not isinstance(group, dict):
-        group = {base if isinstance(qc, str) else qc: field for qc in group}
-    for k, v in group.items():
-        group[k] = toSequence(v)
+    fields = toSequence(field)
+    targets = toSequence(target)
+
+    if group is None or not group:
+        group = [saqc]
+
+    fields_ = fields[:]
+    if len(fields_) == 1:
+        # to simplify the retrieval from all groups...
+        fields_ = fields * len(group)
+
+    if len(fields_) != len(group):
+        raise ValueError(
+            "'field' needs to be a string or a sequence of the same length as 'group'"
+        )
 
     # generate mask
     mask = pd.Series(dtype=bool)
     dfilter = kwargs.get("dfilter", FILTER_ALL)
-    for qc, fields in group.items():
-        if set(field) - qc._flags.keys():
+    for qc, flds in zip(group, fields_):
+        if set(flds := toSequence(flds)) - qc._flags.keys():
             raise KeyError(
-                f"one or more variable(s) in {field} are missing in given SaQC object"
+                f"Failed to find one or more of the given variable(s), got {field}"
             )
-        for f in fields:
+        for f in flds:
             flagged = isflagged(qc._flags[f], thresh=dfilter)
             if mask.empty:
                 mask = flagged
             mask = func(mask, flagged)
 
-    # initialize target(s)
-    if len(target) == 1:
-        if target[0] not in base._data:
-            base._data[target[0]] = pd.Series(np.nan, index=mask.index, name=target[0])
-            base._flags[target[0]] = pd.Series(np.nan, index=mask.index, name=target[0])
-    else:
-        for f, t in zip(field, target):
-            if t not in base._data:
-                base = base.copyField(field=f, target=t)
+    targets = _flatten(targets)
+    saqc = initializeTargets(saqc, _flatten(fields), targets, mask.index)
 
     # write flags
-    for t in target:
-        base._flags[mask, t] = flag
+    for t in targets:
+        saqc._flags[mask, t] = flag
 
-    return base
+    return saqc
