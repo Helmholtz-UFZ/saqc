@@ -288,11 +288,22 @@ class ResamplingMixin:
             Remove :py:attr:`field` if ``True``
 
         squeeze :
-            Squueze the history into a single column if ``True``. Function specific flag information is lost.
+            Squeeze the history into a single column if ``True``, function specific flag information is lost.
 
         overwrite :
             Overwrite existing flags if ``True``
         """
+        if method == "match":
+            warnings.warn(
+                f"The method 'match' is deprecated and will be removed "
+                f"in version 2.8 of SaQC. Please use `SaQC.transferFlags(field={field}, "
+                f"target={target}, squeeze={squeeze}, overwrite={overwrite})` instead",
+                DeprecationWarning,
+            )
+            return self.transferFlags(
+                field=field, target=target, squeeze=squeeze, overwrite=overwrite
+            )
+
         validateChoice(
             method,
             "method",
@@ -372,10 +383,6 @@ class ResamplingMixin:
                 target=dummy,
             )
             func_kws = {**kws, "fill_value": np.nan}
-
-        elif method == "match":
-            func = lambda x: x
-            func_kws = {}
 
         else:
             raise ValueError(f"unknown method {method}")

@@ -10,12 +10,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.0...develop)
 ### Added
 - add multivariate plotting options to `plot`
-- added `plot_kwargs` keyword to `plot` function
+- `plot_kwargs` keyword to `plot` function 
 - added checks and unified error message for common inputs.
 - added command line `--version` option
 - `-ll` CLI option as a shorthand for `--log-level`
 - basic json support for CLI config files, which are detected by `.json`-extension.
 - `--json-field` CLI option to use a non-root element of a json file.
+- `SaQC.transferFlags`: arguments `overwrite` and `squeeze`
 - String Selection Options for function selection in `flagScatterLowPass` 
 ### Changed
 - pin pandas to versions >= 2.0
@@ -23,7 +24,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
   `bool` instead of one of `[None, "linear"]`
 - in `plot` function: changed default color for single variables to `black` with `80% transparency`
 - in `plot` function: added seperate legend for flags
-
 ### Removed
 - removed deprecated `DictOfSeries.to_df`
 - removed plotting option with complete history (`history="complete"`)

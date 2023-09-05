@@ -11,42 +11,25 @@ import pandas as pd
 import pytest
 
 from saqc import SaQC
-from saqc.core import DictOfSeries, initFlagsLike
+from saqc.core import initFlagsLike
 from tests.common import checkInvariants
+from tests.fixtures import data
 
 
-@pytest.fixture
-def data():
-    index = pd.date_range(
-        start="1.1.2011 00:00:00", end="1.1.2011 01:00:00", freq="15min"
-    )
-    index = index.insert(2, pd.Timestamp(2011, 1, 1, 0, 29, 0))
-    index = index.insert(2, pd.Timestamp(2011, 1, 1, 0, 28, 0))
-    index = index.insert(5, pd.Timestamp(2011, 1, 1, 0, 32, 0))
-    index = index.insert(5, pd.Timestamp(2011, 1, 1, 0, 31, 0))
-    index = index.insert(0, pd.Timestamp(2010, 12, 31, 23, 57, 0))
-    index = index.drop(pd.Timestamp("2011-01-01 00:30:00"))
-    dat = pd.Series(np.linspace(-50, 50, index.size), index=index)
-    # good to have some nan
-    dat.iloc[-3] = np.nan
-    data = DictOfSeries(data=dat)
-    return data
-
-
-def test_flagsSurviveReshaping():
+def _test_flagsSurviveReshaping():
     """
     flagging -> reshaping -> test (flags also was reshaped correctly)
     """
     pass
 
 
-def test_flagsSurviveInverseReshaping():
+def _test_flagsSurviveInverseReshaping():
     """
     inverse reshaping -> flagging -> test (flags also was reshaped correctly)"""
     pass
 
 
-def test_flagsSurviveBackprojection():
+def _test_flagsSurviveBackprojection():
     """
     flagging -> reshaping -> inverse reshaping -> test (flags == original-flags)
     """
@@ -268,40 +251,6 @@ def test_alignShiftInvert(data, method, freq, expected):
     assert qc.data[field].equals(pre_data[field])
     assert qc.flags[field].equals(pre_flags[field])
     checkInvariants(qc._data, qc._flags, field, identical=True)
-
-
-@pytest.mark.parametrize(
-    "overwrite, expected_col0, expected_col1",
-    [
-        (
-            True,
-            [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 255, 255],
-            [np.nan, np.nan, np.nan, np.nan, np.nan, 255, np.nan, 255, 255],
-        ),
-        (
-            False,
-            [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 255, 255],
-            [np.nan, np.nan, np.nan, np.nan, np.nan, 255, np.nan, np.nan, np.nan],
-        ),
-    ],
-)
-def test_concatFlags(data, overwrite, expected_col0, expected_col1):
-    qc = SaQC(data)
-
-    qc = qc.flagRange(field="data", max=20)
-
-    # branch out to another variable
-    qc = qc.flagRange(field="data", target="data_", max=3)
-
-    # bring the flags back again - overwrite
-    qc_concat = qc.concatFlags(
-        "data_", target="data", overwrite=overwrite, squeeze=True
-    )
-    hist_concat = qc_concat._flags.history["data"].hist.astype(float)
-    meta_concat = qc_concat._flags.history["data"].meta
-    assert hist_concat[0].equals(pd.Series(expected_col0, index=data["data"].index))
-    assert hist_concat[1].equals(pd.Series(expected_col1, index=data["data"].index))
-    assert meta_concat[-1]["func"] == "concatFlags"
 
 
 @pytest.mark.parametrize(

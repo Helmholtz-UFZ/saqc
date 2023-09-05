@@ -16,6 +16,7 @@ from saqc import UNFLAGGED as U
 from saqc import SaQC
 from saqc.funcs.flagtools import _groupOperation
 from saqc.lib.tools import toSequence
+from tests.fixtures import data
 
 N = np.nan
 
