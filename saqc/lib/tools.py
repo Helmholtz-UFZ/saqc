@@ -28,6 +28,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_scalar
 from scipy import fft
 from scipy.cluster.hierarchy import fcluster, linkage
 
@@ -355,6 +356,8 @@ def detectDeviants(
         d_i = data[data.columns[i]]
         d_j = data[data.columns[j]]
         dist = metric(d_i.values, d_j.values)
+        if not is_scalar(dist):
+            dist = dist[0]
         dist_mat[i, j] = dist
 
     condensed = np.abs(dist_mat[tuple(zip(*combs))])

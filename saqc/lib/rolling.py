@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import functools
 import math
 from typing import Literal
 
@@ -190,6 +189,7 @@ def removeRollingRamps(
     if data.empty:
         return data
 
+    data = data.astype(float)  # to allow nan
     if isinstance(window, int):
         window = max(window - 1, 0)
         if center:

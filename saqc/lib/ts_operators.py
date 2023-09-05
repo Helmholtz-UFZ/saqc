@@ -296,6 +296,13 @@ def _interpolWrapper(
     if (x.size < 3) | (x.count() < min_vals):
         return x
     else:
+        if method == "fill" or (method == "pad" and limit_direction == "forward"):
+            return x.ffill()
+        if method == "bfill" or (method == "pad" and limit_direction == "backward"):
+            return x.bfill()
+        if method == "pad" and limit_direction is None:
+            return x.ffill()
+
         return x.interpolate(
             method=method,
             order=order,
@@ -539,7 +546,7 @@ def butterFilter(
         cutoff = getFreqDelta(x.index) / pd.Timedelta(cutoff)
 
     na_mask = x.isna()
-    x = x.interpolate(fill_method).interpolate("ffill").interpolate("bfill")
+    x = x.interpolate(fill_method).ffill().bfill()
     b, a = butter(N=filter_order, Wn=cutoff / nyq, btype=filter_type)
     if x.shape[0] < 3 * max(len(a), len(b)):
         return pd.Series(np.nan, x.index, name=x.name)

@@ -261,7 +261,7 @@ class FlagtoolsMixin:
             pass
         elif method in ["left-open", "right-open", "closed"]:
             mdata = mdata.drop(mdata.index[mdata.diff() == 0])
-            app_entry = pd.Series(mdata[-1], dat.index.shift(freq="1min")[-1:])
+            app_entry = pd.Series(mdata.iloc[-1], dat.index.shift(freq="1min")[-1:])
             mdata = mdata.reindex(dat.index.union(mdata.index))
 
             if method == "right-open":

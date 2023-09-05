@@ -169,7 +169,7 @@ def test_dmpTranslatorIntegration():
     flags = saqc.flags
 
     qflags = flags.xs("quality_flag", axis="columns", level=1)
-    qfunc = flags.xs("quality_comment", axis="columns", level=1).applymap(
+    qfunc = flags.xs("quality_comment", axis="columns", level=1).map(
         lambda v: json.loads(v)["test"] if v else ""
     )
     qcause = flags.xs("quality_cause", axis="columns", level=1)

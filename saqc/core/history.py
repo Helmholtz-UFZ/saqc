@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_categorical_dtype, is_float_dtype
+from pandas.api.types import is_float_dtype
 
 from saqc import UNFLAGGED
 
@@ -526,7 +526,9 @@ class History:
             raise TypeError(
                 f"value must be of type pd.Series, got type {type(obj).__name__}"
             )
-        if not is_float_dtype(obj.dtype) and not is_categorical_dtype(obj.dtype):
+        if not is_float_dtype(obj.dtype) and not isinstance(
+            obj.dtype, pd.CategoricalDtype
+        ):
             raise ValueError("dtype must be float or categorical")
         return obj
 

@@ -36,7 +36,7 @@ def test_flagMad(spiky_data):
         field, window="1H", method="modified", thresh=3.5, flag=BAD
     )
     flag_result = qc.flags[field]
-    test_sum = (flag_result[spiky_data[1]] == BAD).sum()
+    test_sum = (flag_result.iloc[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])
 
 
@@ -48,7 +48,7 @@ def test_flagSpikesBasic(spiky_data):
         field, thresh=60, tolerance=10, window="20min", flag=BAD
     )
     flag_result = qc.flags[field]
-    test_sum = (flag_result[spiky_data[1]] == BAD).sum()
+    test_sum = (flag_result.iloc[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])
 
 
@@ -219,7 +219,7 @@ def test_flagUniLOF(spiky_data, n, p, thresh):
     field, *_ = data.columns
     qc = SaQC(data).flagUniLOF(field, n=n, p=p, thresh=thresh)
     flag_result = qc.flags[field]
-    test_sum = (flag_result[spiky_data[1]] == BAD).sum()
+    test_sum = (flag_result.iloc[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])
 
 
@@ -233,5 +233,5 @@ def test_flagLOF(spiky_data, vars, p, thresh):
     field, *_ = data.columns
     qc = SaQC(data).flagLOF(field)
     flag_result = qc.flags[field]
-    test_sum = (flag_result[spiky_data[1]] == BAD).sum()
+    test_sum = (flag_result.iloc[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])

@@ -297,7 +297,7 @@ def test_flagJumps():
     )
     qc = SaQC(data=data)
     qc = qc.flagJumps(field="a", thresh=1, window="2D")
-    assert qc.flags["a"][5] == BAD
+    assert qc.flags["a"].iloc[5] == BAD
     assert np.all(qc.flags["a"].values[:5] == UNFLAGGED) & np.all(
         qc.flags["a"].values[6:] == UNFLAGGED
     )
