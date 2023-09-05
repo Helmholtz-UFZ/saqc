@@ -14,36 +14,38 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 #  SaQC: System for automated Quality Control
 
-Anomalies and errors are the rule not the exception when working with 
-time series data. This is especially true, if such data originates
-from in-situ measurements of environmental properties. 
-Almost all applications, however, implicily rely on data, that complies
-with some definition of 'correct'. 
-In order to infer reliable data products and tools, there is no alternative
-to quality control. SaQC provides all the building blocks to comfortably
-bridge the gap between 'usually faulty' and 'expected to be corrected' in 
-a accessible, consistent, objective and reproducible way.
+`SaQC` is a tool/framework/application to quality control time series data.
+It provides
+a growing collection of algorithms and methods to analyze, annotate and
+process timeseries data. It supports the end to end enrichment of metadata
+and provides various user interfaces: 1) a Python API, 2) a command line interface
+with a text based configuration system and a
+[web based user interface](https://webapp.ufz.de/saqc-config-app/)
+
+`SaQC` is designed with a particular focus on the needs of active data professionals,
+including sensor hardware-oriented engineers, domain experts, and data scientists,
+all of whom can benefit from its capabilities to improve the quality standards of given data products.
 
 For a (continously improving) overview of features, typical usage patterns,
-the specific system components and how to customize `SaQC` to your specific
+the specific system components and how to customize `SaQC` to your own
 needs, please refer to our
 [online documentation](https://rdm-software.pages.ufz.de/saqc/index.html).
 
 
 ## Installation
 
-SaQC is available on the Python Package Index ([PyPI](https://pypi.org/)) and
+`SaQC` is available on the Python Package Index ([PyPI](https://pypi.org/)) and
 can be installed using [pip](https://pip.pypa.io/en/stable/):
 ```sh
 python -m pip install saqc
 ```
-For a more detailed installion guide, see the [installation guide](https://rdm-software.pages.ufz.de/saqc/gettingstarted/InstallationGuide.html).
-
-Additionally SaQC is available via conda and can be installed with:
+Additionally `SaQC` is available via conda and can be installed with:
 
 ```sh
-conda create -c conda-forge -n saqc saqc 
+conda create -c conda-forge -n saqc saqc
 ```
+
+For more details, see the [installation guide](https://rdm-software.pages.ufz.de/saqc/gettingstarted/InstallationGuide.html).
 
 
 ## Usage
@@ -109,20 +111,17 @@ qc = (qc
       .flagGeneric(field=["SM1", "SM2"], target="Dummy", func=lambda x, y: (isflagged(x) | isflagged(y))))
 ```
 
-A more detailed description of the Python API is available in the 
+A more detailed description of the Python API is available in the
 [respective section](https://rdm-software.pages.ufz.de/saqc/gettingstarted/TutorialAPI.html)
 of the documentation.
-
-## Changelog
-All notable changes to this project will be documented in [CHANGELOG.md](CHANGELOG.md).
 
 ## Get involved
 
 ### Contributing
-You found a bug or you want to suggest some cool features? Please refer to our [contributing guidelines](CONTRIBUTING.md) to see how you can contribute to SaQC.
+You found a bug or you want to suggest new features? Please refer to our [contributing guidelines](CONTRIBUTING.md) to see how you can contribute to SaQC.
 
 ### User support
-If you need help or have a question, you can use the SaQC user support mailing list: [saqc-support@ufz.de](mailto:saqc-support@ufz.de)
+If you need help or have questions, send us an email to [saqc-support@ufz.de](mailto:saqc-support@ufz.de)
 
 ## Copyright and License
 Copyright(c) 2021, [Helmholtz-Zentrum für Umweltforschung GmbH -- UFZ](https://www.ufz.de). All rights reserved.
@@ -132,16 +131,17 @@ Copyright(c) 2021, [Helmholtz-Zentrum für Umweltforschung GmbH -- UFZ](https://
 
 For full details, see [LICENSE](LICENSE.md).
 
-## Acknowledgements
-...
-
 ## Publications
-coming soon...
+> Lennart Schmidt, David Schäfer, Juliane Geller, Peter Lünenschloss, Bert Palm, Karsten Rinke, Corinna Rebmann, Michael Rode, Jan Bumberger, System for automated Quality Control (SaQC) to enable traceable and reproducible data streams in environmental science, Environmental Modelling & Software, 2023, 105809, ISSN 1364-8152, https://doi.org/10.1016/j.envsoft.2023.105809. (https://www.sciencedirect.com/science/article/pii/S1364815223001950)
 
 ## How to cite SaQC
 If SaQC is advancing your research, please cite as:
 
 > Schäfer, David, Palm, Bert, Lünenschloß, Peter, Schmidt, Lennart, & Bumberger, Jan. (2023). System for automated Quality Control - SaQC (2.3.0). Zenodo. https://doi.org/10.5281/zenodo.5888547
+
+or
+
+> Lennart Schmidt, David Schäfer, Juliane Geller, Peter Lünenschloss, Bert Palm, Karsten Rinke, Corinna Rebmann, Michael Rode, Jan Bumberger, System for automated Quality Control (SaQC) to enable traceable and reproducible data streams in environmental science, Environmental Modelling & Software, 2023, 105809, ISSN 1364-8152, https://doi.org/10.1016/j.envsoft.2023.105809. (https://www.sciencedirect.com/science/article/pii/S1364815223001950)
 
 -----------------
 
