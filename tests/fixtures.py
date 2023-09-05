@@ -14,6 +14,24 @@ from saqc.core import DictOfSeries
 
 
 @pytest.fixture
+def data():
+    index = pd.date_range(
+        start="1.1.2011 00:00:00", end="1.1.2011 01:00:00", freq="15min"
+    )
+    index = index.insert(2, pd.Timestamp(2011, 1, 1, 0, 29, 0))
+    index = index.insert(2, pd.Timestamp(2011, 1, 1, 0, 28, 0))
+    index = index.insert(5, pd.Timestamp(2011, 1, 1, 0, 32, 0))
+    index = index.insert(5, pd.Timestamp(2011, 1, 1, 0, 31, 0))
+    index = index.insert(0, pd.Timestamp(2010, 12, 31, 23, 57, 0))
+    index = index.drop(pd.Timestamp("2011-01-01 00:30:00"))
+    dat = pd.Series(np.linspace(-50, 50, index.size), index=index)
+    # good to have some nan
+    dat.iloc[-3] = np.nan
+    data = DictOfSeries(data=dat)
+    return data
+
+
+@pytest.fixture
 def char_dict():
     return {
         "raise": pd.DatetimeIndex([]),

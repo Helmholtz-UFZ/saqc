@@ -17,6 +17,7 @@ from typing_extensions import Literal
 
 from saqc import BAD, FILTER_ALL, UNFLAGGED
 from saqc.core import DictOfSeries, flagging, register
+from saqc.core.history import History
 from saqc.lib.checking import validateChoice, validateWindow
 from saqc.lib.tools import initializeTargets, isflagged, isunflagged, toSequence
 
@@ -287,20 +288,25 @@ class FlagtoolsMixin:
     @register(
         mask=[],
         demask=[],
-        squeeze=["target"],
+        squeeze=[],
         handles_target=True,  # function defines a target parameter, so it needs to handle it
     )
     def transferFlags(
         self: "SaQC",
         field: str,
-        target: str,
+        target: str | None = None,
+        squeeze: bool = False,
+        overwrite: bool = False,
         **kwargs,
     ) -> "SaQC":
         """
         Transfer Flags of one variable to another.
 
-        .. deprecated:: 2.4.0
-           Use :py:meth:`~saqc.SaQC.concatFlags` with ``method="match"`` and ``squeeze=False`` instead.
+        squeeze :
+            Squeeze the history into a single column if ``True``, function specific flag information is lost.
+
+        overwrite :
+            Overwrite existing flags if ``True``.
 
         See Also
         --------
@@ -332,32 +338,50 @@ class FlagtoolsMixin:
            0   -inf   -inf -inf
            1  255.0  255.0 -inf
 
-        You can skip the explicit target parameter designation:
-
-        .. doctest:: exampleTransfer
-
-           >>> qc = qc.transferFlags('a', 'b')
-
         To project the flags of `a` to both the variables `b` and `c`
         in one call, align the field and target variables in 2 lists:
 
         .. doctest:: exampleTransfer
 
-           >>> qc = qc.transferFlags(['a','a'], ['b', 'c'])
+           >>> qc = qc.transferFlags(['a','a'], ['b', 'c'], overwrite=True)
            >>> qc.flags.to_pandas()
                   a      b      c
            0   -inf   -inf   -inf
            1  255.0  255.0  255.0
         """
-        import warnings
+        history = self._flags.history[field]
 
-        warnings.warn(
-            f"The method 'transferFlags' is deprecated and will be removed "
-            f"in version 2.5 of SaQC. Please use `SaQC.concatFlags(field={field}, "
-            f"target={target}, method='match', squeeze=False)` instead",
-            DeprecationWarning,
-        )
-        return self.concatFlags(field, target=target, method="match", squeeze=False)
+        if target is None:
+            target = field
+
+        if overwrite is False:
+            mask = isflagged(self._flags[target], thresh=kwargs["dfilter"])
+            history._hist[mask] = np.nan
+
+        # append a dummy column
+        meta = {
+            "func": f"transferFlags",
+            "args": (),
+            "kwargs": {
+                "field": field,
+                "target": target,
+                "squeeze": squeeze,
+                "overwrite": overwrite,
+                **kwargs,
+            },
+        }
+
+        if squeeze:
+            flags = history.squeeze(raw=True)
+            # init an empty history to which we later append the squeezed flags
+            history = History(index=history.index)
+        else:
+            flags = pd.Series(np.nan, index=history.index, dtype=float)
+
+        history.append(flags, meta)
+        self._flags.history[target].append(history)
+
+        return self
 
     @flagging()
     def propagateFlags(

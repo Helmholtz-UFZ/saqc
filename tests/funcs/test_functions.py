@@ -52,7 +52,7 @@ def test_flagRange(data, field):
     assert all(flagged == expected)
 
 
-def test_flagSesonalRange(data, field):
+def test_flagSeasonalRange(data, field):
     data[field].iloc[::2] = 0
     data[field].iloc[1::2] = 50
     nyears = len(data[field].index.year.unique())
@@ -99,9 +99,7 @@ def test_flagSesonalRange(data, field):
             flag=BAD,
         )
         qc = qc.flagRange(newfield, min=test["min"], max=test["max"], flag=BAD)
-        qc = qc.concatFlags(
-            newfield, method="match", target=field, flag=BAD, overwrite=True
-        )
+        qc = qc.transferFlags(newfield, target=field, flag=BAD, overwrite=True)
         qc = qc.dropField(newfield)
         flagged = qc._flags[field] > UNFLAGGED
         assert flagged.sum() == expected
@@ -278,16 +276,6 @@ def test_flagDriftFromReference(dat):
         flag=BAD,
     )
     assert all(qc._flags["field3"] > UNFLAGGED)
-
-
-def test_transferFlags():
-    data = pd.DataFrame({"a": [1, 2], "b": [1, 2], "c": [1, 2]})
-    qc = saqc.SaQC(data)
-    qc = qc.flagRange("a", max=1.5)
-    with pytest.deprecated_call():
-        qc = qc.transferFlags(["a", "a"], ["b", "c"])  # noqa
-        assert np.all(qc.flags["b"].values == np.array([UNFLAGGED, BAD]))
-        assert np.all(qc.flags["c"].values == np.array([UNFLAGGED, BAD]))
 
 
 def test_flagJumps():
