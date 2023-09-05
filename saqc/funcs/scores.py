@@ -487,8 +487,13 @@ class ScoresMixin:
         OutliersMixin._validateLOF(algorithm, n, p, density)
 
         vals = self._data[field]
+
         if fill_na:
+            filled = vals.isna()
             vals = vals.interpolate("linear")
+            filled = filled & vals.notna()
+        else:
+            filled = pd.Series(False, index=vals.index)
 
         if density == "auto":
             density = vals.diff().abs().median()
@@ -525,5 +530,6 @@ class ScoresMixin:
         scores = scores[n:-n]
         score_ser = pd.Series(scores, index=na_bool_ser.index[~na_bool_ser.values])
         score_ser = score_ser.reindex(na_bool_ser.index)
+        score_ser[filled] = np.nan
         self._data[field] = score_ser
         return self
