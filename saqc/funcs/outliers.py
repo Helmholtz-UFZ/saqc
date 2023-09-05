@@ -179,7 +179,7 @@ class OutliersMixin:
         thresh: Literal["auto"] | float = 1.5,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: int = 1,
-        density: Literal["auto"] | float | Callable = "auto",
+        density: Literal["auto"] | float = "auto",
         fill_na: bool = True,
         flag: float = BAD,
         **kwargs,
@@ -245,8 +245,6 @@ class OutliersMixin:
               equal to the median of the absolute diff of the variable to flag.
             * ``float`` - introduces linear density with an increment
               equal to :py:attr:`density`
-            * Callable - calculates the density by applying the function
-              passed onto the variable to flag (passed as Series).
 
         fill_na :
             If True, NaNs in the data are filled with a linear interpolation.

@@ -16,12 +16,14 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `-ll` CLI option as a shorthand for `--log-level`
 - basic json support for CLI config files, which are detected by `.json`-extension.
 - `--json-field` CLI option to use a non-root element of a json file.
+- String Selection Options for function selection in `flagScatterLowPass` 
 ### Changed
 - pin pandas to versions >= 2.0
 - parameter `fill_na` of `SaQC.flagUniLOF` and `SaQC.assignUniLOF` is now of type 
   `bool` instead of one of `[None, "linear"]`
 - in `plot` function: changed default color for single variables to `black` with `80% transparency`
 - in `plot` function: added seperate legend for flags
+- deprecated `flagStatLowPass` in favor of `flagScatterLowPass`
 
 ### Removed
 - removed deprecated `DictOfSeries.to_df`
@@ -63,7 +65,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `func` arguments in text configurations were not parsed correctly
 - fail on duplicated arguments to test methods
 - `reample` was not writing meta entries
-- `flagByStatLowPass` was overwriting existing flags
+- `flagByScatterLowpass` was overwriting existing flags
 - `flagUniLOF` and `flagLOF` were overwriting existing flags
 ### Deprecated
 - Deprecate `flagMVScore` parameters: `partition` in favor of `window`, `partition_min` in favor of `min_periods`, `min_periods` in favor of `min_periods_r`
