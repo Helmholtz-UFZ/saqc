@@ -10,7 +10,6 @@ from __future__ import annotations
 import collections
 import functools
 import itertools
-import operator as op
 import re
 import warnings
 from typing import (
@@ -21,11 +20,9 @@ from typing import (
     List,
     Literal,
     Sequence,
-    Tuple,
     TypeVar,
     Union,
     get_args,
-    get_origin,
     overload,
 )
 
@@ -34,10 +31,9 @@ import pandas as pd
 from scipy import fft
 from scipy.cluster.hierarchy import fcluster, linkage
 
+from saqc import FILTER_ALL, UNFLAGGED
 from saqc.lib.checking import _isLiteral
 from saqc.lib.types import CompT
-
-T = TypeVar("T")
 
 
 def extractLiteral(lit: type(Literal)) -> List:
@@ -47,12 +43,13 @@ def extractLiteral(lit: type(Literal)) -> List:
     return list(get_args(lit))
 
 
+T = TypeVar("T")
 # fmt: off
 @overload
-def toSequence(value: T) -> List[T]:
+def toSequence(value: Sequence[T]) -> List[T]:
     ...
 @overload
-def toSequence(value: Sequence[T]) -> List[T]:
+def toSequence(value: T) -> List[T]:
     ...
 def toSequence(value) -> List:
     if value is None or isinstance(value, (str, float, int)):
@@ -526,14 +523,13 @@ def filterKwargs(
     return kwargs
 
 
-from saqc import FILTER_ALL, UNFLAGGED
-
 A = TypeVar("A", np.ndarray, pd.Series)
 
 
 def isflagged(flagscol: A, thresh: float) -> A:
     """
-    Return a mask of flags accordingly to `thresh`. Return type is same as flags.
+    Check :py:attr:`flagscol` for flags according to :py:attr:`thresh`
+    Returns a boolean sequnce of the same type as :py:attr:`flagscol`
     """
     if not isinstance(thresh, (float, int)):
         raise TypeError(f"thresh must be of type float, not {repr(type(thresh))}")
@@ -546,6 +542,34 @@ def isflagged(flagscol: A, thresh: float) -> A:
 
 def isunflagged(flagscol: A, thresh: float) -> A:
     return ~isflagged(flagscol, thresh)
+
+
+def initializeTargets(
+    saqc,
+    fields: Sequence[str],
+    targets: Sequence[str],
+    index: pd.Index,
+):
+    """
+    Initialize all targets based on field.
+
+    Note
+    ----
+    The following behavior is implemented:
+    1. n 'field', n 'target', n > 0     -> direct copy
+    2. n 'field', m 'target' mit n != m -> empty targets
+    """
+    if len(fields) == len(targets):
+        for f, t in zip(fields, targets):
+            if f in saqc._data and t not in saqc._data:
+                # we might not have field in 'saqc'
+                saqc = saqc.copyField(field=f, target=t)
+    for t in targets:
+        if t not in saqc._data:
+            saqc._data[t] = pd.Series(np.nan, index=index, name=t)
+            saqc._flags[t] = pd.Series(np.nan, index=index, name=t)
+
+    return saqc
 
 
 def getUnionIndex(obj, default: pd.DatetimeIndex | None = None):
