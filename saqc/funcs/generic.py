@@ -244,7 +244,6 @@ class GenericMixin:
 
         # update flags & data
         for i, col in enumerate(targets):
-
             # broadcast one column results to all targets
             mask = result[result.columns[i if len(result.columns) > 1 else 0]]
 
