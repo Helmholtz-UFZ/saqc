@@ -69,13 +69,13 @@ Documentation
       *Step-by-step guides to the implementation of basic QC tasks in SaQC*
 
 
-   .. grid-item-card:: Documentations
+   .. grid-item-card:: Documentation
       :link: ../documentation/documentationPanels
       :link-type: doc
 
       * CSV file-controlled flagging
-      * flagging schemes
-      * managing sources and targets Of algorithm application
+      * global keywords
+      * customization
       +++
       *Introductions to core mechanics and principles*
 
