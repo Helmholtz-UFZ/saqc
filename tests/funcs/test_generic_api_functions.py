@@ -41,6 +41,7 @@ def test_emptyData():
             ["tmp1", "tmp2"],
             lambda x, y: [pd.Series(True, index=x.index.union(y.index))] * 2,
         ),
+        (["tmp1", "tmp2"], lambda x, y: pd.Series(True, index=x.index.union(y.index))),
     ],
 )
 def test_writeTargetFlagGeneric(data, targets, func):
