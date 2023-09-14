@@ -3,7 +3,7 @@
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
 Basic Anomalies
-===============
+---------------
 
 .. currentmodule:: saqc
 

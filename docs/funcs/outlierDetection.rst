@@ -3,7 +3,7 @@
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
 Outlier Detection
-=================
+-----------------
 
 Univariate Outlier Detection
 
