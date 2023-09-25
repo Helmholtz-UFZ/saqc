@@ -3,7 +3,7 @@
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
 Drift detection and correction
-==============================
+------------------------------
 
 .. currentmodule:: saqc
 

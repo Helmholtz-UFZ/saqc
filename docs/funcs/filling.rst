@@ -3,9 +3,7 @@
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
 Gap filling
-===========
-
-
+-----------
 
 .. currentmodule:: saqc
 

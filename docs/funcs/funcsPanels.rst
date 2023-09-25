@@ -5,126 +5,131 @@
 .. _funcs:
 
 
-Anomaly Detection
-------------------
+Functionality Overview
+----------------------
+..
+   Anomaly Detection
+   ------------------
 
-.. grid:: 2
+.. grid:: 1
    :gutter: 2
 
-   .. grid-item-card:: Basic Anomaly Detection
-      :link: basicAnomalies
-      :link-type: doc
+   .. grid-item-card:: Anomaly Detection
 
-      * data *gaps*,
-      * data *jumps*,
-      * *isolated* points,
-      * *constant* and low variance regimes.
-      +++
+      .. grid:: 2
+         :gutter: 2
 
-   .. grid-item-card:: Outlier Detection
-      :link: outlierDetection
-      :link-type: doc
+         .. grid-item-card:: Basic Anomaly Detection
+            :link: basicAnomalies
+            :link-type: doc
 
-      * rolling *Z-score* cutoff
-      * modified local outlier factor (univariate-*LOF*)
-      * deterministic *offset pattern* search
-      +++
+            * data *gaps*,
+            * data *jumps*,
+            * *isolated* points,
+            * *constant* and low variance regimes.
+            +++
 
-   .. grid-item-card:: Multivariate Analysis
-      :link: multivariateAnalysis
-      :link-type: doc
+         .. grid-item-card:: Outlier Detection
+            :link: outlierDetection
+            :link-type: doc
 
-      * k-nearest neighbor scores (*kNN*)
-      * local outlier factor (*LOF*)
-      +++
+            * rolling *Z-score* cutoff
+            * modified local outlier factor (univariate-*LOF*)
+            * deterministic *offset pattern* search
+            +++
 
-   .. grid-item-card:: Distributional Analysis
-      :link: distributionalAnomalies
-      :link-type: doc
+         .. grid-item-card:: Multivariate Analysis
+            :link: multivariateAnalysis
+            :link-type: doc
 
-      * detect *change points*
-      * detect continuous *noisy* data sections
-      +++
+            * k-nearest neighbor scores (*kNN*)
+            * local outlier factor (*LOF*)
+            +++
 
-Data and Flags Tools
---------------------
+         .. grid-item-card:: Distributional Analysis
+            :link: distributionalAnomalies
+            :link-type: doc
 
-.. grid:: 2
-   :gutter: 2
-
-   .. grid-item-card:: Data Independent Flags Manipulation
-      :link: flagTools
-      :link-type: doc
-
-      * *copy* flags
-      * *transfer* flags
-      * *propagate* flags
-      * *force*-set unitary or precalculated flags values
-      +++
-
-   .. grid-item-card:: Basic tools
-      :link: tools
-      :link-type: doc
-
-      * plot variables
-      * copy and delete variables
-      +++
-
-   .. grid-item-card:: Generic and Custom Functions
-      :link: genericWrapper
-      :link-type: doc
-
-      * basic *logical* aggregation of variables
-      * basic *arithmetical* aggregation of variables
-      * *custom functions*
-      * *rolling*, *resampling*, *transformation*
-      +++
+            * detect *change points*
+            * detect continuous *noisy* data sections
+            +++
 
 
-Data Manipulation
------------------
+   .. grid-item-card:: Data and Flag Tools
 
-.. grid:: 2
-   :gutter: 2
+      .. grid:: 2
+         :gutter: 2
 
-   .. grid-item-card:: Data Products
-      :link: dataProducts
-      :link-type: doc
+         .. grid-item-card:: Data Independent Flags Manipulation
+            :link: flagTools
+            :link-type: doc
 
-      * smooth with *frequency filter*
-      * smooth with *polynomials*
-      * obtain *residuals* from smoothing
-      * obtain *kNN* or *LOF* scores
-      +++
+            * *copy* flags
+            * *transfer* flags
+            * *propagate* flags
+            * *force*-set unitary or precalculated flags values
+            +++
 
-   .. grid-item-card:: Resampling
-      :link: samplingAlignment
-      :link-type: doc
+         .. grid-item-card:: Basic tools
+            :link: tools
+            :link-type: doc
 
-      * *resample* data using custom aggregation
-      * *align* data to frequency grid with minimal data distortion
-      * *back project* flags from aligned data onto original series
-      +++
+            * plot variables
+            * copy and delete variables
+            +++
 
-Data Correction
----------------
+         .. grid-item-card:: Generic and Custom Functions
+            :link: genericWrapper
+            :link-type: doc
 
-.. grid:: 2
-   :gutter: 2
+            * basic *logical* aggregation of variables
+            * basic *arithmetical* aggregation of variables
+            * *custom functions*
+            * *rolling*, *resampling*, *transformation*
+            +++
 
-   .. grid-item-card:: Gap filling
-      :link: filling
-      :link-type: doc
+   .. grid-item-card:: Data Manipulation
 
-      * fill gaps with *interpolations*
-      * fill gaps using a *rolling* window
-      +++
+      .. grid:: 2
+         :gutter: 2
 
-   .. grid-item-card:: Drift Detection and Correction
-      :link: driftBehavior
-      :link-type: doc
+         .. grid-item-card:: Data Products
+            :link: dataProducts
+            :link-type: doc
 
-      * deviation predicted by a *model*
-      * deviation from the *majority* of parallel curves
-      * deviation from a defined *norm* curve
-      +++
+            * smooth with *frequency filter*
+            * smooth with *polynomials*
+            * obtain *residuals* from smoothing
+            * obtain *kNN* or *LOF* scores
+            +++
+
+         .. grid-item-card:: Resampling
+            :link: samplingAlignment
+            :link-type: doc
+
+            * *resample* data using custom aggregation
+            * *align* data to frequency grid with minimal data distortion
+            * *back project* flags from aligned data onto original series
+            +++
+
+   .. grid-item-card:: Data Correction
+
+      .. grid:: 2
+         :gutter: 2
+
+         .. grid-item-card:: Gap filling
+            :link: filling
+            :link-type: doc
+
+            * fill gaps with *interpolations*
+            * fill gaps using a *rolling* window
+            +++
+
+         .. grid-item-card:: Drift Detection and Correction
+            :link: driftBehavior
+            :link-type: doc
+
+            * deviation predicted by a *model*
+            * deviation from the *majority* of parallel curves
+            * deviation from a defined *norm* curve
+            +++

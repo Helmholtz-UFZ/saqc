@@ -3,7 +3,7 @@
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
 Change Points and Noise
-=======================
+-----------------------
 
 
 .. currentmodule:: saqc

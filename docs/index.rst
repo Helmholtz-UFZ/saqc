@@ -20,14 +20,11 @@
 
 
 .. toctree::
-   :caption: SaQC
    :hidden:
    :maxdepth: 1
 
    Package <modules/SaQC>
-   Core <modules/SaQCCore>
    Test Functions <modules/SaQCFunctions>
-   Translations <modules/SaQCTranslation>
    Constants <modules/SaQCConstants>
 
 

@@ -18,7 +18,7 @@ Documentation
    SourceTarget
    FlaggingTranslation
 
-.. grid:: 3
+.. grid:: 2
    :gutter: 2
 
    .. grid-item-card:: Configuration files (csv)
@@ -41,5 +41,12 @@ Documentation
       +++
       *Keywords shared by all the flagging functions*
 
+   .. grid-item-card:: Customizations
+      :link: Customizations
+      :link-type: doc
+
+      * add custom functions to SaQC
+      +++
+      *Keywords shared by all the flagging functions*
 
 

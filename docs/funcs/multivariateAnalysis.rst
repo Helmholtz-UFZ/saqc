@@ -3,7 +3,7 @@
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
 Multivariate Analysis
-=====================
+---------------------
 
 Multivariate outlier detection.
 
