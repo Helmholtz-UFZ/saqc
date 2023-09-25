@@ -2,9 +2,8 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-tools
-=====
-
+Tools
+-----
 
 .. currentmodule:: saqc
 

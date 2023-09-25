@@ -2,8 +2,8 @@
 ..
 .. SPDX-License-Identifier: GPL-3.0-or-later
 
-generic wrapper
-===============
+Generic Functions
+-----------------
 
 
 .. currentmodule:: saqc
