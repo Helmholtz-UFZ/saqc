@@ -19,13 +19,12 @@ from saqc.constants import BAD
 from saqc.core.register import flagging
 from saqc.lib.checking import (
     isCallable,
-    validateChoice,
+    validateFuncSelection,
     validateMinPeriods,
     validateWindow,
 )
 from saqc.lib.tools import isunflagged, statPass
-
-STATS_DICT = {"std": np.std, "var": np.var, "mad": median_abs_deviation}
+from saqc.parsing.environ import ENV_OPERATORS
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -146,19 +145,15 @@ class NoiseMixin:
             Minimum number of values needed in a chunk to perfom the test.
             Ignored if ``window`` is an integer.
         """
-        if (not isCallable(func)) and (func not in ["std", "var", "mad"]):
-            raise TypeError(
-                f"Parameter 'func' must either be of type 'Callable' or one out of ['std', 'var', 'mad']. Got {func}."
-            )
-
+        validateFuncSelection(func, allow_operator_str=True)
         validateWindow(window, allow_int=False)
         validateMinPeriods(min_periods)
         if sub_window is not None:
             validateWindow(sub_window, "sub_window", allow_int=False)
             sub_window = pd.Timedelta(sub_window)
 
-        if not isCallable(func):
-            func = STATS_DICT[func]
+        if isinstance(func, str):
+            func = ENV_OPERATORS[func]
 
         to_set = statPass(
             datcol=self._data[field],

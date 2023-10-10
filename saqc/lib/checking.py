@@ -11,13 +11,15 @@ import pandas as pd
 
 T = TypeVar("T")
 
+
 # ====================================================================
 # `isSomething`-Checks: must not raise Exceptions by checking the value (but
 # might rise Exceptions on wrong usage) and should return a boolean
 # value
 # ====================================================================
-
-
+#
+# Module should not have no saqc dependencies
+#
 def isBoolLike(obj: Any, optional: bool = False) -> bool:
     """Return True if obj is a boolean or one of the integers 0 or 1.
     If optional is True, `None` also is considered a valid boolean.
@@ -98,6 +100,24 @@ def isValidFrequency(obj: Any, allow_str: bool = True, fixed_only: bool = False)
         and isFixedFrequencyOffset(obj)
         or allow_str
         and isFrequencyString(obj, fixed_only=fixed_only)
+    )
+
+
+def isValidFuncSelection(
+    obj: any,
+    allow_callable: bool = True,
+    allow_operator_str: bool = False,
+    allow_trafo_str: bool = False,
+):
+    from saqc.parsing.environ import ENV_OPERATORS, ENV_TRAFOS
+
+    return (
+        allow_callable
+        and callable(obj)
+        or allow_operator_str
+        and obj in ENV_OPERATORS.keys()
+        or allow_trafo_str
+        and obj in ENV_TRAFOS.keys()
     )
 
 
@@ -257,6 +277,34 @@ def validateFrequency(
 
     if not isValidFrequency(value, allow_str=allow_str, fixed_only=fixed_only):
         raise ValueError(msg)
+
+
+def validateFuncSelection(
+    value: any,
+    name: str = "func",
+    allow_callable: bool = True,
+    allow_operator_str: bool = False,
+    allow_trafo_str: bool = False,
+):
+    """
+    Validate Function selection to be either a Callable or a kex fro the environments Dictionaries.
+    """
+    from saqc.lib.tools import joinExt
+    from saqc.parsing.environ import ENV_OPERATORS, ENV_TRAFOS
+
+    is_valid = isValidFuncSelection(
+        value,
+        allow_callable=allow_callable,
+        allow_trafo_str=allow_trafo_str,
+        allow_operator_str=allow_operator_str,
+    )
+
+    msg_c = ["of type callable"] * allow_callable
+    msg_op = [f"a string out of {ENV_OPERATORS.keys()}"] * allow_operator_str
+    msg_tr = [f"a string out of {ENV_TRAFOS.keys()}"] * allow_trafo_str
+    msg = joinExt(", ", msg_c + msg_op + msg_tr, " or ")
+    if not is_valid:
+        raise ValueError(f"Parameter '{name}' must be {msg}. Got '{value}' instead.")
 
 
 def validateWindow(

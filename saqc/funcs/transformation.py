@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 
 from saqc.core import register
+from saqc.lib.checking import validateFuncSelection
+from saqc.parsing.environ import ENV_TRAFOS
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -23,7 +25,7 @@ class TransformationMixin:
     def transform(
         self: "SaQC",
         field: str,
-        func: Callable[[pd.Series | np.ndarray], pd.Series],
+        func: Callable[[pd.Series | np.ndarray], pd.Series] | str,
         freq: float | str | None = None,
         **kwargs,
     ) -> "SaQC":
@@ -42,6 +44,10 @@ class TransformationMixin:
             * ``int`` : Apply transformation on successive data chunks of the given length. Must be grater than 0.
             * Offset String : Apply transformation on successive data chunks of the given temporal extension.
         """
+        validateFuncSelection(func, allow_trafo_str=True)
+        if isinstance(func, str):
+            func = ENV_TRAFOS[func]
+
         val_ser = self._data[field].copy()
         # partitioning
         if not freq:

@@ -13,71 +13,66 @@ import scipy.stats as st
 import saqc.lib.ts_operators as ts_ops
 from saqc import BAD, DOUBTFUL, FILTER_ALL, FILTER_NONE, GOOD, UNFLAGGED
 
-
-def clip(series, lower=None, upper=None):
-    return series.clip(lower=lower, upper=upper)
-
-
-def zscore(obj):
-    return st.zscore(obj, nan_policy="omit")
-
-
-def cv(series: pd.Series) -> pd.Series:
-    """
-    calculates the coefficient of variation on a min-max scaled time series
-    """
-    series_ = (series - series.min()) / (series.max() - series.min())
-    return series_.std() / series_.mean()
-
-
-ENVIRONMENT = {
-    # Infinity constant
-    "inf": np.inf,
-    "INF": np.inf,
-    # Not a number constant.
-    "NAN": np.nan,
-    "nan": np.nan,
-    # Absolute value function.
-    "abs": np.abs,
-    # Maximum value function. Ignores NaN.
-    "max": np.nanmax,
-    # Minimum Value function. Ignores NaN.
-    "min": np.nanmin,
-    # Mean value function. Ignores NaN.
-    "mean": np.nanmean,
-    # Summation. Ignores NaN.
+# operators dict (mapping array-likes to scalars)
+ENV_OPERATORS = {
+    # value sum. ignores NaN.
     "sum": np.nansum,
-    # Standard deviation. Ignores NaN.
+    # data containers length (including NaN.)
     "len": len,
-    # exponential function.
-    "exp": np.exp,
-    # Logarithm.
-    "log": np.log,
-    # Logarithm, returning NaN for zero input, instead of -inf.
-    "nanLog": ts_ops.zeroLog,
-    # Standard deviation. Ignores NaN.
+    # Mean. Omits NaN values.
+    "mean": np.nanmean,
+    # Sample maximum.
+    "max": np.nanmax,
+    # Sample minimum.
+    "min": np.nanmin,
+    # Sample standard deviation. Omits NaN values.
     "std": np.nanstd,
-    # Variance. Ignores NaN.
+    # Sample Variance Omits NaN values.
     "var": np.nanvar,
-    # Coefficient of variation.
-    "cv": cv,
-    # Median. Ignores NaN.
+    # Median absolute deviation. Omits NaN values
+    "mad": ts_ops.mad,
+    # Sample coefficient of variation. Omits NaN values.
+    "cv": ts_ops.cv,
+    # Sample median. Omits NaN values
     "median": np.nanmedian,
-    # Count Number of values. Ignores NaNs.
+    # Count number of values. Omits NaN values.
     "count": ts_ops.count,
-    # Identity.
-    "id": ts_ops.identity,
+    # evaluate datachunks with regard to total and consecutive number of invalid values
+    "isValid": ts_ops.isValid,
+}
+
+# transformations dict (mapping array likes to array likes same size)
+ENV_TRAFOS = {
     # Returns a series` diff.
     "diff": ts_ops.difference,
     # Scales data to [0,1] interval.
     "scale": ts_ops.normScale,
     # Standardize with standard deviation.
-    "zScore": zscore,
+    "zScore": ts_ops.standardizeByMean,
     # Standardize with median and MAD.
     "madScore": ts_ops.standardizeByMedian,
     # Standardize with median and inter quantile range.
     "iqsScore": ts_ops.standardizeByIQR,
-    "clip": clip,
+    # Identity.
+    "id": ts_ops.identity,
+    # Absolute value function.
+    "abs": np.abs,
+    # Exponential value Function.
+    "exp": np.exp,
+    # Logarithm.
+    "log": np.log,
+    # Logarithm, returning NaN for zero input, instead of -inf.
+    "nanLog": ts_ops.zeroLog,
+    # clip
+    "clip": ts_ops.clip,
+    # evaluate datachunks with regard to total and consecutive number of invalid values
+    "evaluate": ts_ops.validationTrafo,
+}
+
+# Constants Dictionary
+ENV_CONSTANTS = {
+    "nan": np.nan,
+    "NAN": np.nan,
     "GOOD": GOOD,
     "BAD": BAD,
     "UNFLAGGED": UNFLAGGED,
@@ -85,3 +80,6 @@ ENVIRONMENT = {
     "FILTER_ALL": FILTER_ALL,
     "FILTER_NONE": FILTER_NONE,
 }
+
+# environment
+ENVIRONMENT = {**ENV_TRAFOS, **ENV_OPERATORS, **ENV_CONSTANTS}

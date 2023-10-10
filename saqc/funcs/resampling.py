@@ -7,6 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import re
 import warnings
 from typing import TYPE_CHECKING, Callable, Union
 
@@ -17,10 +18,11 @@ from typing_extensions import Literal
 from saqc.constants import UNFLAGGED
 from saqc.core import register
 from saqc.core.history import History
-from saqc.lib.checking import validateCallable, validateChoice
+from saqc.lib.checking import validateChoice, validateFuncSelection, validateWindow
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import filterKwargs, getFreqDelta, isflagged
-from saqc.lib.ts_operators import aggregate2Freq
+from saqc.lib.ts_operators import validationTrafo
+from saqc.parsing.environ import ENV_OPERATORS
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -35,6 +37,77 @@ METHOD2ARGS = {
     "inverse_nagg": ("nearest", lambda x: pd.Timedelta(x) / 2),
     "match": (None, lambda _: "0min"),
 }
+
+
+def _aggregate2Freq(
+    data: pd.Series,
+    method,
+    freq,
+    agg_func,
+    fill_value=np.nan,
+    max_invalid_total=None,
+    max_invalid_consec=None,
+):
+    """
+    The function aggregates values to an equidistant frequency grid with func.
+    Timestamps that gets no values projected, get filled with the fill-value. It
+    also serves as a replacement for "invalid" intervals.
+    """
+    validateChoice(method, "method", ["nagg", "bagg", "fagg"])
+    validateWindow(freq, "freq", allow_int=False)
+
+    methods = {
+        # offset, closed, label
+        "nagg": lambda f: (f / 2, "left", "left"),
+        "bagg": lambda _: (pd.Timedelta(0), "left", "left"),
+        "fagg": lambda _: (pd.Timedelta(0), "right", "right"),
+    }
+    # filter data for invalid patterns (since filtering is expensive we pre-check if
+    # it is demanded)
+    if max_invalid_total is not None or max_invalid_consec is not None:
+        if pd.isna(fill_value):
+            temp_mask = data.isna()
+        else:
+            temp_mask = data == fill_value
+
+        temp_mask = temp_mask.groupby(pd.Grouper(freq=freq)).transform(
+            validationTrafo,
+            max_nan_total=max_invalid_total,
+            max_nan_consec=max_invalid_consec,
+        )
+        data[temp_mask] = fill_value
+
+    freq = pd.Timedelta(freq)
+    offset, closed, label = methods[method](freq)
+
+    resampler = data.resample(
+        freq, closed=closed, label=label, origin="start_day", offset=offset
+    )
+
+    # count valid values
+    counts = resampler.count()
+
+    # native methods of resampling (median, mean, sum, ..) are much faster than apply
+    try:
+        check_name = re.sub("^nan", "", agg_func.__name__)
+        # a nasty special case: if function "count" was passed, we not want empty
+        # intervals to be replaced by fill_value:
+        if check_name == "count":
+            data = counts.copy()
+            counts[:] = np.nan
+        else:
+            data = getattr(resampler, check_name)()
+    except AttributeError:
+        data = resampler.apply(agg_func)
+
+    # we custom fill bins that have no value
+    data[counts == 0] = fill_value
+
+    # undo the temporary shift, to mimic centering the frequency
+    if method == "nagg":
+        data.index += offset
+
+    return data
 
 
 class ResamplingMixin:
@@ -121,7 +194,7 @@ class ResamplingMixin:
         self: "SaQC",
         field: str,
         freq: str,
-        func: Callable[[pd.Series], pd.Series] = np.mean,
+        func: Callable[[pd.Series], pd.Series] | str = np.mean,
         method: Literal["fagg", "bagg", "nagg"] = "bagg",
         maxna: int | None = None,
         maxna_group: int | None = None,
@@ -169,15 +242,16 @@ class ResamplingMixin:
         maxna_group :
             Same as `maxna` but for consecutive NaNs.
         """
+
         validateChoice(method, "method", ["fagg", "bagg", "nagg"])
-        validateCallable(func, "func")
+        validateFuncSelection(func, allow_operator_str=True)
 
         datcol = self._data[field]
         if datcol.empty:
             # see #GL-374
             datcol = pd.Series(index=pd.DatetimeIndex([]), dtype=datcol.dtype)
 
-        datcol = aggregate2Freq(
+        datcol = _aggregate2Freq(
             datcol,
             method,
             freq,
@@ -198,7 +272,7 @@ class ResamplingMixin:
 
         history = self._flags.history[field].apply(
             index=datcol.index,
-            func=aggregate2Freq,
+            func=_aggregate2Freq,
             func_kws=kws,
         )
         meta = {
