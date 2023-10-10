@@ -13,7 +13,12 @@ import numpy as np
 import pandas as pd
 
 from saqc.core import DictOfSeries, Flags, register
-from saqc.lib.checking import validateCallable, validateMinPeriods, validateWindow
+from saqc.lib.checking import (
+    validateCallable,
+    validateFuncSelection,
+    validateMinPeriods,
+    validateWindow,
+)
 from saqc.lib.tools import getFreqDelta
 
 if TYPE_CHECKING:
@@ -26,7 +31,7 @@ class RollingMixin:
         self: "SaQC",
         field: str,
         window: str | int,
-        func: Callable[[pd.Series], np.ndarray] = np.mean,
+        func: Callable[[pd.Series], np.ndarray] | str = "mean",
         min_periods: int = 0,
         center: bool = True,
         **kwargs,
@@ -131,14 +136,14 @@ def _roll(
     field: str,
     flags: Flags,
     window: Union[str, int],
-    func: Callable[[pd.Series], np.ndarray] = np.mean,
+    func: Callable[[pd.Series], np.ndarray] | str = "mean",
     min_periods: int = 0,
     center: bool = True,
     **kwargs,
 ):
+    validateFuncSelection(func, allow_operator_str=True)
     validateWindow(window)
     validateMinPeriods(min_periods)
-    validateCallable(func, "func")
 
     to_fit = data[field].copy()
     if to_fit.empty:

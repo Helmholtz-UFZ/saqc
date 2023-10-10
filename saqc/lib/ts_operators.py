@@ -21,8 +21,23 @@ from scipy.signal import butter, filtfilt
 from scipy.stats import iqr, median_abs_deviation
 from sklearn.neighbors import NearestNeighbors
 
-from saqc.lib.checking import validateChoice, validateWindow
 from saqc.lib.tools import getFreqDelta
+
+
+def mad(series):
+    return median_abs_deviation(series, nan_policy="omit")
+
+
+def clip(series, lower=None, upper=None):
+    return series.clip(lower=lower, upper=upper)
+
+
+def cv(series: pd.Series) -> pd.Series:
+    """
+    calculates the coefficient of variation on a min-max scaled time series
+    """
+    series_ = (series - series.min()) / (series.max() - series.min())
+    return series_.std() / series_.mean()
 
 
 def identity(ts):
@@ -178,18 +193,18 @@ def normScale(ts):
 
 def standardizeByMean(ts):
     # standardization with mean and probe variance
-    return (ts - np.mean(ts)) / np.std(ts, ddof=1)
+    return (ts - np.nanmean(ts)) / np.nanstd(ts, ddof=1)
 
 
 def standardizeByMedian(ts):
     # standardization with median (MAD)
     # NO SCALING
-    return (ts - np.median(ts)) / median_abs_deviation(ts, nan_policy="omit")
+    return (ts - np.nanmedian(ts)) / median_abs_deviation(ts, nan_policy="omit")
 
 
 def standardizeByIQR(ts):
     # standardization with median and inter quantile range
-    return (ts - np.median(ts)) / iqr(ts, nan_policy="omit")
+    return (ts - np.nanmedian(ts)) / iqr(ts, nan_policy="omit")
 
 
 def kNN(in_arr, n_neighbors, algorithm="ball_tree", metric="minkowski", p=2):
@@ -229,28 +244,40 @@ def _exceedConsecutiveNanLimit(arr, max_consec):
     if s <= max_consec:
         return False
     views = np.lib.stride_tricks.sliding_window_view(
-        arr, window_shape=min(s, max_consec + 1)
+        arr, window_shape=min([s, max_consec + 1])
     )
     return bool(views.all(axis=1).any())
 
 
-def validationTrafo(data, max_nan_total, max_nan_consec):
+def validationTrafo(data, max_nan_total, max_nan_consec, trafo=True):
     # data has to be boolean. False=Valid Value, True=invalid Value function returns
     # True-array of input array size for invalid input arrays False array for valid
     # ones
-    data = data.copy()
-    if max_nan_total is np.inf and max_nan_consec is np.inf:
-        return data
+    if trafo:
+        data = data.copy()
 
-    if data.sum() > max_nan_total:
+    if max_nan_total == np.inf and max_nan_consec == np.inf:
+        value = False
+    elif data.sum() > max_nan_total:
         value = True
     elif max_nan_consec is np.inf:
         value = False
     else:
         value = _exceedConsecutiveNanLimit(np.asarray(data), max_nan_consec)
 
-    data[:] = value
-    return data
+    if trafo:
+        data[:] = value
+        return data
+    else:
+        return value
+
+
+def isValid(data, max_nan_total=np.inf, max_nan_consec=np.inf):
+    """
+    Operator wrapper around `validationTrafo` (returns scalar), meant to check if data chunks are valid with
+    regard to consecutive and total maximum number of invalid values (nan or flagged > flag)
+    """
+    return ~validationTrafo(~np.isnan(data), max_nan_total, max_nan_consec, trafo=False)
 
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
@@ -411,106 +438,6 @@ def interpolateNANs(data, method, order=2, gap_limit=2, extrapolate=None):
     # finally reinsert the dropped data gaps
     data = data.reindex(pre_index)
     return data
-
-
-def aggregate2Freq(
-    data: pd.Series,
-    method,
-    freq,
-    agg_func,
-    fill_value=np.nan,
-    max_invalid_total=None,
-    max_invalid_consec=None,
-):
-    """
-    The function aggregates values to an equidistant frequency grid with func.
-    Timestamps that gets no values projected, get filled with the fill-value. It
-    also serves as a replacement for "invalid" intervals.
-    """
-    validateChoice(method, "method", ["nagg", "bagg", "fagg"])
-    validateWindow(freq, "freq", allow_int=False)
-
-    methods = {
-        # offset, closed, label
-        "nagg": lambda f: (f / 2, "left", "left"),
-        "bagg": lambda _: (pd.Timedelta(0), "left", "left"),
-        "fagg": lambda _: (pd.Timedelta(0), "right", "right"),
-    }
-    # filter data for invalid patterns (since filtering is expensive we pre-check if
-    # it is demanded)
-    if max_invalid_total is not None or max_invalid_consec is not None:
-        if pd.isna(fill_value):
-            temp_mask = data.isna()
-        else:
-            temp_mask = data == fill_value
-
-        temp_mask = temp_mask.groupby(pd.Grouper(freq=freq)).transform(
-            validationTrafo,
-            max_nan_total=max_invalid_total,
-            max_nan_consec=max_invalid_consec,
-        )
-        data[temp_mask] = fill_value
-
-    freq = pd.Timedelta(freq)
-    offset, closed, label = methods[method](freq)
-
-    resampler = data.resample(
-        freq, closed=closed, label=label, origin="start_day", offset=offset
-    )
-
-    # count valid values
-    counts = resampler.count()
-
-    # native methods of resampling (median, mean, sum, ..) are much faster than apply
-    try:
-        check_name = re.sub("^nan", "", agg_func.__name__)
-        # a nasty special case: if function "count" was passed, we not want empty
-        # intervals to be replaced by fill_value:
-        if check_name == "count":
-            data = counts.copy()
-            counts[:] = np.nan
-        else:
-            data = getattr(resampler, check_name)()
-    except AttributeError:
-        data = resampler.apply(agg_func)
-
-    # we custom fill bins that have no value
-    data[counts == 0] = fill_value
-
-    # undo the temporary shift, to mimic centering the frequency
-    if method == "nagg":
-        data.index += offset
-
-    return data
-
-
-def shift2Freq(
-    data: Union[pd.Series, pd.DataFrame],
-    method: Literal["fshift", "bshift", "nshift"],
-    freq: str,
-    fill_value,
-):
-    """
-    shift timestamps backwards/forwards in order to align them with an equidistant
-    frequency grid. Resulting Nan's are replaced with the fill-value.
-    """
-    validateWindow(freq, "freq", allow_int=False)
-    validateChoice(method, "method", ["fshift", "bshift", "nshift"])
-    methods = {
-        "fshift": lambda freq: ("ffill", pd.Timedelta(freq)),
-        "bshift": lambda freq: ("bfill", pd.Timedelta(freq)),
-        "nshift": lambda freq: ("nearest", pd.Timedelta(freq) / 2),
-    }
-    direction, tolerance = methods[method](freq)
-    target_ind = pd.date_range(
-        start=pd.Timestamp(data.index[0]).floor(freq),
-        end=pd.Timestamp(data.index[-1]).ceil(freq),
-        freq=freq,
-        name=data.index.name,
-    )
-    return data.reindex(
-        target_ind, method=direction, tolerance=tolerance, fill_value=fill_value
-    )
 
 
 def butterFilter(

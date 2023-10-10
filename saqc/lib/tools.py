@@ -401,7 +401,7 @@ def getFreqDelta(index: pd.Index) -> None | pd.Timedelta:
     (``None`` will also be returned for pd.RangeIndex type.)
 
     """
-    delta = getattr(index, "window", None)
+    delta = getattr(index, "freq", None)
     if delta is None and not index.empty:
         i = pd.date_range(index[0], index[-1], len(index))
         if i.equals(index):

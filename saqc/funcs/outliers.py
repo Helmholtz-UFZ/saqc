@@ -24,10 +24,10 @@ from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.lib.checking import (
     isCallable,
     isFloatLike,
-    validateCallable,
     validateChoice,
     validateFraction,
     validateFrequency,
+    validateFuncSelection,
     validateMinPeriods,
     validateValueBounds,
     validateWindow,
@@ -68,7 +68,6 @@ class OutliersMixin:
         thresh: Literal["auto"] | float = 1.5,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: int = 1,
-        density: Literal["auto"] | float | Callable = "auto",
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
@@ -144,7 +143,7 @@ class OutliersMixin:
           the scores are cut off at a level, determined by :py:attr:`thresh`.
 
         """
-        self._validateLOF(algorithm, n, p, density)
+        self._validateLOF(algorithm, n, p, 1.0)
         if thresh != "auto" and not isFloatLike(thresh):
             raise ValueError(f"'thresh' must be 'auto' or a float, not {thresh}")
 
@@ -156,7 +155,6 @@ class OutliersMixin:
             n=n,
             algorithm=algorithm,
             p=p,
-            density=density,
         )
         s = qc.data[field_]
         if thresh == "auto":
@@ -515,7 +513,7 @@ class OutliersMixin:
         trafo: Callable[[pd.Series], pd.Series] = lambda x: x,
         alpha: float = 0.05,
         n: int = 10,
-        func: Callable[[pd.Series], float] = np.sum,
+        func: Callable[[pd.Series], float] | str = "sum",
         iter_start: float = 0.5,
         window: int | str | None = None,
         min_periods: int = 11,

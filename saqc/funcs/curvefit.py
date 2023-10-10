@@ -19,7 +19,7 @@ from saqc.lib.checking import (
     validateValueBounds,
     validateWindow,
 )
-from saqc.lib.tools import extractLiteral, getFreqDelta
+from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import (
     butterFilter,
     polyRoller,
