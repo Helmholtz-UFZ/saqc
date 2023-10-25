@@ -81,5 +81,10 @@ ENV_CONSTANTS = {
     "FILTER_NONE": FILTER_NONE,
 }
 
+ENV_AGGREGATIONS = {
+    "climatologicalMean": ts_ops.climatologicalMean,
+    "trueDailyMean": ts_ops.trueDailyMean,
+}
+
 # environment
-ENVIRONMENT = {**ENV_TRAFOS, **ENV_OPERATORS, **ENV_CONSTANTS}
+ENVIRONMENT = {**ENV_TRAFOS, **ENV_OPERATORS, **ENV_CONSTANTS, **ENV_AGGREGATIONS}
