@@ -260,7 +260,7 @@ def validationTrafo(data, max_nan_total, max_nan_consec, trafo=True):
         value = False
     elif data.sum() > max_nan_total:
         value = True
-    elif max_nan_consec is np.inf:
+    elif min(max_nan_consec, max_nan_total) > data.sum():
         value = False
     else:
         value = _exceedConsecutiveNanLimit(np.asarray(data), max_nan_consec)
@@ -277,7 +277,9 @@ def isValid(data, max_nan_total=np.inf, max_nan_consec=np.inf):
     Operator wrapper around `validationTrafo` (returns scalar), meant to check if data chunks are valid with
     regard to consecutive and total maximum number of invalid values (nan or flagged > flag)
     """
-    return ~validationTrafo(~np.isnan(data), max_nan_total, max_nan_consec, trafo=False)
+    return not validationTrafo(
+        np.isnan(data), max_nan_total, max_nan_consec, trafo=False
+    )
 
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
@@ -531,3 +533,35 @@ def linearInterpolation(data, inter_limit=2):
 
 def polynomialInterpolation(data, inter_limit=2, inter_order=2):
     return interpolateNANs(data, "polynomial", gap_limit=inter_limit, order=inter_order)
+
+
+def climatologicalMean(data):
+    """
+    The true daily mean as defined by WMO standard:
+    true daily mean = val@6:30 + val@12:30 + 2*val@20:30, NaN if one val is missing.
+    """
+    d = data[
+        ((data.index.hour == 6) & (data.index.minute == 30))
+        | ((data.index.hour == 12) & (data.index.minute == 30))
+    ]
+    d = pd.concat([d, 2 * data[((data.index.hour == 20) & (data.index.minute == 30))]])
+    d = d[d.index.second == 0]
+    rs = d.resample("1D")
+    res = rs.mean()
+    invalid = rs.count() < 3
+    res[invalid] = np.nan
+    return res
+
+
+def trueDailyMean(data):
+    dat = pd.Series(data.values, index=data.index.shift(1, "10min"))
+    dat = dat.reindex(
+        pd.date_range(
+            dat.index[0].date(), dat.index[-1].date() + pd.Timedelta("1D"), freq="1h"
+        )
+    )
+    rs = dat.resample("1D")
+    res = rs.mean()
+    valid = rs.apply(func=isValid, **{"max_nan_consec": 3}).astype(bool)
+    res[~valid] = np.nan
+    return res

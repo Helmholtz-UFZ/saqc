@@ -254,3 +254,20 @@ def test_interpolatNANs(limit, extrapolate, data, expected):
         pd.Series(data), gap_limit=limit, method="linear", extrapolate=extrapolate
     )
     assert got.equals(pd.Series(expected, dtype=float))
+
+
+@pytest.mark.parametrize(
+    "func,expected",
+    [
+        (tsops.trueDailyMean, [71.0, 212.0, np.nan, np.nan]),
+        (tsops.climatologicalMean, [np.nan, 312.0]),
+    ],
+)
+def test_wmoFuncs(func, expected):
+    data = pd.Series(
+        np.arange(288), index=pd.date_range("2000", freq="10min", periods=288)
+    )
+    data["2000-01-01 06:30:00"] = np.nan
+    data.iloc[150:154] = np.nan
+    m = func(data)
+    assert ((m.values == expected) | m.isna()).all()
