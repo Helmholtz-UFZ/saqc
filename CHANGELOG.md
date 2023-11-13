@@ -8,6 +8,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.5.0...develop)
 ### Added
+- `flagGeneric`: target broadcasting
 ### Changed
 ### Removed
 ### Fixed

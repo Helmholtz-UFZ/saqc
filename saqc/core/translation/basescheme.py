@@ -11,10 +11,9 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Any, Dict
 
-import numpy as np
 import pandas as pd
 
-from saqc import BAD, FILTER_ALL, GOOD, UNFLAGGED
+from saqc import BAD, FILTER_ALL, UNFLAGGED
 from saqc.core import DictOfSeries, Flags
 from saqc.lib.types import ExternalFlag
 

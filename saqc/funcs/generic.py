@@ -233,7 +233,7 @@ class GenericMixin:
         result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
         result = _castResult(result)
 
-        if len(targets) != len(result.columns):
+        if len(result.columns) > 1 and len(targets) != len(result.columns):
             raise ValueError(
                 f"the generic function returned {len(result.columns)} field(s), "
                 f"but {len(targets)} target(s) were given"
@@ -244,7 +244,8 @@ class GenericMixin:
 
         # update flags & data
         for i, col in enumerate(targets):
-            mask = result[result.columns[i]]
+            # broadcast one column results to all targets
+            mask = result[result.columns[i if len(result.columns) > 1 else 0]]
 
             # make sure the column exists
             if col not in self._flags:
