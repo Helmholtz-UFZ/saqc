@@ -233,7 +233,7 @@ class GenericMixin:
         result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
         result = _castResult(result)
 
-        if len(targets) != len(result.columns) or len(result.columns) > 1:
+        if len(result.columns) > 1 and len(targets) != len(result.columns):
             raise ValueError(
                 f"the generic function returned {len(result.columns)} field(s), "
                 f"but {len(targets)} target(s) were given"
