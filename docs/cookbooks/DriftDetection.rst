@@ -173,5 +173,5 @@ Lets check the results:
    :include-source: False
    :class: center
 
-   qc.plot(variables, marker_kwargs={'alpha':.3, 's': 1, 'color': 'red', 'edgecolor': 'face'})
+   qc.plot(variables, marker_kwargs={'alpha':.3, 's': 1, 'color': 'red', 'edgecolors': 'face'})
 
