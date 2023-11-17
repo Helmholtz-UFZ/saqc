@@ -25,16 +25,16 @@ def isBoolLike(obj: Any, optional: bool = False) -> bool:
     If optional is True, `None` also is considered a valid boolean.
     """
     return (
-        isinstance(obj, bool)
+        pd.api.types.is_bool(obj)
         or optional
         and obj is None
-        or isinstance(obj, int)
+        or pd.api.types.is_integer(obj)
         and obj in [0, 1]
     )
 
 
 def isFloatLike(obj: Any) -> bool:
-    return isinstance(obj, (float, int))
+    return pd.api.types.is_float(obj) or pd.api.types.is_integer(obj)
 
 
 def isIterable(obj: Any) -> bool:
@@ -104,7 +104,7 @@ def isValidFrequency(obj: Any, allow_str: bool = True, fixed_only: bool = False)
 
 
 def isValidFuncSelection(
-    obj: any,
+    obj: Any,
     allow_callable: bool = True,
     allow_operator_str: bool = False,
     allow_trafo_str: bool = False,
@@ -126,7 +126,7 @@ def isValidWindow(obj: Any, allow_int: bool = True, allow_str: bool = True) -> b
         isinstance(obj, pd.Timedelta)
         or isFixedFrequencyOffset(obj)
         or allow_int
-        and isinstance(obj, int)
+        and pd.api.types.is_integer(obj)
         and isInBounds(obj, 0)
         or allow_str
         and isTimedeltaString(obj)
@@ -220,7 +220,7 @@ def validateChoice(value: T, name: str, choices: Collection[T] | type(Literal)):
 
 
 def isIntOrInf(obj: int | float) -> bool:
-    return isinstance(obj, int) or isinstance(obj, float) and np.isinf(obj)
+    return pd.api.types.is_integer(obj) or pd.api.types.is_float(obj) and np.isinf(obj)
 
 
 def validateValueBounds(
@@ -280,7 +280,7 @@ def validateFrequency(
 
 
 def validateFuncSelection(
-    value: any,
+    value: Any,
     name: str = "func",
     allow_callable: bool = True,
     allow_operator_str: bool = False,
