@@ -196,6 +196,13 @@ def test_set_flags(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]
         new[:] = 7777.0
         assert all(flags.history[c].squeeze() == 8888.0)
 
+        # check auto generated meta entries
+        assert flags.history[c].meta[0] == {
+            "func": "importedFlags",
+            "args": (),
+            "kwargs": {},
+        }
+
 
 @pytest.mark.parametrize("data", testdata)
 def test_set_flags_with_mask(

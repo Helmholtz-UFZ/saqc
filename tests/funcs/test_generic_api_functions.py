@@ -81,7 +81,11 @@ def test_overwriteFieldFlagGeneric(data, fields, func):
         histcol1 = res._flags.history[field].hist[1]
         assert (histcol1 == flag).all()
         assert (data[field] == res.data[field]).all(axis=None)
-        assert res._flags.history[field].meta[0] == {}
+        assert res._flags.history[field].meta[0] == {
+            "args": (),
+            "func": "importedFlags",
+            "kwargs": {},
+        }
 
 
 @pytest.mark.parametrize(
@@ -166,7 +170,11 @@ def test_overwriteFieldProcGeneric(data, fields, func, expected_data):
     for field in fields:
         assert (res._flags.history[field].hist[0] == 127.0).all()
         assert res._flags.history[field].hist[1].isna().all()
-        assert res._flags.history[field].meta[0] == {}
+        assert res._flags.history[field].meta[0] == {
+            "args": (),
+            "func": "importedFlags",
+            "kwargs": {},
+        }
 
 
 def test_label():

@@ -145,7 +145,9 @@ class History:
         self._hist[pos] = s.astype("category")
         return self
 
-    def append(self, value: pd.Series | History, meta: dict | None = None) -> History:
+    def append(
+        self, value: pd.Series | History, meta: dict[str, Any] | None = None
+    ) -> History:
         """
         Create a new FH column and insert given pd.Series to it.
 

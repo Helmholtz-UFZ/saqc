@@ -232,7 +232,9 @@ class Flags:
                     f"cannot init from '{type(data).__name__}' of '{type(item).__name__}'"
                 )
 
-            result[k] = History(item.index).append(item)
+            result[k] = History(item.index).append(
+                item, meta={"func": "importedFlags", "args": (), "kwargs": {}}
+            )
 
         return result
 
