@@ -99,7 +99,7 @@ def is_equal(hist1: History, hist2: History):
 
 
 @pytest.mark.parametrize("data", data + [None])
-def test_init(data: np.array):
+def test_init(data: np.ndarray):
     # init
     df = pd.DataFrame(data, dtype=float)
     hist = History(df.index)
@@ -107,7 +107,7 @@ def test_init(data: np.array):
 
 
 @pytest.mark.parametrize("data", data + [None])
-def test_createHistory(data: np.array):
+def test_createHistory(data: np.ndarray):
     # init
     df = pd.DataFrame(data, dtype=float)
     meta = [{}] * len(df.columns)
