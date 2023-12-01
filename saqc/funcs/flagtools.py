@@ -666,6 +666,6 @@ def _groupOperation(
 
     # write flags
     for t in targets:
-        saqc._flags[mask, t] = flag
+        saqc._flags[mask & isunflagged(saqc._flags[t], thresh=dfilter), t] = flag
 
     return saqc

@@ -13,6 +13,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Removed
 ### Fixed
 - `Flags`: add meta entry to imported flags
+- group operations were overwriting existing flags
 
 ## [2.5.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.1...v2.5.0)
