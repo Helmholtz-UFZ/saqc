@@ -9,6 +9,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.5.0...develop)
 ### Added
 - `flagGeneric`: target broadcasting
+- `SaQC`: automatic tranlation of incoming flags
+- Option to change the flagging scheme after initialization
 ### Changed
 ### Removed
 ### Fixed

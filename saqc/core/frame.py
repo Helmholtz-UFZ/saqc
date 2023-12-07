@@ -71,6 +71,23 @@ class DictOfSeries(DictOfPandas):
             return self.shared_index()
         raise ValueError("method must be one of 'shared' or 'union'.")
 
+    def astype(self, dtype: str | type) -> DictOfSeries:
+        """
+        Cast a DictOfSeries object to the specified ``dtype``
+
+        Parameters
+        ----------
+        dtype: data type to cast the entire object to.
+
+        Returns
+        -------
+        DictOfSeries
+        """
+        out = DictOfSeries()
+        for k, v in self.data.items():
+            out[k] = v.astype(dtype)
+        return out
+
 
 DictOfSeries.empty.__doc__ = """
 Indicator whether DictOfSeries is empty.
