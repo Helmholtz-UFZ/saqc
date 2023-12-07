@@ -65,6 +65,22 @@ def test_dtypes(data, flags):
         assert pflags[c].dtype == flags[c].dtype
 
 
+def test_autoTranslation():
+    data = pd.Series(
+        [1, 2], index=pd.date_range("2000", periods=2, freq="D"), name="data"
+    )
+    flags = pd.DataFrame(["BAD", "UNFLAGGED"], index=data.index, columns=["data"])
+    qc = SaQC(data=data, flags=flags, scheme="simple")
+
+    assert (qc.flags["data"] == ["BAD", "UNFLAGGED"]).all()  # external flags
+    assert (qc._flags["data"] == [BAD, UNFLAGGED]).all()  # internal flags
+
+    qc.scheme = "float"
+
+    assert (qc.flags["data"] == [BAD, UNFLAGGED]).all()  # external flags
+    assert (qc._flags["data"] == [BAD, UNFLAGGED]).all()  # internal flags
+
+
 def test_new_call(data):
     qc = SaQC(data)
     qc = qc.flagRange("var1", max=5)

@@ -10,6 +10,7 @@ from __future__ import annotations
 import warnings
 from copy import copy as shallowcopy
 from copy import deepcopy
+from functools import partial
 from typing import Any, Hashable, MutableMapping
 
 import numpy as np
@@ -52,13 +53,21 @@ class SaQC(FunctionsMixin):
 
     def __init__(
         self,
-        data=None,
-        flags=None,
+        data: pd.Series
+        | pd.DataFrame
+        | DictOfSeries
+        | list[pd.Series | pd.DataFrame | DictOfSeries]
+        | None = None,
+        flags: pd.DataFrame
+        | DictOfSeries
+        | Flags
+        | list[pd.DataFrame | DictOfSeries | Flags]
+        | None = None,
         scheme: str | TranslationScheme = "float",
     ):
+        self.scheme: TranslationScheme = scheme
         self._data: DictOfSeries = self._initData(data)
         self._flags: Flags = self._initFlags(flags)
-        self._scheme: TranslationScheme = self._initTranslationScheme(scheme)
         self._attrs: dict = {}
         self._validate(reason="init")
 
@@ -86,7 +95,7 @@ class SaQC(FunctionsMixin):
 
     def _validate(self, reason=None):
         if not self._data.columns.equals(self._flags.columns):
-            msg = "Consistency broken. data and flags have not the same columns."
+            msg = "Data and flags don't contain the same columns."
             if reason:
                 msg += f" This was most likely caused by: {reason}"
             raise RuntimeError(msg)
@@ -115,6 +124,21 @@ class SaQC(FunctionsMixin):
         return flags
 
     @property
+    def scheme(self) -> TranslationScheme:
+        return self._scheme
+
+    @scheme.setter
+    def scheme(self, scheme: str | TranslationScheme) -> None:
+        if isinstance(scheme, str) and scheme in TRANSLATION_SCHEMES:
+            scheme = TRANSLATION_SCHEMES[scheme]()
+        if not isinstance(scheme, TranslationScheme):
+            raise TypeError(
+                f"expected one of the following translation schemes '{TRANSLATION_SCHEMES.keys()} "
+                f"or an initialized Translator object, got '{scheme}'"
+            )
+        self._scheme = scheme
+
+    @property
     def _history(self) -> _HistAccess:
         return self._flags.history
 
@@ -124,7 +148,6 @@ class SaQC(FunctionsMixin):
         We use this mechanism to make the registered functions appear
         as `SaQC`-methods without actually implementing them.
         """
-        from functools import partial
 
         if key not in FUNC_MAP:
             raise AttributeError(f"SaQC has no attribute {repr(key)}")
@@ -248,5 +271,5 @@ class SaQC(FunctionsMixin):
                 if isinstance(idx, pd.MultiIndex):
                     raise TypeError("'flags' should not have MultiIndex")
         if not isinstance(flags, Flags):
-            flags = Flags(flags)
+            flags = Flags(self._scheme.toInternal(flags))
         return flags
