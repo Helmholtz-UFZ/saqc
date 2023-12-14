@@ -18,6 +18,8 @@ from saqc.lib.types import OptionalNone
 from tests.common import initData
 
 OPTIONAL = [False, True]
+U = UNFLAGGED
+B = BAD
 
 
 @pytest.fixture
@@ -431,3 +433,164 @@ def test_concatDios_warning(data, expected):
     with pytest.warns(UserWarning):
         result = SaQC(data)
     assert result.data == expected
+
+
+def test_atomicWrite():
+    def writeAndFail(obj):
+        obj._data["foo"] = pd.Series()
+        raise ValueError("ups i forgot flags")
+
+    orig = SaQC(pd.DataFrame([1, 2, 3], columns=["a"]))
+
+    # test that atomic write is needed
+    qc = orig.copy()
+    try:
+        writeAndFail(qc)
+    except ValueError:
+        pass
+    assert not qc.columns.equals(orig.columns)  # data changed
+    assert qc.data.keys() != qc.flags.keys()  # invariant broken
+
+    # use qc._atomicWrite
+    qc = orig.copy()
+    try:
+        with qc._atomicWrite():
+            writeAndFail(qc)
+    except ValueError:
+        pass
+    assert qc.columns.equals(orig.columns)  # data ist still unchanged
+    assert qc.data.keys() == qc.flags.keys()  # invariant holds
+
+
+@pytest.mark.parametrize(
+    "columns,key,expected",
+    [
+        (["a", "b", "c"], ["a", "c"], pd.Index(["a", "c"])),
+        (["a", "b", "c"], "a", pd.Index(["a"])),
+        (["a", "b", "c", "d", "e"], slice("b", "d"), pd.Index(["b", "c", "d"])),
+        (["a", "b", "c"], slice(None), pd.Index(["a", "b", "c"])),
+        # empty selection
+        (["a", "b", "c"], [], pd.Index([])),
+        (["a", "b", "c"], slice("b", "a"), pd.Index([])),
+    ],
+)
+def test__getitem__(columns, key, expected):
+    data = [pd.Series(range(3))] * len(columns)
+    qc = SaQC(dict(zip(columns, data)))
+    result = qc[key]
+    assert isinstance(result, SaQC)
+    assert result.columns.equals(expected)
+
+
+def test__getitem__duplicateKey():
+    qc = SaQC(dict(zip(["a", "b", "c"], [pd.Series(range(3))] * 3)))
+    with pytest.raises(NotImplementedError):
+        qc[["a", "a"]]  # noqa
+
+
+def test__setitem__duplicateKey():
+    qc = SaQC(dict(zip(["a", "b", "c"], [pd.Series(range(3))] * 3)))
+    with pytest.raises(NotImplementedError):
+        qc[["a", "a"]] = SaQC(pd.DataFrame(dict(a=[1, 1], b=[2, 2])))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        SaQC(pd.DataFrame(dict(a=[1, 2, 3]))),
+        pd.Series([1, 2, 3]),
+        pd.DataFrame(dict(a=[1, 2, 3])),
+        DictOfSeries(dict(a=pd.Series([1, 2, 3]))),
+        dict(a=pd.Series([1, 2, 3])),
+        [pd.Series([1, 2, 3])],
+        (s for s in [pd.Series([1, 2, 3])]),
+    ],
+)
+def test__setitem__value_types(value):
+    qc = SaQC()
+    qc["x"] = value
+    assert qc.data["x"].equals(pd.Series([1, 2, 3]))
+
+
+@pytest.mark.parametrize(
+    "data,key,value,expected",
+    [
+        (
+            # insert a single series (data only)
+            SaQC(pd.DataFrame(dict(a=[1, 1]))),
+            "c",
+            pd.Series([8, 8]),
+            SaQC(
+                pd.DataFrame(dict(a=[1, 2], c=[8, 8])),
+                pd.DataFrame(dict(a=[U, U], c=[U, U])),
+            ),
+        ),
+        (
+            # insert data and flags by using SaQC obj
+            SaQC(pd.DataFrame(dict(a=[1, 1]))),
+            "c",
+            SaQC(pd.DataFrame(dict(new=[8, 8])), pd.DataFrame(dict(new=[B, B]))),
+            SaQC(
+                pd.DataFrame(dict(a=[1, 2], c=[8, 8])),
+                pd.DataFrame(dict(a=[U, U], c=[B, B])),
+            ),
+        ),
+        (
+            # empty key
+            SaQC(pd.DataFrame(dict(a=[1, 2], b=[1, 2]))),
+            [],
+            SaQC(),
+            SaQC(
+                pd.DataFrame(dict(a=[1, 2], b=[8, 8])),
+                pd.DataFrame(dict(a=[U, U], b=[U, U])),
+            ),
+        ),
+        (
+            # overwrite single key
+            SaQC(pd.DataFrame(dict(a=[1, 2], b=[1, 2]))),
+            "b",
+            SaQC(pd.DataFrame(dict(new=[8, 8])), pd.DataFrame(dict(new=[B, B]))),
+            SaQC(
+                pd.DataFrame(dict(a=[1, 2], b=[8, 8])),
+                pd.DataFrame(dict(a=[U, U], b=[B, B])),
+            ),
+        ),
+        (
+            # overwrite multi key
+            SaQC(pd.DataFrame(dict(a=[1, 2], b=[1, 2]))),
+            ["a", "b"],
+            SaQC(
+                pd.DataFrame(dict(new1=[8, 8], new2=[9, 9])),
+                pd.DataFrame(dict(new1=[B, B], new2=[B, B])),
+            ),
+            SaQC(
+                pd.DataFrame(dict(a=[8, 8], b=[9, 9])),
+                pd.DataFrame(dict(a=[B, B], b=[B, B])),
+            ),
+        ),
+        (
+            # overwrite and insert
+            SaQC(pd.DataFrame(dict(a=[1, 2]))),
+            ["a", "b"],
+            SaQC(
+                pd.DataFrame(dict(new1=[8, 8], new2=[9, 9])),
+                pd.DataFrame(dict(new1=[B, B], new2=[B, B])),
+            ),
+            SaQC(
+                pd.DataFrame(dict(a=[8, 8], b=[9, 9])),
+                pd.DataFrame(dict(a=[B, B], b=[B, B])),
+            ),
+        ),
+    ],
+)
+def test__setitem__(data, key, value, expected):
+    data[key] = value
+    assert data.columns.equals(expected.columns)
+
+    # slice to list magic
+    if isinstance(key, slice):
+        key = pd.Series(index=list("abcdef"))[key].index.tolist()
+
+    for k in [key] if isinstance(key, str) else key:
+        assert data.data[k].equals(expected.data[k])
+        assert data.flags[k].equals(expected.flags[k])
