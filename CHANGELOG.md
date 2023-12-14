@@ -9,13 +9,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.5.0...develop)
 ### Added
 - `flagGeneric`: target broadcasting
-- `SaQC`: automatic tranlation of incoming flags
+- `SaQC`: automatic translation of incoming flags
 - Option to change the flagging scheme after initialization
+- `SaQC`: support for selection, slicing and setting of items by use of subscription on SaQC objects (e.g. `qc[key]` and `qc[key] = value`).
+   Selection works with single keys, collections of keys and string slices (e.g. `qc["a":"f"]`).  Values can be SaQC objects, pd.Series, 
+   Iterable of Series and dict-like with series values.
 ### Changed
 ### Removed
 ### Fixed
 - `Flags`: add meta entry to imported flags
 - group operations were overwriting existing flags
+- `SaQC._construct` : was not working for inherit classes (used hardcoded `SaQC` to construct a new instance).
+### Deprecated
 
 ## [2.5.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.1...v2.5.0)

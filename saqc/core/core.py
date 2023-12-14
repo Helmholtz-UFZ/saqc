@@ -7,11 +7,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import contextlib
 import warnings
 from copy import copy as shallowcopy
 from copy import deepcopy
 from functools import partial
-from typing import Any, Hashable, MutableMapping
+from typing import Any, Hashable, Iterable, MutableMapping, overload
 
 import numpy as np
 import pandas as pd
@@ -85,7 +86,7 @@ class SaQC(FunctionsMixin):
         For internal usage only! Setting values through `injectables` has
         the potential to mess up certain invariants of the constructed object.
         """
-        out = SaQC(data=DictOfSeries(), flags=Flags(), scheme=self._scheme)
+        out = self.__class__(data=DictOfSeries(), flags=Flags(), scheme=self._scheme)
         out.attrs = self._attrs
         for k, v in attributes.items():
             if k not in self._attributes:
@@ -99,6 +100,7 @@ class SaQC(FunctionsMixin):
             if reason:
                 msg += f" This was most likely caused by: {reason}"
             raise RuntimeError(msg)
+        return self
 
     @property
     def attrs(self) -> dict[Hashable, Any]:
@@ -112,13 +114,13 @@ class SaQC(FunctionsMixin):
         self._attrs = dict(value)
 
     @property
-    def data(self) -> MutableMapping:
+    def data(self) -> MutableMapping[str, pd.Series]:
         data = self._data
         data.attrs = self._attrs.copy()
         return data
 
     @property
-    def flags(self) -> MutableMapping:
+    def flags(self) -> MutableMapping[str, pd.Series]:
         flags = self._scheme.toExternal(self._flags, attrs=self._attrs)
         flags.attrs = self._attrs.copy()
         return flags
@@ -141,6 +143,117 @@ class SaQC(FunctionsMixin):
     @property
     def _history(self) -> _HistAccess:
         return self._flags.history
+
+    @property
+    def columns(self) -> pd.Index:
+        return self._data.columns
+
+    def __len__(self):
+        return len(self.columns)
+
+    def __contains__(self, item):
+        return item in self.columns
+
+    def _get_keys(self, key: str | Iterable[str] | slice):
+        if isinstance(key, str):
+            key = [key]
+        elif isinstance(key, slice):
+            sss = self.columns.slice_locs(key.start, key.stop, key.step)
+            key = self.columns[slice(*sss)]
+        keys = pd.Index(key)
+        if keys.has_duplicates:
+            raise NotImplementedError(
+                "selecting the same key multiple times is not supported yet."
+            )
+        return keys
+
+    def __delitem__(self, key):
+        if key not in self.columns:
+            raise KeyError(key)
+        with self._atomicWrite():
+            del self._data[key]
+            del self._flags[key]
+
+    def __getitem__(self, key: str | slice | Iterable[str]) -> SaQC:
+        keys = self._get_keys(key)
+        if not_found := keys.difference(self.columns).tolist():
+            raise KeyError(f"{not_found} not in columns")
+        # data = self._data[key] should work, but fails with key=[]
+        # because of slice_dict issue #GH2 - empty list selection fails.
+        # As long as flags/history have no slicing support we stick to
+        # the loop.
+        data = DictOfSeries()
+        flags = Flags()
+        for k in keys:
+            data[k] = self._data[k].copy()
+            flags.history[k] = self._flags.history[k].copy()
+        new = self._construct(_data=data, _flags=flags)
+        return new._validate("a bug, pls report")
+
+    def __setitem__(
+        self,
+        key: str | slice | Iterable[str],
+        value: SaQC
+        | pd.Series
+        | pd.DataFrame
+        | DictOfSeries
+        | dict[Any, pd.Series]
+        | Iterable[pd.Series],
+    ):
+        keys = self._get_keys(key)
+        if isinstance(value, SaQC):
+            pass
+        elif isinstance(value, pd.Series):
+            value = [value]
+        elif isinstance(value, (pd.DataFrame, DictOfSeries)):
+            value = [value[k] for k in value.keys()]
+        else:
+            if isinstance(value, dict):
+                value = value.values()
+            value = list(value)
+            for s in value:
+                if not isinstance(s, pd.Series):
+                    raise TypeError(
+                        f"all items of value must be of type "
+                        f"pd.Series, but got {type(s)}"
+                    )
+
+        if len(keys) != len(value):
+            raise ValueError(
+                f"Length mismatch, expected {len(keys)} elements, "
+                f"but value has {len(value)} elements"
+            )
+        with self._atomicWrite():
+            if isinstance(value, SaQC):
+                for k, c in zip(keys, value.columns):
+                    self._data[k] = value._data[c].copy()
+                    self._flags.history[k] = value._flags.history[c].copy()
+            else:
+                for i, k in enumerate(keys):
+                    self._data[k] = value[i]
+                    self._flags.history[k] = History(value[i].index)
+
+    @contextlib.contextmanager
+    def _atomicWrite(self):
+        """
+        Context manager to realize writing in an all-or-nothing style.
+
+        This is helpful for writing data and flags at once or resetting
+        all changes on errors.
+        It is also useful for updating multiple columns "at once".
+        """
+        # shallow copies
+        data = self._data.copy()
+        flags = self._flags.copy(deep=False)
+        try:
+            yield
+            # when we get here, everything has gone well,
+            # and we accept all changes on data and flags
+            data = self._data
+            flags = self._flags
+        finally:
+            self._data = data
+            self._flags = flags
 
     def __getattr__(self, key):
         """

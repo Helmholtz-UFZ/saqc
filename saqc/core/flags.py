@@ -359,7 +359,7 @@ class Flags:
         if isinstance(key, tuple):
             if len(key) != 2:
                 raise KeyError(
-                    "a single 'column' or a tuple of 'mask, column' must be passt"
+                    "a single 'column' or a tuple of 'mask, column' must be passed"
                 )
             mask, key = key
 
