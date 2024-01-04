@@ -8,7 +8,7 @@ dtw==1.4.0
 matplotlib==3.8.0
 numpy==1.26.2
 outlier-utils==0.0.5
-pyarrow==14.0.1
+pyarrow==14.0.2
 pandas==2.1.3
 scikit-learn==1.3.2
 scipy==1.11.4
