@@ -10,7 +10,6 @@ from saqc.core.translation import MappingScheme
 
 
 class SimpleScheme(MappingScheme):
-
     """
     Acts as the default Translator, provides a changeable subset of the
     internal float flags

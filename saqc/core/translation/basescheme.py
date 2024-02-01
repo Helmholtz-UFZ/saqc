@@ -217,7 +217,6 @@ class MappingScheme(TranslationScheme):
 
 
 class FloatScheme(TranslationScheme):
-
     """
     Acts as the default Translator, provides a changeable subset of the
     internal float flags

@@ -25,8 +25,9 @@ class GenericFunction(Protocol):
     __name__: str
     __globals__: dict[str, Any]
 
-    def __call__(self, *args: pd.Series) -> pd.Series | pd.DataFrame | DictOfSeries:
-        ...  # pragma: no cover
+    def __call__(
+        self, *args: pd.Series
+    ) -> pd.Series | pd.DataFrame | DictOfSeries: ...  # pragma: no cover
 
 
 def _flagSelect(field: str, flags: Flags, label: str | None = None) -> pd.Series:

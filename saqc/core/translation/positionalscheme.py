@@ -16,7 +16,6 @@ from saqc.core.translation.basescheme import BackwardMap, ForwardMap, MappingSch
 
 
 class PositionalScheme(MappingScheme):
-
     """
     Implements the translation from and to the flagging scheme implemented by CHS
     """

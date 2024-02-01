@@ -323,12 +323,10 @@ class Flags:
     # item access
 
     @overload
-    def __getitem__(self, key: str) -> pd.Series:
-        ...
+    def __getitem__(self, key: str) -> pd.Series: ...
 
     @overload
-    def __getitem__(self, key: list | pd.Index) -> Flags:
-        ...
+    def __getitem__(self, key: list | pd.Index) -> Flags: ...
 
     def __getitem__(self, key: str | list | pd.Index) -> pd.Series | Flags:
         if isinstance(key, str):

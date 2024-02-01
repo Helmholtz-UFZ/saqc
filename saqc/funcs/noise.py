@@ -36,8 +36,9 @@ class NoiseMixin:
         field: str,
         window: str | pd.Timedelta,
         thresh: float,
-        func: Literal["std", "var", "mad"]
-        | Callable[[np.ndarray, pd.Series], float] = "std",
+        func: (
+            Literal["std", "var", "mad"] | Callable[[np.ndarray, pd.Series], float]
+        ) = "std",
         sub_window: str | pd.Timedelta | None = None,
         sub_thresh: float | None = None,
         min_periods: int | None = None,
@@ -102,8 +103,9 @@ class NoiseMixin:
         field: str,
         window: str | pd.Timedelta,
         thresh: float,
-        func: Literal["std", "var", "mad"]
-        | Callable[[np.ndarray, pd.Series], float] = "std",
+        func: (
+            Literal["std", "var", "mad"] | Callable[[np.ndarray, pd.Series], float]
+        ) = "std",
         sub_window: str | pd.Timedelta | None = None,
         sub_thresh: float | None = None,
         min_periods: int | None = None,

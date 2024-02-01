@@ -41,7 +41,6 @@ _QUALITY_LABELS = [
 
 
 class DmpScheme(MappingScheme):
-
     """
     Implements the translation from and to the flagging scheme implemented in
     the UFZ - Datamanagementportal

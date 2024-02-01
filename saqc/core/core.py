@@ -54,16 +54,20 @@ class SaQC(FunctionsMixin):
 
     def __init__(
         self,
-        data: pd.Series
-        | pd.DataFrame
-        | DictOfSeries
-        | list[pd.Series | pd.DataFrame | DictOfSeries]
-        | None = None,
-        flags: pd.DataFrame
-        | DictOfSeries
-        | Flags
-        | list[pd.DataFrame | DictOfSeries | Flags]
-        | None = None,
+        data: (
+            pd.Series
+            | pd.DataFrame
+            | DictOfSeries
+            | list[pd.Series | pd.DataFrame | DictOfSeries]
+            | None
+        ) = None,
+        flags: (
+            pd.DataFrame
+            | DictOfSeries
+            | Flags
+            | list[pd.DataFrame | DictOfSeries | Flags]
+            | None
+        ) = None,
         scheme: str | TranslationScheme = "float",
     ):
         self.scheme: TranslationScheme = scheme
@@ -193,12 +197,14 @@ class SaQC(FunctionsMixin):
     def __setitem__(
         self,
         key: str | slice | Iterable[str],
-        value: SaQC
-        | pd.Series
-        | pd.DataFrame
-        | DictOfSeries
-        | dict[Any, pd.Series]
-        | Iterable[pd.Series],
+        value: (
+            SaQC
+            | pd.Series
+            | pd.DataFrame
+            | DictOfSeries
+            | dict[Any, pd.Series]
+            | Iterable[pd.Series]
+        ),
     ):
         keys = self._get_keys(key)
         if isinstance(value, SaQC):
