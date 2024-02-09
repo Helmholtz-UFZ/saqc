@@ -250,7 +250,7 @@ def makeFig(
         mode,
     )
 
-    # readability formattin fo the x-tick labels:
+    # readability formattin for the x-tick labels:
     fig.autofmt_xdate()
     return fig
 
@@ -278,7 +278,7 @@ def _instantiateAxesContext(
         next(_scatter_kwargs["marker"])
 
     # assign variable specific labels/titles
-    for axis_spec in ["xlabel", "ylabel", "title"]:
+    for axis_spec in ["xlabel", "ylabel", "title", "ylim"]:
         spec = _ax_kwargs.get(axis_spec, None)
         if isinstance(spec, list):
             _ax_kwargs[axis_spec] = spec[var_num]
