@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import saqc
 from saqc import BAD as B
 from saqc import UNFLAGGED as U
 from saqc import SaQC
@@ -175,3 +176,82 @@ def test__groupOperation(field, target, expected, copy):
         fields = toSequence(itertools.chain.from_iterable(field))
         for f, t in zip(fields, targets):
             assert (result._data[f] == result._data[t]).all(axis=None)
+
+
+@pytest.mark.parametrize(
+    "f_data",
+    [
+        (
+            pd.Series(
+                ["2000-01-01T00:30:00", "2000-01-01T01:30:00"],
+                index=["2000-01-01T00:00:00", "2000-01-01T01:00:00"],
+            )
+        ),
+        (
+            np.array(
+                [
+                    ("2000-01-01T00:00:00", "2000-01-01T00:30:00"),
+                    ("2000-01-01T01:00:00", "2000-01-01T01:30:00"),
+                ]
+            )
+        ),
+        (
+            [
+                ("2000-01-01T00:00:00", "2000-01-01T00:30:00"),
+                ("2000-01-01T01:00:00", "2000-01-01T01:30:00"),
+            ]
+        ),
+        ("maint"),
+    ],
+)
+def test_setFlags_intervals(f_data):
+    start = ["2000-01-01T00:00:00", "2000-01-01T01:00:00"]
+    end = ["2000-01-01T00:30:00", "2000-01-01T01:30:00"]
+    maint_data = pd.Series(data=end, index=pd.DatetimeIndex(start), name="maint")
+    data = pd.Series(
+        np.arange(30),
+        index=pd.date_range("2000", freq="11min", periods=30),
+        name="data",
+    )
+    qc = saqc.SaQC([data, maint_data])
+    qc = qc.setFlags("data", data=f_data)
+    assert (qc.flags["data"].iloc[np.r_[0:3, 6:9]] > 0).all()
+    assert (qc.flags["data"].iloc[np.r_[4:6, 10:30]] < 0).all()
+
+
+@pytest.mark.parametrize(
+    "f_data",
+    [
+        (
+            np.array(
+                [
+                    "2000-01-01T00:00:00",
+                    "2000-01-01T00:30:00",
+                    "2000-01-01T01:00:00",
+                    "2000-01-01T01:30:00",
+                ]
+            )
+        ),
+        (
+            [
+                "2000-01-01T00:00:00",
+                "2000-01-01T00:30:00",
+                "2000-01-01T01:00:00",
+                "2000-01-01T01:30:00",
+            ]
+        ),
+    ],
+)
+def test_setFlags_ontime(f_data):
+    start = ["2000-01-01T00:00:00", "2000-01-01T01:00:00"]
+    end = ["2000-01-01T00:30:00", "2000-01-01T01:30:00"]
+    maint_data = pd.Series(data=end, index=pd.DatetimeIndex(start), name="maint")
+    data = pd.Series(
+        np.arange(30),
+        index=pd.date_range("2000", freq="11min", periods=30),
+        name="data",
+    )
+    qc = saqc.SaQC([data, maint_data])
+    qc = qc.setFlags("data", data=f_data)
+    assert qc.flags["data"].iloc[0] > 0
+    assert (qc.flags["data"].iloc[1:] < 0).all()

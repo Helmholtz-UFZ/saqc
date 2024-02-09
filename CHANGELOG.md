@@ -14,6 +14,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `SaQC`: support for selection, slicing and setting of items by use of subscription on SaQC objects (e.g. `qc[key]` and `qc[key] = value`).
    Selection works with single keys, collections of keys and string slices (e.g. `qc["a":"f"]`).  Values can be SaQC objects, pd.Series, 
    Iterable of Series and dict-like with series values.
+- `setFlags`: function to replace `flagManual`
 ### Changed
 ### Removed
 ### Fixed
@@ -21,6 +22,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - group operations were overwriting existing flags
 - `SaQC._construct` : was not working for inherit classes (used hardcoded `SaQC` to construct a new instance).
 ### Deprecated
+- `flagManual` in favor of `setFlags`
 
 ## [2.5.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.1...v2.5.0)

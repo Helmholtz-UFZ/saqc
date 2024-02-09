@@ -179,19 +179,21 @@ def test_flagManual(data, field):
     ]
 
     for kw in kwargs_list:
-        qc = SaQC(data, flags).flagManual(field, **kw)
+        with pytest.deprecated_call():
+            qc = SaQC(data, flags).flagManual(field, **kw)
         isflagged = qc._flags[field] > UNFLAGGED
         assert isflagged[isflagged].index.equals(index_exp)
 
     # flag not exist in mdata
-    qc = SaQC(data, flags).flagManual(
-        field,
-        mdata=mdata,
-        mflag="i do not exist",
-        method="ontime",
-        mformat="mflag",
-        flag=BAD,
-    )
+    with pytest.deprecated_call():
+        qc = SaQC(data, flags).flagManual(
+            field,
+            mdata=mdata,
+            mflag="i do not exist",
+            method="ontime",
+            mformat="mflag",
+            flag=BAD,
+        )
     isflagged = qc._flags[field] > UNFLAGGED
     assert isflagged[isflagged].index.equals(pd.DatetimeIndex([]))
 
@@ -220,14 +222,15 @@ def test_flagManual(data, field):
     ]
     bound_drops = {"right-open": [1], "left-open": [0], "closed": []}
     for method in ["right-open", "left-open", "closed"]:
-        qc = qc.flagManual(
-            field,
-            mdata=mdata,
-            mflag=1,
-            method=method,
-            mformat="mflag",
-            flag=BAD,
-        )
+        with pytest.deprecated_call():
+            qc = qc.flagManual(
+                field,
+                mdata=mdata,
+                mflag=1,
+                method=method,
+                mformat="mflag",
+                flag=BAD,
+            )
         isflagged = qc._flags[field] > UNFLAGGED
         for flag_i in flag_intervals:
             f_i = isflagged[slice(flag_i[0], flag_i[-1])].index

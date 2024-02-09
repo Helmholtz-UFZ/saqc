@@ -90,6 +90,64 @@ class FlagtoolsMixin:
         self._flags[unflagged, field] = flag
         return self
 
+    @flagging()
+    def setFlags(
+        self,
+        field: str,
+        data: str | list | np.array | pd.Series,
+        override: bool = False,
+        flag: float = BAD,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Include flags listed in external data.
+
+        Parameters
+        ----------
+
+        data :
+            Determines which timestamps to set flags at, depending on the passed type:
+
+            * 1-d `array` or `List` of timestamps: flag `field` with `flag` at every timestamp in `f_data`
+            * 2-d `array` or List of tuples: for all elements `t[k]` out of f_data:
+              flag `field` with `flag` at every timestamp in between `t[k][0]` and `t[k][1]`
+            * pd.Series: flag `field` with `flag` in between any index and data value of the passed series
+            * str: use the variable timeseries `f_data` as flagging template
+            * pd.Series: flag `field` with `flag` in between any index and data value of the passed series
+            * 1-d `array` or `List` of timestamps: flag `field` with `flag` at every timestamp in `f_data`
+            * 2-d `array` or List of tuples: for all elements `t[k]` out of f_data:
+              flag `field` with `flag` at every timestamp in between `t[k][0]` and `t[k][1]`
+        override :
+            determines if flags shall be assigned although the value in question already has a flag assigned.
+        """
+        to_flag = pd.Series(False, index=self._data[field].index)
+
+        # check if f_data is meant to denote timestamps:
+        if (isinstance(data, (list, np.ndarray))) and not isinstance(
+            data[0], (tuple, np.ndarray)
+        ):
+            set_idx = pd.DatetimeIndex(data).intersection(to_flag.index)
+            to_flag[set_idx] = True
+        else:  # f_data denotes intervals:
+            if isinstance(data, (str, pd.Series)):
+                if isinstance(data, str):
+                    flags_data = self._data[data]
+                else:
+                    flags_data = data
+                intervals = flags_data.items()
+            else:
+                intervals = data
+            for s in intervals:
+                to_flag[s[0] : s[1]] = True
+
+        # elif isinstance(f_data, list):
+        if not override:
+            to_flag &= (self._flags[field] < flag) & (
+                self._flags[field] >= kwargs["dfilter"]
+            )
+        self._flags[to_flag.values, field] = flag
+        return self
+
     @register(mask=["field"], demask=["field"], squeeze=["field"])
     def flagManual(
         self: "SaQC",
@@ -107,6 +165,9 @@ class FlagtoolsMixin:
         Include flags listed in external data.
 
         The method allows to integrate pre-existing flagging information.
+
+            .. deprecated:: 2.6.0
+               Deprecated Function. See :py:meth:`~saqc.SaQC.setFlags`.
 
         Parameters
         ----------
@@ -215,6 +276,11 @@ class FlagtoolsMixin:
            2000-05-01     True
            dtype: bool
         """
+        warnings.warn(
+            "`flagManual` is deprecated and will be removed in version 2.9 of saqc. "
+            "Please use `setFlags` for similar functionality.",
+            DeprecationWarning,
+        )
         validateChoice(
             method, "method", ["left-open", "right-open", "closed", "plain", "ontime"]
         )
