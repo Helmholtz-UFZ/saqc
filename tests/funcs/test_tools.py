@@ -32,10 +32,15 @@ def test_makeFig(tmp_path):
     outfile = str(Path(tmp_path, "test.png"))  # the filesystem's temp dir
 
     d_saqc = d_saqc.plot(field="data", path=outfile)
-    d_saqc = d_saqc.plot(field="data", path=outfile, history="valid", stats=True)
+    d_saqc = d_saqc.plot(
+        field="data", path=outfile, history="valid", yscope=[(-50, 1000)]
+    )
     with pytest.deprecated_call():
         d_saqc = d_saqc.plot(field="data", path=outfile, history="complete")
 
     d_saqc = d_saqc.plot(
-        field="data", path=outfile, ax_kwargs={"ylabel": "data is data"}, stats=True
+        field="data",
+        path=outfile,
+        ax_kwargs={"ylabel": "data is data"},
+        yscope=(100, 150),
     )

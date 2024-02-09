@@ -211,7 +211,8 @@ class ToolsMixin:
         max_gap: str | None = None,
         mode: Literal["subplots", "oneplot"] | str = "oneplot",
         history: Literal["valid", "complete"] | list[str] | None = "valid",
-        xscope: slice | None = None,
+        xscope: slice | str | None = None,
+        yscope: tuple | list[tuple] | dict = None,
         store_kwargs: dict | None = None,
         ax: mpl.axes.Axes | None = None,
         ax_kwargs: dict | None = None,
@@ -265,6 +266,11 @@ class ToolsMixin:
         xscope :
             Determine a chunk of the data to be plotted. ``xscope`` can be anything,
             that is a valid argument to the ``pandas.Series.__getitem__`` method.
+
+        yscope :
+             Either a tuple of 2 scalars that determines all plots' y-view limits, or a list of those
+             tuples, determining the different variables y-view limits (must match number of variables)
+             or a dictionary with variables as keys and the y-view tuple as values.
 
         ax :
             If not ``None``, plot into the given ``matplotlib.Axes`` instance, instead of a
@@ -365,6 +371,15 @@ class ToolsMixin:
         ax_kwargs = ax_kwargs or {}
         marker_kwargs = marker_kwargs or {}
         plot_kwargs = plot_kwargs or {}
+
+        if (
+            (yscope is not None)
+            and (len(yscope) == 2)
+            and not isinstance(yscope[0], (list, tuple))
+        ):
+            yscope = tuple(yscope)
+
+        ax_kwargs.update({"ylim": yscope})
 
         if not path:
             mpl.use(_MPL_DEFAULT_BACKEND)
