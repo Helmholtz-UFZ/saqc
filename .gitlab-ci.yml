@@ -35,6 +35,8 @@ default:
     - pip install --upgrade pip
     - pip install -r requirements.txt
     - pip install -r tests/requirements.txt
+    - apt update
+    - apt install -y xvfb
 
 # ===========================================================
 # Compliance stage
@@ -75,6 +77,8 @@ coverage:
   stage: test
   allow_failure: true
   script:
+    - export DISPLAY=:99
+    - Xvfb :99 &
     - pip install pytest-cov coverage
     - pytest --cov=saqc tests --ignore=tests/fuzzy -Werror
   after_script:
@@ -93,6 +97,8 @@ python39:
   stage: test
   image: python:3.9
   script:
+    - export DISPLAY=:99
+    - Xvfb :99 &
     - pytest tests -Werror --junitxml=report.xml
     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
@@ -105,6 +111,8 @@ python310:
   stage: test
   image: python:3.10
   script:
+    - export DISPLAY=:99
+    - Xvfb :99 &
     - pytest tests -Werror --junitxml=report.xml
     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
@@ -116,6 +124,8 @@ python311:
   stage: test
   image: python:3.11
   script:
+    - export DISPLAY=:99
+    - Xvfb :99 &
     - pytest tests -Werror --junitxml=report.xml
     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
