@@ -8,29 +8,154 @@
 from __future__ import annotations
 
 import pickle
+import tkinter as tk
 import warnings
 from typing import TYPE_CHECKING, Optional
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from typing_extensions import Literal
 
-from saqc import FILTER_NONE, UNFLAGGED
+from saqc import BAD, FILTER_NONE, UNFLAGGED
 from saqc.core import processing, register
 from saqc.lib.checking import validateChoice
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.plotting import makeFig
-from saqc.lib.tools import periodicMask
+from saqc.lib.selectionGUI import MplScroller, SelectionOverlay
+from saqc.lib.tools import periodicMask, toSequence
 
 if TYPE_CHECKING:
     from saqc import SaQC
 
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
+_TEST_MODE = False
 
 
 class ToolsMixin:
+    @register(mask=[], demask=[], squeeze=[], multivariate=True)
+    def flagByClick(
+        self: "SaQC",
+        field: str | list[str],
+        max_gap: str | None = None,
+        gui_mode: Literal["GUI", "overlay"] = "GUI",
+        selection_marker_kwargs: dict | None = None,
+        dfilter: float = BAD,
+        **kwargs,
+    ) -> "SaQC":
+        """
+        Pop up GUI for adding or removing flags by selection of points in the data plot.
+
+        * Left click and Drag the selection area over the points you want to add to selection.
+
+        * Right clack and drag the selection area over the points you want to remove from selection
+
+        * press 'shift' to switch between rectangle and span selector
+
+        * press 'enter' or click "Assign Flags" to assign flags to the selected points and end session
+
+        * press 'escape' or click "Discard" to end Session without assigneing flags to selection
+
+        * activate the sliders attached to each axes to bind the respective variable. When using the
+          span selector, points from all bound variables will be added synchronously.
+
+
+        Note, that you can only mark already flagged values, if `dfilter` is set accordingly.
+
+        Note, that you can use `flagByClick` to "unflag" already flagged values, when setting `dfilter` above the flag to
+        "unset", and setting `flag` to a flagging level associated with your "unflagged" level.
+
+        Parameters
+        ----------
+        max_gap :
+            If ``None``, all data points will be connected, resulting in long linear
+            lines, in case of large data gaps. ``NaN`` values will be removed before
+            plotting. If an offset string is passed, only points that have a distance
+            below ``max_gap`` are connected via the plotting line.
+        gui_mode :
+            * ``"GUI"`` (default), spawns TK based pop-up GUI, enabling scrolling and binding for subplots
+            * ``"overlay"``, spawns matplotlib based pop-up GUI. May be less conflicting, but does not support
+              scrolling or binding.
+        """
+        data, flags = self._data.copy(), self._flags.copy()
+
+        flag = kwargs.get("flag", BAD)
+        scrollbar = True if gui_mode == "GUI" else False
+        selection_marker_kwargs = selection_marker_kwargs or {}
+
+        if not scrollbar:
+            plt.rcParams["toolbar"] = "toolmanager"
+
+        if not _TEST_MODE:
+            plt.close("all")
+            mpl.use(_MPL_DEFAULT_BACKEND)
+        else:
+            mpl.use("Agg")
+
+        # make base figure, the gui will wrap
+        fig = makeFig(
+            data=data,
+            field=field,
+            flags=flags,
+            level=UNFLAGGED,
+            mode="subplots",
+            max_gap=max_gap,
+            history="valid",
+            xscope=None,
+            ax_kwargs={"ncols": 1},
+            scatter_kwargs={},
+            plot_kwargs={},
+        )
+
+        overlay_data = []
+        for f in field:
+            overlay_data.extend([(data[f][flags[f] < dfilter]).dropna()])
+
+        if scrollbar:  # spawn TK based GUI
+            root = tk.Tk()
+            scroller = MplScroller(root, fig=fig)
+            root.protocol("WM_DELETE_WINDOW", scroller.assignAndQuitFunc())
+            scroller.pack(side="top", fill="both", expand=True)
+
+        else:  # only use figure window overlay
+            scroller = None
+
+        selector = SelectionOverlay(
+            fig.axes,
+            data=overlay_data,
+            selection_marker_kwargs=selection_marker_kwargs,
+            parent=scroller,
+        )
+        if _TEST_MODE & scrollbar:
+            root.after(2000, root.destroy)
+            # return self
+
+        if scrollbar:
+            root.attributes("-fullscreen", True)
+            root.mainloop()
+            if not _TEST_MODE:
+                root.destroy()
+        else:  # show figure if only overlay is used
+            plt.show(block=~_TEST_MODE)
+            plt.rcParams["toolbar"] = "toolbar2"
+
+        # disconnect mouse events when GUI is closed
+        selector.disconnect()
+
+        # assign flags only if selection was confirmed by user
+        if selector.confirmed:
+            for k in range(selector.N):
+                to_flag = selector.index[k][selector.marked[k]]
+
+                new_col = pd.Series(np.nan, index=self._flags[field[k]].index)
+                new_col.loc[to_flag] = flag
+                self._flags.history[field[k]].append(
+                    new_col, {"func": "flagByClick", "args": (), "kwargs": kwargs}
+                )
+        return self
+
     @register(
         mask=[],
         demask=[],
@@ -384,6 +509,7 @@ class ToolsMixin:
         if not path:
             mpl.use(_MPL_DEFAULT_BACKEND)
         else:
+            plt.close("all")  # supress matplotlib deprecation warning
             mpl.use("Agg")
 
         fig = makeFig(
