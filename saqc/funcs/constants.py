@@ -51,18 +51,19 @@ class ConstantsMixin:
         thresh :
             Maximum total change allowed per window.
 
+        window :
+            Size of the moving window. This determines the number of observations used
+            for calculating the absolute change per window.
+            Each window will either contain a fixed number of periods (integer defined window),
+            or will have a fixed temporal extension (offset defined window).
+
         min_periods :
             Minimum number of observations in window required to generate
-            a flag. Must be an integer greater or equal `2`, because a
+            a flag. This can be used to exclude underpopulated *offset* defined windows from
+            flagging. (Integer defined windows will always contain exactly *window* samples).
+            Must be an integer greater or equal `2`, because a
             single value would always be considered constant.
             Defaults to `2`.
-
-        window :
-            Size of the moving window. This is the number of observations used
-            for calculating the statistic. Each window will be a fixed size.
-            If it is an offset then this will be the time period of each window.
-            Each window will be a variable sized based on the observations included
-            in the time-period.
         """
         d: pd.Series = self._data[field]
         validateWindow(window, index=d.index)
@@ -73,7 +74,7 @@ class ConstantsMixin:
         rolling = d.rolling(window=window, min_periods=min_periods)
         starting_points_mask = rolling.max() - rolling.min() <= thresh
 
-        removeRollingRamps(starting_points_mask, window=window, inplace=True)
+        starting_points_mask = removeRollingRamps(starting_points_mask, window=window)
 
         # mimic forward rolling by roll over inverse [::-1]
         rolling = starting_points_mask[::-1].rolling(

@@ -20,6 +20,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Changed
 ### Removed
 ### Fixed
+- `flagConstants`: fixed flagging of rolling ramps
 - `Flags`: add meta entry to imported flags
 - group operations were overwriting existing flags
 - `SaQC._construct` : was not working for inherit classes (used hardcoded `SaQC` to construct a new instance).
