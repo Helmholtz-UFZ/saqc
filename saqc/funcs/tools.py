@@ -503,8 +503,9 @@ class ToolsMixin:
             and not isinstance(yscope[0], (list, tuple))
         ):
             yscope = tuple(yscope)
+        if yscope is not None:
 
-        ax_kwargs.update({"ylim": yscope})
+            ax_kwargs.update({"ylim": yscope})
 
         if not path:
             mpl.use(_MPL_DEFAULT_BACKEND)
