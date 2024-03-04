@@ -179,6 +179,8 @@ class OutliersMixin:
         p: int = 1,
         density: Literal["auto"] | float = "auto",
         fill_na: bool = True,
+        slope_correct: bool = True,
+        min_offset: float = None,
         flag: float = BAD,
         **kwargs,
     ) -> "SaQC":
@@ -246,6 +248,15 @@ class OutliersMixin:
 
         fill_na :
             If True, NaNs in the data are filled with a linear interpolation.
+
+        slope_correct :
+            if True, a correction is applied, that removes outlier cluster that actually
+            just seem to be steep slopes
+
+        min_offset :
+            If set, only those outlier cluster will be flagged, that are preceeded and succeeeded
+            by sufficiently large value "jumps". Defaults to estimating the sufficient value jumps from
+            the median over the absolute step sizes between data points.
 
         See Also
         --------
@@ -366,8 +377,47 @@ class OutliersMixin:
             s_mask = ((_s - _s.mean()) / _s.std()).iloc[: int(s.shape[0])].abs() > 3
         else:
             s_mask = s < -abs(thresh)
-
         s_mask = ~isflagged(qc._flags[field], kwargs["dfilter"]) & s_mask
+
+        if slope_correct:
+            g_mask = s_mask.diff()
+            g_mask = g_mask.cumsum()
+            dat = self._data[field]
+            od_groups = dat.interpolate("linear").groupby(by=g_mask)
+            first_vals = od_groups.first()
+            last_vals = od_groups.last()
+            max_vals = od_groups.max()
+            min_vals = od_groups.min()
+            if min_offset is None:
+                if density == "auto":
+                    d_diff = dat.diff()
+                    eps = d_diff.abs().median()
+                    if eps == 0:
+                        eps = d_diff[d_diff != 0].abs().median()
+                else:
+                    eps = density
+                eps = 3 * eps
+            else:
+                eps = min_offset
+            up_slopes = (min_vals + eps >= last_vals.shift(1)) & (
+                max_vals - eps <= first_vals.shift(-1)
+            )
+            down_slopes = (max_vals - eps <= last_vals.shift(1)) & (
+                min_vals + eps >= first_vals.shift(-1)
+            )
+            slopes = up_slopes | down_slopes
+            odd_return_pred = (max_vals > last_vals.shift(1)) & (
+                min_vals < last_vals.shift(1)
+            )
+            odd_return_succ = (max_vals > first_vals.shift(-1)) & (
+                min_vals < first_vals.shift(-1)
+            )
+            returns = odd_return_succ | odd_return_pred
+            corrections = returns | slopes
+            for s_id in corrections[corrections].index:
+                correct_idx = od_groups.get_group(s_id).index
+                s_mask[correct_idx] = False
+
         qc._flags[s_mask, field] = flag
         qc = qc.dropField(tmp_field)
         return qc

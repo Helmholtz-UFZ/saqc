@@ -17,6 +17,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
    Iterable of Series and dict-like with series values.
 - `plot`: added `yscope` keyword
 - `setFlags`: function to replace `flagManual`
+- `flagUniLOF`: added defaultly applied correction to mitigate phenomenon of overflagging at relatively steep data value slopes. (parameter `slope_correct`). 
 ### Changed
 ### Removed
 ### Fixed
