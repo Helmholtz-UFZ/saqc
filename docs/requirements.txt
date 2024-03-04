@@ -4,7 +4,7 @@
 
 recommonmark==0.7.1
 sphinx==7.2.6
-sphinx-automodapi==0.16.0
+sphinx-automodapi==0.17.0
 sphinxcontrib-fulltoc==1.2.0
 sphinx-markdown-tables==0.0.17
 jupyter-sphinx==0.5.3
