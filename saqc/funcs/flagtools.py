@@ -108,7 +108,7 @@ class FlagtoolsMixin:
         data :
             Determines which timestamps to set flags at, depending on the passed type:
 
-            * 1-d `array` or `List` of timestamps: flag `field` with `flag` at every timestamp in `f_data`
+            * 1-d `array` or `List` of timestamps or `pandas.Index`: flag `field` with `flag` at every timestamp in `f_data`
             * 2-d `array` or List of tuples: for all elements `t[k]` out of f_data:
               flag `field` with `flag` at every timestamp in between `t[k][0]` and `t[k][1]`
             * pd.Series: flag `field` with `flag` in between any index and data value of the passed series
@@ -123,7 +123,7 @@ class FlagtoolsMixin:
         to_flag = pd.Series(False, index=self._data[field].index)
 
         # check if f_data is meant to denote timestamps:
-        if (isinstance(data, (list, np.ndarray))) and not isinstance(
+        if (isinstance(data, (list, np.ndarray, pd.Index))) and not isinstance(
             data[0], (tuple, np.ndarray)
         ):
             set_idx = pd.DatetimeIndex(data).intersection(to_flag.index)
