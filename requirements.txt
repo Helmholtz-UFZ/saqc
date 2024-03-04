@@ -6,7 +6,7 @@ Click==8.1.7
 docstring_parser==0.15
 dtw==1.4.0
 matplotlib==3.8.2
-numpy==1.26.2
+numpy==1.26.4
 outlier-utils==0.0.5
 pyarrow==15.0.0
 pandas==2.1.4
