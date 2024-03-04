@@ -503,9 +503,10 @@ class ScoresMixin:
             filled = pd.Series(False, index=vals.index)
 
         if density == "auto":
-            density = vals.diff().abs().median()
+            v_diff = vals.diff()
+            density = v_diff.abs().median()
             if density == 0:
-                density = vals.diff().abs().mean()
+                density = v_diff[v_diff != 0].abs().median()
         elif isinstance(density, Callable):
             density = density(vals)
         if isinstance(density, pd.Series):
