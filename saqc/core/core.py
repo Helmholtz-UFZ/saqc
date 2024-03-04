@@ -12,7 +12,7 @@ import warnings
 from copy import copy as shallowcopy
 from copy import deepcopy
 from functools import partial
-from typing import Any, Hashable, Iterable, MutableMapping, overload
+from typing import Any, Hashable, Iterable, MutableMapping
 
 import numpy as np
 import pandas as pd
@@ -32,7 +32,7 @@ from saqc.funcs import FunctionsMixin
 
 # warnings
 pd.set_option("mode.chained_assignment", "warn")
-pd.options.mode.copy_on_write = False
+pd.set_option("mode.copy_on_write", True)
 np.seterr(invalid="ignore")
 
 

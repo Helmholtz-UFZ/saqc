@@ -143,7 +143,7 @@ def test_copy(data):
     assert is_equal(deep, shallow)
 
     # underling pandas data was only copied with deep=True
-    assert shallow.hist.index is hist.hist.index
+    assert shallow.hist.index.equals(hist.hist.index)
     assert deep.hist.index is not hist.hist.index
 
 

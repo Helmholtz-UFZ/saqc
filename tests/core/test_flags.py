@@ -122,7 +122,7 @@ def test_copy(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
 
     # the underling series data is the same
     for c in shallow.columns:
-        assert shallow._data[c].index is flags._data[c].index
+        assert shallow._data[c].index.equals(flags._data[c].index)
 
     # the underling series data was copied
     for c in deep.columns:
