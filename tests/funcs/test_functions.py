@@ -243,11 +243,10 @@ def test_flagManual(data, field):
                 assert ~unflagged.all()
 
 
-@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
-def test_flagDriftFromNorm(dat):
-    data = dat(periods=200, peak_level=5, name="field1")[0]
-    data["field2"] = dat(periods=200, peak_level=10, name="field2")[0]["field2"]
-    data["field3"] = dat(periods=200, peak_level=100, name="field3")[0]["field3"]
+def test_flagDriftFromNorm(course_1):
+    data = course_1(periods=200, peak_level=5, name="field1")[0]
+    data["field2"] = course_1(periods=200, peak_level=10, name="field2")[0]["field2"]
+    data["field3"] = course_1(periods=200, peak_level=100, name="field3")[0]["field3"]
 
     fields = ["field1", "field2", "field3"]
 
@@ -261,11 +260,10 @@ def test_flagDriftFromNorm(dat):
     assert all(qc._flags["field3"] > UNFLAGGED)
 
 
-@pytest.mark.parametrize("dat", [pytest.lazy_fixture("course_1")])
-def test_flagDriftFromReference(dat):
-    data = dat(periods=200, peak_level=5, name="field1")[0]
-    data["field2"] = dat(periods=200, peak_level=10, name="field2")[0]["field2"]
-    data["field3"] = dat(periods=200, peak_level=100, name="field3")[0]["field3"]
+def test_flagDriftFromReference(course_1):
+    data = course_1(periods=200, peak_level=5, name="field1")[0]
+    data["field2"] = course_1(periods=200, peak_level=10, name="field2")[0]["field2"]
+    data["field3"] = course_1(periods=200, peak_level=100, name="field3")[0]["field3"]
 
     fields = ["field1", "field2", "field3"]
 
