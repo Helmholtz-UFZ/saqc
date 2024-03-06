@@ -15,6 +15,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `SaQC`: support for selection, slicing and setting of items by use of subscription on SaQC objects (e.g. `qc[key]` and `qc[key] = value`).
    Selection works with single keys, collections of keys and string slices (e.g. `qc["a":"f"]`).  Values can be SaQC objects, pd.Series, 
    Iterable of Series and dict-like with series values.
+- `transferFlags` is a multivariate function
 - `plot`: added `yscope` keyword
 - `setFlags`: function to replace `flagManual`
 - `flagUniLOF`: added defaultly applied correction to mitigate phenomenon of overflagging at relatively steep data value slopes. (parameter `slope_correct`). 
