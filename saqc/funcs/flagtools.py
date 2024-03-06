@@ -17,9 +17,16 @@ from typing_extensions import Literal
 
 from saqc import BAD, FILTER_ALL, UNFLAGGED
 from saqc.core import DictOfSeries, flagging, register
+from saqc.core.flags import Flags
 from saqc.core.history import History
 from saqc.lib.checking import validateChoice, validateWindow
-from saqc.lib.tools import initializeTargets, isflagged, isunflagged, toSequence
+from saqc.lib.tools import (
+    initializeTargets,
+    isflagged,
+    isunflagged,
+    multivariateParameters,
+    toSequence,
+)
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -356,6 +363,7 @@ class FlagtoolsMixin:
         demask=[],
         squeeze=[],
         handles_target=True,  # function defines a target parameter, so it needs to handle it
+        multivariate=True,
     )
     def transferFlags(
         self: "SaQC",
@@ -415,16 +423,8 @@ class FlagtoolsMixin:
            0   -inf   -inf   -inf
            1  255.0  255.0  255.0
         """
-        history = self._flags.history[field]
 
-        if target is None:
-            target = field
-
-        if overwrite is False:
-            mask = isflagged(self._flags[target], thresh=kwargs["dfilter"])
-            history._hist[mask] = np.nan
-
-        # append a dummy column
+        fields, targets, broadcasting = multivariateParameters(field, target)
         meta = {
             "func": f"transferFlags",
             "args": (),
@@ -437,15 +437,45 @@ class FlagtoolsMixin:
             },
         }
 
-        if squeeze:
-            flags = history.squeeze(raw=True)
-            # init an empty history to which we later append the squeezed flags
-            history = History(index=history.index)
-        else:
-            flags = pd.Series(np.nan, index=history.index, dtype=float)
+        for field, target in zip(fields, targets):
+            # initialize non existing targets
+            if target not in self._data:
+                self._data[target] = pd.Series(np.nan, index=self._data[field].index)
+                self._flags._data[target] = History(self._data[target].index)
+            if not self._data[field].index.equals(self._data[target].index):
+                raise ValueError(
+                    f"All Field and Target indices must match!\n"
+                    f"Indices of {field} and {target} seem to be not congruent within the context of the given\n"
+                    f"- fields: {fields}\n "
+                    f"- and targets: {targets}"
+                )
+            history = self._flags.history[field].copy(deep=True)
 
-        history.append(flags, meta)
-        self._flags.history[target].append(history)
+            if overwrite is False:
+                mask = isflagged(self._flags[target], thresh=kwargs["dfilter"])
+                history._hist[mask] = np.nan
+
+            if squeeze:
+                # add squeezed flags
+                flags = history.squeeze(raw=True)
+                history = History(index=history.index).append(flags, meta)
+            elif broadcasting is False:
+                # add an empty flags
+                flags = pd.Series(np.nan, index=history.index, dtype=float)
+                history.append(flags, meta)
+            # else:
+            #    broadcasting -> multiple fields will be written to one target
+            #    only add the fields' histories and add an empty column later
+
+            self._flags.history[target].append(history)
+
+        if broadcasting and not squeeze:
+            # add one final history column
+            # all targets are identical, if we broadcast fields -> target
+            target = targets[0]
+            history = self._flags.history[target]
+            flags = pd.Series(np.nan, index=history.index, dtype=float)
+            self._flags.history[target].append(flags, meta)
 
         return self
 

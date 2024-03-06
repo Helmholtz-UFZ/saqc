@@ -178,6 +178,49 @@ def test__groupOperation(field, target, expected, copy):
             assert (result._data[f] == result._data[t]).all(axis=None)
 
 
+def test_transferFlags():
+    qc = SaQC(
+        data=pd.DataFrame(
+            {"x": [0, 1, 2, 3], "y": [0, 11, 22, 33], "z": [0, 111, 222, 333]}
+        ),
+        flags=pd.DataFrame({"x": [B, U, U, B], "y": [B, B, U, U], "z": [B, B, U, B]}),
+    )
+
+    # no squueze
+    qc1 = qc.transferFlags("x", target="a")
+    assert qc1._history["a"].hist.iloc[:, :-1].equals(qc1._history["x"].hist)
+    assert qc1._history["a"].hist.iloc[:, -1].isna().all()
+
+    qc2 = qc.transferFlags(["x", "y"], target=["a", "b"])
+    assert qc2._history["a"].hist.iloc[:, :-1].equals(qc2._history["x"].hist)
+    assert qc2._history["a"].hist.iloc[:, -1].isna().all()
+    assert qc2._history["b"].hist.iloc[:, :-1].equals(qc2._history["y"].hist)
+    assert qc2._history["b"].hist.iloc[:, -1].isna().all()
+
+    # we use the overwrite option here for easy checking against the origin
+    # flags, because otherwise we would need to respect the inserted nan
+    qc3 = qc.transferFlags(["x", "y", "z"], target="a", overwrite=True)
+    assert qc3._history["a"].hist.iloc[:, 0].equals(qc3._history["x"].hist.squeeze())
+    assert qc3._history["a"].hist.iloc[:, 1].equals(qc3._history["y"].hist.squeeze())
+    assert qc3._history["a"].hist.iloc[:, 2].equals(qc3._history["z"].hist.squeeze())
+    assert qc3._history["a"].hist.iloc[:, -1].isna().all()
+
+    # squueze
+    qc1 = qc.transferFlags("x", target="a", squeeze=True)
+    assert qc1._history["a"].hist.equals(qc1._history["x"].hist)
+
+    qc2 = qc.transferFlags(["x", "y"], target=["a", "b"], squeeze=True)
+    assert qc2._history["a"].hist.equals(qc2._history["x"].hist)
+    assert qc2._history["b"].hist.equals(qc2._history["y"].hist)
+
+    # we use the overwrite option here for easy checking against the origin
+    # flags, because otherwise we would need to respect the inserted nan
+    qc3 = qc.transferFlags(["x", "y", "z"], target="a", overwrite=True, squeeze=True)
+    assert qc3._history["a"].hist.iloc[:, 0].equals(qc3._history["x"].hist.squeeze())
+    assert qc3._history["a"].hist.iloc[:, 1].equals(qc3._history["y"].hist.squeeze())
+    assert qc3._history["a"].hist.iloc[:, 2].equals(qc3._history["z"].hist.squeeze())
+
+
 @pytest.mark.parametrize(
     "f_data",
     [
