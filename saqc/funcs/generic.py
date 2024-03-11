@@ -77,10 +77,27 @@ def _execGeneric(
     return func(*cols)
 
 
+def _inferBroadcast(obj, trg_shape) -> pd.DataFrame:
+    # simple single value broadcasting
+    if pd.api.types.is_scalar(obj):
+        return np.full(trg_shape, obj)
+    return obj
+
+
+def _inferDF(obj, cols, index):
+    # infer dataframe if result is numpy array of fitting shape
+    if isinstance(obj, np.ndarray):
+        lc = len(cols)
+        li = len(index)
+        if (obj.shape == (li, lc)) or (obj.shape == (li,)):
+            return pd.DataFrame(obj, columns=cols, index=index)
+    return obj
+
+
 def _castResult(obj) -> DictOfSeries:
     # Note: the actual keys aka. column names
     # we use here to create a DictOfSeries
-    # are never used, and only exists temporary.
+    # are never used and only exist temporarily.
 
     if isinstance(obj, pd.Series):
         return DictOfSeries({"0": obj})
@@ -151,7 +168,10 @@ class GenericMixin:
         targets = fields if target is None else toSequence(target)
 
         dchunk, fchunk = self._data[fields].copy(), self._flags[fields].copy()
+        trg_idx = dchunk[dchunk.columns[0]].index
         result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
+        result = _inferBroadcast(result, (len(trg_idx), len(targets)))
+        result = _inferDF(result, cols=targets, index=trg_idx)
         result = _castResult(result)
 
         # update data & flags
@@ -231,7 +251,10 @@ class GenericMixin:
         dfilter = kwargs.get("dfilter", BAD)
 
         dchunk, fchunk = self._data[fields].copy(), self._flags[fields].copy()
+        trg_idx = dchunk[dchunk.columns[0]].index
         result = _execGeneric(fchunk, dchunk, func, dfilter=dfilter)
+        result = _inferBroadcast(result, (len(trg_idx), len(targets)))
+        result = _inferDF(result, cols=targets, index=trg_idx)
         result = _castResult(result)
 
         if len(result.columns) > 1 and len(targets) != len(result.columns):
