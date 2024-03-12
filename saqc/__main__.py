@@ -157,7 +157,7 @@ def main(
                 flagscol = flagscol.rename("flags")
             out[k] = pd.concat([data_result[k].rename("data"), flagscol], axis=1)
 
-        writeData(writer, out.to_pandas(), outfile)
+        writeData(writer, out.to_pandas(fill_value=-9999 if scheme == "positional" else np.nan), outfile)
 
 
 if __name__ == "__main__":
