@@ -12,6 +12,7 @@ import pandas as pd
 
 from saqc.constants import BAD, DOUBTFUL, GOOD, UNFLAGGED
 from saqc.core import Flags, History
+from saqc.core.frame import DictOfSeries
 from saqc.core.translation.basescheme import BackwardMap, ForwardMap, MappingScheme
 
 
@@ -73,7 +74,7 @@ class PositionalScheme(MappingScheme):
 
         return Flags(data)
 
-    def toExternal(self, flags: Flags, **kwargs) -> pd.DataFrame:
+    def toExternal(self, flags: Flags, **kwargs) -> DictOfSeries:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -84,9 +85,9 @@ class PositionalScheme(MappingScheme):
 
         Returns
         -------
-        pd.DataFrame
+        DictOfSeries
         """
-        out = {}
+        out = DictOfSeries()
         for field in flags.columns:
             thist = flags.history[field].hist.replace(self._BACKWARD).astype(float)
             # concatenate the single flag values
@@ -95,6 +96,6 @@ class PositionalScheme(MappingScheme):
             bases = 10 ** np.arange(ncols - 1, -1, -1)
 
             tflags = init + (thist * bases).sum(axis=1)
-            out[field] = tflags
+            out[field] = tflags.fillna(-9999).astype(int)
 
-        return pd.DataFrame(out).fillna(-9999).astype(int)
+        return out

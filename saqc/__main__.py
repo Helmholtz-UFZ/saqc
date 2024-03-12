@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from functools import partial
 from pathlib import Path
@@ -146,26 +145,19 @@ def main(
 
     saqc = cr.run()
 
-    data_result = saqc.data.to_pandas()
+    data_result = saqc.data
     flags_result = saqc.flags
-    if isinstance(flags_result, DictOfSeries):
-        flags_result = flags_result.to_pandas()
 
     if outfile:
-        data_result.columns = pd.MultiIndex.from_product(
-            [data_result.columns.tolist(), ["data"]]
-        )
 
-        if not isinstance(flags_result.columns, pd.MultiIndex):
-            flags_result.columns = pd.MultiIndex.from_product(
-                [flags_result.columns.tolist(), ["flags"]]
-            )
+        out = DictOfSeries()
+        for k in data_result.keys():
+            flagscol = flags_result[k]
+            if isinstance(flagscol, pd.Series):
+                flagscol = flagscol.rename("flags")
+            out[k] = pd.concat([data_result[k].rename("data"), flagscol], axis=1)
 
-        out = pd.concat([data_result, flags_result], axis=1).sort_index(
-            axis=1, level=0, sort_remaining=False
-        )
-
-        writeData(writer, out, outfile)
+        writeData(writer, out.to_pandas(), outfile)
 
 
 if __name__ == "__main__":

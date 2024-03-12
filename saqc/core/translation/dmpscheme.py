@@ -16,6 +16,7 @@ import pandas as pd
 
 from saqc import BAD, DOUBTFUL, GOOD, UNFLAGGED
 from saqc.core import Flags, History
+from saqc.core.frame import DictOfSeries
 from saqc.core.translation.basescheme import BackwardMap, ForwardMap, MappingScheme
 from saqc.lib.tools import getUnionIndex
 
@@ -115,7 +116,7 @@ class DmpScheme(MappingScheme):
 
     def toExternal(
         self, flags: Flags, attrs: dict | None = None, **kwargs
-    ) -> pd.DataFrame:
+    ) -> DictOfSeries:
         """
         Translate from 'internal flags' to 'external flags'
 
@@ -132,10 +133,7 @@ class DmpScheme(MappingScheme):
         """
         tflags = super().toExternal(flags, attrs=attrs)
 
-        out = pd.DataFrame(
-            index=getUnionIndex(tflags),
-            columns=pd.MultiIndex.from_product([flags.columns, _QUALITY_LABELS]),
-        )
+        out = DictOfSeries()
 
         for field in tflags.columns:
             df = pd.DataFrame(
@@ -163,13 +161,13 @@ class DmpScheme(MappingScheme):
                 df.loc[valid, "quality_comment"] = comment
                 df.loc[valid, "quality_cause"] = cause
 
-            out[field] = df.reindex(out.index)
+            out[field] = df
 
         self.validityCheck(out)
         return out
 
     @classmethod
-    def validityCheck(cls, df: pd.DataFrame) -> None:
+    def validityCheck(cls, dios: DictOfSeries) -> None:
         """
         Check wether the given causes and comments are valid.
 
@@ -178,21 +176,16 @@ class DmpScheme(MappingScheme):
         df : external flags
         """
 
-        cols = df.columns
-        if not isinstance(cols, pd.MultiIndex):
-            raise TypeError("DMP-Flags need multi-index columns")
+        for df in dios.values():
 
-        if not cols.get_level_values(1).isin(_QUALITY_LABELS).all(axis=None):
-            raise TypeError(
-                f"DMP-Flags expect the labels {list(_QUALITY_LABELS)} in the secondary level"
-            )
+            if not df.columns.isin(_QUALITY_LABELS).all(axis=None):
+                raise TypeError(
+                    f"DMP-Flags expect the labels {list(_QUALITY_LABELS)} in the secondary level"
+                )
 
-        for field in df.columns.get_level_values(0):
-            # we might have NaN injected by DictOfSeries -> DataFrame conversions
-            field_df = df[field].dropna(how="all", axis="index")
-            flags = field_df["quality_flag"]
-            causes = field_df["quality_cause"]
-            comments = field_df["quality_comment"]
+            flags = df["quality_flag"]
+            causes = df["quality_cause"]
+            comments = df["quality_comment"]
 
             if not flags.isin(cls._FORWARD.keys()).all(axis=None):
                 raise ValueError(

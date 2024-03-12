@@ -11,8 +11,8 @@ from fancy_collections import DictOfPandas
 
 
 class DictOfSeries(DictOfPandas):
-    _key_types = (str, int, float)
-    _value_types = (pd.Series,)
+    _key_types = (str, int, float, tuple)
+    _value_types = (pd.Series, pd.DataFrame)
 
     def __init__(self, *args, **kwargs):
         # data is needed to prevent an
@@ -34,13 +34,6 @@ class DictOfSeries(DictOfPandas):
     @attrs.setter
     def attrs(self, value: Mapping[Hashable, Any]) -> None:
         self._attrs = dict(value)
-
-    def flatten(self, promote_index: bool = False) -> DictOfSeries:
-        """
-        Return a copy.
-        DictOfPandas compatibility
-        """
-        return self.copy()
 
     def index_of(self, method="union") -> pd.Index:
         """Return an index with indices from all columns.

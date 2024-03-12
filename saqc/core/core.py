@@ -118,13 +118,13 @@ class SaQC(FunctionsMixin):
         self._attrs = dict(value)
 
     @property
-    def data(self) -> MutableMapping[str, pd.Series]:
+    def data(self) -> DictOfSeries:
         data = self._data
         data.attrs = self._attrs.copy()
         return data
 
     @property
-    def flags(self) -> MutableMapping[str, pd.Series]:
+    def flags(self) -> DictOfSeries:
         flags = self._scheme.toExternal(self._flags, attrs=self._attrs)
         flags.attrs = self._attrs.copy()
         return flags
