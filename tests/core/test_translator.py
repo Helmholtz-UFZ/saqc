@@ -101,17 +101,29 @@ def test_dmpTranslator():
         }
 
     assert (tflags["var1"]["quality_flag"] == "DOUBTFUL").all(axis=None)
-    assert (tflags["var1"]["quality_comment"] == '{"test": "flagBar", "comment": "I did it"}').all(axis=None)
+    assert (
+        tflags["var1"]["quality_comment"]
+        == '{"test": "flagBar", "comment": "I did it"}'
+    ).all(axis=None)
 
     assert (tflags["var1"]["quality_cause"] == "OTHER").all(axis=None)
 
     assert (tflags["var2"]["quality_flag"] == "BAD").all(axis=None)
-    assert (tflags["var2"]["quality_comment"] == '{"test": "flagFoo", "comment": ""}').all(axis=None)
+    assert (
+        tflags["var2"]["quality_comment"] == '{"test": "flagFoo", "comment": ""}'
+    ).all(axis=None)
     assert (tflags["var2"]["quality_cause"] == "BELOW_OR_ABOVE_MIN_MAX").all(axis=None)
 
-    assert (tflags["var3"].loc[flags["var3"] == BAD, "quality_comment"] == '{"test": "unknown", "comment": ""}').all(axis=None)
-    assert (tflags["var3"].loc[flags["var3"] == BAD, "quality_cause"] == "OTHER").all(axis=None)
-    assert (tflags["var3"].loc[flags["var3"] == UNFLAGGED, "quality_cause"] == "").all(axis=None)
+    assert (
+        tflags["var3"].loc[flags["var3"] == BAD, "quality_comment"]
+        == '{"test": "unknown", "comment": ""}'
+    ).all(axis=None)
+    assert (tflags["var3"].loc[flags["var3"] == BAD, "quality_cause"] == "OTHER").all(
+        axis=None
+    )
+    assert (tflags["var3"].loc[flags["var3"] == UNFLAGGED, "quality_cause"] == "").all(
+        axis=None
+    )
 
 
 def test_positionalTranslator():
@@ -161,14 +173,24 @@ def test_dmpTranslatorIntegration():
     qcause = pd.DataFrame({k: v["quality_cause"] for k, v in flags.items()})
 
     assert qflags.isin(scheme._forward.keys()).all(axis=None)
-    assert qfunc.map(lambda v: json.loads(v)["test"] if v else "").isin({"", "flagMissing", "flagRange"}).all(axis=None)
+    assert (
+        qfunc.map(lambda v: json.loads(v)["test"] if v else "")
+        .isin({"", "flagMissing", "flagRange"})
+        .all(axis=None)
+    )
     assert (qcause[qflags[col] == "BAD"] == "OTHER").all(axis=None)
 
     round_trip = scheme.toExternal(scheme.toInternal(flags))
 
-    assert pd.DataFrame({k: v["quality_flag"] for k, v in round_trip.items()}).equals(qflags)
-    assert pd.DataFrame({k: v["quality_comment"] for k, v in round_trip.items()}).equals(qfunc)
-    assert pd.DataFrame({k: v["quality_cause"] for k, v in round_trip.items()}).equals(qcause)
+    assert pd.DataFrame({k: v["quality_flag"] for k, v in round_trip.items()}).equals(
+        qflags
+    )
+    assert pd.DataFrame(
+        {k: v["quality_comment"] for k, v in round_trip.items()}
+    ).equals(qfunc)
+    assert pd.DataFrame({k: v["quality_cause"] for k, v in round_trip.items()}).equals(
+        qcause
+    )
 
 
 def test_dmpValidCombinations():

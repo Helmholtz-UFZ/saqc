@@ -64,12 +64,7 @@ DMP = [
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "scheme, expected",
-    [
-        # ("float", FLOAT),
-        # ("simple", SIMPLE),
-        ("positional", POSITIONAL),
-        # ("dmp", DMP)
-    ],
+    [("float", FLOAT), ("simple", SIMPLE), ("positional", POSITIONAL), ("dmp", DMP)],
 )
 def test__main__py(tmp_path, scheme, expected):
     import saqc.__main__
