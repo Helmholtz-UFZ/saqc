@@ -52,7 +52,7 @@ def test_flagRange(data, field):
     assert all(flagged == expected)
 
 
-def test_flagSeasonalRange(data, field):
+def test_selectTime(data, field):
     data[field].iloc[::2] = 0
     data[field].iloc[1::2] = 50
     nyears = len(data[field].index.year.unique())

@@ -33,7 +33,7 @@ def test_flagMad(spiky_data):
     field, *_ = data.columns
     flags = initFlagsLike(data)
     qc = SaQC(data, flags).flagZScore(
-        field, window="1H", method="modified", thresh=3.5, flag=BAD
+        field, window="1h", method="modified", thresh=3.5, flag=BAD
     )
     flag_result = qc.flags[field]
     test_sum = (flag_result.iloc[spiky_data[1]] == BAD).sum()
