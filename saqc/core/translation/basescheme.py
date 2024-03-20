@@ -148,7 +148,8 @@ class MappingScheme(TranslationScheme):
         out = DictOfSeries()
         expected = pd.Index(trans_map.values())
         for field in flags.columns:
-            out[field] = flags[field].replace(trans_map)
+            with pd.option_context("future.no_silent_downcasting", True):
+                out[field] = flags[field].replace(trans_map).infer_objects()
             diff = pd.Index(out[field]).difference(expected)
             if not diff.empty:
                 raise ValueError(
