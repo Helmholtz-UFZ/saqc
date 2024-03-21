@@ -19,6 +19,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `plot`: added `yscope` keyword
 - `setFlags`: function to replace `flagManual`
 - `flagUniLOF`: added defaultly applied correction to mitigate phenomenon of overflagging at relatively steep data value slopes. (parameter `slope_correct`).
+- `History`: added option to change aggregation behavior
 ### Changed
 ### Removed
 ### Fixed
