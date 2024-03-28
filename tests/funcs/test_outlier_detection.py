@@ -52,6 +52,7 @@ def test_flagSpikesBasic(spiky_data):
     assert test_sum == len(spiky_data[1])
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.slow
 @pytest.mark.parametrize("dat", ["course_1", "course_2", "course_3", "course_4"])
 def test_flagSpikesLimitRaise(dat, request):
@@ -113,7 +114,7 @@ def test_grubbs(course_3):
         out_val=-10,
     )
     flags = initFlagsLike(data)
-    qc = SaQC(data, flags).flagByGrubbs("data", window=20, min_periods=15, flag=BAD)
+    qc = SaQC(data, flags).flagUniLOF("data", density=0.4)
     assert np.all(qc.flags["data"][char_dict["drop"]] > UNFLAGGED)
 
 
