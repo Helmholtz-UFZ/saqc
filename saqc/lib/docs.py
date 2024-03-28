@@ -4,9 +4,15 @@
 
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import TypedDict
 
-from docstring_parser import DocstringParam, DocstringReturns, compose, parse
+from docstring_parser import (
+    DocstringParam,
+    DocstringReturns,
+    DocstringStyle,
+    compose,
+    parse,
+)
 
 
 class ParamDict(TypedDict):
@@ -50,18 +56,17 @@ COMMON = {
 }
 
 
-class FunctionParam(DocstringParam):
-    def __init__(
-        self, name: str, typehint: str, description: str, optional: bool = False
-    ):
-        super().__init__(
-            args=["param", name],
-            description=description,
-            arg_name=name,
-            type_name=typehint,
-            is_optional=optional,
-            default=None,
-        )
+def toParameter(
+    name: str, typehint: str, description: str, optional: bool = False
+) -> DocstringParam:
+    return DocstringParam(
+        args=["param", name],
+        description=description,
+        arg_name=name,
+        type_name=typehint,
+        is_optional=optional,
+        default=None,
+    )
 
 
 def docurator(func, defaults: dict[str, ParamDict] | None = None):
@@ -76,7 +81,7 @@ def docurator(func, defaults: dict[str, ParamDict] | None = None):
         return_name="SaQC",
     )
 
-    tree = parse(func.__doc__)
+    tree = parse(func.__doc__, style=DocstringStyle.NUMPYDOC)
 
     if tree.returns:
         raise ValueError(
@@ -84,7 +89,7 @@ def docurator(func, defaults: dict[str, ParamDict] | None = None):
         )
 
     # rewrite parameters
-    meta = [FunctionParam(**{**COMMON["field"], **defaults.get("field", {})})]
+    meta = [toParameter(**{**COMMON["field"], **defaults.get("field", {})})]
     for p in tree.params:
         if p.arg_name in COMMON:
             raise ValueError(
@@ -94,7 +99,7 @@ def docurator(func, defaults: dict[str, ParamDict] | None = None):
 
     # additional parameters
     for p in ("target", "dfilter", "flag"):
-        meta.append(FunctionParam(**{**COMMON[p], **defaults.get(p, {})}))
+        meta.append(toParameter(**{**COMMON[p], **defaults.get(p, {})}))
 
     # return sections
     meta.append(docstring_return)
@@ -107,4 +112,5 @@ def docurator(func, defaults: dict[str, ParamDict] | None = None):
     tree.meta = meta
 
     func.__doc__ = compose(tree)
+
     return func
