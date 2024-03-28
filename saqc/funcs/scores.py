@@ -180,7 +180,7 @@ class ScoresMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Score datapoints by an aggregation of the dictances to their k nearest neighbors.
+        Score datapoints by an aggregation of the distances to their `k` nearest neighbors.
 
         The function is a wrapper around the NearestNeighbors method from pythons sklearn library (See reference [1]).
 
@@ -300,10 +300,10 @@ class ScoresMixin:
         Parameters
         ----------
         window :
-            Size of the window. Either determined via an Offset String, denoting the windows temporal extension or
-            by an integer, denoting the windows number of periods.
-            `NaN` measurements also count as periods.
-            If `None` is passed, All data points share the same scoring window, which than equals the whole
+            Size of the window. can be determined as:
+            * Offset String, denoting the windows temporal extension
+            * Integer, denoting the windows number of periods.
+            * `None` (default), All data points share the same scoring window, which than equals the whole
             data.
         model_func : default std
             Function to calculate the center moment in every window.
@@ -323,9 +323,9 @@ class ScoresMixin:
         containing the value :math:`y_{K}` wich is to be checked.
         (The index of :math:`K` depends on the selection of the parameter `center`.)
 
-        2. The "moment" :math:`M` for the window gets calculated via :math:`M=` `model_func(:math:`W`)
+        2. The "moment" :math:`M` for the window gets calculated via :math:`M=` model_func(:math:`W`)
 
-        3. The "scaling" :math:`N` for the window gets calculated via :math:`N=` `norm_func(:math:`W`)
+        3. The "scaling" :math:`N` for the window gets calculated via :math:`N=` norm_func(:math:`W`)
 
         4. The "score" :math:`S` for the point :math:`x_{k}`gets calculated via :math:`S=(x_{k} - M) / N`
         """
@@ -371,13 +371,6 @@ class ScoresMixin:
         n :
             Number of periods to be included into the LOF calculation. Defaults to `20`, which is a value found to be
             suitable in the literature.
-
-            * `n` determines the "locality" of an observation (its `n` nearest neighbors) and sets the upper limit of
-              values of an outlier clusters (i.e. consecutive outliers). Outlier clusters of size greater than `n/2`
-              may not be detected reliably.
-            * The larger `n`, the lesser the algorithm's sensitivity to local outliers and small or singleton outliers
-              points. Higher values greatly increase numerical costs.
-
         freq :
             Determines the segmentation of the data into partitions, the kNN algorithm is
             applied onto individually.
@@ -386,8 +379,18 @@ class ScoresMixin:
         p :
             Degree of the metric ("Minkowski"), according to wich distance to neighbors is determined.
             Most important values are:
+
             * `1` - Manhatten Metric
             * `2` - Euclidian Metric
+
+        Notes
+        -----
+
+        * `n` determines the "locality" of an observation (its `n` nearest neighbors) and sets the upper limit of
+          values of an outlier clusters (i.e. consecutive outliers). Outlier clusters of size greater than `n/2`
+          may not be detected reliably.
+        * The larger `n`, the lesser the algorithm's sensitivity to local outliers and small or singleton outliers
+          points. Higher values greatly increase numerical costs.
         """
         from saqc.funcs.outliers import OutliersMixin
 
@@ -464,6 +467,7 @@ class ScoresMixin:
         p :
             Degree of the metric ("Minkowski"), according to wich distance to neighbors is determined.
             Most important values are:
+
             * `1` - Manhatten Metric
             * `2` - Euclidian Metric
 
@@ -481,7 +485,7 @@ class ScoresMixin:
         -----
         Algorithm steps for uniLOF flagging of variable `x`:
 
-        1. The temporal density `dt(x)` is calculated according o the `density` parameter.
+        1. The temporal density `dt(x)` is calculated according to the `density` parameter.
         2. LOF scores `LOF(x)` are calculated for the concatenation [`x`, `dt(x)`]
         3. `x` is flagged where `LOF(x)` exceeds the threshold determined by the parameter `thresh`.
 

@@ -58,9 +58,11 @@ class NoiseMixin:
         ----------
         func :
             Either a String value, determining the aggregation function applied on every chunk.
+
             * 'std': standard deviation
             * 'var': variance
             * 'mad': median absolute deviation
+
             Or a Callable function mapping 1 dimensional arraylikes onto scalars.
 
         window :
@@ -124,10 +126,12 @@ class NoiseMixin:
         Parameters
         ----------
         func :
-            Either a string, determining the aggregation function applied on every chunk
+            Either a string, determining the aggregation function applied on every chunk:
+
             * 'std': standard deviation
             * 'var': variance
             * 'mad': median absolute deviation
+
             Or a Callable, mapping 1 dimensional array likes onto scalars.
 
         window :
