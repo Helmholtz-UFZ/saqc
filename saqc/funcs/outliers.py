@@ -98,9 +98,7 @@ class OutliersMixin:
             * The "automatic" threshing introduced with the publication
               of the algorithm defaults to ``1.5``.
             * In this implementation, :py:attr:`thresh` defaults (``'auto'``)
-              to flagging the scores with a modified 3-sigma rule, resulting
-              in a :py:attr:`thresh` `` > 1.5`` which usually mitigates
-              over-flagging compared to the literature recommendation.
+              to flagging the scores with a modified 3-sigma rule.
 
         algorithm :
             Algorithm used for calculating the :py:attr:`n`-nearest neighbors.
@@ -234,6 +232,7 @@ class OutliersMixin:
         p :
             Degree of the metric ("Minkowski"), according to which distance
             to neighbors is determined. Most important values are:
+
             * ``1`` - Manhatten Metric
             * ``2`` - Euclidian Metric
 
@@ -257,11 +256,6 @@ class OutliersMixin:
             If set, only those outlier cluster will be flagged, that are preceeded and succeeeded
             by sufficiently large value "jumps". Defaults to estimating the sufficient value jumps from
             the median over the absolute step sizes between data points.
-
-        See Also
-        --------
-        :ref:`introduction to outlier detection with
-            saqc <cookbooks/OutlierDetection:Outlier Detection>`
 
         Notes
         -----
@@ -356,6 +350,9 @@ class OutliersMixin:
            qc = qc.flagUniLOF('sac254_raw')
            qc.plot('sac254_raw')
 
+        See also
+        --------
+        :ref:`introduction to outlier detection with saqc <cookbooks/OutlierDetection:Outlier Detection>`
         """
         self._validateLOF(algorithm, n, p, density)
         if thresh != "auto" and not isFloatLike(thresh):
@@ -1030,6 +1027,7 @@ class OutliersMixin:
 
         Values :math:`x_n, x_{n+1}, .... , x_{n+k}` of a timeseries :math:`x` with
         associated timestamps :math:`t_n, t_{n+1}, .... , t_{n+k}` are considered spikes, if:
+
         1. :math:`|x_{n-1} - x_{n + s}| >` :py:attr:`thresh`, for all :math:`s \\in [0,1,2,...,k]`
         2. if :py:attr:`thresh_relative` > 0, :math:`x_{n + s} > x_{n - 1}*(1+` :py:attr:`thresh_relative` :math:`)`
         3. if :py:attr:`thresh_relative` < 0, :math:`x_{n + s} < x_{n - 1}*(1+` :py:attr:`thresh_relative` :math:`)`

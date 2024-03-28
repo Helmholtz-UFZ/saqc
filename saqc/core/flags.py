@@ -66,7 +66,7 @@ class Flags:
         once was set in this object, but in the most cases this is irrelevant. For simplicity one can safely assume,
         that this class works just stores the flag-series one sets.
 
-    See Also
+    See also
     --------
     initFlagsLike : create a Flags instance, with same dimensions as a reference object.
     History : class that actually store the flags
@@ -433,7 +433,7 @@ class Flags:
         history : History
             Accessor for the flags history
 
-        See Also
+        See also
         --------
         saqc.core.History : History storage class.
         """

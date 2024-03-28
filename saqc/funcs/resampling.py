@@ -209,11 +209,11 @@ class ResamplingMixin:
         ``method``. The following methods are available:
 
         * ``'nagg'``: all values in the range (+/- `freq`/2) of a grid point get
-            aggregated with func and assigned to it.
+          aggregated with func and assigned to it.
         * ``'bagg'``: all values in a sampling interval get aggregated with func and
-            the result gets assigned to the last grid point.
+          the result gets assigned to the last grid point.
         * ``'fagg'``: all values in a sampling interval get aggregated with func and
-            the result gets assigned to the next grid point.
+          the result gets assigned to the next grid point.
 
         Note
         ----
@@ -236,8 +236,8 @@ class ResamplingMixin:
             succeeding or "surrounding" interval). See description above for more details.
 
         maxna :
-            Maximum number of allowed ``NaN``s in a resampling interval. If exceeded, the
-            entire interval is filled with ``NaN``.
+            Maximum number of allowed NaN values in a resampling interval. If exceeded, the
+            entire interval is filled with NaN.
 
         maxna_group :
             Same as `maxna` but for consecutive NaNs.

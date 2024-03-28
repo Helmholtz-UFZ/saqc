@@ -93,10 +93,9 @@ class BreaksMixin:
         timestamps :math:`t_k,t_{k+1},...,t_{k+n}`, is considered to be isolated, if:
 
         1. :math:`t_{k+1} - t_n <` `group_window`
-        2. None of the :math:`x_j` with :math:`0 < t_k - t_j <` `gap_window`,
-            is valid (preceeding gap).
-        3. None of the :math:`x_j` with :math:`0 < t_j - t_(k+n) <` `gap_window`,
-            is valid (succeding gap).
+        2. None of the :math:`x_j` with :math:`0 < t_k - t_j <` `gap_window`, is valid (preceding gap).
+        3. None of the :math:`x_j` with :math:`0 < t_j - t_(k+n) <` `gap_window`, is valid (succeeding gap).
+
         """
         validateWindow(gap_window, name="gap_window", allow_int=False)
         validateWindow(group_window, name="group_window", allow_int=False)
@@ -146,7 +145,7 @@ class BreaksMixin:
         Flag data where the mean of its values significantly changes (where the data "jumps" from one
         value level to another).
         Value changes are detected by comparing the mean for two adjacent rolling windows. Whenever
-        the difference between the mean in the two windows exceeds py:attr:`thresh`, the value between
+        the difference between the mean in the two windows exceeds :py:attr:`thresh` , the value between
         the windows is flagged.
 
         Parameters
@@ -160,10 +159,10 @@ class BreaksMixin:
             samples for a reliable mean calculation, but it should also not be arbitrarily big, since
             it also limits the density of jumps that can be detected.
             More precisely: Jumps that are not distanced to each other by more than three fourth (3/4)
-            of the selected py:attr:`window` size, will not be detected reliably.
+            of the selected :py:attr:`window` size, will not be detected reliably.
 
         min_periods :
-            The minimum number of observations in py:attr:`window` required to calculate a valid mean value.
+            The minimum number of observations in :py:attr:`window` required to calculate a valid mean value.
 
         Examples
         --------

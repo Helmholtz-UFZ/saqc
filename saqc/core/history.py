@@ -45,7 +45,7 @@ class History:
     index: pd.Index
         A index that fit the flags to be insert.
 
-    See Also
+    See also
     --------
     createHistoryFromData: function to create History from existing data
     """
