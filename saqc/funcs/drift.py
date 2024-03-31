@@ -11,13 +11,12 @@ from __future__ import annotations
 import functools
 import inspect
 import warnings
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Callable, Literal, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
-from typing_extensions import Literal
 
 from saqc import BAD
 from saqc.core import DictOfSeries, Flags, flagging, register
