@@ -5,5 +5,5 @@
 beautifulsoup4==4.12.3
 hypothesis==6.98.15
 Markdown==3.5.2
-pytest==8.0.2
+pytest==8.1.1
 requests==2.31.0
