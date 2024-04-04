@@ -47,7 +47,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://git.ufz.de/rdm-software/saqc",
     packages=find_packages(exclude=("tests", "docs")),
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=[
         "Click",
         "dtw",
