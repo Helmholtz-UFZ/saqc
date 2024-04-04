@@ -450,7 +450,7 @@ def flagging(**kwargs):
     For full control over masking, demasking and squeezing or to implement
     a multivariate function (multiple in- or outputs) use the `@register` decorator.
 
-    See Also
+    See also
     --------
         resister: generalization of of this function
     """
@@ -472,7 +472,7 @@ def processing(**kwargs):
     For full control over masking, demasking and squeezing or to implement
     a multivariate function (multiple in- or outputs) use the `@register` decorator.
 
-    See Also
+    See also
     --------
         resister: generalization of of this function
     """

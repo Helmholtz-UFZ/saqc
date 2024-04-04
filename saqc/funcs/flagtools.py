@@ -37,6 +37,10 @@ class FlagtoolsMixin:
     def flagDummy(self: "SaQC", field: str, **kwargs) -> "SaQC":
         """
         Function does nothing but returning data and flags.
+
+        Parameters
+        ----------
+
         """
         return self
 
@@ -45,10 +49,14 @@ class FlagtoolsMixin:
         """
         Set whole column to a flag value.
 
-        See Also
+        Parameters
+        ----------
+
+        See also
         --------
         clearFlags : set whole column to UNFLAGGED
         flagUnflagged : set flag value at all unflagged positions
+
         """
         self._flags[:, field] = flag
         return self
@@ -56,7 +64,7 @@ class FlagtoolsMixin:
     @register(mask=[], demask=[], squeeze=["field"])
     def clearFlags(self: "SaQC", field: str, **kwargs) -> "SaQC":
         """
-        Set whole column to UNFLAGGED.
+        Assign UNFLAGGED value to all periods in field.
 
         Notes
         -----
@@ -65,7 +73,7 @@ class FlagtoolsMixin:
         A warning is triggered if the ``flag`` keyword is given, because
         the flags are always set to `UNFLAGGED`.
 
-        See Also
+        See also
         --------
         forceFlags : set whole column to a flag value
         flagUnflagged : set flag value at all unflagged positions
@@ -83,16 +91,21 @@ class FlagtoolsMixin:
         """
         Function sets a flag at all unflagged positions.
 
-        See Also
-        --------
-        clearFlags : set whole column to UNFLAGGED
-        forceFlags : set whole column to a flag value
+        Parameters
+        ----------
 
         Notes
         -----
         This function ignores the ``dfilter`` keyword, because the
         data is not relevant for processing.
+
+        See also
+        --------
+        clearFlags : set whole column to UNFLAGGED
+        forceFlags : set whole column to a flag value
+
         """
+
         unflagged = self._flags[field].isna() | (self._flags[field] == UNFLAGGED)
         self._flags[unflagged, field] = flag
         return self
@@ -376,16 +389,15 @@ class FlagtoolsMixin:
         """
         Transfer Flags of one variable to another.
 
+        Parameters
+        ----------
+
         squeeze :
             Squeeze the history into a single column if ``True``, function specific flag information is lost.
 
         overwrite :
             Overwrite existing flags if ``True``.
 
-        See Also
-        --------
-        * :py:meth:`saqc.SaQC.flagGeneric`
-        * :py:meth:`saqc.SaQC.concatFlags`
 
         Examples
         --------
@@ -422,6 +434,12 @@ class FlagtoolsMixin:
                   a      b      c
            0   -inf   -inf   -inf
            1  255.0  255.0  255.0
+
+        See also
+        --------
+        * :py:meth:`saqc.SaQC.flagGeneric`
+        * :py:meth:`saqc.SaQC.concatFlags`
+
         """
 
         fields, targets, broadcasting = multivariateParameters(field, target)
@@ -617,7 +635,7 @@ class FlagtoolsMixin:
         ----------
         group:
             A collection of ``SaQC`` objects. Flag checks are performed on all ``SaQC`` objects
-            based on the variables specified in :py:attr:`field`. Whenever all monitored variables
+            based on the variables specified in ``field``. Whenever all monitored variables
             are flagged, the associated timestamps will receive a flag.
         """
         return _groupOperation(

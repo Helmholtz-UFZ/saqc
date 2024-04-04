@@ -11,13 +11,12 @@ from __future__ import annotations
 import functools
 import inspect
 import warnings
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Callable, Literal, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 from scipy.spatial.distance import pdist
-from typing_extensions import Literal
 
 from saqc import BAD
 from saqc.core import DictOfSeries, Flags, flagging, register
@@ -310,13 +309,16 @@ class DriftMixin:
 
         Linear drift modell (no free parameters).
 
+        .. doctest::
 
-        >>> Model = lambda t, origin, target: origin + t*target
+            >>> Model = lambda t, origin, target: origin + t*target
 
         exponential drift model (exponential raise!)
 
-        >>> expFunc = lambda t, a, b, c: a + b * (np.exp(c * x) - 1)
-        >>> Model = lambda t, p, origin, target: expFunc(t, (target - origin) / (np.exp(abs(c)) - 1), abs(c))
+        .. doctest::
+
+            >>> expFunc = lambda t, a, b, c: a + b * (np.exp(c * x) - 1)
+            >>> Model = lambda t, p, origin, target: expFunc(t, (target - origin) / (np.exp(abs(c)) - 1), abs(c))
 
         Exponential and linear driftmodels are part of the ``ts_operators`` library, under the names
         ``expDriftModel`` and ``linearDriftModel``.

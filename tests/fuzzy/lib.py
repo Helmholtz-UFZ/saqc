@@ -104,13 +104,13 @@ def daterangeIndexes(draw, min_size=0, max_size=100):
     max_date = pd.Timestamp("2099-12-31").to_pydatetime()
     start = draw(datetimes(min_value=min_date, max_value=max_date))
     periods = draw(integers(min_value=min_size, max_value=max_size))
-    freq = draw(sampled_from(["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"]))
+    freq = draw(sampled_from(["D", "h", "min", "s", "ms", "us", "ns"]))
     return pd.date_range(start, periods=periods, freq=freq)
 
 
 @composite
 def frequencyStrings(draw, _):
-    freq = draw(sampled_from(["D", "H", "T", "min", "S", "L", "ms", "U", "us", "N"]))
+    freq = draw(sampled_from(["D", "h", "min", "s", "ms", "us", "ns"]))
     mult = draw(integers(min_value=1, max_value=10))
     value = f"{mult}{freq}"
     return value

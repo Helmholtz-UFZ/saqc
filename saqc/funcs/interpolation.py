@@ -205,11 +205,11 @@ class InterpolationMixin:
             * ‘index’, ‘values’: Use the actual numerical values of the index.
             * ‘pad’: Fill in NaNs using existing values.
             * ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘spline’, ‘barycentric’, ‘polynomial’:
-                 Passed to scipy.interpolate.interp1d. These methods use the numerical values of the index.
-                 Both ‘polynomial’ and ‘spline’ require that you also specify an order (int), e.g.
-                 ``qc.interpolate(method='polynomial', order=5)``.
+              Passed to scipy.interpolate.interp1d. These methods use the numerical values of the index.
+              Both ‘polynomial’ and ‘spline’ require that you also specify an order (int), e.g.
+              ``qc.interpolate(method='polynomial', order=5)``.
             * ‘krogh’, ‘spline’, ‘pchip’, ‘akima’, ‘cubicspline’:
-                 Wrappers around the SciPy interpolation methods of similar names.
+              Wrappers around the SciPy interpolation methods of similar names.
             * ‘from_derivatives’: Refers to scipy.interpolate.BPoly.from_derivatives
 
         order :
@@ -375,32 +375,32 @@ class InterpolationMixin:
         method :
             Interpolation technique to use. One of:
 
-            * ``'nshift'``: shift grid points to the nearest time stamp
-                in the range = +/- 0.5 * ``freq``
-            * ``'bshift'``: shift grid points to the first succeeding
-                time stamp (if any)
-            * ``'fshift'``: shift grid points to the last preceeding time
-                stamp (if any)
+            * ``'nshift'``: Shift grid points to the nearest time stamp
+              in the range = +/- 0.5 * ``freq``.
+            * ``'bshift'``: Shift grid points to the first succeeding
+              time stamp (if any).
+            * ``'fshift'``: Shift grid points to the last preceeding time
+              stamp (if any).
             * ``'linear'``: Ignore the index and treat the values as equally
-                spaced.
-            * ``'time'``, ``'index'``, 'values': Use the actual numerical
-                values of the index.
+              spaced.
+            * ``'time'``, ``'index'``, ``'values'``: Use the actual numerical
+              values of the index.
             * ``'pad'``: Fill in NaNs using existing values.
             * ``'spline'``, ``'polynomial'``:
-                Passed to ``scipy.interpolate.interp1d``. These methods
-                use the numerical values of the index.  An ``order`` must be
-                specified, e.g. ``qc.interpolate(method='polynomial', order=5)``.
+              Passed to ``scipy.interpolate.interp1d``. These methods
+              use the numerical values of the index.  An ``order`` must be
+              specified, e.g. ``qc.interpolate(method='polynomial', order=5)``.
             * ``'nearest'``, ``'zero'``, ``'slinear'``, ``'quadratic'``, ``'cubic'``, ``'barycentric'``:
-                Passed to ``scipy.interpolate.interp1d``. These methods use
-                the numerical values of the index.
+              Passed to ``scipy.interpolate.interp1d``. These methods use
+              the numerical values of the index.
             * ``'krogh'``, ``'spline'``, ``'pchip'``, ``'akima'``, ``'cubicspline'``:
-                Wrappers around the SciPy interpolation methods of similar
-                names.
-            * ``'from_derivatives'``: Refers to ``scipy.interpolate.BPoly.from_derivatives``
+              Wrappers around the SciPy interpolation methods of similar
+              names.
+            * ``'from_derivatives'``: Refers to ``scipy.interpolate.BPoly.from_derivatives``.
 
         order :
             Order of the interpolation method, ignored if not supported
-            by the chosen ``method``
+            by the chosen ``method``.
 
         extrapolate :
             Use parameter to perform extrapolation instead of interpolation
@@ -411,7 +411,7 @@ class InterpolationMixin:
             * ``'both'`` - perform forward and backward extrapolation
 
         overwrite :
-           If set to True, existing flags will be cleared
+           If set to `True`, existing flags will be cleared.
         """
 
         # TODO:

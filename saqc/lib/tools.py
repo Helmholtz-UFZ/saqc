@@ -177,7 +177,24 @@ def periodicMask(
             x[e:e] = True
             return x
 
-    freq = "1" + "mmmhhhdddMMMYYY"[len(season_start)]
+    freq = (
+        "1",
+        "m",
+        "m",
+        "m",
+        "h",
+        "h",
+        "h",
+        "d",
+        "d",
+        "d",
+        "M",
+        "M",
+        "M",
+        "YE",
+        "YE",
+        "YE",
+    )[len(season_start)]
     out = mask.groupby(pd.Grouper(freq=freq)).transform(_selector)
     if invert:
         out = ~out

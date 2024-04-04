@@ -27,7 +27,7 @@ def calculateDistanceByDTW(
     The size of the rolling window is determined by the timespan defined
     by the first and last timestamp of the reference data's datetime index.
 
-    For details see the linked functions in the `See Also` section.
+    For details see the linked functions in the `See also` section.
 
     Parameters
     ----------
@@ -59,7 +59,7 @@ def calculateDistanceByDTW(
     The data must be regularly sampled, otherwise a ValueError is raised.
     NaNs in the data will be dropped before dtw distance calculation.
 
-    See Also
+    See also
     --------
     flagPatternByDTW : flag data by DTW
     """

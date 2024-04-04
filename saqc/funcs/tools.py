@@ -171,7 +171,13 @@ class ToolsMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Copy data and flags to a new name (preserve flags history).
+        Make a copy of the data and flags of `field`.
+
+        Parameters
+        ----------
+        overwrite :
+            overwrite target, if already existant.
+
         """
         if field == target:
             return self
@@ -235,8 +241,7 @@ class ToolsMixin:
         1. dublicate "field" in the input data (`copyField`)
         2. mask the dublicated data (this, `selectTime`)
         3. apply the tests you only want to be applied onto the masked data chunks (a saqc function)
-        4. project the flags, calculated on the dublicated and masked data onto the original field data
-            (`concateFlags` or `flagGeneric`)
+        4. project the flags, calculated on the dublicated and masked data onto the original field data (`concateFlags` or `flagGeneric`)
         5. drop the dublicated data (`dropField`)
 
         To see an implemented example, checkout flagSeasonalRange in the saqc.functions module
@@ -272,37 +277,52 @@ class ToolsMixin:
         Examples
         --------
         The `period_start` and `end` parameters provide a conveniant way to generate seasonal / date-periodic masks.
-        They have to be strings of the forms: "mm-ddTHH:MM:SS", "ddTHH:MM:SS" , "HH:MM:SS", "MM:SS" or "SS"
+        They have to be strings of the forms:
+
+        * "mm-ddTHH:MM:SS"
+        * "ddTHH:MM:SS"
+        * "HH:MM:SS"
+        * "MM:SS" or "SS"
+
         (mm=month, dd=day, HH=hour, MM=minute, SS=second)
         Single digit specifications have to be given with leading zeros.
         `period_start` and `seas   on_end` strings have to be of same length (refer to the same periodicity)
         The highest date unit gives the period.
         For example:
 
-        >>> start = "01T15:00:00"
-        >>> end = "13T17:30:00"
+        .. doctest::
+
+           >>> start = "01T15:00:00"
+           >>> end = "13T17:30:00"
 
         Will result in all values sampled between 15:00 at the first and  17:30 at the 13th of every month get masked
 
-        >>> start = "01:00"
-        >>> end = "04:00"
+        .. doctest::
+
+           >>> start = "01:00"
+           >>> end = "04:00"
 
         All the values between the first and 4th minute of every hour get masked.
 
-        >>> start = "01-01T00:00:00"
-        >>> end = "01-03T00:00:00"
+        .. doctest::
+
+           >>> start = "01-01T00:00:00"
+           >>> end = "01-03T00:00:00"
 
         Mask january and february of evcomprosed in theery year. masking is inclusive always, so in this case the mask will
         include 00:00:00 at the first of march. To exclude this one, pass:
 
-        >>> start = "01-01T00:00:00"
-        >>> end = "02-28T23:59:59"
+        .. doctest::
+
+           >>> start = "01-01T00:00:00"
+           >>> end = "02-28T23:59:59"
 
         To mask intervals that lap over a seasons frame, like nights, or winter, exchange sequence of season start and
         season end. For example, to mask night hours between 22:00:00 in the evening and 06:00:00 in the morning, pass:
 
-        >>> start = "22:00:00"
-        >>> end = "06:00:00"
+        >> start = "22:00:00"
+        >> end = "06:00:00"
+
         """
         validateChoice(mode, "mode", ["periodic", "selection_field"])
 
@@ -371,6 +391,7 @@ class ToolsMixin:
 
         mode :
            How to process multiple variables to be plotted:
+
            * `"oneplot"` : plot all variables with their flags in one axis (default)
            * `"subplots"` : generate subplot grid where each axis contains one variable plot with associated flags
            * `"biplot"` : plotting first and second variable in field against each other in a scatter plot  (point cloud).

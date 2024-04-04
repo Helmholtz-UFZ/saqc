@@ -13,12 +13,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - Option to change the flagging scheme after initialization
 - `flagByClick`: manually assign flags using a graphical user interface
 - `SaQC`: support for selection, slicing and setting of items by use of subscription on SaQC objects (e.g. `qc[key]` and `qc[key] = value`).
-   Selection works with single keys, collections of keys and string slices (e.g. `qc["a":"f"]`).  Values can be SaQC objects, pd.Series, 
+   Selection works with single keys, collections of keys and string slices (e.g. `qc["a":"f"]`).  Values can be SaQC objects, pd.Series,
    Iterable of Series and dict-like with series values.
 - `transferFlags` is a multivariate function
 - `plot`: added `yscope` keyword
 - `setFlags`: function to replace `flagManual`
-- `flagUniLOF`: added defaultly applied correction to mitigate phenomenon of overflagging at relatively steep data value slopes. (parameter `slope_correct`). 
+- `flagUniLOF`: added defaultly applied correction to mitigate phenomenon of overflagging at relatively steep data value slopes. (parameter `slope_correct`).
+- `History`: added option to change aggregation behavior
 ### Changed
 ### Removed
 ### Fixed
@@ -28,7 +29,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `SaQC._construct` : was not working for inherit classes (used hardcoded `SaQC` to construct a new instance).
 ### Deprecated
 - `flagManual` in favor of `setFlags`
-
+- `flagRaise` with delegation to better replacements `flagZScore`, `flagUniLOF`, `flagJumps` or `flagOffset`
+- `flagByGrubbs` with delegation to better replacements `flagZScore`, `flagUniLOF`s
 ## [2.5.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.1...v2.5.0)
 ### Added
