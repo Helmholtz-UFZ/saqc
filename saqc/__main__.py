@@ -161,7 +161,7 @@ def main(
             writer,
             out.to_pandas(
                 fill_value=-9999 if scheme == "positional" else np.nan,
-                squeeze_columns=False,
+                multiindex=True,
             ),
             outfile,
         )
