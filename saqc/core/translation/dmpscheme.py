@@ -69,29 +69,29 @@ class DmpScheme(MappingScheme):
     def __init__(self):
         super().__init__(forward=self._FORWARD, backward=self._BACKWARD)
 
-    def toHistory(self, field_flags: pd.DataFrame):
+    def toHistory(self, flags: pd.DataFrame):
         """
         Translate a single field of external ``Flags`` to a ``History``
         """
-        field_history = History(field_flags.index)
+        history = History(flags.index)
 
-        for (flag, cause, comment), values in field_flags.groupby(_QUALITY_LABELS):
+        for (flag, cause, comment), values in flags.groupby(_QUALITY_LABELS):
             try:
                 comment = json.loads(comment)
             except json.decoder.JSONDecodeError:
                 comment = {"test": "unknown", "comment": ""}
 
-            histcol = pd.Series(np.nan, index=field_flags.index)
-            histcol.loc[values.index] = self(flag)
+            column = pd.Series(np.nan, index=flags.index)
+            column.loc[values.index] = self(flag)
 
             meta = {
                 "func": comment["test"],
                 "kwargs": {"comment": comment["comment"], "cause": cause},
             }
-            field_history.append(histcol, meta=meta)
-        return field_history
+            history.append(column, meta=meta)
+        return history
 
-    def toInternal(self, df: pd.DataFrame) -> Flags:
+    def toInternal(self, flags: pd.DataFrame | DictOfSeries) -> Flags:
         """
         Translate from 'external flags' to 'internal flags'
 
@@ -105,12 +105,18 @@ class DmpScheme(MappingScheme):
         Flags object
         """
 
-        self.validityCheck(df)
+        self.validityCheck(flags)
 
         data = {}
 
-        for field in df.columns.get_level_values(0).drop_duplicates():
-            data[str(field)] = self.toHistory(df[field])
+        if isinstance(flags, pd.DataFrame):
+            fields = flags.columns.get_level_values(0).drop_duplicates()
+        else:
+            fields = flags.columns
+
+
+        for field in fields:
+            data[str(field)] = self.toHistory(flags[field])
 
         return Flags(data)
 
@@ -167,7 +173,7 @@ class DmpScheme(MappingScheme):
         return out
 
     @classmethod
-    def validityCheck(cls, dios: DictOfSeries) -> None:
+    def validityCheck(cls, flags: pd.DataFrame | DictOfSeries) -> None:
         """
         Check wether the given causes and comments are valid.
 
@@ -176,7 +182,7 @@ class DmpScheme(MappingScheme):
         df : external flags
         """
 
-        for df in dios.values():
+        for df in flags.values():
 
             if not df.columns.isin(_QUALITY_LABELS).all(axis=None):
                 raise TypeError(
