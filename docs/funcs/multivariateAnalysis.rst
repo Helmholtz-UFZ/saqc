@@ -12,7 +12,7 @@ Multivariate outlier detection.
 .. autosummary::
    :nosignatures:
 
-   ~SaQC.flagMVScores
    ~SaQC.flagCrossStatistics
    ~SaQC.flagLOF
+   ~SaQC.flagZScore
 
