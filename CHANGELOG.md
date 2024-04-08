@@ -21,6 +21,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `flagUniLOF`: added defaultly applied correction to mitigate phenomenon of overflagging at relatively steep data value slopes. (parameter `slope_correct`).
 - `History`: added option to change aggregation behavior
 ### Changed
+- `flagPattern` uses *fastdtw* package now to compute timeseries distances
 ### Removed
 ### Fixed
 - `flagConstants`: fixed flagging of rolling ramps
