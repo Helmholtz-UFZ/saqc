@@ -4,7 +4,7 @@
 
 Click==8.1.7
 docstring_parser==0.16
-dtw==1.4.0
+fastdtw==0.3.4
 matplotlib==3.8.3
 numpy==1.26.4
 outlier-utils==0.0.5
