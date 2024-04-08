@@ -8,6 +8,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.5.0...develop)
 ### Added
+- `reindex`: base reindexer function
 - `flagGeneric`, `processGeneric`: target broadcasting and numpy array support
 - `SaQC`: automatic translation of incoming flags
 - Option to change the flagging scheme after initialization
@@ -30,6 +31,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `SaQC._construct` : was not working for inherit classes (used hardcoded `SaQC` to construct a new instance).
 ### Deprecated
 - `flagManual` in favor of `setFlags`
+- `inverse_` + methodstring options for `concatFlags` parameter `method` deprecated in favor of `invert=True` setting
 - `flagRaise` with delegation to better replacements `flagZScore`, `flagUniLOF`, `flagJumps` or `flagOffset`
 - `flagByGrubbs` with delegation to better replacements `flagZScore`, `flagUniLOF`s
 - `flagMVScore` with delegation to manual application of the steps

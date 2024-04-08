@@ -53,6 +53,8 @@ INTERPOLATION_METHODS = Literal[
     "akima",
 ]
 
+DATA_REINDEXER = {"fshift": "last", "bshift": "first", "nshift": "first"}
+
 
 def _resampleOverlapping(data: pd.Series, freq: str, fill_value):
     """TODO: docstring needed"""
@@ -357,9 +359,8 @@ class InterpolationMixin:
         self: "SaQC",
         field: str,
         freq: str,
-        method: INTERPOLATION_METHODS = "time",
+        method: str = "time",
         order: int = 2,
-        extrapolate: Literal["forward", "backward", "both"] | None = None,
         overwrite: bool = False,
         **kwargs,
     ) -> "SaQC":
@@ -414,48 +415,25 @@ class InterpolationMixin:
            If set to `True`, existing flags will be cleared.
         """
 
-        # TODO:
-        # - should we keep `extrapolate`
-
         validateWindow(freq, "freq", allow_int=False)
         validateValueBounds(order, "order", left=0, strict_int=True)
-        validateChoice(
-            extrapolate, "extrapolate", ["forward", "backward", "both", None]
-        )
 
-        if self._data[field].empty:
-            return self
-
-        if method in ("fshift", "bshift", "nshift"):
-            datacol, history = _shift(
-                saqc=self, field=field, freq=freq, method=method, **kwargs
-            )
+        method = "fshift" if method == "pad" else method
+        if method in ["time", "linear"]:
+            data_agg_func = method
+            method = "mshift"
         else:
-            datacol, history = _interpolate(
-                saqc=self,
-                field=field,
-                freq=freq,
-                method=method,
-                order=order,
-                extrapolate=extrapolate,
-                dfilter=kwargs["dfilter"],
-            )
+            data_agg_func = DATA_REINDEXER.get(method, None)
 
-        meta = {
-            "func": "align",
-            "args": (field,),
-            "kwargs": {
-                "freq": freq,
-                "method": method,
-                "order": order,
-                "extrapolate": extrapolate,
-                **kwargs,
-            },
-        }
-        flagcol = pd.Series(UNFLAGGED if overwrite else np.nan, index=history.index)
-        history.append(flagcol, meta)
-        self._data[field] = datacol
-        self._flags.history[field] = history
+        self = self.reindex(
+            field,
+            index=freq,
+            tolerance=freq,
+            method=method,
+            override=overwrite,
+            data_aggregation=data_agg_func,
+            **kwargs,
+        )
         return self
 
     # ============================================================

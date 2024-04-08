@@ -272,14 +272,38 @@ def validationTrafo(data, max_nan_total, max_nan_consec, trafo=True):
         return value
 
 
-def isValid(data, max_nan_total=np.inf, max_nan_consec=np.inf):
+def isValid(
+    data: pd.Series, max_nan_total: int = None, max_nan_consec: int = None
+) -> bool:
     """
-    Operator wrapper around `validationTrafo` (returns scalar), meant to check if data chunks are valid with
-    regard to consecutive and total maximum number of invalid values (nan or flagged > flag)
+    The function checks for input data having not more than ``max_nan_total`` NaN values in total,
+    and not more than ``max_nan_consec`` consecutive NaN values.
+
+    Parameters
+    ----------
+    data :
+        input data Series to check
+
+    max_nan_total :
+        Total maximum number of NaN values allowed in `data` .
+
+    max_nan_consec :
+        Maximum chunk length of consecutive NaN values allowed in `data`.
+
+    Returns
+    -------
+    out :
+        False if ``data`` is conflicting with the NaN-limit conditions and True otherwise.
+
     """
-    return not validationTrafo(
-        np.isnan(data), max_nan_total, max_nan_consec, trafo=False
-    )
+    if (max_nan_total is not None) and (data.isna().sum() > max_nan_total):
+        return False
+    elif (max_nan_consec is not None) and (
+        data.rolling(max_nan_consec + 1, min_periods=max_nan_consec + 1).count().min()
+        == 0
+    ):
+        return False
+    return True
 
 
 def stdQC(data, max_nan_total=np.inf, max_nan_consec=np.inf):
@@ -364,8 +388,6 @@ def interpolateNANs(data, method, order=2, gap_limit=2, extrapolate=None):
 
     :return:
     """
-
-    # TODO: IMAO, this code desperately needs a refactoring/rewrite --palmb
 
     gap_check = np.nan if isinstance(gap_limit, str) else gap_limit
     data = pd.Series(data, copy=True)
@@ -562,6 +584,6 @@ def trueDailyMean(data):
     )
     rs = dat.resample("1D")
     res = rs.mean()
-    valid = rs.apply(func=isValid, **{"max_nan_consec": 3}).astype(bool)
+    valid = rs.apply(func=isValid, **{"max_nan_consec": 2}).astype(bool)
     res[~valid] = np.nan
     return res

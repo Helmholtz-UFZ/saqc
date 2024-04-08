@@ -97,7 +97,7 @@ def test_resample(course_5):
     qc = SaQC(data, flags).resample(
         field,
         "10min",
-        np.mean,
+        "mean",
         maxna=2,
         maxna_group=1,
     )
@@ -111,7 +111,7 @@ def test_interpolateGrid(course_5, course_3):
     data_grid, _ = course_3()
     data["grid"] = data_grid["data"]
     flags = initFlagsLike(data)
-    SaQC(data, flags).align("data", "1h", "time", grid_field="grid", limit=10)
+    SaQC(data, flags).align("data", "1h", "time")
 
 
 @pytest.mark.slow
