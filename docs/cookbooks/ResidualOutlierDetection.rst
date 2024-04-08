@@ -323,13 +323,13 @@ function:
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.roll(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D')
+   >>> qc = qc.roll(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D', min_periods=27)
 
 .. plot::
    :context: close-figs
    :include-source: False
 
-   qc = qc.roll(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D')
+   qc = qc.roll(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D', min_periods=27)
 
 Optimization by Decomposition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
