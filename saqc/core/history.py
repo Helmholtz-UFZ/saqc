@@ -54,6 +54,16 @@ class History:
         self._hist = pd.DataFrame(index=index)
         self._meta = []
 
+    def __getitem__(self, key) -> History:
+        if not isinstance(key, tuple):
+            # we got a single indexer like hist[3:-4]
+            key = (key, slice(None))
+        rows, cols = key
+        out = History(index=None)
+        out._hist = self._hist.iloc[rows, cols]
+        out._meta = self._meta[cols]
+        return out
+
     @property
     def hist(self):
         return self._hist.astype(float, copy=True)

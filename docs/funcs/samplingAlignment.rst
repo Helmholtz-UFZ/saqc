@@ -16,3 +16,4 @@ Sampling Alignment
    ~SaQC.concatFlags
    ~SaQC.interpolateIndex
    ~SaQC.resample
+   ~SaQC.reindex
