@@ -93,13 +93,17 @@ def test_flagMVScores(course_3):
     s2 = pd.Series(data=s2.values, index=s1.index)
     data = DictOfSeries(field1=s1, field2=s2)
     flags = initFlagsLike(data)
-    qc = SaQC(data, flags).flagMVScores(
-        field=fields,
-        trafo=np.log,
-        iter_start=0.95,
-        n=10,
-        flag=BAD,
+    qc = SaQC(data, flags)
+    qc = qc.processGeneric("field1", func=lambda x: np.log(x))
+    qc = qc.processGeneric("field2", func=lambda x: np.log(x))
+    qc = qc.assignKNNScore(
+        ["field1", "field2"],
+        target="kNNScores",
     )
+    qc = qc.flagByStray("kNNScores", iter_start=0.95)
+    qc = qc.transferFlags("kNNScores", target="field1")
+    qc = qc.transferFlags("kNNScores", target="field2")
+
     _check(fields, qc.flags, characteristics)
 
 

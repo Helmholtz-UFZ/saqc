@@ -32,6 +32,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `flagManual` in favor of `setFlags`
 - `flagRaise` with delegation to better replacements `flagZScore`, `flagUniLOF`, `flagJumps` or `flagOffset`
 - `flagByGrubbs` with delegation to better replacements `flagZScore`, `flagUniLOF`s
+- `flagMVScore` with delegation to manual application of the steps
 ## [2.5.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.1...v2.5.0)
 ### Added

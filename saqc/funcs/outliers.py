@@ -723,6 +723,17 @@ class OutliersMixin:
                 DeprecationWarning,
             )
 
+        warnings.warn(
+            """
+                FlagMVScores is deprecated and will be removed with Version 2.8.
+                To replicate the function, transform the different fields involved 
+                via explicit applications of some transformations, than calculate the 
+                kNN scores via `saqc.SaQC.assignkNScores` and finally assign the STRAY
+                algorithm via `saqc.SaQC.flagByStray`.
+                """,
+            DeprecationWarning,
+        )
+
         # Hint: checking is delegated to the called functions
 
         fields = toSequence(field)
