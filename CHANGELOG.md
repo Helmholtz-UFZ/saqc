@@ -29,6 +29,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `Flags`: add meta entry to imported flags
 - group operations were overwriting existing flags
 - `SaQC._construct` : was not working for inherit classes (used hardcoded `SaQC` to construct a new instance).
+- `processgeneric`: improved numpy function compatability
 ### Deprecated
 - `flagManual` in favor of `setFlags`
 - `inverse_` + methodstring options for `concatFlags` parameter `method` deprecated in favor of `invert=True` setting
