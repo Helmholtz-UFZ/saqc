@@ -521,9 +521,9 @@ class ScoresMixin:
         na_idx = na_bool_ser.index[na_bool_ser.values]
         # notna_bool = vals.notna()
         val_no = (~na_bool_ser).sum()
-        if 1 < val_no < n:
-            n = val_no
-        elif val_no <= 1:
+        if 2 < val_no <= n:
+            n = val_no - 2
+        elif val_no <= 2:
             return self
 
         d_var = d_var.drop(na_idx, axis=0).values
