@@ -33,7 +33,7 @@ setup(
     name=name,
     version=versioneer.get_version(),  # keep this line as it is
     cmdclass=versioneer.get_cmdclass(),  # keep this line as it is
-    author="Bert Palm, David Schaefer, Florian Gransee, Peter Luenenschloss",
+    author="David Schaefer, Bert Palm, Peter Luenenschloss",
     author_email="david.schaefer@ufz.de",
     description="A timeseries data quality control and processing tool/framework",
     long_description=long_description,
