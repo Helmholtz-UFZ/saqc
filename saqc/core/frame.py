@@ -147,6 +147,6 @@ Missing data locations are filled with NaN's
 or is dropped if `how='inner'`
 
 >>> di.to_pandas(how='inner')   # doctest: +NORMALIZE_WHITESPACE
-      a     b     c
-1  11.0  22.0  33.0
+    a   b   c
+1  11  22  33
 """
