@@ -10,7 +10,7 @@ from __future__ import annotations
 import pickle
 import tkinter as tk
 import warnings
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -24,7 +24,7 @@ from saqc.lib.checking import validateChoice
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.plotting import makeFig
 from saqc.lib.selectionGUI import MplScroller, SelectionOverlay
-from saqc.lib.tools import periodicMask, toSequence
+from saqc.lib.tools import periodicMask
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -138,7 +138,7 @@ class ToolsMixin:
             if not _TEST_MODE:
                 root.destroy()
         else:  # show figure if only overlay is used
-            plt.show(block=~_TEST_MODE)
+            plt.show(block=not _TEST_MODE)
             plt.rcParams["toolbar"] = "toolbar2"
 
         # disconnect mouse events when GUI is closed
@@ -329,7 +329,7 @@ class ToolsMixin:
         datcol_idx = self._data[field].index
 
         if mode == "periodic":
-            mask = periodicMask(datcol_idx, start, end, ~closed)
+            mask = periodicMask(datcol_idx, start, end, closed)
         elif mode == "selection_field":
             idx = self._data[selection_field].index.intersection(datcol_idx)
             mask = self._data[selection_field].loc[idx]
@@ -357,7 +357,7 @@ class ToolsMixin:
         mode: Literal["subplots", "oneplot"] | str = "oneplot",
         history: Literal["valid", "complete"] | list[str] | None = "valid",
         xscope: slice | str | None = None,
-        yscope: tuple | list[tuple] | dict = None,
+        yscope: tuple | list[tuple] | dict | None = None,
         store_kwargs: dict | None = None,
         ax: mpl.axes.Axes | None = None,
         ax_kwargs: dict | None = None,
