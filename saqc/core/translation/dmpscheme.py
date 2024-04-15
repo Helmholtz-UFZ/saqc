@@ -114,7 +114,6 @@ class DmpScheme(MappingScheme):
         else:
             fields = flags.columns
 
-
         for field in fields:
             data[str(field)] = self.toHistory(flags[field])
 
