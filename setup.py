@@ -28,13 +28,6 @@ if v["dirty"]:
         f"The repository you build is dirty. Please commit changes first {v}."
     )
 
-if "dev" in v["version"] and name == "saqc":
-    raise ValueError(
-        f"An saqc release must have version in the format X.Y.Z, "
-        f"which requires a git tag on the same commit. Please set "
-        f"a tag, then build again. {v}"
-    )
-
 
 setup(
     name=name,
