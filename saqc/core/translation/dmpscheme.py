@@ -76,6 +76,9 @@ class DmpScheme(MappingScheme):
         history = History(flags.index)
 
         for (flag, cause, comment), values in flags.groupby(_QUALITY_LABELS):
+            if cause == "" and comment == "":
+                continue
+
             try:
                 comment = json.loads(comment)
             except json.decoder.JSONDecodeError:
@@ -105,6 +108,9 @@ class DmpScheme(MappingScheme):
         Flags object
         """
 
+        if isinstance(flags, pd.DataFrame):
+            flags = DictOfSeries(flags)
+
         self.validityCheck(flags)
 
         data = {}
@@ -112,7 +118,7 @@ class DmpScheme(MappingScheme):
         if isinstance(flags, pd.DataFrame):
             fields = flags.columns.get_level_values(0).drop_duplicates()
         else:
-            fields = flags.columns
+            fields = flags.keys()
 
         for field in fields:
             data[str(field)] = self.toHistory(flags[field])
@@ -172,7 +178,7 @@ class DmpScheme(MappingScheme):
         return out
 
     @classmethod
-    def validityCheck(cls, flags: pd.DataFrame | DictOfSeries) -> None:
+    def validityCheck(cls, flags: DictOfSeries) -> None:
         """
         Check wether the given causes and comments are valid.
 
@@ -180,7 +186,6 @@ class DmpScheme(MappingScheme):
         ----------
         df : external flags
         """
-
         for df in flags.values():
 
             if not df.columns.isin(_QUALITY_LABELS).all(axis=None):
