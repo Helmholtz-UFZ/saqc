@@ -64,6 +64,9 @@ def _execGeneric(
         **ENVIRONMENT,
     }
 
+    # some function don't have a globals attribute (e.g. np.sum)
+    if not hasattr(func, "__globals__"):
+        func.__globals__ = {}
     func.__globals__.update(globs)
 
     if isinstance(data, pd.Series):

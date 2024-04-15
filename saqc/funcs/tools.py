@@ -10,7 +10,7 @@ from __future__ import annotations
 import pickle
 import tkinter as tk
 import warnings
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -24,7 +24,7 @@ from saqc.lib.checking import validateChoice
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.plotting import makeFig
 from saqc.lib.selectionGUI import MplScroller, SelectionOverlay
-from saqc.lib.tools import periodicMask, toSequence
+from saqc.lib.tools import periodicMask
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -138,7 +138,7 @@ class ToolsMixin:
             if not _TEST_MODE:
                 root.destroy()
         else:  # show figure if only overlay is used
-            plt.show(block=~_TEST_MODE)
+            plt.show(block=not _TEST_MODE)
             plt.rcParams["toolbar"] = "toolbar2"
 
         # disconnect mouse events when GUI is closed
@@ -329,7 +329,7 @@ class ToolsMixin:
         datcol_idx = self._data[field].index
 
         if mode == "periodic":
-            mask = periodicMask(datcol_idx, start, end, ~closed)
+            mask = periodicMask(datcol_idx, start, end, closed)
         elif mode == "selection_field":
             idx = self._data[selection_field].index.intersection(datcol_idx)
             mask = self._data[selection_field].loc[idx]
@@ -357,7 +357,7 @@ class ToolsMixin:
         mode: Literal["subplots", "oneplot"] | str = "oneplot",
         history: Literal["valid", "complete"] | list[str] | None = "valid",
         xscope: slice | str | None = None,
-        yscope: tuple | list[tuple] | dict = None,
+        yscope: tuple | list[tuple] | dict | None = None,
         store_kwargs: dict | None = None,
         ax: mpl.axes.Axes | None = None,
         ax_kwargs: dict | None = None,
@@ -475,36 +475,6 @@ class ToolsMixin:
         * Check/modify the module parameter `saqc.lib.plotting.SCATTER_KWARGS` to see/modify global marker defaults
         * Check/modify the module parameter `saqc.lib.plotting.PLOT_KWARGS` to see/modify global plot line defaults
         """
-        if history == "complete":
-            warnings.warn(
-                "Plotting with history='complete' is deprecated and will be removed in a future release (2.5)."
-                "To get access to an saqc variables complete flagging history and analyze or plot it in detail, use flags"
-                "history acces via `qc._flags.history[variable_name].hist` and a plotting library, such as pyplot.\n"
-                "Minimal Pseudo example, having a saqc.SaQC instance `qc`, holding a variable `'data1'`, "
-                "and having matplotlib.pyplot imported as `plt`:\n\n"
-                "plt.plot(data)\n"
-                "for f in qc._flags.history['data1'].hist \n"
-                "    markers = qc._flags.history['data1'].hist[f] > level \n"
-                "    markers=data[markers] \n"
-                "    plt.scatter(markers.index, markers.values) \n",
-                DeprecationWarning,
-            )
-
-        if "phaseplot" in kwargs:
-            warnings.warn(
-                'Parameter "phaseplot" is deprecated and will be removed in a future release (2.5). Assign to parameter "mode" instead. (plot(field, mode=phaseplot))',
-                DeprecationWarning,
-            )
-            mode = kwargs["phaseplot"]
-
-        if "cycleskip" in (ax_kwargs or {}):
-            warnings.warn(
-                'Passing "cycleskip" option with the "ax_kwargs" parameter is deprecated and will be removed in a future release (2.5). '
-                'The option now has to be passed with the "marker_kwargs" parameter',
-                DeprecationWarning,
-            )
-            marker_kwargs["cycleskip"] = ax_kwargs.pop("cycleskip")
-
         data, flags = self._data.copy(), self._flags.copy()
 
         level = kwargs.get("flag", UNFLAGGED)

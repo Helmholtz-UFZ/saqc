@@ -147,19 +147,19 @@ Rolling Mean
 ^^^^^^^^^^^^
 
 Easiest thing to do, would be, to apply some rolling mean
-model via the method :py:meth:`saqc.SaQC.roll`.
+model via the method :py:meth:`saqc.SaQC.rolling`.
 
 .. doctest:: exampleOD
 
    >>> import numpy as np
-   >>> qc = qc.roll(field='incidents', target='incidents_mean', func=np.mean, window='13D')
+   >>> qc = qc.rolling(field='incidents', target='incidents_mean', func=np.mean, window='13D')
 
 .. plot::
    :context:
    :include-source: False
 
    import numpy as np
-   qc = qc.roll(field='incidents', target='incidents_mean', func=np.mean, window='13D')
+   qc = qc.rolling(field='incidents', target='incidents_mean', func=np.mean, window='13D')
 
 The ``field`` parameter is passed the variable name, we want to calculate the rolling mean of.
 The ``target`` parameter holds the name, we want to store the results of the calculation to.
@@ -174,13 +174,13 @@ under the name ``np.median``. We just calculate another model curve for the ``"i
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.roll(field='incidents', target='incidents_median', func=np.median, window='13D')
+   >>> qc = qc.rolling(field='incidents', target='incidents_median', func=np.median, window='13D')
 
 .. plot::
    :context:
    :include-source: False
 
-   qc = qc.roll(field='incidents', target='incidents_median', func=np.median, window='13D')
+   qc = qc.rolling(field='incidents', target='incidents_median', func=np.median, window='13D')
 
 We chose another :py:attr:`target` value for the rolling *median* calculation, in order to not override our results from
 the previous rolling *mean* calculation.
@@ -318,18 +318,18 @@ for the point lying in the center of every window, we would define our function 
 
    z_score = lambda D: abs((D[14] - np.mean(D)) / np.std(D))
 
-And subsequently, use the :py:meth:`~saqc.SaQC.roll` method to make a rolling window application with the scoring
+And subsequently, use the :py:meth:`~saqc.SaQC.rolling` method to make a rolling window application with the scoring
 function:
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.roll(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D')
+   >>> qc = qc.rolling(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D', min_periods=27)
 
 .. plot::
    :context: close-figs
    :include-source: False
 
-   qc = qc.roll(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D')
+   qc = qc.rolling(field='incidents_residuals', target='incidents_scores', func=z_score, window='27D', min_periods=27)
 
 Optimization by Decomposition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -347,13 +347,13 @@ So the attempt works fine, only because our data set is small and strictly regul
 Meaning that it has constant temporal distances between subsequent meassurements.
 
 In order to tweak our calculations and make them much more stable, it might be useful to decompose the scoring
-into seperate calls to the :py:meth:`~saqc.SaQC.roll` function, by calculating the series of the
+into seperate calls to the :py:meth:`~saqc.SaQC.rolling` function, by calculating the series of the
 residuals *mean* and *standard deviation* seperately:
 
 .. doctest:: exampleOD
 
-   >>> qc = qc.roll(field='incidents_residuals', target='residuals_mean', window='27D', func=np.mean)
-   >>> qc = qc.roll(field='incidents_residuals', target='residuals_std', window='27D', func=np.std)
+   >>> qc = qc.rolling(field='incidents_residuals', target='residuals_mean', window='27D', func=np.mean)
+   >>> qc = qc.rolling(field='incidents_residuals', target='residuals_std', window='27D', func=np.std)
    >>> qc = qc.processGeneric(field=['incidents_scores', "residuals_mean", "residuals_std"], target="residuals_norm",
    ... func=lambda this, mean, std: (this - mean) / std)
 
@@ -362,15 +362,15 @@ residuals *mean* and *standard deviation* seperately:
    :context: close-figs
    :include-source: False
 
-   qc = qc.roll(field='incidents_residuals', target='residuals_mean', window='27D', func=np.mean)
-   qc = qc.roll(field='incidents_residuals', target='residuals_std', window='27D', func=np.std)
+   qc = qc.rolling(field='incidents_residuals', target='residuals_mean', window='27D', func=np.mean)
+   qc = qc.rolling(field='incidents_residuals', target='residuals_std', window='27D', func=np.std)
    qc = qc.processGeneric(field=['incidents_scores', "residuals_mean", "residuals_std"], target="residuals_norm", func=lambda this, mean, std: (this - mean) / std)
 
 
 With huge datasets, this will be noticably faster, compared to the method presented :ref:`initially <cookbooks/ResidualOutlierDetection:Scores>`\ ,
 because ``saqc`` dispatches the rolling with the basic numpy statistic methods to an optimized pandas built-in.
 
-Also, as a result of the :py:meth:`~saqc.SaQC.roll` assigning its results to the center of every window,
+Also, as a result of the :py:meth:`~saqc.SaQC.rolling` assigning its results to the center of every window,
 all the values are centered and we dont have to care about window center indices when we are generating
 the *Z*\ -Scores from the two series.
 

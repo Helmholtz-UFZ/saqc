@@ -35,8 +35,6 @@ def test_makeFig(tmp_path):
     d_saqc = d_saqc.plot(
         field="data", path=outfile, history="valid", yscope=[(-50, 1000)]
     )
-    with pytest.deprecated_call():
-        d_saqc = d_saqc.plot(field="data", path=outfile, history="complete")
 
     d_saqc = d_saqc.plot(
         field="data",

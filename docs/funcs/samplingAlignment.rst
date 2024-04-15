@@ -10,9 +10,7 @@ Sampling Alignment
 .. autosummary::
    :nosignatures:
 
-   ~SaQC.linear
-   ~SaQC.shift
    ~SaQC.align
    ~SaQC.concatFlags
-   ~SaQC.interpolateIndex
    ~SaQC.resample
+   ~SaQC.reindex

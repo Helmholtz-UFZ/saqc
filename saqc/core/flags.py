@@ -474,24 +474,6 @@ class Flags:
 
     # ----------------------------------------------------------------------
     # transformation and representation
-
-    def toDios(self) -> DictOfSeries:
-        """
-        Transform the flags container to a ``DictOfSeries``.
-
-        .. deprecated:: 2.4
-           use `saqc.DictOfSeries(obj)` instead.
-
-        Returns
-        -------
-        DictOfSeries
-        """
-        warnings.warn(
-            "toDios is deprecated, use `saqc.DictOfSeries(obj)` instead.",
-            category=DeprecationWarning,
-        )
-        return DictOfSeries(self).copy()
-
     def toFrame(self) -> pd.DataFrame:
         """
         Transform the flags container to a ``pd.DataFrame``.

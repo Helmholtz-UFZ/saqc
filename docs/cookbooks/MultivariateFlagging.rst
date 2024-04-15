@@ -191,7 +191,6 @@ The resulting timeseries now has has regular timestamp.
 .. doctest:: exampleMV
 
    >>> qc.data['sac254_raw'] #doctest:+NORMALIZE_WHITESPACE
-   Timestamp
    2016-01-01 00:00:00          NaN
    2016-01-01 00:15:00    18.617873
    2016-01-01 00:30:00    18.942700

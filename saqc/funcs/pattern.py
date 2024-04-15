@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import dtw
+import fastdtw
 import pandas as pd
 
 from saqc import BAD
@@ -71,9 +71,9 @@ def calculateDistanceByDTW(
 
     def isPattern(chunk):
         if forward:
-            return dtw.accelerated_dtw(chunk[::-1], reference, "euclidean")[0]
+            return fastdtw.fastdtw(chunk[::-1], reference)[0]
         else:
-            return dtw.accelerated_dtw(chunk, reference, "euclidean")[0]
+            return fastdtw.fastdtw(chunk, reference)[0]
 
     # generate distances, excluding NaNs
     nonas = data.dropna()

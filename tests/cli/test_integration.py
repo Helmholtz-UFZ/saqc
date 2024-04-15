@@ -11,7 +11,6 @@ from click.testing import CliRunner
 FLOAT = [
     ",Battery,Battery,SM1,SM1,SM2,SM2\n",
     ",data,flags,data,flags,data,flags\n",
-    "Date,,,,,,\n",
     "2016-04-01 00:00:00,nan,nan,nan,nan,29.3157,-inf\n",
     "2016-04-01 00:05:48,3573.0,-inf,32.685,-inf,nan,nan\n",
     "2016-04-01 00:15:00,nan,nan,nan,nan,29.3157,-inf\n",
@@ -24,7 +23,6 @@ FLOAT = [
 SIMPLE = [
     ",Battery,Battery,SM1,SM1,SM2,SM2\n",
     ",data,flags,data,flags,data,flags\n",
-    "Date,,,,,,\n",
     "2016-04-01 00:00:00,nan,nan,nan,nan,29.3157,UNFLAGGED\n",
     "2016-04-01 00:05:48,3573.0,UNFLAGGED,32.685,UNFLAGGED,nan,nan\n",
     "2016-04-01 00:15:00,nan,nan,nan,nan,29.3157,UNFLAGGED\n",
@@ -37,7 +35,6 @@ SIMPLE = [
 POSITIONAL = [
     ",Battery,Battery,SM1,SM1,SM2,SM2\n",
     ",data,flags,data,flags,data,flags\n",
-    "Date,,,,,,\n",
     "2016-04-01 00:00:00,-9999,-9999,-9999.0,-9999,29.3157,90000\n",
     "2016-04-01 00:05:48,3573,9,32.685,90,-9999.0,-9999\n",
     "2016-04-01 00:15:00,-9999,-9999,-9999.0,-9999,29.3157,90000\n",
@@ -50,7 +47,6 @@ POSITIONAL = [
 DMP = [
     ",Battery,Battery,Battery,Battery,SM1,SM1,SM1,SM1,SM2,SM2,SM2,SM2\n",
     ",data,quality_flag,quality_cause,quality_comment,data,quality_flag,quality_cause,quality_comment,data,quality_flag,quality_cause,quality_comment\n",
-    "Date,,,,,,,,,,,,\n",
     "2016-04-01 00:00:00,nan,nan,nan,nan,nan,nan,nan,nan,29.3157,NIL,,\n",
     "2016-04-01 00:05:48,3573.0,NIL,,,32.685,NIL,,,nan,nan,nan,nan\n",
     "2016-04-01 00:15:00,nan,nan,nan,nan,nan,nan,nan,nan,29.3157,NIL,,\n",
@@ -85,5 +81,5 @@ def test__main__py(tmp_path, scheme, expected):
     result = CliRunner().invoke(saqc.__main__.main, args)
     assert result.exit_code == 0, result.output
     with open(outfile, "r") as f:
-        result = f.readlines()[:10]
+        result = f.readlines()[:9]
         assert result == expected

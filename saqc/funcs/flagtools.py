@@ -114,7 +114,7 @@ class FlagtoolsMixin:
     def setFlags(
         self,
         field: str,
-        data: str | list | np.array | pd.Series,
+        data: str | list | np.ndarray | pd.Series,
         override: bool = False,
         flag: float = BAD,
         **kwargs,
@@ -162,9 +162,11 @@ class FlagtoolsMixin:
 
         # elif isinstance(f_data, list):
         if not override:
-            to_flag &= (self._flags[field] < flag) & (
-                self._flags[field] >= kwargs["dfilter"]
-            )
+
+            to_flag &= isunflagged(self._flags[field], thresh=kwargs["dfilter"])
+            # to_flag &= (self._flags[field] < flag) & (
+            #     self._flags[field] >= kwargs["dfilter"]
+            # )
         self._flags[to_flag.values, field] = flag
         return self
 
@@ -297,7 +299,7 @@ class FlagtoolsMixin:
            dtype: bool
         """
         warnings.warn(
-            "`flagManual` is deprecated and will be removed in version 2.9 of saqc. "
+            "`flagManual` is deprecated and will be removed in version 2.8 of saqc. "
             "Please use `setFlags` for similar functionality.",
             DeprecationWarning,
         )

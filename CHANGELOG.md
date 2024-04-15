@@ -8,6 +8,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.5.0...develop)
 ### Added
+- `reindex`: base reindexer function
 - `flagGeneric`, `processGeneric`: target broadcasting and numpy array support
 - `SaQC`: automatic translation of incoming flags
 - Option to change the flagging scheme after initialization
@@ -21,16 +22,27 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `flagUniLOF`: added defaultly applied correction to mitigate phenomenon of overflagging at relatively steep data value slopes. (parameter `slope_correct`).
 - `History`: added option to change aggregation behavior
 ### Changed
+- `flagPattern` uses *fastdtw* package now to compute timeseries distances
 ### Removed
+- `SaQC` methods deprecated in version 2.4: `interpolate`, `interpolateIndex`, `interpolateInvalid`, `roll`, `linear`,`shift`, `flagCrossStatistics`
+- `Flags` method deprecated in version 2.4: `toDios`
+- `DictOfSeries` method deprecated in version 2.4: `index_of`
+- Option `"complete"` for parameter `history` of method `plot`
+- Option `"cycleskip"` for parameter `ax_kwargs` of method `plot`
+- Parameter `phaseplot` from method `plot`
 ### Fixed
 - `flagConstants`: fixed flagging of rolling ramps
 - `Flags`: add meta entry to imported flags
 - group operations were overwriting existing flags
 - `SaQC._construct` : was not working for inherit classes (used hardcoded `SaQC` to construct a new instance).
+- `processgeneric`: improved numpy function compatability
 ### Deprecated
 - `flagManual` in favor of `setFlags`
+- `inverse_` + methodstring options for `concatFlags` parameter `method` deprecated in favor of `invert=True` setting
 - `flagRaise` with delegation to better replacements `flagZScore`, `flagUniLOF`, `flagJumps` or `flagOffset`
 - `flagByGrubbs` with delegation to better replacements `flagZScore`, `flagUniLOF`s
+- `flagMVScore` with delegation to manual application of the steps
+
 ## [2.5.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.1...v2.5.0)
 ### Added
