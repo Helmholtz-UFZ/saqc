@@ -13,9 +13,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from saqc import BAD, DOUBTFUL, FILTER_NONE, UNFLAGGED, SaQC
-from saqc.core import Flags
+from saqc.constants import BAD, DOUBTFUL, FILTER_NONE, UNFLAGGED
+from saqc.core import Flags, SaQC
 from saqc.core.translation import DmpScheme, MappingScheme, PositionalScheme
+from saqc.core.translation.floatscheme import AnnotatedFloatScheme
 from tests.common import initData
 
 
@@ -277,3 +278,23 @@ def test_positionalMulitcallsPreserveState():
         expected = tflags1[k].str.slice(start=1) * 2
         got = tflags2[k].str.slice(start=1)
         assert expected.equals(got)
+
+
+def test_annotatedFloatScheme():
+    data = initData(1)
+    col = data.columns[0]
+
+    scheme = AnnotatedFloatScheme()
+    saqc = SaQC(data=data, scheme=scheme)
+    saqc = saqc.setFlags(col, data=data[col].index[::4], flag=DOUBTFUL).flagRange(
+        col, min=3, max=10, flag=BAD
+    )
+    flags = saqc.flags
+
+    assert flags[col]["flag"].isin({DOUBTFUL, BAD, UNFLAGGED}).all(axis=None)
+    assert flags[col]["func"].isin({"", "setFlags", "flagRange"}).all(axis=None)
+
+    round_trip = scheme.toExternal(scheme.toInternal(flags))
+    assert tuple(round_trip.keys()) == tuple(flags.keys())
+    for key in flags.keys():
+        assert round_trip[key].equals(flags[key])

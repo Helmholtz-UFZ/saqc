@@ -69,9 +69,8 @@ class PositionalScheme(MappingScheme):
             fflags = super()._translate(df, self._FORWARD)
             field_history = History(field_flags.index)
             for _, s in fflags.items():
-                field_history.append(s)
+                field_history.append(s.replace(UNFLAGGED, np.nan))
             data[str(field)] = field_history
-
         return Flags(data)
 
     def toExternal(self, flags: Flags, **kwargs) -> DictOfSeries:
