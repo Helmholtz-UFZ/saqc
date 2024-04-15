@@ -24,6 +24,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Changed
 - `flagPattern` uses *fastdtw* package now to compute timeseries distances
 ### Removed
+- `SaQC` methods deprecated in version 2.4: `interpolate`, `interpolateIndex`, `interpolateInvalid`, `roll`, `linear`,`shift`, `flagCrossStatistics`
+- `Flags` method deprecated in version 2.4: `toDios`
+- `DictOfSeries` method deprecated in version 2.4: `index_of`
+- Option `"complete"` for parameter `history` of method `plot`
+- Option `"cycleskip"` for parameter `ax_kwargs` of method `plot`
+- Parameter `phaseplot` from method `plot`
 ### Fixed
 - `flagConstants`: fixed flagging of rolling ramps
 - `Flags`: add meta entry to imported flags
@@ -36,6 +42,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `flagRaise` with delegation to better replacements `flagZScore`, `flagUniLOF`, `flagJumps` or `flagOffset`
 - `flagByGrubbs` with delegation to better replacements `flagZScore`, `flagUniLOF`s
 - `flagMVScore` with delegation to manual application of the steps
+
 ## [2.5.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.1...v2.5.0)
 ### Added

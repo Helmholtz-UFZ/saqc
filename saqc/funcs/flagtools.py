@@ -299,7 +299,7 @@ class FlagtoolsMixin:
            dtype: bool
         """
         warnings.warn(
-            "`flagManual` is deprecated and will be removed in version 2.9 of saqc. "
+            "`flagManual` is deprecated and will be removed in version 2.8 of saqc. "
             "Please use `setFlags` for similar functionality.",
             DeprecationWarning,
         )

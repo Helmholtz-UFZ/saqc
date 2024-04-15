@@ -54,6 +54,9 @@ class NoiseMixin:
         2. all (maybe overlapping) sub-chunks of the data chunks with length ``sub_window``,
            exceed ``sub_thresh`` with regard to ``func``
 
+            .. deprecated:: 2.5.0
+               Deprecated Function. See :py:meth:`~saqc.SaQC.flagByScatterLowpass`.
+
         Parameters
         ----------
         func :

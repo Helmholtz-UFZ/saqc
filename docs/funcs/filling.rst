@@ -11,4 +11,3 @@ Gap filling
    :nosignatures:
 
    ~SaQC.interpolateByRolling
-   ~SaQC.interpolate
