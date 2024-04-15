@@ -368,7 +368,7 @@ class FlagtoolsMixin:
             raise ValueError(method)
 
         mask = mdata == mflag
-        mask = mask.reindex(dat.index).fillna(False)
+        mask = mask.reindex(dat.index, fill_value=False) #.fillna(False)
 
         self._flags[mask, field] = flag
         return self

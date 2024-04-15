@@ -140,7 +140,7 @@ Looking at the example data set more closely, we see that 2 of the 5 variables s
     qc.plot(variables, xscope=slice('2017-05', '2017-11'))
 
 Lets try to detect those drifts via saqc. The changes we observe in the data seem to develop significantly only in temporal spans over a month,
-so we go for ``"1M"`` as value for the
+so we go for ``"1ME"`` as value for the
 ``window`` parameter. We identified the majority group as a group containing three variables, whereby two variables
 seem to be scattered away, so that we can leave the ``frac`` value at its default ``.5`` level.
 The majority group seems on average not to be spread out more than 3 or 4 degrees. So, for the ``spread`` value
@@ -152,7 +152,7 @@ average in a month from any member of the majority group.
 .. doctest:: flagDriftFromNorm
 
    >>> variables = ['temp1 [degC]', 'temp2 [degC]', 'temp3 [degC]', 'temp4 [degC]', 'temp5 [degC]']
-   >>> qc = qc.flagDriftFromNorm(variables, window='1M', spread=3)
+   >>> qc = qc.flagDriftFromNorm(variables, window='1ME', spread=3)
 
 .. plot::
    :context: close-figs
@@ -160,7 +160,7 @@ average in a month from any member of the majority group.
    :class: center
 
    >>> variables = ['temp1 [degC]', 'temp2 [degC]', 'temp3 [degC]', 'temp4 [degC]', 'temp5 [degC]']
-   >>> qc = qc.flagDriftFromNorm(variables, window='1M', spread=3)
+   >>> qc = qc.flagDriftFromNorm(variables, window='1ME', spread=3)
 
 Lets check the results:
 

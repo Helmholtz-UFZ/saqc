@@ -315,10 +315,10 @@ Aggregation
 If we want to comprise several values by aggregation and assign the result to the new regular timestamp, instead of
 selecting a single one, we can do this, with the :py:meth:`~saqc.SaQC.resample` method.
 Lets resample the *SoilMoisture* data to have a *20* minutes sample rate by aggregating every *20* minutes intervals
-content with the arithmetic mean (which is provided by the ``numpy.mean`` function for example).
+content with the arithmetic mean.
 
    >>> import numpy as np
-   >>> qc = qc.resample('SoilMoisture', target='SoilMoisture_mean', freq='20min', method='bagg', func=np.mean)
+   >>> qc = qc.resample('SoilMoisture', target='SoilMoisture_mean', freq='20min', method='bagg', func="mean")
    >>> qc.data # doctest: +SKIP
                        SoilMoisture |                     SoilMoisture_mean |
    ================================ | ===================================== |
