@@ -1089,7 +1089,7 @@ class OutliersMixin:
            import matplotlib
            import saqc
            import pandas as pd
-           data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
+           data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1h', periods=12))
 
 
         Lets generate a simple, regularly sampled timeseries with an hourly sampling rate and generate an
@@ -1098,7 +1098,7 @@ class OutliersMixin:
         .. doctest:: flagOffsetExample
 
            >>> import saqc
-           >>> data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1H', periods=12))
+           >>> data = pd.DataFrame({'data':np.array([5,5,8,16,17,7,4,4,4,1,1,4])}, index=pd.date_range('2000',freq='1h', periods=12))
            >>> data
                                 data
            2000-01-01 00:00:00     5
@@ -1122,7 +1122,7 @@ class OutliersMixin:
 
         .. doctest:: flagOffsetExample
 
-           >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
+           >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6h')
            >>> qc.plot('data')  # doctest: +SKIP
 
         .. plot::
@@ -1130,7 +1130,7 @@ class OutliersMixin:
            :include-source: False
 
            >>> qc = saqc.SaQC(data)
-           >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6H')
+           >>> qc = qc.flagOffset("data", thresh=2, tolerance=1.5, window='6h')
            >>> qc.plot('data')  # doctest: +SKIP
 
         Note, that both, negative and positive jumps are considered starting points of negative or positive
@@ -1139,7 +1139,7 @@ class OutliersMixin:
 
         .. doctest:: flagOffsetExample
 
-           >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6H')
+           >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6h')
            >>> qc.plot('data') # doctest:+SKIP
 
         .. plot::
@@ -1147,7 +1147,7 @@ class OutliersMixin:
            :include-source: False
 
            >>> qc = saqc.SaQC(data)
-           >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6H')
+           >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=.9, tolerance=1.5, window='6h')
            >>> qc.plot('data')  # doctest: +SKIP
 
         Now, only positive jumps, that exceed a value gain of +90%* are considered starting points of offsets.
@@ -1158,7 +1158,7 @@ class OutliersMixin:
 
         .. doctest:: flagOffsetExample
 
-           >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6H')
+           >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6h')
            >>> qc.plot('data') # doctest:+SKIP
 
         .. plot::
@@ -1166,7 +1166,7 @@ class OutliersMixin:
            :include-source: False
 
            >>> qc = saqc.SaQC(data)
-           >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6H')
+           >>> qc = qc.flagOffset("data", thresh=2, thresh_relative=-.5, tolerance=1.5, window='6h')
            >>> qc.plot('data')  # doctest: +SKIP
         """
         validateWindow(window)

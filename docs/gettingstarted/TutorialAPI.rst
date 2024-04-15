@@ -50,7 +50,7 @@ with something more elaborate, is in fact a one line change. So let's start with
    from saqc import SaQC
 
    # we need some dummy data
-   values = np.array([12, 24, 36, 33, 89, 87, 45, 31, 18, 99])
+   values = np.array([12, 24, 36, 33, 89, 87, 45, 31, 18, 99], dtype="float")
    dates = pd.date_range(start="2020-01-01", periods=len(values), freq="D")
    data = pd.DataFrame({"a": values}, index=dates)
    # let's insert some constant values ...
@@ -103,32 +103,32 @@ number of different attributes, of which you likely might want to use the follow
 .. doctest:: python
 
    >>> qc.data  #doctest:+NORMALIZE_WHITESPACE
-                   a | 
-   ================= | 
-   2020-01-01   12.0 | 
-   2020-01-02   24.0 | 
-   2020-01-03   36.0 | 
-   2020-01-04   47.4 | 
-   2020-01-05   47.4 | 
-   2020-01-06   47.4 | 
-   2020-01-07   45.0 | 
-   2020-01-08   31.0 | 
-   2020-01-09  175.0 | 
-   2020-01-10   99.0 | 
+                   a |
+   ================= |
+   2020-01-01   12.0 |
+   2020-01-02   24.0 |
+   2020-01-03   36.0 |
+   2020-01-04   47.4 |
+   2020-01-05   47.4 |
+   2020-01-06   47.4 |
+   2020-01-07   45.0 |
+   2020-01-08   31.0 |
+   2020-01-09  175.0 |
+   2020-01-10   99.0 |
 
    >>> qc.flags  #doctest:+NORMALIZE_WHITESPACE
-                       a | 
-   ===================== | 
-   2020-01-01        BAD | 
-   2020-01-02  UNFLAGGED | 
-   2020-01-03  UNFLAGGED | 
-   2020-01-04  UNFLAGGED | 
-   2020-01-05  UNFLAGGED | 
-   2020-01-06  UNFLAGGED | 
-   2020-01-07  UNFLAGGED | 
-   2020-01-08  UNFLAGGED | 
-   2020-01-09        BAD | 
-   2020-01-10        BAD | 
+                       a |
+   ===================== |
+   2020-01-01        BAD |
+   2020-01-02  UNFLAGGED |
+   2020-01-03  UNFLAGGED |
+   2020-01-04  UNFLAGGED |
+   2020-01-05  UNFLAGGED |
+   2020-01-06  UNFLAGGED |
+   2020-01-07  UNFLAGGED |
+   2020-01-08  UNFLAGGED |
+   2020-01-09        BAD |
+   2020-01-10        BAD |
 
 
 Putting it together - The complete workflow
@@ -142,7 +142,7 @@ The snippet below provides you with a compete example from the things we have se
    from saqc import SaQC
 
    # we need some dummy data
-   values = np.random.randint(low=0, high=100, size=100)
+   values = np.random.randint(low=0, high=100, size=100).astype(float)
    dates = pd.date_range(start="2020-01-01", periods=len(values), freq="D")
    data = pd.DataFrame({"a": values}, index=dates)
    # let's insert some constant values ...
