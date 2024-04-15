@@ -149,6 +149,7 @@ python312:
 doctest:
   stage: test
   script:
+    - echo $COLUMNS
     - cd docs
     - pip install -r requirements.txt
     - make doc  # needed for _api tests

@@ -30,7 +30,7 @@ clean:
 # make documentation
 doc:
 	# generate environment table from dictionary
-	@ COLUMNS=200 $(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@ $(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # run tests
 test:
