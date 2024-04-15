@@ -149,7 +149,7 @@ python312:
 doctest:
   stage: test
   variables:
-    COLUMNS=200
+    COLUMNS: 200
   script:
     - echo $COLUMNS
     - cd docs
