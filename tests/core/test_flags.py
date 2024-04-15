@@ -296,15 +296,6 @@ def _validate_flags_equals_frame(flags, df):
 
 
 @pytest.mark.parametrize("data", testdata)
-def test_to_dios(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
-    flags = Flags(data)
-    with pytest.deprecated_call():
-        result = flags.toDios()
-        assert isinstance(result, DictOfSeries)
-        _validate_flags_equals_frame(flags, result)
-
-
-@pytest.mark.parametrize("data", testdata)
 def test_toFrame(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]):
     flags = Flags(data)
     df = flags.toFrame()

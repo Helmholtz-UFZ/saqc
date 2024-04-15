@@ -62,7 +62,7 @@ could look like [this](https://git.ufz.de/rdm-software/saqc/raw/develop/docs/res
 ```
 varname    ; test
 #----------; ---------------------------------------------------------------------
-SM2        ; shift(freq="15Min")
+SM2        ; align(freq="15Min")
 'SM(1|2)+' ; flagMissing()
 SM1        ; flagRange(min=10, max=60)
 SM2        ; flagRange(min=10, max=40)
@@ -103,7 +103,7 @@ data = pd.read_csv(
 
 qc = SaQC(data=data)
 qc = (qc
-      .shift("SM2", freq="15Min")
+      .align("SM2", freq="15Min")
       .flagMissing("SM(1|2)+", regex=True)
       .flagRange("SM1", min=10, max=60)
       .flagRange("SM2", min=10, max=40)

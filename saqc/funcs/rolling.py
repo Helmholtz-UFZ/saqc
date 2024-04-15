@@ -72,68 +72,6 @@ class RollingMixin:
         )
         return self
 
-    @register(mask=["field"], demask=[], squeeze=[])
-    def roll(
-        self: "SaQC",
-        field: str,
-        window: Union[str, int],
-        func: Callable[[pd.Series], np.ndarray] = np.mean,
-        min_periods: int = 0,
-        center: bool = True,
-        **kwargs,
-    ) -> "SaQC":
-        """
-        Calculate a rolling-window function on the data.
-
-        .. deprecated:: 2.4.0
-           Use :py:meth:`~saqc.SaQC.rolling` instead.
-
-        Note, that the data gets assigned the worst flag present in the original data.
-
-        Parameters
-        ----------
-        window :
-            The size of the window you want to roll with. If an integer is passed, the size
-            refers to the number of periods for every fitting window. If an offset string
-            is passed, the size refers to the total temporal extension. For regularly
-            sampled timeseries, the period number will be casted down to an odd number if
-            ``center=True``.
-
-        func : default mean
-            Function to roll with.
-
-        min_periods :
-            The minimum number of periods to get a valid value
-
-        center :
-            If True, center the rolling window.
-        """
-        import warnings
-
-        warnings.warn(
-            """The function `roll` was renamed to `rolling` and will be removed with version 3.0 of saqc
-            Please use `SaQC.rolling` with the same arguments, instead
-            """,
-            DeprecationWarning,
-        )
-
-        validateFuncSelection(func, allow_operator_str=True)
-        validateWindow(window)
-        validateMinPeriods(min_periods)
-
-        # HINT: checking in  _roll
-        self._data, self._flags = _roll(
-            data=self._data,
-            field=field,
-            flags=self._flags,
-            window=window,
-            func=func,
-            min_periods=min_periods,
-            center=center,
-            **kwargs,
-        )
-        return self
-
 
 def _roll(
     data: DictOfSeries,

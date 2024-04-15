@@ -45,30 +45,6 @@ def test_rollingInterpolateMissing(course_5):
     assert qc.data[field][characteristics["missing"]].isna().all()
 
 
-def test_interpolate(course_5):
-    data, characteristics = course_5(periods=10, nan_slice=[5])
-    field = data.columns[0]
-    data = DictOfSeries(data)
-    flags = initFlagsLike(data)
-    qc = SaQC(data, flags)
-
-    qc_lin = qc.interpolate(field, method="linear")
-    qc_poly = qc.interpolate(field, method="polynomial")
-    assert qc_lin.data[field][characteristics["missing"]].notna().all()
-    assert qc_poly.data[field][characteristics["missing"]].notna().all()
-
-    data, characteristics = course_5(periods=10, nan_slice=[5, 6, 7])
-
-    qc = SaQC(data, flags)
-    qc_lin_1 = qc.interpolate(field, method="linear", limit=2)
-    qc_lin_2 = qc.interpolate(field, method="linear", limit=3)
-    qc_lin_3 = qc.interpolate(field, method="linear", limit=4)
-
-    assert qc_lin_1.data[field][characteristics["missing"]].isna().all()
-    assert qc_lin_2.data[field][characteristics["missing"]].isna().all()
-    assert qc_lin_3.data[field][characteristics["missing"]].notna().all()
-
-
 def test_transform(course_5):
     data, characteristics = course_5(periods=10, nan_slice=[5, 6])
     field = data.columns[0]

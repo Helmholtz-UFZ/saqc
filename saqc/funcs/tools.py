@@ -475,36 +475,6 @@ class ToolsMixin:
         * Check/modify the module parameter `saqc.lib.plotting.SCATTER_KWARGS` to see/modify global marker defaults
         * Check/modify the module parameter `saqc.lib.plotting.PLOT_KWARGS` to see/modify global plot line defaults
         """
-        if history == "complete":
-            warnings.warn(
-                "Plotting with history='complete' is deprecated and will be removed in a future release (2.5)."
-                "To get access to an saqc variables complete flagging history and analyze or plot it in detail, use flags"
-                "history acces via `qc._flags.history[variable_name].hist` and a plotting library, such as pyplot.\n"
-                "Minimal Pseudo example, having a saqc.SaQC instance `qc`, holding a variable `'data1'`, "
-                "and having matplotlib.pyplot imported as `plt`:\n\n"
-                "plt.plot(data)\n"
-                "for f in qc._flags.history['data1'].hist \n"
-                "    markers = qc._flags.history['data1'].hist[f] > level \n"
-                "    markers=data[markers] \n"
-                "    plt.scatter(markers.index, markers.values) \n",
-                DeprecationWarning,
-            )
-
-        if "phaseplot" in kwargs:
-            warnings.warn(
-                'Parameter "phaseplot" is deprecated and will be removed in a future release (2.5). Assign to parameter "mode" instead. (plot(field, mode=phaseplot))',
-                DeprecationWarning,
-            )
-            mode = kwargs["phaseplot"]
-
-        if "cycleskip" in (ax_kwargs or {}):
-            warnings.warn(
-                'Passing "cycleskip" option with the "ax_kwargs" parameter is deprecated and will be removed in a future release (2.5). '
-                'The option now has to be passed with the "marker_kwargs" parameter',
-                DeprecationWarning,
-            )
-            marker_kwargs["cycleskip"] = ax_kwargs.pop("cycleskip")
-
         data, flags = self._data.copy(), self._flags.copy()
 
         level = kwargs.get("flag", UNFLAGGED)
