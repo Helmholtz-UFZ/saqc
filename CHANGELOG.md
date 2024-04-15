@@ -6,29 +6,34 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Changelog
 ## Unreleased
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.5.0...develop)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.6.0...develop)
+### Added
+### Changed
+### Removed
+### Fixed
+### Deprecated
+
+## [2.6.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.6.0) - 2024-04-15
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.5.0...v2.6.0)
 ### Added
 - `reindex`: base reindexer function
 - `flagGeneric`, `processGeneric`: target broadcasting and numpy array support
 - `SaQC`: automatic translation of incoming flags
 - Option to change the flagging scheme after initialization
 - `flagByClick`: manually assign flags using a graphical user interface
-- `SaQC`: support for selection, slicing and setting of items by use of subscription on SaQC objects (e.g. `qc[key]` and `qc[key] = value`).
-   Selection works with single keys, collections of keys and string slices (e.g. `qc["a":"f"]`).  Values can be SaQC objects, pd.Series,
-   Iterable of Series and dict-like with series values.
+- `SaQC`: support for selection, slicing and setting of items by subscription on `SaQC` objects
 - `transferFlags` is a multivariate function
 - `plot`: added `yscope` keyword
 - `setFlags`: function to replace `flagManual`
-- `flagUniLOF`: added defaultly applied correction to mitigate phenomenon of overflagging at relatively steep data value slopes. (parameter `slope_correct`).
+- `flagUniLOF`: added parameter `slope_correct` to correct for overflagging at relatively steep data value slopes
 - `History`: added option to change aggregation behavior
-- Translation scheme `FloatScheme`
+- Translation scheme `AnnotatedFloatScheme`
 ### Changed
-- `flagPattern` uses *fastdtw* package now to compute timeseries distances
 - `SaQC.flags` always returns a `DictOfSeries`
 ### Removed
 - `SaQC` methods deprecated in version 2.4: `interpolate`, `interpolateIndex`, `interpolateInvalid`, `roll`, `linear`,`shift`, `flagCrossStatistics`
-- `Flags` method deprecated in version 2.4: `toDios`
-- `DictOfSeries` method deprecated in version 2.4: `index_of`
+- Method `Flags.toDios` deprecated in version 2.4
+- Method `DictOfSeries.index_of` method deprecated in version 2.4
 - Option `"complete"` for parameter `history` of method `plot`
 - Option `"cycleskip"` for parameter `ax_kwargs` of method `plot`
 - Parameter `phaseplot` from method `plot`
@@ -36,16 +41,16 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `flagConstants`: fixed flagging of rolling ramps
 - `Flags`: add meta entry to imported flags
 - group operations were overwriting existing flags
-- `SaQC._construct` : was not working for inherit classes (used hardcoded `SaQC` to construct a new instance).
+- `SaQC._construct` : was not working for inherited classes
 - `processgeneric`: improved numpy function compatability
 ### Deprecated
 - `flagManual` in favor of `setFlags`
-- `inverse_` + methodstring options for `concatFlags` parameter `method` deprecated in favor of `invert=True` setting
+- `inverse_**` options for `concatFlags` parameter `method` in favor of `invert=True`
 - `flagRaise` with delegation to better replacements `flagZScore`, `flagUniLOF`, `flagJumps` or `flagOffset`
 - `flagByGrubbs` with delegation to better replacements `flagZScore`, `flagUniLOF`s
 - `flagMVScore` with delegation to manual application of the steps
 
-## [2.5.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.4.1) - 2023-06-22
+## [2.5.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.5.0) - 2023-09-05
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.4.1...v2.5.0)
 ### Added
 - WMO standard mean aggregations
