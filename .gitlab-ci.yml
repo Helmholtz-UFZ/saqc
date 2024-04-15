@@ -151,8 +151,6 @@ doctest:
   variables:
     COLUMNS: 200
   script:
-    - echo $COLUMNS
-    - python -c 'import shutil; shutil.get_terminal_size()'
     - cd docs
     - pip install -r requirements.txt
     - make doc  # needed for _api tests

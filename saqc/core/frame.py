@@ -35,35 +35,6 @@ class DictOfSeries(DictOfPandas):
     def attrs(self, value: Mapping[Hashable, Any]) -> None:
         self._attrs = dict(value)
 
-    def index_of(self, method="union") -> pd.Index:
-        """Return an index with indices from all columns.
-
-        .. deprecated:: 2.4
-           use `DictOfSeries.union_index()` and `DictOfSeries.shared_index()` instead.
-
-        Parameters
-        ----------
-        method : string, default 'all'
-            * 'union' : return the union of all indices from all columns
-            * 'shared' : return only indices that are present in every column
-            * 'all' : alias for 'union'
-            * 'intersection' : alias for 'shared'
-
-        See also
-        --------
-        DictOfSeries.to_pandas: convert a DictOfSeries to a pandas.DataFrame
-
-        Returns
-        -------
-        index: pd.Index
-            A duplicate-free index
-        """
-        if method in ["union", "all"]:
-            return self.union_index()
-        elif method in ["intersection", "shared"]:
-            return self.shared_index()
-        raise ValueError("method must be one of 'shared' or 'union'.")
-
     def astype(self, dtype: str | type) -> DictOfSeries:
         """
         Cast a DictOfSeries object to the specified ``dtype``
