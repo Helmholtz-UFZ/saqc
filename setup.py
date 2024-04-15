@@ -50,9 +50,9 @@ setup(
     python_requires=">=3.9",
     install_requires=[
         "Click",
-        "dtw",
         "docstring_parser",
         "fancy-collections",
+        "fastdtw",
         "matplotlib>=3.4",
         "numpy",
         "outlier-utils",

@@ -30,7 +30,7 @@ stages:
   - deploy
 
 default:
-  image: python:3.10
+  image: python:3.11
   before_script:
     - pip install --upgrade pip
     - pip install -r requirements.txt
@@ -133,6 +133,19 @@ python311:
     reports:
       junit: report.xml
 
+python312:
+  stage: test
+  image: python:3.12
+  script:
+    - export DISPLAY=:99
+    - Xvfb :99 &
+    - pytest tests -Werror --junitxml=report.xml
+    - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
 doctest:
   stage: test
   script:
@@ -180,6 +193,16 @@ wheel311:
     - pip install .
     - python -c 'import saqc; print(f"{saqc.__version__=}")'
 
+wheel312:
+  stage: build
+  image: python:3.12
+  variables:
+    PYPI_PKG_NAME: "saqc-dev"
+  script:
+    - pip install wheel
+    - pip wheel .
+    - pip install .
+    - python -c 'import saqc; print(f"{saqc.__version__=}")'
 
 # ===========================================================
 # Extra Pipeline (run with a successful run of all other jobs on develop)

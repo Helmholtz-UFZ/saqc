@@ -9,8 +9,6 @@
 import ast
 import importlib
 
-import numpy as np
-
 from saqc.core.register import FUNC_MAP
 from saqc.parsing.environ import ENVIRONMENT
 
@@ -28,13 +26,12 @@ class ConfigExpressionParser(ast.NodeVisitor):
     """
 
     SUPPORTED = (
-        ast.Str,
+        ast.Constant,
         ast.Expression,
         ast.UnaryOp,
         ast.BinOp,
         ast.BitOr,
         ast.BitAnd,
-        ast.Num,
         ast.Compare,
         ast.Add,
         ast.Sub,
@@ -86,10 +83,8 @@ class ConfigExpressionParser(ast.NodeVisitor):
 class ConfigFunctionParser(ast.NodeVisitor):
     SUPPORTED_NODES = (
         ast.Call,
-        ast.Num,
-        ast.Str,
+        ast.Constant,
         ast.keyword,
-        ast.NameConstant,
         ast.UnaryOp,
         ast.Name,
         ast.Load,
