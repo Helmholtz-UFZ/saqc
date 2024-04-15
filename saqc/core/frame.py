@@ -11,8 +11,8 @@ from fancy_collections import DictOfPandas
 
 
 class DictOfSeries(DictOfPandas):
-    _key_types = (str, int, float)
-    _value_types = (pd.Series,)
+    _key_types = (str, int, float, tuple)
+    _value_types = (pd.Series, pd.DataFrame)
 
     def __init__(self, *args, **kwargs):
         # data is needed to prevent an
@@ -34,42 +34,6 @@ class DictOfSeries(DictOfPandas):
     @attrs.setter
     def attrs(self, value: Mapping[Hashable, Any]) -> None:
         self._attrs = dict(value)
-
-    def flatten(self, promote_index: bool = False) -> DictOfSeries:
-        """
-        Return a copy.
-        DictOfPandas compatibility
-        """
-        return self.copy()
-
-    def index_of(self, method="union") -> pd.Index:
-        """Return an index with indices from all columns.
-
-        .. deprecated:: 2.4
-           use `DictOfSeries.union_index()` and `DictOfSeries.shared_index()` instead.
-
-        Parameters
-        ----------
-        method : string, default 'all'
-            * 'union' : return the union of all indices from all columns
-            * 'shared' : return only indices that are present in every column
-            * 'all' : alias for 'union'
-            * 'intersection' : alias for 'shared'
-
-        See also
-        --------
-        DictOfSeries.to_pandas: convert a DictOfSeries to a pandas.DataFrame
-
-        Returns
-        -------
-        index: pd.Index
-            A duplicate-free index
-        """
-        if method in ["union", "all"]:
-            return self.union_index()
-        elif method in ["intersection", "shared"]:
-            return self.shared_index()
-        raise ValueError("method must be one of 'shared' or 'union'.")
 
     def astype(self, dtype: str | type) -> DictOfSeries:
         """
@@ -183,6 +147,6 @@ Missing data locations are filled with NaN's
 or is dropped if `how='inner'`
 
 >>> di.to_pandas(how='inner')   # doctest: +NORMALIZE_WHITESPACE
-      a     b     c
-1  11.0  22.0  33.0
+    a   b   c
+1  11  22  33
 """

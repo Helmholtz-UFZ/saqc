@@ -148,6 +148,8 @@ python312:
 
 doctest:
   stage: test
+  variables:
+    COLUMNS: 200
   script:
     - cd docs
     - pip install -r requirements.txt

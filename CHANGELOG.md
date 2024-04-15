@@ -23,6 +23,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `History`: added option to change aggregation behavior
 ### Changed
 - `flagPattern` uses *fastdtw* package now to compute timeseries distances
+- `SaQC.flags` always returns a `DictOfSeries`
 ### Removed
 - `SaQC` methods deprecated in version 2.4: `interpolate`, `interpolateIndex`, `interpolateInvalid`, `roll`, `linear`,`shift`, `flagCrossStatistics`
 - `Flags` method deprecated in version 2.4: `toDios`

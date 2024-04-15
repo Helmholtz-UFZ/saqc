@@ -362,7 +362,7 @@ class DriftMixin:
         for k, group in drift_grouper:
             data_series = group[field]
             data_fit, data_shiftTarget = _driftFit(
-                data_series, shift_targets.loc[k, :][0], cal_range, model
+                data_series, shift_targets.loc[k, :].iloc[0], cal_range, model
             )
             data_fit = pd.Series(data_fit, index=group.index)
             data_shiftTarget = pd.Series(data_shiftTarget, index=group.index)
