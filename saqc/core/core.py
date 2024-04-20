@@ -22,6 +22,7 @@ from saqc.core.frame import DictOfSeries
 from saqc.core.history import History
 from saqc.core.register import FUNC_MAP
 from saqc.core.translation import (
+    AnnotatedFloatScheme,
     DmpScheme,
     FloatScheme,
     PositionalScheme,
@@ -41,6 +42,7 @@ TRANSLATION_SCHEMES = {
     "float": FloatScheme,
     "dmp": DmpScheme,
     "positional": PositionalScheme,
+    "annotated-float": AnnotatedFloatScheme,
 }
 
 

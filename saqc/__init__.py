@@ -10,7 +10,13 @@
 from saqc.constants import BAD, DOUBTFUL, FILTER_ALL, FILTER_NONE, GOOD, UNFLAGGED
 from saqc.exceptions import ParsingError
 from saqc.core import Flags, DictOfSeries, SaQC
-from saqc.core.translation import DmpScheme, FloatScheme, PositionalScheme, SimpleScheme
+from saqc.core.translation import (
+    DmpScheme,
+    FloatScheme,
+    PositionalScheme,
+    SimpleScheme,
+    AnnotatedFloatScheme,
+)
 from saqc.parsing.reader import fromConfig
 from saqc.version import __version__
 
