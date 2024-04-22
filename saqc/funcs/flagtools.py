@@ -631,7 +631,12 @@ class FlagtoolsMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flag all values, if all the given ``field`` values are already flagged.
+        Logical AND operation for Flags.
+
+        Flag the variable(s) `field` at every period, at wich `field` in all of the saqc objects in
+        `group` is flagged.
+
+        See Examples section for examples.
 
         Parameters
         ----------
@@ -639,6 +644,64 @@ class FlagtoolsMixin:
             A collection of ``SaQC`` objects. Flag checks are performed on all ``SaQC`` objects
             based on the variables specified in ``field``. Whenever all monitored variables
             are flagged, the associated timestamps will receive a flag.
+
+        Examples
+        --------
+        Flag data, if the values are above a certain threshold (determined by :py:meth:`~saqc.SaQC.flagRange`) AND if the values are
+        constant for 3 periods (determined by :py:meth:`~saqc.SaQC.flagConstants`)
+
+        .. doctest:: andGroupExample
+
+           >>> dat = pd.Series([1,0,0,0,1,2,3,4,5,5,5,4], name='data', index=pd.date_range('2000', freq='10min', periods=12))
+           >>> qc = saqc.SaQC(dat)
+           >>> qc = qc.andGroup('data', group=[qc.flagRange('data', max=4), qc.flagConstants('data', thresh=0, window=3)])
+           >>> qc.flags['data']
+           2000-01-01 00:00:00     -inf
+           2000-01-01 00:10:00     -inf
+           2000-01-01 00:20:00     -inf
+           2000-01-01 00:30:00     -inf
+           2000-01-01 00:40:00     -inf
+           2000-01-01 00:50:00     -inf
+           2000-01-01 01:00:00     -inf
+           2000-01-01 01:10:00     -inf
+           2000-01-01 01:20:00    255.0
+           2000-01-01 01:30:00    255.0
+           2000-01-01 01:40:00    255.0
+           2000-01-01 01:50:00     -inf
+           Freq: 10min, dtype: float64
+
+        Masking data, so that a test result only gets assigned during daytime (between 6 and 18 o clock for example).
+        The daytime condition is generated via :py:meth:`~saqc.SaQC.flagGeneric`:
+
+        .. doctest:: andGroupExample
+
+           >>> from saqc.lib.tools import periodicMask
+               >>> mask_func = lambda x: ~periodicMask(x.index, '06:00:00', '18:00:00', True)
+           >>> dat = pd.Series(range(100), name='data', index=pd.date_range('2000', freq='4h', periods=100))
+           >>> qc = saqc.SaQC(dat)
+           >>> qc = qc.andGroup('data', group=[qc.flagRange('data', max=5), qc.flagGeneric('data', func=mask_func)])
+           >>> qc.flags['data'].head(20)
+           2000-01-01 00:00:00     -inf
+           2000-01-01 04:00:00     -inf
+           2000-01-01 08:00:00     -inf
+           2000-01-01 12:00:00     -inf
+           2000-01-01 16:00:00     -inf
+           2000-01-01 20:00:00     -inf
+           2000-01-02 00:00:00     -inf
+           2000-01-02 04:00:00     -inf
+           2000-01-02 08:00:00    255.0
+           2000-01-02 12:00:00    255.0
+           2000-01-02 16:00:00    255.0
+           2000-01-02 20:00:00     -inf
+           2000-01-03 00:00:00     -inf
+           2000-01-03 04:00:00     -inf
+           2000-01-03 08:00:00    255.0
+           2000-01-03 12:00:00    255.0
+           2000-01-03 16:00:00    255.0
+           2000-01-03 20:00:00     -inf
+           2000-01-04 00:00:00     -inf
+           2000-01-04 04:00:00     -inf
+           Freq: 4h, dtype: float64
         """
         return _groupOperation(
             saqc=self,
@@ -666,7 +729,12 @@ class FlagtoolsMixin:
         **kwargs,
     ) -> "SaQC":
         """
-        Flag all values, if at least one of the given ``field`` values is already flagged.
+        Logical OR operation for Flags.
+
+        Flag the variable(s) `field` at every period, at wich `field` is flagged in at least one of the saqc objects
+        in `group`.
+
+        See Examples section for examples.
 
         Parameters
         ----------
@@ -674,6 +742,32 @@ class FlagtoolsMixin:
             A collection of ``SaQC`` objects. Flag checks are performed on all ``SaQC`` objects
             based on the variables specified in :py:attr:`field`. Whenever any of monitored variables
             is flagged, the associated timestamps will receive a flag.
+
+        Examples
+        --------
+        Flag data, if the values are above a certain threshold (determined by :py:meth:`~saqc.SaQC.flagRange`) OR if the values are
+        constant for 3 periods (determined by :py:meth:`~saqc.SaQC.flagConstants`)
+
+        .. doctest:: orGroupExample
+
+           >>> dat = pd.Series([1,0,0,0,0,2,3,4,5,5,7,8], name='data', index=pd.date_range('2000', freq='10min', periods=12))
+           >>> qc = saqc.SaQC(dat)
+           >>> qc = qc.orGroup('data', group=[qc.flagRange('data', max=5), qc.flagConstants('data', thresh=0, window=3)])
+           >>> qc.flags['data']
+           2000-01-01 00:00:00     -inf
+           2000-01-01 00:10:00    255.0
+           2000-01-01 00:20:00    255.0
+           2000-01-01 00:30:00    255.0
+           2000-01-01 00:40:00    255.0
+           2000-01-01 00:50:00     -inf
+           2000-01-01 01:00:00     -inf
+           2000-01-01 01:10:00     -inf
+           2000-01-01 01:20:00     -inf
+           2000-01-01 01:30:00     -inf
+           2000-01-01 01:40:00    255.0
+           2000-01-01 01:50:00    255.0
+           Freq: 10min, dtype: float64
+
         """
         return _groupOperation(
             saqc=self,

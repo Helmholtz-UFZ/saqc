@@ -15,3 +15,5 @@ Flagtools
    ~SaQC.flagManual
    ~SaQC.flagDummy
    ~SaQC.transferFlags
+   ~SaQC.andGroup
+   ~SaQC.orGroup
