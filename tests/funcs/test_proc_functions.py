@@ -20,6 +20,27 @@ from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
 from tests.fixtures import char_dict, course_3, course_5  # noqa, todo: fix fixtures
 
 
+@pytest.mark.parametrize(
+    ("window", "center", "expected"),
+    [
+        (1, True, [3, 2, 3, 2]),
+        (2, False, [np.nan, 5, 5, 5]),
+        (3, True, [np.nan, 8, 7, np.nan]),
+        ("20min", True, [5, 5, 5, np.nan]),
+    ],
+)
+def test_multivariateRolling(window, center, expected):
+    data = pd.DataFrame(
+        {"a": [1, np.nan, 3, 4], "b": [1, 2, 3, 4], "c": [1, 2, 3, np.nan]},
+        index=pd.date_range("2000", periods=4, freq="10min"),
+    )
+    qc = saqc.SaQC(data)
+    qc = qc.rolling(
+        ["a", "b", "c"], func="count", target="count", window=window, center=center
+    )
+    assert np.array_equal(qc.data["count"].values, expected, equal_nan=True)
+
+
 def test_rollingInterpolateMissing(course_5):
     data, characteristics = course_5(periods=10, nan_slice=[5, 6])
     field = data.columns[0]

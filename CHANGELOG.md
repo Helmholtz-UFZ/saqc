@@ -27,6 +27,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `setFlags`: function to replace `flagManual`
 - `flagUniLOF`: added parameter `slope_correct` to correct for overflagging at relatively steep data value slopes
 - `History`: added option to change aggregation behavior
+- "horizontal" axis / multivariate mode for `rolling`
 - Translation scheme `AnnotatedFloatScheme`
 ### Changed
 - `SaQC.flags` always returns a `DictOfSeries`
