@@ -434,7 +434,10 @@ def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply") -> pd.S
 
     """
     try:
-        out = getattr(in_obj, getattr(apply_obj, attr_access))()
+        access = getattr(apply_obj, attr_access)
+        if access.startswith("nan"):
+            access = access[3:]
+        out = getattr(in_obj, access)()
     except AttributeError:
         try:
             # let's try to run it somewhat optimized
