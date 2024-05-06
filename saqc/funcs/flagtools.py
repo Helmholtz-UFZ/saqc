@@ -17,7 +17,6 @@ from typing_extensions import Literal
 
 from saqc import BAD, FILTER_ALL, UNFLAGGED
 from saqc.core import DictOfSeries, flagging, register
-from saqc.core.flags import Flags
 from saqc.core.history import History
 from saqc.lib.checking import validateChoice, validateWindow
 from saqc.lib.tools import (
@@ -446,7 +445,7 @@ class FlagtoolsMixin:
 
         fields, targets, broadcasting = multivariateParameters(field, target)
         meta = {
-            "func": f"transferFlags",
+            "func": "transferFlags",
             "args": (),
             "kwargs": {
                 "field": field,

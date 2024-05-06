@@ -7,11 +7,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import re
 import typing
 import uuid
 import warnings
-from typing import TYPE_CHECKING, Callable, Union
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import pandas as pd
@@ -21,10 +20,9 @@ import saqc.constants
 from saqc.constants import UNFLAGGED
 from saqc.core import register
 from saqc.core.history import History
-from saqc.funcs.interpolation import DATA_REINDEXER
 from saqc.lib.checking import validateChoice, validateFuncSelection
 from saqc.lib.docs import DOC_TEMPLATES
-from saqc.lib.tools import filterKwargs, getFreqDelta
+from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import isValid
 
 if TYPE_CHECKING:
@@ -288,10 +286,10 @@ class ResamplingMixin:
                 done = True
 
         if len(stack) == 0:
-            raise ValueError(f"Could not find no last reindexing to invert")
+            raise ValueError("Could not find no last reindexing to invert")
 
         reindex_method = METHODINVERTS.get(stack[-1], False)
-        if reindex_method == False:
+        if reindex_method is False:
             raise ValueError(f"cant invert {stack[-1]}")
         return reindex_method
 

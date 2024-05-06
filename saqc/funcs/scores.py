@@ -7,14 +7,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
 from typing_extensions import Literal
 
-from saqc import UNFLAGGED
 from saqc.core import register
 from saqc.lib.checking import (
     validateChoice,
@@ -25,7 +24,7 @@ from saqc.lib.checking import (
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import getApply, toSequence
 from saqc.lib.ts_operators import kNN
-from saqc.parsing.environ import ENV_OPERATORS, ENV_TRAFOS
+from saqc.parsing.environ import ENV_OPERATORS
 
 if TYPE_CHECKING:
     from saqc import SaQC

@@ -13,7 +13,8 @@ import pandas as pd
 import pytest
 
 from saqc import BAD, FILTER_ALL, FILTER_NONE, UNFLAGGED, SaQC
-from saqc.core import DictOfSeries, Flags, flagging, initFlagsLike, processing, register
+from saqc.core import DictOfSeries, Flags, flagging, processing, register
+from saqc.core.flags import initFlagsLike
 from saqc.lib.types import OptionalNone
 from tests.common import initData
 

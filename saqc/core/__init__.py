@@ -4,8 +4,19 @@
 # -*- coding: utf-8 -*-
 
 # isort: skip_file
+
+__all__ = [
+    "DictOfSeries",
+    "History",
+    "Flags",
+    "SaQC",
+    "flagging",
+    "processing",
+    "register",
+]
+
 from saqc.core.frame import DictOfSeries
 from saqc.core.history import History
-from saqc.core.flags import Flags, initFlagsLike
+from saqc.core.flags import Flags
 from saqc.core.register import flagging, processing, register
 from saqc.core.core import SaQC

@@ -23,8 +23,8 @@ from hypothesis.strategies import (
 )
 from hypothesis.strategies._internal.types import _global_type_lookup
 
-from saqc import BAD
-from saqc.core import DictOfSeries, initFlagsLike
+from saqc import BAD, DictOfSeries
+from saqc.core.flags import initFlagsLike
 from saqc.core.register import FUNC_MAP
 
 MAX_EXAMPLES = 50

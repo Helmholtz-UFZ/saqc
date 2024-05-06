@@ -14,8 +14,8 @@ import pandas as pd
 import pytest
 
 import saqc
-from saqc import UNFLAGGED, SaQC
-from saqc.core import DictOfSeries, initFlagsLike
+from saqc import UNFLAGGED, DictOfSeries, SaQC
+from saqc.core.flags import initFlagsLike
 from saqc.lib.ts_operators import linearInterpolation, polynomialInterpolation
 from tests.fixtures import char_dict, course_3, course_5  # noqa, todo: fix fixtures
 

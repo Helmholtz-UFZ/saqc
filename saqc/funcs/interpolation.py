@@ -7,7 +7,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import warnings
 from typing import TYPE_CHECKING, Callable, Tuple, Union
 
 import numpy as np
@@ -18,8 +17,6 @@ from saqc import UNFLAGGED
 from saqc.core import register
 from saqc.core.history import History
 from saqc.lib.checking import (
-    isValidChoice,
-    validateCallable,
     validateChoice,
     validateFuncSelection,
     validateMinPeriods,

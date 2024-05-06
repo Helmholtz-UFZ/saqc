@@ -442,7 +442,7 @@ def getApply(in_obj, apply_obj, attr_access="__name__", attr_or="apply") -> pd.S
         try:
             # let's try to run it somewhat optimized
             out = getattr(in_obj, attr_or)(apply_obj, raw=True)
-        except:
+        except Exception:
             # did't work out, fallback
             out = getattr(in_obj, attr_or)(apply_obj)
 

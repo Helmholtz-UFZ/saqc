@@ -12,7 +12,7 @@ import warnings
 from copy import copy as shallowcopy
 from copy import deepcopy
 from functools import partial
-from typing import Any, Hashable, Iterable, MutableMapping
+from typing import Any, Hashable, Iterable
 
 import numpy as np
 import pandas as pd
@@ -332,7 +332,7 @@ class SaQC(FunctionsMixin):
     def _castData(self, data) -> DictOfSeries:
         if isinstance(data, pd.Series):
             if not isinstance(data.name, str):
-                raise ValueError(f"Cannot init from unnamed pd.Series")
+                raise ValueError("Cannot init from unnamed pd.Series")
             data = data.to_frame()
         if isinstance(data, pd.DataFrame):
             for idx in [data.index, data.columns]:

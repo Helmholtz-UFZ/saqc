@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 import itertools
-from collections import OrderedDict
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt

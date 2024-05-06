@@ -9,8 +9,8 @@
 import pandas as pd
 import pytest
 
-from saqc import BAD, UNFLAGGED, SaQC
-from saqc.core import DictOfSeries, initFlagsLike
+from saqc import BAD, UNFLAGGED, DictOfSeries, SaQC
+from saqc.core.flags import initFlagsLike
 from tests.common import initData
 
 

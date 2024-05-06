@@ -7,8 +7,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pandas as pd
-import scipy.stats as st
 
 import saqc.lib.ts_operators as ts_ops
 from saqc import BAD, DOUBTFUL, FILTER_ALL, FILTER_NONE, GOOD, UNFLAGGED

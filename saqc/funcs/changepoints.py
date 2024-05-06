@@ -13,13 +13,11 @@ import numpy as np
 import pandas as pd
 
 from saqc import BAD, UNFLAGGED
-from saqc.core import DictOfSeries, Flags, flagging, register
+from saqc.core import flagging, register
 from saqc.lib.checking import (
-    isInBounds,
     validateCallable,
     validateChoice,
     validateMinPeriods,
-    validateValueBounds,
     validateWindow,
 )
 

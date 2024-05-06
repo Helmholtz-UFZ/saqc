@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 import json
-from functools import reduce
 
 import numpy as np
 import pandas as pd
@@ -18,7 +17,6 @@ from saqc import BAD, DOUBTFUL, GOOD, UNFLAGGED
 from saqc.core import Flags, History
 from saqc.core.frame import DictOfSeries
 from saqc.core.translation.basescheme import BackwardMap, ForwardMap, MappingScheme
-from saqc.lib.tools import getUnionIndex
 
 _QUALITY_CAUSES = [
     "",

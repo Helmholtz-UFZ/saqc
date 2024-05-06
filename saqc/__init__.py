@@ -7,8 +7,25 @@
 
 """The System for automated Quality Control package."""
 
+__all__ = [
+    "BAD",
+    "DOUBTFUL",
+    "GOOD",
+    "UNFLAGGED",
+    "FILTER_ALL",
+    "FILTER_NONE",
+    "Flags",
+    "DictOfSeries",
+    "SaQC",
+    "DmpScheme",
+    "FloatScheme",
+    "PositionalScheme",
+    "SimpleScheme",
+    "AnnotatedFloatScheme",
+    "fromConfig",
+]
+
 from saqc.constants import BAD, DOUBTFUL, FILTER_ALL, FILTER_NONE, GOOD, UNFLAGGED
-from saqc.exceptions import ParsingError
 from saqc.core import Flags, DictOfSeries, SaQC
 from saqc.core.translation import (
     DmpScheme,
@@ -18,8 +35,6 @@ from saqc.core.translation import (
     AnnotatedFloatScheme,
 )
 from saqc.parsing.reader import fromConfig
-from saqc.version import __version__
-
 from . import _version
 
 __version__ = _version.get_versions()["version"]
