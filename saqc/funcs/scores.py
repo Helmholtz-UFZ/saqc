@@ -528,13 +528,13 @@ class ScoresMixin:
 
         d_var = d_var.drop(na_idx, axis=0).values
         vals = vals.drop(na_idx, axis=0).values
-        vals_extended = np.array(
-            list(vals[::-1][-n:]) + list(vals) + list(vals[::-1][:n])
-        )
-        d_extended = np.array(
-            list(d_var[:n] + (d_var[0] - d_var[n + 1]))
-            + list(d_var)
-            + list(d_var[-n:] + (d_var[-1] - d_var[-n - 1]))
+        vals_extended = np.pad(vals, n, mode="reflect")
+        d_extension = n * density
+        d_extended = np.pad(
+            d_var,
+            n,
+            mode="linear_ramp",
+            end_values=(d_var[0] - d_extension, d_var[-1] + d_extension),
         )
 
         LOF_vars = np.array([vals_extended, d_extended]).T
