@@ -136,10 +136,10 @@ def main(
     config = str(config)
     cr = _ConfigReader(data=data, scheme=scheme)
     if config.endswith("json"):
-        f = None
-        if json_field is not None:
-            f = lambda j: j[str(json_field)]
-        cr = cr.readJson(config, unpack=f)
+        cr = cr.readJson(
+            config,
+            unpack=lambda j: j[str(json_field)] if json_field is not None else None,
+        )
     else:
         cr = cr.readCsv(config)
 

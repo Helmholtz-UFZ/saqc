@@ -13,16 +13,10 @@ from typing import TYPE_CHECKING, Callable, Literal
 
 import numpy as np
 import pandas as pd
-from scipy.stats import median_abs_deviation
 
 from saqc.constants import BAD
 from saqc.core.register import flagging
-from saqc.lib.checking import (
-    isCallable,
-    validateFuncSelection,
-    validateMinPeriods,
-    validateWindow,
-)
+from saqc.lib.checking import validateFuncSelection, validateMinPeriods, validateWindow
 from saqc.lib.tools import isunflagged, statPass
 from saqc.parsing.environ import ENV_OPERATORS
 

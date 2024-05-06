@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 import warnings
-from typing import TYPE_CHECKING, Callable, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Callable, Sequence, Tuple
 
 import numpy as np
 import numpy.polynomial.polynomial as poly
@@ -27,7 +27,6 @@ from saqc.lib.checking import (
     validateChoice,
     validateFraction,
     validateFrequency,
-    validateFuncSelection,
     validateMinPeriods,
     validateValueBounds,
     validateWindow,

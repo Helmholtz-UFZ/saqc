@@ -12,8 +12,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from saqc import BAD, UNFLAGGED, SaQC
-from saqc.core import DictOfSeries, Flags, initFlagsLike, register
+from saqc import BAD, UNFLAGGED, DictOfSeries, Flags, SaQC
+from saqc.core import register
+from saqc.core.flags import initFlagsLike
 from saqc.funcs.generic import _execGeneric
 from saqc.parsing.reader import _ConfigReader
 from saqc.parsing.visitor import ConfigFunctionParser

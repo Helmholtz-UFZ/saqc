@@ -267,7 +267,7 @@ class GenericMixin:
             )
 
         if not result.empty and not isAllBoolean(result):
-            raise TypeError(f"generic expression does not return a boolean array")
+            raise TypeError("generic expression does not return a boolean array")
 
         # update flags & data
         for i, col in enumerate(targets):

@@ -14,12 +14,7 @@ import pandas as pd
 
 import saqc
 from saqc.core import DictOfSeries, Flags, register
-from saqc.lib.checking import (
-    validateCallable,
-    validateFuncSelection,
-    validateMinPeriods,
-    validateWindow,
-)
+from saqc.lib.checking import validateFuncSelection, validateMinPeriods, validateWindow
 from saqc.lib.tools import getFreqDelta
 
 if TYPE_CHECKING:

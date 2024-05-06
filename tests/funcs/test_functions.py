@@ -10,9 +10,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import saqc
-from saqc import BAD, DOUBTFUL, UNFLAGGED, SaQC
-from saqc.core import DictOfSeries, initFlagsLike
+from saqc import BAD, DOUBTFUL, UNFLAGGED, DictOfSeries, SaQC
+from saqc.core.flags import initFlagsLike
 from tests.common import initData
 from tests.fixtures import char_dict, course_1  # noqa, todo: fix fixtures
 

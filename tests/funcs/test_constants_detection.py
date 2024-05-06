@@ -9,8 +9,8 @@
 import numpy as np
 import pytest
 
-from saqc import BAD, UNFLAGGED
-from saqc.core import SaQC, initFlagsLike
+from saqc import BAD, UNFLAGGED, SaQC
+from saqc.core.flags import initFlagsLike
 from tests.common import initData
 
 

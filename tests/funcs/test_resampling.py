@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 
 from saqc import SaQC
-from saqc.core import initFlagsLike
+from saqc.core.flags import initFlagsLike
 from saqc.funcs.resampling import (
     _aggregationGrouper,
     _constructAggregationReindexer,

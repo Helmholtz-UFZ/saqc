@@ -9,10 +9,7 @@
 """
 The module gathers all kinds of timeseries tranformations.
 """
-import re
 import sys
-import warnings
-from typing import Literal, Union
 
 import numpy as np
 import numpy.polynomial.polynomial as poly
