@@ -401,15 +401,7 @@ class OutliersMixin:
             down_slopes = (max_vals - eps <= last_vals.shift(1)) & (
                 min_vals + eps >= first_vals.shift(-1)
             )
-            slopes = up_slopes | down_slopes
-            odd_return_pred = (max_vals > last_vals.shift(1)) & (
-                min_vals < last_vals.shift(1)
-            )
-            odd_return_succ = (max_vals > first_vals.shift(-1)) & (
-                min_vals < first_vals.shift(-1)
-            )
-            returns = odd_return_succ | odd_return_pred
-            corrections = returns | slopes
+            corrections = up_slopes | down_slopes
             for s_id in corrections[corrections].index:
                 correct_idx = od_groups.get_group(s_id).index
                 s_mask[correct_idx] = False
