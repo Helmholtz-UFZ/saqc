@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
+from scipy.spatial.distance import cdist
+from scipy.special import erf, erfinv
 from sklearn.neighbors import LocalOutlierFactor
 from typing_extensions import Literal
 
@@ -47,6 +49,43 @@ def _LOFApply(vals, n_neighbors, ret="scores", **kwargs):
         return resids
     else:
         return labels == -1
+
+
+def _LOPApply(
+    vals,
+    n_neighbors,
+    ret="scores",
+    statistical_extent=0.997,
+    use_centroids=False,
+    **kwargs,
+):
+    """
+    Apply Local Outlier Probability algorithm, as presented in
+
+    Kriegel, H.-P.; Kröger, P.; Schubert, E.; Zimek, A. LoOP: local outlier probabilities. Proceedings
+    of the 18th ACM conference on Information and knowledge management 2009, 1649–1652.
+    """
+    d, members = kNN(vals, n_neighbors, **kwargs)
+    members = np.concatenate([np.array([range(vals.shape[0])]).T, members], axis=1)
+    d = np.concatenate([np.array([[0] * vals.shape[0]]).T, d], axis=1)
+    if use_centroids:
+        centroids = vals[members].sum(axis=1) / (n_neighbors + 1)
+
+        for k in range(vals.shape[0]):
+            d[k] = cdist(centroids[k : k + 1], vals[members[k]])
+
+    standard_dist = np.sqrt(np.sum(d**2, axis=1) / (n_neighbors + 1))
+    lambda_val = np.sqrt(2) * erfinv(statistical_extent)
+    p_dist = lambda_val * standard_dist
+    exp_p_dist = p_dist[members].sum(axis=1) / (n_neighbors + 1)
+    plof = (p_dist / exp_p_dist) - 1
+    nplof = np.sqrt(np.sum(plof**2) / len(plof)) * lambda_val * np.sqrt(2)
+    scores = erf(plof / nplof)
+    scores = np.where(scores > 0, scores, 0)
+    if ret == "scores":
+        return -scores
+    else:
+        return scores == 0
 
 
 def _groupedScoring(
@@ -436,10 +475,11 @@ class ScoresMixin:
         p: int = 1,
         density: Literal["auto"] | float = "auto",
         fill_na: bool = True,
+        statistical_extent=1,
         **kwargs,
     ) -> "SaQC":
         """
-        Assign "univariate" Local Outlier Factor (LOF).
+        Assign "univariate" Local Outlier Factor (LOF) or "inivariate" Local Outlier Probability (LOP)
 
         The Function is a wrapper around a usual LOF implementation, aiming for an easy to use, parameter minimal
         outlier scoring function for singleton variables, that does not necessitate prior modelling of the variable.
@@ -482,11 +522,16 @@ class ScoresMixin:
 
         Notes
         -----
+        LOP: Kriegel, H.-P.; Kröger, P.; Schubert, E.; Zimek, A. LoOP: local outlier probabilities. Proceedings
+          of the 18th ACM conference on Information and knowledge management 2009, 1649–1652.
+
         Algorithm steps for uniLOF flagging of variable `x`:
 
         1. The temporal density `dt(x)` is calculated according to the `density` parameter.
-        2. LOF scores `LOF(x)` are calculated for the concatenation [`x`, `dt(x)`]
-        3. `x` is flagged where `LOF(x)` exceeds the threshold determined by the parameter `thresh`.
+        2. LOF (or LOP) scores `L(x)` are calculated for the concatenation [`x`, `dt(x)`]
+        3. `x` is flagged where `L(x)` exceeds the threshold determined by the parameter `thresh`.
+
+
 
         Examples
         --------
@@ -506,13 +551,13 @@ class ScoresMixin:
             filled = pd.Series(False, index=vals.index)
 
         if density == "auto":
-            v_diff = vals.diff()
+            v_diff = (vals**p).diff()
             density = v_diff.abs().median()
             if density == 0:
                 density = v_diff[v_diff != 0].abs().median()
         elif isinstance(density, Callable):
             density = density(vals)
-        if isinstance(density, pd.Series):
+        elif isinstance(density, pd.Series):
             density = density.values
 
         d_var = pd.Series(np.arange(len(vals)) * density, index=vals.index)
@@ -537,7 +582,19 @@ class ScoresMixin:
         )
 
         LOF_vars = np.array([vals_extended, d_extended]).T
-        scores = _LOFApply(LOF_vars, n, p=p, algorithm=algorithm, metric="minkowski")
+        if statistical_extent == 1:
+            scores = _LOFApply(
+                LOF_vars, n, p=p, algorithm=algorithm, metric="minkowski"
+            )
+        else:
+            scores = _LOPApply(
+                LOF_vars,
+                n,
+                p=p,
+                statistical_extent=statistical_extent,
+                algorithm=algorithm,
+                metric="minkowski",
+            )
         scores = scores[n:-n]
         score_ser = pd.Series(scores, index=na_bool_ser.index[~na_bool_ser.values])
         score_ser = score_ser.reindex(na_bool_ser.index)

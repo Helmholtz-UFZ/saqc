@@ -205,13 +205,16 @@ def test_flagZScoresMV():
     assert (qc.flags.to_pandas().iloc[[40, 80], 0] > 0).all()
 
 
+@pytest.mark.filterwarnings("ignore:Number of distinct clusters")
 @pytest.mark.parametrize("n", [1, 10])
 @pytest.mark.parametrize("p", [1, 2])
-@pytest.mark.parametrize("thresh", ["auto", 2])
-def test_flagUniLOF(spiky_data, n, p, thresh):
+@pytest.mark.parametrize(
+    "cutoff", [{}, {"probability": 0.99}, {"thresh": "auto"}, {"thresh": 2}]
+)
+def test_flagUniLOF(spiky_data, n, p, cutoff):
     data = spiky_data[0]
     field, *_ = data.columns
-    qc = SaQC(data).flagUniLOF(field, n=n, p=p, thresh=thresh)
+    qc = SaQC(data).flagUniLOF(field, n=n, p=p, **cutoff)
     flag_result = qc.flags[field]
     test_sum = (flag_result.iloc[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])

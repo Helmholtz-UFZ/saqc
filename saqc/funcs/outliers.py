@@ -10,13 +10,16 @@ from __future__ import annotations
 
 import uuid
 import warnings
-from typing import TYPE_CHECKING, Callable, Sequence, Tuple
+from collections import Counter
+from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
 
 import numpy as np
 import numpy.polynomial.polynomial as poly
 import pandas as pd
 from outliers import smirnov_grubbs  # noqa, on pypi as outlier-utils
 from scipy.stats import median_abs_deviation
+from sklearn.cluster import k_means
+from sklearn.metrics import silhouette_samples, silhouette_score
 from typing_extensions import Literal
 
 from saqc import BAD, UNFLAGGED
@@ -37,6 +40,55 @@ from saqc.lib.tools import getFreqDelta, isflagged, toSequence
 
 if TYPE_CHECKING:
     from saqc import SaQC
+
+
+def _estimateCutoffProbability(probabilities: np.ndarray, thresh: float):
+    """
+    Estimate a cutoff level for the outlier probabilities passed to `probabilities` with an iterative k-means aproach
+    """
+
+    if isinstance(thresh, float) and (thresh < 1):
+        sup_num = max(4, int(abs(thresh * probabilities.shape[0])))
+
+    else:
+        sup_num = max(4, int(abs(thresh)))
+
+    vals = (-probabilities).nlargest(sup_num).values
+    vals = np.unique(vals).reshape(-1, 1)
+    km = k_means(vals, 2)
+    thresh = 1.0
+    for check in range(3, int(vals.shape[0]) + 1):
+
+        _km = k_means(vals, check)
+
+        if (_km[-1] - km[-1]) > -1:
+
+            cluster_hierarchy = km[0].argsort(axis=0).squeeze()
+            top_cluster = cluster_hierarchy[-1]
+            sec_cluster = cluster_hierarchy[-2]
+            top_select = km[1] == top_cluster
+            sec_select = km[1] == sec_cluster
+            topsec_select = top_select | sec_select
+            topsec_labels = km[1][topsec_select]
+            if topsec_select.sum() == 2:
+                continue
+            silhouette = silhouette_samples(vals[topsec_select], topsec_labels)
+            if top_select.sum() == 1:
+                silhouette[top_select] = 1.0
+            if sec_select.sum() == 1:
+                silhouette[sec_select] = 1.0
+            top_silhouette = silhouette[km[1][topsec_select] == top_cluster]
+            sil_mean = silhouette.mean()
+            min_select = top_silhouette >= sil_mean
+
+            if (min_select.sum() > 0) and (sil_mean > 0.6):
+                od_samples = vals[km[1] == top_cluster][min_select]
+                thresh = od_samples.min()
+                if od_samples.shape[0] > 10:
+                    thresh = max(thresh, km[0].max() - 3 * od_samples.std())
+                break
+        km = _km
+    return thresh
 
 
 def _stray(partition, min_periods, iter_start, alpha):
@@ -202,7 +254,9 @@ class OutliersMixin:
         self: "SaQC",
         field: str,
         n: int = 20,
-        thresh: Literal["auto"] | float = 1.5,
+        thresh: float | Literal["auto"] | None = None,
+        probability: Optional[float] = None,
+        corruption: float | int | None = None,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: int = 1,
         density: Literal["auto"] | float = "auto",
@@ -241,19 +295,23 @@ class OutliersMixin:
               Higher values greatly increase numerical costs.
 
         thresh :
-            The threshold for flagging the calculated LOF. A LOF of around
-            ``1`` is considered normal and most likely corresponds to
-            inlier points. This parameter is considered the main calibration
-            parameter of the algorithm.
+            Outlier Factor Cutoff.
 
-            * The threshing defaults to ``1.5``, wich is the default value
-              found to be suitable in the literature.
-            * ``'auto'`` enables flagging the scores with a modified 3-sigma
-              rule, resulting in a thresh around ``4``, which usually
-              greatly mitigates overflagging compared to the literature
-              recommendation, but often is too high.
-            * sensitive range for the parameter may be ``[1,15]``, assuming
-              default settings for the other parameters.
+            * If given, compute local outlier factors and cut them off at value level
+              `thresh`, resulting in all values having factors assigned higher than the cutoff,
+              being flagged.
+
+        probability :
+            Outlier probability cutoff
+
+            * If given, compute local outlier probabilities and cut them off at value level
+              `probability`, resulting in all values with factors larger than the cutoff, being flagged.
+
+        corruption :
+            Portion of data that is anomalous. Can be given:
+
+            * as a portion of the data (`float in [0,1]`)
+            * as the total of corrupted samples (`int > 1`)
 
         algorithm :
             Algorithm used for calculating the :py:attr:`n`-nearest neighbors
@@ -385,8 +443,12 @@ class OutliersMixin:
         :ref:`introduction to outlier detection with saqc <cookbooks/OutlierDetection:Outlier Detection>`
         """
         self._validateLOF(algorithm, n, p, density)
-        if thresh != "auto" and not isFloatLike(thresh):
-            raise ValueError(f"'thresh' must be 'auto' or a float, not {thresh}")
+
+        para_check = (thresh is None) + (probability is None) + (corruption is None)
+        if para_check < 2:
+            raise ValueError(
+                f'Only one (or none) of "thresh", "probability", "corruption" must be given, got: \n thresh: {thresh} \n probability: {probability} \n corruption: {corruption}'
+            )
 
         tmp_field = str(uuid.uuid4())
         qc = self.assignUniLOF(
@@ -397,13 +459,23 @@ class OutliersMixin:
             p=p,
             density=density,
             fill_na=fill_na,
+            statistical_extent=0.997 if thresh is None else 1,
         )
         s = qc.data[tmp_field]
-        if thresh == "auto":
-            _s = pd.concat([s, (-s - 2)])
-            s_mask = ((_s - _s.mean()) / _s.std()).iloc[: int(s.shape[0])].abs() > 3
-        else:
-            s_mask = s < -abs(thresh)
+        if para_check == 3:
+            corruption = int(-(len(self.data[field]) / max(n, 4)))
+        if thresh is not None:
+            if isinstance(thresh, str) and (thresh == "auto"):
+                _s = pd.concat([s, (-s - 2)])
+                s_mask = ((_s - _s.mean()) / _s.std()).iloc[: int(s.shape[0])].abs() > 3
+            else:
+                s_mask = s < -abs(thresh)
+        elif corruption is not None:
+            cutoff = _estimateCutoffProbability(probabilities=s, thresh=corruption)
+            s_mask = s <= -abs(cutoff)
+        elif probability is not None:
+            s_mask = s <= -abs(probability)
+
         s_mask = ~isflagged(qc._flags[field], kwargs["dfilter"]) & s_mask
 
         if slope_correct:

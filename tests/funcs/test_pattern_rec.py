@@ -35,7 +35,6 @@ def test_flagPlateau():
     dat = pd.read_csv(path, parse_dates=[0], index_col=0)
     dat = dat.interpolate("linear")
     dat = dat.ffill().bfill()
-
     qc = SaQC(dat)
     qc = qc.flagPlateau(
         "base3", min_length="10min", max_length="7d", granularity="20min"
