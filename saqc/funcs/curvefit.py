@@ -7,7 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, Tuple, Union
+from typing import TYPE_CHECKING, Literal, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -19,7 +19,7 @@ from saqc.lib.checking import (
     validateValueBounds,
     validateWindow,
 )
-from saqc.lib.tools import getFreqDelta
+from saqc.lib.tools import getFreqDelta, toSequence
 from saqc.lib.ts_operators import (
     butterFilter,
     polyRoller,
@@ -29,6 +29,10 @@ from saqc.lib.ts_operators import (
 
 if TYPE_CHECKING:
     from saqc import SaQC
+
+DEFAULT_MOMENT = dict(
+    pretrained_model_name_or_path="AutonLab/MOMENT-1-large", revision="main"
+)
 
 FILL_METHODS = Literal[
     "linear",
@@ -44,6 +48,7 @@ FILL_METHODS = Literal[
 
 
 class CurvefitMixin:
+
     @register(mask=["field"], demask=[], squeeze=[])
     def fitPolynomial(
         self: "SaQC",
@@ -149,6 +154,153 @@ class CurvefitMixin:
             fill_method=fill_method,
             filter_type="lowpass",
         )
+        return self
+
+    @register(mask=["field"], demask=[], squeeze=[], multivariate=True)
+    def fitMomentFM(
+        self: "SaQC",
+        field: str | list[str],
+        ratio: int = 4,
+        context: int = 512,
+        agg: Literal["center", "mean", "median", "std"] = "mean",
+        model_spec: Optional[dict] = None,
+        **kwargs,
+    ):
+        """
+        Fits the data by reconstructing it with the Moment Foundational Timeseries Model (MomentFM).
+
+        The function applies MomentFM [1] in its reconstruction mode on a window of size `context`, striding through the data
+        with step size `context`/`ratio`
+
+        Parameters
+        ----------
+        ratio :
+            The number of samples generated for any values reconstruction. Must be a divisor of `context`.
+            Effectively controlls the stride-width of the reconstruction window through the data.
+
+        context :
+            size of the context window with regard to wich any value is reconstructed.
+
+        agg :
+            How to aggregate the different reconstructions for the same value.
+            * 'center': use the value that was constructed in a window centering around the origin value
+            * 'mean': assign the mean over all reconstructed values
+            * 'median': assign the median over all reconstructed values
+            * 'std': assign the standard deviation over all reconstructed values
+
+        model_spec :
+            Dictionary with the fields:
+            * `pretrained_model_name_or_path`
+            * `revision`
+
+            Defaults to global Parameter `DEFAULT_MOMENT=dict(pretrained_model_name_or_path="AutonLab/MOMENT-1-large", revision="main"`
+
+
+        Examples
+        --------
+        .. figure:: /resources/images/fitFMpic.png
+
+
+        Notes
+        -----
+        [1] https://arxiv.org/abs/2402.03885
+        [2] https://github.com/moment-timeseries-foundation-model/moment
+        """
+
+        _model_scope = 512
+
+        model_spec = DEFAULT_MOMENT if model_spec is None else model_spec
+
+        try:
+            import torch
+            from momentfm import MOMENTPipeline
+            from momentfm.data.informer_dataset import InformerDataset
+            from torch.utils.data import DataLoader
+        except ImportError as error_msg:
+            print("Foundational Timeseries Regressor requirements not sufficed:\n")
+            print(error_msg)
+            print(
+                'Install the Requirements manually or by pip installing "saqc" package with extras "FM" (pip install saqc[FM])'
+            )
+
+        if context > _model_scope:
+            raise ValueError(
+                f'Parameter "context" must not be greater {_model_scope}. Got {context}.'
+            )
+        if context % ratio > 0:
+            raise ValueError(
+                f'Parameter "ratio" must be a divisor of "context". Got context={context} and ratio={ratio} -> divides as: {context / ratio}.'
+            )
+        if agg not in ["mean", "median", "std", "center"]:
+            raise ValueError(
+                f'Parameter "agg" needs be one out of ["mean", "median", "std", "center"]. Got "agg": {agg}.'
+            )
+
+        field = toSequence(field)
+        dat = self._data[field].to_pandas()
+        # input mask, in case context is < 512
+        _input_mask = np.ones(_model_scope)
+        _input_mask[context:] = 0
+        # model instance
+        model = MOMENTPipeline.from_pretrained(
+            **model_spec,
+            model_kwargs={"task_name": "reconstruction"},
+        )
+        model.init()
+
+        # derive rec window stride width from ratio
+        stepsz = context // ratio
+        # na mask that will tell the model where data values are missing
+        _na_mask = ~(dat.isna().any(axis=1))
+        # generate sliding view on na mask equaling model input-patch size
+        na_mask = np.lib.stride_tricks.sliding_window_view(
+            (_na_mask).values, window_shape=_model_scope, axis=0
+        )
+        # generate stack of model input patches from the data
+        dv = np.lib.stride_tricks.sliding_window_view(
+            dat.values, window_shape=(_model_scope, len(dat.columns)), axis=(0, 1)
+        )
+        dv = np.swapaxes(dv, -1, -2).squeeze(1).astype("float32")
+        # filter input stacks to represent stepsz - sized reconstruction window stride
+        dv = dv[::stepsz]
+        na_mask = na_mask[::stepsz].astype(int)
+        # mask values to achieve truncated samples (if context < 512)
+        input_mask = np.ones(na_mask.shape)
+        input_mask[:, :] = _input_mask
+        # to torch
+        dv = torch.tensor(dv)
+        na_mask = torch.tensor(na_mask)
+        input_mask = torch.tensor(input_mask)
+        # get reconstruction for sample stack
+        output = model(x_enc=dv, mask=na_mask, input_mask=input_mask)
+        reconstruction = output.reconstruction.detach().cpu().numpy()
+        reconstruction = reconstruction[:, :, _input_mask.astype(bool)]
+        # derive number of reconstruction windows covering the same value
+        partition_count = context // stepsz
+        # aggregate overlapping reconstruction windows to 1-d data
+        for ef in enumerate(dat.columns):
+            rec_arr = np.zeros([dat.shape[0], partition_count]).astype(float)
+            rec_arr[:] = np.nan
+            count_arr = rec_arr.copy()
+            # arange reconstruction windows in array, so that same array row refers to same reconstructed time
+            for s in range(rec_arr.shape[1]):
+                d = reconstruction[s::partition_count, ef[0]].squeeze().flatten()
+                offset = s * stepsz
+                d_cut = min(offset + len(d), rec_arr.shape[0]) - offset
+                rec_arr[offset : offset + len(d), s] = d[:d_cut]
+                count_arr[offset : offset + len(d), s] = np.abs(
+                    np.arange(d_cut) % context - 0.5 * context
+                )
+
+            # aggregate the rows with selected aggregation
+            if agg == "center":
+                c_select = count_arr.argmin(axis=1)
+                rec = rec_arr[np.arange(len(c_select)), c_select]
+            else:
+                rec = getattr(np, "nan" + agg)(rec_arr, axis=1)
+
+            self._data[ef[1]] = pd.Series(rec, index=dat.index, name=ef[1])
+
         return self
 
 

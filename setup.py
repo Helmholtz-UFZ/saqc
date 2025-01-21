@@ -55,6 +55,9 @@ setup(
         "scipy",
         "typing_extensions",
     ],
+    extras_require={
+        "FM": ["momentfm"],
+    },
     license_files=("LICENSE.md", "LICENSES/GPL-3.0-or-later.txt"),
     entry_points={
         "console_scripts": ["saqc=saqc.__main__:main"],

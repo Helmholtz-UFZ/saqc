@@ -80,7 +80,7 @@ coverage:
     - export DISPLAY=:99
     - Xvfb :99 &
     - pip install pytest-cov coverage
-    - pytest --cov=saqc tests --ignore=tests/fuzzy -Werror
+    - pytest --cov=saqc tests --ignore=tests/fuzzy tests/extras -Werror
   after_script:
     - coverage xml
   # regex to find the coverage percentage in the job output
@@ -99,7 +99,7 @@ python39:
   script:
     - export DISPLAY=:99
     - Xvfb :99 &
-    - pytest tests -Werror --junitxml=report.xml
+    - pytest tests -Werror --junitxml=report.xml --ignore=tests/extras
     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
     when: always
@@ -113,7 +113,7 @@ python310:
   script:
     - export DISPLAY=:99
     - Xvfb :99 &
-    - pytest tests -Werror --junitxml=report.xml
+    - pytest tests -Werror --junitxml=report.xml --ignore=tests/extras
     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
     when: always
@@ -126,7 +126,7 @@ python311:
   script:
     - export DISPLAY=:99
     - Xvfb :99 &
-    - pytest tests -Werror --junitxml=report.xml
+    - pytest tests -Werror --junitxml=report.xml --ignore=tests/extras
     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
     when: always
@@ -139,7 +139,7 @@ python312:
   script:
     - export DISPLAY=:99
     - Xvfb :99 &
-    - pytest tests -Werror --junitxml=report.xml
+    - pytest tests -Werror --junitxml=report.xml --ignore=tests/extras
     - python -m saqc --config docs/resources/data/config.csv --data docs/resources/data/data.csv --outfile /tmp/test.csv
   artifacts:
     when: always
