@@ -206,7 +206,7 @@ def test_set_flags(data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]
 
 @pytest.mark.parametrize("data", testdata)
 def test_set_flags_with_mask(
-    data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]
+    data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]],
 ):
     flags = Flags(data)
 
@@ -253,7 +253,7 @@ def test_set_flags_with_mask(
 
 @pytest.mark.parametrize("data", testdata)
 def test_set_flags_with_index(
-    data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]]
+    data: Union[pd.DataFrame, DictOfSeries, Dict[str, pd.Series]],
 ):
     flags = Flags(data)
 

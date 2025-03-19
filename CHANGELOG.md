@@ -15,6 +15,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Changed
 ### Removed
 ### Fixed
+- `flagConstants`: fixed bug where last `min_periods` will never get flagged
 ### Deprecated
 
 ## [2.6.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.6.0) - 2024-04-15

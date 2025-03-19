@@ -77,9 +77,8 @@ class ConstantsMixin:
         starting_points_mask = removeRollingRamps(starting_points_mask, window=window)
 
         # mimic forward rolling by roll over inverse [::-1]
-        rolling = starting_points_mask[::-1].rolling(
-            window=window, min_periods=min_periods
-        )
+
+        rolling = starting_points_mask[::-1].rolling(window=window, min_periods=0)
         # mimic any()
         mask = (rolling.sum()[::-1] > 0) & d.notna()
 

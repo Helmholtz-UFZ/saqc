@@ -7,6 +7,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from saqc import BAD, UNFLAGGED, SaQC
@@ -24,6 +25,15 @@ def data():
     return constants_data
 
 
+@pytest.fixture
+def data_const_tail():
+    constants_data = pd.DataFrame(
+        {"a": [1, 2, 3, 4, 5, 9, 9, 9, 9, 9]},
+        index=pd.date_range("2000", freq="1h", periods=10),
+    )
+    return constants_data
+
+
 def test_constants_flagBasic(data):
     field, *_ = data.columns
     flags = initFlagsLike(data)
@@ -33,6 +43,16 @@ def test_constants_flagBasic(data):
     assert np.all(flagscol[5:25] == BAD)
     assert np.all(flagscol[:5] == UNFLAGGED)
     assert np.all(flagscol[25 + 1 :] == UNFLAGGED)
+
+
+@pytest.mark.parametrize("window", [3, "3h", 5, "5h"])
+def test_constants_tail(data_const_tail, window):
+    field, *_ = data_const_tail.columns
+    qc = SaQC(data_const_tail)
+    qc = qc.flagConstants(field, thresh=1, window=window, flag=BAD)
+    flagscol = qc._flags[field]
+    assert np.all(flagscol[-5:] == BAD)
+    assert np.all(flagscol[:-5] == UNFLAGGED)
 
 
 def test_constants_flagVarianceBased(data):
