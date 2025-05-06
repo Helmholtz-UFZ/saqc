@@ -12,3 +12,4 @@ docs/resources/temp/*
 coverage.xml
 venv*/
 **/.*
+.venv
