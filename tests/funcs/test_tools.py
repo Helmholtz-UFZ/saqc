@@ -44,6 +44,7 @@ def test_makeFig(tmp_path):
     )
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning")
 def test_flagByClick():
     saqc.funcs.tools._TEST_MODE = True
