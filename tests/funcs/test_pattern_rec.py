@@ -89,6 +89,7 @@ def test_flagPlateau_long():
         assert not (f.iloc[na_slice].any())
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize("plot", [True, False])
 @pytest.mark.parametrize("normalize", [True, False])
 def test_flagPattern_dtw(plot, normalize):
