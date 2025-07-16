@@ -10,57 +10,29 @@ from __future__ import annotations
 import typing
 import uuid
 import warnings
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
 
 import numpy as np
 import pandas as pd
 from typing_extensions import Literal
 
 import saqc.constants
-from saqc.constants import UNFLAGGED
 from saqc.core import register
-from saqc.core.history import History
-from saqc.lib.checking import validateChoice, validateFuncSelection
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import isValid
+from saqc.lib.types import (
+    AGG_FUNC_LITERALS,
+    METHOD_LITERALS,
+    FreqStr,
+    Int,
+    OffsetLike,
+    OffsetStr,
+    SaQC,
+    ValidatePublicMembers,
+)
 
-if TYPE_CHECKING:
-    from saqc import SaQC
-
-METHODLITS = Literal[
-    "fagg",
-    "bagg",
-    "nagg",
-    "froll",
-    "broll",
-    "nroll",
-    "fshift",
-    "bshift",
-    "nshift",
-    "match",
-    "sshift",
-    "mshift",
-    "invert",
-]
-
-AGGFUNCLITS = Literal[
-    "sum",
-    "mean",
-    "median",
-    "min",
-    "max",
-    "last",
-    "first",
-    "std",
-    "var",
-    "count",
-    "sem",
-    "linear",
-    "time",
-]
-
-AGGFUNCS = list(typing.get_args(AGGFUNCLITS))
+AGGFUNCS = list(typing.get_args(AGG_FUNC_LITERALS))
 
 METHODINVERTS = {
     "fshift": "bshift",
@@ -257,7 +229,7 @@ def _constructRollingReindexer(func, idx, window, direction):
     return lambda x: _rollingReindexer(x, idx, func, window, center, fwd)
 
 
-class ResamplingMixin:
+class ResamplingMixin(ValidatePublicMembers):
     def _invertLast(self, field):
         stack = []
         for meta in self._flags.history[field].meta:
@@ -321,16 +293,16 @@ class ResamplingMixin:
 
     @register(mask=["field"], demask=[], squeeze=[])
     def resample(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        freq: str,
+        freq: FreqStr | pd.Timedelta,
         func: Callable[[pd.Series], pd.Series] | str = "mean",
         method: Literal["fagg", "bagg", "nagg"] = "bagg",
-        maxna: int | None = None,
-        maxna_group: int | None = None,
+        maxna: (Int >= 0) | None = None,
+        maxna_group: (Int >= 0) | None = None,
         squeeze: bool = False,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Resample data points and flags to a regular frequency.
 
@@ -373,9 +345,6 @@ class ResamplingMixin:
         maxna_group :
             Same as `maxna` but for consecutive NaNs.
         """
-
-        validateChoice(method, "method", ["fagg", "bagg", "nagg"])
-        validateFuncSelection(func, allow_operator_str=True)
 
         validator = lambda x: isValid(
             x, max_nan_total=maxna, max_nan_consec=maxna_group
@@ -439,18 +408,18 @@ class ResamplingMixin:
         docstring={"target": DOC_TEMPLATES["target"]},
     )
     def reindex(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        index: str | pd.DatetimeIndex,
-        method: METHODLITS = "match",
-        tolerance: str = None,
-        data_aggregation: AGGFUNCLITS | Callable | float = None,
-        flags_aggregation: AGGFUNCLITS | Callable | float = None,
+        index: FreqStr | pd.DatetimeIndex | str,
+        method: METHOD_LITERALS = "match",
+        tolerance: OffsetStr | OffsetLike | None = None,
+        data_aggregation: AGG_FUNC_LITERALS | Callable | float | None = None,
+        flags_aggregation: AGG_FUNC_LITERALS | Callable | float | None = None,
         broadcast: bool = True,
         squeeze: bool = False,
         override: bool = False,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Change a variables index.
 
@@ -823,7 +792,7 @@ class ResamplingMixin:
         docstring={"target": DOC_TEMPLATES["target"]},
     )
     def concatFlags(
-        self: "SaQC",
+        self: SaQC,
         field: str,
         target: str | None = None,
         method: Literal[
@@ -834,16 +803,19 @@ class ResamplingMixin:
             "bshift",
             "nshift",
             "sshift",
+            "mshift",
             "match",
             "auto",
+            "linear",
+            "pad",
         ] = "auto",
         invert: bool = True,
-        freq: str | None = None,
+        freq: FreqStr | pd.Timedelta | None = None,
         drop: bool = False,
         squeeze: bool = False,
         override: bool = False,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Project flags/history of :py:attr:`field` to :py:attr:`target` and adjust to the frequeny grid
         of :py:attr:`target` by 'undoing' former interpolation, shifting or resampling operations
@@ -917,23 +889,6 @@ class ResamplingMixin:
                 field=field, target=target, squeeze=squeeze, overwrite=override
             )
 
-        validateChoice(
-            method,
-            "method",
-            [
-                "fagg",
-                "bagg",
-                "nagg",
-                "fshift",
-                "bshift",
-                "nshift",
-                "mshift",
-                "match",
-                "linear",
-                "pad",
-                "auto",
-            ],
-        )
         if target is None:
             target = field
 

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import pickle
 import tkinter as tk
-from typing import TYPE_CHECKING
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -19,31 +18,27 @@ from typing_extensions import Literal
 
 from saqc import BAD, FILTER_NONE, UNFLAGGED
 from saqc.core import processing, register
-from saqc.lib.checking import validateChoice
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.plotting import makeFig
 from saqc.lib.selectionGUI import MplScroller, SelectionOverlay
 from saqc.lib.tools import periodicMask
-
-if TYPE_CHECKING:
-    from saqc import SaQC
-
+from saqc.lib.types import OffsetStr, SaQC, SaQCFields, ValidatePublicMembers
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 _TEST_MODE = False
 
 
-class ToolsMixin:
+class ToolsMixin(ValidatePublicMembers):
     @register(mask=[], demask=[], squeeze=[], multivariate=True)
     def flagByClick(
-        self: "SaQC",
-        field: str | list[str],
-        max_gap: str | None = None,
+        self: SaQC,
+        field: SaQCFields,
+        max_gap: OffsetStr | None = None,
         gui_mode: Literal["GUI", "overlay"] = "GUI",
         selection_marker_kwargs: dict | None = None,
         dfilter: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Pop up GUI for adding or removing flags by selection of points in the data plot.
 
@@ -163,12 +158,12 @@ class ToolsMixin:
         docstring={"target": DOC_TEMPLATES["target"]},
     )
     def copyField(
-        self: "SaQC",
-        field: str,
-        target: str,
+        self: SaQC,
+        field: str | list[str],
+        target: str | list[str],
         overwrite: bool = False,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Make a copy of the data and flags of `field`.
 
@@ -192,7 +187,7 @@ class ToolsMixin:
         return self
 
     @processing()
-    def dropField(self: "SaQC", field: str, **kwargs) -> "SaQC":
+    def dropField(self: SaQC, field: str, **kwargs) -> SaQC:
         """
         Drops field from the data and flags.
         """
@@ -201,7 +196,7 @@ class ToolsMixin:
         return self
 
     @processing()
-    def renameField(self: "SaQC", field: str, new_name: str, **kwargs) -> "SaQC":
+    def renameField(self: SaQC, field: str, new_name: str, **kwargs) -> SaQC:
         """
         Rename field in data and flags.
 
@@ -218,7 +213,7 @@ class ToolsMixin:
 
     @register(mask=[], demask=[], squeeze=["field"])
     def selectTime(
-        self: "SaQC",
+        self: SaQC,
         field: str,
         mode: Literal["periodic", "selection_field"],
         selection_field: str | None = None,
@@ -226,7 +221,7 @@ class ToolsMixin:
         end: str | None = None,
         closed: bool = True,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Realizes masking within saqc.
 
@@ -323,7 +318,6 @@ class ToolsMixin:
         >> end = "06:00:00"
 
         """
-        validateChoice(mode, "mode", ["periodic", "selection_field"])
 
         datcol_idx = self._data[field].index
 
@@ -349,14 +343,14 @@ class ToolsMixin:
         multivariate=True,
     )
     def plot(
-        self: "SaQC",
+        self: SaQC,
         field: str | list[str],
         path: str | None = None,
-        max_gap: str | None = None,
+        max_gap: OffsetStr | None = None,
         mode: Literal["subplots", "oneplot"] | str = "oneplot",
         history: Literal["valid", "complete"] | list[str] | None = "valid",
-        xscope: slice | str | None = None,
-        yscope: tuple | list[tuple] | dict | None = None,
+        xscope: slice | OffsetStr | str | None = None,
+        yscope: list[tuple[float, float]] | tuple[float, float] | dict | None = None,
         store_kwargs: dict | None = None,
         ax: mpl.axes.Axes | None = None,
         ax_kwargs: dict | None = None,
@@ -364,7 +358,7 @@ class ToolsMixin:
         plot_kwargs: dict | None = None,
         dfilter: float = FILTER_NONE,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Plot data and flags or store plot to file.
 

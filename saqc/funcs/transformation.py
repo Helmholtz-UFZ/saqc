@@ -13,22 +13,26 @@ import numpy as np
 import pandas as pd
 
 from saqc.core import register
-from saqc.lib.checking import validateFuncSelection
 from saqc.parsing.environ import ENV_TRAFOS
 
 if TYPE_CHECKING:
     from saqc import SaQC
+else:
+    from saqc.lib.types import SaQC
 
 
-class TransformationMixin:
+from saqc.lib.types import FreqStr, Int, SaQC, SaQCFields, ValidatePublicMembers
+
+
+class TransformationMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def transform(
-        self: "SaQC",
-        field: str,
+        self: SaQC,
+        field: SaQCFields,
         func: Callable[[pd.Series | np.ndarray], pd.Series] | str,
-        freq: float | str | None = None,
+        freq: (Int > 0) | FreqStr | None = None,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Transform data by applying a custom function on data chunks of variable size. Existing flags are preserved.
 
@@ -44,7 +48,6 @@ class TransformationMixin:
             * ``int`` : Apply transformation on successive data chunks of the given length. Must be grater than 0.
             * Offset String : Apply transformation on successive data chunks of the given temporal extension.
         """
-        validateFuncSelection(func, allow_trafo_str=True)
         if isinstance(func, str):
             func = ENV_TRAFOS[func]
 

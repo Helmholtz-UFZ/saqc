@@ -10,6 +10,7 @@
 
 # -- Path setup --------------------------------------------------------------
 
+import ast
 import logging
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -18,13 +19,11 @@ import logging
 #
 import os
 import sys
+import types
 
 sys.path.insert(0, os.path.abspath(".."))
 package_path = os.path.abspath("..")
 os.environ["PYTHONPATH"] = ":".join((package_path, os.environ.get("PYTHONPATH", "")))
-
-# ---------- Version string --------------------------------------------------
-# TODO: what for we need `version` and the `release` variables for ?
 
 # import saqc for versioning, but prevent plots to pop up
 # by setting mpl backend to non-interactive
@@ -64,21 +63,11 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.doctest",
-    # "sphinx.ext.extlinks",
-    # "sphinx.ext.todo",
-    # "sphinx.ext.intersphinx",
-    # "sphinx.ext.coverage",
-    # "sphinx.ext.mathjax",
-    # "sphinx.ext.ifconfig",
     "sphinx.ext.autosectionlabel",
-    # link source code
     "sphinx.ext.viewcode",
-    # add suupport for NumPy style docstrings
     "sphinx.ext.napoleon",
-    # Doc a whole module
     # see https://sphinx-automodapi.readthedocs.io/en/latest/
     "sphinx_automodapi.automodapi",
-    # 'sphinx_automodapi.smart_resolver',
     # see https://sphinxcontrib-fulltoc.readthedocs.io/en/latest/
     "sphinxcontrib.fulltoc",
     # Markdown sources support
@@ -90,11 +79,10 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     # jupyter code execution
     "jupyter_sphinx",
-    "sphinx_autodoc_typehints",
-    # "numpydoc"
     "sphinx_tabs.tabs",
-    "sphinx_autodoc_typehints",
     "sphinx_design",
+    "sphinxcontrib.autodoc_pydantic",
+    "sphinx_autodoc_typehints",
 ]
 
 
@@ -114,7 +102,7 @@ automodapi_toctreedirnm = "_api"
 autosectionlabel_prefix_document = True
 typehints_defaults = "braces"
 autodoc_typehints = "none"
-
+always_use_bars_union = True
 doctest_global_setup = """
 import saqc
 import pandas as pd
@@ -144,18 +132,6 @@ html_theme = "pydata_sphinx_theme"
 
 html_logo = "resources/images/representative/SaQCLogo.png"
 html_favicon = "resources/images/representative/SaQCLogoSmall.png"
-
-# use pandas theme
-# html_theme = "pydata_sphinx_theme"
-
-
-# html_theme_options = {
-# }
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ["_static"]
 
 # -- RST options -------
 rst_prolog = """

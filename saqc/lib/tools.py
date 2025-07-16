@@ -33,16 +33,7 @@ from scipy import fft
 from scipy.cluster.hierarchy import fcluster, linkage
 
 from saqc import FILTER_ALL, UNFLAGGED
-from saqc.lib.checking import _isLiteral
-from saqc.lib.types import CompT
-
-
-def extractLiteral(lit: type(Literal)) -> List:
-    """Return a list of values from a typing.Literal[...] at runtime."""
-    if not _isLiteral(lit):
-        raise TypeError("'lit' must be a typing.Literal")
-    return list(get_args(lit))
-
+from saqc.lib.types import ArrayLike, CompT
 
 T = TypeVar("T")
 # fmt: off
@@ -454,7 +445,7 @@ def statPass(
     stat: Callable[[np.ndarray, pd.Series], float],
     winsz: pd.Timedelta,
     thresh: float,
-    comparator: Callable[[CompT, CompT], bool],
+    comparator: Callable[[CompT, CompT], ArrayLike[bool]],
     sub_winsz: pd.Timedelta | None = None,
     sub_thresh: float | None = None,
     min_periods: int | None = None,

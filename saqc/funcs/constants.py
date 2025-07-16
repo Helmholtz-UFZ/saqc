@@ -9,33 +9,31 @@
 from __future__ import annotations
 
 import operator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 import pandas as pd
+from pydantic import validate_call
 
 from saqc import BAD
 from saqc.core import flagging
-from saqc.lib.checking import validateMinPeriods, validateValueBounds, validateWindow
 from saqc.lib.rolling import removeRollingRamps
 from saqc.lib.tools import getFreqDelta, statPass
 from saqc.lib.ts_operators import varQC
-
-if TYPE_CHECKING:
-    from saqc import SaQC
+from saqc.lib.types import Float, Int, OffsetStr, SaQC, ValidatePublicMembers
 
 
-class ConstantsMixin:
+class ConstantsMixin(ValidatePublicMembers):
     @flagging()
     def flagConstants(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        thresh: float,
-        window: int | str,
-        min_periods: int = 2,
+        thresh: Float >= 0,
+        window: OffsetStr | (Int >= 1),
+        min_periods: Int >= 0 = 2,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flag constant data values.
 
@@ -66,8 +64,6 @@ class ConstantsMixin:
             Defaults to `2`.
         """
         d: pd.Series = self._data[field]
-        validateWindow(window, index=d.index)
-        validateMinPeriods(min_periods, minimum=2, optional=False)
 
         # 1. find starting points of consecutive constant values as a boolean mask
         # 2. fill the whole window with True's
@@ -87,15 +83,15 @@ class ConstantsMixin:
 
     @flagging()
     def flagByVariance(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        window: str,
-        thresh: float,
-        maxna: int | None = None,
-        maxna_group: int | None = None,
+        window: OffsetStr,
+        thresh: Float >= 0,
+        maxna: (Int >= 0) | None = None,
+        maxna_group: (Int >= 0) | None = None,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flag low-variance data.
 
@@ -127,7 +123,7 @@ class ConstantsMixin:
             Same as `maxna` but for consecutive NaNs.
         """
         d: pd.Series = self._data[field]
-        validateWindow(window, allow_int=False, index=d.index)
+
         window = pd.Timedelta(window)
 
         delta = getFreqDelta(d.index)
@@ -138,11 +134,6 @@ class ConstantsMixin:
             maxna = np.inf
         if maxna_group is None:
             maxna_group = np.inf
-
-        validateValueBounds(maxna, "maxna", 0, closed="both", strict_int=True)
-        validateValueBounds(
-            maxna_group, "maxna_group", 0, closed="both", strict_int=True
-        )
 
         min_periods = int(np.ceil(pd.Timedelta(window) / pd.Timedelta(delta)))
         to_set = statPass(

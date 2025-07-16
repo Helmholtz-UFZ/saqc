@@ -11,4 +11,6 @@ jupyter-sphinx==0.5.3
 sphinx_autodoc_typehints==1.23.0
 sphinx-tabs==3.4.5
 sphinx-design==0.5.0
+autodoc_pydantic==2.1.0
 pydata-sphinx-theme==0.15.2
+

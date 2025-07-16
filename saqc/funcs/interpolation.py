@@ -16,20 +16,17 @@ from typing_extensions import Literal
 from saqc import UNFLAGGED
 from saqc.core import register
 from saqc.core.history import History
-from saqc.lib.checking import (
-    validateChoice,
-    validateFuncSelection,
-    validateMinPeriods,
-    validateValueBounds,
-    validateWindow,
-)
 from saqc.lib.tools import isflagged
 from saqc.lib.ts_operators import interpolateNANs
+from saqc.lib.types import (
+    FreqStr,
+    Int,
+    OffsetStr,
+    SaQC,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 from saqc.parsing.environ import ENV_OPERATORS
-
-if TYPE_CHECKING:
-    from saqc import SaQC
-
 
 DATA_REINDEXER = {"fshift": "last", "bshift": "first", "nshift": "first"}
 
@@ -55,8 +52,7 @@ def _shift2Freq(
     shift timestamps backwards/forwards in order to align them with an equidistant
     frequency grid. Resulting Nan's are replaced with the fill-value.
     """
-    validateWindow(freq, "freq", allow_int=False)
-    validateChoice(method, "method", ["fshift", "bshift", "nshift"])
+
     methods = {
         "fshift": lambda freq: ("ffill", pd.Timedelta(freq)),
         "bshift": lambda freq: ("bfill", pd.Timedelta(freq)),
@@ -74,22 +70,22 @@ def _shift2Freq(
     )
 
 
-class InterpolationMixin:
+class InterpolationMixin(ValidatePublicMembers):
     @register(
         mask=["field"],
         demask=["field"],
         squeeze=[],  # func handles history by itself
     )
     def interpolateByRolling(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        window: str | int,
+        window: OffsetStr | (Int > 0),
         func: Callable[[pd.Series], float] | str = "median",
         center: bool = True,
-        min_periods: int = 0,
+        min_periods: Int >= 0 = 0,
         flag: float = UNFLAGGED,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Replace NaN by the aggregation result of the surrounding window.
 
@@ -114,11 +110,9 @@ class InterpolationMixin:
             available in a window for its aggregation to be
             computed.
         """
-        validateWindow(window)
-        validateFuncSelection(func, allow_operator_str=True)
+
         if isinstance(func, str):
             func = ENV_OPERATORS[func]
-        validateMinPeriods(min_periods)
 
         datcol = self._data[field]
         roller = datcol.rolling(window=window, center=center, min_periods=min_periods)
@@ -156,14 +150,14 @@ class InterpolationMixin:
 
     @register(mask=["field"], demask=[], squeeze=[])
     def align(
-        self: "SaQC",
-        field: str,
-        freq: str,
+        self: SaQC,
+        field: SaQCFields,
+        freq: Union[FreqStr, int],
         method: str = "time",
-        order: int = 2,
+        order: Int > 0 = 2,
         overwrite: bool = False,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Convert time series to specified frequency. Values affected by
         frequency changes will be inteprolated using the given method.
@@ -215,9 +209,6 @@ class InterpolationMixin:
            If set to `True`, existing flags will be cleared.
         """
 
-        validateWindow(freq, "freq", allow_int=False)
-        validateValueBounds(order, "order", left=0, strict_int=True)
-
         method = "fshift" if method == "pad" else method
         if method in ["time", "linear"]:
             data_agg_func = method
@@ -238,7 +229,7 @@ class InterpolationMixin:
 
 
 def _shift(
-    saqc: "SaQC",
+    saqc: SaQC,
     field: str,
     freq: str,
     method: Literal["fshift", "bshift", "nshift"] = "nshift",
@@ -266,8 +257,6 @@ def _shift(
     -------
     saqc.SaQC
     """
-    validateChoice(method, "method", ["fshift", "bshift", "nshift"])
-    validateWindow(freq, "freq", allow_int=False)
 
     datcol = saqc._data[field]
     if datcol.empty:
@@ -290,20 +279,15 @@ def _shift(
 
 
 def _interpolate(
-    saqc: "SaQC",
+    saqc: SaQC,
     field: str,
     freq: str,
     method: str,
     order: int | None,
     dfilter: float,
-    extrapolate: Literal["forward", "backward", "both", None] = None,
+    extrapolate: Literal["forward", "backward", "both", None] | None = None,
 ) -> Tuple[pd.Series, History]:
     """TODO: Docstring"""
-
-    validateChoice(extrapolate, "extrapolate", ["forward", "backward", "both", None])
-    validateWindow(freq, "freq", allow_int=False)
-    if order is not None:
-        validateValueBounds(order, "order", 0, strict_int=True)
 
     datcol = saqc._data[field].copy()
 

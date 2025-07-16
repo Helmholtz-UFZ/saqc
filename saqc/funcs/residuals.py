@@ -15,21 +15,19 @@ import pandas as pd
 from saqc.core import register
 from saqc.funcs.curvefit import _fitPolynomial
 from saqc.funcs.rolling import _roll
-
-if TYPE_CHECKING:
-    from saqc import SaQC
+from saqc.lib.types import Int, OffsetStr, SaQC, ValidatePublicMembers
 
 
-class ResidualsMixin:
+class ResidualsMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def calculatePolynomialResiduals(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        window: str | int,
+        window: OffsetStr | (Int > 0),
         order: int,
         min_periods: int = 0,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Fits a polynomial model to the data and calculate the residuals.
 
@@ -87,14 +85,14 @@ class ResidualsMixin:
 
     @register(mask=["field"], demask=[], squeeze=[])
     def calculateRollingResiduals(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        window: str | int,
+        window: OffsetStr | (Int > 0),
         func: Callable[[pd.Series], np.ndarray] | str = "mean",
-        min_periods: int = 0,
+        min_periods: Int >= 0 = 0,
         center: bool = True,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Calculate the diff of a rolling-window function and the data.
 

@@ -13,12 +13,6 @@ import numpy as np
 import pandas as pd
 
 from saqc.core import DictOfSeries, Flags, register
-from saqc.lib.checking import (
-    validateChoice,
-    validateMinPeriods,
-    validateValueBounds,
-    validateWindow,
-)
 from saqc.lib.tools import getFreqDelta, toSequence
 from saqc.lib.ts_operators import (
     butterFilter,
@@ -26,9 +20,7 @@ from saqc.lib.ts_operators import (
     polyRollerIrregular,
     polyRollerNoMissing,
 )
-
-if TYPE_CHECKING:
-    from saqc import SaQC
+from saqc.lib.types import Float, FreqStr, Int, OffsetStr, SaQC, ValidatePublicMembers
 
 DEFAULT_MOMENT = dict(
     pretrained_model_name_or_path="AutonLab/MOMENT-1-large", revision="main"
@@ -47,17 +39,16 @@ FILL_METHODS = Literal[
 ]
 
 
-class CurvefitMixin:
-
+class CurvefitMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def fitPolynomial(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        window: int | str,
-        order: int,
-        min_periods: int = 0,
+        window: OffsetStr | (Int >= 0),
+        order: Int >= 1,
+        min_periods: Int >= 0 = 0,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Fits a polynomial model to the data.
 
@@ -99,9 +90,7 @@ class CurvefitMixin:
             Passing 0, disables the feature and will result in over-fitting for too
             sparse windows.
         """
-        validateWindow(window)
-        validateMinPeriods(min_periods)
-        validateValueBounds(order, "order", left=0, strict_int=True)
+
         self._data, self._flags = _fitPolynomial(
             data=self._data,
             field=field,
@@ -115,14 +104,14 @@ class CurvefitMixin:
 
     @register(mask=["field"], demask=[], squeeze=[])
     def fitLowpassFilter(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        cutoff: float | str,
-        nyq: float = 0.5,
-        filter_order: int = 2,
+        cutoff: (Float >= 0) | FreqStr,
+        nyq: Float >= 0 = 0.5,
+        filter_order: Int >= 1 = 2,
         fill_method: FILL_METHODS = "linear",
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Fits the data using the butterworth filter.
 
@@ -143,8 +132,6 @@ class CurvefitMixin:
             handle ''np.nan''). See documentation of pandas.Series.interpolate method for
             details on the methods associated with the different keywords.
         """
-        validateValueBounds(filter_order, "filter_order", strict_int=True)
-        validateChoice(fill_method, fill_method, FILL_METHODS)
 
         self._data[field] = butterFilter(
             self._data[field],
@@ -163,7 +150,7 @@ class CurvefitMixin:
         ratio: int = 4,
         context: int = 512,
         agg: Literal["center", "mean", "median", "std"] = "mean",
-        model_spec: Optional[dict] = None,
+        model_spec: dict | None = None,
         **kwargs,
     ):
         """
@@ -314,10 +301,6 @@ def _fitPolynomial(
     **kwargs,
 ) -> Tuple[DictOfSeries, Flags]:
     # TODO: some (rather large) parts are functional similar to saqc.funcs.rolling.roll
-
-    validateWindow(window)
-    validateValueBounds(order, "order", 0, strict_int=True)
-    validateMinPeriods(min_periods)
 
     if data[field].empty:
         return data, flags
