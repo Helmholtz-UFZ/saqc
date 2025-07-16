@@ -15,10 +15,10 @@ import pandas as pd
 
 from saqc import BAD, FILTER_ALL, UNFLAGGED
 from saqc.core import DictOfSeries, Flags
-from saqc.lib.types import ExternalFlag
+from saqc.lib.types import EXTERNAL_FLAG
 
-ForwardMap = Dict[ExternalFlag, float]
-BackwardMap = Dict[float, ExternalFlag]
+ForwardMap = Dict[EXTERNAL_FLAG, float]
+BackwardMap = Dict[float, EXTERNAL_FLAG]
 
 
 class TranslationScheme:  # pragma: no cover
@@ -28,7 +28,7 @@ class TranslationScheme:  # pragma: no cover
         pass
 
     @abstractmethod
-    def __call__(self, flag: ExternalFlag) -> float:
+    def __call__(self, flag: EXTERNAL_FLAG) -> float:
         pass
 
     @abstractmethod
@@ -158,7 +158,7 @@ class MappingScheme(TranslationScheme):
                 )
         return out
 
-    def __call__(self, flag: ExternalFlag) -> float:
+    def __call__(self, flag: EXTERNAL_FLAG) -> float:
         """
         Translate a scalar 'external flag' to an 'internal flag'
 

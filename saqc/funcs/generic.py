@@ -7,7 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Protocol, Sequence, runtime_checkable
 
 import numpy as np
 import pandas as pd
@@ -15,19 +15,14 @@ import pandas as pd
 from saqc import BAD, FILTER_ALL
 from saqc.core import DictOfSeries, Flags, register
 from saqc.lib.tools import isAllBoolean, isflagged, isunflagged, toSequence
+from saqc.lib.types import (
+    GenericFunction,
+    NewSaQCFields,
+    SaQC,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 from saqc.parsing.environ import ENVIRONMENT
-
-if TYPE_CHECKING:
-    from saqc import SaQC
-
-
-class GenericFunction(Protocol):
-    __name__: str
-    __globals__: dict[str, Any]
-
-    def __call__(
-        self, *args: pd.Series
-    ) -> pd.Series | pd.DataFrame | DictOfSeries: ...  # pragma: no cover
 
 
 def _flagSelect(field: str, flags: Flags, label: str | None = None) -> pd.Series:
@@ -120,7 +115,7 @@ def _castResult(obj) -> DictOfSeries:
     raise TypeError(f"unprocessable result type {type(obj)}.")
 
 
-class GenericMixin:
+class GenericMixin(ValidatePublicMembers):
     @register(
         mask=["field"],
         demask=["field"],
@@ -129,13 +124,13 @@ class GenericMixin:
         handles_target=True,
     )
     def processGeneric(
-        self: "SaQC",
-        field: str | Sequence[str],
+        self: SaQC,
+        field: SaQCFields,  # SaQCFields,
         func: GenericFunction,
-        target: str | Sequence[str] | None = None,
+        target: SaQCFields | NewSaQCFields | None = None,
         dfilter: float = FILTER_ALL,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Generate/process data with user defined functions.
 
@@ -149,6 +144,7 @@ class GenericMixin:
             needs to accept the same number of arguments (of type pandas.Series) as variables given
             in ``field`` and should return an iterable of array-like objects with the same number
             of elements as given in ``target`` (or ``field`` if ``target`` is not specified).
+
 
         Note
         ----
@@ -203,13 +199,13 @@ class GenericMixin:
         handles_target=True,
     )
     def flagGeneric(
-        self: "SaQC",
-        field: str | Sequence[str],
+        self: SaQC,
+        field: SaQCFields,
         func: GenericFunction,
-        target: str | Sequence[str] | None = None,
+        target: SaQCFields | NewSaQCFields | None = None,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flag data based on a given function.
 

@@ -7,38 +7,31 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Literal, Tuple
+from typing import TYPE_CHECKING, Callable, Literal, Optional
 
 import numpy as np
 import pandas as pd
 
 from saqc import BAD, UNFLAGGED
 from saqc.core import flagging, register
-from saqc.lib.checking import (
-    validateCallable,
-    validateChoice,
-    validateMinPeriods,
-    validateWindow,
-)
-
-if TYPE_CHECKING:
-    from saqc import SaQC
+from saqc.lib.types import Int, OffsetStr, SaQC, ValidatePublicMembers
 
 
-class ChangepointsMixin:
+class ChangepointsMixin(ValidatePublicMembers):
+
     @flagging()
     def flagChangePoints(
-        self: "SaQC",
+        self: SaQC,
         field: str,
         stat_func: Callable[[np.ndarray, np.ndarray], float],
         thresh_func: Callable[[np.ndarray, np.ndarray], float],
-        window: str | Tuple[str, str],
-        min_periods: int | Tuple[int, int],
-        reduce_window: str | None = None,
+        window: OffsetStr | tuple[OffsetStr, OffsetStr],
+        min_periods: (Int >= 0) | tuple[Int >= 0, Int >= 0],
+        reduce_window: OffsetStr | None = None,
         reduce_func: Callable[[np.ndarray, np.ndarray], int] = lambda x, _: x.argmax(),
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flag values that represent a system state transition.
 
@@ -91,9 +84,6 @@ class ChangepointsMixin:
             The default reduction function just selects the value that maximizes the
             `stat_func`.
         """
-        validateCallable(stat_func, "stat_func")
-        validateCallable(thresh_func, "thresh_func")
-        validateCallable(reduce_func, "reduce_func")
         # Hint: windows are checked in _getChangePoints
 
         mask = _getChangePoints(
@@ -111,19 +101,19 @@ class ChangepointsMixin:
 
     @register(mask=["field"], demask=[], squeeze=[])
     def assignChangePointCluster(
-        self: "SaQC",
+        self: SaQC,
         field: str,
         stat_func: Callable[[np.ndarray, np.ndarray], float],
         thresh_func: Callable[[np.ndarray, np.ndarray], float],
-        window: str | Tuple[str, str],
-        min_periods: int | Tuple[int, int],
-        reduce_window: str | None = None,
+        window: OffsetStr | tuple[OffsetStr, OffsetStr],
+        min_periods: (Int >= 0) | tuple[Int >= 0, Int >= 0],
+        reduce_window: OffsetStr | None = None,
         reduce_func: Callable[
             [np.ndarray, np.ndarray], float
         ] = lambda x, _: x.argmax(),
         model_by_resids: bool = False,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Label data where it changes significantly.
 
@@ -177,10 +167,6 @@ class ChangepointsMixin:
         model_by_resids :
             If True, the results of `stat_funcs` are written, otherwise the regime labels.
         """
-        validateCallable(stat_func, "stat_func")
-        validateCallable(thresh_func, "thresh_func")
-        validateCallable(reduce_func, "reduce_func")
-        # Hint: windows are checked in _getChangePoints
 
         rtyp = "residual" if model_by_resids else "cluster"
         cluster = _getChangePoints(
@@ -200,13 +186,14 @@ class ChangepointsMixin:
         return self
 
 
+# @validate_call()
 def _getChangePoints(
     data: pd.Series,
     stat_func: Callable[[np.ndarray, np.ndarray], float],
     thresh_func: Callable[[np.ndarray, np.ndarray], float],
-    window: str | Tuple[str, str],
-    min_periods: int | Tuple[int, int],
-    reduce_window: str | None = None,
+    window: OffsetStr | tuple[OffsetStr, OffsetStr],
+    min_periods: (Int >= 0) | tuple[Int >= 0, Int >= 0],
+    reduce_window: OffsetStr | None = None,
     reduce_func: Callable[[np.ndarray, np.ndarray], float] = lambda x, _: x.argmax(),
     result: Literal["cluster", "residual", "mask"] = "mask",
 ) -> pd.Series:
@@ -227,25 +214,19 @@ def _getChangePoints(
     Returns
     -------
     """
-    validateChoice(result, "result", ["cluster", "residual", "mask"])
 
     orig_index = data.index
     data = data.dropna()  # implicit copy
 
     if isinstance(window, (list, tuple)):
         bwd_window, fwd_window = window
-        validateWindow(fwd_window, name="window[0]", allow_int=False)
-        validateWindow(bwd_window, name="window[1]", allow_int=False)
     else:
-        validateWindow(window, name="window", allow_int=False)
+
         bwd_window = fwd_window = window
 
     if isinstance(min_periods, (list, tuple)):
         bwd_min_periods, fwd_min_periods = min_periods
-        validateMinPeriods(bwd_min_periods, "min_periods[0]")
-        validateMinPeriods(fwd_min_periods, "min_periods[1]")
     else:
-        validateMinPeriods(min_periods)
         bwd_min_periods = fwd_min_periods = min_periods
 
     if reduce_window is None:
@@ -254,7 +235,6 @@ def _getChangePoints(
             + pd.Timedelta(fwd_window).total_seconds()
         )
         reduce_window = f"{s}s"
-    validateWindow(reduce_window, name="reduce_window", allow_int=False)
 
     # find window bounds arrays..
     num_index = pd.Series(range(len(data)), index=data.index, dtype=int)

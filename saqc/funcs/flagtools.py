@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import operator
 import warnings
-from typing import TYPE_CHECKING, Any, Callable, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -18,7 +18,6 @@ from typing_extensions import Literal
 from saqc import BAD, FILTER_ALL, UNFLAGGED
 from saqc.core import DictOfSeries, flagging, register
 from saqc.core.history import History
-from saqc.lib.checking import validateChoice, validateWindow
 from saqc.lib.tools import (
     initializeTargets,
     isflagged,
@@ -26,14 +25,20 @@ from saqc.lib.tools import (
     multivariateParameters,
     toSequence,
 )
+from saqc.lib.types import (
+    ArrayLike,
+    Int,
+    NewSaQCFields,
+    OffsetStr,
+    SaQC,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 
-if TYPE_CHECKING:
-    from saqc import SaQC
 
-
-class FlagtoolsMixin:
+class FlagtoolsMixin(ValidatePublicMembers):
     @flagging()
-    def flagDummy(self: "SaQC", field: str, **kwargs) -> "SaQC":
+    def flagDummy(self: SaQC, field: str, **kwargs) -> SaQC:
         """
         Function does nothing but returning data and flags.
 
@@ -44,7 +49,7 @@ class FlagtoolsMixin:
         return self
 
     @register(mask=[], demask=[], squeeze=["field"])
-    def forceFlags(self: "SaQC", field: str, flag: float = BAD, **kwargs) -> "SaQC":
+    def forceFlags(self: SaQC, field: SaQCFields, flag: float = BAD, **kwargs) -> SaQC:
         """
         Set whole column to a flag value.
 
@@ -61,7 +66,7 @@ class FlagtoolsMixin:
         return self
 
     @register(mask=[], demask=[], squeeze=["field"])
-    def clearFlags(self: "SaQC", field: str, **kwargs) -> "SaQC":
+    def clearFlags(self: SaQC, field: SaQCFields, **kwargs) -> SaQC:
         """
         Assign UNFLAGGED value to all periods in field.
 
@@ -86,7 +91,9 @@ class FlagtoolsMixin:
         return self.forceFlags(field, flag=UNFLAGGED, **kwargs)
 
     @register(mask=[], demask=[], squeeze=["field"])
-    def flagUnflagged(self: "SaQC", field: str, flag: float = BAD, **kwargs) -> "SaQC":
+    def flagUnflagged(
+        self: SaQC, field: SaQCFields, flag: float = BAD, **kwargs
+    ) -> SaQC:
         """
         Function sets a flag at all unflagged positions.
 
@@ -112,12 +119,12 @@ class FlagtoolsMixin:
     @flagging()
     def setFlags(
         self,
-        field: str,
-        data: str | list | np.ndarray | pd.Series,
+        field: SaQCFields,
+        data: str | list | ArrayLike | pd.Series,
         override: bool = False,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Include flags listed in external data.
 
@@ -171,9 +178,9 @@ class FlagtoolsMixin:
 
     @register(mask=["field"], demask=["field"], squeeze=["field"])
     def flagManual(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        mdata: str | pd.Series | np.ndarray | list | pd.DataFrame | DictOfSeries,
+        mdata: str | pd.Series | ArrayLike | list | pd.DataFrame,
         method: Literal[
             "left-open", "right-open", "closed", "plain", "ontime"
         ] = "left-open",
@@ -181,7 +188,7 @@ class FlagtoolsMixin:
         mflag: Any = 1,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Include flags listed in external data.
 
@@ -302,10 +309,6 @@ class FlagtoolsMixin:
             "Please use `setFlags` for similar functionality.",
             DeprecationWarning,
         )
-        validateChoice(
-            method, "method", ["left-open", "right-open", "closed", "plain", "ontime"]
-        )
-        validateChoice(mformat, "mformat", ["start-end", "mflag"])
 
         dat = self._data[field]
         # internal not-mflag-value -> cant go for np.nan
@@ -380,13 +383,13 @@ class FlagtoolsMixin:
         multivariate=True,
     )
     def transferFlags(
-        self: "SaQC",
-        field: str,
-        target: str | None = None,
+        self: SaQC,
+        field: SaQCFields,
+        target: SaQCFields | NewSaQCFields | None = None,
         squeeze: bool = False,
         overwrite: bool = False,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Transfer Flags of one variable to another.
 
@@ -500,14 +503,14 @@ class FlagtoolsMixin:
 
     @flagging()
     def propagateFlags(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        window: str | int,
+        window: OffsetStr | (Int > 0),
         method: Literal["ffill", "bfill"] = "ffill",
         flag: float = BAD,
         dfilter: float = FILTER_ALL,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flag values before or after flags set by the last test.
 
@@ -586,9 +589,6 @@ class FlagtoolsMixin:
            6     -inf
            dtype: float64
         """
-        validateWindow(window)
-        validateChoice(method, "method", ["bfill", "ffill"])
-
         # get the last history column
         hc = self._flags.history[field].hist.iloc[:, -1].astype(float)
 
@@ -622,13 +622,13 @@ class FlagtoolsMixin:
         handles_target=True,
     )
     def andGroup(
-        self: "SaQC",
-        field: str | list[str | list[str]],
-        group: Sequence["SaQC"] | None = None,
-        target: str | list[str | list[str]] | None = None,
+        self: SaQC,
+        field: SaQCFields,
+        group: Sequence[SaQC] | None = None,
+        target: SaQCFields | None = None,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Logical AND operation for Flags.
 
@@ -720,13 +720,13 @@ class FlagtoolsMixin:
         handles_target=True,
     )
     def orGroup(
-        self: "SaQC",
-        field: str | list[str | list[str]],
-        group: Sequence["SaQC"] | None = None,
-        target: str | list[str | list[str]] | None = None,
+        self: SaQC,
+        field: SaQCFields,
+        group: Sequence[SaQC] | None = None,
+        target: SaQCFields | None = None,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Logical OR operation for Flags.
 
@@ -780,14 +780,14 @@ class FlagtoolsMixin:
 
 
 def _groupOperation(
-    saqc: "SaQC",
-    field: str | Sequence[str | Sequence[str]],
+    saqc: SaQC,
+    field: SaQCFields,
     func: Callable[[pd.Series, pd.Series], pd.Series],
-    group: Sequence["SaQC"] | None = None,
-    target: str | Sequence[str | Sequence[str]] | None = None,
+    group: Sequence[SaQC] | None = None,
+    target: SaQCFields | None = None,
     flag: float = BAD,
     **kwargs,
-) -> "SaQC":
+) -> SaQC:
     """
     Perform a group operation on a collection of ``SaQC`` objects.
 

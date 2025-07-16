@@ -9,36 +9,33 @@ from __future__ import annotations
 
 import operator
 import warnings
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING, Callable, Literal, Optional
 
 import numpy as np
 import pandas as pd
 
 from saqc.constants import BAD
 from saqc.core.register import flagging
-from saqc.lib.checking import validateFuncSelection, validateMinPeriods, validateWindow
 from saqc.lib.tools import isunflagged, statPass
+from saqc.lib.types import Float, Int, OffsetStr, SaQC, ValidatePublicMembers
 from saqc.parsing.environ import ENV_OPERATORS
 
-if TYPE_CHECKING:
-    from saqc import SaQC
 
-
-class NoiseMixin:
+class NoiseMixin(ValidatePublicMembers):
     def flagByStatLowPass(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        window: str | pd.Timedelta,
-        thresh: float,
+        window: OffsetStr,
+        thresh: Float >= 0,
         func: (
             Literal["std", "var", "mad"] | Callable[[np.ndarray, pd.Series], float]
         ) = "std",
-        sub_window: str | pd.Timedelta | None = None,
-        sub_thresh: float | None = None,
-        min_periods: int | None = None,
+        sub_window: (Float > 0) | OffsetStr | None = None,
+        sub_thresh: (Float > 0) | None = None,
+        min_periods: (Int >= 0) | None = None,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flag data chunks of length ``window`` dependent on the data deviation.
 
@@ -98,19 +95,19 @@ class NoiseMixin:
 
     @flagging()
     def flagByScatterLowpass(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        window: str | pd.Timedelta,
-        thresh: float,
+        window: OffsetStr | pd.Timedelta,
+        thresh: Float >= 0,
         func: (
             Literal["std", "var", "mad"] | Callable[[np.ndarray, pd.Series], float]
         ) = "std",
-        sub_window: str | pd.Timedelta | None = None,
-        sub_thresh: float | None = None,
-        min_periods: int | None = None,
+        sub_window: OffsetStr | pd.Timedelta | None = None,
+        sub_thresh: (Float >= 0) | None = None,
+        min_periods: (Int >= 0) | None = None,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flag data chunks of length ``window`` dependent on the data deviation.
 
@@ -148,11 +145,7 @@ class NoiseMixin:
             Minimum number of values needed in a chunk to perfom the test.
             Ignored if ``window`` is an integer.
         """
-        validateFuncSelection(func, allow_operator_str=True)
-        validateWindow(window, allow_int=False)
-        validateMinPeriods(min_periods)
         if sub_window is not None:
-            validateWindow(sub_window, "sub_window", allow_int=False)
             sub_window = pd.Timedelta(sub_window)
 
         if isinstance(func, str):

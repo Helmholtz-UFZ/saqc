@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Sequence, Tuple, Ty
 
 import numpy as np
 import pandas as pd
+from pydantic import BaseModel, ConfigDict, create_model
 from typing_extensions import ParamSpec
 
 from saqc import FILTER_ALL, FILTER_NONE
@@ -19,7 +20,7 @@ from saqc.core import DictOfSeries, Flags, History
 from saqc.core.translation.basescheme import TranslationScheme
 from saqc.lib.docs import ParamDict, docurator
 from saqc.lib.tools import isflagged, squeezeSequence, toSequence
-from saqc.lib.types import ExternalFlag, OptionalNone
+from saqc.lib.types import EXTERNAL_FLAG, OptionalNone
 
 if TYPE_CHECKING:
     from saqc import SaQC
@@ -333,10 +334,13 @@ def register(
             field,
             *args,
             regex: bool = False,
-            flag: ExternalFlag | OptionalNone = OptionalNone(),
+            flag: EXTERNAL_FLAG | OptionalNone = OptionalNone(),
             **kwargs,
         ) -> "SaQC":
-            # args -> kwargs
+            # because of pydantic we cannot rely on the absence of unset optionals
+            if "target" in kwargs and kwargs["target"] is None:
+                kwargs.pop("target")
+
             paramnames = tuple(func_signature.parameters.keys())[
                 2:
             ]  # skip (self, field)
@@ -367,6 +371,7 @@ def register(
             out = saqc.copy(deep=True)
 
             # initialize target fields
+
             if not handles_target:
                 # initialize all target variables
                 for src, trg in zip(fields, targets):

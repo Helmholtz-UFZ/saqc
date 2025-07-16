@@ -17,30 +17,26 @@ isolated values (:py:func:`flagIsolated`).
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import numpy as np
 import pandas as pd
 
 from saqc import BAD, FILTER_ALL
 from saqc.core import flagging, register
 from saqc.funcs.changepoints import _getChangePoints
-from saqc.lib.checking import validateMinPeriods, validateWindow
 from saqc.lib.tools import isunflagged
-
-if TYPE_CHECKING:
-    from saqc.core.core import SaQC
+from saqc.lib.types import Float, Int, OffsetStr, SaQC, ValidatePublicMembers
 
 
-class BreaksMixin:
+class BreaksMixin(ValidatePublicMembers):
+
     @register(mask=[], demask=[], squeeze=["field"])
     def flagMissing(
-        self: "SaQC",
+        self: SaQC,
         field: str,
         flag: float = BAD,
         dfilter: float = FILTER_ALL,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flag NaNs in data.
 
@@ -61,13 +57,13 @@ class BreaksMixin:
 
     @flagging()
     def flagIsolated(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        gap_window: str,
-        group_window: str,
+        gap_window: OffsetStr,
+        group_window: OffsetStr,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Find and flag temporal isolated groups of data.
 
@@ -97,8 +93,6 @@ class BreaksMixin:
         3. None of the :math:`x_j` with :math:`0 < t_j - t_(k+n) <` `gap_window`, is valid (succeeding gap).
 
         """
-        validateWindow(gap_window, name="gap_window", allow_int=False)
-        validateWindow(group_window, name="group_window", allow_int=False)
 
         dat = self._data[field].dropna()
         if dat.empty:
@@ -130,15 +124,15 @@ class BreaksMixin:
 
     @flagging()
     def flagJumps(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        thresh: float,
-        window: str,
-        min_periods: int = 1,
+        thresh: Float >= 0,
+        window: OffsetStr,
+        min_periods: Int >= 0 = 0,
         flag: float = BAD,
         dfilter: float = FILTER_ALL,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flag jumps and drops in data.
 
@@ -181,8 +175,6 @@ class BreaksMixin:
         Jumps that are not distanced to each other by more than three fourth (3/4) of the
         selected window size, will not be detected reliably.
         """
-        validateWindow(window, allow_int=False)
-        validateMinPeriods(min_periods)
 
         mask = _getChangePoints(
             data=self._data[field],

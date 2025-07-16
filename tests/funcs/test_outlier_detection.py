@@ -152,12 +152,12 @@ def test_flagZScoresUV():
     data.iloc[[5, 80], 0] = 5
     data.iloc[[40], 0] = -6
     qc = saqc.SaQC(data)
-    qc = qc.flagZScore("data", window=None)
+    qc = qc.flagZScore("data")
 
     assert (qc.flags.to_pandas().iloc[[5, 40, 80], 0] > 0).all()
 
     qc = saqc.SaQC(data)
-    qc = qc.flagZScore("data", window=None, min_residuals=10)
+    qc = qc.flagZScore("data", min_residuals=10)
 
     assert (qc.flags.to_pandas()["data"] < 0).all()
 
@@ -185,12 +185,12 @@ def test_flagZScoresMV():
     data.iloc[[40], 0] = -6
     data.iloc[[60], 1] = 10
     qc = saqc.SaQC(data)
-    qc = qc.flagZScore(["data", "data2"], window=None)
+    qc = qc.flagZScore(["data", "data2"])
     assert (qc.flags.to_pandas().iloc[[5, 40, 80], 0] > 0).all()
     assert (qc.flags.to_pandas().iloc[[60], 1] > 0).all()
 
     qc = saqc.SaQC(data)
-    qc = qc.flagZScore("data", window=None, min_residuals=10)
+    qc = qc.flagZScore("data", min_residuals=10)
 
     assert (qc.flags.to_pandas()[["data", "data2"]] < 0).all().all()
 

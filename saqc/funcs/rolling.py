@@ -7,34 +7,31 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
 
 import saqc
 from saqc.core import DictOfSeries, Flags, register
-from saqc.lib.checking import validateFuncSelection, validateMinPeriods, validateWindow
 from saqc.lib.tools import getFreqDelta
-
-if TYPE_CHECKING:
-    from saqc import SaQC
+from saqc.lib.types import Int, OffsetStr, SaQC, SaQCFields, ValidatePublicMembers
 
 
-class RollingMixin:
+class RollingMixin(ValidatePublicMembers):
     @register(
         mask=["field"], demask=[], squeeze=[], multivariate=True, handles_target=True
     )
     def rolling(
-        self: "SaQC",
-        field: str | list[str],
-        window: str | int,
-        target: str | list[str] = None,
+        self: SaQC,
+        field: SaQCFields,
+        window: OffsetStr | (Int > 0),
+        target: SaQCFields | str | None = None,
         func: Callable[[pd.Series], np.ndarray] | str = "mean",
-        min_periods: int = 0,
+        min_periods: Int >= 0 = 0,
         center: bool = True,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Calculate a rolling-window function on the data.
 
@@ -179,9 +176,6 @@ def _roll(
     center: bool = True,
     **kwargs,
 ):
-    validateFuncSelection(func, allow_operator_str=True)
-    validateWindow(window)
-    validateMinPeriods(min_periods)
 
     to_fit = data[field].copy()
     flags_col = flags[field].copy()

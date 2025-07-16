@@ -11,25 +11,23 @@ import numpy as np
 import pandas as pd
 from numpy.lib.stride_tricks import sliding_window_view
 
-from saqc.lib.checking import validateChoice, validateMinPeriods, validateWindow
 from saqc.lib.tools import getFreqDelta
+from saqc.lib.types import Int, OffsetLike, OffsetStr, validate_signature
 
 
+@validate_signature
 def windowRoller(
     data: pd.DataFrame,
-    window,
+    window: int | OffsetLike | OffsetStr,
     func: Literal["mean", "median", "std", "var", "sum"],
-    min_periods: int = 0,
-    center=True,
+    min_periods: Int >= 0 = 0,
+    center: bool = True,
 ):
     """
     pandas-rolling style computation with 2 dimensional windows, ranging over all df columns.
     * implements efficient 2d rolling in case of regular timestamps or integer defined window
     * else: dispatches to not optimized (no-numba) version in case of irregular timestamp
     """
-    validateWindow(window)
-    validateMinPeriods(min_periods, optional=False)
-    validateChoice(func, "func", ["mean", "median", "std", "var", "sum"])
 
     func_kwargs = {}
     if func in ["std", "var"]:
@@ -75,11 +73,12 @@ def windowRoller(
     return out
 
 
+@validate_signature
 def removeRollingRamps(
     data: pd.Series,
-    window: int | str | pd.Timedelta,
+    window: int | OffsetStr | OffsetLike,
     center: bool = False,
-    inplace=False,
+    inplace: bool = False,
 ) -> pd.Series:
     """
     Set data to `NaN`, where the window of prior rolling function was

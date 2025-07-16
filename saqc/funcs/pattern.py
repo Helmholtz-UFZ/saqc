@@ -4,25 +4,27 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import functools
+import multiprocessing as mp
 
 import fastdtw
+import numpy as np
+import pandas as pd
+from scipy import signal
 
 from saqc import BAD
 from saqc.core import flagging
 from saqc.funcs.outliers import _stray
 from saqc.lib.rolling import removeRollingRamps
 from saqc.lib.tools import getFreqDelta
-
-if TYPE_CHECKING:
-    from saqc import SaQC
-
-import functools
-import multiprocessing as mp
-
-import numpy as np
-import pandas as pd
-from scipy import signal
+from saqc.lib.types import (
+    Float,
+    Int,
+    OffsetStr,
+    SaQC,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 
 FACTOR_BASE = [5, 10, 20, 50, 100, 1000, 10000, 100000]
 CHUNK_LEN = 2 * (10**5)
@@ -605,18 +607,18 @@ def calculateDistanceByDTW(
     return distances.reindex(index=data.index)  # reinsert NaNs
 
 
-class PatternMixin:
+class PatternMixin(ValidatePublicMembers):
     @flagging()
     def flagPlateau(
-        self: "SaQC",
-        field: str,
-        min_length: int | str,
-        max_length: int | str = None,
-        min_jump: float = None,
-        granularity: int | str = None,
+        self: SaQC,
+        field: SaQCFields,
+        min_length: (Int > 0) | OffsetStr,
+        max_length: (Int > 0) | OffsetStr | None = None,
+        min_jump: (Float >= 0) | None = None,
+        granularity: (Int > 0) | OffsetStr | None = None,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flag anomalous value plateaus.
 
@@ -717,15 +719,15 @@ class PatternMixin:
 
     @flagging()
     def flagPatternByDTW(
-        self: "SaQC",
+        self: SaQC,
         field: str,
         reference: str,
-        max_distance: float = 0.0,
+        max_distance: Float >= 0 = 0.0,
         normalize: bool = True,
         plot: bool = False,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Pattern Recognition via Dynamic Time Warping.
 

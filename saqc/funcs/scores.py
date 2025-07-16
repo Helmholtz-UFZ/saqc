@@ -7,7 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple
+from typing import Callable, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -17,19 +17,11 @@ from sklearn.neighbors import LocalOutlierFactor
 from typing_extensions import Literal
 
 from saqc.core import register
-from saqc.lib.checking import (
-    validateChoice,
-    validateFuncSelection,
-    validateMinPeriods,
-    validateWindow,
-)
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import getApply, toSequence
 from saqc.lib.ts_operators import kNN
+from saqc.lib.types import Float, FreqStr, Int, OffsetStr, SaQC, ValidatePublicMembers
 from saqc.parsing.environ import ENV_OPERATORS
-
-if TYPE_CHECKING:
-    from saqc import SaQC
 
 
 def _kNNApply(vals, n_neighbors, func=np.sum, **kwargs):
@@ -94,7 +86,7 @@ def _groupedScoring(
     freq: float | str | None = np.inf,
     min_periods: int = 2,
     score_func: Callable = _LOFApply,
-    score_kwargs: Optional[dict] = None,
+    score_kwargs: dict | None = None,
 ) -> pd.Series:
     score_kwargs = score_kwargs or {}
     score_index = val_frame.index
@@ -134,11 +126,11 @@ def _groupedScoring(
 
 def _univarScoring(
     data: pd.Series,
-    window: Optional[str, int] = None,
+    window: str | int | None = None,
     norm_func: Callable = np.nanstd,
     model_func: Callable = np.nanmean,
     center: bool = True,
-    min_periods: Optional[int] = None,
+    min_periods: int | None = None,
 ) -> Tuple[pd.Series, pd.Series, pd.Series]:
     """
     Calculate (rolling) normalisation scores.
@@ -163,14 +155,10 @@ def _univarScoring(
     min_periods
         Minimum number of valid meassurements in a scoring window, to consider the resulting score valid.
     """
-    validateFuncSelection(model_func, "model_func", allow_operator_str=True)
     if isinstance(model_func, str):
         model_func = ENV_OPERATORS[model_func]
-    validateFuncSelection(norm_func, "norm_func", allow_operator_str=True)
     if isinstance(norm_func, str):
         norm_func = ENV_OPERATORS[norm_func]
-    validateWindow(window, optional=True)
-    validateMinPeriods(min_periods, optional=True)
 
     if data.empty:
         return data, data, data
@@ -195,7 +183,7 @@ def _univarScoring(
     return score, model, norm
 
 
-class ScoresMixin:
+class ScoresMixin(ValidatePublicMembers):
     @register(
         mask=["field"],
         demask=[],
@@ -205,18 +193,18 @@ class ScoresMixin:
         docstring={"field": DOC_TEMPLATES["field"], "target": DOC_TEMPLATES["target"]},
     )
     def assignKNNScore(
-        self: "SaQC",
+        self: SaQC,
         field: Sequence[str],
         target: str,
-        n: int = 10,
+        n: Int > 0 = 10,
         func: Callable[[pd.Series], float] | str = "sum",
-        freq: float | str | None = np.inf,
-        min_periods: int = 2,
+        freq: (Float >= 0) | FreqStr = np.inf,
+        min_periods: Int >= 0 = 2,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         metric: str = "minkowski",
-        p: int = 2,
+        p: Int > 0 = 2,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Score datapoints by an aggregation of the distances to their `k` nearest neighbors.
 
@@ -281,12 +269,8 @@ class ScoresMixin:
         ----------
         [1] https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html
         """
-        validateFuncSelection(func, allow_operator_str=True)
         if isinstance(func, str):
             func = ENV_OPERATORS[func]
-        validateChoice(
-            algorithm, "algorithm", ["ball_tree", "kd_tree", "brute", "auto"]
-        )
 
         if isinstance(target, list):
             if len(target) > 1:
@@ -321,15 +305,15 @@ class ScoresMixin:
 
     @register(mask=["field"], demask=[], squeeze=[])
     def assignZScore(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        window: str | None = None,
+        window: OffsetStr | None = None,
         norm_func: Callable | str = "std",
         model_func: Callable | str = "mean",
         center: bool = True,
-        min_periods: int | None = None,
+        min_periods: (Int >= 0) | None = None,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Calculate (rolling) Zscores.
 
@@ -391,16 +375,16 @@ class ScoresMixin:
         docstring={"field": DOC_TEMPLATES["field"], "target": DOC_TEMPLATES["target"]},
     )
     def assignLOF(
-        self: "SaQC",
+        self: SaQC,
         field: Sequence[str],
         target: str,
-        n: int = 20,
-        freq: float | str | None = np.inf,
-        min_periods: int = 2,
+        n: Int > 0 = 20,
+        freq: (Float > 0) | FreqStr = np.inf,
+        min_periods: Int >= 0 = 2,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
-        p: int = 2,
+        p: Int > 0 = 2,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Assign Local Outlier Factor (LOF).
 
@@ -431,9 +415,6 @@ class ScoresMixin:
           points. Higher values greatly increase numerical costs.
         """
         from saqc.funcs.outliers import OutliersMixin
-
-        validateMinPeriods(min_periods)
-        OutliersMixin._validateLOF(algorithm, n, p, 1.0)
 
         if isinstance(target, list):
             if len(target) > 1:
@@ -468,16 +449,16 @@ class ScoresMixin:
 
     @register(mask=["field"], demask=[], squeeze=[])
     def assignUniLOF(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        n: int = 20,
+        n: Int > 0 = 20,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
-        p: int = 1,
-        density: Literal["auto"] | float = "auto",
+        p: Int > 0 = 1,
+        density: Literal["auto"] | (Float > 0) = "auto",
         fill_na: bool = True,
         statistical_extent=1,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Assign "univariate" Local Outlier Factor (LOF) or "inivariate" Local Outlier Probability (LOP)
 
@@ -537,9 +518,6 @@ class ScoresMixin:
         --------
 
         """
-        from saqc.funcs.outliers import OutliersMixin
-
-        OutliersMixin._validateLOF(algorithm, n, p, density)
 
         vals = self._data[field]
 

@@ -23,7 +23,7 @@ class ParamDict(TypedDict):
 
 DOC_TEMPLATES = {
     "field": {
-        "typehint": "List[str]",
+        "typehint": "",
         "description": "List of variables names to process.",
     },
     "target": {"optional": False},
@@ -33,24 +33,24 @@ COMMON = {
     "field": {
         "name": "field",
         "description": "Variable to process.",
-        "typehint": "str | list[str]",
+        "typehint": "",
     },
     "target": {
         "name": "target",
         "description": "Variable name to which the results are written. :py:attr:`target` will be created if it does not exist. Defaults to :py:attr:`field`.",
-        "typehint": "str | list[str]",
+        "typehint": ":py:class:`SaQCFields` | :py:class:`newSaQCFields` ",
         "optional": True,
     },
     "dfilter": {
         "name": "dfilter",
         "description": "Defines which observations will be masked based on the already existing flags. Any data point with a flag equal or worse to this threshold will be passed as ``NaN`` to the function. Defaults to the ``DFILTER_ALL`` value of the translation scheme.",
-        "typehint": "Any",
+        "typehint": ":py:class:`Any`",
         "optional": True,
     },
     "flag": {
         "name": "flag",
         "description": "The flag value the function uses to mark observations. Defaults to the ``BAD`` value of the translation scheme.",
-        "typehint": "Any",
+        "typehint": ":py:class:`Any`",
         "optional": True,
     },
 }

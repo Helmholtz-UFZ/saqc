@@ -21,25 +21,19 @@ from scipy.spatial.distance import pdist
 from saqc import BAD
 from saqc.core import DictOfSeries, Flags, flagging, register
 from saqc.funcs.changepoints import _getChangePoints
-from saqc.lib.checking import (
-    validateCallable,
-    validateChoice,
-    validateFrequency,
-    validateValueBounds,
-    validateWindow,
-)
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import detectDeviants, filterKwargs, toSequence
 from saqc.lib.ts_operators import expDriftModel, linearDriftModel
-from saqc.lib.types import CurveFitter
-
-if TYPE_CHECKING:
-    from saqc import SaQC
-
-
-LinkageString = Literal[
-    "single", "complete", "average", "weighted", "centroid", "median", "ward"
-]
+from saqc.lib.types import (
+    LINKAGE_STRING,
+    CurveFitter,
+    Float,
+    FreqStr,
+    Int,
+    OffsetStr,
+    SaQC,
+    ValidatePublicMembers,
+)
 
 DRIFT_MODELS = {"linear": linearDriftModel, "exponential": expDriftModel}
 
@@ -48,7 +42,7 @@ def cityblock(x: np.ndarray | pd.Series, y: np.ndarray | pd.Series) -> np.ndarra
     return pdist(np.array([x, y]), metric="cityblock") / len(x)
 
 
-class DriftMixin:
+class DriftMixin(ValidatePublicMembers):
     @register(
         mask=["field"],
         demask=["field"],
@@ -58,18 +52,18 @@ class DriftMixin:
         docstring=DOC_TEMPLATES["field"],
     )
     def flagDriftFromNorm(
-        self: "SaQC",
+        self: SaQC,
         field: Sequence[str],
-        window: str,  # TODO: this should be named 'freq'
-        spread: float,
-        frac: float = 0.5,
+        window: OffsetStr,  # TODO: this should be named 'freq'
+        spread: Float >= 0,
+        frac: Float[0, 1] = 0.5,
         metric: Callable[
             [np.ndarray | pd.Series, np.ndarray | pd.Series], np.ndarray
         ] = cityblock,
-        method: LinkageString = "single",
+        method: LINKAGE_STRING = "single",
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flags data that deviates from an avarage data course.
 
@@ -137,9 +131,6 @@ class DriftMixin:
         Introduction to Hierarchical clustering:
             [2] https://en.wikipedia.org/wiki/Hierarchical_clustering
         """
-        validateValueBounds(frac, "frac", left=0, right=1, closed="both")
-        validateCallable(metric, "metric")
-        validateChoice(method, "method", LinkageString)
 
         if "freq" in kwargs:
             warnings.warn(
@@ -150,7 +141,6 @@ class DriftMixin:
             )
             window = kwargs["freq"]
 
-        validateFrequency(window, "window")
         fields = toSequence(field)
 
         data = self._data[fields].to_pandas()
@@ -178,17 +168,17 @@ class DriftMixin:
         handles_target=False,
     )
     def flagDriftFromReference(
-        self: "SaQC",
+        self: SaQC,
         field: Sequence[str],
         reference: str,
-        freq: str,
-        thresh: float,
+        freq: FreqStr,
+        thresh: Float >= 0,
         metric: Callable[
             [np.ndarray | pd.Series, np.ndarray | pd.Series], np.ndarray
         ] = cityblock,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flags data that deviates from a reference course. Deviation is measured by a
         custom distance function.
@@ -217,8 +207,6 @@ class DriftMixin:
         default, since it corresponds to the averaged value distance, two data sets have (as opposed
         by euclidean, for example).
         """
-        validateFrequency(freq, "freq")
-        validateCallable(metric, "metric")
 
         fields = toSequence(field)
         if reference not in fields:
@@ -243,13 +231,13 @@ class DriftMixin:
 
     @register(mask=["field"], demask=[], squeeze=[])
     def correctDrift(
-        self: "SaQC",
+        self: SaQC,
         field: str,
         maintenance_field: str,
-        model: Callable[..., float] | Literal["linear", "exponential"],
-        cal_range: int = 5,
+        model: CurveFitter | Literal["linear", "exponential"],
+        cal_range: Int >= 0 = 5,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         The function corrects drifting behavior.
 
@@ -330,8 +318,6 @@ class DriftMixin:
                 raise ValueError(
                     f"unknown model {model!r}, available models: {list(DRIFT_MODELS)}"
                 )
-        validateCallable(model, "model")
-        validateValueBounds(cal_range, "cal_range", left=0, strict_int=True)
 
         # 1: extract fit intervals:
         if self._data[maintenance_field].empty:
@@ -376,14 +362,14 @@ class DriftMixin:
 
     @register(mask=["field", "cluster_field"], demask=["cluster_field"], squeeze=[])
     def correctRegimeAnomaly(
-        self: "SaQC",
+        self: SaQC,
         field: str,
         cluster_field: str,
         model: CurveFitter,
-        tolerance: Optional[str] = None,
+        tolerance: OffsetStr | None = None,
         epoch: bool = False,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Function fits the passed model to the different regimes in data[field] and tries to correct
         those values, that have assigned a negative label by data[cluster_field].
@@ -423,9 +409,6 @@ class DriftMixin:
             "seconds from regime start".
 
         """
-        validateCallable(model, "model")
-        if tolerance is not None:
-            validateWindow(tolerance, name="tolerance", allow_int=False)
 
         cluster_ser = self._data[cluster_field]
         unique_successive = pd.unique(cluster_ser.values)
@@ -494,15 +477,15 @@ class DriftMixin:
 
     @register(mask=["field"], demask=[], squeeze=[])
     def correctOffset(
-        self: "SaQC",
+        self: SaQC,
         field: str,
-        max_jump: float,
-        spread: float,
-        window: str,
-        min_periods: int,
-        tolerance: str | None = None,
+        max_jump: Float >= 0,
+        spread: Float >= 0,
+        window: OffsetStr,
+        min_periods: Int >= 0,
+        tolerance: OffsetStr | None = None,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Parameters
         ----------
@@ -558,18 +541,18 @@ class DriftMixin:
 
     @flagging()
     def flagRegimeAnomaly(
-        self: "SaQC",
+        self: SaQC,
         field: str,
         cluster_field: str,
-        spread: float,
-        method: LinkageString = "single",
+        spread: Float >= 0,
+        method: LINKAGE_STRING = "single",
         metric: Callable[
             [np.ndarray | pd.Series, np.ndarray | pd.Series], float
         ] = lambda x, y: np.abs(np.nanmean(x) - np.nanmean(y)),
-        frac: float = 0.5,
+        frac: Float[0, 1] = 0.5,
         flag: float = BAD,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         Flags anomalous regimes regarding to modelling regimes of ``field``.
 
@@ -608,9 +591,6 @@ class DriftMixin:
         """
         reserverd = ["set_cluster", "set_flags"]
         kwargs = filterKwargs(kwargs, reserverd)
-        validateChoice(method, "method", LinkageString)
-        validateCallable(metric, "metric")
-        validateValueBounds(frac, "frac", left=0, right=1, closed="both")
 
         self._data, self._flags = _assignRegimeAnomaly(
             data=self._data,
@@ -630,17 +610,17 @@ class DriftMixin:
 
     @register(mask=["field", "cluster_field"], demask=["cluster_field"], squeeze=[])
     def assignRegimeAnomaly(
-        self: "SaQC",
+        self: SaQC,
         field: str,
         cluster_field: str,
-        spread: float,
-        method: LinkageString = "single",
+        spread: Float >= 0,
+        method: LINKAGE_STRING = "single",
         metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(
             np.nanmean(x) - np.nanmean(y)
         ),
-        frac: float = 0.5,
+        frac: Float[0, 1] = 0.5,
         **kwargs,
-    ) -> "SaQC":
+    ) -> SaQC:
         """
         A function to detect values belonging to an anomalous regime regarding modelling
         regimes of field.
@@ -680,9 +660,6 @@ class DriftMixin:
         """
         reserverd = ["set_cluster", "set_flags", "flag"]
         kwargs = filterKwargs(kwargs, reserverd)
-        validateChoice(method, "method", LinkageString)
-        validateCallable(metric, "metric")
-        validateValueBounds(frac, "frac", left=0, right=1, closed="both")
 
         self._data, self._flags = _assignRegimeAnomaly(
             data=self._data,
@@ -702,7 +679,7 @@ class DriftMixin:
 
 
 def _driftFit(
-    x: pd.Series, shift_target: pd.Series, cal_mean: int, drift_model: callable
+    x: pd.Series, shift_target: pd.Series, cal_mean: int, drift_model: Callable
 ):
     """TODO: Docstring"""
     x_index = x.index - x.index[0]
@@ -740,7 +717,7 @@ def _assignRegimeAnomaly(
     flags: Flags,
     cluster_field: str,
     spread: float,
-    method: LinkageString = "single",
+    method: LINKAGE_STRING = "single",
     metric: Callable[[np.ndarray, np.ndarray], float] = lambda x, y: np.abs(
         np.nanmean(x) - np.nanmean(y)
     ),
