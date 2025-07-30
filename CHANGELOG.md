@@ -13,6 +13,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `flaguniLOF`: made `thresh` Optional
 - `flagPlateaus`: added function to search and flag anomalous value plateaus of certain temporal extension
 ### Changed
+- Function parameter checking now based on pydantic
 ### Removed
 ### Fixed
 - `flagConstants`: fixed bug where last `min_periods` will never get flagged
