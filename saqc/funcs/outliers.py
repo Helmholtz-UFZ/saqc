@@ -1053,10 +1053,10 @@ class OutliersMixin(ValidatePublicMembers):
     def flagOffset(
         self: SaQC,
         field: str,
-        tolerance: Float >= 0,
         window: FreqStr,
-        thresh: (Float > 0) | None = None,
-        thresh_relative: float | None = None,
+        tolerance: (Float >= 0) | None = None,
+        thresh: (Float >= 0) | None = None,
+        thresh_relative: tuple | float | None = None,
         flag: float = BAD,
         **kwargs,
     ) -> SaQC:
@@ -1082,19 +1082,26 @@ class OutliersMixin(ValidatePublicMembers):
 
         Parameters
         ----------
-        tolerance :
-            Maximum difference allowed between the value, directly preceding and the value directly
-            succeeding an offset to trigger flagging of the offsetting values. See condition (4).
         window :
             Maximum length allowed for offset value courses, to trigger flagging of the offsetting values.
             See condition (5). Integer defined window length are only allowed for regularly sampled
             timeseries.
+        tolerance :
+            Maximum difference allowed between the value, directly preceding and the value directly
+            succeeding an offset to trigger flagging of the offsetting values.
+            If not given, tolerance is derived from either `thresh` or `thresh_relative`.
         thresh :
-            Minimum difference between a value and its successors, to consider the successors an anomalous
+            Minimum absolute difference between a value and its successors, to consider the successors an anomalous
             offset group. See condition (1). If ``None``, condition (1) is not tested.
         thresh_relative :
-            Minimum relative change between a value and its successors, to consider the successors an anomalous
-            offset group. See condition (2). If ``None``, condition (2) is not tested.
+            Minimum relative change between a value and its successors, to consider the successors part of an anomalous
+            offset group.
+            The parameter constrains the detection to either upwards (positive value passed) or
+            downwards (negative values passed) offsets. To assign detection of offsets bigger than `a`,
+            positive as well as negative, pass the tuple `(a,-a)`. Differing positive and negative threshold values are
+            possible as well.
+            See condition (2).
+            If ``None``, condition (2) is not tested.
 
         Examples
         --------
@@ -1202,6 +1209,19 @@ class OutliersMixin(ValidatePublicMembers):
                 "has to be given. Got 'thresh'=None, 'thresh_relative'=None "
                 "instead."
             )
+        iter_thresh = None
+        if isinstance(thresh_relative, tuple):
+            iter_thresh = thresh_relative[1]
+            thresh_relative = thresh_relative[0]
+
+        def tol_func(x, tol=tolerance, thresh=thresh, thresh_rel=thresh_relative):
+            if tol is not None:
+                return tol
+            if thresh is not None:
+                return thresh
+            if thresh_rel is not None:
+                return abs(x * thresh_rel)
+
         if thresh is None:
             thresh = 0
 
@@ -1215,10 +1235,13 @@ class OutliersMixin(ValidatePublicMembers):
         initial_jumps = data_diff.abs() > thresh
         if thresh_relative:
             initial_jumps &= rel_jumps
+
         return_in_time = (
             dat[::-1]
             .rolling(window, min_periods=2)
-            .apply(lambda x: np.abs(x[-1] - x[:-1]).min() < tolerance, raw=True)[::-1]
+            .apply(lambda x: np.abs(x[-1] - x[:-1]).min() < tol_func(x[-1]), raw=True)[
+                ::-1
+            ]
             .astype(bool)
         )
         return_in_time = return_in_time & initial_jumps.reindex(
@@ -1230,7 +1253,9 @@ class OutliersMixin(ValidatePublicMembers):
         to_flag = pd.Series(False, index=dat.index)
         ns = pd.Timedelta("1ns")
         for c in zip(offset_start_candidates.index, offset_start_candidates.values):
-            ret = (dat[c[0]] - dat[c[0] + ns : c[0] + win_delta]).abs()[1:] < tolerance
+            ret = (dat[c[0]] - dat[c[0] + ns : c[0] + win_delta]).abs()[1:] < tol_func(
+                dat[c[0]]
+            )
             if not ret.empty:
                 r = ret.idxmax()
                 chunk = dat[c[0] : r]
@@ -1249,6 +1274,15 @@ class OutliersMixin(ValidatePublicMembers):
         to_flag = to_flag.reindex(self._data[field].index, fill_value=False)
 
         self._flags[to_flag, field] = flag
+        if iter_thresh is not None:
+            self = self.flagOffset(
+                field=field,
+                window=window,
+                tolerance=tolerance,
+                thresh=thresh or None,
+                thresh_relative=iter_thresh,
+                flag=flag,
+            )
         return self
 
     @flagging()

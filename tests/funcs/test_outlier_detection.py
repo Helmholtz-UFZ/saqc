@@ -232,3 +232,247 @@ def test_flagLOF(spiky_data, vars, p, thresh):
     flag_result = qc.flags[field]
     test_sum = (flag_result.iloc[spiky_data[1]] == BAD).sum()
     assert test_sum == len(spiky_data[1])
+
+
+def test_flagOffsetRelative_basic_plateau():
+    """Test basic plateau detection with bidirectional mode"""
+    values = [100, 110, 100, 150, 150, 150, 109, 100, 50, 40, 105]
+    idx = pd.date_range(start="2025-06-25", periods=len(values), freq="h")
+    field = "sensor"
+    data = pd.DataFrame({field: values}, index=idx)
+    qc = SaQC(data).flagOffset(
+        field="sensor",
+        window="12h",
+        thresh_relative=(0.2, -0.2),
+    )
+    actual_flags = qc.flags.to_pandas()
+
+    # Expected: 150s plateau flagged (indices 3,4,5) and 50,40 dip flagged (indices 8,9)
+    expected_flags = pd.DataFrame(
+        {
+            field: [
+                UNFLAGGED,
+                UNFLAGGED,
+                UNFLAGGED,
+                BAD,
+                BAD,
+                BAD,
+                UNFLAGGED,
+                UNFLAGGED,
+                BAD,
+                BAD,
+                UNFLAGGED,
+            ]
+        },
+        index=idx,
+    )
+
+    assert actual_flags.equals(expected_flags)
+
+
+def test_flagOffsetRelative_single_spike():
+    """Test single spike detection"""
+    values = [100, 100, 130, 100, 100]  # Single upward spike
+    idx = pd.date_range(start="2025-06-25", periods=len(values), freq="h")
+    field = "sensor"
+    data = pd.DataFrame({field: values}, index=idx)
+    qc = SaQC(data).flagOffset(
+        field="sensor",
+        window="6h",
+        thresh_relative=0.2,  # 20% threshold
+    )
+    actual_flags = qc.flags.to_pandas()
+
+    # Expected: Single spike at index 2 flagged (130 is 30% above 100)
+    expected_flags = pd.DataFrame(
+        {field: [UNFLAGGED, UNFLAGGED, BAD, UNFLAGGED, UNFLAGGED]}, index=idx
+    )
+
+    assert actual_flags.equals(expected_flags)
+
+
+def test_flagOffsetRelative_no_return():
+    """Test that spikes without returns are not flagged"""
+    values = [100, 100, 150, 160, 170, 180]  # No return to baseline
+    idx = pd.date_range(start="2025-06-25", periods=len(values), freq="h")
+    field = "sensor"
+    data = pd.DataFrame({field: values}, index=idx)
+    qc = SaQC(data).flagOffset(field="sensor", window="6h", thresh_relative=0.2)
+    actual_flags = qc.flags.to_pandas()
+
+    # Expected: No flags since values don't return to baseline
+    expected_flags = pd.DataFrame({field: [UNFLAGGED] * 6}, index=idx)
+
+    assert actual_flags.equals(expected_flags)
+
+
+def test_flagOffsetRelative_downward_only():
+    """Test downward spike detection only"""
+    values = [100, 100, 150, 100, 60, 100, 100]  # Upward and downward spikes
+    idx = pd.date_range(start="2025-06-25", periods=len(values), freq="h")
+    field = "sensor"
+    data = pd.DataFrame({field: values}, index=idx)
+    qc = SaQC(data).flagOffset(
+        field="sensor",
+        window="6h",
+        thresh_relative=-0.3,  # Only 30% downward spikes,
+    )
+    actual_flags = qc.flags.to_pandas()
+
+    # Expected: Only the 60 value flagged (40% drop), not the 150 (upward)
+    expected_flags = pd.DataFrame(
+        {
+            field: [
+                UNFLAGGED,
+                UNFLAGGED,
+                UNFLAGGED,
+                UNFLAGGED,
+                BAD,
+                UNFLAGGED,
+                UNFLAGGED,
+            ]
+        },
+        index=idx,
+    )
+
+    assert actual_flags.equals(expected_flags)
+
+
+def test_flagOffsetRelative_threshold_boundary():
+    """Test values right at threshold boundary"""
+    values = [100, 121, 100, 120, 100]  # 21% vs 20% increases
+    idx = pd.date_range(start="2025-06-25", periods=len(values), freq="h")
+    field = "sensor"
+    data = pd.DataFrame({field: values}, index=idx)
+    qc = SaQC(data).flagOffset(field="sensor", window="6h", thresh_relative=0.2)
+    actual_flags = qc.flags.to_pandas()
+
+    print(actual_flags)
+
+    expected_flags = pd.DataFrame(
+        {field: [UNFLAGGED, BAD, UNFLAGGED, UNFLAGGED, UNFLAGGED]}, index=idx
+    )
+
+    assert actual_flags.equals(expected_flags)
+
+
+def test_flagOffsetRelative_window_timeout():
+    """Test that spikes outside window are not flagged"""
+    values = [100, 150, 150, 150, 150, 150, 150, 100]
+    idx = pd.date_range(start="2025-06-25", periods=len(values), freq="h")
+    field = "sensor"
+    data = pd.DataFrame({field: values}, index=idx)
+    qc = SaQC(data).flagOffset(
+        field="sensor",
+        window="3h",  # Short window, plateau is 6h long
+        thresh_relative=0.2,
+    )
+    actual_flags = qc.flags.to_pandas()
+
+    # Expected: No flags because return is outside 3h window
+    expected_flags = pd.DataFrame({field: [UNFLAGGED] * 8}, index=idx)
+
+    assert actual_flags.equals(expected_flags)
+
+
+def test_flagOffsetRelative_multiple_plateaus():
+    """Test multiple separate plateaus"""
+    values = [100, 150, 150, 100, 100, 60, 60, 100, 100]  # Two separate plateaus
+    idx = pd.date_range(start="2025-06-25", periods=len(values), freq="h")
+    field = "sensor"
+    data = pd.DataFrame({field: values}, index=idx)
+    qc = SaQC(data).flagOffset(
+        field="sensor",
+        window="6h",
+        thresh_relative=(0.3, -0.3),
+        bidirectional=True,
+    )
+    actual_flags = qc.flags.to_pandas()
+
+    expected_flags = pd.DataFrame(
+        {
+            field: [
+                UNFLAGGED,
+                BAD,
+                BAD,
+                UNFLAGGED,
+                UNFLAGGED,
+                BAD,
+                BAD,
+                UNFLAGGED,
+                UNFLAGGED,
+            ]
+        },
+        index=idx,
+    )
+
+    assert actual_flags.equals(expected_flags)
+
+
+def test_flagOffsetRelative_small_values():
+    """Test with small baseline values"""
+    values = [1.0, 1.5, 1.5, 1.0, 0.5, 1.0]  # Small values, same relative changes
+    idx = pd.date_range(start="2025-06-25", periods=len(values), freq="h")
+    field = "sensor"
+    data = pd.DataFrame({field: values}, index=idx)
+    qc = SaQC(data).flagOffset(field="sensor", window="6h", thresh_relative=(0.4, -0.4))
+    actual_flags = qc.flags.to_pandas()
+
+    # Expected: 1.5s flagged (50% increase), 0.5 flagged (50% decrease)
+    expected_flags = pd.DataFrame(
+        {field: [UNFLAGGED, BAD, BAD, UNFLAGGED, BAD, UNFLAGGED]}, index=idx
+    )
+
+    assert actual_flags.equals(expected_flags)
+
+
+def test_flagOffsetRelative_zero_baseline():
+    """Test edge case with zero baseline"""
+    values = [0, 5, 5, 0, 0]  # Spike from zero baseline
+    idx = pd.date_range(start="2025-06-25", periods=len(values), freq="h")
+    field = "sensor"
+    data = pd.DataFrame({field: values}, index=idx)
+    qc = SaQC(data).flagOffset(
+        field="sensor",
+        window="6h",
+        thresh_relative=0.2,
+    )
+    actual_flags = qc.flags.to_pandas()
+    expected_flags = pd.DataFrame(
+        {
+            field: [
+                UNFLAGGED,
+                UNFLAGGED,
+                UNFLAGGED,
+                UNFLAGGED,
+                UNFLAGGED,
+            ]
+        },
+        index=idx,
+    )
+
+    assert actual_flags.equals(expected_flags)
+
+
+def test_flagOffsetRelative_negative_values():
+    """Test with negative baseline values"""
+    values = [-100, -150, -150, -100, -50, -100]  # Negative values
+    idx = pd.date_range(start="2025-06-25", periods=len(values), freq="h")
+    field = "sensor"
+    data = pd.DataFrame({field: values}, index=idx)
+    qc = SaQC(data).flagOffset(field="sensor", window="6h", thresh_relative=(0.3, -0.3))
+    actual_flags = qc.flags.to_pandas()
+    expected_flags = pd.DataFrame(
+        {
+            field: [
+                UNFLAGGED,
+                BAD,
+                BAD,
+                UNFLAGGED,
+                BAD,
+                UNFLAGGED,
+            ]
+        },
+        index=idx,
+    )
+    assert actual_flags.equals(expected_flags)
