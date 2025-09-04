@@ -12,6 +12,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `flagUniLOF`: added dispatch to Local Outlier Probability (*LoOP*) variant
 - `flaguniLOF`: made `thresh` Optional
 - `flagPlateaus`: added function to search and flag anomalous value plateaus of certain temporal extension
+- `flagOffset`: added functionality for dynamic tolerance for the offset return
 ### Changed
 - Function parameter checking now based on pydantic
 ### Removed
