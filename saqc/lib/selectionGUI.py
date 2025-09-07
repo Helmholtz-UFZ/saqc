@@ -12,7 +12,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backend_tools import ToolBase
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.dates import date2num
 from matplotlib.widgets import RectangleSelector, Slider, SpanSelector
 
@@ -114,6 +113,11 @@ class MplScroller(tk.Frame):
         self.quit()
 
     def scrollContentGenerator(self):
+        from matplotlib.backends.backend_tkagg import (
+            FigureCanvasTkAgg,
+            NavigationToolbar2Tk,
+        )
+
         canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
         toolbar = NavigationToolbar2Tk(canvas, self.canvas)
         toolbar.update()
