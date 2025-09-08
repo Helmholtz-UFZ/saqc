@@ -193,12 +193,11 @@ class CurvefitMixin(ValidatePublicMembers):
             from momentfm import MOMENTPipeline
             from momentfm.data.informer_dataset import InformerDataset
             from torch.utils.data import DataLoader
-        except ImportError as error_msg:
-            print("Foundational Timeseries Regressor requirements not sufficed:\n")
-            print(error_msg)
-            print(
-                'Install the Requirements manually or by pip installing "saqc" package with extras "FM" (pip install saqc[FM])'
-            )
+        except ImportError as e:
+            raise ImportError(
+                f"Foundational Timeseries Regressor requirements not sufficed:\n{e}\n"
+                'Install the requirements manually or by pip installing "saqc[FM]"'
+            ) from e
 
         if context > _model_scope:
             raise ValueError(

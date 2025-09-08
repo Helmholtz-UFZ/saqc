@@ -212,7 +212,7 @@ class SelectionOverlay:
         self.index = [data[k].index for k in range(self.N)]
         self.data = [data[k].values for k in range(self.N)]
         self.numidx = [date2num(self.index[k]) for k in range(self.N)]
-        if (not parent) and (not (matplotlib.get_backend() == "agg")):
+        if (not parent) and (not (matplotlib.get_backend().lower() == "agg")):
             # add assignment button to the toolbar
             self.canvas.manager.toolmanager.add_tool(
                 "Assign Flags", AssignFlagsTool, callback=self.assignAndCloseCB
