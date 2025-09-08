@@ -159,56 +159,41 @@ class InterpolationMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Convert time series to specified frequency. Values affected by
-        frequency changes will be inteprolated using the given method.
+        Convert a time series to a specified frequency, interpolating values
+        according to the chosen method.
 
         Parameters
         ----------
-        freq :
-            Target frequency.
+        freq : str or int
+            Target frequency (e.g., "1H", "15min", 60).
 
-        method :
-            Interpolation technique to use. One of:
+        method : str
+            Interpolation technique to use. Supported values include:
 
             * ``'nshift'``: Shift grid points to the nearest time stamp
-              in the range = +/- 0.5 * ``freq``.
-            * ``'bshift'``: Shift grid points to the first succeeding
-              time stamp (if any).
-            * ``'fshift'``: Shift grid points to the last preceeding time
-              stamp (if any).
-            * ``'linear'``: Ignore the index and treat the values as equally
-              spaced.
-            * ``'time'``, ``'index'``, ``'values'``: Use the actual numerical
-              values of the index.
-            * ``'pad'``: Fill in NaNs using existing values.
-            * ``'spline'``, ``'polynomial'``:
-              Passed to ``scipy.interpolate.interp1d``. These methods
-              use the numerical values of the index.  An ``order`` must be
-              specified, e.g. ``qc.interpolate(method='polynomial', order=5)``.
-            * ``'nearest'``, ``'zero'``, ``'slinear'``, ``'quadratic'``, ``'cubic'``, ``'barycentric'``:
-              Passed to ``scipy.interpolate.interp1d``. These methods use
-              the numerical values of the index.
-            * ``'krogh'``, ``'spline'``, ``'pchip'``, ``'akima'``, ``'cubicspline'``:
-              Wrappers around the SciPy interpolation methods of similar
-              names.
-            * ``'from_derivatives'``: Refers to ``scipy.interpolate.BPoly.from_derivatives``.
+              within +/- 0.5 * ``freq``.
+            * ``'bshift'``: Shift grid points to the first succeeding time stamp.
+            * ``'fshift'``: Shift grid points to the last preceding time stamp.
+            * ``'linear'``, ``'time'``, ``'index'``, ``'values'``: Use numerical values
+              of the index. (Note: internally mapped to ``'mshift'``.)
+            * ``'pad'``: Fill NaNs using existing values (same as ``'fshift'``).
+            * ``'spline'``, ``'polynomial'``: Passed to
+              ``scipy.interpolate.interp1d``. Requires specifying ``order``.
+            * ``'nearest'``, ``'zero'``, ``'slinear'``, ``'quadratic'``,
+              ``'cubic'``, ``'barycentric'``: Passed to
+              ``scipy.interpolate.interp1d``.
+            * ``'krogh'``, ``'pchip'``, ``'akima'``, ``'cubicspline'``:
+              Wrappers around SciPy interpolation methods.
+            * ``'from_derivatives'``: Uses
+              ``scipy.interpolate.BPoly.from_derivatives``.
 
-        order :
-            Order of the interpolation method, ignored if not supported
-            by the chosen ``method``.
+        order : int
+            Order of the interpolation method. Used only by methods that support it
+            (e.g., polynomial, spline). Ignored otherwise.
 
-        extrapolate :
-            Use parameter to perform extrapolation instead of interpolation
-            onto the trailing and/or leading chunks of NaN values in data series.
-
-            * ``None`` (default) - perform interpolation
-            * ``'forward'``/``'backward'`` - perform forward/backward extrapolation
-            * ``'both'`` - perform forward and backward extrapolation
-
-        overwrite :
-           If set to `True`, existing flags will be cleared.
+        overwrite : bool
+            If ``True``, existing flags will be cleared.
         """
-
         method = "fshift" if method == "pad" else method
         if method in ["time", "linear"]:
             data_agg_func = method

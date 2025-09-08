@@ -22,7 +22,13 @@ from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.plotting import makeFig
 from saqc.lib.selectionGUI import MplScroller, SelectionOverlay
 from saqc.lib.tools import periodicMask
-from saqc.lib.types import OffsetStr, SaQC, SaQCFields, ValidatePublicMembers
+from saqc.lib.types import (
+    NewSaQCFields,
+    OffsetStr,
+    SaQC,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 
 _MPL_DEFAULT_BACKEND = mpl.get_backend()
 _TEST_MODE = False
@@ -159,19 +165,18 @@ class ToolsMixin(ValidatePublicMembers):
     )
     def copyField(
         self: SaQC,
-        field: str | list[str],
-        target: str | list[str],
+        field: SaQCFields,
+        target: NewSaQCFields,
         overwrite: bool = False,
         **kwargs,
     ) -> SaQC:
         """
-        Make a copy of the data and flags of `field`.
+        Make a copy of the data and flags to a new field.
 
         Parameters
         ----------
-        overwrite :
-            overwrite target, if already existant.
-
+        overwrite : bool
+            Overwrite ``target``, if already existing.
         """
         if field == target:
             return self
@@ -198,12 +203,12 @@ class ToolsMixin(ValidatePublicMembers):
     @processing()
     def renameField(self: SaQC, field: str, new_name: str, **kwargs) -> SaQC:
         """
-        Rename field in data and flags.
+        Rename field to the given name.
 
         Parameters
         ----------
-        new_name :
-            String, field is to be replaced with.
+        new_name : str
+            New name for the field.
         """
         self._data[new_name] = self._data[field]
         self._flags.history[new_name] = self._flags.history[field]

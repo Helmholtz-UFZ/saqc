@@ -624,34 +624,32 @@ class PatternMixin(ValidatePublicMembers):
 
         Parameters
         ----------
-        min_length:
-            Minimum temporal extension of value course to qualify as plateau.
+        min_length : int or str
+            Minimum temporal extension of a value course to qualify as a plateau.
 
-        max_length:
-            Maximum temporal extension of value course to qualify as plateau (upper detection limit).
+        max_length : int, str, or None
+            Maximum temporal extension of a value course to qualify as a plateau
+            (upper detection limit). If None, a detection limit based on the data
+            length is used.
 
-        min_jump:
-            minimum margin anomalies/plateaus have to differ from directly preceding and succeeding periods.
-            If ``None`` (default), the minimum jump threshold will be derived automatically from the median
-            of the local absolute difference between any two periods in the vicinity of any potential anomaly.
+        min_jump : float or None
+            Minimum difference a plateau must have from directly preceding and
+            succeeding periods. If None, the minimum jump threshold is derived
+            automatically from the median of local absolute differences in the
+            vicinity of potential anomalies.
 
-        granularity:
-            Precision of search: The smaller the better, but also, the more numerically expensive.
-
-        fill_strat:
-            NaN values in the data have to be replaced by numerical data.
-            Select the interpolation/replacement strategy.
-
+        granularity : int, str, or None
+            Precision of the search. Smaller values increase precision but also
+            computational cost. If None, defaults to 5.
 
         Notes
         -----
-        Minimum length of plateaus should be selected higher than ~2 times the sampling rate.
-        To search for shorter plateaus/anomalies, use :py:meth:~`saqc.SaQC.flagUniLOF` or :py:meth:~`saqc.SaQC.flagZScore`.
+        Minimum plateau length should be set higher than about twice the sampling rate.
+        For detecting shorter anomalies, use :py:meth:`~saqc.SaQC.flagUniLOF` or
+        :py:meth:`~saqc.SaQC.flagZScore`.
 
         Examples
         --------
-
-
         .. plot::
            :context: reset
            :include-source: False
@@ -662,22 +660,22 @@ class PatternMixin(ValidatePublicMembers):
            data = pd.read_csv('../resources/data/turbidity_plateaus.csv', parse_dates=['data'], index_col=0, nrows=1000)
            qc = saqc.SaQC(data)
 
-        Detect plateaos longer than 100 minutes
+        Detect plateaus longer than 100 minutes:
 
-        .. doctest:: flagPlattoExample
+        .. doctest:: flagPlateauExample
 
            >>> import saqc
            >>> data = pd.read_csv('./resources/data/turbidity_plateaus.csv', parse_dates=['data'], index_col=0, nrows=10000)
            >>> qc = saqc.SaQC(data)
-           >>> qc = qc.flagPlateau('base3', min_length='100min')
-           >>> qc.plot('base3') # doctest: +SKIP
+           >>> qc = qc.flagPlateau(field='base3', min_length='100min')
+           >>> qc.plot('base3')  # doctest: +SKIP
 
         .. plot::
            :context:
            :include-source: False
            :class: center
 
-           qc = qc.flagPlateau('base3', min_length='100min')
+           qc = qc.flagPlateau(field='base3', min_length='100min')
            qc.plot('base3')
         """
         opt_thresh = [OPT_FACTOR * f for f in FACTOR_BASE]

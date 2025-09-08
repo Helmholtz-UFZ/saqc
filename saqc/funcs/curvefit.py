@@ -50,47 +50,37 @@ class CurvefitMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Fits a polynomial model to the data.
+        Fit a polynomial model to the data.
 
         The fit is calculated by fitting a polynomial of degree `order` to a data slice
-        of size `window`, that has x at its center.
+        of size `window`, centered on each timestamp. The result overwrites the field
+        unless a target is specified.
 
-        Note that the result is stored in `field` and overwrite it unless a
-        `target` is given.
+        For regularly sampled data:
 
-        In case your data is sampled at an equidistant frequency grid:
-
-        (1) If you know your data to have no significant number of missing values,
-        or if you do not want to calculate residuals for windows containing missing values
-        any way, performance can be increased by setting min_periods=window.
-
-        Note, that the initial and final window/2 values do not get fitted.
-
-        Each residual gets assigned the worst flag present in the interval of
-        the original data.
+        * If missing values are rare or residuals for windows with missing values are
+          not needed, performance can be increased by setting min_periods=window.
+        * The initial and final ``window``//2 timestamps do not get fitted.
+        * Each residual is assigned the worst flag present in the corresponding interval
+          of the original data.
 
         Parameters
         ----------
-        window :
-            Size of the window you want to use for fitting. If an integer is passed,
-            the size refers to the number of periods for every fitting window. If an
-            offset string is passed, the size refers to the total temporal extension. The
-            window will be centered around the vaule-to-be-fitted. For regularly sampled
-            data always a odd number of periods will be used for the fit (periods-1 if
-            periods is even).
+        window : int or str
+            Size of the fitting window. If an integer is passed, it represents the number
+            of timestamps in each window. If an offset string is passed, it represents the
+            window's temporal extent. The window is centered around the timestamp being fitted.
+            For uniformly sampled data, an odd number of timestamps is always used to constitute a window (subtracted by 1,
+            if the total is even).
 
-        order :
-            Degree of the polynomial used for fitting
+        order : int
+            Degree of the polynomial used for fitting.
 
-        min_periods :
-            Minimum number of observations in a window required to perform the fit,
-            otherwise NaNs will be assigned.
-            If ``None``, `min_periods` defaults to 1 for integer windows and to the
-            size of the window for offset based windows.
-            Passing 0, disables the feature and will result in over-fitting for too
-            sparse windows.
+        min_periods : int
+            Minimum number of timestamps in a window required to perform the fit.
+            Windows with fewer timestamps will produce NaNs. Passing 0 disables this
+            check and may result in overfitting for sparse windows.
         """
-
         self._data, self._flags = _fitPolynomial(
             data=self._data,
             field=field,
