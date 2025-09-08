@@ -37,31 +37,27 @@ class ConstantsMixin(ValidatePublicMembers):
         """
         Flag constant data values.
 
-        Flags plateaus of constant data if their maximum total change in
-        a rolling window does not exceed a certain threshold.
+        Flags plateaus of constant data if their maximum total change in a rolling
+        window does not exceed a certain threshold.
 
-        Any interval of values y(t),...,y(t+n) is flagged, if:
-         - (1): n > ``window``
-         - (2): abs(y(t + i) - (t + j)) < `thresh`, for all i,j in [0, 1, ..., n]
+        Any interval of values y(t), ..., y(t+n) is flagged if:
+         - n > window
+         - abs(y(t + i) - y(t + j)) < thresh for all i, j in [0, 1, ..., n]
 
         Parameters
         ----------
-        thresh :
+        thresh : float
             Maximum total change allowed per window.
 
-        window :
-            Size of the moving window. This determines the number of observations used
-            for calculating the absolute change per window.
-            Each window will either contain a fixed number of periods (integer defined window),
-            or will have a fixed temporal extension (offset defined window).
+        window : int or str
+            Size of the rolling window. If an integer is passed, it represents the number
+            of timestamps per window. If an offset string is passed, it represents the windows
+            total temporal extent.
 
-        min_periods :
-            Minimum number of observations in window required to generate
-            a flag. This can be used to exclude underpopulated *offset* defined windows from
-            flagging. (Integer defined windows will always contain exactly *window* samples).
-            Must be an integer greater or equal `2`, because a
-            single value would always be considered constant.
-            Defaults to `2`.
+        min_periods : int
+            Minimum number of valid timestamps that are necessary to be present in any window, in order to trigger condition testing for this window.
+            Windows with fewer timestamps are skipped. Must be >= 2, because a single
+            value is always considered constant.
         """
         d: pd.Series = self._data[field]
 

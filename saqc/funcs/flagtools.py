@@ -68,19 +68,19 @@ class FlagtoolsMixin(ValidatePublicMembers):
     @register(mask=[], demask=[], squeeze=["field"])
     def clearFlags(self: SaQC, field: SaQCFields, **kwargs) -> SaQC:
         """
-        Assign UNFLAGGED value to all periods in field.
+        Assign the flag UNFLAGGED to all timestamps.
 
         Notes
         -----
         This function ignores the ``dfilter`` keyword, because the data
         is not relevant for processing.
         A warning is triggered if the ``flag`` keyword is given, because
-        the flags are always set to `UNFLAGGED`.
+        the flags are always set to ``UNFLAGGED``.
 
-        See also
+        See Also
         --------
-        forceFlags : set whole column to a flag value
-        flagUnflagged : set flag value at all unflagged positions
+        forceFlags : Assign a specific flag value to all timestamps.
+        flagUnflagged : Assign a specific flag value to all timestamps that have no flag value assigned.
         """
         # NOTE: do we really need this?
         if "flag" in kwargs:
@@ -95,10 +95,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         self: SaQC, field: SaQCFields, flag: float = BAD, **kwargs
     ) -> SaQC:
         """
-        Function sets a flag at all unflagged positions.
-
-        Parameters
-        ----------
+        Assign a `flag` to all timestamps.
 
         Notes
         -----
@@ -107,11 +104,9 @@ class FlagtoolsMixin(ValidatePublicMembers):
 
         See also
         --------
-        clearFlags : set whole column to UNFLAGGED
-        forceFlags : set whole column to a flag value
-
+        clearFlags : assign UNFLAGGED to all timestamps
+        forceFlags : Assign a specific flag value to all timestamps.
         """
-
         unflagged = self._flags[field].isna() | (self._flags[field] == UNFLAGGED)
         self._flags[unflagged, field] = flag
         return self
@@ -391,21 +386,23 @@ class FlagtoolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Transfer Flags of one variable to another.
+        Transfer flags from one field to another.
+
+        Flags present at timestamps in the source field(s) are also assigned to that same timestamps in the target field(s).
+
+        Optionally, flags already assigned to target, are being overridden or squashed together with the new assignment, into a single flags column.
 
         Parameters
         ----------
+        squeeze : bool
+            If True, compress the history into a single column, losing function-specific flag information.
 
-        squeeze :
-            Squeeze the history into a single column if ``True``, function specific flag information is lost.
-
-        overwrite :
-            Overwrite existing flags if ``True``.
-
+        overwrite : bool
+            If True, existing flags in the target field are overwritten.
 
         Examples
         --------
-        First, generate some data with some flags:
+        First, generate some data with flags:
 
         .. doctest:: exampleTransfer
 
@@ -418,7 +415,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
            0   -inf -inf -inf
            1  255.0 -inf -inf
 
-        Now we can project the flag from `a` to `b` via
+        Project the flag from `a` to `b`:
 
         .. doctest:: exampleTransfer
 
@@ -428,8 +425,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
            0   -inf   -inf -inf
            1  255.0  255.0 -inf
 
-        To project the flags of `a` to both the variables `b` and `c`
-        in one call, align the field and target variables in 2 lists:
+        Project flags of `a` to both `b` and `c`:
 
         .. doctest:: exampleTransfer
 
@@ -443,9 +439,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         --------
         * :py:meth:`saqc.SaQC.flagGeneric`
         * :py:meth:`saqc.SaQC.concatFlags`
-
         """
-
         fields, targets, broadcasting = multivariateParameters(field, target)
         meta = {
             "func": "transferFlags",
@@ -512,18 +506,21 @@ class FlagtoolsMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flag values before or after flags set by the last test.
+        Propagate already assigned flags along the date axis.
+
+        Extent and direction of propagation can be controlled through parameters ``window`` and ``method``.
 
         Parameters
         ----------
-        window :
-            Size of the repetition window. An integer defines the exact
-            number of repetitions, strings are interpreted as time offsets
-            to fill with.
+        window : int or str
+            Size of the repetition window. An integer defines the exact number
+            of periods to propagate, while a string is interpreted as a time
+            offset.
 
-        method :
-            Direction of repetetion. With "ffill" the subsequent values
-            receive the flag to repeat, with "bfill" the previous values.
+        method : {"ffill", "bfill"}
+            Direction of propagation:
+            * ``ffill`` — propagate flag to subsequent values
+            * ``bfill`` — propagate flag to preceding values
 
         Examples
         --------
@@ -545,7 +542,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
            6     -inf
            dtype: float64
 
-        Now, to repeat the flag '255.0' two times in direction of ascending
+        Now, to repeat the flag '255.0' two times in the direction of ascending
         indices, execute:
 
         .. doctest:: propagateFlags
@@ -560,7 +557,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
            6     -inf
            dtype: float64
 
-        Choosing "bfill" will result in
+        Choosing "bfill" will result in:
 
         .. doctest:: propagateFlags
 
@@ -575,7 +572,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
            dtype: float64
 
         If an explicit flag is passed, it will be used to fill the
-        repetition window
+        repetition window:
 
         .. doctest:: propagateFlags
 

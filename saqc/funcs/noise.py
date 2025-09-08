@@ -109,40 +109,37 @@ class NoiseMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Flag data chunks of length ``window`` dependent on the data deviation.
+        Flag anomalous data chunks based on scatter statistics.
 
-        Flag data chunks of length ``window`` if
+        Chunks of length ``window`` are flagged if:
 
-        1. they excexceed ``thresh`` with regard to ``func`` and
-        2. all (maybe overlapping) sub-chunks of the data chunks with length ``sub_window``,
-           exceed ``sub_thresh`` with regard to ``func``
+        1. They exceed ``thresh`` according to the function ``func``.
+        2. All (possibly overlapping) sub-chunks of length ``sub_window`` exceed ``sub_thresh``
+           according to the same function.
 
         Parameters
         ----------
-        func :
-            Either a string, determining the aggregation function applied on every chunk:
+        func : {"std", "var", "mad"} or Callable[[np.ndarray, pd.Series], float]
+            Function to compute deviation for each chunk:
+            * ``"std"`` — standard deviation
+            * ``"var"`` — variance
+            * ``"mad"`` — median absolute deviation
+            * Callable — custom function mapping 1D arrays to scalars.
 
-            * 'std': standard deviation
-            * 'var': variance
-            * 'mad': median absolute deviation
+        window : str or pandas.Timedelta
+            Size of the main chunk (time-based).
 
-            Or a Callable, mapping 1 dimensional array likes onto scalars.
+        thresh : float
+            Threshold, the statistic of the main chunk is checked against. ``func(chunk) > thresh``.
 
-        window :
-            Window (i.e. chunk) size.
+        sub_window : str or pandas.Timedelta, optional
+            Size of sub-chunks for secondary testing.
 
-        thresh :
-            Threshold. A given chunk is flagged, if the return value of ``func`` excceeds ``thresh``.
+        sub_thresh : float, optional
+            Threshold, the statistic of the main chunk is checked against. ``func(sub_chunk) > sub_thresh``.
 
-        sub_window :
-            Window size of sub chunks, that are additionally tested for exceeding ``sub_thresh``
-            with respect to ``func``.
-
-        sub_thresh :
-            Threshold. A given sub chunk is flagged, if the return value of ``func` excceeds ``sub_thresh``.
-
-        min_periods :
-            Minimum number of values needed in a chunk to perfom the test.
+        min_periods : int, optional
+            Minimum number of values required in a chunk to perform the test.
             Ignored if ``window`` is an integer.
         """
         if sub_window is not None:

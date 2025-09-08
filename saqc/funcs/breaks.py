@@ -65,33 +65,30 @@ class BreaksMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
-        Find and flag temporal isolated groups of data.
+        Find and flag temporally isolated groups of data.
 
-        The function flags arbitrarily large groups of values, if they are surrounded by
-        sufficiently large data gaps. A gap is a timespan containing either no data at all
-        or NaNs only.
+        The function flags groups of values that are surrounded by sufficiently large
+        data gaps. A data gap is a timespan containing no valid data. (Data is valid if it is not `NaN` and if it is not assigned a flag with a level higher than the functions `flag` value).
 
         Parameters
         ----------
-        gap_window :
+        gap_window : str
             Minimum gap size required before and after a data group to consider it
-            isolated. See condition (2) and (3)
+            isolated. See conditions (2) and (3) below.
 
-        group_window :
+        group_window : str
             Maximum size of a data chunk to consider it a candidate for an isolated group.
-            Data chunks that are bigger than the :py:attr:`group_window` are ignored.
-            This does not include the possible gaps surrounding it.
-            See condition (1).
+            Data chunks larger than this are ignored. This does not include the possible
+            gaps surrounding it. See condition (1) below.
 
         Notes
         -----
-        A series of values :math:`x_k,x_{k+1},...,x_{k+n}`, with associated
-        timestamps :math:`t_k,t_{k+1},...,t_{k+n}`, is considered to be isolated, if:
+        A series of values :math:`x_k, x_{k+1}, ..., x_{k+n}` with timestamps
+        :math:`t_k, t_{k+1}, ..., t_{k+n}` is considered isolated if:
 
         1. :math:`t_{k+1} - t_n <` `group_window`
-        2. None of the :math:`x_j` with :math:`0 < t_k - t_j <` `gap_window`, is valid (preceding gap).
-        3. None of the :math:`x_j` with :math:`0 < t_j - t_(k+n) <` `gap_window`, is valid (succeeding gap).
-
+        2. No valid values in a succeeding period of `gap_window` extension.
+        3. No valid values exist in the succeeding gap of size `gap_window`.
         """
 
         dat = self._data[field].dropna()
@@ -136,46 +133,40 @@ class BreaksMixin(ValidatePublicMembers):
         """
         Flag jumps and drops in data.
 
-        Flag data where the mean of its values significantly changes (where the data "jumps" from one
-        value level to another).
-        Value changes are detected by comparing the mean for two adjacent rolling windows. Whenever
-        the difference between the mean in the two windows exceeds :py:attr:`thresh` , the value between
-        the windows is flagged.
+        Flags values where the mean changes significantly between two adjacent rolling
+        windows, indicating a "jump" from one level to another. Whenever the difference
+        between the means of the two windows exceeds `thresh`, the values between the
+        windows are flagged.
 
         Parameters
         ----------
-        thresh :
-            Threshold value by which the mean of data has to jump, to trigger flagging.
+        thresh : float
+            Threshold by which the mean of data must jump to trigger flagging.
 
-        window :
-            Size of the two moving windows. This determines the number of observations used for
-            calculating the mean in every window. The window size should be big enough to yield enough
-            samples for a reliable mean calculation, but it should also not be arbitrarily big, since
-            it also limits the density of jumps that can be detected.
-            More precisely: Jumps that are not distanced to each other by more than three fourth (3/4)
-            of the selected :py:attr:`window` size, will not be detected reliably.
+        window : str
+            Size of the two rolling windows. Determines the number of timestamps used
+            for calculating the mean in each window. Windows should be chosen large enough to
+            obtain a reliable mean. But not too large as well, since the window size implies a lower bound for the detection resolution.
+            Jumps exceeding `thresh` but being apart from each other by less than 3/4 of the window size may not be detected reliably.
 
-        min_periods :
-            The minimum number of observations in :py:attr:`window` required to calculate a valid mean value.
-
-        Examples
-        --------
-
-        Below picture gives an abstract interpretation of the parameter interplay in case of a positive
-        value jump, initialising a new mean level.
-
-        .. figure:: /resources/images/flagJumpsPic.png
-
-           The two adjacent windows of size `window` roll through the whole data series. Whenever the mean values in
-           the two windows differ by more than `thresh`, flagging is triggered.
+        min_periods : int
+            Minimum number of timestamps in `window` required to calculate a valid mean. If no valid mean for the window can be calculated, flagging wont be triggered for the associated change point.
 
         Notes
         -----
+        Jumps closer together than three fourths (3/4) of the window size may not be
+        detected reliably.
 
-        Jumps that are not distanced to each other by more than three fourth (3/4) of the
-        selected window size, will not be detected reliably.
+        Examples
+        --------
+        Below diagram illustrates the interaction of parameters for a positive value jump
+        initializing a new mean level.
+
+        .. figure:: /resources/images/flagJumpsPic.png
+
+           The two adjacent windows of size `window` roll through the data series. Whenever
+           the mean values differ by more than `thresh`, flagging is triggered.
         """
-
         mask = _getChangePoints(
             data=self._data[field],
             stat_func=lambda x, y: np.abs(np.mean(x) - np.mean(y)),
