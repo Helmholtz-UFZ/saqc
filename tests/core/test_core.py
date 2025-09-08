@@ -595,3 +595,16 @@ def test__setitem__(data, key, value, expected):
     for k in [key] if isinstance(key, str) else key:
         assert data.data[k].equals(expected.data[k])
         assert data.flags[k].equals(expected.flags[k])
+
+
+def test_date_ranges(data):
+    qc = SaQC(data)
+    qc = qc.flagRange(
+        field="var1",
+        max=-np.inf,
+        start_date="2017-01-01 03:00",
+        end_date="2017-12-30 20:00:00",
+    )
+    assert (qc._flags["var1"]["2017-01-01 03:00":"2017-12-30 20:00:00"] == BAD).all()
+    assert (qc._flags["var1"][:"2017-01-01 02:59"] == UNFLAGGED).all()
+    assert (qc._flags["var1"]["2017-12-30 20:00:01":] == UNFLAGGED).all()

@@ -118,10 +118,29 @@ def frequencyStrings(draw, _):
 
 @composite
 def dataFieldFlags(draw):
+    # Draw the base data
     data = draw(dioses())
+
+    # Pick a column
     field = draw(sampled_from(sorted(data.columns)))
+
+    # Draw flags
     flags = draw(flagses(data))
-    return data, field, flags
+
+    # Draw start_date and end_date from the index
+    index_dates = sorted(data[field].index)
+
+    # Only proceed if there are at least 2 dates
+    if len(index_dates) >= 2:
+        start_date = draw(sampled_from(index_dates[:-1]))  # exclude last so start < end
+        # Restrict end_date to dates after start_date
+        possible_end_dates = [d for d in index_dates if d > start_date]
+        end_date = draw(sampled_from(possible_end_dates))
+    else:
+        # fallback if there are not enough dates
+        start_date = end_date = index_dates[0]
+
+    return data, field, flags, start_date, end_date
 
 
 @composite
