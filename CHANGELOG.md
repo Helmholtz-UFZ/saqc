@@ -5,8 +5,17 @@ SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 # Changelog
+
 ## Unreleased
-[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.6.0...develop)
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.7.0...main)
+### Added
+### Changed
+### Removed
+### Fixed
+### Deprecated
+
+## [2.7.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.7.0) - 2025-09-09
+[List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.6.0...v2.7.0)
 ### Added
 - `flagPlateaus`: added function to search and flag outlierish value plateaus of certain temporal extension
 - `flagUniLOF`: added dispatch to Local Outlier Probability (*LoOP*) variant
