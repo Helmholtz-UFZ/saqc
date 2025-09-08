@@ -51,6 +51,7 @@ setup(
         "outlier-utils",
         "pyarrow",
         "pandas",
+        "pydantic",
         "scikit-learn",
         "scipy",
         "typing_extensions",

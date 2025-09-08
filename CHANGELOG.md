@@ -20,7 +20,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `flagPlateaus`: added function to search and flag outlierish value plateaus of certain temporal extension
 - `flagUniLOF`: added dispatch to Local Outlier Probability (*LoOP*) variant
 - `flaguniLOF`: made `thresh` Optional
-- `flagPlateaus`: added function to search and flag anomalous value plateaus of certain temporal extension
 - `flagOffset`: added functionality for dynamic tolerance for the offset return
 - `start_date`, `end_date`: option to limit flagging/processing to the given time range
 ### Changed
