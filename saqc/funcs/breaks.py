@@ -38,6 +38,21 @@ class BreaksMixin(ValidatePublicMembers):
         **kwargs,
     ) -> SaQC:
         """
+        .. deprecated:: 2.7.0
+           Deprecated Function. Please use to :py:meth:`~saqc.SaQC.flagNaN` instead.
+        """
+
+        return self.flagNaN(field, flag, dfilter, **kwargs)
+
+    @register(mask=[], demask=[], squeeze=["field"])
+    def flagNaN(
+        self: SaQC,
+        field: str,
+        flag: float = BAD,
+        dfilter: float = FILTER_ALL,
+        **kwargs,
+    ) -> SaQC:
+        """
         Flag NaNs in data.
 
         By default, only NaNs are flagged, that not already have a flag.

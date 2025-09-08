@@ -159,7 +159,12 @@ def _squeezeFlags(old_flags, new_flags: Flags, columns: pd.Index, meta) -> Flags
 
 
 def _maskData(
-    data: DictOfSeries, flags: Flags, columns: Sequence[str], thresh: float
+    data: DictOfSeries,
+    flags: Flags,
+    columns: Sequence[str],
+    thresh: float,
+    start_date: str | pd.Timestamp | None,
+    end_date: str | pd.Timestamp | None,
 ) -> Tuple[DictOfSeries, DictOfSeries]:
     """
     Mask data with Nans, if the flags are worse than a threshold.
@@ -177,6 +182,12 @@ def _maskData(
     # we use numpy here because it is faster
     for c in columns:
         col_mask = isflagged(flags[c].to_numpy(), thresh)
+
+        # Should one of these dates be inclusive?
+        if start_date is not None:
+            col_mask |= data[c].index < start_date
+        if end_date is not None:
+            col_mask |= data[c].index > end_date
 
         if col_mask.any():
             col_data = data[c].to_numpy(dtype=np.float64, copy=True)
@@ -258,6 +269,112 @@ def _homogenizeFieldsTargets(
     return fields, targets
 
 
+def normalizeKwargs(
+    funcSignature: inspect.Signature,
+    args: tuple,
+    kwargs: dict[str, Any],
+    flag: EXTERNAL_FLAG | OptionalNone,
+    saqc: "SaQC",
+) -> dict[str, Any]:
+    """
+    Merge args/kwargs, check for duplicates, and normalize dfilter/flag values.
+    """
+    paramNames = tuple(funcSignature.parameters.keys())[2:]  # skip (self, field)
+    argsMap = dict(zip(paramNames, args))
+
+    intersection = set(argsMap).intersection(set(kwargs))
+    if intersection:
+        raise TypeError(
+            f"SaQC function got multiple values for argument '{intersection.pop()}'"
+        )
+
+    kwargs = {**argsMap, **kwargs}
+    kwargs["dfilter"] = _getDfilter(funcSignature, saqc._scheme, kwargs)
+
+    if not isinstance(flag, OptionalNone):
+        kwargs["flag"] = saqc._scheme(flag)
+
+    return kwargs
+
+
+def resolveFieldsTargets(
+    saqc: "SaQC",
+    field: str | Sequence[str],
+    regex: bool,
+    kwargs: dict[str, Any],
+    multivariate: bool,
+    handlesTarget: bool,
+) -> tuple[list[str], list[str]]:
+    """
+    Expand field expressions, resolve targets, and homogenize to consistent lists.
+    """
+    fields = _expandField(regex, saqc._data.columns, field)
+    targets = toSequence(kwargs.pop("target", fields))
+    return _homogenizeFieldsTargets(multivariate, handlesTarget, fields, targets)
+
+
+def applyMask(
+    qc: "SaQC",
+    kwargs: dict[str, Any],
+    dfilter: float,
+    mask_args: list[str],
+    start_date: str | pd.Timestamp | None,
+    end_date: str | pd.Timestamp | None,
+) -> tuple[DictOfSeries, DictOfSeries]:
+    """
+    Apply data masking for flagged values.
+    """
+    columns = _argnamesToColumns(mask_args, kwargs)
+    _warn(columns.difference(qc._data.columns).to_list(), source="mask")
+    columns = columns.intersection(qc._data.columns)
+
+    return _maskData(
+        data=qc._data,
+        flags=qc._flags,
+        columns=columns,
+        thresh=dfilter,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
+def applyDemask(
+    qc: "SaQC",
+    kwargs: dict[str, Any],
+    demask_args: list[str],
+    stored_data: DictOfSeries,
+) -> DictOfSeries:
+    """
+    Restore masked data after function execution.
+    """
+    columns = _argnamesToColumns(demask_args, kwargs)
+    _warn(columns.difference(qc._data.columns).to_list(), source="demask")
+    columns = columns.intersection(qc._data.columns)
+
+    return _unmaskData(data=qc._data, mask=stored_data, columns=columns)
+
+
+def applySqueeze(
+    out: "SaQC",
+    func: Callable,
+    args: tuple,
+    kwargs: dict[str, Any],
+    squeezeArgs: list[str],
+    oldFlags: Flags,
+) -> Flags:
+    """
+    Squeeze flag history to one column per call.
+    """
+    columns = _argnamesToColumns(squeezeArgs, kwargs)
+    _warn(columns.difference(out._flags.columns).to_list(), source="squeeze")
+    columns = columns.intersection(out._flags.columns)
+
+    if not columns.empty:
+        meta = {"func": func.__name__, "args": args, "kwargs": kwargs}
+        return _squeezeFlags(oldFlags, out._flags, columns, meta)
+    return out._flags
+
+
 def register(
     mask: list[str],
     demask: list[str],
@@ -330,106 +447,54 @@ def register(
 
         @functools.wraps(func)
         def inner(
-            saqc,
+            saqc: "SaQC",
             field,
             *args,
+            start_date: str | pd.Timestamp | None = None,
+            end_date: str | pd.Timestamp | None = None,
             regex: bool = False,
             flag: EXTERNAL_FLAG | OptionalNone = OptionalNone(),
             **kwargs,
         ) -> "SaQC":
-            # because of pydantic we cannot rely on the absence of unset optionals
+
             if "target" in kwargs and kwargs["target"] is None:
                 kwargs.pop("target")
 
-            paramnames = tuple(func_signature.parameters.keys())[
-                2:
-            ]  # skip (self, field)
-
-            # check for duplicated arguments
-            args_map = dict(zip(paramnames, args))
-            intersection = set(args_map).intersection(set(kwargs))
-            if intersection:
-                raise TypeError(
-                    f"SaQC.{func.__name__}() got multiple values for argument '{intersection.pop()}'"
-                )
-            kwargs = {**args_map, **kwargs}
-            kwargs["dfilter"] = _getDfilter(func_signature, saqc._scheme, kwargs)
-
-            # translate flag
-            if not isinstance(flag, OptionalNone):
-                # translation schemes might want to use a flag
-                # `None` so we introduce a special class here
-                kwargs["flag"] = saqc._scheme(flag)
-
-            fields = _expandField(regex, saqc._data.columns, field)
-            targets = toSequence(kwargs.pop("target", fields))
-
-            fields, targets = _homogenizeFieldsTargets(
-                multivariate, handles_target, fields, targets
+            kwargs = normalizeKwargs(func_signature, args, kwargs, flag, saqc)
+            fields, targets = resolveFieldsTargets(
+                saqc, field, regex, kwargs, multivariate, handles_target
             )
 
             out = saqc.copy(deep=True)
 
-            # initialize target fields
-
             if not handles_target:
-                # initialize all target variables
                 for src, trg in zip(fields, targets):
                     if src != trg:
                         out = out.copyField(field=src, target=trg, overwrite=True)
 
             for src, trg in zip(fields, targets):
-                kwargs = {**kwargs, "field": src, "target": trg}
+                kw = {**kwargs, "field": src, "target": trg}
                 if not handles_target:
-                    kwargs["field"] = kwargs.pop("target")
+                    kw["field"] = kw.pop("target")
 
-                # find columns that need masking
-                # func_signature = func_signature.bind(field=field)
-                columns = _argnamesToColumns(mask, kwargs)
-                _warn(columns.difference(out._data.columns).to_list(), source="mask")
-                columns = columns.intersection(out._data.columns)
-
-                out._data, stored_data = _maskData(
-                    data=out._data,
-                    flags=out._flags,
-                    columns=columns,
-                    thresh=kwargs["dfilter"],
+                out._data, storedData = applyMask(
+                    qc=out,
+                    kwargs=kw,
+                    dfilter=kw["dfilter"],
+                    mask_args=mask,
+                    start_date=start_date,
+                    end_date=end_date,
                 )
 
-                # always pass a list to multivariate functions and
-                # unpack single element lists for univariate functions
                 if not multivariate:
-                    kwargs["field"] = squeezeSequence(kwargs["field"])
+                    kw["field"] = squeezeSequence(kw["field"])
 
                 old_flags = out._flags.copy()
+                out = func(out, **kw)
 
-                out = func(out, **kwargs)
+                out._flags = applySqueeze(out, func, args, kw, squeeze, old_flags)
+                out._data = applyDemask(out, kw, demask, storedData)
 
-                # find columns that need squeezing
-                columns = _argnamesToColumns(squeeze, kwargs)
-                _warn(
-                    columns.difference(out._flags.columns).to_list(), source="squeeze"
-                )
-                columns = columns.intersection(out._flags.columns)
-
-                # if the function did not want to set any flags at all,
-                # we assume a processing function that altered the flags
-                # in an unpredictable manner or do nothing with the flags.
-                # in either case we take the returned flags as the new truth.
-                if not columns.empty:
-                    meta = {
-                        "func": func.__name__,
-                        "args": args,
-                        "kwargs": kwargs,
-                    }
-                    out._flags = _squeezeFlags(old_flags, out._flags, columns, meta)
-
-                # find columns that need demasking
-                columns = _argnamesToColumns(demask, kwargs)
-                _warn(columns.difference(out._data.columns).to_list(), source="demask")
-                columns = columns.intersection(out._data.columns)
-
-                out._data = _unmaskData(out._data, stored_data, columns=columns)
                 out._validate(reason=f"call to {repr(func.__name__)}")
 
             return out
