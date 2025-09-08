@@ -42,10 +42,10 @@ class BreaksMixin(ValidatePublicMembers):
            Deprecated Function. Please use to :py:meth:`~saqc.SaQC.flagNaN` instead.
         """
 
-        return self.flagNaN(field, flag, dfilter, **kwargs)
+        return self.flagNAN(field, flag, dfilter, **kwargs)
 
     @register(mask=[], demask=[], squeeze=["field"])
-    def flagNaN(
+    def flagNAN(
         self: SaQC,
         field: str,
         flag: float = BAD,
