@@ -13,12 +13,14 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `flaguniLOF`: made `thresh` Optional
 - `flagPlateaus`: added function to search and flag anomalous value plateaus of certain temporal extension
 - `flagOffset`: added functionality for dynamic tolerance for the offset return
+- `start_date`, `end_date`: option to limit flagging/processing to the given time range
 ### Changed
 - Function parameter checking now based on pydantic
 ### Removed
 ### Fixed
 - `flagConstants`: fixed bug where last `min_periods` will never get flagged
 ### Deprecated
+- Function `flagMissing` in favor of `flagNaN`
 
 ## [2.6.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.6.0) - 2024-04-15
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.5.0...v2.6.0)

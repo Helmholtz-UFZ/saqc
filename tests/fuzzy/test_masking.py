@@ -22,14 +22,23 @@ def test_maskingMasksData(data_field_flags):
     """
     test if flagged values are replaced by np.nan
     """
-    data_in, field, flags = data_field_flags
-    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
+    data_in, field, flags, start_date, end_date = data_field_flags
+    data_masked, mask = _maskData(
+        data_in,
+        flags,
+        columns=[field],
+        thresh=UNFLAGGED,
+        start_date=start_date,
+        end_date=end_date,
+    )
     assert isinstance(data_masked, DictOfSeries)
     assert isinstance(mask, DictOfSeries)
     assert field in data_masked.columns
     if field in mask.columns:
         assert data_masked[field].iloc[mask[field].index].isna().all()
-        assert (flags[field].iloc[mask[field].index] > UNFLAGGED).all()
+        assert (
+            flags[field].iloc[mask[field].index].loc[start_date:end_date] > UNFLAGGED
+        ).all()
     else:
         # if nothing gets masked in a column,
         # the column does not appear in mask
@@ -44,10 +53,17 @@ def test_dataMutationPreventsUnmasking(data_field_flags):
 
     if `data` is mutated after `_maskData`, `_unmaskData` should be a no-op
     """
-    data_in, field, flags = data_field_flags
+    data_in, field, flags, start_date, end_date = data_field_flags
     filler = pd.Series(-9999.0, index=data_in[field].index, dtype=float)
 
-    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
+    data_masked, mask = _maskData(
+        data_in,
+        flags,
+        columns=[field],
+        thresh=UNFLAGGED,
+        start_date=start_date,
+        end_date=end_date,
+    )
     data_masked[field] = filler
     data_out = _unmaskData(data_masked, mask)
     assert (data_out[field] == filler).all(axis=None)
@@ -61,9 +77,16 @@ def test_flagsMutationPreventsUnmasking(data_field_flags):
 
     if `flags` is mutated after `_maskData`, `_unmaskData` should be a no-op
     """
-    data_in, field, flags = data_field_flags
+    data_in, field, flags, start_date, end_date = data_field_flags
 
-    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
+    data_masked, mask = _maskData(
+        data_in,
+        flags,
+        columns=[field],
+        thresh=UNFLAGGED,
+        start_date=start_date,
+        end_date=end_date,
+    )
     flags[:, field] = UNFLAGGED
     data_out = _unmaskData(data_masked, mask)
     assert (data_out[field].loc[flags[field] == BAD].isna()).all(axis=None)
@@ -81,9 +104,16 @@ def test_reshapingPreventsUnmasking(data_field_flags):
 
     filler = -1111
 
-    data_in, field, flags = data_field_flags
+    data_in, field, flags, start_date, end_date = data_field_flags
 
-    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
+    data_masked, mask = _maskData(
+        data_in,
+        flags,
+        columns=[field],
+        thresh=UNFLAGGED,
+        start_date=start_date,
+        end_date=end_date,
+    )
     # mutate indexes of `data` and `flags`
     index = data_masked[field].index.to_series()
     index.iloc[-len(data_masked[field]) // 2 :] += pd.Timedelta("7.5Min")
@@ -104,9 +134,16 @@ def test_unmaskingInvertsMasking(data_field_flags):
     """
     unmasking data should invert the masking
     """
-    data_in, field, flags = data_field_flags
+    data_in, field, flags, start_date, end_date = data_field_flags
 
-    data_masked, mask = _maskData(data_in, flags, columns=[field], thresh=UNFLAGGED)
+    data_masked, mask = _maskData(
+        data_in,
+        flags,
+        columns=[field],
+        thresh=UNFLAGGED,
+        start_date=start_date,
+        end_date=end_date,
+    )
     data_out = _unmaskData(data_masked, mask)
     assert pd.DataFrame.equals(
         data_out.to_pandas().astype(float), data_in.to_pandas().astype(float)
