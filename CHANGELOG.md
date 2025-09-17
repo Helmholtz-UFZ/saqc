@@ -12,6 +12,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Changed
 ### Removed
 ### Fixed
+- `SaQC.resample`: fixed missing import when called with `squeeze=True`
 ### Deprecated
 
 ## [2.7.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.7.0) - 2025-09-09
