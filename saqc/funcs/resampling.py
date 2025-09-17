@@ -17,7 +17,7 @@ import pandas as pd
 from typing_extensions import Literal
 
 import saqc.constants
-from saqc.core import register, History
+from saqc.core import History, register
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import getFreqDelta
 from saqc.lib.ts_operators import isValid
