@@ -14,23 +14,21 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 #  SaQC: System for automated Quality Control
 
-`SaQC` is a tool/framework/application to quality control time series data.
-It provides
-a growing collection of algorithms and methods to analyze, annotate and
-process timeseries data. It supports the end to end enrichment of metadata
-and provides various user interfaces: 1) a Python API, 2) a command line interface
-with a text based configuration system and a
-[web based user interface](https://webapp.ufz.de/saqc-config-app/)
+SaQC is a flexible framework for quality control of time series data.
+It offers a growing collection of algorithms and methods to analyze, annotate, and process time series, while supporting end-to-end metadata enrichment.
 
-`SaQC` is designed with a particular focus on the needs of active data professionals,
-including sensor hardware-oriented engineers, domain experts, and data scientists,
-all of whom can benefit from its capabilities to improve the quality standards of given data products.
+SaQC provides multiple user interfaces to fit different workflows:
 
-For a (continously improving) overview of features, typical usage patterns,
-the specific system components and how to customize `SaQC` to your own
-needs, please refer to our
-[online documentation](https://rdm-software.pages.ufz.de/saqc/index.html).
+- A Python API for programmatic integration
+- A command-line interface with a text-based configuration system
+- A [Galaxy Tool](https://usegalaxy.eu/root?tool_id=saqc) for integration into data analysis pipelines
+- A web-based [user interface](https://web.app.ufz.de/saqc-config-app/) for interactive exploration
 
+Designed with the needs of data professionals in mind — ranging from sensor engineers to domain experts and data scientists — SaQC
+helps improve and standardize the quality of data products across disciplines.
+
+For an up-to-date overview of features, usage patterns, system components, and customization options, please refer to the
+[online documentation](https://rdm-software.pages.ufz.de/saqc/index.html)
 
 ## Installation
 
@@ -50,14 +48,14 @@ For more details, see the [installation guide](https://rdm-software.pages.ufz.de
 
 ## Usage
 
-`SaQC` is both, a command line application controlled by a text based configuration
-and a python module with a simple API.
+SaQC can be used as a command-line application driven by a text-based configuration, or as a Python module with a consistent and simple API.
 
-### SaQC as a command line application
-The command line application is controlled by a semicolon-separated text
-file listing the variables in the dataset and the routines to inspect,
-quality control and/or process them. The content of such a configuration
-could look like [this](https://git.ufz.de/rdm-software/saqc/raw/main/docs/resources/data/config.csv):
+### SaQC as a command-line application
+
+The command-line application is controlled through a semicolon-separated configuration file. This file lists the dataset variables
+along with the routines to inspect, quality control, and process them.
+
+An example configuration file can be found [here](https://git.ufz.de/rdm-software/saqc/raw/main/docs/resources/data/config.csv)
 
 ```
 varname    ; test
@@ -89,8 +87,9 @@ saqc \
 
 ### SaQC as a python module
 
-The following snippet implements the same configuration given above through
-the Python-API:
+When used as a Python module, SaQC provides a consistent and simple API for programmatic access. This makes it straightforward
+to define, execute, and customize quality control routines directly within Python, and to integrate SaQC into data analysis workflows and scripts.
+The following snippet implements the same configuration given above through the Python-API:
 
 ```python
 import pandas as pd
