@@ -166,7 +166,7 @@ class ToolsMixin(ValidatePublicMembers):
     def copyField(
         self: SaQC,
         field: SaQCFields,
-        target: NewSaQCFields,
+        target: str,
         overwrite: bool = False,
         **kwargs,
     ) -> SaQC:
