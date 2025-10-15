@@ -415,9 +415,9 @@ class OutliersMixin(ValidatePublicMembers):
     @flagging()
     def flagRange(
         self: SaQC,
-        field: str,
-        min: float = -np.inf,
-        max: float = np.inf,
+        field: SaQCFields,
+        min: float | None = None,
+        max: float | None = None,
         flag: float = BAD,
         **kwargs,
     ) -> SaQC:
@@ -433,6 +433,10 @@ class OutliersMixin(ValidatePublicMembers):
             Upper bound for valid data.
         """
         # using .values is much faster
+        if min is None:
+            min = -np.inf
+        if max is None:
+            max = np.inf
         datacol = self._data[field].to_numpy()
         mask = (datacol < min) | (datacol > max)
         self._flags[mask, field] = flag

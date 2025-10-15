@@ -10,9 +10,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.7.0...main)
 ### Added
 ### Changed
+- `SaQC.flagRange`: Make the parameters `min` and `max` optional
 ### Removed
 ### Fixed
 - `SaQC.resample`: fixed missing import when called with `squeeze=True`
+- `SaQC.flagRange`: fixed missing multifield support
 ### Deprecated
 
 ## [2.7.0](https://git.ufz.de/rdm-software/saqc/-/tags/v2.7.0) - 2025-09-09
