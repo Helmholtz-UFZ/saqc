@@ -9,6 +9,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## Unreleased
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.7.0...main)
 ### Added
+- Support for tuples and dictionaries in config files
 ### Changed
 - `SaQC.flagRange`: Make the parameters `min` and `max` optional
 ### Removed
