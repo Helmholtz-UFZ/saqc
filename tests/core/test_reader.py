@@ -133,13 +133,23 @@ def test_configChecks(data, test, expected):
 
 
 @pytest.mark.parametrize(
-    "kwarg", ["NAN", "'a string'", "5", "5.5", "-5", "True", "sum([1, 2, 3])"]
+    "kwarg",
+    [
+        "{'x': 1, 'y': 'test'}",
+        "NAN",
+        "'a string'",
+        "5",
+        "5.5",
+        "-5",
+        "True",
+        "sum([1, 2, 3])",
+        "[1, 2, 3]",
+        "(1, 2)",
+    ],
 )
 def test_supportedArguments(data, kwarg):
     # test if the following function arguments
     # are supported (i.e. parsing does not fail)
-
-    # TODO: necessary?
 
     @flagging()
     def func(saqc, field, kwarg, **kwargs):

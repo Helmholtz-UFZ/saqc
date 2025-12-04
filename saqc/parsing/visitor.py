@@ -92,8 +92,10 @@ class ConfigFunctionParser(ast.NodeVisitor):
         ast.Subscript,
         ast.Index,
         ast.USub,
-        ast.List,
         ast.Attribute,
+        ast.List,
+        ast.Tuple,
+        ast.Dict,
     )
 
     def __init__(self):
