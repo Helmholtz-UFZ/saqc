@@ -20,23 +20,19 @@ from saqc.lib.ts_operators import (
     polyRollerIrregular,
     polyRollerNoMissing,
 )
-from saqc.lib.types import Float, FreqStr, Int, OffsetStr, SaQC, ValidatePublicMembers
+from saqc.lib.types import (
+    FILL_METHODS,
+    Float,
+    FreqStr,
+    Int,
+    OffsetStr,
+    SaQC,
+    ValidatePublicMembers,
+)
 
 DEFAULT_MOMENT = dict(
     pretrained_model_name_or_path="AutonLab/MOMENT-1-large", revision="main"
 )
-
-FILL_METHODS = Literal[
-    "linear",
-    "nearest",
-    "zero",
-    "slinear",
-    "quadratic",
-    "cubic",
-    "spline",
-    "barycentric",
-    "polynomial",
-]
 
 
 class CurvefitMixin(ValidatePublicMembers):

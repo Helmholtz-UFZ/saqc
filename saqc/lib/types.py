@@ -35,6 +35,18 @@ from saqc.lib.checking import (
     checkSaQC,
 )
 
+FILL_METHODS = Literal[
+    "linear",
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "spline",
+    "barycentric",
+    "polynomial",
+]
+
 EXTERNAL_FLAG = Union[str, float, int]
 
 
