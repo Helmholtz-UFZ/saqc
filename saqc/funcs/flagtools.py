@@ -113,7 +113,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
 
     @flagging()
     def setFlags(
-        self,
+        self: SaQC,
         field: SaQCFields,
         data: str | list | ArrayLike | pd.Series,
         override: bool = False,
