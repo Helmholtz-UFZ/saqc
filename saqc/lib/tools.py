@@ -37,6 +37,7 @@ from saqc.lib.types import ArrayLike, CompT
 
 T = TypeVar("T")
 # fmt: off
+
 @overload
 def toSequence(value: Sequence[T]) -> List[T]:
     ...
@@ -54,6 +55,36 @@ def squeezeSequence(value: Sequence[T]) -> Union[T, Sequence[T]]:
     if len(value) == 1:
         return value[0]
     return value
+
+
+def toStrictPeriodicStamp(stamp: str):
+    """
+    Convert periodic conveniance notation(s) to periodic stamp as readable by periodic mask.
+    * `MM-DD` to `MM-DDT00:00:00
+    """
+    if bool(re.search(r"^\d{2}-\d{2}$", stamp)):  # checking for date only notation
+        stamp = stamp + "T00:00:00"
+
+    return stamp
+
+
+def isPeriodicStamp(stamp: str):
+    """
+    Identify if a string is a periodic timestamp that can be processed by the periodicMask function.
+    """
+    if not isinstance(stamp, str):
+        return False
+
+    valids = [
+        r"^\d{2}$",
+        r"^\d{2}:\d{2}$",
+        r"^\d{2}:\d{2}:\d{2}$",
+        r"^\d{2}T\d{2}:\d{2}:\d{2}$",
+        r"^\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$",
+        r"^\d{2}-\d{2}$",
+    ]
+    matches = [bool(re.search(v, stamp)) for v in valids]
+    return True in matches
 
 
 def periodicMask(

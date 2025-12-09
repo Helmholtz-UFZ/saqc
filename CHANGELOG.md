@@ -10,6 +10,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [List of commits](https://git.ufz.de/rdm-software/saqc/-/compare/v2.7.0...main)
 ### Added
 - Support for tuples and dictionaries in config files
+- `start_date` and `end_date` keyword arguments can be used to determine seasonal masks
 ### Changed
 - `SaQC.flagRange`: Make the parameters `min` and `max` optional
 ### Removed

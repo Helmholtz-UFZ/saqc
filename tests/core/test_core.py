@@ -608,3 +608,18 @@ def test_date_ranges(data):
     assert (qc._flags["var1"]["2017-01-01 03:00":"2017-12-30 20:00:00"] == BAD).all()
     assert (qc._flags["var1"][:"2017-01-01 02:59"] == UNFLAGGED).all()
     assert (qc._flags["var1"]["2017-12-30 20:00:01":] == UNFLAGGED).all()
+
+
+def test_date_seasons(data):
+    qc = SaQC(data)
+    qc = qc.flagRange(
+        field="var1",
+        max=-np.inf,
+        start_date="03:00:00",
+        end_date="20:00:00",
+    )
+    season_select = (qc._flags["var1"].index.hour >= 3) & (
+        qc._flags["var1"].index.hour <= 20
+    )
+    assert (qc._flags["var1"][season_select] == BAD).all()
+    assert (qc._flags["var1"][~season_select] == UNFLAGGED).all()
