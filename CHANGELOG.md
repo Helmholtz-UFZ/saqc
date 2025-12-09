@@ -32,6 +32,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ### Fixed
 - `flagConstants`: fixed bug where last `min_periods` will never get flagged
 - importing `FILL_METHODS` from `lib.types` module for annotation usage in `curvefit` 
+- fixed bug where `setFlags` fails with empty data 
 ### Deprecated
 - Function `flagMissing` in favor of `flagNAN`
 

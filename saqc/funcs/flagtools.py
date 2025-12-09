@@ -143,6 +143,9 @@ class FlagtoolsMixin(ValidatePublicMembers):
         """
         to_flag = pd.Series(False, index=self._data[field].index)
 
+        if len(data) == 0:
+            return self
+
         # check if f_data is meant to denote timestamps:
         if (isinstance(data, (list, np.ndarray, pd.Index))) and not isinstance(
             data[0], (tuple, np.ndarray)
