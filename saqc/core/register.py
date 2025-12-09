@@ -19,7 +19,14 @@ from saqc import FILTER_ALL, FILTER_NONE
 from saqc.core import DictOfSeries, Flags, History
 from saqc.core.translation.basescheme import TranslationScheme
 from saqc.lib.docs import ParamDict, docurator
-from saqc.lib.tools import isflagged, squeezeSequence, toSequence
+from saqc.lib.tools import (
+    isflagged,
+    isPeriodicStamp,
+    periodicMask,
+    squeezeSequence,
+    toSequence,
+    toStrictPeriodicStamp,
+)
 from saqc.lib.types import EXTERNAL_FLAG, OptionalNone
 
 if TYPE_CHECKING:
@@ -183,11 +190,18 @@ def _maskData(
     for c in columns:
         col_mask = isflagged(flags[c].to_numpy(), thresh)
 
-        # Should one of these dates be inclusive?
-        if start_date is not None:
-            col_mask |= data[c].index < start_date
-        if end_date is not None:
-            col_mask |= data[c].index > end_date
+        if (isPeriodicStamp(start_date) is True) and (
+            isPeriodicStamp(end_date) is True
+        ):
+            start_date, end_date = toStrictPeriodicStamp(
+                start_date
+            ), toStrictPeriodicStamp(end_date)
+            col_mask |= periodicMask(data[c].index, start_date, end_date, True).values
+        else:
+            if start_date is not None:
+                col_mask |= data[c].index < start_date
+            if end_date is not None:
+                col_mask |= data[c].index > end_date
 
         if col_mask.any():
             col_data = data[c].to_numpy(dtype=np.float64, copy=True)
