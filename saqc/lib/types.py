@@ -224,6 +224,28 @@ class CurveFitter(Protocol):
 
 
 # Defining composed types
+def _valContextError(fieldType, valContext, valInfo):
+    return f"Trying to validate {fieldType} type outside context of SaQC Method and/or Signature Context is not given. Parameter 'self' of type SaQC needs to be in the context to validate type {fieldType}. Got Field-info: {valInfo}. Got Field-context: {valContext}"
+
+
+class SaQCColumns(RootModel[Union[str, list[str]]]):
+    """
+    Type that can be an annotation to SaQC methods parameters and is checked against argument 'self' in those methods.
+    Consistency is only ensured if `self` is validated (and thus defined) before the parameter being of `SaQCColumns` type.
+    """
+
+    @field_validator("root", mode="after")
+    @classmethod
+    def root_eval(cls, v: str | list[str], info: ValidationInfo) -> [str | list[str]]:
+        if (
+            isinstance(info.context, dict)
+            and ("self" in info.context)
+            and hasattr(info.context["self"], "columns")
+        ):
+            checkFields(v, info.context["self"].columns, is_regex=False)
+        else:
+            raise ValueError(_valContextError("SaQCColumns", info, info.context))
+        return v
 
 
 class NewSaQCFields(RootModel[Union[str, list[str]]]):
@@ -242,18 +264,14 @@ class NewSaQCFields(RootModel[Union[str, list[str]]]):
         ):
             checkNewFields(v, info.context["self"].columns)
         else:
-            raise ValueError(
-                "Trying to validate newSaQCField type outside context of SaQC Method and/or Signature Context is not given. \n"
-                'parameter "self" of type SaQC needs to be in the context to validate type newSaQCField.\n'
-                f"Got Field-info: {info} \n"
-                f"Got Field-context: {info.context}"
-            )
+            raise ValueError(_valContextError("NewSaQCFields", info, info.context))
         return v
 
 
 class SaQCFields(RootModel[Union[str, list[str]]]):
     """
     Type that can be an annotation to SaQC methods parameters and is checked against argument 'self' in those methods.
+    This type also checks for regex kwarg - for plain selector type, use `SaQCColumns` type.
     Consistency is only ensured if `self` is validated before `SaQCField` type.
     """
 
@@ -265,14 +283,10 @@ class SaQCFields(RootModel[Union[str, list[str]]]):
             and ("self" in info.context)
             and hasattr(info.context["self"], "columns")
         ):
-            checkFields(v, info.context["self"].columns)
+            is_regex = info.context.get("kwargs", {}).get("regex", False)
+            checkFields(v, info.context["self"].columns, is_regex=is_regex)
         else:
-            raise ValueError(
-                f"Trying to validate SaQCField type outside context of SaQC Method and/or Signature Context is not given. \n"
-                f'parameter "self" of type SaQC needs to be in the context to validate type SaQCField.\n'
-                f"Got Field-info: {info} \n"
-                f"Got Field-context: {info.context}"
-            )
+            raise ValueError(_valContextError("SaQCFields", info, info.context))
         return v
 
 

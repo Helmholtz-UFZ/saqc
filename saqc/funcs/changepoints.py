@@ -14,7 +14,7 @@ import pandas as pd
 
 from saqc import BAD, UNFLAGGED
 from saqc.core import flagging, register
-from saqc.lib.types import Int, OffsetStr, SaQC, ValidatePublicMembers
+from saqc.lib.types import Int, OffsetStr, SaQC, SaQCFields, ValidatePublicMembers
 
 
 class ChangepointsMixin(ValidatePublicMembers):
@@ -22,7 +22,7 @@ class ChangepointsMixin(ValidatePublicMembers):
     @flagging()
     def flagChangePoints(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         stat_func: Callable[[np.ndarray, np.ndarray], float],
         thresh_func: Callable[[np.ndarray, np.ndarray], float],
         window: OffsetStr | tuple[OffsetStr, OffsetStr],
@@ -102,7 +102,7 @@ class ChangepointsMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def assignChangePointCluster(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         stat_func: Callable[[np.ndarray, np.ndarray], float],
         thresh_func: Callable[[np.ndarray, np.ndarray], float],
         window: OffsetStr | tuple[OffsetStr, OffsetStr],

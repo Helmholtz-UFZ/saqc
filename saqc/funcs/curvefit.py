@@ -27,6 +27,7 @@ from saqc.lib.types import (
     Int,
     OffsetStr,
     SaQC,
+    SaQCFields,
     ValidatePublicMembers,
 )
 
@@ -39,7 +40,7 @@ class CurvefitMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def fitPolynomial(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: OffsetStr | (Int >= 0),
         order: Int >= 1,
         min_periods: Int >= 0 = 0,
@@ -91,7 +92,7 @@ class CurvefitMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def fitLowpassFilter(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         cutoff: (Float >= 0) | FreqStr,
         nyq: Float >= 0 = 0.5,
         filter_order: Int >= 1 = 2,

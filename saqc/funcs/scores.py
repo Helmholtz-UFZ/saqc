@@ -20,7 +20,17 @@ from saqc.core import register
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import getApply, toSequence
 from saqc.lib.ts_operators import kNN
-from saqc.lib.types import Float, FreqStr, Int, OffsetStr, SaQC, ValidatePublicMembers
+from saqc.lib.types import (
+    Float,
+    FreqStr,
+    Int,
+    NewSaQCFields,
+    OffsetStr,
+    SaQC,
+    SaQCColumns,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 from saqc.parsing.environ import ENV_OPERATORS
 
 
@@ -194,8 +204,8 @@ class ScoresMixin(ValidatePublicMembers):
     )
     def assignKNNScore(
         self: SaQC,
-        field: Sequence[str],
-        target: str,
+        field: SaQCFields,
+        target: SaQCColumns | NewSaQCFields,
         n: Int > 0 = 10,
         func: Callable[[pd.Series], float] | str = "sum",
         freq: (Float >= 0) | FreqStr = np.inf,
@@ -306,7 +316,7 @@ class ScoresMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def assignZScore(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: OffsetStr | None = None,
         norm_func: Callable | str = "std",
         model_func: Callable | str = "mean",
@@ -376,8 +386,8 @@ class ScoresMixin(ValidatePublicMembers):
     )
     def assignLOF(
         self: SaQC,
-        field: Sequence[str],
-        target: str,
+        field: SaQCFields,
+        target: SaQCColumns | NewSaQCFields,
         n: Int > 0 = 20,
         freq: (Float > 0) | FreqStr = np.inf,
         min_periods: Int >= 0 = 2,
@@ -450,7 +460,7 @@ class ScoresMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def assignUniLOF(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         n: Int > 0 = 20,
         algorithm: Literal["ball_tree", "kd_tree", "brute", "auto"] = "ball_tree",
         p: Int > 0 = 1,

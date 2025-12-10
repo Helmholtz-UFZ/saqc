@@ -15,7 +15,15 @@ import pandas as pd
 import saqc
 from saqc.core import DictOfSeries, Flags, register
 from saqc.lib.tools import getFreqDelta
-from saqc.lib.types import Int, OffsetStr, SaQC, SaQCFields, ValidatePublicMembers
+from saqc.lib.types import (
+    Int,
+    NewSaQCFields,
+    OffsetStr,
+    SaQC,
+    SaQCColumns,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 
 
 class RollingMixin(ValidatePublicMembers):
@@ -26,7 +34,7 @@ class RollingMixin(ValidatePublicMembers):
         self: SaQC,
         field: SaQCFields,
         window: OffsetStr | (Int > 0),
-        target: SaQCFields | str | None = None,
+        target: SaQCColumns | NewSaQCFields | None = None,
         func: (
             Callable[[pd.Series], np.ndarray]
             | Literal[

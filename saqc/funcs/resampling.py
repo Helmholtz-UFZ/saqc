@@ -17,6 +17,7 @@ import pandas as pd
 from typing_extensions import Literal
 
 import saqc.constants
+from saqc.constants import UNFLAGGED
 from saqc.core import History, register
 from saqc.lib.docs import DOC_TEMPLATES
 from saqc.lib.tools import getFreqDelta
@@ -29,6 +30,8 @@ from saqc.lib.types import (
     OffsetLike,
     OffsetStr,
     SaQC,
+    SaQCColumns,
+    SaQCFields,
     ValidatePublicMembers,
 )
 
@@ -294,7 +297,7 @@ class ResamplingMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def resample(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         freq: FreqStr | pd.Timedelta,
         func: Callable[[pd.Series], pd.Series] | str = "mean",
         method: Literal["fagg", "bagg", "nagg"] = "bagg",
@@ -409,7 +412,7 @@ class ResamplingMixin(ValidatePublicMembers):
     )
     def reindex(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         index: FreqStr | pd.DatetimeIndex | str,
         method: METHOD_LITERALS = "match",
         tolerance: OffsetStr | OffsetLike | None = None,
@@ -793,8 +796,8 @@ class ResamplingMixin(ValidatePublicMembers):
     )
     def concatFlags(
         self: SaQC,
-        field: str,
-        target: str | None = None,
+        field: SaQCFields,
+        target: SaQCColumns | None = None,
         method: Literal[
             "fagg",
             "bagg",

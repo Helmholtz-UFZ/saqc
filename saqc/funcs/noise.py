@@ -17,7 +17,14 @@ import pandas as pd
 from saqc.constants import BAD
 from saqc.core.register import flagging
 from saqc.lib.tools import isunflagged, statPass
-from saqc.lib.types import Float, Int, OffsetStr, SaQC, ValidatePublicMembers
+from saqc.lib.types import (
+    Float,
+    Int,
+    OffsetStr,
+    SaQC,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 from saqc.parsing.environ import ENV_OPERATORS
 
 
@@ -26,7 +33,7 @@ class NoiseMixin(ValidatePublicMembers):
     @flagging()
     def flagByScatterLowpass(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: OffsetStr | pd.Timedelta,
         thresh: Float >= 0,
         func: (

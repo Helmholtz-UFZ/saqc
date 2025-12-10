@@ -31,6 +31,7 @@ from saqc.lib.types import (
     NewSaQCFields,
     OffsetStr,
     SaQC,
+    SaQCColumns,
     SaQCFields,
     ValidatePublicMembers,
 )
@@ -38,7 +39,7 @@ from saqc.lib.types import (
 
 class FlagtoolsMixin(ValidatePublicMembers):
     @flagging()
-    def flagDummy(self: SaQC, field: str, **kwargs) -> SaQC:
+    def flagDummy(self: SaQC, field: SaQCFields, **kwargs) -> SaQC:
         """
         Function does nothing but returning data and flags.
 
@@ -174,8 +175,8 @@ class FlagtoolsMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=["field"], squeeze=["field"])
     def flagManual(
         self: SaQC,
-        field: str,
-        mdata: str | pd.Series | ArrayLike | list | pd.DataFrame,
+        field: SaQCFields,
+        mdata: SaQCColumns | pd.Series | ArrayLike | list | pd.DataFrame,
         method: Literal[
             "left-open", "right-open", "closed", "plain", "ontime"
         ] = "left-open",
@@ -380,7 +381,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
     def transferFlags(
         self: SaQC,
         field: SaQCFields,
-        target: SaQCFields | NewSaQCFields | None = None,
+        target: SaQCColumns | NewSaQCFields,
         squeeze: bool = False,
         overwrite: bool = False,
         **kwargs,
@@ -498,7 +499,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
     @flagging()
     def propagateFlags(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: OffsetStr | (Int > 0),
         method: Literal["ffill", "bfill"] = "ffill",
         flag: float = BAD,
@@ -622,7 +623,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         self: SaQC,
         field: SaQCFields,
         group: Sequence[SaQC] | None = None,
-        target: SaQCFields | None = None,
+        target: SaQCColumns | None = None,
         flag: float = BAD,
         **kwargs,
     ) -> SaQC:
@@ -720,7 +721,7 @@ class FlagtoolsMixin(ValidatePublicMembers):
         self: SaQC,
         field: SaQCFields,
         group: Sequence[SaQC] | None = None,
-        target: SaQCFields | None = None,
+        target: SaQCColumns | None = None,
         flag: float = BAD,
         **kwargs,
     ) -> SaQC:
@@ -781,7 +782,7 @@ def _groupOperation(
     field: SaQCFields,
     func: Callable[[pd.Series, pd.Series], pd.Series],
     group: Sequence[SaQC] | None = None,
-    target: SaQCFields | None = None,
+    target: SaQCColumns | None = None,
     flag: float = BAD,
     **kwargs,
 ) -> SaQC:

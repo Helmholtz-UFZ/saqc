@@ -7,7 +7,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -15,14 +15,14 @@ import pandas as pd
 from saqc.core import register
 from saqc.funcs.curvefit import _fitPolynomial
 from saqc.funcs.rolling import _roll
-from saqc.lib.types import Int, OffsetStr, SaQC, ValidatePublicMembers
+from saqc.lib.types import Int, OffsetStr, SaQC, SaQCFields, ValidatePublicMembers
 
 
 class ResidualsMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def calculatePolynomialResiduals(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: OffsetStr | (Int > 0),
         order: int,
         min_periods: int = 0,
@@ -86,7 +86,7 @@ class ResidualsMixin(ValidatePublicMembers):
     @register(mask=["field"], demask=[], squeeze=[])
     def calculateRollingResiduals(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         window: OffsetStr | (Int > 0),
         func: Callable[[pd.Series], np.ndarray] | str = "mean",
         min_periods: Int >= 0 = 0,

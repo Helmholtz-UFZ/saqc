@@ -24,7 +24,14 @@ from saqc import BAD, FILTER_ALL
 from saqc.core import flagging, register
 from saqc.funcs.changepoints import _getChangePoints
 from saqc.lib.tools import isunflagged
-from saqc.lib.types import Float, Int, OffsetStr, SaQC, ValidatePublicMembers
+from saqc.lib.types import (
+    Float,
+    Int,
+    OffsetStr,
+    SaQC,
+    SaQCFields,
+    ValidatePublicMembers,
+)
 
 
 class BreaksMixin(ValidatePublicMembers):
@@ -32,7 +39,7 @@ class BreaksMixin(ValidatePublicMembers):
     @register(mask=[], demask=[], squeeze=["field"])
     def flagMissing(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         flag: float = BAD,
         dfilter: float = FILTER_ALL,
         **kwargs,
@@ -47,7 +54,7 @@ class BreaksMixin(ValidatePublicMembers):
     @register(mask=[], demask=[], squeeze=["field"])
     def flagNAN(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         flag: float = BAD,
         dfilter: float = FILTER_ALL,
         **kwargs,
@@ -73,7 +80,7 @@ class BreaksMixin(ValidatePublicMembers):
     @flagging()
     def flagIsolated(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         gap_window: OffsetStr,
         group_window: OffsetStr,
         flag: float = BAD,
@@ -137,7 +144,7 @@ class BreaksMixin(ValidatePublicMembers):
     @flagging()
     def flagJumps(
         self: SaQC,
-        field: str,
+        field: SaQCFields,
         thresh: Float >= 0,
         window: OffsetStr,
         min_periods: Int >= 0 = 0,

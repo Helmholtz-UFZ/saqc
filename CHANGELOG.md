@@ -26,6 +26,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - `flaguniLOF`: made `thresh` Optional
 - `flagOffset`: added functionality for dynamic tolerance for the offset return
 - `start_date`, `end_date`: option to limit flagging/processing to the given time range
+- field types for methods annotations
 ### Changed
 - Function parameter checking now based on pydantic
 ### Removed
